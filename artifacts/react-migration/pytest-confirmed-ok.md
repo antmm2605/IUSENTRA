@@ -1,12 +1,79 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-17, Lex AI dati studio, UTF-8 e impaginazione risposte 2.245.8, no backup.
+Aggiornato: 2026-05-17, Verità numeri Aggiornamenti legali e pianificazioni, no backup.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Dataset Lex notturno Superadmin - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests\test_lex_dataset_nightly.py tests\test_scheduler_registry.py tests\test_scheduler_worker.py tests\test_impostazioni_ai_locale_react.py tests\test_lex_dataset_training_status.py -q --tb=short` | OK | 19/19 passati: job `Dataset Lex notturno` registrato in Pianificazioni Superadmin alle 01:45, runner tenant-aware, stato Impostazioni AI e nessun addestramento automatico. |
+| `python -m pytest tests\test_lex_studio_dataset_pipeline.py tests\test_lex_dataset_nightly.py tests\test_scheduler_registry.py tests\test_scheduler_worker.py tests\test_impostazioni_ai_locale_react.py tests\test_lex_dataset_training_status.py -q --tb=short` | OK | 33/33 passati: pipeline dataset core e job notturno restano coerenti con privacy, review umana e output locali. |
+| `python -m ruff check lex\dataset\nightly.py lex\dataset\__init__.py pct\scheduler.py pct\scheduler_registry.py web\services\lex_dataset_training_status.py tests\test_lex_dataset_nightly.py tests\test_scheduler_registry.py tests\test_scheduler_worker.py tests\test_impostazioni_ai_locale_react.py`; `python -m py_compile lex\dataset\nightly.py lex\dataset\__init__.py pct\scheduler.py pct\scheduler_registry.py web\services\lex_dataset_training_status.py` | OK | Ruff e sintassi confermati sul runner notturno, scheduler, registry e stato UI. |
+| `node frontend\scripts\check-react-contracts.mjs`; `npm --prefix frontend run typecheck -- --pretty false`; `npm --prefix frontend run build` | OK | Contratti React, TypeScript e build Vite verdi; build completata in 6.51s con main `index-Ch0wfyjw.js` 453.54 kB (134.09 kB gzip) e chunk `ImpostazioniPage-5sR8fGV_.js` 130.91 kB (38.15 kB gzip). |
+| Lancio locale `run_lex_dataset_nightly(...)` su `data/fascicoli/documenti_ai/documenti_ai.json` | OK | Elaborati 13 documenti reali, 202 blocchi e 202 domande candidate; scritti artefatti locali sotto `data/intelligence/lex_dataset/antonella-mammola`; `automatic_training=false`, `external_training=false`, `human_review_required=true`. |
+
+### Lex dataset operativo da Impostazioni AI - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\services\lex_dataset_training_status.py web\services\react_impostazioni_bridge.py web\blueprints\api_v1_react.py tests\test_lex_dataset_training_status.py tests\test_impostazioni_ai_locale_react.py` | OK | Sintassi confermata per servizio stato dataset Lex, payload Impostazioni, API React e test mirati. |
+| `python -m pytest tests\test_lex_dataset_training_status.py tests\test_impostazioni_ai_locale_react.py -q --tb=short` | OK | 7/7 passati: la tab AI Locale espone percorso dataset Lex con RAG, Q&A in revisione, export Alpaca/ShareGPT, LLaMA Factory/Ollama manuale, ultimo lavoro ed errori senza addestramento automatico. |
+| `python -m pytest tests\test_lex_studio_dataset_pipeline.py -q --tb=short` | OK | 14/14 passati: pipeline dataset core letta come dipendenza e invariata; RAG immediato, review umana, export e confini privacy restano governati. |
+| `python -m ruff check web\services\lex_dataset_training_status.py web\services\react_impostazioni_bridge.py tests\test_lex_dataset_training_status.py tests\test_impostazioni_ai_locale_react.py`; `python -m ruff check web\blueprints\api_v1_react.py --select F401,F811,F821` | OK | Ruff mirato verde sui file Python toccati e controllo import/nomi sulla blueprint API già modificata anche da altri worker. |
+| `npm --prefix frontend run typecheck -- --pretty false`; `git diff --check -- web\services\lex_dataset_training_status.py web\services\react_impostazioni_bridge.py web\blueprints\api_v1_react.py frontend\src\features\impostazioni\components\SettingsActions.tsx frontend\src\features\impostazioni\ImpostazioniPage.css tests\test_lex_dataset_training_status.py tests\test_impostazioni_ai_locale_react.py` | OK | TypeScript e whitespace confermati sul perimetro Worker D; nessun build Vite/browser eseguito in questa tranche per non pestare gli asset React già rigenerati da altri worker. |
+
+### Dataset Lex coda revisione operativa - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests\test_lex_dataset_review_queue.py tests\test_lex_dataset_nightly.py tests\test_impostazioni_ai_locale_react.py tests\test_lex_dataset_training_status.py -q --tb=short` | OK | 14/14 passati: job notturno, fallback Documenti AI condiviso verso archivio tenant, coda locale, approvazione/scarto senza training automatico e UI Impostazioni AI coperti. |
+| `python -m py_compile web\services\lex_dataset_review_queue.py web\services\lex_dataset_training_status.py web\blueprints\api_v1_react.py` | OK | Sintassi Python confermata per servizio revisione, stato dataset e API React. |
+| `python -m ruff check web\services\lex_dataset_review_queue.py web\services\lex_dataset_training_status.py web\blueprints\api_v1_react.py tests\test_lex_dataset_review_queue.py tests\test_impostazioni_ai_locale_react.py` | OK | Ruff verde sui file Python toccati. |
+| `npm --prefix frontend run typecheck -- --pretty false`; `npm --prefix frontend run build`; `node frontend\scripts\check-react-contracts.mjs` | OK | TypeScript, build Vite e contratti React verdi dopo il pannello coda revisione in `Impostazioni -> AI Locale`. |
+| Lettura reale coda locale `data\intelligence\lex_dataset\antonella-mammola\qa_review_queue.json` | OK | 202 domande candidate lette, 202 in attesa, 0 approvate, 0 scartate, nessun invio esterno e nessun training automatico. |
+| Playwright Chrome su Docker locale 2.245.9, `/impostazioni?tab=ai`, desktop 1440x980 e mobile 390x844 | OK | Card `Domande in revisione` cliccabile, pannello `Coda revisione domande` visibile, 12 elementi caricati, pulsanti `Salva e approva`/`Scarta`, zero overflow orizzontale, zero console error e nessun testo tecnico vietato. |
+
+### Lex comunicazioni email/PEC dataset-RAG - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile tests\test_lex_email_knowledge_matrix.py` | OK | Sintassi confermata sul contratto documentale per dominio Lex comunicazioni. |
+| `python -m pytest tests\test_lex_email_knowledge_matrix.py -q --tb=short` | OK | 5/5 passati: la matrice blocca sorgenti tenant-aware PEC/ordinaria/messaggi, allegati compressi tramite reader, campi ammessi/esclusi, Q&A in revisione, divieto di training automatico e azioni Lex consentite. |
+| `git diff --check -- docs\LEX_STUDIO_LLM_DOMAIN_MATRIX.md tests\test_lex_email_knowledge_matrix.py` | OK | Whitespace pulito sui file nuovi del perimetro email/PEC Lex. |
+| Scan `pct.utf8_integrity.contains_encoding_artifacts(...)` su `docs\LEX_STUDIO_LLM_DOMAIN_MATRIX.md` e `tests\test_lex_email_knowledge_matrix.py` | OK | Nessun mojibake o carattere sostitutivo nei testi italiani aggiunti. |
+
+### Lex atti, template, redazione, editor e bozze dataset-RAG - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_lex_atti_redazione_knowledge_matrix.py tests/test_lex_agenda_scadenze_knowledge_matrix.py tests/test_lex_email_knowledge_matrix.py -q --tb=short` | OK | 14/14 passati: la matrice Lex governa template atti, redazione, editor, bozze e documenti prodotti con sorgenti tenant-aware, campi ammessi/esclusi, Q&A candidate, permessi, privacy, azioni consentite e divieti dispositivi. |
+| Controllo UTF-8 via Python su `docs/LEX_STUDIO_LLM_DOMAIN_MATRIX.md` e `tests/test_lex_atti_redazione_knowledge_matrix.py` | OK | Nessun carattere sostitutivo o sequenza di decodifica errata nei file toccati dal worker J; la nuova sezione usa accenti UTF-8 reali. |
+
+### Lex fonti ufficiali e allegati dataset - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\legal_update_web_verification.py web\services\legal_official_context.py tests\test_legal_official_context.py tests\test_legal_update_web_verification_attachments.py` | OK | Sintassi confermata dopo hardening domini ufficiali, redirect governati e titoli allegati non generici. |
+| `python -m pytest tests\test_legal_official_context.py tests\test_legal_update_web_verification_attachments.py -q --tb=short` | OK | 9/9 passati: il contesto ufficiale rifiuta domini simili, non segue redirect verso domini non riconosciuti, legge allegati ufficiali e sostituisce CTA generiche come `Leggi la notizia` con il nome file dell'allegato. |
+| `python -m pytest tests\test_legal_updates_pipeline.py::test_verifica_web_legge_allegati_della_fonte_ufficiale tests\test_react_legal_intelligence_search.py::test_news_gazzetta_ripulisce_blocchi_cumulativi_e_corregge_fonte -q --tb=short` | OK | 2/2 passati: integrazione Update Intelligence con allegati ufficiali e pulizia estratti cumulativi preservate. |
+
+### Verità numeri Aggiornamenti legali e pianificazioni - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\services\legal_update_surface.py web\services\scheduler_admin_surface.py tests\test_legal_update_surface_truth.py` | OK | Sintassi confermata sui surface admin e sul test mirato di conversione letture/schede. |
+| `python -m pytest tests\test_legal_update_surface_truth.py -q --tb=short` | OK | 3/3 passati: KPI separati letti/analizzati/pubblicati/da verificare/scartati; dashboard senza label ingannevole `Documenti acquisiti`; pianificazioni con esiti vecchi/interrotti o errori interni marcati `Da verificare`. |
+| `python -m pytest tests\test_legal_update_surface_jobs.py tests\test_scheduler_admin.py tests\test_legal_updates_pipeline.py::test_admin_surfaces_renderizzano_fonti_staging_analisi_e_archivio tests\test_legal_updates_pipeline.py::test_pagina_fonti_mostra_catalogo_professionale_e_ciclo_giornaliero -q --tb=short` | OK | 7/7 passati: azioni admin, console pianificazioni, dashboard aggiornamenti legali e catalogo fonti restano coerenti con la nuova copy veritiera. |
+| `python -m pytest tests\test_legal_update_batch_runner.py::test_source_agent_run_storico_completed_con_errore_viene_letto_da_verificare tests\test_legal_update_batch_runner.py::test_legal_update_batch_marca_fonte_fallita_se_report_interno_ha_errore -q --tb=short` | OK | 2/2 passati: la normalizzazione storica degli agenti fonte con errori interni resta preservata. |
+| `python -m pytest tests\test_legal_updates_pipeline.py -q --tb=short` | OK | 34/34 passati dopo allineamento dei contratti testuali alla dashboard che distingue letture, analisi, schede pubblicate, verifiche e scarti. |
+| `python -m pytest tests\test_legal_update_surface_truth.py tests\test_legal_update_surface_jobs.py tests\test_scheduler_admin.py tests\test_legal_update_batch_runner.py::test_source_agent_run_storico_completed_con_errore_viene_letto_da_verificare tests\test_legal_update_batch_runner.py::test_legal_update_batch_marca_fonte_fallita_se_report_interno_ha_errore -q --tb=short` | OK | 10/10 passati come shard finale mirato su surface, scheduler admin e agenti fonte. |
+| `git diff --check -- web\services\legal_update_surface.py web\services\scheduler_admin_surface.py web\templates\admin\legal_updates_dashboard.html tests\test_legal_update_surface_truth.py tests\test_legal_updates_pipeline.py` | OK | Whitespace pulito sui file toccati. |
 
 ### Lex AI dati studio, UTF-8 e impaginazione risposte 2.245.8 - 2026-05-17
 
@@ -1901,6 +1968,28 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | Browser Chrome headless su `http://127.0.0.1:8092/ricerca-legale` e `/giurisprudenza/` | OK | Screenshot desktop/mobile non vuoti in `artifacts/react-migration/visual-2.245.5-studio-lex/`; API React espongono `lex_presidio`, `archivi_ufficiali`, `ai_avanzata` e `citazioni_verificate`. |
 | `python tools\sync_packaging_files.py --check`; `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q --tb=short` | OK | Packaging sincronizzato e readiness release 8/8 dopo bump `2.245.5`. |
 | `git diff --check -- . ':!data/*'`; `python scripts\validate_docs_commands.py`; `python scripts\validate_docs_links.py CHANGELOG.md artifacts\react-migration\pytest-confirmed-ok.md artifacts\react-migration\visual-2.245.5-studio-lex\visual-load-audit.md docs\LEX_PUBLIC_SOURCES_AND_STUDIO_DATA_AUDIT.md` | OK | Whitespace diff, comandi documentati e link locali collegati alla tranche confermati. |
+
+## Ricerca legale, fonti ufficiali, dataset Lex e numeri admin 2.245.9 - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q -p no:cacheprovider tests/test_legal_official_context.py tests/test_legal_update_web_verification_attachments.py tests/test_react_legal_intelligence_search.py tests/test_legal_update_publish_context.py tests/test_legal_updates_backfill_official_context.py tests/test_lex_studio_dataset_pipeline.py tests/test_legal_update_surface_truth.py --tb=short` | OK | 34/34 passati: lettura fonte ufficiale, allegati riconosciuti, ricerca legale con contesto, pubblicazione governata, backfill dry-run/apply, dataset Lex e numeri admin veritieri. |
+| `python -m pytest -q -p no:cacheprovider tests/test_giurisprudenza.py tests/test_legal_updates_pipeline.py tests/test_legal_update_surface_truth.py tests/test_legal_official_context.py tests/test_legal_update_web_verification_attachments.py tests/test_react_legal_intelligence_search.py tests/test_legal_update_publish_context.py tests/test_legal_updates_backfill_official_context.py tests/test_lex_studio_dataset_pipeline.py --tb=short` | OK | Shard ampio giurisprudenza/aggiornamenti legali/Legal Intelligence completato verde. |
+| `python -m ruff check lex\dataset tests\test_lex_studio_dataset_pipeline.py scripts\legal_updates_backfill_official_context.py tests\test_legal_updates_backfill_official_context.py pct\legal_update_web_verification.py tests\test_legal_update_web_verification_attachments.py web\services\legal_official_context.py web\services\legal_update_surface.py web\services\scheduler_admin_surface.py tests\test_legal_update_surface_truth.py` | OK | Ruff verde sui nuovi moduli Lex dataset, backfill, allegati ufficiali e superfici admin. |
+| `python -m py_compile web\services\legal_official_context.py pct\legal_update_pipeline.py pct\legal_update_web_verification.py web\services\legal_update_surface.py web\services\scheduler_admin_surface.py scripts\legal_updates_backfill_official_context.py` | OK | Sintassi Python confermata dopo integrazione fonti ufficiali, backfill e normalizzazione esiti scheduler. |
+| Controllo UTF-8 via Python sui file nuovi/modificati principali | OK | Nessun carattere sostitutivo o sequenza mojibake reale rilevata in Lex dataset, backfill, fonti ufficiali, surface admin, test e documento `docs/LEX_STUDIO_LLM_DATASET_PIPELINE.md`. |
+| `node frontend\scripts\check-react-contracts.mjs`; `npm --prefix frontend run typecheck -- --pretty false`; `npm --prefix frontend run build` | OK | Contratti React, TypeScript e build Vite completati dopo aggiornamento pagine `/ricerca-legale` e `/giurisprudenza`; asset statici React rigenerati localmente. |
+| `python -m pytest tests\test_react_legal_intelligence_search.py -q --tb=short`; `python -m ruff check web\services\react_legal_intelligence_bridge.py tests\test_react_legal_intelligence_search.py`; `python -m py_compile web\services\react_legal_intelligence_bridge.py tests\test_react_legal_intelligence_search.py` | OK | 13/13 passati: il record `D.Lgs. 13 marzo 2026, n. 39` non usa più il blocco cumulativo Gazzetta, pulisce il contesto ufficiale e non mostra avvisi falsi quando la fonte è stata letta. |
+| `npm --prefix frontend run typecheck -- --pretty false`; `npm --prefix frontend run build` | OK | TypeScript e build Vite verdi dopo alleggerimento di `/ricerca-legale/mediazione`: rimossi hero, metriche, Presidio Lex AI, Mappa contesto, filtro grande, pannello aggiornamento e `Cerca collegati`. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build --force-recreate redis app scheduler-worker ocr-worker nginx`; `Invoke-WebRequest http://localhost:8080/api/pronto`; `docker exec iusentra-app python -c "import pct, importlib.metadata as md; print(pct.__version__); print(md.version('pct-studio-legale'))"` | OK | Docker locale aggiornato realmente sulla macchina locale: app healthy, scheduler/OCR/Redis healthy, `/api/pronto` 200 con `versione=2.245.9`, pacchetto container `pct-studio-legale 2.245.9`. |
+| Playwright Python autenticato su `http://localhost:8080/ricerca-legale/mediazione` desktop 1440x900 e mobile 390x844; `http://localhost:8080/ricerca-legale?q=D.Lgs.%2013%20marzo%202026%20n.%2039` desktop | OK | Zero console issue e zero overflow. Mediazione non mostra più i blocchi allegati dall'utente e mantiene ricerca compatta/fonte originale. Ricerca D.Lgs. 39 mostra `DECRETO LEGISLATIVO 13 marzo 2026, n. 39`, `accordi di delega`, senza `Tutela dei minori`, `Leggi la notizia` o avviso falso. Screenshot locali in `D:\iusentra\mediazione-after-desktop.png`, `D:\iusentra\mediazione-after-mobile.png`, `D:\iusentra\ricerca-legale-dlgs39-after.png`. |
+
+## Lex agenda/scadenze dominio RAG - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_lex_agenda_scadenze_knowledge_matrix.py tests/test_lex_email_knowledge_matrix.py -q --tb=short` | OK | 9/9 passati: la matrice Lex governa agenda, calendario, scadenze e termini con sorgenti tenant-aware, campi ammessi/esclusi, Q&A revisionate, permessi, privacy, azioni consentite e test di accettazione. |
+| Controllo UTF-8 via Python su `docs/LEX_STUDIO_LLM_DOMAIN_MATRIX.md` e `tests/test_lex_agenda_scadenze_knowledge_matrix.py` | OK | Nessun carattere sostitutivo rilevato nei file toccati dal worker G; la nuova sezione usa accenti UTF-8 reali. |
 
 ## Registri Mediazione ufficiali 2.239.2 - 2026-05-16
 

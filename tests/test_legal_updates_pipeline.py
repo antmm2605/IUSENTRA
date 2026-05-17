@@ -1153,6 +1153,14 @@ def test_admin_surfaces_renderizzano_fonti_staging_analisi_e_archivio(tmp_path: 
             assert response.status_code == 200, path
             assert needle in response.get_data(as_text=True)
 
+        dashboard_html = client.get("/admin/aggiornamenti-legali").get_data(as_text=True)
+        assert "Dove finiscono i dati" in dashboard_html
+        assert "Documenti letti" in dashboard_html
+        assert "Schede pubblicate" in dashboard_html
+        assert "Indice Normattiva" in dashboard_html
+        assert "Indice Gazzetta" in dashboard_html
+        assert 'href="/ricerca-legale' in dashboard_html
+
 
 def test_admin_review_mostra_etichette_operative_senza_codici_grezzi(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
@@ -1421,7 +1429,7 @@ def test_dashboard_update_intelligence_mostra_presidio_condiviso_senza_selezione
     html = response.get_data(as_text=True)
     assert response.status_code == 200
     assert "Archivio legale condiviso da tutti gli studi" in html
-    assert "confronta ogni contenuto" in html
+    assert "cabina tecnica del ciclo fonti" in html
     assert 'name="tenant_slug"' not in html
     assert "Studio attivo:" not in html
 

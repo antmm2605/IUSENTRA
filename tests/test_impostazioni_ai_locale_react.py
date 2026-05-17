@@ -67,6 +67,37 @@ def test_ai_locale_mobile_rileva_dispositivo_e_non_finge_installer_ollama():
     assert ".iu-settings-mobile-ai__grid" in css
 
 
+def test_ai_locale_mostra_percorso_dataset_lex_senza_training_automatico():
+    actions = read("frontend/src/features/impostazioni/components/SettingsActions.tsx")
+    css = read("frontend/src/features/impostazioni/ImpostazioniPage.css")
+    bridge = read("web/services/react_impostazioni_bridge.py")
+    api = read("web/blueprints/api_v1_react.py")
+    status = read("web/services/lex_dataset_training_status.py")
+
+    assert "Percorso dataset Lex" in actions
+    assert "ogni notte alle" in actions
+    assert "Coda revisione domande" in actions
+    assert "Salva e approva" in actions
+    assert "Scarta" in actions
+    assert "/api/v1/ui/impostazioni/ai/lex-dataset/review" in actions
+    assert "Contesto documenti" in status
+    assert "Domande in revisione" in status
+    assert "File istruzioni" in status
+    assert "File conversazioni" in status
+    assert "Modello locale" in status
+    assert "non serve riaddestrare il modello" in status
+    assert "Dataset Lex notturno" in status
+    assert "lex_dataset_nightly" in status
+    assert "01:45" in status
+    assert "Nessun dato viene inviato fuori dallo studio" in status
+    assert "automatic_training\": False" in status
+    assert "lex_dataset_status" in bridge
+    assert "/impostazioni/ai/lex-dataset" in api
+    assert "/impostazioni/ai/lex-dataset/review" in api
+    assert ".iu-settings-lex-dataset" in css
+    assert ".iu-settings-lex-review" in css
+
+
 def test_ai_locale_bridge_locale_verifica_prestazioni_pc_e_setup_ollama():
     bridge = read("tools/local_ai_host_bridge.py")
     local_ai = read("frontend/src/features/impostazioni/localAi.ts")

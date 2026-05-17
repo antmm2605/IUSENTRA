@@ -4,6 +4,18 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.245.9 - 2026-05-17
+
+Il contesto ufficiale usato dal dataset Lex accetta ora solo URL appartenenti
+al catalogo dei domini istituzionali riconosciuti o a domini di classe A nella
+source policy. Domini simili, credenziali nell'URL e redirect verso domini non
+riconosciuti vengono scartati prima di costruire contesto citabile.
+
+La lettura degli allegati ufficiali conserva il vincolo sui domini ammessi e
+non usa più etichette cumulative o CTA generiche come titolo dell'evidenza:
+quando il link mostra solo formule tipo `Leggi la notizia` o `Scarica PDF`, il
+dataset usa il nome file dell'allegato ufficiale scaricato e hashato.
+
 ## Aggiornamento operativo 2.245.8 - 2026-05-17
 
 Lex non tratta più una richiesta redazionale con cliente, ad esempio

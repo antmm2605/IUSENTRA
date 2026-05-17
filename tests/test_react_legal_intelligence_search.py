@@ -273,6 +273,324 @@ def test_news_pst_mediazione_ripristinata_presente_in_news_e_ricerca():
         assert pst_record["sourceHref"] == bridge._PST_MEDIAZIONE_RECOVERY_URL
 
 
+def test_news_gazzetta_ripulisce_blocchi_cumulativi_e_corregge_fonte():
+    repository = _Repository(
+        news=[
+            {
+                "id": 7,
+                "title": "D.Lgs. 13 marzo 2026, n. 39",
+                "slug": "d-lgs-13-marzo-2026-n-39",
+                "short_summary": (
+                    "27/03/2026 TUTELA DEI MINORI IN AFFIDAMENTO "
+                    "( L. 17 marzo 2026, n. 37 ) Leggi la notizia "
+                    "27/03/2026 ACCORDI DI DELEGA, GESTIONE RISCHIO DI LIQUIDITA' "
+                    "E VIGILANZA - RECEPIMENTO DIRETTIVA (UE) "
+                    "( D.Lgs. 13 marzo 2026, n. 39 ) Leggi la notizia"
+                ),
+                "content": "Introduce un nuovo atto o un nuovo riferimento normativo da censire in archivio.",
+                "news_type": "normativa",
+                "source_url": "http://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00056/sg",
+                "source_name": "Gazzetta Ufficiale",
+                "source_code": "gazzetta_ufficiale",
+                "matter_name": "Diritto tributario",
+                "submatter_name": "IVA",
+                "publication_status": "published",
+                "published_at": "2026-04-19T10:43:19",
+            }
+        ]
+    )
+
+    payload = _payload(repository, page="news")
+    record = next(record for record in payload["records"] if record["id"] == "7")
+
+    assert "accordi di delega" in record["sourceExcerpt"].lower()
+    assert "gestione rischio di liquidità" in record["sourceExcerpt"]
+    assert "Tutela dei minori" not in record["sourceExcerpt"]
+    assert "Leggi la notizia" not in record["sourceExcerpt"]
+    assert record["sourceKind"] == "fonte ufficiale"
+    assert record["sourceLabel"] == "Gazzetta Ufficiale"
+    assert record["sourceHref"].startswith("http://www.gazzettaufficiale.it/")
+    assert record["area"] == "Unione europea"
+    assert record["branch"] == "Mercati finanziari e vigilanza"
+    assert "Fonte ufficiale: Gazzetta Ufficiale" in record["sourceContext"]
+    assert any("Testo completo" in item for item in record["sourceContext"])
+
+
+def test_ricerca_legale_completa_record_povero_con_contesto_interno(monkeypatch):
+    official_url = "http://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00056/sg"
+    repository = _Repository(
+        news=[
+            {
+                "id": 7,
+                "title": "D.Lgs. 13 marzo 2026, n. 39",
+                "short_summary": "D.Lgs. 13 marzo 2026, n. 39",
+                "content": "Introduce un nuovo atto o un nuovo riferimento normativo da censire in archivio.",
+                "news_type": "normativa",
+                "source_url": official_url,
+                "source_name": "Gazzetta Ufficiale",
+                "source_code": "gazzetta_ufficiale",
+                "matter_name": "Diritto tributario",
+                "submatter_name": "IVA",
+                "publication_status": "published",
+                "published_at": "2026-04-19T10:43:19",
+            }
+        ]
+    )
+
+    monkeypatch.setattr(bridge, "_search_normattiva", None)
+    monkeypatch.setattr(bridge, "_search_gazzetta", lambda *args, **kwargs: [])
+    monkeypatch.setattr(
+        bridge,
+        "_rewrite_query_for_legal_research",
+        lambda query: SimpleNamespace(
+            original_query=query,
+            public_research_query=query,
+            local_deep_research_query=query,
+            can_use_ldr=True,
+            can_use_official_web=True,
+        ),
+    )
+
+    def _official_result(*args, **kwargs):
+        return SimpleNamespace(
+            warnings=[],
+            sources=[
+                SimpleNamespace(
+                    id="gazzetta-26g00056",
+                    title="D.Lgs. 13 marzo 2026, n. 39 - Gazzetta Ufficiale",
+                    source_name="Gazzetta Ufficiale",
+                    source_type="web_ufficiale",
+                    official=True,
+                    url=official_url,
+                    date="2026-03-27",
+                    excerpt=(
+                        "Testo ufficiale più ampio: accordi di delega, gestione rischio di liquidità, "
+                        "vigilanza e recepimento della direttiva dell'Unione europea in materia di "
+                        "deleghe, controlli e presidi finanziari."
+                    ),
+                )
+            ],
+        )
+
+    monkeypatch.setattr(bridge, "_run_public_legal_research", _official_result)
+    def _official_context(url, query, **kwargs):
+        assert url == official_url
+        assert kwargs["timeout"] == bridge._OFFICIAL_CONTEXT_TIMEOUT
+        assert kwargs["max_bytes"] == bridge._OFFICIAL_CONTEXT_MAX_BYTES
+        return {
+            "officialContext": (
+                "DECRETO LEGISLATIVO 13 marzo 2026, n. 39. Recepimento della direttiva "
+                "dell'Unione europea sugli accordi di delega, sulla gestione del rischio di "
+                "liquidità e sui poteri di vigilanza. Il testo disciplina controlli, presidi "
+                "organizzativi, decorrenze e obblighi di adeguamento per gli operatori interessati."
+            ),
+            "contextSummary": (
+                "Recepimento della direttiva dell'Unione europea sugli accordi di delega, "
+                "gestione del rischio di liquidità e poteri di vigilanza."
+            ),
+            "keyPoints": ["Oggetto: accordi di delega, rischio di liquidità e vigilanza."],
+            "operationalChecks": ["Controlla decorrenza e obblighi di adeguamento."],
+            "contextCompleted": True,
+            "warnings": [],
+        }
+
+    monkeypatch.setattr(bridge, "_build_official_context", _official_context)
+
+    payload = _payload(repository, page="ricerca-legale", query={"q": "D.Lgs. 13 marzo 2026 n. 39"})
+    record = next(record for record in payload["records"] if record["id"] == "7")
+
+    assert payload["contracts"]["external_fetch"] is True
+    assert "gestione del rischio di liquidità" in record["sourceExcerpt"]
+    assert "Introduce un nuovo atto" not in record["sourceExcerpt"]
+    assert record["contextCompleted"] is True
+    assert "Recepimento della direttiva" in record["officialContext"]
+    assert record["contextSummary"]
+    assert any("Oggetto:" in item for item in record["keyPoints"])
+    assert any("decorrenza" in item.lower() for item in record["operationalChecks"])
+    assert record["sourceKind"] == "fonte ufficiale"
+    assert record["sourceLabel"] == "Gazzetta Ufficiale"
+    assert any("Lettura in pagina" in item for item in record["sourceContext"])
+
+
+def test_ricerca_legale_non_marca_completo_elenco_gazzetta_cumulativo(monkeypatch):
+    official_url = "http://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00056/sg"
+    cumulative_excerpt = (
+        "27/03/2026 TUTELA DEI MINORI IN AFFIDAMENTO "
+        "( L. 17 marzo 2026, n. 37 ) Leggi la notizia "
+        "27/03/2026 ACCORDI DI DELEGA, GESTIONE RISCHIO DI LIQUIDITA' "
+        "E VIGILANZA - RECEPIMENTO DIRETTIVA (UE) "
+        "( D.Lgs. 13 marzo 2026, n. 39 ) Leggi la notizia "
+        "25/03/2026 LEGGE DI DELEGAZIONE EUROPEA 2025 "
+        "( L. 17 marzo 2026, n. 36 ) Leggi la notizia"
+    )
+    repository = _Repository(
+        search_rows=[
+            {
+                "type": "normativa",
+                "id": "legal-updates-normative:6",
+                "title": "D.Lgs. 13 marzo 2026, n. 39",
+                "excerpt": cumulative_excerpt,
+                "content": cumulative_excerpt,
+                "authority": "Gazzetta Ufficiale",
+                "official_url": official_url,
+                "published_at": "2026-03-27",
+                "verified_reference": True,
+                "source_code": "gazzetta_ufficiale",
+                "matter_name": "Diritto tributario",
+                "submatter_name": "IVA",
+            }
+        ]
+    )
+    monkeypatch.setattr(bridge, "_search_normattiva", None)
+    monkeypatch.setattr(bridge, "_search_gazzetta", lambda *args, **kwargs: [])
+    monkeypatch.setattr(bridge, "_run_public_legal_research", None)
+
+    def _official_context(url, query, **kwargs):
+        assert url == official_url
+        return {
+            "officialContext": (
+                "Home Atto Completo Chiudi DECRETO LEGISLATIVO 13 marzo 2026, n. 39 "
+                "Recepimento della direttiva (UE) 2024/927 per quanto riguarda gli accordi "
+                "di delega, la gestione del rischio di liquidità, le segnalazioni a fini "
+                "di vigilanza e i servizi di custodia e depositario."
+            ),
+            "contextSummary": "Home Atto Completo Chiudi DECRETO LEGISLATIVO 13 marzo 2026, n. 39",
+            "keyPoints": ["Home Atto Completo Chiudi DECRETO LEGISLATIVO 13 marzo 2026, n. 39"],
+            "operationalChecks": ["Controlla decorrenza e obblighi di adeguamento."],
+            "contextCompleted": True,
+            "warnings": [],
+        }
+
+    monkeypatch.setattr(bridge, "_build_official_context", _official_context)
+
+    payload = _payload(repository, query={"q": "D.Lgs. 13 marzo 2026 n. 39"})
+    record = payload["records"][0]
+
+    assert record["title"] == "D.Lgs. 13 marzo 2026, n. 39"
+    assert "accordi di delega" in record["sourceExcerpt"].lower()
+    assert "Tutela dei minori" not in record["sourceExcerpt"]
+    assert "Leggi la notizia" not in record["sourceExcerpt"]
+    assert record["contextCompleted"] is True
+    assert record["officialContext"].startswith("DECRETO LEGISLATIVO 13 marzo 2026, n. 39")
+    assert "Home Atto Completo" not in record["officialContext"]
+    assert record["area"] == "Unione europea"
+    assert record["branch"] == "Mercati finanziari e vigilanza"
+    assert any("Oggetto:" in item for item in record["keyPoints"])
+    assert not any(
+        warning.get("code") == "ricerca_ufficiale_avviso"
+        and "nessuna evidenza pubblica" in warning.get("message", "").lower()
+        for warning in payload["warnings"]
+    )
+
+
+def test_ricerca_legale_limita_letture_ufficiali_live(monkeypatch):
+    official_records = [
+        {
+            "type": "normativa",
+            "id": f"normativa:{index}",
+            "title": "D.Lgs. 13 marzo 2026, n. 39",
+            "excerpt": "D.Lgs. 13 marzo 2026, n. 39",
+            "authority": "Gazzetta Ufficiale",
+            "official_url": f"https://www.gazzettaufficiale.it/eli/id/2026/03/27/26G0005{index}/sg",
+            "verified_reference": True,
+        }
+        for index in range(5)
+    ]
+    calls: list[str] = []
+    monkeypatch.setattr(bridge, "_search_gazzetta", lambda *args, **kwargs: [])
+    monkeypatch.setattr(bridge, "_search_normattiva", None)
+    monkeypatch.setattr(bridge, "_run_public_legal_research", None)
+
+    def _official_context(url, query, **kwargs):
+        calls.append(url)
+        return {
+            "officialContext": (
+                "Testo ufficiale letto in IUSENTRA con contenuto utile, decorrenza e oggetto dell'atto. "
+                "La scheda contiene il riferimento normativo, i presidi applicativi e i controlli "
+                "necessari prima dell'uso professionale nel fascicolo."
+            ),
+            "contextSummary": "Contesto ufficiale letto in IUSENTRA.",
+            "keyPoints": ["Oggetto: contenuto ufficiale."],
+            "operationalChecks": ["Controlla decorrenza."],
+            "contextCompleted": True,
+            "warnings": [],
+        }
+
+    monkeypatch.setattr(bridge, "_build_official_context", _official_context)
+
+    payload = _payload(
+        _Repository(search_rows=official_records),
+        query={"q": "D.Lgs. 13 marzo 2026 n. 39"},
+    )
+
+    assert payload["contracts"]["external_fetch"] is True
+    assert len(calls) == bridge._OFFICIAL_CONTEXT_FETCH_LIMIT
+    assert sum(1 for record in payload["records"] if record["contextCompleted"]) == bridge._OFFICIAL_CONTEXT_FETCH_LIMIT
+
+
+def test_ricerca_legale_non_rilegge_estratto_ufficiale_gia_completo(monkeypatch):
+    def _unexpected_official_context(*args, **kwargs):
+        raise AssertionError("non deve leggere il web quando il contesto ufficiale locale e' gia completo")
+
+    monkeypatch.setattr(bridge, "_build_official_context", _unexpected_official_context)
+    monkeypatch.setattr(bridge, "_search_gazzetta", lambda *args, **kwargs: [])
+    monkeypatch.setattr(bridge, "_search_normattiva", None)
+    monkeypatch.setattr(bridge, "_run_public_legal_research", None)
+    long_excerpt = " ".join(["Estratto ufficiale locale completo su atto normativo, decorrenza, oggetto e controlli."] * 12)
+
+    payload = _payload(
+        _Repository(
+            search_rows=[
+                {
+                    "type": "normativa",
+                    "id": "normativa:99",
+                    "title": "D.Lgs. 13 marzo 2026, n. 39",
+                    "excerpt": long_excerpt,
+                    "authority": "Gazzetta Ufficiale",
+                    "official_url": "https://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00056/sg",
+                    "verified_reference": True,
+                }
+            ]
+        ),
+        query={"q": "D.Lgs. 13 marzo 2026 n. 39"},
+    )
+
+    assert payload["contracts"]["external_fetch"] is False
+    assert payload["records"][0]["contextCompleted"] is True
+    assert payload["records"][0]["officialContext"].startswith("Estratto ufficiale locale completo")
+    assert payload["records"][0]["sourceExcerpt"].startswith("Estratto ufficiale locale completo")
+    assert len(payload["records"][0]["officialContext"]) > len(payload["records"][0]["sourceExcerpt"])
+
+
+def test_ricerca_legale_non_legge_dominio_simile_a_fonte_ufficiale(monkeypatch):
+    calls: list[str] = []
+    monkeypatch.setattr(bridge, "_search_gazzetta", lambda *args, **kwargs: [])
+    monkeypatch.setattr(bridge, "_search_normattiva", None)
+    monkeypatch.setattr(bridge, "_run_public_legal_research", None)
+    monkeypatch.setattr(bridge, "_build_official_context", lambda url, *args, **kwargs: calls.append(url) or {})
+
+    payload = _payload(
+        _Repository(
+            search_rows=[
+                {
+                    "type": "normativa",
+                    "id": "normativa:evil",
+                    "title": "D.Lgs. 13 marzo 2026, n. 39",
+                    "excerpt": "D.Lgs. 13 marzo 2026, n. 39",
+                    "authority": "Fonte non ufficiale",
+                    "official_url": "https://evilgiustizia.it/eli/id/2026/03/27/26G00056/sg",
+                    "verified_reference": False,
+                }
+            ]
+        ),
+        query={"q": "D.Lgs. 13 marzo 2026 n. 39"},
+    )
+
+    assert payload["contracts"]["external_fetch"] is False
+    assert calls == []
+    assert payload["records"][0]["contextCompleted"] is False
+
+
 def test_mediazione_espone_accessi_ufficiali_ripristinati():
     repository = _Repository()
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Bot, CheckCircle2, Cpu, Download, HardDrive, Play, RefreshCw, ShieldCheck, Smartphone } from 'lucide-react'
+import { Bot, CheckCircle2, CircleAlert, ClipboardCheck, Cpu, Database, Download, FileOutput, FileQuestion, HardDrive, Play, RefreshCw, ShieldCheck, Smartphone, Workflow } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { IusStatusBadge } from '@/components/iusentra'
@@ -12,7 +12,7 @@ import {
   type MobileAiInstallPlan,
 } from '../localAi'
 import { checkLocalSigner, testPecSmtpViaLocalSigner, type LocalSignerCheck } from '../localSigner'
-import type { AiRuntimePayload, SettingsPayload, SettingsSection, TestResult } from '../types'
+import type { AiRuntimePayload, SettingTone, SettingsPayload, SettingsSection, TestResult } from '../types'
 
 function aiStatusLabel(aiStatus: AiRuntimePayload | null): string {
   const details = aiStatus?.status_payload?.runtime
@@ -64,6 +64,10 @@ function aiProfileLabel(value: unknown): string {
 function aiPayload(localAiResult: LocalAiLocalResult | null, aiStatus: AiRuntimePayload | null): Record<string, unknown> {
   if (localAiResult?.payload) return localAiResult.payload
   return record(aiStatus?.status_payload)
+}
+
+function lexDatasetStatus(data: SettingsPayload): Record<string, unknown> {
+  return record(record(data.ai).lex_dataset_status)
 }
 
 function aiInstallerHref(payload: Record<string, unknown>): string {
@@ -172,6 +176,284 @@ function MobileAiSetupPanel({
         </Button>
       </div>
     </div>
+  )
+}
+
+const lexDatasetIcons = {
+  rag: Database,
+  qa_review: FileQuestion,
+  alpaca: FileOutput,
+  sharegpt: FileOutput,
+  manual_training: Workflow,
+  latest_job: ClipboardCheck,
+  errors: CircleAlert,
+}
+
+type LexReviewItem = {
+  id: string
+  question: string
+  answer: string
+  status: string
+  tone: SettingTone
+  sourceTitle: string
+  sourceDetail: string
+  privacy: string
+  reviewNote: string
+}
+
+type LexReviewQueue = {
+  ok: boolean
+  message: string
+  summary: {
+    total: number
+    pending: number
+    approved: number
+    rejected: number
+  }
+  items: LexReviewItem[]
+}
+
+function toneValue(value: unknown): SettingTone {
+  const tone = asText(value) as SettingTone
+  if (['primary', 'success', 'warning', 'danger', 'neutral', 'info'].includes(tone)) return tone
+  return 'neutral'
+}
+
+function numberValue(value: unknown): number {
+  const parsed = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function normalizeReviewQueue(payload: unknown): LexReviewQueue {
+  const source = record(payload)
+  const summary = record(source.summary)
+  const items = Array.isArray(source.items)
+    ? source.items.map(record).map((item) => ({
+        id: asText(item.id),
+        question: asText(item.question),
+        answer: asText(item.answer),
+        status: asText(item.status) || 'Da revisionare',
+        tone: toneValue(item.tone),
+        sourceTitle: asText(item.sourceTitle) || 'Documento studio',
+        sourceDetail: asText(item.sourceDetail),
+        privacy: asText(item.privacy) || 'uso interno',
+        reviewNote: asText(item.reviewNote),
+      })).filter((item) => Boolean(item.id))
+    : []
+  return {
+    ok: Boolean(source.ok),
+    message: asText(source.message),
+    summary: {
+      total: numberValue(summary.total),
+      pending: numberValue(summary.pending),
+      approved: numberValue(summary.approved),
+      rejected: numberValue(summary.rejected),
+    },
+    items,
+  }
+}
+
+function LexDatasetStatusPanel({ status }: { status: Record<string, unknown> }) {
+  const cards = Array.isArray(status.cards) ? status.cards.map(record) : []
+  const privacy = record(status.privacy)
+  const schedule = record(status.schedule)
+  const [reviewOpen, setReviewOpen] = useState(false)
+  const [reviewLoading, setReviewLoading] = useState(false)
+  const [reviewQueue, setReviewQueue] = useState<LexReviewQueue | null>(null)
+  const [reviewError, setReviewError] = useState('')
+  const [reviewAction, setReviewAction] = useState('')
+  const [reviewEdits, setReviewEdits] = useState<Record<string, { question: string; answer: string }>>({})
+  if (!cards.length) return null
+  const storeReviewQueue = (payload: unknown) => {
+    const queue = normalizeReviewQueue(payload)
+    const edits: Record<string, { question: string; answer: string }> = {}
+    queue.items.forEach((item) => {
+      edits[item.id] = { question: item.question, answer: item.answer }
+    })
+    setReviewQueue(queue)
+    setReviewEdits(edits)
+  }
+  const loadReviewQueue = async () => {
+    setReviewOpen(true)
+    setReviewLoading(true)
+    setReviewError('')
+    try {
+      const response = await fetch('/api/v1/ui/impostazioni/ai/lex-dataset/review', {
+        headers: { Accept: 'application/json' },
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok || !record(payload).ok) {
+        throw new Error(asText(record(payload).message) || 'Coda revisione non disponibile.')
+      }
+      storeReviewQueue(payload)
+    } catch (error) {
+      setReviewError(error instanceof Error ? error.message : 'Coda revisione non disponibile.')
+    } finally {
+      setReviewLoading(false)
+    }
+  }
+  const updateReviewEdit = (id: string, field: 'question' | 'answer', value: string) => {
+    setReviewEdits((current) => ({
+      ...current,
+      [id]: {
+        question: current[id]?.question || '',
+        answer: current[id]?.answer || '',
+        [field]: value,
+      },
+    }))
+  }
+  const saveReview = async (item: LexReviewItem, action: 'approve' | 'reject') => {
+    setReviewAction(item.id)
+    setReviewError('')
+    const edit = reviewEdits[item.id] || { question: item.question, answer: item.answer }
+    try {
+      const response = await fetch(`/api/v1/ui/impostazioni/ai/lex-dataset/review/${encodeURIComponent(item.id)}`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action,
+          question: edit.question,
+          answer: edit.answer,
+          note: action === 'approve' ? 'Approvata da Impostazioni AI.' : 'Scartata da Impostazioni AI.',
+        }),
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok || !record(payload).ok) {
+        throw new Error(asText(record(payload).message) || 'Revisione non salvata.')
+      }
+      storeReviewQueue(payload)
+    } catch (error) {
+      setReviewError(error instanceof Error ? error.message : 'Revisione non salvata.')
+    } finally {
+      setReviewAction('')
+    }
+  }
+  const openCard = (card: Record<string, unknown>) => {
+    if (asText(card.id) === 'qa_review') {
+      void loadReviewQueue()
+      return
+    }
+    const label = asText(card.label) || 'Percorso Lex'
+    window.dispatchEvent(new CustomEvent('iusentra:lex-context', {
+      detail: {
+        context: asText(card.action_context) || 'impostazioni-ai-dataset',
+        title: `Lex AI - ${label}`,
+        body: asText(card.note) || 'Controllo percorso dataset Lex dello studio.',
+        pagePath: window.location.pathname,
+      },
+    }))
+    window.dispatchEvent(new CustomEvent('iusentra:open-floating-lex'))
+  }
+
+  return (
+    <section className="iu-settings-lex-dataset" aria-label="Percorso dataset Lex">
+      <div className="iu-settings-lex-dataset__head">
+        <div>
+          <strong>Percorso dataset Lex</strong>
+          <span>{asText(privacy.message) || 'Il contesto resta nello studio e il dataset richiede revisione.'}</span>
+          <span>{asText(schedule.label) ? `${asText(schedule.label)} ogni notte alle ${asText(schedule.time) || '01:45'}` : ''}</span>
+        </div>
+        <IusStatusBadge tone="info">{asText(status.storage_label) || 'Archivio riservato'}</IusStatusBadge>
+      </div>
+      <div className="iu-settings-lex-dataset__grid">
+        {cards.map((card) => {
+          const id = asText(card.id)
+          const Icon = lexDatasetIcons[id as keyof typeof lexDatasetIcons] || Bot
+          const value = asText(card.value)
+          return (
+            <button type="button" key={id || asText(card.label)} onClick={() => openCard(card)}>
+              <Icon />
+              <div>
+                <span>{asText(card.label)}</span>
+                <strong>{asText(card.status)}</strong>
+                <small>{asText(card.note)}</small>
+              </div>
+              <IusStatusBadge tone={toneValue(card.tone)}>{value || asText(card.action_label) || 'Apri'}</IusStatusBadge>
+            </button>
+          )
+        })}
+      </div>
+      {reviewOpen ? (
+        <div className="iu-settings-lex-review" aria-live="polite">
+          <div className="iu-settings-lex-review__head">
+            <div>
+              <strong>Coda revisione domande</strong>
+              <span>{reviewQueue?.message || 'Le domande sono generate da IUSENTRA: lo studio approva, corregge o scarta.'}</span>
+            </div>
+            <div className="iu-settings-lex-review__counts">
+              <IusStatusBadge tone="warning">{reviewQueue?.summary.pending ?? 0} da vedere</IusStatusBadge>
+              <IusStatusBadge tone="success">{reviewQueue?.summary.approved ?? 0} approvate</IusStatusBadge>
+              <IusStatusBadge tone="danger">{reviewQueue?.summary.rejected ?? 0} scartate</IusStatusBadge>
+            </div>
+          </div>
+          {reviewError ? (
+            <Alert className="iu-settings-alert is-warning">
+              <CircleAlert />
+              <AlertTitle>Revisione non aggiornata</AlertTitle>
+              <AlertDescription>{reviewError}</AlertDescription>
+            </Alert>
+          ) : null}
+          {reviewLoading ? (
+            <div className="iu-settings-lex-review__empty">
+              <RefreshCw />
+              <span>Caricamento coda revisione.</span>
+            </div>
+          ) : reviewQueue?.items.length ? (
+            <div className="iu-settings-lex-review__list">
+              {reviewQueue.items.map((item) => {
+                const edit = reviewEdits[item.id] || { question: item.question, answer: item.answer }
+                const busy = reviewAction === item.id
+                return (
+                  <article key={item.id} className="iu-settings-lex-review__item">
+                    <div className="iu-settings-lex-review__meta">
+                      <div>
+                        <strong>{item.sourceTitle}</strong>
+                        <span>{item.sourceDetail || item.privacy}</span>
+                      </div>
+                      <IusStatusBadge tone={item.tone}>{item.status}</IusStatusBadge>
+                    </div>
+                    <label>
+                      <span>Domanda proposta</span>
+                      <textarea
+                        rows={2}
+                        value={edit.question}
+                        onChange={(event) => updateReviewEdit(item.id, 'question', event.currentTarget.value)}
+                      />
+                    </label>
+                    <label>
+                      <span>Risposta proposta</span>
+                      <textarea
+                        rows={3}
+                        value={edit.answer}
+                        onChange={(event) => updateReviewEdit(item.id, 'answer', event.currentTarget.value)}
+                      />
+                    </label>
+                    <div className="iu-settings-lex-review__actions">
+                      <Button type="button" size="sm" onClick={() => void saveReview(item, 'approve')} disabled={busy}>
+                        <CheckCircle2 data-icon="inline-start" />
+                        {busy ? 'Salvataggio' : 'Salva e approva'}
+                      </Button>
+                      <Button type="button" size="sm" variant="outline" onClick={() => void saveReview(item, 'reject')} disabled={busy}>
+                        <CircleAlert data-icon="inline-start" />
+                        Scarta
+                      </Button>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="iu-settings-lex-review__empty">
+              <CheckCircle2 />
+              <span>Nessuna domanda in attesa. Il dataset resta fermo finché lo studio non approva nuovo materiale.</span>
+            </div>
+          )}
+        </div>
+      ) : null}
+    </section>
   )
 }
 
@@ -351,6 +633,7 @@ export function SettingsActions({
           onPreparePc={() => { void runAiPrepare() }}
           preparing={aiPreparing}
         />
+        <LexDatasetStatusPanel status={lexDatasetStatus(data)} />
       </div>
     )
   }

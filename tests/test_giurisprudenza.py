@@ -521,6 +521,10 @@ def test_react_giurisprudenza_espone_presidio_citazioni_lex(tmp_path: Path):
     assert any(item["label"] == "Cassazione e massime" and item["value"] == "Pronto" for item in citations["items"])
     agent_metric = next(metric for metric in payload["metrics"] if metric["id"] == "agenti_lex")
     assert agent_metric["value"] == len(GIURISPRUDENZA_AGENT_FOCUS)
+    record = payload["records"][0]
+    assert record["summary"] == "La massima resta collegata alla fonte ufficiale."
+    assert record["practicalUse"]
+    assert record["reliabilityNote"]
 
 
 def test_importa_da_url_pubblico_compila_metadati(tmp_path: Path):

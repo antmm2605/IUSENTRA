@@ -973,6 +973,25 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error("[scheduler] Agenti Lex notturni falliti: %s", e)
 
+    @scheduler.scheduled_job(CronTrigger(hour=1, minute=45), id="lex_dataset_nightly")
+    def _lex_dataset_nightly():
+        with app.app_context():
+            try:
+                from lex.dataset.nightly import run_lex_dataset_nightly
+
+                report = run_lex_dataset_nightly(app=app)
+                logger.info(
+                    "[scheduler] Dataset Lex notturno: %d tenant, %d documenti, %d blocchi, %d domande candidate",
+                    int(report.get("tenants_processed") or 0),
+                    int(report.get("documents_count") or 0),
+                    int(report.get("chunks_count") or 0),
+                    int(report.get("qa_pairs_count") or 0),
+                )
+                return report
+            except Exception as e:
+                logger.error("[scheduler] Dataset Lex notturno fallito: %s", e)
+                raise
+
     @scheduler.scheduled_job(CronTrigger(hour=0, minute=35), id="utf8_integrity_nightly")
     def _utf8_integrity_nightly():
         with app.app_context():

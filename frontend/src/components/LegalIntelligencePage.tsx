@@ -35,56 +35,50 @@ import {
   type LegalIntelligenceRecord,
 } from '../legalIntelligenceData'
 import './LegalIntelligencePage.css'
-
 type LegalIntelligenceView = 'dashboard' | 'news' | 'mediazione' | 'ricerca-legale'
 type LegalSection = LegalIntelligencePageData['sections'][number]
-
 const quickQueries: Record<LegalIntelligenceView, string[]> = {
   dashboard: ['mediazione obbligatoria', 'Cassazione prescrizione', 'credito imposta', 'usura bancaria'],
   news: ['mediazione', 'processo civile', 'tributario', 'diritto del lavoro'],
   mediazione: ['ADR Center', 'Roma', 'Ente Autonomo', 'attivo'],
   'ricerca-legale': ['mediazione obbligatoria', 'Cassazione prescrizione', 'credito imposta investimenti', 'usura bancaria tasso soglia'],
 }
-
 function currentView(): LegalIntelligenceView {
   const route = (window.location.pathname.replace(/\/+$/, '') || '/').toLowerCase()
-  // path canonici (v2.242.0+): /ricerca-legale/* è la home; /legal-intelligence/*
-  // viene ridiretto lato server con HTTP 301.
+  const params = new URLSearchParams(window.location.search)
+  // Path canonici sotto /ricerca-legale; /legal-intelligence/* viene ridiretto lato server.
   if (route === '/ricerca-legale/news' || route === '/legal-intelligence/news') return 'news'
   if (route === '/ricerca-legale/mediazione' || route === '/legal-intelligence/mediazione') return 'mediazione'
   if (route === '/ricerca-legale/ricerca') return 'ricerca-legale'
-  if (route === '/ricerca-legale') return 'dashboard'
+  if (route === '/ricerca-legale') return params.get('view') === 'cruscotto' ? 'dashboard' : 'ricerca-legale'
   return 'dashboard'
 }
-
 function pageTitle(view: LegalIntelligenceView) {
   if (view === 'news') return 'News Legali'
   if (view === 'mediazione') return 'Registro Mediazione'
   if (view === 'ricerca-legale') return 'Ricerca Legale'
   return 'Osservatorio Legale'
 }
-
 function pageSubtitle(view: LegalIntelligenceView) {
   if (view === 'news') return 'Aggiornamenti giuridici con fonte, contesto e uso operativo in studio.'
   if (view === 'mediazione') return 'Registri ministeriali e dati di mediazione letti dentro una scheda professionale.'
   if (view === 'ricerca-legale') return 'Ricerca su archivio giuridico, fonti ufficiali e schede contestualizzate.'
   return 'Cruscotto fonti, news e registri con contesto leggibile prima di aprire la fonte originale.'
 }
-
 function viewBrief(view: LegalIntelligenceView) {
   if (view === 'news') {
     return {
       eyebrow: 'Aggiornamenti',
       title: 'Prima leggi cosa cambia, poi apri la fonte quando serve.',
-      body: 'Ogni notizia diventa una scheda con estratto, materia, provenienza e controllo professionale, così il contenuto è utile anche senza uscire dalla pagina.',
+      body: 'Ogni notizia diventa una scheda con estratto, materia, provenienza e controllo professionale, cos\u00ec il contenuto \u00e8 utile anche senza uscire dalla pagina.',
       steps: ['Contesto sintetico', 'Materia e data', 'Controllo fonte'],
     }
   }
   if (view === 'mediazione') {
     return {
       eyebrow: 'Mediazione',
-      title: 'Registri consultabili con il perché operativo già in pagina.',
-      body: 'Organismi, enti e formatori non sono semplici accessi esterni: la scheda indica cosa verificare, quando e con quale attendibilità.',
+      title: 'Registri consultabili con il perch\u00e9 operativo gi\u00e0 in pagina.',
+      body: 'Organismi, enti e formatori non sono semplici accessi esterni: la scheda indica cosa verificare, quando e con quale attendibilit\u00e0.',
       steps: ['Registro corretto', 'Ambito della verifica', 'Fonte ministeriale'],
     }
   }
@@ -92,7 +86,7 @@ function viewBrief(view: LegalIntelligenceView) {
     return {
       eyebrow: 'Ricerca assistita',
       title: 'Trova la fonte e valuta subito se serve al fascicolo.',
-      body: 'La ricerca costruisce una scheda interna con estratto, provenienza, data, utilità pratica e avvertenza di affidabilità, lasciando la fonte originale come verifica finale.',
+      body: 'La ricerca costruisce una scheda interna con estratto, provenienza, data, utilit\u00e0 pratica e avvertenza di affidabilit\u00e0, lasciando la fonte originale come verifica finale.',
       steps: ['Cerca', 'Leggi il contesto', "Valuta l'uso"],
     }
   }
@@ -103,11 +97,9 @@ function viewBrief(view: LegalIntelligenceView) {
     steps: ['Fonti governate', 'Schede interne', 'Azioni reali'],
   }
 }
-
 function initialQuery() {
   return new URLSearchParams(window.location.search).get('q') || ''
 }
-
 async function loadPage(view: LegalIntelligenceView, query = ''): Promise<LegalIntelligencePageData> {
   if (view === 'news') return getLegalIntelligenceNewsPage()
   if (view === 'mediazione') return getLegalIntelligenceMediazionePage()
@@ -115,20 +107,30 @@ async function loadPage(view: LegalIntelligenceView, query = ''): Promise<LegalI
   return getLegalIntelligencePage()
 }
 
+function formatDate(value: string) {
+  if (!value) return ''
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+  return parsed.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
 function isOfficial(record: LegalIntelligenceRecord) {
   return [record.sourceKind, record.approvalLabel, record.evidenceType].join(' ').toLocaleLowerCase('it-IT').includes('ufficiale')
 }
-
 function contextItems(record: LegalIntelligenceRecord) {
   if (record.sourceContext.length) return record.sourceContext
   return [
+    record.contextSummary ? `Contesto operativo: ${record.contextSummary}` : '',
     record.sourceExcerpt ? `Contenuto: ${record.sourceExcerpt}` : '',
     record.area || record.branch ? `Ambito: ${[record.area, record.branch].filter(Boolean).join(' / ')}` : '',
-    record.date ? `Aggiornamento: ${record.date}` : '',
+    record.date ? `Aggiornamento: ${formatDate(record.date)}` : '',
     record.sourceLabel ? `Provenienza: ${record.sourceLabel}` : '',
   ].filter(Boolean)
 }
-
+function contextStatusLabel(record: LegalIntelligenceRecord) {
+  if (record.contextCompleted) return 'Scheda interna completa'
+  if (record.contextSummary || record.keyPoints.length || record.operationalChecks.length) return 'Scheda interna da completare'
+  return 'Contesto essenziale'
+}
 function practicalUse(record: LegalIntelligenceRecord) {
   if (record.practicalUse) return record.practicalUse
   if (record.kind.toLocaleLowerCase('it-IT').includes('mediazione')) {
@@ -136,17 +138,15 @@ function practicalUse(record: LegalIntelligenceRecord) {
   }
   return 'Valuta pertinenza, fonte e data prima di usare il riferimento nel lavoro di studio.'
 }
-
 function reliabilityNote(record: LegalIntelligenceRecord) {
   if (record.reliabilityNote) return record.reliabilityNote
+  if (record.contextCompleted) return 'Contesto letto dentro IUSENTRA: la fonte originale resta controllo finale.'
   if (isOfficial(record)) return 'Fonte ufficiale o istituzionale: apri il testo originale per il controllo finale.'
   return "Fonte censita nello studio: richiede controllo professionale prima dell'uso."
 }
-
 function relatedQuery(record: LegalIntelligenceRecord) {
   return record.followUpQuery || [record.title, record.area, record.branch, record.sourceLabel].filter(Boolean).join(' ')
 }
-
 function recordIcon(record: LegalIntelligenceRecord) {
   const kind = record.kind.toLocaleLowerCase('it-IT')
   if (kind.includes('mediazione')) return <Landmark size={17} aria-hidden="true" />
@@ -154,7 +154,6 @@ function recordIcon(record: LegalIntelligenceRecord) {
   if (kind.includes('normativa')) return <BookOpen size={17} aria-hidden="true" />
   return <FileSearch size={17} aria-hidden="true" />
 }
-
 function ContractStrip({ data }: { data: LegalIntelligencePageData }) {
   const officialRecords = data.records.filter(isOfficial).length
   return (
@@ -162,12 +161,11 @@ function ContractStrip({ data }: { data: LegalIntelligencePageData }) {
       <ShieldCheck size={18} aria-hidden="true" />
       <div>
         <strong>{openDesignContract.system}</strong>
-        <span>{officialRecords} fonti ufficiali o istituzionali con contesto leggibile in IUSENTRA</span>
+        <span>{officialRecords} schede con contesto interno e controllo fonte disponibile</span>
       </div>
     </aside>
   )
 }
-
 function WarningList({ data }: { data: LegalIntelligencePageData }) {
   if (!data.warnings.length) return null
   return (
@@ -180,7 +178,6 @@ function WarningList({ data }: { data: LegalIntelligencePageData }) {
     </section>
   )
 }
-
 function Metrics({ data }: { data: LegalIntelligencePageData }) {
   if (!data.metrics.length) return null
   return (
@@ -192,16 +189,34 @@ function Metrics({ data }: { data: LegalIntelligencePageData }) {
           value={metric.value || 0}
           note={metric.note}
           badge={<Badge tone={metric.tone}>{metric.tone === 'neutral' ? 'Dato' : 'Stato'}</Badge>}
+          href={legalMetricHref(metric)}
+          area="ricerca"
+          actionLabel="Apri"
         />
       ))}
     </section>
   )
 }
 
+function legalMetricHref(metric: LegalIntelligencePageData['metrics'][number]) {
+  const label = metric.label.toLocaleLowerCase('it-IT')
+  if (label.includes('fonti')) return '/ricerca-legale?view=cruscotto#mappa-fonti'
+  if (label.includes('news')) return '/ricerca-legale/news#schede'
+  if (label.includes('revisione')) return '/ricerca-legale?view=cruscotto#mappa-fonti'
+  if (label.includes('normattiva')) return '/ricerca-legale?q=Normattiva#schede'
+  if (label.includes('gazzetta')) return '/ricerca-legale?q=Gazzetta%20Ufficiale#schede'
+  if (label.includes('mediazione')) return '/ricerca-legale/mediazione#registro-mediazione'
+  if (label.includes('agenti')) return '/ricerca-legale?view=cruscotto#presidio-lex'
+  if (label.includes('fascicoli')) return '/fascicoli'
+  return '/ricerca-legale#schede'
+}
 function sectionById(data: LegalIntelligencePageData, id: string) {
   return data.sections.find((section) => section.id === id)
 }
-
+function sectionValue(value: string | number | undefined | null) {
+  if (value === undefined || value === null || value === '') return 'Disponibile'
+  return value
+}
 function statusIcon(section: LegalSection) {
   if (section.id === 'lex_presidio') return <Bot size={18} aria-hidden="true" />
   if (section.id === 'archivi_ufficiali') return <Database size={18} aria-hidden="true" />
@@ -209,7 +224,6 @@ function statusIcon(section: LegalSection) {
   if (section.id === 'citazioni_verificate') return <FileCheck2 size={18} aria-hidden="true" />
   return <Globe2 size={18} aria-hidden="true" />
 }
-
 function LexStatusCard({ section }: { section: LegalSection }) {
   return (
     <article className="iu-li-lex-card iu-od-source-card">
@@ -236,7 +250,6 @@ function LexStatusCard({ section }: { section: LegalSection }) {
     </article>
   )
 }
-
 function LexCoveragePanel({ data, view }: { data: LegalIntelligencePageData; view: LegalIntelligenceView }) {
   const ids = view === 'ricerca-legale'
     ? ['lex_presidio', 'archivi_ufficiali', 'ai_avanzata']
@@ -258,15 +271,14 @@ function LexCoveragePanel({ data, view }: { data: LegalIntelligencePageData; vie
     </section>
   )
 }
-
 function NavigationTabs({ view }: { view: LegalIntelligenceView }) {
-  // Path canonici sotto /ricerca-legale (v2.242.0+). Il vecchio /legal-intelligence/*
+  // Path canonici sotto /ricerca-legale; /legal-intelligence/* viene ridiretto lato server.
   // resta accessibile e viene ridiretto 301 lato server.
   const items: Array<[LegalIntelligenceView, string, string]> = [
-    ['dashboard', 'Cruscotto', '/ricerca-legale'],
+    ['ricerca-legale', 'Ricerca', '/ricerca-legale'],
+    ['dashboard', 'Cruscotto', '/ricerca-legale?view=cruscotto'],
     ['news', 'News', '/ricerca-legale/news'],
     ['mediazione', 'Mediazione', '/ricerca-legale/mediazione'],
-    ['ricerca-legale', 'Ricerca legale', '/ricerca-legale/ricerca'],
   ]
   return (
     <nav className="iu-li-tabs iu-od-source-card" aria-label="Sezioni ricerca legale">
@@ -284,7 +296,6 @@ function NavigationTabs({ view }: { view: LegalIntelligenceView }) {
     </nav>
   )
 }
-
 function WorkbenchBrief({ view }: { view: LegalIntelligenceView }) {
   const brief = viewBrief(view)
   return (
@@ -305,7 +316,6 @@ function WorkbenchBrief({ view }: { view: LegalIntelligenceView }) {
     </section>
   )
 }
-
 function SourceMap({ data, view }: { data: LegalIntelligencePageData; view: LegalIntelligenceView }) {
   const visible = view === 'news'
     ? data.sections.filter((section) => ['news', 'materie', 'distinzione'].includes(section.id))
@@ -314,10 +324,9 @@ function SourceMap({ data, view }: { data: LegalIntelligencePageData; view: Lega
       : view === 'ricerca-legale'
         ? data.sections.filter((section) => ['ricerca', 'archivi_ufficiali', 'fonti', 'distinzione'].includes(section.id))
         : data.sections.filter((section) => ['archivi_ufficiali', 'fonti', 'news', 'mediazione', 'distinzione'].includes(section.id))
-
   if (!visible.length) return null
   return (
-    <section className="iu-li-source-map" aria-label="Mappa fonti e controlli">
+    <section id="mappa-fonti" className="iu-li-source-map" aria-label="Mappa fonti e controlli">
       <header className="iu-li-section-head">
         <ListChecks size={18} aria-hidden="true" />
         <div>
@@ -335,7 +344,7 @@ function SourceMap({ data, view }: { data: LegalIntelligencePageData; view: Lega
                 {section.items.slice(0, 4).map((item) => (
                   <span className="iu-li-chip" key={`${section.id}-${item.id}`}>
                     <strong>{item.label}</strong>
-                    <span>{item.value || 'Disponibile'}</span>
+                    <span>{sectionValue(item.value)}</span>
                     {item.note ? <small>{item.note}</small> : null}
                   </span>
                 ))}
@@ -349,7 +358,6 @@ function SourceMap({ data, view }: { data: LegalIntelligencePageData; view: Lega
     </section>
   )
 }
-
 function RecordCard({
   record,
   selected,
@@ -362,7 +370,7 @@ function RecordCard({
   const metaItems = [
     ['Fonte', record.sourceLabel],
     ['Tipo fonte', record.sourceKind],
-    ['Data', record.date],
+    ['Data', formatDate(record.date)],
     ['Area', record.area],
     ['Materia', record.branch],
     ['Territorio', record.territory],
@@ -370,8 +378,9 @@ function RecordCard({
   ].filter((item) => item[1])
   const stateLabel = record.approvalLabel || record.stateLabel
   const stateTone = record.approvalLabel ? record.approvalTone : record.stateTone
-  const summaryItems = contextItems(record).slice(0, 3)
-
+  const summaryItems = contextItems(record).slice(0, 2)
+  const pointPreview = record.keyPoints.slice(0, 2)
+  const checkPreview = record.operationalChecks.slice(0, 1)
   return (
     <article className={selected ? 'iu-li-record iu-li-record--selected iu-od-source-card' : 'iu-li-record iu-od-source-card'}>
       <header className="iu-li-record__header">
@@ -382,6 +391,10 @@ function RecordCard({
         </div>
         {stateLabel ? <Badge tone={stateTone}>{stateLabel}</Badge> : null}
       </header>
+      <div className="iu-li-internal-strip" aria-label="Stato scheda IUSENTRA">
+        <span className="iu-li-internal-strip__label">Scheda IUSENTRA</span>
+        <strong>{contextStatusLabel(record)}</strong>
+      </div>
       {summaryItems.length ? (
         <ul className="iu-li-context-list" aria-label="Contesto disponibile">
           {summaryItems.map((item) => (
@@ -389,8 +402,14 @@ function RecordCard({
           ))}
         </ul>
       ) : null}
-      <dl className="iu-li-meta">
-        {metaItems.map(([label, value]) => (
+      {pointPreview.length || checkPreview.length ? (
+        <div className="iu-li-card-points" aria-label="Punti e controlli della scheda">
+          {pointPreview.map((item) => <span key={`${record.id}-card-point-${item}`}>{item}</span>)}
+          {checkPreview.map((item) => <span key={`${record.id}-card-check-${item}`}>{item}</span>)}
+        </div>
+      ) : null}
+      <dl className="iu-li-meta iu-li-meta--compact">
+        {metaItems.slice(0, 4).map(([label, value]) => (
           <div key={`${record.id}-${label}`}>
             <dt>{label}</dt>
             <dd>{value}</dd>
@@ -400,23 +419,23 @@ function RecordCard({
       <div className="iu-li-evidence-row">
         <span className="iu-od-source-badge">{record.evidenceType || 'informazione'}</span>
         {record.sourceKind ? <span className="iu-od-source-badge">{record.sourceKind}</span> : null}
+        {record.contextCompleted ? <span className="iu-od-source-badge">letto in IUSENTRA</span> : null}
       </div>
       <footer className="iu-od-action-row iu-li-record__actions">
         <Button type="button" tone="primary" onClick={() => onOpen(record)}>
           <BookOpen size={16} aria-hidden="true" />
-          Leggi contesto
+          Leggi scheda
         </Button>
         {record.sourceHref ? (
-          <ButtonLink href={record.sourceHref} tone="neutral" target="_blank" rel="noreferrer">
+          <ButtonLink href={record.sourceHref} tone="neutral" target="_blank" rel="noreferrer" className="iu-li-official-link">
             <ExternalLink size={16} aria-hidden="true" />
-            Fonte originale
+            Controllo ufficiale
           </ButtonLink>
         ) : null}
       </footer>
     </article>
   )
 }
-
 function RecordDetail({
   record,
   view,
@@ -441,7 +460,7 @@ function RecordDetail({
   const sourceMeta = [
     ['Fonte', record.sourceLabel || 'Non indicata'],
     ['Tipo', record.sourceKind || 'Non indicato'],
-    ['Data', record.date || 'Non indicata'],
+    ['Data', formatDate(record.date) || 'Non indicata'],
     ['Area', record.area || record.branch || 'Non indicata'],
     ...(isMediazioneRecord ? [
       ['Sezione', record.registrySection || 'Registro mediazione'],
@@ -451,31 +470,69 @@ function RecordDetail({
       ['Contatti', record.email || record.website || 'Non indicati'],
     ] : []),
   ]
+  const contextSummary = record.contextSummary || record.sourceExcerpt || record.subtitle
   return (
     <aside className="iu-li-detail iu-od-source-card" aria-label="Contesto fonte">
       <div className="iu-li-detail__intro">
         <span className="iu-od-source-badge">{recordIcon(record)}{record.kind}</span>
         <h2>{record.title}</h2>
-        <p>{record.sourceExcerpt || record.subtitle || 'Scheda disponibile con metadati e fonte collegata.'}</p>
+        <p>{contextSummary || 'Scheda disponibile con provenienza, controlli e fonte collegata.'}</p>
       </div>
+      <section className="iu-li-detail__status" aria-label="Stato della scheda interna">
+        <div>
+          <span>Scheda interna IUSENTRA</span>
+          <strong>{contextStatusLabel(record)}</strong>
+        </div>
+        <p>Il contenuto utile allo studio è leggibile qui; il collegamento esterno resta un controllo finale sulla fonte originale.</p>
+      </section>
       <div className="iu-li-detail__reading">
         <h3>Contesto in IUSENTRA</h3>
-        <ul className="iu-li-context-list">
-          {items.map((item) => (
-            <li key={`${record.id}-detail-${item}`}>{item}</li>
-          ))}
-        </ul>
+        {items.length ? (
+          <ul className="iu-li-context-list">
+            {items.map((item) => (
+              <li key={`${record.id}-detail-${item}`}>{item}</li>
+            ))}
+          </ul>
+        ) : (
+          <p>Contesto essenziale disponibile nella scheda.</p>
+        )}
       </div>
+      {record.keyPoints.length ? (
+        <section className="iu-li-detail__box">
+          <h3>Punti della scheda</h3>
+          <ul className="iu-li-context-list">
+            {record.keyPoints.map((item) => (
+              <li key={`${record.id}-point-${item}`}>{item}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      {record.officialContext ? (
+        <section className="iu-li-detail__box iu-li-detail__official">
+          <h3>Testo letto in IUSENTRA</h3>
+          <p>{record.officialContext}</p>
+        </section>
+      ) : null}
       <div className="iu-li-detail__grid">
         <section className="iu-li-detail__box">
           <h3>Uso pratico</h3>
           <p>{practicalUse(record)}</p>
         </section>
         <section className="iu-li-detail__box">
-          <h3>Attendibilità</h3>
+          <h3>{'Attendibilit\u00e0'}</h3>
           <p>{reliabilityNote(record)}</p>
         </section>
       </div>
+      {record.operationalChecks.length ? (
+        <section className="iu-li-detail__box">
+          <h3>Controlli per lo studio</h3>
+          <ul className="iu-li-context-list">
+            {record.operationalChecks.map((item) => (
+              <li key={`${record.id}-check-${item}`}>{item}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       <dl className="iu-li-meta iu-li-detail__meta">
         {sourceMeta.map(([label, value]) => (
           <div key={`${record.id}-detail-${label}`}>
@@ -485,14 +542,16 @@ function RecordDetail({
         ))}
       </dl>
       <div className="iu-od-action-row iu-li-detail__actions">
-        <Button type="button" tone="primary" onClick={() => onSearchRelated(relatedQuery(record))}>
-          <Search size={16} aria-hidden="true" />
-          Cerca collegati
-        </Button>
+        {view !== 'mediazione' ? (
+          <Button type="button" tone="primary" onClick={() => onSearchRelated(relatedQuery(record))}>
+            <Search size={16} aria-hidden="true" />
+            Cerca collegati
+          </Button>
+        ) : null}
         {record.sourceHref ? (
-          <ButtonLink href={record.sourceHref} tone="neutral" target="_blank" rel="noreferrer">
+          <ButtonLink href={record.sourceHref} tone="neutral" target="_blank" rel="noreferrer" className="iu-li-official-link">
             <ExternalLink size={16} aria-hidden="true" />
-            Apri fonte originale
+            {view === 'mediazione' ? 'Apri fonte originale' : 'Controllo ufficiale'}
           </ButtonLink>
         ) : null}
         {view !== 'mediazione' ? <ButtonLink href="/giurisprudenza" tone="neutral">Archivio giurisprudenza</ButtonLink> : null}
@@ -500,13 +559,24 @@ function RecordDetail({
     </aside>
   )
 }
-
 function RecordFilters({
   view,
   query,
   submittedQuery,
   loading,
+  kind,
+  source,
+  area,
+  state,
+  kinds,
+  sources,
+  areas,
+  states,
   onQuery,
+  onKind,
+  onSource,
+  onArea,
+  onState,
   onSubmit,
   onReset,
   onQuickSearch,
@@ -515,12 +585,26 @@ function RecordFilters({
   query: string
   submittedQuery: string
   loading: boolean
+  kind: string
+  source: string
+  area: string
+  state: string
+  kinds: string[]
+  sources: string[]
+  areas: string[]
+  states: string[]
   onQuery: (value: string) => void
+  onKind: (value: string) => void
+  onSource: (value: string) => void
+  onArea: (value: string) => void
+  onState: (value: string) => void
   onSubmit: () => void
   onReset: () => void
   onQuickSearch: (value: string) => void
 }) {
   const isSearch = view === 'ricerca-legale'
+  const showSelectFilters = view !== 'mediazione'
+  const hasActiveFilters = Boolean(kind || source || area || state || (isSearch ? submittedQuery : query))
   return (
     <section className="iu-li-filters iu-od-source-card" aria-label={isSearch ? 'Ricerca fonti legali' : 'Filtro schede'}>
       <form
@@ -552,12 +636,44 @@ function RecordFilters({
             Costruisci scheda
           </Button>
         ) : null}
-        {(isSearch ? submittedQuery : query) ? (
+        {hasActiveFilters ? (
           <Button type="button" tone="neutral" onClick={onReset}>
             Azzera
           </Button>
         ) : null}
       </form>
+      {showSelectFilters ? (
+        <div className="iu-li-filter-grid" aria-label="Filtri schede">
+          <label>
+            <span><Filter size={14} aria-hidden="true" /> Tipo</span>
+            <select value={kind} onChange={(event) => onKind(event.target.value)}>
+              <option value="">Tutti</option>
+              {kinds.map((option) => <option value={option} key={option}>{option}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Fonte</span>
+            <select value={source} onChange={(event) => onSource(event.target.value)}>
+              <option value="">Tutte</option>
+              {sources.map((option) => <option value={option} key={option}>{option}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Area</span>
+            <select value={area} onChange={(event) => onArea(event.target.value)}>
+              <option value="">Tutte</option>
+              {areas.map((option) => <option value={option} key={option}>{option}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Stato</span>
+            <select value={state} onChange={(event) => onState(event.target.value)}>
+              <option value="">Tutti</option>
+              {states.map((option) => <option value={option} key={option}>{option}</option>)}
+            </select>
+          </label>
+        </div>
+      ) : null}
       <div className="iu-li-quick-row" aria-label="Ricerche guidate">
         {quickQueries[view].map((item) => (
           <Button type="button" tone="neutral" key={item} onClick={() => onQuickSearch(item)}>
@@ -570,28 +686,27 @@ function RecordFilters({
     </section>
   )
 }
-
 function uniqueOptions(records: LegalIntelligenceRecord[], field: keyof LegalIntelligenceRecord) {
   return Array.from(new Set(records.map((record) => String(record[field] || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'it-IT'))
 }
-
 function recordMatchesSelect(value: string, filterValue: string) {
   if (!filterValue) return true
   return value.toLocaleLowerCase('it-IT') === filterValue.toLocaleLowerCase('it-IT')
 }
-
 function isImportedMediazioneRecord(record: LegalIntelligenceRecord) {
   return record.id.startsWith('registro-mediazione-') || Boolean(record.registrySection)
 }
-
 function MediazioneRegistryExplorer({
   records,
   allRecords,
+  query,
   section,
   status,
   type,
   territory,
   contact,
+  onQuery,
+  onSubmit,
   onSection,
   onStatus,
   onType,
@@ -602,11 +717,14 @@ function MediazioneRegistryExplorer({
 }: {
   records: LegalIntelligenceRecord[]
   allRecords: LegalIntelligenceRecord[]
+  query: string
   section: string
   status: string
   type: string
   territory: string
   contact: string
+  onQuery: (value: string) => void
+  onSubmit: () => void
   onSection: (value: string) => void
   onStatus: (value: string) => void
   onType: (value: string) => void
@@ -620,9 +738,8 @@ function MediazioneRegistryExplorer({
   const typeOptions = uniqueOptions(allRecords, 'organismoType')
   const territoryOptions = uniqueOptions(allRecords, 'territory').slice(0, 180)
   const visibleRows = records.slice(0, 80)
-
   return (
-    <section className="iu-li-registry iu-od-source-card" aria-label="Elenco organismi di mediazione">
+    <section id="registro-mediazione" className="iu-li-registry iu-od-source-card" aria-label="Elenco organismi di mediazione">
       <header className="iu-li-section-head">
         <Landmark size={18} aria-hidden="true" />
         <div>
@@ -631,6 +748,17 @@ function MediazioneRegistryExplorer({
         </div>
       </header>
       <div className="iu-li-registry-filters" aria-label="Filtri registro organismi">
+        <label className="iu-li-registry-search">
+          <span><Search size={14} aria-hidden="true" /> Cerca</span>
+          <input
+            value={query}
+            onChange={(event) => onQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') onSubmit()
+            }}
+            placeholder="Organismo, numero registro, codice fiscale, email o sito"
+          />
+        </label>
         <label>
           <span><Filter size={14} aria-hidden="true" /> Sezione</span>
           <select value={section} onChange={(event) => onSection(event.target.value)}>
@@ -667,7 +795,7 @@ function MediazioneRegistryExplorer({
             <option value="website">Con sito web</option>
           </select>
         </label>
-        {(section || status || type || territory || contact) ? (
+        {(query || section || status || type || territory || contact) ? (
           <Button type="button" tone="neutral" onClick={onReset}>Azzera filtri</Button>
         ) : null}
       </div>
@@ -728,7 +856,6 @@ function MediazioneRegistryExplorer({
     </section>
   )
 }
-
 function MediazioneImportPanel() {
   return (
     <section className="iu-li-mediazione-import iu-od-source-card" aria-label="Aggiornamento registro mediazione">
@@ -775,7 +902,6 @@ function MediazioneImportPanel() {
     </section>
   )
 }
-
 function ResultHeader({
   view,
   visibleCount,
@@ -807,25 +933,27 @@ function ResultHeader({
     </header>
   )
 }
-
 function includesText(value: string, query: string) {
   if (!query.trim()) return true
   return value.toLocaleLowerCase('it-IT').includes(query.trim().toLocaleLowerCase('it-IT'))
 }
-
 export function LegalIntelligencePage() {
+  const initialParams = new URLSearchParams(window.location.search)
   const [view] = useState<LegalIntelligenceView>(() => currentView())
   const [data, setData] = useState<LegalIntelligencePageData>(emptyLegalIntelligencePage)
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState(() => (['ricerca-legale', 'mediazione'].includes(currentView()) ? initialQuery() : ''))
   const [submittedQuery, setSubmittedQuery] = useState(() => (currentView() === 'ricerca-legale' ? initialQuery() : ''))
   const [selectedId, setSelectedId] = useState(new URLSearchParams(window.location.search).get('scheda') || '')
+  const [recordKind, setRecordKind] = useState(initialParams.get('tipo') || '')
+  const [recordSource, setRecordSource] = useState(initialParams.get('fonte') || '')
+  const [recordArea, setRecordArea] = useState(initialParams.get('area') || '')
+  const [recordState, setRecordState] = useState(initialParams.get('stato') || '')
   const [mediazioneSection, setMediazioneSection] = useState('')
   const [mediazioneStatus, setMediazioneStatus] = useState('')
   const [mediazioneType, setMediazioneType] = useState('')
   const [mediazioneTerritory, setMediazioneTerritory] = useState('')
   const [mediazioneContact, setMediazioneContact] = useState('')
-
   useEffect(() => {
     let active = true
     setLoading(true)
@@ -840,13 +968,16 @@ export function LegalIntelligencePage() {
       active = false
     }
   }, [view, submittedQuery])
-
   const localFilter = view === 'ricerca-legale' ? '' : query
   const locallyVisibleRecords = useMemo(() => data.records.filter((record) => includesText([
     record.title,
     record.subtitle,
     record.sourceExcerpt,
     record.sourceContext.join(' '),
+    record.officialContext,
+    record.contextSummary,
+    record.keyPoints.join(' '),
+    record.operationalChecks.join(' '),
     record.practicalUse,
     record.reliabilityNote,
     record.sourceLabel,
@@ -860,6 +991,24 @@ export function LegalIntelligencePage() {
     record.email,
     record.website,
   ].join(' '), localFilter)), [data.records, localFilter])
+  const selectableRecords = view === 'mediazione' ? locallyVisibleRecords : data.records
+  const kindOptions = useMemo(() => uniqueOptions(selectableRecords, 'kind'), [selectableRecords])
+  const sourceOptions = useMemo(() => uniqueOptions(selectableRecords, 'sourceLabel'), [selectableRecords])
+  const areaOptions = useMemo(() => uniqueOptions(selectableRecords, 'area'), [selectableRecords])
+  const stateOptions = useMemo(() => Array.from(new Set(selectableRecords
+    .map((record) => record.approvalLabel || record.stateLabel)
+    .filter((value): value is string => Boolean(value))))
+    .sort((a, b) => a.localeCompare(b, 'it-IT')), [selectableRecords])
+  const filteredLegalRecords = useMemo(() => {
+    if (view === 'mediazione') return locallyVisibleRecords
+    return locallyVisibleRecords.filter((record) => {
+      if (!recordMatchesSelect(record.kind, recordKind)) return false
+      if (!recordMatchesSelect(record.sourceLabel, recordSource)) return false
+      if (!recordMatchesSelect(record.area, recordArea)) return false
+      if (!recordMatchesSelect(record.approvalLabel || record.stateLabel, recordState)) return false
+      return true
+    })
+  }, [locallyVisibleRecords, recordArea, recordKind, recordSource, recordState, view])
   const mediazioneOfficialRecords = useMemo(() => view === 'mediazione'
     ? locallyVisibleRecords.filter((record) => !isImportedMediazioneRecord(record))
     : [], [locallyVisibleRecords, view])
@@ -880,9 +1029,8 @@ export function LegalIntelligencePage() {
   }, [mediazioneRegistryRecords, mediazioneContact, mediazioneSection, mediazioneStatus, mediazioneTerritory, mediazioneType, view])
   const visibleRecords = view === 'mediazione'
     ? [...mediazioneOfficialRecords, ...filteredMediazioneRegistryRecords]
-    : locallyVisibleRecords
+    : filteredLegalRecords
   const selectedRecord = data.records.find((record) => record.id === selectedId) || visibleRecords[0]
-
   const updateSearchUrl = (value: string) => {
     const params = new URLSearchParams(window.location.search)
     if (value) params.set('q', value)
@@ -891,7 +1039,6 @@ export function LegalIntelligencePage() {
     const suffix = params.toString() ? `?${params.toString()}` : ''
     window.history.replaceState({}, '', `${window.location.pathname}${suffix}`)
   }
-
   const runSearch = (value: string) => {
     const trimmed = value.trim()
     if (!trimmed) return
@@ -905,7 +1052,7 @@ export function LegalIntelligencePage() {
       return
     }
     if (view !== 'ricerca-legale') {
-      window.location.href = `/ricerca-legale/ricerca?q=${encodeURIComponent(trimmed)}`
+      window.location.href = `/ricerca-legale?q=${encodeURIComponent(trimmed)}`
       return
     }
     setQuery(trimmed)
@@ -913,7 +1060,6 @@ export function LegalIntelligencePage() {
     updateSearchUrl(trimmed)
     setSubmittedQuery(trimmed)
   }
-
   const submitSearch = () => {
     const trimmed = query.trim()
     if (!trimmed) {
@@ -922,10 +1068,13 @@ export function LegalIntelligencePage() {
     }
     runSearch(trimmed)
   }
-
   const resetSearch = () => {
     setQuery('')
     setSelectedId('')
+    setRecordKind('')
+    setRecordSource('')
+    setRecordArea('')
+    setRecordState('')
     if (view === 'mediazione') {
       setMediazioneStatus('')
       setMediazioneSection('')
@@ -939,21 +1088,22 @@ export function LegalIntelligencePage() {
       setSubmittedQuery('')
     }
   }
-
   const openRecord = (record: LegalIntelligenceRecord) => {
     setSelectedId(record.id)
     const params = new URLSearchParams(window.location.search)
     if (view === 'ricerca-legale' && submittedQuery) params.set('q', submittedQuery)
     if (view === 'mediazione' && query) params.set('q', query)
+    if (recordKind) params.set('tipo', recordKind)
+    if (recordSource) params.set('fonte', recordSource)
+    if (recordArea) params.set('area', recordArea)
+    if (recordState) params.set('stato', recordState)
     params.set('scheda', record.id)
     window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`)
     window.requestAnimationFrame(() => document.querySelector('.iu-li-detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
-
   if (loading) {
     return <LoadingState title={`Caricamento ${pageTitle(view)}`} message="Recupero delle informazioni reali." />
   }
-
   return (
     <Page
       title={pageTitle(view)}
@@ -966,34 +1116,55 @@ export function LegalIntelligencePage() {
       )}
     >
       <div className="iu-li-page">
-        <ContractStrip data={data} />
+        {view !== 'mediazione' ? <ContractStrip data={data} /> : null}
         <WarningList data={data} />
         <NavigationTabs view={view} />
-        <WorkbenchBrief view={view} />
-        <Metrics data={data} />
-        <LexCoveragePanel data={data} view={view} />
+        {view !== 'mediazione' ? <WorkbenchBrief view={view} /> : null}
+        {view !== 'mediazione' ? <Metrics data={data} /> : null}
+        {view !== 'mediazione' ? (
+          <div id="presidio-lex">
+            <LexCoveragePanel data={data} view={view} />
+          </div>
+        ) : null}
         <div className="iu-li-workbench">
           <div className="iu-li-workbench__main">
-            <RecordFilters
-              view={view}
-              query={query}
-              submittedQuery={submittedQuery}
-              loading={loading}
-              onQuery={setQuery}
-              onSubmit={submitSearch}
-              onReset={resetSearch}
-              onQuickSearch={runSearch}
-            />
-            <SourceMap data={data} view={view} />
+            {view !== 'mediazione' ? (
+              <RecordFilters
+                view={view}
+                query={query}
+                submittedQuery={submittedQuery}
+                loading={loading}
+                kind={recordKind}
+                source={recordSource}
+                area={recordArea}
+                state={recordState}
+                kinds={kindOptions}
+                sources={sourceOptions}
+                areas={areaOptions}
+                states={stateOptions}
+                onQuery={setQuery}
+                onKind={setRecordKind}
+                onSource={setRecordSource}
+                onArea={setRecordArea}
+                onState={setRecordState}
+                onSubmit={submitSearch}
+                onReset={resetSearch}
+                onQuickSearch={runSearch}
+              />
+            ) : null}
+            {view !== 'mediazione' ? <SourceMap data={data} view={view} /> : null}
             {view === 'mediazione' ? (
               <MediazioneRegistryExplorer
                 records={filteredMediazioneRegistryRecords}
                 allRecords={mediazioneRegistryRecords}
+                query={query}
                 section={mediazioneSection}
                 status={mediazioneStatus}
                 type={mediazioneType}
                 territory={mediazioneTerritory}
                 contact={mediazioneContact}
+                onQuery={setQuery}
+                onSubmit={submitSearch}
                 onSection={setMediazioneSection}
                 onStatus={setMediazioneStatus}
                 onType={setMediazioneType}
@@ -1005,12 +1176,12 @@ export function LegalIntelligencePage() {
                   setMediazioneType('')
                   setMediazioneTerritory('')
                   setMediazioneContact('')
+                  resetSearch()
                 }}
                 onOpen={openRecord}
               />
             ) : null}
-            {view === 'mediazione' ? <MediazioneImportPanel /> : null}
-            <section className="iu-li-results" aria-label="Schede ricerca legale">
+            <section id="schede" className="iu-li-results" aria-label="Schede ricerca legale">
               <ResultHeader
                 view={view}
                 visibleCount={visibleRecords.length}
@@ -1043,7 +1214,7 @@ export function LegalIntelligencePage() {
                 <EmptyState
                   title={view === 'ricerca-legale' ? 'Nessuna fonte trovata' : 'Nessuna scheda da mostrare'}
                   message={view === 'ricerca-legale'
-                    ? 'Prova con riferimenti normativi, parole chiave più precise o una materia giuridica specifica.'
+                    ? 'Prova con riferimenti normativi, parole chiave pi\u00f9 precise o una materia giuridica specifica.'
                     : 'Non sono disponibili schede compatibili con questa vista o con il filtro applicato.'}
                   action={<ButtonLink href="/giurisprudenza" tone="neutral">Apri giurisprudenza</ButtonLink>}
                 />

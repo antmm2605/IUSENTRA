@@ -13,6 +13,7 @@ from web.services.react_impostazioni_backup import build_backup_settings_payload
 from web.services.react_impostazioni_calendar import build_calendario_payload
 from web.services.react_impostazioni_notifications import build_notifiche_payload
 from web.services.react_impostazioni_payments import build_pagamenti_payload, update_pagamenti_settings
+from web.services.lex_dataset_training_status import build_lex_dataset_training_status
 
 
 ALLOWED_SECTIONS = {
@@ -278,6 +279,10 @@ def _payload_from_config(cfg: Any, *, can_update: bool) -> dict[str, Any]:
             "embed_model": cfg.ai.embed_model or "__auto__",
             "keep_alive": cfg.ai.keep_alive,
             "auto_index_documents": cfg.ai.auto_index_documents,
+            "lex_dataset_status": build_lex_dataset_training_status(
+                ai_enabled=cfg.ai.enabled,
+                auto_index_documents=cfg.ai.auto_index_documents,
+            ),
         },
         "pagamenti": pagamenti,
         "notifiche": notifiche,

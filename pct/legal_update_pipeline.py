@@ -869,6 +869,98 @@ def _verification_note(verification: dict[str, Any], *, prefix: str) -> str:
     return _truncate(f"{prefix} {'; '.join(detail)}", 520)
 
 
+def _is_generic_publication_text(value: Any) -> bool:
+    text = _clean_spaces(value).lower()
+    if not text:
+        return True
+    strong_markers = (
+        "aggiornamento giuridico",
+        "aggiornamento normativo",
+        "novita normativa",
+        "novita giuridica",
+        "novità normativa",
+        "novità giuridica",
+        "pubblicazione informativa",
+    )
+    if any(marker in text for marker in strong_markers):
+        return True
+    weak_markers = ("fonte ufficiale",)
+    return len(text) < 140 and any(marker in text for marker in weak_markers)
+
+
+def _review_needs_publication_verification(review: dict[str, Any]) -> bool:
+    searchable_parts = [
+        review.get("title"),
+        review.get("summary_short"),
+        review.get("summary_long"),
+        review.get("what_changes"),
+        review.get("body_text"),
+        review.get("source_excerpt"),
+    ]
+    text = _clean_spaces(" ".join(_clean_spaces(part) for part in searchable_parts)).lower()
+    if any(_is_generic_publication_text(part) for part in searchable_parts[1:5]):
+        return True
+    if "leggi la notizia" in text:
+        return True
+    if text.count(" fonte ufficiale") >= 2 and len(text) < 900:
+        return True
+    dates = re.findall(r"\b[0-3]?\d/[01]?\d/[12]\d{3}\b", text)
+    if len(set(dates)) >= 2 and ("leggi" in text or "notizia" in text):
+        return True
+    return False
+
+
+def _verification_publication_context(verification: dict[str, Any]) -> tuple[str, str]:
+    if not verification.get("ok"):
+        return "", ""
+    confirmations = [row for row in list(verification.get("confirmations") or []) if isinstance(row, dict)]
+    confirmations.sort(key=lambda row: (0 if row.get("official") else 1, -int(row.get("context_chars") or 0)))
+    seen: set[str] = set()
+    excerpts: list[tuple[str, str]] = []
+    for row in confirmations:
+        excerpt = _clean_spaces(row.get("excerpt") or row.get("full_context") or row.get("content"))
+        if not excerpt:
+            continue
+        key = excerpt.lower()[:140]
+        if key in seen:
+            continue
+        seen.add(key)
+        source_name = _clean_spaces(row.get("source_name") or row.get("domain") or row.get("origin") or "Fonte ufficiale")
+        excerpts.append((source_name, _truncate(excerpt, 520)))
+        if len(excerpts) >= 4:
+            break
+    if not excerpts:
+        return "", ""
+    summary = _truncate(" ".join(excerpt for _, excerpt in excerpts[:2]), 360)
+    bullets = "\n".join(f"- {source_name}: {excerpt}" for source_name, excerpt in excerpts)
+    return summary, f"Contesto ufficiale verificato:\n{bullets}"
+
+
+def _review_with_verification_publication_context(
+    review: dict[str, Any],
+    verification: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if not verification:
+        return review
+    summary, context = _verification_publication_context(verification)
+    if not summary and not context:
+        return review
+    enriched = dict(review)
+    if summary and _is_generic_publication_text(enriched.get("summary_short")):
+        enriched["summary_short"] = summary
+    current_content = (
+        _clean_spaces(enriched.get("what_changes"))
+        or _clean_spaces(enriched.get("summary_long"))
+        or _clean_spaces(enriched.get("body_text"))
+    )
+    if context:
+        if _is_generic_publication_text(current_content):
+            enriched["what_changes"] = context
+        elif context not in current_content:
+            enriched["what_changes"] = f"{current_content}\n\n{context}"
+    return enriched
+
+
 def _is_navigation_noise(title: str, body_text: str) -> bool:
     text = _clean_spaces(f"{title} {body_text}").lower()
     if not text:
@@ -1532,12 +1624,63 @@ class LegalUpdatePipeline:
             return "NEWS_ONLY", enriched
         return "NEWS_ONLY", enriched
 
-    def publish_review(self, review_id: int, *, reviewer: str = "admin") -> dict[str, Any]:
+    def _source_for_review(self, review: dict[str, Any]) -> dict[str, Any] | None:
+        source_code = _clean_spaces(review.get("source_code"))
+        if source_code:
+            source = self.repository.get_source_by_code(source_code)
+            if source:
+                return source
+        source_name = _clean_spaces(review.get("source_name")).lower()
+        if source_name:
+            for source in self.repository.list_sources(enabled_only=False):
+                if _clean_spaces(source.get("name")).lower() == source_name:
+                    return source
+        return None
+
+    def _verification_for_manual_publish(self, review: dict[str, Any]) -> dict[str, Any] | None:
+        if not _review_needs_publication_verification(review):
+            return None
+        source = self._source_for_review(review)
+        if not source or not self._is_trusted_update_source(source):
+            return None
+        try:
+            verification = verify_legal_update_against_public_sources(review, source)
+        except Exception as exc:
+            verification = {
+                "ok": False,
+                "reason": f"Lettura fonte ufficiale non completata: {_truncate(str(exc), 180)}",
+                "confirmation_count": 0,
+                "confirmations": [],
+                "searched": {},
+            }
+        if verification.get("ok"):
+            return verification
+        self.repository.set_review_status(
+            int(review["id"]),
+            "pending",
+            reviewer="system",
+            notes=_verification_note(
+                verification,
+                prefix="Pubblicazione sospesa: manca contesto ufficiale leggibile.",
+            ),
+        )
+        raise ValueError("Pubblicazione sospesa: manca un contesto ufficiale leggibile da salvare in IUSENTRA.")
+
+    def publish_review(
+        self,
+        review_id: int,
+        *,
+        reviewer: str = "admin",
+        verification: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         review = self.repository.get_review_item(review_id)
         if not review:
             raise ValueError("Review non trovata.")
         if str(review.get("status") or "").lower() == "rejected":
             raise ValueError("La proposta è stata rifiutata e non può essere pubblicata.")
+        if verification is None:
+            verification = self._verification_for_manual_publish(review)
+        review = _review_with_verification_publication_context(review, verification)
         proposed_action, review = self._resolve_publish_action(review)
         classification = str(review.get("classification_type") or "")
         result: dict[str, Any] = {}
@@ -1866,7 +2009,7 @@ class LegalUpdatePipeline:
                     ),
                 )
             try:
-                self.publish_review(int(row["id"]), reviewer="system")
+                self.publish_review(int(row["id"]), reviewer="system", verification=verification)
             except Exception as exc:
                 skipped.append(
                     {

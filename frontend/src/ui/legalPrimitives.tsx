@@ -353,7 +353,7 @@ export function PermissionDeniedState() {
   )
 }
 
-export function ErrorState({ title = 'Si e verificato un problema', message = 'Non e stato possibile caricare i dati. Riprova tra qualche istante.' }: {
+export function ErrorState({ title = 'Si è verificato un problema', message = 'Non è stato possibile caricare i dati. Riprova tra qualche istante.' }: {
   title?: string
   message?: string
 }) {

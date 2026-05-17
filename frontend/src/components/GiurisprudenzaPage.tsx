@@ -1,5 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Bot, CheckCircle2, Database, ExternalLink, FileText, Filter, Landmark, Search, ShieldCheck } from 'lucide-react'
+import {
+  BookOpen,
+  Bot,
+  CheckCircle2,
+  Database,
+  ExternalLink,
+  FileText,
+  Filter,
+  Landmark,
+  Link2,
+  Search,
+  ShieldCheck,
+} from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
@@ -60,10 +72,24 @@ function Metrics({ metrics }: { metrics: LegalMetric[] }) {
           value={metric.value || 0}
           note={metric.note}
           badge={<Badge tone={metric.tone}>{metric.tone === 'neutral' ? 'Dato' : 'Stato'}</Badge>}
+          href={giurisprudenzaMetricHref(metric)}
+          area="ricerca"
+          actionLabel="Apri"
         />
       ))}
     </section>
   )
+}
+
+function giurisprudenzaMetricHref(metric: LegalMetric) {
+  const label = metric.label.toLocaleLowerCase('it-IT')
+  if (label.includes('provvedimenti')) return '#sentenze'
+  if (label.includes('fonti')) return '#fonti-disponibili'
+  if (label.includes('aree')) return '#filtri-giurisprudenza'
+  if (label.includes('verificare')) return '?status=Da%20verificare#sentenze'
+  if (label.includes('agenti')) return '#presidio-lex'
+  if (label.includes('fascicoli')) return '/fascicoli'
+  return '#sentenze'
 }
 
 function sectionById(data: GiurisprudenzaPageData, id: string) {
@@ -75,6 +101,37 @@ function sectionIcon(section: LegalSection) {
   if (section.id === 'lex_presidio') return <Bot size={18} aria-hidden="true" />
   if (section.id === 'archivi_ufficiali') return <Database size={18} aria-hidden="true" />
   return <ShieldCheck size={18} aria-hidden="true" />
+}
+
+function formatDate(value: string) {
+  const raw = value.trim()
+  if (!raw) return ''
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) return raw
+  const isoDay = raw.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  const parsed = isoDay ? new Date(`${isoDay[1]}-${isoDay[2]}-${isoDay[3]}T12:00:00`) : new Date(raw)
+  if (Number.isNaN(parsed.getTime())) return raw
+  return new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(parsed)
+}
+
+function recordSearchText(record: GiurisprudenzaRecord) {
+  return [
+    record.title,
+    record.subtitle,
+    record.summary,
+    record.principle,
+    record.abstract,
+    record.practicalUse,
+    record.reliabilityNote,
+    record.sourceLabel,
+    record.authority,
+    record.office,
+    record.area,
+    record.branch,
+    record.subbranch,
+    record.grade,
+    record.orientation,
+    record.tags.join(' '),
+  ].join(' ')
 }
 
 function KnowledgeStatusCard({ section }: { section: LegalSection }) {
@@ -190,57 +247,114 @@ function Filters({
   query,
   area,
   grade,
+  source,
+  verification,
   areas,
   grades,
+  sources,
+  verifications,
   onQuery,
   onArea,
   onGrade,
+  onSource,
+  onVerification,
+  onReset,
 }: {
   query: string
   area: string
   grade: string
+  source: string
+  verification: string
   areas: string[]
   grades: string[]
+  sources: string[]
+  verifications: string[]
   onQuery: (value: string) => void
   onArea: (value: string) => void
   onGrade: (value: string) => void
+  onSource: (value: string) => void
+  onVerification: (value: string) => void
+  onReset: () => void
 }) {
+  const hasFilters = Boolean(query || area || grade || source || verification)
   return (
     <section className="iu-legal-filters iu-od-source-card" aria-label="Filtri archivio giurisprudenza">
-      <div className="iu-legal-filter">
-        <label htmlFor="giurisprudenza-search">
-          <Search size={15} aria-hidden="true" />
-          Cerca
-        </label>
-        <input id="giurisprudenza-search" value={query} onChange={(event) => onQuery(event.target.value)} />
-      </div>
-      <div className="iu-legal-filter">
-        <label htmlFor="giurisprudenza-area">
-          <Filter size={15} aria-hidden="true" />
-          Area
-        </label>
-        <select id="giurisprudenza-area" value={area} onChange={(event) => onArea(event.target.value)}>
-          <option value="">Tutte</option>
-          {areas.map((item) => (
-            <option value={item} key={item}>
-              {item}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="iu-legal-filter">
-        <label htmlFor="giurisprudenza-grade">
-          <Landmark size={15} aria-hidden="true" />
-          Grado
-        </label>
-        <select id="giurisprudenza-grade" value={grade} onChange={(event) => onGrade(event.target.value)}>
-          <option value="">Tutti</option>
-          {grades.map((item) => (
-            <option value={item} key={item}>
-              {item}
-            </option>
-          ))}
-        </select>
+      <header className="iu-legal-filters__header">
+        <div>
+          <h2>Ricerca e lettura</h2>
+          <p>Filtra l'archivio e seleziona una scheda per leggere fonte, massima e uso professionale.</p>
+        </div>
+        {hasFilters ? <Button type="button" tone="neutral" onClick={onReset}>Azzera filtri</Button> : null}
+      </header>
+      <div className="iu-legal-filter-grid">
+        <div className="iu-legal-filter iu-legal-filter--search">
+          <label htmlFor="giurisprudenza-search">
+            <Search size={15} aria-hidden="true" />
+            Cerca
+          </label>
+          <input
+            id="giurisprudenza-search"
+            value={query}
+            onChange={(event) => onQuery(event.target.value)}
+            placeholder="Parole chiave, numero, fonte, materia"
+          />
+        </div>
+        <div className="iu-legal-filter">
+          <label htmlFor="giurisprudenza-source">
+            <BookOpen size={15} aria-hidden="true" />
+            Fonte
+          </label>
+          <select id="giurisprudenza-source" value={source} onChange={(event) => onSource(event.target.value)}>
+            <option value="">Tutte</option>
+            {sources.map((item) => (
+              <option value={item} key={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="iu-legal-filter">
+          <label htmlFor="giurisprudenza-area">
+            <Filter size={15} aria-hidden="true" />
+            Area
+          </label>
+          <select id="giurisprudenza-area" value={area} onChange={(event) => onArea(event.target.value)}>
+            <option value="">Tutte</option>
+            {areas.map((item) => (
+              <option value={item} key={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="iu-legal-filter">
+          <label htmlFor="giurisprudenza-grade">
+            <Landmark size={15} aria-hidden="true" />
+            Grado
+          </label>
+          <select id="giurisprudenza-grade" value={grade} onChange={(event) => onGrade(event.target.value)}>
+            <option value="">Tutti</option>
+            {grades.map((item) => (
+              <option value={item} key={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="iu-legal-filter">
+          <label htmlFor="giurisprudenza-verification">
+            <ShieldCheck size={15} aria-hidden="true" />
+            Verifica
+          </label>
+          <select id="giurisprudenza-verification" value={verification} onChange={(event) => onVerification(event.target.value)}>
+            <option value="">Tutte</option>
+            {verifications.map((item) => (
+              <option value={item} key={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
     </section>
   )
@@ -249,8 +363,8 @@ function Filters({
 function RecordCard({ record, onOpen }: { record: GiurisprudenzaRecord; onOpen: (record: GiurisprudenzaRecord) => void }) {
   const metaItems = [
     ['Fonte', record.sourceLabel],
-    ['Autorita', record.authority || record.office],
-    ['Data', record.date],
+    ['Autorit\u00e0', record.authority || record.office],
+    ['Data', formatDate(record.date)],
     ['Area', record.area],
     ['Branca', record.branch || record.subbranch],
     ['Grado', record.grade || record.jurisdiction],
@@ -263,7 +377,7 @@ function RecordCard({ record, onOpen }: { record: GiurisprudenzaRecord; onOpen: 
         <div>
           <span className="iu-od-source-badge">{record.sourceKind || 'Fonte'}</span>
           <h3>{record.title}</h3>
-          {record.subtitle ? <p>{record.subtitle}</p> : null}
+          {record.summary || record.subtitle ? <p>{record.summary || record.subtitle}</p> : null}
         </div>
         {record.verificationLabel ? <Badge tone={record.verificationTone}>{record.verificationLabel}</Badge> : null}
       </header>
@@ -283,6 +397,7 @@ function RecordCard({ record, onOpen }: { record: GiurisprudenzaRecord; onOpen: 
           </span>
         ) : null}
         {record.citationLabel ? <span className="iu-od-source-badge">{record.citationLabel}</span> : null}
+        {record.fullTextAvailable ? <span className="iu-od-source-badge">Testo in archivio</span> : null}
       </div>
       {record.tags.length ? (
         <div className="iu-legal-tags" aria-label="Tag giurisprudenza">
@@ -306,34 +421,89 @@ function RecordCard({ record, onOpen }: { record: GiurisprudenzaRecord; onOpen: 
       <footer className="iu-od-action-row iu-legal-record__actions">
         <Button type="button" tone="primary" onClick={() => onOpen(record)}>
           <FileText size={16} aria-hidden="true" />
-          Apri scheda
+          Leggi scheda
         </Button>
+        {record.sourceHref ? (
+          <ButtonLink href={record.sourceHref} tone="neutral" target="_blank" rel="noreferrer">
+            <ExternalLink size={16} aria-hidden="true" />
+            Fonte originale
+          </ButtonLink>
+        ) : null}
       </footer>
     </article>
   )
 }
 
 function RecordDetail({ record }: { record?: GiurisprudenzaRecord }) {
-  if (!record) return null
+  if (!record) {
+    return (
+      <aside className="iu-legal-detail iu-od-source-card" aria-label="Scheda provvedimento">
+        <EmptyState
+          title="Nessuna scheda selezionata"
+          message="Cerca o filtra l'archivio per leggere fonte, massima, verifica e uso professionale."
+        />
+      </aside>
+    )
+  }
   return (
-    <section className="iu-legal-detail iu-od-source-card" aria-label="Scheda provvedimento">
-      <div>
+    <aside className="iu-legal-detail iu-od-source-card" aria-label="Scheda provvedimento">
+      <div className="iu-legal-detail__intro">
         <span className="iu-od-source-badge">{record.sourceKind || 'Fonte'}</span>
         <h2>{record.title}</h2>
-        <p>{record.subtitle || record.orientation || 'Scheda del provvedimento selezionato.'}</p>
+        <p>{record.summary || record.subtitle || record.orientation || 'Scheda del provvedimento selezionato.'}</p>
       </div>
       <dl className="iu-legal-meta">
-        <div><dt>Autorità</dt><dd>{record.authority || record.office || 'Non indicata'}</dd></div>
-        <div><dt>Data</dt><dd>{record.date || 'Non indicata'}</dd></div>
+        <div><dt>{'Autorit\u00e0'}</dt><dd>{record.authority || record.office || 'Non indicata'}</dd></div>
+        <div><dt>Data</dt><dd>{formatDate(record.date) || 'Non indicata'}</dd></div>
         <div><dt>Area</dt><dd>{record.area || 'Non indicata'}</dd></div>
         <div><dt>Numero</dt><dd>{record.caseNumber || record.ecli || 'Non indicato'}</dd></div>
       </dl>
+      <div className="iu-legal-detail__grid">
+        <section className="iu-legal-detail__box">
+          <h3>Uso nel lavoro</h3>
+          <p>{record.practicalUse || 'Valuta pertinenza, fonte e data prima di usare il riferimento.'}</p>
+        </section>
+        <section className="iu-legal-detail__box">
+          <h3>Controllo fonte</h3>
+          <p>{record.reliabilityNote || "Verifica la fonte originale prima dell'uso professionale."}</p>
+        </section>
+      </div>
+      {record.principle ? (
+        <section className="iu-legal-detail__box">
+          <h3>Principio</h3>
+          <p>{record.principle}</p>
+        </section>
+      ) : null}
+      {record.abstract && record.abstract !== record.summary ? (
+        <section className="iu-legal-detail__box">
+          <h3>Estratto</h3>
+          <p>{record.abstract}</p>
+        </section>
+      ) : null}
       {record.tags.length ? (
         <div className="iu-legal-tags">
           {record.tags.map((tag) => <span className="iu-legal-tag" key={`${record.id}-detail-${tag}`}>{tag}</span>)}
         </div>
       ) : null}
-    </section>
+      <div className="iu-od-action-row iu-legal-detail__actions">
+        {record.sourceHref ? (
+          <ButtonLink href={record.sourceHref} tone="primary" target="_blank" rel="noreferrer">
+            <ExternalLink size={16} aria-hidden="true" />
+            Apri fonte originale
+          </ButtonLink>
+        ) : null}
+        <ButtonLink href={`/ricerca-legale?q=${encodeURIComponent([record.title, record.caseNumber, record.area].filter(Boolean).join(' '))}`} tone="neutral">
+          <Search size={16} aria-hidden="true" />
+          Cerca collegati
+        </ButtonLink>
+        {record.practiceLinks.length ? (
+          <ButtonLink href={record.practiceLinks[0].href || '/fascicoli'} tone="neutral">
+            <Link2 size={16} aria-hidden="true" />
+            Fascicolo collegato
+          </ButtonLink>
+        ) : null}
+      </div>
+    </aside>
   )
 }
 
@@ -343,12 +513,15 @@ function includesText(value: string, query: string) {
 }
 
 export function GiurisprudenzaPage() {
+  const initialParams = new URLSearchParams(window.location.search)
   const [data, setData] = useState<GiurisprudenzaPageData>(emptyGiurisprudenzaPage)
   const [loading, setLoading] = useState(true)
-  const [query, setQuery] = useState('')
-  const [area, setArea] = useState('')
-  const [grade, setGrade] = useState('')
-  const [selectedId, setSelectedId] = useState(new URLSearchParams(window.location.search).get('scheda') || '')
+  const [query, setQuery] = useState(initialParams.get('q') || '')
+  const [area, setArea] = useState(initialParams.get('area') || '')
+  const [grade, setGrade] = useState(initialParams.get('grado') || '')
+  const [source, setSource] = useState(initialParams.get('fonte') || '')
+  const [verification, setVerification] = useState(initialParams.get('status') || '')
+  const [selectedId, setSelectedId] = useState(initialParams.get('scheda') || '')
 
   useEffect(() => {
     let active = true
@@ -366,26 +539,38 @@ export function GiurisprudenzaPage() {
 
   const areas = useMemo(() => [...new Set(data.records.map((record) => record.area).filter(Boolean))].sort(), [data.records])
   const grades = useMemo(() => [...new Set(data.records.map((record) => record.grade).filter(Boolean))].sort(), [data.records])
+  const sources = useMemo(() => [...new Set(data.records.map((record) => record.sourceLabel).filter(Boolean))].sort(), [data.records])
+  const verifications = useMemo(
+    () => [...new Set(data.records.map((record) => record.verificationLabel || record.citationLabel).filter(Boolean))].sort(),
+    [data.records],
+  )
   const visibleRecords = useMemo(() => data.records.filter((record) => {
-    const searchable = [
-      record.title,
-      record.subtitle,
-      record.sourceLabel,
-      record.authority,
-      record.office,
-      record.area,
-      record.branch,
-      record.subbranch,
-      record.grade,
-      record.orientation,
-      record.tags.join(' '),
-    ].join(' ')
-    return includesText(searchable, query) && (!area || record.area === area) && (!grade || record.grade === grade)
-  }), [area, data.records, grade, query])
+    const verificationValue = record.verificationLabel || record.citationLabel
+    return includesText(recordSearchText(record), query)
+      && (!area || record.area === area)
+      && (!grade || record.grade === grade)
+      && (!source || record.sourceLabel === source)
+      && (!verification || verificationValue === verification)
+  }), [area, data.records, grade, query, source, verification])
   const selectedRecord = data.records.find((record) => record.id === selectedId) || visibleRecords[0]
+  const resetFilters = () => {
+    setQuery('')
+    setArea('')
+    setGrade('')
+    setSource('')
+    setVerification('')
+    window.history.replaceState({}, '', window.location.pathname)
+  }
   const openRecord = (record: GiurisprudenzaRecord) => {
     setSelectedId(record.id)
-    window.history.replaceState({}, '', `${window.location.pathname}?scheda=${encodeURIComponent(record.id)}`)
+    const params = new URLSearchParams()
+    if (query) params.set('q', query)
+    if (area) params.set('area', area)
+    if (grade) params.set('grado', grade)
+    if (source) params.set('fonte', source)
+    if (verification) params.set('status', verification)
+    params.set('scheda', record.id)
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`)
     window.requestAnimationFrame(() => document.querySelector('.iu-legal-detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
 
@@ -402,37 +587,39 @@ export function GiurisprudenzaPage() {
       <div className="iu-legal-page">
         <ContractStrip data={data} />
         <WarningList data={data} />
-        <Metrics metrics={data.metrics} />
-        <KnowledgeStatusPanel data={data} />
-        <SourcesPanel data={data} />
-        <RecordDetail record={selectedRecord} />
+        <div id="filtri-giurisprudenza" />
         <Filters
           query={query}
           area={area}
           grade={grade}
+          source={source}
+          verification={verification}
           areas={areas}
           grades={grades}
+          sources={sources}
+          verifications={verifications}
           onQuery={setQuery}
           onArea={setArea}
           onGrade={setGrade}
+          onSource={setSource}
+          onVerification={setVerification}
+          onReset={resetFilters}
         />
+        <div id="sentenze" className="iu-legal-workbench">
+          <div className="iu-legal-workbench__main">
         <Panel
           title="Sentenze e provvedimenti"
           subtitle={`${visibleRecords.length} elementi visibili su ${data.records.length} schede disponibili.`}
           actions={
-            query || area || grade ? (
-              <Button type="button" tone="neutral" onClick={() => {
-                setQuery('')
-                setArea('')
-                setGrade('')
-              }}>
+            query || area || grade || source || verification ? (
+              <Button type="button" tone="neutral" onClick={resetFilters}>
                 Azzera filtri
               </Button>
             ) : null
           }
         >
           {visibleRecords.length ? (
-            <div className={openDesignLegalKnowledgeSurface.legalList}>
+            <div className={[openDesignLegalKnowledgeSurface.legalList, 'iu-legal-record-grid'].join(' ')}>
               {visibleRecords.map((record) => (
                 <RecordCard record={record} onOpen={openRecord} key={record.id} />
               ))}
@@ -445,6 +632,16 @@ export function GiurisprudenzaPage() {
             />
           )}
         </Panel>
+          </div>
+          <RecordDetail record={selectedRecord} />
+        </div>
+        <Metrics metrics={data.metrics} />
+        <div id="presidio-lex">
+          <KnowledgeStatusPanel data={data} />
+        </div>
+        <div id="fonti-disponibili">
+          <SourcesPanel data={data} />
+        </div>
       </div>
     </Page>
   )

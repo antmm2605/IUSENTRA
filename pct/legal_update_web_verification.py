@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 from typing import Any
@@ -15,6 +16,60 @@ from lex.research.source_policy.models import Tier
 STRUCTURED_ACTIONS = {"NEW_NORMATIVE", "UPDATE_NORMATIVE", "NEW_CASE_LAW", "NEW_PRASSI"}
 ATTACHMENT_EXTENSIONS = (".pdf", ".xml", ".txt", ".html", ".htm", ".docx", ".doc")
 ATTACHMENT_LABELS = ("allegato", "pdf", "xml", "download", "scarica", "testo", "documento")
+GENERIC_ATTACHMENT_LABELS = {
+    "",
+    "allegato",
+    "documento",
+    "download",
+    "leggi",
+    "leggi la notizia",
+    "leggi il documento",
+    "scarica",
+    "scarica documento",
+    "scarica il documento",
+    "scarica pdf",
+    "scarica pdf ufficiale",
+    "testo",
+    "pdf",
+    "read more",
+    "continua",
+}
+OFFICIAL_ATTACHMENT_SOURCE_DOMAINS: tuple[tuple[str, str], ...] = (
+    ("openga.giustizia-amministrativa.it", "OpenGA Giustizia Amministrativa"),
+    ("giustizia-amministrativa.it", "Giustizia Amministrativa"),
+    ("gazzettaufficiale.it", "Gazzetta Ufficiale"),
+    ("cortedicassazione.it", "Corte Suprema di Cassazione"),
+    ("cortecostituzionale.it", "Corte costituzionale"),
+    ("pst.giustizia.it", "Portale Servizi Telematici"),
+    ("giustizia.it", "Ministero della Giustizia"),
+    ("curia.europa.eu", "CURIA"),
+    ("hudoc.echr.coe.int", "HUDOC"),
+    ("echr.coe.int", "Corte europea dei diritti dell'uomo"),
+    ("normattiva.it", "Normattiva"),
+    ("eur-lex.europa.eu", "EUR-Lex"),
+)
+OFFICIAL_POLICY_AREAS = (
+    "default",
+    "normativa",
+    "giurisprudenza",
+    "tributario",
+    "lavoro",
+    "previdenza",
+    "privacy",
+    "societario",
+    "bancario_finanziario",
+    "assicurativo",
+    "amministrativo",
+    "appalti",
+    "penale",
+    "civile",
+    "famiglia",
+    "immigrazione",
+    "fallimentare_crisi_impresa",
+    "consumatori",
+    "digitale_cyber",
+    "ue",
+)
 
 
 def _clean_spaces(value: Any) -> str:
@@ -38,13 +93,45 @@ def _domain(value: Any) -> str:
     return normalize_domain(urlparse(str(value or "").strip()).netloc or str(value or ""))
 
 
+def _domain_matches(domain: str, allowed_domain: str) -> bool:
+    normalized = normalize_domain(domain)
+    allowed = normalize_domain(allowed_domain)
+    return bool(normalized and allowed and (normalized == allowed or normalized.endswith("." + allowed)))
+
+
+def _recognized_official_source_name(url: str) -> str:
+    domain = _domain(url)
+    for allowed_domain, source_name in sorted(
+        OFFICIAL_ATTACHMENT_SOURCE_DOMAINS,
+        key=lambda item: len(item[0]),
+        reverse=True,
+    ):
+        if _domain_matches(domain, allowed_domain):
+            return source_name
+    return ""
+
+
+def _is_recognized_official_url(url: str) -> bool:
+    parsed = urlparse(str(url or "").strip())
+    if parsed.scheme not in {"http", "https"} or parsed.username or parsed.password:
+        return False
+    domain = normalize_domain(parsed.netloc)
+    if any(_domain_matches(domain, allowed_domain) for allowed_domain, _ in OFFICIAL_ATTACHMENT_SOURCE_DOMAINS):
+        return True
+    return any(get_tier_for_domain(domain, area).value == Tier.TIER_1.value for area in OFFICIAL_POLICY_AREAS)
+
+
 def _is_allowed_attachment_url(url: str, base_url: str) -> bool:
     parsed = urlparse(str(url or ""))
-    if parsed.scheme not in {"http", "https"}:
+    if parsed.scheme not in {"http", "https"} or parsed.username or parsed.password:
         return False
     domain = normalize_domain(parsed.netloc)
     base_domain = normalize_domain(urlparse(str(base_url or "")).netloc)
-    if domain and base_domain and domain == base_domain:
+    if not domain or not _is_recognized_official_url(base_url):
+        return False
+    if any(_domain_matches(domain, allowed_domain) for allowed_domain, _ in OFFICIAL_ATTACHMENT_SOURCE_DOMAINS):
+        return True
+    if domain and base_domain and _domain_matches(domain, base_domain):
         return True
     return get_tier_for_domain(domain, infer_area(base_url)).value == Tier.TIER_1.value
 
@@ -74,7 +161,7 @@ def _attachment_links(html_text: str, base_url: str) -> list[dict[str, str]]:
         if not _is_allowed_attachment_url(absolute, base_url):
             continue
         seen.add(absolute)
-        links.append({"url": absolute, "label": label or "Allegato"})
+        links.append({"url": absolute, "label": label or "Allegato", "attachment_type": _file_type_from_url(absolute)})
         if len(links) >= max_links:
             break
     return links
@@ -411,14 +498,50 @@ def _file_type_from_url(url: str, content_type: str = "") -> str:
     return ""
 
 
-def _download_limited(url: str, *, timeout: int, max_bytes: int) -> tuple[bytes, str]:
+def _filename_from_url(url: str) -> str:
+    path = urlparse(str(url or "")).path.rstrip("/")
+    filename = path.rsplit("/", 1)[-1] if path else ""
+    return _clean_spaces(filename)
+
+
+def _attachment_title(label: str, attachment_url: str) -> str:
+    cleaned = _clean_spaces(label)
+    normalized = cleaned.lower().strip(" .:-")
+    filename = _filename_from_url(attachment_url)
+    if normalized in GENERIC_ATTACHMENT_LABELS or len(normalized) < 4:
+        return filename or "Allegato ufficiale"
+    return cleaned
+
+
+def _download_limited(url: str, *, timeout: int, max_bytes: int, base_url: str = "") -> tuple[bytes, str]:
+    target = _clean_spaces(url)
+    if base_url and not _is_allowed_attachment_url(target, base_url):
+        return b"", ""
+    if not base_url and not _is_recognized_official_url(target):
+        return b"", ""
+    current_url = target
+    redirects = 0
     try:
-        response = requests.get(
-            url,
-            timeout=timeout,
-            stream=True,
-            headers={"User-Agent": "IUSENTRA-Legal-Verification/1.0"},
-        )
+        while True:
+            response = requests.get(
+                current_url,
+                timeout=timeout,
+                stream=True,
+                allow_redirects=False,
+                headers={"User-Agent": "IUSENTRA-Legal-Verification/1.0"},
+            )
+            status_code = int(getattr(response, "status_code", 0) or 0)
+            if status_code not in {301, 302, 303, 307, 308}:
+                break
+            redirects += 1
+            if redirects > 3:
+                return b"", str(getattr(response, "headers", {}).get("content-type", "") or "")
+            location = _clean_spaces(getattr(response, "headers", {}).get("location", ""))
+            next_url = urljoin(current_url, location)
+            redirect_base = base_url or target
+            if not _is_allowed_attachment_url(next_url, redirect_base):
+                return b"", str(getattr(response, "headers", {}).get("content-type", "") or "")
+            current_url = next_url
     except Exception:
         return b"", ""
     if int(getattr(response, "status_code", 0) or 0) >= 400:
@@ -471,37 +594,134 @@ def _text_from_attachment(url: str, content: bytes, content_type: str) -> str:
     return ""
 
 
-def _fetch_official_web_context(url: str, *, timeout: int = 8) -> str:
+def _official_attachment_confirmation(
+    *,
+    source_url: str,
+    attachment_url: str,
+    label: str,
+    content: bytes,
+    content_type: str,
+) -> dict[str, Any] | None:
+    if not content:
+        return None
+    attachment_type = _file_type_from_url(attachment_url, content_type) or _clean_spaces(content_type).split(";", 1)[0]
+    text = _clean_spaces(_text_from_attachment(attachment_url, content, content_type))
+    source_name = (
+        _recognized_official_source_name(source_url)
+        or _recognized_official_source_name(attachment_url)
+        or _domain(source_url)
+    )
+    if not source_name:
+        return None
+    text_excerpt = _truncate(text, 900)
+    return {
+        "origin": "allegato_fonte_ufficiale",
+        "title": _truncate(_attachment_title(label, attachment_url), 180),
+        "source_name": source_name,
+        "source_url": _clean_spaces(source_url),
+        "attachment_url": _clean_spaces(attachment_url),
+        "attachment_type": attachment_type,
+        "sha256": hashlib.sha256(content).hexdigest(),
+        "text_excerpt": text_excerpt,
+        "excerpt": _truncate(text, 420),
+        "url": _clean_spaces(attachment_url),
+        "domain": _domain(attachment_url),
+        "tier": Tier.TIER_1.value,
+        "official": True,
+        "context_chars": len(text),
+        "matched_terms": [],
+        "query": "",
+    }
+
+
+def extract_official_attachment_confirmations(
+    html_text: str,
+    source_url: str,
+    *,
+    timeout: int | None = None,
+    max_bytes: int | None = None,
+) -> list[dict[str, Any]]:
+    """Legge solo allegati pubblici da domini istituzionali riconosciuti."""
+
+    target = _clean_spaces(source_url)
+    if not _is_recognized_official_url(target):
+        return []
+    resolved_timeout = int(timeout or _env_int("IUSENTRA_LEGAL_VERIFICATION_ATTACHMENT_TIMEOUT_SECONDS", 8))
+    resolved_max_bytes = int(
+        max_bytes or _env_int("IUSENTRA_LEGAL_VERIFICATION_ATTACHMENT_MAX_BYTES", 30 * 1024 * 1024)
+    )
+    confirmations: list[dict[str, Any]] = []
+    for link in _attachment_links(html_text, target):
+        attachment_url = _clean_spaces(link.get("url"))
+        if not _is_allowed_attachment_url(attachment_url, target):
+            continue
+        content, content_type = _download_limited(
+            attachment_url,
+            timeout=resolved_timeout,
+            max_bytes=resolved_max_bytes,
+            base_url=target,
+        )
+        confirmation = _official_attachment_confirmation(
+            source_url=target,
+            attachment_url=attachment_url,
+            label=_clean_spaces(link.get("label") or link.get("attachment_type") or "Allegato"),
+            content=content,
+            content_type=content_type or _clean_spaces(link.get("attachment_type")),
+        )
+        if confirmation:
+            confirmations.append(confirmation)
+    return confirmations
+
+
+def _attachment_matches_review(confirmation: dict[str, Any], review: dict[str, Any]) -> bool:
+    row = {
+        "title": confirmation.get("title"),
+        "content": confirmation.get("text_excerpt") or confirmation.get("excerpt"),
+        "url": confirmation.get("attachment_url"),
+        "source_name": confirmation.get("source_name"),
+    }
+    return _matches_review_reference(row, review)
+
+
+def _fetch_official_web_context_with_attachments(url: str, *, timeout: int = 8) -> tuple[str, list[dict[str, Any]]]:
     target = _clean_spaces(url)
-    if not target.startswith(("https://", "http://")):
-        return ""
+    if not target.startswith(("https://", "http://")) or not _is_recognized_official_url(target):
+        return "", []
     max_bytes = _env_int("IUSENTRA_LEGAL_VERIFICATION_ATTACHMENT_MAX_BYTES", 30 * 1024 * 1024)
     content, content_type = _download_limited(target, timeout=timeout, max_bytes=max_bytes)
     if not content:
-        return ""
+        return "", []
     file_type = _file_type_from_url(target, content_type)
     if file_type in {"pdf", "docx", "doc", "xml", "txt"}:
-        return _truncate(_text_from_attachment(target, content, content_type), 9000)
+        text = _truncate(_text_from_attachment(target, content, content_type), 9000)
+        return text, []
 
     try:
         html_text = content.decode("utf-8", errors="ignore")
     except Exception:
-        return ""
+        return "", []
     if not html_text.strip():
-        return ""
+        return "", []
     page_text = _text_from_html(html_text)
+    attachment_confirmations: list[dict[str, Any]] = []
     sections = [page_text]
     if str(os.getenv("IUSENTRA_LEGAL_VERIFICATION_READ_ATTACHMENTS", "1")).strip().lower() not in {"0", "false", "no", "off"}:
-        for link in _attachment_links(html_text, target):
-            attachment_content, attachment_type = _download_limited(
-                link["url"],
-                timeout=timeout,
-                max_bytes=max_bytes,
-            )
-            attachment_text = _text_from_attachment(link["url"], attachment_content, attachment_type)
-            if attachment_text:
-                sections.append(f"Allegato {link['label']}: {attachment_text}")
-    return _truncate(" ".join(section for section in sections if section), 12000)
+        attachment_confirmations = extract_official_attachment_confirmations(
+            html_text,
+            target,
+            timeout=timeout,
+            max_bytes=max_bytes,
+        )
+        for confirmation in attachment_confirmations:
+            excerpt = _clean_spaces(confirmation.get("text_excerpt") or confirmation.get("excerpt"))
+            if excerpt:
+                sections.append(f"Allegato {confirmation.get('title')}: {excerpt}")
+    return _truncate(" ".join(section for section in sections if section), 12000), attachment_confirmations
+
+
+def _fetch_official_web_context(url: str, *, timeout: int = 8) -> str:
+    context, _attachments = _fetch_official_web_context_with_attachments(url, timeout=timeout)
+    return context
 
 
 def _search_and_confirm(
@@ -604,7 +824,7 @@ def verify_legal_update_against_public_sources(
             web_results_seen += len(web_rows)
             for row in web_rows:
                 candidate = dict(row or {})
-                context = _fetch_official_web_context(
+                context, attachment_confirmations = _fetch_official_web_context_with_attachments(
                     _clean_spaces(candidate.get("url") or candidate.get("official_url") or candidate.get("url_origine"))
                 )
                 if context:
@@ -617,6 +837,19 @@ def verify_legal_update_against_public_sources(
                 )
                 if match:
                     confirmations.append(match)
+                for attachment_confirmation in attachment_confirmations:
+                    if _attachment_matches_review(attachment_confirmation, review):
+                        enriched_attachment = dict(attachment_confirmation)
+                        enriched_attachment["query"] = _truncate(candidate_query, 220)
+                        enriched_attachment["matched_terms"] = _matched_terms(
+                            {
+                                "title": enriched_attachment.get("title"),
+                                "content": enriched_attachment.get("text_excerpt"),
+                                "url": enriched_attachment.get("attachment_url"),
+                            },
+                            review,
+                        )
+                        confirmations.append(enriched_attachment)
         except Exception as exc:
             warnings.append(f"Ricerca web governata non completata: {_truncate(exc, 140)}")
     searched["web_results"] = web_results_seen
@@ -646,4 +879,4 @@ def verify_legal_update_against_public_sources(
     }
 
 
-__all__ = ["verify_legal_update_against_public_sources"]
+__all__ = ["extract_official_attachment_confirmations", "verify_legal_update_against_public_sources"]

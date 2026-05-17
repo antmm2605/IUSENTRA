@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import sqlite3
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -395,22 +396,42 @@ def _agent_status_payload(run: dict[str, Any] | None, *, source_code: str) -> di
             "skipped_unchanged": 0,
             "autopublished_count": 0,
         }
-    status = str(run.get("status") or "").strip().lower()
+    original_status = str(run.get("status") or "").strip().lower()
+    status = original_status
+    payload_data = run.get("payload_json")
+    payload_errors = _payload_error_messages(payload_data if isinstance(payload_data, dict) else {})
+    if status == "completed" and payload_errors:
+        status = "failed"
+    if _is_stale_running(run):
+        status = "failed"
+        payload_errors.append("Esecuzione rimasta in corso oltre il tempo atteso.")
     labels = {
-        "completed": ("Completato", "success"),
+        "completed": ("Controllo completato", "success"),
         "failed": ("Da verificare", "danger"),
         "timeout": ("Timeout", "warning"),
         "running": ("In corso", "primary"),
     }
     label, css_class = labels.get(status, ("Da verificare", "secondary"))
+    if original_status == "running" and status == "failed":
+        label = "Interrotto, da verificare"
     duration_ms = _int_value(run.get("duration_ms"))
     duration_label = f"{duration_ms / 1000:.1f}s" if duration_ms else ""
     docs = _int_value(run.get("documents_found"))
     processed = _int_value(run.get("processed"))
     skipped = _int_value(run.get("skipped_unchanged"))
+    published = _int_value(run.get("autopublished_count")) or _published_count_from_payload(payload_data)
     message = str(run.get("error_message") or "").strip()
-    if not message:
-        message = f"{docs} documenti trovati, {processed} lavorati, {skipped} invariati"
+    if not message and payload_errors:
+        message = "; ".join(payload_errors[:3])
+    if not message and status == "completed":
+        message = _format_source_agent_message(
+            documents_found=docs,
+            processed=processed,
+            skipped=skipped,
+            published=published,
+        )
+    elif not message:
+        message = f"{docs} documenti letti, {processed} analizzati, {skipped} invariati o scartati"
     return {
         "job_id": job_id,
         "label": label,
@@ -422,7 +443,7 @@ def _agent_status_payload(run: dict[str, Any] | None, *, source_code: str) -> di
         "documents_found": docs,
         "processed": processed,
         "skipped_unchanged": skipped,
-        "autopublished_count": _int_value(run.get("autopublished_count")),
+        "autopublished_count": published,
     }
 
 
@@ -431,6 +452,92 @@ def _int_value(value: Any) -> int:
         return int(value or 0)
     except (TypeError, ValueError):
         return 0
+
+
+def _parse_datetime(value: Any) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    for fmt in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%d %H:%M:%S"):
+        try:
+            return datetime.strptime(raw, fmt).replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def _is_stale_running(run: dict[str, Any], *, default_minutes: int = 120) -> bool:
+    status = str(run.get("status") or "").strip().lower()
+    if status != "running":
+        return False
+    started = _parse_datetime(run.get("started_at") or run.get("created_at"))
+    if started is None:
+        return True
+    timeout = _int_value(run.get("timeout_seconds"))
+    stale_after = timedelta(seconds=max(timeout * 2, default_minutes * 60))
+    return datetime.now(timezone.utc) - started > stale_after
+
+
+def _payload_error_messages(value: Any) -> list[str]:
+    messages: list[str] = []
+    if isinstance(value, dict):
+        if value.get("ok") is False:
+            messages.append("Controllo interno non riuscito.")
+        for key in ("error", "error_message"):
+            message = str(value.get(key) or "").strip()
+            if message:
+                messages.append(message)
+        inner_errors = value.get("inner_errors")
+        if isinstance(inner_errors, list):
+            messages.extend(str(item).strip() for item in inner_errors if str(item or "").strip())
+        for nested in value.values():
+            messages.extend(_payload_error_messages(nested))
+    elif isinstance(value, list):
+        for item in value:
+            messages.extend(_payload_error_messages(item))
+    return list(dict.fromkeys(messages))
+
+
+def _published_count_from_payload(value: Any) -> int:
+    if isinstance(value, dict):
+        total = 0
+        for key in ("published_count", "autopublished_count"):
+            total += _int_value(value.get(key))
+        autopublished = value.get("autopublished")
+        if isinstance(autopublished, dict):
+            total += _int_value(autopublished.get("count"))
+        for nested_key in ("report", "payload", "result"):
+            total += _published_count_from_payload(value.get(nested_key))
+        reports = value.get("reports")
+        if isinstance(reports, list):
+            total += sum(_published_count_from_payload(item) for item in reports)
+        return total
+    if isinstance(value, list):
+        return sum(_published_count_from_payload(item) for item in value)
+    return 0
+
+
+def _format_source_agent_message(
+    *,
+    documents_found: int,
+    processed: int,
+    skipped: int,
+    published: int,
+) -> str:
+    skipped_label = f", {skipped} invariati o scartati" if skipped else ""
+    if published > 0:
+        return (
+            f"{documents_found} documenti letti, {processed} analizzati, "
+            f"{published} schede pubblicate{skipped_label}"
+        )
+    return (
+        f"Controllo completato: {documents_found} documenti letti, "
+        f"{processed} analizzati, nessuna scheda pubblicata{skipped_label}"
+    )
 
 
 def _catalog_source_payload(source: dict[str, Any], activity: dict[str, Any], agent_run: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -444,11 +551,43 @@ def _catalog_source_payload(source: dict[str, Any], activity: dict[str, Any], ag
     row["analyses"] = _int_value(activity.get("analyses"))
     row["review_pending"] = _int_value(activity.get("review_pending"))
     row["review_published"] = _int_value(activity.get("review_published"))
+    row["review_closed"] = _int_value(activity.get("review_closed"))
     row["last_document_at"] = str(activity.get("last_document_at") or "")
     row["latest_source_date"] = str(activity.get("latest_source_date") or "")
     row["was_added_by_catalog"] = str(row.get("code") or "") in SOURCE_CODES_ADDED_BY_CATALOG
     row["agent"] = _agent_status_payload(agent_run, source_code=str(row.get("code") or ""))
     return row
+
+
+def _truth_metrics_from_snapshot(snapshot: dict[str, Any], pipeline: LegalUpdatePipeline) -> dict[str, Any]:
+    headline = snapshot.get("headline") if isinstance(snapshot.get("headline"), dict) else {}
+    documents_read = _int_value(headline.get("raw_documents"))
+    documents_analyzed = _int_value(headline.get("analyses"))
+    published_structured = (
+        _int_value(headline.get("published_normative"))
+        + _int_value(headline.get("published_jurisprudence"))
+        + _int_value(headline.get("published_prassi"))
+    )
+    published_cards = published_structured + _int_value(headline.get("published_news"))
+    try:
+        activity = pipeline.repository.source_activity_summary()
+    except Exception:
+        activity = {}
+    discarded = sum(_int_value(row.get("review_closed")) for row in activity.values())
+    conversion_rate = round((published_cards / documents_read) * 100, 1) if documents_read else 0.0
+    return {
+        "documents_read": documents_read,
+        "documents_analyzed": documents_analyzed,
+        "published_cards": published_cards,
+        "published_structured_cards": published_structured,
+        "to_verify": _int_value(headline.get("review_pending")),
+        "discarded": discarded,
+        "conversion_rate": conversion_rate,
+        "conversion_label": (
+            f"{documents_read} letti, {documents_analyzed} analizzati, "
+            f"{published_cards} schede pubblicate"
+        ),
+    }
 
 
 def build_legal_source_catalog(
@@ -498,7 +637,10 @@ def build_legal_source_catalog(
             "catalog_defaults": sum(1 for row in source_rows if str(row.get("code") or "") in default_codes),
             "added_by_catalog": sum(1 for row in source_rows if row.get("was_added_by_catalog")),
             "raw_documents": sum(_int_value(row.get("raw_documents")) for row in source_rows),
+            "analyses": sum(_int_value(row.get("analyses")) for row in source_rows),
             "review_pending": sum(_int_value(row.get("review_pending")) for row in source_rows),
+            "review_published": sum(_int_value(row.get("review_published")) for row in source_rows),
+            "review_closed": sum(_int_value(row.get("review_closed")) for row in source_rows),
         },
         "schedule": [
             {
@@ -624,6 +766,7 @@ def build_legal_update_surface(
     pipeline = build_legal_update_pipeline_runtime(runtime_app)
     snapshot = pipeline.dashboard_snapshot()
     snapshot["official_archives"] = _official_archives_payload()
+    snapshot["truth_metrics"] = _truth_metrics_from_snapshot(snapshot, pipeline)
     snapshot["runtime"] = {
         "db_path": pipeline.repository.db_path,
         "json_path": pipeline.repository.json_path,

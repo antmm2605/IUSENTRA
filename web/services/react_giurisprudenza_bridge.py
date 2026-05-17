@@ -159,6 +159,32 @@ def _safe_links(links: Any) -> list[dict[str, str]]:
     return out
 
 
+def _verification_note(row: Mapping[str, Any], source: Mapping[str, Any], source_href: str) -> str:
+    confirmed = bool(row.get("fonte_ufficiale_confermata"))
+    status = _text(row.get("stato_verifica_fonte") or row.get("stato_verifica") or row.get("stato_verifica_fonte"))
+    if confirmed:
+        return "Fonte ufficiale collegata: controlla il testo originale prima della citazione in atto."
+    if source_href and _text(source.get("accessMode")) in {"Consultazione pubblica", "Open data ufficiale"}:
+        return "Fonte pubblica collegata: verifica numero, data e passaggi rilevanti prima dell'uso."
+    if status:
+        return "Controllo fonte richiesto: usa questa scheda come orientamento finch\u00e9 la fonte non \u00e8 completa."
+    return "Scheda interna: completa o verifica la fonte prima di usarla in un atto."
+
+
+def _practical_use(row: Mapping[str, Any]) -> str:
+    usage = _text(row.get("uso_nel_software")).lower()
+    area = _text(row.get("area") or row.get("branca") or row.get("materia"))
+    if usage == "citabile in atto":
+        return "Citabile dopo controllo finale di fonte, numero, data e passaggio richiamato."
+    if usage == "precedente forte":
+        return "Precedente utile per orientare l'atto o la nota interna, con verifica finale della fonte."
+    if usage == "precedente debole":
+        return "Riferimento da trattare con prudenza: confronta altre decisioni prima di usarlo."
+    if area:
+        return f"Valuta la pertinenza rispetto a {area} e apri la fonte originale prima della citazione."
+    return "Valuta pertinenza, fonte e data prima di collegare la scheda al lavoro di studio."
+
+
 def _safe_record(row: Mapping[str, Any], sources: Mapping[str, dict[str, Any]], index: int) -> dict[str, Any]:
     record_id = _text(row.get("id")) or f"provvedimento_{index}"
     source_id = _text(row.get("source_system") or row.get("fonte") or "manuale_interno")
@@ -167,6 +193,21 @@ def _safe_record(row: Mapping[str, Any], sources: Mapping[str, dict[str, Any]], 
     verification = _text(row.get("stato_verifica") or row.get("stato_citabilita") or row.get("verifica") or row.get("citabilita"))
     orientation = _text(row.get("orientamento"))
     title = _text(row.get("titolo")) or _text(row.get("tipo_provvedimento")) or "Provvedimento"
+    source_href = _safe_href(
+        row.get("url_pdf_ufficiale")
+        or row.get("url_pagina_ufficiale")
+        or row.get("url_origine")
+        or source.get("sourceHref")
+    )
+    summary = _short(
+        row.get("massima")
+        or row.get("principio_diritto")
+        or row.get("abstract")
+        or row.get("testo_normalizzato")
+        or row.get("testo_integrale")
+        or row.get("esito"),
+        520,
+    )
     return {
         "id": record_id,
         "title": title,
@@ -193,6 +234,14 @@ def _safe_record(row: Mapping[str, Any], sources: Mapping[str, dict[str, Any]], 
         "legacyHref": f"/giurisprudenza?scheda={record_id}",
         "practiceLinks": _safe_links(row.get("practice_links") or row.get("fascicoli_collegati")),
         "evidenceType": "informazione",
+        "sourceHref": source_href,
+        "summary": summary,
+        "principle": _short(row.get("principio_diritto") or row.get("principio_sintetico"), 420),
+        "abstract": _short(row.get("abstract"), 520),
+        "practicalUse": _practical_use(row),
+        "reliabilityNote": _verification_note(row, source, source_href),
+        "officialSource": bool(row.get("fonte_ufficiale_confermata")),
+        "fullTextAvailable": bool(row.get("testo_integrale") or row.get("testo_normalizzato")),
     }
 
 
@@ -245,11 +294,12 @@ def build_react_giurisprudenza_payload(
         "uso_nel_software": _text(query.get("uso_nel_software")),
     }
     raw_records = manager.cerca(**filters)
-    records = [
-        _safe_record(row, source_lookup, index)
-        for index, row in enumerate(_list(raw_records), start=1)
-        if isinstance(row, dict)
-    ]
+    records: list[dict[str, Any]] = []
+    for index, row in enumerate(_list(raw_records), start=1):
+        if not isinstance(row, dict):
+            continue
+        detailed = manager.get(_text(row.get("id"))) or row
+        records.append(_safe_record(detailed, source_lookup, index))
     stats = manager.statistiche()
     storage_stats = manager.storage_stats()
     catalog_filters = manager.filtri()

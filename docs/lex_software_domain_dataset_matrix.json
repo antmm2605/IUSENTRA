@@ -1,0 +1,677 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-05-17",
+  "scope": "Mappa competenze software IUSENTRA per Lex AI, dataset e RAG multi-dominio",
+  "governance": {
+    "automatic_training": false,
+    "external_upload_default": false,
+    "chain_of_thought_storage": false,
+    "human_review_required_for_fine_tuning": true,
+    "rag_first": true,
+    "tenant_isolation_required": true,
+    "notes": [
+      "La matrice non avvia training, non invia dati a provider esterni e non modifica il runtime Lex.",
+      "Le Q&A sono candidate di revisione o casi di accettazione; il canale immediato resta RAG tenant-aware.",
+      "Ogni dominio deve usare dati reali da repository, API o contesto sessione, mai esempi demo come verità operativa."
+    ]
+  },
+  "domains": [
+    {
+      "id": "clienti_soggetti",
+      "name": "Clienti e soggetti",
+      "real_data_sources": [
+        "pct/clienti.py tramite web.helpers.get_clienti",
+        "pct/soggetti.py tramite web.helpers.get_soggetti",
+        "repository tenant-aware JSON/SQLite/PostgreSQL dichiarati in docs/STORAGE_MATRIX.md",
+        "lex/context/anagrafica_context.py e lex/tools/studio_data_gateway.py come lettura controllata"
+      ],
+      "permissions": [
+        "ai.usa",
+        "clienti.leggi",
+        "fascicoli.leggi quando il soggetto viene letto come parte di un fascicolo"
+      ],
+      "qa_examples_to_generate": [
+        {
+          "question": "Quali recapiti autorizzati risultano per il cliente indicato?",
+          "answer_requirements": "Rispondere solo con dati presenti in anagrafica, distinguendo email ordinaria, PEC, telefono e indirizzo; se ci sono omonimi chiedere di restringere."
+        },
+        {
+          "question": "Il soggetto indicato è cliente, controparte o altra parte in una pratica?",
+          "answer_requirements": "Usare ruoli e fascicoli collegati realmente presenti; non dedurre ruoli dal nome."
+        }
+      ],
+      "excluded_data": [
+        "password, token, chiavi API e segreti di integrazione",
+        "documenti di identità o dati sanitari non necessari alla risposta",
+        "path filesystem dei record o allegati",
+        "dati di altri tenant o utenti senza permesso"
+      ],
+      "lex_allowed_actions": [
+        "ricerca anagrafica read-only",
+        "riepilogo dati autorizzati",
+        "segnalazione dati mancanti o ambigui",
+        "precompilazione proposta di bozza senza salvare modifiche"
+      ],
+      "lex_forbidden_actions": [
+        "creare, modificare o cancellare clienti/soggetti senza workflow UI/API dedicato",
+        "unire omonimi automaticamente",
+        "esporre dati anagrafici in log o risposte di errore"
+      ],
+      "acceptance_tests": [
+        "domanda su cliente esistente restituisce solo campi presenti e fonti interne",
+        "domanda con omonimi chiede chiarimento invece di scegliere un record",
+        "utente senza clienti.leggi riceve diniego controllato",
+        "tenant A non vede clienti o soggetti del tenant B"
+      ]
+    },
+    {
+      "id": "fascicoli_documenti",
+      "name": "Fascicoli e documenti",
+      "real_data_sources": [
+        "pct/fascicoli.py tramite web.helpers.get_fascicoli",
+        "pct/document_intelligence/* e DocumentAIRepository",
+        "lex/context/fascicolo_context.py, lex/context/document_context.py",
+        "filesystem tenant-aware dei documenti, con metadati e hash in repository"
+      ],
+      "permissions": [
+        "ai.usa",
+        "fascicoli.leggi",
+        "documenti.leggi o permesso dominio equivalente quando previsto"
+      ],
+      "qa_examples_to_generate": [
+        {
+          "question": "Qual è lo stato operativo della pratica indicata?",
+          "answer_requirements": "Usare titolo, RG, ufficio, parti, scadenze e documenti reali; indicare cosa manca se il fascicolo non è completo."
+        },
+        {
+          "question": "Trova nei documenti del fascicolo il passaggio che parla della diffida.",
+          "answer_requirements": "Cercare solo chunk indicizzati e citare documento, versione, pagina o hash quando disponibili."
+        }
+      ],
+      "excluded_data": [
+        "path assoluti dei file",
+        "contenuti di documenti non indicizzati o non autorizzati",
+        "allegati marcati riservati fuori dal permesso dell'utente",
+        "dati di fascicoli archiviati se il permesso non li include"
+      ],
+      "lex_allowed_actions": [
+        "riepilogo fascicolo read-only",
+        "ricerca citabile nei documenti indicizzati",
+        "elenco lacune documentali",
+        "proposta di prossime azioni da sottoporre all'avvocato"
+      ],
+      "lex_forbidden_actions": [
+        "spostare, cancellare o esportare documenti automaticamente",
+        "inventare testo o pagine non trovate",
+        "dichiarare completo un documento senza hash/versione o fonte citabile"
+      ],
+      "acceptance_tests": [
+        "riepilogo fascicolo non espone path filesystem",
+        "ricerca documento restituisce citazione interna o coverage gap",
+        "fascicolo non trovato produce risposta prudente",
+        "permesso negato non rivela titolo o parti del fascicolo"
+      ]
+    },
+    {
+      "id": "agenda_scadenze",
+      "name": "Agenda e scadenze",
+      "real_data_sources": [
+        "pct/agenda.py tramite web.helpers.get_agenda",
+        "pct/scadenziario.py tramite web.helpers.get_scadenziario",
+        "lex/context/agenda_context.py e lex/context/scadenze_context.py",
+        "template termini processuali, calendario ufficiale e audit SHA-256 quando presenti"
+      ],
+      "permissions": [
+        "ai.usa",
+        "agenda.leggi",
+        "scadenziario.leggi"
+      ],
+      "qa_examples_to_generate": [
+        {
+          "question": "Quali udienze e scadenze ho questa settimana?",
+          "answer_requirements": "Usare range date italiano, ordinare per urgenza e distinguere appuntamenti da termini."
+        },
+        {
+          "question": "Perché questo termine cade in quella data?",
+          "answer_requirements": "Mostrare solo passaggi di calcolo tracciati dal motore termini; se manca trace dichiararlo."
+        }
+      ],
+      "excluded_data": [
+        "note private non necessarie",
+        "promemoria di altri utenti",
+        "credenziali calendario esterno",
+        "dati cliente collegati se non richiesti e non autorizzati"
+      ],
+      "lex_allowed_actions": [
+        "lettura agenda e scadenze",
+        "riepilogo cronologico",
+        "spiegazione calcolo termine se il trace è disponibile",
+        "proposta di promemoria senza invio automatico"
+      ],
+      "lex_forbidden_actions": [
+        "creare o completare scadenze senza conferma nel workflow dedicato",
+        "spostare udienze o appuntamenti",
+        "dedurre termini processuali senza usare il calcolatore"
+      ],
+      "acceptance_tests": [
+        "range settimanale mostra date italiane e nessun dato demo",
+        "calcolo termine cita il trace o segnala lacuna",
+        "utente senza permesso agenda/scadenziario riceve diniego",
+        "eventi di altri utenti non compaiono se non autorizzati"
+      ]
+    },
+    {
+      "id": "email_pec",
+      "name": "Email ordinaria e PEC",
+      "real_data_sources": [
+        "pct/email_client.py e GestioneEmailRicevute",
+        "pct/messaggi.py e GestioneMessaggi",
+        "web/services/mailbox_sync_runtime.py",
+        "cartelle tenant-aware /data/tenants/<studio>/email, inclusi allegati compressi quando configurati"
+      ],
+      "permissions": [
+        "ai.usa",
+        "messaggi.leggi",
+        "email.leggi o permesso comunicazioni equivalente"
+      ],
+      "qa_examples_to_generate": [
+        {
+          "question": "Riassumi le ultime PEC ricevute collegate al fascicolo indicato.",
+          "answer_requirements": "Usare mittente, oggetto, data, stato esito e collegamento fascicolo reali; non aprire allegati non autorizzati."
+        },
+        {
+          "question": "Quali comunicazioni restano senza risposta per il cliente indicato?",
+          "answer_requirements": "Confrontare messaggi in ingresso/uscita disponibili e segnalare incertezza se la casella non è sincronizzata."
+        }
+      ],
+      "excluded_data": [
+        "password SMTP/IMAP/PEC",
+        "token OAuth o chiavi provider",
+        "path allegati o nomi temporanei interni",
+        "corpo integrale di email non necessarie alla risposta"
+      ],
+      "lex_allowed_actions": [
+        "lettura e sintesi read-only",
+        "riconoscimento collegamenti a cliente/fascicolo",
+        "bozza di risposta non inviata",
+        "segnalazione casella non sincronizzata"
+      ],
+      "lex_forbidden_actions": [
+        "inviare email o PEC",
+        "scaricare o esportare allegati automaticamente",
+        "sincronizzare caselle o cancellare messaggi",
+        "mostrare segreti di configurazione"
+      ],
+      "acceptance_tests": [
+        "sintesi PEC non espone segreti o path",
+        "allegato compresso resta leggibile solo tramite lettore autorizzato",
+        "casella non sincronizzata genera warning operativo",
+        "nessun fallback a email/ordinaria.json globale in multi-studio"
+      ]
+    },
+    {
+      "id": "atti_editor",
+      "name": "Atti, template ed editor",
+      "real_data_sources": [
+        "pct/template_atti.py e pct/template_atti_repository.py",
+        "lex/tools/template_atti_tool.py",
+        "lex/tools/editor_ai.py",
+        "documenti del fascicolo e bozze editor versionate"
+      ],
+      "permissions": [
+        "ai.usa",
+        "fascicoli.leggi",
+        "documenti.leggi",
+        "documenti.scrivi solo nel workflow editor con conferma"
+      ],
+      "qa_examples_to_generate": [
+        {
+          "question": "Quale template è adatto per preparare una diffida nel fascicolo indicato?",
+          "answer_requirements": "Selezionare template reali, spiegare requisiti mancanti e non creare il documento senza conferma."
+        },
+        {
+          "question": "Proponi modifiche alla bozza dell'atto.",
+          "answer_requirements": "Restituire proposte accettabili/rifiutabili con fonti interne; non applicarle automaticamente."
+        }
+      ],
+      "excluded_data": [
+        "ragionamento interno del modello",
+        "fonti non citabili",
+        "documenti non indicizzati dichiarati come letti",
+        "campi template tecnici non rivolti all'avvocato"
+      ],
+      "lex_allowed_actions": [
+        "ricerca template",
+        "generazione bozza in revisione",
+        "proposta modifiche",
+        "controllo lacune e fonti"
+      ],
+      "lex_forbidden_actions": [
+        "sovrascrivere documento finale senza approvazione",
+        "firmare o depositare atti",
+        "esportare DOCX/PDF come definitivo senza workflow dedicato",
+        "salvare chain-of-thought"
+      ],
+      "acceptance_tests": [
+        "template suggerito esiste nel catalogo",
+        "bozza contiene stato di revisione umana",
+        "proposte non modificano il documento finché non accettate",
+        "risposta redazionale non aggiunge fonti legali non pertinenti"
+      ]
+    },
+    {
+      "id": "ricerca_legale_giurisprudenza",
+      "name": "Ricerca legale e giurisprudenza",
+      "real_data_sources": [
+        "LEGAL_INTELLIGENCE_DB e legal_updates.db condivisi di piattaforma",
+        "archivi Normattiva e Gazzetta locali",
+        "pct/giurisprudenza.py",
+        "lex/retrieval/official_sources_retriever.py e source policy allowlist"
+      ],
+      "permissions": [
+        "ai.usa",
+        "permesso ricerca legale se configurato",
+        "nessun permesso dati studio per fonti pubbliche pure"
+      ],
+      "qa_examples_to_generate": [
+        {
+          "question": "Trova la sentenza con numero e data indicati.",
+          "answer_requirements": "Usare exact match; se manca testo integrale dichiarare needs_review e non mostrare fonti correlate come esatte."
+        },
+        {
+          "question": "Quali fonti ufficiali aggiornate parlano del tema indicato?",
+          "answer_requirements": "Distinguere normativa, giurisprudenza, prassi e news; citare fonte, data e attendibilità."
+        }
+      ],
+      "excluded_data": [
+        "dati cliente o fascicolo se la query è pubblica",
+        "fonti web non allowlistate",
+        "massime o numeri non riscontrati",
+        "allegati da domini simili non istituzionali"
+      ],
+      "lex_allowed_actions": [
+        "ricerca in archivi ufficiali locali",
+        "fallback web governato solo su domini riconosciuti",
+        "confronto fonti e segnalazione lacune",
+        "preparazione scheda citabile in revisione"
+      ],
+      "lex_forbidden_actions": [
+        "inventare norme, massime, sezioni o dispositivi",
+        "usare fonti correlate come risposta esatta",
+        "scraping non autorizzato di portali",
+        "pubblicare aggiornamenti senza verifica fonte"
+      ],
+      "acceptance_tests": [
+        "riferimento sentenza esatto forza exact-match governato",
+        "query normativa cita archivi locali prima del web",
+        "fonte non riconosciuta viene scartata",
+        "assenza testo integrale abbassa confidenza e richiede revisione"
+      ]
+    },
+    {
+      "id": "telematico",
+      "name": "Telematico",
+      "real_data_sources": [
+        "pct/pst_*, pct/pdp_*, pct/portali_*",
+        "docs/specs/ministero/",
+        "lex/context/telematico_context.py",
+        "repository telematici tenant-aware e ricevute PEC collegate"
+      ],
+      "permissions": [
+        "ai.usa",
+        "telematico.leggi",
+        "telematico.scrivi solo per workflow espliciti non automatici"
+      ],
+      "qa_examples_to_generate": [
+        {
+          "question": "Quali controlli mancano prima del deposito?",
+          "answer_requirements": "Usare checklist reale, documenti e specifiche ministeriali interne; indicare blocchi e warning separati."
+        },
+        {
+          "question": "Spiega questo esito o errore telematico.",
+          "answer_requirements": "Usare testo ricevuta/esito disponibile e regole documentate; non inventare codici ministeriali."
+        }
+      ],
+      "excluded_data": [
+        "PIN, credenziali CNS/CIE/SPID",
+        "sessioni portale o token Local Signer",
+        "buste o allegati fuori fascicolo autorizzato",
+        "endpoint ministeriali inventati"
+      ],
+      "lex_allowed_actions": [
+        "controllo read-only checklist",
+        "spiegazione ricevute/esiti",
+        "preparazione lista azioni per l'avvocato",
+        "richiamo specifiche ministeriali interne"
+      ],
+      "lex_forbidden_actions": [
+        "depositare, firmare o inviare buste",
+        "salvare PIN o sessioni",
+        "automatizzare scraping portali",
+        "bloccare arbitrariamente una pratica senza fonte certa"
+      ],
+      "acceptance_tests": [
+        "domanda deposito non compie azioni dispositive",
+        "errore telematico non espone credenziali o sessioni",
+        "controlli citano specifiche o dati reali",
+        "dato incerto produce warning configurabile"
+      ]
+    },
+    {
+      "id": "pagamenti_fatturazione",
+      "name": "Pagamenti e fatturazione",
+      "real_data_sources": [
+        "pct/fatturazione.py tramite GestioneFatturazione e FATTURAZIONE_DB del tenant attivo",
+        "pct/preventivi.py tramite GestionePreventivi, PREVENTIVI_DB e conferimenti tenant-aware",
+        "pct/timesheet.py tramite GestioneTimesheet e TIMESHEET_DB del tenant attivo",
+        "pct/pagamenti.py tramite GestionePagamenti e PAGAMENTI_DIR del tenant attivo",
+        "pct/economic_pipeline.py, dashboard economiche e bridge React economici come letture read-only",
+        "tabelle compensi forensi e profili tariffari versionati quando servono al calcolo citabile"
+      ],
+      "permissions": [
+        "ai.usa",
+        "fatturazione.leggi",
+        "pagamenti.leggi quando configurato",
+        "fascicoli.leggi o clienti.leggi quando il riepilogo economico usa collegamenti a pratica o cliente"
+      ],
+      "qa_examples_to_generate": [
+        {
+          "question": "Qual è il saldo del cliente indicato?",
+          "answer_requirements": "Usare parcelle, fatture e incassi reali; distinguere emesso, incassato e residuo."
+        },
+        {
+          "question": "Quali attività non sono ancora state valorizzate?",
+          "answer_requirements": "Usare timesheet e fascicolo; non stimare importi se mancano tariffa o regola."
+        },
+        {
+          "question": "Controlla la coerenza tra preventivo, conferimento, parcella e timesheet del fascicolo indicato.",
+          "answer_requirements": "Confrontare solo record collegati e tenant-aware; indicare preventivi accettati senza parcella, parcelle non incassate e voci timesheet non fatturate."
+        },
+        {
+          "question": "Prepara una bozza di descrizione parcella per le attività autorizzate.",
+          "answer_requirements": "Usare descrizioni, date, ore/minuti e voci reali; restituire una bozza in revisione senza creare o modificare la parcella."
+        }
+      ],
+      "excluded_data": [
+        "chiavi SumUp/Stripe/SDI o segreti provider",
+        "token OAuth, webhook secret, password, cookie e sessioni di pagamento",
+        "IBAN completi se non indispensabili",
+        "link pagamento privati, URL checkout e payload provider non richiesti",
+        "path assoluti, chiavi g.data_paths, route tecniche, stack trace e payload grezzi",
+        "dati fiscali di altri clienti o altri tenant",
+        "importi ipotetici, sconti, interessi, imposte o compensi non presenti negli archivi o in calcoli tracciati"
+      ],
+      "lex_allowed_actions": [
+        "riepilogo economico read-only",
+        "riepilogo saldo cliente con emesso, incassato e residuo",
+        "controllo coerenza preventivo-conferimento-parcella-timesheet",
+        "segnalazione attività validate non valorizzate o non fatturate",
+        "bozza descrizione parcella senza emissione e con revisione umana",
+        "segnalazione lacune tariffarie o documentali senza stimare importi"
+      ],
+      "lex_forbidden_actions": [
+        "emettere fatture o note di credito",
+        "creare link pagamento o avviare checkout",
+        "registrare incassi, storni, rimborsi o riconciliazioni",
+        "modificare importi, aliquote, sconti, stati, scadenze o voci timesheet",
+        "mostrare segreti provider o URL privati di pagamento",
+        "addestrare automaticamente modelli locali o remoti",
+        "usare dati economici di un altro tenant o fallback globali"
+      ],
+      "acceptance_tests": [
+        "saldo cliente usa solo repository economico reale",
+        "assenza tariffa produce lacuna, non stima",
+        "segreti provider non compaiono nel payload",
+        "utente senza fatturazione.leggi riceve diniego",
+        "FATTURAZIONE_DB, PREVENTIVI_DB, TIMESHEET_DB e PAGAMENTI_DIR derivano dal tenant attivo",
+        "Q&A economiche restano pending_human_review e non diventano training pronto",
+        "Lex non emette fatture, non crea link pagamento, non registra incassi e non modifica importi"
+      ]
+    },
+    {
+      "id": "impostazioni",
+      "name": "Impostazioni",
+      "real_data_sources": [
+        "web/services/react_impostazioni_bridge.py",
+        "config tenant-aware dello studio",
+        "servizi impostazioni PEC, SMTP, WhatsApp, AI locale, notifiche e calendari",
+        "audit configurazioni e stato Local Signer"
+      ],
+      "permissions": [
+        "ai.usa",
+        "impostazioni.leggi",
+        "impostazioni.scrivi solo in workflow UI dedicato"
+      ],
+      "qa_examples_to_generate": [
+        {
+          "question": "Quali impostazioni dello studio risultano incomplete?",
+          "answer_requirements": "Mostrare stato configurazione senza rivelare segreti; indicare prossima azione operativa."
+        },
+        {
+          "question": "Perché la firma digitale o AI locale non è pronta?",
+          "answer_requirements": "Usare stato Local Signer/runtime e messaggi operativi; evitare stack trace."
+        }
+      ],
+      "excluded_data": [
+        "password SMTP/PEC",
+        "token WhatsApp, calendario o provider AI",
+        "chiavi API",
+        "valori segreti mascherati in storage"
+      ],
+      "lex_allowed_actions": [
+        "lettura stato configurazione",
+        "diagnosi operativa read-only",
+        "guida alla compilazione",
+        "segnalazione segreti mancanti senza mostrarli"
+      ],
+      "lex_forbidden_actions": [
+        "modificare impostazioni",
+        "mostrare o esportare segreti",
+        "testare invii esterni senza conferma",
+        "attivare provider esterni"
+      ],
+      "acceptance_tests": [
+        "risposta impostazioni maschera ogni segreto",
+        "stato incompleto cita solo campi funzionali",
+        "nessun invio PEC/SMTP/WhatsApp viene eseguito",
+        "diagnosi Local Signer resta locale e operativa"
+      ]
+    },
+    {
+      "id": "backup",
+      "name": "Backup",
+      "real_data_sources": [
+        "servizi backup blindato e crash test operativo",
+        "configurazioni PCT_BACKUP_*",
+        "repository report governance sotto data/governance o backup tenant",
+        "deploy/hetzner e ops per procedure di produzione"
+      ],
+      "permissions": [
+        "ai.usa",
+        "backup.leggi",
+        "admin.backup per report amministrativi quando previsto"
+      ],
+      "qa_examples_to_generate": [
+        {
+          "question": "L'ultimo backup dello studio è utilizzabile?",
+          "answer_requirements": "Usare report reale, data, esito, destinazioni configurate e lacune; non dichiarare verde se manca verifica restore."
+        },
+        {
+          "question": "Quali dati entrano nel backup blindato?",
+          "answer_requirements": "Rispondere per categorie e tenant, senza path sensibili o credenziali."
+        }
+      ],
+      "excluded_data": [
+        "chiavi di cifratura",
+        "credenziali destinazioni backup",
+        "path completi se non necessari",
+        "contenuto integrale di archivi backup"
+      ],
+      "lex_allowed_actions": [
+        "lettura stato backup",
+        "riepilogo ultimo report",
+        "segnalazione restore non verificato",
+        "preparazione checklist di controllo"
+      ],
+      "lex_forbidden_actions": [
+        "avviare backup o restore",
+        "cancellare snapshot o volumi",
+        "esportare archivi",
+        "mostrare segreti di cifratura"
+      ],
+      "acceptance_tests": [
+        "ultimo backup mancante produce stato Da verificare",
+        "report non espone credenziali o path inutili",
+        "nessun comando distruttivo viene suggerito come automatico",
+        "restore non testato non viene dichiarato riuscito"
+      ]
+    },
+    {
+      "id": "privacy_gdpr",
+      "name": "Privacy e GDPR",
+      "real_data_sources": [
+        "Registro GDPR e audit applicativo",
+        "pct/auth.py e repository utenti/audit",
+        "lex/guards/privacy_guard.py e pii_redaction_guard.py",
+        "documentazione privacy e sicurezza in docs/"
+      ],
+      "permissions": [
+        "ai.usa",
+        "privacy.leggi",
+        "audit.leggi per eventi amministrativi quando previsto"
+      ],
+      "qa_examples_to_generate": [
+        {
+          "question": "Quali trattamenti o consensi risultano incompleti?",
+          "answer_requirements": "Usare registro reale e distinguere mancanze documentali da valutazioni legali da revisionare."
+        },
+        {
+          "question": "Prepara una sintesi privacy per il fascicolo indicato.",
+          "answer_requirements": "Limitare ai dati autorizzati del fascicolo e indicare fonti interne."
+        }
+      ],
+      "excluded_data": [
+        "dati particolari non necessari",
+        "log con PII non redatta",
+        "token, sessioni o identificativi tecnici",
+        "valutazioni legali non verificate presentate come certe"
+      ],
+      "lex_allowed_actions": [
+        "controllo lacune registro",
+        "riepilogo privacy read-only",
+        "redazione di bozza da revisione",
+        "segnalazione PII da minimizzare"
+      ],
+      "lex_forbidden_actions": [
+        "approvare DPIA o trattamenti",
+        "cancellare o rettificare dati",
+        "esportare registri completi senza workflow",
+        "rimuovere audit"
+      ],
+      "acceptance_tests": [
+        "risposta privacy minimizza PII",
+        "bozza resta in revisione umana",
+        "utente senza privacy.leggi riceve diniego",
+        "nessun log sensibile viene incluso nella risposta"
+      ]
+    },
+    {
+      "id": "sito_studio",
+      "name": "Sito Studio",
+      "real_data_sources": [
+        "repository Sito Studio SQL/SQLite/PostgreSQL tenant-aware",
+        "web/services/react_sito_studio_bridge.py",
+        "asset pubblici tenant-aware",
+        "contatti e prenotazioni pubbliche raccolti dal sito"
+      ],
+      "permissions": [
+        "ai.usa",
+        "sito_studio.leggi",
+        "sito_studio.scrivi solo nel builder o workflow redazione"
+      ],
+      "qa_examples_to_generate": [
+        {
+          "question": "Quali richieste dal sito studio sono da gestire?",
+          "answer_requirements": "Usare contatti e prenotazioni reali, senza inventare lead; distinguere nuovi, gestiti e da verificare."
+        },
+        {
+          "question": "Suggerisci una bozza di pagina servizio.",
+          "answer_requirements": "Produrre bozza editoriale in revisione, coerente con dati studio reali e senza pubblicazione automatica."
+        }
+      ],
+      "excluded_data": [
+        "dati di contatto non necessari",
+        "asset privati o bozze non pubbliche fuori permesso",
+        "token pubblicazione o configurazioni DNS",
+        "contenuti demo"
+      ],
+      "lex_allowed_actions": [
+        "lettura contatti/prenotazioni",
+        "riepilogo richieste",
+        "bozza contenuti in revisione",
+        "controllo lacune SEO/privacy"
+      ],
+      "lex_forbidden_actions": [
+        "pubblicare pagine",
+        "modificare DNS o dominio",
+        "rispondere ai contatti",
+        "inventare professionisti, sedi o servizi"
+      ],
+      "acceptance_tests": [
+        "zero contatti produce stato vuoto specifico, non dati demo",
+        "bozza sito resta non pubblicata",
+        "contatti non espongono dati oltre lo stretto necessario",
+        "utente senza sito_studio.leggi riceve diniego"
+      ]
+    },
+    {
+      "id": "amministrazione",
+      "name": "Amministrazione",
+      "real_data_sources": [
+        "pct/auth.py, web/services/auth_runtime.py",
+        "pannelli utenti, profili, audit, database e osservabilità",
+        "repository piattaforma per tenant, ruoli, permessi e scheduler",
+        "logs e metriche già redatti"
+      ],
+      "permissions": [
+        "ai.usa",
+        "admin.leggi o permesso amministrativo specifico",
+        "utenti.leggi/profili.leggi/audit.leggi/database.leggi secondo la superficie"
+      ],
+      "qa_examples_to_generate": [
+        {
+          "question": "Quali utenti hanno permessi critici nello studio?",
+          "answer_requirements": "Usare ruoli e permessi reali; non mostrare password, hash o segreti."
+        },
+        {
+          "question": "Ci sono problemi operativi segnalati dal database o dall'osservabilità?",
+          "answer_requirements": "Usare report reali e distinguere warning da blocchi; non esporre stack trace."
+        }
+      ],
+      "excluded_data": [
+        "hash password e token reset",
+        "secret key, API key e variabili ambiente",
+        "stack trace completi in risposta utente",
+        "dati tenant non selezionati"
+      ],
+      "lex_allowed_actions": [
+        "riepilogo read-only di ruoli e permessi",
+        "lettura audit autorizzato",
+        "spiegazione stato database/health",
+        "checklist di rimedio non distruttiva"
+      ],
+      "lex_forbidden_actions": [
+        "creare utenti o cambiare ruoli",
+        "riparare database o migrare storage",
+        "eseguire scheduler o job",
+        "mostrare segreti o stack trace"
+      ],
+      "acceptance_tests": [
+        "utente non amministrativo riceve diniego controllato",
+        "risposta ruoli non espone hash/password",
+        "stato database distingue warning e blocchi",
+        "Lex non esegue job o riparazioni"
+      ]
+    }
+  ]
+}

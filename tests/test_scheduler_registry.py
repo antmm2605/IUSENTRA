@@ -90,10 +90,15 @@ def test_delegated_agent_autoverifica_percorso_mancante(tmp_path: Path):
 
 
 def test_scheduler_registry_include_agenti_lex_notturni_e_perimetro_operativo():
-    templates = {tpl.key for tpl in default_scheduler_templates({})}
+    templates = {tpl.key: tpl for tpl in default_scheduler_templates({})}
     specs = {spec["agent_id"] for spec in delegated_operational_agent_specs({})}
 
     assert "lex_operational_agents_nightly" in templates
+    assert "lex_dataset_nightly" in templates
+    assert templates["lex_dataset_nightly"].family == "Lex AI"
+    assert templates["lex_dataset_nightly"].hour == "1"
+    assert templates["lex_dataset_nightly"].minute == "45"
+    assert "senza avviare addestramento automatico" in templates["lex_dataset_nightly"].description
     assert {
         "cliente_soggetti",
         "fascicoli_documenti_timeline",

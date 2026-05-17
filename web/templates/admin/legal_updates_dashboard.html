@@ -12,7 +12,7 @@
     <div>
       <h1 class="h3 mb-1">Motore di aggiornamento normativo e giurisprudenziale</h1>
       <p class="text-muted mb-0">
-        Controlla prima l'archivio, scarta le ripetizioni e pubblica automaticamente gli aggiornamenti utili allo studio legale.
+        Controlla l'archivio, scarta le ripetizioni e rende consultabili solo gli aggiornamenti con fonte e contesto leggibili.
       </p>
     </div>
     <div class="d-flex flex-wrap gap-2">
@@ -58,7 +58,7 @@
         <div class="col-12 col-lg-8">
           <div class="fw-semibold">Archivio legale condiviso da tutti gli studi</div>
           <div class="small text-muted">
-            La ricerca notturna lavora tra le 00:00 e le 05:00, confronta ogni contenuto con cio' che e' gia' pubblicato e cataloga solo materiale professionale per lo studio.
+            Questa è la cabina tecnica del ciclo fonti. I numeri grandi sono indici e passaggi di lavorazione; le schede usabili dall'avvocato finiscono in Ricerca Legale, News, Giurisprudenza e Archivio.
           </div>
         </div>
         <div class="col-12 col-lg-4">
@@ -72,49 +72,138 @@
   </div>
 
   <div class="lu-kpi-grid mb-3">
-    <div class="lu-kpi-card">
-      <div class="lu-kpi-label">Fonti attive</div>
-      <div class="lu-kpi-value">{{ payload.headline.sources }}</div>
-    </div>
-    <div class="lu-kpi-card">
-      <div class="lu-kpi-label">Documenti acquisiti</div>
-      <div class="lu-kpi-value">{{ payload.headline.raw_documents }}</div>
-    </div>
-    <div class="lu-kpi-card">
-      <div class="lu-kpi-label">Catalogazioni</div>
-      <div class="lu-kpi-value">{{ payload.headline.analyses }}</div>
-    </div>
-    <div class="lu-kpi-card">
-      <div class="lu-kpi-label">Da verificare</div>
-      <div class="lu-kpi-value {% if payload.headline.review_pending %}text-warning{% else %}text-success{% endif %}">
+    <a class="lu-kpi-card" href="{{ url_for('legal_updates_admin.sources_page') }}">
+      <span class="lu-kpi-top"><i class="bi bi-broadcast"></i><span class="lu-kpi-label">Fonti monitorate</span></span>
+      <span class="lu-kpi-value">{{ payload.headline.sources }}</span>
+      <span class="lu-kpi-note">Canali governati dal superadmin</span>
+      <span class="lu-kpi-action">Apri fonti</span>
+    </a>
+    <a class="lu-kpi-card" href="{{ url_for('legal_updates_admin.staging_page') }}">
+      <span class="lu-kpi-top"><i class="bi bi-inboxes"></i><span class="lu-kpi-label">Documenti letti</span></span>
+      <span class="lu-kpi-value">{{ payload.headline.raw_documents }}</span>
+      <span class="lu-kpi-note">Documenti letti dalle fonti, non tutti già usabili</span>
+      <span class="lu-kpi-action">Apri acquisizione</span>
+    </a>
+    <a class="lu-kpi-card" href="{{ url_for('legal_updates_admin.analysis_page') }}">
+      <span class="lu-kpi-top"><i class="bi bi-tags"></i><span class="lu-kpi-label">Documenti analizzati</span></span>
+      <span class="lu-kpi-value">{{ payload.truth_metrics.documents_analyzed }}</span>
+      <span class="lu-kpi-note">Letture già passate dalla classificazione</span>
+      <span class="lu-kpi-action">Apri catalogazione</span>
+    </a>
+    <a class="lu-kpi-card" href="{{ url_for('legal_updates_admin.review_page') }}">
+      <span class="lu-kpi-top"><i class="bi bi-shield-exclamation"></i><span class="lu-kpi-label">Da verificare</span></span>
+      <span class="lu-kpi-value {% if payload.headline.review_pending %}text-warning{% else %}text-success{% endif %}">
         {{ payload.headline.review_pending }}
+      </span>
+      <span class="lu-kpi-note">Elementi che non devono essere usati senza controllo</span>
+      <span class="lu-kpi-action">Apri revisioni</span>
+    </a>
+    <a class="lu-kpi-card" href="{{ url_for('legal_intelligence.news') }}">
+      <span class="lu-kpi-top"><i class="bi bi-newspaper"></i><span class="lu-kpi-label">News in Ricerca Legale</span></span>
+      <span class="lu-kpi-value text-primary">{{ payload.headline.published_news }}</span>
+      <span class="lu-kpi-note">Aggiornamenti pubblicati nello studio</span>
+      <span class="lu-kpi-action">Apri news</span>
+    </a>
+    <a class="lu-kpi-card" href="{{ url_for('legal_updates_admin.staging_page') }}">
+      <span class="lu-kpi-top"><i class="bi bi-intersect"></i><span class="lu-kpi-label">Scartati</span></span>
+      <span class="lu-kpi-value {% if payload.truth_metrics.discarded %}text-danger{% else %}text-success{% endif %}">
+        {{ payload.truth_metrics.discarded }}
+      </span>
+      <span class="lu-kpi-note">Duplicati o contenuti fuori perimetro già chiusi</span>
+      <span class="lu-kpi-action">Controlla acquisizioni</span>
+    </a>
+    <a class="lu-kpi-card" href="{{ url_for('legal_updates_admin.archive_page') }}">
+      <span class="lu-kpi-top"><i class="bi bi-journal-check"></i><span class="lu-kpi-label">Schede pubblicate</span></span>
+      <span class="lu-kpi-value">{{ payload.truth_metrics.published_cards }}</span>
+      <span class="lu-kpi-note">Schede consultabili in Ricerca Legale, News e Archivio</span>
+      <span class="lu-kpi-action">Apri archivio</span>
+    </a>
+    <a class="lu-kpi-card lu-kpi-card--index" href="/ricerca-legale?q=Normattiva">
+      <span class="lu-kpi-top"><i class="bi bi-book"></i><span class="lu-kpi-label">Indice Normattiva</span></span>
+      <span class="lu-kpi-value text-success">{{ payload.official_archives.normattiva.documents }}</span>
+      <span class="lu-kpi-note">{{ payload.official_archives.normattiva.articles }} articoli interrogabili dalla ricerca</span>
+      <span class="lu-kpi-action">Cerca in Ricerca Legale</span>
+    </a>
+    <a class="lu-kpi-card lu-kpi-card--index" href="/ricerca-legale?q=Gazzetta%20Ufficiale">
+      <span class="lu-kpi-top"><i class="bi bi-file-earmark-text"></i><span class="lu-kpi-label">Indice Gazzetta</span></span>
+      <span class="lu-kpi-value text-success">{{ payload.official_archives.gazzetta.documents }}</span>
+      <span class="lu-kpi-note">{{ payload.official_archives.gazzetta.chunks }} estratti interrogabili dalla ricerca</span>
+      <span class="lu-kpi-action">Cerca in Ricerca Legale</span>
+    </a>
+  </div>
+
+  <div class="li-card mb-3">
+    <div class="li-card__body">
+      <div class="li-section-head">
+        <div class="li-section-title"><i class="bi bi-diagram-3 me-2 text-primary"></i>Conversione da letture a schede</div>
+        <span class="badge text-bg-light">{{ payload.truth_metrics.conversion_rate }}%</span>
+      </div>
+      <div class="row g-2 mt-1">
+        <div class="col-6 col-lg">
+          <div class="li-soft-card h-100">
+            <div class="small text-muted">Documenti letti</div>
+            <div class="fw-semibold">{{ payload.truth_metrics.documents_read }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-lg">
+          <div class="li-soft-card h-100">
+            <div class="small text-muted">Analizzati</div>
+            <div class="fw-semibold">{{ payload.truth_metrics.documents_analyzed }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-lg">
+          <div class="li-soft-card h-100">
+            <div class="small text-muted">Schede pubblicate</div>
+            <div class="fw-semibold">{{ payload.truth_metrics.published_cards }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-lg">
+          <div class="li-soft-card h-100">
+            <div class="small text-muted">Da verificare</div>
+            <div class="fw-semibold">{{ payload.truth_metrics.to_verify }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-lg">
+          <div class="li-soft-card h-100">
+            <div class="small text-muted">Scartati</div>
+            <div class="fw-semibold">{{ payload.truth_metrics.discarded }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="small text-muted mt-3">
+        {{ payload.truth_metrics.conversion_label }}. Le letture sono materiale di lavorazione; diventano schede solo dopo analisi, verifica e pubblicazione.
       </div>
     </div>
-    <div class="lu-kpi-card">
-      <div class="lu-kpi-label">News pubblicate</div>
-      <div class="lu-kpi-value text-primary">{{ payload.headline.published_news }}</div>
-    </div>
-    <div class="lu-kpi-card">
-      <div class="lu-kpi-label">Duplicati da pulire</div>
-      <div class="lu-kpi-value {% if payload.quality.duplicates.duplicate_items %}text-danger{% else %}text-success{% endif %}">
-        {{ payload.quality.duplicates.duplicate_items }}
+  </div>
+
+  <div class="li-card mb-3">
+    <div class="li-card__body">
+      <div class="li-section-head">
+        <div class="li-section-title"><i class="bi bi-signpost-split me-2 text-primary"></i>Dove finiscono i dati</div>
+        <span class="badge text-bg-light">mappa operativa</span>
       </div>
-    </div>
-    <div class="lu-kpi-card">
-      <div class="lu-kpi-label">Archivio strutturato</div>
-      <div class="lu-kpi-value">
-        {{ payload.headline.published_normative + payload.headline.published_jurisprudence + payload.headline.published_prassi }}
+      <div class="lu-flow-grid">
+        <a class="lu-flow-step" href="{{ url_for('legal_updates_admin.sources_page') }}">
+          <span>1</span>
+          <strong>Fonti</strong>
+          <small>Elenco dei canali ufficiali o istituzionali da cui parte il monitoraggio.</small>
+        </a>
+        <a class="lu-flow-step" href="{{ url_for('legal_updates_admin.staging_page') }}">
+          <span>2</span>
+          <strong>Acquisizione</strong>
+          <small>Materiale letto dalle fonti: è inventario di lavorazione, non ancora scheda citabile.</small>
+        </a>
+        <a class="lu-flow-step" href="{{ url_for('legal_updates_admin.review_page') }}">
+          <span>3</span>
+          <strong>Verifica</strong>
+          <small>Qui restano gli elementi con fonte, materia o utilità non abbastanza chiari.</small>
+        </a>
+        <a class="lu-flow-step" href="/ricerca-legale">
+          <span>4</span>
+          <strong>Ricerca Legale</strong>
+          <small>Risultati consultabili dallo studio, con contesto, fonte originale e azioni reali.</small>
+        </a>
       </div>
-    </div>
-    <div class="lu-kpi-card">
-      <div class="lu-kpi-label">Normattiva locale</div>
-      <div class="lu-kpi-value text-success">{{ payload.official_archives.normattiva.documents }}</div>
-      <div class="small text-muted">{{ payload.official_archives.normattiva.articles }} articoli</div>
-    </div>
-    <div class="lu-kpi-card">
-      <div class="lu-kpi-label">Gazzetta locale</div>
-      <div class="lu-kpi-value text-success">{{ payload.official_archives.gazzetta.documents }}</div>
-      <div class="small text-muted">{{ payload.official_archives.gazzetta.chunks }} estratti</div>
     </div>
   </div>
 
@@ -124,7 +213,7 @@
         <div class="li-card__body">
           <div class="li-section-title mb-2"><i class="bi bi-intersect me-2 text-primary"></i>Controllo ripetizioni</div>
           <div class="small text-muted">
-            Prima di creare una proposta il motore confronta titolo, fonte, numero, anno, autorita' e collegamenti ufficiali con l'archivio gia' pubblicato.
+            Prima di creare una proposta il motore confronta titolo, fonte, numero, anno, autorità e collegamenti ufficiali con l'archivio già pubblicato.
           </div>
           <div class="li-soft-stack mt-3">
             <div class="li-soft-card">
@@ -264,7 +353,7 @@
               <div class="small text-muted">Archivio giurisprudenza storico</div>
               <div class="fw-semibold text-break">
                 {% if payload.runtime.giurisprudenza_json_mirror_enabled %}
-                  copia di compatibilita' attiva
+                  copia di compatibilità attiva
                 {% else %}
                   disattivato: le pubblicazioni restano nell'archivio condiviso
                 {% endif %}
@@ -331,7 +420,7 @@
       <div class="li-card h-100">
         <div class="li-card__body">
           <div class="li-section-head">
-            <div class="li-section-title"><i class="bi bi-inboxes me-2 text-primary"></i>Ultimi documenti acquisiti</div>
+            <div class="li-section-title"><i class="bi bi-inboxes me-2 text-primary"></i>Ultimi documenti letti</div>
             <a href="{{ url_for('legal_updates_admin.staging_page') }}" class="btn btn-sm btn-outline-primary">Apri acquisizione</a>
           </div>
           <div class="li-alert-stack">
@@ -346,7 +435,7 @@
               <div class="small text-muted">{{ item.source_name }} · {{ (item.classification_type or 'INCERTO')|legal_update_classification_label }} · {{ item.published_at|fmt_data if item.published_at else 'data non disponibile' }}</div>
             </div>
             {% else %}
-            <div class="small text-muted">Nessun documento acquisito.</div>
+            <div class="small text-muted">Nessun documento letto.</div>
             {% endfor %}
           </div>
         </div>

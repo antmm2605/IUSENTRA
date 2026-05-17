@@ -12,6 +12,13 @@ export type LegalIntelligenceRecord = {
   sourceHref: string
   sourceExcerpt: string
   sourceContext: string[]
+  officialContext: string
+  contextSummary: string
+  keyPoints: string[]
+  operationalChecks: string[]
+  contextStatus: string
+  contextSource: string
+  contextCompleted: boolean
   practicalUse: string
   reliabilityNote: string
   followUpQuery: string
@@ -173,6 +180,13 @@ function normaliseRecord(input: unknown): LegalIntelligenceRecord {
     sourceHref: safeHref(item.sourceHref),
     sourceExcerpt: display(item.sourceExcerpt) || display(item.subtitle),
     sourceContext: textList(item.sourceContext),
+    officialContext: display(item.officialContext),
+    contextSummary: display(item.contextSummary),
+    keyPoints: textList(item.keyPoints),
+    operationalChecks: textList(item.operationalChecks),
+    contextStatus: display(item.contextStatus),
+    contextSource: display(item.contextSource),
+    contextCompleted: item.contextCompleted === true,
     practicalUse: display(item.practicalUse),
     reliabilityNote: display(item.reliabilityNote),
     followUpQuery: display(item.followUpQuery),

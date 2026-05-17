@@ -163,6 +163,11 @@ from web.services.react_impostazioni_bridge import (
     run_react_impostazioni_test,
     update_react_impostazioni_section,
 )
+from web.services.lex_dataset_training_status import build_lex_dataset_training_status
+from web.services.lex_dataset_review_queue import (
+    load_lex_dataset_review_queue,
+    update_lex_dataset_review_item,
+)
 from web.services.react_impostazioni_notifications import (
     prepare_notifica_link,
     send_notifica,
@@ -4121,6 +4126,38 @@ def impostazioni_page_ai_status():
     return jsonify(result), 200 if result.get("ok") else 200
 
 
+@api_v1_react.get("/impostazioni/ai/lex-dataset")
+@_richiedi_auth
+def impostazioni_page_ai_lex_dataset():
+    result = build_lex_dataset_training_status()
+    return jsonify(result), 200 if result.get("ok") else 200
+
+
+@api_v1_react.get("/impostazioni/ai/lex-dataset/review")
+@_richiedi_auth
+def impostazioni_page_ai_lex_dataset_review():
+    result = load_lex_dataset_review_queue()
+    return jsonify(result), 200 if result.get("ok") else 200
+
+
+@api_v1_react.post("/impostazioni/ai/lex-dataset/review/<qa_id>")
+@_richiedi_auth
+def impostazioni_page_ai_lex_dataset_review_update(qa_id: str):
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    payload = payload or {}
+    result = update_lex_dataset_review_item(
+        qa_id,
+        action=str(payload.get("action") or ""),
+        question=str(payload.get("question") or ""),
+        answer=str(payload.get("answer") or ""),
+        note=str(payload.get("note") or ""),
+        reviewer_id=_current_user_id(),
+    )
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
 @api_v1_react.post("/impostazioni/ai/bootstrap")
 @_richiedi_auth
 def impostazioni_page_ai_bootstrap():
@@ -5355,11 +5392,11 @@ def legal_intelligence_mediazione_page():
 
 @api_v1_react.get("/ricerca-legale")
 @_richiedi_auth
-def ricerca_legale_dashboard_page():
-    # Path canonico (v2.242.0+) per la home Ricerca legale.
+def ricerca_legale_page():
+    # Path canonico: la pagina principale deve essere la ricerca operativa.
     return _legal_intelligence_ui_payload(
-        "dashboard",
-        "artifacts/react-migration/legacy-contracts/legal-intelligence.json",
+        "ricerca-legale",
+        "artifacts/react-migration/legacy-contracts/ricerca-legale.json",
     )
 
 

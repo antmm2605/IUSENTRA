@@ -1,8 +1,9 @@
-"""Dati consultabili per le pagine di ricerca legale."""
+﻿"""Dati consultabili per le pagine di ricerca legale."""
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+import re
+from collections.abc import Iterable, Mapping
 from datetime import datetime, timezone
 from typing import Any, Callable
 from urllib.parse import urlparse
@@ -31,6 +32,11 @@ except Exception:  # pragma: no cover - gli archivi ufficiali sono opzionali in 
     _official_archive_snapshot = None
     _search_gazzetta = None
     _search_normattiva = None
+
+try:
+    from web.services.legal_official_context import build_official_context as _build_official_context
+except Exception:  # pragma: no cover - la pagina resta consultabile anche senza lettura web
+    _build_official_context = None
 
 
 _PST_MEDIAZIONE_RECOVERY_URL = (
@@ -65,6 +71,40 @@ _MEDIAZIONE_OFFICIAL_REGISTRY_RECORDS: tuple[dict[str, str], ...] = (
         "branch": "Formatori per la mediazione",
     },
 )
+_NEWS_DATE_RE = re.compile(r"(?=\b\d{2}/\d{2}/\d{4}\b)")
+_GENERIC_NEWS_CONTENT = (
+    "introduce un nuovo atto o un nuovo riferimento normativo",
+    "aggiorna un atto esistente e richiede controllo",
+)
+_GAZZETTA_LISTING_MARKERS = (
+    "leggi la notizia",
+    "shownewsdetail",
+)
+_OFFICIAL_CONTEXT_NOISE_MARKERS = (
+    "home atto completo",
+    "guida all'uso",
+    "f.a.q",
+    "inserzioni abbonamenti",
+    "vendita domenica",
+    "la gazzetta ufficiale guida",
+)
+_OFFICIAL_SOURCE_CODES = {
+    "gazzetta",
+    "gazzetta_ufficiale",
+    "normattiva",
+    "pst",
+    "ministero_giustizia",
+    "corte_costituzionale",
+    "cassazione",
+}
+_LEGAL_REFERENCE_RE = re.compile(
+    r"\b(?:d\.?\s*lgs\.?|d\.?\s*l\.?|d\.?\s*p\.?\s*r\.?|legge|l\.|sentenza|ordinanza|delibera|messaggio|circolare)"
+    r"\b.{0,120}\b(?:n\.?\s*)?\d{1,6}(?:/\d{2,4})?\b",
+    re.IGNORECASE,
+)
+_OFFICIAL_CONTEXT_TIMEOUT = (1.0, 2.0)
+_OFFICIAL_CONTEXT_MAX_BYTES = 350_000
+_OFFICIAL_CONTEXT_FETCH_LIMIT = 2
 
 
 def _iso_now() -> str:
@@ -80,6 +120,169 @@ def _short(value: Any, limit: int = 220) -> str:
     if len(text) <= limit:
         return text
     return text[: limit - 1].rstrip() + "..."
+
+
+def _restore_italian_accents(value: Any) -> str:
+    text = _text(value)
+    replacements = {
+        "ATTIVITA'": "ATTIVITÀ",
+        "AUTORITA'": "AUTORITÀ",
+        "LIQUIDITA'": "LIQUIDITÀ",
+        "QUALITA'": "QUALITÀ",
+        "RESPONSABILITA'": "RESPONSABILITÀ",
+        "SOCIETA'": "SOCIETÀ",
+        "VERITA'": "VERITÀ",
+        "attivita'": "attività",
+        "autorita'": "autorità",
+        "liquidita'": "liquidità",
+        "qualita'": "qualità",
+        "responsabilita'": "responsabilità",
+        "societa'": "società",
+        "verita'": "verità",
+    }
+    for source, target in replacements.items():
+        text = text.replace(source, target)
+    return text
+
+
+def _readable_legal_summary(value: Any) -> str:
+    text = _restore_italian_accents(value)
+    text = re.sub(r"\s+Leggi la notizia\s*$", "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"\s+([,)])", r"\1", text)
+    text = re.sub(r"([(])\s+", r"\1", text)
+    letters = [char for char in text if char.isalpha()]
+    if letters and sum(1 for char in letters if char.isupper()) / max(len(letters), 1) > 0.72:
+        text = text.lower()
+        fixes = {
+            r"\bd\.lgs\.": "D.Lgs.",
+            r"\bd\.p\.r\.": "D.P.R.",
+            r"\bd\.p\.c\.m\.": "D.P.C.M.",
+            r"\bd\.l\.": "D.L.",
+            r"\bl\.": "L.",
+            r"\bue\b": "UE",
+            r"\biva\b": "IVA",
+            r"\bimu\b": "IMU",
+        }
+        for pattern, replacement in fixes.items():
+            text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+        match = re.match(r"^(\d{2}/\d{2}/\d{4})(\s+)(.*)$", text)
+        if match:
+            tail = match.group(3)
+            text = f"{match.group(1)}{match.group(2)}{tail[:1].upper()}{tail[1:]}"
+        elif text:
+            text = text[:1].upper() + text[1:]
+    return text.strip(" -")
+
+
+def _legal_reference_markers(*values: Any) -> list[str]:
+    markers: list[str] = []
+    for value in values:
+        text = _text(value)
+        if not text:
+            continue
+        for match in re.finditer(
+            r"\b(?:d\.?\s*lgs\.?|d\.?\s*l\.?|d\.?\s*p\.?\s*r\.?|d\.?\s*p\.?\s*c\.?\s*m\.?|legge|l\.|sentenza|ordinanza|decreto)"
+            r"\b.{0,80}\b(?:n\.?\s*)?\d{1,6}(?:/\d{2,4})?\b",
+            text,
+            flags=re.IGNORECASE,
+        ):
+            marker = _text(match.group(0)).lower()
+            if marker and marker not in markers:
+                markers.append(marker)
+        number = _legal_reference_number(text)
+        if number:
+            number_marker = f"n. {number}"
+            if number_marker not in markers:
+                markers.append(number_marker)
+    return markers
+
+
+def _looks_like_cumulative_gazzetta_listing(value: Any) -> bool:
+    text = _text(value)
+    lower = text.lower()
+    if not text:
+        return False
+    if sum(lower.count(marker) for marker in _GAZZETTA_LISTING_MARKERS) >= 2:
+        return True
+    return len(_NEWS_DATE_RE.findall(text)) >= 3 and "gazzetta" not in lower
+
+
+def _extract_reference_specific_excerpt(title: Any, *values: Any, query: Any = "") -> str:
+    title_text = _text(title)
+    title_lower = title_text.lower()
+    markers = _legal_reference_markers(title_text, query)
+    for value in values:
+        text = _text(value)
+        if not text:
+            continue
+        if _looks_like_cumulative_gazzetta_listing(text):
+            segments = [segment.strip(" -") for segment in _NEWS_DATE_RE.split(text) if segment.strip()]
+            for segment in segments:
+                lower = segment.lower()
+                if (title_lower and title_lower in lower) or any(marker in lower for marker in markers):
+                    cleaned = _readable_legal_summary(segment)
+                    cleaned = re.sub(r"\s+Leggi la notizia\b.*$", "", cleaned, flags=re.IGNORECASE).strip(" -")
+                    if cleaned:
+                        return _short(cleaned, 560)
+        cleaned = _readable_legal_summary(text)
+        if cleaned:
+            return _short(cleaned, 560)
+    return _short(title_text, 560)
+
+
+def _is_generic_news_content(value: Any) -> bool:
+    text = _text(value).lower()
+    return any(marker in text for marker in _GENERIC_NEWS_CONTENT)
+
+
+def _extract_news_excerpt(row: Mapping[str, Any], *, limit: int = 360) -> str:
+    title = _text(row.get("title") or row.get("headline"))
+    raw_summary = _text(row.get("short_summary") or row.get("summary_short") or row.get("lead") or row.get("description"))
+    content = _text(row.get("content") or row.get("body") or row.get("text"))
+    candidates: list[str] = []
+    if raw_summary:
+        segments = [segment.strip() for segment in _NEWS_DATE_RE.split(raw_summary) if segment.strip()]
+        if title:
+            title_lower = title.lower()
+            candidates.extend(segment for segment in segments if title_lower in segment.lower())
+        candidates.extend(segments[:1] if segments else [raw_summary])
+    if content and not _is_generic_news_content(content):
+        candidates.append(content)
+    for candidate in candidates:
+        cleaned = _readable_legal_summary(candidate)
+        if cleaned and title.lower() != "leggi la notizia":
+            return _short(cleaned, limit)
+        if cleaned and title.lower() in cleaned.lower():
+            return _short(cleaned, limit)
+    return _short(_readable_legal_summary(content if content and not _is_generic_news_content(content) else title), limit)
+
+
+def _news_source_kind(row: Mapping[str, Any], source_href: str) -> str:
+    source_code = _text(row.get("source_code")).lower()
+    if bool(row.get("is_official")) or _is_official_href(source_href) or source_code in _OFFICIAL_SOURCE_CODES:
+        return "fonte ufficiale"
+    return "contenuto interno"
+
+
+def _news_area_branch(row: Mapping[str, Any], excerpt: str) -> tuple[str, str]:
+    original_area = _text(row.get("matter_name") or row.get("matter_slug"))
+    original_branch = _text(row.get("submatter_name") or row.get("submatter_slug"))
+    haystack = f"{row.get('title', '')} {excerpt}".lower()
+    tributary_tokens = ("tribut", "iva", "imposta", "fisc", "accisa", "tassa")
+    likely_default_tax = (
+        "tribut" in original_area.lower()
+        or original_branch.lower() == "iva"
+    ) and not any(token in haystack for token in tributary_tokens)
+    if "minori" in haystack or "affidamento" in haystack:
+        return "Famiglia e minori", "Tutela dei minori"
+    if "direttiva" in haystack and ("ue" in haystack or "unione europea" in haystack):
+        if "vigilanza" in haystack or "liquidità" in haystack or "liquidita" in haystack:
+            return "Unione europea", "Mercati finanziari e vigilanza"
+        return "Unione europea", "Recepimento direttive"
+    if likely_default_tax:
+        if _text(row.get("news_type")).lower() == "normativa" or "gazzetta" in _text(row.get("source_code")).lower():
+            return "Normativa", "Aggiornamento normativo"
+    return original_area, original_branch
 
 
 def _value(value: Any, key: str, fallback: Any = "") -> Any:
@@ -126,8 +329,11 @@ def _source_label_from_url(url: str) -> str:
 
 def _is_official_href(url: str) -> bool:
     host = urlparse(url or "").netloc.lower()
+    if "@" in host:
+        host = host.rsplit("@", 1)[-1]
+    host = host.split(":", 1)[0].strip(".")
     return any(
-        domain in host
+        host == domain or host.endswith(f".{domain}")
         for domain in (
             "giustizia.it",
             "normattiva.it",
@@ -204,22 +410,168 @@ def _matches_query(record: Mapping[str, Any], search_query: str) -> bool:
     return all(token in haystack for token in tokens[:8]) or any(token in haystack for token in tokens[:3])
 
 
+def _record_excerpt(record: Mapping[str, Any]) -> str:
+    return _text(
+        record.get("sourceExcerpt")
+        or record.get("subtitle")
+        or record.get("summary")
+        or record.get("title")
+    )
+
+
+def _looks_like_exact_legal_reference(value: Any) -> bool:
+    return bool(_LEGAL_REFERENCE_RE.search(_text(value)))
+
+
+def _legal_reference_number(value: Any) -> str:
+    text = _text(value)
+    match = re.search(r"\bn\.?\s*(\d{1,6})(?:/\d{2,4})?\b", text, flags=re.IGNORECASE)
+    return match.group(1) if match else ""
+
+
+def _record_relevant_for_exact_reference(record: Mapping[str, Any], search_query: str) -> bool:
+    reference_number = _legal_reference_number(search_query)
+    if not reference_number:
+        return True
+    haystack = " ".join(
+        _text(record.get(key))
+        for key in ("title", "sourceExcerpt", "subtitle", "registryNumber", "officialContext", "contextSummary")
+    ).lower()
+    return bool(re.search(rf"(?<!\d){re.escape(reference_number)}(?!\d)", haystack))
+
+
+def _record_dedupe_key(record: Mapping[str, Any]) -> str:
+    record_id = _text(record.get("id"))
+    if record_id.startswith("registro-mediazione-"):
+        return f"mediazione:{record_id}"
+    source_href = _text(record.get("sourceHref")).rstrip("/").lower()
+    if source_href:
+        return source_href
+    return f"{_text(record.get('kind'))}:{record_id}"
+
+
+def _record_richness(record: Mapping[str, Any]) -> int:
+    excerpt = _record_excerpt(record)
+    score = len(excerpt)
+    source_kind = _text(record.get("sourceKind")).lower()
+    evidence = _text(record.get("evidenceType")).lower()
+    if "ufficiale" in source_kind or _is_official_href(_text(record.get("sourceHref"))):
+        score += 120
+    if "estratto" in evidence:
+        score += 60
+    if bool(record.get("contextCompleted")):
+        score += 80
+    if _is_generic_news_content(excerpt) or "leggi la notizia" in excerpt.lower():
+        score -= 180
+    return score
+
+
+def _merge_richer_record(current: dict[str, Any], incoming: Mapping[str, Any]) -> dict[str, Any]:
+    current_score = _record_richness(current)
+    incoming_score = _record_richness(incoming)
+    if incoming_score <= current_score:
+        return current
+
+    merged = dict(current)
+    incoming_excerpt = _record_excerpt(incoming)
+    current_excerpt = _record_excerpt(current)
+    if incoming_excerpt and len(incoming_excerpt) > len(current_excerpt) + 30:
+        merged["subtitle"] = incoming_excerpt
+        merged["sourceExcerpt"] = incoming_excerpt
+        if bool(incoming.get("contextCompleted")):
+            merged["contextCompleted"] = True
+        merged["contextSummary"] = _text(incoming.get("contextSummary")) or _short(incoming_excerpt, 520)
+
+    incoming_href = _safe_href(incoming.get("sourceHref"))
+    if incoming_href and (not _text(merged.get("sourceHref")) or _is_official_href(incoming_href)):
+        merged["sourceHref"] = incoming_href
+
+    incoming_kind = _text(incoming.get("sourceKind")).lower()
+    if "ufficiale" in incoming_kind or _is_official_href(incoming_href):
+        merged["sourceKind"] = "fonte ufficiale"
+        merged["approvalLabel"] = _text(incoming.get("approvalLabel")) or "verificata"
+        merged["approvalTone"] = _text(incoming.get("approvalTone")) or "success"
+        if bool(incoming.get("contextCompleted")) or _text(incoming.get("officialContext")):
+            merged["contextCompleted"] = True
+    elif not _text(merged.get("sourceKind")) and _text(incoming.get("sourceKind")):
+        merged["sourceKind"] = _text(incoming.get("sourceKind"))
+
+    for key in ("sourceLabel", "evidenceType", "date", "registryNumber"):
+        incoming_value = _text(incoming.get(key))
+        current_value = _text(merged.get(key))
+        if incoming_value and (
+            not current_value
+            or current_value.lower() in {"fonte interna", "contenuto interno", "riferimento fonte"}
+            or key == "evidenceType" and "estratto" in incoming_value.lower()
+        ):
+            merged[key] = incoming_value
+
+    for key in ("officialContext", "contextSummary", "contextStatus", "contextSource"):
+        incoming_value = _text(incoming.get(key))
+        if incoming_value and (not _text(merged.get(key)) or _record_richness(incoming) > current_score):
+            merged[key] = incoming_value
+
+    for key in ("keyPoints", "operationalChecks"):
+        incoming_list = [item for item in _list(incoming.get(key)) if _text(item)]
+        current_list = [item for item in _list(merged.get(key)) if _text(item)]
+        if incoming_list and len(incoming_list) >= len(current_list):
+            merged[key] = incoming_list
+
+    for key in ("area", "branch"):
+        incoming_value = _text(incoming.get(key))
+        current_value = _text(merged.get(key))
+        if incoming_value and (not current_value or current_value.lower() in {"informazione", "ricerca legale"}):
+            merged[key] = incoming_value
+
+    return merged
+
+
 def _dedupe_records(records: list[dict[str, Any]], *, limit: int | None = None) -> list[dict[str, Any]]:
-    seen: set[str] = set()
+    positions: dict[str, int] = {}
     deduped: list[dict[str, Any]] = []
     for record in records:
-        record_id = _text(record.get("id"))
-        if record_id.startswith("registro-mediazione-"):
-            key = f"mediazione:{record_id}"
-        else:
-            key = _text(record.get("sourceHref")) or f"{_text(record.get('kind'))}:{record_id}"
-        if key in seen:
+        key = _record_dedupe_key(record)
+        if key in positions:
+            position = positions[key]
+            deduped[position] = _merge_richer_record(deduped[position], record)
             continue
-        seen.add(key)
-        deduped.append(record)
         if limit is not None and len(deduped) >= limit:
-            break
+            continue
+        positions[key] = len(deduped)
+        deduped.append(record)
     return deduped
+
+
+def _record_query_rank(record: Mapping[str, Any], search_query: str) -> tuple[int, str]:
+    if not search_query:
+        return (0, _text(record.get("date")))
+    title = _text(record.get("title")).lower()
+    excerpt = _record_excerpt(record).lower()
+    query = _text(search_query).lower()
+    rank = 0
+    reference_number = _legal_reference_number(search_query)
+    if reference_number and re.search(rf"(?<!\d){re.escape(reference_number)}(?!\d)", title):
+        rank += 120
+    if query and query in title:
+        rank += 80
+    markers = _legal_reference_markers(search_query)
+    rank += sum(20 for marker in markers if marker in title)
+    tokens = _context_tokens(search_query)
+    rank += sum(3 for token in tokens if token in title)
+    rank += sum(1 for token in tokens if token in excerpt)
+    if bool(record.get("contextCompleted")):
+        rank += 20
+    if "ufficiale" in _text(record.get("sourceKind")).lower():
+        rank += 10
+    if _is_weak_source_context(record, search_query):
+        rank -= 30
+    return (rank, _text(record.get("date")))
+
+
+def _sort_records_for_query(records: list[dict[str, Any]], search_query: str) -> list[dict[str, Any]]:
+    if not search_query or not _looks_like_exact_legal_reference(search_query):
+        return records
+    return sorted(records, key=lambda record: _record_query_rank(record, search_query), reverse=True)
 
 
 def _tone(value: Any) -> str:
@@ -323,22 +675,27 @@ def _safe_news_record(row: Mapping[str, Any], index: int) -> dict[str, Any]:
     news_id = _text(row.get("id") or row.get("slug")) or f"news_{index}"
     slug = _text(row.get("slug"))
     status = _text(row.get("publication_status") or row.get("review_status") or row.get("status"))
-    source_label = _text(row.get("source_name") or row.get("source_code") or row.get("authority") or "Fonte interna")
+    source_href = _safe_href(row.get("source_url") or row.get("official_url"))
+    source_label = _text(row.get("source_name") or row.get("source_code") or row.get("authority")) or _source_label_from_url(source_href) or "Fonte interna"
+    source_kind = _news_source_kind(row, source_href)
+    excerpt = _extract_news_excerpt(row)
+    area, branch = _news_area_branch(row, excerpt)
     return {
         "id": news_id,
         "kind": "news",
         "title": _text(row.get("title") or row.get("headline")) or "News",
-        "subtitle": _short(row.get("short_summary") or row.get("lead") or row.get("description"), 220),
+        "subtitle": _short(excerpt, 220),
+        "sourceExcerpt": excerpt,
         "sourceLabel": source_label,
-        "sourceKind": "fonte ufficiale" if row.get("is_official") else "contenuto interno",
-        "sourceHref": _safe_href(row.get("source_url") or row.get("official_url")),
+        "sourceKind": source_kind,
+        "sourceHref": source_href,
         "date": _text(row.get("published_at") or row.get("created_at") or row.get("updated_at")),
-        "area": _text(row.get("matter_name") or row.get("matter_slug")),
-        "branch": _text(row.get("submatter_name") or row.get("submatter_slug")),
+        "area": area,
+        "branch": branch,
         "approvalLabel": status or "pubblicata",
         "approvalTone": _tone(status or "published"),
         "legacyHref": f"/ricerca-legale/news?scheda={slug}" if slug else "/ricerca-legale/news",
-        "evidenceType": "fonte",
+        "evidenceType": "fonte ufficiale" if source_kind == "fonte ufficiale" else "fonte",
     }
 
 
@@ -495,7 +852,7 @@ def _record_practical_use(record: Mapping[str, Any]) -> str:
     if "mediazione" in kind or "mediazione" in title:
         return "Usa questa scheda per verificare soggetti e requisiti collegati alla mediazione prima di scegliere organismo, ente o formatore."
     if "news" in kind:
-        return "Usa l'aggiornamento per capire se il fascicolo richiede una verifica normativa, giurisprudenziale o organizzativa."
+        return "Usa l'aggiornamento per capire se il fascicolo richiede una verifica normativa, giurisprudenziale o organizzativa; apri la fonte ufficiale prima di citarlo."
     if "giurisprudenza" in kind:
         return "Usa l'estratto per individuare autorità, data e materia prima del confronto con l'archivio giurisprudenza."
     if "normativa" in kind:
@@ -511,7 +868,9 @@ def _record_reliability_note(record: Mapping[str, Any]) -> str:
     source_kind = _text(record.get("sourceKind")).lower()
     source_href = _text(record.get("sourceHref"))
     if "ufficiale" in source_kind or _is_official_href(source_href):
-        return "Fonte ufficiale o istituzionale: il testo originale resta disponibile per il controllo finale prima di atti, pareri o depositi."
+        if bool(record.get("contextCompleted")):
+            return "Contesto letto in IUSENTRA da fonte ufficiale: usa la fonte originale solo per il controllo finale prima di atti, pareri o depositi."
+        return "Fonte ufficiale o istituzionale: se il contesto non è completo in pagina, apri il testo originale per il controllo finale prima di atti, pareri o depositi."
     if "verificare" in source_kind:
         return "Fonte da controllare: usa il contesto come orientamento e verifica il testo originale prima dell'uso professionale."
     if source_kind:
@@ -519,8 +878,264 @@ def _record_reliability_note(record: Mapping[str, Any]) -> str:
     return "Informazione disponibile nello studio: verifica la fonte prima di usarla in un atto o in un parere."
 
 
+def _context_tokens(*values: Any) -> list[str]:
+    stopwords = {
+        "della",
+        "degli",
+        "delle",
+        "dello",
+        "alla",
+        "agli",
+        "alle",
+        "sulla",
+        "sulle",
+        "decreto",
+        "legislativo",
+        "legge",
+        "sentenza",
+        "ordinanza",
+        "gazzetta",
+        "ufficiale",
+        "normattiva",
+        "marzo",
+        "aprile",
+        "maggio",
+        "giugno",
+        "luglio",
+        "agosto",
+        "settembre",
+        "ottobre",
+        "novembre",
+        "dicembre",
+    }
+    tokens: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        for token in re.findall(r"[^\W_]{4,}", _text(value).lower(), flags=re.UNICODE):
+            if token in stopwords or token in seen:
+                continue
+            seen.add(token)
+            tokens.append(token)
+    return tokens[:12]
+
+
+def _context_sentences(value: Any) -> list[str]:
+    text = _restore_italian_accents(value)
+    text = re.sub(r"\s+", " ", text).strip()
+    if not text:
+        return []
+    prepared = re.sub(r"\bn\.\s*", "n__DOT__ ", text, flags=re.IGNORECASE)
+    prepared = re.sub(r"\bD\.\s*Lgs\.", "D Lgs", prepared, flags=re.IGNORECASE)
+    prepared = re.sub(r"\bD\.\s*L\.", "D L", prepared, flags=re.IGNORECASE)
+    prepared = re.sub(r"\bD\.\s*P\.\s*R\.", "D P R", prepared, flags=re.IGNORECASE)
+    sentences = [
+        sentence.replace("n__DOT__", "n.").strip(" -")
+        for sentence in re.split(r"(?<=[.!?;:])\s+|\s{2,}", prepared)
+        if 40 <= len(sentence.strip()) <= 520
+    ]
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    noisy_markers = ("cookie", "privacy", "javascript", "menu", "accedi", "registrati")
+    for sentence in sentences:
+        lower = sentence.lower()
+        if any(marker in lower for marker in noisy_markers):
+            continue
+        key = lower[:120]
+        if key in seen:
+            continue
+        seen.add(key)
+        cleaned.append(sentence)
+    return cleaned
+
+
+def _select_context_text(official_text: Any, record: Mapping[str, Any], search_query: str, *, limit: int = 1400) -> str:
+    sentences = _context_sentences(official_text)
+    if not sentences:
+        return _short(official_text, limit)
+    tokens = _context_tokens(search_query, record.get("title"), record.get("area"), record.get("branch"))
+    scored: list[tuple[int, int, str]] = []
+    for index, sentence in enumerate(sentences):
+        lower = sentence.lower()
+        score = sum(1 for token in tokens if token in lower)
+        if any(marker in lower for marker in ("oggetto", "recepimento", "direttiva", "vigilanza", "liquidità", "liquidita", "accordi")):
+            score += 2
+        if score:
+            scored.append((score, -index, sentence))
+    selected = [row[2] for row in sorted(scored, reverse=True)[:4]] or sentences[:4]
+    context = " ".join(selected)
+    return _short(context, limit)
+
+
+def _build_context_summary(context_text: str, record: Mapping[str, Any]) -> str:
+    sentences = _context_sentences(context_text)
+    if sentences:
+        summary = " ".join(sentences[:2])
+    else:
+        summary = context_text
+    if summary:
+        return _short(summary, 520)
+    return _short(record.get("sourceExcerpt") or record.get("subtitle") or record.get("title"), 520)
+
+
+def _build_key_points(record: Mapping[str, Any], context_text: str, summary: str) -> list[str]:
+    points: list[str] = []
+    title = _text(record.get("title"))
+    if title:
+        points.append(f"Estremi: {title}")
+    scope = " / ".join(part for part in (_text(record.get("area")), _text(record.get("branch"))) if part)
+    if scope:
+        points.append(f"Materia: {scope}")
+    if summary:
+        points.append(f"Oggetto: {_short(summary, 260)}")
+    for sentence in _context_sentences(context_text):
+        if len(points) >= 5:
+            break
+        cleaned = _short(sentence, 260)
+        if cleaned and not any(cleaned.lower() in point.lower() or point.lower() in cleaned.lower() for point in points):
+            points.append(cleaned)
+    return points[:5]
+
+
+def _build_operational_checks(record: Mapping[str, Any], context_text: str) -> list[str]:
+    haystack = f"{record.get('title', '')} {record.get('area', '')} {record.get('branch', '')} {context_text}".lower()
+    checks = [
+        "Controlla decorrenza, testo vigente e norme transitorie prima di citare il riferimento.",
+        "Verifica se il fascicolo richiede aggiornamento di atto, parere, scadenza o informativa al cliente.",
+    ]
+    if "direttiva" in haystack or "unione europea" in haystack or " ue " in f" {haystack} ":
+        checks.append("Valuta il collegamento con la direttiva europea recepita e con eventuali obblighi di adeguamento.")
+    if "vigilanza" in haystack or "liquidità" in haystack or "liquidita" in haystack:
+        checks.append("Per pratiche societarie o finanziarie, controlla deleghe, gestione del rischio di liquidità e presidi di vigilanza.")
+    if "minori" in haystack or "affidamento" in haystack:
+        checks.append("Per fascicoli di famiglia, verifica impatto su affidamento, tutela del minore e provvedimenti pendenti.")
+    return checks[:5]
+
+
+def _clean_official_context_text(value: Any) -> str:
+    text = _restore_italian_accents(value)
+    if not text:
+        return ""
+    text = re.sub(r"^.*?\b(DECRETO LEGISLATIVO|LEGGE|DECRETO-LEGGE|DECRETO DEL PRESIDENTE|SENTENZA|ORDINANZA)\b", r"\1", text, flags=re.IGNORECASE)
+    text = re.sub(r"\binserzioni abbonamenti vendita\b.*$", "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"\bHome la gazzetta ufficiale guida all'uso f\.a\.q\.\s*\}?", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s+", " ", text).strip(" -")
+    return text
+
+
+def _context_has_navigation_noise(value: Any) -> bool:
+    lower = _text(value).lower()
+    return any(marker in lower for marker in _OFFICIAL_CONTEXT_NOISE_MARKERS)
+
+
+def _needs_live_official_context(record: Mapping[str, Any], search_query: str) -> bool:
+    source_href = _text(record.get("sourceHref"))
+    exact_reference = _looks_like_exact_legal_reference(search_query) or _looks_like_exact_legal_reference(record.get("title"))
+    if exact_reference and not _record_relevant_for_exact_reference(record, search_query):
+        return False
+    if bool(record.get("contextCompleted")) and len(_record_excerpt(record)) >= 360:
+        return False
+    return bool(
+        search_query
+        and source_href
+        and _build_official_context is not None
+        and _is_official_href(source_href)
+        and (
+            _is_weak_source_context(record, search_query)
+            or (exact_reference and not _text(record.get("officialContext")))
+        )
+    )
+
+
+def _complete_record_context_from_official_source(
+    record: Mapping[str, Any],
+    search_query: str,
+    *,
+    context_budget: dict[str, int] | None = None,
+) -> dict[str, Any]:
+    enriched = dict(record)
+    if context_budget is not None and context_budget.get("remaining", 0) <= 0:
+        return enriched
+    if not _needs_live_official_context(enriched, search_query):
+        return enriched
+    if context_budget is not None:
+        context_budget["remaining"] = max(0, int(context_budget.get("remaining", 0)) - 1)
+    try:
+        payload = _build_official_context(
+            _text(enriched.get("sourceHref")),
+            f"{search_query} {_text(enriched.get('title'))}".strip(),
+            timeout=_OFFICIAL_CONTEXT_TIMEOUT,
+            max_bytes=_OFFICIAL_CONTEXT_MAX_BYTES,
+            context_limit=1400,
+        )
+    except Exception:
+        return enriched
+    context_text = _clean_official_context_text(payload.get("officialContext"))
+    if len(context_text) < 120:
+        return enriched
+    payload_summary = _text(payload.get("contextSummary"))
+    summary = payload_summary if payload_summary and not _context_has_navigation_noise(payload_summary) else ""
+    summary = summary or _build_context_summary(context_text, enriched)
+    payload_points = [item for item in _list(payload.get("keyPoints")) if _text(item)]
+    if payload_points and any(_context_has_navigation_noise(item) for item in payload_points):
+        payload_points = []
+    key_points = payload_points or _build_key_points(
+        enriched,
+        context_text,
+        summary,
+    )
+    operational_checks = [
+        item for item in _list(payload.get("operationalChecks")) if _text(item)
+    ] or _build_operational_checks(enriched, context_text)
+    enriched["officialContext"] = context_text
+    enriched["contextSummary"] = summary
+    enriched["keyPoints"] = key_points
+    enriched["operationalChecks"] = operational_checks
+    enriched["contextStatus"] = "contesto completo in pagina" if payload.get("contextCompleted") else "contesto ufficiale letto in anteprima"
+    enriched["contextSource"] = "testo ufficiale letto da IUSENTRA"
+    enriched["contextCompleted"] = bool(payload.get("contextCompleted")) or len(context_text) >= 180
+    warnings = [item for item in _list(payload.get("warnings")) if _text(item)]
+    if warnings:
+        enriched["contextWarnings"] = warnings[:3]
+    current_excerpt = _record_excerpt(enriched)
+    if summary and (
+        len(current_excerpt) < 260
+        or _is_generic_news_content(current_excerpt)
+        or _text(enriched.get("title")).lower() == current_excerpt.lower()
+        or len(summary) > len(current_excerpt)
+    ):
+        enriched["subtitle"] = summary
+        enriched["sourceExcerpt"] = summary
+    return enriched
+
+
+def _complete_records_context_from_official_sources(
+    records: list[dict[str, Any]],
+    search_query: str,
+    *,
+    max_reads: int = _OFFICIAL_CONTEXT_FETCH_LIMIT,
+) -> tuple[list[dict[str, Any]], bool]:
+    if not search_query or _build_official_context is None:
+        return records, False
+    completed: list[dict[str, Any]] = []
+    context_budget = {"remaining": max_reads}
+    attempted = False
+    for record in records:
+        before = context_budget["remaining"]
+        completed_record = _complete_record_context_from_official_source(
+            record,
+            search_query,
+            context_budget=context_budget,
+        )
+        attempted = attempted or context_budget["remaining"] < before
+        completed.append(completed_record)
+    return completed, attempted
+
+
 def _record_context_items(record: Mapping[str, Any], excerpt: str) -> list[str]:
     items: list[str] = []
+    context_summary = _text(record.get("contextSummary"))
+    if context_summary:
+        items.append(f"Contesto operativo: {context_summary}")
     if excerpt:
         items.append(f"Contenuto: {excerpt}")
     scope = " / ".join(
@@ -538,9 +1153,17 @@ def _record_context_items(record: Mapping[str, Any], excerpt: str) -> list[str]:
         items.append(f"Aggiornamento: {_text(record.get('date'))}")
     if _text(record.get("registryNumber")):
         items.append(f"Registro: {_text(record.get('registryNumber'))}")
-    if _text(record.get("sourceLabel")):
-        items.append(f"Provenienza: {_text(record.get('sourceLabel'))}")
-    return items[:5]
+    if bool(record.get("contextCompleted")):
+        items.append("Lettura in pagina: contesto ricostruito dentro IUSENTRA.")
+    source_label = _text(record.get("sourceLabel"))
+    source_href = _text(record.get("sourceHref"))
+    if source_label and ("ufficiale" in _text(record.get("sourceKind")).lower() or _is_official_href(source_href)):
+        items.append(f"Fonte ufficiale: {source_label}")
+        if source_href:
+            items.append("Testo completo: disponibile dalla fonte originale collegata.")
+    elif source_label:
+        items.append(f"Provenienza: {source_label}")
+    return items[:6]
 
 
 def _enrich_record_context(record: Mapping[str, Any]) -> dict[str, Any]:
@@ -553,6 +1176,11 @@ def _enrich_record_context(record: Mapping[str, Any]) -> dict[str, Any]:
         560,
     )
     enriched["sourceExcerpt"] = excerpt
+    enriched.setdefault("officialContext", "")
+    enriched.setdefault("contextSummary", "")
+    enriched.setdefault("keyPoints", [])
+    enriched.setdefault("operationalChecks", [])
+    enriched.setdefault("contextCompleted", False)
     enriched["sourceContext"] = _record_context_items(enriched, excerpt)
     enriched["practicalUse"] = _record_practical_use(enriched)
     enriched["reliabilityNote"] = _record_reliability_note(enriched)
@@ -560,26 +1188,61 @@ def _enrich_record_context(record: Mapping[str, Any]) -> dict[str, Any]:
     return enriched
 
 
-def _safe_search_record(row: Mapping[str, Any], index: int) -> dict[str, Any]:
+def _safe_search_record(row: Mapping[str, Any], index: int, *, search_query: str = "") -> dict[str, Any]:
     source_href = _safe_href(row.get("official_url") or row.get("source_url") or row.get("url"))
     source_label = _text(row.get("authority") or row.get("source_name") or row.get("source_code")) or _source_label_from_url(source_href)
     verified = bool(row.get("verified_reference") or row.get("is_official") or _is_official_href(source_href))
     kind = _search_type_label(row.get("type") or row.get("entity_type") or row.get("category"))
     title = _text(row.get("title") or row.get("headline") or row.get("name")) or "Fonte ricerca legale"
-    excerpt = _short(row.get("excerpt") or row.get("content") or row.get("summary") or row.get("short_summary"), 560)
-    matter = _text(row.get("matter_name") or row.get("matter_slug") or row.get("category"))
+    raw_excerpt = _text(row.get("excerpt") or row.get("content") or row.get("summary") or row.get("short_summary"))
+    excerpt = _extract_reference_specific_excerpt(
+        title,
+        raw_excerpt,
+        row.get("content"),
+        row.get("summary"),
+        row.get("short_summary"),
+        query=search_query,
+    )
+    area, branch = _news_area_branch(
+        {
+            "matter_name": row.get("matter_name") or row.get("matter_slug") or row.get("category"),
+            "submatter_name": row.get("submatter_name") or row.get("submatter_slug"),
+            "news_type": row.get("type") or row.get("entity_type") or row.get("category"),
+            "source_code": row.get("source_code"),
+            "title": title,
+        },
+        excerpt,
+    )
+    official_context = _text(row.get("official_context") or row.get("officialContext"))
+    context_summary = _text(row.get("context_summary") or row.get("contextSummary")) or _short(official_context or excerpt, 520)
+    weak_listing = _looks_like_cumulative_gazzetta_listing(raw_excerpt)
+    context_completed = bool(
+        row.get("context_completed")
+        or row.get("contextCompleted")
+        or official_context
+        or (verified and _is_official_href(source_href) and len(raw_excerpt) >= 360 and not weak_listing)
+    )
+    if context_completed and not official_context and verified and _is_official_href(source_href) and len(raw_excerpt) >= 360 and not weak_listing:
+        official_context = _short(raw_excerpt, 2400)
     return {
         "id": _text(row.get("id")) or f"ricerca_{index}",
         "kind": kind,
         "title": title,
         "subtitle": excerpt,
         "sourceExcerpt": excerpt,
+        "officialContext": official_context,
+        "contextSummary": context_summary,
+        "keyPoints": [item for item in _list(row.get("key_points") or row.get("keyPoints")) if _text(item)],
+        "operationalChecks": [
+            item for item in _list(row.get("operational_checks") or row.get("operationalChecks")) if _text(item)
+        ],
+        "contextCompleted": context_completed,
         "sourceLabel": source_label,
         "sourceKind": "fonte ufficiale" if verified else "fonte da verificare",
         "sourceHref": source_href,
         "date": _text(row.get("published_at") or row.get("publication_date") or row.get("date") or row.get("created_at")),
-        "area": matter,
-        "branch": kind,
+        "area": area,
+        "branch": branch or kind,
         "approvalLabel": "verificata" if verified else "da verificare",
         "approvalTone": "success" if verified else "warning",
         "legacyHref": "/ricerca-legale",
@@ -591,7 +1254,7 @@ def _safe_public_source_record(source: Any, index: int) -> dict[str, Any]:
     source_href = _safe_href(_value(source, "url"))
     source_name = _text(_value(source, "source_name")) or _source_label_from_url(source_href)
     official = bool(_value(source, "official") or _is_official_href(source_href))
-    excerpt = _short(_value(source, "excerpt"), 560)
+    excerpt = _short(_value(source, "excerpt"), 1400)
     kind = _search_type_label(_value(source, "source_type"))
     return {
         "id": _text(_value(source, "id")) or f"fonte_ufficiale_{index}",
@@ -609,6 +1272,12 @@ def _safe_public_source_record(source: Any, index: int) -> dict[str, Any]:
         "approvalTone": "success" if official else "warning",
         "legacyHref": "/ricerca-legale",
         "evidenceType": "estratto fonte" if excerpt else "riferimento fonte",
+        "contextCompleted": False,
+        "contextSummary": _short(excerpt, 520),
+        "keyPoints": [f"Contesto ricavato: {_short(excerpt, 300)}"] if excerpt else [],
+        "operationalChecks": [
+            "Controlla pertinenza, decorrenza e testo ufficiale prima di usare il riferimento nel fascicolo.",
+        ] if excerpt else [],
     }
 
 
@@ -635,6 +1304,12 @@ def _safe_official_archive_record(row: Mapping[str, Any], index: int, *, archive
         "registryNumber": chunk_label,
         "legacyHref": "/ricerca-legale",
         "evidenceType": "estratto fonte ufficiale" if excerpt else "riferimento fonte ufficiale",
+        "contextCompleted": bool(excerpt),
+        "contextSummary": excerpt,
+        "keyPoints": [f"Estratto ufficiale: {excerpt}"] if excerpt else [],
+        "operationalChecks": [
+            "Verifica testo vigente, decorrenza e collegamenti prima dell'uso professionale.",
+        ] if excerpt else [],
     }
 
 
@@ -646,7 +1321,11 @@ def _search_repository_records(pipeline: Any, warnings: list[dict[str, str]], se
     except Exception:
         warnings.append(_warning("ricerca_archivio_non_disponibile", "Archivio giuridico non disponibile per questa ricerca."))
         return []
-    return [_safe_search_record(row, index) for index, row in enumerate(rows, start=1) if isinstance(row, Mapping)]
+    return [
+        _safe_search_record(row, index, search_query=search_query)
+        for index, row in enumerate(rows, start=1)
+        if isinstance(row, Mapping)
+    ]
 
 
 def _official_archive_records(warnings: list[dict[str, str]], search_query: str) -> list[dict[str, Any]]:
@@ -684,16 +1363,50 @@ def _official_archive_counts(warnings: list[dict[str, str]]) -> dict[str, Any]:
         return {}
 
 
+def _is_weak_source_context(record: Mapping[str, Any], search_query: str) -> bool:
+    if not search_query:
+        return False
+    excerpt = _record_excerpt(record)
+    title = _text(record.get("title"))
+    lower_excerpt = excerpt.lower()
+    exact_reference = _looks_like_exact_legal_reference(search_query) or _looks_like_exact_legal_reference(title)
+    source_kind = _text(record.get("sourceKind")).lower()
+    source_href = _text(record.get("sourceHref"))
+    official = "ufficiale" in source_kind or _is_official_href(source_href)
+
+    if "leggi la notizia" in lower_excerpt or _is_generic_news_content(excerpt):
+        return True
+    if exact_reference and not official:
+        return True
+    if exact_reference and len(excerpt) < 260:
+        return True
+    if exact_reference and title and excerpt.strip().lower() == title.strip().lower():
+        return True
+    if official and "contenuto interno" in source_kind:
+        return True
+    return False
+
+
 def _needs_public_fallback(records: list[dict[str, Any]], search_query: str) -> bool:
     if not search_query:
         return False
-    official_context = [
+    relevant_records = [
         record
         for record in records
-        if "ufficiale" in _text(record.get("sourceKind")).lower()
-        and len(_text(record.get("subtitle"))) >= 80
+        if not _looks_like_exact_legal_reference(search_query)
+        or _record_relevant_for_exact_reference(record, search_query)
     ]
-    return len(official_context) < 2
+    if any(_is_weak_source_context(record, search_query) for record in relevant_records):
+        return True
+    exact_reference = _looks_like_exact_legal_reference(search_query)
+    official_context = [
+        record
+        for record in relevant_records
+        if "ufficiale" in _text(record.get("sourceKind")).lower()
+        and len(_record_excerpt(record)) >= (180 if exact_reference else 80)
+    ]
+    required_sources = 1 if exact_reference else 2
+    return len(official_context) < required_sources
 
 
 def _public_search_records(search_query: str, warnings: list[dict[str, str]]) -> tuple[list[dict[str, Any]], bool]:
@@ -722,6 +1435,34 @@ def _public_search_records(search_query: str, warnings: list[dict[str, str]]) ->
     return records, True
 
 
+def _filter_resolved_search_warnings(
+    warnings: Iterable[Mapping[str, Any]],
+    records: Iterable[Mapping[str, Any]],
+) -> list[dict[str, str]]:
+    has_verified_context = any(
+        bool(record.get("contextCompleted"))
+        and (
+            "ufficiale" in _text(record.get("sourceKind")).lower()
+            or _is_official_href(record.get("sourceHref"))
+        )
+        and (_text(record.get("officialContext")) or _text(record.get("contextSummary")))
+        for record in records
+    )
+    if not has_verified_context:
+        return [dict(warning) for warning in warnings if isinstance(warning, Mapping)]
+
+    filtered: list[dict[str, str]] = []
+    for warning in warnings:
+        if not isinstance(warning, Mapping):
+            continue
+        code = _text(warning.get("code"))
+        message = _text(warning.get("message"))
+        if code == "ricerca_ufficiale_avviso" and "nessuna evidenza pubblica" in message.lower():
+            continue
+        filtered.append(dict(warning))
+    return filtered
+
+
 def _source_items(snapshot: Mapping[str, Any], update_snapshot: Mapping[str, Any]) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     for index, row in enumerate(_list(snapshot.get("source_rows")), start=1):
@@ -740,20 +1481,22 @@ def _source_items(snapshot: Mapping[str, Any], update_snapshot: Mapping[str, Any
 
 
 def _official_archive_items(normattiva_counts: Mapping[str, Any], gazzetta_counts: Mapping[str, Any]) -> list[dict[str, Any]]:
+    normattiva_available = bool(normattiva_counts.get("available"))
+    gazzetta_available = bool(gazzetta_counts.get("available"))
     return [
         _item(
             "normattiva_locale",
             "Normattiva",
             int(normattiva_counts.get("documents") or 0),
-            f"{int(normattiva_counts.get('articles') or 0)} articoli indicizzati",
-            "success" if normattiva_counts.get("available") else "neutral",
+            f"{int(normattiva_counts.get('articles') or 0)} articoli indicizzati" if normattiva_available else "Archivio ufficiale non importato nel volume locale",
+            "success" if normattiva_available else "warning",
         ),
         _item(
             "gazzetta_locale",
             "Gazzetta Ufficiale",
             int(gazzetta_counts.get("documents") or 0),
-            f"{int(gazzetta_counts.get('chunks') or 0)} estratti indicizzati",
-            "success" if gazzetta_counts.get("available") else "neutral",
+            f"{int(gazzetta_counts.get('chunks') or 0)} estratti indicizzati" if gazzetta_available else "Archivio ufficiale non importato nel volume locale",
+            "success" if gazzetta_available else "warning",
         ),
     ]
 
@@ -842,10 +1585,13 @@ def build_react_legal_intelligence_payload(
     official_counts = _official_archive_counts(warnings)
     normattiva_counts = _dict(official_counts.get("normattiva"))
     gazzetta_counts = _dict(official_counts.get("gazzetta"))
+    normattiva_available = bool(normattiva_counts.get("available"))
+    gazzetta_available = bool(gazzetta_counts.get("available"))
     search_query = _search_query(query)
     search_records: list[dict[str, Any]] = []
     official_archive_records: list[dict[str, Any]] = []
     official_search_attempted = False
+    official_context_attempted = False
 
     if page == "news":
         records = news_records
@@ -862,15 +1608,23 @@ def build_react_legal_intelligence_payload(
         search_records = _search_repository_records(pipeline, warnings, search_query)
         official_archive_records = _official_archive_records(warnings, search_query)
         combined_search = _dedupe_records(search_records + official_archive_records + local_matches)
+        combined_search = _sort_records_for_query(combined_search, search_query)
         if _needs_public_fallback(combined_search, search_query):
             public_records, official_search_attempted = _public_search_records(search_query, warnings)
             combined_search = _dedupe_records(combined_search + public_records, limit=24)
+            combined_search = _sort_records_for_query(combined_search, search_query)
+        if search_query:
+            combined_search, official_context_attempted = _complete_records_context_from_official_sources(
+                combined_search,
+                search_query,
+            )
+            combined_search = _sort_records_for_query(combined_search, search_query)
         records = combined_search if search_query else _dedupe_records(news_records + mediazione_official_records + mediazione_records)
         if search_query and not records:
             warnings.append(
                 _warning(
                     "nessun_risultato_ricerca",
-                    "Nessuna fonte trovata con questa ricerca. Prova con parole piu' specifiche o apri gli archivi collegati.",
+                    "Nessuna fonte trovata con questa ricerca. Prova con parole più specifiche o apri gli archivi collegati.",
                 )
             )
         legacy_contract = "artifacts/react-migration/legacy-contracts/ricerca-legale.json"
@@ -879,6 +1633,7 @@ def build_react_legal_intelligence_payload(
         legacy_contract = "artifacts/react-migration/legacy-contracts/legal-intelligence.json"
 
     records = [_enrich_record_context(record) for record in records]
+    warnings = _filter_resolved_search_warnings(warnings, records)
 
     search_section = _section(
         "ricerca",
@@ -904,7 +1659,7 @@ def build_react_legal_intelligence_payload(
             "mock_fallback": False,
             "writes": "none",
             "route_owner": "react_shell",
-            "external_fetch": official_search_attempted,
+            "external_fetch": official_search_attempted or official_context_attempted,
             "ai_generation": False,
             "canonical_source": "backend_storico",
             "legacy_contract": legacy_contract,
@@ -913,8 +1668,20 @@ def build_react_legal_intelligence_payload(
             _metric("fonti_monitorate", "Fonti monitorate", int(headline.get("fonti_monitorate") or update_headline.get("sources") or 0), "Archivio e monitor governato", "primary"),
             _metric("news_pubblicate", "News pubblicate", int(update_headline.get("published_news") or len(news_records)), "Disponibili nello studio", "info"),
             _metric("review", "In revisione", int(update_headline.get("review_pending") or headline.get("tabelle_da_validare") or 0), "Percorso governato", "warning"),
-            _metric("normattiva", "Normattiva", int(normattiva_counts.get("documents") or 0), f"{int(normattiva_counts.get('articles') or 0)} articoli, {int(normattiva_counts.get('chunks') or 0)} estratti", "success" if normattiva_counts.get("available") else "neutral"),
-            _metric("gazzetta", "Gazzetta", int(gazzetta_counts.get("documents") or 0), f"{int(gazzetta_counts.get('chunks') or 0)} estratti indicizzati", "success" if gazzetta_counts.get("available") else "neutral"),
+            _metric(
+                "normattiva",
+                "Normattiva",
+                int(normattiva_counts.get("documents") or 0),
+                f"{int(normattiva_counts.get('articles') or 0)} articoli, {int(normattiva_counts.get('chunks') or 0)} estratti" if normattiva_available else "Archivio ufficiale non importato nel volume locale",
+                "success" if normattiva_available else "warning",
+            ),
+            _metric(
+                "gazzetta",
+                "Gazzetta",
+                int(gazzetta_counts.get("documents") or 0),
+                f"{int(gazzetta_counts.get('chunks') or 0)} estratti indicizzati" if gazzetta_available else "Archivio ufficiale non importato nel volume locale",
+                "success" if gazzetta_available else "warning",
+            ),
             _metric("mediazione", "Organismi mediazione", int(mediazione.get("total_rows") or 0), "Registro consultabile", "success" if mediazione.get("total_rows") else "neutral"),
             lex_agent_metric,
             _metric("fascicoli", "Fascicoli nel monitor", int(headline.get("fascicoli") or 0), "Informazioni studio", "neutral"),

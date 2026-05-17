@@ -1,6 +1,23 @@
 # Changelog
 
+## 2.245.9 - 2026-05-17
+
+- `/ricerca-legale` e `/giurisprudenza` diventano superfici operative: card compatte cliccabili, filtri leggibili, dettaglio in pagina e contesto ufficiale salvato in scheda invece di semplici link esterni.
+- La ricerca legale completa i record poveri leggendo fonti ufficiali e allegati pubblici riconosciuti, con timeout, allowlist dei domini istituzionali, hash degli allegati e rifiuto dei domini simili non ufficiali.
+- La ricerca su riferimenti puntuali non tratta più come contesto completo un elenco cumulativo della Gazzetta: il `D.Lgs. 13 marzo 2026, n. 39` viene estratto dal segmento corretto, pulito da `Leggi la notizia` e completato con testo ufficiale specifico.
+- Normattiva e Gazzetta locali non vengono più dichiarate “disponibili” quando il volume locale non contiene gli archivi ufficiali: la UI mostra `Archivio ufficiale non importato nel volume locale`.
+- `/ricerca-legale/mediazione` viene alleggerita: rimossi hero, metriche, Presidio Lex AI, Mappa del contesto, filtro grande, pannello di aggiornamento e pulsante `Cerca collegati`; resta un registro consultabile con ricerca compatta e fonte originale apribile.
+- La pubblicazione manuale e automatica degli aggiornamenti legali non accetta più testi generici come “aggiornamento giuridico pubblicato in fonte ufficiale” senza contesto verificato dentro IUSENTRA.
+- Aggiunto un backfill non distruttivo per correggere news e normative già contaminate da blocchi cumulativi tipo `Leggi la notizia`, preservando i raw originali e producendo piano dry-run con hash prima dell'applicazione.
+- Introdotta la pipeline Lex dataset/RAG ispirata ai video su Easy Dataset e LLaMA Factory/Ollama: chunking tenant-aware, task Q&A, export Alpaca/ShareGPT/JSON/CSV, dataset_info per LLaMA Board, revisione umana obbligatoria e compatibilità con tool esterni opzionali senza training automatico.
+- La tab `Impostazioni -> AI Locale` mostra ora il percorso dataset Lex: RAG documenti, Q&A in revisione, export Alpaca/ShareGPT, passaggio manuale LLaMA Factory/Ollama, ultimo lavoro ed errori, senza invio dati fuori dallo studio e senza addestramento automatico.
+- Il job Superadmin `lex_dataset_nightly` prepara ogni notte il dataset Lex locale da Documenti AI, scrivendo nel tenant corretto anche quando la sorgente Documenti AI è condivisa; la card `Domande in revisione` apre ora una coda operativa: correzione domanda/risposta, approvazione o scarto, evento locale e nessun training automatico.
+- `/admin/aggiornamenti-legali` e `/admin/pianificazioni` separano letture tecniche, analisi, schede pubblicate e verifiche residue, evitando falsi positivi quando un job legge documenti ma non produce schede operative.
+
 ## 2.245.8 - 2026-05-17
+
+- `/admin/aggiornamenti-legali` distingue ora in modo esplicito documenti letti, documenti analizzati, schede pubblicate, elementi da verificare e scarti; la dashboard mostra la conversione da letture a schede e non usa più "Documenti acquisiti" per materiale solo letto dalle fonti.
+- `/admin/pianificazioni` traduce gli esiti degli aggiornamenti legali senza falsi positivi: esecuzioni completate con zero pubblicazioni dichiarano "nessuna scheda pubblicata", esiti completati con errori interni diventano `Da verificare` e i `running` vecchi vengono mostrati come interrotti da controllare.
 
 - Lex AI legge correttamente dati cliente e ultime udienze dal contesto studio autorizzato: richieste come `mi dati i dati del cliente Marco Moscato` e `ultime udienze` non cadono più in risposte generiche di base documentale insufficiente.
 - Le bozze di diffida passano dal flusso redazionale, compilano dati studio/avvocato/cliente quando disponibili e non appendono più fonti agenda non pertinenti alla bozza.

@@ -34,6 +34,19 @@ pnpm build:storybook
 root, ma invocano gli script pnpm dichiarati nel workspace. CI e Docker devono
 quindi abilitare Corepack prima dell'installazione.
 
+## Prova Railway prima di Hetzner
+
+Per questa fase Railway può essere usato come ambiente di prova della foundation
+monorepo, senza promuovere subito il branch su Hetzner:
+
+1. Il servizio Railway continua a usare `railway.toml` con builder Dockerfile.
+2. Il Dockerfile abilita pnpm nello stage `frontend-builder` e compila
+   `@iusentra/studio` con `pnpm --filter @iusentra/studio build:vite`.
+3. La prova è accettabile solo se `/api/pronto` risponde correttamente e il
+   bundle React viene servito da `web/static/react`.
+4. Hetzner resta l'ambiente di produzione reale: si passa a Hetzner solo dopo CI
+   verde, prova Railway riuscita e merge controllato.
+
 ## Aggiungere un package
 
 1. Creare `packages/<nome>/package.json` con `"private": true`.

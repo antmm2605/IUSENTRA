@@ -34,17 +34,18 @@ jobs:
           python-version: "3.12"
           cache: "pip"
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.2
+          run_install: false
+
       - name: Set up Node
         uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
-
-      - name: Enable pnpm
-        run: |
-          corepack enable
-          corepack prepare pnpm@11.1.2 --activate
 
       - name: Install runtime deps
         run: |
@@ -638,6 +639,13 @@ jobs:
         run: |
           echo "Chromatic non eseguito: CHROMATIC_PROJECT_TOKEN non configurato."
 
+      - name: Set up pnpm
+        if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.2
+          run_install: false
+
       - name: Set up Node
         if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
         uses: actions/setup-node@v5
@@ -645,12 +653,6 @@ jobs:
           node-version: "22"
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
-
-      - name: Enable pnpm
-        if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
-        run: |
-          corepack enable
-          corepack prepare pnpm@11.1.2 --activate
 
       - name: Install workspace
         if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}

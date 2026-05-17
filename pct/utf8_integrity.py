@@ -30,7 +30,33 @@ DEFAULT_MAX_FILES = 20000
 DEFAULT_MAX_FILE_BYTES = 50 * 1024 * 1024
 SCHEMA_VERSION = "iusentra.utf8_integrity.v1"
 
-_TARGET_CHARS = "àèéìòùÀÈÉÌÒÙ—–€’‘“”…•"
+def _chars(*codes: int) -> str:
+    return "".join(chr(code) for code in codes)
+
+
+_TARGET_CHARS = _chars(
+    0x00E0,
+    0x00E8,
+    0x00E9,
+    0x00EC,
+    0x00F2,
+    0x00F9,
+    0x00C0,
+    0x00C8,
+    0x00C9,
+    0x00CC,
+    0x00D2,
+    0x00D9,
+    0x2014,
+    0x2013,
+    0x20AC,
+    0x2019,
+    0x2018,
+    0x201C,
+    0x201D,
+    0x2026,
+    0x2022,
+)
 _COMMON_BAD_TO_GOOD: dict[str, str] = {}
 for _target in _TARGET_CHARS:
     raw = _target.encode("utf-8")
@@ -44,16 +70,16 @@ for _target in _TARGET_CHARS:
 
 _COMMON_BAD_TO_GOOD.update(
     {
-        "â€“": "–",
-        "â€”": "—",
-        "â€˜": "‘",
-        "â€™": "’",
-        "â€œ": "“",
-        "â€�": "”",
-        "â€\ufffd": "”",
-        "â€¦": "…",
-        "â€¢": "•",
-        "â‚¬": "€",
+        _chars(0x00E2, 0x20AC, 0x201C): _chars(0x2013),
+        _chars(0x00E2, 0x20AC, 0x201D): _chars(0x2014),
+        _chars(0x00E2, 0x20AC, 0x02DC): _chars(0x2018),
+        _chars(0x00E2, 0x20AC, 0x2122): _chars(0x2019),
+        _chars(0x00E2, 0x20AC, 0x0153): _chars(0x201C),
+        _chars(0x00E2, 0x20AC, 0xFFFD): _chars(0x201D),
+        _chars(0x00E2, 0x20AC) + "\ufffd": _chars(0x201D),
+        _chars(0x00E2, 0x20AC, 0x00A6): _chars(0x2026),
+        _chars(0x00E2, 0x20AC, 0x00A2): _chars(0x2022),
+        _chars(0x00E2, 0x201A, 0x00AC): _chars(0x20AC),
     }
 )
 
@@ -149,7 +175,7 @@ def _repair_replacement_chars(text: str, *, drop_unresolved: bool) -> str:
 def repair_text_encoding(text: str, *, drop_unresolved: bool = False) -> str:
     """Restituisce il miglior testo UTF-8 recuperabile.
 
-    Corregge sia sequenze tipo ``piÃ¹``/``perchĂ©`` sia casi frequenti con
+    Corregge sia sequenze UTF-8 decodificate con encoding errato sia casi frequenti con
     carattere sostitutivo. Quando ``drop_unresolved`` e' vero, eventuali
     sostitutivi non recuperabili vengono rimossi per non arrivare in UI.
     """

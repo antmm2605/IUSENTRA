@@ -17,6 +17,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--source-code", default="")
     parser.add_argument("--publish-only", action="store_true")
     parser.add_argument("--publish-limit", type=int, default=1)
+    parser.add_argument("--backfill-web-evidence", action="store_true")
+    parser.add_argument("--backfill-limit", type=int, default=100)
     parser.add_argument("--no-auto-publish", action="store_true")
     parser.add_argument("--local-ai-url", default="")
     parser.add_argument("--local-ai-model", default="mistral")
@@ -36,7 +38,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         mirror_giurisprudenza_json_enabled=bool(args.mirror_giurisprudenza_json),
     )
 
-    if args.publish_only:
+    if args.backfill_web_evidence:
+        source_codes = [str(args.source_code or "").strip()] if str(args.source_code or "").strip() else None
+        backfill = pipeline.backfill_web_verification_evidence(
+            limit=max(1, int(args.backfill_limit or 1)),
+            source_codes=source_codes,
+        )
+        payload = {
+            "ok": True,
+            "mode": "backfill_web_evidence",
+            "backfill": backfill,
+            "dashboard": backfill.get("dashboard") or pipeline.dashboard_snapshot(),
+        }
+    elif args.publish_only:
         published = pipeline.publish_auto_news(limit=max(1, int(args.publish_limit or 1)))
         payload = {
             "ok": True,

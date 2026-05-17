@@ -969,7 +969,40 @@ def verify_legal_update_against_public_sources(
 
     self_match = _self_confirmation(review, source)
     if self_match:
+        source_url = _clean_spaces(review.get("source_url"))
+        try:
+            direct_context, direct_attachments = _fetch_official_web_context_with_attachments(source_url)
+        except Exception as exc:
+            direct_context = ""
+            direct_attachments = []
+            warnings.append(f"Lettura diretta fonte ufficiale non completata: {_truncate(exc, 140)}")
+        if direct_context:
+            self_match["excerpt"] = _context_excerpt({"full_context": direct_context}, review, limit=420)
+            self_match["content"] = _truncate(direct_context, 12000)
+            self_match["context_chars"] = len(_clean_spaces(direct_context))
+            self_match["matched_terms"] = _matched_terms(
+                {
+                    "title": self_match.get("title"),
+                    "content": direct_context,
+                    "url": source_url,
+                    "source_name": self_match.get("source_name"),
+                },
+                review,
+            )
         confirmations.append(self_match)
+        for attachment_confirmation in direct_attachments:
+            enriched_attachment = dict(attachment_confirmation)
+            enriched_attachment["query"] = _truncate(query, 220)
+            enriched_attachment["matched_terms"] = _matched_terms(
+                {
+                    "title": enriched_attachment.get("title"),
+                    "content": enriched_attachment.get("text_excerpt"),
+                    "url": enriched_attachment.get("attachment_url"),
+                    "source_name": enriched_attachment.get("source_name"),
+                },
+                review,
+            )
+            confirmations.append(enriched_attachment)
 
     web_results_seen = 0
     seen_web_urls: set[str] = set()

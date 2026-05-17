@@ -2093,3 +2093,13 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | Hetzner `docker builder prune --all --force`; `docker system df`; `df -h /`; pulizia `/opt/iusentra/tmp-backup-snapshot` e backup/quarantene legacy | OK | Cache build Docker azzerata (`Build Cache 0B`); disco produzione sceso da circa 233 GiB iniziali a circa 41 GiB usati su 301 GiB dopo pulizia cache, posta scaricata, snapshot temporaneo e backup legacy. |
 | `python3 /tmp/purge_downloaded_mailboxes.py --data-root /opt/iusentra/data --apply` su Hetzner | OK | Recuperati 36.7 GiB cancellando solo PEC/email ordinaria scaricate, allegati e stati di risincronizzazione; configurazioni casella preservate. |
 | `python scripts\purge_downloaded_mailboxes.py --data-root data --apply` locale | OK | Recuperati 30.1 GiB localmente con la stessa procedura governata; non sono stati toccati i file configurazione studio. |
+
+# Aggiornamenti legali evidenze web 2.245.12 - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\legal_update_web_verification.py pct\legal_update_pipeline.py pct\legal_update_repository.py pct\legal_update_job.py pct\legal_update_batch_runner.py tests\test_legal_update_publish_context.py` | OK | Sintassi confermata dopo salvataggio evidenze in acquisizione e backfill web evidence. |
+| `python -m pytest -q tests\test_legal_update_publish_context.py tests\test_legal_update_web_verification_attachments.py tests\test_legal_update_batch_runner.py` | OK | 22 test passati: evidenza salvata durante `process_document`, backfill review esistenti, allegati fonte ufficiale e runner con metriche. |
+| `python -m ruff check pct\legal_update_web_verification.py pct\legal_update_pipeline.py pct\legal_update_repository.py pct\legal_update_job.py pct\legal_update_batch_runner.py tests\test_legal_update_publish_context.py` | OK | Ruff verde sul perimetro backend aggiornamenti legali. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py` | OK | Packaging sincronizzato e readiness 8/8 dopo bump `2.245.12`. |
+| `scan_utf8_integrity` su `CHANGELOG.md`, `docs/LEX_PUBLIC_SOURCES_AND_STUDIO_DATA_AUDIT.md`, `artifacts/react-migration/pytest-confirmed-ok.md` | OK | UTF-8 valido, nessun mojibake o carattere sostitutivo nei testi toccati. |

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.245.12 - 2026-05-17
+
+- Gli aggiornamenti legali salvano evidenze web gia' durante l'acquisizione del documento, senza aspettare che il record entri nella pubblicazione automatica.
+- La verifica diretta della fonte ufficiale legge la pagina originaria e gli allegati pubblici collegati prima di avviare ricerche estese, cosi' URL, testo, PDF/hash e diagnosi finiscono subito in `web_verification_evidence`.
+- Aggiunto il backfill governato `python -m pct.legal_update_job --backfill-web-evidence` per popolare le evidenze mancanti sui record gia' presenti in archivio e renderle interrogabili da Lex/Ricerca Legale.
+
 ## 2.245.11 - 2026-05-17
 
 - Esteso il catalogo Lex con Corte dei Conti come fonte ufficiale di classe primaria, includendo portale, sentenze, delibere e banca dati pubblica per responsabilità erariale, giudizi contabili e profili pubblicistici.

@@ -242,6 +242,173 @@ def test_publish_auto_news_salva_evidenze_web_e_le_rende_ricercabili(tmp_path: P
     assert pipeline.repository.get_review_item(int(review["id"]))["status"] == "published"
 
 
+def test_process_document_salva_evidenza_web_durante_acquisizione(tmp_path: Path, monkeypatch):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+    source = pipeline.repository.get_source_by_code("garante_privacy")
+    assert source is not None
+
+    monkeypatch.setattr(
+        "pct.legal_update_pipeline.analyze_document",
+        lambda normalized, source, **kwargs: {
+            "classification_type": "COMMENTO",
+            "confidence_score": 0.54,
+            "impact_level": "medio",
+            "summary_short": "Provvedimento privacy su diritti degli utenti.",
+            "summary_long": "Provvedimento privacy su diritti degli utenti.",
+            "what_changes": "",
+            "extracted_entities_json": {},
+            "proposed_action": "NEWS_ONLY",
+            "target_entity_type": "",
+            "target_entity_id": None,
+        },
+    )
+    monkeypatch.setattr(
+        "pct.legal_update_pipeline.verify_legal_update_against_public_sources",
+        lambda review, source, **kwargs: {
+            "ok": True,
+            "reason": "Verifica pubblica completata.",
+            "confirmation_count": 1,
+            "official_confirmations": 1,
+            "confirmations": [
+                {
+                    "origin": "fonte_acquisita",
+                    "source_name": "Garante Privacy",
+                    "title": "Provvedimento privacy 2026",
+                    "url": "https://www.garanteprivacy.it/provvedimento-privacy-2026",
+                    "official": True,
+                    "excerpt": "Provvedimento privacy su diritti degli utenti e obblighi informativi.",
+                    "content": "Provvedimento privacy su diritti degli utenti e obblighi informativi.",
+                    "context_chars": 72,
+                    "matched_terms": ["privacy", "utenti"],
+                    "query": "Provvedimento privacy 2026",
+                }
+            ],
+            "searched": {"web_results": 1},
+        },
+    )
+
+    result = pipeline.process_document(
+        source,
+        {
+            "external_id": "garante-privacy-2026",
+            "source_url": "https://www.garanteprivacy.it/provvedimento-privacy-2026",
+            "title": "Provvedimento privacy 2026",
+            "published_at": "2026-05-17",
+            "raw_html": "",
+            "raw_text": "Provvedimento privacy su diritti degli utenti e obblighi informativi.",
+            "content_hash": "hash-garante-privacy-2026",
+            "fetch_status": "fetched",
+            "http_status": 200,
+        },
+    )
+
+    with pipeline.repository._connect() as conn:
+        evidence_count = int(conn.execute("SELECT COUNT(*) FROM web_verification_evidence").fetchone()[0])
+
+    results = pipeline.repository.search_lex_sources("privacy utenti obblighi informativi", limit=5)
+
+    assert result["verification_evidence"]["attempted"] == 1
+    assert result["verification_evidence"]["saved"] == 1
+    assert evidence_count == 1
+    assert pipeline.repository.get_review_item(int(result["review"]["id"]))["status"] == "pending"
+    assert any(row["entity_type"] == "web_evidence" for row in results)
+
+
+def test_backfill_web_verification_evidence_popola_review_esistenti(tmp_path: Path, monkeypatch):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+    source = pipeline.repository.get_source_by_code("agcom_provvedimenti")
+    assert source is not None
+    raw = pipeline.repository.save_raw_document(
+        {
+            "source_id": source["id"],
+            "external_id": "agcom-backfill-2026",
+            "source_url": "https://www.agcom.it/provvedimenti/backfill-2026",
+            "title": "Provvedimento AGCOM backfill 2026",
+            "published_at": "2026-05-17",
+            "raw_html": "",
+            "raw_text": "Provvedimento AGCOM da completare con prova web.",
+            "content_hash": "hash-agcom-backfill-2026",
+            "fetch_status": "fetched",
+            "http_status": 200,
+        }
+    )
+    normalized = pipeline.repository.save_normalized_document(
+        int(raw["id"]),
+        {
+            "title": "Provvedimento AGCOM backfill 2026",
+            "body_text": "Provvedimento AGCOM da completare con prova web.",
+            "body_short": "Provvedimento AGCOM da completare con prova web.",
+            "language": "it",
+            "issuer": "AGCOM",
+            "document_date": "2026-05-17",
+            "document_type_guess": "provvedimento",
+            "attachments_json": [],
+        },
+    )
+    analysis = pipeline.repository.save_analysis(
+        int(normalized["id"]),
+        {
+            "classification_type": "COMMENTO",
+            "confidence_score": 0.52,
+            "impact_level": "medio",
+            "summary_short": "Provvedimento AGCOM da completare.",
+            "summary_long": "Provvedimento AGCOM da completare.",
+            "what_changes": "",
+            "extracted_entities_json": {},
+            "proposed_action": "NEWS_ONLY",
+            "target_entity_type": "",
+            "target_entity_id": None,
+        },
+    )
+    pipeline.repository.upsert_review_item(
+        {
+            "normalized_document_id": int(normalized["id"]),
+            "analysis_id": int(analysis["id"]),
+            "proposal_type": "commento",
+            "proposed_action": "NEWS_ONLY",
+            "target_entity_type": "",
+            "target_entity_id": None,
+            "proposal_payload_json": {},
+            "status": "pending",
+            "priority": 80,
+        }
+    )
+    monkeypatch.setattr(
+        "pct.legal_update_pipeline.verify_legal_update_against_public_sources",
+        lambda review, source, **kwargs: {
+            "ok": True,
+            "reason": "Verifica pubblica completata.",
+            "confirmation_count": 1,
+            "official_confirmations": 1,
+            "confirmations": [
+                {
+                    "origin": "fonte_acquisita",
+                    "source_name": "AGCOM",
+                    "title": "Provvedimento AGCOM backfill 2026",
+                    "url": "https://www.agcom.it/provvedimenti/backfill-2026",
+                    "official": True,
+                    "excerpt": "Provvedimento AGCOM con prova web salvata.",
+                    "content": "Provvedimento AGCOM con prova web salvata.",
+                    "context_chars": 44,
+                    "matched_terms": ["agcom", "backfill"],
+                    "query": "Provvedimento AGCOM backfill 2026",
+                }
+            ],
+            "searched": {"web_results": 1},
+        },
+    )
+
+    report = pipeline.backfill_web_verification_evidence(limit=5)
+
+    with pipeline.repository._connect() as conn:
+        evidence_count = int(conn.execute("SELECT COUNT(*) FROM web_verification_evidence").fetchone()[0])
+
+    assert report["checked"] == 1
+    assert report["web_verification_attempts"] == 1
+    assert report["verification_evidence_saved"] == 1
+    assert evidence_count == 1
+
+
 def test_publish_auto_news_salva_diagnosi_quando_web_non_trova_conferme(tmp_path: Path, monkeypatch):
     pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
     source = pipeline.repository.get_source_by_code("agcom_provvedimenti")

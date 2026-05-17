@@ -4,6 +4,22 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.245.12 - 2026-05-17
+
+Le evidenze web non dipendono piu' dalla sola coda di pubblicazione: ogni
+documento nuovo o modificato da fonte governata registra subito una verifica
+fonte con URL, testo letto, eventuali allegati ufficiali, hash e stato della
+prova in `web_verification_evidence`.
+
+La verifica parte dalla pagina originaria gia' acquisita, legge il contesto
+ufficiale e gli allegati collegati, poi usa archivi ufficiali e ricerca web
+governata come confronto. In questo modo la metrica delle evidenze misura
+prove archiviate, non solo schede pubblicate.
+
+E' disponibile il backfill operativo
+`python -m pct.legal_update_job --backfill-web-evidence` per recuperare record
+gia' normalizzati ma privi di prova web salvata.
+
 ## Aggiornamento operativo 2.245.11 - 2026-05-17
 
 Sono state aggiunte e classificate le fonti richieste nella verifica manuale:

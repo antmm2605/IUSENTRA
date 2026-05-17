@@ -1589,6 +1589,54 @@ class LegalUpdateRepository:
             ).fetchall()
         return [self._decode_row(row, json_fields=("proposal_payload_json",)) or {} for row in rows]
 
+    def list_reviews_missing_web_evidence(
+        self,
+        *,
+        limit: int = 100,
+        source_codes: tuple[str, ...] = (),
+    ) -> list[dict[str, Any]]:
+        clauses = [
+            "q.status <> 'rejected'",
+            "r.source_url <> ''",
+            """
+            NOT EXISTS (
+                SELECT 1
+                FROM web_verification_evidence e
+                WHERE e.normalized_document_id = q.normalized_document_id
+            )
+            """,
+        ]
+        params: list[Any] = []
+        if source_codes:
+            clauses.append("s.code IN ({})".format(",".join("?" for _ in source_codes)))
+            params.extend(_normalize_token(code) for code in source_codes)
+        params.append(int(limit))
+        with self._connect() as conn:
+            rows = conn.execute(
+                f"""
+                SELECT q.id
+                FROM review_queue q
+                JOIN ai_documents_analysis a ON a.id = q.analysis_id
+                JOIN source_documents_normalized n ON n.id = q.normalized_document_id
+                JOIN source_documents_raw r ON r.id = n.raw_document_id
+                JOIN sources s ON s.id = r.source_id
+                WHERE {' AND '.join(clauses)}
+                ORDER BY
+                    CASE WHEN q.status IN ('approved', 'pending') THEN 0 ELSE 1 END,
+                    q.priority DESC,
+                    q.updated_at DESC,
+                    q.id DESC
+                LIMIT ?
+                """,
+                tuple(params),
+            ).fetchall()
+        reviews: list[dict[str, Any]] = []
+        for row in rows:
+            item = self.get_review_item(int(row["id"]))
+            if item:
+                reviews.append(item)
+        return reviews
+
     def get_review_item(self, review_id: int) -> dict[str, Any] | None:
         with self._connect() as conn:
             row = conn.execute(

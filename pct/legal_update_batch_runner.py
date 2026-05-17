@@ -55,9 +55,9 @@ def _extract_source_report(result: dict[str, Any]) -> dict[str, Any]:
         skipped_unchanged += int(row.get("skipped_unchanged") or 0)
     autopublished = report.get("autopublished") or {}
     publish_reports = list(autopublished.get("reports") or [])
-    verification_evidence_saved = 0
-    verification_attachments_saved = 0
-    web_verification_attempts = 0
+    verification_evidence_saved = int(report.get("verification_evidence_saved") or 0)
+    verification_attachments_saved = int(report.get("verification_attachments_saved") or 0)
+    web_verification_attempts = int(report.get("web_verification_attempts") or 0)
     for publish_result in publish_reports:
         published_payload = publish_result.get("payload") if isinstance(publish_result, dict) else {}
         published = published_payload.get("published") if isinstance(published_payload, dict) else {}

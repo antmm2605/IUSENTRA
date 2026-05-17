@@ -304,28 +304,35 @@ def _lex_excerpt(*values: Any, limit: int = 520) -> str:
     return text[: limit - 3].rstrip() + "..."
 
 
-def _lex_candidate_score(row: dict[str, Any], terms: list[str]) -> float:
+def _lex_candidate_score(row: dict[str, Any], terms: list[str], *, query: str = "") -> float:
     base = float(row.get("_base_score") or 0.62)
     if not terms:
         return round(base, 4)
-    haystack = _normalize_token(
-        " ".join(
-            str(row.get(field) or "")
-            for field in (
-                "title",
-                "excerpt",
-                "content",
-                "authority",
-                "matter_name",
-                "submatter_name",
-                "entity_type",
-            )
-        )
+    title_haystack = _normalize_token(
+        " ".join(str(row.get(field) or "") for field in ("title", "official_url", "attachment_url", "source_base_url"))
     )
+    body_haystack = _normalize_token(
+        " ".join(str(row.get(field) or "") for field in ("excerpt", "content", "authority", "matter_name", "submatter_name", "entity_type"))
+    )
+    haystack = f"{title_haystack} {body_haystack}".strip()
     matches = sum(1 for term in terms if term in haystack)
     if matches <= 0:
         return round(max(0.2, base - 0.18), 4)
-    return round(min(0.98, base + (matches * 0.07)), 4)
+    title_matches = sum(1 for term in terms if term in title_haystack)
+    numeric_matches = sum(1 for term in terms if term.isdigit() and term in title_haystack)
+    query_phrase = _normalize_token(query)
+    score = base + (matches * 0.04) + (title_matches * 0.08) + (numeric_matches * 0.12)
+    if query_phrase and query_phrase in title_haystack:
+        score += 0.45
+    elif terms and all(term in title_haystack for term in terms):
+        score += 0.28
+    elif title_matches >= max(2, len(terms) - 1):
+        score += 0.14
+    if _normalize_token(row.get("entity_type")) == "web_evidence":
+        score += 0.05
+    if _normalize_token(row.get("verification_status")) == "verified":
+        score += 0.03
+    return round(min(2.0, score), 4)
 
 
 def _search_clause(fields: tuple[str, ...], terms: list[str], params: list[Any]) -> str:
@@ -2506,7 +2513,7 @@ class LegalUpdateRepository:
         )
         return rows
 
-    def _lex_evidence_payload(self, row: dict[str, Any], terms: list[str]) -> dict[str, Any]:
+    def _lex_evidence_payload(self, row: dict[str, Any], terms: list[str], *, query: str = "") -> dict[str, Any]:
         entity_type = _normalize_token(row.get("entity_type"))
         entity_id = _clean_spaces(row.get("entity_id"))
         source_type = _normalize_token(row.get("source_type") or "legal_updates")
@@ -2525,7 +2532,7 @@ class LegalUpdateRepository:
             "title": _first_text(row.get("title"), authority, "Aggiornamento legale"),
             "excerpt": excerpt or content,
             "content": content or excerpt,
-            "score": _lex_candidate_score(row, terms),
+            "score": _lex_candidate_score(row, terms, query=query),
             "authority": authority,
             "official_url": official_url,
             "published_at": _first_text(row.get("published_at"), row.get("created_at")),
@@ -2573,13 +2580,13 @@ class LegalUpdateRepository:
 
     def search_lex_sources(self, query: str, *, limit: int = 12) -> list[dict[str, Any]]:
         result_limit = _limit_value(limit, default=12, maximum=80)
-        candidate_limit = max(result_limit * 6, 40)
+        candidate_limit = max(result_limit * 12, 160)
         terms = _lex_search_terms(query)
         with self._connect() as conn:
             candidates = self._lex_sql_candidates(conn, terms=terms, limit=candidate_limit)
             if terms and not candidates:
                 candidates = self._lex_sql_candidates(conn, terms=[], limit=candidate_limit)
-        payloads = [self._lex_evidence_payload(row, terms) for row in candidates]
+        payloads = [self._lex_evidence_payload(row, terms, query=query) for row in candidates]
         payloads.sort(
             key=lambda row: (
                 float(row.get("score") or 0.0),

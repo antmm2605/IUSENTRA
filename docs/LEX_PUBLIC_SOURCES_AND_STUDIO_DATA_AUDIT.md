@@ -4,6 +4,19 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.245.14 - 2026-05-17
+
+La ricerca Lex sulle evidenze web non ordina più soltanto per freschezza o
+numero di termini comuni. Il ranking assegna peso maggiore a titolo, URL,
+allegato, numeri identificativi e frase esatta, così una ricerca puntuale come
+`Messaggio numero 685 del 26-02-2026` deve riportare prima l'evidenza
+verificata corrispondente e non un risultato INPS più recente ma generico.
+
+Il bacino SQL dei candidati viene ampliato prima del ranking: questo evita che
+un'evidenza esatta ma meno recente venga scartata troppo presto quando molte
+fonti condividono parole comuni come `circolare`, `messaggio`, `numero` o
+`2026`.
+
 ## Aggiornamento operativo 2.245.13 - 2026-05-17
 
 Il recupero evidenze web è stato ristretto al perimetro che serve davvero allo

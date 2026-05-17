@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.245.14 - 2026-05-17
+
+- La ricerca Lex sulle evidenze web premia titolo, URL, allegato, numeri e frase esatta, così una query puntuale come Messaggio numero 685 del 26-02-2026 non viene superata da circolari più recenti ma generiche.
+- Aumentato il bacino dei candidati SQL per le ricerche legali, evitando che evidenze esatte ma meno recenti restino fuori dai risultati prima del ranking.
+
 ## 2.245.13 - 2026-05-17
 
 - Il backfill delle evidenze web legali lavora per default solo sui record azionabili (pending, approved, published) ed esclude metadati chiusi/open-data, così il recupero non si perde su migliaia di righe non utili allo studio.

@@ -518,6 +518,87 @@ def test_backfill_web_verification_evidence_lavora_solo_record_azionabili(tmp_pa
     ]
 
 
+def test_search_lex_sources_premia_evidenza_web_con_titolo_esatto(tmp_path: Path):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+
+    with pipeline.repository._connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO web_verification_evidence (
+                evidence_key, review_id, normalized_document_id, source_code, source_name,
+                query, origin, title, source_url, attachment_url, attachment_type, sha256,
+                is_official, context_chars, excerpt, content_text, matched_terms_json,
+                verification_status, created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "exact-685",
+                None,
+                None,
+                "inps_messaggi",
+                "INPS - messaggi",
+                "Messaggio numero 685 del 26-02-2026",
+                "fonte_acquisita",
+                "Messaggio numero 685 del 26-02-2026",
+                "https://www.inps.it/messaggio-numero-685-del-26-02-2026.html",
+                "https://www.inps.it/messaggio-numero-685-del-26-02-2026.pdf",
+                "pdf",
+                "hash-685",
+                1,
+                400,
+                "Messaggio INPS numero 685 del 26 febbraio 2026.",
+                "Messaggio INPS numero 685 del 26 febbraio 2026.",
+                '["messaggio","685"]',
+                "verified",
+                "2026-02-26 00:00:00",
+                "2026-02-26 00:00:00",
+            ),
+        )
+        for index in range(70):
+            conn.execute(
+                """
+                INSERT INTO web_verification_evidence (
+                    evidence_key, review_id, normalized_document_id, source_code, source_name,
+                    query, origin, title, source_url, attachment_url, attachment_type, sha256,
+                    is_official, context_chars, excerpt, content_text, matched_terms_json,
+                    verification_status, created_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    f"distractor-{index}",
+                    None,
+                    None,
+                    "inps_circolari",
+                    "INPS - circolari",
+                    "Circolare numero 25 del 05-03-2026",
+                    "fonte_acquisita",
+                    f"Circolare numero {25 + index} del 05-03-2026",
+                    f"https://www.inps.it/circolare-numero-{25 + index}-del-05-03-2026.html",
+                    "",
+                    "",
+                    "",
+                    1,
+                    400,
+                    "Circolare INPS del 2026.",
+                    "Circolare INPS del 2026.",
+                    '["circolare","2026"]',
+                    "verified",
+                    "2026-05-17 00:00:00",
+                    "2026-05-17 00:00:00",
+                ),
+            )
+        conn.commit()
+
+    results = pipeline.repository.search_lex_sources("Messaggio numero 685 del 26-02-2026", limit=5)
+
+    assert results
+    assert results[0]["entity_type"] == "web_evidence"
+    assert results[0]["title"] == "Messaggio numero 685 del 26-02-2026"
+    assert results[0]["attachment_url"] == "https://www.inps.it/messaggio-numero-685-del-26-02-2026.pdf"
+
+
 def test_publish_auto_news_salva_diagnosi_quando_web_non_trova_conferme(tmp_path: Path, monkeypatch):
     pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
     source = pipeline.repository.get_source_by_code("agcom_provvedimenti")

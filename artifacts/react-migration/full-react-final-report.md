@@ -16,6 +16,9 @@ mobile 390x844 su `/impostazioni?tab=ai`, login tenant, Local Signer intercettat
 nel browser, pannello `AI su telefono e tablet`, `EmbeddingGemma 300M` e `Apri
 Lex AI` visibili, nessun overflow orizzontale e zero errori console. Gate verdi:
 typecheck, pytest mirato Impostazioni AI, contratti React e build Vite.
+Produzione Hetzner aggiornata sul commit `0b54b53d0b057b5e122eea8935075b717948fdc7`
+con readiness pubblica `2.245.7`, container app/scheduler/OCR/Redis/Ollama
+healthy, marker UI presenti nel bundle e cache build Docker finale a `0B`.
 
 Aggiornamento 2026-05-17T13:35:00+02:00: Lex AI mobile e Qwen 3.5 2.245.6.
 La shell React espone Lex AI anche su telefono e tablet: nella barra mobile

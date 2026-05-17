@@ -6,7 +6,7 @@ Data valutazione: 2026-05-17.
 
 Il video indicato dall'utente presenta Qwen 3.5 come famiglia di modelli locali piccoli e multimodali, con tag adatti anche a macchine leggere. La verifica sulla libreria Ollama conferma la disponibilita di tag `qwen3.5` con varianti `0.8b`, `2b`, `4b`, `9b` e superiori, contesto dichiarato a 256K e input testo/immagine.
 
-Per IUSENTRA la scelta professionale non e' spostare subito i fascicoli o i modelli sul telefono. La strada sicura e' usare mobile e tablet come client PWA autenticato, con Lex AI contestuale gia' collegato al backend e al runtime locale o server autorizzato. Il dispositivo mobile apre Lex, invia la richiesta autenticata e riceve la risposta governata senza creare copie non presidiate dei dati legali.
+Per IUSENTRA la scelta professionale non è spostare fascicoli o modelli sul telefono. La strada sicura è usare mobile e tablet come client PWA autenticato, con Lex AI contestuale collegato al backend e al server di produzione IUSENTRA. Il dispositivo mobile apre Lex, invia la richiesta autenticata e riceve la risposta governata senza creare copie non presidiate dei dati legali.
 
 ## Decisione di prodotto
 
@@ -18,7 +18,7 @@ Per IUSENTRA la scelta professionale non e' spostare subito i fascicoli o i mode
 ## Architettura consigliata
 
 1. Mobile immediato: PWA IUSENTRA + pulsante Lex AI nella navigazione inferiore.
-2. Runtime: modello su PC dello studio, server Hetzner autorizzato o altra macchina governata, non su telefono non controllato.
+2. Runtime: modello sul server di produzione IUSENTRA; il PC dello studio resta un runtime locale opzionale e governato, non il requisito per mobile.
 3. Contesto: route, fascicolo, posta, scadenze, documenti e ricerca legale passano dalla pipeline Lex esistente.
 4. Privacy: niente dati cliente in notifiche push, niente cache operativa nel service worker, niente download silenzioso di fascicoli sul dispositivo mobile.
 5. Evoluzione: solo dopo benchmark si puo' abilitare un micro-modello locale mobile per funzioni non sensibili, ad esempio dettatura, bozze temporanee o OCR di file scelti dall'utente.
@@ -35,7 +35,7 @@ La UI espone `Qwen 3.5 leggero` e `Qwen 3.5 avanzato` nelle impostazioni AI loca
 
 ## Aggiornamento 2.245.7
 
-`/impostazioni?tab=ai` rileva ora telefono, tablet o PC usando i segnali disponibili nel browser: piattaforma, touch, dimensione schermo, RAM dichiarata, core e stima dello spazio disponibile. Se il dispositivo e' mobile o non espone risorse verificabili, IUSENTRA non promette download pesanti non governati: apre Lex AI e usa il motore AI autorizzato dello studio.
+`/impostazioni?tab=ai` rileva ora telefono, tablet o PC usando i segnali disponibili nel browser: piattaforma, touch, dimensione schermo, RAM dichiarata, core e stima dello spazio disponibile. Se il dispositivo è mobile, IUSENTRA non promette installazione Ollama o download modelli: apre Lex AI e usa il language model, gli embedding e l'indice documenti sul server di produzione IUSENTRA.
 
 Sul desktop resta attiva la preparazione guidata tramite Local Signer: il PC viene controllato, Ollama viene preparato quando manca e i modelli vengono scelti in base all'hardware. La UI mostra `EmbeddingGemma 300M` per la ricerca documenti invece del codice grezzo `embeddinggemma:300m`.
 

@@ -1,14 +1,13 @@
 from __future__ import annotations
 
+from email.utils import parsedate_to_datetime
 import hashlib
 import json
 import re
 import time
-import xml.etree.ElementTree as ET
-from collections.abc import Callable
-from email.utils import parsedate_to_datetime
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
+import xml.etree.ElementTree as ET
 
 import requests
 from lxml import html as lxml_html
@@ -18,6 +17,7 @@ from pct.legal_update_ai import analyze_document
 from pct.legal_update_repository import LegalUpdateDbConfig, LegalUpdateRepository
 from pct.legal_update_web_verification import verify_legal_update_against_public_sources
 from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
+
 
 RequestGet = Callable[..., Any]
 

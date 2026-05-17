@@ -8,12 +8,16 @@ from typing import Any, Callable
 from flask import Blueprint, current_app, g, jsonify, request
 
 from pct.editor_ai import AttoAIDraftRequest
+from pct.editor_ai.editor_renderer import create_editor_document, legal_markdown_to_editor_html
 from pct.editor_ai.validators import (
     EditorAINotFound,
     EditorAIPermissionDenied,
     EditorAIValidationError,
+    assert_user_can_write,
     clean_text,
 )
+from lex.formatting.legal_draft_layout import normalize_legal_draft_layout
+from web.helpers import get_fascicoli
 from web.services.editor_ai_runtime import (
     build_editor_ai_service,
     editor_ai_tenant_id,
@@ -86,6 +90,32 @@ def _proposal_payload(proposal) -> dict[str, Any]:
     return proposal.to_dict()
 
 
+def _draft_import_title(payload: dict[str, Any], normalized_answer: str) -> str:
+    title = clean_text(payload.get("title") or payload.get("titolo"))
+    if title:
+        return title[:120]
+    for raw_line in normalized_answer.splitlines():
+        line = clean_text(raw_line.replace("**", "").replace("#", "").strip("- "))
+        if line and line != "---":
+            return line[:120]
+    return "Bozza Lex"
+
+
+def _audit_chat_draft_import(fascicolo_id: str, document_id: str) -> None:
+    try:
+        core_runtime = current_app.extensions.get("core_runtime", {}) or {}
+        audit = core_runtime.get("audit")
+        if callable(audit):
+            audit(
+                "editor_ai.importa_bozza_chat",
+                "fascicolo",
+                fascicolo_id,
+                dettagli=f"documento_editor={document_id}",
+            )
+    except Exception:
+        current_app.logger.debug("Audit import bozza Lex non registrato.", exc_info=True)
+
+
 @api_v1_editor_ai.get("/fascicoli/<fascicolo_id>/editor-ai/bootstrap")
 @_richiedi_auth
 def editor_ai_bootstrap(fascicolo_id: str):
@@ -136,6 +166,48 @@ def editor_ai_genera(fascicolo_id: str):
                     "filename": result.readback.get("filename"),
                     "sections": [section.heading for section in result.plan.sections],
                 },
+            }
+        ), 201
+    except Exception as exc:
+        return _error_response(exc)
+
+
+@api_v1_editor_ai.post("/fascicoli/<fascicolo_id>/editor-ai/importa-bozza")
+@_richiedi_auth
+def editor_ai_importa_bozza_chat(fascicolo_id: str):
+    try:
+        user_context = editor_ai_user_context()
+        assert_user_can_write(user_context)
+        payload = _body()
+        answer = str(payload.get("answer") or payload.get("content") or payload.get("testo") or "").strip()
+        if not answer:
+            raise EditorAIValidationError("Bozza non disponibile per l'apertura nell'editor.")
+        if len(answer) > 250_000:
+            raise EditorAIValidationError("La bozza è troppo lunga per l'apertura diretta nell'editor.")
+
+        normalized_answer = normalize_legal_draft_layout(answer)
+        html_content = legal_markdown_to_editor_html(normalized_answer)
+        title = _draft_import_title(payload, normalized_answer)
+        try:
+            from web.services.document_crypto import encrypt_doc
+        except Exception:
+            encrypt_doc = None
+        created = create_editor_document(
+            fascicoli_repository=get_fascicoli(),
+            fascicolo_id=fascicolo_id,
+            title=title,
+            html_content=html_content,
+            created_by=clean_text(user_context.get("user_id")) or "sistema",
+            encrypt=encrypt_doc,
+        )
+        _audit_chat_draft_import(fascicolo_id, str(created.get("document_id") or ""))
+        return jsonify(
+            {
+                "mock_fallback": False,
+                "message": "Bozza aperta nell'editor professionale.",
+                "document_id": created["document_id"],
+                "filename": created["filename"],
+                "open_url": created["open_url"],
             }
         ), 201
     except Exception as exc:

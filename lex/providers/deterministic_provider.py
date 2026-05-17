@@ -5,6 +5,7 @@ from typing import Any
 
 from .base import BaseProvider
 from lex.contracts import ProviderDraft
+from lex.formatting.legal_draft_layout import normalize_legal_draft_layout
 
 try:  # esportato anche per test legacy con monkeypatch
     from lex.tools.studio_data_gateway import build_cliente_answer, find_cliente
@@ -1097,7 +1098,7 @@ def build_diffida_messa_in_mora_template(context: Any) -> str:
         if termine_giorni:
             termine = f"{termine_giorni} giorni"
 
-    return f"""**BOZZA — DIFFIDA E MESSA IN MORA**
+    return normalize_legal_draft_layout(f"""**BOZZA — DIFFIDA E MESSA IN MORA**
 
 ---
 
@@ -1146,14 +1147,16 @@ Con osservanza,
 {avvocato}
 
 ---
-> **Dati da completare prima dell'invio:**
-> - Nome e dati completi del cliente mittente
-> - Dati completi della controparte (CF/PI se società)
-> - Descrizione precisa del credito/obbligo inademputo
-> - Importo esatto e calcolo interessi moratori (art. 1224 c.c.) se applicabile
-> - Termine congruo (solitamente 15–30 giorni)
-> - Firma digitale o autografa dell'avvocato
-> - Allegati: documenti comprovanti il credito/obbligo"""
+
+**Dati da completare prima dell'invio**
+
+- Nome e dati completi del cliente mittente
+- Dati completi della controparte (CF/PI se società)
+- Descrizione precisa del credito/obbligo inademputo
+- Importo esatto e calcolo interessi moratori (art. 1224 c.c.) se applicabile
+- Termine congruo (solitamente 15–30 giorni)
+- Firma digitale o autografa dell'avvocato
+- Allegati: documenti comprovanti il credito/obbligo""")
 
 
 def _studio_data_lookup_text(q: str, context: Any) -> str:

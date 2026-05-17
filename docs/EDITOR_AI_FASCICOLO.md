@@ -47,6 +47,7 @@ Operazioni previste MVP:
 
 - `GET /api/v1/ui/fascicoli/<fascicolo_id>/editor-ai/bootstrap`
 - `POST /api/v1/ui/fascicoli/<fascicolo_id>/editor-ai/genera`
+- `POST /api/v1/ui/fascicoli/<fascicolo_id>/editor-ai/importa-bozza`
 - `GET /api/v1/ui/fascicoli/<fascicolo_id>/editor-ai/<atto_ai_id>`
 - `POST /api/v1/ui/fascicoli/<fascicolo_id>/editor-ai/<atto_ai_id>/modifiche/proponi`
 - `POST /api/v1/ui/fascicoli/<fascicolo_id>/editor-ai/<atto_ai_id>/modifiche/<edit_id>/accetta`
@@ -54,6 +55,8 @@ Operazioni previste MVP:
 - `POST /api/v1/ui/fascicoli/<fascicolo_id>/editor-ai/<atto_ai_id>/export`
 
 Tutte le risposte dichiarano `mock_fallback=false`, usano errori italiani e non espongono path assoluti o segreti.
+
+`POST /api/v1/ui/fascicoli/<fascicolo_id>/editor-ai/importa-bozza` serve il flusso chat Lex: quando una risposta contiene una bozza, il titolo e il pulsante `Apri nell'editor` salvano il testo come documento reale del fascicolo, normalizzano la bozza in HTML editor, registrano audit senza contenuto integrale e restituiscono `open_url` per aprire subito l'editor professionale.
 
 ## Tool Lex
 

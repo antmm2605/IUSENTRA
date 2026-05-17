@@ -167,14 +167,31 @@
 
   function buildGeneratedDocumentActions(options) {
     var title = escapeHtml(suggestGeneratedTitle(options || {}));
+    var editorImportUrl = String((options && options.editorImportUrl) || '').trim();
+    var titleMarkup = editorImportUrl
+      ? (
+        '<button class="pct-ai-generated-btn pct-ai-generated-title" type="button" data-generated-open-editor="true" title="Apri nell\'editor professionale">' +
+          '<span>' + title + '</span>' +
+        '</button>'
+      )
+      : '<span>' + title + '</span>';
+    var openEditorButton = editorImportUrl
+      ? (
+        '<button class="pct-ai-generated-btn pct-ai-generated-btn--primary" type="button" data-generated-open-editor="true">' +
+          '<i class="bi bi-pencil-square"></i><span>Apri nell\'editor</span>' +
+        '</button>'
+      )
+      : '';
+    var docxClass = editorImportUrl ? 'pct-ai-generated-btn' : 'pct-ai-generated-btn pct-ai-generated-btn--primary';
     return (
       '<div class="pct-ai-generated-actions" data-generated-document-actions="true">' +
         '<div class="pct-ai-generated-actions__meta">' +
           '<i class="bi bi-file-earmark-richtext"></i>' +
-          '<span>' + title + '</span>' +
+          titleMarkup +
         '</div>' +
         '<div class="pct-ai-generated-actions__buttons">' +
-          '<button class="pct-ai-generated-btn pct-ai-generated-btn--primary" type="button" data-generated-download="docx">' +
+          openEditorButton +
+          '<button class="' + docxClass + '" type="button" data-generated-download="docx">' +
             '<i class="bi bi-file-earmark-word"></i><span>Scarica Word</span>' +
           '</button>' +
           '<button class="pct-ai-generated-btn" type="button" data-generated-download="md">' +
@@ -296,6 +313,39 @@
     triggerBlobDownload(buildGeneratedMarkdownBlob(options || {}));
   }
 
+  async function openGeneratedInEditor(options) {
+    var editorImportUrl = String((options && options.editorImportUrl) || '').trim();
+    if (!editorImportUrl) {
+      throw new Error('Apri la bozza da un fascicolo per salvarla nell\'editor professionale.');
+    }
+    var response = await fetch(editorImportUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: suggestGeneratedTitle(options || {}),
+        question: String((options && options.question) || ''),
+        answer: String((options && options.answer) || ''),
+        citations: Array.isArray(options && options.citations) ? options.citations : [],
+        context_label: String((options && options.contextLabel) || ''),
+      }),
+    });
+
+    var payload = null;
+    try {
+      payload = await response.json();
+    } catch (error) {
+      payload = null;
+    }
+    if (!response.ok) {
+      throw new Error(String((payload && (payload.detail || payload.errore)) || 'Apertura nell\'editor non riuscita.'));
+    }
+    if (!payload || !payload.open_url) {
+      throw new Error('Il documento è stato creato ma il collegamento all\'editor non è disponibile.');
+    }
+    window.location.assign(String(payload.open_url));
+    return payload;
+  }
+
   async function downloadGeneratedDocx(options) {
     var response = await fetch(String((options && options.exportUrl) || ''), {
       method: 'POST',
@@ -334,6 +384,7 @@
     buildPromptBlock: buildPromptBlock,
     downloadGeneratedDocx: downloadGeneratedDocx,
     downloadGeneratedMarkdown: downloadGeneratedMarkdown,
+    openGeneratedInEditor: openGeneratedInEditor,
     parseAttachments: parseAttachments,
     renderAttachmentShelf: renderAttachmentShelf,
     suggestGeneratedTitle: suggestGeneratedTitle,

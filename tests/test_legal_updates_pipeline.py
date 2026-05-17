@@ -560,6 +560,51 @@ def test_open_data_cataloghi_vengono_archiviati_senza_review_manuale(tmp_path: P
     assert review["status"] == "closed"
 
 
+def test_atti_amministrativi_di_sola_liquidazione_non_diventano_news_legali(tmp_path: Path, monkeypatch):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+    source = pipeline.repository.get_source_by_code("ministero_lavoro")
+    assert source is not None
+
+    monkeypatch.setattr(
+        "pct.legal_update_pipeline.analyze_document",
+        lambda *args, **kwargs: {
+            "classification_type": "COMMENTO",
+            "confidence_score": 0.94,
+            "impact_level": "basso",
+            "summary_short": "Atto amministrativo di liquidazione fattura.",
+            "summary_long": "Atto amministrativo di liquidazione fattura per servizio già svolto.",
+            "what_changes": "",
+            "extracted_entities_json": {},
+            "proposed_action": "NEWS_ONLY",
+            "target_entity_type": "",
+            "target_entity_id": None,
+        },
+    )
+
+    processed = pipeline.process_document(
+        source,
+        {
+            "external_id": "calabria-atto-6258-2026",
+            "source_url": "https://www.regione.calabria.it/wp-content/uploads/2026/04/Atto_Numero_6258_del_16-04-2026.pdf",
+            "title": "Atto Numero 6258 del 16-04-2026 - liquidazione fattura",
+            "published_at": "2026-04-16",
+            "raw_html": "",
+            "raw_text": (
+                "Liquidazione fattura per servizio di collegamento, importo euro 45,20. "
+                "Verifica DURC e pagamento al fornitore."
+            ),
+            "content_hash": "hash-calabria-6258-2026",
+            "fetch_status": "fetched",
+            "http_status": 200,
+        },
+    )
+    review = pipeline.repository.get_review_item(int(processed["review"]["id"]))
+
+    assert review is not None
+    assert review["proposed_action"] == "OUT_OF_SCOPE"
+    assert review["status"] == "closed"
+
+
 def test_autopublish_risolve_needs_review_ufficiale_in_notizia(tmp_path: Path, monkeypatch):
     pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
 

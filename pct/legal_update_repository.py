@@ -704,6 +704,199 @@ class LegalUpdateRepository:
                 latest[code] = payload
         return latest
 
+    def record_web_verification_evidence(
+        self,
+        *,
+        review_id: int,
+        normalized_document_id: int,
+        source: dict[str, Any],
+        verification: dict[str, Any],
+        verification_status: str = "verified",
+    ) -> dict[str, int]:
+        """Salva nel database le evidenze web ufficiali usate per completare un riferimento."""
+
+        verification_payload = verification if isinstance(verification, dict) else {}
+        confirmations = [
+            row
+            for row in list(verification_payload.get("confirmations") or [])
+            if isinstance(row, dict)
+        ]
+        if not confirmations and verification_payload:
+            searched = verification_payload.get("searched") if isinstance(verification_payload.get("searched"), dict) else {}
+            attempted_queries = list(searched.get("queries") or [])
+            if not attempted_queries and searched.get("query"):
+                attempted_queries = [searched.get("query")]
+            attempted_domains = []
+            for item in list(searched.get("web_searches") or []):
+                if not isinstance(item, dict):
+                    continue
+                attempted_domains.extend(str(value or "") for value in item.get("source_ids") or [])
+            confirmations = [
+                {
+                    "origin": "ricerca_web_senza_conferma",
+                    "title": "Verifica web senza conferme sufficienti",
+                    "source_name": _clean_spaces(source.get("name") or source.get("source_name")),
+                    "source_url": "",
+                    "query": "; ".join(_clean_spaces(item) for item in attempted_queries if _clean_spaces(item))[:520],
+                    "excerpt": _clean_spaces(verification_payload.get("reason") or "Nessuna fonte pubblica coerente trovata."),
+                    "content": _json_dump(
+                        {
+                            "reason": verification_payload.get("reason"),
+                            "warnings": verification_payload.get("warnings") or [],
+                            "searched": searched,
+                            "attempted_sources": attempted_domains,
+                        }
+                    ),
+                    "official": False,
+                    "context_chars": 0,
+                    "matched_terms": [],
+                }
+            ]
+        if not confirmations:
+            return {"saved": 0, "attachments": 0}
+        source_code = _normalize_token(source.get("code") or source.get("source_code"))
+        source_name = _clean_spaces(source.get("name") or source.get("source_name"))
+        status = _normalize_token(verification_status or (verification or {}).get("status") or "verified")
+        saved = 0
+        attachment_rows: list[dict[str, Any]] = []
+        with self._connect() as conn:
+            for row in confirmations:
+                source_url = _first_text(row.get("source_url"), row.get("url"), row.get("official_url"), row.get("url_origine"))
+                attachment_url = _clean_spaces(row.get("attachment_url"))
+                title = _first_text(row.get("title"), row.get("source_name"), row.get("domain"), "Evidenza fonte ufficiale")
+                content_text = _lex_excerpt(
+                    row.get("content"),
+                    row.get("full_context"),
+                    row.get("text_excerpt"),
+                    row.get("excerpt"),
+                    limit=12000,
+                )
+                excerpt = _lex_excerpt(row.get("excerpt"), row.get("text_excerpt"), content_text, limit=900)
+                if not (source_url or attachment_url or excerpt or content_text):
+                    continue
+                matched_terms = row.get("matched_terms") if isinstance(row.get("matched_terms"), list) else []
+                evidence_key = _sha1(
+                    "|".join(
+                        (
+                            str(review_id or ""),
+                            str(normalized_document_id or ""),
+                            _normalize_token(row.get("origin")),
+                            source_url,
+                            attachment_url,
+                            _clean_spaces(row.get("sha256")),
+                            title,
+                            excerpt[:220],
+                        )
+                    )
+                )
+                conn.execute(
+                    """
+                    INSERT INTO web_verification_evidence (
+                        evidence_key, review_id, normalized_document_id, source_code, source_name,
+                        query, origin, title, source_url, attachment_url, attachment_type, sha256,
+                        is_official, context_chars, excerpt, content_text, matched_terms_json,
+                        verification_status, created_at, updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                    ON CONFLICT(evidence_key) DO UPDATE SET
+                        source_code = excluded.source_code,
+                        source_name = excluded.source_name,
+                        query = excluded.query,
+                        origin = excluded.origin,
+                        title = excluded.title,
+                        source_url = excluded.source_url,
+                        attachment_url = excluded.attachment_url,
+                        attachment_type = excluded.attachment_type,
+                        sha256 = excluded.sha256,
+                        is_official = excluded.is_official,
+                        context_chars = excluded.context_chars,
+                        excerpt = excluded.excerpt,
+                        content_text = excluded.content_text,
+                        matched_terms_json = excluded.matched_terms_json,
+                        verification_status = excluded.verification_status,
+                        updated_at = CURRENT_TIMESTAMP
+                    """,
+                    (
+                        evidence_key,
+                        int(review_id or 0) or None,
+                        int(normalized_document_id or 0) or None,
+                        source_code,
+                        source_name or _clean_spaces(row.get("source_name")),
+                        _clean_spaces(row.get("query") or (verification or {}).get("query")),
+                        _normalize_token(row.get("origin")),
+                        title,
+                        source_url,
+                        attachment_url,
+                        _clean_spaces(row.get("attachment_type")),
+                        _clean_spaces(row.get("sha256")),
+                        1 if bool(row.get("official")) else 0,
+                        max(0, int(row.get("context_chars") or 0)),
+                        excerpt,
+                        content_text,
+                        _json_dump(matched_terms),
+                        status,
+                    ),
+                )
+                saved += 1
+                if attachment_url:
+                    attachment_rows.append(
+                        {
+                            "title": title,
+                            "url": attachment_url,
+                            "source_url": source_url,
+                            "attachment_type": _clean_spaces(row.get("attachment_type")),
+                            "sha256": _clean_spaces(row.get("sha256")),
+                            "verified": True,
+                            "text_excerpt": excerpt,
+                            "context_chars": max(0, int(row.get("context_chars") or 0)),
+                        }
+                    )
+            if attachment_rows and int(normalized_document_id or 0):
+                current = conn.execute(
+                    "SELECT attachments_json FROM source_documents_normalized WHERE id = ?",
+                    (int(normalized_document_id),),
+                ).fetchone()
+                if current:
+                    attachments = _json_load(current["attachments_json"], [])
+                    if not isinstance(attachments, list):
+                        attachments = []
+                    by_url = {
+                        _clean_spaces(item.get("url") or item.get("attachment_url")): dict(item)
+                        for item in attachments
+                        if isinstance(item, dict)
+                    }
+                    changed = False
+                    for item in attachment_rows:
+                        key = _clean_spaces(item.get("url"))
+                        if key and key not in by_url:
+                            by_url[key] = item
+                            changed = True
+                    if changed:
+                        conn.execute(
+                            """
+                            UPDATE source_documents_normalized
+                            SET attachments_json = ?, updated_at = CURRENT_TIMESTAMP
+                            WHERE id = ?
+                            """,
+                            (_json_dump(list(by_url.values())), int(normalized_document_id)),
+                        )
+            conn.commit()
+        if saved:
+            self.record_audit(
+                "web_verification_evidence",
+                int(review_id or 0) or None,
+                "record",
+                {},
+                {
+                    "saved": saved,
+                    "attachments": len(attachment_rows),
+                    "source_code": source_code,
+                    "verification_status": status,
+                },
+                "system",
+            )
+        return {"saved": saved, "attachments": len(attachment_rows)}
+
     def get_source_by_code(self, code: str) -> dict[str, Any] | None:
         with self._connect() as conn:
             row = conn.execute("SELECT * FROM sources WHERE code = ?", (_normalize_token(code),)).fetchone()
@@ -1433,12 +1626,14 @@ class LegalUpdateRepository:
         reviewer: str = "",
         notes: str = "",
         assigned_to: str = "",
+        priority: int | None = None,
     ) -> dict[str, Any] | None:
         with self._connect() as conn:
             conn.execute(
                 """
                 UPDATE review_queue
                 SET status = ?, reviewed_by = ?, reviewed_at = ?, review_notes = ?,
+                    priority = CASE WHEN ? IS NOT NULL THEN ? ELSE priority END,
                     assigned_to = CASE WHEN ? <> '' THEN ? ELSE assigned_to END,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
@@ -1448,6 +1643,8 @@ class LegalUpdateRepository:
                     _clean_spaces(reviewer),
                     _now_iso(),
                     _clean_spaces(notes),
+                    priority,
+                    priority,
                     _clean_spaces(assigned_to),
                     _clean_spaces(assigned_to),
                     int(review_id),
@@ -2218,6 +2415,34 @@ class LegalUpdateRepository:
                 limit=limit,
             )
         )
+        rows.extend(
+            self._lex_fetch_rows(
+                conn,
+                """
+                SELECT 'web_evidence' AS entity_type, 'legal_web_evidence' AS source_type, e.id AS entity_id,
+                       e.title, e.excerpt, e.content_text AS content,
+                       COALESCE(NULLIF(e.attachment_type, ''), e.origin) AS category,
+                       e.verification_status AS publication_status,
+                       COALESCE(NULLIF(e.attachment_url, ''), e.source_url) AS official_url,
+                       e.created_at AS published_at, e.created_at,
+                       '' AS matter_slug, '' AS matter_name, '' AS submatter_slug, '' AS submatter_name,
+                       COALESCE(NULLIF(e.source_name, ''), e.source_code) AS authority,
+                       e.source_code, 'A' AS trust_class, e.is_official,
+                       e.source_url AS source_base_url, 0.82 AS _base_score,
+                       e.origin, e.attachment_url, e.attachment_type, e.sha256,
+                       e.context_chars, e.verification_status
+                FROM web_verification_evidence e
+                WHERE e.verification_status IN ('verified', 'insufficient')
+                {search_clause}
+                ORDER BY e.is_official DESC, e.context_chars DESC, e.created_at DESC, e.id DESC
+                LIMIT ?
+                """,
+                [],
+                terms=terms,
+                fields=("e.title", "e.excerpt", "e.content_text", "e.query", "e.source_name", "e.source_url", "e.attachment_url"),
+                limit=limit,
+            )
+        )
         return rows
 
     def _lex_evidence_payload(self, row: dict[str, Any], terms: list[str]) -> dict[str, Any]:
@@ -2274,6 +2499,12 @@ class LegalUpdateRepository:
             "act_type",
             "act_number",
             "act_year",
+            "origin",
+            "attachment_url",
+            "attachment_type",
+            "sha256",
+            "context_chars",
+            "verification_status",
         ):
             if _clean_spaces(row.get(field)):
                 payload[field] = _clean_spaces(row.get(field))
@@ -2341,6 +2572,18 @@ class LegalUpdateRepository:
                 "published_normative": int(conn.execute("SELECT COUNT(*) FROM normative").fetchone()[0]),
                 "published_jurisprudence": int(conn.execute("SELECT COUNT(*) FROM jurisprudence").fetchone()[0]),
                 "published_prassi": int(conn.execute("SELECT COUNT(*) FROM prassi").fetchone()[0]),
+                "web_evidence": int(conn.execute("SELECT COUNT(*) FROM web_verification_evidence").fetchone()[0]),
+                "web_evidence_verified": int(conn.execute("SELECT COUNT(*) FROM web_verification_evidence WHERE verification_status = 'verified'").fetchone()[0]),
+                "web_evidence_attachments": int(conn.execute("SELECT COUNT(*) FROM web_verification_evidence WHERE attachment_url <> ''").fetchone()[0]),
+                "documents_with_attachments": int(
+                    conn.execute(
+                        """
+                        SELECT COUNT(*)
+                        FROM source_documents_normalized
+                        WHERE attachments_json <> '' AND attachments_json <> '[]'
+                        """
+                    ).fetchone()[0]
+                ),
             }
             latest_audit = conn.execute(
                 f"SELECT created_at, action, entity_type, entity_id, performed_by FROM {self.audit_table} ORDER BY id DESC LIMIT 12"

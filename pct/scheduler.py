@@ -321,8 +321,10 @@ def start_scheduler(app):
                     int((report.get("autopublished") or {}).get("count") or 0),
                     int(report.get("timeouts") or 0),
                 )
+                return report
             except Exception as e:
                 logger.error("[scheduler] Legal updates %s fallito: %s", label, e)
+                return {"ok": False, "error": str(e), "label": label}
 
     def _run_official_archives_sync(label: str):
         with app.app_context():
@@ -1259,11 +1261,20 @@ def start_scheduler(app):
                         message="Esecuzione saltata dal worker.",
                     )
                 else:
+                    result = getattr(event, "retval", None)
+                    result_payload = result if isinstance(result, dict) else {}
+                    result_ok = result_payload.get("ok") if result_payload else True
                     registry_repo.record_scheduler_event(
                         job_id,
-                        status="completed",
+                        status="completed" if result_ok is not False else "failed",
                         scheduled_at=scheduled_at,
-                        message="Esecuzione completata dal worker.",
+                        message=(
+                            "Esecuzione completata dal worker."
+                            if result_ok is not False
+                            else "Esecuzione non completata dal worker."
+                        ),
+                        result=result_payload,
+                        error_message=str(result_payload.get("error") or ""),
                     )
             except Exception as exc:  # pragma: no cover - audit best effort
                 logger.debug("[scheduler] Evento pianificazione non registrato: %s", exc)

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.245.10 - 2026-05-17
+
+- L'archivio legale non si limita piu' a registrare riferimenti: le verifiche web salvano evidenze ricercabili, allegati ufficiali, URL, hash, estratti e diagnostica in una tabella dedicata.
+- La pubblicazione automatica degli aggiornamenti legali non si ferma piu' sul primo riferimento senza conferme: continua sui candidati successivi, marca quelli incompleti come da completare e conserva cosa e' stato cercato.
+- Le fonti INPS dinamiche vengono completate leggendo il JSON ufficiale della pagina, cosi' circolari e messaggi salvano testo reale e PDF allegati invece del solo menu HTML.
+- Le schede Cassazione con allegato pubblico salvano il PDF ufficiale anche quando il testo non e' estraibile automaticamente, lasciando comunque hash e URL verificabili.
+- La Gazzetta Ufficiale ha un resolver diretto sull'archivio annuale per codici redazionali e riferimenti normativi puntuali: `26G00056` e `D.Lgs. 13 marzo 2026, n. 39` arrivano alla scheda ELI e al PDF GU senza dipendere solo dalla ricerca esterna.
+- `/admin/pianificazioni` mostra lo stato dell'archivio legale verificato e permette di annullare le esecuzioni fonte legale rimaste appese senza toccare gli altri job dello studio.
+- Gli atti amministrativi di sola liquidazione/fattura, come documenti contabili regionali senza contesto giuridico utile, non vengono piu' trasformati in news legali per lo studio.
+
 ## 2.245.9 - 2026-05-17
 
 - `/ricerca-legale` e `/giurisprudenza` diventano superfici operative: card compatte cliccabili, filtri leggibili, dettaglio in pagina e contesto ufficiale salvato in scheda invece di semplici link esterni.

@@ -19,6 +19,7 @@ Osservabilita' non significa solo metriche runtime. Nel prodotto devono esistere
 | Audit accessi e ruoli | Piattaforma superadmin: `admin/governance` | eventi audit, superfici presidiate, ruoli ammessi |
 | Audit probatorio WORM | Fascicolo: tab `Audit`, endpoint `/audit/*`, bundle fascicolo | envelope firmati in WORM, catena hash, snapshot Merkle, proof offline |
 | Capability telematiche | Centro Servizi Telematici / Motori Legali | stato canali, fonti, warning, catalogo capability |
+| Archivio legale verificato | `admin/pianificazioni`, `admin/aggiornamenti-legali` | documenti letti, analisi, schede pubblicate, evidenze web, allegati ufficiali, esecuzioni da completare |
 | Salute sistema | Piattaforma superadmin: `admin/salute-sistema`, `admin/system-health` | backup, OCR, provider locali, readiness deploy |
 | Crash test operativo | `admin/crash-test-operativo` | checklist finale `si/no`, ticket di riparazione, backup blindato, esito per fase |
 | Assistenza remota pronta | `admin/supporto-remoto` | link cliente firmato, stanza operatore, schermo/audio con consenso, chat e audit |
@@ -41,6 +42,8 @@ La vista `admin/osservabilita` non deve limitarsi a mostrare numeri:
 - deve dichiarare quando il runtime AI locale non e' operativo
 - deve dichiarare quando la sincronizzazione PEC/IMAP entra in circuito aperto dopo errori ripetuti
 - deve dichiarare quando ricerca o anteprima dei portali telematici entrano in circuito aperto dopo errori ripetuti
+- deve dichiarare quando gli aggiornamenti legali leggono riferimenti ma non producono evidenze web, allegati o schede pubblicate
+- deve permettere l'annullamento governato dei controlli fonte legale rimasti in corso oltre il tempo operativo, lasciando traccia nel registro scheduler
 - deve avvisare se il runtime predefinito e' ancora `JSON`
 - deve esporre un `messaggio operatore` leggibile, non solo un dettaglio tecnico
 - deve offrire anche un endpoint JSON operativo (`/admin/system-health`) con stato sintetico di scheduler, OCR, AI e backend database

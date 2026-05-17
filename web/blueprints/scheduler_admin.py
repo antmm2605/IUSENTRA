@@ -7,6 +7,7 @@ from flask import Blueprint, current_app, flash, jsonify, redirect, render_templ
 from web.blueprints.admin import superadmin_required
 from web.services.scheduler_admin_surface import (
     build_scheduler_admin_surface,
+    cancel_legal_source_runs,
     create_scheduler_job_from_payload,
     request_scheduler_run,
     save_scheduler_job_from_payload,
@@ -72,4 +73,23 @@ def run_job(job_id: str):
     except Exception as exc:
         current_app.logger.exception("Errore richiesta esecuzione %s: %s", job_id, exc)
         flash(f"Esecuzione non richiesta: {exc}", "danger")
+    return redirect(url_for("scheduler_admin.dashboard"))
+
+
+@scheduler_admin.post("/admin/pianificazioni/fonti-legali/annulla")
+@superadmin_required
+def cancel_legal_sources():
+    try:
+        result = cancel_legal_source_runs(username=_username())
+        cancelled = int(result.get("cancelled") or 0)
+        if cancelled:
+            flash(
+                f"Controlli fonti legali annullati: {cancelled} esecuzioni aperte chiuse.",
+                "success",
+            )
+        else:
+            flash("Nessuna esecuzione fonti legali aperta da annullare.", "info")
+    except Exception as exc:
+        current_app.logger.exception("Errore annullamento controlli fonti legali: %s", exc)
+        flash(f"Annullamento non completato: {exc}", "danger")
     return redirect(url_for("scheduler_admin.dashboard"))

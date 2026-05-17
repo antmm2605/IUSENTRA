@@ -32,6 +32,8 @@ def _status_class(status: str) -> str:
         return "primary"
     if key == "requested":
         return "warning"
+    if key == "cancelled":
+        return "secondary"
     return "secondary"
 
 
@@ -129,11 +131,26 @@ def _legal_update_message(run: dict[str, Any]) -> str:
     analyzed = _sum_metric(result, "processed")
     discarded = _sum_metric(result, "skipped_unchanged")
     published = _published_count(result)
+    verification_attempts = _sum_metric(result, "web_verification_attempts")
+    evidence_saved = _sum_metric(result, "verification_evidence_saved")
+    attachments_saved = _sum_metric(result, "verification_attachments_saved")
     discarded_label = f", {discarded} invariati o scartati" if discarded else ""
+    evidence_label = (
+        f", {evidence_saved} evidenze web salvate"
+        f"{f' e {attachments_saved} allegati' if attachments_saved else ''}"
+        if evidence_saved
+        else ""
+    )
     if published > 0:
         return (
             f"{documents_read} documenti letti, {analyzed} analizzati, "
-            f"{published} schede pubblicate{discarded_label}."
+            f"{published} schede pubblicate{evidence_label}{discarded_label}."
+        )
+    if verification_attempts > 0:
+        return (
+            f"Controllo completato senza schede pubblicate: {documents_read} documenti letti, "
+            f"{analyzed} analizzati, {verification_attempts} verifiche web tentate"
+            f"{evidence_label}{discarded_label}."
         )
     return (
         f"Controllo completato, nessuna scheda pubblicata: "
@@ -173,11 +190,77 @@ def _job_status(job: dict[str, Any], latest_run: dict[str, Any] | None) -> dict[
         status = str(latest_run.get("status") or "")
         if status in {"failed", "error", "missed"}:
             return {"label": str(latest_run.get("status_label") or "Da verificare"), "class": "danger"}
+        if status == "cancelled":
+            return {"label": "Annullata", "class": "secondary"}
         if status == "requested":
             return {"label": "Richiesta", "class": "warning"}
         if status == "running":
             return {"label": "In corso", "class": "primary"}
     return {"label": "Attiva", "class": "success"}
+
+
+def _legal_archive_status() -> dict[str, Any]:
+    try:
+        from web.services.legal_update_surface import build_legal_update_pipeline_runtime
+
+        pipeline = build_legal_update_pipeline_runtime(current_app._get_current_object())
+        headline = dict((pipeline.dashboard_snapshot() or {}).get("headline") or {})
+    except Exception as exc:
+        return {
+            "available": False,
+            "status_label": "Archivio non verificabile",
+            "status_class": "danger",
+            "message": f"Stato archivio non letto: {exc}",
+            "raw_documents": 0,
+            "analyses": 0,
+            "published_cards": 0,
+            "pending_reviews": 0,
+            "approved_reviews": 0,
+            "web_evidence": 0,
+            "web_evidence_attachments": 0,
+            "documents_with_attachments": 0,
+        }
+    published_cards = sum(
+        _int_value(headline.get(key))
+        for key in ("published_news", "published_normative", "published_jurisprudence", "published_prassi")
+    )
+    raw_documents = _int_value(headline.get("raw_documents"))
+    analyses = _int_value(headline.get("analyses"))
+    pending_reviews = _int_value(headline.get("review_pending"))
+    approved_reviews = _int_value(headline.get("review_approved"))
+    web_evidence = _int_value(headline.get("web_evidence"))
+    web_attachments = _int_value(headline.get("web_evidence_attachments"))
+    documents_with_attachments = _int_value(headline.get("documents_with_attachments"))
+    if raw_documents and not web_evidence:
+        status_label = "Riferimenti letti, evidenze web mancanti"
+        status_class = "danger"
+        message = "Il database contiene riferimenti e analisi, ma non risultano evidenze web salvate."
+    elif web_evidence and not published_cards:
+        status_label = "Evidenze salvate, archivio da pubblicare"
+        status_class = "warning"
+        message = "Sono presenti verifiche web, ma mancano schede pubblicate consultabili."
+    elif published_cards:
+        status_label = "Archivio consultabile"
+        status_class = "success" if web_evidence else "warning"
+        message = "Le query possono interrogare schede pubblicate; le evidenze web indicano quanto è stato completato."
+    else:
+        status_label = "Archivio vuoto"
+        status_class = "secondary"
+        message = "Non risultano ancora documenti letti né schede pubblicate."
+    return {
+        "available": True,
+        "status_label": status_label,
+        "status_class": status_class,
+        "message": message,
+        "raw_documents": raw_documents,
+        "analyses": analyses,
+        "published_cards": published_cards,
+        "pending_reviews": pending_reviews,
+        "approved_reviews": approved_reviews,
+        "web_evidence": web_evidence,
+        "web_evidence_attachments": web_attachments,
+        "documents_with_attachments": documents_with_attachments,
+    }
 
 
 def build_scheduler_admin_surface() -> dict[str, Any]:
@@ -214,6 +297,7 @@ def build_scheduler_admin_surface() -> dict[str, Any]:
             for family, items in sorted(grouped.items(), key=lambda item: item[0])
         ],
         "recent_runs": recent_runs,
+        "legal_archive": _legal_archive_status(),
         "agent_templates": templates,
         "template_catalog": [
             {
@@ -273,6 +357,23 @@ def request_scheduler_run(job_id: str, *, username: str = "") -> dict[str, Any]:
     request = repo.request_manual_run(job_id, requested_by=username)
     _apply_now(repo)
     return request
+
+
+def cancel_legal_source_runs(*, username: str = "") -> dict[str, int]:
+    repo = _repository()
+    repo.upsert_default_jobs(current_app.config)
+    return repo.cancel_open_runs(
+        job_prefixes=("legal_source_",),
+        job_ids=(
+            "legal_updates_batch",
+            "legal_updates_gazzetta",
+            "legal_official_archives_daily",
+            "legal_monitor_pst",
+            "sync_tabelle_normative_daily",
+        ),
+        cancelled_by=username,
+        reason="Esecuzione annullata: nessun riscontro utile dal worker entro il tempo atteso.",
+    )
 
 
 def _apply_now(repo: SchedulerRegistryRepository) -> None:

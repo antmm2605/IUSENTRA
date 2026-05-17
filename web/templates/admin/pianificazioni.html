@@ -10,16 +10,63 @@
   <div>
     <h1 class="h3 mb-1">Pianificazioni</h1>
     <p class="text-muted mb-0">
-      Cronjob applicativi, richieste manuali, esiti di esecuzione e agenti delegati governati da template sicuri.
+      Controlli programmati, richieste manuali, esiti reali e agenti delegati governati da modelli autorizzati.
     </p>
   </div>
   <div class="d-flex flex-wrap gap-2">
+    <form method="post" action="{{ url_for('scheduler_admin.cancel_legal_sources') }}">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+      <button class="btn btn-outline-danger" type="submit">
+        <i class="bi bi-stop-circle"></i> Annulla fonti legali
+      </button>
+    </form>
     <a class="btn btn-outline-primary" href="{{ url_for('scheduler_admin.api_dashboard') }}">
       <i class="bi bi-braces"></i> Dati console
     </a>
     <a class="btn btn-outline-secondary" href="{{ url_for('admin.osservabilita') }}">
-      <i class="bi bi-activity"></i> Osservabilita'
+      <i class="bi bi-activity"></i> Osservabilità
     </a>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-4 border-{{ payload.legal_archive.status_class }}">
+  <div class="card-header bg-body-tertiary d-flex flex-column flex-lg-row justify-content-between gap-2">
+    <div>
+      <strong>Archivio legale verificato</strong>
+      <div class="small text-muted">
+        La console conta solo ciò che resta nel database e può essere recuperato dalla ricerca.
+      </div>
+    </div>
+    <span class="badge text-bg-{{ payload.legal_archive.status_class }}">{{ payload.legal_archive.status_label }}</span>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-6 col-xl-2">
+        <div class="small text-muted">Riferimenti letti</div>
+        <div class="h4 mb-0">{{ payload.legal_archive.raw_documents }}</div>
+      </div>
+      <div class="col-6 col-xl-2">
+        <div class="small text-muted">Analisi create</div>
+        <div class="h4 mb-0">{{ payload.legal_archive.analyses }}</div>
+      </div>
+      <div class="col-6 col-xl-2">
+        <div class="small text-muted">Schede pubblicate</div>
+        <div class="h4 mb-0">{{ payload.legal_archive.published_cards }}</div>
+      </div>
+      <div class="col-6 col-xl-2">
+        <div class="small text-muted">Evidenze web</div>
+        <div class="h4 mb-0">{{ payload.legal_archive.web_evidence }}</div>
+      </div>
+      <div class="col-6 col-xl-2">
+        <div class="small text-muted">Allegati salvati</div>
+        <div class="h4 mb-0">{{ payload.legal_archive.web_evidence_attachments }}</div>
+      </div>
+      <div class="col-6 col-xl-2">
+        <div class="small text-muted">Da completare</div>
+        <div class="h4 mb-0">{{ payload.legal_archive.pending_reviews + payload.legal_archive.approved_reviews }}</div>
+      </div>
+    </div>
+    <div class="small text-muted mt-3">{{ payload.legal_archive.message }}</div>
   </div>
 </div>
 
@@ -109,7 +156,7 @@
           </div>
           <div class="col-12">
             <button class="btn btn-primary" type="submit">
-              <i class="bi bi-plus-circle"></i> Crea cronjob
+              <i class="bi bi-plus-circle"></i> Crea pianificazione
             </button>
           </div>
         </form>
@@ -121,7 +168,7 @@
       <div class="card-header bg-body-tertiary d-flex justify-content-between gap-2 align-items-center">
         <div>
           <strong>Agenti delegati disponibili</strong>
-          <div class="small text-muted">Ogni agente deve dichiarare cosa ha controllato e perche' non ha completato.</div>
+              <div class="small text-muted">Ogni agente deve dichiarare cosa ha controllato e perché non ha completato.</div>
         </div>
         <span class="badge text-bg-light border">{{ payload.agent_templates|length }} domini</span>
       </div>
@@ -150,7 +197,7 @@
 <div class="card shadow-sm mb-4">
   <div class="card-header bg-body-tertiary d-flex flex-column flex-lg-row justify-content-between gap-2">
     <div>
-      <strong>Cronjob applicativi</strong>
+      <strong>Controlli applicativi</strong>
       <div class="small text-muted">Modifica orari, metti in pausa o richiedi un'esecuzione senza aprire il server.</div>
     </div>
     <span class="small text-muted">Registro: {{ payload.registry_db }}</span>
@@ -252,7 +299,7 @@
                   <div class="col-6 col-lg-1">
                     <label class="form-label small text-muted">Attiva</label>
                     <select class="form-select form-select-sm" name="enabled">
-                      <option value="1" {% if job.enabled %}selected{% endif %}>Si</option>
+                      <option value="1" {% if job.enabled %}selected{% endif %}>Sì</option>
                       <option value="0" {% if not job.enabled %}selected{% endif %}>No</option>
                     </select>
                   </div>
@@ -277,7 +324,7 @@
 <div class="card shadow-sm">
   <div class="card-header bg-body-tertiary">
     <strong>Esecuzioni recenti</strong>
-    <div class="small text-muted">Qui vedi cosa ha fatto il worker, cosa e' in coda e cosa non e' riuscito.</div>
+    <div class="small text-muted">Qui vedi cosa ha fatto il worker, cosa è in coda e cosa non è riuscito.</div>
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">

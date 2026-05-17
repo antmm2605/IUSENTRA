@@ -24,6 +24,27 @@ Download PDF completo:
 
 Il connettore legge la pagina degli ultimi 30 giorni, ricava data pubblicazione, numero, serie e supplemento, poi genera l'URL `downloadPdf` senza conservare sessioni private.
 
+## Lettura puntuale verificata
+
+Per riferimenti già noti allo studio, la lettura non deve dipendere solo dalla
+ricerca web esterna. Il resolver usa anche l'archivio annuale ufficiale:
+
+```text
+https://www.gazzettaufficiale.it/showArchivioNews?anno=2026
+```
+
+Da lì riconosce:
+
+- codice redazionale, ad esempio `26G00056`;
+- riferimento normativo, ad esempio `D.Lgs. 13 marzo 2026, n. 39`;
+- riferimento sintetico numero/anno, ad esempio `D.Lgs. 39/2026`;
+- collegamento ELI ufficiale, ad esempio `/eli/id/2026/03/27/26G00056/sg`.
+
+Caso reale verificato il 17 maggio 2026: `26G00056` e `D.Lgs. 13 marzo 2026,
+n. 39` portano alla scheda ELI della Gazzetta, producono contesto testuale
+ufficiale e un PDF del fascicolo GU. I link di servizio come `Formato Grafico
+PDF` non sono allegati del documento e non vengono scaricati come evidenze.
+
 ## Esecuzione
 
 ```powershell

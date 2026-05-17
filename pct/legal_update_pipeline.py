@@ -594,6 +594,35 @@ NAVIGATION_NOISE_KEYWORDS = (
     "home page",
 )
 
+LOW_VALUE_ADMIN_ACCOUNTING_MARKERS = (
+    "liquidazione fattura",
+    "liquidazione della fattura",
+    "liquidazione fatture",
+    "pagamento fattura",
+    "impegno di spesa",
+    "mandato di pagamento",
+    "rimborso spese",
+    "nota di liquidazione",
+    "durc",
+)
+
+LOW_VALUE_ADMIN_LEGAL_CONTEXT_MARKERS = (
+    "ricorso",
+    "contenzioso",
+    "tar",
+    "consiglio di stato",
+    "sentenza",
+    "ordinanza",
+    "appalto",
+    "gara",
+    "affidamento",
+    "contratto pubblico",
+    "codice dei contratti",
+    "precontenzioso",
+    "accesso agli atti",
+    "sanzione",
+)
+
 
 def _clean_spaces(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
@@ -1190,6 +1219,10 @@ class LegalUpdatePipeline:
         title = _clean_spaces(normalized.get("title"))
         body_text = _clean_spaces(normalized.get("body_text") or normalized.get("body_short"))
         text = f"{title} {body_text}".lower()
+        if any(marker in text for marker in LOW_VALUE_ADMIN_ACCOUNTING_MARKERS) and not any(
+            marker in text for marker in LOW_VALUE_ADMIN_LEGAL_CONTEXT_MARKERS
+        ):
+            return True
         if source_type == "open_data" or parser_type == "ckan_json" or source_code.startswith("openga_"):
             return True
         if source_code == "dati_normattiva" and any(
@@ -1637,6 +1670,27 @@ class LegalUpdatePipeline:
                     return source
         return None
 
+    def _record_verification_evidence(
+        self,
+        review: dict[str, Any],
+        source: dict[str, Any] | None,
+        verification: dict[str, Any] | None,
+        *,
+        status: str,
+    ) -> dict[str, int]:
+        if not source or not verification:
+            return {"saved": 0, "attachments": 0}
+        try:
+            return self.repository.record_web_verification_evidence(
+                review_id=int(review.get("id") or 0),
+                normalized_document_id=int(review.get("normalized_document_id") or 0),
+                source=source,
+                verification=verification,
+                verification_status=status,
+            )
+        except Exception:
+            return {"saved": 0, "attachments": 0}
+
     def _verification_for_manual_publish(self, review: dict[str, Any]) -> dict[str, Any] | None:
         if not _review_needs_publication_verification(review):
             return None
@@ -1680,6 +1734,13 @@ class LegalUpdatePipeline:
             raise ValueError("La proposta è stata rifiutata e non può essere pubblicata.")
         if verification is None:
             verification = self._verification_for_manual_publish(review)
+        if verification:
+            self._record_verification_evidence(
+                review,
+                self._source_for_review(review),
+                verification,
+                status="verified" if verification.get("ok") else "insufficient",
+            )
         review = _review_with_verification_publication_context(review, verification)
         proposed_action, review = self._resolve_publish_action(review)
         classification = str(review.get("classification_type") or "")
@@ -1953,10 +2014,16 @@ class LegalUpdatePipeline:
     def publish_auto_news(self, *, limit: int = 20) -> dict[str, Any]:
         cleanup = self.repository.deduplicate_archive(performed_by="system")
         reconciliation = self.reconcile_pending_reviews(limit=max(limit * 3, 120), reviewer="system")
-        items = self.repository.list_review_queue(statuses=("approved", "pending"), limit=limit)
+        candidate_limit = max(max(1, int(limit or 1)) * 12, 40)
+        items = self.repository.list_review_queue(statuses=("approved", "pending"), limit=candidate_limit)
         published: list[int] = []
         skipped: list[dict[str, Any]] = []
+        verification_attempts = 0
+        verification_evidence_saved = 0
+        verification_attachments_saved = 0
         for row in items:
+            if len(published) >= max(1, int(limit or 1)):
+                break
             proposed_action = str(row.get("proposed_action") or "").upper()
             if proposed_action in {"DUPLICATE", "OUT_OF_SCOPE"}:
                 skipped.append({"id": int(row["id"]), "reason": proposed_action.lower()})
@@ -1970,7 +2037,8 @@ class LegalUpdatePipeline:
                 continue
             confidence = float(row.get("confidence_score") or 0)
             threshold = self._auto_publish_threshold(proposed_action)
-            if confidence < threshold:
+            can_complete_as_news = proposed_action == "NEWS_ONLY" and confidence >= 0.50
+            if confidence < threshold and not can_complete_as_news:
                 continue
             review = self.repository.get_review_item(int(row["id"])) or row
             try:
@@ -1981,6 +2049,15 @@ class LegalUpdatePipeline:
                     "reason": f"Verifica pubblica non completata: {_truncate(str(exc), 160)}",
                     "confirmation_count": 0,
                 }
+            verification_attempts += 1
+            evidence = self._record_verification_evidence(
+                review,
+                source,
+                verification,
+                status="verified" if verification.get("ok") else "insufficient",
+            )
+            verification_evidence_saved += int(evidence.get("saved") or 0)
+            verification_attachments_saved += int(evidence.get("attachments") or 0)
             if not verification.get("ok"):
                 reason = _truncate(str(verification.get("reason") or "Verifica pubblica insufficiente."), 220)
                 self.repository.set_review_status(
@@ -1988,6 +2065,7 @@ class LegalUpdatePipeline:
                     "pending",
                     reviewer="system",
                     notes=_verification_note(verification, prefix="Verifica fonti insufficiente:"),
+                    priority=10,
                 )
                 skipped.append(
                     {
@@ -1995,9 +2073,20 @@ class LegalUpdatePipeline:
                         "reason": "verifica_fonti_insufficiente",
                         "detail": reason,
                         "confirmations": int(verification.get("confirmation_count") or 0),
+                        "evidence_saved": int(evidence.get("saved") or 0),
+                        "attachments_saved": int(evidence.get("attachments") or 0),
                     }
                 )
                 continue
+            if confidence < threshold and proposed_action == "NEWS_ONLY":
+                review = self.repository.set_review_proposed_action(
+                    int(row["id"]),
+                    "NEWS_ONLY",
+                    target_entity_type="",
+                    target_entity_id=None,
+                    reviewer="system",
+                    notes="Riferimento completato con verifica web ufficiale e pubblicato come notizia informativa.",
+                ) or review
             if str(row.get("status") or "").lower() != "approved":
                 self.repository.set_review_status(
                     int(row["id"]),
@@ -2026,6 +2115,9 @@ class LegalUpdatePipeline:
             "count": len(published),
             "items": published,
             "skipped": skipped,
+            "web_verification_attempts": verification_attempts,
+            "verification_evidence_saved": verification_evidence_saved,
+            "verification_attachments_saved": verification_attachments_saved,
             "duplicates_removed": int(cleanup.get("removed") or 0),
             "reconciled": reconciliation,
         }

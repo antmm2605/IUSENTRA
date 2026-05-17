@@ -863,6 +863,64 @@ class SchedulerRegistryRepository:
                 ),
             )
 
+    def cancel_open_runs(
+        self,
+        *,
+        job_prefixes: tuple[str, ...] = (),
+        job_ids: tuple[str, ...] = (),
+        cancelled_by: str = "",
+        reason: str = "",
+    ) -> dict[str, int]:
+        prefixes = tuple(str(prefix or "").strip() for prefix in job_prefixes if str(prefix or "").strip())
+        exact_ids = tuple(str(job_id or "").strip() for job_id in job_ids if str(job_id or "").strip())
+        if not prefixes and not exact_ids:
+            return {"cancelled": 0, "running": 0, "requested": 0}
+        where_parts = ["status IN ('requested', 'running')"]
+        params: list[Any] = []
+        job_clauses: list[str] = []
+        for prefix in prefixes:
+            job_clauses.append("job_id LIKE ?")
+            params.append(f"{prefix}%")
+        for job_id in exact_ids:
+            job_clauses.append("job_id = ?")
+            params.append(job_id)
+        where_parts.append("(" + " OR ".join(job_clauses) + ")")
+        where_sql = " AND ".join(where_parts)
+        now = _iso()
+        message = " ".join(str(reason or "").split()) or "Esecuzione annullata dalla console."
+        with self.connect() as conn:
+            rows = conn.execute(
+                f"SELECT status, started_at FROM scheduled_job_runs WHERE {where_sql}",
+                tuple(params),
+            ).fetchall()
+            running = sum(1 for row in rows if str(row["status"]) == "running")
+            requested = sum(1 for row in rows if str(row["status"]) == "requested")
+            conn.execute(
+                f"""
+                UPDATE scheduled_job_runs
+                SET status='cancelled',
+                    finished_at=?,
+                    duration_ms=CASE
+                        WHEN COALESCE(started_at, '') <> '' THEN duration_ms
+                        ELSE 0
+                    END,
+                    message=?,
+                    error_message=?,
+                    result_json=?,
+                    requested_by=CASE WHEN requested_by <> '' THEN requested_by ELSE ? END
+                WHERE {where_sql}
+                """,
+                (
+                    now,
+                    message,
+                    message,
+                    _json_dumps({"cancelled_by": cancelled_by, "reason": message}),
+                    cancelled_by,
+                    *params,
+                ),
+            )
+        return {"cancelled": len(rows), "running": running, "requested": requested}
+
     def record_scheduler_event(
         self,
         job_id: str,
@@ -946,7 +1004,9 @@ class SchedulerRegistryRepository:
                 SELECT
                     COUNT(*) AS total,
                     SUM(CASE WHEN status IN ('failed', 'error', 'missed') THEN 1 ELSE 0 END) AS failed,
-                    SUM(CASE WHEN status='requested' THEN 1 ELSE 0 END) AS requested
+                    SUM(CASE WHEN status='requested' THEN 1 ELSE 0 END) AS requested,
+                    SUM(CASE WHEN status='running' THEN 1 ELSE 0 END) AS running,
+                    SUM(CASE WHEN status='cancelled' THEN 1 ELSE 0 END) AS cancelled
                 FROM scheduled_job_runs
                 """
             ).fetchone()
@@ -959,6 +1019,8 @@ class SchedulerRegistryRepository:
             "runs_total": int(run_totals.get("total") or 0),
             "runs_failed": int(run_totals.get("failed") or 0),
             "runs_requested": int(run_totals.get("requested") or 0),
+            "runs_running": int(run_totals.get("running") or 0),
+            "runs_cancelled": int(run_totals.get("cancelled") or 0),
         }
 
     def _normalize_job(self, row: dict[str, Any]) -> dict[str, Any]:
@@ -1023,6 +1085,7 @@ def run_status_label(value: Any) -> str:
         "failed": "Non riuscita",
         "error": "Errore",
         "missed": "Saltata",
+        "cancelled": "Annullata",
     }.get(key, key.capitalize() or "Non registrata")
 
 

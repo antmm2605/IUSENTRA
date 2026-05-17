@@ -1,12 +1,26 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-17, Verità numeri Aggiornamenti legali e pianificazioni, no backup.
+Aggiornato: 2026-05-17, completamento web archivio legale e allegati fonti ufficiali, no backup.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Completamento web archivio legale e allegati fonti ufficiali - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\legal_update_repository.py pct\legal_update_pipeline.py pct\legal_update_web_verification.py pct\legal_update_batch_runner.py pct\scheduler_registry.py pct\scheduler.py web\services\scheduler_admin_surface.py web\blueprints\scheduler_admin.py tests\test_legal_update_publish_context.py tests\test_legal_update_web_verification_attachments.py tests\test_legal_updates_pipeline.py tests\test_scheduler_admin.py` | OK | Sintassi confermata su repository, pipeline, lettore web, batch runner, scheduler, console pianificazioni e test mirati. |
+| `python -m pytest -q tests\test_legal_update_web_verification_attachments.py tests\test_legal_update_publish_context.py` | OK | 12/12 passati: INPS viene letto dal JSON ufficiale `content-fragment-detail`, la query semplice `Circolare numero 53 del 07-05-2026` attiva ricerca mirata ed estesa, gli allegati vengono salvati, la Cassazione conserva il PDF anche se il testo non è estraibile e le evidenze entrano nella ricerca Lex. |
+| `python -m py_compile lex\retrieval\official_web.py pct\legal_update_web_verification.py tests\test_official_web_gazzetta.py tests\test_legal_update_web_verification_attachments.py`; `python -m pytest -q tests\test_official_web_gazzetta.py tests\test_legal_update_web_verification_attachments.py` | OK | 12/12 passati: Gazzetta usa il resolver diretto sull'archivio annuale ufficiale per `26G00056`, `D.Lgs. 13 marzo 2026, n. 39` e `D.Lgs. 39/2026`, senza dipendere solo dalla ricerca esterna; la pagina di aiuto `Formato Grafico PDF` non viene più trattata come allegato. |
+| `python -m pytest -q tests\test_official_web_gazzetta.py tests\test_legal_update_web_verification_attachments.py tests\test_legal_update_publish_context.py` | OK | 16/16 passati dopo l'aggiunta del resolver Gazzetta: ricerca diretta, allegati fonti ufficiali, INPS, Cassazione e persistenza evidenze restano coerenti. |
+| `python -m pytest -q tests\test_scheduler_admin.py tests\test_legal_update_surface_truth.py` | OK | 7/7 passati: `/admin/pianificazioni` mostra stato archivio verificato e l'azione `Annulla fonti legali` chiude solo esecuzioni fonte/batch aperte senza toccare altri job. |
+| `python -m pytest -q tests\test_scheduler_admin.py tests\test_legal_update_surface_truth.py tests\test_legal_update_batch_runner.py tests\test_legal_updates_pipeline.py::test_autopublish_risolve_needs_review_ufficiale_in_notizia tests\test_legal_updates_pipeline.py::test_verifica_normativa_usa_archivi_locali_web_e_contesto tests\test_legal_updates_pipeline.py::test_verifica_web_legge_allegati_della_fonte_ufficiale tests\test_legal_updates_pipeline.py::test_legal_update_autopubblica_attende_conferme_web tests\test_legal_updates_pipeline.py::test_atti_amministrativi_di_sola_liquidazione_non_diventano_news_legali tests\test_legal_updates_pipeline.py::test_open_data_cataloghi_vengono_archiviati_senza_review_manuale` | OK | 20/20 passati dopo Gazzetta: console, batch runner, filtro fuori perimetro, verifiche web e lettura allegati restano verdi. |
+| `python -m pytest -q tests\test_legal_update_batch_runner.py tests\test_legal_updates_pipeline.py::test_autopublish_risolve_needs_review_ufficiale_in_notizia tests\test_legal_updates_pipeline.py::test_verifica_normativa_usa_archivi_locali_web_e_contesto tests\test_legal_updates_pipeline.py::test_verifica_web_legge_allegati_della_fonte_ufficiale tests\test_legal_updates_pipeline.py::test_legal_update_autopubblica_attende_conferme_web tests\test_legal_updates_pipeline.py::test_atti_amministrativi_di_sola_liquidazione_non_diventano_news_legali tests\test_legal_updates_pipeline.py::test_open_data_cataloghi_vengono_archiviati_senza_review_manuale` | OK | 13/13 passati: il batch non si ferma più al primo riferimento non completato, aggrega evidenze/allegati salvati, e gli atti amministrativi di sola liquidazione fattura restano fuori perimetro. |
+| Smoke reale Python su fonti ufficiali e database temporaneo | OK | INPS `Circolare numero 53 del 07-05-2026`: contesto 12000 caratteri e 3 PDF; INPS `Messaggio numero 685 del 26-02-2026`: contesto 3660 caratteri e 1 PDF; Cassazione `QSP50202`: contesto 1171 caratteri e 1 PDF. Gazzetta `26G00056` e `D.Lgs. 13 marzo 2026, n. 39`: 1 risultato ELI ufficiale, contesto 1911 caratteri e 1 PDF GU. Nei DB temporanei le query Lex restituiscono risultati `web_evidence` interrogabili con allegati. |
+| `python -m ruff check ...` sul perimetro fonti legali/scheduler/test; `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py`; `git diff --check -- ...`; scan UTF-8 mirato | OK | Ruff mirato verde, packaging sincronizzato, release readiness 8/8, whitespace pulito e nessun mojibake nei testi/report/UI toccati. |
 
 ### Dataset Lex notturno Superadmin - 2026-05-17
 

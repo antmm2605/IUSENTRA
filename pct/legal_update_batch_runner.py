@@ -54,11 +54,26 @@ def _extract_source_report(result: dict[str, Any]) -> dict[str, Any]:
         processed += int(row.get("processed") or 0)
         skipped_unchanged += int(row.get("skipped_unchanged") or 0)
     autopublished = report.get("autopublished") or {}
+    publish_reports = list(autopublished.get("reports") or [])
+    verification_evidence_saved = 0
+    verification_attachments_saved = 0
+    web_verification_attempts = 0
+    for publish_result in publish_reports:
+        published_payload = publish_result.get("payload") if isinstance(publish_result, dict) else {}
+        published = published_payload.get("published") if isinstance(published_payload, dict) else {}
+        if not isinstance(published, dict):
+            continue
+        verification_evidence_saved += int(published.get("verification_evidence_saved") or 0)
+        verification_attachments_saved += int(published.get("verification_attachments_saved") or 0)
+        web_verification_attempts += int(published.get("web_verification_attempts") or 0)
     return {
         "documents_found": documents_found,
         "processed": processed,
         "skipped_unchanged": skipped_unchanged,
         "autopublished_count": int(autopublished.get("count") or payload.get("published_count") or 0),
+        "verification_evidence_saved": verification_evidence_saved,
+        "verification_attachments_saved": verification_attachments_saved,
+        "web_verification_attempts": web_verification_attempts,
     }
 
 
@@ -246,6 +261,9 @@ def run_legal_update_publish_queue_with_timeouts(
 ) -> dict[str, Any]:
     reports: list[dict[str, Any]] = []
     published_count = 0
+    verification_evidence_saved = 0
+    verification_attachments_saved = 0
+    web_verification_attempts = 0
     max_items = max(1, int(max_items or 1))
     for _ in range(max_items):
         result = run_legal_update_subprocess(
@@ -259,14 +277,24 @@ def run_legal_update_publish_queue_with_timeouts(
         reports.append(result)
         if not result.get("ok"):
             break
-        count = int(((result.get("payload") or {}).get("published_count")) or 0)
+        payload = result.get("payload") or {}
+        published_payload = payload.get("published") if isinstance(payload, dict) else {}
+        published_metrics = published_payload if isinstance(published_payload, dict) else {}
+        if published_metrics:
+            verification_evidence_saved += int(published_metrics.get("verification_evidence_saved") or 0)
+            verification_attachments_saved += int(published_metrics.get("verification_attachments_saved") or 0)
+            web_verification_attempts += int(published_metrics.get("web_verification_attempts") or 0)
+        count = int((payload.get("published_count") if isinstance(payload, dict) else 0) or 0)
         published_count += count
-        if count <= 0:
+        if count <= 0 and not int(published_metrics.get("web_verification_attempts") or 0):
             break
     return {
         "ok": all(row.get("ok") for row in reports) if reports else True,
         "mode": "publish_queue_timeout",
         "published_count": published_count,
+        "verification_evidence_saved": verification_evidence_saved,
+        "verification_attachments_saved": verification_attachments_saved,
+        "web_verification_attempts": web_verification_attempts,
         "timeouts": sum(1 for row in reports if row.get("timeout")),
         "reports": reports,
     }
@@ -317,5 +345,8 @@ def run_legal_update_batch_with_timeouts(
             "count": int(published.get("published_count") or 0),
             "items": [],
             "reports": published.get("reports") or [],
+            "verification_evidence_saved": int(published.get("verification_evidence_saved") or 0),
+            "verification_attachments_saved": int(published.get("verification_attachments_saved") or 0),
+            "web_verification_attempts": int(published.get("web_verification_attempts") or 0),
         },
     }

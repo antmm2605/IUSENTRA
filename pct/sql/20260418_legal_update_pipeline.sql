@@ -246,6 +246,30 @@ CREATE TABLE IF NOT EXISTS review_queue (
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS web_verification_evidence (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    evidence_key TEXT NOT NULL UNIQUE,
+    review_id INTEGER REFERENCES review_queue(id) ON DELETE SET NULL,
+    normalized_document_id INTEGER REFERENCES source_documents_normalized(id) ON DELETE SET NULL,
+    source_code TEXT NOT NULL DEFAULT '',
+    source_name TEXT NOT NULL DEFAULT '',
+    query TEXT NOT NULL DEFAULT '',
+    origin TEXT NOT NULL DEFAULT '',
+    title TEXT NOT NULL DEFAULT '',
+    source_url TEXT NOT NULL DEFAULT '',
+    attachment_url TEXT NOT NULL DEFAULT '',
+    attachment_type TEXT NOT NULL DEFAULT '',
+    sha256 TEXT NOT NULL DEFAULT '',
+    is_official INTEGER NOT NULL DEFAULT 0 CHECK (is_official IN (0,1)),
+    context_chars INTEGER NOT NULL DEFAULT 0,
+    excerpt TEXT NOT NULL DEFAULT '',
+    content_text TEXT NOT NULL DEFAULT '',
+    matched_terms_json TEXT NOT NULL DEFAULT '[]',
+    verification_status TEXT NOT NULL DEFAULT 'verified',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS audit_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     entity_type TEXT NOT NULL,
@@ -264,6 +288,9 @@ CREATE INDEX IF NOT EXISTS idx_source_agent_runs_status ON source_agent_runs(sta
 CREATE INDEX IF NOT EXISTS idx_normalized_hash ON source_documents_normalized(normalized_hash);
 CREATE INDEX IF NOT EXISTS idx_analysis_classification ON ai_documents_analysis(classification_type, confidence_score);
 CREATE INDEX IF NOT EXISTS idx_review_status ON review_queue(status, priority, created_at);
+CREATE INDEX IF NOT EXISTS idx_web_evidence_review ON web_verification_evidence(review_id, normalized_document_id);
+CREATE INDEX IF NOT EXISTS idx_web_evidence_source ON web_verification_evidence(source_code, created_at);
+CREATE INDEX IF NOT EXISTS idx_web_evidence_attachment ON web_verification_evidence(attachment_url);
 CREATE INDEX IF NOT EXISTS idx_news_publication ON news(publication_status, published_at);
 CREATE INDEX IF NOT EXISTS idx_normative_lookup ON normative(norm_type, norm_number, norm_year, issuer);
 CREATE INDEX IF NOT EXISTS idx_jurisprudence_lookup ON jurisprudence(court_name, decision_number, decision_year);

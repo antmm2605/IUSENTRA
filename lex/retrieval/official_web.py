@@ -26,6 +26,7 @@ DEFAULT_WEB_SOURCE_IDS: tuple[str, ...] = (
 
 _OFFICIAL_SEARCH_URL = "https://html.duckduckgo.com/html/"
 _CASSAZIONE_PENALE_LIST_URL = "https://www.cortedicassazione.it/it/giurisprudenza_penale.page"
+_GAZZETTA_ARCHIVE_URL = "https://www.gazzettaufficiale.it/showArchivioNews"
 _SEARCH_CACHE_TTL_SECONDS = 900
 _SEARCH_CACHE: dict[str, tuple[float, list[dict[str, Any]]]] = {}
 
@@ -43,6 +44,17 @@ _SOURCE_DOMAIN_ALIASES: dict[str, tuple[str, ...]] = {
     "curia": ("curia.europa.eu",),
     "cedu": ("echr.coe.int", "hudoc.echr.coe.int"),
     "agenzia_entrate": ("agenziaentrate.gov.it", "agenziaentrate.it"),
+    "anac": ("anticorruzione.it",),
+    "anac_documenti": ("anticorruzione.it",),
+    "agcom": ("agcom.it",),
+    "agcom_provvedimenti": ("agcom.it",),
+    "inps": ("inps.it",),
+    "inps_circolari": ("inps.it",),
+    "inps_messaggi": ("inps.it",),
+    "inps_sentenze": ("inps.it",),
+    "inail": ("inail.it",),
+    "banca_italia": ("bancaditalia.it",),
+    "banca_italia_normativa": ("bancaditalia.it",),
     "cnf": ("consiglionazionaleforense.it",),
     "registro_mediazione": ("giustizia.it", "mediazione.giustizia.it"),
 }
@@ -116,7 +128,11 @@ def resolve_official_source_ids_for_query(
         normalized = str(source_id or "").strip()
         if not normalized or normalized in seen:
             return
-        if normalized not in FONTI_UFFICIALI and registry.get(normalized) is None:
+        if (
+            normalized not in FONTI_UFFICIALI
+            and registry.get(normalized) is None
+            and normalized not in _SOURCE_DOMAIN_ALIASES
+        ):
             return
         seen.add(normalized)
         selected.append(normalized)
@@ -258,6 +274,180 @@ def _is_cassazione_requested(source_ids: list[str], candidate_domains: list[str]
     if any(str(source_id or "").strip() == "cassazione" for source_id in source_ids):
         return True
     return any("cortedicassazione.it" in domain for domain in candidate_domains)
+
+
+def _is_gazzetta_requested(source_ids: list[str], candidate_domains: list[str]) -> bool:
+    if any(str(source_id or "").strip() == "gazzetta_ufficiale" for source_id in source_ids):
+        return True
+    return any("gazzettaufficiale.it" in domain for domain in candidate_domains)
+
+
+def _gazzetta_code_year(code: str) -> str:
+    match = re.match(r"(?P<yy>\d{2})[A-Z]\d{5}$", str(code or "").strip().upper())
+    if not match:
+        return ""
+    yy = int(match.group("yy"))
+    return str(2000 + yy if yy < 80 else 1900 + yy)
+
+
+def _parse_gazzetta_reference(question: str) -> dict[str, str]:
+    text = _clean_spaces(question)
+    lower = text.lower()
+    code_match = re.search(r"\b\d{2}[A-Z]\d{5}\b", text.upper())
+    date_match = re.search(
+        r"\b(?P<day>\d{1,2})\s+"
+        r"(?P<month>gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)"
+        r"\s+(?P<year>20\d{2}|19\d{2})\b",
+        lower,
+    )
+    number_match = re.search(r"\b(?:n\.?|numero)\s*(?P<number>\d{1,5})\b", lower)
+    slash_number_match = re.search(r"\b(?P<number>\d{1,5})\s*/\s*(?P<year>20\d{2}|19\d{2})\b", lower)
+    kind = ""
+    if "d.lgs" in lower or "decreto legislativo" in lower:
+        kind = "decreto legislativo"
+    elif re.search(r"\bl\.\s*\d+|\blegge\b", lower):
+        kind = "legge"
+    elif "decreto-legge" in lower or "d.l." in lower:
+        kind = "decreto-legge"
+    elif "decreto" in lower:
+        kind = "decreto"
+    code = code_match.group(0) if code_match else ""
+    year = code and _gazzetta_code_year(code) or (
+        date_match.group("year") if date_match else slash_number_match.group("year") if slash_number_match else ""
+    )
+    number = number_match.group("number") if number_match else slash_number_match.group("number") if slash_number_match else ""
+    if not code and not (kind and year and number):
+        return {}
+    return {
+        "code": code,
+        "year": year,
+        "kind": kind,
+        "day": str(int(date_match.group("day"))) if date_match else "",
+        "month": date_match.group("month") if date_match else "",
+        "number": number,
+    }
+
+
+def _gazzetta_card_matches(card_text: str, hrefs_text: str, reference: dict[str, str]) -> bool:
+    combined = _clean_spaces(f"{card_text} {hrefs_text}")
+    lower = combined.lower()
+    code = reference.get("code", "")
+    if code:
+        return code.lower() in lower
+    kind = reference.get("kind", "")
+    if kind == "decreto legislativo":
+        if "d.lgs" not in lower and "decreto legislativo" not in lower:
+            return False
+    elif kind and kind not in lower:
+        return False
+    day = reference.get("day", "")
+    month = reference.get("month", "")
+    year = reference.get("year", "")
+    if day and month and year and f"{day} {month} {year}" not in lower:
+        padded_day = day.zfill(2)
+        if f"{padded_day} {month} {year}" not in lower:
+            return False
+    number = reference.get("number", "")
+    if number and not re.search(rf"\bn\.\s*{re.escape(number)}\b", lower):
+        return False
+    return True
+
+
+def _secure_gazzetta_url(url: str) -> str:
+    cleaned = _clean_spaces(url)
+    return re.sub(r"^http://(www\.)?gazzettaufficiale\.it", "https://www.gazzettaufficiale.it", cleaned, flags=re.I)
+
+
+def _gazzetta_archive_fallback(
+    question: str,
+    *,
+    source_ids: list[str],
+    candidate_domains: list[str],
+    fetch: Callable[..., Any],
+    limit_results: int,
+) -> list[dict[str, Any]]:
+    """Fallback diretto sull'archivio news Gazzetta per riferimenti normativi esatti.
+
+    Il motore esterno puo' non indicizzare subito pagine ELI gia' pubbliche.
+    Quando la domanda contiene un codice redazionale o un riferimento normativo
+    puntuale, leggiamo l'archivio annuale ufficiale e accettiamo solo la scheda
+    che contiene lo stesso codice oppure tipo, data e numero dell'atto.
+    """
+    reference = _parse_gazzetta_reference(question)
+    if not reference or not _is_gazzetta_requested(source_ids, candidate_domains):
+        return []
+    year = reference.get("year", "")
+    if not re.fullmatch(r"\d{4}", year or ""):
+        return []
+    try:
+        response = fetch(
+            _GAZZETTA_ARCHIVE_URL,
+            params={"anno": year},
+            headers={"User-Agent": USER_AGENT},
+            timeout=8,
+        )
+    except Exception:
+        return []
+    if int(getattr(response, "status_code", 0) or 0) >= 400:
+        return []
+    body = str(getattr(response, "text", "") or "")
+    if not body.strip():
+        return []
+    try:
+        document = lxml_html.fromstring(body)
+    except Exception:
+        return []
+    cards = document.xpath("//*[contains(concat(' ', normalize-space(@class), ' '), ' notizie_singola ')]")
+    results: list[dict[str, Any]] = []
+    seen_urls: set[str] = set()
+    for card in cards:
+        links = card.xpath(".//a[@href]")
+        hrefs_text = " ".join(str(link.get("href") or "") for link in links)
+        card_text = _clean_spaces(card.text_content())
+        if not _gazzetta_card_matches(card_text, hrefs_text, reference):
+            continue
+        official_link = None
+        for link in links:
+            href = str(link.get("href") or "")
+            if "eli/id" in href or (reference.get("code") and reference["code"].lower() in href.lower()):
+                official_link = link
+                break
+        if official_link is None:
+            continue
+        url = _secure_gazzetta_url(urljoin(_GAZZETTA_ARCHIVE_URL, official_link.get("href") or ""))
+        if not _is_allowed_result(url, "gazzettaufficiale.it") or url in seen_urls:
+            continue
+        seen_urls.add(url)
+        title_nodes = card.xpath(".//h6")
+        date_nodes = card.xpath(".//*[contains(concat(' ', normalize-space(@class), ' '), ' subtitolo_grid ')]")
+        title = _clean_spaces(title_nodes[0].text_content()) if title_nodes else _clean_spaces(official_link.text_content())
+        date_text = _clean_spaces(date_nodes[0].text_content()) if date_nodes else ""
+        reference_label = _clean_spaces(official_link.text_content())
+        excerpt = _clean_spaces(" ".join(part for part in (date_text, reference_label) if part))
+        results.append(
+            {
+                "id": f"gazzetta-archive:{hashlib.sha1(url.encode('utf-8')).hexdigest()[:12]}",
+                "title": title or "Gazzetta Ufficiale",
+                "url": url,
+                "official_url": url,
+                "source_home_url": "https://www.gazzettaufficiale.it/",
+                "domain": _normalize_domain(urlparse(url).netloc),
+                "source_id": "gazzetta_ufficiale",
+                "source_name": "Gazzetta Ufficiale",
+                "kind": "html",
+                "excerpt": excerpt,
+                "source_access_status": "public",
+                "source_access_label": "Pubblica",
+                "source_category": "normativa",
+                "source_priority": "primary",
+                "source_requires_credentials": False,
+                "source_restricted": False,
+                "source_supports_web_search": True,
+            }
+        )
+        if len(results) >= limit_results:
+            return results
+    return results
 
 
 def _card_text_for_link(link_node) -> str:
@@ -405,13 +595,21 @@ def search_recognized_official_web(
         seen_domains.add(domain)
         candidate_domains.append(domain)
 
-    direct_results = _cassazione_listing_fallback(
+    direct_results = _gazzetta_archive_fallback(
         query,
         source_ids=selected_source_ids,
         candidate_domains=candidate_domains,
         fetch=fetch,
         limit_results=limit_results,
     )
+    if not direct_results:
+        direct_results = _cassazione_listing_fallback(
+            query,
+            source_ids=selected_source_ids,
+            candidate_domains=candidate_domains,
+            fetch=fetch,
+            limit_results=limit_results,
+        )
     if direct_results:
         _SEARCH_CACHE[cache_key] = (now, [dict(item) for item in direct_results])
         return [dict(item) for item in direct_results]

@@ -4,6 +4,48 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.245.10 - 2026-05-17
+
+Il completamento web degli aggiornamenti legali non si ferma più al primo
+riferimento non confermato: la coda valuta più candidati, registra ogni
+tentativo, abbassa la priorità degli elementi senza conferme e continua con i
+riferimenti successivi. Se il web non produce conferme sufficienti, IUSENTRA
+salva comunque una diagnosi interrogabile nel database con query tentate,
+fonti provate e motivo della mancata pubblicazione.
+
+È stata introdotta la tabella `web_verification_evidence`, usata da Lex e
+dalla ricerca legale insieme agli archivi `normative`, `jurisprudence`,
+`prassi` e `news`. Le evidenze conservano fonte, query, URL ufficiale,
+allegato, hash SHA-256, estratto, testo disponibile e stato della verifica.
+Gli allegati verificati vengono collegati anche al documento normalizzato,
+così una query successiva può recuperare l'evidenza e non solo il riferimento.
+
+INPS viene letto attraverso il JSON ufficiale caricato dalla pagina pubblica
+`dettaglio.content-fragment-detail...json`: il caso reale `Circolare numero
+53 del 07-05-2026` salva testo, PDF principale e allegati; il caso `Messaggio
+numero 685 del 26-02-2026` salva testo e PDF. La ricerca usa anche la query
+minima del titolo e un piano esteso, non solo la fonte già agganciata al
+record.
+
+Cassazione QSP viene letta dalla pagina ufficiale e dagli allegati esposti:
+per `qsp_dettaglio.page?contentId=QSP50202` viene scaricato il PDF
+`14740_04_2026_pen_noindex.pdf`. Se il PDF non contiene testo estraibile, il
+database registra comunque allegato, hash e nota di testo non estraibile, senza
+dichiarare completamento testuale fittizio.
+
+Gazzetta Ufficiale viene letta con un resolver diretto sull'archivio annuale
+ufficiale quando la query contiene un codice redazionale o un riferimento
+normativo puntuale. Il caso reale `26G00056` / `D.Lgs. 13 marzo 2026, n. 39`
+viene risolto da `showArchivioNews?anno=2026` alla scheda ELI
+`https://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00056/sg`, con contesto
+ufficiale e PDF del fascicolo GU. La pagina di aiuto `Formato Grafico PDF` non
+viene più trattata come allegato.
+
+Gli atti amministrativi di sola gestione contabile, ad esempio liquidazioni
+fattura o mandati di pagamento privi di segnali come ricorso, appalto, gara,
+contenzioso o accesso agli atti, vengono chiusi fuori perimetro e non diventano
+news legali solo perché provengono da un sito pubblico.
+
 ## Aggiornamento operativo 2.245.9 - 2026-05-17
 
 Il contesto ufficiale usato dal dataset Lex accetta ora solo URL appartenenti

@@ -1,4 +1,4 @@
-#  version: 2.245.9
+#  version: 2.245.10
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -102,7 +102,7 @@ RUN npm --prefix frontend run build:vite \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.245.9" \
+      org.opencontainers.image.version="2.245.10" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 

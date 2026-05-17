@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import re
+from html import unescape
 from typing import Any
-from urllib.parse import urljoin, urlparse
+from urllib.parse import unquote, urljoin, urlparse
 
 import requests
 from lxml import html as lxml_html
@@ -35,6 +37,13 @@ GENERIC_ATTACHMENT_LABELS = {
     "continua",
 }
 OFFICIAL_ATTACHMENT_SOURCE_DOMAINS: tuple[tuple[str, str], ...] = (
+    ("inps.it", "INPS"),
+    ("agcom.it", "AGCOM"),
+    ("anticorruzione.it", "ANAC"),
+    ("inail.it", "INAIL"),
+    ("lavoro.gov.it", "Ministero del Lavoro"),
+    ("bancaditalia.it", "Banca d'Italia"),
+    ("regione.calabria.it", "Regione Calabria"),
     ("openga.giustizia-amministrativa.it", "OpenGA Giustizia Amministrativa"),
     ("giustizia-amministrativa.it", "Giustizia Amministrativa"),
     ("gazzettaufficiale.it", "Gazzetta Ufficiale"),
@@ -139,7 +148,19 @@ def _is_allowed_attachment_url(url: str, base_url: str) -> bool:
 def _looks_like_attachment(href: str, label: str) -> bool:
     text = f"{href} {label}".lower()
     path = urlparse(href).path.lower()
-    return path.endswith(ATTACHMENT_EXTENSIONS) or any(marker in text for marker in ATTACHMENT_LABELS)
+    query = urlparse(href).query.lower()
+    real_file_extensions = tuple(ext for ext in ATTACHMENT_EXTENSIONS if ext not in {".html", ".htm"})
+    if path.endswith(real_file_extensions) or path.endswith("/pdf"):
+        return True
+    if "downloadpdf" in path or "pdfpaginato" in path or "estensione=pdf" in query:
+        return True
+    if path.endswith((".html", ".htm")):
+        return (
+            any(marker in text for marker in ("scarica", "download", "allegato"))
+            or "/allegati/" in path
+            or "/download/" in path
+        )
+    return any(marker in text for marker in ("scarica allegato", "download allegato", "scarica documento"))
 
 
 def _attachment_links(html_text: str, base_url: str) -> list[dict[str, str]]:
@@ -147,7 +168,7 @@ def _attachment_links(html_text: str, base_url: str) -> list[dict[str, str]]:
         document = lxml_html.fromstring(html_text)
     except Exception:
         return []
-    max_links = _env_int("IUSENTRA_LEGAL_VERIFICATION_ATTACHMENT_MAX_LINKS", 2)
+    max_links = _env_int("IUSENTRA_LEGAL_VERIFICATION_ATTACHMENT_MAX_LINKS", 4)
     links: list[dict[str, str]] = []
     seen: set[str] = set()
     for anchor in document.xpath("//a[@href]"):
@@ -195,9 +216,32 @@ def _source_ids_for_review(review: dict[str, Any], source: dict[str, Any]) -> li
         _push("eur_lex")
     if "agenzia" in text or "entrate" in text:
         _push("agenzia_entrate")
+    if "anac" in text or "anticorruzione" in text or "appalti" in text:
+        _push("anac")
+        _push("anac_documenti")
+    if "agcom" in text or "comunicazioni elettroniche" in text:
+        _push("agcom")
+        _push("agcom_provvedimenti")
+    if "inps" in text or "previdenza" in text:
+        _push("inps")
+        _push("inps_circolari")
+        _push("inps_messaggi")
+    if "inail" in text:
+        _push("inail")
     if "lavoro" in text:
         _push("ministero_lavoro")
-    return rows[:4]
+    source_code = _clean_spaces(source.get("code") or review.get("source_code"))
+    if source_code:
+        _push(source_code)
+    return rows[:6]
+
+
+def _web_search_plans(source_ids: list[str]) -> list[dict[str, Any]]:
+    plans: list[dict[str, Any]] = []
+    if source_ids:
+        plans.append({"scope": "mirata", "source_ids": list(source_ids)})
+    plans.append({"scope": "estesa", "source_ids": []})
+    return plans
 
 
 def _verification_query(review: dict[str, Any]) -> str:
@@ -425,6 +469,7 @@ def _confirmation_from_row(
         "tier": tier,
         "official": tier == Tier.TIER_1.value or bool(row.get("official") or row.get("verified_reference")),
         "excerpt": _context_excerpt(row, review, limit=420),
+        "content": _truncate(row.get("full_context") or row.get("testo") or row.get("content") or row.get("excerpt"), 12000),
         "matched_terms": _matched_terms(row, review),
         "query": _truncate(query, 220),
         "context_chars": len(_clean_spaces(row.get("full_context") or row.get("testo") or row.get("content") or row.get("excerpt"))),
@@ -450,6 +495,7 @@ def _self_confirmation(review: dict[str, Any], source: dict[str, Any]) -> dict[s
         "tier": tier,
         "official": True,
         "excerpt": _truncate(review.get("summary_short") or review.get("body_short") or review.get("body_text"), 420),
+        "content": _truncate(review.get("body_text") or review.get("body_short") or review.get("summary_short"), 12000),
         "matched_terms": _matched_terms({"content": review.get("body_text") or review.get("summary_short")}, review),
         "query": _truncate(_verification_query(review), 220),
         "context_chars": len(_clean_spaces(review.get("body_text") or review.get("body_short") or review.get("summary_short"))),
@@ -567,7 +613,14 @@ def _download_limited(url: str, *, timeout: int, max_bytes: int, base_url: str =
 def _text_from_html(html_text: str) -> str:
     try:
         document = lxml_html.fromstring(html_text)
-        return _clean_spaces(" ".join(document.xpath("//body//text()")) or document.text_content())
+        for node in document.xpath("//script|//style|//noscript|//nav|//header|//footer"):
+            try:
+                node.drop_tree()
+            except Exception:
+                continue
+        content_nodes = document.xpath("//main|//article|//*[@role='main']")
+        source_node = content_nodes[0] if content_nodes else document
+        return _clean_spaces(" ".join(source_node.xpath(".//text()")) or source_node.text_content())
     except Exception:
         return _clean_spaces(html_text)
 
@@ -613,7 +666,8 @@ def _official_attachment_confirmation(
     )
     if not source_name:
         return None
-    text_excerpt = _truncate(text, 900)
+    unavailable_note = "Allegato scaricato dalla fonte ufficiale; testo non estraibile automaticamente."
+    text_excerpt = _truncate(text or unavailable_note, 900)
     return {
         "origin": "allegato_fonte_ufficiale",
         "title": _truncate(_attachment_title(label, attachment_url), 180),
@@ -623,7 +677,8 @@ def _official_attachment_confirmation(
         "attachment_type": attachment_type,
         "sha256": hashlib.sha256(content).hexdigest(),
         "text_excerpt": text_excerpt,
-        "excerpt": _truncate(text, 420),
+        "excerpt": _truncate(text or unavailable_note, 420),
+        "content": _truncate(text or unavailable_note, 12000),
         "url": _clean_spaces(attachment_url),
         "domain": _domain(attachment_url),
         "tier": Tier.TIER_1.value,
@@ -632,6 +687,113 @@ def _official_attachment_confirmation(
         "matched_terms": [],
         "query": "",
     }
+
+
+def _inps_detail_json_url(url: str) -> str:
+    target = _clean_spaces(url)
+    parsed = urlparse(target)
+    if not _domain_matches(parsed.netloc, "inps.it"):
+        return ""
+    if "dettaglio.circolari-e-messaggi." not in parsed.path or not parsed.path.endswith(".html"):
+        return ""
+    return target.replace("dettaglio.", "dettaglio.content-fragment-detail.", 1).rsplit(".html", 1)[0] + ".json"
+
+
+def _decode_inps_value(value: Any) -> str:
+    if isinstance(value, dict):
+        value = value.get("value")
+    if value is None:
+        return ""
+    decoded = unescape(unquote(str(value)))
+    if "<" in decoded and ">" in decoded:
+        return _text_from_html(decoded)
+    return _clean_spaces(decoded)
+
+
+def _inps_attachment_candidates(payload: dict[str, Any], source_url: str) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    seen: set[str] = set()
+
+    def _push(raw: Any, label: Any = "") -> None:
+        if not raw:
+            return
+        path = unquote(str(raw))
+        absolute = urljoin("https://www.inps.it", path)
+        if absolute in seen or not _is_allowed_attachment_url(absolute, source_url):
+            return
+        if _file_type_from_url(absolute) not in {"pdf", "docx", "doc", "xml", "txt"}:
+            return
+        seen.add(absolute)
+        rows.append(
+            {
+                "url": absolute,
+                "label": _decode_inps_value(label) or _filename_from_url(absolute) or "Allegato INPS",
+            }
+        )
+
+    _push(payload.get("pdf"), payload.get("titolo"))
+    allegati = payload.get("allegati")
+    if isinstance(allegati, dict):
+        for item in list(allegati.get("value") or []):
+            if not isinstance(item, dict):
+                continue
+            _push(item.get("encodedPath") or item.get("path"), item.get("title") or item.get("name"))
+    rectifications = payload.get("rectificationsObjectList")
+    if isinstance(rectifications, dict):
+        for item in rectifications.values():
+            if not isinstance(item, dict):
+                continue
+            _push(item.get("encodedPath") or item.get("path"), item.get("title") or item.get("name"))
+    return rows
+
+
+def _fetch_inps_detail_context_with_attachments(
+    url: str,
+    *,
+    timeout: int,
+    max_bytes: int,
+) -> tuple[str, list[dict[str, Any]]]:
+    target = _clean_spaces(url)
+    detail_url = _inps_detail_json_url(target)
+    if not detail_url:
+        return "", []
+    content, _content_type = _download_limited(detail_url, timeout=timeout, max_bytes=max_bytes, base_url=target)
+    if not content:
+        return "", []
+    try:
+        payload = json.loads(content.decode("utf-8", errors="ignore"))
+    except Exception:
+        return "", []
+    if not isinstance(payload, dict):
+        return "", []
+
+    sections = [
+        _decode_inps_value(payload.get("titolo")),
+        _decode_inps_value(payload.get("oggetto")),
+        _decode_inps_value(payload.get("sommario")),
+        _decode_inps_value(payload.get("testoCompleto")),
+    ]
+    context = _truncate(" ".join(section for section in sections if section), 12000)
+    confirmations: list[dict[str, Any]] = []
+    max_links = _env_int("IUSENTRA_LEGAL_VERIFICATION_ATTACHMENT_MAX_LINKS", 4)
+    for item in _inps_attachment_candidates(payload, target)[:max_links]:
+        attachment_url = _clean_spaces(item.get("url"))
+        attachment_content, attachment_type = _download_limited(
+            attachment_url,
+            timeout=timeout,
+            max_bytes=max_bytes,
+            base_url=target,
+        )
+        confirmation = _official_attachment_confirmation(
+            source_url=target,
+            attachment_url=attachment_url,
+            label=_clean_spaces(item.get("label") or "Allegato INPS"),
+            content=attachment_content,
+            content_type=attachment_type or _clean_spaces(item.get("attachment_type")),
+        )
+        if confirmation:
+            confirmations.append(confirmation)
+    return context, confirmations
 
 
 def extract_official_attachment_confirmations(
@@ -688,6 +850,19 @@ def _fetch_official_web_context_with_attachments(url: str, *, timeout: int = 8) 
     if not target.startswith(("https://", "http://")) or not _is_recognized_official_url(target):
         return "", []
     max_bytes = _env_int("IUSENTRA_LEGAL_VERIFICATION_ATTACHMENT_MAX_BYTES", 30 * 1024 * 1024)
+    inps_context, inps_attachments = _fetch_inps_detail_context_with_attachments(
+        target,
+        timeout=timeout,
+        max_bytes=max_bytes,
+    )
+    if inps_context or inps_attachments:
+        sections = [inps_context]
+        for confirmation in inps_attachments:
+            excerpt = _clean_spaces(confirmation.get("text_excerpt") or confirmation.get("excerpt"))
+            if excerpt:
+                sections.append(f"Allegato {confirmation.get('title')}: {excerpt}")
+        return _truncate(" ".join(section for section in sections if section), 12000), inps_attachments
+
     content, content_type = _download_limited(target, timeout=timeout, max_bytes=max_bytes)
     if not content:
         return "", []
@@ -774,6 +949,7 @@ def verify_legal_update_against_public_sources(
         "query": query,
         "queries": queries,
         "source_ids": _source_ids_for_review(review, source),
+        "web_searches": [],
         "web_context": True,
     }
 
@@ -782,6 +958,7 @@ def verify_legal_update_against_public_sources(
         confirmations.append(self_match)
 
     web_results_seen = 0
+    seen_web_urls: set[str] = set()
     for candidate_query in queries:
         confirmations.extend(
             _search_and_confirm(
@@ -815,43 +992,60 @@ def verify_legal_update_against_public_sources(
                 )
             )
 
-        try:
-            web_rows = search_recognized_official_web(
-                candidate_query,
-                source_ids=list(searched["source_ids"] or []),
-                limit_results=limit,
-            )
-            web_results_seen += len(web_rows)
-            for row in web_rows:
-                candidate = dict(row or {})
-                context, attachment_confirmations = _fetch_official_web_context_with_attachments(
-                    _clean_spaces(candidate.get("url") or candidate.get("official_url") or candidate.get("url_origine"))
+        for plan in _web_search_plans(list(searched["source_ids"] or [])):
+            plan_source_ids = list(plan.get("source_ids") or [])
+            plan_scope = _clean_spaces(plan.get("scope") or "estesa")
+            try:
+                web_rows = search_recognized_official_web(
+                    candidate_query,
+                    source_ids=plan_source_ids,
+                    limit_results=max(int(limit or 0), 4),
                 )
-                if context:
-                    candidate["full_context"] = context
-                match = _confirmation_from_row(
-                    candidate,
-                    origin="ricerca_web_governata",
-                    review=review,
-                    query=candidate_query,
+                searched["web_searches"].append(
+                    {
+                        "query": candidate_query,
+                        "scope": plan_scope,
+                        "source_ids": plan_source_ids,
+                        "results": len(web_rows),
+                    }
                 )
-                if match:
-                    confirmations.append(match)
-                for attachment_confirmation in attachment_confirmations:
-                    if _attachment_matches_review(attachment_confirmation, review):
-                        enriched_attachment = dict(attachment_confirmation)
-                        enriched_attachment["query"] = _truncate(candidate_query, 220)
-                        enriched_attachment["matched_terms"] = _matched_terms(
-                            {
-                                "title": enriched_attachment.get("title"),
-                                "content": enriched_attachment.get("text_excerpt"),
-                                "url": enriched_attachment.get("attachment_url"),
-                            },
-                            review,
-                        )
-                        confirmations.append(enriched_attachment)
-        except Exception as exc:
-            warnings.append(f"Ricerca web governata non completata: {_truncate(exc, 140)}")
+                web_results_seen += len(web_rows)
+                for row in web_rows:
+                    candidate = dict(row or {})
+                    candidate_url = _clean_spaces(candidate.get("url") or candidate.get("official_url") or candidate.get("url_origine"))
+                    if candidate_url and candidate_url in seen_web_urls:
+                        continue
+                    if candidate_url:
+                        seen_web_urls.add(candidate_url)
+                    context, attachment_confirmations = _fetch_official_web_context_with_attachments(candidate_url)
+                    if context:
+                        candidate["full_context"] = context
+                    match = _confirmation_from_row(
+                        candidate,
+                        origin="ricerca_web_governata",
+                        review=review,
+                        query=candidate_query,
+                    )
+                    if match:
+                        match["search_scope"] = plan_scope
+                        confirmations.append(match)
+                    parent_page_matches = bool(match)
+                    for attachment_confirmation in attachment_confirmations:
+                        if parent_page_matches or _attachment_matches_review(attachment_confirmation, review):
+                            enriched_attachment = dict(attachment_confirmation)
+                            enriched_attachment["query"] = _truncate(candidate_query, 220)
+                            enriched_attachment["search_scope"] = plan_scope
+                            enriched_attachment["matched_terms"] = _matched_terms(
+                                {
+                                    "title": enriched_attachment.get("title"),
+                                    "content": enriched_attachment.get("text_excerpt"),
+                                    "url": enriched_attachment.get("attachment_url"),
+                                },
+                                review,
+                            )
+                            confirmations.append(enriched_attachment)
+            except Exception as exc:
+                warnings.append(f"Ricerca web governata non completata: {_truncate(exc, 140)}")
     searched["web_results"] = web_results_seen
 
     confirmations = _deduplicate_confirmations(confirmations)

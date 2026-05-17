@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.245.7 - 2026-05-17
+
+- Completato `/impostazioni?tab=ai` per telefoni e tablet: IUSENTRA rileva dispositivo, risorse dichiarate e percorso sicuro, aprendo Lex AI mobile quando il dispositivo non puo' preparare un motore locale.
+- Evitato il falso installer mobile di Ollama: la preparazione locale resta attiva sui PC verificabili, mentre mobile/tablet usano il motore AI autorizzato dello studio finche' non esiste un'app compatibile e autorizzata.
+- Riallineata la UI desktop/fallback: il modello di ricerca documenti viene mostrato come `EmbeddingGemma 300M` invece del codice grezzo `embeddinggemma:300m`.
+- Aggiunta l'opzione volontaria `Qwen 3.5 minimo` per dispositivi leggeri, mantenendo Gemma/EmbeddingGemma come default automatici governati dal profilo hardware.
+
 ## 2.245.6 - 2026-05-17
 
 - Integrato Lex AI nella navigazione mobile React: la barra inferiore ora espone un'azione diretta `Lex AI` che apre il widget contestuale con il contesto della pagina corrente.

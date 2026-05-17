@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-17, Lex AI mobile e Qwen 3.5 2.245.6.
+Aggiornato: 2026-05-17, AI Locale mobile e EmbeddingGemma 2.245.7.
 
 ## Regola operativa
 
@@ -10,6 +10,8 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Packaging 2.245.7 | Primo `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | Risolto nella stessa sessione | `test_versione_allineata_tra_package_docker_e_railway` ha trovato la label Docker OCI ancora a `2.245.6`, mentre `pct.__version__` era gia' `2.245.7`. | Aggiornata `org.opencontainers.image.version` nel Dockerfile a `2.245.7`; rilanciati `sync_packaging_files.py --check`, packaging/readiness 8/8 e `git diff --check`, tutti OK. |
+| AI Locale mobile 2.245.7 | Typecheck, pytest mirato, contratti React, build Vite e Playwright locale autenticato `/impostazioni?tab=ai` | Nessuna issue aperta | Il rischio era mostrare un installer mobile Ollama non verificabile o lasciare visibile il codice grezzo `embeddinggemma:300m`. | La pagina rileva telefono/tablet e risorse dichiarate, apre Lex AI con motore autorizzato dello studio quando il dispositivo non e' preparabile, e mostra `EmbeddingGemma 300M` su desktop/fallback. Gate registrati in `pytest-confirmed-ok.md`. |
 | Lex AI mobile 2.245.6 | Primo smoke Playwright mobile su `/` autenticata | Risolto nella stessa sessione | Il primo tentativo non trovava `.iu-mobile__lex` perche' gli asset React locali erano stati ripuliti prima della prova e il server temporaneo serviva il bundle tracciato precedente. | Rigenerato il bundle Vite solo per la verifica browser, rilanciato lo smoke mobile e confermato: pulsante `Lex AI` visibile, widget aperto al click, nessun overflow e zero errori console. Gli asset hashati locali vanno ripuliti prima del commit perche' Docker li rigenera in deploy. |
 | Hotfix agenti Lex produzione 2.245.4 | Run produzione `lex-agenti-operativi --all --json` dopo deploy 2.245.4 | Risolto e verificato in produzione | Quattro agenti tornavano `Da verificare` non per assenza dati reali, ma per chiavi non risolte nel runtime Flask (`LEX_OFFICIAL_DB`, `NORMATTIVA_DB`, `PCT_DATA_ROOT`) e per schema PDP Penale tenant non ancora creato. | Runtime allineato alle env `PCT_*`; agente PDP inizializza lo schema SQLite tenant-aware senza fallback globale. Produzione verificata: 16 agenti su 16 `ok`, nessuna chiave mancante. |
 | Lex AI operativo 2.245.3 | `python -m pct.cli lex-agenti-operativi --all --json` | Nessuna issue aperta sul codice; run locale parziale per configurazione | Il run immediato locale ha creato solo artefatti runtime rigenerabili (`email/ordinaria.json`, `intelligence/lex_operational_agents.json`, `intelligence/workspace_intelligence.json`) e alcuni agenti hanno risposto `Da verificare` per archivi/env non configurati nel setup locale. | Artefatti runtime rimossi dalla worktree; il comportamento e' intenzionale: gli agenti non mascherano fonti mancanti come completate. Rilanciare su Hetzner dopo deploy per leggere configurazione e archivi reali del server. |

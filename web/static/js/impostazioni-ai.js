@@ -81,6 +81,29 @@
     return escapeHtml(role || 'Modello');
   }
 
+  function aiModelLabel(value) {
+    const raw = String(value || '').trim();
+    const normalized = raw.toLowerCase();
+    if (!normalized || normalized === 'n.d.') {
+      return raw || 'n.d.';
+    }
+    const labels = {
+      'embeddinggemma': 'EmbeddingGemma',
+      'embeddinggemma:latest': 'EmbeddingGemma',
+      'embeddinggemma:300m': 'EmbeddingGemma 300M',
+      'gemini-embedding-001': 'Gemini Embedding',
+      'gemini-embedding-2': 'Gemini Embedding 2',
+      'qwen3.5:0.8b': 'Qwen 3.5 minimo',
+      'qwen3.5:2b': 'Qwen 3.5 leggero',
+      'qwen3.5:9b': 'Qwen 3.5 avanzato',
+      'gemma3:1b': 'Gemma 3 veloce',
+      'gemma3:4b': 'Gemma 3 completo',
+      'qwen2.5:0.5b': 'Qwen leggero',
+      'nomic-embed-text': 'Nomic Embed',
+    };
+    return labels[normalized] || raw;
+  }
+
   function aiInstallStateLabel(state) {
     const labels = {
       ready: 'Pronto',
@@ -321,16 +344,20 @@
     const statusMeta = aiStatusMeta(runtimeStatus);
     const chatModelValue = resolvedModels.chat || 'n.d.';
     const embedModelValue = resolvedModels.embed || 'n.d.';
+    const chatModelLabel = aiModelLabel(chatModelValue);
+    const embedModelLabel = aiModelLabel(embedModelValue);
     const preferredChatValue = preferredModels.chat || '';
     const preferredEmbedValue = preferredModels.embed || '';
+    const preferredChatLabel = aiModelLabel(preferredChatValue);
+    const preferredEmbedLabel = aiModelLabel(preferredEmbedValue);
     const modelMeta = [];
     if (preferredChatValue && preferredChatValue !== chatModelValue) {
-      modelMeta.push('Policy preferita ' + escapeHtml(preferredChatValue));
+      modelMeta.push('Policy preferita ' + escapeHtml(preferredChatLabel));
     }
     modelMeta.push(
       preferredEmbedValue && preferredEmbedValue !== embedModelValue
-        ? 'Embeddings ' + escapeHtml(embedModelValue) + ' · policy ' + escapeHtml(preferredEmbedValue)
-        : 'Embeddings ' + escapeHtml(embedModelValue)
+        ? 'Embeddings ' + escapeHtml(embedModelLabel) + ' · policy ' + escapeHtml(preferredEmbedLabel)
+        : 'Embeddings ' + escapeHtml(embedModelLabel)
     );
 
     setAiBadge(statusMeta.label, statusMeta.tone);
@@ -363,7 +390,7 @@
       '</article>' +
       '<article class="settings-ai-stat">' +
       '<div class="settings-ai-stat__label">Modello operativo</div>' +
-      '<div class="settings-ai-stat__value">' + escapeHtml(chatModelValue) + '</div>' +
+      '<div class="settings-ai-stat__value">' + escapeHtml(chatModelLabel) + '</div>' +
       '<div class="settings-ai-stat__meta">' + modelMeta.join(' · ') + '</div>' +
       '</article>' +
       '<article class="settings-ai-stat">' +
@@ -660,4 +687,3 @@
   window.runLocalAiBootstrap = runLocalAiBootstrap;
   window.openLocalAiVersionCheck = openLocalAiVersionCheck;
 })();
-

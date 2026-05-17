@@ -2,6 +2,21 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-17T14:05:00+02:00: AI Locale mobile e
+EmbeddingGemma 2.245.7.
+La tab `/impostazioni?tab=ai` non tratta piu' telefono e tablet come se fossero
+PC: rileva dispositivo, touch, dimensione schermo, RAM dichiarata, core e spazio
+stimato, poi mostra il percorso sicuro. Su mobile apre Lex AI usando il motore
+autorizzato dello studio; sul PC resta disponibile la preparazione locale con
+Local Signer e Ollama. Il modello di ricerca documenti viene presentato come
+`EmbeddingGemma 300M`, senza esporre il codice `embeddinggemma:300m` nella UI.
+
+Verifica reale con dati temporanei isolati: Playwright desktop 1440x1000 e
+mobile 390x844 su `/impostazioni?tab=ai`, login tenant, Local Signer intercettato
+nel browser, pannello `AI su telefono e tablet`, `EmbeddingGemma 300M` e `Apri
+Lex AI` visibili, nessun overflow orizzontale e zero errori console. Gate verdi:
+typecheck, pytest mirato Impostazioni AI, contratti React e build Vite.
+
 Aggiornamento 2026-05-17T13:35:00+02:00: Lex AI mobile e Qwen 3.5 2.245.6.
 La shell React espone Lex AI anche su telefono e tablet: nella barra mobile
 inferiore compare il pulsante operativo `Lex AI`, che apre il widget contestuale

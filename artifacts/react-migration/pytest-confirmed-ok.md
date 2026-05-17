@@ -1,12 +1,24 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-17, Lex AI mobile e Qwen 3.5 2.245.6, no backup.
+Aggiornato: 2026-05-17, AI Locale mobile e EmbeddingGemma 2.245.7, no backup.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### AI Locale mobile e EmbeddingGemma 2.245.7 - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `npm --prefix frontend run typecheck -- --pretty false` | OK | TypeScript confermato dopo rilevamento telefono/tablet in `/impostazioni?tab=ai`, etichette modello leggibili e opzione `Qwen 3.5 minimo`. |
+| `python -m pytest tests\test_impostazioni_ai_locale_react.py -q --tb=short` | OK | 4/4 passati: AI Locale resta governata da Local Signer sul PC, mobile non finge installer Ollama, UI mostra `EmbeddingGemma 300M` e pannello `AI su telefono e tablet`. |
+| `node frontend\scripts\check-react-contracts.mjs` | OK | Contratti React confermati dopo la modifica della tab Impostazioni AI. |
+| `npm --prefix frontend run build` | OK | Build Vite completata in 6.28s: main `index-BL0MQt7H.js` 452.41 kB (133.82 kB gzip), CSS `index-B2lPaDH2.css` 125.21 kB (22.99 kB gzip), chunk `ImpostazioniPage-CfqnCtWs.js` 127.86 kB (37.38 kB gzip). |
+| Playwright locale autenticato desktop 1440x1000 e mobile 390x844 su `/impostazioni?tab=ai` | OK | Dati isolati temporanei; Local Signer intercettato nel browser. `AI su telefono e tablet`, `EmbeddingGemma 300M` e `Apri Lex AI` visibili; `embeddinggemma:300m` non visibile; zero overflow orizzontale e zero console error/warning. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | Packaging sincronizzato e readiness 8/8 dopo allineamento label Docker `org.opencontainers.image.version=2.245.7`. |
+| `python scripts\validate_docs_links.py CHANGELOG.md docs\LEX_MOBILE_AI_QWEN35_EVALUATION.md artifacts\react-migration\pytest-confirmed-ok.md artifacts\react-migration\pytest-open-issues.md artifacts\react-migration\full-react-final-report.md artifacts\react-migration\full-react-performance-notes.md`; `python scripts\validate_docs_commands.py`; `git diff --check -- . ':!data/*'` | OK | Link documentali, comandi documentati e whitespace confermati dopo report 2.245.7. |
 
 ### Lex AI mobile e Qwen 3.5 2.245.6 - 2026-05-17
 

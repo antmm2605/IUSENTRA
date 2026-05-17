@@ -45,6 +45,24 @@
     return (amount >= 10 ? String(Math.round(amount)) : amount.toFixed(1)) + ' ' + suffix;
   }
 
+  function modelLabel(value) {
+    const raw = text(value);
+    const normalized = raw.toLowerCase();
+    if (!normalized) return 'automatico';
+    if (normalized === 'embeddinggemma' || normalized === 'embeddinggemma:latest') return 'EmbeddingGemma';
+    if (normalized === 'embeddinggemma:300m') return 'EmbeddingGemma 300M';
+    if (normalized === 'gemini-embedding-001') return 'Gemini Embedding';
+    if (normalized === 'gemini-embedding-2') return 'Gemini Embedding 2';
+    if (normalized === 'qwen3.5:0.8b') return 'Qwen 3.5 minimo';
+    if (normalized === 'qwen3.5:2b') return 'Qwen 3.5 leggero';
+    if (normalized === 'qwen3.5:9b') return 'Qwen 3.5 avanzato';
+    if (normalized === 'gemma3:1b') return 'Gemma 3 veloce';
+    if (normalized === 'gemma3:4b') return 'Gemma 3 completo';
+    if (normalized === 'qwen2.5:0.5b') return 'Qwen leggero';
+    if (normalized === 'nomic-embed-text') return 'Nomic Embed';
+    return raw;
+  }
+
   function describe(payload) {
     const source = record(payload);
     const runtime = record(source.runtime);
@@ -56,8 +74,8 @@
       numberLabel(runtime.ram_gb, 'GB RAM'),
       numberLabel(runtime.disk_free_gb, 'GB liberi'),
     ].filter(Boolean).join(', ');
-    const chat = text(models.chat) || 'automatico';
-    const embed = text(models.embed) || 'automatico';
+    const chat = modelLabel(models.chat);
+    const embed = modelLabel(models.embed);
     if (ready) {
       return {
         ok: true,

@@ -5,6 +5,16 @@ export type LocalAiLocalResult = {
   payload?: Record<string, unknown>
 }
 
+export type MobileAiInstallPlan = {
+  isPortable: boolean
+  deviceLabel: string
+  resourceLabel: string
+  modelLabel: string
+  pathLabel: string
+  canPrepareOnThisDevice: boolean
+  missingSignals: boolean
+}
+
 const DEFAULT_AI_BASE_URL = 'http://127.0.0.1:11434/api'
 const START_WAIT_STEPS = [500, 900, 1400, 2000, 2600]
 
@@ -34,6 +44,23 @@ function numericText(value: unknown): string {
 function modelValue(value: unknown): string {
   const normalized = text(value)
   return normalized === '__auto__' ? '' : normalized
+}
+
+export function localAiModelLabel(value: unknown): string {
+  const normalized = text(value).toLowerCase()
+  if (!normalized) return 'automatico'
+  if (normalized === 'embeddinggemma' || normalized === 'embeddinggemma:latest') return 'EmbeddingGemma'
+  if (normalized === 'embeddinggemma:300m') return 'EmbeddingGemma 300M'
+  if (normalized === 'gemini-embedding-001') return 'Gemini Embedding'
+  if (normalized === 'gemini-embedding-2') return 'Gemini Embedding 2'
+  if (normalized === 'qwen3.5:0.8b') return 'Qwen 3.5 minimo'
+  if (normalized === 'qwen3.5:2b') return 'Qwen 3.5 leggero'
+  if (normalized === 'qwen3.5:9b') return 'Qwen 3.5 avanzato'
+  if (normalized === 'gemma3:1b') return 'Gemma 3 veloce'
+  if (normalized === 'gemma3:4b') return 'Gemma 3 completo'
+  if (normalized === 'qwen2.5:0.5b') return 'Qwen leggero'
+  if (normalized === 'nomic-embed-text') return 'Nomic Embed'
+  return text(value)
 }
 
 function aiSettings(values: Record<string, unknown>, force = false): Record<string, unknown> {
@@ -66,6 +93,74 @@ function sleep(ms: number): Promise<void> {
 function isDesktopHost(): boolean {
   const host = window.location.hostname
   return ['127.0.0.1', 'localhost', '::1'].includes(host) || host.endsWith('.local')
+}
+
+function gbLabel(value: number | undefined, suffix: string): string {
+  if (!Number.isFinite(value) || !value || value <= 0) return ''
+  return `${value >= 10 ? Math.round(value) : Number(value.toFixed(1))} ${suffix}`
+}
+
+function mobileDeviceLabel(userAgent: string, platform: string, isPortable: boolean): string {
+  const source = `${userAgent} ${platform}`.toLowerCase()
+  if (/iphone|ipad|ipod|ios/.test(source)) return /ipad/.test(source) ? 'iPad rilevato' : 'iPhone rilevato'
+  if (/android/.test(source)) return /tablet/.test(source) ? 'Tablet Android rilevato' : 'Telefono Android rilevato'
+  if (isPortable) return 'Dispositivo touch rilevato'
+  return 'PC dello studio rilevato'
+}
+
+function mobileModelLabel(memoryGb: number | undefined, freeGb: number | undefined, isPortable: boolean): string {
+  if (!isPortable) return 'Scelta automatica sul PC'
+  if (!memoryGb || (freeGb !== undefined && freeGb < 4)) return 'Motore AI dello studio'
+  if (memoryGb >= 12 && (freeGb === undefined || freeGb >= 10)) return 'Qwen 3.5 leggero'
+  if (memoryGb >= 8 && (freeGb === undefined || freeGb >= 6)) return 'Qwen 3.5 minimo'
+  return 'Motore AI dello studio'
+}
+
+export async function detectMobileAiInstallPlan(): Promise<MobileAiInstallPlan> {
+  const nav = window.navigator as Navigator & {
+    deviceMemory?: number
+    userAgentData?: { mobile?: boolean; platform?: string }
+  }
+  const userAgent = nav.userAgent || ''
+  const platform = nav.userAgentData?.platform || nav.platform || ''
+  const uaMobile = /android|iphone|ipad|ipod|mobile|tablet/i.test(`${userAgent} ${platform}`)
+  const touch = (nav.maxTouchPoints || 0) > 1
+  const compactScreen = Math.min(window.screen.width || window.innerWidth, window.screen.height || window.innerHeight) <= 820
+  const isPortable = Boolean(nav.userAgentData?.mobile || uaMobile || (touch && compactScreen))
+  const memoryGb = typeof nav.deviceMemory === 'number' ? nav.deviceMemory : undefined
+  const cores = typeof nav.hardwareConcurrency === 'number' ? nav.hardwareConcurrency : undefined
+  let freeGb: number | undefined
+
+  try {
+    if (navigator.storage?.estimate) {
+      const estimate = await navigator.storage.estimate()
+      if (typeof estimate.quota === 'number' && typeof estimate.usage === 'number') {
+        freeGb = Math.max(0, (estimate.quota - estimate.usage) / 1024 / 1024 / 1024)
+      }
+    }
+  } catch {
+    freeGb = undefined
+  }
+
+  const resourceParts = [
+    gbLabel(memoryGb, 'GB RAM'),
+    cores ? `${cores} core` : '',
+    gbLabel(freeGb, 'GB liberi'),
+  ].filter(Boolean)
+  const resourceLabel = resourceParts.length > 0 ? resourceParts.join(', ') : 'Risorse non dichiarate dal dispositivo'
+  const modelLabel = mobileModelLabel(memoryGb, freeGb, isPortable)
+  const canPrepareOnThisDevice = !isPortable
+  return {
+    isPortable,
+    deviceLabel: mobileDeviceLabel(userAgent, platform, isPortable),
+    resourceLabel,
+    modelLabel,
+    canPrepareOnThisDevice,
+    missingSignals: resourceParts.length === 0,
+    pathLabel: isPortable
+      ? 'Lex usa il motore AI dello studio; installazione locale solo con app mobile compatibile e autorizzata.'
+      : 'Da questo PC IUSENTRA puo preparare Ollama e scaricare il modello.',
+  }
 }
 
 async function fetchJson(url: string, init?: RequestInit, timeoutMs = 4000): Promise<Record<string, unknown>> {
@@ -134,8 +229,8 @@ export function describeLocalAiStatus(rawPayload: unknown): LocalAiLocalResult {
   const status = text(runtime.status).toLowerCase()
   const runtimeOnline = payload.runtime_online === true || ['ready', 'ok', 'running', 'available'].includes(status)
   const missingRuntime = ['missing', 'unavailable'].includes(status)
-  const chatModel = text(models.chat) || firstModelName(payload.models, 'chat') || 'automatico'
-  const embedModel = text(models.embed) || firstModelName(payload.models, 'embed') || 'automatico'
+  const chatModel = localAiModelLabel(text(models.chat) || firstModelName(payload.models, 'chat') || 'automatico')
+  const embedModel = localAiModelLabel(text(models.embed) || firstModelName(payload.models, 'embed') || 'automatico')
   const ram = numericText(runtime.ram_gb)
   const disk = numericText(runtime.disk_free_gb)
   const pc = [profileLabel(runtime.hardware_profile), ram ? `${ram} GB RAM` : '', disk ? `${disk} GB liberi` : '']

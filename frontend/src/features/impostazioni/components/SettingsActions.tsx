@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Bot, CheckCircle2, Cpu, Download, HardDrive, Play, RefreshCw, ShieldCheck } from 'lucide-react'
+import { Bot, CheckCircle2, Cpu, Download, HardDrive, Play, RefreshCw, ShieldCheck, Smartphone } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { IusStatusBadge } from '@/components/iusentra'
-import { checkLocalAiViaLocalSigner, prepareLocalAiViaLocalSigner, type LocalAiLocalResult } from '../localAi'
+import {
+  checkLocalAiViaLocalSigner,
+  detectMobileAiInstallPlan,
+  localAiModelLabel,
+  prepareLocalAiViaLocalSigner,
+  type LocalAiLocalResult,
+  type MobileAiInstallPlan,
+} from '../localAi'
 import { checkLocalSigner, testPecSmtpViaLocalSigner, type LocalSignerCheck } from '../localSigner'
 import type { AiRuntimePayload, SettingsPayload, SettingsSection, TestResult } from '../types'
 
@@ -74,9 +81,98 @@ function aiDetailRows(payload: Record<string, unknown>): Array<{ label: string; 
   ].filter(Boolean).join(', ')
   return [
     { label: 'PC verificato', value: pc, icon: Cpu },
-    { label: "Risposte dell'assistente", value: asText(models.chat) || 'Scelta automatica', icon: Bot },
-    { label: 'Ricerca nei documenti', value: asText(models.embed) || 'Scelta automatica', icon: HardDrive },
+    { label: "Risposte dell'assistente", value: localAiModelLabel(asText(models.chat) || 'automatico'), icon: Bot },
+    { label: 'Ricerca nei documenti', value: localAiModelLabel(asText(models.embed) || 'automatico'), icon: HardDrive },
   ].filter((row) => Boolean(row.value))
+}
+
+function openMobileLexFromSettings(plan: MobileAiInstallPlan | null) {
+  const detail = {
+    context: 'impostazioni-ai-mobile',
+    title: 'Lex AI mobile',
+    body: plan?.isPortable
+      ? 'Uso il motore AI autorizzato dello studio e tengo conto del dispositivo rilevato.'
+      : 'Posso aiutarti a preparare AI locale sul PC dello studio.',
+    pagePath: window.location.pathname,
+  }
+  window.dispatchEvent(new CustomEvent('iusentra:lex-context', { detail }))
+  window.dispatchEvent(new CustomEvent('iusentra:open-floating-lex', { detail }))
+}
+
+function MobileAiSetupPanel({
+  plan,
+  installerHref,
+  onPreparePc,
+  preparing,
+}: {
+  plan: MobileAiInstallPlan | null
+  installerHref: string
+  onPreparePc: () => void
+  preparing: boolean
+}) {
+  const rows = plan ? [
+    { label: 'Dispositivo', value: plan.deviceLabel, icon: Smartphone },
+    { label: 'Risorse rilevate', value: plan.resourceLabel, icon: Cpu },
+    { label: 'Modello consigliato', value: plan.modelLabel, icon: Bot },
+    { label: 'Percorso sicuro', value: plan.pathLabel, icon: ShieldCheck },
+  ] : [
+    { label: 'Dispositivo', value: 'Rilevamento in corso', icon: Smartphone },
+  ]
+
+  return (
+    <div className="iu-settings-mobile-ai">
+      <div className="iu-settings-mobile-ai__head">
+        <div>
+          <strong>AI su telefono e tablet</strong>
+          <span>
+            IUSENTRA rileva il dispositivo e sceglie il percorso piu sicuro: modello locale solo quando il sistema lo consente, altrimenti Lex usa il motore AI dello studio.
+          </span>
+        </div>
+        <IusStatusBadge tone={plan?.isPortable ? 'info' : 'success'}>
+          {plan?.isPortable ? 'Mobile rilevato' : 'PC rilevato'}
+        </IusStatusBadge>
+      </div>
+      <div className="iu-settings-mobile-ai__grid" aria-live="polite">
+        {rows.map((row) => {
+          const Icon = row.icon
+          return (
+            <article key={row.label}>
+              <Icon />
+              <div>
+                <span>{row.label}</span>
+                <strong>{row.value}</strong>
+              </div>
+            </article>
+          )
+        })}
+      </div>
+      {plan?.missingSignals ? (
+        <Alert className="iu-settings-alert is-warning">
+          <RefreshCw />
+          <AlertTitle>Rilevamento incompleto</AlertTitle>
+          <AlertDescription>
+            Questo dispositivo non espone RAM, core o spazio libero. IUSENTRA non forza download pesanti: usa Lex con il motore AI dello studio finche' il dispositivo non e' verificabile.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      <div className="iu-settings-actions-panel__buttons">
+        <Button type="button" variant="outline" onClick={() => openMobileLexFromSettings(plan)}>
+          <Bot data-icon="inline-start" />
+          Apri Lex AI
+        </Button>
+        <Button type="button" variant="outline" disabled={!plan?.canPrepareOnThisDevice || preparing} onClick={onPreparePc}>
+          <Smartphone data-icon="inline-start" />
+          {preparing ? 'Preparazione in corso' : 'Prepara su questo dispositivo'}
+        </Button>
+        <Button type="button" variant="outline" asChild>
+          <a href={installerHref} target="_blank" rel="noreferrer">
+            <Download data-icon="inline-start" />
+            Scarica Ollama ufficiale
+          </a>
+        </Button>
+      </div>
+    </div>
+  )
 }
 
 export function SettingsActions({
@@ -102,6 +198,7 @@ export function SettingsActions({
   const [pecLocalResult, setPecLocalResult] = useState<LocalSignerCheck | null>(null)
   const [pecChecking, setPecChecking] = useState(false)
   const [localAiResult, setLocalAiResult] = useState<LocalAiLocalResult | null>(null)
+  const [mobileAiPlan, setMobileAiPlan] = useState<MobileAiInstallPlan | null>(null)
   const [aiChecking, setAiChecking] = useState(false)
   const [aiPreparing, setAiPreparing] = useState(false)
   const aiAutoCheckKey = useMemo(
@@ -124,6 +221,17 @@ export function SettingsActions({
       .catch(() => undefined)
       .finally(() => setAiChecking(false))
   }, [aiAutoCheckKey, aiChecking, data.local_signer.base_url, data.local_signer.restart_protocol, localAiResult, section, values])
+
+  useEffect(() => {
+    if (section !== 'ai') return
+    let mounted = true
+    void detectMobileAiInstallPlan().then((plan) => {
+      if (mounted) setMobileAiPlan(plan)
+    })
+    return () => {
+      mounted = false
+    }
+  }, [section])
 
   if (section === 'studio' || section === 'scheduler') {
     return (
@@ -237,6 +345,12 @@ export function SettingsActions({
             })}
           </div>
         )}
+        <MobileAiSetupPanel
+          plan={mobileAiPlan}
+          installerHref={installerHref}
+          onPreparePc={() => { void runAiPrepare() }}
+          preparing={aiPreparing}
+        />
       </div>
     )
   }

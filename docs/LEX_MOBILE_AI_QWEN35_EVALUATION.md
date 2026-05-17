@@ -33,8 +33,19 @@ Qwen 3.5 e' utile come prova desktop per:
 
 La UI espone `Qwen 3.5 leggero` e `Qwen 3.5 avanzato` nelle impostazioni AI locale. La selezione e' volontaria: IUSENTRA non cambia modello in automatico senza controllo del PC.
 
+## Aggiornamento 2.245.7
+
+`/impostazioni?tab=ai` rileva ora telefono, tablet o PC usando i segnali disponibili nel browser: piattaforma, touch, dimensione schermo, RAM dichiarata, core e stima dello spazio disponibile. Se il dispositivo e' mobile o non espone risorse verificabili, IUSENTRA non promette download pesanti non governati: apre Lex AI e usa il motore AI autorizzato dello studio.
+
+Sul desktop resta attiva la preparazione guidata tramite Local Signer: il PC viene controllato, Ollama viene preparato quando manca e i modelli vengono scelti in base all'hardware. La UI mostra `EmbeddingGemma 300M` per la ricerca documenti invece del codice grezzo `embeddinggemma:300m`.
+
+Qwen 3.5 include anche l'opzione `Qwen 3.5 minimo` per test su dispositivi leggeri. Gemini Embedding 2 resta un provider esterno separato: puo' migliorare il RAG multimodale, ma richiede autorizzazione privacy, chiave configurata e reindicizzazione completa del corpus interessato.
+
 ## Fonti verificate
 
 - Video utente: https://www.youtube.com/watch?v=eAqv0EK4XUg
 - Metadati YouTube oEmbed: https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=eAqv0EK4XUg&format=json
 - Libreria ufficiale Ollama Qwen 3.5: https://ollama.com/library/qwen3.5
+- Download ufficiale Ollama: https://ollama.com/download
+- Libreria ufficiale Ollama EmbeddingGemma: https://ollama.com/library/embeddinggemma
+- Documentazione Gemini embeddings: https://ai.google.dev/gemini-api/docs/embeddings

@@ -37,9 +37,34 @@ def test_ai_locale_spiega_ollama_mancante_e_modelli_automatici():
     assert "Verifica PC e modelli" in actions
     assert "Prepara AI locale" in actions
     assert "Ollama non risulta pronto su questo PC" in ui_text
+    assert "EmbeddingGemma 300M" in ui_text
+    assert "embeddinggemma:300m" in ui_text
+    assert "Qwen 3.5 minimo" in constants
     assert "Lascia Automatico" in constants
     assert "Modello conversazione" not in ui_text
     assert "Modello ricerca documenti" not in ui_text
+
+
+def test_ai_locale_mobile_rileva_dispositivo_e_non_finge_installer_ollama():
+    actions = read("frontend/src/features/impostazioni/components/SettingsActions.tsx")
+    local_ai = read("frontend/src/features/impostazioni/localAi.ts")
+    css = read("frontend/src/features/impostazioni/ImpostazioniPage.css")
+
+    assert "detectMobileAiInstallPlan" in actions
+    assert "MobileAiSetupPanel" in actions
+    assert "AI su telefono e tablet" in actions
+    assert "Apri Lex AI" in actions
+    assert "Prepara su questo dispositivo" in actions
+    assert "Scarica Ollama ufficiale" in actions
+    assert "installazione locale solo con app mobile compatibile e autorizzata" in local_ai
+    assert "userAgentData" in local_ai
+    assert "deviceMemory" in local_ai
+    assert "hardwareConcurrency" in local_ai
+    assert "navigator.storage?.estimate" in local_ai
+    assert "Risorse non dichiarate dal dispositivo" in local_ai
+    assert "canPrepareOnThisDevice = !isPortable" in local_ai
+    assert ".iu-settings-mobile-ai" in css
+    assert ".iu-settings-mobile-ai__grid" in css
 
 
 def test_ai_locale_bridge_locale_verifica_prestazioni_pc_e_setup_ollama():

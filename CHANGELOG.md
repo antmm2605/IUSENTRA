@@ -7,6 +7,12 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.17 - 2026-05-18
+
+- Lex AI da telefono e tablet non interroga più il servizio locale del dispositivo per lo stato iniziale: usa lo stato del motore AI dello studio e mostra un messaggio coerente con il percorso mobile.
+- L'apertura dal pulsante `Lex AI` della barra mobile forza il pannello a tutto schermo sul viewport piccolo e non apre subito la tastiera, così il pannello resta visibile e usabile.
+- Aggiunte guardie di regressione su rilevamento mobile/tablet, apertura mobile full screen e fallback al motore AI dello studio.
+
 ## 2.245.16 - 2026-05-18
 
 - Lex AI operativo ora risponde a richieste reali come `Dammi la scheda cliente ...` usando anagrafica, recapiti, fascicoli e quadro economico autorizzati, senza cadere nel messaggio generico di dati insufficienti quando il cliente esiste.

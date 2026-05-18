@@ -669,6 +669,7 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "iusentra:lex-context" in floating_lex
     assert "return null" in floating_lex
     assert "const openMobileLex = () => {" in app_source
+    assert "mobileFullscreen: true" in app_source
     assert 'className="iu-mobile__lex"' in app_source
     assert ".iu-agenda-page" in css
     assert ".iu-ag-slot" in css

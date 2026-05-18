@@ -67,6 +67,17 @@
     return window.matchMedia(DESKTOP_MEDIA).matches;
   }
 
+  function isPortableClient() {
+    if (bridgeConfig && bridgeConfig.portableDevice) {
+      return true;
+    }
+    var source = String((navigator && (navigator.userAgent || navigator.platform)) || '').toLowerCase();
+    if (/android|iphone|ipad|ipod|mobile|tablet|silk|kindle/.test(source)) {
+      return true;
+    }
+    return source.indexOf('mac') !== -1 && Number(navigator && navigator.maxTouchPoints || 0) > 1;
+  }
+
   function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
   }
@@ -1886,11 +1897,17 @@
     widget.classList.toggle('pct-ai-widget--open', state.open);
     restorePosition();
 
+    if (state.open && !isDesktop() && options.mobileFullscreen !== false) {
+      setFullscreen(true, { persist: false, silent: true });
+    }
+
     if (state.open) {
       ensureAssistantReady();
       window.requestAnimationFrame(function () {
-        if (input) {
+        if (input && isDesktop()) {
           input.focus();
+          autoResize();
+        } else if (input) {
           autoResize();
         }
         scrollBottom();
@@ -2472,7 +2489,7 @@
 
   function checkStatus() {
     bridgeConfig = browserBridge() && widget ? browserBridge().rootConfig(widget) : null;
-    if (bridgeConfig && bridgeConfig.remoteHosted) {
+    if (bridgeConfig && bridgeConfig.remoteHosted && !isPortableClient()) {
       checkRemoteStatus();
       return;
     }
@@ -2482,10 +2499,10 @@
       .then(function (data) {
         if (data.ok) {
           updateBadge(true, data.modello_attivo || 'Operativo');
-          setStatus('Lex e\' pronto sul motore locale di IUSENTRA.');
+          setStatus(isPortableClient() ? 'Lex usa il motore AI dello studio su questo dispositivo.' : 'Lex e\' pronto sul motore AI di IUSENTRA.');
         } else {
           updateBadge(false, 'Offline');
-          setStatus('Motore locale non disponibile su questa installazione.');
+          setStatus(isPortableClient() ? 'Motore AI dello studio non disponibile in questo momento.' : 'Motore AI non disponibile su questa installazione.');
         }
       })
       .catch(function () {

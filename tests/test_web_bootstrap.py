@@ -9,12 +9,11 @@ from pct.auth import GestioneUtenti, RuoloUtente
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.storage import StudioDB
 from pct.tenant import GestioneTenant
+from web.app import create_app
 from web.bootstrap.blueprint_registry import BLUEPRINT_REGISTRY
 from web.bootstrap.flask_app_factory import create_flask_app
 from web.bootstrap.runtime_bundle import build_application_runtime_bundle
-from web.app import create_app
 from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MOJIBAKE_PATTERN = re.compile(
@@ -489,6 +488,7 @@ def test_route_domini_estratti_restano_operativi(tmp_path: Path):
         "/impostazioni/calendario",
         "/privacy/registro",
         "/soggetti",
+        "/ricerca-legale/news",
     )
     platform_paths = (
         "/admin/database",
@@ -534,6 +534,12 @@ def test_route_domini_estratti_restano_operativi(tmp_path: Path):
 
         for path in platform_paths:
             response = platform_client.get(path)
+            if path.startswith("/legal-intelligence/"):
+                assert response.status_code == 301, path
+                assert response.headers["Location"].endswith(
+                    path.replace("/legal-intelligence", "/ricerca-legale", 1)
+                )
+                continue
             assert response.status_code == 200, path
 
 
@@ -717,7 +723,7 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
             "Server e manutenzione",
             "Consumi per studio",
             "Compatta tutto in sicurezza",
-            "gia' compattati",
+            "già compattati",
         ],
         "web/templates/admin/legal_coverage_dashboard.html": [
             "Copertura AI e autopubblicazione controllata",
@@ -1225,6 +1231,8 @@ def test_ai_operativa_usa_bridge_browser_e_template_senza_logica_inline():
     assert "parseServerAttachments" in bridge_js
     assert "parseCompanionAttachments" in bridge_js
     assert "fetchCompanionPing" in bridge_js
+    assert "portableDevice: isPortableDevice()" in bridge_js
+    assert "navigator.maxTouchPoints" in bridge_js
     assert "isCompanionTransportError" in bridge_js
     assert "companionRuntimeHelp" in bridge_js
     assert ("streamCompanion" + "RagQuery") in bridge_js
@@ -1314,6 +1322,7 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "window.localStorage" in widget_js
     assert "window.sessionStorage" in widget_js
     assert "DESKTOP_MEDIA = '(min-width: 1181px)'" in widget_js
+    assert "function isPortableClient()" in widget_js
     assert "IUSENTRA_LEX_CONTEXT" in widget_js
     assert "iusentra:lex-context" in widget_js
     assert "page_context" in widget_js
@@ -1393,6 +1402,10 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "__companionStage" in widget_js
     assert "Preparazione richiesta non riuscita" in widget_js
     assert "Sessione scaduta o non autorizzata" in widget_js
+    assert "bridgeConfig && bridgeConfig.remoteHosted && !isPortableClient()" in widget_js
+    assert "Lex usa il motore AI dello studio su questo dispositivo." in widget_js
+    assert "mobileFullscreen !== false" in widget_js
+    assert "input && isDesktop()" in widget_js
     assert "Servizio locale del dispositivo raggiunto, ma la richiesta non e\\' andata a buon fine" in widget_js
     assert "Local Signer raggiungibile, ma il motore locale non e\\' operativo su questo dispositivo." in widget_js
     assert "remoteHosted" in widget_js

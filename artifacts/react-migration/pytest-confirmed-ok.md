@@ -8,6 +8,15 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Lex AI mobile produzione - 2026-05-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `node --check web/static/js/local-ai-browser-bridge.js`; `node --check web/static/js/pct-lex-assistant.js` | OK | Sintassi JavaScript confermata dopo il rilevamento telefono/tablet e l'apertura mobile a tutto schermo. |
+| Simulazione Node del bridge AI con user-agent iPhone su `https://app.iusentra.it` | OK | `rootConfig()` restituisce `remoteHosted=true` e `portableDevice=true`: su telefono Lex usa il motore AI dello studio, non un runtime locale inesistente. |
+| `python -m pytest tests/test_web_bootstrap.py::test_lex_assistant_usa_componente_esterno_e_posizione_persistente tests/test_react_shell.py::test_react_agenda_pagina_separata_collegata_nav_e_api tests/test_lex_assistente_context_real_requests.py -q` | OK | 6/6 passati: widget Lex, pulsante mobile, endpoint `/api/assistente/context` e stream `/api/assistente/chat` rispondono con dati reali. |
+| `node tests/js/lex_assistant_render.test.mjs`; `python -m pytest tests/test_impostazioni_ai_locale_react.py -q`; `python -m pytest tests/test_web_bootstrap.py::test_assistente_chat_usa_runtime_ollama_risolto tests/test_web_bootstrap.py::test_local_signer_monitor_globale_verifica_versione_e_installer -q` | OK | Rendering Lex, copy AI mobile/server produzione, runtime assistente e Local Signer monitor restano governati. |
+
 ### Backup Hetzner preventivo - 2026-05-18
 
 | Comando / verifica | Esito | Nota |

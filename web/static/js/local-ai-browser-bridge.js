@@ -17,6 +17,14 @@
     return 'unknown';
   }
 
+  function isPortableDevice() {
+    const source = String(navigator.userAgent || navigator.platform || '').toLowerCase();
+    if (/android|iphone|ipad|ipod|mobile|tablet|silk|kindle/.test(source)) {
+      return true;
+    }
+    return source.includes('mac') && Number(navigator.maxTouchPoints || 0) > 1;
+  }
+
   function rootConfig(root) {
     const dataset = root ? root.dataset : {};
     return {
@@ -28,6 +36,7 @@
       signerSetupLinux: dataset.localSignerSetupLinux || '',
       runtimeStatusUrl: dataset.runtimeStatusUrl || '/api/local-ai/status',
       runtimeBootstrapUrl: dataset.runtimeBootstrapUrl || '/api/local-ai/bootstrap',
+      portableDevice: isPortableDevice(),
       serverAskUrl: dataset.serverAskUrl || '',
       serverContextUrl: dataset.serverContextUrl || '',
       serverAttachmentsUrl: dataset.serverAttachmentsUrl || '',

@@ -1236,6 +1236,7 @@ export default function App() {
       title: lexConfig.title || 'Lex AI mobile',
       body: lexConfig.body || 'Posso aiutarti da telefono o tablet con fascicoli, scadenze, posta, ricerca legale e prossima azione operativa.',
       pagePath: window.location.pathname,
+      mobileFullscreen: true,
     }
     window.dispatchEvent(new CustomEvent('iusentra:lex-context', { detail }))
     window.dispatchEvent(new CustomEvent('iusentra:open-floating-lex', { detail }))

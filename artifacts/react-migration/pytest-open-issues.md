@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-18, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex bozze, editor professionale, AI mobile produzione, dati studio, Documenti AI txt/eml, backup Hetzner e Docker pnpm.
+Aggiornato: 2026-05-18, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex bozze, editor professionale, AI mobile produzione, dati studio, Documenti AI txt/eml, backup Hetzner e Docker pnpm.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Tool Registry e Model Routing Lex 2026-05-18 | `tests\test_lex_tool_registry_governance.py`, `tests\test_lex_model_routing_governance.py` | Nessuna issue aperta | Serviva rendere espliciti strumenti Lex, permessi, web libero, scritture editor e routing modelli prima di propagare la logica alle fonti. | Aggiunti descrittori governati, validazione tool, policy profili modello e test mirati; primo rilancio 16/16 verde registrato in `pytest-confirmed-ok.md`. |
 | Job queue fonti legali 2026-05-18 | `tests\test_legal_update_job_queue.py`, `tests\test_legal_update_batch_runner.py` | Nessuna issue aperta | Serviva un layer deterministico per non lanciare 10.000 documenti alla cieca e poter riprendere da crash o timeout. | Aggiunta coda SQLite con dedupe/hash/stato/retry/timeout/errore leggibile e ponte batch-runner; primo rilancio mirato 13/13 verde. |
 | TokenJuice Lex 2026-05-18 | `tests\test_lex_tokenjuice.py`, `tests\test_lex_memory_tree.py`, `tests\test_lex_source_corpus_generator.py` | Nessuna issue aperta | La fase doveva evitare consumo crediti e tagli ciechi su HTML/OCR/PDF/log lunghi prima del modello. | Implementata compattazione deterministica con ancoraggi conservati e metadati RAG; primo rilancio mirato 10/10 verde. |
 | Memory Tree Lex OCR sporco 2026-05-18 | `tests\test_lex_memory_tree.py::test_memory_tree_marca_ocr_sporco_senza_portarlo_come_pronto_pulito` | Risolto nella stessa sessione | Il primo euristico OCR intercettava frammenti con barra solo quando la lettera prima della barra era isolata; un testo OCR sporco ripetuto come `SUPREMA | d` restava `pronto`. | Esteso il controllo deterministico: presenza ripetuta di `|` e rapporto di parole brevissime marcano il chunk come `da_ocr`; rilancio finale 6/6 verde registrato in `pytest-confirmed-ok.md`. |

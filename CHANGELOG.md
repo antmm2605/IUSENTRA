@@ -7,6 +7,13 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.33 - 2026-05-18
+
+- Aggiunta la Fase 4 ispirata a OpenHuman Tool Registry e Model Routing, adattata a Lex: ogni strumento ha schema, categoria, trasporto, permessi, lettura/scrittura e stato `web_libero` tracciabile.
+- Il registro strumenti conserva compatibilità con `registry.tools`, ma aggiunge descrittori governati, validazione chiamate, blocco scritture fuori dal canale applicativo e isolamento dei dati studio quando la chat usa web libero.
+- Il routing modelli espone ora schema, policy del profilo, provider effettivo, uso LLM sì/no, costo stimato e regola di qualità, con provider esterni abilitabili solo tramite `LEX_EXTERNAL_ALLOWED`.
+- Aggiunti test su governance strumenti, web libero, permessi, routing deterministico, giurisprudenza specifica, provider esterno e URL Ollama senza credenziali.
+
 ## 2.245.32 - 2026-05-18
 
 - Aggiunta la Fase 3 job queue per fonti legali: `pct/legal_update_job_queue.py` introduce coda SQLite persistente con deduplica, hash contenuto, stato, retry, timeout, errore leggibile e recupero dei job rimasti in corso.

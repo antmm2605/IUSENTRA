@@ -18,6 +18,33 @@ Prima dell'upgrade, la selezione del provider avveniva tramite il metodo `pick()
 - Il metodo `get_routing_metadata()` per il payload debug
 - Una funzione sicura `_get_ollama_url_safe()` che non espone credenziali
 
+## Aggiornamento 2.245.33 - Policy di routing esplicita
+
+La Fase 4 rende il routing ispezionabile come policy, non solo come scelta di
+provider. `ProviderRegistry` espone ora:
+
+- schema `iusentra.lex_model_routing.v1`;
+- profilo selezionato;
+- provider effettivo;
+- motivazione leggibile;
+- `llm_used` sì/no;
+- `deterministic` sì/no;
+- costo relativo (`none`, `low`, `medium`, `high`);
+- target di latenza;
+- regola di contesto;
+- controllo qualità richiesto.
+
+Questo permette di consumare meno crediti: i workflow come `cabina`,
+`next_action`, `economico`, `compliance`, `deposito_telematico` e
+`studio_data_lookup` restano deterministici e non chiamano modelli. I workflow
+su fonti e giurisprudenza usano il profilo adatto solo quando servono sintesi o
+ragionamento, partendo da evidenze già selezionate e compattate.
+
+I provider esterni non sono fallback impliciti: `force_provider=openai` viene
+rispettato solo se `LEX_EXTERNAL_ALLOWED=1`. In caso contrario il routing resta
+interno e la motivazione segnala che il provider esterno non è autorizzato.
+L'URL Ollama esposto nei metadati resta privo di credenziali.
+
 ---
 
 ## 2. Cinque profili workflow

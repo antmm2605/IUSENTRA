@@ -8,6 +8,44 @@ Il registry runtime `lex/tools/registry.py` espone anche il tool governato
 storici: li completa con un layer unico tenant-aware, RBAC-aware e auditabile
 per interrogare dati reali dello studio.
 
+## Aggiornamento 2.245.33 - Registro governato Lex
+
+La Fase 4 porta dentro Lex il pattern Tool Registry richiesto: non basta più
+avere un dizionario di oggetti Python. Ogni strumento è ora accompagnato da un
+descrittore deterministico con:
+
+- schema `iusentra.lex_tool_registry.v1`;
+- categoria funzionale (`fascicolo`, `fonti_pubbliche`, `redazione`, `studio`,
+  `telematico`, `economico`, `governance`);
+- livello di accesso `read_only` oppure `write`;
+- trasporto applicativo `in_process`;
+- permessi richiesti;
+- flag `mutates_state`;
+- flag `allowed_in_free_web`;
+- descrizione operativa.
+
+La compatibilità resta invariata: `LexToolRegistry().tools["nome_tool"]`
+continua a funzionare. In più sono disponibili:
+
+- `list_tools()` per inventario governato;
+- `descriptor(tool_name)` per leggere la scheda di uno strumento;
+- `validate_tool_call(...)` per verificare modalità, permessi e scrittura;
+- `run_tool(...)` per eseguire solo dopo validazione.
+
+Regola web libero: la chat dell'avvocato non viene bloccata da allowlist
+ufficiali quando il flag web libero è attivo. Il registro strumenti impedisce
+solo che strumenti riservati dello studio, come fascicoli e documenti interni,
+vengano trattati come strumenti web pubblici. Gli strumenti su fonti pubbliche
+(`giurisprudenza`, `legal_intelligence`) restano utilizzabili in modalità web
+libero.
+
+Regola scrittura: strumenti come `generate_editor_draft`,
+`propose_editor_edits` ed `export_editor_document` sono marcati come `write` e
+`mutates_state=true`; non possono essere eseguiti da una chiamata generica
+senza canale applicativo autorizzato. Questo mantiene il comportamento richiesto
+per l'editor professionale: Lex prepara bozze e modifiche nel flusso corretto,
+non produce atti lunghi e non tracciati in chat.
+
 ## Dispatcher
 
 ```python

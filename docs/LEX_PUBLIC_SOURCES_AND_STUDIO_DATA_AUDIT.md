@@ -4,6 +4,34 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.245.33 - 2026-05-18
+
+Aggiunta la Fase 4 Tool Registry e Model Routing per Lex, necessaria prima di
+estendere il lavoro a Cassazione, Ricerca Legale, Archivio Giurisprudenza e area
+AI.
+
+Passaggi tracciati:
+
+- `lex/tools/registry.py` mantiene il dizionario storico `registry.tools`, ma
+  aggiunge descrittori governati per ogni strumento;
+- ogni tool dichiara schema, categoria, trasporto, permessi, lettura/scrittura,
+  mutazione stato e compatibilità con web libero;
+- la modalità web libero non impone allowlist ufficiali sulle ricerche
+  dell'avvocato, ma non espone strumenti riservati dello studio come se fossero
+  fonti pubbliche;
+- gli strumenti di scrittura dell'editor professionale sono marcati come
+  mutanti e richiedono un canale applicativo autorizzato;
+- `lex/providers/registry.py` espone una policy di routing con profilo,
+  provider effettivo, uso LLM, costo relativo, target latenza e controllo
+  qualità;
+- i provider esterni restano disattivati salvo `LEX_EXTERNAL_ALLOWED=1`, senza
+  fallback implicito su dati sensibili.
+
+Verifiche eseguite:
+
+- `python -m py_compile lex\tools\registry.py lex\providers\registry.py`;
+- `python -m pytest tests\test_lex_tool_registry_governance.py tests\test_lex_model_routing_governance.py lex\tests\unit\test_registry.py tests\test_lex_editor_ai_tools.py tests\test_lex_operational_knowledge.py::test_tool_registry_exposes_operational_knowledge_tool_default_on tests\test_lex_operational_knowledge.py::test_tool_registry_can_disable_operational_knowledge -q --tb=short`.
+
 ## Aggiornamento operativo 2.245.32 - 2026-05-18
 
 Aggiunta la Fase 3 job queue per fonti legali, necessaria prima di estendere

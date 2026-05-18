@@ -1,6 +1,9 @@
-"""Registry dei tool del bounded context Lex."""
+"""Registry governato dei tool del bounded context Lex."""
 
 from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Iterable
 
 from .agenda_tool import AgendaTool
 from .compliance_tool import ComplianceTool
@@ -29,6 +32,199 @@ from .telematico_tool import TelematicoTool
 from .template_atti_tool import TemplateAttiTool
 
 
+LEX_TOOL_REGISTRY_SCHEMA = "iusentra.lex_tool_registry.v1"
+
+_FREE_WEB_MODES = frozenset({"web_libero", "free_web", "ricerca_web_libera"})
+
+
+@dataclass(frozen=True)
+class LexToolDescriptor:
+    tool_name: str
+    category: str
+    access_level: str
+    transport: str
+    permissions: tuple[str, ...]
+    mutates_state: bool
+    allowed_in_free_web: bool
+    description: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema": LEX_TOOL_REGISTRY_SCHEMA,
+            "tool_name": self.tool_name,
+            "category": self.category,
+            "access_level": self.access_level,
+            "transport": self.transport,
+            "permissions": list(self.permissions),
+            "mutates_state": self.mutates_state,
+            "allowed_in_free_web": self.allowed_in_free_web,
+            "description": self.description,
+        }
+
+
+def _descriptor(
+    tool_name: str,
+    *,
+    category: str,
+    access_level: str = "read_only",
+    transport: str = "in_process",
+    permissions: Iterable[str] = (),
+    mutates_state: bool = False,
+    allowed_in_free_web: bool = False,
+    description: str,
+) -> LexToolDescriptor:
+    return LexToolDescriptor(
+        tool_name=tool_name,
+        category=category,
+        access_level=access_level,
+        transport=transport,
+        permissions=tuple(dict.fromkeys(str(item).strip() for item in permissions if str(item).strip())),
+        mutates_state=mutates_state,
+        allowed_in_free_web=allowed_in_free_web,
+        description=description,
+    )
+
+
+def _build_descriptors() -> dict[str, LexToolDescriptor]:
+    rows = [
+        _descriptor(
+            "fascicolo",
+            category="fascicolo",
+            permissions=("studio:fascicoli:read",),
+            description="Legge dati strutturati del fascicolo e li espone a Lex in sola lettura.",
+        ),
+        _descriptor(
+            "documento",
+            category="fascicolo",
+            permissions=("studio:documenti:read",),
+            description="Legge un documento interno gia' censito nello studio.",
+        ),
+        _descriptor(
+            "list_fascicolo_documents",
+            category="fascicolo",
+            permissions=("studio:documenti:read",),
+            description="Elenca i documenti disponibili nel fascicolo.",
+        ),
+        _descriptor(
+            "read_fascicolo_document",
+            category="fascicolo",
+            permissions=("studio:documenti:read",),
+            description="Rilegge un documento del fascicolo per risposta Lex o editor.",
+        ),
+        _descriptor(
+            "find_in_fascicolo_document",
+            category="fascicolo",
+            permissions=("studio:documenti:read",),
+            description="Cerca testo in un documento del fascicolo senza modificare dati.",
+        ),
+        _descriptor(
+            "telematico",
+            category="telematico",
+            permissions=("studio:telematico:read",),
+            description="Consulta stato e checklist telematiche in sola lettura.",
+        ),
+        _descriptor(
+            "agenda",
+            category="studio",
+            permissions=("studio:agenda:read",),
+            description="Consulta appuntamenti ed eventi dello studio.",
+        ),
+        _descriptor(
+            "scadenziario",
+            category="studio",
+            permissions=("studio:scadenze:read",),
+            description="Consulta scadenze e termini dello studio.",
+        ),
+        _descriptor(
+            "giurisprudenza",
+            category="fonti_pubbliche",
+            permissions=("legal:sources:read",),
+            allowed_in_free_web=True,
+            description="Interroga giurisprudenza e fonti pubbliche disponibili.",
+        ),
+        _descriptor(
+            "legal_intelligence",
+            category="fonti_pubbliche",
+            permissions=("legal:sources:read",),
+            allowed_in_free_web=True,
+            description="Consulta l'intelligence legale e gli aggiornamenti acquisiti.",
+        ),
+        _descriptor(
+            "operational_knowledge",
+            category="studio",
+            permissions=("studio:knowledge:read",),
+            description="Risponde su dati reali dello studio con policy tenant-aware.",
+        ),
+        _descriptor(
+            "template_atti",
+            category="redazione",
+            permissions=("studio:template:read",),
+            description="Consulta template atti disponibili.",
+        ),
+        _descriptor(
+            "preventivi",
+            category="economico",
+            permissions=("studio:economico:read",),
+            description="Consulta dati economici, preventivi e conferimenti.",
+        ),
+        _descriptor(
+            "compliance",
+            category="governance",
+            permissions=("studio:compliance:read",),
+            description="Consulta verifiche di conformita' gia' disponibili.",
+        ),
+        _descriptor(
+            "list_template_atti",
+            category="redazione",
+            permissions=("studio:template:read",),
+            description="Elenca template reali per la redazione assistita.",
+        ),
+        _descriptor(
+            "read_template_atto",
+            category="redazione",
+            permissions=("studio:template:read",),
+            description="Legge il contenuto di un template atto.",
+        ),
+        _descriptor(
+            "collect_fascicolo_context",
+            category="redazione",
+            permissions=("studio:fascicoli:read", "studio:documenti:read"),
+            description="Raccoglie il contesto fascicolo necessario per l'editor professionale.",
+        ),
+        _descriptor(
+            "generate_editor_draft",
+            category="redazione",
+            access_level="write",
+            permissions=("studio:atti:write",),
+            mutates_state=True,
+            description="Crea una bozza nell'editor professionale, non una risposta lunga in chat.",
+        ),
+        _descriptor(
+            "read_editor_document",
+            category="redazione",
+            permissions=("studio:atti:read",),
+            description="Rilegge il documento aperto nell'editor.",
+        ),
+        _descriptor(
+            "propose_editor_edits",
+            category="redazione",
+            access_level="write",
+            permissions=("studio:atti:write",),
+            mutates_state=True,
+            description="Propone modifiche tracciate da accettare nel flusso editor.",
+        ),
+        _descriptor(
+            "export_editor_document",
+            category="redazione",
+            access_level="write",
+            permissions=("studio:atti:export",),
+            mutates_state=True,
+            description="Prepara esportazione del documento editor nel formato richiesto.",
+        ),
+    ]
+    return {row.tool_name: row for row in rows}
+
+
 class LexToolRegistry:
     def __init__(self):
         self.tools = {
@@ -54,3 +250,95 @@ class LexToolRegistry:
             "propose_editor_edits": ProposeEditorEditsTool(),
             "export_editor_document": ExportEditorDocumentTool(),
         }
+        self.descriptors = _build_descriptors()
+        missing_descriptors = sorted(set(self.tools) - set(self.descriptors))
+        extra_descriptors = sorted(set(self.descriptors) - set(self.tools))
+        if missing_descriptors or extra_descriptors:
+            raise RuntimeError(
+                "Registry strumenti Lex non coerente: "
+                f"mancano descrittori {missing_descriptors}, "
+                f"descrittori senza tool {extra_descriptors}"
+            )
+
+    def list_tools(self) -> list[dict[str, Any]]:
+        return [self.descriptors[name].to_dict() for name in sorted(self.descriptors)]
+
+    def descriptor(self, tool_name: str) -> LexToolDescriptor | None:
+        return self.descriptors.get(str(tool_name or "").strip())
+
+    def validate_tool_call(
+        self,
+        tool_name: str,
+        *,
+        mode: str = "",
+        allow_writes: bool = False,
+        user_permissions: Iterable[str] | None = None,
+    ) -> dict[str, Any]:
+        name = str(tool_name or "").strip()
+        descriptor = self.descriptor(name)
+        if descriptor is None:
+            return {
+                "schema": LEX_TOOL_REGISTRY_SCHEMA,
+                "allowed": False,
+                "reason": "strumento_non_registrato",
+                "tool_name": name,
+                "descriptor": None,
+            }
+
+        normalized_mode = str(mode or "").strip().lower()
+        if normalized_mode in _FREE_WEB_MODES and not descriptor.allowed_in_free_web:
+            return {
+                "schema": LEX_TOOL_REGISTRY_SCHEMA,
+                "allowed": False,
+                "reason": "strumento_studio_non_esposto_al_web_libero",
+                "tool_name": name,
+                "descriptor": descriptor.to_dict(),
+            }
+
+        if descriptor.mutates_state and not allow_writes:
+            return {
+                "schema": LEX_TOOL_REGISTRY_SCHEMA,
+                "allowed": False,
+                "reason": "strumento_di_scrittura_richiede_canale_applicativo_autorizzato",
+                "tool_name": name,
+                "descriptor": descriptor.to_dict(),
+            }
+
+        requested_permissions = set(descriptor.permissions)
+        granted_permissions = set(str(item).strip() for item in user_permissions or () if str(item).strip())
+        if granted_permissions and not requested_permissions.issubset(granted_permissions):
+            return {
+                "schema": LEX_TOOL_REGISTRY_SCHEMA,
+                "allowed": False,
+                "reason": "permessi_insufficienti",
+                "tool_name": name,
+                "missing_permissions": sorted(requested_permissions - granted_permissions),
+                "descriptor": descriptor.to_dict(),
+            }
+
+        return {
+            "schema": LEX_TOOL_REGISTRY_SCHEMA,
+            "allowed": True,
+            "reason": "strumento_autorizzato",
+            "tool_name": name,
+            "descriptor": descriptor.to_dict(),
+        }
+
+    def run_tool(
+        self,
+        tool_name: str,
+        *,
+        mode: str = "",
+        allow_writes: bool = False,
+        user_permissions: Iterable[str] | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        validation = self.validate_tool_call(
+            tool_name,
+            mode=mode,
+            allow_writes=allow_writes,
+            user_permissions=user_permissions,
+        )
+        if not validation["allowed"]:
+            return validation
+        return self.tools[validation["tool_name"]].run(**kwargs)

@@ -1,12 +1,19 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-18, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
+Aggiornato: 2026-05-18, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Tool Registry e Model Routing Lex - 2026-05-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile lex\tools\registry.py lex\providers\registry.py` | OK | Sintassi confermata per registro strumenti governato e policy routing modelli. |
+| `python -m pytest tests\test_lex_tool_registry_governance.py tests\test_lex_model_routing_governance.py lex\tests\unit\test_registry.py tests\test_lex_editor_ai_tools.py tests\test_lex_operational_knowledge.py::test_tool_registry_exposes_operational_knowledge_tool_default_on tests\test_lex_operational_knowledge.py::test_tool_registry_can_disable_operational_knowledge -q --tb=short` | OK | 16/16 passati: compatibilità `registry.tools`, permessi, web libero, scritture editor, routing deterministico, giurisprudenza specifica, provider esterno e URL Ollama senza credenziali. |
 
 ### Job queue fonti legali - 2026-05-18
 

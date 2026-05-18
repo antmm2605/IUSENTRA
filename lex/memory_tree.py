@@ -1,7 +1,7 @@
 """Memory Tree deterministico per il corpus Lex.
 
-Il modulo non chiama LLM e non naviga il web. Trasforma documenti gia' letti
-in memoria strutturata: provenienza, qualita', riferimenti normativi/R.G.,
+Il modulo non chiama LLM e non naviga il web. Trasforma documenti già letti
+in memoria strutturata: provenienza, qualità, riferimenti normativi/R.G.,
 chunk deterministici e ricerca leggera per fonte, norma, R.G. e argomento.
 """
 
@@ -17,6 +17,7 @@ from typing import Any, Iterable
 
 from lex.dataset.chunking import ChunkingOptions, chunk_plain_text
 from lex.dataset.models import StudioDatasetDocument, clean_text
+from lex.tokenjuice import compress_lex_context, tokenjuice_metadata
 
 
 MEMORY_TREE_SCHEMA = "iusentra.lex_memory_tree.v1"
@@ -310,6 +311,11 @@ def _chunks_for_document(
     for index, chunk_text in enumerate(chunks, start=1):
         chunk_hash = _sha256(chunk_text)
         chunk_id = _stable_chunk_id(document.tenant_id, document.document_id, index, chunk_hash)
+        compact_context = compress_lex_context(
+            chunk_text,
+            source_type=document.mime_type or document.source_kind,
+            max_chars=min(1200, max(360, max_chars)),
+        )
         rows.append(
             LexMemoryChunk(
                 chunk_id=chunk_id,
@@ -328,6 +334,7 @@ def _chunks_for_document(
                     "memory_tree_schema": MEMORY_TREE_SCHEMA,
                     "rag_ready": quality.ready,
                     "source_kind": document.source_kind,
+                    "tokenjuice": tokenjuice_metadata(compact_context),
                 },
             )
         )

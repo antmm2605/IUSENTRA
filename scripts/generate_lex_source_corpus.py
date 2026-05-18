@@ -275,6 +275,8 @@ def _manifest(
             "schema": "iusentra.lex_memory_tree.v1",
             "path": str(options.output_dir / "memory_tree"),
             "policy": "memoria strutturata deterministica per RAG Lex, senza chiamate LLM",
+            "tokenjuice_schema": "iusentra.lex_tokenjuice.v1",
+            "tokenjuice_policy": "contesto compattato in modo deterministico prima del modello",
         },
         "automatic_training": False,
         "external_training": False,

@@ -52,6 +52,8 @@ def test_memory_tree_crea_chunk_deterministici_con_provenienza_qualita_norme_e_r
     assert first.chunks[0].chunk_id == second.chunks[0].chunk_id
     assert first.chunks[0].provenance.source_code == "cassazione_massimario"
     assert first.chunks[0].quality.status == "pronto_con_note"
+    assert first.chunks[0].metadata["tokenjuice"]["schema"] == "iusentra.lex_tokenjuice.v1"
+    assert first.chunks[0].metadata["tokenjuice"]["metadata"]["llm_used"] is False
     assert "R.G. 9926/2026" in first.chunks[0].rg_refs
     assert "R.G. 9966/2026" in first.chunks[0].rg_refs
     assert any("599" in norm for norm in first.chunks[0].norms)
@@ -90,3 +92,19 @@ def test_memory_tree_marca_ocr_sporco_senza_portarlo_come_pronto_pulito():
     assert tree.chunks[0].quality.status == "da_ocr"
     assert tree.chunks[0].quality.ocr_dirty is True
     assert tree.chunks[0].quality.ready is True
+
+
+def test_memory_tree_aggiunge_contesto_tokenjuice_compattato_per_chunk_lunghi():
+    long_text = (
+        ("Riga ripetitiva senza valore decisivo. " * 80)
+        + "Questione penale pendente: art. 599-bis c.p.p., art. 606 c.p.p., R.G. 9926/2026. "
+        + ("Altro testo OCR lungo. " * 80)
+    )
+
+    tree = build_lex_memory_tree([_document(long_text)], max_chars=8000, overlap_chars=100)
+    tokenjuice = tree.chunks[0].metadata["tokenjuice"]
+
+    assert tokenjuice["schema"] == "iusentra.lex_tokenjuice.v1"
+    assert tokenjuice["compressed_chars"] < tokenjuice["original_chars"]
+    assert "compressed_text" in tokenjuice
+    assert "R.G. 9926/2026" in tokenjuice["compressed_text"]

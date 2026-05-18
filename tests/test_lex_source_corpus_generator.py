@@ -125,6 +125,7 @@ def test_generate_lex_source_corpus_da_evidenze_verificate(tmp_path: Path):
 
     assert manifest["rag_ready"] is True
     assert manifest["memory_tree"]["schema"] == "iusentra.lex_memory_tree.v1"
+    assert manifest["memory_tree"]["tokenjuice_schema"] == "iusentra.lex_tokenjuice.v1"
     assert manifest["automatic_training"] is False
     assert manifest["human_review_required_for_rag"] is False
     assert manifest["human_review_required_for_fine_tuning"] is True
@@ -136,6 +137,7 @@ def test_generate_lex_source_corpus_da_evidenze_verificate(tmp_path: Path):
     assert document_ai["texts"][0]["text"].startswith("Testo OCR ufficiale")
     assert result["memory_tree"]["chunks_count"] == 1
     assert memory_index["ready_documents_count"] == 1
+    assert memory_chunks[0]["metadata"]["tokenjuice"]["metadata"]["llm_used"] is False
     assert memory_chunks[0]["provenance"]["attachment_url"].endswith("ordinanza.pdf")
     assert "R.G. 9966/2026" in memory_chunks[0]["rg_refs"]
 

@@ -4,6 +4,31 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.245.31 - 2026-05-18
+
+Aggiunta la Fase 2 TokenJuice, reimplementata in Python per Lex senza copiare
+codice esterno e senza chiamate LLM.
+
+Passaggi tracciati:
+
+- aggiunto `lex/tokenjuice.py` come compattatore deterministico per HTML, JSON,
+  log, OCR/PDF già estratti e testi legali lunghi;
+- la compattazione preserva ancoraggi legali: articoli, R.G., date, atti,
+  fonte, motivi e passaggi con valore giuridico;
+- `lex/memory_tree.py` registra per ogni chunk i metadati TokenJuice:
+  schema, regola applicata, caratteri originali/compattati, rapporto di
+  riduzione, ancoraggi e avvisi OCR;
+- il testo originale resta nel corpus, mentre il contesto compattato è
+  disponibile per il RAG quando riduce davvero il payload;
+- il generatore corpus dichiara nel manifest la policy TokenJuice, così il
+  consumo crediti resta riservato alla risposta o ai test qualità e non ai
+  passaggi tecnici ripetibili.
+
+Verifiche eseguite:
+
+- `python -m py_compile lex\tokenjuice.py lex\memory_tree.py scripts\generate_lex_source_corpus.py`;
+- `python -m pytest tests\test_lex_tokenjuice.py tests\test_lex_memory_tree.py tests\test_lex_source_corpus_generator.py -q --tb=short`.
+
 ## Aggiornamento operativo 2.245.30 - 2026-05-18
 
 Avviata l'assimilazione funzionale dei pattern OpenHuman senza copiarne codice

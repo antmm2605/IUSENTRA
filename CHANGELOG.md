@@ -7,6 +7,13 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.31 - 2026-05-18
+
+- Aggiunta la Fase 2 TokenJuice per Lex: `lex/tokenjuice.py` compatta in modo deterministico HTML, JSON, log, OCR/PDF già estratti e testi legali lunghi prima che arrivino al modello.
+- Il Memory Tree integra ora metadati TokenJuice per ogni chunk, con schema, rapporto di riduzione, ancoraggi conservati, avviso OCR sporco e flag espliciti `llm_used=false` e `web_used=false`.
+- Il generatore corpus Lex dichiara nel manifest la policy TokenJuice, così i documenti pronti hanno sia testo originale sia contesto compatto riusabile dal RAG senza consumo inutile di crediti.
+- Aggiunti test su HTML ripulito, OCR lungo, JSON deterministico e integrazione TokenJuice nei chunk Memory Tree.
+
 ## 2.245.30 - 2026-05-18
 
 - Aggiunta la Fase 1 ispirata a OpenHuman Memory Tree, reimplementata in modo pulito per IUSENTRA: `lex/memory_tree.py` costruisce memoria Lex deterministica da fonti già lette, PDF/OCR, sentenze, questioni pendenti e documenti studio.

@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-18, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex bozze, editor professionale, AI mobile produzione, dati studio, Documenti AI txt/eml, backup Hetzner e Docker pnpm.
+Aggiornato: 2026-05-18, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex bozze, editor professionale, AI mobile produzione, dati studio, Documenti AI txt/eml, backup Hetzner e Docker pnpm.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| TokenJuice Lex 2026-05-18 | `tests\test_lex_tokenjuice.py`, `tests\test_lex_memory_tree.py`, `tests\test_lex_source_corpus_generator.py` | Nessuna issue aperta | La fase doveva evitare consumo crediti e tagli ciechi su HTML/OCR/PDF/log lunghi prima del modello. | Implementata compattazione deterministica con ancoraggi conservati e metadati RAG; primo rilancio mirato 10/10 verde. |
 | Memory Tree Lex OCR sporco 2026-05-18 | `tests\test_lex_memory_tree.py::test_memory_tree_marca_ocr_sporco_senza_portarlo_come_pronto_pulito` | Risolto nella stessa sessione | Il primo euristico OCR intercettava frammenti con barra solo quando la lettera prima della barra era isolata; un testo OCR sporco ripetuto come `SUPREMA | d` restava `pronto`. | Esteso il controllo deterministico: presenza ripetuta di `|` e rapporto di parole brevissime marcano il chunk come `da_ocr`; rilancio finale 6/6 verde registrato in `pytest-confirmed-ok.md`. |
 | CI coverage shardata 2026-05-18 | GitHub Actions `26045198182`, job aggregato `Coverage moduli critici` | Risolto nella stessa sessione | Le 12 parti `Coverage moduli critici parte */12` erano verdi, ma il job aggregato storico senza `parte` era stato reintrodotto come blocco con `coverage report --fail-under=71`, in contrasto con `docs/COMMIT_PUSH_REQUIRED_GATES.md` e con il branch monorepo. | Rimosso il job aggregato senza `parte` dal workflow; i test di guardia ora pretendono le 12 parti shardate e impediscono il ritorno del blocco aggregato. |
 | Vercel rimosso dal processo corrente 2026-05-18 | Check esterni `Vercel` e `Vercel Preview Comments` | Rimosso dal repository; eventuale integrazione esterna resta da dashboard Vercel/GitHub App | Dopo l'eliminazione del percorso Vercel dal CI, restavano ancora `vercel.json`, `vercel_app.py` e un riferimento testuale a origine `vercel.app`, sufficienti a far sembrare Vercel ancora parte del processo. | Rimossi file e riferimenti Vercel dal repository. Il deploy operativo resta Hetzner; i check esterni già emessi da Vercel non sono GitHub Actions e vanno disattivati lato integrazione se ricompaiono dopo il push. |

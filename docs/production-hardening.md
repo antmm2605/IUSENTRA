@@ -100,4 +100,4 @@ Prometheus legge `prometheus.yml`; Grafana puo importare `monitoring/grafana-das
 - Verificare `/health/live`, `/health/ready`, `/health/dependencies`.
 - Verificare `/metrics` da Prometheus.
 - Eseguire backup e `scripts/verify_backup.py`.
-- Controllare GitHub Actions: `Lint + syntax`, `Pytest core`, `Coverage moduli critici`, quality gates e CodeQL.
+- Controllare GitHub Actions: `Lint + syntax`, `Pytest core`, le 12 parti `Coverage moduli critici parte */12`, quality gates e CodeQL.

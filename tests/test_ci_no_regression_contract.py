@@ -42,6 +42,7 @@ def test_ci_keeps_core_and_coverage_gates() -> None:
         assert snippet in workflow
 
     assert "\n  coverage-critical:\n" not in workflow
+    assert "name: Coverage moduli critici\n" not in workflow
     assert "--fail-under=71" not in workflow
 
     thresholds = [int(value) for value in re.findall(r"--cov-fail-under=(\d+)", workflow)]
@@ -194,9 +195,10 @@ def test_agents_documents_ci_no_regression_rule() -> None:
     required = (
         "CI, coverage e anti-regressione definitiva",
         "Pytest core",
-        "Coverage moduli critici",
+        "Coverage moduli critici parte */12",
         "Gate anti-regressione al 100%",
         "target richiesto dall'utente per chiudere definitivamente la coverage critica e' **100%**",
+        "Il vecchio job aggregato `CI / Coverage moduli critici` senza `parte` e' stato eliminato",
         "vietato dichiarare che il problema coverage sia chiuso",
         "Regola permanente nuovi test",
         "tempo massimo di 5 minuti per singolo comando pytest/job operativo",

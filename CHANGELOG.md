@@ -14,6 +14,7 @@
 - Ricerca Legale e Lex ricevono ora, dalle evidenze web e PDF/OCR, riferimenti normativi, riferimenti R.G., domande per Lex e segnali su PDF/allegati letti o da completare.
 - La console `/admin/aggiornamenti-legali/` espone contatori su evidenze lette, PDF/allegati e documenti collegati; aggiunta API mirata per backfill evidenze web con filtri fonte, stato, query, review e timeout.
 - Il corpus sorgenti Lex riusa l'arricchimento deterministico e mantiene il filtro Cassazione sulle sole schede documentali; il Web libero Lex resta isolato da fonti ufficiali, studio, fascicoli e promozione DB/corpus.
+- Riallineate le note operative CI: il vecchio job aggregato `CI / Coverage moduli critici` senza `parte` è eliminato e non va reintrodotto; i soli gate coverage richiesti sono `Coverage moduli critici parte 1/12` fino a `parte 12/12`.
 
 ## 2.245.39 - 2026-05-18
 

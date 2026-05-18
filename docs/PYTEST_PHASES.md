@@ -87,7 +87,7 @@ Lo stesso runner governa anche le altre suite test eseguite dai workflow:
 
 | Suite | Shard CI | Modalita' |
 | --- | ---: | --- |
-| `coverage-critical` | 12 | Test item + artefatti coverage combinati nell'aggregatore `Coverage moduli critici`. |
+| `coverage-critical` | 12 | Test item + artifact coverage per le 12 parti `Coverage moduli critici parte */12`; il vecchio aggregatore senza `parte` non è più job canonico né required check. |
 | `signer` | 4 per sistema operativo | Test item, con aggregatore `Local Signer e PKCS#11`. |
 | `e2e-smoke` | 1 | Comando isolato con timeout pytest 5 minuti. |
 | `quality-overlay` | 3 | File mirati dell'overlay qualita'. |

@@ -8,6 +8,7 @@ def test_critical_coverage_gate_uses_governed_config():
     assert "--suite coverage-critical" in workflow
     assert "coverage-critical-shards:" in workflow
     assert "name: Coverage moduli critici parte" in workflow
+    assert "name: Coverage moduli critici\n" not in workflow
     assert "\n  coverage-critical:\n" not in workflow
     assert "--fail-under=71" not in workflow
 

@@ -18,6 +18,7 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `python -m pytest tests/test_lex_source_corpus_generator.py tests/test_lex_operational_knowledge.py tests/test_react_legal_intelligence_search.py tests/test_giurisprudenza.py -q --tb=short` | OK | 99/99 passati: corpus Lex, Ricerca Legale, Web libero isolato e Archivio Giurisprudenza. |
 | `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build` | OK | TypeScript verde; build Vite completata in 6.76s. Nessun sorgente React modificato; ripulito solo il whitespace dell'asset `ImpostazioniPage-DA0fc_JT.js` rigenerato dal build. |
 | `python tools/check_repo_governance.py`; `python -m pytest tests/test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | Governance OK, UTF-8 4/4 e whitespace senza errori; `git diff --check` segnala solo il warning CRLF sui file runtime preesistenti fuori staging. |
+| `python scripts/react-migration/generate_api_contracts.py`; `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py docs/openapi.yaml`; `python scripts/verify_openapi_provider.py`; `python scripts/smoke_app_v2_all.py --subset contracts`; `python -m pytest -q tests/test_openapi_contracts_phase6.py --tb=short` | OK | OpenAPI riallineato a `2.245.41` dopo il primo push, così `CI / Lint + syntax` non resta bloccato su API contract gates. |
 
 ## Update Intelligence fonti/PDF/OCR/Lex 2.245.40 - 2026-05-18
 

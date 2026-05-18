@@ -596,6 +596,7 @@ def _download_cache_roots() -> list[Path]:
     data_root = _clean_spaces(os.getenv("PCT_DATA_ROOT"))
     if data_root:
         roots.append(Path(data_root) / "intelligence" / "downloads")
+        roots.append(Path(data_root) / "fonti_ufficiali")
         roots.append(Path(data_root) / "tenants")
     unique: list[Path] = []
     seen: set[str] = set()

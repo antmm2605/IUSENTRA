@@ -83,8 +83,9 @@ Aggiornamento operativo 2.245.28 - 2026-05-18:
   diritto, motivi/censure, norme spiegate, effetto pratico, esito, PDF/allegato
   e discrepanza R.G. quando presente;
 - il download PDF ora prova prima il riuso della cache runtime del server
-  (`/data/intelligence/downloads` quando `PCT_DATA_ROOT=/data`, oppure le
-  directory configurate con `IUSENTRA_LEGAL_VERIFICATION_DOWNLOAD_CACHE_DIR` /
+  (`/data/intelligence/downloads`, `/data/fonti_ufficiali` e `/data/tenants`
+  quando `PCT_DATA_ROOT=/data`, oppure le directory configurate con
+  `IUSENTRA_LEGAL_VERIFICATION_DOWNLOAD_CACHE_DIR` /
   `IUSENTRA_LEGAL_DOWNLOAD_CACHE_DIR`), così un PDF già presente non viene
   scaricato di nuovo;
 - la tranche reale ha prima evidenziato rumore da pagine generiche del sito

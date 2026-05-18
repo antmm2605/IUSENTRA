@@ -11,7 +11,7 @@
 
 - Rafforzato il percorso Cassazione prima del generatore corpus: il backfill ora produce un report qualità per documento con pagina verificata, PDF/allegato, hash, OCR/testo, norme, riferimenti R.G., discrepanze, link cliccabile e stato `pronto` / `pronto_con_note` / `da_ocr`.
 - Aggiunta la `question_matrix` obbligatoria per le domande da avvocato: sintesi, natura dell'atto, oggetto, stato, punto di diritto, motivi/censure, norme spiegate, effetto pratico, esito, PDF/allegato e discrepanze.
-- Il download degli allegati prova prima il riuso dei PDF già presenti nello storage server (`/data/intelligence/downloads` o directory configurate), evitando riscarichi e OCR inutili.
+- Il download degli allegati prova prima il riuso dei PDF già presenti nello storage server (`/data/intelligence/downloads`, `/data/fonti_ufficiali`, `/data/tenants` o directory configurate), evitando riscarichi e OCR inutili.
 - Filtrate le tranche Cassazione e il generatore corpus sulle sole schede documentali reali; pagine generiche del sito come privacy, URP, eventi o preferenze non entrano più nella prova corpus.
 - Eseguita una tranche locale Cassazione con 10 documenti filtrati: 10/10 pronti, 10 PDF letti, 12 allegati salvati, nessun OCR mancante; generato corpus RAG Cassazione da 50 documenti e 538 chunk senza LLM.
 

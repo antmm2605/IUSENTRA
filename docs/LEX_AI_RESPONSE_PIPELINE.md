@@ -413,7 +413,8 @@ il backfill controlla la cache allegati configurata:
 - `IUSENTRA_LEGAL_VERIFICATION_DOWNLOAD_CACHE_DIR`;
 - `IUSENTRA_LEGAL_DOWNLOAD_CACHE_DIR`;
 - in produzione Hetzner, se `PCT_DATA_ROOT=/data`, anche
-  `/data/intelligence/downloads`.
+  `/data/intelligence/downloads`, `/data/fonti_ufficiali` e
+  `/data/tenants`.
 
 Se trova un PDF con lo stesso nome, lo usa direttamente per hash, testo e OCR.
 Solo se il file non è presente passa al download dalla fonte ufficiale e salva

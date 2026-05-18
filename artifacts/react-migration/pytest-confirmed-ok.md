@@ -22,6 +22,7 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | --- | --- | --- |
 | `pnpm --filter @iusentra/studio build:vite` | OK | Build Vite locale verde con workspace pnpm/Turborepo, `packages/ui` e `packages/api-client` presenti. Gli asset generati sono runtime build e non vanno committati. |
 | `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q` | OK | 9/9 passati: il test packaging ora verifica i manifest workspace richiesti dal Dockerfile. |
+| Deploy Hetzner con backup preventivo, build Docker, health container e smoke produzione | OK | Backup `.tar.zst` verificato, build Docker pnpm completata, app/scheduler/OCR/Redis/Ollama healthy, `https://app.iusentra.it/api/pronto` risponde `ok=true`, pulizia `docker builder prune --all --force` eseguita e smoke in container conferma estrazione `.txt`/`.eml`. |
 
 ### Lex dati studio, bozze e Documenti AI p7m/txt/eml - 2026-05-18
 

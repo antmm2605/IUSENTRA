@@ -1124,6 +1124,72 @@ def test_search_lex_sources_premia_evidenza_web_con_titolo_esatto(tmp_path: Path
     assert results[0]["attachment_url"] == "https://www.inps.it/messaggio-numero-685-del-26-02-2026.pdf"
 
 
+def test_search_lex_sources_non_usa_cassazione_per_sentenza_corte_costituzionale(tmp_path: Path):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+
+    with pipeline.repository._connect() as conn:
+        rows = [
+            (
+                "cassazione-corte-cost-noise",
+                "cassazione",
+                "Corte Suprema di Cassazione",
+                "Sentenza della Corte Costituzionale n. 50 del 27/1/2026",
+                "fonte_acquisita",
+                "Sentenza n. 11513 del 28/04/2026",
+                "https://www.cortedicassazione.it/it/civile_dettaglio.page?contentId=SZC50131",
+                "",
+                "",
+                "",
+                1,
+                500,
+                "La sentenza di Cassazione richiama Corte Costituzionale e il 2026.",
+                "La sentenza di Cassazione richiama Corte Costituzionale, ma non e' la n. 50 del 27/01/2026.",
+                '["sentenza","corte","costituzionale","2026"]',
+                "verified",
+            ),
+            (
+                "corte-cost-50-2026",
+                "corte_costituzionale",
+                "Corte Costituzionale",
+                "Sentenza della Corte Costituzionale n. 50 del 27/1/2026",
+                "fonte_acquisita",
+                "Sentenza della Corte Costituzionale n. 50 del 27/1/2026",
+                "https://www.cortecostituzionale.it/actionSchedaPronuncia.do?anno=2026&numero=50",
+                "",
+                "",
+                "",
+                1,
+                1200,
+                "Sentenza della Corte Costituzionale n. 50 del 27 gennaio 2026.",
+                "Sentenza della Corte Costituzionale n. 50 del 27 gennaio 2026.",
+                '["sentenza","50","2026"]',
+                "verified",
+            ),
+        ]
+        conn.executemany(
+            """
+            INSERT INTO web_verification_evidence (
+                evidence_key, source_code, source_name, query, origin, title,
+                source_url, attachment_url, attachment_type, sha256, is_official,
+                context_chars, excerpt, content_text, matched_terms_json,
+                verification_status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            rows,
+        )
+        conn.commit()
+
+    results = pipeline.repository.search_lex_sources(
+        "Sentenza della Corte Costituzionale n. 50 del 27/1/2026",
+        limit=5,
+    )
+
+    assert results
+    assert results[0]["title"] == "Sentenza della Corte Costituzionale n. 50 del 27/1/2026"
+    assert results[0]["source_code"] == "corte_costituzionale"
+    assert all("cortedicassazione.it" not in str(row.get("official_url")) for row in results)
+
+
 def test_search_lex_sources_premia_allegato_quando_domanda_chiede_allegato(tmp_path: Path):
     pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
     qsp_url = "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP50194"

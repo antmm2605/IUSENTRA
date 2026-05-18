@@ -2,6 +2,42 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.245.39 - 2026-05-18
+
+Corretto il caso segnalato su `/ricerca-legale?q=Corte+Costituzionale`:
+la pagina Ricerca Legale mostrava la `Sentenza della Corte Costituzionale n. 50 del 27/1/2026`,
+ma Lex poteva rispondere con sentenze Cassazione perché nel repository locale
+`legal_updates.db` erano presenti evidenze Cassazione che citavano la Corte
+Costituzionale nel testo.
+
+Passaggi tracciati:
+
+- il parser dei riferimenti giurisprudenziali esatti accetta ora numeri brevi
+  come `n. 50`, non solo numeri da tre cifre in su;
+- `Sentenza della Corte Costituzionale n. 50 del 27/1/2026` viene riconosciuta
+  come riferimento esatto, con numero `50`, data `27/01/2026` e organo
+  `Corte Costituzionale`;
+- la ricerca ufficiale seleziona `cortecostituzionale.it` quando la domanda
+  nomina la Corte Costituzionale e non aggiunge Cassazione come fonte
+  sostitutiva;
+- il fallback Cassazione diretto non si attiva se il parser ha riconosciuto un
+  organo diverso dalla Cassazione;
+- `LegalUpdateRepository.search_lex_sources()` filtra i risultati per fonte
+  richiesta quando la domanda è un riferimento esatto: una riga Cassazione non
+  può più coprire una richiesta sulla Corte Costituzionale solo perché nel testo
+  compare quella Corte;
+- la pagina Ricerca Legale applica la stessa regola sui record già normalizzati:
+  prima valuta URL e nome della fonte, poi il contenuto citato;
+- se il dato esatto non è nel repository SQL, Lex/Ricerca Legale lasciano
+  attivare il fallback pubblico governato invece di restituire una sentenza
+  diversa.
+
+Verifiche eseguite:
+
+- `python -m py_compile lex\research\case_law_reference_parser.py lex\research\query_helpers.py lex\research\source_scope_policy.py lex\research\case_law_exact_search.py lex\retrieval\official_web.py pct\legal_update_repository.py web\services\react_legal_intelligence_bridge.py`;
+- `python -m pytest tests\test_lex_sources_and_studio_data.py tests\test_react_legal_intelligence_search.py tests\test_legal_update_publish_context.py::test_search_lex_sources_premia_evidenza_web_con_titolo_esatto tests\test_legal_update_publish_context.py::test_search_lex_sources_non_usa_cassazione_per_sentenza_corte_costituzionale tests\test_legal_update_publish_context.py::test_search_lex_sources_premia_allegato_quando_domanda_chiede_allegato -q --tb=short`;
+- `python -m pytest tests\test_lex_operational_knowledge.py::test_http_bridge_defers_specific_case_law_to_public_research tests\test_lex_operational_knowledge.py::test_rg_questione_penale_risponde_a_domande_da_avvocato tests\test_lex_operational_knowledge.py::test_rg_questione_penale_non_trascina_fonti_non_pertinenti -q --tb=short`.
+
 ## Aggiornamento operativo 2.245.38 - 2026-05-18
 
 Corretto il caso `02_Assoradio.pdf` segnalato in Ricerca Legale:

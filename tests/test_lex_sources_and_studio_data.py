@@ -28,6 +28,22 @@ def test_parse_exact_sentenza_numero_data():
     assert ref.kind == "sentenza"
 
 
+def test_parse_exact_sentenza_corte_costituzionale_numero_breve():
+    from lex.research.case_law_reference_parser import parse_case_law_reference
+    from lex.research.query_helpers import is_exact_legal_reference_query
+
+    query = "Sentenza della Corte Costituzionale n. 50 del 27/1/2026"
+    ref = parse_case_law_reference(query)
+
+    assert is_exact_legal_reference_query(query) is True
+    assert ref.is_exact_reference is True
+    assert ref.kind == "sentenza"
+    assert ref.number == "50"
+    assert ref.date == "27/01/2026"
+    assert ref.year == "2026"
+    assert ref.court == "Corte Costituzionale"
+
+
 # ---------------------------------------------------------------------------
 # TC-02: case_law_reference_parser — sentenza con solo anno
 # ---------------------------------------------------------------------------
@@ -62,6 +78,22 @@ def test_cassazione_query_variants_generated():
     ref = parse_case_law_reference("Sentenza n. 7919 del 31/03/2026")
     assert ref.cassazione_query_variants, "Deve generare almeno una query variant"
     assert any("cortedicassazione" in q.lower() for q in ref.cassazione_query_variants)
+
+
+def test_ricerca_ufficiale_sentenza_corte_costituzionale_non_preferisce_cassazione():
+    from lex.retrieval.official_web import resolve_official_source_ids_for_query
+    from lex.research.case_law_exact_search import parse_case_law_reference
+
+    query = "Sentenza della Corte Costituzionale n. 50 del 27/1/2026"
+    source_ids = resolve_official_source_ids_for_query(query, limit=4)
+    reference = parse_case_law_reference(query)
+
+    assert source_ids[0] == "corte_costituzionale"
+    assert "cassazione" not in source_ids
+    assert reference.court == "Corte Costituzionale"
+    assert reference.normalized_queries
+    assert all("cortedicassazione.it" not in item for item in reference.normalized_queries)
+    assert any("cortecostituzionale.it" in item for item in reference.normalized_queries)
 
 
 # ---------------------------------------------------------------------------

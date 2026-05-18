@@ -449,15 +449,89 @@ def _legal_reference_number(value: Any) -> str:
     return match.group(1) if match else ""
 
 
+def _requested_reference_source(value: Any) -> str:
+    text = _text(value).lower()
+    if not _looks_like_exact_legal_reference(text):
+        return ""
+    if "corte costituzionale" in text or "cortecostituzionale.it" in text:
+        return "corte_costituzionale"
+    if "cassazione" in text or "corte suprema" in text or "cortedicassazione.it" in text:
+        return "cassazione"
+    if "consiglio di stato" in text or "giustizia-amministrativa.it" in text or re.search(r"\btar\b", text):
+        return "giustizia_amministrativa"
+    return ""
+
+
+def _record_reference_source(record: Mapping[str, Any]) -> str:
+    source_haystack = " ".join(
+        _text(record.get(key))
+        for key in (
+            "sourceLabel",
+            "sourceKind",
+            "sourceHref",
+            "branch",
+        )
+    ).lower()
+    if "cortecostituzionale.it" in source_haystack or "corte costituzionale" in source_haystack:
+        return "corte_costituzionale"
+    if "cortedicassazione.it" in source_haystack or "cassazione" in source_haystack or "corte suprema" in source_haystack:
+        return "cassazione"
+    if (
+        "giustizia-amministrativa.it" in source_haystack
+        or "consiglio di stato" in source_haystack
+        or re.search(r"\btar\b", source_haystack)
+    ):
+        return "giustizia_amministrativa"
+
+    content_haystack = " ".join(
+        _text(record.get(key))
+        for key in (
+            "title",
+            "subtitle",
+            "sourceExcerpt",
+            "area",
+        )
+    ).lower()
+    if "cortecostituzionale.it" in content_haystack or "corte costituzionale" in content_haystack:
+        return "corte_costituzionale"
+    if "cortedicassazione.it" in content_haystack or "cassazione" in content_haystack or "corte suprema" in content_haystack:
+        return "cassazione"
+    if (
+        "giustizia-amministrativa.it" in content_haystack
+        or "consiglio di stato" in content_haystack
+        or re.search(r"\btar\b", content_haystack)
+    ):
+        return "giustizia_amministrativa"
+    return ""
+
+
 def _record_relevant_for_exact_reference(record: Mapping[str, Any], search_query: str) -> bool:
     reference_number = _legal_reference_number(search_query)
     if not reference_number:
         return True
+    requested_source = _requested_reference_source(search_query)
+    if requested_source:
+        record_source = _record_reference_source(record)
+        if record_source and record_source != requested_source:
+            return False
     haystack = " ".join(
         _text(record.get(key))
         for key in ("title", "sourceExcerpt", "subtitle", "registryNumber", "officialContext", "contextSummary")
     ).lower()
     return bool(re.search(rf"(?<!\d){re.escape(reference_number)}(?!\d)", haystack))
+
+
+def _filter_records_for_exact_reference(records: list[dict[str, Any]], search_query: str) -> list[dict[str, Any]]:
+    if not _looks_like_exact_legal_reference(search_query):
+        return records
+    filtered = [
+        record
+        for record in records
+        if _record_relevant_for_exact_reference(record, search_query)
+    ]
+    if _requested_reference_source(search_query):
+        return filtered
+    return filtered if filtered else records
 
 
 def _record_dedupe_key(record: Mapping[str, Any]) -> str:
@@ -1800,16 +1874,19 @@ def build_react_legal_intelligence_payload(
         search_records = _search_repository_records(pipeline, warnings, search_query)
         official_archive_records = _official_archive_records(warnings, search_query)
         combined_search = _dedupe_records(search_records + official_archive_records + local_matches)
+        combined_search = _filter_records_for_exact_reference(combined_search, search_query)
         combined_search = _sort_records_for_query(combined_search, search_query)
         if _needs_public_fallback(combined_search, search_query):
             public_records, official_search_attempted = _public_search_records(search_query, warnings)
             combined_search = _dedupe_records(combined_search + public_records, limit=24)
+            combined_search = _filter_records_for_exact_reference(combined_search, search_query)
             combined_search = _sort_records_for_query(combined_search, search_query)
         if search_query:
             combined_search, official_context_attempted = _complete_records_context_from_official_sources(
                 combined_search,
                 search_query,
             )
+            combined_search = _filter_records_for_exact_reference(combined_search, search_query)
             combined_search = _sort_records_for_query(combined_search, search_query)
         records = combined_search if search_query else _dedupe_records(news_records + mediazione_official_records + mediazione_records)
         if search_query and not records:

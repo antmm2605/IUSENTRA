@@ -394,8 +394,8 @@ def classify_source_scope(
 # ---------------------------------------------------------------------------
 
 _EXACT_LEGAL_REF_PATTERNS = (
-    r"\bsentenza\s+n[°\.]?\s*\d{3,}",
-    r"\bsentenza\s+n[°\.]?\s*\d+\s+del\s+\d",
+    r"\bsentenza\b.{0,90}\bn[°\.]?\s*\d{1,6}",
+    r"\bsentenza\b.{0,90}\bn[°\.]?\s*\d+\s+del\s+\d",
     r"\bprovvedimento\s+n[°\.]?\s*\d+",
     r"\bordinanza\s+n[°\.]?\s*\d+",
     r"\bdecreto\s+n[°\.]?\s*\d+",

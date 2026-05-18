@@ -86,16 +86,29 @@ def _extract_local_object(local_fragment: Any) -> str:
     return _ascii_upper(subject)
 
 
+def _official_profile_for_court(court: str) -> tuple[str, str]:
+    normalized = _clean_spaces(court).lower()
+    if "costituzionale" in normalized:
+        return "Corte Costituzionale", "cortecostituzionale.it"
+    if "consiglio di stato" in normalized:
+        return "Consiglio di Stato", "giustizia-amministrativa.it"
+    if re.search(r"\btar\b", normalized):
+        return "TAR", "giustizia-amministrativa.it"
+    return "Cassazione", "cortedicassazione.it"
+
+
 def _build_normalized_queries(reference: CaseLawReference, local_fragment: Any = None) -> list[str]:
     if not reference.number:
         return []
     queries: list[str] = []
+    court_label, official_domain = _official_profile_for_court(reference.court)
     if reference.date:
         queries.append(f'"{reference.kind.capitalize()} n. {reference.number} del {reference.date}"')
-        queries.append(f'"{reference.number}" "{reference.date}" "Cassazione"')
-        queries.append(f'site:cortedicassazione.it "{reference.number}" "{reference.date}"')
+        queries.append(f'"{reference.number}" "{reference.date}" "{court_label}"')
+        queries.append(f'site:{official_domain} "{reference.number}" "{reference.date}"')
     if reference.year:
-        queries.append(f'site:cortedicassazione.it "{reference.number}" "{reference.year}"')
+        queries.append(f'site:{official_domain} "{reference.number}" "{reference.year}"')
+        queries.append(f'"{reference.kind} n. {reference.number}/{reference.year}" "{court_label}"')
     subject = _extract_local_object(local_fragment)
     if subject and reference.year:
         queries.append(f'"{subject}" "{reference.number}" "{reference.year}"')
@@ -152,7 +165,8 @@ def search_exact_case_law_reference(
         return result
 
     queries = _build_normalized_queries(reference, local_fragment)
-    result.searched_domains = ["cortedicassazione.it", "giustizia.it", "cortecostituzionale.it"]
+    _, official_domain = _official_profile_for_court(reference.court)
+    result.searched_domains = [official_domain]
     rows: list[dict[str, Any]] = []
     result.official_search_run = True
     try:

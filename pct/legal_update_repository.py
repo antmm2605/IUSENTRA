@@ -276,11 +276,79 @@ def _lex_search_terms(value: Any) -> list[str]:
     terms: list[str] = []
     seen: set[str] = set()
     for raw in re.findall(r"[a-zA-Z0-9_]+", _normalize_token(value)):
-        if len(raw) < 3 or raw in _LEX_SEARCH_STOPWORDS or raw in seen:
+        if (len(raw) < 3 and not raw.isdigit()) or raw in _LEX_SEARCH_STOPWORDS or raw in seen:
             continue
         seen.add(raw)
         terms.append(raw)
     return terms
+
+
+def _looks_like_exact_legal_source_query(value: Any) -> bool:
+    text = _clean_spaces(value).lower()
+    return bool(
+        re.search(r"\b(?:sentenza|ordinanza|decreto|provvedimento)\b.{0,120}\bn\.?\s*\d{1,6}", text)
+        or re.search(r"\bn\.?\s*\d{1,6}\s+del\s+\d{1,2}[/-]\d{1,2}[/-]\d{2,4}", text)
+        or re.search(r"\bn\.?\s*\d{1,6}/\d{4}", text)
+    )
+
+
+def _requested_official_source_code(value: Any) -> str:
+    text = _clean_spaces(value).lower()
+    if not _looks_like_exact_legal_source_query(text):
+        return ""
+    if "corte costituzionale" in text or "cortecostituzionale.it" in text:
+        return "corte_costituzionale"
+    if "cassazione" in text or "corte suprema" in text or "cortedicassazione.it" in text:
+        return "cassazione"
+    if "consiglio di stato" in text or "tar " in f"{text} " or "giustizia-amministrativa.it" in text:
+        return "giustizia_amministrativa"
+    return ""
+
+
+def _row_official_source_code(row: dict[str, Any]) -> str:
+    source_raw = _clean_spaces(
+        " ".join(
+            str(row.get(field) or "")
+            for field in (
+                "source_code",
+                "authority",
+                "court_name",
+                "source_name",
+                "official_url",
+                "source_base_url",
+                "attachment_url",
+            )
+        )
+    ).lower()
+    if "cortecostituzionale.it" in source_raw or "corte costituzionale" in source_raw or "corte_costituzionale" in source_raw:
+        return "corte_costituzionale"
+    if "cortedicassazione.it" in source_raw or "cassazione" in source_raw or "corte suprema" in source_raw:
+        return "cassazione"
+    if "giustizia-amministrativa.it" in source_raw or "consiglio di stato" in source_raw or re.search(r"\btar\b", source_raw):
+        return "giustizia_amministrativa"
+
+    content_raw = _clean_spaces(
+        " ".join(
+            str(row.get(field) or "")
+            for field in (
+                "title",
+            )
+        )
+    ).lower()
+    if "cortecostituzionale.it" in content_raw or "corte costituzionale" in content_raw or "corte_costituzionale" in content_raw:
+        return "corte_costituzionale"
+    if "cortedicassazione.it" in content_raw or "cassazione" in content_raw or "corte suprema" in content_raw:
+        return "cassazione"
+    if "giustizia-amministrativa.it" in content_raw or "consiglio di stato" in content_raw or re.search(r"\btar\b", content_raw):
+        return "giustizia_amministrativa"
+    return ""
+
+
+def _row_matches_requested_official_source(row: dict[str, Any], requested_source: str) -> bool:
+    if not requested_source:
+        return True
+    source = _row_official_source_code(row)
+    return bool(source and source == requested_source)
 
 
 def _review_lookup_terms(value: Any) -> list[str]:
@@ -3025,10 +3093,17 @@ class LegalUpdateRepository:
         result_limit = _limit_value(limit, default=12, maximum=80)
         candidate_limit = max(result_limit * 12, 160)
         terms = _lex_search_terms(query)
+        requested_source = _requested_official_source_code(query)
         with self._connect() as conn:
             candidates = self._lex_sql_candidates(conn, terms=terms, limit=candidate_limit)
             if terms and not candidates:
                 candidates = self._lex_sql_candidates(conn, terms=[], limit=candidate_limit)
+        if requested_source:
+            candidates = [
+                row
+                for row in candidates
+                if _row_matches_requested_official_source(row, requested_source)
+            ]
         payloads = [
             payload
             for row in candidates

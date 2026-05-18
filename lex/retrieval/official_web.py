@@ -153,7 +153,21 @@ def resolve_official_source_ids_for_query(
             return selected[:limit]
 
     question_text = _clean_spaces(question).lower()
-    if re.search(r"\b(?:sentenza|ordinanza|decreto)\s+n[°\.\s]*\d+", question_text) or "cassazione" in question_text:
+    explicit_non_cassazione_court = False
+    if "corte costituzionale" in question_text or "cortecostituzionale.it" in question_text:
+        _push("corte_costituzionale")
+        explicit_non_cassazione_court = True
+    if "consiglio di stato" in question_text or "giustizia-amministrativa.it" in question_text:
+        _push("giustizia_amministrativa")
+        explicit_non_cassazione_court = True
+    if re.search(r"\btar\s+[a-z]", question_text):
+        _push("giustizia_amministrativa")
+        explicit_non_cassazione_court = True
+
+    if (
+        re.search(r"\b(?:sentenza|ordinanza|decreto)\b.{0,90}\bn[°\.\s]*\d+", question_text)
+        or "cassazione" in question_text
+    ) and not explicit_non_cassazione_court:
         _push("cassazione")
         if len(selected) >= limit:
             return selected[:limit]
@@ -285,6 +299,9 @@ def _parse_cassazione_exact_reference(question: str) -> dict[str, str]:
         return {}
     reference = parse_case_law_reference(question)
     if not bool(getattr(reference, "is_exact_reference", False)):
+        return {}
+    court = _clean_spaces(getattr(reference, "court", "")).lower()
+    if court and "cassazione" not in court:
         return {}
     kind = _clean_spaces(getattr(reference, "kind", "")).lower()
     number = _clean_spaces(getattr(reference, "number", ""))

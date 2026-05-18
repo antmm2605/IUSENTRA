@@ -17,11 +17,11 @@ _PIVA_RE = re.compile(r"\b(?:IT)?(\d{11})\b")
 _EMAIL_RE = re.compile(r"\b[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}\b")
 
 _EXACT_LEGAL_REF_PATTERNS = (
-    r"\bsentenza\s+n[°\.\s]*\d{3,}",
-    r"\bordinanza\s+n[°\.\s]*\d{3,}",
-    r"\bdecreto\s+n[°\.\s]*\d{3,}",
-    r"\bn[°\.\s]*\d{3,}\s+del\s+\d",
-    r"\bn[°\.\s]*\d{3,}/\d{4}",
+    r"\bsentenza\b.{0,90}\bn[°\.\s]*\d{1,6}",
+    r"\bordinanza\b.{0,90}\bn[°\.\s]*\d{1,6}",
+    r"\bdecreto\b.{0,90}\bn[°\.\s]*\d{1,6}",
+    r"\bn[°\.\s]*\d{1,6}\s+del\s+\d",
+    r"\bn[°\.\s]*\d{1,6}/\d{4}",
     r"\bcass(?:azione)?\.?\s*(?:civ|pen|lav|sez)\.?\s*\d",
 )
 

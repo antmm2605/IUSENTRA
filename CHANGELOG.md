@@ -7,6 +7,14 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.39 - 2026-05-18
+
+- Corretto il collegamento tra Ricerca Legale e Lex per i riferimenti giurisprudenziali esatti con numeri brevi, come `Sentenza della Corte Costituzionale n. 50 del 27/1/2026`.
+- Il parser Lex riconosce ora sentenze/ordinanze/decreti con numero da 1 a 6 cifre e mantiene l'organo richiesto, senza trasformare automaticamente ogni sentenza in ricerca Cassazione.
+- La ricerca ufficiale sceglie `cortecostituzionale.it` quando la domanda nomina la Corte Costituzionale e non inserisce Cassazione come fonte prioritaria o sostitutiva.
+- Il repository `legal_updates.db` e la pagina Ricerca Legale scartano risultati Cassazione quando la richiesta esatta riguarda un'altra Corte; se il dato non è nel DB, parte il fallback pubblico governato invece di restituire una sentenza diversa.
+- Aggiunti test mirati su parser, routing fonte ufficiale, filtro repository, Ricerca Legale e bridge operativo Lex, preservando il caso pilota Cassazione `QSP50194`.
+
 ## 2.245.38 - 2026-05-18
 
 - Corretto il blocco `Contesto in IUSENTRA` della Ricerca Legale: quando il riepilogo operativo e l'estratto della fonte coincidono, Lex mostra una sola voce e non duplica `Contesto operativo`/`Contenuto`.

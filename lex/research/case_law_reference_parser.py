@@ -79,11 +79,11 @@ _SEZIONE_PATTERNS: list[tuple[str, str]] = [
 # ---------------------------------------------------------------------------
 
 _NUMBER_PATTERNS = (
-    r"n[°\.\s]*(\d{3,6})[/\-](\d{4})",        # n. NNNNN/YYYY
-    r"n[°\.\s]*(\d{3,6})\s+del\s+\d",          # n. NNNNN del ...
-    r"n[°\.\s]*(\d{3,6})",                       # n. NNNNN
-    r"(\d{3,6})/(\d{4})",                        # NNNNN/YYYY
-    r"#\s*(\d{3,6})",                            # #NNNNN
+    r"n[°\.\s]*(\d{1,6})[/\-](\d{4})",        # n. NNNNN/YYYY
+    r"n[°\.\s]*(\d{1,6})\s+del\s+\d",          # n. NNNNN del ...
+    r"n[°\.\s]*(\d{1,6})",                       # n. NNNNN
+    r"(\d{1,6})/(\d{4})",                        # NNNNN/YYYY
+    r"#\s*(\d{1,6})",                            # #NNNNN
 )
 
 # Pattern data

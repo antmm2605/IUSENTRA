@@ -1300,6 +1300,17 @@ def test_http_bridge_defers_specific_case_law_to_public_research(monkeypatch):
 
     assert payload is None
 
+    corte_cost_payload = build_operational_http_payload(
+        user=_User(_all_permissions()),
+        studio=SimpleNamespace(slug="tenant-a"),
+        data={"external_sources_reason": "riferimento giurisprudenziale esatto"},
+        current_user_message="Sentenza della Corte Costituzionale n. 50 del 27/1/2026",
+        resolved_effective_question="Sentenza della Corte Costituzionale n. 50 del 27/1/2026",
+        studio_context={"focus_topic": "sentenze_web", "request_profile": {"intent": "giurisprudenza_specifica"}},
+    )
+
+    assert corte_cost_payload is None
+
 
 def test_http_bridge_non_devia_questione_penale_rg_in_bozza_atto(monkeypatch):
     monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)

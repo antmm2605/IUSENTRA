@@ -350,6 +350,65 @@ def test_ricerca_legale_attiva_fonti_ufficiali_quando_archivio_non_basta(monkeyp
     assert any(record["sourceKind"] == "fonte ufficiale" for record in payload["records"])
 
 
+def test_ricerca_legale_sentenza_corte_costituzionale_scarta_risultati_cassazione(monkeypatch):
+    monkeypatch.setattr(bridge, "_search_normattiva", None)
+    monkeypatch.setattr(bridge, "_search_gazzetta", lambda *args, **kwargs: [])
+    monkeypatch.setattr(bridge, "_build_official_context", None)
+    monkeypatch.setattr(
+        bridge,
+        "_rewrite_query_for_legal_research",
+        lambda query: SimpleNamespace(
+            original_query=query,
+            public_research_query=query,
+            can_use_ldr=True,
+            local_deep_research_query=query,
+        ),
+    )
+
+    def _public_search(rewritten, **kwargs):
+        return SimpleNamespace(
+            warnings=[],
+            sources=[
+                SimpleNamespace(
+                    id="corte-cost-50-2026",
+                    title="Sentenza della Corte Costituzionale n. 50 del 27/1/2026",
+                    source_name="Corte Costituzionale",
+                    source_type="web_ufficiale",
+                    official=True,
+                    url="https://www.cortecostituzionale.it/actionSchedaPronuncia.do?anno=2026&numero=50",
+                    date="2026-01-27",
+                    excerpt="Scheda ufficiale della sentenza n. 50 del 27 gennaio 2026.",
+                )
+            ],
+        )
+
+    monkeypatch.setattr(bridge, "_run_public_legal_research", _public_search)
+    repository = _Repository(
+        search_rows=[
+            {
+                "id": "cassazione-noise",
+                "title": "Sentenza n. 11513 del 28/04/2026",
+                "authority": "Corte Suprema di Cassazione",
+                "official_url": "https://www.cortedicassazione.it/it/civile_dettaglio.page?contentId=SZC50131",
+                "excerpt": "Richiama Corte Costituzionale e il 2026, ma non e' la sentenza n. 50 richiesta.",
+                "content": "Risultato Cassazione non pertinente alla Corte Costituzionale n. 50.",
+                "source_code": "cassazione",
+                "verified_reference": True,
+            }
+        ]
+    )
+
+    payload = _payload(
+        repository,
+        query={"q": "Sentenza della Corte Costituzionale n. 50 del 27/1/2026"},
+    )
+
+    titles = [record["title"] for record in payload["records"]]
+    assert "Sentenza della Corte Costituzionale n. 50 del 27/1/2026" in titles
+    assert "Sentenza n. 11513 del 28/04/2026" not in titles
+    assert payload["contracts"]["external_fetch"] is True
+
+
 def test_ricerca_legale_legge_archivi_normattiva_e_gazzetta_locali(monkeypatch):
     monkeypatch.setattr(
         bridge,

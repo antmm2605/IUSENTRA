@@ -1,10 +1,23 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-18, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
+Aggiornato: 2026-05-18, collegamento Lex/Ricerca Legale per Corte Costituzionale n. 50/2026, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
+
+## Lex/Ricerca Legale Corte Costituzionale n. 50/2026 - 2026-05-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile lex\research\case_law_reference_parser.py lex\research\query_helpers.py lex\research\source_scope_policy.py lex\research\case_law_exact_search.py lex\retrieval\official_web.py pct\legal_update_repository.py web\services\react_legal_intelligence_bridge.py` | OK | Sintassi confermata dopo parser numeri brevi, profilo fonte per Corte Costituzionale e filtro anti-Cassazione su riferimenti esatti. |
+| `python -m pytest tests\test_lex_sources_and_studio_data.py tests\test_react_legal_intelligence_search.py tests\test_legal_update_publish_context.py::test_search_lex_sources_premia_evidenza_web_con_titolo_esatto tests\test_legal_update_publish_context.py::test_search_lex_sources_non_usa_cassazione_per_sentenza_corte_costituzionale tests\test_legal_update_publish_context.py::test_search_lex_sources_premia_allegato_quando_domanda_chiede_allegato -q --tb=short` | OK | 41/41 passati: parser `n. 50`, fonte `cortecostituzionale.it`, Ricerca Legale con fallback pubblico e ranking allegati Cassazione pilota preservato. |
+| `python -m pytest tests\test_lex_operational_knowledge.py::test_http_bridge_defers_specific_case_law_to_public_research tests\test_lex_operational_knowledge.py::test_rg_questione_penale_risponde_a_domande_da_avvocato tests\test_lex_operational_knowledge.py::test_rg_questione_penale_non_trascina_fonti_non_pertinenti -q --tb=short` | OK | 13/13 passati: il bridge operativo lascia passare la sentenza Corte Costituzionale esatta al percorso pubblico e il caso Cassazione `QSP50194` resta protetto da fonti non pertinenti. |
+| `python -m pytest tests\test_lex_sentenze_clienti_fix.py lex\tests\unit\test_sentenze_clienti_fix.py tests\test_lex_professional_upgrade.py::test_gateway_web_libero_parte_solo_con_modalita_libera -q --tb=short` | OK | 46/46 passati: regressioni già coperte su giurisprudenza specifica, exact-reference e web libero preservate. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py` | OK | Contratti API rigenerati e validati per versione `2.245.39`; provider verification verde. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_openapi_contracts_phase6.py tests\test_utf8_integrity.py -q --tb=short`; `python tools\check_repo_governance.py`; `git diff --check -- . ':!data/*' ':!intelligence/*'` | OK | Packaging sincronizzato, readiness/OpenAPI/UTF-8 18/18, governance OK e whitespace senza errori sul perimetro codice/documenti. |
+| `python -m pct.cli utf8-integrity --check-only --root ... --report %TEMP%\iusentra_utf8_24539_targeted_report.json --json` | OK | Controllo UTF-8 mirato sui file testuali toccati `ok=true`; il controllo full-root locale è andato in timeout, quindi resta fuori perimetro rispetto al fix. |
+| Probe Python parser/routing fonte | OK | `Sentenza della Corte Costituzionale n. 50 del 27/1/2026` risulta `exact=True`, numero `50`, data `27/01/2026`, organo `Corte Costituzionale`, sorgente primaria `corte_costituzionale` senza `cassazione`. |
 
 ## Ricerca Legale contesto PDF e filtro AGCOM 2.245.38 - 2026-05-18
 

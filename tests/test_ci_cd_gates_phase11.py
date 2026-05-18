@@ -40,6 +40,7 @@ def test_main_ci_runs_phase11_blocking_gates() -> None:
         "tests/test_app_v2_feature_flags.py",
         "tests/test_app_v2_routing.py",
         "tests/test_openapi_contracts_phase6.py",
+        "pnpm/action-setup@v4",
         "pnpm --filter @iusentra/studio typecheck",
         "pnpm --filter @iusentra/studio build",
     ):
@@ -62,6 +63,7 @@ def test_security_supply_chain_blocks_critical_dependency_regressions() -> None:
     workflow = _read(".github/workflows/security-supply-chain.yml")
 
     assert "pip-audit -r requirements.txt --format json --output pip-audit.json" in workflow
+    assert "pnpm/action-setup@v4" in workflow
     assert "pnpm --filter @iusentra/studio audit --audit-level=critical --prod --json" in workflow
     assert "pip-audit-report" in workflow
     assert "frontend-pnpm-audit-report" in workflow

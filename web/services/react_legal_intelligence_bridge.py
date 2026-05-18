@@ -1367,6 +1367,9 @@ def _search_row_key_points(row: Mapping[str, Any], excerpt: str) -> list[str]:
     norm_refs, rg_refs = _search_row_reference_labels(row)
     attachment_url = _text(row.get("attachment_url") or row.get("attachmentUrl"))
     context_chars = _int_or_zero(row.get("context_chars") or row.get("contextChars"))
+    destination = _text(row.get("publication_destination_label") or row.get("publicationDestinationLabel"))
+    if destination:
+        points.append(f"Destinazione: {destination}.")
     if norm_refs:
         points.append(f"Riferimenti normativi: {', '.join(norm_refs[:5])}.")
     if rg_refs:

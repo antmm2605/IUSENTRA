@@ -21,6 +21,10 @@ from pct.legal_update_autofetch import (
     run_legal_update_autofetch_tick,
 )
 from pct.legal_update_pipeline import DEFAULT_SOURCE_ROWS, LegalUpdatePipeline, build_legal_update_pipeline
+from pct.legal_update_source_capabilities import (
+    publication_destination_label,
+    source_capability_payload,
+)
 from pct.legal_update_repository import LegalUpdateDbConfig
 from pct.tenant import GestioneTenant, normalize_db_mode
 
@@ -571,6 +575,7 @@ def _format_source_agent_message(
 
 def _catalog_source_payload(source: dict[str, Any], activity: dict[str, Any], agent_run: dict[str, Any] | None = None) -> dict[str, Any]:
     row = dict(source)
+    capability = source_capability_payload(row)
     row["family_key"] = _source_family_key(row)
     row["method_label"] = _source_method_label(row)
     row["interval_label"] = _source_interval_label(row.get("polling_minutes"))
@@ -585,7 +590,72 @@ def _catalog_source_payload(source: dict[str, Any], activity: dict[str, Any], ag
     row["latest_source_date"] = str(activity.get("latest_source_date") or "")
     row["was_added_by_catalog"] = str(row.get("code") or "") in SOURCE_CODES_ADDED_BY_CATALOG
     row["agent"] = _agent_status_payload(agent_run, source_code=str(row.get("code") or ""))
+    row["capability"] = capability
+    row["item_strategy_label"] = _capability_strategy_label(capability.get("item_strategy"))
+    row["detail_strategy_label"] = _capability_strategy_label(capability.get("detail_strategy"))
+    row["attachment_strategy_label"] = _capability_strategy_label(capability.get("attachment_strategy"))
+    row["publication_destination"] = capability.get("publication_destination") or ""
+    row["publication_destination_label"] = publication_destination_label(capability.get("publication_destination"))
+    row["rag_destination"] = _capability_strategy_label(capability.get("rag_destination"))
+    row["jurisprudence_destination_raw"] = str(capability.get("jurisprudence_destination") or "")
+    row["jurisprudence_destination"] = _capability_strategy_label(capability.get("jurisprudence_destination"))
+    row["relevance_policy_label"] = _capability_strategy_label(capability.get("relevance_policy"))
+    row["exclusion_policy_label"] = _capability_strategy_label(capability.get("exclusion_policy"))
+    row["pdf_required"] = bool(capability.get("pdf_required"))
+    row["ocr_allowed"] = bool(capability.get("ocr_allowed"))
+    row["reference_extraction_enabled"] = bool(capability.get("reference_extraction_enabled"))
+    row["context_question_enabled"] = bool(capability.get("context_question_enabled"))
     return row
+
+
+def _capability_strategy_label(value: Any) -> str:
+    raw = str(value or "").strip()
+    labels = {
+        "html_listing": "elenco HTML",
+        "detail_if_useful": "scheda se utile",
+        "detail_html": "scheda HTML",
+        "official_links": "allegati ufficiali",
+        "official_pdf_links": "PDF ufficiali",
+        "official_pdf_or_celex": "PDF o riferimento CELEX",
+        "technical_catalog": "catalogo tecnico",
+        "metadata_only": "solo metadati",
+        "document_resources_only": "solo risorse documentali",
+        "cassazione_detail_cards": "schede Cassazione",
+        "cassazione_index_civile_penale": "indice Civile/Penale",
+        "detail_html_only_content_id": "solo schede con identificativo",
+        "html_listing_disabled_by_default": "elenco HTML in osservazione",
+        "detail_html_backfill_only": "scheda solo da backfill",
+        "ckan_package_resources": "pacchetti e risorse open data",
+        "resource_detail_if_document": "risorsa solo se documentale",
+        "feed_items": "voci del feed",
+        "feed_detail_if_poor": "scheda se il feed è povero",
+        "technical_document_links": "documenti tecnici",
+        "technical_download_links": "download tecnici",
+        "download_metadata": "metadati download",
+        "verified_citation_detail": "citazioni verificate",
+        "normattiva_index": "indice Normattiva",
+        "article_or_act_detail": "articolo o atto",
+        "normattiva_code_index": "indice codice",
+        "article_detail": "articolo",
+        "none": "non previsto",
+        "none_unless_official_document": "solo se documento ufficiale",
+        "official_rag": "RAG ufficiale",
+        "technical_metadata": "metadati tecnici",
+        "official_normative_rag": "RAG normativa ufficiale",
+        "official_case_law_rag": "RAG giurisprudenza ufficiale",
+        "official_eu_rag": "RAG UE ufficiale",
+        "official_eu_case_law_rag": "RAG giurisprudenza UE",
+        "official_prassi_rag": "RAG prassi ufficiale",
+        "official_data_rag": "RAG dati ufficiali",
+        "official_open_data_rag": "RAG open data ufficiale",
+        "telematico_rag": "RAG processo telematico",
+        "structured_if_court_number_year": "strutturato con corte, numero e anno",
+        "structured_if_tar_cds_number_year": "strutturato con TAR/CdS, numero e anno",
+        "structured_if_case_number_year": "strutturato con causa, numero e anno",
+    }
+    if raw in labels:
+        return labels[raw]
+    return raw.replace("_", " ") or "da verificare"
 
 
 def _truth_metrics_from_snapshot(snapshot: dict[str, Any], pipeline: LegalUpdatePipeline) -> dict[str, Any]:

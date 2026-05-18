@@ -7,6 +7,15 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.41 - 2026-05-19
+
+- Aggiunto il registro capability per fonte degli Aggiornamenti legali: ogni sorgente dichiara strategia elenco/dettaglio/allegati, PDF/OCR, riferimenti, domande, destinazione, RAG, giurisprudenza e filtri di esclusione.
+- Introdotti parser/adapters deterministici per HTML listing/detail, Feed/RSS/Atom, CKAN/OpenGA, Cassazione ultime sentenze/ordinanze/questioni e autorità indipendenti, con fixture testate e senza import massivo live.
+- Separati in moduli dedicati l'estrattore riferimenti normativi/giurisprudenziali e il generatore di domande contestuali, preservando zero link Normattiva inventati e la matrice approvata del caso Cassazione QSP50194.
+- La pagina admin fonti mostra capability, destinazione, RAG, PDF/OCR, riferimenti, domande e policy di scarto con etichette italiane; Ricerca Legale/Lex ricevono anche la destinazione policy nei payload.
+- OpenGA cataloghi, dataset tecnici, fatture/liquidazioni, consultazioni AGCOM e fonti secondarie vengono chiusi o degradati con motivo leggibile; i documenti giuridici concreti non vengono persi e restano RAG/giurisprudenza quando hanno chiavi minime.
+- Creato `artifacts/legal-updates/source-rollout-execution.md` con stato prima/dopo per tutte le fonti non complete del piano.
+
 ## 2.245.40 - 2026-05-18
 
 - Aggiunta la ricognizione fonte per fonte degli Aggiornamenti legali in `artifacts/legal-updates/source-rollout-plan.md`, con decisione esplicita per tutte le fonti `DEFAULT_SOURCE_ROWS` e quelle persistite nel database.

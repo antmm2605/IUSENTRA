@@ -17,6 +17,10 @@ from pct.legal_update_enrichment import (
     extract_legal_references,
     legal_reference_labels,
 )
+from pct.legal_update_source_capabilities import (
+    get_source_capability,
+    publication_destination_label,
+)
 from pct.legal_relevance import is_low_value_public_legal_record
 from pct.postgres_runtime_support import PostgresRepositoryBackend
 
@@ -1200,6 +1204,46 @@ class LegalUpdateRepository:
                     continue
                 matched_terms = row.get("matched_terms") if isinstance(row.get("matched_terms"), list) else []
                 context_chars = max(0, int(row.get("context_chars") or 0))
+                enrichment_text = _clean_spaces(
+                    " ".join(
+                        _clean_spaces(value)
+                        for value in (title, excerpt, content_text, source_url, attachment_url)
+                        if _clean_spaces(value)
+                    )
+                )
+                references = extract_legal_references(
+                    enrichment_text,
+                    source_document=attachment_url or source_url,
+                    document_part=_clean_spaces(row.get("attachment_type") or row.get("origin")),
+                    limit=24,
+                )
+                reference_terms = legal_reference_labels(references, limit=16)
+                question_terms = [
+                    _clean_spaces(item.get("question"))
+                    for item in build_contextual_question_matrix(
+                        title=title,
+                        context_text=enrichment_text,
+                        has_attachment=bool(attachment_url),
+                        norm_references=legal_reference_labels(
+                            references,
+                            allowed_types=("article", "act", "eu_act"),
+                            limit=12,
+                        ),
+                        rg_references=_quality_rg_references(enrichment_text),
+                        source_code=source_code,
+                        category=row.get("attachment_type") or row.get("origin"),
+                        has_rg_discrepancy=len(set(_quality_rg_references(enrichment_text))) > 1,
+                        limit=8,
+                    )
+                    if _clean_spaces(item.get("question"))
+                ]
+                matched_terms = list(
+                    dict.fromkeys(
+                        _clean_spaces(item)
+                        for item in [*matched_terms, *reference_terms, *question_terms]
+                        if _clean_spaces(item)
+                    )
+                )
                 evidence_key_parts = [
                     str(review_id or ""),
                     str(normalized_document_id or ""),
@@ -3100,6 +3144,7 @@ class LegalUpdateRepository:
         )
         rg_references = _quality_rg_references(context_text)
         has_attachment = bool(_clean_spaces(row.get("attachment_url")))
+        capability = get_source_capability(row.get("source_code"), category=row.get("category"))
         contextual_questions = build_contextual_question_matrix(
             title=_first_text(row.get("title"), authority, "Aggiornamento legale"),
             context_text=context_text,
@@ -3135,6 +3180,11 @@ class LegalUpdateRepository:
             "submatter_slug": _clean_spaces(row.get("submatter_slug")),
             "submatter_name": _clean_spaces(row.get("submatter_name")),
             "source_code": _clean_spaces(row.get("source_code")),
+            "publication_destination": capability.publication_destination,
+            "publication_destination_label": publication_destination_label(capability.publication_destination),
+            "rag_destination": capability.rag_destination,
+            "jurisprudence_destination": capability.jurisprudence_destination,
+            "relevance_policy": capability.relevance_policy,
             "legal_references": legal_references,
             "norm_references": norm_references,
             "rg_references": rg_references,

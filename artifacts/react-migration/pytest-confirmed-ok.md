@@ -1,10 +1,23 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-18, collegamento Lex/Ricerca Legale per Corte Costituzionale n. 50/2026, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
+Aggiornato: 2026-05-19, capability registry/parser fixture Aggiornamenti legali 2.245.41, collegamento Lex/Ricerca Legale per Corte Costituzionale n. 50/2026, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
+
+## Update Intelligence capability/parser fixture 2.245.41 - 2026-05-19
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct/legal_update_pipeline.py pct/legal_update_repository.py pct/legal_update_enrichment.py pct/legal_update_source_capabilities.py pct/legal_update_source_parsers.py pct/legal_reference_extractor.py pct/legal_context_questions.py web/services/legal_update_surface.py web/services/react_legal_intelligence_bridge.py` | OK | Sintassi confermata dopo registry capability, parser HTML/feed/CKAN/Cassazione, riferimenti e domande modulari. |
+| `python -m pytest tests/test_legal_update_source_capabilities.py tests/test_legal_update_source_parsers.py -q --tb=short` | OK | 9/9 passati: registry per tutte le fonti richieste, filtri studio legale, riferimenti, domande, HTML/detail, feed, CKAN/OpenGA e Cassazione indice/detail. |
+| `python -m pytest tests/test_legal_updates_pipeline.py -q --tb=short` | OK | 40/40 passati: console admin, Cassazione indice, OpenGA cataloghi/documenti, AGCOM, backfill, route/API e fonti. Primo lancio completo andato in timeout prima delle correzioni; rilanciato verde dopo fix detail Cassazione e OpenGA. |
+| `python -m pytest tests/test_legal_update_autofetch.py tests/test_legal_update_surface_jobs.py tests/test_legal_update_job_queue.py tests/test_legal_update_batch_runner.py -q --tb=short` | OK | 18/18 passati: job, cursori, batch runner e monitor senza import massivo al render. |
+| `python -m pytest tests/test_legal_update_publish_context.py tests/test_legal_update_web_verification_attachments.py tests/test_document_intelligence_extraction.py -q --tb=short` | OK | 36/36 passati: PDF/OCR/backfill, hash, diagnosi, riferimenti e matrice domande preservata. |
+| `python -m pytest tests/test_lex_source_corpus_generator.py tests/test_lex_operational_knowledge.py tests/test_react_legal_intelligence_search.py tests/test_giurisprudenza.py -q --tb=short` | OK | 99/99 passati: corpus Lex, Ricerca Legale, Web libero isolato e Archivio Giurisprudenza. |
+| `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build` | OK | TypeScript verde; build Vite completata in 6.76s. Nessun sorgente React modificato; ripulito solo il whitespace dell'asset `ImpostazioniPage-DA0fc_JT.js` rigenerato dal build. |
+| `python tools/check_repo_governance.py`; `python -m pytest tests/test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | Governance OK, UTF-8 4/4 e whitespace senza errori; `git diff --check` segnala solo il warning CRLF sui file runtime preesistenti fuori staging. |
 
 ## Update Intelligence fonti/PDF/OCR/Lex 2.245.40 - 2026-05-18
 

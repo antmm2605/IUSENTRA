@@ -7,6 +7,21 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.245.41 - 19 maggio 2026
+
+Gli Aggiornamenti legali hanno ora un registro capability per fonte. Lex non
+deduce più a posteriori se una fonte è normativa, prassi, giurisprudenza,
+RAG-only o fuori perimetro: la pipeline salva la destinazione prevista, la
+strategia di dettaglio, PDF/OCR, riferimenti, domande contestuali e motivo di
+scarto in modo deterministico.
+
+I parser fixture coprono HTML listing/detail, Feed/RSS/Atom, CKAN/OpenGA,
+Cassazione indice Civile/Penale/detail e autorità indipendenti. OpenGA non
+pubblica cataloghi o dataset tecnici come news, ma conserva evidenze RAG quando
+utili; se una risorsa contiene un documento giuridico concreto, il documento
+viene trattato separatamente. Le fonti secondarie restano fuori dal corpus
+ufficiale e utilizzabili solo tramite Web libero manuale.
+
 ## Aggiornamento operativo 2.245.40 - 18 maggio 2026
 
 La pipeline fonti pubbliche usa ora un arricchimento deterministico condiviso:

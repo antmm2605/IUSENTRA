@@ -4,6 +4,9 @@ import re
 from collections.abc import Iterable
 from typing import Any
 
+from pct.legal_context_questions import compat_question_matrix
+from pct.legal_reference_extractor import compat_references, reference_labels
+
 
 CODE_ARTICLE_RE = re.compile(
     r"\b(?P<code>cod\.?\s+proc\.?\s+pen\.?|cod\.?\s+proc\.?\s+civ\.?|cod\.?\s+pen\.?|cod\.?\s+civ\.?|"
@@ -90,32 +93,12 @@ def extract_legal_references(
 ) -> list[dict[str, Any]]:
     """Estrae riferimenti deterministici senza risolvere link non verificati."""
 
-    source = clean_spaces(text)
-    if not source:
-        return []
-    refs: list[dict[str, Any]] = []
-    _collect_code_articles(refs, source, source_document=source_document, document_part=document_part)
-    for pattern, ref_type, confidence in (
-        (ARTICLE_RE, "article", 0.9),
-        (ACT_RE, "act", 0.88),
-        (EU_ACT_RE, "eu_act", 0.88),
-        (DECISION_RE, "decision", 0.86),
-        (COURT_RE, "court", 0.76),
-        (RG_RE, "rg", 0.9),
-        (CONTENT_ID_RE, "content_id", 0.88),
-    ):
-        for match in pattern.finditer(source):
-            _append_reference(
-                refs,
-                source,
-                match.start(),
-                match.end(),
-                ref_type=ref_type,
-                source_document=source_document,
-                document_part=document_part,
-                confidence=confidence,
-            )
-    return _dedupe_references(refs, limit=limit)
+    return compat_references(
+        text,
+        source_document=source_document,
+        document_part=document_part,
+        limit=limit,
+    )
 
 
 def legal_reference_labels(
@@ -124,21 +107,11 @@ def legal_reference_labels(
     allowed_types: Iterable[str] | None = None,
     limit: int = 20,
 ) -> list[str]:
-    allowed = {str(item) for item in allowed_types or ()}
-    labels: list[str] = []
-    seen: set[str] = set()
-    for row in references:
-        if allowed and str(row.get("type") or "") not in allowed:
-            continue
-        label = clean_spaces(row.get("normalized_text") or row.get("text"))
-        key = label.casefold()
-        if not label or key in seen:
-            continue
-        seen.add(key)
-        labels.append(label)
-        if len(labels) >= limit:
-            break
-    return labels
+    return reference_labels(
+        list(references),
+        allowed_types=tuple(str(item) for item in allowed_types or ()),
+        limit=limit,
+    )
 
 
 def build_contextual_question_matrix(
@@ -154,43 +127,18 @@ def build_contextual_question_matrix(
     has_rg_discrepancy: bool = False,
     limit: int = 18,
 ) -> list[dict[str, str]]:
-    subject = clean_spaces(title) or "questa fonte"
-    context = clean_spaces(context_text)
-    haystack = f"{subject} {context} {source_code} {category} {matter}".casefold()
-    rg_values = [clean_spaces(value) for value in rg_references if clean_spaces(value)]
-    norm_values = [clean_spaces(value) for value in norm_references if clean_spaces(value)]
-    primary_rg = rg_values[0] if rg_values else ""
-    reference = f" R.G. {primary_rg}" if primary_rg and "r.g." not in subject.casefold() else ""
-
-    rows: list[tuple[str, str]] = [
-        ("sintesi", f"Mi puoi sintetizzare {subject}{reference}?"),
-        ("natura_atto", "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?"),
-        ("oggetto", "Qual è l'oggetto della questione o della decisione?"),
-        ("stato", "Qual è lo stato del procedimento o dell'atto?"),
-        ("punto_diritto", "Qual è il punto di diritto o il principio in discussione?"),
-        ("motivi", "Quali sono i motivi, le censure o i passaggi rilevanti indicati nel testo?"),
-        ("norme", "Quali norme sono richiamate e perché contano?"),
-        ("effetto_pratico", "Qual è l'effetto pratico per un avvocato che deve usare questa fonte?"),
-        ("esito", "Risulta già un esito finale oppure la questione è ancora pendente?"),
-    ]
-    if "cassazione" in haystack:
-        rows.append(("principio_operativo", f"Qual è il principio operativo della Cassazione su {subject}?"))
-    if "agcom" in haystack:
-        rows.append(("agcom_perimetro", "Questo provvedimento AGCOM riguarda sanzione, controversia utente, Corecom, diritto d'autore o una consultazione non operativa?"))
-    if "inps" in haystack:
-        rows.append(("inps_impatto", "Questa fonte INPS incide su termini, contributi o contenzioso previdenziale?"))
-    if "openga" in haystack or "giustizia amministrativa" in haystack:
-        rows.append(("open_data_destinazione", "Il dato amministrativo contiene un documento giuridico concreto o resta solo evidenza RAG?"))
-    if has_attachment:
-        rows.append(("pdf_allegato", "Quale PDF o allegato ufficiale è collegato e il link è cliccabile?"))
-    if has_rg_discrepancy:
-        rows.append(("discrepanza_rg", "Ci sono discrepanze tra il numero R.G. della scheda e quello del PDF?"))
-    if norm_values:
-        rows.append(("articoli", "Puoi spiegare gli articoli richiamati senza limitarti a citarli?"))
-    if any(term in haystack for term in LAW_FIRM_CONTEXT_TERMS):
-        rows.append(("uso_in_atto", "Questa fonte è utilizzabile per redigere un atto o serve solo come monitoraggio?"))
-    rows.append(("qualita_testo", "Il testo è leggibile oppure ci sono parti OCR da non riportare come certe?"))
-    return [{"check": key, "question": question} for key, question in _dedupe_rows(rows)[: max(1, int(limit or 1))]]
+    return compat_question_matrix(
+        title=title,
+        context_text=context_text,
+        has_attachment=has_attachment,
+        norm_references=tuple(norm_references),
+        rg_references=tuple(rg_references),
+        source_code=source_code,
+        category=category,
+        matter=matter,
+        has_rg_discrepancy=has_rg_discrepancy,
+        limit=limit,
+    )
 
 
 def _collect_code_articles(

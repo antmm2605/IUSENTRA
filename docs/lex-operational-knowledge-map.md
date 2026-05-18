@@ -28,6 +28,8 @@ Aggiornamento 2026-05-18, `Web libero` chat Lex: quando il flag manuale è attiv
 
 Aggiornamento 2026-05-18, fonti aggiornamenti legali 2.245.40: `LegalUpdateRepository.search_lex_sources()` restituisce anche riferimenti normativi, riferimenti R.G., domande contestuali e stato allegato/PDF/OCR provenienti dalle evidenze web. Questi dati alimentano Ricerca Legale e Lex senza duplicare contesto operativo e contenuto, e senza promuovere le fonti `web_libero` nel corpus ufficiale.
 
+Aggiornamento 2026-05-19, fonti aggiornamenti legali 2.245.41: il registro capability fonte per fonte rende esplicito se una sorgente alimenta normativa, prassi, giurisprudenza, news, RAG-only o fuori perimetro. I parser deterministici per HTML, feed, CKAN/OpenGA, Cassazione e autorità indipendenti salvano testo dettaglio, allegati candidati, ragioni di scarto e destinazione; Lex usa questi segnali nel corpus ufficiale e nel ranking, mentre Web libero resta separato e manuale.
+
 ## Regole di accesso
 
 - Tenant: ricavato dal contesto Flask (`g.tenant`, `g.tenant_context_slug`, `g.data_paths`) o da contesto applicativo esplicito nei test.

@@ -225,10 +225,17 @@
                   <div class="small">{{ source.method_label }}</div>
                   <div class="small text-muted">{{ source.interval_label }}</div>
                   <div class="small text-muted">{{ source.category|replace('_', ' ') }}</div>
+                  <div class="small text-muted mt-1">Elementi: {{ source.item_strategy_label }}</div>
+                  <div class="small text-muted">Dettaglio: {{ source.detail_strategy_label }}</div>
                 </td>
                 <td>
                   <span class="badge text-bg-{% if source.enabled %}success{% else %}secondary{% endif %}">{{ source.status_label }}</span>
                   <div class="small text-muted mt-1">classe {{ source.trust_class }}</div>
+                  <div class="small text-muted">Destinazione: {{ source.publication_destination_label }}</div>
+                  <div class="small text-muted">RAG: {{ source.rag_destination }}</div>
+                  {% if source.jurisprudence_destination_raw != "none" %}
+                  <div class="small text-muted">Archivio giurisprudenza: {{ source.jurisprudence_destination }}</div>
+                  {% endif %}
                 </td>
                 <td>
                   <span class="badge text-bg-{{ source.agent.class }}">{{ source.agent.label }}</span>
@@ -241,10 +248,15 @@
                   <div class="fw-semibold">{{ source.raw_documents }}</div>
                   <div class="small text-muted">{{ source.analyses }} analisi</div>
                   {% if source.review_pending %}<div class="small text-warning">{{ source.review_pending }} in verifica</div>{% endif %}
+                  <div class="small text-muted mt-1">PDF{% if source.pdf_required %} richiesto{% else %}/allegati se presenti{% endif %}</div>
+                  <div class="small text-muted">OCR: {% if source.ocr_allowed %}abilitato{% else %}non previsto{% endif %}</div>
+                  <div class="small text-muted">Riferimenti e domande: {% if source.reference_extraction_enabled and source.context_question_enabled %}attivi{% else %}non pubblicati{% endif %}</div>
                 </td>
                 <td>
                   <div class="small">{{ source.last_check_at or "Mai eseguito" }}</div>
                   {% if source.latest_source_date %}<div class="small text-muted">ultimo contenuto {{ source.latest_source_date }}</div>{% endif %}
+                  <div class="small text-muted mt-1">Filtro: {{ source.relevance_policy_label }}</div>
+                  <div class="small text-muted">Scarto: {{ source.exclusion_policy_label }}</div>
                 </td>
                 <td class="text-end">
                   <div class="d-flex flex-column flex-sm-row justify-content-end gap-2">

@@ -2,6 +2,20 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.245.41 - 2026-05-19
+
+Il piano fonte per fonte degli Aggiornamenti legali è stato trasformato in
+codice: `pct/legal_update_source_capabilities.py` definisce per ogni fonte
+strategia elenco/dettaglio/allegati, PDF/OCR, destinazione, RAG,
+giurisprudenza, filtro di pertinenza e motivo di esclusione. I parser dedicati
+in `pct/legal_update_source_parsers.py` coprono HTML, feed, CKAN/OpenGA,
+Cassazione e autorità indipendenti con test deterministici, senza import live
+massivo.
+
+Lex e Ricerca Legale leggono anche la destinazione policy e continuano a usare
+testo pagina, PDF/OCR, riferimenti normativi e domande contestuali. Web libero
+resta manuale e separato; le fonti secondarie non entrano nel corpus ufficiale.
+
 ## Aggiornamento operativo 2.245.40 - 2026-05-18
 
 Completata la ricognizione delle fonti Aggiornamenti legali e registrata la

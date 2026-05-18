@@ -17,6 +17,13 @@ from pct.giurisprudenza import GestioneGiurisprudenza
 from pct.legal_update_ai import analyze_document
 from pct.legal_relevance import is_low_value_public_legal_record
 from pct.legal_update_repository import LegalUpdateDbConfig, LegalUpdateRepository
+from pct.legal_update_source_capabilities import (
+    get_source_capability,
+    publication_destination_label,
+    source_capability_payload,
+    source_exclusion_reason,
+)
+from pct.legal_update_source_parsers import fetch_source_documents
 from pct.legal_update_web_verification import verify_legal_update_against_public_sources
 from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
 
@@ -1273,155 +1280,14 @@ class LegalUpdatePipeline:
         return self.repository.get_source_by_id(source_id)
 
     def _fetch_source(self, source: dict[str, Any], *, request_get: RequestGet) -> list[dict[str, Any]]:
-        response = request_get(
-            source["base_url"],
-            timeout=25,
-            headers={"User-Agent": "IUSENTRA-Legal-Updates/1.0"},
-        )
-        content_type = getattr(response, "headers", {}).get("content-type", "")
-        text = ""
-        if hasattr(response, "text"):
-            text = str(response.text or "")
-        elif hasattr(response, "content"):
-            text = bytes(response.content or b"").decode("utf-8", errors="ignore")
-        parser_type = _clean_spaces(source.get("parser_type")).lower()
-        if parser_type == "ckan_json":
-            docs = _extract_ckan_items(source, source["base_url"], text)
-            enriched_docs: list[dict[str, Any]] = []
-            fetched_resources = 0
-            for row in docs:
-                resource_url = _clean_spaces(row.get("resource_url") or row.get("source_url"))
-                resource_format = _clean_spaces(row.get("resource_format")).lower()
-                if (
-                    resource_url
-                    and fetched_resources < 80
-                    and ("json" in resource_format or resource_url.lower().endswith(".json"))
-                ):
-                    try:
-                        resource_response = request_get(
-                            resource_url,
-                            timeout=25,
-                            headers={"User-Agent": "IUSENTRA-Legal-Updates/1.0"},
-                        )
-                        resource_text = ""
-                        if hasattr(resource_response, "text"):
-                            resource_text = str(resource_response.text or "")
-                        elif hasattr(resource_response, "content"):
-                            resource_text = bytes(resource_response.content or b"").decode("utf-8", errors="ignore")
-                        if resource_text:
-                            row["raw_text"] = _truncate(
-                                f"{row.get('raw_text') or ''} Contenuto JSON acquisito: {resource_text}",
-                                limit=20000,
-                            )
-                            row["body_short"] = _truncate(row.get("raw_text") or row.get("body_short") or "")
-                            row["resource_http_status"] = int(getattr(resource_response, "status_code", 200) or 0)
-                            fetched_resources += 1
-                    except Exception:
-                        row["resource_fetch_warning"] = "Risorsa JSON non raggiungibile durante questa scansione."
-                enriched_docs.append(row)
-            docs = _merge_unique_documents(enriched_docs)
-        elif parser_type in {"feed", "rss", "atom"} or _looks_like_feed(text, content_type):
-            docs = _extract_feed_items(source, source["base_url"], text)
-        elif _clean_spaces(source.get("code")).lower() == CASSAZIONE_LATEST_SOURCE_CODE:
-            docs = []
-            max_items = _env_int("IUSENTRA_CASSAZIONE_LATEST_MAX_ITEMS", 20)
-            category_urls = _cassazione_latest_category_urls(source["base_url"], text)
-            category_pages = [(source["base_url"], text)]
-            for page_url in category_urls:
-                try:
-                    page_response = request_get(
-                        page_url,
-                        timeout=25,
-                        headers={"User-Agent": "IUSENTRA-Legal-Updates/1.0"},
-                    )
-                except Exception:
-                    continue
-                page_text = ""
-                if hasattr(page_response, "text"):
-                    page_text = str(page_response.text or "")
-                elif hasattr(page_response, "content"):
-                    page_text = bytes(page_response.content or b"").decode("utf-8", errors="ignore")
-                if page_text:
-                    category_pages.append((page_url, page_text))
-            seen_urls: set[str] = set()
-            for page_url, page_text in category_pages:
-                for row in _cassazione_detail_rows_from_html(source, page_url, page_text):
-                    detail_url = _clean_spaces(row.get("source_url"))
-                    if not detail_url or detail_url in seen_urls:
-                        continue
-                    seen_urls.add(detail_url)
-                    try:
-                        detail_response = request_get(
-                            detail_url,
-                            timeout=25,
-                            headers={"User-Agent": "IUSENTRA-Legal-Updates/1.0"},
-                        )
-                        detail_text = ""
-                        detail_html = ""
-                        if hasattr(detail_response, "text"):
-                            detail_html = str(detail_response.text or "")
-                            detail_text = _text_from_html_content(detail_html)
-                        elif hasattr(detail_response, "content"):
-                            detail_html = bytes(detail_response.content or b"").decode("utf-8", errors="ignore")
-                            detail_text = _text_from_html_content(detail_html)
-                        if detail_text:
-                            row["raw_text"] = detail_text
-                            row["body_short"] = _truncate(detail_text)
-                        if detail_html:
-                            row["raw_html"] = detail_html[:20000]
-                    except Exception:
-                        pass
-                    docs.append(row)
-                    if len(docs) >= max_items:
-                        break
-                if len(docs) >= max_items:
-                    break
-            docs = _merge_unique_documents(docs)
-        else:
-            docs = _extract_html_items(source, source["base_url"], text)
-            extra_pages = _extract_pager_frames(text)
-            for page in extra_pages:
-                page_url = _set_query_param(source["base_url"], "frame3_item", page)
-                try:
-                    page_response = request_get(
-                        page_url,
-                        timeout=25,
-                        headers={"User-Agent": "IUSENTRA-Legal-Updates/1.0"},
-                    )
-                except Exception:
-                    continue
-                page_text = ""
-                if hasattr(page_response, "text"):
-                    page_text = str(page_response.text or "")
-                elif hasattr(page_response, "content"):
-                    page_text = bytes(page_response.content or b"").decode("utf-8", errors="ignore")
-                docs.extend(_extract_html_items(source, page_url, page_text))
-            docs = _merge_unique_documents(docs)
-        if not docs:
-            docs = [
-                {
-                    "external_id": _sha256(f"{source['code']}|{source['base_url']}|empty"),
-                    "source_url": source["base_url"],
-                    "title": source["name"],
-                    "published_at": "",
-                    "raw_html": text[:20000],
-                    "raw_text": _truncate(text, limit=4000),
-                    "body_short": _truncate(text),
-                }
-            ]
-        for row in docs:
-            row.setdefault("raw_html", text[:20000])
-            row.setdefault("raw_text", row.get("body_short") or "")
-            row["content_hash"] = _sha256(json.dumps(row, ensure_ascii=False, sort_keys=True))
-            row["http_status"] = int(getattr(response, "status_code", 200) or 0)
-            row["fetch_status"] = "fetched" if row["http_status"] < 400 else "error"
-        return docs
+        return fetch_source_documents(source, request_get=request_get)
 
     def _normalize_document(self, source: dict[str, Any], raw: dict[str, Any]) -> dict[str, Any]:
         body_text = _clean_spaces(raw.get("raw_text") or raw.get("title"))
         title = _clean_spaces(raw.get("title"))
         issuer = source.get("name") or ""
         document_type_guess = source.get("category") or ""
+        attachments = raw.get("attachments_json") if isinstance(raw.get("attachments_json"), list) else []
         return {
             "title": title or source.get("name") or raw.get("source_url") or "Documento acquisito",
             "body_text": body_text,
@@ -1430,7 +1296,7 @@ class LegalUpdatePipeline:
             "issuer": issuer,
             "document_date": _clean_spaces(raw.get("published_at")),
             "document_type_guess": document_type_guess,
-            "attachments_json": [],
+            "attachments_json": attachments,
             "normalized_hash": _sha256(f"{title}|{body_text}|{issuer}|{document_type_guess}"),
         }
 
@@ -1506,6 +1372,15 @@ class LegalUpdatePipeline:
         parser_type = _clean_spaces(source.get("parser_type")).lower()
         title = _clean_spaces(normalized.get("title"))
         body_text = _clean_spaces(normalized.get("body_text") or normalized.get("body_short"))
+        capability_reason = source_exclusion_reason(
+            source,
+            title=title,
+            body_text=body_text,
+            url=normalized.get("source_url") or source.get("base_url"),
+            has_structured_reference=self._has_structured_reference(analysis),
+        )
+        if capability_reason:
+            return True
         text = f"{title} {body_text}".lower()
         if is_low_value_public_legal_record(
             source_code=source_code,
@@ -1521,7 +1396,15 @@ class LegalUpdatePipeline:
         ):
             return True
         if source_type == "open_data" or parser_type == "ckan_json" or source_code.startswith("openga_"):
-            return True
+            return bool(
+                source_exclusion_reason(
+                    source,
+                    title=title,
+                    body_text=body_text,
+                    url=normalized.get("source_url") or source.get("base_url"),
+                    has_structured_reference=self._has_structured_reference(analysis),
+                )
+            )
         if source_code == "dati_normattiva" and any(
             marker in text
             for marker in (
@@ -1667,6 +1550,19 @@ class LegalUpdatePipeline:
                 "submatter_slug": analysis.get("submatter_slug"),
             },
             "decision": decision,
+            "source_policy": {
+                "capability": source_capability_payload(source),
+                "publication_destination_label": publication_destination_label(
+                    get_source_capability(source.get("code"), category=source.get("category")).publication_destination
+                ),
+                "exclusion_reason": source_exclusion_reason(
+                    source,
+                    title=normalized.get("title"),
+                    body_text=normalized.get("body_text") or normalized.get("body_short"),
+                    url=normalized.get("source_url") or source.get("base_url"),
+                    has_structured_reference=self._has_structured_reference(analysis),
+                ),
+            },
         }
 
     def process_document(self, source: dict[str, Any], raw_payload: dict[str, Any]) -> dict[str, Any]:
@@ -1676,7 +1572,21 @@ class LegalUpdatePipeline:
                 **raw_payload,
             }
         )
-        normalized_payload = self._normalize_document(source, raw_saved)
+        raw_for_normalization = {**raw_saved}
+        for key in (
+            "attachments_json",
+            "publication_destination",
+            "publication_destination_label",
+            "rag_destination",
+            "jurisprudence_destination",
+            "source_relevance_policy",
+            "source_exclusion_policy",
+            "source_exclusion_reason",
+            "source_capability_json",
+        ):
+            if key in raw_payload:
+                raw_for_normalization[key] = raw_payload[key]
+        normalized_payload = self._normalize_document(source, raw_for_normalization)
         normalized_saved = self.repository.save_normalized_document(int(raw_saved["id"]), normalized_payload)
         analysis_payload = analyze_document(
             normalized_saved,

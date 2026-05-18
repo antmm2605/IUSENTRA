@@ -22,7 +22,7 @@ const migrationPaths = [
   'README.md',
   'docs/REACT_MIGRATION_MASTER_PLAN.md',
   'frontend/package.json',
-  'frontend/package-lock.json',
+  'pnpm-lock.yaml',
   'frontend/scripts/check-react-contracts.mjs',
   'frontend/src/theme',
   'frontend/src/ui',
@@ -132,7 +132,7 @@ const tranche2aPatchGroups = {
   ],
   frontend: [
     'frontend/package.json',
-    'frontend/package-lock.json',
+    'pnpm-lock.yaml',
     'frontend/src/lib/apiClient.ts',
     'frontend/src/statisticheData.ts',
     'frontend/src/auditData.ts',
@@ -188,7 +188,7 @@ const tranche3aPatchGroups = {
   ],
   frontend: [
     'frontend/package.json',
-    'frontend/package-lock.json',
+    'pnpm-lock.yaml',
     'frontend/src/utentiData.ts',
     'frontend/src/profiliData.ts',
     'frontend/src/backupData.ts',
@@ -244,7 +244,7 @@ const tranche4aPatchGroups = {
   ],
   frontend: [
     'frontend/package.json',
-    'frontend/package-lock.json',
+    'pnpm-lock.yaml',
     'frontend/src/backupData.ts',
     'frontend/src/sitoStudioData.ts',
     'frontend/src/components/BackupPage.tsx',
@@ -299,7 +299,7 @@ const tranche5aPatchGroups = {
   ],
   frontend: [
     'frontend/package.json',
-    'frontend/package-lock.json',
+    'pnpm-lock.yaml',
     'frontend/src/studioData.ts',
     'frontend/src/amministrazioneData.ts',
     'frontend/src/components/StudioPage.tsx',
@@ -353,7 +353,7 @@ const tranche6aPatchGroups = {
   ],
   frontend: [
     'frontend/package.json',
-    'frontend/package-lock.json',
+    'pnpm-lock.yaml',
     'frontend/src/fatturazioneData.ts',
     'frontend/src/incassiPagamentiData.ts',
     'frontend/src/components/FatturazionePage.tsx',
@@ -411,7 +411,7 @@ const tranche7aPatchGroups = {
   ],
   frontend: [
     'frontend/package.json',
-    'frontend/package-lock.json',
+    'pnpm-lock.yaml',
     'frontend/src/preventiviData.ts',
     'frontend/src/components/PreventiviPage.tsx',
     'frontend/src/components/PreventiviPage.css',
@@ -469,7 +469,7 @@ const tranche8aPatchGroups = {
   ],
   frontend: [
     'frontend/package.json',
-    'frontend/package-lock.json',
+    'pnpm-lock.yaml',
     'frontend/src/compensiForensiData.ts',
     'frontend/src/tariffarioData.ts',
     'frontend/src/components/CompensiForensiPage.tsx',
@@ -536,7 +536,7 @@ const tranche9aPatchGroups = {
   ],
   frontend: [
     'frontend/package.json',
-    'frontend/package-lock.json',
+    'pnpm-lock.yaml',
     'frontend/src/templateAttiData.ts',
     'frontend/src/redazioneAttiData.ts',
     'frontend/src/components/TemplateAttiPage.tsx',
@@ -798,9 +798,9 @@ function runDefault() {
   run('node scripts/react-migration/audit-react-migration.mjs')
   run('node scripts/react-migration/check-route-gate.mjs')
   run('node scripts/react-migration/check-ui-consistency.mjs')
-  run('cd frontend && npm run test')
-  run('cd frontend && npm run typecheck')
-  run('cd frontend && npm run build')
+  run('pnpm --filter @iusentra/studio test')
+  run('pnpm --filter @iusentra/studio typecheck')
+  run('pnpm --filter @iusentra/studio build')
   writeFileSync(
     'artifacts/react-migration/patches/working-tree.patch',
     textArtifact(`git diff --binary -- ${migrationPaths.join(' ')}`),
@@ -822,9 +822,9 @@ function runTranche2a() {
   run('node scripts/react-migration/check-route-gate.mjs')
   run('node scripts/react-migration/check-ui-consistency.mjs')
   run('python scripts/react-migration/check-tranche-2a-gate.py')
-  run('cd frontend && npm run test')
-  run('cd frontend && npm run typecheck')
-  run('cd frontend && npm run build')
+  run('pnpm --filter @iusentra/studio test')
+  run('pnpm --filter @iusentra/studio typecheck')
+  run('pnpm --filter @iusentra/studio build')
   writeTranche2aPatches()
   run('git diff --stat')
   run('git status --short')
@@ -838,9 +838,9 @@ function runTranche3a() {
   run('node scripts/react-migration/check-route-gate.mjs')
   run('node scripts/react-migration/check-ui-consistency.mjs')
   run('python scripts/react-migration/check-tranche-3a-gate.py')
-  run('cd frontend && npm run test')
-  run('cd frontend && npm run typecheck')
-  run('cd frontend && npm run build')
+  run('pnpm --filter @iusentra/studio test')
+  run('pnpm --filter @iusentra/studio typecheck')
+  run('pnpm --filter @iusentra/studio build')
   writeTranche3aPatches()
   run('git diff --stat')
   run('git status --short')
@@ -855,9 +855,9 @@ function runTranche4a() {
   run('node scripts/react-migration/check-ui-consistency.mjs')
   run('node scripts/react-migration/check-tranche-4a-secrets.mjs')
   run('python scripts/react-migration/check-tranche-4a-gate.py')
-  run('cd frontend && npm run test')
-  run('cd frontend && npm run typecheck')
-  run('cd frontend && npm run build')
+  run('pnpm --filter @iusentra/studio test')
+  run('pnpm --filter @iusentra/studio typecheck')
+  run('pnpm --filter @iusentra/studio build')
   writeTranche4aPatches()
   run('git diff --stat')
   run('git status --short')
@@ -872,9 +872,9 @@ function runTranche5a() {
   run('node scripts/react-migration/check-ui-consistency.mjs')
   run('node scripts/react-migration/check-tranche-5a-secrets.mjs')
   run('python scripts/react-migration/check-tranche-5a-gate.py')
-  run('cd frontend && npm run test')
-  run('cd frontend && npm run typecheck')
-  run('cd frontend && npm run build')
+  run('pnpm --filter @iusentra/studio test')
+  run('pnpm --filter @iusentra/studio typecheck')
+  run('pnpm --filter @iusentra/studio build')
   writeTranche5aPatches()
   run('git diff --stat')
   run('git status --short')
@@ -890,9 +890,9 @@ function runTranche6a() {
   run('node scripts/react-migration/check-tranche-6a-secrets.mjs')
   run('node scripts/react-migration/check-tranche-6a-no-fiscal-logic.mjs')
   run('python scripts/react-migration/check-tranche-6a-gate.py')
-  run('cd frontend && npm run test')
-  run('cd frontend && npm run typecheck')
-  run('cd frontend && npm run build')
+  run('pnpm --filter @iusentra/studio test')
+  run('pnpm --filter @iusentra/studio typecheck')
+  run('pnpm --filter @iusentra/studio build')
   writeTranche6aPatches()
   run('git diff --stat')
   run('git status --short')
@@ -911,9 +911,9 @@ function runTranche7a() {
   if (existsSync('scripts/react-migration/check-tranche-7a-gate.py')) {
     run('python scripts/react-migration/check-tranche-7a-gate.py')
   }
-  run('cd frontend && npm run test')
-  run('cd frontend && npm run typecheck')
-  run('cd frontend && npm run build')
+  run('pnpm --filter @iusentra/studio test')
+  run('pnpm --filter @iusentra/studio typecheck')
+  run('pnpm --filter @iusentra/studio build')
   writeTranche7aPatches()
   run('git diff --stat')
   run('git status --short')
@@ -933,9 +933,9 @@ function runTranche8a() {
   if (existsSync('scripts/react-migration/check-tranche-8a-gate.py')) {
     run('python scripts/react-migration/check-tranche-8a-gate.py')
   }
-  run('cd frontend && npm run test')
-  run('cd frontend && npm run typecheck')
-  run('cd frontend && npm run build')
+  run('pnpm --filter @iusentra/studio test')
+  run('pnpm --filter @iusentra/studio typecheck')
+  run('pnpm --filter @iusentra/studio build')
   writeTranche8aPatches()
   run('git diff --stat')
   run('git status --short')
@@ -956,9 +956,9 @@ function runTranche9a() {
   if (existsSync('scripts/react-migration/check-tranche-9a-gate.py')) {
     run('python scripts/react-migration/check-tranche-9a-gate.py')
   }
-  run('cd frontend && npm run test')
-  run('cd frontend && npm run typecheck')
-  run('cd frontend && npm run build')
+  run('pnpm --filter @iusentra/studio test')
+  run('pnpm --filter @iusentra/studio typecheck')
+  run('pnpm --filter @iusentra/studio build')
   writeTranche9aPatches()
   run('git diff --stat')
   run('git status --short')
@@ -979,9 +979,9 @@ function runTranche10a() {
   if (existsSync('scripts/react-migration/check-tranche-10a-gate.py')) {
     run('python scripts/react-migration/check-tranche-10a-gate.py')
   }
-  run('cd frontend && npm run test')
-  run('cd frontend && npm run typecheck')
-  run('cd frontend && npm run build')
+  run('pnpm --filter @iusentra/studio test')
+  run('pnpm --filter @iusentra/studio typecheck')
+  run('pnpm --filter @iusentra/studio build')
   writeTranche10aPatches()
   run('git diff --stat')
   run('git status --short')

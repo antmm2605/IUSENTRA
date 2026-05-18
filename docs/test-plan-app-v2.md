@@ -10,7 +10,7 @@ La fase 10 consolida i test esistenti senza dichiarare passati comandi non esegu
 
 - Base: unit/domain pytest per auth, storage, tenant, documenti, comunicazioni, telematico, Lex e workflow.
 - Middle: Flask test client, API JSON, RBAC, feature flag, tenant isolation, file security e provider verification.
-- UI: `npm --prefix frontend run test`, `typecheck`, build Vite e `scripts/validate_ui_coverage.py`; nessun runner component/VRT dedicato e quindi nessuna copertura frontend percentuale dichiarata.
+- UI: `pnpm --filter @iusentra/studio test`, `typecheck`, build Vite e `scripts/validate_ui_coverage.py`; nessun runner component/VRT dedicato e quindi nessuna copertura frontend percentuale dichiarata.
 - Top: smoke CLI e test E2E Python esistenti; smoke autenticati richiedono env e non sono verdi se le env mancano.
 
 ## Copertura fase 10
@@ -27,8 +27,8 @@ La fase 10 consolida i test esistenti senza dichiarare passati comandi non esegu
 | --- | --- | --- |
 | Backend rapido | python -m pytest -q tests/test_auth.py tests/test_backend_security_phase5.py tests/test_tenant_isolation_runtime.py --tb=short | auth, security e tenant isolation mirati |
 | Backend sharded | python scripts\run_pytest_phases.py --phase 00-ci-contracts,01-flask-core,04-storage --timeout-minutes 15 --batch-size 8 | core backend senza monolitico opaco |
-| Frontend statico | npm --prefix frontend run test | contratti React, App V2 e UI coverage |
-| Frontend build | npm --prefix frontend run typecheck && npm --prefix frontend run build | typecheck e build Vite |
+| Frontend statico | pnpm --filter @iusentra/studio test | contratti React, App V2 e UI coverage |
+| Frontend build | pnpm --filter @iusentra/studio typecheck && pnpm --filter @iusentra/studio build | typecheck e build Vite |
 | Contratti API | python scripts\validate_openapi.py docs\openapi.yaml && python scripts\verify_openapi_provider.py | OpenAPI + provider verification |
 | Smoke unico | python scripts\smoke_app_v2_all.py --base-url http://127.0.0.1:8080 | orchestratore smoke fase 10 |
 | Coverage backend | python -m pytest -q tests/test_auth.py tests/test_storage_strategy.py tests/test_telematico_repository.py --cov=pct.auth --cov=pct.storage --cov=pct.telematico_repository --cov-report=term-missing | baseline coverage mirata, senza cambiare soglie CI |
@@ -100,7 +100,7 @@ La fase 11 ha inserito i comandi candidati nei workflow reali, mantenendo blocca
 | P0 | python scripts\react-migration\generate_app_v2_test_docs.py --check | inventario/matrice/piano test deterministici |
 | P0 | python scripts\smoke_app_v2_all.py --subset inventory | smoke discovery senza credenziali |
 | P0 | python scripts\validate_openapi.py docs\openapi.yaml && python scripts\verify_openapi_provider.py | contratti API |
-| P0 | npm --prefix frontend run test && npm --prefix frontend run typecheck && npm --prefix frontend run build | frontend App V2 |
+| P0 | pnpm --filter @iusentra/studio test && pnpm --filter @iusentra/studio typecheck && pnpm --filter @iusentra/studio build | frontend App V2 |
 | P1 | python scripts\run_pytest_phases.py --phase 00-ci-contracts,01-flask-core,04-storage,06-telematico --timeout-minutes 15 --batch-size 8 | backend/security/tenant sharded |
 | P1 | python scripts\run_pytest_phases.py --suite coverage-critical --suite-shard <n> --suite-total-shards 12 | coverage critica esistente |
 
@@ -114,7 +114,7 @@ Le esecuzioni GitHub Actions restano da verificare dopo ogni push: localmente si
 | --- | --- | --- | --- |
 | .github/workflows/ci.yml | backend, frontend, contracts, registry, coverage-critical, e2e-smoke | si | Gate PR/push principali |
 | .github/workflows/frontend-ci.yml | frontend test/typecheck/build per path frontend | si | Shard rapido dedicato al frontend |
-| .github/workflows/security-supply-chain.yml | pip-audit, npm audit critical, SBOM | si per audit; artifact sempre | Nessun segreto richiesto |
+| .github/workflows/security-supply-chain.yml | pip-audit, pnpm audit critical, SBOM | si per audit; artifact sempre | Nessun segreto richiesto |
 | .github/workflows/codeql.yml | CodeQL Python | si | Code scanning GitHub |
 | .github/workflows/e2e-nightly.yml | E2E full suite | nightly/manual | Non sostituisce i gate PR |
 | .github/workflows/smoke-staging.yml | smoke ambiente e autenticati da secrets | manuale/post-deploy | Usare prima di rollout oltre pilota |

@@ -7,7 +7,7 @@ Usare questo documento per diagnosi rapida. Non dichiarare verde un comando non 
 | Problema | Sintomo | Diagnosi | Fix | Link |
 | --- | --- | --- | --- | --- |
 | Test backend falliscono | `pytest` rosso o timeout | Leggere `artifacts/react-migration/pytest-open-issues.md`; evitare monolitico se supera budget. | Rilanciare shard mirato con `scripts/run_pytest_phases.py` o test file specifico; documentare esito. | [test plan](test-plan-app-v2.md) |
-| Frontend build fallisce | `npm --prefix frontend run build` rosso | `npm --prefix frontend run typecheck`; controllare componente toccato. | Correggere TypeScript/contratti React; poi build. | [ui regression](ui-regression-and-storybook.md) |
+| Frontend build fallisce | `pnpm --filter @iusentra/studio build` rosso | `pnpm --filter @iusentra/studio typecheck`; controllare componente toccato. | Correggere TypeScript/contratti React; poi build. | [ui regression](ui-regression-and-storybook.md) |
 | OpenAPI validation fallisce | `validate_openapi.py` rosso | Controllare endpoint aggiunto o schema incompleto. | Rigenerare con `generate_api_contracts.py`, correggere descrizioni/RBAC/tenant. | [api contracts](api-contracts.md) |
 | Provider verification fallisce | 401/200/400 non attesi | Eseguire `python scripts\verify_openapi_provider.py` e leggere endpoint fallito. | Allineare auth, fixture provider o documentare limite per endpoint parametrico. | [api map](api-endpoint-contract-map.md) |
 | Feature flag non funziona | Pagina appare/spunta in modo inatteso | Verificare `/api/v1/ui/feature-flags` e `IUSENTRA_FEATURE_FLAGS`. | Spegnere/accendere flag canonico, non alias casuali; riavviare app/worker. | [feature flags](feature-flags.md) |
@@ -55,6 +55,6 @@ python scripts\react-migration\generate_app_v2_area_requirements.py --check
 python scripts\react-migration\generate_app_v2_test_docs.py --check
 python scripts\validate_openapi.py docs\openapi.yaml
 python scripts\verify_openapi_provider.py
-npm --prefix frontend run test
-npm --prefix frontend run typecheck
+pnpm --filter @iusentra/studio test
+pnpm --filter @iusentra/studio typecheck
 ```

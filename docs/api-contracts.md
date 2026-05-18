@@ -148,7 +148,7 @@ permessi, non dal filtro trasversale.
 
 ## Fase 6 API Contract Review
 
-Aggiornato: 2026-05-14.
+Aggiornato: 2026-05-18.
 
 OpenAPI di riferimento: `docs/openapi.yaml`.
 
@@ -163,10 +163,10 @@ python -m pytest -q tests\test_openapi_contracts_phase6.py --tb=short
 
 Risultato di mappatura:
 
-- Endpoint React API contrattualizzati: 182.
-- Endpoint P0/P1 con contratto OpenAPI: 169.
+- Endpoint React API contrattualizzati: 196.
+- Endpoint P0/P1 con contratto OpenAPI: 181.
 - Endpoint con provider verification rappresentativa non-auth-error: 28 totali, includendo success-body autenticati e il controllo backend-security.
-- Endpoint con provider verification 401 reale: 182.
+- Endpoint con provider verification 401 reale: 196.
 
 Standard error schema:
 

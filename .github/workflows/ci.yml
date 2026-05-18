@@ -38,8 +38,13 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "22"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.1.2 --activate
 
       - name: Install runtime deps
         run: |
@@ -87,10 +92,10 @@ jobs:
           python scripts/validate_ui_coverage.py
           python -m pytest -q tests/test_app_v2_area_requirements_phase8.py --tb=short
           python -m pytest -q tests/test_ui_coverage_phase9.py --tb=short
-          npm ci --prefix frontend
-          npm --prefix frontend run test
-          npm --prefix frontend run typecheck
-          npm --prefix frontend run build
+          pnpm install --frozen-lockfile
+          pnpm --filter @iusentra/studio test
+          pnpm --filter @iusentra/studio typecheck
+          pnpm --filter @iusentra/studio build
 
       - name: Validate Python baseline
         run: |

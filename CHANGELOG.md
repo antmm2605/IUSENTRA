@@ -9,6 +9,8 @@
 
 ## 2.245.29 - 2026-05-18
 
+- Riallineati i workflow GitHub al monorepo pnpm: Frontend React CI, gate App V2 e audit frontend usano `pnpm install --frozen-lockfile`, `pnpm --filter @iusentra/studio ...` e artifact `frontend-pnpm-audit-report`; i test di guardia impediscono il ritorno a `npm ci` sul workspace.
+- Rigenerati OpenAPI, mappa endpoint e contratti API con versione prodotto corrente `2.245.29`, sistemando anche il blocco governance UTF-8 su documentazione deploy e CSS pubblico.
 - Ridotta `/ricerca-legale` a una pagina operativa: tre sezioni chiare, ricerca principale, filtri utili per studio legale e nessun blocco decorativo o cruscotto non azionabile.
 - I numeri reali già presenti (`Fonti monitorate`, `News pubblicate`, `In revisione`, `Normattiva`, `Gazzetta`, `Mediazione`) diventano accessi funzionali verso schede, filtri e archivi invece di restare KPI isolati.
 - Le fonti monitorate sono visibili in pagina e cliccabili; la fonte Cassazione indicata dall'utente `ultime_sent_ord_e_questioni.page` è stata aggiunta al catalogo degli aggiornamenti legali come fonte ufficiale dedicata.

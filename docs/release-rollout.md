@@ -98,9 +98,9 @@ python scripts\react-migration\generate_app_v2_area_requirements.py --check
 python scripts\react-migration\generate_app_v2_test_docs.py --check
 python scripts\validate_openapi.py docs\openapi.yaml
 python scripts\verify_openapi_provider.py
-npm --prefix frontend run test
-npm --prefix frontend run typecheck
-npm --prefix frontend run build
+pnpm --filter @iusentra/studio test
+pnpm --filter @iusentra/studio typecheck
+pnpm --filter @iusentra/studio build
 ```
 
 Deploy operativo senza aggiornare cron backup:
@@ -166,10 +166,10 @@ Ogni modifica alla shell App V2, al menu, alle route frontend o al bootstrap
 utente deve eseguire il gate comune:
 
 ```bash
-npm --prefix frontend run test:app-v2
-npm --prefix frontend run test
-npm --prefix frontend run typecheck
-npm --prefix frontend run build
+pnpm --filter @iusentra/studio test:app-v2
+pnpm --filter @iusentra/studio test
+pnpm --filter @iusentra/studio typecheck
+pnpm --filter @iusentra/studio build
 python -m pytest -q tests/test_app_v2_frontend_phase7.py --tb=short
 ```
 
@@ -227,9 +227,9 @@ Prima di attivare un flag App V2 su P0/P1 verificare anche la copertura UI:
 ```bash
 python scripts/validate_ui_coverage.py
 python -m pytest -q tests/test_ui_coverage_phase9.py --tb=short
-npm --prefix frontend run test
-npm --prefix frontend run typecheck
-npm --prefix frontend run build
+pnpm --filter @iusentra/studio test
+pnpm --filter @iusentra/studio typecheck
+pnpm --filter @iusentra/studio build
 ```
 
 Checklist visuale pre-release:
@@ -290,9 +290,9 @@ python scripts/react-migration/generate_app_v2_page_registry.py --check
 python scripts/smoke_app_v2_all.py --subset inventory
 python scripts/smoke_app_v2_all.py --subset contracts
 python -m pytest -q tests/test_ci_cd_gates_phase11.py --tb=short
-npm --prefix frontend run test
-npm --prefix frontend run typecheck
-npm --prefix frontend run build
+pnpm --filter @iusentra/studio test
+pnpm --filter @iusentra/studio typecheck
+pnpm --filter @iusentra/studio build
 ```
 
 Lo smoke ambiente vive in `.github/workflows/smoke-staging.yml` ed e' solo

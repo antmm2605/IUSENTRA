@@ -131,6 +131,24 @@ def main() -> int:
                         elif script_name not in root_scripts:
                             errors.append(f"{rel}: missing root npm script: {script_name}")
                         checked += 1
+                elif command == "pnpm":
+                    script_name = ""
+                    scripts = root_scripts
+                    if "--filter" in parts:
+                        filter_index = parts.index("--filter")
+                        target = parts[filter_index + 1] if filter_index + 1 < len(parts) else ""
+                        script_name = parts[filter_index + 2] if filter_index + 2 < len(parts) else ""
+                        if target == "@iusentra/studio":
+                            scripts = frontend_scripts
+                    elif "run" in parts:
+                        run_index = parts.index("run")
+                        script_name = parts[run_index + 1] if run_index + 1 < len(parts) else ""
+                    elif len(parts) >= 2:
+                        script_name = parts[1]
+                    if script_name and script_name not in {"install", "audit", "dlx", "exec"} and not script_name.startswith("-"):
+                        if script_name not in scripts:
+                            errors.append(f"{rel}: missing pnpm script: {script_name}")
+                    checked += 1
                 elif command in {"docker", "git", "ssh", "curl", "curl.exe", "powershell", "bash", "pip-audit", "coverage"}:
                     checked += 1
 

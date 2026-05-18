@@ -20,6 +20,15 @@ OPENAPI_OUTPUT = REPO_ROOT / "docs" / "openapi.yaml"
 CONTRACT_MAP_OUTPUT = REPO_ROOT / "docs" / "api-endpoint-contract-map.md"
 API_CONTRACTS_OUTPUT = REPO_ROOT / "docs" / "api-contracts.md"
 DATE_LINE = re.compile(r"^Aggiornato:\s+([0-9]{4}-[0-9]{2}-[0-9]{2})\.", re.MULTILINE)
+PROJECT_VERSION_RE = re.compile(r"^__version__\s*=\s*['\"]([^'\"]+)['\"]", re.MULTILINE)
+
+
+def _project_version() -> str:
+    init_file = REPO_ROOT / "pct" / "__init__.py"
+    match = PROJECT_VERSION_RE.search(init_file.read_text(encoding="utf-8"))
+    if not match:
+        raise RuntimeError("Versione progetto non trovata in pct/__init__.py")
+    return match.group(1)
 
 
 @dataclass(frozen=True)
@@ -563,7 +572,7 @@ def build_openapi(report_date: str) -> dict[str, Any]:
         "openapi": "3.0.3",
         "info": {
             "title": "IUSENTRA API Contracts",
-            "version": "2.227.0",
+            "version": _project_version(),
             "description": f"Contratti API fase 6 generati da endpoint Flask reali. Aggiornato: {report_date}.",
         },
         "servers": [

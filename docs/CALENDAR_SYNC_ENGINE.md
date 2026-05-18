@@ -167,9 +167,9 @@ python -m pytest tests/test_calendar_sync_engine.py
 python -m pytest tests/test_calendar_credentials.py
 python -m pytest tests/test_calendar_demo_provider.py
 python -m pytest tests/test_calendar_api.py
-npm --prefix frontend run typecheck
-npm --prefix frontend run build
-npm --prefix frontend run test
+pnpm --filter @iusentra/studio typecheck
+pnpm --filter @iusentra/studio build
+pnpm --filter @iusentra/studio test
 ```
 
 I test live Google/Microsoft/Apple vanno aggiunti solo in ambienti con

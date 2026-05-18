@@ -86,7 +86,7 @@ python -m pytest tests/test_legal_skills_engine.py -q
 node frontend\scripts\check-legal-skills.mjs
 python scripts\validate_openapi.py docs\openapi.yaml
 python scripts\verify_openapi_provider.py
-npm --prefix frontend run test
-npm --prefix frontend run typecheck
-npm --prefix frontend run build
+pnpm --filter @iusentra/studio test
+pnpm --filter @iusentra/studio typecheck
+pnpm --filter @iusentra/studio build
 ```

@@ -170,7 +170,7 @@ Il registro area/workflow e' generato separatamente in `docs/app-v2-area-require
 
 ## Copertura UI fase 9
 
-Storybook è presente come infrastruttura frontend, ma non è dichiarato copertura visuale completa né gate VRT. La copertura minima fase 9 usa fixture sicure isolate, `scripts/validate_ui_coverage.py`, `npm --prefix frontend run test` e la build Vite. VRT resta gap documentato: nessuna riga viene marcata pronta per regressione visuale senza un comando reale eseguito.
+Storybook è presente come infrastruttura frontend, ma non è dichiarato copertura visuale completa né gate VRT. La copertura minima fase 9 usa fixture sicure isolate, `scripts/validate_ui_coverage.py`, `pnpm --filter @iusentra/studio test` e la build Vite. VRT resta gap documentato: nessuna riga viene marcata pronta per regressione visuale senza un comando reale eseguito.
 
 | Area | Pagina | Priorita | Component | Storybook story | Component test | VRT | Stati coperti | Responsive | A11y | Stato finale |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |

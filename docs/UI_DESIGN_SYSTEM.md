@@ -158,9 +158,9 @@ Esempio sintetico:
 
 Per ogni tranche UI eseguire almeno:
 
-- `npm run typecheck`
-- `npm run test`
-- `npm run build`
+- `pnpm --filter @iusentra/studio typecheck`
+- `pnpm --filter @iusentra/studio test`
+- `pnpm --filter @iusentra/studio build`
 - verifica browser su desktop/tablet/mobile delle route toccate
 - controllo console per errori di import, asset e API
 

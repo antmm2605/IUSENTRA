@@ -118,6 +118,22 @@ def test_focus_conversazionale_non_trascina_il_tema_legale_su_smalltalk():
     assert focus["include_live_web"] is False
 
 
+def test_focus_conversazionale_rg_questione_penale_resta_fonte_ufficiale():
+    focus = resolve_conversation_focus(
+        "Questione Penale Pendente del ricorso R.G. 9926/2026",
+        messages=[
+            {"role": "user", "content": "Come mi supporta Lex nell'editor professionale per una bozza?"},
+            {"role": "assistant", "content": "Editor Lex: supporto alla redazione."},
+        ],
+    )
+
+    assert focus["topic"] == "sentenze_web"
+    assert focus["focus_label"] == "fonti ufficiali"
+    assert focus["effective_question"] == "Questione Penale Pendente del ricorso R.G. 9926/2026"
+    assert "Aggiornamenti legali" in focus["section_titles"]
+    assert "Template atti" not in focus["section_titles"]
+
+
 def test_live_web_context_supporta_force_fallback_senza_keyword_esplicita():
     class FakeResponse:
         status_code = 200

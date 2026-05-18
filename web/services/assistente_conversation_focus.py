@@ -35,6 +35,33 @@ def _is_exact_case_law_query(question: str) -> bool:
     return bool(has_kind and has_number and has_date_or_year)
 
 
+def _is_official_source_lookup_query(question: str) -> bool:
+    text = _clean_spaces(question).lower()
+    if not text:
+        return False
+    if any(
+        _contains_keyword(text, keyword)
+        for keyword in (
+            "questione penale",
+            "questione civile",
+            "allegato ufficiale",
+            "allegato della questione",
+            "ordinanza di rimessione",
+            "corte di cassazione",
+            "cassazione",
+            "qsp",
+            "fonte ufficiale",
+            "fonti ufficiali",
+        )
+    ):
+        return True
+    if "contentid=" in text:
+        return True
+    return re.search(r"\br\.?\s*g\.?\s*(?:n\.?\s*)?\d{1,7}/\d{4}\b", text) is not None and any(
+        _contains_keyword(text, keyword) for keyword in ("questione", "cassazione", "ordinanza", "allegato")
+    )
+
+
 _TOPIC_RULES: tuple[dict[str, Any], ...] = (
     {
         "topic": "dashboard",
@@ -253,6 +280,14 @@ def _find_topic_rule(question: str) -> dict[str, Any] | None:
     haystack = _clean_spaces(question).lower()
     if not haystack:
         return None
+    if _is_official_source_lookup_query(haystack):
+        return {
+            "topic": "sentenze_web",
+            "keywords": ("questione penale", "questione civile", "qsp", "r.g.", "cassazione"),
+            "sections": ("Aggiornamenti legali", "Ricerca legale e fonti web", "Archivio sentenze"),
+            "focus_label": "fonti ufficiali",
+            "include_live_web": False,
+        }
     if _is_exact_case_law_query(haystack):
         return {
             "topic": "sentenze_web",
@@ -285,7 +320,7 @@ def _looks_like_follow_up(question: str) -> bool:
         return False
     if is_small_talk_message(haystack):
         return False
-    if any(marker in haystack for marker in _FOLLOW_UP_MARKERS):
+    if any(_contains_keyword(haystack, marker) for marker in _FOLLOW_UP_MARKERS):
         return True
     return False
 

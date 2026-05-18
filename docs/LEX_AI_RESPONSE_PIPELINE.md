@@ -171,6 +171,53 @@ vero:
 - il widget mostra ancora `Non ho trovato dati reali sufficienti` per questo
   caso.
 
+## Correzione percorso widget del 18 maggio 2026
+
+Problema riscontrato in produzione:
+
+```text
+Questione Penale Pendente del ricorso R.G. 9926/2026
+```
+
+veniva risposta dal percorso editor con:
+
+```text
+Riferimento: fascicoli rilevanti
+Editor Lex: Editor normale e professionale con Lex...
+Limiti: Nessun dato reale disponibile dalla sorgente template_atti.
+```
+
+Causa verificata:
+
+1. Il focus conversazionale leggeva `ricorso` come competenza `atti_template`.
+2. La parola `questione` veniva riconosciuta erroneamente come follow-up perché conteneva la sequenza `questi`.
+3. La domanda effettiva diventava `atti template Questione Penale...`.
+4. Il router operativo controllava `template` prima di `questione penale`, `QSP` e `R.G.`, quindi sceglieva `template_lookup`.
+5. Il widget mostrava un riferimento di contesto non coerente con la fonte ufficiale richiesta.
+
+Correzione applicata:
+
+1. `web/services/assistente_conversation_focus.py` riconosce prima le richieste di fonte ufficiale (`questione penale`, `questione civile`, `QSP`, `R.G.`, allegato ufficiale, ordinanza di rimessione, Cassazione).
+2. I marker di follow-up ora usano parole intere, quindi `questione` non attiva più `questi`.
+3. `lex/operational_knowledge/query_router.py` dà priorità a `official_sources_lookup` prima di `template_lookup`.
+4. `web/static/js/pct-lex-assistant.js` mostra il riferimento `fonti ufficiali` e non tratta la domanda come documento/bozza.
+5. La prova end-to-end passa da `/api/assistente/chat` con cronologia precedente da editor, non solo dal servizio interno.
+
+Test di blocco regressione:
+
+```powershell
+python -m pytest tests\test_assistente_focus.py::test_focus_conversazionale_rg_questione_penale_resta_fonte_ufficiale tests\test_lex_operational_knowledge.py::test_rg_questione_penale_prefisso_template_resta_fonte_ufficiale tests\test_lex_assistente_context_real_requests.py::test_assistente_chat_questione_penale_rg_non_finisce_nell_editor -q
+node tests\js\lex_assistant_render.test.mjs
+```
+
+Esito atteso:
+
+- rotta `official_sources_lookup`;
+- risposta con `Ordinanza di rimessione`;
+- link PDF `Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf`;
+- nota sulla discrepanza `R.G. 9926/2026` / `R.G. 9966/2026`;
+- assenza di `Editor Lex`, `template_atti`, `Camera Arbitrale` e fonti R.G. non pertinenti.
+
 ## Generatore Corpus Fonti
 
 Il passaggio successivo al collaudo fonte è il generatore del corpus reale:

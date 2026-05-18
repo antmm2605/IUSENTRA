@@ -632,6 +632,44 @@ def test_rg_questione_penale_non_trascina_fonti_non_pertinenti():
     assert all("37184/2025" not in source.title for source in answer.sources)
 
 
+def test_rg_questione_penale_prefisso_template_resta_fonte_ufficiale():
+    class _Repo:
+        def search_lex_sources(self, query: str, limit: int = 6):
+            return [
+                {
+                    "id": "web-evidence-attachment",
+                    "title": "Ordinanza di rimessione",
+                    "source_name": "Corte Suprema di Cassazione",
+                    "official_url": "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP50194",
+                    "attachment_url": "https://www.cortedicassazione.it/resources/cms/documents/Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf",
+                    "excerpt": "Nota Ufficio Spoglio V Sezione penale. R.G. 9966/2026. Ordinanza di rimessione.",
+                    "verified_reference": True,
+                    "score": 1.48,
+                }
+            ]
+
+    class _Pipeline:
+        repository = _Repo()
+
+    repos = _base_repositories()
+    repos["update_intelligence"] = _Pipeline()
+    service, user = _service(repositories=repos)
+
+    answer = service.answer(
+        question="atti template Questione Penale Pendente del ricorso R.G. 9926/2026",
+        user=user,
+        studio=SimpleNamespace(slug="tenant-a"),
+        tenant_id="tenant-a",
+        metadata={"focus_topic": "atti_template", "request_profile": {"intent": "giurisprudenza", "source_mode": "strict"}},
+    )
+
+    assert answer is not None
+    assert answer.route.intent == "official_sources_lookup"
+    assert "Allegato ufficiale trovato: Ordinanza di rimessione." in answer.answer
+    assert "Editor Lex" not in answer.answer
+    assert "template_atti" not in answer.answer
+
+
 def test_rg_questione_penale_end_to_end_da_legal_updates_db(tmp_path: Path, monkeypatch):
     from pct.legal_update_repository import LegalUpdateRepository
 

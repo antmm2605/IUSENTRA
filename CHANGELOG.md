@@ -7,6 +7,12 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.22 - 2026-05-18
+
+- Corretto il percorso reale del widget Lex per `Questione Penale Pendente del ricorso R.G. 9926/2026`: il focus conversazionale non trasforma più `questione` in follow-up e non antepone più `atti template` alla domanda.
+- Il router operativo dà priorità alle fonti ufficiali Cassazione/QSP/R.G. rispetto a editor, fascicoli e template, anche quando la cronologia arriva da Redazione Atti o dall’editor professionale.
+- Aggiunte guardie end-to-end su widget, focus backend, layer operativo e `/api/assistente/chat` per impedire che la domanda ricada in `Editor Lex` o `template_atti`.
+
 ## 2.245.21 - 2026-05-18
 
 - Aggiunto nel widget Lex il comando manuale `Web libero`: parte solo dalla singola domanda, non crea job, non entra in scheduler, non passa dalla console pianificazioni e invia al backend i flag espliciti `free_web_enabled`, `force_free_web_search`, `public_web_forced`, `web_execution_requested` e `source_mode=free_web`.

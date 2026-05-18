@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
 
 from tests.test_web_bootstrap import _cfg_web, _seed_tenant_admin, _write_studio_config
@@ -104,6 +105,77 @@ def test_assistente_chat_stream_risponde_con_dati_cliente_reali(tmp_path: Path):
     assert "Moscato Marco" in stream
     assert "marco.moscato@example.test" in stream
     assert "base documentale disponibile non e' ancora sufficiente" not in stream
+
+
+def test_assistente_chat_questione_penale_rg_non_finisce_nell_editor(tmp_path: Path, monkeypatch):
+    from pct.legal_update_repository import LegalUpdateRepository, derive_legal_updates_db_path
+
+    monkeypatch.setattr(
+        "lex.legal_sources.tools.search_legal_sources",
+        lambda query, limit=6: {"data": {"passages": []}},
+    )
+    app, studio, admin = _seed_studio_con_moscato(tmp_path)
+    repo = LegalUpdateRepository(
+        db_path=derive_legal_updates_db_path(app.config["LEGAL_INTELLIGENCE_DB"]),
+        json_path="",
+    )
+    with sqlite3.connect(repo.db_path) as conn:
+        conn.execute(
+            """
+            INSERT INTO web_verification_evidence (
+                evidence_key, source_code, source_name, query, origin, title,
+                source_url, attachment_url, attachment_type, sha256, is_official,
+                context_chars, excerpt, content_text, matched_terms_json,
+                verification_status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "qsp-attachment",
+                "cassazione_massimario",
+                "Corte Suprema di Cassazione",
+                "Questione Penale Pendente del ricorso R.G. 9926/2026",
+                "allegato_fonte_ufficiale",
+                "Ordinanza di rimessione",
+                "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP50194",
+                "https://www.cortedicassazione.it/resources/cms/documents/Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf",
+                "pdf",
+                "b" * 64,
+                1,
+                620,
+                "R.G. 9966/2026. Ordinanza di rimessione.",
+                "CORTE SUPREMA DI CASSAZIONE. Oggetto: ricorso n. 9966/2026 R.G. Ordinanza di rimessione.",
+                '["ordinanza", "rimessione", "9966/2026"]',
+                "verified",
+            ),
+        )
+        conn.commit()
+
+    question = "Questione Penale Pendente del ricorso R.G. 9926/2026"
+    with app.test_client() as client:
+        _login(client, studio, admin)
+        response = client.post(
+            "/api/assistente/chat",
+            json={
+                "messages": [
+                    {"role": "user", "content": "Come mi supporta Lex nell'editor professionale per una bozza?"},
+                    {"role": "assistant", "content": "Editor Lex: supporto alla redazione."},
+                    {"role": "user", "content": question},
+                ],
+                "context_label": "Lex",
+                "page_context": "editor",
+                "page_path": "/redazione-atti",
+                "mode": "fascicolo",
+            },
+        )
+
+    stream = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "Allegato ufficiale trovato: Ordinanza di rimessione." in stream
+    assert "Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf" in stream
+    assert "R.G. 9926/2026" in stream
+    assert "R.G. 9966/2026" in stream
+    assert "Editor Lex" not in stream
+    assert "template_atti" not in stream
 
 
 def test_assistente_context_ultime_udienze_legge_agenda_reale(tmp_path: Path):

@@ -663,11 +663,12 @@
 
   function queryProfile(question) {
     var text = String(question || '').toLowerCase();
+    var officialSource = /questione penale|questione civile|qsp|allegato ufficiale|ordinanza di rimessione|corte di cassazione|contentid=|r\.?\s*g\.?\s*(?:n\.?\s*)?\d{1,7}\/\d{4}/.test(text);
     return {
-      liveWeb: /ultima|ultime|oggi|aggiornat|recente|sentenza|cassazione|tar|consiglio di stato|norma|normativa|decreto/.test(text),
-      documents: /document|allegat|verbale|memoria|ricorso|atto|bozza/.test(text),
+      liveWeb: officialSource || /ultima|ultime|oggi|aggiornat|recente|sentenza|cassazione|tar|consiglio di stato|norma|normativa|decreto/.test(text),
+      documents: !officialSource && /document|allegat|verbale|memoria|ricorso|atto|bozza/.test(text),
       deadlines: /scadenz|termine|udienza|agenda|calendario/.test(text),
-      drafting: /scrivi|redigi|prepara|bozza|diffida|messa in mora|lettera|pec|sollecito|contestazione/.test(text),
+      drafting: !officialSource && /scrivi|redigi|prepara|bozza|diffida|messa in mora|lettera|pec|sollecito|contestazione/.test(text),
     };
   }
 
@@ -684,6 +685,7 @@
     { topic: 'preventivi', label: 'preventivi', keywords: ['preventivo', 'preventivi'] },
     { topic: 'fatture', label: 'fatture e pagamenti', keywords: ['fattura', 'fatture', 'fatturazione', 'parcella', 'parcelle'] },
     { topic: 'pec_firma', label: 'PEC e firma digitale', keywords: ['pec', 'firma', 'firmato', 'p7m', 'token', 'certificato'] },
+    { topic: 'sentenze_web', label: 'fonti ufficiali', keywords: ['questione penale', 'questione civile', 'qsp', 'allegato ufficiale', 'ordinanza di rimessione', 'corte di cassazione'] },
     { topic: 'sentenze_web', label: 'ricerca legale aggiornata', keywords: ['sentenza', 'sentenze', 'giurisprudenza', 'cassazione', 'normativa', 'norma', 'legge', 'decreto'] }
   ];
 
@@ -769,7 +771,7 @@
       return false;
     }
     for (var index = 0; index < FOLLOW_UP_MARKERS.length; index += 1) {
-      if (clean.indexOf(FOLLOW_UP_MARKERS[index]) >= 0) {
+      if (containsFocusKeyword(clean, FOLLOW_UP_MARKERS[index])) {
         return true;
       }
     }
@@ -3356,6 +3358,7 @@
       formatReflectionDuration: formatReflectionDuration,
       buildThinkingBubbleHtml: buildThinkingBubbleHtml,
       buildChatRequestPayload: buildChatRequestPayload,
+      resolveConversationFocus: resolveConversationFocus,
       setFreeWebEnabled: setFreeWebEnabled,
     };
   }

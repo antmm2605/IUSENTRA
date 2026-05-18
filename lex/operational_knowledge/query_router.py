@@ -147,6 +147,17 @@ ENTITY_STOPWORDS = {
 }
 
 
+def _is_official_source_lookup_text(text: str) -> bool:
+    clean = clean_spaces(text).lower()
+    if not clean:
+        return False
+    if any(token in clean for token in OFFICIAL_SOURCE_LOOKUP_TOKENS):
+        return True
+    return re.search(r"\br\.?\s*g\.?\s*(?:n\.?\s*)?\d{1,7}/\d{4}\b", clean) is not None and any(
+        token in clean for token in ("questione", "cassazione", "ordinanza", "allegato")
+    )
+
+
 class OperationalQueryRouter:
     def route(self, question: str, *, metadata: dict[str, Any] | None = None) -> OperationalRoute | None:
         text = clean_spaces(question).lower()
@@ -224,11 +235,11 @@ class OperationalQueryRouter:
         if any(token in text for token in ("fattur", "parcell", "incass", "pagament", "quadro economico")):
             return OperationalRoute("billing_summary", "billing_summary", ("fatturazione", "preventivi", "conferimenti", "timesheet"), entity_query)
 
+        if _is_official_source_lookup_text(text):
+            return OperationalRoute("official_sources_lookup", "official_sources_lookup", ("fonti_ufficiali", "legal_intelligence", "update_intelligence"), entity_query)
+
         if any(token in text for token in ("template", "modello atto", "modelli atto", "editor", "redazione", "bozza", "atto professionale")):
             return OperationalRoute("template_lookup", "template_lookup", ("template_atti", "editor_ai", "fascicoli", "documenti_fascicolo"), entity_query)
-
-        if any(token in text for token in OFFICIAL_SOURCE_LOOKUP_TOKENS):
-            return OperationalRoute("official_sources_lookup", "official_sources_lookup", ("fonti_ufficiali", "legal_intelligence", "update_intelligence"), entity_query)
 
         if any(token in text for token in ("document", "atto", "atti", "mancano", "riassumi gli ultimi")):
             return OperationalRoute("documenti_fascicolo", "documenti_fascicolo", ("fascicoli", "documenti_fascicolo", "template_atti"), entity_query)

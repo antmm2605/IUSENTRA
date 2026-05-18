@@ -135,6 +135,14 @@ assert.equal(hooks.formatReflectionDuration(70_000), '1 minuto e 10 secondi')
 assert.equal(hooks.formatReflectionDuration(120_000), '2 minuti')
 assert.equal(hooks.formatReflectionDuration(1_200), '1,2 secondi')
 
+const officialFocus = hooks.resolveConversationFocus('Questione Penale Pendente del ricorso R.G. 9926/2026', [
+  { role: 'user', content: "Come mi supporta Lex nell'editor professionale per una bozza?" },
+  { role: 'assistant', content: 'Editor Lex: supporto alla redazione.' },
+])
+assert.equal(officialFocus.topic, 'sentenze_web')
+assert.equal(officialFocus.focusLabel, 'fonti ufficiali')
+assert.equal(officialFocus.isFollowUp, false)
+
 const thinkingHtml = hooks.buildThinkingBubbleHtml('scrivi diffida per il cliente marco moscato', 3, 70_000)
 assert.match(thinkingHtml, /Sto pensando - 1 minuto e 10 secondi/)
 assert.match(thinkingHtml, /pct-ai-thinking-steps/)

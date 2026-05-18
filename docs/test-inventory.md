@@ -299,7 +299,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Lex/Ricerca | API contract | lex/tests/test_gateway_status.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Lex/Ricerca | API contract | lex/tests/test_hallucination_guard.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Lex/Ricerca | API contract | lex/tests/test_http_bounded_bridge.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
-| Lex/Ricerca | API contract | lex/tests/test_http_bounded_bridge_governed_only.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| Lex/Ricerca | API contract | lex/tests/test_http_bounded_bridge_governed_only.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Lex/Ricerca | API contract | lex/tests/test_legal_reference_guard_strict.py | tenant, file | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Lex/Ricerca | API contract | lex/tests/test_official_web.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Lex/Ricerca | API contract | lex/tests/test_ollama_provider_strict_no_evidence.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |

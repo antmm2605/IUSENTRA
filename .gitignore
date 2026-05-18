@@ -86,6 +86,7 @@ indexes/normattiva/
 /backup/
 /messaggi/
 !web/templates/messaggi/
+/email/
 /timesheet/
 /data/
 /clienti/anagrafica.json

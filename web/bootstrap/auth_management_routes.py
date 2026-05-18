@@ -154,7 +154,11 @@ def register_auth_management_routes(
                 return jsonify({"ok": ok, "message": message, "redirect": url_for("profilo")}), status_code
             flash(message, category)
             return redirect(url_for("profilo"))
-        if not _richiede_vista_legacy():
+        password_obbligatoria = bool(
+            request.args.get("password_obbligatoria")
+            or getattr(u, "must_change_password", False)
+        )
+        if not _richiede_vista_legacy() and not password_obbligatoria:
             return render_react_shell_response("profilo")
         totp_temp = session.get("totp_temp_secret", "")
         uri_qr = totp_uri(totp_temp, u.username) if totp_temp else ""
@@ -163,10 +167,7 @@ def register_auth_management_routes(
             utente=u,
             totp_temp_secret=totp_temp,
             totp_uri_qr=uri_qr,
-            password_obbligatoria=bool(
-                request.args.get("password_obbligatoria")
-                or getattr(u, "must_change_password", False)
-            ),
+            password_obbligatoria=password_obbligatoria,
             oggi=date.today(),
         )
 

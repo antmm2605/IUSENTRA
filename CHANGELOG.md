@@ -9,6 +9,9 @@
 
 ## 2.245.29 - 2026-05-18
 
+- Allineato il cablaggio pnpm al branch monorepo: il blueprint `impostazioni` non viene più montato con doppio prefisso, quindi `/impostazioni`, `/impostazioni?tab=firma&_legacy=1` e `/api/local-ai/*` tornano disponibili nei gate CI.
+- Mantenuta la pagina profilo classica quando l'utente deve cambiare password temporanea, così il form espone il token CSRF e il cambio password resta verificabile.
+- Ignorata la cartella runtime locale `/email/` per evitare che i test ricreino `email/ordinaria.json` nella worktree.
 - Riallineati i workflow GitHub al monorepo pnpm: Frontend React CI, gate App V2 e audit frontend preparano `pnpm/action-setup`, usano `pnpm install --frozen-lockfile`, `pnpm --filter @iusentra/studio ...` e artifact `frontend-pnpm-audit-report`; i test di guardia impediscono il ritorno a `npm ci` sul workspace.
 - Rimosso Vercel dal processo CI corrente: lo smoke Flask usa direttamente `create_app` e i target lint/compile non includono più `vercel_app.py`.
 - Rigenerati OpenAPI, mappa endpoint e contratti API con versione prodotto corrente `2.245.29`, sistemando anche il blocco governance UTF-8 su documentazione deploy e CSS pubblico.

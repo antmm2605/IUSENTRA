@@ -7,7 +7,7 @@ GET HTML di aree migrate, evitando API, download e allegati.
 
 from __future__ import annotations
 
-from flask import Flask, current_app, g, redirect, request
+from flask import Flask, current_app, g, get_flashed_messages, redirect, request
 
 from web.blueprints.react_shell import render_react_shell_response
 
@@ -378,9 +378,14 @@ def _is_react_route(path: str) -> bool:
 
 def _react_bootstrap_texts_for_path(path: str) -> list[str]:
     lower = path.lower().rstrip("/") or "/"
+    texts = [
+        str(message)
+        for _, message in get_flashed_messages(with_categories=True)
+        if str(message or "").strip()
+    ]
     if lower in {"/sito-studio"}:
-        return ["Sito Studio"]
-    return []
+        texts.append("Sito Studio")
+    return texts
 
 
 def _preserve_react_route_side_effects(path: str) -> None:
@@ -424,6 +429,11 @@ def register_react_route_gate(app: Flask) -> None:
         if not g.get("utente_corrente"):
             return None
         raw_lower = (request.path or "/").lower()
+        if raw_lower.rstrip("/") == "/profilo" and (
+            request.args.get("password_obbligatoria")
+            or bool(getattr(g.utente_corrente, "must_change_password", False))
+        ):
+            return None
         if raw_lower.rstrip("/") in _CANONICAL_ALIAS_PATHS:
             return None
         sito_path = raw_lower.rstrip("/") or "/"

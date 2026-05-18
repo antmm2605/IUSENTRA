@@ -3,6 +3,7 @@ from __future__ import annotations
 from email.utils import parsedate_to_datetime
 import hashlib
 import json
+import os
 import re
 import time
 from typing import Any, Callable
@@ -664,6 +665,21 @@ DEFAULT_SOURCE_ROWS: tuple[dict[str, Any], ...] = (
 
 HTML_DATE_RE = re.compile(r"\b([0-3]?\d/[01]?\d/[12]\d{3})\b")
 PAGER_FRAME_RE = re.compile(r'parametriUrl\("(?P<element>[^"]+)",\s*"(?P<page>[^"]+)"\)')
+CASSAZIONE_LATEST_SOURCE_CODE = "cassazione_ultime_sent_ord_questioni"
+CASSAZIONE_LATEST_CATEGORY_MARKERS = (
+    "giurisprudenza_penale.page",
+    "giurisprudenza_civile.page",
+)
+CASSAZIONE_DETAIL_URL_MARKERS = (
+    "/it/civile_dettaglio.page",
+    "/it/penale_dettaglio.page",
+    "/it/qsp_dettaglio.page",
+    "/it/qsc_dettaglio.page",
+    "/it/quc_dettaglio.page",
+    "/it/rlc_dettaglio.page",
+    "/it/rlp_dettaglio.page",
+    "/it/su_dettaglio.page",
+)
 
 LEGAL_PRACTICE_KEYWORDS = (
     "avvocato",
@@ -741,6 +757,14 @@ LOW_VALUE_ADMIN_LEGAL_CONTEXT_MARKERS = (
 
 def _clean_spaces(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        parsed = int(str(os.getenv(name, "") or "").strip())
+        return parsed if parsed > 0 else default
+    except (TypeError, ValueError):
+        return default
 
 
 def _truncate(value: str, limit: int = 240) -> str:
@@ -873,6 +897,99 @@ def _extract_html_items(source: dict[str, Any], base_url: str, content: str) -> 
             "body_short": _truncate(plain),
         }
     ]
+
+
+def _text_from_html_content(content: str) -> str:
+    try:
+        tree = lxml_html.fromstring(content)
+    except (ValueError, TypeError):
+        return _clean_spaces(content)
+    for node in tree.xpath("//script|//style|//noscript|//nav|//header|//footer"):
+        try:
+            node.drop_tree()
+        except Exception:
+            continue
+    main_nodes = tree.xpath("//main|//article|//*[@role='main']")
+    root = main_nodes[0] if main_nodes else tree
+    return _clean_spaces(" ".join(root.xpath(".//text()")) or root.text_content())
+
+
+def _cassazione_detail_url(url: str) -> bool:
+    lowered = str(url or "").lower()
+    return any(marker in lowered for marker in CASSAZIONE_DETAIL_URL_MARKERS)
+
+
+def _cassazione_latest_category_urls(base_url: str, content: str) -> list[str]:
+    try:
+        tree = lxml_html.fromstring(content)
+    except (ValueError, TypeError):
+        tree = None
+    urls: list[str] = []
+    seen: set[str] = set()
+
+    def _push(value: str) -> None:
+        absolute = _normalize_document_url(urljoin(base_url, value))
+        lowered = absolute.lower()
+        if (
+            absolute
+            and absolute not in seen
+            and any(marker in lowered for marker in CASSAZIONE_LATEST_CATEGORY_MARKERS)
+        ):
+            seen.add(absolute)
+            urls.append(absolute)
+
+    if tree is not None:
+        for anchor in tree.xpath("//a[@href]"):
+            _push(_clean_spaces(anchor.attrib.get("href")))
+    for marker in CASSAZIONE_LATEST_CATEGORY_MARKERS:
+        _push(f"https://www.cortedicassazione.it/it/{marker}")
+    return urls
+
+
+def _cassazione_detail_rows_from_html(source: dict[str, Any], page_url: str, content: str) -> list[dict[str, Any]]:
+    try:
+        tree = lxml_html.fromstring(content)
+    except (ValueError, TypeError):
+        return []
+    rows_by_url: dict[str, dict[str, Any]] = {}
+    for anchor in tree.xpath("//a[@href]"):
+        href = _clean_spaces(anchor.attrib.get("href"))
+        absolute_url = _normalize_document_url(urljoin(page_url, href))
+        if not _cassazione_detail_url(absolute_url):
+            continue
+        title = _clean_spaces(anchor.text_content())
+        if not title or title.casefold().startswith("vai al documento"):
+            fallback_title = _clean_spaces(
+                " ".join(anchor.xpath("./ancestor::*[self::article or self::li or self::div][1]//a[1]//text()"))
+            )
+            title = fallback_title or title
+        row_text = _clean_spaces(
+            " ".join(anchor.xpath("./ancestor::*[self::article or self::li or self::div][1]//text()"))
+        ) or title
+        if len(title) < 8 and not row_text:
+            continue
+        published_at = _parse_pub_date(f"{title} {row_text}")
+        candidate = {
+            "external_id": _sha256(f"{source.get('code')}|{absolute_url}"),
+            "source_url": absolute_url,
+            "title": title,
+            "published_at": published_at,
+            "raw_html": "",
+            "raw_text": row_text,
+            "body_short": _truncate(row_text or title),
+        }
+        previous = rows_by_url.get(absolute_url)
+        if previous is None:
+            rows_by_url[absolute_url] = candidate
+            continue
+        if previous["title"].casefold().startswith("vai al documento") and title:
+            previous["title"] = title
+        if len(row_text) > len(str(previous.get("raw_text") or "")):
+            previous["raw_text"] = row_text
+            previous["body_short"] = _truncate(row_text or previous["title"])
+        if not previous.get("published_at") and published_at:
+            previous["published_at"] = published_at
+    return list(rows_by_url.values())
 
 
 def _ckan_package_rows(payload: Any) -> list[dict[str, Any]]:
@@ -1204,6 +1321,61 @@ class LegalUpdatePipeline:
             docs = _merge_unique_documents(enriched_docs)
         elif parser_type in {"feed", "rss", "atom"} or _looks_like_feed(text, content_type):
             docs = _extract_feed_items(source, source["base_url"], text)
+        elif _clean_spaces(source.get("code")).lower() == CASSAZIONE_LATEST_SOURCE_CODE:
+            docs = []
+            max_items = _env_int("IUSENTRA_CASSAZIONE_LATEST_MAX_ITEMS", 20)
+            category_urls = _cassazione_latest_category_urls(source["base_url"], text)
+            category_pages = [(source["base_url"], text)]
+            for page_url in category_urls:
+                try:
+                    page_response = request_get(
+                        page_url,
+                        timeout=25,
+                        headers={"User-Agent": "IUSENTRA-Legal-Updates/1.0"},
+                    )
+                except Exception:
+                    continue
+                page_text = ""
+                if hasattr(page_response, "text"):
+                    page_text = str(page_response.text or "")
+                elif hasattr(page_response, "content"):
+                    page_text = bytes(page_response.content or b"").decode("utf-8", errors="ignore")
+                if page_text:
+                    category_pages.append((page_url, page_text))
+            seen_urls: set[str] = set()
+            for page_url, page_text in category_pages:
+                for row in _cassazione_detail_rows_from_html(source, page_url, page_text):
+                    detail_url = _clean_spaces(row.get("source_url"))
+                    if not detail_url or detail_url in seen_urls:
+                        continue
+                    seen_urls.add(detail_url)
+                    try:
+                        detail_response = request_get(
+                            detail_url,
+                            timeout=25,
+                            headers={"User-Agent": "IUSENTRA-Legal-Updates/1.0"},
+                        )
+                        detail_text = ""
+                        detail_html = ""
+                        if hasattr(detail_response, "text"):
+                            detail_html = str(detail_response.text or "")
+                            detail_text = _text_from_html_content(detail_html)
+                        elif hasattr(detail_response, "content"):
+                            detail_html = bytes(detail_response.content or b"").decode("utf-8", errors="ignore")
+                            detail_text = _text_from_html_content(detail_html)
+                        if detail_text:
+                            row["raw_text"] = detail_text
+                            row["body_short"] = _truncate(detail_text)
+                        if detail_html:
+                            row["raw_html"] = detail_html[:20000]
+                    except Exception:
+                        pass
+                    docs.append(row)
+                    if len(docs) >= max_items:
+                        break
+                if len(docs) >= max_items:
+                    break
+            docs = _merge_unique_documents(docs)
         else:
             docs = _extract_html_items(source, source["base_url"], text)
             extra_pages = _extract_pager_frames(text)

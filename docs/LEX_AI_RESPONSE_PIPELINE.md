@@ -436,6 +436,43 @@ Solo se il file non è presente passa al download dalla fonte ufficiale e salva
 il file nella cache runtime per i passaggi successivi. Questo mantiene la prova
 end-to-end ma evita download e OCR ripetuti quando il materiale è già sul server.
 
+## Tranche Cassazione `ultime sentenze, ordinanze e questioni` del 18 maggio 2026
+
+Aggiornamento 2.245.36: la pagina Cassazione
+`https://www.cortedicassazione.it/it/ultime_sent_ord_e_questioni.page` è una
+pagina indice, non una lista finale di documenti. Il flusso corretto è:
+
+1. leggere la fonte dal DB;
+2. aprire la pagina indice ufficiale;
+3. seguire le pagine ufficiali Civile/Penale;
+4. conservare solo URL `*_dettaglio.page?contentId=...`;
+5. aprire ogni scheda;
+6. scaricare o riusare PDF/allegati;
+7. calcolare hash;
+8. leggere testo PDF/OCR;
+9. estrarre norme, R.G., date, stato e qualità;
+10. generare domande dal contesto effettivamente letto;
+11. creare chunk RAG solo per documenti pronti.
+
+Le domande non sono una lista fissa. Se il testo letto contiene articoli o
+riferimenti normativi, Lex deve esporli e spiegarli; se serve integrazione sul
+significato degli articoli, usa `web_libero` come ricerca della singola domanda,
+separata dalla fonte ufficiale e non salvata nel DB. Se la scheda ha un PDF, la
+domanda deve includere PDF/link; se compaiono R.G. diversi, deve includere la
+nota di discrepanza; se il testo OCR è sporco, non va riversato nella risposta
+finale.
+
+Verifica locale: 10 schede Cassazione reali pronte, 9 con PDF letto, una senza
+PDF ma con testo pagina, 10/10 con matrice domande; corpus prova da 20 documenti
+e 174 chunk, Memory Tree pronto, zero pagine di servizio.
+
+Nota `Web libero`: se l'avvocato attiva la ricerca web libera dalla chat, il
+pipeline non deve usare il contesto studio già presente nella pagina. Il bounded
+context deve partire con fonti interne, fascicolo, impostazioni e template vuoti
+e usare solo i risultati web della singola richiesta. I risultati restano
+`web_libero`, non vengono salvati nel DB e la risposta deve essere sempre in
+italiano.
+
 ## Tranche Cassazione del 18 maggio 2026
 
 Sequenza eseguita dopo il caso pilota:

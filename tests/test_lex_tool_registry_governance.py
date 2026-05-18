@@ -38,21 +38,22 @@ def test_tool_registry_blocca_scrittura_senza_canale_applicativo():
 def test_tool_registry_web_libero_non_blocca_fonti_pubbliche_ma_isola_dati_studio():
     registry = LexToolRegistry()
 
-    legal = registry.validate_tool_call(
-        "legal_intelligence",
-        mode="web_libero",
-        user_permissions=["legal:sources:read"],
-    )
-    studio = registry.validate_tool_call(
-        "fascicolo",
-        mode="web_libero",
-        user_permissions=["studio:fascicoli:read"],
-    )
+    for mode in ("web_libero", "web libero"):
+        legal = registry.validate_tool_call(
+            "legal_intelligence",
+            mode=mode,
+            user_permissions=["legal:sources:read"],
+        )
+        studio = registry.validate_tool_call(
+            "fascicolo",
+            mode=mode,
+            user_permissions=["studio:fascicoli:read"],
+        )
 
-    assert legal["allowed"] is True
-    assert legal["descriptor"]["allowed_in_free_web"] is True
-    assert studio["allowed"] is False
-    assert studio["reason"] == "strumento_studio_non_esposto_al_web_libero"
+        assert legal["allowed"] is True
+        assert legal["descriptor"]["allowed_in_free_web"] is True
+        assert studio["allowed"] is False
+        assert studio["reason"] == "strumento_studio_non_esposto_al_web_libero"
 
 
 def test_tool_registry_segnala_permessi_insufficienti_quando_presenti():

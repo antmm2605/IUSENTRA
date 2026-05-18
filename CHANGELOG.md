@@ -7,6 +7,15 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.36 - 2026-05-18
+
+- Corretta la fonte Cassazione `ultime_sent_ord_e_questioni.page`: il connettore segue le pagine ufficiali Civile/Penale e acquisisce solo schede documentali `*_dettaglio.page?contentId=...`, escludendo pagine di navigazione, privacy, supporto o preferenze.
+- Il generatore corpus Lex applica lo stesso filtro anche a `cassazione_ultime_sent_ord_questioni`, così eventuali evidenze non documentali già presenti nel DB non entrano nel RAG.
+- Le domande attese del corpus sono ora contestuali: usano titolo scheda e testo PDF/OCR letto; se emergono articoli o riferimenti normativi vengono registrati ed esposti, se ci sono PDF viene richiesta la verifica del link, se compaiono più R.G. viene richiesta la nota di discrepanza.
+- Verifica locale Cassazione: 10 schede reali pronte, 9 con PDF letto e una senza PDF ma con testo pagina, 10/10 con matrice domande; corpus prova da 20 documenti e 174 chunk, con Memory Tree pronto e zero pagine di servizio.
+- Confermati i test su Ricerca Legale, Archivio Giurisprudenza e comportamento pilota Lex sugli articoli con `web_libero` separato dalla fonte ufficiale.
+- Corretto `Web libero` in Lex Chat: il flag ora svuota davvero contesto studio, fonti interne, fascicolo e prompt storico prima del bounded workflow; accetta anche la modalità testuale `web libero` e impedisce risposte miste con frasi inglesi come `Okay, let's break down...`.
+
 ## 2.245.35 - 2026-05-18
 
 - Aggiunta la Fase 6 UI Intelligence: Ricerca Legale mostra ora stato reale delle fonti, fonti pronte/non pronte, coda job, errori, documenti letti, testo disponibile e domande qualità del ciclo DB -> fonte -> allegati -> OCR -> RAG -> Lex.

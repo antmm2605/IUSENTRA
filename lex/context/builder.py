@@ -38,6 +38,18 @@ class LexContextBuilder:
             or metadata.get("benchmark_mode") == "performance_smoke"
         )
 
+    @staticmethod
+    def _free_web_context_requested(request) -> bool:
+        metadata = dict(getattr(request, "metadata", {}) or {})
+        profile = dict(metadata.get("request_profile") or {}) if isinstance(metadata.get("request_profile"), dict) else {}
+        source_mode = str(profile.get("source_mode") or metadata.get("source_mode") or "").strip().lower()
+        if source_mode in {"free", "free_web", "web_libero", "web libero", "ricerca_libera", "ricerca libera", "libera"}:
+            return True
+        return any(
+            metadata.get(key) is True or str(metadata.get(key) or "").strip().lower() in {"1", "true", "vero", "yes", "si", "sì", "on", "enabled", "abilitato", "attivo"}
+            for key in ("free_web_enabled", "force_free_web_search", "manual_free_web_enabled", "free_web")
+        )
+
     def _safe_section(self, loader, *, fallback, **kwargs):
         try:
             return loader(**kwargs)
@@ -47,6 +59,15 @@ class LexContextBuilder:
     def build_request_context(self, request, workflow: str) -> dict[str, Any]:
         pratica_id = str(request.fascicolo_id or "").strip()
         question = str(getattr(request, "query", "") or "").strip()
+        if self._free_web_context_requested(request):
+            return {
+                "workflow": workflow,
+                "studio": build_studio_context(request),
+                "free_web": {
+                    "enabled": True,
+                    "policy": "solo ricerca web libera della singola richiesta, senza dati studio",
+                },
+            }
         sanitized = self._privacy_guard.sanitize_sections(
             {
                 "workflow": workflow,

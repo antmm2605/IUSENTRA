@@ -10,12 +10,18 @@ from pct.utf8_integrity import repair_text_encoding
 
 FORBIDDEN_ENGLISH_FRAGMENTS: tuple[str, ...] = (
     "okay, here's",
+    "okay, let's",
     "case summary",
     "key points",
     "relevant documents",
     "in essence",
     "do you have any specific questions",
     "breakdown",
+    "extract the key information",
+    "this is a collection",
+    "legal documents",
+    "key takeaways",
+    "to provide a more precise analysis",
     "claimant",
     "dispute",
     "legal basis",
@@ -59,6 +65,7 @@ FORBIDDEN_ENGLISH_FRAGMENTS: tuple[str, ...] = (
 
 _REPLACEMENTS: tuple[tuple[str, str], ...] = (
     ("Okay, here's a breakdown", "Ecco la sintesi"),
+    ("Okay, let's break down", "Analizziamo"),
     ("Okay, here's a draft", "Ecco la bozza"),
     ("Here's a draft", "Ecco la bozza"),
     ("Here is a draft", "Ecco la bozza"),

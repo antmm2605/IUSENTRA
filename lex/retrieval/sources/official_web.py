@@ -71,7 +71,7 @@ _LEGAL_LOOKUP_TOKENS: tuple[str, ...] = (
     "motivazione",
 )
 _FASCICOLO_FIRST_WORKFLOWS = {"fascicolo", "documento", "udienza"}
-_FREE_WEB_MODES = {"free", "free_web", "web_libero", "ricerca_libera", "libera"}
+_FREE_WEB_MODES = {"free", "free_web", "web_libero", "web libero", "ricerca_libera", "ricerca libera", "libera"}
 
 
 def _clean_spaces(value) -> str:

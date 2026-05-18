@@ -39,6 +39,13 @@ def test_should_run_public_research_new_params_override():
     assert should_run_public_research("normativa", True, True, local_case_law_incomplete=True) is True
 
 
+def test_free_web_enabled_accetta_etichetta_con_spazio():
+    from lex.retrieval.legal_research_integrator import _free_web_enabled
+
+    assert _free_web_enabled({}, "web libero") is True
+    assert _free_web_enabled({"source_mode": "ricerca libera"}, "") is True
+
+
 # ─────────────────────────────────────────────────────────────────
 # TC-02  orchestrator._evidence_is_sufficient — giurisprudenza_specifica
 # ─────────────────────────────────────────────────────────────────

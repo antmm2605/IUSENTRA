@@ -238,7 +238,7 @@ def test_gateway_web_libero_parte_solo_con_modalita_libera(monkeypatch):
     monkeypatch.setattr("lex.research.public_legal_research_gateway._LDR_AVAILABLE", False)
 
     query = rewrite_query_for_legal_research("questione penale R.G. 9926/2026")
-    result = run_public_legal_research(query, source_mode="free_web", max_results=4)
+    result = run_public_legal_research(query, source_mode="web libero", max_results=4)
 
     assert result.free_web_used is True
     assert result.sources

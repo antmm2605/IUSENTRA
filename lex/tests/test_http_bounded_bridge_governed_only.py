@@ -2,8 +2,12 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from lex.contracts import LexResponse
+from lex.contracts import LexRequest, LexResponse
+from lex.context.builder import LexContextBuilder
+from lex.context.studio_context import build_studio_context
 from lex.http_bounded_bridge import build_bounded_http_payload
+from lex.retrieval.source_router import SourceRouter
+from lex.retrieval.sources.official_web import OfficialWebSource
 
 
 class DummyLexService:
@@ -130,6 +134,51 @@ def test_opzione_web_libero_e_manuale_non_passa_da_job(monkeypatch):
     assert payload["free_web_saves_to_db"] is False
     assert payload["free_web_responsibility"] == "controllo_avvocato"
     assert payload["execution_policy"]["responsibility_scope"] == "controllo_avvocato"
+
+
+def test_web_libero_stringa_isola_contesto_studio(monkeypatch):
+    monkeypatch.setattr(
+        "lex.context.studio_context._build_lex_studio_context",
+        lambda *args, **kwargs: {
+            "sources": [{"title": "Impostazioni studio", "text": "Dato interno da non usare."}],
+            "structured_context": {"fascicolo": {"id": "fas-1"}},
+            "prompt_block": "Contesto interno da non usare.",
+        },
+    )
+    request = LexRequest(
+        tenant_id="tenant-demo",
+        user_id="u1",
+        session_id="s1",
+        query="atto legale",
+        metadata={"source_mode": "web libero", "free_web_enabled": True},
+    )
+
+    studio_context = build_studio_context(request)
+    full_context = LexContextBuilder().build_request_context(request, "atto")
+
+    assert studio_context["sources"] == []
+    assert studio_context["structured_context"] == {}
+    assert studio_context["prompt_block"] == ""
+    assert full_context["studio"]["sources"] == []
+    assert "studio_operativo" not in full_context
+    assert full_context["free_web"]["enabled"] is True
+
+
+def test_source_router_web_libero_stringa_usa_solo_web():
+    router = SourceRouter()
+    request = LexRequest(
+        tenant_id="tenant-demo",
+        user_id="u1",
+        session_id="s1",
+        query="atto legale",
+        fascicolo_id="fas-1",
+        metadata={"source_mode": "web libero"},
+    )
+
+    sources = router.resolve(request, {}, "atto")
+
+    assert len(sources) == 1
+    assert isinstance(sources[0], OfficialWebSource)
 
 
 def test_attachments_non_diventano_prompt_libero(monkeypatch):

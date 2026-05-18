@@ -242,6 +242,35 @@ Questa regola è il blocco da tenere davanti prima del generatore corpus: prima
 separazione corretta di scheda, allegato e OCR su un documento, poi propagazione
 agli altri documenti.
 
+Aggiornamento operativo 2.245.36 - 2026-05-18:
+
+- la pagina Cassazione `ultime_sent_ord_e_questioni.page` non viene più trattata
+  come lista documentale diretta: il connettore segue le pagine ufficiali
+  `giurisprudenza_penale.page` e `giurisprudenza_civile.page` e conserva solo
+  schede `*_dettaglio.page?contentId=...`;
+- pagine di servizio, navigazione, privacy, supporto, preferenze e link generici
+  del sito Cassazione sono escluse prima del DB operativo e di nuovo prima del
+  generatore corpus;
+- il generatore corpus applica il filtro anche a
+  `cassazione_ultime_sent_ord_questioni`, non solo a `cassazione_massimario`,
+  così eventuali evidenze sporche già acquisite non entrano nel RAG;
+- le domande del corpus vengono create dal contesto reale letto: titolo della
+  scheda, testo PDF/OCR, riferimenti normativi, R.G., presenza di allegato e
+  qualità del testo; gli articoli estratti sono salvati come riferimenti
+  espliciti e la risposta Lex può integrarli con `web_libero` senza promuovere
+  quella ricerca a fonte DB;
+- verifica locale sulla fonte Cassazione: 10 schede documentali pronte, 9 con
+  PDF letto, una senza PDF ma con testo pagina, 10/10 con matrice domande;
+  corpus di prova da 20 documenti e 174 chunk, Memory Tree pronto, zero pagine
+  di servizio;
+- test mirati confermati: filtro pagina Cassazione, generatore corpus, articoli
+  con `web_libero`, Ricerca Legale e Archivio Giurisprudenza.
+- corretto anche il caso chat `Web libero`: il flag manuale svuota realmente
+  contesto studio, fascicolo, template atti, impostazioni e fonti interne prima
+  del workflow bounded. La risposta non deve più mostrare `Fonti interne
+  verificate` quando la ricerca è libera e deve restare in italiano anche se il
+  provider produce frasi inglesi.
+
 Aggiornamento operativo 2.245.28 - 2026-05-18:
 
 - il backfill delle evidenze Cassazione ora restituisce un report qualità per

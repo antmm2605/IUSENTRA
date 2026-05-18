@@ -20,7 +20,7 @@ from typing import Any
 _STRICT_LEGAL_WORKFLOWS = frozenset(
     {"normativa", "giurisprudenza", "prassi", "research", "fonti", "giurisprudenza_specifica"}
 )
-_FREE_WEB_MODES = frozenset({"free", "free_web", "web_libero", "ricerca_libera", "libera"})
+_FREE_WEB_MODES = frozenset({"free", "free_web", "web_libero", "web libero", "ricerca_libera", "ricerca libera", "libera"})
 
 
 def _env_bool(name: str, default: bool = False) -> bool:

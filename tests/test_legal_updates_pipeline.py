@@ -104,6 +104,71 @@ def test_fonti_default_includono_pagina_cassazione_ultime_sent_ord_e_questioni()
     assert "allegati" in str(row["notes"]).lower()
 
 
+def test_cassazione_ultime_sent_ord_questioni_estrae_solo_schede_documentali(tmp_path: Path):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+    source = {
+        row["code"]: row
+        for row in DEFAULT_SOURCE_ROWS
+    }["cassazione_ultime_sent_ord_questioni"]
+
+    base = """
+    <html><body>
+      <a href="/it/supporto.page">URP e domande frequenti</a>
+      <a href="/it/privacy_policy.page">Privacy policy</a>
+      <a href="/it/giurisprudenza_penale.page">Giurisprudenza Penale</a>
+      <a href="/it/giurisprudenza_civile.page">Giurisprudenza Civile</a>
+      <button>Salva preferenze</button>
+    </body></html>
+    """
+    penale = """
+    <html><body><main>
+      <a href="/it/prima_sezione_penale.page">Prima Sezione</a>
+      <article>
+        <a href="/it/penale_dettaglio.page?contentId=SZP50042">Sentenza n. 14575 ud. 15/04/2026 - deposito del 21/04/2026</a>
+        <a href="/it/penale_dettaglio.page?contentId=SZP50042">Vai al documento Principio penale del 21/04/26</a>
+      </article>
+      <article>
+        <a href="/it/qsp_dettaglio.page?contentId=QSP50194">Questione Penale Pendente del ricorso R.G. 9926/2026</a>
+      </article>
+    </main></body></html>
+    """
+    civile = """
+    <html><body><main>
+      <article>
+        <a href="/it/civile_dettaglio.page?contentId=SZC50542">Sentenza n. 14226 del 14/05/2026</a>
+      </article>
+    </main></body></html>
+    """
+
+    def fake_get(url, **kwargs):
+        target = str(url)
+        if target.endswith("/it/ultime_sent_ord_e_questioni.page"):
+            return DummyResponse(base, url=target)
+        if target.endswith("/it/giurisprudenza_penale.page"):
+            return DummyResponse(penale, url=target)
+        if target.endswith("/it/giurisprudenza_civile.page"):
+            return DummyResponse(civile, url=target)
+        if "penale_dettaglio" in target:
+            return DummyResponse("<main>Dettaglio penale con PDF ufficiale e art. 606 c.p.p.</main>", url=target)
+        if "qsp_dettaglio" in target:
+            return DummyResponse("<main>Questione penale pendente R.G. 9926/2026 con ordinanza di rimessione.</main>", url=target)
+        if "civile_dettaglio" in target:
+            return DummyResponse("<main>Dettaglio civile con principio di diritto.</main>", url=target)
+        return DummyResponse("<html><body>pagina non documentale</body></html>", url=target)
+
+    docs = pipeline._fetch_source(source, request_get=fake_get)
+
+    assert len(docs) == 3
+    assert all("_dettaglio.page?contentId=" in row["source_url"] for row in docs)
+    assert {row["title"] for row in docs} == {
+        "Sentenza n. 14575 ud. 15/04/2026 - deposito del 21/04/2026",
+        "Questione Penale Pendente del ricorso R.G. 9926/2026",
+        "Sentenza n. 14226 del 14/05/2026",
+    }
+    assert not any("Privacy" in row["title"] or "URP" in row["title"] or "Salva preferenze" in row["title"] for row in docs)
+    assert any("art. 606 c.p.p." in row["raw_text"] for row in docs)
+
+
 def _write_studio_config(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(

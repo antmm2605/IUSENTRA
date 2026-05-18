@@ -283,7 +283,7 @@ def _compute_confidence_seed(
     return round(official_ratio * 0.5 + diversity * 0.2 + avg_trust * 0.3, 4)
 
 
-_FREE_WEB_MODES = {"free", "free_web", "web_libero", "ricerca_libera", "libera"}
+_FREE_WEB_MODES = {"free", "free_web", "web_libero", "web libero", "ricerca_libera", "ricerca libera", "libera"}
 
 
 def _is_free_web_mode(source_mode: str) -> bool:

@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sqlite3
 import sys
 from dataclasses import dataclass
@@ -37,6 +38,15 @@ CASSAZIONE_DOCUMENT_URL_MARKERS = (
     "/it/rlp_dettaglio.page",
     "/it/su_dettaglio.page",
 )
+CASSAZIONE_DOCUMENT_SOURCE_CODES = {
+    "cassazione_massimario",
+    "cassazione_ultime_sent_ord_questioni",
+}
+NORM_REFERENCE_RE = re.compile(
+    r"\bartt?\.?\s+[0-9][A-Za-z0-9_.-]*(?:\s*(?:,|e|bis|ter|quater|quinquies|sexies)\s*[A-Za-z0-9_.-]+)?",
+    re.IGNORECASE,
+)
+RG_REFERENCE_RE = re.compile(r"\bR\.?\s*G\.?(?:\s*n\.?)?\s*([0-9]{1,6}/[0-9]{4})\b", re.IGNORECASE)
 
 
 @dataclass(frozen=True, slots=True)
@@ -157,18 +167,22 @@ def _load_evidence_rows(options: SourceCorpusOptions) -> list[dict[str, Any]]:
     if options.source_codes:
         clauses.append("LOWER(COALESCE(e.source_code, '')) IN ({})".format(",".join("?" for _ in options.source_codes)))
         params.extend(options.source_codes)
-        if "cassazione_massimario" in options.source_codes:
+        cassazione_document_sources = tuple(
+            code for code in options.source_codes if code in CASSAZIONE_DOCUMENT_SOURCE_CODES
+        )
+        if cassazione_document_sources:
+            source_placeholders = ",".join("?" for _ in cassazione_document_sources)
             url_haystack = (
                 "LOWER(COALESCE(e.source_url, '') || ' ' || "
                 "COALESCE(e.attachment_url, '') || ' ' || COALESCE(r.source_url, ''))"
             )
             clauses.append(
-                "("
-                "LOWER(COALESCE(e.source_code, '')) <> 'cassazione_massimario'"
+                f"(LOWER(COALESCE(e.source_code, '')) NOT IN ({source_placeholders})"
                 " OR "
                 + " OR ".join(f"{url_haystack} LIKE ?" for _ in CASSAZIONE_DOCUMENT_URL_MARKERS)
                 + ")"
             )
+            params.extend(cassazione_document_sources)
             params.extend(f"%{marker}%" for marker in CASSAZIONE_DOCUMENT_URL_MARKERS)
     if options.review_ids:
         clauses.append("COALESCE(e.review_id, 0) IN ({})".format(",".join("?" for _ in options.review_ids)))
@@ -209,12 +223,14 @@ def _assert_evidence_table(conn: sqlite3.Connection) -> None:
 def _document_from_evidence(row: dict[str, Any], *, tenant_id: str) -> StudioDatasetDocument:
     text = _clean(row.get("content_text") or row.get("excerpt"))
     evidence_id = _clean(row.get("id"))
-    title = _clean(row.get("title") or row.get("normalized_title") or "Fonte ufficiale")
+    title = _expected_display_title(row) or "Fonte ufficiale"
     source_name = _clean(row.get("source_name") or row.get("db_source_name") or row.get("source_code") or "Fonte ufficiale")
     attachment_type = _clean(row.get("attachment_type"))
     mime_type = _mime_type_for_evidence(attachment_type, row)
     sha256 = _clean(row.get("sha256")) or hashlib.sha256(text.encode("utf-8")).hexdigest()
     document_id = stable_id("legal-source", evidence_id, row.get("evidence_key"), row.get("source_url"), row.get("attachment_url"), prefix="lsrc-")
+    norm_references = _norm_references(text)
+    rg_references = _rg_references(text)
     return StudioDatasetDocument(
         tenant_id=tenant_id,
         document_id=document_id,
@@ -241,6 +257,8 @@ def _document_from_evidence(row: dict[str, Any], *, tenant_id: str) -> StudioDat
             "is_official": bool(row.get("is_official")),
             "context_chars": int(row.get("context_chars") or 0),
             "matched_terms": _json_list(row.get("matched_terms_json")),
+            "norm_references": norm_references,
+            "rg_references": rg_references,
             "corpus_source": "web_verification_evidence",
         },
     )
@@ -264,9 +282,9 @@ def _manifest(
         "statuses": list(options.statuses),
         "source_codes": list(options.source_codes),
         "source_filters": {
-            "cassazione_massimario": "solo schede documentali Cassazione: civile, penale, questioni, rinvii e relazioni"
-            if "cassazione_massimario" in options.source_codes
-            else "",
+            code: "solo schede documentali Cassazione: civile, penale, questioni, rinvii e relazioni"
+            for code in options.source_codes
+            if code in CASSAZIONE_DOCUMENT_SOURCE_CODES
         },
         "review_ids": list(options.review_ids),
         "min_context_chars": options.min_context_chars,
@@ -349,8 +367,22 @@ def _document_ai_payload(documents: list[StudioDatasetDocument], rows: list[dict
 
 
 def _expected_query(row: dict[str, Any]) -> dict[str, Any]:
-    title = _clean(row.get("title") or row.get("normalized_title"))
+    title = _expected_display_title(row)
     attachment_url = _clean(row.get("attachment_url"))
+    evidence_text = " ".join(
+        _clean(part)
+        for part in (
+            row.get("content_text"),
+            row.get("excerpt"),
+            row.get("matched_terms_json"),
+            row.get("query"),
+            row.get("source_url"),
+            row.get("raw_source_url"),
+            title,
+        )
+    )
+    norm_refs = _norm_references(evidence_text)
+    rg_refs = _rg_references(evidence_text)
     return {
         "evidence_id": int(row.get("id") or 0),
         "review_id": int(row.get("review_id") or 0),
@@ -360,12 +392,140 @@ def _expected_query(row: dict[str, Any]) -> dict[str, Any]:
         "expected_attachment_url": attachment_url,
         "expected_sha256": _clean(row.get("sha256")),
         "expected_terms": _json_list(row.get("matched_terms_json")),
-        "question_matrix": _expected_question_matrix(title, bool(attachment_url)),
+        "expected_norm_references": norm_refs,
+        "expected_rg_references": rg_refs,
+        "question_matrix": _expected_question_matrix(
+            title,
+            bool(attachment_url),
+            context_text=evidence_text,
+            has_norm_refs=bool(norm_refs),
+            has_rg_discrepancy=len(set(rg_refs)) > 1,
+        ),
     }
 
 
-def _expected_question_matrix(title: str, has_attachment: bool) -> list[dict[str, str]]:
+def _expected_display_title(row: dict[str, Any]) -> str:
+    title = _clean(row.get("title"))
+    normalized_title = _clean(row.get("normalized_title"))
+    if title.lower().endswith(".pdf") and normalized_title:
+        return normalized_title
+    return title or normalized_title
+
+
+def _norm_references(text: str) -> list[str]:
+    return _unique(NORM_REFERENCE_RE.findall(text or ""), limit=16)
+
+
+def _rg_references(text: str) -> list[str]:
+    return _unique(RG_REFERENCE_RE.findall(text or ""), limit=16)
+
+
+def _contextual_question_rows(
+    subject: str,
+    *,
+    context_text: str,
+    has_attachment: bool,
+    has_norm_refs: bool,
+    has_rg_discrepancy: bool,
+) -> list[tuple[str, str]]:
+    title_lowered = subject.lower()
+    context_lowered = context_text.lower()
+    is_pending_question = (
+        "pendente" in title_lowered
+        or "qsp_dettaglio" in context_lowered
+        or "qsc_dettaglio" in context_lowered
+    )
+    is_judgment = "sentenza" in title_lowered and not is_pending_question
+    is_order = "ordinanza" in title_lowered
+    is_interlocutory = (
+        not is_judgment
+        and (
+            "interlocutoria" in title_lowered
+            or "ordinanza interlocutoria" in context_lowered
+            or "ordinanza di rimessione" in context_lowered
+        )
+    )
+    is_order = is_order or is_interlocutory
+    rows: list[tuple[str, str]] = [
+        ("sintesi", f"Mi puoi sintetizzare {subject}?"),
+        ("natura_atto", "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?"),
+        ("oggetto", "Qual è l'oggetto della questione o della decisione?"),
+    ]
+    if is_pending_question:
+        rows.extend(
+            [
+                ("stato_pendenza", "La questione è ancora pendente e risultano udienza, relatore o ricorrente?"),
+                ("punto_diritto", "Qual è il quesito di diritto rimesso alla Corte?"),
+                ("contrasto", "Dal testo emerge un contrasto giurisprudenziale o una ragione di rimessione?"),
+            ]
+        )
+    elif is_interlocutory:
+        rows.extend(
+            [
+                ("natura_rimessione", "L'atto rimette la questione alle Sezioni Unite o ad altro collegio?"),
+                ("punto_diritto", "Qual è il punto di diritto su cui viene chiesto l'intervento?"),
+                ("esito_procedurale", "Quale effetto processuale produce l'ordinanza interlocutoria?"),
+            ]
+        )
+    elif is_judgment:
+        rows.extend(
+            [
+                ("principio", "Qual è il principio di diritto affermato dalla sentenza?"),
+                ("decisione", "Qual è l'esito del giudizio e cosa ha deciso la Corte?"),
+                ("massima_operativa", "Quale massima operativa può usare l'avvocato senza forzare il testo?"),
+            ]
+        )
+    elif is_order:
+        rows.extend(
+            [
+                ("punto_diritto", "Qual è il punto di diritto trattato dall'ordinanza?"),
+                ("esito", "Qual è l'esito dell'ordinanza?"),
+            ]
+        )
+    else:
+        rows.extend(
+            [
+                ("stato", "Qual è lo stato del procedimento o dell'atto?"),
+                ("punto_diritto", "Qual è il punto di diritto o il principio in discussione?"),
+                ("esito", "Risulta già un esito finale oppure la questione è ancora pendente?"),
+            ]
+        )
+    rows.extend(
+        [
+            ("motivi", "Quali sono i motivi, le censure o i passaggi rilevanti indicati nel testo?"),
+            ("norme", "Quali norme sono richiamate e perché contano?"),
+            ("effetto_pratico", "Qual è l'effetto pratico per un avvocato che deve usare questa fonte?"),
+        ]
+    )
+    if has_norm_refs:
+        rows.append(("articoli", "Puoi spiegare gli articoli richiamati senza limitarti a citarli?"))
+    if has_rg_discrepancy:
+        rows.append(("discrepanza_rg", "Ci sono discrepanze tra il numero R.G. della scheda e quello del PDF?"))
+    if has_attachment:
+        rows.append(("pdf_allegato", "Quale PDF o allegato ufficiale è collegato e il link è cliccabile?"))
+    rows.append(("qualita_testo", "Il testo è leggibile oppure ci sono parti OCR da non riportare come certe?"))
+    rows.append(("discrepanze", "Ci sono discrepanze tra scheda, PDF, metadati o riferimenti numerici?"))
+    return rows
+
+
+def _expected_question_matrix(
+    title: str,
+    has_attachment: bool,
+    *,
+    context_text: str,
+    has_norm_refs: bool,
+    has_rg_discrepancy: bool,
+) -> list[dict[str, str]]:
     subject = title or "questa fonte"
+    contextual_rows = _contextual_question_rows(
+        subject,
+        context_text=context_text,
+        has_attachment=has_attachment,
+        has_norm_refs=has_norm_refs,
+        has_rg_discrepancy=has_rg_discrepancy,
+    )
+    if contextual_rows:
+        return [{"check": key, "question": question} for key, question in contextual_rows]
     rows = [
         ("sintesi", f"Mi puoi sintetizzare {subject}?"),
         ("natura_atto", "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?"),
@@ -431,6 +591,21 @@ def _json_list(value: Any) -> list[Any]:
     except (TypeError, ValueError, json.JSONDecodeError):
         return []
     return parsed if isinstance(parsed, list) else []
+
+
+def _unique(values: Iterable[Any], *, limit: int = 16) -> list[str]:
+    seen: set[str] = set()
+    rows: list[str] = []
+    for value in values:
+        cleaned = _clean(value)
+        key = cleaned.lower()
+        if not cleaned or key in seen:
+            continue
+        seen.add(key)
+        rows.append(cleaned)
+        if len(rows) >= limit:
+            break
+    return rows
 
 
 def _clean(value: Any) -> str:

@@ -34,7 +34,7 @@ from .template_atti_tool import TemplateAttiTool
 
 LEX_TOOL_REGISTRY_SCHEMA = "iusentra.lex_tool_registry.v1"
 
-_FREE_WEB_MODES = frozenset({"web_libero", "free_web", "ricerca_web_libera"})
+_FREE_WEB_MODES = frozenset({"web_libero", "web libero", "free_web", "ricerca_web_libera", "ricerca web libera"})
 
 
 @dataclass(frozen=True)

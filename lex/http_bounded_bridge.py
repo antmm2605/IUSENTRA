@@ -73,7 +73,7 @@ _NORMATIVE_EXTERNAL_TOKENS = (
 )
 _FALSE_VALUES = {"0", "false", "falso", "no", "off", "disabled", "disabilitato"}
 _TRUE_VALUES = {"1", "true", "vero", "yes", "si", "on", "enabled", "abilitato"}
-_FREE_WEB_MODES = {"free", "free_web", "web_libero", "ricerca_libera", "libera"}
+_FREE_WEB_MODES = {"free", "free_web", "web_libero", "web libero", "ricerca_libera", "ricerca libera", "libera"}
 
 
 def _clean_spaces(value: Any) -> str:

@@ -84,9 +84,9 @@ def _make_db(path: Path) -> None:
                 "a" * 64,
                 1,
                 240,
-                "R.G. 9966/2026 ordinanza di rimessione.",
-                "Testo OCR ufficiale R.G. 9966/2026 ordinanza di rimessione.",
-                json.dumps(["penale", "rimessione"]),
+                "R.G. 9966/2026 ordinanza di rimessione ex art. 599-bis c.p.p.",
+                "Testo OCR ufficiale R.G. 9966/2026 ordinanza di rimessione ex art. 599-bis c.p.p.",
+                json.dumps(["penale", "rimessione", "art. 599-bis c.p.p."]),
                 "verified",
             ),
         )
@@ -131,8 +131,12 @@ def test_generate_lex_source_corpus_da_evidenze_verificate(tmp_path: Path):
     assert manifest["human_review_required_for_fine_tuning"] is True
     assert documents[0]["metadata"]["source_url"].endswith("QSP50194")
     assert documents[0]["metadata"]["attachment_url"].endswith("ordinanza.pdf")
+    assert "art. 599-bis" in " ".join(documents[0]["metadata"]["norm_references"])
+    assert "9966/2026" in documents[0]["metadata"]["rg_references"]
     assert "Testo OCR ufficiale" in chunks[0]["text"]
     assert expected[0]["query"].startswith("Quale allegato ufficiale")
+    assert "art. 599-bis" in " ".join(expected[0]["expected_norm_references"])
+    assert "9966/2026" in expected[0]["expected_rg_references"]
     assert len(document_ai["documents"]) == 1
     assert document_ai["texts"][0]["text"].startswith("Testo OCR ufficiale")
     assert result["memory_tree"]["chunks_count"] == 1
@@ -230,3 +234,131 @@ def test_generate_lex_source_corpus_cassazione_filtra_pagine_non_documentali(tmp
     assert "Privacy policy" not in documents[0]["title"]
     assert [row["check"] for row in expected[0]["question_matrix"]][:3] == ["sintesi", "natura_atto", "oggetto"]
     assert manifest["source_filters"]["cassazione_massimario"].startswith("solo schede documentali")
+
+
+def test_generate_lex_source_corpus_cassazione_ultime_filtra_pagine_non_documentali(tmp_path: Path):
+    db_path = tmp_path / "legal_updates.db"
+    output_dir = tmp_path / "corpus"
+    _make_db(db_path)
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.execute("UPDATE sources SET code = 'cassazione_ultime_sent_ord_questioni'")
+        conn.execute("UPDATE web_verification_evidence SET source_code = 'cassazione_ultime_sent_ord_questioni'")
+        conn.execute(
+            "INSERT INTO source_documents_raw (id, source_id, source_url) VALUES (11, 1, ?)",
+            ("https://www.cortedicassazione.it/it/privacy_policy.page",),
+        )
+        conn.execute(
+            "INSERT INTO source_documents_normalized (id, raw_document_id, title) VALUES (21, 11, ?)",
+            ("Privacy policy",),
+        )
+        conn.execute(
+            """
+            INSERT INTO web_verification_evidence (
+                id, evidence_key, review_id, normalized_document_id, source_code, source_name,
+                query, origin, title, source_url, attachment_url, attachment_type, sha256,
+                is_official, context_chars, excerpt, content_text, matched_terms_json,
+                verification_status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                2,
+                "ev-key-privacy-latest",
+                391,
+                21,
+                "cassazione_ultime_sent_ord_questioni",
+                "Cassazione",
+                "privacy policy",
+                "fonte_acquisita",
+                "Privacy policy",
+                "https://www.cortedicassazione.it/it/privacy_policy.page",
+                "",
+                "",
+                "",
+                1,
+                120,
+                "Privacy policy del sito.",
+                "Privacy policy del sito.",
+                json.dumps(["privacy"]),
+                "verified",
+            ),
+        )
+        conn.commit()
+
+    result = generate_source_corpus(
+        SourceCorpusOptions(
+            intelligence_db=db_path,
+            output_dir=output_dir,
+            tenant_id="tenant-fonti",
+            source_codes=("cassazione_ultime_sent_ord_questioni",),
+            limit=10,
+            overwrite=True,
+        )
+    )
+
+    documents = [json.loads(line) for line in (output_dir / "documents.jsonl").read_text(encoding="utf-8").splitlines()]
+    manifest = json.loads((output_dir / "manifest.json").read_text(encoding="utf-8"))
+
+    assert result["documents_count"] == 1
+    assert documents[0]["metadata"]["source_url"].endswith("QSP50194")
+    assert "Privacy policy" not in documents[0]["title"]
+    assert manifest["source_filters"]["cassazione_ultime_sent_ord_questioni"].startswith(
+        "solo schede documentali"
+    )
+
+
+def test_generate_lex_source_corpus_domande_da_titolo_scheda_e_pdf_letto(tmp_path: Path):
+    db_path = tmp_path / "legal_updates.db"
+    output_dir = tmp_path / "corpus"
+    _make_db(db_path)
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.execute(
+            """
+            UPDATE web_verification_evidence
+            SET title = ?,
+                content_text = ?,
+                context_chars = ?
+            WHERE id = 1
+            """,
+            (
+                "11417_04_2026_civ_no-index.pdf",
+                (
+                    "Testo PDF letto. Sentenza n. 11417 del 27/04/2026. "
+                    "La parte chiede una rimessione ma la Corte decide il ricorso. "
+                    "Richiamati art. 71, comma 2, d.P.R. 115/2002 e art. 2946 c.c."
+                ),
+                260,
+            ),
+        )
+        conn.execute(
+            "UPDATE source_documents_normalized SET title = ? WHERE id = 20",
+            ("Sentenza n. 11417 del 27/04/2026",),
+        )
+        conn.execute(
+            "UPDATE source_documents_raw SET source_url = ? WHERE id = 10",
+            ("https://www.cortedicassazione.it/it/civile_dettaglio.page?contentId=SZC50126",),
+        )
+        conn.execute(
+            "UPDATE web_verification_evidence SET source_url = ? WHERE id = 1",
+            ("https://www.cortedicassazione.it/it/civile_dettaglio.page?contentId=SZC50126",),
+        )
+        conn.commit()
+
+    generate_source_corpus(
+        SourceCorpusOptions(
+            intelligence_db=db_path,
+            output_dir=output_dir,
+            tenant_id="tenant-fonti",
+            source_codes=("cassazione_massimario",),
+            limit=10,
+            overwrite=True,
+        )
+    )
+
+    expected = [json.loads(line) for line in (output_dir / "expected_queries.jsonl").read_text(encoding="utf-8").splitlines()]
+    checks = [row["check"] for row in expected[0]["question_matrix"]]
+
+    assert expected[0]["expected_title"] == "Sentenza n. 11417 del 27/04/2026"
+    assert "principio" in checks
+    assert "decisione" in checks
+    assert "articoli" in checks
+    assert "natura_rimessione" not in checks

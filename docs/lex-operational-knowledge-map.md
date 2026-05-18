@@ -20,6 +20,10 @@ Aggiornamento 2026-05-18, tranche Cassazione prima del corpus: il backfill delle
 
 Aggiornamento 2026-05-18, destinazioni delle fonti pronte: quando una fonte Cassazione o giurisprudenziale supera il controllo qualità, il risultato non deve restare nel job o nel corpus. Deve alimentare tre superfici utente: Lex Chat AI per le risposte, `/ricerca-legale` per la ricerca/scheda operativa e Archivio Giurisprudenza per la consultazione delle fonti giurisprudenziali.
 
+Aggiornamento 2026-05-18, pagina Cassazione `ultime_sent_ord_e_questioni`: la fonte è una pagina indice e va navigata fino alle pagine Civile/Penale prima di acquisire le schede. Sono valide solo schede `*_dettaglio.page?contentId=...`; pagine privacy, supporto, preferenze e navigazione non entrano nel corpus. Le domande da avvocato nascono dal testo PDF/OCR letto: articoli e riferimenti normativi vanno estratti ed esposti, PDF e R.G. diventano controlli espliciti, e `web_libero` resta solo integrazione della singola domanda sugli articoli senza salvataggio DB.
+
+Aggiornamento 2026-05-18, isolamento reale `Web libero`: quando l'avvocato attiva il flag manuale, Lex non deve fondere il risultato con contesto studio, fascicolo, template atti, impostazioni o fonti interne già disponibili. Il contesto bounded viene costruito con sole fonti web libere della singola richiesta; `saved_to_db=false`, `verified_reference=false`, nessun avviso visibile e risposta sempre in italiano.
+
 Aggiornamento 2026-05-18, `Web libero` chat Lex: quando il flag manuale è attivo, il router deve usare solo la ricerca web libera della singola richiesta, senza fonti DB/fascicolo come contesto di risposta, senza allowlist ufficiale, senza blocco da fonte autorizzata e senza warning visibili. I risultati restano `web_libero`, `verified_reference=false`, `saved_to_db=false`; controllo e responsabilità professionale spettano all'avvocato.
 
 ## Regole di accesso

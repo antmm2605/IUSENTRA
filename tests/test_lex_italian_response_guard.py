@@ -11,6 +11,7 @@ from lex.prompts.prompt_builder import build_assistente_prompt
 
 def test_guard_rileva_risposta_inglese():
     assert detect_non_italian_response("Okay, here's a breakdown.\n\n**Case Summary**")
+    assert detect_non_italian_response("Okay, let's break down this document and extract the key information.")
 
 
 def test_guard_accetta_risposta_italiana():
@@ -28,6 +29,18 @@ def test_guard_riscrive_intestazioni_inglesi_in_italiano():
     assert "Sintesi del fascicolo" in rewritten
     assert "Punti rilevanti" in rewritten
     assert "Documenti considerati" in rewritten
+
+
+def test_guard_blocca_formula_inglese_mista_a_sezioni_italiane():
+    text = (
+        "Sintesi operativa Okay, let's break down this document and extract the key information. "
+        "This is a collection of legal documents.\n\nQuadro verificato\nFonti interne verificate: documento."
+    )
+    rewritten = rewrite_or_reject_non_italian_response(text, {"workflow": "atto"})
+
+    assert "Okay, let's" not in rewritten
+    assert "This is a collection" not in rewritten
+    assert "Lex deve rispondere sempre in italiano" in rewritten
 
 
 def test_prompt_impone_italiano_senza_formule_inglesi():

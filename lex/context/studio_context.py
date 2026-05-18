@@ -11,6 +11,38 @@ from web.services.assistente_studio_context import (
     warm_lex_studio_context as _warm_lex_studio_context,
 )
 
+_FREE_WEB_MODES = {"free", "free_web", "web_libero", "web libero", "ricerca_libera", "ricerca libera", "libera"}
+
+
+def _clean_spaces(value: Any) -> str:
+    return " ".join(str(value or "").split()).strip()
+
+
+def _payload_flag(value: Any) -> bool:
+    return value is True or _clean_spaces(value).lower() in {
+        "1",
+        "true",
+        "vero",
+        "yes",
+        "si",
+        "sì",
+        "on",
+        "enabled",
+        "abilitato",
+        "attivo",
+    }
+
+
+def _free_web_requested(metadata: dict[str, Any]) -> bool:
+    profile = dict(metadata.get("request_profile") or {}) if isinstance(metadata.get("request_profile"), dict) else {}
+    source_mode = _clean_spaces(profile.get("source_mode") or metadata.get("source_mode")).lower()
+    if source_mode in _FREE_WEB_MODES:
+        return True
+    return any(
+        _payload_flag(metadata.get(key))
+        for key in ("free_web_enabled", "force_free_web_search", "manual_free_web_enabled", "free_web")
+    )
+
 
 def _merge_seed_payload(live_payload: dict[str, Any], seed_payload: dict[str, Any]) -> dict[str, Any]:
     merged = dict(live_payload or {})
@@ -60,6 +92,18 @@ def build_studio_context(request) -> dict[str, Any]:
         "workflow_hint": workflow_hint,
         "request_metadata": metadata,
     }
+    if _free_web_requested(metadata):
+        return {
+            **payload,
+            "sources": [],
+            "citations": [],
+            "structured_context": {},
+            "prompt_block": "",
+            "focus_label": "",
+            "focus_topic": "",
+            "free_web_enabled": True,
+            "source_mode": "free_web",
+        }
     question = str(getattr(request, "query", "") or "").strip()
     if not question:
         return _merge_seed_payload(payload, seed_payload)

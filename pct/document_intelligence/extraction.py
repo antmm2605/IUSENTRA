@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from email import policy
 from email.message import EmailMessage, Message
@@ -342,6 +343,9 @@ def _extract_pdf(content: bytes) -> ExtractionResult:
         warnings.extend(repair_warnings)
         if not full_text.strip():
             warnings.append("Il PDF non contiene testo estraibile: potrebbe essere una scansione.")
+            ocr_result = _extract_scanned_pdf_with_ocr(content, base_warnings=warnings, base_engine="pdfplumber")
+            if ocr_result is not None:
+                return ocr_result
         return ExtractionResult(
             ok=True,
             text=full_text,
@@ -363,6 +367,9 @@ def _extract_pdf(content: bytes) -> ExtractionResult:
             warnings.extend(repair_warnings)
             if not full_text.strip():
                 warnings.append("Il PDF non contiene testo estraibile: potrebbe essere una scansione.")
+                ocr_result = _extract_scanned_pdf_with_ocr(content, base_warnings=warnings, base_engine="pypdf")
+                if ocr_result is not None:
+                    return ocr_result
             return ExtractionResult(
                 ok=True,
                 text=full_text,
@@ -380,6 +387,88 @@ def _extract_pdf(content: bytes) -> ExtractionResult:
                 error_code="pdf_extraction_failed",
                 error_message=str(exc or first_exc),
             )
+
+
+def _extract_scanned_pdf_with_ocr(
+    content: bytes,
+    *,
+    base_warnings: list[str],
+    base_engine: str,
+) -> ExtractionResult | None:
+    try:
+        import pypdfium2 as pdfium  # type: ignore
+        import pytesseract  # type: ignore
+    except Exception as exc:
+        base_warnings.append(f"OCR PDF non disponibile: {exc}")
+        return None
+
+    tesseract_probe = getattr(pytesseract, "get_tesseract_version", None)
+    if callable(tesseract_probe):
+        try:
+            tesseract_probe()
+        except Exception as exc:
+            base_warnings.append(f"OCR PDF non disponibile: {exc}")
+            return None
+
+    lang = str(os.environ.get("IUSENTRA_DOCUMENT_AI_OCR_LANG") or "ita").strip() or "ita"
+    max_pages = _int_from_env("IUSENTRA_DOCUMENT_AI_OCR_MAX_PAGES", default=0, minimum=0, maximum=1000)
+    scale = _float_from_env("IUSENTRA_DOCUMENT_AI_OCR_SCALE", default=2.2, minimum=1.0, maximum=4.0)
+    pdf = None
+    pages: list[DocumentAIPageText] = []
+    warnings = list(base_warnings)
+    try:
+        pdf = pdfium.PdfDocument(content)
+        page_count = len(pdf)
+        limit = min(page_count, max_pages) if max_pages else page_count
+        if max_pages and page_count > max_pages:
+            warnings.append(
+                f"OCR limitato a {max_pages} pagine su {page_count}; aumentare "
+                "IUSENTRA_DOCUMENT_AI_OCR_MAX_PAGES per indicizzare il documento completo."
+            )
+        for page_index in range(limit):
+            page = None
+            bitmap = None
+            try:
+                page = pdf[page_index]
+                bitmap = page.render(scale=scale)
+                image = bitmap.to_pil()
+                text = pytesseract.image_to_string(image, lang=lang).strip()
+            except Exception as exc:
+                warnings.append(f"Pagina {page_index + 1}: OCR non completato ({exc}).")
+                text = ""
+            finally:
+                for obj in (bitmap, page):
+                    close = getattr(obj, "close", None)
+                    if callable(close):
+                        try:
+                            close()
+                        except Exception:
+                            pass
+            pages.append(DocumentAIPageText(page_number=page_index + 1, text=text))
+    except Exception as exc:
+        base_warnings.append(f"OCR PDF non completato: {exc}")
+        return None
+    finally:
+        close = getattr(pdf, "close", None)
+        if callable(close):
+            try:
+                close()
+            except Exception:
+                pass
+
+    full_text = "\n\n".join(page.text for page in pages if page.text)
+    if not full_text.strip():
+        base_warnings.extend(warning for warning in warnings if warning not in base_warnings)
+        base_warnings.append("OCR PDF eseguito ma senza testo leggibile.")
+        return None
+    warnings.append("PDF senza testo selezionabile: OCR applicato per l'indice Lex.")
+    return ExtractionResult(
+        ok=True,
+        text=full_text,
+        pages=pages,
+        extraction_engine=f"{base_engine}+ocr",
+        warnings=_unique_warnings(warnings),
+    )
 
 
 def _extract_docx(content: bytes) -> ExtractionResult:
@@ -470,3 +559,19 @@ def _unique_warnings(values: list[str]) -> list[str]:
         seen.add(clean)
         out.append(clean)
     return out
+
+
+def _int_from_env(name: str, *, default: int, minimum: int, maximum: int) -> int:
+    try:
+        value = int(str(os.environ.get(name, default)).strip())
+    except (TypeError, ValueError):
+        return default
+    return max(minimum, min(maximum, value))
+
+
+def _float_from_env(name: str, *, default: float, minimum: float, maximum: float) -> float:
+    try:
+        value = float(str(os.environ.get(name, default)).strip())
+    except (TypeError, ValueError):
+        return default
+    return max(minimum, min(maximum, value))

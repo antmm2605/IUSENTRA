@@ -4,6 +4,23 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.245.18 - 2026-05-18
+
+La prova su Cassazione `QSP50194` ha confermato che la pagina ufficiale e
+l'allegato pubblico vengono trovati: il database locale contiene il record e il
+backfill mirato salva pagina, URL allegato e hash. Il problema reale era il
+testo del PDF: l'allegato `Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf`
+è una scansione e il percorso usato dagli aggiornamenti legali si fermava a
+`context_chars=0`.
+
+Da questa versione l'estrattore documentale usato dalla verifica web applica
+OCR tramite `pypdfium2` e Tesseract quando un PDF ufficiale non contiene testo
+selezionabile. In produzione il container include Tesseract italiano: il
+backfill può quindi salvare anche il testo OCR dell'ordinanza, non solo la
+prova di download. Se Tesseract non è disponibile nel runtime locale, il
+warning resta esplicito e l'allegato continua comunque a essere conservato con
+URL e hash.
+
 ## Aggiornamento operativo 2.245.15 - 2026-05-17
 
 Il recupero delle evidenze web non dipende più solo dall'ordine del lotto

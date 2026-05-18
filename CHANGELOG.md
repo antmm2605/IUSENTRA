@@ -7,6 +7,11 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.18 - 2026-05-18
+
+- L'archivio legale ora applica l'OCR agli allegati PDF ufficiali scaricati quando il PDF non contiene testo selezionabile: casi come Cassazione `QSP50194` non restano più con allegato salvato ma testo vuoto.
+- Aggiunte guardie mirate per PDF scansionati e per la pagina Cassazione `qsp_dettaglio.page?contentId=QSP50194`, verificando che l'allegato `Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf` entri nel contesto interrogabile.
+
 ## 2.245.17 - 2026-05-18
 
 - Lex AI da telefono e tablet non interroga più il servizio locale del dispositivo per lo stato iniziale: usa lo stato del motore AI dello studio e mostra un messaggio coerente con il percorso mobile.

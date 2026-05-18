@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from types import SimpleNamespace
 from typing import Any
 
 from pct import legal_update_web_verification as verification
@@ -304,6 +305,63 @@ def test_helper_cassazione_salva_allegato_anche_se_pdf_non_ha_testo(monkeypatch)
     assert row["sha256"] == hashlib.sha256(pdf_bytes).hexdigest()
     assert row["context_chars"] == 0
     assert "testo non estraibile" in row["excerpt"]
+
+
+def test_helper_cassazione_qsp50194_salva_testo_ocr_allegato(monkeypatch):
+    source_url = "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP50194"
+    attachment_url = (
+        "https://www.cortedicassazione.it/resources/cms/documents/"
+        "Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf"
+    )
+    pdf_bytes = b"%PDF-1.7\n% scansione cassazione\n"
+    requested: list[str] = []
+
+    def fake_get(url: str, **kwargs: Any) -> DummyResponse:
+        requested.append(str(url))
+        if str(url) == source_url:
+            return DummyResponse(
+                """
+                <html><body>
+                  <main>
+                    <h1>Dettaglio questione penale Pendente n. 9926/2026</h1>
+                    <p>Questione penale Pendente del ricorso R.G. n. 9926/2026 ud. 09/07/2026.</p>
+                    <a href="/resources/cms/documents/Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf">
+                      Ordinanza di rimessione
+                    </a>
+                  </main>
+                </body></html>
+                """.encode("utf-8"),
+                content_type="text/html; charset=utf-8",
+            )
+        if str(url) == attachment_url:
+            return DummyResponse(pdf_bytes, content_type="application/pdf")
+        raise AssertionError(f"URL inatteso: {url}")
+
+    def fake_extract_text_from_document(content: bytes, filename: str, file_type: str):
+        assert content == pdf_bytes
+        assert filename == "Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf"
+        assert file_type == "pdf"
+        return SimpleNamespace(
+            ok=True,
+            text="Nota Ufficio Spoglio V Sez. penale R.G. 9966/2026: ordinanza di rimessione.",
+        )
+
+    monkeypatch.setattr(verification.requests, "get", fake_get)
+    monkeypatch.setattr(
+        "pct.document_intelligence.extraction.extract_text_from_document",
+        fake_extract_text_from_document,
+    )
+
+    context, attachments = verification._fetch_official_web_context_with_attachments(source_url, timeout=2)
+
+    assert requested == [source_url, attachment_url]
+    assert "Questione penale Pendente del ricorso R.G. n. 9926/2026" in context
+    assert "ordinanza di rimessione" in context
+    assert len(attachments) == 1
+    row = attachments[0]
+    assert row["attachment_url"] == attachment_url
+    assert row["context_chars"] > 0
+    assert "R.G. 9966/2026" in row["text_excerpt"]
 
 
 def test_verifica_web_conserva_allegato_cassazione_se_la_pagina_e_pertinente(monkeypatch):

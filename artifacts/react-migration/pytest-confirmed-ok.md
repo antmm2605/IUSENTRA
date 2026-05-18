@@ -6,6 +6,15 @@ Aggiornato: 2026-05-18, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-f
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
+## Guard lingua italiana Lex 2.245.37 - 2026-05-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile lex\guards\italian_response_guard.py` | OK | Sintassi confermata dopo fallback `Web libero` non fascicolo e accenti UTF-8 reali. |
+| `python -m pytest tests\test_lex_italian_response_guard.py tests\test_utf8_integrity.py -q --tb=short` | OK | 12/12 passati: blocco risposte inglesi, fallback generico per `Web libero`, fallback fascicolo con `è` e integrità UTF-8. |
+| `python -m pytest lex\tests\test_http_bounded_bridge_governed_only.py::test_opzione_web_libero_e_manuale_non_passa_da_job lex\tests\test_http_bounded_bridge_governed_only.py::test_web_libero_stringa_isola_contesto_studio lex\tests\test_http_bounded_bridge_governed_only.py::test_source_router_web_libero_stringa_usa_solo_web tests\test_lex_professional_upgrade.py::test_gateway_web_libero_parte_solo_con_modalita_libera tests\test_lex_tool_registry_governance.py::test_tool_registry_web_libero_non_blocca_fonti_pubbliche_ma_isola_dati_studio lex\tests\unit\test_sentenze_clienti_fix.py::test_free_web_enabled_accetta_etichetta_con_spazio -q --tb=short` | OK | 6/6 passati: isolamento `web libero` confermato in bridge, router, gateway, registry e integratore. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short`; `git diff --check` | OK | Packaging sincronizzato, readiness release 9/9 e whitespace senza errori sul perimetro staged. |
+
 ## Frontend e gate React
 
 ### UI Intelligence Ricerca Legale/Giurisprudenza/AI - 2026-05-18

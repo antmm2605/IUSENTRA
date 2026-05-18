@@ -7,6 +7,10 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.37 - 2026-05-18
+
+- Rifinito il guard linguistico Lex: il fallback non presume più il fascicolo quando la richiesta è in `Web libero`, mantiene il messaggio generico di blocco italiano e usa accenti UTF-8 reali nel fallback fascicolo.
+
 ## 2.245.36 - 2026-05-18
 
 - Corretta la fonte Cassazione `ultime_sent_ord_e_questioni.page`: il connettore segue le pagine ufficiali Civile/Penale e acquisisce solo schede documentali `*_dettaglio.page?contentId=...`, escludendo pagine di navigazione, privacy, supporto o preferenze.

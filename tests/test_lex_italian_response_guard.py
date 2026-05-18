@@ -43,6 +43,31 @@ def test_guard_blocca_formula_inglese_mista_a_sezioni_italiane():
     assert "Lex deve rispondere sempre in italiano" in rewritten
 
 
+def test_guard_web_libero_non_usa_fallback_fascicolo():
+    text = (
+        "Okay, let's break down this document and extract the key information. "
+        "This is a collection of legal documents."
+    )
+    rewritten = rewrite_or_reject_non_italian_response(
+        text,
+        {"workflow": "fascicolo", "free_web": {"enabled": True}},
+    )
+
+    assert "Riformulo sul fascicolo" not in rewritten
+    assert "Lex deve rispondere sempre in italiano" in rewritten
+
+
+def test_guard_fallback_fascicolo_usa_accenti_utf8():
+    text = (
+        "Okay, let's break down this document and extract the key information. "
+        "This is a collection of legal documents."
+    )
+    rewritten = rewrite_or_reject_non_italian_response(text, {"workflow": "fascicolo"})
+
+    assert "corretta è" in rewritten
+    assert "corretta e'" not in rewritten
+
+
 def test_prompt_impone_italiano_senza_formule_inglesi():
     prompt = build_assistente_prompt(question="riassumi il fascicolo", fascicolo_id="")
 

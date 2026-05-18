@@ -146,16 +146,65 @@ def rewrite_or_reject_non_italian_response(text: str, context: dict[str, Any] | 
     if not detect_non_italian_response(rewritten):
         return rewritten
 
-    workflow = str((context or {}).get("workflow") or "fascicolo").strip() or "fascicolo"
-    if workflow in {"fascicolo", "documento", "udienza"}:
+    workflow = str((context or {}).get("workflow") or "").strip()
+    if workflow in {"fascicolo", "documento", "udienza"} and not _free_web_context(context or {}):
         return (
             "La risposta generata non era conforme alla lingua italiana e non viene mostrata. "
             "Riformulo sul fascicolo: uso solo i documenti e i dati disponibili; dove manca un'informazione, "
-            "la risposta corretta e' \"Non risulta dai documenti disponibili nel fascicolo.\""
+            "la risposta corretta è \"Non risulta dai documenti disponibili nel fascicolo.\""
         )
     return (
         "La risposta generata non era conforme alla lingua italiana e non viene mostrata. "
         "Riformula la richiesta oppure riprova: Lex deve rispondere sempre in italiano."
+    )
+
+
+def _free_web_context(context: dict[str, Any]) -> bool:
+    metadata = dict(context.get("metadata") or {}) if isinstance(context.get("metadata"), dict) else {}
+    request_profile = (
+        dict(metadata.get("request_profile") or {})
+        if isinstance(metadata.get("request_profile"), dict)
+        else {}
+    )
+    free_web = context.get("free_web")
+    if isinstance(free_web, dict) and free_web.get("enabled") is True:
+        return True
+    source_mode = str(
+        context.get("source_mode")
+        or request_profile.get("source_mode")
+        or metadata.get("source_mode")
+        or ""
+    ).strip().lower()
+    if source_mode in {
+        "free",
+        "free_web",
+        "web_libero",
+        "web libero",
+        "ricerca_libera",
+        "ricerca libera",
+        "libera",
+    }:
+        return True
+    true_values = {
+        "1",
+        "true",
+        "vero",
+        "yes",
+        "si",
+        "sì",
+        "on",
+        "enabled",
+        "abilitato",
+        "attivo",
+    }
+    return any(
+        value is True or str(value or "").strip().lower() in true_values
+        for value in (
+            context.get("free_web_enabled"),
+            metadata.get("free_web_enabled"),
+            metadata.get("force_free_web_search"),
+            metadata.get("manual_free_web_enabled"),
+        )
     )
 
 

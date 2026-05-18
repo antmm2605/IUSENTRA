@@ -1124,6 +1124,65 @@ def test_search_lex_sources_premia_evidenza_web_con_titolo_esatto(tmp_path: Path
     assert results[0]["attachment_url"] == "https://www.inps.it/messaggio-numero-685-del-26-02-2026.pdf"
 
 
+def test_search_lex_sources_include_pdf_ocr_riferimenti_e_domande(tmp_path: Path):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+
+    with pipeline.repository._connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO web_verification_evidence (
+                evidence_key, review_id, normalized_document_id, source_code, source_name,
+                query, origin, title, source_url, attachment_url, attachment_type, sha256,
+                is_official, context_chars, excerpt, content_text, matched_terms_json,
+                verification_status, created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "cassazione-qsp-pdf-ocr",
+                None,
+                None,
+                "cassazione_ultime_sent_ord_questioni",
+                "Corte Suprema di Cassazione",
+                "Questione Penale Pendente del ricorso R.G. 9926/2026",
+                "allegato_fonte_ufficiale",
+                "Questione Penale Pendente del ricorso R.G. 9926/2026",
+                "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP50194",
+                "https://www.cortedicassazione.it/resources/cms/documents/qsp50194.pdf",
+                "pdf",
+                "b" * 64,
+                1,
+                620,
+                "PDF ufficiale collegato alla scheda Cassazione.",
+                (
+                    "Testo OCR ufficiale della questione penale pendente. "
+                    "La scheda indica R.G. 9926/2026, il PDF riporta R.G. 9966/2026. "
+                    "Sono richiamati art. 606 c.p.p., art. 599-bis c.p.p. e D.Lgs. 150/2022."
+                ),
+                '["QSP50194","art. 606 c.p.p.","R.G. 9926/2026"]',
+                "verified",
+                "2026-05-18 00:00:00",
+                "2026-05-18 00:00:00",
+            ),
+        )
+        conn.commit()
+
+    results = pipeline.repository.search_lex_sources("PDF allegato ordinanza art. 606 c.p.p. QSP50194", limit=3)
+
+    assert results
+    first = results[0]
+    assert first["entity_type"] == "web_evidence"
+    assert first["attachment_url"].endswith("qsp50194.pdf")
+    assert any(ref["type"] == "article" and ref["official_url"] == "" for ref in first["legal_references"])
+    assert "art. 606 c.p.p." in first["norm_references"]
+    assert "9926/2026" in first["rg_references"]
+    assert "9966/2026" in first["rg_references"]
+    assert any(row["check"] == "pdf_allegato" for row in first["contextual_questions"])
+    assert any(row["check"] == "articoli" for row in first["contextual_questions"])
+    assert any("Riferimenti normativi" in point for point in first["key_points"])
+    assert any("Domanda per Lex" in check for check in first["operational_checks"])
+
+
 def test_search_lex_sources_non_usa_cassazione_per_sentenza_corte_costituzionale(tmp_path: Path):
     pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
 

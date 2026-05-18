@@ -12,6 +12,11 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
+from pct.legal_update_enrichment import (
+    build_contextual_question_matrix,
+    extract_legal_references,
+    legal_reference_labels,
+)
 from pct.legal_relevance import is_low_value_public_legal_record
 from pct.postgres_runtime_support import PostgresRepositoryBackend
 
@@ -397,6 +402,38 @@ def _lex_excerpt(*values: Any, limit: int = 520) -> str:
     return text[: limit - 3].rstrip() + "..."
 
 
+def _lex_key_points_from_references(
+    *,
+    norm_references: list[str],
+    rg_references: list[str],
+    has_attachment: bool,
+    context_chars: Any,
+) -> list[str]:
+    points: list[str] = []
+    if norm_references:
+        points.append("Riferimenti normativi: " + "; ".join(norm_references[:5]))
+    if rg_references:
+        points.append("Riferimenti R.G.: " + "; ".join(rg_references[:4]))
+    if has_attachment:
+        try:
+            chars = int(context_chars or 0)
+        except (TypeError, ValueError):
+            chars = 0
+        points.append("Allegato ufficiale letto" if chars > 0 else "Allegato ufficiale da completare con OCR")
+    return points[:5]
+
+
+def _lex_operational_checks_from_questions(question_matrix: list[dict[str, str]]) -> list[str]:
+    checks: list[str] = []
+    for row in question_matrix:
+        question = _clean_spaces(row.get("question") if isinstance(row, dict) else "")
+        if question:
+            checks.append(f"Domanda per Lex: {question}")
+        if len(checks) >= 5:
+            break
+    return checks
+
+
 def _lex_candidate_score(row: dict[str, Any], terms: list[str], *, query: str = "") -> float:
     base = float(row.get("_base_score") or 0.62)
     if not terms:
@@ -439,7 +476,10 @@ def _lex_candidate_score(row: dict[str, Any], terms: list[str], *, query: str = 
         score += 0.03
     if _clean_spaces(row.get("attachment_url")):
         score += 0.04
-        if any(term in {"allegato", "pdf", "documento", "ordinanza", "rimessione", "nota"} for term in terms):
+        if any(
+            term in {"allegato", "pdf", "documento", "ordinanza", "sentenza", "testo", "ufficiale", "rimessione", "nota"}
+            for term in terms
+        ):
             score += 0.42
         try:
             context_chars = int(row.get("context_chars") or 0)
@@ -494,13 +534,12 @@ def _quality_rg_references(text: str) -> list[str]:
 
 
 def _quality_norm_references(text: str) -> list[str]:
-    refs: list[str] = []
-    for match in _ARTICLE_REFERENCE_RE.finditer(text or ""):
-        value = _clean_spaces(match.group(0))
-        if len(value) > 110:
-            value = value[:107].rstrip(" ,.;") + "..."
-        refs.append(value)
-    return _quality_unique(refs, limit=20)
+    references = extract_legal_references(text or "", source_document="qualita fonte", document_part="pagina e allegati")
+    return legal_reference_labels(
+        references,
+        allowed_types=("article", "act", "eu_act"),
+        limit=20,
+    )
 
 
 def _quality_pdf_like(row: dict[str, Any]) -> bool:
@@ -541,32 +580,24 @@ def _quality_ocr_flags(text: str) -> list[str]:
 def _quality_question_matrix(
     *,
     title: str,
+    context_text: str,
     rg_references: list[str],
     norm_references: list[str],
     pdf_found: bool,
     rg_discrepancy: bool,
+    source_code: str = "",
+    category: str = "",
 ) -> list[dict[str, str]]:
-    subject = title or "questo documento"
-    primary_rg = rg_references[0] if rg_references else ""
-    reference = f" R.G. {primary_rg}" if primary_rg else ""
-    questions = [
-        ("sintesi", f"Mi puoi sintetizzare {subject}{reference}?"),
-        ("natura_atto", "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?"),
-        ("oggetto", "Qual è l'oggetto della questione o della decisione?"),
-        ("stato", "Qual è lo stato del procedimento o dell'atto?"),
-        ("punto_diritto", "Qual è il punto di diritto o il principio in discussione?"),
-        ("motivi", "Quali sono i motivi, le censure o i passaggi rilevanti indicati nel testo?"),
-        ("norme", "Quali norme sono richiamate e perché contano?"),
-        ("effetto_pratico", "Qual è l'effetto pratico per un avvocato che deve usare questa fonte?"),
-        ("esito", "Risulta già un esito finale oppure la questione è ancora pendente?"),
-    ]
-    if pdf_found:
-        questions.append(("pdf_allegato", "Quale PDF o allegato ufficiale è collegato e il link è cliccabile?"))
-    if rg_discrepancy:
-        questions.append(("discrepanza_rg", "Ci sono discrepanze tra il numero R.G. della scheda e quello del PDF?"))
-    if norm_references:
-        questions.append(("articoli", "Puoi spiegare gli articoli richiamati senza limitarti a citarli?"))
-    return [{"check": key, "question": value} for key, value in questions]
+    return build_contextual_question_matrix(
+        title=title or "questo documento",
+        context_text=context_text,
+        has_attachment=pdf_found,
+        norm_references=norm_references,
+        rg_references=rg_references,
+        source_code=source_code,
+        category=category,
+        has_rg_discrepancy=rg_discrepancy,
+    )
 
 
 def _web_evidence_quality_summary(items: list[dict[str, Any]]) -> dict[str, Any]:
@@ -706,10 +737,13 @@ def _web_evidence_quality_item(review: dict[str, Any], rows: list[dict[str, Any]
         "rg_discrepancy": rg_discrepancy,
         "question_matrix": _quality_question_matrix(
             title=title,
+            context_text=all_text,
             rg_references=rg_references,
             norm_references=norm_references,
             pdf_found=pdf_found,
             rg_discrepancy=rg_discrepancy,
+            source_code=source_code,
+            category=review.get("classification_type") or review.get("proposal_type") or "",
         ),
         "ready": ready,
         "corpus_ready": corpus_ready,
@@ -3008,7 +3042,8 @@ class LegalUpdateRepository:
                        e.source_code, 'A' AS trust_class, e.is_official,
                        e.source_url AS source_base_url, 0.82 AS _base_score,
                        e.origin, e.attachment_url, e.attachment_type, e.sha256,
-                       e.context_chars, e.verification_status
+                       e.context_chars, e.verification_status, e.matched_terms_json,
+                       e.query
                 FROM web_verification_evidence e
                 WHERE e.verification_status IN ('verified', 'insufficient')
                 {search_clause}
@@ -3037,6 +3072,44 @@ class LegalUpdateRepository:
         excerpt = _lex_excerpt(row.get("excerpt"), row.get("principle_of_law"), row.get("content"))
         content_limit = 3600 if entity_type == "web_evidence" else 900
         content = _lex_excerpt(row.get("content"), row.get("excerpt"), row.get("principle_of_law"), limit=content_limit)
+        context_text = _clean_spaces(
+            " ".join(
+                _clean_spaces(value)
+                for value in (
+                    row.get("title"),
+                    row.get("excerpt"),
+                    row.get("content"),
+                    row.get("query"),
+                    row.get("matched_terms_json"),
+                    row.get("attachment_url"),
+                    row.get("source_base_url"),
+                    row.get("official_url"),
+                )
+                if _clean_spaces(value)
+            )
+        )
+        legal_references = extract_legal_references(
+            context_text,
+            source_document=_first_text(row.get("official_url"), row.get("source_base_url")),
+            document_part=_first_text(row.get("attachment_type"), row.get("origin"), entity_type),
+        )
+        norm_references = legal_reference_labels(
+            legal_references,
+            allowed_types=("article", "act", "eu_act"),
+            limit=16,
+        )
+        rg_references = _quality_rg_references(context_text)
+        has_attachment = bool(_clean_spaces(row.get("attachment_url")))
+        contextual_questions = build_contextual_question_matrix(
+            title=_first_text(row.get("title"), authority, "Aggiornamento legale"),
+            context_text=context_text,
+            has_attachment=has_attachment,
+            norm_references=norm_references,
+            rg_references=rg_references,
+            source_code=row.get("source_code"),
+            category=row.get("category"),
+            has_rg_discrepancy=len(set(rg_references)) > 1,
+        )
         payload = {
             "type": source_type,
             "id": f"legal-updates-{entity_type}:{entity_id}",
@@ -3062,6 +3135,17 @@ class LegalUpdateRepository:
             "submatter_slug": _clean_spaces(row.get("submatter_slug")),
             "submatter_name": _clean_spaces(row.get("submatter_name")),
             "source_code": _clean_spaces(row.get("source_code")),
+            "legal_references": legal_references,
+            "norm_references": norm_references,
+            "rg_references": rg_references,
+            "contextual_questions": contextual_questions,
+            "key_points": _lex_key_points_from_references(
+                norm_references=norm_references,
+                rg_references=rg_references,
+                has_attachment=has_attachment,
+                context_chars=row.get("context_chars"),
+            ),
+            "operational_checks": _lex_operational_checks_from_questions(contextual_questions),
         }
         for field in (
             "norm_type",

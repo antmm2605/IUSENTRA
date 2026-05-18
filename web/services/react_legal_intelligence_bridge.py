@@ -1318,6 +1318,93 @@ def _is_low_value_search_row(row: Mapping[str, Any]) -> bool:
     )
 
 
+def _int_or_zero(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _search_row_question_labels(row: Mapping[str, Any]) -> list[str]:
+    labels: list[str] = []
+    for item in _list(row.get("contextual_questions") or row.get("question_matrix")):
+        if isinstance(item, Mapping):
+            question = _text(item.get("question"))
+        else:
+            question = _text(item)
+        if question and question not in labels:
+            labels.append(question)
+    return labels[:4]
+
+
+def _search_row_reference_labels(row: Mapping[str, Any]) -> tuple[list[str], list[str]]:
+    norm_refs = [_text(item) for item in _list(row.get("norm_references")) if _text(item)]
+    rg_refs = [_text(item) for item in _list(row.get("rg_references")) if _text(item)]
+    if not norm_refs:
+        for item in _list(row.get("legal_references")):
+            if isinstance(item, Mapping) and _text(item.get("type")) in {"article", "act", "eu_act"}:
+                label = _text(item.get("normalized_text") or item.get("text"))
+                if label and label not in norm_refs:
+                    norm_refs.append(label)
+    return norm_refs[:8], rg_refs[:8]
+
+
+def _search_row_evidence_type(row: Mapping[str, Any], excerpt: str) -> str:
+    attachment_url = _text(row.get("attachment_url") or row.get("attachmentUrl"))
+    attachment_type = _text(row.get("attachment_type") or row.get("attachmentType")).lower()
+    context_chars = _int_or_zero(row.get("context_chars") or row.get("contextChars"))
+    if attachment_url and context_chars > 0:
+        if attachment_type == "pdf" or attachment_url.lower().split("?", 1)[0].endswith(".pdf"):
+            return "PDF ufficiale letto"
+        return "Allegato ufficiale letto"
+    if attachment_url:
+        return "Allegato ufficiale da completare"
+    return "estratto fonte" if excerpt else "riferimento fonte"
+
+
+def _search_row_key_points(row: Mapping[str, Any], excerpt: str) -> list[str]:
+    points = [item for item in _list(row.get("key_points") or row.get("keyPoints")) if _text(item)]
+    norm_refs, rg_refs = _search_row_reference_labels(row)
+    attachment_url = _text(row.get("attachment_url") or row.get("attachmentUrl"))
+    context_chars = _int_or_zero(row.get("context_chars") or row.get("contextChars"))
+    if norm_refs:
+        points.append(f"Riferimenti normativi: {', '.join(norm_refs[:5])}.")
+    if rg_refs:
+        points.append(f"Riferimenti R.G.: {', '.join(rg_refs[:4])}.")
+    if attachment_url and context_chars > 0:
+        points.append("Allegato ufficiale letto: testo acquisito per Ricerca Legale e Lex.")
+    elif attachment_url:
+        points.append("Allegato ufficiale presente: lettura o OCR da completare.")
+    if not points and excerpt:
+        points.append(f"Contesto ricavato: {_short(excerpt, 300)}")
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for item in points:
+        text = _text(item)
+        key = text.lower()
+        if not text or key in seen:
+            continue
+        seen.add(key)
+        deduped.append(text)
+    return deduped[:6]
+
+
+def _search_row_operational_checks(row: Mapping[str, Any]) -> list[str]:
+    checks = [item for item in _list(row.get("operational_checks") or row.get("operationalChecks")) if _text(item)]
+    for question in _search_row_question_labels(row):
+        checks.append(f"Domanda per Lex: {question}")
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for item in checks:
+        text = _text(item)
+        key = text.lower()
+        if not text or key in seen:
+            continue
+        seen.add(key)
+        deduped.append(text)
+    return deduped[:6]
+
+
 def _safe_search_record(row: Mapping[str, Any], index: int, *, search_query: str = "") -> dict[str, Any]:
     source_href = _safe_href(row.get("official_url") or row.get("source_url") or row.get("url"))
     source_label = _text(row.get("authority") or row.get("source_name") or row.get("source_code")) or _source_label_from_url(source_href)
@@ -1357,6 +1444,8 @@ def _safe_search_record(row: Mapping[str, Any], index: int, *, search_query: str
     )
     if context_completed and not official_context and verified and _is_official_href(source_href) and len(raw_excerpt) >= 360 and not weak_listing:
         official_context = _short(raw_excerpt, 2400)
+    key_points = _search_row_key_points(row, excerpt)
+    operational_checks = _search_row_operational_checks(row)
     return {
         "id": _text(row.get("id")) or f"ricerca_{index}",
         "kind": kind,
@@ -1365,10 +1454,8 @@ def _safe_search_record(row: Mapping[str, Any], index: int, *, search_query: str
         "sourceExcerpt": excerpt,
         "officialContext": official_context,
         "contextSummary": context_summary,
-        "keyPoints": [item for item in _list(row.get("key_points") or row.get("keyPoints")) if _text(item)],
-        "operationalChecks": [
-            item for item in _list(row.get("operational_checks") or row.get("operationalChecks")) if _text(item)
-        ],
+        "keyPoints": key_points,
+        "operationalChecks": operational_checks,
         "contextCompleted": context_completed,
         "sourceLabel": source_label,
         "sourceKind": "fonte ufficiale" if verified else "fonte da verificare",
@@ -1379,7 +1466,7 @@ def _safe_search_record(row: Mapping[str, Any], index: int, *, search_query: str
         "approvalLabel": "verificata" if verified else "da verificare",
         "approvalTone": "success" if verified else "warning",
         "legacyHref": "/ricerca-legale",
-        "evidenceType": "estratto fonte" if excerpt else "riferimento fonte",
+        "evidenceType": _search_row_evidence_type(row, excerpt),
     }
 
 

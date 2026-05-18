@@ -55,6 +55,46 @@ def test_fascicolo_first_usa_fonti_esterne_solo_con_ragione_pertinente():
     assert OfficialWebSource.should_include(request, "fascicolo") is True
 
 
+def test_web_libero_lex_resta_separato_da_fonti_ufficiali_e_archivi(monkeypatch):
+    calls: list[str] = []
+
+    def _fake_free_web(query, **kwargs):
+        calls.append(query)
+        return [
+            {
+                "id": "free-1",
+                "title": "Commento pubblico art. 606 c.p.p.",
+                "url": "https://example.org/articolo-606-cpp",
+                "domain": "example.org",
+                "source_name": "Example pubblico",
+                "excerpt": "Risultato pubblico non promosso nel corpus ufficiale.",
+            }
+        ]
+
+    monkeypatch.setattr("lex.retrieval.sources.official_web.search_free_public_web", _fake_free_web)
+
+    request = LexRequest(
+        tenant_id="tenant-a",
+        user_id="user-1",
+        session_id="s-1",
+        query="cerca sul web libero art. 606 c.p.p.",
+        metadata={"source_mode": "web_libero", "fascicolo_context": {"cliente": "Rossi"}},
+        allow_external_research=True,
+        require_official_sources=False,
+    )
+
+    evidence = OfficialWebSource().search([request.query], request, {"workflow": "giurisprudenza"})
+
+    assert calls == ["cerca sul web libero art. 606 c.p.p."]
+    assert len(evidence) == 1
+    assert evidence[0].source_type == "web_libero"
+    assert evidence[0].verified_reference is False
+    assert evidence[0].metadata["allowlist_used"] is False
+    assert evidence[0].metadata["saved_to_db"] is False
+    assert request.metadata["source_registry"]["selected_source_ids"] == []
+    assert request.metadata["source_registry"]["saved_to_db"] is False
+
+
 def test_payload_http_fascicolo_first_flags_senza_fonti_esterne(monkeypatch):
     captured: dict[str, LexRequest] = {}
 

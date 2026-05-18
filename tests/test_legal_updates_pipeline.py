@@ -1346,6 +1346,8 @@ def test_admin_surfaces_renderizzano_fonti_staging_analisi_e_archivio(tmp_path: 
         dashboard_html = client.get("/admin/aggiornamenti-legali").get_data(as_text=True)
         assert "Dove finiscono i dati" in dashboard_html
         assert "Documenti letti" in dashboard_html
+        assert "Evidenze lette" in dashboard_html
+        assert "PDF e allegati" in dashboard_html
         assert "Schede pubblicate" in dashboard_html
         assert "Indice Normattiva" in dashboard_html
         assert "Indice Gazzetta" in dashboard_html
@@ -1476,6 +1478,58 @@ def test_admin_api_espone_staging_analisi_archivi_e_audit(tmp_path: Path):
             assert response.status_code == 200, path
             payload = response.get_json()
             assert payload["ok"] is True
+
+
+def test_api_admin_backfill_web_evidence_usa_filtri_mirati(tmp_path: Path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    username, password = _seed_platform_superadmin(app)
+    calls: list[dict[str, object]] = []
+
+    class _Runtime:
+        def backfill_web_verification_evidence(self, **kwargs):
+            calls.append(kwargs)
+            return {"checked": 1, "verification_evidence_saved": 1, "quality_items": []}
+
+    monkeypatch.setattr(
+        "web.blueprints.legal_updates_admin.build_legal_update_pipeline_runtime",
+        lambda **_kwargs: _Runtime(),
+    )
+
+    with app.test_client() as client:
+        login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
+        assert login.status_code == 302
+        response = client.post(
+            "/admin/aggiornamenti-legali/api/backfill-web-evidence",
+            json={
+                "source_codes": ["cassazione_ultime_sent_ord_questioni"],
+                "statuses": ["approved"],
+                "review_ids": [50194],
+                "limit": 5,
+                "query": "QSP50194",
+                "include_open_data": False,
+                "include_closed": False,
+                "direct_only": True,
+                "max_seconds": 20,
+            },
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert calls == [
+        {
+            "limit": 5,
+            "source_codes": ["cassazione_ultime_sent_ord_questioni"],
+            "statuses": ("approved",),
+            "include_closed": False,
+            "include_open_data": False,
+            "direct_only": True,
+            "max_seconds": 20,
+            "query": "QSP50194",
+            "review_ids": (50194,),
+        }
+    ]
 
 
 def test_form_fetch_e_rianalisi_attivano_il_popolamento(tmp_path: Path, monkeypatch):

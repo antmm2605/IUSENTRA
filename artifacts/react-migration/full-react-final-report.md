@@ -2,6 +2,19 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-18T17:20:00+02:00: Update Intelligence fonti/PDF/OCR/Lex
+2.245.40.
+La console `/admin/aggiornamenti-legali/` espone ora contatori su evidenze web,
+PDF/allegati e documenti collegati; Ricerca Legale riceve dai risultati
+`legal_updates.db` riferimenti normativi, R.G., domande contestuali e stato
+PDF/OCR senza duplicare il contesto. Lex e il corpus riusano lo stesso
+arricchimento deterministico; il Web libero resta separato da fonti ufficiali,
+studio, fascicoli e promozione DB/corpus.
+
+Gate verdi: py_compile mirato, shard Update Intelligence, job/autofetch/batch,
+verifica web/allegati/document intelligence, Lex/corpus/Ricerca
+Legale/Giurisprudenza, typecheck, build Vite, governance, UTF-8 e diff check.
+
 Aggiornamento 2026-05-17T14:05:00+02:00: AI Locale mobile e
 EmbeddingGemma 2.245.7.
 La tab `/impostazioni?tab=ai` non tratta piu' telefono e tablet come se fossero

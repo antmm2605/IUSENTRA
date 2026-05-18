@@ -7,6 +7,14 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.40 - 2026-05-18
+
+- Aggiunta la ricognizione fonte per fonte degli Aggiornamenti legali in `artifacts/legal-updates/source-rollout-plan.md`, con decisione esplicita per tutte le fonti `DEFAULT_SOURCE_ROWS` e quelle persistite nel database.
+- Introdotto `pct/legal_update_enrichment.py`: estrazione deterministica e riusabile di riferimenti normativi/giurisprudenziali, R.G., contentId e matrice di domande contestuali senza inventare link Normattiva.
+- Ricerca Legale e Lex ricevono ora, dalle evidenze web e PDF/OCR, riferimenti normativi, riferimenti R.G., domande per Lex e segnali su PDF/allegati letti o da completare.
+- La console `/admin/aggiornamenti-legali/` espone contatori su evidenze lette, PDF/allegati e documenti collegati; aggiunta API mirata per backfill evidenze web con filtri fonte, stato, query, review e timeout.
+- Il corpus sorgenti Lex riusa l'arricchimento deterministico e mantiene il filtro Cassazione sulle sole schede documentali; il Web libero Lex resta isolato da fonti ufficiali, studio, fascicoli e promozione DB/corpus.
+
 ## 2.245.39 - 2026-05-18
 
 - Corretto il collegamento tra Ricerca Legale e Lex per i riferimenti giurisprudenziali esatti con numeri brevi, come `Sentenza della Corte Costituzionale n. 50 del 27/1/2026`.

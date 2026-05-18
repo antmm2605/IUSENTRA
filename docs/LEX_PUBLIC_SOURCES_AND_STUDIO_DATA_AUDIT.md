@@ -2,6 +2,20 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.245.40 - 2026-05-18
+
+Completata la ricognizione delle fonti Aggiornamenti legali e registrata la
+matrice fonte per fonte in `artifacts/legal-updates/source-rollout-plan.md`.
+Il repository SQL degli aggiornamenti ora espone a Lex e Ricerca Legale anche
+riferimenti normativi deterministici, riferimenti R.G., domande contestuali,
+stato PDF/allegati e segnali di OCR/testo, senza creare link ufficiali non
+risolti.
+
+Il Web libero resta isolato dal contesto interno: quando l'avvocato lo attiva,
+la ricerca non consulta fonti studio, fascicoli, template o corpus ufficiale,
+non salva risultati in archivio e marca tecnicamente le evidenze come
+`web_libero`, `verified_reference=false`, `saved_to_db=false`.
+
 ## Aggiornamento operativo 2.245.39 - 2026-05-18
 
 Corretto il caso segnalato su `/ricerca-legale?q=Corte+Costituzionale`:

@@ -6,6 +6,19 @@ Aggiornato: 2026-05-18, collegamento Lex/Ricerca Legale per Corte Costituzionale
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
+## Update Intelligence fonti/PDF/OCR/Lex 2.245.40 - 2026-05-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct/legal_update_pipeline.py pct/legal_update_repository.py pct/legal_update_enrichment.py web/blueprints/legal_updates_admin.py web/services/legal_update_surface.py web/services/react_legal_intelligence_bridge.py scripts/generate_lex_source_corpus.py lex/retrieval/sources/official_web.py` | OK | Sintassi confermata dopo arricchimento riferimenti/domande, API backfill admin, payload Ricerca Legale e corpus Lex. |
+| `python -m pytest tests/test_legal_updates_pipeline.py -q --tb=short` | OK | 40/40 passati: console admin, route/API, backfill mirato, Cassazione indice, AGCOM/OpenGA/filtro studio legale e dashboard con evidenze/PDF. |
+| `python -m pytest tests/test_legal_update_autofetch.py tests/test_legal_update_surface_jobs.py tests/test_legal_update_job_queue.py tests/test_legal_update_batch_runner.py -q --tb=short` | OK | 18/18 passati: job, batch runner, budget, cursori e monitor fonti legali. |
+| `python -m pytest tests/test_legal_update_publish_context.py tests/test_legal_update_web_verification_attachments.py tests/test_document_intelligence_extraction.py -q --tb=short` | OK | 36/36 passati: allegati ufficiali, hash, testo/OCR, backfill allegati vuoti, riferimenti normativi e domande contestuali. |
+| `python -m pytest tests/test_lex_source_corpus_generator.py tests/test_lex_operational_knowledge.py tests/test_react_legal_intelligence_search.py tests/test_giurisprudenza.py -q --tb=short` | OK | 99/99 passati: corpus Lex, caso QSP, Ricerca Legale con PDF/OCR/riferimenti/domande, Archivio Giurisprudenza. |
+| `python -m pytest tests/test_lex_fascicolo_first_retrieval.py -q --tb=short` | OK | 6/6 passati: `web_libero` separato da fonti ufficiali, archivi, DB e contesto interno. |
+| `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build` | OK | TypeScript verde; build Vite completata in 6.04s, chunk Ricerca Legale `LegalIntelligencePage-_zpH5Ard.js` 40.26 kB (11.37 kB gzip), main `index-BqGEOtfE.js` 453.47 kB (134.06 kB gzip). |
+| `python tools/check_repo_governance.py`; `python -m pytest tests/test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | Governance OK, UTF-8 4/4 e whitespace senza errori; `git diff --check` segnala solo il warning CRLF su file runtime preesistente non in staging. |
+
 ## Lex/Ricerca Legale Corte Costituzionale n. 50/2026 - 2026-05-18
 
 | Comando / verifica | Esito | Nota |

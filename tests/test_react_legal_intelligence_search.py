@@ -306,6 +306,45 @@ def test_ricerca_legale_usa_testo_pdf_esteso_senza_metterlo_tutto_nel_contesto()
     assert any("Testo letto" in item for item in record["sourceContext"])
 
 
+def test_ricerca_legale_mostra_pdf_ocr_riferimenti_e_domande():
+    repository = _Repository(
+        search_rows=[
+            {
+                "type": "legal_web_evidence",
+                "entity_type": "web_evidence",
+                "id": "legal-updates-web_evidence:50194",
+                "title": "Questione Penale Pendente del ricorso R.G. 9926/2026",
+                "excerpt": "PDF ufficiale Cassazione con testo OCR leggibile.",
+                "content": "Testo OCR ufficiale: art. 606 c.p.p. e art. 599-bis c.p.p.",
+                "authority": "Corte Suprema di Cassazione",
+                "official_url": "https://www.cortedicassazione.it/resources/cms/documents/qsp50194.pdf",
+                "source_code": "cassazione_ultime_sent_ord_questioni",
+                "verified_reference": True,
+                "attachment_url": "https://www.cortedicassazione.it/resources/cms/documents/qsp50194.pdf",
+                "attachment_type": "pdf",
+                "context_chars": 420,
+                "norm_references": ["art. 606 c.p.p.", "art. 599-bis c.p.p."],
+                "rg_references": ["9926/2026", "9966/2026"],
+                "contextual_questions": [
+                    {
+                        "check": "pdf_allegato",
+                        "question": "Quale PDF o allegato ufficiale è collegato e il link è cliccabile?",
+                    }
+                ],
+            }
+        ]
+    )
+
+    payload = _payload(repository, query={"q": "PDF allegato art. 606 c.p.p."})
+    record = payload["records"][0]
+
+    assert record["evidenceType"] == "PDF ufficiale letto"
+    assert any("Riferimenti normativi" in item for item in record["keyPoints"])
+    assert any("Riferimenti R.G." in item for item in record["keyPoints"])
+    assert any("Domanda per Lex" in item for item in record["operationalChecks"])
+    assert record["sourceHref"].endswith("qsp50194.pdf")
+
+
 def test_ricerca_legale_attiva_fonti_ufficiali_quando_archivio_non_basta(monkeypatch):
     monkeypatch.setattr(
         bridge,

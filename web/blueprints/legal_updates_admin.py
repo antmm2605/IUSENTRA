@@ -168,6 +168,38 @@ def _bool_from_payload(value: Any, *, default: bool = False) -> bool:
     return str(value).strip().lower() in {"1", "true", "si", "sì", "yes", "on"}
 
 
+def _positive_int_payload(value: Any, *, default: int, maximum: int = 500) -> int:
+    try:
+        parsed = int(str(value or "").strip())
+    except (TypeError, ValueError):
+        return default
+    if parsed <= 0:
+        return default
+    return min(parsed, maximum)
+
+
+def _list_payload(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple, set)):
+        raw_values = value
+    else:
+        raw_values = str(value or "").replace(";", ",").split(",")
+    return [str(item or "").strip() for item in raw_values if str(item or "").strip()]
+
+
+def _int_list_payload(value: Any) -> tuple[int, ...]:
+    items: list[int] = []
+    for item in _list_payload(value):
+        try:
+            parsed = int(item)
+        except (TypeError, ValueError):
+            continue
+        if parsed > 0:
+            items.append(parsed)
+    return tuple(items)
+
+
 def _serialize_surface(pipeline, *, tenant_slug: str = "") -> dict[str, Any]:
     payload = build_legal_update_surface(tenant_slug=tenant_slug)
     payload["raw_documents"] = pipeline.repository.list_raw_documents(limit=20)
@@ -577,6 +609,34 @@ def api_review_publish(review_id: int):
         return jsonify({"ok": True, "result": result})
     except Exception as exc:
         current_app.logger.exception("Errore api_review_publish: %s", exc)
+        return _json_error(str(exc))
+
+
+@legal_updates_admin.post("/api/backfill-web-evidence")
+@superadmin_required
+def api_backfill_web_evidence():
+    try:
+        payload = _request_payload()
+        pipeline = build_legal_update_pipeline_runtime(
+            tenant_slug=str(payload.get("tenant_slug") or _selected_tenant_slug()).strip().lower()
+        )
+        statuses = tuple(status.lower() for status in _list_payload(payload.get("statuses") or payload.get("status")))
+        result = pipeline.backfill_web_verification_evidence(
+            limit=_positive_int_payload(payload.get("limit"), default=20, maximum=200),
+            source_codes=_list_payload(payload.get("source_codes") or payload.get("source_code")),
+            statuses=statuses or None,
+            include_closed=_bool_from_payload(payload.get("include_closed"), default=False),
+            include_open_data=_bool_from_payload(payload.get("include_open_data"), default=False),
+            direct_only=_bool_from_payload(payload.get("direct_only"), default=True),
+            max_seconds=_positive_int_payload(payload.get("max_seconds"), default=0, maximum=900)
+            if payload.get("max_seconds")
+            else 0,
+            query=str(payload.get("query") or "").strip(),
+            review_ids=_int_list_payload(payload.get("review_ids") or payload.get("review_id")),
+        )
+        return jsonify({"ok": True, "result": result})
+    except Exception as exc:
+        current_app.logger.exception("Errore api_backfill_web_evidence: %s", exc)
         return _json_error(str(exc))
 
 

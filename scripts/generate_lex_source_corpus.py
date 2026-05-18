@@ -24,6 +24,11 @@ if str(REPO_ROOT) not in sys.path:
 from lex.dataset.chunking import ChunkingOptions, chunk_documents
 from lex.dataset.models import DocumentPage, StudioDatasetDocument, stable_id
 from lex.memory_tree import build_and_write_lex_memory_tree
+from pct.legal_update_enrichment import (
+    build_contextual_question_matrix,
+    extract_legal_references,
+    legal_reference_labels,
+)
 
 
 DEFAULT_TENANT_ID = "legal-sources"
@@ -42,10 +47,6 @@ CASSAZIONE_DOCUMENT_SOURCE_CODES = {
     "cassazione_massimario",
     "cassazione_ultime_sent_ord_questioni",
 }
-NORM_REFERENCE_RE = re.compile(
-    r"\bartt?\.?\s+[0-9][A-Za-z0-9_.-]*(?:\s*(?:,|e|bis|ter|quater|quinquies|sexies)\s*[A-Za-z0-9_.-]+)?",
-    re.IGNORECASE,
-)
 RG_REFERENCE_RE = re.compile(r"\bR\.?\s*G\.?(?:\s*n\.?)?\s*([0-9]{1,6}/[0-9]{4})\b", re.IGNORECASE)
 
 
@@ -413,7 +414,11 @@ def _expected_display_title(row: dict[str, Any]) -> str:
 
 
 def _norm_references(text: str) -> list[str]:
-    return _unique(NORM_REFERENCE_RE.findall(text or ""), limit=16)
+    return legal_reference_labels(
+        extract_legal_references(text or ""),
+        allowed_types=("article", "act", "eu_act"),
+        limit=16,
+    )
 
 
 def _rg_references(text: str) -> list[str]:
@@ -446,29 +451,37 @@ def _contextual_question_rows(
         )
     )
     is_order = is_order or is_interlocutory
-    rows: list[tuple[str, str]] = [
-        ("sintesi", f"Mi puoi sintetizzare {subject}?"),
-        ("natura_atto", "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?"),
-        ("oggetto", "Qual è l'oggetto della questione o della decisione?"),
+    norm_refs = _norm_references(context_text) if has_norm_refs else []
+    rg_refs = _rg_references(context_text)
+    rows = [
+        (str(item.get("check") or ""), str(item.get("question") or ""))
+        for item in build_contextual_question_matrix(
+            title=subject,
+            context_text=context_text,
+            has_attachment=has_attachment,
+            norm_references=norm_refs,
+            rg_references=rg_refs,
+            has_rg_discrepancy=has_rg_discrepancy,
+        )
+        if item.get("check") and item.get("question")
     ]
+    extra_rows: list[tuple[str, str]] = []
     if is_pending_question:
-        rows.extend(
+        extra_rows.extend(
             [
                 ("stato_pendenza", "La questione è ancora pendente e risultano udienza, relatore o ricorrente?"),
-                ("punto_diritto", "Qual è il quesito di diritto rimesso alla Corte?"),
                 ("contrasto", "Dal testo emerge un contrasto giurisprudenziale o una ragione di rimessione?"),
             ]
         )
     elif is_interlocutory:
-        rows.extend(
+        extra_rows.extend(
             [
                 ("natura_rimessione", "L'atto rimette la questione alle Sezioni Unite o ad altro collegio?"),
-                ("punto_diritto", "Qual è il punto di diritto su cui viene chiesto l'intervento?"),
                 ("esito_procedurale", "Quale effetto processuale produce l'ordinanza interlocutoria?"),
             ]
         )
     elif is_judgment:
-        rows.extend(
+        extra_rows.extend(
             [
                 ("principio", "Qual è il principio di diritto affermato dalla sentenza?"),
                 ("decisione", "Qual è l'esito del giudizio e cosa ha deciso la Corte?"),
@@ -476,35 +489,12 @@ def _contextual_question_rows(
             ]
         )
     elif is_order:
-        rows.extend(
-            [
-                ("punto_diritto", "Qual è il punto di diritto trattato dall'ordinanza?"),
-                ("esito", "Qual è l'esito dell'ordinanza?"),
-            ]
-        )
-    else:
-        rows.extend(
-            [
-                ("stato", "Qual è lo stato del procedimento o dell'atto?"),
-                ("punto_diritto", "Qual è il punto di diritto o il principio in discussione?"),
-                ("esito", "Risulta già un esito finale oppure la questione è ancora pendente?"),
-            ]
-        )
-    rows.extend(
-        [
-            ("motivi", "Quali sono i motivi, le censure o i passaggi rilevanti indicati nel testo?"),
-            ("norme", "Quali norme sono richiamate e perché contano?"),
-            ("effetto_pratico", "Qual è l'effetto pratico per un avvocato che deve usare questa fonte?"),
-        ]
-    )
-    if has_norm_refs:
-        rows.append(("articoli", "Puoi spiegare gli articoli richiamati senza limitarti a citarli?"))
-    if has_rg_discrepancy:
-        rows.append(("discrepanza_rg", "Ci sono discrepanze tra il numero R.G. della scheda e quello del PDF?"))
-    if has_attachment:
-        rows.append(("pdf_allegato", "Quale PDF o allegato ufficiale è collegato e il link è cliccabile?"))
-    rows.append(("qualita_testo", "Il testo è leggibile oppure ci sono parti OCR da non riportare come certe?"))
-    rows.append(("discrepanze", "Ci sono discrepanze tra scheda, PDF, metadati o riferimenti numerici?"))
+        extra_rows.append(("esito_ordinanza", "Qual è l'esito dell'ordinanza?"))
+    seen = {key for key, _question in rows}
+    for key, question in extra_rows:
+        if key and key not in seen:
+            rows.append((key, question))
+            seen.add(key)
     return rows
 
 

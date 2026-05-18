@@ -1,5 +1,20 @@
 # Migrazione progressiva Flask + React
 
+## Update Intelligence fonti/PDF/OCR/Lex - 2026-05-18 - 2.245.40
+
+Ricerca Legale e la console aggiornamenti legali condividono ora lo stesso
+arricchimento deterministico delle evidenze: PDF/allegati, OCR/testo,
+riferimenti normativi, riferimenti R.G., domande contestuali e destinazione
+operativa. `/admin/aggiornamenti-legali/` mostra contatori per evidenze lette,
+PDF/allegati e documenti collegati, mentre `/ricerca-legale` riceve key point e
+domande per Lex senza duplicare `Contesto operativo` e `Contenuto`.
+
+Il piano fonte per fonte è registrato in
+`artifacts/legal-updates/source-rollout-plan.md`. Le fonti OpenGA restano
+RAG-only o giurisprudenza solo quando esiste documento concreto; le fonti
+secondarie restano fuori dal corpus ufficiale e disponibili solo come Web
+libero esplicito.
+
 ## UI Intelligence fonti legali - 2026-05-18 - 2.245.35
 
 Ricerca Legale non deve più presentare contatori isolati. La pagina React legge

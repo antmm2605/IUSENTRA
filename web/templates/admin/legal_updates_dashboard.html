@@ -84,6 +84,18 @@
       <span class="lu-kpi-note">Documenti letti dalle fonti, non tutti già usabili</span>
       <span class="lu-kpi-action">Apri acquisizione</span>
     </a>
+    <a class="lu-kpi-card" href="{{ url_for('legal_updates_admin.review_page') }}">
+      <span class="lu-kpi-top"><i class="bi bi-file-earmark-text"></i><span class="lu-kpi-label">Evidenze lette</span></span>
+      <span class="lu-kpi-value">{{ payload.headline.web_evidence }}</span>
+      <span class="lu-kpi-note">Pagine e allegati già collaudati per Ricerca Legale e Lex</span>
+      <span class="lu-kpi-action">Apri verifiche</span>
+    </a>
+    <a class="lu-kpi-card" href="{{ url_for('legal_updates_admin.review_page') }}">
+      <span class="lu-kpi-top"><i class="bi bi-paperclip"></i><span class="lu-kpi-label">PDF e allegati</span></span>
+      <span class="lu-kpi-value">{{ payload.headline.web_evidence_attachments }}</span>
+      <span class="lu-kpi-note">Allegati ufficiali seguiti, letti o messi in coda OCR</span>
+      <span class="lu-kpi-action">Controlla qualità</span>
+    </a>
     <a class="lu-kpi-card" href="{{ url_for('legal_updates_admin.analysis_page') }}">
       <span class="lu-kpi-top"><i class="bi bi-tags"></i><span class="lu-kpi-label">Documenti analizzati</span></span>
       <span class="lu-kpi-value">{{ payload.truth_metrics.documents_analyzed }}</span>
@@ -149,6 +161,18 @@
           <div class="li-soft-card h-100">
             <div class="small text-muted">Analizzati</div>
             <div class="fw-semibold">{{ payload.truth_metrics.documents_analyzed }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-lg">
+          <div class="li-soft-card h-100">
+            <div class="small text-muted">Con testo fonte/PDF</div>
+            <div class="fw-semibold">{{ payload.headline.web_evidence_verified }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-lg">
+          <div class="li-soft-card h-100">
+            <div class="small text-muted">Allegati collegati</div>
+            <div class="fw-semibold">{{ payload.headline.documents_with_attachments }}</div>
           </div>
         </div>
         <div class="col-6 col-lg">

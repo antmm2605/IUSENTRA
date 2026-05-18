@@ -26,6 +26,8 @@ Aggiornamento 2026-05-18, isolamento reale `Web libero`: quando l'avvocato attiv
 
 Aggiornamento 2026-05-18, `Web libero` chat Lex: quando il flag manuale è attivo, il router deve usare solo la ricerca web libera della singola richiesta, senza fonti DB/fascicolo come contesto di risposta, senza allowlist ufficiale, senza blocco da fonte autorizzata e senza warning visibili. I risultati restano `web_libero`, `verified_reference=false`, `saved_to_db=false`; controllo e responsabilità professionale spettano all'avvocato.
 
+Aggiornamento 2026-05-18, fonti aggiornamenti legali 2.245.40: `LegalUpdateRepository.search_lex_sources()` restituisce anche riferimenti normativi, riferimenti R.G., domande contestuali e stato allegato/PDF/OCR provenienti dalle evidenze web. Questi dati alimentano Ricerca Legale e Lex senza duplicare contesto operativo e contenuto, e senza promuovere le fonti `web_libero` nel corpus ufficiale.
+
 ## Regole di accesso
 
 - Tenant: ricavato dal contesto Flask (`g.tenant`, `g.tenant_context_slug`, `g.data_paths`) o da contesto applicativo esplicito nei test.

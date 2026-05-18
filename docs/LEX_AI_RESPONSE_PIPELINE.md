@@ -7,6 +7,20 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.245.40 - 18 maggio 2026
+
+La pipeline fonti pubbliche usa ora un arricchimento deterministico condiviso:
+pagina ufficiale, allegato PDF, testo OCR, riferimenti normativi/giurisprudenziali,
+R.G. e domande contestuali vengono prodotti nello stesso formato per qualità fonte,
+Ricerca Legale, corpus Lex e risposta Lex. I link Normattiva non vengono inventati:
+il campo resta vuoto finché non esiste una risoluzione ufficiale reale.
+
+La console `/admin/aggiornamenti-legali/` mostra anche evidenze lette, PDF/allegati,
+documenti con allegati e dispone di backfill mirato per fonte, stato, query,
+review e timeout. Il Web libero resta una ricerca manuale separata: non usa
+fonti interne, non scrive nel DB/corpus, non applica allowlist ufficiali e deve
+restituire risposta italiana senza avvisi visibili.
+
 ## Caso guida
 
 Domanda utente:

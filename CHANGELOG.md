@@ -7,6 +7,13 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.30 - 2026-05-18
+
+- Aggiunta la Fase 1 ispirata a OpenHuman Memory Tree, reimplementata in modo pulito per IUSENTRA: `lex/memory_tree.py` costruisce memoria Lex deterministica da fonti già lette, PDF/OCR, sentenze, questioni pendenti e documenti studio.
+- Il generatore `scripts/generate_lex_source_corpus.py` ora produce anche `memory_tree/index.json`, `memory_tree/documents.jsonl` e `memory_tree/chunks.jsonl`, con provenienza, hash, qualità, norme, R.G., date, argomenti e stato pronto/non pronto.
+- Aggiunta ricerca deterministica sui chunk memoria per fonte, norma, R.G. e argomento, senza chiamate LLM e senza navigazione web.
+- Aggiunte guardie test su chunk deterministici, OCR sporco, riferimenti R.G. multipli e integrazione del Memory Tree nel generatore corpus Lex.
+
 ## 2.245.29 - 2026-05-18
 
 - Rimossa dal workflow CI la coverage critica aggregata senza `parte`: il gate richiesto resta sulle 12 parti shardate, coerente con `docs/COMMIT_PUSH_REQUIRED_GATES.md` e con il branch monorepo.

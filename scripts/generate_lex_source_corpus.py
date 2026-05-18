@@ -22,6 +22,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from lex.dataset.chunking import ChunkingOptions, chunk_documents
 from lex.dataset.models import DocumentPage, StudioDatasetDocument, stable_id
+from lex.memory_tree import build_and_write_lex_memory_tree
 
 
 DEFAULT_TENANT_ID = "legal-sources"
@@ -119,6 +120,12 @@ def generate_source_corpus(options: SourceCorpusOptions) -> dict[str, Any]:
     _write_jsonl(options.output_dir / "chunks.jsonl", [chunk.to_dict(include_text=True) for chunk in chunks])
     _write_jsonl(options.output_dir / "expected_queries.jsonl", [_expected_query(row) for row in rows])
     _write_json(document_ai_path, _document_ai_payload(documents, rows))
+    memory_tree = build_and_write_lex_memory_tree(
+        documents,
+        options.output_dir,
+        max_chars=max(options.max_chars, 1800),
+        overlap_chars=min(options.overlap_chars, max(0, max(options.max_chars, 1800) - 1)),
+    )
 
     return {
         "ok": True,
@@ -133,6 +140,7 @@ def generate_source_corpus(options: SourceCorpusOptions) -> dict[str, Any]:
         "documents_jsonl": str(options.output_dir / "documents.jsonl"),
         "chunks_jsonl": str(options.output_dir / "chunks.jsonl"),
         "expected_queries_jsonl": str(options.output_dir / "expected_queries.jsonl"),
+        "memory_tree": memory_tree,
     }
 
 
@@ -263,6 +271,11 @@ def _manifest(
         "review_ids": list(options.review_ids),
         "min_context_chars": options.min_context_chars,
         "document_ai_json": str(document_ai_path),
+        "memory_tree": {
+            "schema": "iusentra.lex_memory_tree.v1",
+            "path": str(options.output_dir / "memory_tree"),
+            "policy": "memoria strutturata deterministica per RAG Lex, senza chiamate LLM",
+        },
         "automatic_training": False,
         "external_training": False,
         "rag_ready": True,

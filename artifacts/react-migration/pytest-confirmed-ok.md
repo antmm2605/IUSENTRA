@@ -1,12 +1,19 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-18, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
+Aggiornato: 2026-05-18, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Memory Tree Lex corpus - 2026-05-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile lex\memory_tree.py scripts\generate_lex_source_corpus.py` | OK | Sintassi confermata per la memoria Lex deterministica e per l'integrazione nel generatore corpus. |
+| `python -m pytest tests\test_lex_memory_tree.py tests\test_lex_source_corpus_generator.py -q --tb=short` | OK | 6/6 passati: chunk deterministici, provenienza, qualità, R.G. multipli, norme, ricerca memoria e file `memory_tree/*` generati dal corpus. |
 
 ### CI pnpm, governance e contratti API - 2026-05-18
 

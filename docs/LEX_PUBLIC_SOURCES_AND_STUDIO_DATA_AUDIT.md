@@ -4,6 +4,30 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.245.30 - 2026-05-18
+
+Avviata l'assimilazione funzionale dei pattern OpenHuman senza copiarne codice
+GPL: la prima fase è il Memory Tree Lex deterministico.
+
+Passaggi tracciati:
+
+- aggiunto `lex/memory_tree.py` come memoria strutturata per documenti già
+  acquisiti: fonte, PDF/OCR, sentenza, questione pendente o documento fascicolo;
+- ogni chunk ha ID stabile, hash contenuto, provenienza, qualità, norme,
+  riferimenti R.G., date, argomenti e metadati RAG;
+- il generatore `scripts/generate_lex_source_corpus.py` scrive anche
+  `memory_tree/index.json`, `memory_tree/documents.jsonl` e
+  `memory_tree/chunks.jsonl`;
+- la ricerca memoria è deterministica per fonte, norma, R.G. e argomento,
+  senza consumo LLM;
+- OCR sporco e riferimenti R.G. multipli restano visibili nello stato qualità,
+  così Lex non deve fonderli come fatti certi nella risposta finale.
+
+Verifiche eseguite:
+
+- `python -m py_compile lex\memory_tree.py scripts\generate_lex_source_corpus.py`;
+- `python -m pytest tests\test_lex_memory_tree.py tests\test_lex_source_corpus_generator.py -q --tb=short`.
+
 ## Aggiornamento operativo 2.245.29 - 2026-05-18
 
 Ricerca Legale e catalogo fonti sono stati riallineati alla logica decisa sul

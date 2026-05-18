@@ -117,8 +117,14 @@ def test_generate_lex_source_corpus_da_evidenze_verificate(tmp_path: Path):
     chunks = [json.loads(line) for line in (output_dir / "chunks.jsonl").read_text(encoding="utf-8").splitlines()]
     expected = [json.loads(line) for line in (output_dir / "expected_queries.jsonl").read_text(encoding="utf-8").splitlines()]
     document_ai = json.loads((output_dir / "documenti_ai" / "documenti_ai.json").read_text(encoding="utf-8"))
+    memory_index = json.loads((output_dir / "memory_tree" / "index.json").read_text(encoding="utf-8"))
+    memory_chunks = [
+        json.loads(line)
+        for line in (output_dir / "memory_tree" / "chunks.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
 
     assert manifest["rag_ready"] is True
+    assert manifest["memory_tree"]["schema"] == "iusentra.lex_memory_tree.v1"
     assert manifest["automatic_training"] is False
     assert manifest["human_review_required_for_rag"] is False
     assert manifest["human_review_required_for_fine_tuning"] is True
@@ -128,6 +134,10 @@ def test_generate_lex_source_corpus_da_evidenze_verificate(tmp_path: Path):
     assert expected[0]["query"].startswith("Quale allegato ufficiale")
     assert len(document_ai["documents"]) == 1
     assert document_ai["texts"][0]["text"].startswith("Testo OCR ufficiale")
+    assert result["memory_tree"]["chunks_count"] == 1
+    assert memory_index["ready_documents_count"] == 1
+    assert memory_chunks[0]["provenance"]["attachment_url"].endswith("ordinanza.pdf")
+    assert "R.G. 9966/2026" in memory_chunks[0]["rg_refs"]
 
 
 def test_generate_lex_source_corpus_filtra_evidenze_senza_testo(tmp_path: Path):

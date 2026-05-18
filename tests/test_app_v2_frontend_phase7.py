@@ -56,9 +56,9 @@ def test_app_v2_phase7_frontend_guard_is_source_locked():
     assert "permessi_effettivi" in shell_text
     assert '"test:app-v2"' in package_text
     assert "Frontend App V2 gates" in ci_text
-    assert "npm --prefix frontend run test" in ci_text
-    assert "npm --prefix frontend run typecheck" in ci_text
-    assert "npm --prefix frontend run build" in ci_text
+    assert "pnpm --filter @iusentra/studio test" in ci_text
+    assert "pnpm --filter @iusentra/studio typecheck" in ci_text
+    assert "pnpm --filter @iusentra/studio build" in ci_text
 
 
 def test_react_shell_bootstrap_exposes_real_rbac_permissions(tmp_path: Path):

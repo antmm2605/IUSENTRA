@@ -10,6 +10,7 @@
 ## 2.245.29 - 2026-05-18
 
 - Riallineati i workflow GitHub al monorepo pnpm: Frontend React CI, gate App V2 e audit frontend preparano `pnpm/action-setup`, usano `pnpm install --frozen-lockfile`, `pnpm --filter @iusentra/studio ...` e artifact `frontend-pnpm-audit-report`; i test di guardia impediscono il ritorno a `npm ci` sul workspace.
+- Rimosso Vercel dal processo CI corrente: lo smoke Flask usa direttamente `create_app` e i target lint/compile non includono più `vercel_app.py`.
 - Rigenerati OpenAPI, mappa endpoint e contratti API con versione prodotto corrente `2.245.29`, sistemando anche il blocco governance UTF-8 su documentazione deploy e CSS pubblico.
 - Ridotta `/ricerca-legale` a una pagina operativa: tre sezioni chiare, ricerca principale, filtri utili per studio legale e nessun blocco decorativo o cruscotto non azionabile.
 - I numeri reali già presenti (`Fonti monitorate`, `News pubblicate`, `In revisione`, `Normattiva`, `Gazzetta`, `Mediazione`) diventano accessi funzionali verso schede, filtri e archivi invece di restare KPI isolati.

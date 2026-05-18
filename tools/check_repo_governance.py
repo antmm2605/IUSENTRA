@@ -542,7 +542,7 @@ def main() -> int:
         "name: Lint + syntax",
         "name: Smoke test Flask",
         "from web.app import create_app",
-        'assert "PCT_SCHEDULER" not in direct_app.config',
+        'assert "PCT_SCHEDULER" not in app.config',
         "name: Smoke scheduler worker",
         "from pct.scheduler_worker import start_scheduler_worker",
         "name: Pytest core",

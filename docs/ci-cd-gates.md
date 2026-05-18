@@ -16,7 +16,7 @@ ambiente esterno o credenziali smoke.
 | --- | --- | --- | --- | --- | --- | --- |
 | `.github/workflows/ci.yml` | push, pull_request, workflow_dispatch | `Lint + syntax` | `tools/sync_packaging_files.py --check`, OpenAPI/provider, App V2 registry/test plan, RBAC tenant gates, frontend test/typecheck/build, ruff, flake8, compile | si | required | Gate principale PR/push. |
 | `.github/workflows/ci.yml` | push, pull_request, workflow_dispatch | `Governance repo` | `python tools/check_repo_governance.py` | si | required | Blocca regressioni su confini e modularita. |
-| `.github/workflows/ci.yml` | push, pull_request, workflow_dispatch | `Smoke test Flask` | import `vercel_app`, `create_app`, login smoke | si | required | Verifica bootstrap runtime senza scheduler web. |
+| `.github/workflows/ci.yml` | push, pull_request, workflow_dispatch | `Smoke test Flask` | import `create_app`, login smoke | si | required | Verifica bootstrap runtime senza scheduler web. |
 | `.github/workflows/ci.yml` | push, pull_request, workflow_dispatch | `Smoke scheduler worker` | avvio `start_scheduler_worker(...)` con data root temporaneo | si | required | Verifica worker dedicato e job minimi. |
 | `.github/workflows/ci.yml` | push, pull_request, workflow_dispatch | `Pytest core fase */10` | `python scripts/run_pytest_phases.py --core-shard ...` | si | required | Shard core senza monolitico opaco. |
 | `.github/workflows/ci.yml` | push, pull_request, workflow_dispatch | `Coverage moduli critici` | `run_pytest_phases.py --suite coverage-critical` + `coverage report --fail-under=71` | si | required | Soglia esistente, non abbassata. Artifact coverage shard. |

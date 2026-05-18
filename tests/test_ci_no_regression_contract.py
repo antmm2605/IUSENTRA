@@ -157,7 +157,7 @@ def test_ci_uses_five_minute_shards_for_other_test_suites() -> None:
         "name: Local Signer e PKCS#11",
         "needs['signer-shards'].result",
         "name: Frontend React CI",
-        "npm run build:vite",
+        "pnpm --filter @iusentra/studio build:vite",
     )
     combined = "\n".join((workflow, frontend))
     for snippet in required:

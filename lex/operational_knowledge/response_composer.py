@@ -352,40 +352,49 @@ class OperationalResponseComposer:
             lines = [
                 "Ho trovato una fonte ufficiale collegata alla richiesta.",
             ]
+            reference_conflict = _reference_conflict(question, primary)
             case_details = _official_case_details(rows)
             attachment_analysis = _official_attachment_analysis(primary)
-            focused_answer = _official_question_answer_lines(question, case_details, attachment_analysis)
-            if focused_answer:
-                lines.append("### Risposta alla domanda")
-                lines.extend(focused_answer)
-            case_summary = _official_case_summary_lines_from_details(case_details)
-            if case_summary:
-                lines.append("### Cosa dice la scheda ufficiale")
-                lines.extend(case_summary)
-            attachment_summary = _official_attachment_summary_lines_from_analysis(attachment_analysis)
-            if attachment_summary:
-                lines.append("### Sintesi dell'ordinanza")
-                lines.extend(attachment_summary)
+            concise_answer = _official_concise_legal_source_lines(
+                question,
+                case_details,
+                attachment_analysis,
+                reference_conflict=reference_conflict,
+            )
+            if concise_answer:
+                lines.extend(concise_answer)
+            norm_lines = _official_normative_explanation_lines(case_details, attachment_analysis)
+            if norm_lines:
+                lines.append("### Norme rilevanti")
+                lines.extend(norm_lines)
             lines.extend(
                 [
-                    "### Allegato ufficiale",
+                    "### Fonte e PDF",
                     f"- Allegato: **{title}**.",
                 ]
             )
+            if reference_conflict:
+                lines.append("- Collegamento: PDF ufficialmente collegato alla scheda, con numero R.G. interno diverso.")
             if source_name:
                 lines.append(f"- Fonte: {source_name}.")
+            if case_details:
+                source_parts = []
+                if ricorrente := clean_spaces(case_details.get("ricorrente")):
+                    source_parts.append(f"ricorrente {ricorrente}")
+                if relator := clean_spaces(case_details.get("relator")):
+                    source_parts.append(f"relatore {relator}")
+                if hearing := clean_spaces(case_details.get("hearing")):
+                    source_parts.append(f"udienza {hearing}")
+                if source_parts:
+                    lines.append("- Scheda: " + "; ".join(source_parts) + ".")
             if attachment_url:
                 lines.append(f"- PDF ufficiale: {_markdown_link(attachment_url, label='Apri PDF ufficiale')}.")
             if page_url and page_url != attachment_url:
                 lines.append(f"- Pagina ufficiale: {_markdown_link(page_url, label='Apri scheda Cassazione')}.")
-            mismatch = _reference_mismatch_note(question, primary)
+            mismatch = _reference_mismatch_note(question, primary, reference_conflict=reference_conflict)
             if mismatch:
                 lines.append("### Punto da verificare")
                 lines.append(mismatch)
-                lines.append("Va controllato se la differenza dipende da un refuso della scheda o se l'allegato riguarda un diverso numero di ricorso.")
-            if excerpt:
-                lines.append("### Estratto leggibile")
-                lines.append(f"Estratto leggibile: {_sentence_text(_short_text(excerpt))}")
             display_gaps = [
                 gap
                 for gap in gaps
@@ -400,8 +409,10 @@ class OperationalResponseComposer:
                 lines.extend(free_web_lines)
             lines.append("### Esito")
             lines.append("- Dato certo: pagina e allegato ufficiale sono stati trovati nell'archivio delle fonti pubbliche.")
+            if reference_conflict:
+                lines.append("- Controllo qualità: scheda, PDF collegato e nota R.G. sono stati tenuti separati; l'OCR grezzo non è stato riversato nella risposta.")
             lines.append("- Non sto usando dati riservati dello studio per questa risposta.")
-            return lines
+            return _quality_guard_official_lines(lines)
         lines = [f"Fonti pubbliche/interne consultabili: {len(rows)}."]
         lines.extend(f"- {_label(row)}" for row in rows[:6])
         if gaps:
@@ -689,25 +700,75 @@ def _official_attachment_summary_lines(row: dict[str, Any]) -> list[str]:
     return _official_attachment_summary_lines_from_analysis(_official_attachment_analysis(row))
 
 
-def _official_attachment_summary_lines_from_analysis(analysis: dict[str, Any]) -> list[str]:
+def _official_normative_explanation_lines(
+    case_details: dict[str, str],
+    attachment_analysis: dict[str, Any],
+) -> list[str]:
+    combined = " ".join(
+        clean_spaces(part)
+        for part in (
+            case_details.get("references", ""),
+            " ".join(str(item) for item in attachment_analysis.get("article_references", []) or []),
+            attachment_analysis.get("legal_theme", ""),
+        )
+        if clean_spaces(part)
+    )
+    lowered = combined.lower()
+    if not lowered:
+        return []
+    lines: list[str] = []
+    references = clean_spaces(case_details.get("references"))
+    article_refs = [clean_spaces(item) for item in list(attachment_analysis.get("article_references") or []) if clean_spaces(item)]
+    labels = _unique_preserve_order(([references] if references else []) + article_refs)
+    if labels:
+        lines.append("- Riferimenti trovati: " + "; ".join(labels[:10]) + ".")
+    if "599-bis" in lowered:
+        lines.append("- Art. 599-bis c.p.p.: riguarda il concordato in appello, cioè l'accordo tra le parti sulla pena o sulla rinuncia ai motivi.")
+    if re.search(r"\b606\b", lowered):
+        lines.append("- Art. 606 c.p.p.: delimita i motivi deducibili con ricorso per cassazione.")
+    if re.search(r"\b129\b", lowered):
+        lines.append("- Art. 129 c.p.p.: impone al giudice il proscioglimento immediato quando emerge una causa evidente.")
+    if re.search(r"\b610\b", lowered):
+        lines.append("- Art. 610 c.p.p.: riguarda il vaglio preliminare e la trattazione del ricorso in Cassazione.")
+    if re.search(r"\b81\b", lowered):
+        lines.append("- Art. 81 c.p.: disciplina la continuazione e incide sul calcolo della pena complessiva.")
+    return _unique_preserve_order(lines)
+
+
+def _official_attachment_summary_lines_from_analysis(
+    analysis: dict[str, Any],
+    *,
+    reference_conflict: dict[str, str] | None = None,
+) -> list[str]:
     if not analysis:
         return []
+    has_conflict = bool(reference_conflict)
     lines = [
         f"- Natura dell'atto: {_sentence_text(analysis.get('nature'))}",
     ]
-    if analysis.get("proceeding"):
+    if has_conflict:
+        lines.append(
+            "- Avvertenza: questa sintesi riguarda il PDF collegato, che riporta un numero R.G. diverso; "
+            "non attribuisce con certezza quei fatti alla scheda richiesta."
+        )
+    if not has_conflict and analysis.get("proceeding"):
         lines.append(f"- Vicenda processuale: {_sentence_text(_short_text(analysis['proceeding'], max_length=520))}")
-    if analysis.get("penalty"):
+    if not has_conflict and analysis.get("penalty"):
         lines.append(f"- Pena concordata: {_sentence_text(_short_text(analysis['penalty'], max_length=520))}")
     complaints = list(analysis.get("complaints") or [])
     if complaints:
-        lines.append("- Motivi del ricorso:")
+        if has_conflict:
+            lines.append("- Motivi/censure leggibili nel PDF collegato, da verificare prima dell'attribuzione:")
+        else:
+            lines.append("- Motivi del ricorso:")
         lines.extend(f"  - {_sentence_text(item)}" for item in complaints[:4])
     if analysis.get("legal_theme"):
-        lines.append(f"- Punto di diritto: {_sentence_text(_short_text(analysis['legal_theme'], max_length=420))}")
+        prefix = "Punto di diritto nel PDF collegato" if has_conflict else "Punto di diritto"
+        lines.append(f"- {prefix}: {_sentence_text(_short_text(analysis['legal_theme'], max_length=420))}")
     articles = list(analysis.get("article_references") or [])
     if articles:
-        lines.append("- Articoli richiamati nell'allegato: " + "; ".join(articles[:8]) + ".")
+        label = "Articoli richiamati nel PDF collegato" if has_conflict else "Articoli richiamati nell'allegato"
+        lines.append(f"- {label}: " + "; ".join(articles[:8]) + ".")
     if analysis.get("legal_distinction"):
         lines.append(f"- Snodo giuridico: {_sentence_text(analysis['legal_distinction'])}")
     if analysis.get("status"):
@@ -734,17 +795,79 @@ def _complaint_lines(text: str) -> list[str]:
     return result
 
 
+def _official_concise_legal_source_lines(
+    question: str,
+    case_details: dict[str, str],
+    attachment_analysis: dict[str, Any],
+    *,
+    reference_conflict: dict[str, str] | None = None,
+) -> list[str]:
+    if not case_details and not attachment_analysis:
+        return []
+    normalized = clean_spaces(question).lower()
+    wants_people = any(token in normalized for token in ("ricorrente", "relatore", "parti", "chi è", "chi ha"))
+    wants_attachment = any(token in normalized for token in ("allegato", "pdf", "ordinanza", "link", "scaricare"))
+    wants_citation = any(token in normalized for token in ("citare", "citazione", "usare in atto", "utilizzare in atto", "valore"))
+
+    lines = ["### Sintesi"]
+    lines.append("- Non risulta una sentenza: è una questione penale pendente con ordinanza/nota di rimessione.")
+    if "sentenza" in normalized or "natura" in normalized or "che atto" in normalized:
+        lines.append("- Natura dell'atto: questione penale pendente, non sentenza definitiva.")
+    if question_text := clean_spaces(case_details.get("question_text")):
+        lines.append(f"- Oggetto: {_sentence_text(question_text)}")
+    if attachment_analysis.get("status"):
+        lines.append(f"- Stato: {_sentence_text(attachment_analysis['status'])}")
+    legal_theme = clean_spaces(attachment_analysis.get("legal_theme"))
+    if legal_theme:
+        prefix = "Punto di diritto / principio in discussione nel PDF collegato" if reference_conflict else "Punto di diritto / principio in discussione"
+        lines.append(f"- {prefix}: {_sentence_text(_short_text(legal_theme, max_length=360))}")
+    complaints = list(attachment_analysis.get("complaints") or [])
+    if complaints:
+        label = "Motivi/censure dal PDF collegato"
+        if reference_conflict:
+            label += " (citati come contenuto del PDF, non come dati certi autonomi della scheda)"
+        joined = "; ".join(_sentence_text(item) for item in complaints[:4])
+        if joined:
+            lines.append(f"- {label}: {joined}")
+    if question_text:
+        lines.append(
+            "- Effetto pratico: la futura decisione chiarirà i limiti del ricorso per cassazione "
+            "contro una pena concordata in appello quando non si deduce una pena illegale in senso stretto."
+        )
+    if reference_conflict:
+        lines.append(
+            "- Nota R.G.: la scheda/domanda cita R.G. "
+            f"{reference_conflict.get('asked')}, mentre il PDF collegato riporta R.G. "
+            f"{reference_conflict.get('found')}; entrambi sono citabili, ma restano distinti."
+        )
+    if wants_people:
+        people = []
+        if ricorrente := clean_spaces(case_details.get("ricorrente")):
+            people.append(f"ricorrente {ricorrente}")
+        if relator := clean_spaces(case_details.get("relator")):
+            people.append(f"relatore {relator}")
+        if people:
+            lines.append("- Dati della scheda: " + "; ".join(people) + ".")
+    if wants_attachment:
+        lines.append("- Allegato/PDF: ordinanza di rimessione collegata dalla scheda; il link cliccabile è riportato sotto.")
+    if wants_citation:
+        lines.append("- Uso prudente: può essere citata come questione pendente e allegato collegato, non come arresto definitivo o decisione finale.")
+    return _unique_preserve_order(lines)
+
+
 def _official_question_answer_lines(
     question: str,
     case_details: dict[str, str],
     attachment_analysis: dict[str, Any],
+    *,
+    reference_conflict: dict[str, str] | None = None,
 ) -> list[str]:
     if not case_details and not attachment_analysis:
         return []
     normalized = clean_spaces(question).lower()
     wants_summary = any(token in normalized for token in ("sintesi", "sintetizz", "riassum", "cosa dice", "spieg"))
     wants_legal_theme = any(token in normalized for token in ("punto di diritto", "quesito", "questione", "principio", "deducibil"))
-    wants_motives = any(token in normalized for token in ("motivi", "censure", "doglian", "ricorso"))
+    wants_motives = any(token in normalized for token in ("motivi", "censure", "doglian"))
     wants_nature = any(token in normalized for token in ("sentenza", "pendente", "che atto", "natura"))
     wants_schedule = any(token in normalized for token in ("udienza", "quando", "norme", "riferimenti normativi", "artt", "articoli"))
     wants_articles = any(token in normalized for token in ("art.", "artt", "articolo", "articoli", "norme", "riferimenti normativi"))
@@ -758,6 +881,9 @@ def _official_question_answer_lines(
     lines: list[str] = []
     case_question = case_details.get("question_text", "")
     legal_theme = clean_spaces(attachment_analysis.get("legal_theme") or case_question)
+    has_conflict = bool(reference_conflict)
+    if wants_summary or wants_nature:
+        lines.append("- Non risulta una sentenza definitiva: la fonte disponibile è una questione penale pendente con ordinanza/nota di rimessione.")
     if wants_summary:
         if case_question:
             lines.append(
@@ -767,15 +893,25 @@ def _official_question_answer_lines(
         elif legal_theme:
             lines.append(f"- In sintesi: {_sentence_text(legal_theme)}")
         proceeding = clean_spaces(attachment_analysis.get("proceeding"))
-        if proceeding:
+        if has_conflict:
+            lines.append(
+                "- Attenzione: il PDF collegato riporta R.G. "
+                f"{reference_conflict.get('found', '')}, mentre la domanda/scheda indica R.G. "
+                f"{reference_conflict.get('asked', '')}; Lex quindi tiene separati scheda e PDF."
+            )
+        elif proceeding:
             lines.append(f"- Contesto processuale: {_sentence_text(_short_text(proceeding, max_length=360))}")
-    if wants_nature and attachment_analysis.get("nature"):
+    if wants_nature and attachment_analysis.get("nature") and not (wants_summary or has_conflict):
         lines.append(f"- Natura dell'atto: {_sentence_text(attachment_analysis['nature'])}")
     if wants_legal_theme and legal_theme:
         lines.append(f"- Punto di diritto: {_sentence_text(_short_text(legal_theme, max_length=420))}")
     complaints = list(attachment_analysis.get("complaints") or [])
     if wants_motives and complaints:
-        lines.append("- Motivi/censure indicati nell'ordinanza:")
+        if has_conflict:
+            lines.append("- Motivi/censure indicati nel PDF collegato, da non attribuire automaticamente a R.G. "
+                         f"{reference_conflict.get('asked', '')}:")
+        else:
+            lines.append("- Motivi/censure indicati nell'ordinanza:")
         lines.extend(f"  - {_sentence_text(item)}" for item in complaints[:4])
     if wants_schedule:
         hearing = clean_spaces(case_details.get("hearing"))
@@ -800,7 +936,13 @@ def _official_question_answer_lines(
         if relator:
             lines.append(f"- Relatore indicato nella scheda: {relator}.")
     if wants_attachment:
-        lines.append("- Allegato ufficiale individuato: ordinanza di rimessione; il collegamento al PDF è riportato nella sezione Allegato ufficiale.")
+        if has_conflict:
+            lines.append(
+                "- Allegato collegato individuato: ordinanza di rimessione; il PDF è cliccabile sotto, "
+                "ma il numero R.G. interno va verificato prima di usarlo come allegato della scheda richiesta."
+            )
+        else:
+            lines.append("- Allegato ufficiale individuato: ordinanza di rimessione; il collegamento al PDF è riportato nella sezione Allegato ufficiale.")
     if wants_status and attachment_analysis.get("status"):
         lines.append(f"- Esito/stato: {_sentence_text(attachment_analysis['status'])}")
     if wants_citation:
@@ -840,10 +982,32 @@ def _clean_ocr_excerpt(value: Any) -> str:
     if not text:
         return ""
     text = re.sub(r"\s*[\\|_]{2,}\s*-?\s*", " ", text)
+    text = re.sub(r"\s+\|\s*", " ", text)
     text = re.sub(r"\s*/\s*[A-Z][a-zA-Z]?\s+", " ", text)
     text = re.sub(r"\bDIN\s+", "", text)
+    text = re.sub(r"\bdi\s+N\s+Caltanissetta\b", "di Caltanissetta", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bedi\b", "e di", text, flags=re.IGNORECASE)
+    text = re.sub(r"\balia\b", "alla", text, flags=re.IGNORECASE)
     text = re.sub(r"\s{2,}", " ", text)
     return text.strip(" .;")
+
+
+def _safe_ocr_excerpt(value: Any) -> str:
+    text = _clean_ocr_excerpt(value)
+    if not text:
+        return ""
+    lowered = text.lower()
+    noisy_markers = (
+        "pervenutoil",
+        " al medesimo d ",
+        " mesi o",
+        "�",
+    )
+    if any(marker in lowered for marker in noisy_markers):
+        return ""
+    if re.search(r"\b[A-Za-zàèéìòù]{1}\s*\|\s*[A-Za-zàèéìòù]{1}\b", text):
+        return ""
+    return _sentence_text(_short_text(text, max_length=360))
 
 
 def _article_references(text: str) -> list[str]:
@@ -918,6 +1082,31 @@ def _unique_preserve_order(lines: list[str]) -> list[str]:
     return result
 
 
+def _quality_guard_official_lines(lines: list[str]) -> list[str]:
+    guarded: list[str] = []
+    seen_headings: set[str] = set()
+    forbidden_fragments = (
+        "Corte d'appello di N Caltanissetta",
+        "Corte d’appello di N Caltanissetta",
+        "al medesimo | d",
+        "anni due e mesi o",
+        "Pervenutoil",
+    )
+    for line in lines:
+        text = clean_spaces(line)
+        if not text:
+            continue
+        if any(fragment in text for fragment in forbidden_fragments):
+            continue
+        if text.startswith("### "):
+            heading = text.lower()
+            if heading in seen_headings:
+                continue
+            seen_headings.add(heading)
+        guarded.append(line)
+    return _unique_preserve_order(guarded)
+
+
 _REFERENCE_RE = re.compile(
     r"\b(?:r\.?\s*g\.?|rg)?\s*(?P<number>\d{2,7})\s*/\s*(?P<year>(?:19|20)\d{2})\b",
     re.IGNORECASE,
@@ -934,10 +1123,10 @@ def _reference_pairs(value: Any) -> list[str]:
     return result
 
 
-def _reference_mismatch_note(question: str, row: dict[str, Any]) -> str:
+def _reference_conflict(question: str, row: dict[str, Any]) -> dict[str, str]:
     asked_refs = _reference_pairs(question)
     if not asked_refs:
-        return ""
+        return {}
     row_text = " ".join(
         clean_spaces(row.get(key))
         for key in (
@@ -958,15 +1147,28 @@ def _reference_mismatch_note(question: str, row: dict[str, Any]) -> str:
     )
     found_refs = _reference_pairs(row_text)
     if not found_refs:
-        return ""
+        return {}
     for asked in asked_refs:
         if asked not in found_refs:
-            return (
-                "Attenzione: la scheda/domanda indica R.G. "
-                f"{asked}, mentre nell'allegato collegato il numero letto risulta R.G. {found_refs[0]}. "
-                "Può trattarsi di refuso della fonte, allegato non coerente o lettura da verificare sul PDF."
-            )
-    return ""
+            return {"asked": asked, "found": found_refs[0]}
+    return {}
+
+
+def _reference_mismatch_note(
+    question: str,
+    row: dict[str, Any],
+    *,
+    reference_conflict: dict[str, str] | None = None,
+) -> str:
+    conflict = reference_conflict or _reference_conflict(question, row)
+    if not conflict:
+        return ""
+    return (
+        "Attenzione: la scheda/domanda indica R.G. "
+        f"{conflict.get('asked')}, mentre il PDF ufficialmente collegato alla scheda riporta al suo interno R.G. "
+        f"{conflict.get('found')}. Il PDF resta citabile come allegato collegato; i dati letti nel PDF sono "
+        "presentati come contenuto del PDF collegato e non come dati certi autonomi della scheda."
+    )
 
 
 def _cliente_identity_lines(cliente: dict[str, Any]) -> list[str]:

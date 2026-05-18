@@ -47,6 +47,29 @@ Regola di estensione: prima di applicare la logica al generatore corpus o a
 risposta professionale. Solo dopo si estende la stessa griglia agli altri
 documenti.
 
+## Aggiornamento operativo 2.245.26 - 2026-05-18
+
+Rafforzata la regola del caso pilota `QSP50194`: pagina e PDF sono già stati
+verificati come collegati, quindi Lex non deve rimettere in discussione il
+collegamento a ogni risposta. Deve però separare l'attribuzione:
+
+- dati della scheda `R.G. 9926/2026`: quesito, udienza, relatore, ricorrente,
+  riferimenti normativi e stato pendente;
+- dati del PDF ufficialmente collegato, che nel testo letto riporta
+  `R.G. 9966/2026`: motivi/censure, punto di diritto e articoli ricavati dal
+  PDF devono essere presentati come contenuto del PDF collegato;
+- nota R.G.: resta visibile e non deve diventare un dubbio generico su fonti già
+  verificate;
+- OCR: estratti sporchi, frammenti con barre, lettere isolate o testo
+  chiaramente deformato non devono essere riprodotti nella risposta finale.
+- forma della risposta: deve essere una sintesi unica, non una lista ripetuta di
+  sezioni; oggetto, stato, principio, motivi, norme spiegate, effetto pratico,
+  PDF e nota R.G. devono comparire una sola volta.
+
+Questa regola è il blocco da tenere davanti prima del generatore corpus: prima
+separazione corretta di scheda, allegato e OCR su un documento, poi propagazione
+agli altri documenti.
+
 ## Aggiornamento operativo 2.245.21 - 2026-05-18
 
 Il caso Cassazione `QSP50194` è stato verificato sul database locale: prima

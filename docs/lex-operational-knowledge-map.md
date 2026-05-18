@@ -12,6 +12,8 @@ Aggiornamento 2026-05-18: le domande operative reali sono diventate gate obbliga
 
 Aggiornamento 2026-05-18, caso pilota fonti pubbliche: `Questione Penale Pendente del ricorso R.G. 9926/2026` è la prova obbligatoria prima di scalare il generatore corpus. Il layer operativo deve recuperare scheda Cassazione, allegato, OCR e discrepanza R.G., poi rispondere alla domanda dell'avvocato con sintesi, natura dell'atto, punto di diritto, motivi/censure, articoli, udienza, ricorrente/relatore, PDF, stato e limiti. Le domande sugli articoli possono attivare `web_libero`, che resta separato dalle fonti ufficiali e non viene promosso a corpus.
 
+Aggiornamento 2026-05-18, regola attribuzione scheda/PDF: per `QSP50194` non va ripetuta la verifica del collegamento tra scheda e PDF. Il PDF resta ufficialmente collegato e citabile, ma Lex deve separare i dati della scheda `R.G. 9926/2026` dai dati letti nel PDF con numero interno `R.G. 9966/2026`. Le risposte e il futuro generatore corpus devono quindi registrare tre blocchi distinti: scheda, PDF collegato, nota R.G.; nessun OCR sporco o dato processuale del PDF deve essere fuso come fatto certo autonomo della scheda.
+
 Aggiornamento 2026-05-18, `Web libero` chat Lex: quando il flag manuale è attivo, il router deve usare solo la ricerca web libera della singola richiesta, senza fonti DB/fascicolo come contesto di risposta, senza allowlist ufficiale, senza blocco da fonte autorizzata e senza warning visibili. I risultati restano `web_libero`, `verified_reference=false`, `saved_to_db=false`; controllo e responsabilità professionale spettano all'avvocato.
 
 ## Regole di accesso

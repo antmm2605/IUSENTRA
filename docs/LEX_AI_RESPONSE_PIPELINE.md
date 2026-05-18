@@ -358,6 +358,22 @@ devono contaminare una risposta puntuale già fondata su `legal_updates.db`.
 
 Aggiornamento operativo del 18 maggio 2026.
 
+Aggiornamento 2.245.26: la discrepanza `R.G. 9926/2026` / `R.G. 9966/2026`
+non va più trattata come motivo per scartare il PDF, perché il collegamento
+scheda -> PDF è già stato verificato. La regola corretta è: Lex cita la scheda
+`9926/2026`, mantiene il PDF ufficialmente collegato e cliccabile, cita il
+contenuto del PDF come contenuto del PDF collegato, ma non attribuisce
+automaticamente dati processuali, parti, pena o contesto del PDF alla scheda
+`9926/2026`. La risposta non deve riprodurre OCR sporco né fondere scheda e PDF
+in un unico racconto certo.
+
+Forma obbligatoria della risposta sintetica: una sola sezione `Sintesi` con
+oggetto, stato, punto di diritto/principio, motivi/censure, effetto pratico e
+nota R.G.; una sezione `Norme rilevanti` che spiega perché contano gli articoli;
+una sezione `Fonte e PDF` con link cliccabile; poi `Punto da verificare` ed
+`Esito`. Sono vietate risposte che ripetono `Cosa dice la scheda ufficiale`,
+`Sintesi dell'ordinanza`, estratti OCR grezzi e log di recupero fonte.
+
 Problema emerso nella prova reale:
 
 - Lex trovava la scheda Cassazione e il PDF, ma rispondeva ancora come log di

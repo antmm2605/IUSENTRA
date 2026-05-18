@@ -661,12 +661,21 @@ def test_rg_questione_penale_usa_archivio_legale_e_allegato_ufficiale():
 
     assert answer is not None
     assert answer.route.intent == "official_sources_lookup"
-    assert "### Allegato ufficiale" in answer.answer
+    assert "### Fonte e PDF" in answer.answer
     assert "Allegato: **Ordinanza di rimessione**." in answer.answer
     assert "Apri PDF ufficiale" in answer.answer
-    assert "### Sintesi dell'ordinanza" in answer.answer
-    assert "non è una sentenza definitiva" in answer.answer
-    assert "Motivi del ricorso" in answer.answer
+    assert "### Sintesi" in answer.answer
+    assert "### Norme rilevanti" in answer.answer
+    assert "### Fonte e PDF" in answer.answer
+    assert answer.answer.count("### Sintesi") == 1
+    assert "### Cosa dice la scheda ufficiale" not in answer.answer
+    assert "### Sintesi dell'ordinanza" not in answer.answer
+    assert "Non risulta una sentenza" in answer.answer
+    assert "Motivi/censure dal PDF collegato" in answer.answer
+    assert "PDF ufficialmente collegato" in answer.answer
+    assert "Contesto processuale" not in answer.answer
+    assert "Gianfranco Greco" not in answer.answer
+    assert "Estratto leggibile" not in answer.answer
     assert "R.G. 9926/2026" in answer.answer
     assert "R.G. 9966/2026" in answer.answer
     assert "Non ho trovato dati reali sufficienti" not in answer.answer
@@ -679,11 +688,11 @@ def test_rg_questione_penale_usa_archivio_legale_e_allegato_ufficiale():
         (
             "mi puoi sintetizzare questa sentenza Penale Pendente del ricorso R.G. 9926/2026",
             [
-                "### Risposta alla domanda",
-                "In sintesi",
-                "non è una sentenza definitiva",
-                "Motivi del ricorso",
-                "Punto di diritto",
+                "### Sintesi",
+                "Oggetto",
+                "Non risulta una sentenza",
+                "PDF collegato riporta R.G. 9966/2026",
+                "Effetto pratico",
             ],
         ),
         (
@@ -697,7 +706,8 @@ def test_rg_questione_penale_usa_archivio_legale_e_allegato_ufficiale():
         (
             "quali sono i motivi del ricorso R.G. 9926/2026?",
             [
-                "Motivi/censure indicati nell'ordinanza",
+                "Motivi/censure dal PDF collegato",
+                "non come dati certi autonomi della scheda",
                 "difetto di controllo giudiziale",
                 "art. 129 cod. proc. pen.",
             ],
@@ -706,22 +716,22 @@ def test_rg_questione_penale_usa_archivio_legale_e_allegato_ufficiale():
             "è una sentenza o una questione pendente R.G. 9926/2026?",
             [
                 "Natura dell'atto",
-                "non è una sentenza definitiva",
+                "Non risulta una sentenza",
                 "questione è pendente",
             ],
         ),
         (
             "quando è fissata l'udienza e quali norme sono indicate per R.G. 9926/2026?",
             [
-                "Udienza indicata in scheda: 09 luglio 2026",
-                "Norme indicate: Cod. proc. pen. artt. 599-bis e 606.",
-                "Articoli/riferimenti trovati",
+                "udienza 09 luglio 2026",
+                "Cod. proc. pen. artt. 599-bis e 606",
+                "Riferimenti trovati",
             ],
         ),
         (
             "trova gli articoli di riferimento della questione R.G. 9926/2026",
             [
-                "Articoli/riferimenti trovati",
+                "Riferimenti trovati",
                 "Cod. proc. pen. artt. 599-bis e 606",
                 "art. 599-bis c.p.p.",
                 "art. 129 c.p.p.",
@@ -734,14 +744,13 @@ def test_rg_questione_penale_usa_archivio_legale_e_allegato_ufficiale():
         (
             "chi sono ricorrente e relatore della questione penale R.G. 9926/2026?",
             [
-                "Ricorrente indicato nella scheda: Turco G.",
-                "Relatore indicato nella scheda: E. Morosini.",
+                "Dati della scheda: ricorrente Turco G; relatore E. Morosini.",
             ],
         ),
         (
             "mi dai il PDF e l'allegato ufficiale della questione R.G. 9926/2026?",
             [
-                "Allegato ufficiale individuato",
+                "Allegato/PDF",
                 "Allegato: **Ordinanza di rimessione**.",
                 "Apri PDF ufficiale",
             ],
@@ -757,7 +766,7 @@ def test_rg_questione_penale_usa_archivio_legale_e_allegato_ufficiale():
         (
             "qual è l'esito della questione R.G. 9926/2026?",
             [
-                "Esito/stato",
+                "Stato:",
                 "questione è pendente",
                 "non risulta una decisione finale",
             ],
@@ -768,7 +777,8 @@ def test_rg_questione_penale_usa_archivio_legale_e_allegato_ufficiale():
                 "Punto da verificare",
                 "R.G. 9926/2026",
                 "R.G. 9966/2026",
-                "refuso della fonte",
+                "PDF ufficialmente collegato",
+                "non come dati certi autonomi della scheda",
             ],
         ),
     ],
@@ -1043,12 +1053,19 @@ def test_rg_questione_penale_end_to_end_da_legal_updates_db(tmp_path: Path, monk
     assert answer is not None
     assert answer.route.intent == "official_sources_lookup"
     assert "Allegato: **Ordinanza di rimessione**." in answer.answer
-    assert "### Cosa dice la scheda ufficiale" in answer.answer
+    assert "### Sintesi" in answer.answer
     assert "concordato in appello" in answer.answer
     assert "Cod. proc. pen. artt. 599-bis e 606" in answer.answer
     assert "Apri PDF ufficiale" in answer.answer
-    assert "### Sintesi dell'ordinanza" in answer.answer
-    assert "Motivi del ricorso" in answer.answer
+    assert "### Norme rilevanti" in answer.answer
+    assert "### Fonte e PDF" in answer.answer
+    assert answer.answer.count("### Sintesi") == 1
+    assert "### Cosa dice la scheda ufficiale" not in answer.answer
+    assert "### Sintesi dell'ordinanza" not in answer.answer
+    assert "Motivi/censure dal PDF collegato" in answer.answer
+    assert "Contesto processuale" not in answer.answer
+    assert "Gianfranco Greco" not in answer.answer
+    assert "Estratto leggibile" not in answer.answer
     assert "R.G. 9926/2026" in answer.answer
     assert "R.G. 9966/2026" in answer.answer
     assert "Camera Arbitrale" not in answer.answer

@@ -206,10 +206,11 @@ def test_assistente_chat_questione_penale_rg_non_finisce_nell_editor(tmp_path: P
     stream = response.get_data(as_text=True)
     assert response.status_code == 200
     assert "Allegato: **Ordinanza di rimessione**." in stream
-    assert "### Risposta alla domanda" in stream
-    assert "sentenza definitiva" in stream
-    assert "Motivi del ricorso" in stream
-    assert "Punto di diritto" in stream
+    assert "### Sintesi" in stream
+    assert "Non risulta una sentenza" in stream
+    assert "Motivi/censure dal PDF collegato" in stream
+    assert "PDF ufficialmente collegato" in stream
+    assert "principio in discussione" in stream
     assert "concordato in appello" in stream
     assert "Cod. proc. pen. artt. 599-bis e 606" in stream
     assert "Punto da verificare" in stream
@@ -217,6 +218,9 @@ def test_assistente_chat_questione_penale_rg_non_finisce_nell_editor(tmp_path: P
     assert "Nota%5FUfficio%5FSpoglio%5FV%5FSez.%5Fpenale%5FRG%5F9966%5F2026%5F1.pdf" in stream
     assert "R.G. 9926/2026" in stream
     assert "R.G. 9966/2026" in stream
+    assert "Contesto processuale" not in stream
+    assert "Gianfranco Greco" not in stream
+    assert "Estratto leggibile" not in stream
     assert "Editor Lex" not in stream
     assert "template_atti" not in stream
 

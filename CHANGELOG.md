@@ -7,6 +7,12 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.26 - 2026-05-18
+
+- Rafforzata la risposta Lex sul caso pilota `QSP50194`: il PDF resta citabile come allegato ufficialmente collegato alla scheda, ma i dati letti nel PDF con `R.G. 9966/2026` non vengono più fusi automaticamente nella scheda/domanda `R.G. 9926/2026`.
+- La risposta distingue ora scheda ufficiale, riferimenti normativi spiegati, contenuto del PDF collegato e nota R.G.; gli estratti OCR sporchi non vengono più riportati nella risposta finale.
+- Aggiornati test e documentazione perché questa regola resti davanti prima di propagare la logica al generatore corpus e agli altri documenti.
+
 ## 2.245.25 - 2026-05-18
 
 - Protetto il remoto `origin/chore/monorepo-foundation`: lo script di igiene repository lo preserva quando rimuove extra remoti e le regole operative vietano a Codex di cancellarlo o aggiornarlo.

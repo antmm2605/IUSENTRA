@@ -565,8 +565,8 @@ def build_bounded_http_payload(
             "fascicolo_first": fascicolo_first,
             "external_sources_reason": external_reason,
             "studio_context_seed": {
-                "sources": list(studio_context.get("sources") or []),
-                "structured_context": dict(studio_context.get("structured_context") or {}),
+                "sources": [] if free_web_enabled else list(studio_context.get("sources") or []),
+                "structured_context": {} if free_web_enabled else dict(studio_context.get("structured_context") or {}),
                 "focus_label": _clean_spaces(studio_context.get("focus_label")),
                 "focus_topic": _clean_spaces(studio_context.get("focus_topic")),
                 "request_profile": request_profile,
@@ -713,4 +713,36 @@ def build_bounded_http_payload(
             "evidence_summary": dict(response.evidence_summary or {}),
         }
     )
+    if free_web_enabled:
+        execution_policy = dict(payload.get("execution_policy") or {})
+        execution_policy.update(
+            {
+                "mode": "web_libero",
+                "truth_strategy": "ricerca_web_libera",
+                "requires_verified_legal_reference": False,
+                "requires_verified_normative_freshness": False,
+                "requires_verified_pdf": False,
+                "allow_web_fallback": True,
+                "responsibility_scope": "controllo_avvocato",
+                "does_not_save_to_db": True,
+            }
+        )
+        payload.update(
+            {
+                "warnings": [],
+                "next_actions": [],
+                "confidence": 0.0,
+                "confidence_label": "",
+                "confidence_reason": "",
+                "answer_mode": "grounded",
+                "risk_level": "low",
+                "disable_exports": False,
+                "legal_reference_guard_active": False,
+                "external_sources_used": True,
+                "external_sources_reason": "",
+                "execution_policy": execution_policy,
+                "free_web_responsibility": "controllo_avvocato",
+                "free_web_saves_to_db": False,
+            }
+        )
     return payload

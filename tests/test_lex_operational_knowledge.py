@@ -4,12 +4,37 @@ import sqlite3
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from lex.operational_knowledge.audit import OperationalAuditRecorder
 from lex.operational_knowledge.permission_guard import resolve_query_context
 from lex.operational_knowledge.service import OperationalKnowledgeService
 from lex.operational_knowledge.settings import OperationalKnowledgeSettings
 from lex.operational_knowledge.tools import OperationalKnowledgeTools
 from lex.tools.registry import LexToolRegistry
+
+
+QSP_ATTACHMENT_OCR_TEXT = (
+    "CORTE SUPREMA DI CASSAZIONE QUINTA SEZIONE PENALE. Oggetto: ricorso n. 9966/2026 R.G. "
+    "E' pervenuto all'esame preliminare di questo Ufficio il ricorso RG 9966/26, proposto nell'interesse "
+    "di Gianfranco Greco avverso la sentenza della Corte d'appello di Caltanissetta del 10 ottobre 2025, "
+    "con la quale, in parziale riforma della decisione del Tribunale di Gela del 19 novembre 2024, è stata "
+    "rideterminata la pena per furto aggravato consumato e tentato e inosservanza delle prescrizioni della "
+    "sorveglianza speciale, nella misura di anni due e mesi otto di reclusione ed euro 1.236,00 di multa, "
+    "concordata tra le parti ex art. 599-bis cod. proc. pen. "
+    "1.1. Dalla proposta di concordato la pena risulta così determinata: pena base, anni due di reclusione "
+    "ed euro 927,00 di multa; pena elevata per effetto della continuazione sino alla misura conclusivamente "
+    "indicata di anni due e mesi otto di reclusione ed euro 1.236,00 di multa. "
+    "1.2. Il ricorrente deduce, con quattro motivi, le seguenti censure: - l'illegalità della pena, per non "
+    "essere stato motivato il giudizio di comparazione tra la recidiva e le ulteriori circostanze; - il difetto "
+    "di controllo giudiziale sull'accordo; - la motivazione apparente in ordine all'esclusione di cause di "
+    "proscioglimento ex art. 129 cod. proc. pen.; - la violazione dei limiti del concordato per omessa indicazione "
+    "in ordine al bilanciamento tra circostanze eterogenee, l'incidenza della recidiva e la determinazione della "
+    "pena finale. Al netto del riferimento nominalistico alla illegalità della pena, il ricorso pone il tema della "
+    "deducibilità dell'erronea determinazione della sanzione, concordata tra le parti ex art. 599-bis cod. proc. pen., "
+    "sul quale si registra un contrasto nella giurisprudenza di questa Corte, con richiamo all'art. 81, comma secondo, "
+    "cod. pen. per la continuazione."
+)
 
 
 class _User:
@@ -527,6 +552,82 @@ def test_template_lookup_is_reported_as_template_source():
     assert any(source.source_id == "template_atti" for source in answer.sources)
 
 
+def _qsp_9926_rows():
+    return [
+        {
+            "id": "web-evidence-page",
+            "title": "Questione Penale Pendente del ricorso R.G. 9926/2026 ud. 09/07/2026",
+            "source_name": "Corte Suprema di Cassazione",
+            "official_url": "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP50194",
+            "excerpt": "Questione penale pendente R.G. 9926/2026.",
+            "content": (
+                "Data inserimento: 05 maggio 2026 Questione penale Pendente del ricorso R.G. n. 9926/2026 "
+                "ud. 09/07/2026 Se, avverso la sentenza emessa a seguito di concordato in appello, siano "
+                "deducibili con il ricorso per cassazione i vizi attinenti alla determinazione della pena non "
+                "comportanti l'illegalità della stessa. Ricorrente: Turco G. Relatore: E. Morosini Data udienza: "
+                "09 luglio 2026 Riferimenti normativi: Cod. proc. pen. artt. 599-bis e 606 Allegati Ordinanza "
+                "di rimessione."
+            ),
+            "verified_reference": True,
+            "score": 2.0,
+        },
+        {
+            "id": "web-evidence-attachment",
+            "title": "Ordinanza di rimessione",
+            "source_name": "Corte Suprema di Cassazione",
+            "official_url": "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP50194",
+            "attachment_url": "https://www.cortedicassazione.it/resources/cms/documents/Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf",
+            "excerpt": "Nota Ufficio Spoglio V Sezione penale. R.G. 9966/2026. Ordinanza di rimessione.",
+            "content": QSP_ATTACHMENT_OCR_TEXT,
+            "verified_reference": True,
+            "score": 1.8,
+        },
+    ]
+
+
+def _qsp_9926_service():
+    class _Repo:
+        def search_lex_sources(self, query: str, limit: int = 6):
+            assert "9926" in query or "9966" in query or "QSP50194" in query
+            return _qsp_9926_rows()
+
+    class _Pipeline:
+        repository = _Repo()
+
+    class _WebLibero:
+        queries: list[str] = []
+
+        def search_free_public_web(self, query: str, limit: int = 4):
+            self.queries.append(query)
+            return [
+                {
+                    "id": "web-libero-cpp-599-bis",
+                    "title": "Brocardi - art. 599-bis c.p.p.",
+                    "url": "https://www.brocardi.it/codice-di-procedura-penale/libro-nono/titolo-ii/art599bis.html",
+                    "source_id": "web_libero",
+                    "source_name": "Web libero",
+                    "source_access_label": "Web libero",
+                    "source_priority": "web_libero",
+                    "excerpt": "Concordato anche con rinuncia ai motivi di appello.",
+                },
+                {
+                    "id": "web-libero-cpp-129",
+                    "title": "Altalex - art. 129 c.p.p.",
+                    "url": "https://www.altalex.com/documents/news/2014/09/15/codice-di-procedura-penale-articolo-129",
+                    "source_id": "web_libero",
+                    "source_name": "Web libero",
+                    "source_access_label": "Web libero",
+                    "source_priority": "web_libero",
+                    "excerpt": "Obbligo della immediata declaratoria di determinate cause di non punibilità.",
+                },
+            ]
+
+    repos = _base_repositories()
+    repos["update_intelligence"] = _Pipeline()
+    repos["web_libero"] = _WebLibero()
+    return _service(repositories=repos)
+
+
 def test_rg_questione_penale_usa_archivio_legale_e_allegato_ufficiale():
     class _Repo:
         def search_lex_sources(self, query: str, limit: int = 6):
@@ -539,6 +640,7 @@ def test_rg_questione_penale_usa_archivio_legale_e_allegato_ufficiale():
                     "official_url": "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP50194",
                     "attachment_url": "https://www.cortedicassazione.it/resources/cms/documents/Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf",
                     "excerpt": "Nota Ufficio Spoglio V Sezione penale. R.G. 9966/2026. Ordinanza di rimessione.",
+                    "content": QSP_ATTACHMENT_OCR_TEXT,
                     "verified_reference": True,
                 }
             ]
@@ -561,11 +663,185 @@ def test_rg_questione_penale_usa_archivio_legale_e_allegato_ufficiale():
     assert answer.route.intent == "official_sources_lookup"
     assert "### Allegato ufficiale" in answer.answer
     assert "Allegato: **Ordinanza di rimessione**." in answer.answer
-    assert "Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf" in answer.answer
+    assert "Apri PDF ufficiale" in answer.answer
+    assert "### Sintesi dell'ordinanza" in answer.answer
+    assert "non è una sentenza definitiva" in answer.answer
+    assert "Motivi del ricorso" in answer.answer
     assert "R.G. 9926/2026" in answer.answer
     assert "R.G. 9966/2026" in answer.answer
     assert "Non ho trovato dati reali sufficienti" not in answer.answer
     assert any(source.source_id == "update_intelligence" for source in answer.sources)
+
+
+@pytest.mark.parametrize(
+    ("question", "expected_fragments"),
+    [
+        (
+            "mi puoi sintetizzare questa sentenza Penale Pendente del ricorso R.G. 9926/2026",
+            [
+                "### Risposta alla domanda",
+                "In sintesi",
+                "non è una sentenza definitiva",
+                "Motivi del ricorso",
+                "Punto di diritto",
+            ],
+        ),
+        (
+            "qual è il punto di diritto della questione penale R.G. 9926/2026?",
+            [
+                "Punto di diritto",
+                "deducibilità dell'erronea determinazione della sanzione",
+                "concordata tra le parti ex art. 599-bis",
+            ],
+        ),
+        (
+            "quali sono i motivi del ricorso R.G. 9926/2026?",
+            [
+                "Motivi/censure indicati nell'ordinanza",
+                "difetto di controllo giudiziale",
+                "art. 129 cod. proc. pen.",
+            ],
+        ),
+        (
+            "è una sentenza o una questione pendente R.G. 9926/2026?",
+            [
+                "Natura dell'atto",
+                "non è una sentenza definitiva",
+                "questione è pendente",
+            ],
+        ),
+        (
+            "quando è fissata l'udienza e quali norme sono indicate per R.G. 9926/2026?",
+            [
+                "Udienza indicata in scheda: 09 luglio 2026",
+                "Norme indicate: Cod. proc. pen. artt. 599-bis e 606.",
+                "Articoli/riferimenti trovati",
+            ],
+        ),
+        (
+            "trova gli articoli di riferimento della questione R.G. 9926/2026",
+            [
+                "Articoli/riferimenti trovati",
+                "Cod. proc. pen. artt. 599-bis e 606",
+                "art. 599-bis c.p.p.",
+                "art. 129 c.p.p.",
+                "art. 81, comma secondo c.p.",
+                "Integrazione web libera sugli articoli",
+                "Brocardi - art. 599-bis c.p.p.",
+                "Altalex - art. 129 c.p.p.",
+            ],
+        ),
+        (
+            "chi sono ricorrente e relatore della questione penale R.G. 9926/2026?",
+            [
+                "Ricorrente indicato nella scheda: Turco G.",
+                "Relatore indicato nella scheda: E. Morosini.",
+            ],
+        ),
+        (
+            "mi dai il PDF e l'allegato ufficiale della questione R.G. 9926/2026?",
+            [
+                "Allegato ufficiale individuato",
+                "Allegato: **Ordinanza di rimessione**.",
+                "Apri PDF ufficiale",
+            ],
+        ),
+        (
+            "posso citare la questione R.G. 9926/2026 in un atto come decisione definitiva?",
+            [
+                "Uso prudente",
+                "non come arresto definitivo",
+                "questione pendente",
+            ],
+        ),
+        (
+            "qual è l'esito della questione R.G. 9926/2026?",
+            [
+                "Esito/stato",
+                "questione è pendente",
+                "non risulta una decisione finale",
+            ],
+        ),
+        (
+            "spiegami la discrepanza tra R.G. 9926/2026 e R.G. 9966/2026",
+            [
+                "Punto da verificare",
+                "R.G. 9926/2026",
+                "R.G. 9966/2026",
+                "refuso della fonte",
+            ],
+        ),
+    ],
+)
+def test_rg_questione_penale_risponde_a_domande_da_avvocato(question, expected_fragments):
+    service, user = _qsp_9926_service()
+
+    answer = service.answer(
+        question=question,
+        user=user,
+        studio=SimpleNamespace(slug="tenant-a"),
+        tenant_id="tenant-a",
+    )
+
+    assert answer is not None
+    assert answer.route.intent == "official_sources_lookup"
+    for fragment in expected_fragments:
+        assert fragment in answer.answer
+    assert "Editor Lex" not in answer.answer
+    assert "template_atti" not in answer.answer
+    assert "Camera Arbitrale" not in answer.answer
+    assert "Non ho trovato dati reali sufficienti" not in answer.answer
+
+
+def test_rg_questione_penale_articoli_attiva_web_libero_distinto_dalla_fonte_ufficiale():
+    class _Repo:
+        def search_lex_sources(self, query: str, limit: int = 6):
+            return _qsp_9926_rows()
+
+    class _Pipeline:
+        repository = _Repo()
+
+    class _WebLibero:
+        def __init__(self):
+            self.queries: list[str] = []
+
+        def search_free_public_web(self, query: str, limit: int = 4):
+            self.queries.append(query)
+            return [
+                {
+                    "id": "web-libero-art-606",
+                    "title": "Studio Cataldi - art. 606 c.p.p.",
+                    "url": "https://www.studiocataldi.it/codiceprocedurapenale/articolo-606.asp",
+                    "source_id": "web_libero",
+                    "source_name": "Web libero",
+                    "source_access_label": "Web libero",
+                    "source_priority": "web_libero",
+                    "excerpt": "Casi di ricorso per cassazione.",
+                }
+            ]
+
+    web_libero = _WebLibero()
+    repos = _base_repositories()
+    repos["update_intelligence"] = _Pipeline()
+    repos["web_libero"] = web_libero
+    service, user = _service(repositories=repos)
+
+    answer = service.answer(
+        question="trova gli articoli di riferimento della questione R.G. 9926/2026",
+        user=user,
+        studio=SimpleNamespace(slug="tenant-a"),
+        tenant_id="tenant-a",
+    )
+
+    assert answer is not None
+    assert web_libero.queries
+    assert "art. 599-bis c.p.p." in web_libero.queries[0]
+    assert "art. 129 c.p.p." in web_libero.queries[0]
+    assert "### Integrazione web libera sugli articoli" in answer.answer
+    assert "Studio Cataldi - art. 606 c.p.p." in answer.answer
+    assert "non sostituisce la fonte ufficiale Cassazione" not in answer.answer
+    assert "Allegato: **Ordinanza di rimessione**." in answer.answer
+    assert any(source.source_id == "web_libero" for source in answer.sources)
 
 
 def test_rg_questione_penale_non_trascina_fonti_non_pertinenti():
@@ -588,6 +864,7 @@ def test_rg_questione_penale_non_trascina_fonti_non_pertinenti():
                     "official_url": "https://www.cortedicassazione.it/resources/cms/documents/Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf",
                     "attachment_url": "https://www.cortedicassazione.it/resources/cms/documents/Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf",
                     "excerpt": "Nota Ufficio Spoglio V Sezione penale. R.G. 9966/2026. Ordinanza di rimessione.",
+                    "content": QSP_ATTACHMENT_OCR_TEXT,
                     "verified_reference": True,
                     "score": 1.48,
                 },
@@ -644,6 +921,7 @@ def test_rg_questione_penale_prefisso_template_resta_fonte_ufficiale():
                     "official_url": "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP50194",
                     "attachment_url": "https://www.cortedicassazione.it/resources/cms/documents/Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf",
                     "excerpt": "Nota Ufficio Spoglio V Sezione penale. R.G. 9966/2026. Ordinanza di rimessione.",
+                    "content": QSP_ATTACHMENT_OCR_TEXT,
                     "verified_reference": True,
                     "score": 1.48,
                 }
@@ -722,7 +1000,7 @@ def test_rg_questione_penale_end_to_end_da_legal_updates_db(tmp_path: Path, monk
                     1,
                     620,
                     "R.G. 9966/2026. Ordinanza di rimessione.",
-                    "CORTE SUPREMA DI CASSAZIONE. Oggetto: ricorso n. 9966/2026 R.G. Ordinanza di rimessione.",
+                    QSP_ATTACHMENT_OCR_TEXT,
                     '["ordinanza", "rimessione", "9966/2026"]',
                     "verified",
                 ),
@@ -768,7 +1046,9 @@ def test_rg_questione_penale_end_to_end_da_legal_updates_db(tmp_path: Path, monk
     assert "### Cosa dice la scheda ufficiale" in answer.answer
     assert "concordato in appello" in answer.answer
     assert "Cod. proc. pen. artt. 599-bis e 606" in answer.answer
-    assert "Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf" in answer.answer
+    assert "Apri PDF ufficiale" in answer.answer
+    assert "### Sintesi dell'ordinanza" in answer.answer
+    assert "Motivi del ricorso" in answer.answer
     assert "R.G. 9926/2026" in answer.answer
     assert "R.G. 9966/2026" in answer.answer
     assert "Camera Arbitrale" not in answer.answer
@@ -1021,7 +1301,7 @@ def test_http_bridge_non_devia_questione_penale_rg_in_bozza_atto(monkeypatch):
                     "Ho trovato una fonte ufficiale collegata alla richiesta.\n"
                     "### Allegato ufficiale\n"
                     "- Allegato: **Ordinanza di rimessione**.\n"
-                    "- PDF ufficiale: Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf."
+                    "- PDF ufficiale: [Apri PDF ufficiale](https://www.cortedicassazione.it/resources/cms/documents/Nota%5FUfficio%5FSpoglio%5FV%5FSez.%5Fpenale%5FRG%5F9966%5F2026%5F1.pdf)."
                 ),
                 route=OperationalRoute(
                     "official_sources_lookup",
@@ -1058,7 +1338,7 @@ def test_http_bridge_non_devia_questione_penale_rg_in_bozza_atto(monkeypatch):
     assert payload is not None
     assert payload["workflow"] == "operational_knowledge"
     assert "Allegato: **Ordinanza di rimessione**." in payload["answer"]
-    assert "Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf" in payload["answer"]
+    assert "Apri PDF ufficiale" in payload["answer"]
 
 
 def test_http_bridge_defers_without_permission_context(monkeypatch):

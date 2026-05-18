@@ -4,6 +4,49 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.245.24 - 2026-05-18
+
+Il caso Cassazione `QSP50194` / `R.G. 9926/2026` è diventato il caso pilota
+obbligatorio per il comportamento Lex sulle fonti pubbliche: non basta più
+dimostrare che pagina, PDF e OCR siano stati trovati. Lex deve rispondere alla
+domanda effettiva dell'avvocato con una risposta strutturata e controllabile.
+
+Passaggi tracciati:
+
+- corretta la risposta troppo superficiale che riportava solo fonte, PDF,
+  discrepanza R.G. ed estratto OCR iniziale;
+- aggiunta una risposta focalizzata sulla domanda concreta prima della scheda
+  fonte;
+- aggiunta sintesi dell'ordinanza con natura dell'atto, vicenda processuale,
+  pena concordata, motivi/censure, punto di diritto, articoli richiamati e stato
+  pendente;
+- corretto il link PDF con etichetta stabile `Apri PDF ufficiale` e underscore
+  percent-encoded per evitare rotture nel rendering Markdown del widget già
+  aperto;
+- aggiunta matrice di domande da avvocato: sintesi, punto di diritto, motivi,
+  natura sentenza/questione pendente, udienza/norme, articoli, ricorrente e
+  relatore, PDF/allegato, uso in atto, esito e discrepanza R.G.;
+- aggiunta fase di integrazione web libera per gli articoli, distinta dalla
+  fonte ufficiale Cassazione.
+- corretto il comportamento `Web libero` della chat: con il flag attivo Lex non
+  usa allowlist ufficiali, non blocca per `fonte autorizzata`, non trascina
+  fonti DB/fascicolo nel risultato libero, non salva nel corpus e non mostra
+  warning visibili; i risultati restano tecnicamente `web_libero` e
+  `verified_reference=false`, con controllo rimesso all'avvocato.
+
+Verifiche eseguite:
+
+- `python -m py_compile lex\retrieval\sources\official_web.py lex\retrieval\source_router.py lex\http_bounded_bridge.py lex\orchestrator_http.py lex\operational_knowledge\tools.py lex\operational_knowledge\response_composer.py lex\operational_knowledge\source_registry.py pct\legal_update_repository.py`;
+- `python -m pytest lex\tests\test_official_web.py lex\tests\test_http_bounded_bridge_governed_only.py lex\tests\test_orchestrator.py tests\test_lex_operational_knowledge.py::test_rg_questione_penale_risponde_a_domande_da_avvocato tests\test_lex_operational_knowledge.py::test_rg_questione_penale_articoli_attiva_web_libero_distinto_dalla_fonte_ufficiale -q`;
+- `python -m pytest tests\test_assistente_focus.py tests\test_lex_operational_knowledge.py tests\test_lex_assistente_context_real_requests.py tests\test_lex_widget_contract.py tests\test_lex_fascicolo_first_retrieval.py lex\tests\unit\test_retrieval_orchestrator.py -q`;
+- `node tests\js\lex_assistant_render.test.mjs`;
+- `git diff --check`.
+
+Regola di estensione: prima di applicare la logica al generatore corpus o a
+10.000 documenti, un documento deve passare end-to-end con test ripetibili e
+risposta professionale. Solo dopo si estende la stessa griglia agli altri
+documenti.
+
 ## Aggiornamento operativo 2.245.21 - 2026-05-18
 
 Il caso Cassazione `QSP50194` è stato verificato sul database locale: prima

@@ -7,6 +7,15 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.24 - 2026-05-18
+
+- Promosso `Questione Penale Pendente del ricorso R.G. 9926/2026` a caso pilota Lex end-to-end: la risposta ora viene focalizzata sulla domanda dell'avvocato e non solo sul recupero fonte.
+- Aggiunta sintesi dell'ordinanza con natura dell'atto, vicenda processuale, pena concordata, motivi/censure, punto di diritto, articoli richiamati e stato pendente.
+- Aggiunta matrice di regressione con domande su sintesi, punto di diritto, motivi, sentenza/questione pendente, udienza/norme, articoli, ricorrente/relatore, PDF, uso in atto, esito e discrepanza R.G.
+- Le richieste sugli articoli possono usare una fase `web_libero`, non limitata alle fonti ufficiali e sempre separata dalla fonte Cassazione.
+- Corretto `Web libero` in chat Lex: con il flag attivo non usa allowlist ufficiali, non blocca per `fonte autorizzata`, non trascina fonti DB/fascicolo, non salva nel corpus e non mostra warning visibili; i risultati sono marcati `web_libero`/`verified_reference=false` e il controllo resta all'avvocato.
+- Tracciata la regola operativa in `AGENTS.md`, audit Lex, pipeline risposta e mappa operational knowledge: prima un documento fatto benissimo, poi estensione al generatore corpus e agli altri documenti.
+
 ## 2.245.23 - 2026-05-18
 
 - Rafforzata la risposta Lex sulle questioni penali pendenti Cassazione: per `R.G. 9926/2026` Lex ora restituisce anche il contenuto della scheda ufficiale, il quesito sul concordato in appello, i riferimenti agli artt. 599-bis e 606 c.p.p., udienza, relatore e ricorrente quando presenti nel DB.

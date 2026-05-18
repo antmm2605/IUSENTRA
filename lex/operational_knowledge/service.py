@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import date, timedelta
 from typing import Any
 
@@ -181,11 +182,15 @@ class OperationalKnowledgeService:
             return [self.tools.get_attivita_by_cliente(entity_query, context)]
 
         if route.intent in {"legal_update_overview", "official_sources_lookup"}:
-            return [
+            results = [
                 self.tools.get_legal_intelligence_items(entity_query or question, context, limit=6),
                 self.tools.get_update_intelligence_items(entity_query or question, context, limit=6),
                 self.tools.search_legal_sources(entity_query or question, context, limit=6),
             ]
+            if _should_integrate_free_web_articles(question):
+                web_query = _free_web_article_query(question, results)
+                results.append(self.tools.search_free_public_web(web_query, context, limit=3))
+            return results
 
         return []
 
@@ -340,3 +345,59 @@ def _policy_blocked_reason(results: list[OperationalToolResult]) -> str:
         if result.blocked_reason in policy_reasons:
             return result.blocked_reason
     return ""
+
+
+def _should_integrate_free_web_articles(question: str) -> bool:
+    text = str(question or "").lower()
+    return any(
+        token in text
+        for token in (
+            "art.",
+            "artt",
+            "articolo",
+            "articoli",
+            "norme",
+            "riferimenti normativi",
+        )
+    )
+
+
+def _free_web_article_query(question: str, results: list[OperationalToolResult]) -> str:
+    refs = _article_refs_from_results(results)
+    if refs:
+        return "testo articoli " + " ".join(refs[:8])
+    return str(question or "").strip()
+
+
+def _article_refs_from_results(results: list[OperationalToolResult]) -> list[str]:
+    text_parts: list[str] = []
+    for result in results:
+        rows = result.data if isinstance(result.data, list) else []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            text_parts.extend(
+                str(row.get(key) or "")
+                for key in ("title", "titolo", "excerpt", "summary", "content", "text", "context")
+            )
+    text = " ".join(part for part in text_parts if part).lower()
+    refs: list[str] = []
+
+    def _push(label: str) -> None:
+        clean = " ".join(str(label or "").split()).strip()
+        if clean and clean not in refs:
+            refs.append(clean)
+
+    for match in re.finditer(r"\bartt?\.?\s+([^.;]{1,80}?)\s+cod\.?\s+proc\.?\s+pen\.?", text, flags=re.I):
+        for article in re.split(r"\s+e\s+|,|;", match.group(1)):
+            number = " ".join(article.split()).strip(" .")
+            if re.match(r"^\d", number):
+                _push(f"art. {number} c.p.p.")
+    for match in re.finditer(r"\bartt?\.?\s+([^.;]{1,80}?)\s+cod\.?\s+pen\.?", text, flags=re.I):
+        for article in re.split(r"\s+e\s+|;", match.group(1)):
+            number = " ".join(article.split()).strip(" .")
+            if re.match(r"^\d", number):
+                _push(f"art. {number} c.p.")
+    for match in re.finditer(r"\bex\s+art\.?\s+(\d+(?:-[a-z]+)?)\s+cod\.?\s+proc\.?\s+pen\.?", text, flags=re.I):
+        _push(f"art. {match.group(1)} c.p.p.")
+    return refs

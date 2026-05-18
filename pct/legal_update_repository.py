@@ -2654,7 +2654,8 @@ class LegalUpdateRepository:
         official_url = _first_text(row.get("official_url"), row.get("source_base_url"))
         authority = _first_text(row.get("authority"), row.get("source_code"), "Update Intelligence SQL")
         excerpt = _lex_excerpt(row.get("excerpt"), row.get("principle_of_law"), row.get("content"))
-        content = _lex_excerpt(row.get("content"), row.get("excerpt"), row.get("principle_of_law"), limit=900)
+        content_limit = 3600 if entity_type == "web_evidence" else 900
+        content = _lex_excerpt(row.get("content"), row.get("excerpt"), row.get("principle_of_law"), limit=content_limit)
         payload = {
             "type": source_type,
             "id": f"legal-updates-{entity_type}:{entity_id}",

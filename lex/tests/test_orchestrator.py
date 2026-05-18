@@ -267,6 +267,58 @@ def test_build_context_response_restituisce_payload_bounded_quando_disponibile(m
     assert "preventivo guidato" in payload["answer"].lower()
 
 
+def test_build_context_response_web_libero_non_sovrascrive_fonti_con_contesto(monkeypatch):
+    orch = make_orchestrator()
+    monkeypatch.setattr(orch.auth_guard, "ensure_can_access", lambda **kwargs: None)
+    orch.dependencies.build_studio_context = lambda *args, **kwargs: {
+        "sources": [{"id": "contesto-db", "title": "Fonte del contesto pagina"}],
+        "citations": ["Fonte del contesto pagina"],
+        "prompt_block": "",
+        "effective_question": kwargs.get("question", args[0] if args else ""),
+        "structured_context": {"fascicolo": {"id": "fas-1"}},
+        "engine_ids": [],
+        "source_ids": [],
+        "execution_policy": {},
+        "verified_legal_references": [],
+        "research_strategy": "",
+        "focus_topic": "",
+        "focus_label": "",
+        "competence_labels": [],
+        "web_fallback_used": False,
+        "web_execution_requested": False,
+        "legal_reference_guard_active": False,
+    }
+    monkeypatch.setattr(
+        "lex.orchestrator.resolve_current_and_previous_user_messages",
+        lambda explicit_question, messages: ("cerca liberamente", "", []),
+    )
+    monkeypatch.setattr(
+        "lex.orchestrator_http.build_bounded_http_payload",
+        lambda **kwargs: {
+            "ok": True,
+            "query_type": "workflow_answer",
+            "answer": "Risultato libero.",
+            "free_web_enabled": True,
+            "sources": [{"id": "web-libero", "title": "Risultato web libero"}],
+            "citations": ["Risultato web libero"],
+        },
+    )
+
+    payload, status = orch.build_context_response(
+        user=None,
+        studio=None,
+        data={
+            "free_web_enabled": True,
+            "messages": [{"role": "user", "content": "cerca liberamente"}],
+        },
+    )
+
+    assert status == 200
+    assert payload["sources"] == [{"id": "web-libero", "title": "Risultato web libero"}]
+    assert payload["citations"] == ["Risultato web libero"]
+    assert payload["structured_context"] == {}
+
+
 def test_chat_response_streamma_risposta_bounded_quando_disponibile(monkeypatch):
     orch = make_orchestrator()
     monkeypatch.setattr(orch.auth_guard, "ensure_can_access", lambda **kwargs: None)

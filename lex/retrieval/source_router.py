@@ -49,13 +49,41 @@ _LEGAL_RESEARCH_HINTS = (
     "registro mediazione",
 )
 _FASCICOLO_FIRST_WORKFLOWS = {"fascicolo", "documento", "udienza"}
+_FREE_WEB_MODES = {"free", "free_web", "web_libero", "ricerca_libera", "libera"}
 
 
 def _clean_spaces(value: object) -> str:
     return " ".join(str(value or "").split()).strip()
 
 
+def _payload_flag(value: object) -> bool:
+    return value is True or _clean_spaces(value).lower() in {
+        "1",
+        "true",
+        "vero",
+        "yes",
+        "si",
+        "on",
+        "enabled",
+        "abilitato",
+    }
+
+
+def _is_free_web_request(request) -> bool:
+    metadata = dict(getattr(request, "metadata", {}) or {})
+    profile = dict(metadata.get("request_profile") or {})
+    source_mode = _clean_spaces(profile.get("source_mode") or metadata.get("source_mode")).lower()
+    if source_mode in _FREE_WEB_MODES:
+        return True
+    return any(
+        _payload_flag(metadata.get(key))
+        for key in ("free_web_enabled", "force_free_web_search", "manual_free_web_enabled")
+    )
+
+
 def _should_include_legal_sources(request, workflow: str) -> bool:
+    if _is_free_web_request(request):
+        return False
     if workflow == "studio_data_lookup":
         return False
     if workflow in {"normativa", "giurisprudenza", "giurisprudenza_specifica", "prassi", "research", "fonti"}:
@@ -85,6 +113,9 @@ def _should_include_legal_sources(request, workflow: str) -> bool:
 
 class SourceRouter:
     def resolve(self, request, context, workflow: str):
+        if _is_free_web_request(request):
+            return [OfficialWebSource()]
+
         local_sources = []
         legal_sources = []
         workflow_sources = []

@@ -96,6 +96,8 @@ def test_governed_only_instrada_giurisprudenza_strict(monkeypatch):
 def test_opzione_web_libero_e_manuale_non_passa_da_job(monkeypatch):
     monkeypatch.setenv("LEX_GOVERNED_ONLY", "1")
     context = _base_context(
+        sources=[{"title": "Fonte del contesto pagina", "excerpt": "Non deve entrare nel web libero."}],
+        structured_context={"fascicolo": {"id": "fas-1"}},
         request_profile={"intent": "", "source_mode": "balanced", "drafting_mode": False},
         source_mode="balanced",
     )
@@ -117,8 +119,17 @@ def test_opzione_web_libero_e_manuale_non_passa_da_job(monkeypatch):
     assert service.last_request.metadata["force_free_web_search"] is True
     assert service.last_request.metadata["public_web_forced"] is True
     assert service.last_request.metadata["source_mode"] == "free_web"
+    assert service.last_request.metadata["studio_context_seed"]["sources"] == []
+    assert service.last_request.metadata["studio_context_seed"]["structured_context"] == {}
     assert service.last_request.allow_external_research is True
     assert service.last_request.require_official_sources is False
+    assert payload["warnings"] == []
+    assert payload["next_actions"] == []
+    assert payload["disable_exports"] is False
+    assert payload["legal_reference_guard_active"] is False
+    assert payload["free_web_saves_to_db"] is False
+    assert payload["free_web_responsibility"] == "controllo_avvocato"
+    assert payload["execution_policy"]["responsibility_scope"] == "controllo_avvocato"
 
 
 def test_attachments_non_diventano_prompt_libero(monkeypatch):

@@ -121,12 +121,17 @@ Passaggi obbligatori:
    - `web_execution_requested=true`;
    - `source_mode=free_web`.
 2. Il backend applica questi flag solo a quella richiesta.
-3. Lex continua a interrogare prima gli archivi interni utili, poi esegue la
-   ricerca web libera manuale se serve integrare risultati.
-4. I risultati web liberi restano distinti dalle fonti ufficiali già acquisite:
-   quando una pagina o un allegato è utile, va acquisito nell'archivio dello
-   studio per diventare fonte stabile interrogabile.
-5. La console pianificazioni non deve creare, avviare o mostrare job per questa
+3. Lex non applica allowlist ufficiali e non blocca per mancanza di fonte
+   autorizzata.
+4. Lex non porta quei risultati dentro il database, il corpus, la coda review o
+   gli archivi fonti: valgono solo per la singola risposta in chat.
+5. Il router non deve trascinare fonti DB, fascicolo o contesto pagina dentro la
+   modalità libera; il risultato resta marcato `web_libero`,
+   `verified_reference=false`.
+6. La risposta non deve mostrare warning o avvisi di responsabilità: in questa
+   modalità il software esegue la ricerca richiesta e il controllo spetta
+   interamente all'avvocato.
+7. La console pianificazioni non deve creare, avviare o mostrare job per questa
    funzione.
 
 ## Prove prima di dichiarare risolto
@@ -348,3 +353,59 @@ Esito atteso e verificato:
 La rotta con identificativo specifico filtra l'indice generale delle fonti
 ufficiali: le schede generiche restano disponibili per ricerche generali, ma non
 devono contaminare una risposta puntuale già fondata su `legal_updates.db`.
+
+## Caso Pilota QSP 9926/2026 - Risposta Da Avvocato
+
+Aggiornamento operativo del 18 maggio 2026.
+
+Problema emerso nella prova reale:
+
+- Lex trovava la scheda Cassazione e il PDF, ma rispondeva ancora come log di
+  recupero fonti.
+- La sintesi dell'allegato era povera e il punto di diritto poteva uscire
+  tronco.
+- La stessa risposta veniva restituita a domande diverse, invece di rispondere
+  al quesito effettivo dell'avvocato.
+- Il link PDF con underscore poteva essere spezzato dal rendering Markdown del
+  widget già aperto.
+
+Logica introdotta sul caso pilota:
+
+1. Prima si recuperano pagina QSP, allegato ufficiale, OCR e discrepanza R.G.
+2. Poi si costruisce una risposta focalizzata sulla domanda concreta.
+3. La risposta conserva sempre fonte, PDF, avviso su `9926/2026` / `9966/2026`
+   e separazione dai dati riservati dello studio.
+4. Se la domanda chiede norme o articoli, Lex estrae gli articoli dalla scheda e
+   dall'allegato e può attivare una ricerca web libera.
+5. La ricerca web libera resta separata dalla fonte ufficiale della questione,
+   non entra nel corpus e non applica allowlist o blocchi da fonte autorizzata.
+
+Matrice minima di domande coperte per il caso pilota:
+
+- `mi puoi sintetizzare questa sentenza Penale Pendente del ricorso R.G. 9926/2026`;
+- `qual è il punto di diritto della questione penale R.G. 9926/2026?`;
+- `quali sono i motivi del ricorso R.G. 9926/2026?`;
+- `è una sentenza o una questione pendente R.G. 9926/2026?`;
+- `quando è fissata l'udienza e quali norme sono indicate per R.G. 9926/2026?`;
+- `trova gli articoli di riferimento della questione R.G. 9926/2026`;
+- `chi sono ricorrente e relatore della questione penale R.G. 9926/2026?`;
+- `mi dai il PDF e l'allegato ufficiale della questione R.G. 9926/2026?`;
+- `posso citare la questione R.G. 9926/2026 in un atto come decisione definitiva?`;
+- `qual è l'esito della questione R.G. 9926/2026?`;
+- `spiegami la discrepanza tra R.G. 9926/2026 e R.G. 9966/2026`.
+
+Articoli da presidiare nel caso pilota:
+
+- dalla scheda Cassazione: `Cod. proc. pen. artt. 599-bis e 606`;
+- dall'ordinanza/OCR: `art. 599-bis c.p.p.`, `art. 129 c.p.p.`,
+  `art. 81, comma secondo c.p.`, quando presenti nel testo leggibile;
+- dalla fase web libera: risultati pubblici scelti dalla ricerca libera della
+  singola domanda, sempre marcati `web_libero` e mai promossi a fonte ufficiale
+  o corpus.
+
+Regola da riusare sugli altri documenti:
+
+- fatto bene un documento significa avere domanda, fonte, allegato, testo,
+  sintesi, norme, eventuale web libero, limiti e test ripetibili;
+- solo dopo questa chiusura si estende la stessa logica al generatore corpus e
+  agli altri documenti.

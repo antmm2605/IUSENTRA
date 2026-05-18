@@ -8,6 +8,7 @@ from lex.research.source_registry import get_source_registry
 from lex.retrieval.official_web import (
     build_source_registry_context,
     resolve_official_source_ids_for_query,
+    search_free_public_web,
     search_recognized_official_web,
 )
 
@@ -70,6 +71,7 @@ _LEGAL_LOOKUP_TOKENS: tuple[str, ...] = (
     "motivazione",
 )
 _FASCICOLO_FIRST_WORKFLOWS = {"fascicolo", "documento", "udienza"}
+_FREE_WEB_MODES = {"free", "free_web", "web_libero", "ricerca_libera", "libera"}
 
 
 def _clean_spaces(value) -> str:
@@ -84,11 +86,33 @@ def _metadata_flag(request, *keys: str) -> bool:
     return False
 
 
+def _source_mode(request) -> str:
+    metadata = getattr(request, "metadata", {}) or {}
+    profile = metadata.get("request_profile") or {}
+    if not isinstance(profile, dict):
+        profile = {}
+    return _clean_spaces(profile.get("source_mode") or metadata.get("source_mode")).lower()
+
+
+def _is_free_web_request(request) -> bool:
+    if _source_mode(request) in _FREE_WEB_MODES:
+        return True
+    return _metadata_flag(
+        request,
+        "free_web_enabled",
+        "force_free_web_search",
+        "manual_free_web_enabled",
+    )
+
+
 def _should_search_official_web(request, workflow: str) -> bool:
     metadata = getattr(request, "metadata", {}) or {}
     text = _clean_spaces(getattr(request, "query", "")).lower()
     has_legal_lookup = any(token in text for token in _LEGAL_LOOKUP_TOKENS)
     external_reason = _clean_spaces(metadata.get("external_sources_reason"))
+
+    if _is_free_web_request(request):
+        return True
 
     if workflow in _FASCICOLO_FIRST_WORKFLOWS and bool(getattr(request, "fascicolo_id", None)):
         if not bool(getattr(request, "allow_external_research", False)):
@@ -158,6 +182,68 @@ class OfficialWebSource:
             return []
 
         query = _clean_spaces(queries[0] if queries else getattr(request, "query", ""))
+        if _is_free_web_request(request):
+            rows = search_free_public_web(
+                query,
+                request_get=self._request_get,
+                limit_results=4,
+            )
+            request_metadata = getattr(request, "metadata", None)
+            if isinstance(request_metadata, dict):
+                request_metadata["source_registry"] = {
+                    "mode": "web_libero",
+                    "allowlist_used": False,
+                    "saved_to_db": False,
+                    "requested_sources": [],
+                    "selected_source_ids": [],
+                    "searchable_sources": [],
+                    "restricted_sources": [],
+                    "partner_sources": [],
+                    "credentialed_sources": [],
+                    "matched_keys": [],
+                }
+            evidence: list[EvidenceItem] = []
+            for row in rows:
+                url = _clean_spaces(row.get("url") or row.get("official_url"))
+                source_name = _clean_spaces(row.get("source_name") or row.get("domain") or "Web libero")
+                evidence.append(
+                    EvidenceItem(
+                        source_type="web_libero",
+                        source_id=str(row.get("id") or row.get("source_id") or url),
+                        title=_clean_spaces(row.get("title") or source_name) or "Risultato web",
+                        content=_clean_spaces(
+                            row.get("excerpt")
+                            or row.get("summary")
+                            or f"Risultato web trovato su {source_name}."
+                        ),
+                        score=float(row.get("trust_score") or 0.55),
+                        trust_class="",
+                        source_level=3,
+                        trust_score=float(row.get("trust_score") or 0.55),
+                        verified_reference=False,
+                        authority="Web libero",
+                        metadata={
+                            "authority": "web_libero",
+                            "url": url,
+                            "domain": _clean_spaces(row.get("domain") or ""),
+                            "source_name": source_name,
+                            "kind": _clean_spaces(row.get("kind") or ""),
+                            "source_access_status": _clean_spaces(row.get("source_access_status") or "public"),
+                            "source_access_label": _clean_spaces(row.get("source_access_label") or "Web libero"),
+                            "source_category": _clean_spaces(row.get("source_category") or "ricerca_web"),
+                            "source_priority": _clean_spaces(row.get("source_priority") or "web_libero"),
+                            "source_requires_credentials": bool(row.get("source_requires_credentials")),
+                            "source_restricted": bool(row.get("source_restricted")),
+                            "source_supports_web_search": bool(row.get("source_supports_web_search", True)),
+                            "free_web_enabled": True,
+                            "allowlist_used": False,
+                            "saved_to_db": False,
+                            "verified_reference": False,
+                        },
+                    )
+                )
+            return evidence
+
         metadata_source_ids = (getattr(request, "metadata", {}) or {}).get("source_ids")
         if isinstance(metadata_source_ids, str):
             metadata_source_ids = [metadata_source_ids]

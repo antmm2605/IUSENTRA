@@ -151,6 +151,11 @@ Quando il lavoro riguarda Lex AI, assistente fascicolo, RAG, retrieval o fonti:
 - distinguere fatti certi, inferenze, lacune e suggerimenti;
 - citare fonti interne o ufficiali quando richiesto;
 - non generare contenuti legali non verificati come se fossero certi.
+- **Memoria obbligatoria caso pilota Lex/QSP 9926/2026:** prima di estendere generatore corpus, job o import massivi, completare un documento fonte end-to-end in modo professionale. Per `Questione Penale Pendente del ricorso R.G. 9926/2026` Lex deve rispondere alle domande reali dell'avvocato, non solo mostrare il log di recupero fonte: sintesi, natura dell'atto, punto di diritto, motivi/censure, norme e articoli, udienza, ricorrente/relatore, allegato PDF, stato pendente, discrepanza `R.G. 9926/2026` / `R.G. 9966/2026`, limiti e fonti devono essere presenti quando richiesti.
+- **Matrice domande Lex obbligatoria:** ogni nuova logica su fonti/corpus deve essere provata con più formulazioni dell'utente, incluse domande imprecise come "sentenza penale pendente", domande su articoli, domande su PDF/allegato, domande su esito/stato e domande su uso in atto. Non basta un singolo prompt riuscito.
+- **Web libero Lex:** quando l'avvocato attiva `Web libero`, la ricerca deve essere realmente libera: nessuna allowlist ufficiale, nessun blocco da `fonte autorizzata`, nessuna promozione nel DB/corpus e nessun warning visibile nella risposta. Il software esegue la ricerca richiesta e marca tecnicamente i risultati come `web_libero` con `verified_reference=false`; controllo, valutazione e responsabilità professionale restano integralmente dell'avvocato.
+- **Articoli e web libero:** quando l'utente chiede articoli o riferimenti normativi, Lex deve estrarre prima gli articoli dal documento acquisito e dagli allegati OCR; può poi integrare con `Web libero` senza fonti autorizzate. La sezione deve restare distinta dalle fonti ufficiali, ma non deve ammonire o bloccare l'avvocato.
+- **Tracciamento permanente:** ogni passaggio svolto su Lex/fonti/corpus deve essere registrato in `docs/LEX_AI_RESPONSE_PIPELINE.md`, `docs/LEX_PUBLIC_SOURCES_AND_STUDIO_DATA_AUDIT.md`, `docs/lex-operational-knowledge-map.md`, `CHANGELOG.md` e nei test mirati. Se si cambia la logica, aggiornare prima questi riferimenti per evitare di ripetere gli stessi errori.
 
 ### Regole per UI e app-v2
 

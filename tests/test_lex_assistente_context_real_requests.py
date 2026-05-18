@@ -6,6 +6,21 @@ from pathlib import Path
 from tests.test_web_bootstrap import _cfg_web, _seed_tenant_admin, _write_studio_config
 
 
+QSP_ATTACHMENT_OCR_TEXT = (
+    "CORTE SUPREMA DI CASSAZIONE QUINTA SEZIONE PENALE. Oggetto: ricorso n. 9966/2026 R.G. "
+    "E' pervenuto all'esame preliminare di questo Ufficio il ricorso RG 9966/26, proposto nell'interesse "
+    "di Gianfranco Greco avverso la sentenza della Corte d'appello di Caltanissetta del 10 ottobre 2025. "
+    "La pena è stata concordata tra le parti ex art. 599-bis cod. proc. pen. "
+    "Il ricorrente deduce, con quattro motivi, le seguenti censure: - l'illegalità della pena, per non "
+    "essere stato motivato il giudizio di comparazione tra la recidiva e le ulteriori circostanze; - il difetto "
+    "di controllo giudiziale sull'accordo; - la motivazione apparente in ordine all'esclusione di cause di "
+    "proscioglimento ex art. 129 cod. proc. pen.; - la violazione dei limiti del concordato. "
+    "Al netto del riferimento nominalistico alla illegalità della pena, il ricorso pone il tema della deducibilità "
+    "dell'erronea determinazione della sanzione, concordata tra le parti ex art. 599-bis cod. proc. pen., "
+    "con richiamo all'art. 81, comma secondo, cod. pen."
+)
+
+
 def _seed_studio_con_moscato(tmp_path: Path):
     from pct.agenda import Agenda, TipoAppuntamento
     from pct.clienti import GestioneClienti, Indirizzo, Recapiti, TipoCliente
@@ -162,7 +177,7 @@ def test_assistente_chat_questione_penale_rg_non_finisce_nell_editor(tmp_path: P
                     1,
                     620,
                     "R.G. 9966/2026. Ordinanza di rimessione.",
-                    "CORTE SUPREMA DI CASSAZIONE. Oggetto: ricorso n. 9966/2026 R.G. Ordinanza di rimessione.",
+                    QSP_ATTACHMENT_OCR_TEXT,
                     '["ordinanza", "rimessione", "9966/2026"]',
                     "verified",
                 ),
@@ -191,10 +206,15 @@ def test_assistente_chat_questione_penale_rg_non_finisce_nell_editor(tmp_path: P
     stream = response.get_data(as_text=True)
     assert response.status_code == 200
     assert "Allegato: **Ordinanza di rimessione**." in stream
+    assert "### Risposta alla domanda" in stream
+    assert "sentenza definitiva" in stream
+    assert "Motivi del ricorso" in stream
+    assert "Punto di diritto" in stream
     assert "concordato in appello" in stream
     assert "Cod. proc. pen. artt. 599-bis e 606" in stream
     assert "Punto da verificare" in stream
-    assert "Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf" in stream
+    assert "Apri PDF ufficiale" in stream
+    assert "Nota%5FUfficio%5FSpoglio%5FV%5FSez.%5Fpenale%5FRG%5F9966%5F2026%5F1.pdf" in stream
     assert "R.G. 9926/2026" in stream
     assert "R.G. 9966/2026" in stream
     assert "Editor Lex" not in stream

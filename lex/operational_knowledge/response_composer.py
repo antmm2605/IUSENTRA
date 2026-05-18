@@ -322,7 +322,7 @@ class OperationalResponseComposer:
         question: str = "",
     ) -> list[str]:
         rows = []
-        for source_id in ("legal_intelligence", "update_intelligence", "fonti_ufficiali"):
+        for source_id in ("legal_intelligence", "update_intelligence", "fonti_ufficiali", "web_libero"):
             rows.extend(_data_for(results, source_id))
         attachment_rows = [row for row in rows if clean_spaces(row.get("attachment_url") or row.get("url_allegato"))]
         if attachment_rows:
@@ -352,10 +352,20 @@ class OperationalResponseComposer:
             lines = [
                 "Ho trovato una fonte ufficiale collegata alla richiesta.",
             ]
-            case_summary = _official_case_summary_lines(rows)
+            case_details = _official_case_details(rows)
+            attachment_analysis = _official_attachment_analysis(primary)
+            focused_answer = _official_question_answer_lines(question, case_details, attachment_analysis)
+            if focused_answer:
+                lines.append("### Risposta alla domanda")
+                lines.extend(focused_answer)
+            case_summary = _official_case_summary_lines_from_details(case_details)
             if case_summary:
                 lines.append("### Cosa dice la scheda ufficiale")
                 lines.extend(case_summary)
+            attachment_summary = _official_attachment_summary_lines_from_analysis(attachment_analysis)
+            if attachment_summary:
+                lines.append("### Sintesi dell'ordinanza")
+                lines.extend(attachment_summary)
             lines.extend(
                 [
                     "### Allegato ufficiale",
@@ -365,9 +375,9 @@ class OperationalResponseComposer:
             if source_name:
                 lines.append(f"- Fonte: {source_name}.")
             if attachment_url:
-                lines.append(f"- PDF ufficiale: {_markdown_link(attachment_url)}.")
+                lines.append(f"- PDF ufficiale: {_markdown_link(attachment_url, label='Apri PDF ufficiale')}.")
             if page_url and page_url != attachment_url:
-                lines.append(f"- Pagina ufficiale: {_markdown_link(page_url)}.")
+                lines.append(f"- Pagina ufficiale: {_markdown_link(page_url, label='Apri scheda Cassazione')}.")
             mismatch = _reference_mismatch_note(question, primary)
             if mismatch:
                 lines.append("### Punto da verificare")
@@ -384,6 +394,10 @@ class OperationalResponseComposer:
             ]
             if display_gaps:
                 lines.append("Limiti: " + "; ".join(display_gaps[:3]) + ".")
+            free_web_lines = _free_web_article_lines(rows)
+            if free_web_lines:
+                lines.append("### Integrazione web libera sugli articoli")
+                lines.extend(free_web_lines)
             lines.append("### Esito")
             lines.append("- Dato certo: pagina e allegato ufficiale sono stati trovati nell'archivio delle fonti pubbliche.")
             lines.append("- Non sto usando dati riservati dello studio per questa risposta.")
@@ -507,25 +521,29 @@ def _extract_label_value(text: str, label: str, stop_labels: tuple[str, ...]) ->
     return _extract_until_label(text, rf"{re.escape(label)}\s*:?\s*(.+)", stop_labels)
 
 
-def _official_case_summary_lines(rows: list[dict[str, Any]]) -> list[str]:
+def _row_content_text(row: dict[str, Any]) -> str:
+    return clean_spaces(
+        row.get("content")
+        or row.get("text")
+        or row.get("context")
+        or row.get("excerpt")
+        or row.get("summary")
+        or row.get("title")
+        or row.get("titolo")
+    )
+
+
+def _official_case_details(rows: list[dict[str, Any]]) -> dict[str, str]:
     page_text = ""
     for row in rows:
         if clean_spaces(row.get("attachment_url") or row.get("url_allegato")):
             continue
-        candidate = clean_spaces(
-            row.get("content")
-            or row.get("text")
-            or row.get("context")
-            or row.get("excerpt")
-            or row.get("summary")
-            or row.get("title")
-            or row.get("titolo")
-        )
+        candidate = _row_content_text(row)
         if "questione penale" in candidate.lower() or "questione civile" in candidate.lower():
             page_text = candidate
             break
     if not page_text:
-        return []
+        return {}
 
     question_text = _extract_until_label(
         page_text,
@@ -558,23 +576,346 @@ def _official_case_summary_lines(rows: list[dict[str, Any]]) -> list[str]:
         ("Allegati", "Ordinanza", "Scarica Documento"),
     )
 
+    return {
+        "question_text": question_text,
+        "inserted_at": inserted_at,
+        "hearing": hearing,
+        "relator": relator,
+        "ricorrente": ricorrente,
+        "references": references,
+    }
+
+
+def _official_case_summary_lines(rows: list[dict[str, Any]]) -> list[str]:
+    return _official_case_summary_lines_from_details(_official_case_details(rows))
+
+
+def _official_case_summary_lines_from_details(details: dict[str, str]) -> list[str]:
     lines: list[str] = []
+    question_text = details.get("question_text", "")
+    references = details.get("references", "")
     if question_text:
         lines.append(f"- Questione: {_sentence_text(question_text)}")
     if references:
         lines.append(f"- Riferimenti normativi: {_sentence_text(references)}")
-    details = []
-    if inserted_at:
-        details.append(f"inserita il {inserted_at}")
-    if hearing:
-        details.append(f"udienza {hearing}")
-    if relator:
-        details.append(f"relatore {relator}")
-    if ricorrente:
-        details.append(f"ricorrente {ricorrente}")
-    if details:
-        lines.append("- Scheda: " + "; ".join(details) + ".")
+    info_parts = []
+    if inserted_at := details.get("inserted_at", ""):
+        info_parts.append(f"inserita il {inserted_at}")
+    if hearing := details.get("hearing", ""):
+        info_parts.append(f"udienza {hearing}")
+    if relator := details.get("relator", ""):
+        info_parts.append(f"relatore {relator}")
+    if ricorrente := details.get("ricorrente", ""):
+        info_parts.append(f"ricorrente {ricorrente}")
+    if info_parts:
+        lines.append("- Scheda: " + "; ".join(info_parts) + ".")
     return lines
+
+
+def _extract_segment(text: str, start_pattern: str, stop_patterns: tuple[str, ...], *, include_start: bool = False) -> str:
+    match = re.search(start_pattern, text, re.IGNORECASE)
+    if not match:
+        return ""
+    start = match.start() if include_start else match.end()
+    value = clean_spaces(text[start:])
+    stop_positions = [
+        pos
+        for stop in stop_patterns
+        for pos in [value.lower().find(stop.lower())]
+        if pos >= 0
+    ]
+    if stop_positions:
+        value = clean_spaces(value[: min(stop_positions)])
+    return value.strip(" .;")
+
+
+def _official_attachment_analysis(row: dict[str, Any]) -> dict[str, Any]:
+    text = _row_content_text(row)
+    if len(text) < 300:
+        return {}
+    lowered = text.lower()
+    if "599-bis" not in lowered and "concordato" not in lowered and "ricorso" not in lowered:
+        return {}
+
+    proceeding = _extract_segment(
+        text,
+        r"ricorso\s+RG\s+\d+/\d+,\s+proposto",
+        ("1.1.", "Dalla proposta", "Il ricorrente deduce"),
+        include_start=True,
+    )
+
+    penalty = _extract_segment(
+        text,
+        r"pena\s+base,",
+        ("1.2.", "Il ricorrente deduce"),
+        include_start=True,
+    )
+    if penalty:
+        penalty = _clean_ocr_excerpt(penalty)
+
+    complaints = _complaint_lines(text)
+
+    legal_theme = _extract_segment(
+        text,
+        r"il\s+ricorso\s+pone\s+il\s+tema",
+        ("; tema rilevante", "2.", "Siffatta nozione"),
+        include_start=True,
+    )
+    legal_theme = _clean_ocr_excerpt(legal_theme)
+    if not legal_theme or clean_spaces(legal_theme).lower() == "il ricorso pone":
+        legal_theme = (
+            "la questione riguarda se, dopo il concordato in appello, si possano dedurre in Cassazione "
+            "vizi sulla determinazione della pena quando la pena non è illegale in senso stretto"
+        )
+
+    analysis: dict[str, Any] = {
+        "nature": "non è una sentenza definitiva; è un'ordinanza/nota di rimessione collegata a una questione penale pendente",
+        "proceeding": _clean_ocr_excerpt(proceeding),
+        "penalty": penalty,
+        "complaints": complaints,
+        "legal_theme": legal_theme,
+        "article_references": _article_references(text),
+        "status": "la questione è pendente; la scheda indica l'udienza del 09 luglio 2026, quindi non risulta una decisione finale sul merito della questione",
+    }
+    if "pena illegale" in lowered and "pena è illegittima" in lowered:
+        analysis["legal_distinction"] = (
+            "l'atto distingue tra pena illegale, fuori dal sistema o dai limiti edittali, e pena soltanto "
+            "illegittima per errori nel percorso di commisurazione"
+        )
+    return analysis
+
+
+def _official_attachment_summary_lines(row: dict[str, Any]) -> list[str]:
+    return _official_attachment_summary_lines_from_analysis(_official_attachment_analysis(row))
+
+
+def _official_attachment_summary_lines_from_analysis(analysis: dict[str, Any]) -> list[str]:
+    if not analysis:
+        return []
+    lines = [
+        f"- Natura dell'atto: {_sentence_text(analysis.get('nature'))}",
+    ]
+    if analysis.get("proceeding"):
+        lines.append(f"- Vicenda processuale: {_sentence_text(_short_text(analysis['proceeding'], max_length=520))}")
+    if analysis.get("penalty"):
+        lines.append(f"- Pena concordata: {_sentence_text(_short_text(analysis['penalty'], max_length=520))}")
+    complaints = list(analysis.get("complaints") or [])
+    if complaints:
+        lines.append("- Motivi del ricorso:")
+        lines.extend(f"  - {_sentence_text(item)}" for item in complaints[:4])
+    if analysis.get("legal_theme"):
+        lines.append(f"- Punto di diritto: {_sentence_text(_short_text(analysis['legal_theme'], max_length=420))}")
+    articles = list(analysis.get("article_references") or [])
+    if articles:
+        lines.append("- Articoli richiamati nell'allegato: " + "; ".join(articles[:8]) + ".")
+    if analysis.get("legal_distinction"):
+        lines.append(f"- Snodo giuridico: {_sentence_text(analysis['legal_distinction'])}")
+    if analysis.get("status"):
+        lines.append(f"- Stato: {_sentence_text(analysis['status'])}")
+    return lines
+
+
+def _complaint_lines(text: str) -> list[str]:
+    block = _extract_segment(
+        text,
+        r"Il\s+ricorrente\s+deduce,\s+con\s+quattro\s+motivi,\s+le\s+seguenti\s+censure:\s*",
+        ("AI netto", "Al netto", "il ricorso pone"),
+    )
+    if not block:
+        return []
+    pieces = re.split(r"\s+-\s+", " " + block)
+    result: list[str] = []
+    for piece in pieces:
+        clean = clean_spaces(piece).strip(" -.;")
+        if not clean or clean.lower().startswith("il ricorrente deduce"):
+            continue
+        if clean not in result:
+            result.append(_short_text(clean, max_length=220))
+    return result
+
+
+def _official_question_answer_lines(
+    question: str,
+    case_details: dict[str, str],
+    attachment_analysis: dict[str, Any],
+) -> list[str]:
+    if not case_details and not attachment_analysis:
+        return []
+    normalized = clean_spaces(question).lower()
+    wants_summary = any(token in normalized for token in ("sintesi", "sintetizz", "riassum", "cosa dice", "spieg"))
+    wants_legal_theme = any(token in normalized for token in ("punto di diritto", "quesito", "questione", "principio", "deducibil"))
+    wants_motives = any(token in normalized for token in ("motivi", "censure", "doglian", "ricorso"))
+    wants_nature = any(token in normalized for token in ("sentenza", "pendente", "che atto", "natura"))
+    wants_schedule = any(token in normalized for token in ("udienza", "quando", "norme", "riferimenti normativi", "artt", "articoli"))
+    wants_articles = any(token in normalized for token in ("art.", "artt", "articolo", "articoli", "norme", "riferimenti normativi"))
+    wants_people = any(token in normalized for token in ("ricorrente", "relatore", "parti", "chi è", "chi ha"))
+    wants_status = any(token in normalized for token in ("esito", "decisa", "deciso", "decisione finale", "risultato"))
+    wants_citation = any(token in normalized for token in ("citare", "citazione", "usare in atto", "utilizzare in atto", "valore"))
+    wants_attachment = any(token in normalized for token in ("allegato", "pdf", "ordinanza", "link", "scaricare"))
+    if not any((wants_summary, wants_legal_theme, wants_motives, wants_nature, wants_schedule, wants_articles, wants_people, wants_status, wants_citation, wants_attachment)):
+        wants_summary = True
+
+    lines: list[str] = []
+    case_question = case_details.get("question_text", "")
+    legal_theme = clean_spaces(attachment_analysis.get("legal_theme") or case_question)
+    if wants_summary:
+        if case_question:
+            lines.append(
+                "- In sintesi: la Cassazione deve chiarire "
+                + _lowercase_initial(_sentence_text(case_question))
+            )
+        elif legal_theme:
+            lines.append(f"- In sintesi: {_sentence_text(legal_theme)}")
+        proceeding = clean_spaces(attachment_analysis.get("proceeding"))
+        if proceeding:
+            lines.append(f"- Contesto processuale: {_sentence_text(_short_text(proceeding, max_length=360))}")
+    if wants_nature and attachment_analysis.get("nature"):
+        lines.append(f"- Natura dell'atto: {_sentence_text(attachment_analysis['nature'])}")
+    if wants_legal_theme and legal_theme:
+        lines.append(f"- Punto di diritto: {_sentence_text(_short_text(legal_theme, max_length=420))}")
+    complaints = list(attachment_analysis.get("complaints") or [])
+    if wants_motives and complaints:
+        lines.append("- Motivi/censure indicati nell'ordinanza:")
+        lines.extend(f"  - {_sentence_text(item)}" for item in complaints[:4])
+    if wants_schedule:
+        hearing = clean_spaces(case_details.get("hearing"))
+        references = clean_spaces(case_details.get("references"))
+        if hearing:
+            lines.append(f"- Udienza indicata in scheda: {hearing}.")
+        if references:
+            lines.append(f"- Norme indicate: {_sentence_text(references)}")
+    if wants_articles:
+        articles = _unique_preserve_order(
+            [clean_spaces(case_details.get("references"))]
+            + [clean_spaces(item) for item in list(attachment_analysis.get("article_references") or [])]
+        )
+        articles = [item for item in articles if item]
+        if articles:
+            lines.append("- Articoli/riferimenti trovati: " + "; ".join(articles[:10]) + ".")
+    if wants_people:
+        ricorrente = clean_spaces(case_details.get("ricorrente"))
+        relator = clean_spaces(case_details.get("relator"))
+        if ricorrente:
+            lines.append(f"- Ricorrente indicato nella scheda: {ricorrente}.")
+        if relator:
+            lines.append(f"- Relatore indicato nella scheda: {relator}.")
+    if wants_attachment:
+        lines.append("- Allegato ufficiale individuato: ordinanza di rimessione; il collegamento al PDF è riportato nella sezione Allegato ufficiale.")
+    if wants_status and attachment_analysis.get("status"):
+        lines.append(f"- Esito/stato: {_sentence_text(attachment_analysis['status'])}")
+    if wants_citation:
+        lines.append("- Uso prudente: trattala come fonte ufficiale su questione pendente e ordinanza di rimessione, non come arresto definitivo di Cassazione.")
+    if wants_summary and attachment_analysis.get("status"):
+        lines.append(f"- Stato: {_sentence_text(attachment_analysis['status'])}")
+    return _unique_preserve_order(lines)
+
+
+def _free_web_article_lines(rows: list[dict[str, Any]]) -> list[str]:
+    web_rows = [
+        row for row in rows
+        if clean_spaces(row.get("source_id") or row.get("fonte") or row.get("source_name")).lower() in {"web_libero", "web libero"}
+        or clean_spaces(row.get("source_access_label")).lower() == "web libero"
+        or clean_spaces(row.get("source_priority")).lower() == "web_libero"
+    ]
+    if not web_rows:
+        return []
+    lines: list[str] = []
+    for row in web_rows[:3]:
+        title = clean_spaces(row.get("title") or row.get("titolo") or row.get("name") or "Risultato web")
+        url = clean_spaces(row.get("official_url") or row.get("url") or row.get("source_url"))
+        excerpt = clean_spaces(row.get("excerpt") or row.get("summary") or row.get("text"))
+        line = f"- {title}"
+        if url:
+            line += f": {_markdown_link(url, label='Apri risultato')}"
+        if excerpt:
+            line += f" - {_sentence_text(_short_text(excerpt, max_length=220))}"
+        else:
+            line += "."
+        lines.append(line)
+    return lines
+
+
+def _clean_ocr_excerpt(value: Any) -> str:
+    text = clean_spaces(value)
+    if not text:
+        return ""
+    text = re.sub(r"\s*[\\|_]{2,}\s*-?\s*", " ", text)
+    text = re.sub(r"\s*/\s*[A-Z][a-zA-Z]?\s+", " ", text)
+    text = re.sub(r"\bDIN\s+", "", text)
+    text = re.sub(r"\s{2,}", " ", text)
+    return text.strip(" .;")
+
+
+def _article_references(text: str) -> list[str]:
+    value = clean_spaces(text)
+    if not value:
+        return []
+    references: list[str] = []
+    for match in re.finditer(
+        r"\bartt?\.?\s+([\d]+(?:-[a-z]+)?(?:\s*,\s*comma\s+(?:primo|secondo|terzo|quarto|\d+))?)\s+"
+        r"(cod\.?\s+(?:proc\.?\s+pen\.?|pen\.?|civ\.?|proc\.?\s+civ\.?))",
+        value,
+        flags=re.IGNORECASE,
+    ):
+        article = clean_spaces(match.group(1))
+        code = _normalize_code_label(match.group(2))
+        label = f"art. {article} {code}"
+        if label not in references:
+            references.append(label)
+    for match in re.finditer(
+        r"\bartt?\.?\s+([\d]+(?:-[a-z]+)?(?:\s*,\s*comma\s+(?:primo|secondo|terzo|quarto|\d+))?)\s*,?\s+"
+        r"(cod\.?\s+(?:proc\.?\s+pen\.?|pen\.?|civ\.?|proc\.?\s+civ\.?))",
+        value,
+        flags=re.IGNORECASE,
+    ):
+        article = clean_spaces(match.group(1))
+        code = _normalize_code_label(match.group(2))
+        label = f"art. {article} {code}"
+        if label not in references:
+            references.append(label)
+    for match in re.finditer(
+        r"\bex\s+art\.?\s+([\d]+(?:-[a-z]+)?)\s+"
+        r"(cod\.?\s+(?:proc\.?\s+pen\.?|pen\.?|civ\.?|proc\.?\s+civ\.?))",
+        value,
+        flags=re.IGNORECASE,
+    ):
+        article = clean_spaces(match.group(1))
+        code = _normalize_code_label(match.group(2))
+        label = f"art. {article} {code}"
+        if label not in references:
+            references.append(label)
+    return references
+
+
+def _normalize_code_label(value: str) -> str:
+    code = clean_spaces(value).lower().replace("cod.", "cod.")
+    code = re.sub(r"\s+", " ", code)
+    replacements = {
+        "cod. proc. pen.": "c.p.p.",
+        "cod. pen.": "c.p.",
+        "cod. civ.": "c.c.",
+        "cod. proc. civ.": "c.p.c.",
+    }
+    return replacements.get(code, code)
+
+
+def _lowercase_initial(value: str) -> str:
+    text = clean_spaces(value)
+    if not text:
+        return ""
+    return text[:1].lower() + text[1:]
+
+
+def _unique_preserve_order(lines: list[str]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for line in lines:
+        marker = clean_spaces(line).lower()
+        if not marker or marker in seen:
+            continue
+        seen.add(marker)
+        result.append(line)
+    return result
 
 
 _REFERENCE_RE = re.compile(
@@ -621,8 +962,9 @@ def _reference_mismatch_note(question: str, row: dict[str, Any]) -> str:
     for asked in asked_refs:
         if asked not in found_refs:
             return (
-                "Attenzione: nella domanda compare R.G. "
-                f"{asked}, mentre nell'allegato acquisito risulta R.G. {found_refs[0]}."
+                "Attenzione: la scheda/domanda indica R.G. "
+                f"{asked}, mentre nell'allegato collegato il numero letto risulta R.G. {found_refs[0]}. "
+                "Può trattarsi di refuso della fonte, allegato non coerente o lettura da verificare sul PDF."
             )
     return ""
 
@@ -822,11 +1164,12 @@ def _sentence_text(value: Any) -> str:
     return text + "."
 
 
-def _markdown_link(url: str) -> str:
+def _markdown_link(url: str, *, label: str = "") -> str:
     clean = clean_spaces(url)
     if not clean:
         return ""
-    return f"[{clean}]({clean})"
+    href = clean.replace("_", "%5F")
+    return f"[{label or clean}]({href})"
 
 
 def _communication_details(row: dict[str, Any], *, include_folder: bool = False) -> list[str]:

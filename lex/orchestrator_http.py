@@ -165,16 +165,21 @@ def build_context_payload(
     )
 
 
-def followup_prompt_block(followup) -> str:
+def followup_prompt_block(followup, *, free_web_enabled: bool = False) -> str:
     lines: list[str] = []
     if bool(getattr(followup, "reused_previous_topic", False)) and clean_spaces(getattr(followup, "previous_user_text", "")):
         lines.append(
             "Follow-up conversazionale: il tema utile e' gia' emerso nel turno precedente e va ereditato senza chiedere di nuovo l'argomento."
         )
     if bool(getattr(followup, "is_web_request", False)):
-        lines.append(
-            "Richiesta web presa in carico: Lex deve controllare direttamente, usare fonti ufficiali pertinenti e riportare risultati concreti, non un elenco di siti da consultare."
-        )
+        if free_web_enabled:
+            lines.append(
+                "Ricerca web libera attiva: Lex deve cercare direttamente sul web pubblico senza allowlist ufficiale e senza blocchi da fonte autorizzata."
+            )
+        else:
+            lines.append(
+                "Richiesta web presa in carico: Lex deve controllare direttamente, usare fonti ufficiali pertinenti e riportare risultati concreti, non un elenco di siti da consultare."
+            )
     if bool(getattr(followup, "needs_web_search", False)):
         lines.append(
             "In questa risposta il web va usato solo come supporto operativo mirato, dopo aver sfruttato il contesto interno utile."
@@ -341,7 +346,7 @@ def build_context_response(
             studio_prompt_block,
             page_context_prompt_block(data),
             routing_prompt_block(routing, opening_line=opening_line),
-            followup_prompt_block(followup),
+            followup_prompt_block(followup, free_web_enabled=bool(studio_context.get("free_web_enabled"))),
             str(language_guidance.prompt_block or "").strip(),
         ]
         if block
@@ -369,10 +374,15 @@ def build_context_response(
     if bounded_payload:
         bounded_payload["routing"] = routing_payload(routing)
         bounded_payload["followup_resolution"] = followup_resolution_payload(followup)
-        context_sources = [dict(item) for item in list(studio_context.get("sources") or []) if isinstance(item, dict)]
+        free_web_payload = bool(bounded_payload.get("free_web_enabled") or studio_context.get("free_web_enabled"))
+        context_sources = [] if free_web_payload else [
+            dict(item) for item in list(studio_context.get("sources") or []) if isinstance(item, dict)
+        ]
         if context_sources:
             bounded_payload["sources"] = context_sources
-        context_citations = [clean_spaces(item) for item in list(studio_context.get("citations") or []) if clean_spaces(item)]
+        context_citations = [] if free_web_payload else [
+            clean_spaces(item) for item in list(studio_context.get("citations") or []) if clean_spaces(item)
+        ]
         if context_citations:
             merged_citations = list(context_citations)
             for citation in list(bounded_payload.get("citations") or []):
@@ -392,7 +402,7 @@ def build_context_response(
         bounded_payload["focus_topic"] = str(studio_context.get("focus_topic") or "").strip()
         bounded_payload["competence_labels"] = list(studio_context.get("competence_labels") or [])
         bounded_payload["execution_policy"] = studio_context.get("execution_policy") or {}
-        bounded_payload["structured_context"] = studio_context.get("structured_context") or {}
+        bounded_payload["structured_context"] = {} if free_web_payload else (studio_context.get("structured_context") or {})
         bounded_payload["retrieval_sources"] = bounded_payload.get("retrieval_sources") or []
         return bounded_payload, 200
 
@@ -681,7 +691,7 @@ def chat_response(
             studio_prompt_block,
             page_context_prompt_block(data),
             routing_prompt_block(routing, opening_line=stream_opening_line),
-            followup_prompt_block(followup),
+            followup_prompt_block(followup, free_web_enabled=bool(studio_context.get("free_web_enabled"))),
             str(language_guidance.prompt_block or "").strip(),
         ]
         if block

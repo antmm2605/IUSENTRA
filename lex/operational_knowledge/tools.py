@@ -575,6 +575,27 @@ class OperationalKnowledgeTools:
             result.coverage_gaps.append("Nessuna fonte ufficiale citabile trovata nell'indice locale configurato.")
         return result
 
+    def search_free_public_web(self, query: str, context: OperationalQueryContext, *, limit: int = 4) -> OperationalToolResult:
+        decision = self._decision("web_libero", context)
+        if not decision.allowed:
+            return self._blocked("web_libero", decision)
+        try:
+            helper = self.repositories.get("web_libero")
+            if helper is not None and hasattr(helper, "search_free_public_web"):
+                rows = list(helper.search_free_public_web(query, limit=limit))
+            else:
+                from lex.retrieval.official_web import search_free_public_web
+
+                rows = list(search_free_public_web(query, limit_results=limit))
+        except Exception as exc:
+            return self._unavailable("web_libero", f"Ricerca web libera non disponibile: {exc}")
+        data = [serialize_generic(item) for item in rows[: max(1, int(limit or 1))]]
+        result = self._plain_result("web_libero", context, data, "ricerca_web")
+        result.permission = decision
+        if not data:
+            result.coverage_gaps.append("Ricerca web libera eseguita senza risultati utili per integrare gli articoli.")
+        return result
+
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------

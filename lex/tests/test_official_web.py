@@ -71,6 +71,42 @@ def test_search_free_public_web_accetta_risultati_pubblici_non_allowlist():
     assert results[0]["source_access_label"] == "Web libero"
 
 
+def test_official_web_source_in_modalita_libera_non_usa_allowlist_ufficiale():
+    body = """
+    <html>
+      <body>
+        <div class="result">
+          <a class="result__a" href="https://www.forogiuridico.it/appunti/liberi.html">Appunto libero</a>
+          <div class="result__snippet">Risultato da ricerca web libera.</div>
+        </div>
+      </body>
+    </html>
+    """
+    source = OfficialWebSource(request_get=lambda *args, **kwargs: _FakeResponse(body))
+    request = LexRequest(
+        tenant_id="tenant-demo",
+        user_id="u1",
+        session_id="s1",
+        query="cerca quello che voglio",
+        fascicolo_id="fas-1",
+        metadata={"source_mode": "free_web", "free_web_enabled": True},
+        allow_external_research=False,
+        require_official_sources=False,
+    )
+
+    items = source.search(["cerca quello che voglio"], request=request, context={"workflow": "fascicolo"})
+
+    assert len(items) == 1
+    assert items[0].source_type == "web_libero"
+    assert items[0].verified_reference is False
+    assert items[0].source_level == 3
+    assert items[0].metadata["allowlist_used"] is False
+    assert items[0].metadata["saved_to_db"] is False
+    assert items[0].metadata["url"] == "https://www.forogiuridico.it/appunti/liberi.html"
+    assert request.metadata["source_registry"]["mode"] == "web_libero"
+    assert request.metadata["source_registry"]["allowlist_used"] is False
+
+
 def test_official_web_source_restituisce_evidenze_quando_la_query_lo_richiede():
     body = """
     <html>
@@ -161,6 +197,22 @@ def test_source_router_aggiunge_official_web_source_su_richiesta_web():
     sources = router.resolve(request, {}, "chat")
 
     assert any(isinstance(source, OfficialWebSource) for source in sources)
+
+
+def test_source_router_web_libero_non_trascina_fonti_db_o_fascicolo():
+    router = SourceRouter()
+    request = LexRequest(
+        tenant_id="tenant-demo",
+        user_id="u1",
+        session_id="s1",
+        query="cerca liberamente un tema non censito",
+        fascicolo_id="fas-1",
+        metadata={"source_mode": "free_web", "free_web_enabled": True},
+    )
+
+    sources = router.resolve(request, {}, "fascicolo")
+
+    assert [source.__class__.__name__ for source in sources] == ["OfficialWebSource"]
 
 
 def test_official_web_source_traccia_fonti_partner_quando_non_esiste_fallback_pubblico():

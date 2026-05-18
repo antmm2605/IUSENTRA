@@ -7,6 +7,13 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.34 - 2026-05-18
+
+- Aggiunta la Fase 5 Auto-fetch governato per fonti legali: `pct/legal_update_autofetch.py` introduce tick con budget per fonte, cursori persistenti, coda deduplicata, timeout per elemento e monitor operativo.
+- La console aggiornamenti legali e lo scheduler passano ora dal piano governato prima di accodare o processare fonti, evitando scansioni cieche e ripetizioni inutili.
+- Ogni job auto-fetch porta la checklist qualità stabilita: fonte, pagina, allegati/PDF, hash, OCR/testo, OCR sporco, norme/R.G., discrepanze, prontezza RAG e risposta Lex verificabile.
+- Aggiunti test su cursori, budget, deduplica, monitor, scheduler/surface e regressioni job queue.
+
 ## 2.245.33 - 2026-05-18
 
 - Aggiunta la Fase 4 ispirata a OpenHuman Tool Registry e Model Routing, adattata a Lex: ogni strumento ha schema, categoria, trasporto, permessi, lettura/scrittura e stato `web_libero` tracciabile.

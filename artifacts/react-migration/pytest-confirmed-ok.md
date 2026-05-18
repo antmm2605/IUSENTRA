@@ -1,12 +1,19 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-18, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
+Aggiornato: 2026-05-18, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Auto-fetch governato fonti legali - 2026-05-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\legal_update_autofetch.py pct\scheduler.py web\services\legal_update_surface.py` | OK | Sintassi confermata per tick governato, scheduler e console aggiornamenti legali. |
+| `python -m pytest tests\test_legal_update_autofetch.py tests\test_legal_update_job_queue.py tests\test_legal_update_batch_runner.py tests\test_legal_update_surface_jobs.py -q --tb=short` | OK | 18/18 passati: cursori, budget, fonti disattivate, deduplica, esecuzione mirata, monitor operativo, job queue e surface admin. |
 
 ### Tool Registry e Model Routing Lex - 2026-05-18
 

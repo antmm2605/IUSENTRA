@@ -4,6 +4,48 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.245.34 - 2026-05-18
+
+Aggiunta la Fase 5 Auto-fetch governato. La pipeline non parte più come
+scansione massiva indistinta: prima costruisce un piano deterministico, poi
+accoda job deduplicati, poi esegue solo le fonti dovute entro il budget.
+
+Passaggi tracciati:
+
+- aggiunto `pct/legal_update_autofetch.py`;
+- ogni tick legge fonti abilitate, cursori persistenti e intervallo di polling;
+- il budget `LEGAL_AUTOFETCH_SOURCE_BUDGET` limita quante fonti possono essere
+  processate nel giro;
+- ogni fonte selezionata viene accodata in `LegalUpdateJobQueue` con schema
+  `iusentra.legal_update_autofetch.v1`, URL, nome fonte, timeout, tentativi e
+  checklist qualità;
+- i cursori registrano ultimo job, ultimo stato, errore leggibile e fallimenti
+  consecutivi;
+- `web/services/legal_update_surface.py` usa il tick governato per l'azione
+  `scan`;
+- `pct/scheduler.py` usa il tick governato per gli aggiornamenti legali
+  pianificati;
+- il monitor operativo espone coda, fonti pronte/non pronte, job recenti,
+  fonti bloccate e domande qualità obbligatorie.
+
+Domande qualità obbligatorie per ogni fonte/documento:
+
+- fonte censita nel database;
+- pagina ufficiale o pubblica raggiungibile;
+- allegati, PDF o documenti collegati;
+- allegati scaricati e hashati;
+- testo estratto o passato da OCR;
+- OCR pulito oppure marcato come sporco;
+- norme, R.G., date e riferimenti utili estratti;
+- discrepanze tra scheda, PDF, R.G., date o titolo;
+- prontezza per Memory Tree e RAG;
+- risposta Lex con sintesi vera, link cliccabile e limiti chiari.
+
+Verifiche eseguite:
+
+- `python -m py_compile pct\legal_update_autofetch.py pct\scheduler.py web\services\legal_update_surface.py`;
+- `python -m pytest tests\test_legal_update_autofetch.py tests\test_legal_update_job_queue.py tests\test_legal_update_batch_runner.py tests\test_legal_update_surface_jobs.py -q --tb=short`.
+
 ## Aggiornamento operativo 2.245.33 - 2026-05-18
 
 Aggiunta la Fase 4 Tool Registry e Model Routing per Lex, necessaria prima di

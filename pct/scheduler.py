@@ -273,7 +273,8 @@ def start_scheduler(app):
     def _run_legal_updates(source_ids, label, *, auto_publish=True):
         with app.app_context():
             try:
-                from pct.legal_update_batch_runner import LegalUpdateJobConfig, run_legal_update_batch_with_timeouts
+                from pct.legal_update_autofetch import LegalAutoFetchConfig, run_legal_update_autofetch_tick
+                from pct.legal_update_batch_runner import LegalUpdateJobConfig
 
                 timeout_seconds = _parse_positive_int(
                     app.config.get("LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS")
@@ -285,7 +286,12 @@ def start_scheduler(app):
                     or os.getenv("IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS"),
                     80,
                 )
-                config = LegalUpdateJobConfig(
+                source_budget = _parse_positive_int(
+                    app.config.get("LEGAL_AUTOFETCH_SOURCE_BUDGET")
+                    or os.getenv("IUSENTRA_LEGAL_AUTOFETCH_SOURCE_BUDGET"),
+                    min(max(1, len(source_ids or [])), 8),
+                )
+                job_config = LegalUpdateJobConfig(
                     intelligence_db=str(
                         app.config.get("LEGAL_INTELLIGENCE_DB")
                         or "./intelligence/legal_intelligence.json"
@@ -307,19 +313,23 @@ def start_scheduler(app):
                         app.config.get("LEGAL_UPDATES_MIRROR_GIURISPRUDENZA_JSON_ENABLED")
                     ),
                 )
-                report = run_legal_update_batch_with_timeouts(
-                    config,
-                    source_codes=source_ids,
-                    auto_publish=auto_publish,
+                config = LegalAutoFetchConfig.from_job_config(
+                    job_config,
+                    source_budget=source_budget,
                     item_timeout_seconds=timeout_seconds,
                     publish_max_items=publish_max_items,
+                    execute_due_sources=auto_publish,
                 )
+                report = run_legal_update_autofetch_tick(config, source_codes=source_ids)
+                plan = report.get("plan") or {}
+                execution = report.get("execution_report") or {}
                 logger.info(
-                    "[scheduler] Legal updates %s: %d fonti, %d news autopubblicate, %d timeout per elemento",
+                    "[scheduler] Legal updates %s: %d fonti pianificate, %d job accodati, %d news autopubblicate, %d timeout per elemento",
                     label,
-                    len(report.get("reports") or []),
-                    int((report.get("autopublished") or {}).get("count") or 0),
-                    int(report.get("timeouts") or 0),
+                    int(plan.get("selected_count") or 0),
+                    len(report.get("enqueued_jobs") or []),
+                    int(((execution.get("autopublished") or {}).get("count") or 0)),
+                    int(execution.get("timeouts") or 0),
                 )
                 return report
             except Exception as e:

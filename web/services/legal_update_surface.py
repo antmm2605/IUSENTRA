@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import sqlite3
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -12,8 +13,12 @@ from flask import current_app, g, has_app_context, has_request_context, request
 
 from pct.legal_update_batch_runner import (
     LegalUpdateJobConfig,
-    run_legal_update_batch_with_timeouts,
     run_legal_update_publish_queue_with_timeouts,
+)
+from pct.legal_update_autofetch import (
+    LegalAutoFetchConfig,
+    build_legal_update_operational_monitor,
+    run_legal_update_autofetch_tick,
 )
 from pct.legal_update_pipeline import DEFAULT_SOURCE_ROWS, LegalUpdatePipeline, build_legal_update_pipeline
 from pct.legal_update_repository import LegalUpdateDbConfig
@@ -225,6 +230,30 @@ def _legal_updates_publish_max_items(cfg_source: dict[str, Any]) -> int:
         cfg_source.get("LEGAL_UPDATES_PUBLISH_MAX_ITEMS")
         or cfg_source.get("IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS"),
         default,
+    )
+
+
+def _legal_updates_source_budget(cfg_source: dict[str, Any], default: int = 8) -> int:
+    env_default = _parse_positive_int(os.getenv("IUSENTRA_LEGAL_AUTOFETCH_SOURCE_BUDGET"), default)
+    return _parse_positive_int(
+        cfg_source.get("LEGAL_AUTOFETCH_SOURCE_BUDGET")
+        or cfg_source.get("IUSENTRA_LEGAL_AUTOFETCH_SOURCE_BUDGET"),
+        env_default,
+    )
+
+
+def _legal_autofetch_config(cfg_source: dict[str, Any]) -> LegalAutoFetchConfig:
+    return LegalAutoFetchConfig.from_job_config(
+        _legal_update_job_config(cfg_source),
+        source_budget=_legal_updates_source_budget(cfg_source),
+        item_timeout_seconds=_legal_updates_item_timeout(cfg_source),
+        publish_max_items=_legal_updates_publish_max_items(cfg_source),
+        max_attempts=_parse_positive_int(
+            cfg_source.get("LEGAL_AUTOFETCH_MAX_ATTEMPTS")
+            or os.getenv("IUSENTRA_LEGAL_AUTOFETCH_MAX_ATTEMPTS"),
+            3,
+        ),
+        execute_due_sources=True,
     )
 
 
@@ -668,10 +697,15 @@ def build_legal_source_catalog(
         "runtime": {
             "item_timeout_seconds": _legal_updates_item_timeout(cfg_source),
             "publish_max_items": _legal_updates_publish_max_items(cfg_source),
+            "autofetch_source_budget": _legal_updates_source_budget(cfg_source),
             "attachment_reading": _flag_enabled(
                 os.getenv("IUSENTRA_LEGAL_VERIFICATION_READ_ATTACHMENTS", "1")
             ),
         },
+        "autofetch_monitor": build_legal_update_operational_monitor(
+            _legal_autofetch_config(cfg_source),
+            pipeline=runtime_pipeline,
+        ),
         "official_archives": official_archives,
     }
 
@@ -808,12 +842,16 @@ def run_legal_update_action(
             for row in pipeline.repository.list_sources(enabled_only=True)
             if str(row.get("code") or "")
         ]
-        return run_legal_update_batch_with_timeouts(
-            _legal_update_job_config(cfg_source),
+        autofetch_config = _legal_autofetch_config(cfg_source)
+        if source_codes:
+            autofetch_config = replace(
+                autofetch_config,
+                source_budget=max(1, len(selected_sources)),
+            )
+        return run_legal_update_autofetch_tick(
+            autofetch_config,
+            pipeline=pipeline,
             source_codes=selected_sources,
-            auto_publish=True,
-            item_timeout_seconds=_legal_updates_item_timeout(cfg_source),
-            publish_max_items=_legal_updates_publish_max_items(cfg_source),
         )
     if action == "autopublish":
         return run_legal_update_publish_queue_with_timeouts(

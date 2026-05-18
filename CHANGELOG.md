@@ -7,6 +7,13 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.21 - 2026-05-18
+
+- Aggiunto nel widget Lex il comando manuale `Web libero`: parte solo dalla singola domanda, non crea job, non entra in scheduler, non passa dalla console pianificazioni e invia al backend i flag espliciti `free_web_enabled`, `force_free_web_search`, `public_web_forced`, `web_execution_requested` e `source_mode=free_web`.
+- La ricerca web libera usa risultati pubblici non vincolati alla allowlist ufficiale, mantenendoli distinti dalle fonti già acquisite nell'archivio dello studio.
+- L'estrazione OCR dei PDF scansionati trova Tesseract anche nella posizione standard Windows e può usare il dizionario italiano salvato in `%LOCALAPPDATA%\IUSENTRA\tessdata`, così l'allegato Cassazione `QSP50194` non resta solo URL/hash quando il runtime locale ha OCR disponibile.
+- La risposta Lex sugli allegati ufficiali non mostra più dettagli tecnici interni quando una sorgente secondaria non è disponibile, ma risponde con PDF, pagina ufficiale, estratto OCR e nota sulle discrepanze dei numeri R.G.
+
 ## 2.245.20 - 2026-05-18
 
 - La ricerca Lex sulle evidenze web ora dà priorità alla prova con `attachment_url` quando la domanda chiede allegato, PDF, ordinanza o documento: una domanda come `Quale allegato ufficiale ha la questione penale R.G. 9926/2026?` porta davanti l'ordinanza PDF OCR e non solo la pagina QSP.

@@ -1295,6 +1295,8 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "Scarica il riepilogo della conversazione" in widget_template
     assert "Apri Lex a tutto schermo" in widget_template
     assert "Detta la richiesta a Lex" in widget_template
+    assert 'id="pct-ai-free-web"' in widget_template
+    assert "Web libero" in widget_template
     assert "Ridimensiona la finestra di Lex" in widget_template
     assert "pct-ai-brand-mark" in widget_template
     assert 'id="pct-ai-presets"' in widget_template
@@ -1346,6 +1348,9 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "buildThinkingBubbleHtml" in widget_js
     assert "renderReflectionStatus" in widget_js
     assert "pct-ai-status-pill" in widget_js
+    assert "free_web_enabled" in widget_js
+    assert "force_free_web_search" in widget_js
+    assert "public_web_forced" in widget_js
     assert "pct-ai-widget--fullscreen" in widget_js
     assert "setFullscreen" in widget_js
     assert "toggleFullscreen" in widget_js

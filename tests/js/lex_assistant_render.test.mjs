@@ -27,6 +27,18 @@ vm.runInContext(source, context, { filename: 'web/static/js/pct-lex-assistant.js
 const hooks = context.IusentraLexAssistantTestHooks
 assert.ok(hooks, 'render hooks should be exposed in test mode')
 
+hooks.setFreeWebEnabled(false, { silent: true })
+const regularPayload = hooks.buildChatRequestPayload('cerca Cassazione')
+assert.equal(regularPayload.free_web_enabled, undefined)
+hooks.setFreeWebEnabled(true, { silent: true })
+const freeWebPayload = hooks.buildChatRequestPayload('cerca Cassazione')
+assert.equal(freeWebPayload.free_web_enabled, true)
+assert.equal(freeWebPayload.force_free_web_search, true)
+assert.equal(freeWebPayload.web_execution_requested, true)
+assert.equal(freeWebPayload.public_web_forced, true)
+assert.equal(freeWebPayload.source_mode, 'free_web')
+hooks.setFreeWebEnabled(false, { silent: true })
+
 const rendered = hooks.renderMarkdown(`# Sintesi operativa
 
 Perch\u00e9 l'udienza \u00e8 gi\u00e0 fissata, Lex deve mantenere gli accenti: citt\u00e0, societ\u00e0, pi\u00f9, cos\u00ec.

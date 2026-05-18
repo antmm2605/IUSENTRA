@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from lex.contracts import LexRequest
-from lex.retrieval.official_web import resolve_official_source_ids_for_query, search_recognized_official_web
+from lex.retrieval.official_web import (
+    resolve_official_source_ids_for_query,
+    search_free_public_web,
+    search_recognized_official_web,
+)
 from lex.retrieval.source_router import SourceRouter
 from lex.retrieval.sources.official_web import OfficialWebSource
 
@@ -38,6 +42,33 @@ def test_search_recognized_official_web_filtra_domini_non_ufficiali():
     assert len(results) == 1
     assert results[0]["domain"] == "normattiva.it"
     assert results[0]["source_id"] == "normattiva"
+
+
+def test_search_free_public_web_accetta_risultati_pubblici_non_allowlist():
+    body = """
+    <html>
+      <body>
+        <div class="result">
+          <a class="result__a" href="https://www.forogiuridico.it/sentenze/cassazione-penale.html">Foro giuridico - nota</a>
+          <div class="result__snippet">Scheda trovata tramite ricerca libera.</div>
+        </div>
+        <div class="result">
+          <a class="result__a" href="http://127.0.0.1/private">Risorsa locale</a>
+          <div class="result__snippet">Non deve uscire.</div>
+        </div>
+      </body>
+    </html>
+    """
+
+    results = search_free_public_web(
+        "questione penale R.G. 9926/2026",
+        request_get=lambda *args, **kwargs: _FakeResponse(body),
+        limit_results=3,
+    )
+
+    assert len(results) == 1
+    assert results[0]["domain"] == "forogiuridico.it"
+    assert results[0]["source_access_label"] == "Web libero"
 
 
 def test_official_web_source_restituisce_evidenze_quando_la_query_lo_richiede():

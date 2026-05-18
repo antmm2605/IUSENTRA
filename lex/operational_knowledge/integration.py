@@ -190,7 +190,7 @@ def _should_defer_to_public_legal_research(
         return True
     if clean_spaces(metadata.get("external_sources_reason")):
         return True
-    if source_mode in {"strict", "public", "official"}:
+    if source_mode in {"strict", "public", "official", "free", "free_web", "web_libero", "ricerca_libera", "libera"}:
         return True
     has_public_term = any(token in text for token in _PUBLIC_LEGAL_TERMS)
     return has_public_term and not has_studio_term

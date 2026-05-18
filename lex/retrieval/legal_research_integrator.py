@@ -20,11 +20,26 @@ from typing import Any
 _STRICT_LEGAL_WORKFLOWS = frozenset(
     {"normativa", "giurisprudenza", "prassi", "research", "fonti", "giurisprudenza_specifica"}
 )
+_FREE_WEB_MODES = frozenset({"free", "free_web", "web_libero", "ricerca_libera", "libera"})
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
     val = os.getenv(name, "")
     return val.strip().lower() in {"1", "true", "yes", "si", "on"} if val.strip() else default
+
+
+def _flag(value: Any) -> bool:
+    if value is True:
+        return True
+    return str(value or "").strip().lower() in {"1", "true", "yes", "si", "on", "vero", "abilitato", "enabled"}
+
+
+def _free_web_enabled(metadata: dict[str, Any], source_mode: str) -> bool:
+    mode = str(source_mode or metadata.get("source_mode") or "").strip().lower()
+    return mode in _FREE_WEB_MODES or any(
+        _flag(metadata.get(key))
+        for key in ("free_web_enabled", "free_web", "force_free_web_search", "manual_free_web_enabled")
+    )
 
 
 def should_run_public_research(
@@ -110,6 +125,7 @@ def run_public_research_for_request(
     metadata = dict(getattr(request, "metadata", {}) or {})
     request_profile = dict(metadata.get("request_profile") or {})
     studio_context = dict(context or {})
+    free_web_enabled = _free_web_enabled(metadata, source_mode)
 
     if not query_text:
         return {"public_research_error": "Query vuota."}
@@ -124,6 +140,11 @@ def run_public_research_for_request(
         )
     except Exception as exc:
         return {"public_research_error": f"Errore query rewriter: {exc}"}
+
+    if free_web_enabled:
+        if not str(rewritten.public_research_query or "").strip():
+            rewritten.public_research_query = query_text
+        rewritten.can_use_official_web = True
 
     if not rewritten.can_use_official_web and not rewritten.can_use_ldr:
         return {
@@ -142,6 +163,7 @@ def run_public_research_for_request(
             "public_next_actions": ["Usa il retrieval interno o riformula la domanda senza dati personali."],
             "public_confidence_seed": 0.0,
             "public_research_log": [],
+            "free_web_enabled": free_web_enabled,
         }
 
     # Step 2: Ricerca pubblica coordinata
@@ -165,6 +187,7 @@ def run_public_research_for_request(
             "public_next_actions": [],
             "public_confidence_seed": 0.0,
             "public_research_log": [],
+            "free_web_enabled": free_web_enabled,
         }
 
     return {
@@ -184,6 +207,8 @@ def run_public_research_for_request(
         "public_confidence_seed": gateway_result.confidence_seed,
         "public_research_log": gateway_result.research_log,
         "fallback_triggered": gateway_result.fallback_triggered,
+        "free_web_enabled": free_web_enabled,
+        "free_web_used": gateway_result.free_web_used,
     }
 
 
@@ -210,6 +235,7 @@ def merge_public_research_into_evidence(
     # Aggiungi fonti pubbliche agli items esistenti
     existing_items = list(merged.get("items") or [])
     public_sources = list(public_research.get("public_sources") or [])
+    free_web_enabled = bool(public_research.get("free_web_enabled") or public_research.get("free_web_used"))
     if public_sources:
         # Converti NormalizedSource dicts in EvidenceItem-like dicts
         public_items = [
@@ -222,7 +248,9 @@ def merge_public_research_into_evidence(
                 "trust_score": s.get("trust_score", 0.5),
                 "freshness_score": s.get("freshness_score", 0.5),
                 "context_fit_score": 0.6,
-                "verified_reference": s.get("official", False) and not s.get("source_restricted", False),
+                "verified_reference": (
+                    s.get("official", False) and not s.get("source_restricted", False)
+                ),
                 "authority": s.get("source_name", ""),
                 "official_url": s.get("url", ""),
                 "from_public_research": True,
@@ -236,6 +264,15 @@ def merge_public_research_into_evidence(
     existing_official = list(merged.get("official_sources") or [])
     public_official = list(public_research.get("public_official_sources") or [])
     merged["official_sources"] = list(dict.fromkeys([*existing_official, *public_official]))
+
+    existing_trusted = list(merged.get("trusted_sources") or [])
+    public_trusted = [
+        str(source.get("source_name") or source.get("title") or "").strip()
+        for source in public_sources
+        if str(source.get("source_name") or source.get("title") or "").strip()
+    ]
+    if public_trusted:
+        merged["trusted_sources"] = list(dict.fromkeys([*existing_trusted, *public_trusted]))
 
     # Aggiungi coverage_gaps pubblici
     existing_gaps = list(merged.get("coverage_gaps") or [])
@@ -257,10 +294,14 @@ def merge_public_research_into_evidence(
             "ldr_blocked_reason": public_research.get("ldr_blocked_reason", ""),
             "web_used": public_research.get("web_used", False),
             "web_blocked_reason": public_research.get("web_blocked_reason", ""),
+            "free_web_enabled": free_web_enabled,
+            "free_web_used": public_research.get("free_web_used", False),
             "public_confidence_seed": public_research.get("public_confidence_seed", 0.0),
             "external_sources_used": public_research.get("web_used", False) or public_research.get("ldr_used", False),
             "external_sources_reason": (
-                "Ricerca legale pubblica governata su fonti ufficiali anonimizzate."
+                "Ricerca web libera attivata manualmente dall'utente."
+                if free_web_enabled
+                else "Ricerca legale pubblica governata su fonti ufficiali anonimizzate."
                 if (public_research.get("web_used") or public_research.get("ldr_used"))
                 else ""
             ),
@@ -271,9 +312,11 @@ def merge_public_research_into_evidence(
     ep = dict(merged.get("evidence_pack") or {})
     ep["metadata"] = existing_meta
     # Ricalcola sufficient se ora abbiamo fonti pubbliche ufficiali
-    if public_official and not ep.get("sufficient"):
+    if (public_official or (free_web_enabled and public_sources)) and not ep.get("sufficient"):
         ep["sufficient"] = True
     merged["evidence_pack"] = ep
+    if free_web_enabled and public_sources:
+        merged["evidence_sufficient"] = True
 
     # Aggiungi warnings e next_actions pubblici
     merged["_public_warnings"] = list(public_research.get("public_warnings") or [])

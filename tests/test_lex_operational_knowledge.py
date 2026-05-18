@@ -527,6 +527,46 @@ def test_template_lookup_is_reported_as_template_source():
     assert any(source.source_id == "template_atti" for source in answer.sources)
 
 
+def test_rg_questione_penale_usa_archivio_legale_e_allegato_ufficiale():
+    class _Repo:
+        def search_lex_sources(self, query: str, limit: int = 6):
+            assert "9926/2026" in query or "9926" in query
+            return [
+                {
+                    "id": "web-evidence-754",
+                    "title": "Ordinanza di rimessione",
+                    "source_name": "Corte Suprema di Cassazione",
+                    "official_url": "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP50194",
+                    "attachment_url": "https://www.cortedicassazione.it/resources/cms/documents/Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf",
+                    "excerpt": "Nota Ufficio Spoglio V Sezione penale. R.G. 9966/2026. Ordinanza di rimessione.",
+                    "verified_reference": True,
+                }
+            ]
+
+    class _Pipeline:
+        repository = _Repo()
+
+    repos = _base_repositories()
+    repos["update_intelligence"] = _Pipeline()
+    service, user = _service(repositories=repos)
+
+    answer = service.answer(
+        question="Quale allegato ufficiale ha la questione penale R.G. 9926/2026?",
+        user=user,
+        studio=SimpleNamespace(slug="tenant-a"),
+        tenant_id="tenant-a",
+    )
+
+    assert answer is not None
+    assert answer.route.intent == "official_sources_lookup"
+    assert "Allegato ufficiale trovato: Ordinanza di rimessione." in answer.answer
+    assert "Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf" in answer.answer
+    assert "R.G. 9926/2026" in answer.answer
+    assert "R.G. 9966/2026" in answer.answer
+    assert "Non ho trovato dati reali sufficienti" not in answer.answer
+    assert any(source.source_id == "update_intelligence" for source in answer.sources)
+
+
 def test_editor_professionale_exposes_lex_support():
     service, user = _service(repositories=_base_repositories())
 

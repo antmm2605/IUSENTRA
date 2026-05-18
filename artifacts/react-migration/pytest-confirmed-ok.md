@@ -1,12 +1,21 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-18, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
+Aggiornato: 2026-05-18, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Web libero manuale e QSP50194 letto da Lex - 2026-05-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests\test_lex_operational_knowledge.py::test_rg_questione_penale_usa_archivio_legale_e_allegato_ufficiale tests\test_document_intelligence_extraction.py::test_document_ai_extraction_pdf_scansionato_usa_ocr_quando_il_testo_manca lex\tests\test_official_web.py::test_search_free_public_web_accetta_risultati_pubblici_non_allowlist tests\test_lex_professional_upgrade.py::test_gateway_web_libero_parte_solo_con_modalita_libera lex\tests\test_http_bounded_bridge_governed_only.py::test_opzione_web_libero_e_manuale_non_passa_da_job tests\test_web_bootstrap.py::test_lex_assistant_usa_componente_esterno_e_posizione_persistente -q` | OK | 6/6 passati: `Web libero` parte solo da flag manuale Lex, non da job; la domanda su Cassazione `R.G. 9926/2026` usa l'archivio legale e l'allegato ufficiale. |
+| `node tests\js\lex_assistant_render.test.mjs` | OK | Il payload del widget non include ricerca libera quando il comando è spento; quando è acceso invia `free_web_enabled`, `force_free_web_search`, `public_web_forced`, `web_execution_requested` e `source_mode=free_web`. |
+| Prova reale locale su `data/intelligence/legal_updates.db` | OK | Il record `review_id=390` ora ha l'allegato Cassazione `QSP50194` con OCR `pdfplumber+ocr`, `context_chars=45813` e risposta Lex con PDF, estratto e nota `9926/2026` / `9966/2026`. |
+| `python -m pct.cli utf8-integrity --root docs\LEX_AI_RESPONSE_PIPELINE.md --root docs\LEX_PUBLIC_SOURCES_AND_STUDIO_DATA_AUDIT.md --root CHANGELOG.md --root lex\operational_knowledge\response_composer.py --root pct\document_intelligence\extraction.py --root web\templates\components\pct_ai_widget.html --root web\static\js\pct-lex-assistant.js --check-only --json` | OK | UTF-8 pulito sui testi utente, widget Lex, OCR e documentazione della pipeline. |
 
 ### Cassazione QSP50194 e OCR allegati legali - 2026-05-18
 
@@ -19,7 +28,7 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `python -m pytest tests\test_document_intelligence_extraction.py tests\test_legal_update_web_verification_attachments.py tests\test_legal_update_publish_context.py tests\test_legal_update_batch_runner.py -q --tb=short` | OK | 39/39 passati sul perimetro OCR allegati, verifica web, backfill, ranking allegati e runner legal update. |
 | `python -m ruff check pct\document_intelligence\extraction.py tests\test_document_intelligence_extraction.py tests\test_legal_update_web_verification_attachments.py` | OK | Ruff mirato verde sull'estrattore PDF/OCR e sui test di verifica web allegati. |
 | `python -m py_compile pct\document_intelligence\extraction.py pct\legal_update_web_verification.py tests\test_document_intelligence_extraction.py tests\test_legal_update_web_verification_attachments.py` | OK | Sintassi Python confermata dopo il fallback OCR degli allegati legali ufficiali. |
-| Backfill locale mirato `QSP50194` e query Lex su `legal_updates.db` | OK | Il record `review_id=390` salva pagina Cassazione e allegato ufficiale con hash; la ricerca Lex trova `QSP50194`, `Questione penale 9926/2026` e `Ordinanza di rimessione Turco Morosini`. Nel runtime locale manca Tesseract, quindi il testo OCR reale verrà verificato nel container di produzione. |
+| Backfill locale mirato `QSP50194` e query Lex su `legal_updates.db` | OK | Il record `review_id=390` salva pagina Cassazione e allegato ufficiale con hash; dopo aggancio Tesseract locale il PDF scansionato è stato letto con OCR e salvato con `context_chars=45813`. |
 | `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | Packaging sincronizzato e readiness 9/9 dopo bump `2.245.20`. |
 | `python -m pct.cli utf8-integrity --check-only --root CHANGELOG.md --root docs\LEX_PUBLIC_SOURCES_AND_STUDIO_DATA_AUDIT.md --root artifacts\react-migration\pytest-confirmed-ok.md --root artifacts\react-migration\pytest-open-issues.md --json`; `git diff --check -- ...` | OK | UTF-8 e whitespace puliti su changelog, audit Lex e report aggiornati dopo il rientro backfill. |
 | `bash -n deploy/hetzner/backup.sh`; `node --check web\static\js\local-ai-browser-bridge.js`; `node --check web\static\js\pct-lex-assistant.js`; `python -m pytest tests\test_hetzner_backup_retention.py tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short`; `python -m pytest tests\test_web_bootstrap.py::test_lex_assistant_usa_componente_esterno_e_posizione_persistente tests\test_react_shell.py::test_react_agenda_pagina_separata_collegata_nav_e_api -q --tb=short` | OK | Guardie precedenti ancora verdi prima del commit: backup Hetzner, packaging, widget Lex e shell React. |

@@ -214,6 +214,38 @@ def test_caso_10_research_gateway_next_actions():
         assert result.warnings
 
 
+def test_gateway_web_libero_parte_solo_con_modalita_libera(monkeypatch):
+    from lex.research.public_legal_research_gateway import run_public_legal_research
+    from lex.research.privacy_safe_query_rewriter import rewrite_query_for_legal_research
+
+    monkeypatch.setattr(
+        "lex.research.public_legal_research_gateway._search_free_web",
+        lambda query, limit_results=8: [
+            {
+                "id": "free-1",
+                "title": "Scheda pubblica",
+                "url": "https://www.forogiuridico.it/scheda",
+                "source_name": "forogiuridico.it",
+                "excerpt": "Risultato trovato con ricerca web libera.",
+                "source_access_label": "Web libero",
+                "trust_score": 0.55,
+            }
+        ],
+    )
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._FREE_WEB_AVAILABLE", True)
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._OFFICIAL_RETRIEVAL_AVAILABLE", False)
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._WEB_AVAILABLE", False)
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._LDR_AVAILABLE", False)
+
+    query = rewrite_query_for_legal_research("questione penale R.G. 9926/2026")
+    result = run_public_legal_research(query, source_mode="free_web", max_results=4)
+
+    assert result.free_web_used is True
+    assert result.sources
+    assert result.sources[0].source_type == "web_libero"
+    assert "da verificare" not in " ".join(result.missing_evidence + result.warnings).lower()
+
+
 # ---------------------------------------------------------------------------
 # CASO 11: Allegato non indicizzato → risposta indicazione
 # ---------------------------------------------------------------------------

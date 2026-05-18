@@ -20,6 +20,23 @@ ACTION_BLOCK_TOKENS = (
     "elimina",
 )
 
+OFFICIAL_SOURCE_LOOKUP_TOKENS = (
+    "allegato ufficiale",
+    "allegato della questione",
+    "allegato collegato",
+    "questione penale",
+    "questione civile",
+    "ordinanza di rimessione",
+    "corte di cassazione",
+    "cassazione",
+    "qsp",
+    "contentid=",
+    "r.g.",
+    "rg ",
+    "fonte ufficiale",
+    "fonti ufficiali",
+)
+
 ENTITY_STOPWORDS = {
     "a",
     "ad",
@@ -209,6 +226,9 @@ class OperationalQueryRouter:
 
         if any(token in text for token in ("template", "modello atto", "modelli atto", "editor", "redazione", "bozza", "atto professionale")):
             return OperationalRoute("template_lookup", "template_lookup", ("template_atti", "editor_ai", "fascicoli", "documenti_fascicolo"), entity_query)
+
+        if any(token in text for token in OFFICIAL_SOURCE_LOOKUP_TOKENS):
+            return OperationalRoute("official_sources_lookup", "official_sources_lookup", ("fonti_ufficiali", "legal_intelligence", "update_intelligence"), entity_query)
 
         if any(token in text for token in ("document", "atto", "atti", "mancano", "riassumi gli ultimi")):
             return OperationalRoute("documenti_fascicolo", "documenti_fascicolo", ("fascicoli", "documenti_fascicolo", "template_atti"), entity_query)

@@ -16,7 +16,7 @@ from .formatting.ui_payloads import (
     routing_payload,
     social_context_payload,
 )
-from .http_bounded_bridge import build_bounded_http_payload
+from .http_bounded_bridge import apply_manual_free_web_context, build_bounded_http_payload
 from .telemetry.audit import audit_trace
 
 _TRUE_VALUES = {"1", "true", "vero", "yes", "si", "on", "enabled", "abilitato"}
@@ -42,6 +42,8 @@ def clean_spaces(value: Any) -> str:
 
 def _should_bypass_documentary_source_guard(studio_context: dict[str, Any]) -> bool:
     """Le ricerche sui dati dello studio non sono ricerche da fonte pubblica."""
+    if bool(studio_context.get("free_web_enabled")):
+        return True
     request_profile = dict(studio_context.get("request_profile") or {})
     intent = clean_spaces(request_profile.get("intent")).lower()
     focus_topic = clean_spaces(studio_context.get("focus_topic")).lower()
@@ -275,6 +277,7 @@ def build_context_response(
         fascicolo_id=fascicolo_id,
         mode=mode,
     )
+    studio_context = apply_manual_free_web_context(data, studio_context)
     resolved_effective_question = str(studio_context.get("effective_question") or user_effective_question).strip() or user_effective_question
     direct_guard_reply = ""
     if not _should_bypass_documentary_source_guard(studio_context):
@@ -583,6 +586,7 @@ def chat_response(
         fascicolo_id=fascicolo_id,
         mode=mode,
     )
+    studio_context = apply_manual_free_web_context(data, studio_context)
     resolved_effective_question = str(studio_context.get("effective_question") or user_effective_question).strip() or "Richiesta operativa"
     direct_guard_reply = ""
     if not _should_bypass_documentary_source_guard(studio_context):

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import os
 import re
 import time
@@ -232,6 +233,29 @@ def _is_allowed_result(url: str, allowed_domain: str) -> bool:
     if not host or not domain:
         return False
     return host == domain or host.endswith("." + domain)
+
+
+def _is_public_web_url(url: str) -> bool:
+    parsed = urlparse(str(url or "").strip())
+    if parsed.scheme not in {"http", "https"}:
+        return False
+    host = _normalize_domain(parsed.hostname or "")
+    if not host:
+        return False
+    if host in {"localhost", "localhost.localdomain"} or host.endswith(".local"):
+        return False
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return True
+    return not (
+        address.is_private
+        or address.is_loopback
+        or address.is_link_local
+        or address.is_multicast
+        or address.is_reserved
+        or address.is_unspecified
+    )
 
 
 def _match_source_id_for_domain(source_ids: list[str], domain: str) -> str:
@@ -513,6 +537,43 @@ def _direct_url_fallback(
     return rows
 
 
+def _direct_free_url_fallback(question: str, *, limit_results: int) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    seen_urls: set[str] = set()
+    for match in _DIRECT_URL_RE.finditer(str(question or "")):
+        url = _clean_spaces(match.group(0).rstrip(".,;:"))
+        if not _is_public_web_url(url) or url in seen_urls:
+            continue
+        seen_urls.add(url)
+        parsed = urlparse(url)
+        domain = _normalize_domain(parsed.netloc)
+        rows.append(
+            {
+                "id": f"free-direct-url:{hashlib.sha1(url.encode('utf-8')).hexdigest()[:12]}",
+                "title": domain,
+                "url": url,
+                "official_url": url,
+                "source_home_url": f"{parsed.scheme}://{domain}",
+                "domain": domain,
+                "source_id": domain,
+                "source_name": domain,
+                "kind": "pdf" if parsed.path.lower().endswith(".pdf") else "html",
+                "excerpt": "URL indicato direttamente dall'utente nella ricerca web libera.",
+                "source_access_status": "public",
+                "source_access_label": "Web libero",
+                "source_category": "ricerca_web",
+                "source_priority": "web_libero",
+                "source_requires_credentials": False,
+                "source_restricted": False,
+                "source_supports_web_search": True,
+                "trust_score": 0.55,
+            }
+        )
+        if len(rows) >= limit_results:
+            break
+    return rows
+
+
 def _card_text_for_link(link_node) -> str:
     cards = link_node.xpath("ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' card-news ')][1]")
     if cards:
@@ -764,9 +825,119 @@ def search_recognized_official_web(
     return [dict(item) for item in results]
 
 
+def search_free_public_web(
+    question: str,
+    *,
+    request_get: Callable[..., Any] | None = None,
+    limit_results: int = 8,
+) -> list[dict[str, Any]]:
+    """Ricerca web manuale non vincolata alla allowlist delle fonti ufficiali.
+
+    Non crea job, non scrive code e non promuove automaticamente il risultato a
+    fonte ufficiale: restituisce URL pubblici da usare nella singola risposta Lex.
+    """
+    query = _clean_spaces(question)
+    limit = max(0, int(limit_results or 0))
+    if not query or limit <= 0:
+        return []
+
+    cache_key = _cache_key(query, ["__free_web__"], limit)
+    cached = _SEARCH_CACHE.get(cache_key)
+    now = time.time()
+    if cached and now - cached[0] < _SEARCH_CACHE_TTL_SECONDS:
+        return [dict(item) for item in cached[1]]
+
+    direct_results = _direct_free_url_fallback(query, limit_results=limit)
+    if direct_results:
+        _SEARCH_CACHE[cache_key] = (now, [dict(item) for item in direct_results])
+        return [dict(item) for item in direct_results]
+
+    fetch = request_get
+    if fetch is None:
+        import requests
+
+        fetch = requests.get
+
+    try:
+        response = fetch(
+            _OFFICIAL_SEARCH_URL,
+            params={"q": query},
+            headers={"User-Agent": USER_AGENT},
+            timeout=6,
+        )
+    except Exception:
+        return []
+
+    status_code = int(getattr(response, "status_code", 0) or 0)
+    if status_code >= 400:
+        return []
+
+    body = str(getattr(response, "text", "") or "")
+    if not body.strip():
+        return []
+
+    try:
+        document = lxml_html.fromstring(body)
+    except Exception:
+        return []
+
+    nodes = document.xpath("//div[contains(@class, 'result')]")
+    if not nodes:
+        nodes = document.xpath("//article")
+
+    results: list[dict[str, Any]] = []
+    seen_urls: set[str] = set()
+    for node in nodes:
+        link_nodes = node.xpath(".//a[contains(@class, 'result__a')] | .//h2//a | .//a[@href]")
+        if not link_nodes:
+            continue
+        link = link_nodes[0]
+        url = _extract_result_url(link.get("href") or "")
+        if not _is_public_web_url(url) or url in seen_urls:
+            continue
+        seen_urls.add(url)
+        parsed = urlparse(url)
+        domain = _normalize_domain(parsed.netloc)
+        title = _clean_spaces(link.text_content()) or domain
+        snippet_nodes = node.xpath(
+            ".//*[contains(@class, 'result__snippet')] | "
+            ".//*[contains(@class, 'snippet')] | "
+            ".//a[contains(@class, 'result__snippet')]"
+        )
+        snippet = _clean_spaces(snippet_nodes[0].text_content()) if snippet_nodes else ""
+        results.append(
+            {
+                "id": f"free-web-search:{hashlib.sha1(url.encode('utf-8')).hexdigest()[:12]}",
+                "title": title,
+                "url": url,
+                "official_url": url,
+                "source_home_url": f"{parsed.scheme}://{domain}",
+                "domain": domain,
+                "source_id": domain,
+                "source_name": domain,
+                "kind": "pdf" if parsed.path.lower().endswith(".pdf") else "html",
+                "excerpt": snippet,
+                "source_access_status": "public",
+                "source_access_label": "Web libero",
+                "source_category": "ricerca_web",
+                "source_priority": "web_libero",
+                "source_requires_credentials": False,
+                "source_restricted": False,
+                "source_supports_web_search": True,
+                "trust_score": 0.55,
+            }
+        )
+        if len(results) >= limit:
+            break
+
+    _SEARCH_CACHE[cache_key] = (now, [dict(item) for item in results])
+    return [dict(item) for item in results]
+
+
 __all__ = [
     "DEFAULT_WEB_SOURCE_IDS",
     "build_source_registry_context",
     "resolve_official_source_ids_for_query",
+    "search_free_public_web",
     "search_recognized_official_web",
 ]

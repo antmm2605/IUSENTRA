@@ -27,6 +27,13 @@ _LEGAL_LOOKUP_TOKENS: tuple[str, ...] = (
     "sentenze",
     "giurisprudenza",
     "cassazione",
+    "questione penale",
+    "questione civile",
+    "allegato ufficiale",
+    "ordinanza di rimessione",
+    "qsp",
+    "r.g.",
+    "rg ",
     "corte costituzionale",
     "corte d'appello",
     "tribunale",
@@ -94,6 +101,8 @@ def _should_search_official_web(request, workflow: str) -> bool:
             "needs_web_search",
             "web_execution_requested",
             "force_official_web_search",
+            "free_web_enabled",
+            "force_free_web_search",
         ) and has_legal_lookup:
             return True
         return False
@@ -107,6 +116,8 @@ def _should_search_official_web(request, workflow: str) -> bool:
         "needs_web_search",
         "web_execution_requested",
         "force_official_web_search",
+        "free_web_enabled",
+        "force_free_web_search",
     ):
         return True
 

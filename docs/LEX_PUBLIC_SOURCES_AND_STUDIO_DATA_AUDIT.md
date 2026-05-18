@@ -4,6 +4,26 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.245.21 - 2026-05-18
+
+Il caso Cassazione `QSP50194` è stato verificato sul database locale: prima
+l'allegato ufficiale era presente come URL/hash, ma il contenuto era fermo a
+`context_chars=0`. Dopo l'aggancio OCR locale il PDF
+`Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf` è stato letto con
+`pdfplumber+ocr`, salvando `45813` caratteri interrogabili nel record
+`review_id=390`.
+
+Lex ora risponde alla domanda `Quale allegato ufficiale ha la questione penale
+R.G. 9926/2026?` con l'allegato `Ordinanza di rimessione`, il PDF ufficiale,
+un estratto OCR e l'avviso sulla differenza tra `9926/2026` nella domanda e
+`9966/2026` nell'allegato. La risposta non espone più errori tecnici interni se
+una sorgente secondaria non è disponibile nel contesto corrente.
+
+È stato aggiunto anche il comando manuale `Web libero` nel widget Lex: non è un
+job, non è una pianificazione e non passa dalla console scheduler. Il comando
+vale solo per la singola richiesta Lex e abilita una ricerca pubblica libera,
+separata dalle fonti ufficiali già acquisite.
+
 ## Aggiornamento operativo 2.245.20 - 2026-05-18
 
 Dopo il salvataggio OCR di Cassazione `QSP50194`, le prove di domanda hanno

@@ -845,8 +845,18 @@ class OperationalKnowledgeTools:
                 source_id,
                 context,
                 object_type=object_type,
-                object_id=clean_spaces(row.get("id") or row.get("numero") or ""),
-                title=clean_spaces(row.get("nome_completo") or row.get("titolo") or row.get("oggetto") or row.get("numero") or row.get("nome") or ""),
+                object_id=clean_spaces(row.get("id") or row.get("numero") or row.get("number") or row.get("source_id") or ""),
+                title=clean_spaces(
+                    row.get("nome_completo")
+                    or row.get("titolo")
+                    or row.get("title")
+                    or row.get("oggetto")
+                    or row.get("numero")
+                    or row.get("number")
+                    or row.get("nome")
+                    or row.get("name")
+                    or ""
+                ),
                 confidence=0.82 if data else 0.35,
             )
             for row in data[:20]
@@ -854,8 +864,18 @@ class OperationalKnowledgeTools:
         objects = [
             OperationalObjectReference(
                 object_type=object_type,
-                object_id=clean_spaces(row.get("id") or row.get("numero") or ""),
-                label=clean_spaces(row.get("nome_completo") or row.get("titolo") or row.get("oggetto") or row.get("numero") or row.get("nome") or ""),
+                object_id=clean_spaces(row.get("id") or row.get("numero") or row.get("number") or row.get("source_id") or ""),
+                label=clean_spaces(
+                    row.get("nome_completo")
+                    or row.get("titolo")
+                    or row.get("title")
+                    or row.get("oggetto")
+                    or row.get("numero")
+                    or row.get("number")
+                    or row.get("nome")
+                    or row.get("name")
+                    or ""
+                ),
                 source_id=source_id,
             )
             for row in data[:20]

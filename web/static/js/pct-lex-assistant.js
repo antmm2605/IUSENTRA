@@ -27,6 +27,7 @@
     voiceReplyEnabled: true,
     voiceProfileId: 'lex-it-professional',
     voiceQuality: 'balanced',
+    freeWebEnabled: false,
     thinking: null,
     pendingFocus: null,
     runtimeStatusChecked: false,
@@ -53,6 +54,7 @@
   var exportButton;
   var fullscreenButton;
   var micButton;
+  var freeWebButton;
   var voiceToggleButton;
   var resizeHandle;
   var storageKey = STORAGE_FALLBACK;
@@ -1328,6 +1330,25 @@
     }
   }
 
+  function updateFreeWebUi() {
+    if (!freeWebButton) {
+      return;
+    }
+    freeWebButton.classList.toggle('is-active', Boolean(state.freeWebEnabled));
+    freeWebButton.setAttribute('aria-pressed', state.freeWebEnabled ? 'true' : 'false');
+    freeWebButton.innerHTML =
+      '<i class="bi bi-globe' + (state.freeWebEnabled ? '-americas' : '2') + '"></i>' +
+      '<span>' + (state.freeWebEnabled ? 'Web libero attivo' : 'Web libero') + '</span>';
+  }
+
+  function setFreeWebEnabled(enabled, options) {
+    state.freeWebEnabled = Boolean(enabled);
+    updateFreeWebUi();
+    if (!(options && options.silent)) {
+      setStatus(state.freeWebEnabled ? 'Ricerca web libera attiva per le prossime domande.' : 'Ricerca web libera disattivata.');
+    }
+  }
+
   function sanitizeSpeechText(value) {
     return String(value || '')
       .replace(/```[\s\S]*?```/g, ' ')
@@ -2008,7 +2029,7 @@
     }
     var explicitMode = String(state.pageContext && state.pageContext.mode || '').trim();
     var mode = explicitMode || chatModeFromPageContext(payload.page_context);
-    return {
+    var requestPayload = {
       session_id: payload.session_id,
       messages: messagesPayload,
       fascicolo_id: payload.fascicolo_id,
@@ -2019,6 +2040,15 @@
       mode: mode,
       page_section: payload.page_context || mode,
     };
+    if (state.freeWebEnabled) {
+      requestPayload.free_web_enabled = true;
+      requestPayload.force_free_web_search = true;
+      requestPayload.web_execution_requested = true;
+      requestPayload.public_web_forced = true;
+      requestPayload.source_mode = 'free_web';
+      requestPayload.allow_web_search = true;
+    }
+    return requestPayload;
   }
 
   function ensureAssistantReady(forceStatusRefresh) {
@@ -3085,6 +3115,11 @@
     if (uploadInput) {
       uploadInput.addEventListener('change', handleUpload);
     }
+    if (freeWebButton) {
+      freeWebButton.addEventListener('click', function () {
+        setFreeWebEnabled(!state.freeWebEnabled);
+      });
+    }
     if (attachmentsShelf && documentsHelper()) {
       documentsHelper().bindShelfRemoval(attachmentsShelf, removeAttachment);
     }
@@ -3266,6 +3301,7 @@
     exportButton = query('pct-ai-export');
     fullscreenButton = query('pct-ai-fullscreen');
     micButton = query('pct-ai-mic');
+    freeWebButton = query('pct-ai-free-web');
     voiceToggleButton = query('pct-ai-voice-toggle');
     resizeHandle = query('pct-ai-resize-handle');
     dragHandle = query('pct-ai-header');
@@ -3303,6 +3339,7 @@
       setStatus('Sessione ripristinata.');
     }
     updateVoiceUi();
+    updateFreeWebUi();
     if (voiceHelper() && voiceHelper().preloadSpeechEngine) {
       voiceHelper().preloadSpeechEngine().then(updateVoiceUi).catch(updateVoiceUi);
     }
@@ -3318,6 +3355,8 @@
       looksLikeLegalDraft: looksLikeLegalDraft,
       formatReflectionDuration: formatReflectionDuration,
       buildThinkingBubbleHtml: buildThinkingBubbleHtml,
+      buildChatRequestPayload: buildChatRequestPayload,
+      setFreeWebEnabled: setFreeWebEnabled,
     };
   }
 

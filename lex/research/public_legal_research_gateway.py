@@ -30,6 +30,12 @@ try:
 except Exception:  # pragma: no cover
     _WEB_AVAILABLE = False
 
+try:
+    from lex.retrieval.official_web import search_free_public_web as _search_free_web
+    _FREE_WEB_AVAILABLE = True
+except Exception:  # pragma: no cover
+    _FREE_WEB_AVAILABLE = False
+
 
 try:
     from lex.retrieval.official_sources_retriever import search_official_sources as _search_official
@@ -109,6 +115,7 @@ class PublicLegalResearchResult:
     ldr_blocked_reason: str = ""
     web_used: bool = False
     web_blocked_reason: str = ""
+    free_web_used: bool = False
 
     def to_evidence_pack_dict(self) -> dict[str, Any]:
         """Converte in formato compatibile con EvidencePack per il pipeline Lex."""
@@ -135,10 +142,13 @@ class PublicLegalResearchResult:
                     "ldr_blocked_reason": self.ldr_blocked_reason,
                     "web_used": self.web_used,
                     "web_blocked_reason": self.web_blocked_reason,
+                    "free_web_used": self.free_web_used,
                     "public_research_query": self.query_used,
                     "external_sources_used": self.web_used or self.ldr_used,
                     "external_sources_reason": (
-                        "Ricerca pubblica governata su fonti ufficiali." if self.web_used else ""
+                        "Ricerca web libera attivata manualmente dall'utente."
+                        if self.free_web_used
+                        else "Ricerca pubblica governata su fonti ufficiali." if self.web_used else ""
                     ),
                 },
             },
@@ -273,6 +283,13 @@ def _compute_confidence_seed(
     return round(official_ratio * 0.5 + diversity * 0.2 + avg_trust * 0.3, 4)
 
 
+_FREE_WEB_MODES = {"free", "free_web", "web_libero", "ricerca_libera", "libera"}
+
+
+def _is_free_web_mode(source_mode: str) -> bool:
+    return str(source_mode or "").strip().lower() in _FREE_WEB_MODES
+
+
 # ---------------------------------------------------------------------------
 # Gateway principale
 # ---------------------------------------------------------------------------
@@ -302,6 +319,7 @@ def run_public_legal_research(
         PublicLegalResearchResult con fonti, gap, warning e log.
     """
     public_query = str(query.public_research_query or query.original_query or "").strip()
+    free_web_mode = _is_free_web_mode(source_mode)
     if not public_query:
         return PublicLegalResearchResult(
             query_used="",
@@ -370,6 +388,35 @@ def run_public_legal_research(
     elif not _WEB_AVAILABLE:
         result.web_blocked_reason = "Modulo ricerca web ufficiale non disponibile."
         log.append(f"[2] Ricerca web non disponibile.")
+
+    # ------------------------------------------------------------------
+    # Step 2b: ricerca web libera manuale (solo flag esplicito utente)
+    # ------------------------------------------------------------------
+    if free_web_mode:
+        if _FREE_WEB_AVAILABLE:
+            log.append(f"[2b] Ricerca web libera manuale per: «{public_query[:80]}»")
+            result.web_used = True
+            result.free_web_used = True
+            result.web_blocked_reason = ""
+            try:
+                free_rows = _search_free_web(public_query, limit_results=max_results) or []
+                for row in free_rows[:max_results]:
+                    row_dict = row if isinstance(row, dict) else vars(row)
+                    normalized = _normalize_row(row_dict, source_type="web_libero")
+                    if not normalized.source_restricted:
+                        all_sources.append(normalized)
+                    else:
+                        result.coverage_gaps.append(
+                            f"Fonte web riservata non accessibile: {normalized.title}"
+                        )
+                log.append(f"  → {len(free_rows)} risultati web libero trovati.")
+            except Exception as exc:  # pragma: no cover
+                log.append(f"  → Errore ricerca web libera: {exc}")
+                result.warnings.append(f"Ricerca web libera non disponibile: {exc}")
+                result.web_blocked_reason = str(exc)
+        else:
+            result.web_blocked_reason = "Modulo ricerca web libera non disponibile."
+            log.append("[2b] Ricerca web libera non disponibile.")
 
     # ------------------------------------------------------------------
     # Step 3: Local Deep Research (solo se consentito e configurato)
@@ -467,13 +514,19 @@ def run_public_legal_research(
         log.append("[5] Nessuna fonte trovata.")
 
     elif not result.official_sources:
-        result.missing_evidence.append(
-            "Trovate solo fonti non ufficiali: verifica manualmente su fonti primarie."
-        )
-        result.next_actions.append(
-            "Valida le fonti trovate consultando direttamente le sedi ufficiali."
-        )
-        log.append("[5] Solo fonti non ufficiali trovate.")
+        if free_web_mode:
+            result.next_actions.append(
+                "Se un risultato web libero è utile, acquisisci pagina o allegato nell'archivio dello studio."
+            )
+            log.append("[5] Risultati web liberi trovati senza promozione automatica a fonte ufficiale.")
+        else:
+            result.missing_evidence.append(
+                "Trovate solo fonti non ufficiali: verifica manualmente su fonti primarie."
+            )
+            result.next_actions.append(
+                "Valida le fonti trovate consultando direttamente le sedi ufficiali."
+            )
+            log.append("[5] Solo fonti non ufficiali trovate.")
 
     if result.coverage_gaps and not any("riservata" in a for a in result.next_actions):
         result.next_actions.append(

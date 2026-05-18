@@ -93,6 +93,34 @@ def test_governed_only_instrada_giurisprudenza_strict(monkeypatch):
     assert service.last_request.intent == "research_giurisprudenza"
 
 
+def test_opzione_web_libero_e_manuale_non_passa_da_job(monkeypatch):
+    monkeypatch.setenv("LEX_GOVERNED_ONLY", "1")
+    context = _base_context(
+        request_profile={"intent": "", "source_mode": "balanced", "drafting_mode": False},
+        source_mode="balanced",
+    )
+    service = DummyLexService()
+    monkeypatch.setattr("lex.http_bounded_bridge._application_lex_service", lambda: service)
+
+    payload = build_bounded_http_payload(
+        user=SimpleNamespace(username="utente"),
+        studio=SimpleNamespace(slug="studio"),
+        data={"session_id": "sess", "free_web_enabled": True},
+        current_user_message="Cerca sul web libero questione penale R.G. 9926/2026",
+        resolved_effective_question="Cerca sul web libero questione penale R.G. 9926/2026",
+        studio_context=context,
+    )
+
+    assert payload is not None
+    assert service.last_request is not None
+    assert service.last_request.metadata["free_web_enabled"] is True
+    assert service.last_request.metadata["force_free_web_search"] is True
+    assert service.last_request.metadata["public_web_forced"] is True
+    assert service.last_request.metadata["source_mode"] == "free_web"
+    assert service.last_request.allow_external_research is True
+    assert service.last_request.require_official_sources is False
+
+
 def test_attachments_non_diventano_prompt_libero(monkeypatch):
     monkeypatch.setenv("LEX_GOVERNED_ONLY", "1")
     attachment = {

@@ -73,6 +73,7 @@ _NORMATIVE_EXTERNAL_TOKENS = (
 )
 _FALSE_VALUES = {"0", "false", "falso", "no", "off", "disabled", "disabilitato"}
 _TRUE_VALUES = {"1", "true", "vero", "yes", "si", "on", "enabled", "abilitato"}
+_FREE_WEB_MODES = {"free", "free_web", "web_libero", "ricerca_libera", "libera"}
 
 
 def _clean_spaces(value: Any) -> str:
@@ -89,6 +90,44 @@ def _env_flag(name: str, *, default: bool) -> bool:
     if value in _TRUE_VALUES:
         return True
     return default
+
+
+def _payload_flag(value: Any) -> bool:
+    if value is True:
+        return True
+    return _clean_spaces(value).lower() in _TRUE_VALUES
+
+
+def _manual_free_web_enabled(data: dict[str, Any], studio_context: dict[str, Any] | None = None) -> bool:
+    studio_context = dict(studio_context or {})
+    request_profile = dict(studio_context.get("request_profile") or {})
+    source_mode = _clean_spaces(
+        data.get("source_mode")
+        or studio_context.get("source_mode")
+        or request_profile.get("source_mode")
+    ).lower()
+    if source_mode in _FREE_WEB_MODES:
+        return True
+    return any(
+        _payload_flag((data or {}).get(key)) or _payload_flag(studio_context.get(key))
+        for key in ("free_web_enabled", "free_web", "force_free_web_search", "manual_free_web_enabled")
+    )
+
+
+def apply_manual_free_web_context(data: dict[str, Any], studio_context: dict[str, Any]) -> dict[str, Any]:
+    if not _manual_free_web_enabled(data, studio_context):
+        return studio_context
+    updated = dict(studio_context or {})
+    request_profile = dict(updated.get("request_profile") or {})
+    request_profile["source_mode"] = "free_web"
+    request_profile["needs_external_validation"] = True
+    updated["request_profile"] = request_profile
+    updated["source_mode"] = "free_web"
+    updated["web_execution_requested"] = True
+    updated["free_web_enabled"] = True
+    updated["manual_free_web_enabled"] = True
+    updated["answer_guardrail_message"] = ""
+    return updated
 
 
 def _governed_only_enabled() -> bool:
@@ -187,6 +226,9 @@ def _external_sources_reason(
     text = _clean_spaces(question).lower()
     explicit_web = bool(studio_context.get("web_execution_requested") or studio_context.get("web_fallback_used"))
 
+    if source_mode in _FREE_WEB_MODES or _payload_flag(studio_context.get("free_web_enabled")):
+        return "Ricerca web libera attivata manualmente dall'utente."
+
     # Per i workflow di redazione, "web"/"cerca" nella query dell'utente NON deve
     # attivare la ricerca esterna di giurisprudenza o fonti irrilevanti.
     # Solo token normativi specifici giustificano la ricerca per bozza/drafting.
@@ -266,6 +308,9 @@ def _should_use_bounded_workflow(
     source_mode = _clean_spaces(studio_context.get("source_mode") or request_profile.get("source_mode"))
 
     if list(attachments or []):
+        return True
+
+    if _manual_free_web_enabled({}, studio_context):
         return True
 
     if _governed_only_enabled():
@@ -471,10 +516,16 @@ def build_bounded_http_payload(
     studio_context: dict[str, Any],
     attachments: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
+    data = dict(data or {})
+    studio_context = apply_manual_free_web_context(data, studio_context)
+    free_web_enabled = _manual_free_web_enabled(data, studio_context)
     if not _should_use_bounded_workflow(attachments=attachments, studio_context=studio_context):
         return None
 
     request_profile = dict(studio_context.get("request_profile") or {})
+    if free_web_enabled:
+        request_profile["source_mode"] = "free_web"
+        request_profile["needs_external_validation"] = True
     metadata = dict(data or {})
     workflow_hint = _resolve_workflow_hint(studio_context, request_profile)
     fascicolo_first = _is_fascicolo_first_request(data, studio_context, workflow_hint)
@@ -484,7 +535,9 @@ def build_bounded_http_payload(
         request_profile,
         fascicolo_first=fascicolo_first,
     )
-    allow_external_research = bool(external_reason) if fascicolo_first else bool(
+    if free_web_enabled:
+        external_reason = "Ricerca web libera attivata manualmente dall'utente."
+    allow_external_research = True if free_web_enabled else bool(external_reason) if fascicolo_first else bool(
         studio_context.get("web_execution_requested")
         or studio_context.get("web_fallback_used")
         or request_profile.get("needs_external_validation")
@@ -505,6 +558,10 @@ def build_bounded_http_payload(
             "source_mode": _clean_spaces(studio_context.get("source_mode")),
             "web_fallback_used": bool(studio_context.get("web_fallback_used")),
             "web_execution_requested": bool(studio_context.get("web_execution_requested")),
+            "free_web_enabled": free_web_enabled,
+            "manual_free_web_enabled": free_web_enabled,
+            "force_free_web_search": free_web_enabled,
+            "public_web_forced": bool(free_web_enabled or metadata.get("public_web_forced")),
             "fascicolo_first": fascicolo_first,
             "external_sources_reason": external_reason,
             "studio_context_seed": {
@@ -518,12 +575,13 @@ def build_bounded_http_payload(
                 "source_mode": _clean_spaces(studio_context.get("source_mode")),
                 "web_fallback_used": bool(studio_context.get("web_fallback_used")),
                 "web_execution_requested": bool(studio_context.get("web_execution_requested")),
+                "free_web_enabled": free_web_enabled,
                 "fascicolo_first": fascicolo_first,
                 "external_sources_reason": external_reason,
             },
         }
     )
-    if not list(attachments or []):
+    if not list(attachments or []) and not free_web_enabled:
         try:
             from lex.operational_knowledge.integration import build_operational_http_payload
 
@@ -556,7 +614,7 @@ def build_bounded_http_payload(
             request_profile.get("source_mode") == "strict"
             or _clean_spaces(studio_context.get("focus_topic")) in {"ricerca_legale", "archivio_sentenze", "sentenze_civili", "sentenze_web"}
         ),
-        require_official_sources=bool(
+        require_official_sources=False if free_web_enabled else bool(
             bool(external_reason)
             or _clean_spaces(request_profile.get("intent")) in _STRICT_OFFICIAL_INTENTS
             or _clean_spaces(studio_context.get("focus_topic")) in {"ricerca_legale", "archivio_sentenze", "sentenze_civili", "sentenze_web", "telematico"}
@@ -642,6 +700,7 @@ def build_bounded_http_payload(
             "request_profile": request_profile,
             "source_policy_summary": dict(studio_context.get("source_policy_summary") or {}),
             "source_mode": _clean_spaces(studio_context.get("source_mode")),
+            "free_web_enabled": free_web_enabled,
             "competence_labels": list(studio_context.get("competence_labels") or []),
             "routing": dict(payload.get("routing") or {}),
             "followup_resolution": dict(payload.get("followup_resolution") or {}),

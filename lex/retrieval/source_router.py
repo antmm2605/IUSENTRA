@@ -30,6 +30,14 @@ _LEGAL_RESEARCH_HINTS = (
     "sentenza",
     "giurisprudenza",
     "cassazione",
+    "questione penale",
+    "questione civile",
+    "allegato ufficiale",
+    "ordinanza di rimessione",
+    "r.g.",
+    " rg ",
+    "qsp",
+    "contentid=",
     "tariffario",
     "d.m. 55",
     "dm 55",
@@ -64,7 +72,7 @@ def _should_include_legal_sources(request, workflow: str) -> bool:
     if bool(getattr(request, "require_official_sources", False)):
         return True
 
-    if source_mode == "strict":
+    if source_mode in {"strict", "free", "free_web", "web_libero", "ricerca_libera"}:
         return True
 
     haystack = _clean_spaces(getattr(request, "query", "") or "").lower()

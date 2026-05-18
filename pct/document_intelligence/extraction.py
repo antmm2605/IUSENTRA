@@ -402,6 +402,7 @@ def _extract_scanned_pdf_with_ocr(
         base_warnings.append(f"OCR PDF non disponibile: {exc}")
         return None
 
+    tess_config = _configure_tesseract_runtime(pytesseract)
     tesseract_probe = getattr(pytesseract, "get_tesseract_version", None)
     if callable(tesseract_probe):
         try:
@@ -410,7 +411,11 @@ def _extract_scanned_pdf_with_ocr(
             base_warnings.append(f"OCR PDF non disponibile: {exc}")
             return None
 
-    lang = str(os.environ.get("IUSENTRA_DOCUMENT_AI_OCR_LANG") or "ita").strip() or "ita"
+    lang = _resolve_tesseract_language(
+        pytesseract,
+        str(os.environ.get("IUSENTRA_DOCUMENT_AI_OCR_LANG") or "ita").strip() or "ita",
+        tess_config,
+    )
     max_pages = _int_from_env("IUSENTRA_DOCUMENT_AI_OCR_MAX_PAGES", default=0, minimum=0, maximum=1000)
     scale = _float_from_env("IUSENTRA_DOCUMENT_AI_OCR_SCALE", default=2.2, minimum=1.0, maximum=4.0)
     pdf = None
@@ -432,7 +437,10 @@ def _extract_scanned_pdf_with_ocr(
                 page = pdf[page_index]
                 bitmap = page.render(scale=scale)
                 image = bitmap.to_pil()
-                text = pytesseract.image_to_string(image, lang=lang).strip()
+                try:
+                    text = pytesseract.image_to_string(image, lang=lang, config=tess_config).strip()
+                except TypeError:
+                    text = pytesseract.image_to_string(image, lang=lang).strip()
             except Exception as exc:
                 warnings.append(f"Pagina {page_index + 1}: OCR non completato ({exc}).")
                 text = ""
@@ -469,6 +477,81 @@ def _extract_scanned_pdf_with_ocr(
         extraction_engine=f"{base_engine}+ocr",
         warnings=_unique_warnings(warnings),
     )
+
+
+def _configure_tesseract_runtime(pytesseract: Any) -> str:
+    command = _resolve_tesseract_command()
+    pytesseract_module = getattr(pytesseract, "pytesseract", None)
+    if command and pytesseract_module is not None and hasattr(pytesseract_module, "tesseract_cmd"):
+        pytesseract_module.tesseract_cmd = command
+    tessdata_dir = _resolve_tessdata_dir(command)
+    if tessdata_dir:
+        os.environ.setdefault("TESSDATA_PREFIX", tessdata_dir)
+        return f"--tessdata-dir {tessdata_dir}"
+    return ""
+
+
+def _resolve_tesseract_command() -> str:
+    configured = str(os.environ.get("IUSENTRA_TESSERACT_CMD") or os.environ.get("TESSERACT_CMD") or "").strip()
+    if configured and Path(configured).is_file():
+        return configured
+    discovered = which("tesseract")
+    if discovered:
+        return discovered
+    if os.name == "nt":
+        for root in (
+            os.environ.get("ProgramFiles"),
+            os.environ.get("ProgramFiles(x86)"),
+            r"C:\Program Files",
+            r"C:\Program Files (x86)",
+        ):
+            if not root:
+                continue
+            candidate = Path(root) / "Tesseract-OCR" / "tesseract.exe"
+            if candidate.is_file():
+                return str(candidate)
+    return ""
+
+
+def _resolve_tessdata_dir(command: str) -> str:
+    candidates: list[Path] = []
+    for name in ("IUSENTRA_TESSDATA_PREFIX", "TESSDATA_PREFIX"):
+        configured = str(os.environ.get(name) or "").strip()
+        if configured:
+            candidates.append(Path(configured))
+    local_app_data = str(os.environ.get("LOCALAPPDATA") or "").strip()
+    if local_app_data:
+        candidates.append(Path(local_app_data) / "IUSENTRA" / "tessdata")
+    if command:
+        candidates.append(Path(command).resolve().parent / "tessdata")
+    for candidate in candidates:
+        if candidate.is_dir() and any(candidate.glob("*.traineddata")):
+            return str(candidate)
+    return ""
+
+
+def _resolve_tesseract_language(pytesseract: Any, preferred: str, config: str) -> str:
+    requested = [part for part in str(preferred or "ita").split("+") if part]
+    get_languages = getattr(pytesseract, "get_languages", None)
+    if not callable(get_languages):
+        return "+".join(requested) or "ita"
+    try:
+        available = set(get_languages(config=config))
+    except TypeError:
+        try:
+            available = set(get_languages())
+        except Exception:
+            return "+".join(requested) or "ita"
+    except Exception:
+        return "+".join(requested) or "ita"
+    selected = [lang for lang in requested if lang in available]
+    if selected:
+        return "+".join(selected)
+    if "ita" in available:
+        return "ita"
+    if "eng" in available:
+        return "eng"
+    return "+".join(requested) or "ita"
 
 
 def _extract_docx(content: bytes) -> ExtractionResult:

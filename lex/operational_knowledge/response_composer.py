@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from .models import OperationalAnswer, OperationalRoute, OperationalSourceReference, OperationalToolResult
@@ -19,7 +20,7 @@ class OperationalResponseComposer:
     ) -> OperationalAnswer:
         sources = _unique_sources([source for result in results for source in result.sources])
         objects = _unique_objects([obj for result in results for obj in result.objects])
-        gaps = _unique_strings([gap for result in results for gap in result.coverage_gaps])
+        gaps = _user_facing_gaps(_unique_strings([gap for result in results for gap in result.coverage_gaps]))
         warnings = _unique_strings([warning for result in results for warning in result.warnings])
         permissions = _unique_strings(
             [
@@ -79,7 +80,7 @@ class OperationalResponseComposer:
                 metadata={"operational_layer": True},
             )
 
-        answer_lines = self._answer_lines(route, ok_results, gaps)
+        answer_lines = self._answer_lines(route, ok_results, gaps, question=question)
         confidence = self._confidence(ok_results, gaps)
         next_actions = self._next_actions(route, gaps)
         return OperationalAnswer(
@@ -101,7 +102,14 @@ class OperationalResponseComposer:
             },
         )
 
-    def _answer_lines(self, route: OperationalRoute, results: list[OperationalToolResult], gaps: list[str]) -> list[str]:
+    def _answer_lines(
+        self,
+        route: OperationalRoute,
+        results: list[OperationalToolResult],
+        gaps: list[str],
+        *,
+        question: str = "",
+    ) -> list[str]:
         if route.intent in {"client_situation", "client_fascicoli", "client_economic_summary"}:
             return self._client_lines(route, results, gaps)
         if route.intent == "soggetti_lookup":
@@ -113,7 +121,7 @@ class OperationalResponseComposer:
         if route.intent in {"preventivo_summary", "conferimento_summary", "billing_summary", "tariffario_lookup", "unbilled_activity"}:
             return self._economic_lines(route, results, gaps)
         if route.intent in {"legal_update_overview", "official_sources_lookup"}:
-            return self._legal_sources_lines(results, gaps)
+            return self._legal_sources_lines(results, gaps, question=question)
         if route.intent == "communications_lookup":
             return self._communications_lines(results, gaps)
         if route.intent == "sources_overview":
@@ -306,10 +314,61 @@ class OperationalResponseComposer:
         lines.append("Fonti interne: moduli economici IUSENTRA, senza stime inventate.")
         return lines
 
-    def _legal_sources_lines(self, results: list[OperationalToolResult], gaps: list[str]) -> list[str]:
+    def _legal_sources_lines(
+        self,
+        results: list[OperationalToolResult],
+        gaps: list[str],
+        *,
+        question: str = "",
+    ) -> list[str]:
         rows = []
         for source_id in ("legal_intelligence", "update_intelligence", "fonti_ufficiali"):
             rows.extend(_data_for(results, source_id))
+        attachment_rows = [row for row in rows if clean_spaces(row.get("attachment_url") or row.get("url_allegato"))]
+        if attachment_rows:
+            primary = attachment_rows[0]
+            title = _label(primary)
+            attachment_url = clean_spaces(primary.get("attachment_url") or primary.get("url_allegato"))
+            page_url = clean_spaces(
+                primary.get("official_url")
+                or primary.get("source_url")
+                or primary.get("url")
+                or primary.get("page_url")
+            )
+            source_name = clean_spaces(
+                primary.get("source_name")
+                or primary.get("authority")
+                or primary.get("fonte")
+                or primary.get("source_id")
+            )
+            excerpt = clean_spaces(
+                primary.get("excerpt")
+                or primary.get("summary")
+                or primary.get("content")
+                or primary.get("text")
+                or primary.get("context")
+            )
+            lines = [f"Allegato ufficiale trovato: {title}."]
+            if source_name:
+                lines.append(f"Fonte: {source_name}.")
+            if attachment_url:
+                lines.append(f"PDF: {attachment_url}")
+            if page_url and page_url != attachment_url:
+                lines.append(f"Pagina ufficiale: {page_url}")
+            mismatch = _reference_mismatch_note(question, primary)
+            if mismatch:
+                lines.append(mismatch)
+            if excerpt:
+                lines.append(f"Estratto leggibile: {_short_text(excerpt)}.")
+            display_gaps = [
+                gap
+                for gap in gaps
+                if gap != "Una sorgente secondaria non è disponibile nel contesto corrente."
+            ]
+            if display_gaps:
+                lines.append("Limiti: " + "; ".join(display_gaps[:3]) + ".")
+            lines.append("Le fonti pubbliche restano distinte dai dati riservati dello studio.")
+            return lines
         lines = [f"Fonti pubbliche/interne consultabili: {len(rows)}."]
         lines.extend(f"- {_label(row)}" for row in rows[:6])
         if gaps:
@@ -400,11 +459,61 @@ def _data_for(results: list[OperationalToolResult], source_id: str) -> list[dict
 
 
 def _label(row: dict[str, Any]) -> str:
-    for key in ("nome_completo", "titolo", "oggetto", "numero", "nome", "ragione_sociale", "id"):
+    for key in ("nome_completo", "titolo", "title", "oggetto", "numero", "number", "nome", "name", "ragione_sociale", "id"):
         value = clean_spaces(row.get(key))
         if value:
             return value
     return "Elemento"
+
+
+_REFERENCE_RE = re.compile(
+    r"\b(?:r\.?\s*g\.?|rg)?\s*(?P<number>\d{2,7})\s*/\s*(?P<year>(?:19|20)\d{2})\b",
+    re.IGNORECASE,
+)
+
+
+def _reference_pairs(value: Any) -> list[str]:
+    text = clean_spaces(value)
+    result: list[str] = []
+    for match in _REFERENCE_RE.finditer(text):
+        ref = f"{match.group('number')}/{match.group('year')}"
+        if ref not in result:
+            result.append(ref)
+    return result
+
+
+def _reference_mismatch_note(question: str, row: dict[str, Any]) -> str:
+    asked_refs = _reference_pairs(question)
+    if not asked_refs:
+        return ""
+    row_text = " ".join(
+        clean_spaces(row.get(key))
+        for key in (
+            "title",
+            "titolo",
+            "attachment_url",
+            "url_allegato",
+            "official_url",
+            "source_url",
+            "url",
+            "excerpt",
+            "summary",
+            "content",
+            "text",
+            "context",
+        )
+        if clean_spaces(row.get(key))
+    )
+    found_refs = _reference_pairs(row_text)
+    if not found_refs:
+        return ""
+    for asked in asked_refs:
+        if asked not in found_refs:
+            return (
+                "Attenzione: nella domanda compare R.G. "
+                f"{asked}, mentre nell'allegato acquisito risulta R.G. {found_refs[0]}."
+            )
+    return ""
 
 
 def _cliente_identity_lines(cliente: dict[str, Any]) -> list[str]:
@@ -646,6 +755,30 @@ def _unique_strings(values: list[str]) -> list[str]:
         seen.add(key)
         result.append(clean)
     return result
+
+
+def _user_facing_gaps(values: list[str]) -> list[str]:
+    sanitized: list[str] = []
+    for value in values:
+        clean = clean_spaces(value)
+        if not clean:
+            continue
+        lower = clean.lower()
+        if any(
+            marker in lower
+            for marker in (
+                "working outside of application context",
+                "traceback",
+                "exception",
+                "no module named",
+                "object has no attribute",
+                "current_app",
+                "flask",
+            )
+        ):
+            clean = "Una sorgente secondaria non è disponibile nel contesto corrente."
+        sanitized.append(clean)
+    return _unique_strings(sanitized)
 
 
 def _unique_sources(values: list[OperationalSourceReference]) -> list[OperationalSourceReference]:

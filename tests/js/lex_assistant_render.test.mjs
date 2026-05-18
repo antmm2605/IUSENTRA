@@ -69,6 +69,19 @@ assert.match(rendered, /Societ\u00e0/)
 assert.match(rendered, /<blockquote class="pct-ai-answer-quote">Nota con accento: \u00e8 utile.<\/blockquote>/)
 assert.doesNotMatch(rendered, /<script/i)
 
+const renderedOfficialSource = hooks.renderMarkdown(`Ho trovato una fonte ufficiale collegata alla richiesta.
+
+### Allegato ufficiale
+- Allegato: **Ordinanza di rimessione**.
+- PDF ufficiale: https://www.cortedicassazione.it/resources/cms/documents/Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf.
+
+### Punto da verificare
+Attenzione: nella domanda compare R.G. 9926/2026, mentre nell'allegato acquisito risulta R.G. 9966/2026.`)
+assert.match(renderedOfficialSource, /pct-ai-answer-heading">Allegato ufficiale<\/h4>/)
+assert.match(renderedOfficialSource, /<strong>Ordinanza di rimessione<\/strong>/)
+assert.match(renderedOfficialSource, /href="https:\/\/www\.cortedicassazione\.it\/resources\/cms\/documents\/Nota_Ufficio_Spoglio_V_Sez\._penale_RG_9966_2026_1\.pdf"/)
+assert.doesNotMatch(renderedOfficialSource, /https www\.cortedicassazione/)
+
 const flatDraft = "Sintesi operativa BOZZA \u2014 DIFFIDA E MESSA IN MORA Studio Legale Montagnese Avv. Roberto Montagnese Via NINO BIXIO 4, Taurianova, RC C.F. MNTRRT64L01063H - P.IVA 01301790802 Tel. +393474940097 - Email r.montagnese@tiscali.it - PEC roberto.montagnese@coapalmi.legalmail.it 17/05/2026 Spett.le [Nome e Cognome / Ragione sociale della controparte] [Indirizzo, CAP, Citt\u00e0, Provincia] Oggetto: DIFFIDA E MESSA IN MORA \u2014 [descrizione del credito/obbligo inademputo] Con la presente, il sottoscritto/la sottoscritta Avv. Roberto Montagnese, in qualit\u00e0 di difensore di [Nome del cliente - da completare], si invita e diffida formalmente la S.V. / codesta Spettabile Societ\u00e0 ad adempiere. Fatto [Esporre in modo sintetico e cronologico i fatti rilevanti \u2014 DA COMPLETARE] Diritto Ai sensi dell'art. 1219 c.c., la presente lettera costituisce formale messa in mora. Richiesta formale Si diffida la S.V. a: 1. [Prima richiesta specifica \u2014 DA COMPLETARE] 2. [Eventuale seconda richiesta \u2014 DA COMPLETARE] Avvertenza in difetto si agir\u00e0. Con osservanza, Avv. Roberto Montagnese Dati da completare prima dell'invio: > - Nome e dati completi del cliente mittente > - Dati completi della controparte (CF/PI se societ\u00e0) > - Importo esatto Fonti consultate - Contesto fonte - dep Dato certo - irrilevante"
 const normalizedDraft = hooks.sanitizeLexAnswer(flatDraft, { question: 'scrivi diffida' })
 assert.ok(hooks.looksLikeLegalDraft(normalizedDraft))

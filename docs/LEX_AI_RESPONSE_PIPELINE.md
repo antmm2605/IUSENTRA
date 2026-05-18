@@ -218,6 +218,60 @@ Esito atteso:
 - nota sulla discrepanza `R.G. 9926/2026` / `R.G. 9966/2026`;
 - assenza di `Editor Lex`, `template_atti`, `Camera Arbitrale` e fonti R.G. non pertinenti.
 
+## Correzione qualità risposta del 18 maggio 2026
+
+Problema residuo dopo la correzione del routing:
+
+- Lex arrivava finalmente alla fonte ufficiale, ma mostrava una risposta troppo
+  povera: indicava il PDF senza sintetizzare la questione giuridica.
+- Il percorso streaming `/api/assistente/chat` comprimeva le risposte bounded con
+  `clean_spaces`, perdendo titoli, righe e punti elenco.
+- Il renderer del widget interpretava gli underscore dell'URL PDF come enfasi
+  Markdown, spezzando il link in frammenti non professionali.
+
+Regola aggiornata:
+
+1. Per una domanda come `Questione Penale Pendente del ricorso R.G. 9926/2026`,
+   Lex deve rispondere al contenuto della scheda, non solo all'esistenza del PDF.
+2. Se nel DB esistono sia la pagina Cassazione sia l'allegato, la risposta deve
+   includere:
+   - quesito ufficiale;
+   - riferimenti normativi;
+   - data udienza, relatore e ricorrente quando presenti;
+   - allegato ufficiale e URL PDF;
+   - nota sulla discrepanza `9926/2026` / `9966/2026`;
+   - distinzione tra dato certo e punto da verificare.
+3. Il widget deve preservare titoli, elenchi e link cliccabili anche in streaming.
+
+Test di blocco regressione aggiunti o aggiornati:
+
+```powershell
+python -m pytest tests\test_lex_operational_knowledge.py tests\test_lex_assistente_context_real_requests.py -q
+node tests\js\lex_assistant_render.test.mjs
+```
+
+Risposta sostanziale minima attesa:
+
+```text
+Ho trovato una fonte ufficiale collegata alla richiesta.
+
+Cosa dice la scheda ufficiale:
+- Questione: se, avverso la sentenza emessa a seguito di concordato in appello,
+  siano deducibili con il ricorso per cassazione i vizi attinenti alla
+  determinazione della pena non comportanti l'illegalità della stessa.
+- Riferimenti normativi: Cod. proc. pen. artt. 599-bis e 606.
+- Scheda: inserita il 05 maggio 2026; udienza 09 luglio 2026; relatore
+  E. Morosini; ricorrente Turco G.
+
+Allegato ufficiale:
+- Ordinanza di rimessione.
+- PDF ufficiale cliccabile.
+
+Punto da verificare:
+- La domanda cita R.G. 9926/2026, mentre l'allegato acquisito riporta
+  R.G. 9966/2026.
+```
+
 ## Generatore Corpus Fonti
 
 Il passaggio successivo al collaudo fonte è il generatore del corpus reale:

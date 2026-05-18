@@ -7,6 +7,12 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.23 - 2026-05-18
+
+- Rafforzata la risposta Lex sulle questioni penali pendenti Cassazione: per `R.G. 9926/2026` Lex ora restituisce anche il contenuto della scheda ufficiale, il quesito sul concordato in appello, i riferimenti agli artt. 599-bis e 606 c.p.p., udienza, relatore e ricorrente quando presenti nel DB.
+- Il percorso `/api/assistente/chat` non schiaccia più le risposte operative bounded in una sola riga: titoli, elenchi, link PDF e punti da verificare arrivano al widget con formattazione leggibile.
+- Corretto il rendering dei link nel widget Lex: URL con underscore, come il PDF Cassazione `Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf`, restano interi e cliccabili invece di essere spezzati dalla formattazione Markdown.
+
 ## 2.245.22 - 2026-05-18
 
 - Corretto il percorso reale del widget Lex per `Questione Penale Pendente del ricorso R.G. 9926/2026`: il focus conversazionale non trasforma più `questione` in follow-up e non antepone più `atti template` alla domanda.

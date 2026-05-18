@@ -621,7 +621,7 @@ def chat_response(
         attachments=attachments,
     )
     if bounded_payload:
-        direct_answer = clean_spaces(bounded_payload.get("answer"))
+        direct_answer = str(bounded_payload.get("answer") or "").replace("\r", "").strip()
 
         def generate_bounded():
             yield f"data: {json.dumps({'token': direct_answer})}\n\n"

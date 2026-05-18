@@ -559,7 +559,8 @@ def test_rg_questione_penale_usa_archivio_legale_e_allegato_ufficiale():
 
     assert answer is not None
     assert answer.route.intent == "official_sources_lookup"
-    assert "Allegato ufficiale trovato: Ordinanza di rimessione." in answer.answer
+    assert "### Allegato ufficiale" in answer.answer
+    assert "Allegato: **Ordinanza di rimessione**." in answer.answer
     assert "Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf" in answer.answer
     assert "R.G. 9926/2026" in answer.answer
     assert "R.G. 9966/2026" in answer.answer
@@ -625,7 +626,7 @@ def test_rg_questione_penale_non_trascina_fonti_non_pertinenti():
     )
 
     assert answer is not None
-    assert "Allegato ufficiale trovato: Ordinanza di rimessione." in answer.answer
+    assert "Allegato: **Ordinanza di rimessione**." in answer.answer
     assert "Camera Arbitrale" not in answer.answer
     assert "Nessuna fonte ufficiale citabile" not in answer.answer
     assert all("Camera Arbitrale" not in source.title for source in answer.sources)
@@ -665,7 +666,7 @@ def test_rg_questione_penale_prefisso_template_resta_fonte_ufficiale():
 
     assert answer is not None
     assert answer.route.intent == "official_sources_lookup"
-    assert "Allegato ufficiale trovato: Ordinanza di rimessione." in answer.answer
+    assert "Allegato: **Ordinanza di rimessione**." in answer.answer
     assert "Editor Lex" not in answer.answer
     assert "template_atti" not in answer.answer
 
@@ -702,8 +703,8 @@ def test_rg_questione_penale_end_to_end_da_legal_updates_db(tmp_path: Path, monk
                     "a" * 64,
                     1,
                     320,
-                    "Questione penale pendente R.G. 9926/2026.",
-                    "Questione penale pendente R.G. 9926/2026. Concordato in appello.",
+                    "Questione penale pendente R.G. 9926/2026. Se, avverso la sentenza emessa a seguito di concordato in appello, siano deducibili con il ricorso per cassazione i vizi attinenti alla determinazione della pena non comportanti l'illegalità della stessa.",
+                    "Data inserimento: 05 maggio 2026 Questione penale Pendente del ricorso R.G. n. 9926/2026 ud. 09/07/2026 Se, avverso la sentenza emessa a seguito di concordato in appello, siano deducibili con il ricorso per cassazione i vizi attinenti alla determinazione della pena non comportanti l'illegalità della stessa. Ricorrente: Turco G. Relatore: E. Morosini Data udienza: 09 luglio 2026 Riferimenti normativi: Cod. proc. pen. artt. 599-bis e 606 Allegati Ordinanza di rimessione.",
                     '["questione penale", "9926/2026"]',
                     "verified",
                 ),
@@ -763,7 +764,10 @@ def test_rg_questione_penale_end_to_end_da_legal_updates_db(tmp_path: Path, monk
 
     assert answer is not None
     assert answer.route.intent == "official_sources_lookup"
-    assert "Allegato ufficiale trovato: Ordinanza di rimessione." in answer.answer
+    assert "Allegato: **Ordinanza di rimessione**." in answer.answer
+    assert "### Cosa dice la scheda ufficiale" in answer.answer
+    assert "concordato in appello" in answer.answer
+    assert "Cod. proc. pen. artt. 599-bis e 606" in answer.answer
     assert "Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf" in answer.answer
     assert "R.G. 9926/2026" in answer.answer
     assert "R.G. 9966/2026" in answer.answer
@@ -1014,8 +1018,10 @@ def test_http_bridge_non_devia_questione_penale_rg_in_bozza_atto(monkeypatch):
             return OperationalAnswer(
                 handled=True,
                 answer=(
-                    "Allegato ufficiale trovato: Ordinanza di rimessione.\n"
-                    "PDF: Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf."
+                    "Ho trovato una fonte ufficiale collegata alla richiesta.\n"
+                    "### Allegato ufficiale\n"
+                    "- Allegato: **Ordinanza di rimessione**.\n"
+                    "- PDF ufficiale: Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf."
                 ),
                 route=OperationalRoute(
                     "official_sources_lookup",
@@ -1051,7 +1057,7 @@ def test_http_bridge_non_devia_questione_penale_rg_in_bozza_atto(monkeypatch):
 
     assert payload is not None
     assert payload["workflow"] == "operational_knowledge"
-    assert "Allegato ufficiale trovato: Ordinanza di rimessione." in payload["answer"]
+    assert "Allegato: **Ordinanza di rimessione**." in payload["answer"]
     assert "Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf" in payload["answer"]
 
 

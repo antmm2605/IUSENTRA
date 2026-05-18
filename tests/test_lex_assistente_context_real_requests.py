@@ -120,7 +120,7 @@ def test_assistente_chat_questione_penale_rg_non_finisce_nell_editor(tmp_path: P
         json_path="",
     )
     with sqlite3.connect(repo.db_path) as conn:
-        conn.execute(
+        conn.executemany(
             """
             INSERT INTO web_verification_evidence (
                 evidence_key, source_code, source_name, query, origin, title,
@@ -129,24 +129,44 @@ def test_assistente_chat_questione_penale_rg_non_finisce_nell_editor(tmp_path: P
                 verification_status
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (
-                "qsp-attachment",
-                "cassazione_massimario",
-                "Corte Suprema di Cassazione",
-                "Questione Penale Pendente del ricorso R.G. 9926/2026",
-                "allegato_fonte_ufficiale",
-                "Ordinanza di rimessione",
-                "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP50194",
-                "https://www.cortedicassazione.it/resources/cms/documents/Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf",
-                "pdf",
-                "b" * 64,
-                1,
-                620,
-                "R.G. 9966/2026. Ordinanza di rimessione.",
-                "CORTE SUPREMA DI CASSAZIONE. Oggetto: ricorso n. 9966/2026 R.G. Ordinanza di rimessione.",
-                '["ordinanza", "rimessione", "9966/2026"]',
-                "verified",
-            ),
+            [
+                (
+                    "qsp-page",
+                    "cassazione_massimario",
+                    "Corte Suprema di Cassazione",
+                    "Questione Penale Pendente del ricorso R.G. 9926/2026",
+                    "pagina_fonte_ufficiale",
+                    "Questione Penale Pendente del ricorso R.G. 9926/2026 ud. 09/07/2026",
+                    "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP50194",
+                    "",
+                    "",
+                    "a" * 64,
+                    1,
+                    915,
+                    "Questione penale pendente R.G. 9926/2026. Se, avverso la sentenza emessa a seguito di concordato in appello, siano deducibili con il ricorso per cassazione i vizi attinenti alla determinazione della pena non comportanti l'illegalità della stessa.",
+                    "Data inserimento: 05 maggio 2026 Questione penale Pendente del ricorso R.G. n. 9926/2026 ud. 09/07/2026 Se, avverso la sentenza emessa a seguito di concordato in appello, siano deducibili con il ricorso per cassazione i vizi attinenti alla determinazione della pena non comportanti l'illegalità della stessa. Ricorrente: Turco G. Relatore: E. Morosini Data udienza: 09 luglio 2026 Riferimenti normativi: Cod. proc. pen. artt. 599-bis e 606 Allegati Ordinanza di rimessione.",
+                    '["questione penale", "9926/2026"]',
+                    "verified",
+                ),
+                (
+                    "qsp-attachment",
+                    "cassazione_massimario",
+                    "Corte Suprema di Cassazione",
+                    "Questione Penale Pendente del ricorso R.G. 9926/2026",
+                    "allegato_fonte_ufficiale",
+                    "Ordinanza di rimessione",
+                    "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP50194",
+                    "https://www.cortedicassazione.it/resources/cms/documents/Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf",
+                    "pdf",
+                    "b" * 64,
+                    1,
+                    620,
+                    "R.G. 9966/2026. Ordinanza di rimessione.",
+                    "CORTE SUPREMA DI CASSAZIONE. Oggetto: ricorso n. 9966/2026 R.G. Ordinanza di rimessione.",
+                    '["ordinanza", "rimessione", "9966/2026"]',
+                    "verified",
+                ),
+            ],
         )
         conn.commit()
 
@@ -170,7 +190,10 @@ def test_assistente_chat_questione_penale_rg_non_finisce_nell_editor(tmp_path: P
 
     stream = response.get_data(as_text=True)
     assert response.status_code == 200
-    assert "Allegato ufficiale trovato: Ordinanza di rimessione." in stream
+    assert "Allegato: **Ordinanza di rimessione**." in stream
+    assert "concordato in appello" in stream
+    assert "Cod. proc. pen. artt. 599-bis e 606" in stream
+    assert "Punto da verificare" in stream
     assert "Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf" in stream
     assert "R.G. 9926/2026" in stream
     assert "R.G. 9966/2026" in stream

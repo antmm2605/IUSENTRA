@@ -149,20 +149,27 @@
     return html;
   }
 
+  function linkHtml(label, url) {
+    var safeUrl = escapeHtml(url);
+    return '<a href="' + safeUrl + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(label || url) + '</a>';
+  }
+
   function renderInlineMarkdown(value) {
     var tokens = [];
     var raw = String(value || '').replace(/`([^`\n]+)`/g, function (_match, code) {
       return tokenFor(tokens, '<code>' + escapeHtml(code) + '</code>');
+    });
+    raw = raw.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, function (_match, label, url) {
+      return tokenFor(tokens, linkHtml(label, url));
+    });
+    raw = raw.replace(/(^|[\s(])((?:https?:\/\/)[^\s<)]+?)([.,;:!?)]?)(?=$|\s)/g, function (_match, prefix, url, suffix) {
+      return prefix + tokenFor(tokens, linkHtml(url, url)) + (suffix || '');
     });
     var html = escapeHtml(raw)
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/__([^_]+)__/g, '<strong>$1</strong>')
       .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
       .replace(/_([^_\n]+)_/g, '<em>$1</em>');
-    html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, function (_match, label, url) {
-      var safeUrl = escapeHtml(url);
-      return '<a href="' + safeUrl + '" target="_blank" rel="noopener noreferrer">' + label + '</a>';
-    });
     return restoreTokens(html, tokens);
   }
 

@@ -330,10 +330,11 @@ class OperationalResponseComposer:
             title = _label(primary)
             attachment_url = clean_spaces(primary.get("attachment_url") or primary.get("url_allegato"))
             page_url = clean_spaces(
-                primary.get("official_url")
+                primary.get("page_url")
+                or primary.get("source_base_url")
                 or primary.get("source_url")
                 or primary.get("url")
-                or primary.get("page_url")
+                or primary.get("official_url")
             )
             source_name = clean_spaces(
                 primary.get("source_name")
@@ -348,18 +349,33 @@ class OperationalResponseComposer:
                 or primary.get("text")
                 or primary.get("context")
             )
-            lines = [f"Allegato ufficiale trovato: {title}."]
+            lines = [
+                "Ho trovato una fonte ufficiale collegata alla richiesta.",
+            ]
+            case_summary = _official_case_summary_lines(rows)
+            if case_summary:
+                lines.append("### Cosa dice la scheda ufficiale")
+                lines.extend(case_summary)
+            lines.extend(
+                [
+                    "### Allegato ufficiale",
+                    f"- Allegato: **{title}**.",
+                ]
+            )
             if source_name:
-                lines.append(f"Fonte: {source_name}.")
+                lines.append(f"- Fonte: {source_name}.")
             if attachment_url:
-                lines.append(f"PDF: {attachment_url}")
+                lines.append(f"- PDF ufficiale: {_markdown_link(attachment_url)}.")
             if page_url and page_url != attachment_url:
-                lines.append(f"Pagina ufficiale: {page_url}")
+                lines.append(f"- Pagina ufficiale: {_markdown_link(page_url)}.")
             mismatch = _reference_mismatch_note(question, primary)
             if mismatch:
+                lines.append("### Punto da verificare")
                 lines.append(mismatch)
+                lines.append("Va controllato se la differenza dipende da un refuso della scheda o se l'allegato riguarda un diverso numero di ricorso.")
             if excerpt:
-                lines.append(f"Estratto leggibile: {_short_text(excerpt)}.")
+                lines.append("### Estratto leggibile")
+                lines.append(f"Estratto leggibile: {_sentence_text(_short_text(excerpt))}")
             display_gaps = [
                 gap
                 for gap in gaps
@@ -368,7 +384,9 @@ class OperationalResponseComposer:
             ]
             if display_gaps:
                 lines.append("Limiti: " + "; ".join(display_gaps[:3]) + ".")
-            lines.append("Le fonti pubbliche restano distinte dai dati riservati dello studio.")
+            lines.append("### Esito")
+            lines.append("- Dato certo: pagina e allegato ufficiale sono stati trovati nell'archivio delle fonti pubbliche.")
+            lines.append("- Non sto usando dati riservati dello studio per questa risposta.")
             return lines
         lines = [f"Fonti pubbliche/interne consultabili: {len(rows)}."]
         lines.extend(f"- {_label(row)}" for row in rows[:6])
@@ -465,6 +483,98 @@ def _label(row: dict[str, Any]) -> str:
         if value:
             return value
     return "Elemento"
+
+
+def _extract_until_label(text: str, pattern: str, stop_labels: tuple[str, ...]) -> str:
+    match = re.search(pattern, text, re.IGNORECASE)
+    if not match:
+        return ""
+    value = clean_spaces(match.group(1))
+    if not value:
+        return ""
+    stop_positions = [
+        pos
+        for label in stop_labels
+        for pos in [value.lower().find(label.lower())]
+        if pos >= 0
+    ]
+    if stop_positions:
+        value = clean_spaces(value[: min(stop_positions)])
+    return value.strip(" .;")
+
+
+def _extract_label_value(text: str, label: str, stop_labels: tuple[str, ...]) -> str:
+    return _extract_until_label(text, rf"{re.escape(label)}\s*:?\s*(.+)", stop_labels)
+
+
+def _official_case_summary_lines(rows: list[dict[str, Any]]) -> list[str]:
+    page_text = ""
+    for row in rows:
+        if clean_spaces(row.get("attachment_url") or row.get("url_allegato")):
+            continue
+        candidate = clean_spaces(
+            row.get("content")
+            or row.get("text")
+            or row.get("context")
+            or row.get("excerpt")
+            or row.get("summary")
+            or row.get("title")
+            or row.get("titolo")
+        )
+        if "questione penale" in candidate.lower() or "questione civile" in candidate.lower():
+            page_text = candidate
+            break
+    if not page_text:
+        return []
+
+    question_text = _extract_until_label(
+        page_text,
+        r"\b(Se,\s+.+)",
+        ("Ricorrente:", "Relatore:", "Data udienza:", "Riferimenti normativi:", "Allegati"),
+    )
+    inserted_at = _extract_label_value(
+        page_text,
+        "Data inserimento",
+        ("Questione penale", "Questione civile", "Se,", "Ricorrente:"),
+    )
+    hearing = _extract_label_value(
+        page_text,
+        "Data udienza",
+        ("Riferimenti normativi:", "Allegati", "Ordinanza"),
+    )
+    relator = _extract_label_value(
+        page_text,
+        "Relatore",
+        ("Data udienza:", "Riferimenti normativi:", "Allegati"),
+    )
+    ricorrente = _extract_label_value(
+        page_text,
+        "Ricorrente",
+        ("Relatore:", "Data udienza:", "Riferimenti normativi:", "Allegati"),
+    )
+    references = _extract_label_value(
+        page_text,
+        "Riferimenti normativi",
+        ("Allegati", "Ordinanza", "Scarica Documento"),
+    )
+
+    lines: list[str] = []
+    if question_text:
+        lines.append(f"- Questione: {_sentence_text(question_text)}")
+    if references:
+        lines.append(f"- Riferimenti normativi: {_sentence_text(references)}")
+    details = []
+    if inserted_at:
+        details.append(f"inserita il {inserted_at}")
+    if hearing:
+        details.append(f"udienza {hearing}")
+    if relator:
+        details.append(f"relatore {relator}")
+    if ricorrente:
+        details.append(f"ricorrente {ricorrente}")
+    if details:
+        lines.append("- Scheda: " + "; ".join(details) + ".")
+    return lines
 
 
 _REFERENCE_RE = re.compile(
@@ -703,6 +813,20 @@ def _short_text(value: Any, *, max_length: int = 260) -> str:
     if len(text) <= max_length:
         return text
     return text[: max_length - 3].rstrip() + "..."
+
+
+def _sentence_text(value: Any) -> str:
+    text = clean_spaces(value).strip(" .;")
+    if not text:
+        return ""
+    return text + "."
+
+
+def _markdown_link(url: str) -> str:
+    clean = clean_spaces(url)
+    if not clean:
+        return ""
+    return f"[{clean}]({clean})"
 
 
 def _communication_details(row: dict[str, Any], *, include_folder: bool = False) -> list[str]:

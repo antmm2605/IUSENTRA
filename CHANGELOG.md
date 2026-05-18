@@ -12,6 +12,7 @@
 - Corretto il blocco `Contesto in IUSENTRA` della Ricerca Legale: quando il riepilogo operativo e l'estratto della fonte coincidono, Lex mostra una sola voce e non duplica `Contesto operativo`/`Contenuto`.
 - Aggiunto filtro di pertinenza per AGCOM e prove web: contributi di consultazione pubblica o pianificazione frequenze senza valore operativo per lo studio vengono chiusi come fuori perimetro e non alimentano i risultati Lex/Ricerca Legale; restano ammessi delibere, provvedimenti, sanzioni, controversie, Corecom e tutela utenti.
 - Aggiunti test mirati su duplicazione del contesto, filtro Assoradio/AGCOM, conservazione dei provvedimenti AGCOM utili, pipeline aggiornamenti e typecheck React.
+- Rigenerato il bundle React e ripulito l'asset Impostazioni dopo il build per eliminare il falso mojibake rilevato dalla governance CI, mantenendo UTF-8 valido.
 
 ## 2.245.37 - 2026-05-18
 

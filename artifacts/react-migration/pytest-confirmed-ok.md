@@ -17,6 +17,7 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python scripts\smoke_app_v2_all.py --subset contracts` | OK | OpenAPI riallineato a `2.245.38`, provider verification e smoke contratti offline verdi. |
 | `python -m pytest -q tests\test_openapi_contracts_phase6.py --tb=short`; `python -m pytest tests\test_utf8_integrity.py -q --tb=short` | OK | 5/5 contratti OpenAPI fase 6 e 4/4 guardie UTF-8 verdi. |
 | `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short`; `python -m pct.cli utf8-integrity --check-only --root ... --report %TEMP%\iusentra_utf8_24538_targeted_report.json --json` | OK | Packaging e release readiness 9/9; controllo UTF-8 mirato sui file toccati `ok=true`. |
+| `python tools/check_repo_governance.py`; `python -m pytest tests\test_utf8_integrity.py -q --tb=short`; `git diff --cached --check` | OK | Hotfix post-build: l'asset React `ImpostazioniPage-DA0fc_JT.js` è stato rigenerato senza mojibake, il simbolo select resta UTF-8 valido e gli spazi finali non bloccano più `CI Quality Overlay / quality-gates`. |
 
 ## Guard lingua italiana Lex 2.245.37 - 2026-05-18
 

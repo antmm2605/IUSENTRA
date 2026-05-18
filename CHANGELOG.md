@@ -7,6 +7,12 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.38 - 2026-05-18
+
+- Corretto il blocco `Contesto in IUSENTRA` della Ricerca Legale: quando il riepilogo operativo e l'estratto della fonte coincidono, Lex mostra una sola voce e non duplica `Contesto operativo`/`Contenuto`.
+- Aggiunto filtro di pertinenza per AGCOM e prove web: contributi di consultazione pubblica o pianificazione frequenze senza valore operativo per lo studio vengono chiusi come fuori perimetro e non alimentano i risultati Lex/Ricerca Legale; restano ammessi delibere, provvedimenti, sanzioni, controversie, Corecom e tutela utenti.
+- Aggiunti test mirati su duplicazione del contesto, filtro Assoradio/AGCOM, conservazione dei provvedimenti AGCOM utili, pipeline aggiornamenti e typecheck React.
+
 ## 2.245.37 - 2026-05-18
 
 - Rifinito il guard linguistico Lex: il fallback non presume più il fascicolo quando la richiesta è in `Web libero`, mantiene il messaggio generico di blocco italiano e usa accenti UTF-8 reali nel fallback fascicolo.

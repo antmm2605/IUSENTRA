@@ -210,6 +210,102 @@ def test_ricerca_legale_interroga_repository_e_mantiene_estratti(monkeypatch):
     assert all(record["reliabilityNote"] for record in payload["records"][:2])
 
 
+def test_ricerca_legale_non_duplica_contesto_operativo_e_contenuto_identici():
+    excerpt = (
+        "Protocollo n. 0048405 del 06/02/2026 ASSOCIAZIONE EMITTENTI RADIO "
+        "Contributo alla consultazione pubblica AGCOM alla cortese attenzione "
+        "dell'Autorita per le Garanzie nelle Comunicazioni."
+    )
+
+    record = bridge._enrich_record_context(
+        {
+            "id": "legal-updates-web_evidence:42",
+            "kind": "legal web evidence",
+            "title": "02 Assoradio",
+            "sourceExcerpt": excerpt,
+            "contextSummary": excerpt,
+            "sourceLabel": "AGCOM - atti e provvedimenti",
+            "sourceKind": "fonte ufficiale",
+            "sourceHref": "https://www.agcom.it/provvedimenti",
+            "area": "pdf",
+            "branch": "legal web evidence",
+        }
+    )
+
+    assert any(item.startswith("Contesto operativo:") for item in record["sourceContext"])
+    assert not any(item.startswith("Contenuto:") for item in record["sourceContext"])
+
+
+def test_ricerca_legale_filtra_contributi_agcom_non_utili_allo_studio():
+    repository = _Repository(
+        search_rows=[
+            {
+                "type": "legal_web_evidence",
+                "id": "legal-updates-web_evidence:42",
+                "title": "02 Assoradio",
+                "excerpt": (
+                    "Protocollo n. 0048405 del 06/02/2026 ASSOCIAZIONE EMITTENTI RADIO "
+                    "Contributo alla consultazione pubblica AGCOM. Richiesta di "
+                    "pianificazione di una frequenza DAB+ locale per l'area di Bari."
+                ),
+                "content": "Documento di posizione tecnica di un'associazione di emittenti radio.",
+                "authority": "AGCOM - atti e provvedimenti",
+                "official_url": "https://www.agcom.it/provvedimenti/02_Assoradio.pdf",
+                "source_code": "agcom_provvedimenti",
+                "verified_reference": True,
+            },
+            {
+                "type": "prassi",
+                "id": "legal-updates-prassi:7",
+                "title": "Delibera AGCOM n. 123/26/CONS",
+                "excerpt": "Provvedimento sanzionatorio AGCOM con obblighi regolamentari e tutela utenti.",
+                "content": "Delibera su procedimento sanzionatorio e violazione di obblighi regolamentari.",
+                "authority": "AGCOM",
+                "official_url": "https://www.agcom.it/provvedimenti/delibera-123-26-cons",
+                "source_code": "agcom_provvedimenti",
+                "verified_reference": True,
+            },
+        ]
+    )
+
+    payload = _payload(repository, query={"q": "AGCOM"})
+
+    titles = [record["title"] for record in payload["records"]]
+    assert "02 Assoradio" not in titles
+    assert "Delibera AGCOM n. 123/26/CONS" in titles
+
+
+def test_ricerca_legale_usa_testo_pdf_esteso_senza_metterlo_tutto_nel_contesto():
+    full_text = (
+        "Delibera AGCOM n. 123/26/CONS. Procedimento sanzionatorio e tutela utenti. "
+        + "Obblighi regolamentari, ordine di adeguamento e motivazione del provvedimento. " * 35
+        + "Conclusione specifica del testo completo indicizzato."
+    )
+    repository = _Repository(
+        search_rows=[
+            {
+                "type": "legal_web_evidence",
+                "id": "legal-updates-web_evidence:77",
+                "title": "Delibera AGCOM n. 123/26/CONS",
+                "excerpt": "Delibera AGCOM n. 123/26/CONS. Procedimento sanzionatorio e tutela utenti.",
+                "content": full_text,
+                "authority": "AGCOM - atti e provvedimenti",
+                "official_url": "https://www.agcom.it/provvedimenti/delibera-123-26-cons.pdf",
+                "source_code": "agcom_provvedimenti",
+                "verified_reference": True,
+            }
+        ]
+    )
+
+    payload = _payload(repository, query={"q": "Delibera AGCOM 123/26"})
+    record = payload["records"][0]
+
+    assert "Conclusione specifica del testo completo indicizzato" in record["officialContext"]
+    assert "Conclusione specifica" not in record["sourceExcerpt"]
+    assert record["contextCompleted"] is True
+    assert any("Testo letto" in item for item in record["sourceContext"])
+
+
 def test_ricerca_legale_attiva_fonti_ufficiali_quando_archivio_non_basta(monkeypatch):
     monkeypatch.setattr(
         bridge,
@@ -368,7 +464,7 @@ def test_news_gazzetta_ripulisce_blocchi_cumulativi_e_corregge_fonte():
     assert record["area"] == "Unione europea"
     assert record["branch"] == "Mercati finanziari e vigilanza"
     assert "Fonte ufficiale: Gazzetta Ufficiale" in record["sourceContext"]
-    assert any("Testo completo" in item for item in record["sourceContext"])
+    assert any("Anteprima" in item or "Testo letto" in item for item in record["sourceContext"])
 
 
 def test_ricerca_legale_completa_record_povero_con_contesto_interno(monkeypatch):

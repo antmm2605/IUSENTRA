@@ -84,15 +84,40 @@ function formatDate(value: string) {
 function isOfficial(record: LegalIntelligenceRecord) {
   return [record.sourceKind, record.approvalLabel, record.evidenceType].join(' ').toLocaleLowerCase('it-IT').includes('ufficiale')
 }
+function normalizedContextText(value: string) {
+  return value
+    .replace(/^(contesto operativo|contenuto):\s*/i, '')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .toLocaleLowerCase('it-IT')
+}
+function sameContextText(left: string, right: string) {
+  const a = normalizedContextText(left)
+  const b = normalizedContextText(right)
+  if (!a || !b) return false
+  if (a === b) return true
+  if (Math.min(a.length, b.length) < 80) return false
+  return a.startsWith(b) || b.startsWith(a)
+}
+function cleanContextItems(items: string[]) {
+  const cleaned: string[] = []
+  items.forEach((item) => {
+    const current = item.trim()
+    if (!current) return
+    if (cleaned.some((existing) => sameContextText(existing, current))) return
+    cleaned.push(current)
+  })
+  return cleaned
+}
 function contextItems(record: LegalIntelligenceRecord) {
-  if (record.sourceContext.length) return record.sourceContext
-  return [
+  if (record.sourceContext.length) return cleanContextItems(record.sourceContext)
+  return cleanContextItems([
     record.contextSummary ? `Contesto operativo: ${record.contextSummary}` : '',
     record.sourceExcerpt ? `Contenuto: ${record.sourceExcerpt}` : '',
     record.area || record.branch ? `Ambito: ${[record.area, record.branch].filter(Boolean).join(' / ')}` : '',
     record.date ? `Aggiornamento: ${formatDate(record.date)}` : '',
     record.sourceLabel ? `Provenienza: ${record.sourceLabel}` : '',
-  ].filter(Boolean)
+  ].filter(Boolean))
 }
 function contextStatusLabel(record: LegalIntelligenceRecord) {
   if (record.contextCompleted) return 'Scheda interna completa'

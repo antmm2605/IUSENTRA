@@ -15,6 +15,7 @@ from lxml import html as lxml_html
 
 from pct.giurisprudenza import GestioneGiurisprudenza
 from pct.legal_update_ai import analyze_document
+from pct.legal_relevance import is_low_value_public_legal_record
 from pct.legal_update_repository import LegalUpdateDbConfig, LegalUpdateRepository
 from pct.legal_update_web_verification import verify_legal_update_against_public_sources
 from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
@@ -1506,6 +1507,15 @@ class LegalUpdatePipeline:
         title = _clean_spaces(normalized.get("title"))
         body_text = _clean_spaces(normalized.get("body_text") or normalized.get("body_short"))
         text = f"{title} {body_text}".lower()
+        if is_low_value_public_legal_record(
+            source_code=source_code,
+            source_name=source.get("name"),
+            title=title,
+            body_text=body_text,
+            url=normalized.get("source_url") or source.get("base_url"),
+            category=source.get("category"),
+        ):
+            return True
         if any(marker in text for marker in LOW_VALUE_ADMIN_ACCOUNTING_MARKERS) and not any(
             marker in text for marker in LOW_VALUE_ADMIN_LEGAL_CONTEXT_MARKERS
         ):

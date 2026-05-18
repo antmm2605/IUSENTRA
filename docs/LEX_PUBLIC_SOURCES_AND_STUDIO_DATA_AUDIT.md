@@ -2,6 +2,23 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.245.38 - 2026-05-18
+
+Corretto il caso `02_Assoradio.pdf` segnalato in Ricerca Legale:
+
+- il blocco `Contesto in IUSENTRA` non ripete più lo stesso testo come
+  `Contesto operativo` e `Contenuto` quando riepilogo ed estratto coincidono;
+- i contributi AGCOM di consultazione pubblica, pianificazione frequenze DAB+
+  o posizioni tecniche di terzi vengono marcati fuori perimetro quando non
+  contengono un provvedimento, una delibera, una sanzione, una controversia,
+  un elemento Corecom/tutela utenti o altro valore operativo per lo studio;
+- il filtro agisce sia sull'import deterministico degli aggiornamenti legali
+  sia sui risultati già esposti da `legal_updates.db`, così Lex e Ricerca
+  Legale non trasformano una prova web generica in materiale utile allo studio;
+- la scheda mostra solo anteprima e contesto pulito, mentre il testo PDF esteso
+  resta nel riquadro `Testo letto in IUSENTRA` e nei chunk/RAG quando il
+  documento è pertinente e il testo è stato letto correttamente.
+
 ---
 
 ## Aggiornamento operativo 2.245.34 - 2026-05-18

@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from typing import Any, Callable
 from urllib.parse import urlparse
 
+from pct.legal_relevance import is_low_value_public_legal_record
 from pct.legal_update_batch_runner import LegalUpdateJobConfig
 from pct.legal_update_autofetch import (
     LEGAL_SOURCE_QUALITY_QUESTIONS,
@@ -1155,7 +1156,7 @@ def _record_context_items(record: Mapping[str, Any], excerpt: str) -> list[str]:
     context_summary = _text(record.get("contextSummary"))
     if context_summary:
         items.append(f"Contesto operativo: {context_summary}")
-    if excerpt:
+    if excerpt and not _same_context_text(context_summary, excerpt):
         items.append(f"Contenuto: {excerpt}")
     scope = " / ".join(
         part
@@ -1179,7 +1180,10 @@ def _record_context_items(record: Mapping[str, Any], excerpt: str) -> list[str]:
     if source_label and ("ufficiale" in _text(record.get("sourceKind")).lower() or _is_official_href(source_href)):
         items.append(f"Fonte ufficiale: {source_label}")
         if source_href:
-            items.append("Testo completo: disponibile dalla fonte originale collegata.")
+            if _text(record.get("officialContext")) or bool(record.get("contextCompleted")):
+                items.append("Testo letto: anteprima in scheda e testo esteso disponibile nel riquadro dedicato.")
+            else:
+                items.append("Anteprima: testo integrale disponibile dalla fonte originale collegata.")
     elif source_label:
         items.append(f"Provenienza: {source_label}")
     return items[:6]
@@ -1207,13 +1211,47 @@ def _enrich_record_context(record: Mapping[str, Any]) -> dict[str, Any]:
     return enriched
 
 
+def _same_context_text(left: Any, right: Any) -> bool:
+    left_text = re.sub(r"\W+", " ", _text(left).lower()).strip()
+    right_text = re.sub(r"\W+", " ", _text(right).lower()).strip()
+    if not left_text or not right_text:
+        return False
+    if left_text == right_text:
+        return True
+    if min(len(left_text), len(right_text)) < 80:
+        return False
+    return left_text.startswith(right_text) or right_text.startswith(left_text)
+
+
+def _is_low_value_search_row(row: Mapping[str, Any]) -> bool:
+    return is_low_value_public_legal_record(
+        source_code=row.get("source_code"),
+        source_name=row.get("authority") or row.get("source_name"),
+        title=row.get("title") or row.get("headline") or row.get("name"),
+        body_text=" ".join(
+            _text(value)
+            for value in (
+                row.get("excerpt"),
+                row.get("content"),
+                row.get("summary"),
+                row.get("short_summary"),
+                row.get("category"),
+            )
+            if _text(value)
+        ),
+        url=row.get("official_url") or row.get("source_url") or row.get("url"),
+        category=row.get("category") or row.get("type") or row.get("entity_type"),
+    )
+
+
 def _safe_search_record(row: Mapping[str, Any], index: int, *, search_query: str = "") -> dict[str, Any]:
     source_href = _safe_href(row.get("official_url") or row.get("source_url") or row.get("url"))
     source_label = _text(row.get("authority") or row.get("source_name") or row.get("source_code")) or _source_label_from_url(source_href)
     verified = bool(row.get("verified_reference") or row.get("is_official") or _is_official_href(source_href))
     kind = _search_type_label(row.get("type") or row.get("entity_type") or row.get("category"))
     title = _text(row.get("title") or row.get("headline") or row.get("name")) or "Fonte ricerca legale"
-    raw_excerpt = _text(row.get("excerpt") or row.get("content") or row.get("summary") or row.get("short_summary"))
+    raw_content = _text(row.get("content"))
+    raw_excerpt = _text(row.get("excerpt") or row.get("summary") or row.get("short_summary") or raw_content)
     excerpt = _extract_reference_specific_excerpt(
         title,
         raw_excerpt,
@@ -1233,6 +1271,8 @@ def _safe_search_record(row: Mapping[str, Any], index: int, *, search_query: str
         excerpt,
     )
     official_context = _text(row.get("official_context") or row.get("officialContext"))
+    if not official_context and verified and raw_content and len(raw_content) > max(len(excerpt), 900):
+        official_context = _short(raw_content, 3600)
     context_summary = _text(row.get("context_summary") or row.get("contextSummary")) or _short(official_context or excerpt, 520)
     weak_listing = _looks_like_cumulative_gazzetta_listing(raw_excerpt)
     context_completed = bool(
@@ -1343,7 +1383,7 @@ def _search_repository_records(pipeline: Any, warnings: list[dict[str, str]], se
     return [
         _safe_search_record(row, index, search_query=search_query)
         for index, row in enumerate(rows, start=1)
-        if isinstance(row, Mapping)
+        if isinstance(row, Mapping) and not _is_low_value_search_row(row)
     ]
 
 

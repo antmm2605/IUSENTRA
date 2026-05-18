@@ -6,6 +6,18 @@ Aggiornato: 2026-05-18, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-f
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
+## Ricerca Legale contesto PDF e filtro AGCOM 2.245.38 - 2026-05-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_react_legal_intelligence_search.py -q` | OK | 17/17 passati: niente duplicazione `Contesto operativo`/`Contenuto`, filtro Assoradio/AGCOM fuori perimetro e testo PDF esteso disponibile in `officialContext` senza riversarlo tutto nella lista contesto. |
+| `python -m pytest tests/test_legal_updates_pipeline.py -q` | OK | 39/39 passati: contributi AGCOM di consultazione pubblica chiusi come `OUT_OF_SCOPE`, provvedimenti AGCOM con valore legale ancora utili allo studio. |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript confermato dopo deduplica fallback React di `sourceContext`. |
+| `pnpm --filter @iusentra/studio build` | OK | Build Vite completata in 7.68s; bundle Ricerca Legale aggiornato con deduplica e diciture anteprima/testo letto. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python scripts\smoke_app_v2_all.py --subset contracts` | OK | OpenAPI riallineato a `2.245.38`, provider verification e smoke contratti offline verdi. |
+| `python -m pytest -q tests\test_openapi_contracts_phase6.py --tb=short`; `python -m pytest tests\test_utf8_integrity.py -q --tb=short` | OK | 5/5 contratti OpenAPI fase 6 e 4/4 guardie UTF-8 verdi. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short`; `python -m pct.cli utf8-integrity --check-only --root ... --report %TEMP%\iusentra_utf8_24538_targeted_report.json --json` | OK | Packaging e release readiness 9/9; controllo UTF-8 mirato sui file toccati `ok=true`. |
+
 ## Guard lingua italiana Lex 2.245.37 - 2026-05-18
 
 | Comando / verifica | Esito | Nota |

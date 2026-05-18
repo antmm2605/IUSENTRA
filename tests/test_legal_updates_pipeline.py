@@ -682,6 +682,74 @@ def test_atti_amministrativi_di_sola_liquidazione_non_diventano_news_legali(tmp_
     assert review["status"] == "closed"
 
 
+def test_contributi_consultazione_agcom_non_diventano_news_di_studio(tmp_path: Path, monkeypatch):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+    source = pipeline.repository.get_source_by_code("agcom_provvedimenti")
+    assert source is not None
+
+    monkeypatch.setattr(
+        "pct.legal_update_pipeline.analyze_document",
+        lambda *args, **kwargs: {
+            "classification_type": "COMMENTO",
+            "confidence_score": 0.91,
+            "impact_level": "basso",
+            "summary_short": "Contributo di associazione a consultazione pubblica AGCOM.",
+            "summary_long": "Documento di posizione tecnica sulla pianificazione di frequenze DAB+ locali.",
+            "what_changes": "",
+            "extracted_entities_json": {},
+            "proposed_action": "NEWS_ONLY",
+            "target_entity_type": "",
+            "target_entity_id": None,
+        },
+    )
+
+    processed = pipeline.process_document(
+        source,
+        {
+            "external_id": "agcom-assoradio-2026",
+            "source_url": "https://www.agcom.it/provvedimenti/02_Assoradio.pdf",
+            "title": "02_Assoradio.pdf",
+            "published_at": "2026-02-06",
+            "raw_html": "",
+            "raw_text": (
+                "Protocollo n. 0048405 del 06/02/2026 ASSOCIAZIONE EMITTENTI RADIO. "
+                "Contributo alla consultazione pubblica AGCOM. Richiesta di pianificazione "
+                "di una frequenza DAB+ locale per l'area di Bari e dei capoluoghi di provincia."
+            ),
+            "content_hash": "hash-agcom-assoradio-2026",
+            "fetch_status": "fetched",
+            "http_status": 200,
+        },
+    )
+    review = pipeline.repository.get_review_item(int(processed["review"]["id"]))
+
+    assert review is not None
+    assert review["proposed_action"] == "OUT_OF_SCOPE"
+    assert review["status"] == "closed"
+
+
+def test_provvedimenti_agcom_con_valore_legale_restano_utili(tmp_path: Path):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+    source = pipeline.repository.get_source_by_code("agcom_provvedimenti")
+    assert source is not None
+    normalized = {
+        "title": "Delibera AGCOM n. 123/26/CONS - procedimento sanzionatorio",
+        "body_text": (
+            "Provvedimento sanzionatorio con ordine, tutela utenti e violazione "
+            "di obblighi regolamentari."
+        ),
+        "source_url": "https://www.agcom.it/provvedimenti/delibera-123-26-cons",
+    }
+    analysis = {
+        "classification_type": "PRASSI",
+        "confidence_score": 0.88,
+        "impact_level": "medio",
+    }
+
+    assert pipeline._is_non_actionable_source_metadata(source, normalized, analysis) is False
+    assert pipeline._is_useful_for_law_firm(source, normalized, analysis) is True
+
+
 def test_autopublish_risolve_needs_review_ufficiale_in_notizia(tmp_path: Path, monkeypatch):
     pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
 

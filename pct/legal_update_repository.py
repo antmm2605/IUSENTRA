@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
+from pct.legal_relevance import is_low_value_public_legal_record
 from pct.postgres_runtime_support import PostgresRepositoryBackend
 
 SCHEMA_LEGAL_UPDATE_PIPELINE = Path(__file__).with_name("sql") / "20260418_legal_update_pipeline.sql"
@@ -3028,7 +3029,23 @@ class LegalUpdateRepository:
             candidates = self._lex_sql_candidates(conn, terms=terms, limit=candidate_limit)
             if terms and not candidates:
                 candidates = self._lex_sql_candidates(conn, terms=[], limit=candidate_limit)
-        payloads = [self._lex_evidence_payload(row, terms, query=query) for row in candidates]
+        payloads = [
+            payload
+            for row in candidates
+            if not is_low_value_public_legal_record(
+                source_code=row.get("source_code"),
+                source_name=row.get("authority"),
+                title=row.get("title"),
+                body_text=" ".join(
+                    _clean_spaces(value)
+                    for value in (row.get("excerpt"), row.get("content"), row.get("category"))
+                    if _clean_spaces(value)
+                ),
+                url=_first_text(row.get("official_url"), row.get("source_base_url")),
+                category=row.get("category"),
+            )
+            for payload in (self._lex_evidence_payload(row, terms, query=query),)
+        ]
         payloads.sort(
             key=lambda row: (
                 float(row.get("score") or 0.0),

@@ -29,25 +29,25 @@ def test_ci_keeps_core_and_coverage_gates() -> None:
         "name: Lint + syntax",
         "name: Governance repo",
         "name: Pytest core",
-        "name: Coverage moduli critici",
+        "name: Coverage moduli critici parte",
         "tests/test_lex_docling_parser.py",
         "tests/test_storage_strategy.py",
         "--cov-config=config/coverage-critical.ini",
         "coverage-critical-shards:",
-        "coverage combine coverage-parts",
         "mv .coverage",
         "include-hidden-files: true",
-        "--fail-under=71",
         "name: Gate anti-regressione CI 100%",
     )
     for snippet in required:
         assert snippet in workflow
 
+    assert "\n  coverage-critical:\n" not in workflow
+    assert "--fail-under=71" not in workflow
+
     thresholds = [int(value) for value in re.findall(r"--cov-fail-under=(\d+)", workflow)]
     thresholds.extend(int(value) for value in re.findall(r"--fail-under=(\d+)", workflow))
     assert thresholds
     assert max(thresholds) >= 100
-    assert any(value >= 71 for value in thresholds)
 
 
 def test_pytest_core_uses_ten_parallel_shards_without_removing_tests() -> None:

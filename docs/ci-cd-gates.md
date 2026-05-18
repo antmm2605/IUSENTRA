@@ -19,7 +19,7 @@ ambiente esterno o credenziali smoke.
 | `.github/workflows/ci.yml` | push, pull_request, workflow_dispatch | `Smoke test Flask` | import `create_app`, login smoke | si | required | Verifica bootstrap runtime senza scheduler web. |
 | `.github/workflows/ci.yml` | push, pull_request, workflow_dispatch | `Smoke scheduler worker` | avvio `start_scheduler_worker(...)` con data root temporaneo | si | required | Verifica worker dedicato e job minimi. |
 | `.github/workflows/ci.yml` | push, pull_request, workflow_dispatch | `Pytest core fase */10` | `python scripts/run_pytest_phases.py --core-shard ...` | si | required | Shard core senza monolitico opaco. |
-| `.github/workflows/ci.yml` | push, pull_request, workflow_dispatch | `Coverage moduli critici` | `run_pytest_phases.py --suite coverage-critical` + `coverage report --fail-under=71` | si | required | Soglia esistente, non abbassata. Artifact coverage shard. |
+| `.github/workflows/ci.yml` | push, pull_request, workflow_dispatch | `Coverage moduli critici parte */12` | `run_pytest_phases.py --suite coverage-critical --suite-shard ...` | si | required | Le 12 parti sono il gate richiesto; il vecchio aggregatore senza `parte` non è required. Artifact coverage shard. |
 | `.github/workflows/ci.yml` | push, pull_request, workflow_dispatch | `E2E smoke` | `python scripts/run_pytest_phases.py --suite e2e-smoke` | si | required | Smoke Python stabile, non browser esterno. |
 | `.github/workflows/ci.yml` | push, pull_request, workflow_dispatch | `Local Signer e PKCS#11` | `run_pytest_phases.py --suite signer` su Linux/Windows/macOS | si | required | Matrice cross-platform. |
 | `.github/workflows/frontend-ci.yml` | push/pull_request su `frontend/**` | `Frontend React contratti/typecheck/build` | `pnpm install --frozen-lockfile`, `pnpm --filter @iusentra/studio test`, `pnpm --filter @iusentra/studio typecheck`, `pnpm --filter @iusentra/studio build:vite` | si | required | Shard rapido dedicato al frontend. |
@@ -47,7 +47,7 @@ ambiente esterno o credenziali smoke.
 - Contratti API: `generate_api_contracts.py --check`, `validate_openapi.py`, `verify_openapi_provider.py`, `smoke_app_v2_all.py --subset contracts`, `tests/test_openapi_contracts_phase6.py`.
 - Frontend: `pnpm install --frozen-lockfile`, `pnpm --filter @iusentra/studio test`, `pnpm --filter @iusentra/studio typecheck`, `pnpm --filter @iusentra/studio build` o `build:vite`.
 - Feature flag/registry: `generate_app_v2_page_registry.py --check`, `generate_app_v2_test_docs.py --check`, `generate_app_v2_area_requirements.py --check`, `validate_ui_coverage.py`.
-- Coverage: `coverage-critical` sharded con soglia 71 su configurazione esistente.
+- Coverage: `coverage-critical` shardata in 12 parti richieste; il vecchio report aggregato senza `parte` non deve tornare blocco PR.
 - SAST/dependency: CodeQL, dependency review, `pip-audit`, `pnpm --filter @iusentra/studio audit --audit-level=critical`.
 
 ## Gate informativi, manuali e nightly
@@ -123,7 +123,7 @@ Rollback entro 2 ore:
 - `CI / Smoke test Flask`
 - `CI / Smoke scheduler worker`
 - `CI / Pytest core`
-- `CI / Coverage moduli critici`
+- `CI / Coverage moduli critici parte 1/12` fino a `parte 12/12`
 - `CI / E2E smoke`
 - `CI / Local Signer e PKCS#11`
 - `Frontend React CI / Frontend React CI`

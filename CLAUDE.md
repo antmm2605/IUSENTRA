@@ -131,7 +131,6 @@ iusentra/
 ├── nginx.conf              # Reverse proxy, gzip, SSE
 ├── railway.toml            # Deploy Railway.app
 ├── render.yaml             # Deploy Render.com
-├── vercel.json             # Deploy Vercel (serverless)
 ├── wsgi.py                 # Entry point WSGI
 └── setup.py                # Packaging Python
 ```

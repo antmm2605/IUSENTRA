@@ -9,6 +9,8 @@
 
 ## 2.245.29 - 2026-05-18
 
+- Rimossa dal workflow CI la coverage critica aggregata senza `parte`: il gate richiesto resta sulle 12 parti shardate, coerente con `docs/COMMIT_PUSH_REQUIRED_GATES.md` e con il branch monorepo.
+- Rimossi i file di deploy Vercel (`vercel.json`, `vercel_app.py`) e i riferimenti testuali residui: il processo corrente resta GitHub Actions + Hetzner, senza Vercel preview/deploy.
 - Allineato il cablaggio pnpm al branch monorepo: il blueprint `impostazioni` non viene più montato con doppio prefisso, quindi `/impostazioni`, `/impostazioni?tab=firma&_legacy=1` e `/api/local-ai/*` tornano disponibili nei gate CI.
 - Mantenuta la pagina profilo classica quando l'utente deve cambiare password temporanea, così il form espone il token CSRF e il cambio password resta verificabile.
 - Ignorata la cartella runtime locale `/email/` per evitare che i test ricreino `email/ordinaria.json` nella worktree.

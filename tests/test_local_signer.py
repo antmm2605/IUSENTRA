@@ -718,10 +718,10 @@ def test_cors_consentito_per_origine_hacs_configurata():
     try:
         module.LOCAL_SIGNER_ALLOWED_ORIGINS = (
             "https://studio-legale-pct-production.up.railway.app, "
-            "https://antmm2605-hacs.vercel.app/"
+            "https://studio-esterno.example.test/"
         )
         assert module._origin_cors_consentita("https://studio-legale-pct-production.up.railway.app")
-        assert module._origin_cors_consentita("https://antmm2605-hacs.vercel.app")
+        assert module._origin_cors_consentita("https://studio-esterno.example.test")
         assert not module._origin_cors_consentita("https://evil.example.com")
     finally:
         module.LOCAL_SIGNER_ALLOWED_ORIGINS = orig

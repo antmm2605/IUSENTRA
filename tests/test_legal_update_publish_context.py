@@ -977,6 +977,93 @@ def test_search_lex_sources_premia_evidenza_web_con_titolo_esatto(tmp_path: Path
     assert results[0]["attachment_url"] == "https://www.inps.it/messaggio-numero-685-del-26-02-2026.pdf"
 
 
+def test_search_lex_sources_premia_allegato_quando_domanda_chiede_allegato(tmp_path: Path):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+    qsp_url = "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP50194"
+    attachment_url = (
+        "https://www.cortedicassazione.it/resources/cms/documents/"
+        "Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf"
+    )
+
+    with pipeline.repository._connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO web_verification_evidence (
+                evidence_key, review_id, normalized_document_id, source_code, source_name,
+                query, origin, title, source_url, attachment_url, attachment_type, sha256,
+                is_official, context_chars, excerpt, content_text, matched_terms_json,
+                verification_status, created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "qsp-page",
+                None,
+                None,
+                "cassazione_massimario",
+                "Cassazione Massimario",
+                "QSP50194",
+                "fonte_acquisita",
+                "Questione Penale Pendente del ricorso R.G. 9926/2026 ud. 09/07/2026",
+                qsp_url,
+                "",
+                "",
+                "",
+                1,
+                1736,
+                "Questione penale pendente R.G. 9926/2026.",
+                "Questione penale pendente R.G. 9926/2026.",
+                '["qsp50194"]',
+                "verified",
+                "2026-05-18 00:00:00",
+                "2026-05-18 00:00:00",
+            ),
+        )
+        conn.execute(
+            """
+            INSERT INTO web_verification_evidence (
+                evidence_key, review_id, normalized_document_id, source_code, source_name,
+                query, origin, title, source_url, attachment_url, attachment_type, sha256,
+                is_official, context_chars, excerpt, content_text, matched_terms_json,
+                verification_status, created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "qsp-attachment",
+                None,
+                None,
+                "cassazione_massimario",
+                "Cassazione Massimario",
+                "QSP50194",
+                "allegato_fonte_ufficiale",
+                "Ordinanza di rimessione",
+                qsp_url,
+                attachment_url,
+                "pdf",
+                "sha-qsp",
+                1,
+                45814,
+                "Allegato ufficiale della questione penale R.G. 9926/2026.",
+                "Allegato ufficiale della questione penale R.G. 9926/2026.",
+                '["qsp50194"]',
+                "verified",
+                "2026-05-18 00:00:00",
+                "2026-05-18 00:00:00",
+            ),
+        )
+        conn.commit()
+
+    results = pipeline.repository.search_lex_sources(
+        "Quale allegato ufficiale ha la questione penale R.G. 9926/2026?",
+        limit=3,
+    )
+
+    assert results
+    assert results[0]["title"] == "Ordinanza di rimessione"
+    assert results[0]["attachment_url"] == attachment_url
+
+
 def test_publish_auto_news_salva_diagnosi_quando_web_non_trova_conferme(tmp_path: Path, monkeypatch):
     pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
     source = pipeline.repository.get_source_by_code("agcom_provvedimenti")

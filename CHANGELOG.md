@@ -7,6 +7,11 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.20 - 2026-05-18
+
+- La ricerca Lex sulle evidenze web ora dà priorità alla prova con `attachment_url` quando la domanda chiede allegato, PDF, ordinanza o documento: una domanda come `Quale allegato ufficiale ha la questione penale R.G. 9926/2026?` porta davanti l'ordinanza PDF OCR e non solo la pagina QSP.
+- Aggiunta una guardia di ranking per impedire regressioni sulle domande che devono individuare l'allegato ufficiale collegato a Cassazione `QSP50194`.
+
 ## 2.245.19 - 2026-05-18
 
 - Il backfill delle evidenze web legali può rientrare su record scelti o su query mirate anche quando esistono vecchie evidenze inutili: casi come Cassazione `QSP50194` non restano esclusi solo perché avevano già una riga con allegato a `context_chars=0`.

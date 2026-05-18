@@ -324,7 +324,19 @@ def _lex_candidate_score(row: dict[str, Any], terms: list[str], *, query: str = 
         " ".join(str(row.get(field) or "") for field in ("title", "official_url", "attachment_url", "source_base_url"))
     )
     body_haystack = _normalize_token(
-        " ".join(str(row.get(field) or "") for field in ("excerpt", "content", "authority", "matter_name", "submatter_name", "entity_type"))
+        " ".join(
+            str(row.get(field) or "")
+            for field in (
+                "excerpt",
+                "content",
+                "authority",
+                "matter_name",
+                "submatter_name",
+                "entity_type",
+                "origin",
+                "attachment_type",
+            )
+        )
     )
     haystack = f"{title_haystack} {body_haystack}".strip()
     matches = sum(1 for term in terms if term in haystack)
@@ -344,6 +356,16 @@ def _lex_candidate_score(row: dict[str, Any], terms: list[str], *, query: str = 
         score += 0.05
     if _normalize_token(row.get("verification_status")) == "verified":
         score += 0.03
+    if _clean_spaces(row.get("attachment_url")):
+        score += 0.04
+        if any(term in {"allegato", "pdf", "documento", "ordinanza", "rimessione", "nota"} for term in terms):
+            score += 0.42
+        try:
+            context_chars = int(row.get("context_chars") or 0)
+        except (TypeError, ValueError):
+            context_chars = 0
+        if context_chars > 0:
+            score += 0.06
     return round(min(2.0, score), 4)
 
 

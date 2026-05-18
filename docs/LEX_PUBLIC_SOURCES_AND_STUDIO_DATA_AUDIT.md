@@ -4,6 +4,15 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.245.20 - 2026-05-18
+
+Dopo il salvataggio OCR di Cassazione `QSP50194`, le prove di domanda hanno
+mostrato un problema di ordine: quando la domanda chiedeva "quale allegato",
+la pagina QSP poteva precedere il PDF ufficiale anche se il PDF era presente
+e leggibile. Il ranking Lex ora riconosce le domande su allegato, PDF,
+ordinanza, rimessione, nota o documento e promuove le evidenze con
+`attachment_url` e testo OCR reale.
+
 ## Aggiornamento operativo 2.245.19 - 2026-05-18
 
 Il test reale su Cassazione `QSP50194` ha evidenziato un secondo blocco:

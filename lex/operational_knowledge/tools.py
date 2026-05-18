@@ -1089,9 +1089,25 @@ def _filter_official_lookup_rows(query: str, rows: list[dict[str, Any]]) -> list
                 "corte suprema",
             )
         )
-        if has_exact_ref or (score_threshold and score >= score_threshold) or is_official_attachment:
+        if refs:
+            keep = has_exact_ref or is_official_attachment
+        else:
+            keep = bool((score_threshold and score >= score_threshold) or is_official_attachment)
+        if keep:
             filtered.append(row)
-    return filtered or rows[:2]
+    deduped: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str]] = set()
+    for row in filtered:
+        key = (
+            clean_spaces(row.get("title") or row.get("titolo")).lower(),
+            clean_spaces(row.get("official_url") or row.get("source_url") or row.get("url")).lower(),
+            clean_spaces(row.get("attachment_url") or row.get("url_allegato")).lower(),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(row)
+    return deduped or rows[:2]
 
 
 def _filter_specific_official_source_passages(query: str, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:

@@ -599,6 +599,15 @@ def test_rg_questione_penale_non_trascina_fonti_non_pertinenti():
                     "verified_reference": True,
                     "score": 1.06,
                 },
+                {
+                    "id": "web-evidence-other-rg",
+                    "title": "Questione Penale Pendente del ricorso R.G. 37184/2025 ud. 25/06/2026",
+                    "source_name": "Corte Suprema di Cassazione",
+                    "official_url": "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP99999",
+                    "excerpt": "Questione penale pendente R.G. 37184/2025.",
+                    "verified_reference": True,
+                    "score": 1.46,
+                },
             ]
 
     class _Pipeline:
@@ -620,6 +629,7 @@ def test_rg_questione_penale_non_trascina_fonti_non_pertinenti():
     assert "Camera Arbitrale" not in answer.answer
     assert "Nessuna fonte ufficiale citabile" not in answer.answer
     assert all("Camera Arbitrale" not in source.title for source in answer.sources)
+    assert all("37184/2025" not in source.title for source in answer.sources)
 
 
 def test_rg_questione_penale_end_to_end_da_legal_updates_db(tmp_path: Path, monkeypatch):

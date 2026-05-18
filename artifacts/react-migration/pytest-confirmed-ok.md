@@ -2301,6 +2301,16 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python scripts\validate_docs_links.py ...`; `python scripts\validate_docs_commands.py` | OK | Link documentali e comandi documentati validati dopo aggiornamento gate commit e Storybook. |
 | `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_utf8_integrity.py -q --tb=short` | OK | Packaging sincronizzato, readiness release e integrità UTF-8 confermate per `2.245.29`. |
 
+## UI Intelligence fonti legali 2.245.35 - 2026-05-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\services\react_legal_intelligence_bridge.py web\services\react_giurisprudenza_bridge.py` | OK | Sintassi confermata dopo esposizione monitor acquisizione fonti, domande qualità, readiness RAG e presidio dati Giurisprudenza. |
+| `python -m pytest tests\test_react_legal_intelligence_search.py tests\test_giurisprudenza.py::test_react_giurisprudenza_espone_presidio_dati_per_rag tests\test_giurisprudenza.py::test_react_giurisprudenza_espone_presidio_citazioni_lex -q --tb=short` | OK | 16/16 passati: `/ricerca-legale` espone stato fonti/PDF/OCR/chunk/domande qualità e `/giurisprudenza` distingue documenti pronti, da completare e da verificare. |
+| `npm run typecheck --prefix frontend`; `npm run build --prefix frontend` | OK | TypeScript e build Vite confermati dopo i nuovi pannelli operativi; gli asset generati non sono stati committati perché ricostruibili. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python scripts\smoke_app_v2_all.py --subset contracts`; `python -m pytest -q tests\test_openapi_contracts_phase6.py --tb=short` | OK | Disallineamento CI risolto: `docs/openapi.yaml` era rimasto alla versione `2.245.29`; ora è allineato a `2.245.35` e tutti i gate API contract passano localmente. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short`; `pct.cli utf8-integrity --check-only` | OK | Packaging, readiness e integrità UTF-8 confermati per `2.245.35`. |
+
 # Aggiornamenti legali evidenze web 2.245.12 - 2026-05-17
 
 | Comando / verifica | Esito | Nota |

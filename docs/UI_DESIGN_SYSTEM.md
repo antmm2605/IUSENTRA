@@ -58,6 +58,18 @@ La palette deve restare istituzionale e leggibile:
 
 Usare i token CSS in `iusentra-design-system.css` e le classi semantiche `ius-tone-*`. Evitare palette casuali, gradienti vistosi, shadow pesanti e pagine dominate da una sola tinta.
 
+## Tema professionale condiviso
+
+`frontend/src/theme/professional-foundation.css` è il layer finale caricato dopo gli stili storici. Serve a rendere coerenti shell, sidebar, topbar, card, pannelli, bottoni, form, tabelle, badge e stati applicativi senza riscrivere le singole pagine.
+
+Regole operative:
+
+- mantenere superfici chiare, bordi sottili, raggio massimo 8px e ombre leggere;
+- usare il blu notte solo per navigazione e azioni primarie, con oro tenue come accento istituzionale;
+- non reintrodurre gradienti decorativi, glassmorphism, neon, hero marketing o card giganti;
+- preferire modifiche al layer condiviso quando una correzione riguarda più pagine;
+- preservare dati reali, route, API, permessi, audit e storage tenant-aware: il tema non deve mai sostituire logica applicativa.
+
 ## Icone
 
 Usare sempre `lucide-react` tramite `IusLegalIcon`, `iusLegalIcons` o il registry `frontend/src/design/icons.tsx`:

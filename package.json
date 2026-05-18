@@ -2,9 +2,33 @@
   "name": "iusentra-workspace",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.1.2",
   "scripts": {
-    "test": "npm --prefix frontend run test",
-    "typecheck": "npm --prefix frontend run typecheck",
-    "build": "npm --prefix frontend run build"
+    "dev": "pnpm --filter @iusentra/studio dev",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "build": "turbo run build",
+    "clean": "turbo run clean",
+    "storybook": "pnpm --filter @iusentra/studio storybook",
+    "build:storybook": "turbo run build-storybook --filter @iusentra/studio",
+    "chromatic": "pnpm --filter @iusentra/studio chromatic",
+    "chromatic:changed": "pnpm --filter @iusentra/studio chromatic:changed",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.31.0",
+    "turbo": "^2.9.14"
+  },
+  "pnpm": {
+    "overrides": {
+      "react": "19.2.5",
+      "react-dom": "19.2.5"
+    },
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "msw"
+    ]
   }
 }

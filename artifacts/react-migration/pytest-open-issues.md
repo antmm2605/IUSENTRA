@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-18, Lex bozze, editor professionale, AI mobile produzione, dati studio, Documenti AI txt/eml e backup Hetzner.
+Aggiornato: 2026-05-18, Lex bozze, editor professionale, AI mobile produzione, dati studio, Documenti AI txt/eml, backup Hetzner e Docker pnpm.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Docker Hetzner pnpm workspace 2026-05-18 | `Dockerfile`, manifest pnpm/Turborepo, `tests\test_packaging_consistency.py` | Risolto nella stessa sessione | Il deploy Hetzner al commit `eed2bcc0` falliva nello stage `frontend-builder`: il Dockerfile copiava `pnpm-workspace.yaml`, `pnpm-lock.yaml`, `turbo.json` e `packages/*`, ma il branch deployato non conteneva quei file. | Aggiunti i manifest workspace e i package privati minimi richiesti dal Dockerfile; il test packaging ora verifica che ogni manifest workspace necessario alla build Docker esista. Gate registrati in `pytest-confirmed-ok.md`. |
 | Backup Hetzner preventivo 2026-05-18 | `deploy/hetzner/backup.sh`, `tests\test_hetzner_backup_retention.py` | Risolto nella stessa sessione | Il backup preventivo di produzione arrivava a comprimere i dati ma falliva dopo la pipeline `tar | zstd` con `PIPESTATUS[1]: unbound variable`, perché lo stato della pipeline non veniva catturato prima dell'assegnazione successiva. | `backup.sh` salva subito `PIPESTATUS` in un array locale e poi legge `tar`/`zstd` con fallback prudente; aggiunta guardia testuale nel test Hetzner backup. Gate registrati in `pytest-confirmed-ok.md`. |
 | Documenti fascicolo `.txt`/`.eml` 2026-05-18 | `tests\test_document_intelligence_extraction.py`, `tests\test_document_intelligence_auto_indexing.py` | Nessuna issue aperta sul codice | `Indicizzazione Lex` accettava i documenti fascicolo governati ma non includeva note `.txt` ed email `.eml` tra i formati leggibili per Lex. | Estese validazioni, MIME, estrattore testo e percorso `Aggiorna indice`: `.txt` viene letto come testo, `.eml` conserva intestazioni/corpo e allegati supportati con avvisi per allegati non leggibili. Gate registrati in `pytest-confirmed-ok.md`. |
 | AI Locale mobile e archivio Lex 2026-05-18 | `/impostazioni?tab=ai`, `tests/test_impostazioni_ai_locale_react.py`, `npm --prefix frontend run typecheck -- --pretty false` | Nessuna issue aperta sul codice | La UI poteva far pensare che su telefono/tablet si dovesse installare Ollama o che il pannello dataset fosse necessario per far rispondere Lex. | Mobile/tablet ora usano il server di produzione IUSENTRA per language model, embedding e indice documenti; le azioni Ollama restano solo su PC, e `Archivio e revisione Lex` chiarisce che documenti indicizzati/RAG funzionano senza riaddestramento. Gate registrati in `pytest-confirmed-ok.md`. |

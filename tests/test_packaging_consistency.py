@@ -112,6 +112,27 @@ def test_docker_runtime_ha_healthcheck_railway_compatibile_e_entrypoint_hardened
     assert "healthcheckTimeout = 300" in railway_text
 
 
+def test_docker_frontend_builder_ha_manifest_workspace_presenti():
+    docker_text = (REPO_ROOT / "Dockerfile").read_text(encoding="utf-8")
+    required_paths = [
+        "package.json",
+        "pnpm-workspace.yaml",
+        "pnpm-lock.yaml",
+        "turbo.json",
+        "frontend/package.json",
+        "packages/config/package.json",
+        "packages/ui/package.json",
+        "packages/api-client/package.json",
+        "packages/config/tsconfig.base.json",
+        "packages/ui/src/index.ts",
+        "packages/api-client/src/index.ts",
+    ]
+
+    assert "pnpm --filter @iusentra/studio build:vite" in docker_text
+    for relative in required_paths:
+        assert (REPO_ROOT / relative).exists(), f"File richiesto dal Dockerfile mancante: {relative}"
+
+
 def test_root_governance_docs_e_pyproject_sono_presenti():
     assert (REPO_ROOT / "pyproject.toml").exists()
     assert (REPO_ROOT / "LICENSE").exists()

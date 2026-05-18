@@ -1,0 +1,136 @@
+:root {
+  --iusentra-ui-background: #f6f7f9;
+  --iusentra-ui-surface: #ffffff;
+  --iusentra-ui-surface-subtle: #f1f5f9;
+  --iusentra-ui-foreground: #111827;
+  --iusentra-ui-muted: #64748b;
+  --iusentra-ui-border: #e2e8f0;
+  --iusentra-ui-primary: #1e3a8a;
+  --iusentra-ui-primary-active: #1d4ed8;
+  --iusentra-ui-accent: #b08968;
+  --iusentra-ui-success: #15803d;
+  --iusentra-ui-danger: #b91c1c;
+  --iusentra-ui-radius: 8px;
+}
+
+.iusentra-button {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--iusentra-ui-radius);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-weight: 650;
+  gap: 0.5rem;
+  justify-content: center;
+  line-height: 1.2;
+  min-height: 2.25rem;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.iusentra-button:focus-visible {
+  box-shadow: 0 0 0 3px rgb(30 58 138 / 18%);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.iusentra-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.iusentra-button--primary {
+  background: var(--iusentra-ui-primary);
+  color: #ffffff;
+}
+
+.iusentra-button--primary:hover:not(:disabled) {
+  background: var(--iusentra-ui-primary-active);
+}
+
+.iusentra-button--secondary {
+  background: var(--iusentra-ui-surface);
+  border-color: var(--iusentra-ui-border);
+  color: var(--iusentra-ui-foreground);
+}
+
+.iusentra-button--secondary:hover:not(:disabled) {
+  border-color: var(--iusentra-ui-primary);
+  color: var(--iusentra-ui-primary);
+}
+
+.iusentra-button--ghost {
+  background: transparent;
+  color: var(--iusentra-ui-primary);
+}
+
+.iusentra-button--danger {
+  background: var(--iusentra-ui-danger);
+  color: #ffffff;
+}
+
+.iusentra-button--sm {
+  font-size: 0.8125rem;
+  padding: 0.45rem 0.75rem;
+}
+
+.iusentra-button--md {
+  font-size: 0.875rem;
+  padding: 0.6rem 0.95rem;
+}
+
+.iusentra-card {
+  background: var(--iusentra-ui-surface);
+  border: 1px solid var(--iusentra-ui-border);
+  border-radius: var(--iusentra-ui-radius);
+  color: var(--iusentra-ui-foreground);
+  display: grid;
+  gap: 0.875rem;
+  max-width: 34rem;
+  padding: 1rem;
+}
+
+.iusentra-card__header {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.iusentra-card__eyebrow {
+  color: var(--iusentra-ui-accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.iusentra-card__title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.iusentra-card__description {
+  color: var(--iusentra-ui-muted);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.iusentra-card__body {
+  color: var(--iusentra-ui-foreground);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.iusentra-card__footer {
+  align-items: center;
+  border-top: 1px solid var(--iusentra-ui-border);
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  padding-top: 0.875rem;
+}

@@ -20,6 +20,7 @@
 - Il bridge HTTP non manda più le letture PEC classificate come `pec_comunicazioni` nel flusso bozza/web quando la domanda chiede di consultare la casella; restano invece nel layer operativo deterministico.
 - Rafforzato il gateway dati studio per le varianti `scheda cliente` e per i gestori che espongono `get` invece di `ottieni`.
 - Il backup Hetzner `.tar.zst` cattura ora subito gli stati della pipeline `tar | zstd`, evitando l'errore `PIPESTATUS[1]: unbound variable` che poteva bloccare il backup preventivo prima del deploy.
+- Riallineato il branch di deploy al Dockerfile pnpm/Turborepo: i manifest workspace e i package privati richiesti dallo stage `frontend-builder` sono inclusi nel commit, con test che impedisce nuovi `COPY ... not found` in build.
 
 ## 2.245.15 - 2026-05-17
 

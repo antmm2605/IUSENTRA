@@ -374,6 +374,58 @@ una sezione `Fonte e PDF` con link cliccabile; poi `Punto da verificare` ed
 `Esito`. Sono vietate risposte che ripetono `Cosa dice la scheda ufficiale`,
 `Sintesi dell'ordinanza`, estratti OCR grezzi e log di recupero fonte.
 
+Approvazione utente 18 maggio 2026: la risposta prodotta dopo questa correzione
+è stata verificata dall'utente e confermata come risposta corretta. Da questo
+momento il caso `QSP50194` / `R.G. 9926/2026` è il test reale definitivo da
+preservare prima di lavorare sul generatore corpus.
+
+Passaggi eseguiti per arrivare al test definitivo:
+
+1. Domanda reale iniziale: `mi puoi sintetizzare questa sentenza Penale Pendente
+   del ricorso R.G. 9926/2026`.
+2. Primo problema rilevato: Lex non rispondeva in modo utile, mostrava log di
+   recupero fonte o risposte generiche e talvolta finiva nel contesto editor o
+   template invece che nelle fonti ufficiali.
+3. Correzione del focus conversazionale: la richiesta `Questione Penale
+   Pendente`, `QSP` o `R.G.` viene trattata come fonte ufficiale Cassazione, non
+   come richiesta di bozza, editor o template.
+4. Recupero fonte: il database `legal_updates.db` viene interrogato per la
+   scheda Cassazione `QSP50194` e per l'allegato collegato.
+5. Verifica allegato: il PDF
+   `Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf` viene mantenuto come
+   PDF ufficialmente collegato alla scheda.
+6. Lettura PDF/OCR: il testo OCR dell'allegato entra nel contesto interrogabile,
+   ma non deve essere riversato grezzo nella risposta finale.
+7. Discrepanza R.G.: è stata confermata la differenza tra scheda/domanda
+   `R.G. 9926/2026` e numero interno del PDF `R.G. 9966/2026`; il collegamento
+   non va rimesso in discussione, ma i dati della scheda e i dati del PDF vanno
+   tenuti separati.
+8. Prima risposta migliorata ma non definitiva: Lex trovava fonte, PDF, punto
+   di diritto, motivi e articoli, però ripeteva troppe sezioni, esponeva ancora
+   OCR sporco e mescolava troppo scheda e PDF.
+9. Regola corretta richiesta dall'utente: Lex può citare entrambi, ma non può
+   attribuire i dati del PDF alla scheda richiesta come se fossero certi.
+10. Correzione finale del composer: per una domanda di sintesi Lex produce una
+    sola sezione `Sintesi` con oggetto, stato, punto di diritto/principio,
+    motivi/censure, effetto pratico e nota R.G.
+11. Aggiunta spiegazione norme: Lex non deve solo elencare gli articoli, ma
+    spiegare perché contano `599-bis c.p.p.`, `606 c.p.p.`, `129 c.p.p.`,
+    `610 c.p.p.` quando presente e `81 c.p.`.
+12. Guardia OCR: frammenti deformati come `Corte d'appello di N Caltanissetta`,
+    `al medesimo | d`, `anni due e mesi o`, `edi` e simili non devono comparire
+    nella risposta finale.
+13. Guardia qualità finale: prima della restituzione vengono evitati duplicati,
+    sezioni ripetute, estratti OCR grezzi, link PDF rotti e fusione impropria
+    tra scheda e PDF.
+14. Test mirati aggiunti/aggiornati: domande su sintesi, punto di diritto,
+    motivi, natura dell'atto, udienza/norme, articoli, ricorrente/relatore,
+    PDF, uso in atto, esito e discrepanza R.G.
+15. Test end-to-end verificato: DB -> scheda ufficiale -> allegato PDF -> OCR ->
+    retrieval/RAG operativo -> risposta Lex -> test di regressione.
+16. Deploy senza backup eseguito su Hetzner con versione `2.245.26`.
+17. Verifica utente finale: l'utente ha confermato che la risposta ora va bene e
+    ha autorizzato l'approvazione del test come definitivo e reale.
+
 Problema emerso nella prova reale:
 
 - Lex trovava la scheda Cassazione e il PDF, ma rispondeva ancora come log di

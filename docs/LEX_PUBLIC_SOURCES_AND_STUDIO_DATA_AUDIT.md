@@ -70,6 +70,18 @@ Questa regola è il blocco da tenere davanti prima del generatore corpus: prima
 separazione corretta di scheda, allegato e OCR su un documento, poi propagazione
 agli altri documenti.
 
+Approvazione reale del 18 maggio 2026:
+
+- domanda validata: `mi puoi sintetizzare questa sentenza Penale Pendente del
+  ricorso R.G. 9926/2026`;
+- risultato accettato dall'utente: risposta sintetica con oggetto, stato,
+  principio, motivi, norme spiegate, effetto pratico, PDF e nota R.G.;
+- percorso validato: DB -> pagina ufficiale -> allegato -> OCR/PDF -> retrieval
+  operativo -> risposta Lex -> test di verifica;
+- regola definitiva: questo caso è il baseline da propagare al generatore corpus
+  e agli altri documenti, senza tornare a risposte con log fonte, sezioni
+  duplicate o OCR grezzo.
+
 ## Aggiornamento operativo 2.245.21 - 2026-05-18
 
 Il caso Cassazione `QSP50194` è stato verificato sul database locale: prima

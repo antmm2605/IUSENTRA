@@ -7,6 +7,12 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.27 - 2026-05-18
+
+- Registrata l'approvazione utente del caso pilota Lex `QSP50194` / `R.G. 9926/2026` come test definitivo e reale.
+- Documentati tutti i passaggi eseguiti: focus fonte ufficiale, recupero DB, pagina Cassazione, PDF collegato, OCR, nota R.G., sintesi finale, norme spiegate, guardia OCR, controllo qualità, test e deploy.
+- Stabilito che questa risposta è il baseline da propagare al generatore corpus e agli altri documenti.
+
 ## 2.245.26 - 2026-05-18
 
 - Rafforzata la risposta Lex sul caso pilota `QSP50194`: il PDF resta citabile come allegato ufficialmente collegato alla scheda, ma i dati letti nel PDF con `R.G. 9966/2026` non vengono più fusi automaticamente nella scheda/domanda `R.G. 9926/2026`.

@@ -364,6 +364,7 @@ class OperationalResponseComposer:
                 gap
                 for gap in gaps
                 if gap != "Una sorgente secondaria non è disponibile nel contesto corrente."
+                and "Nessuna fonte ufficiale citabile trovata nell'indice locale configurato" not in gap
             ]
             if display_gaps:
                 lines.append("Limiti: " + "; ".join(display_gaps[:3]) + ".")

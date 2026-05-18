@@ -118,6 +118,26 @@ _INTENT_CATALOG: tuple[dict[str, Any], ...] = (
         "drafting": False,
     },
     {
+        "intent": "giurisprudenza",
+        "label": "questione pendente o fonte ufficiale",
+        "patterns": (
+            r"\bquestione\s+penale\b",
+            r"\bquestione\s+civile\b",
+            r"\bqsp\d*\b",
+            r"\ballegato\s+ufficiale\b",
+            r"\ballegato\s+(?:della|collegato\s+alla)\s+questione\b",
+            r"\bord(?:inanza)?\s+di\s+rimessione\b",
+            r"\br\.?\s*g\.?\s*(?:n\.?\s*)?\d{1,7}/\d{4}\b",
+            r"\bcontentid\s*=",
+        ),
+        "schema": ("Riferimento", "Fonte ufficiale", "Allegato", "Avvertenze", "Fonti"),
+        "risk": "high",
+        "source_mode": "strict",
+        "internal": True,
+        "external": True,
+        "drafting": False,
+    },
+    {
         "intent": "preventivo_guidato",
         "label": "preventivo guidato",
         "patterns": (

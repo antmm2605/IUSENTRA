@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import date, datetime, timedelta
+import re
 from typing import Any
 
 from .models import (
@@ -549,6 +550,7 @@ class OperationalKnowledgeTools:
             repo = getattr(pipeline, "repo", None) or getattr(pipeline, "repository", None)
             if repo is not None and hasattr(repo, "search_lex_sources"):
                 rows = list(repo.search_lex_sources(query, limit=limit))
+                rows = _filter_official_lookup_rows(query, rows)
             else:
                 snapshot = _call(pipeline, "dashboard_snapshot") or {}
                 rows = list((snapshot if isinstance(snapshot, dict) else {}).get("recent_news") or [])[:limit]
@@ -565,6 +567,7 @@ class OperationalKnowledgeTools:
 
             payload = search_legal_sources(query, limit=limit)
             rows = list(((payload.get("data") or {}).get("passages")) or [])
+            rows = _filter_specific_official_source_passages(query, rows)
         except Exception as exc:
             return self._unavailable("fonti_ufficiali", f"Fonti ufficiali non disponibili: {exc}")
         result = self._plain_result("fonti_ufficiali", context, rows, "fonte_ufficiale")
@@ -977,6 +980,130 @@ def _row_matches(payload: dict[str, Any], query: str) -> bool:
     terms = _terms(query)
     haystack = clean_spaces(" ".join(str(value) for value in payload.values())).lower()
     return not terms or all(term in haystack for term in terms)
+
+
+_OFFICIAL_LOOKUP_RE = re.compile(
+    r"\b(?:r\.?\s*g\.?|rg)?\s*(?P<number>\d{2,7})\s*/\s*(?P<year>(?:19|20)\d{2})\b",
+    re.IGNORECASE,
+)
+
+
+def _reference_pairs(value: Any) -> list[str]:
+    refs: list[str] = []
+    for match in _OFFICIAL_LOOKUP_RE.finditer(clean_spaces(value)):
+        ref = f"{match.group('number')}/{match.group('year')}"
+        if ref not in refs:
+            refs.append(ref)
+    return refs
+
+
+def _specific_official_lookup_identifiers(query: str) -> list[str]:
+    text = clean_spaces(query)
+    identifiers = list(_reference_pairs(text))
+    for match in re.finditer(r"\bqsp\s*[-_/]?\s*\d+\b", text, re.IGNORECASE):
+        value = clean_spaces(match.group(0)).lower().replace(" ", "")
+        if value not in identifiers:
+            identifiers.append(value)
+    for match in re.finditer(r"\bcontentid\s*=\s*([a-z0-9_-]+)", text, re.IGNORECASE):
+        value = match.group(1).lower()
+        if value not in identifiers:
+            identifiers.append(value)
+    return identifiers
+
+
+def _looks_like_official_lookup(query: str) -> bool:
+    text = clean_spaces(query).lower()
+    if _reference_pairs(text):
+        return True
+    return any(
+        token in text
+        for token in (
+            "allegato ufficiale",
+            "questione penale",
+            "questione civile",
+            "ordinanza di rimessione",
+            "fonte ufficiale",
+            "fonti ufficiali",
+            "cassazione",
+            "qsp",
+            "contentid=",
+        )
+    )
+
+
+def _row_lookup_text(row: dict[str, Any]) -> str:
+    return clean_spaces(
+        " ".join(
+            str(row.get(key) or "")
+            for key in (
+                "title",
+                "titolo",
+                "excerpt",
+                "summary",
+                "content",
+                "text",
+                "query",
+                "official_url",
+                "source_url",
+                "url",
+                "attachment_url",
+                "url_allegato",
+                "source_name",
+                "authority",
+                "source_code",
+                "origin",
+                "attachment_type",
+            )
+        )
+    )
+
+
+def _row_score(row: dict[str, Any]) -> float:
+    try:
+        return float(row.get("score") or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _filter_official_lookup_rows(query: str, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if len(rows) <= 2 or not _looks_like_official_lookup(query):
+        return rows
+    refs = _reference_pairs(query)
+    top_score = max((_row_score(row) for row in rows), default=0.0)
+    score_threshold = max(1.25, top_score - 0.60) if top_score else 0.0
+    filtered: list[dict[str, Any]] = []
+    for row in rows:
+        text = _row_lookup_text(row)
+        normalized = text.lower()
+        score = _row_score(row)
+        has_exact_ref = any(ref in text for ref in refs)
+        has_attachment = bool(clean_spaces(row.get("attachment_url") or row.get("url_allegato")))
+        is_official_attachment = has_attachment and any(
+            token in normalized
+            for token in (
+                "ordinanza",
+                "rimessione",
+                "allegato",
+                "pdf",
+                "cassazione",
+                "corte suprema",
+            )
+        )
+        if has_exact_ref or (score_threshold and score >= score_threshold) or is_official_attachment:
+            filtered.append(row)
+    return filtered or rows[:2]
+
+
+def _filter_specific_official_source_passages(query: str, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    identifiers = _specific_official_lookup_identifiers(query)
+    if not identifiers:
+        return rows
+    filtered = []
+    for row in rows:
+        text = _row_lookup_text(row).lower().replace(" ", "")
+        if any(identifier.lower().replace(" ", "") in text for identifier in identifiers):
+            filtered.append(row)
+    return filtered
 
 
 def _email_sort_key(row: Any) -> tuple[int, float | str]:

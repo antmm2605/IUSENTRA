@@ -134,6 +134,8 @@ Passaggi obbligatori:
 1. Test del router:
    - la domanda `Quale allegato ufficiale ha la questione penale R.G. 9926/2026?`
      deve andare alle fonti ufficiali, non a `documenti_fascicolo`.
+   - la domanda `Questione Penale Pendente del ricorso R.G. 9926/2026` non deve
+     mai essere classificata come bozza di atto solo per la parola `ricorso`.
 
 2. Test del repository:
    - la stessa domanda deve restituire come primo risultato l'allegato
@@ -168,3 +170,80 @@ vero:
 - la risposta ignora la differenza tra `9926/2026` e `9966/2026`;
 - il widget mostra ancora `Non ho trovato dati reali sufficienti` per questo
   caso.
+
+## Generatore Corpus Fonti
+
+Il passaggio successivo al collaudo fonte è il generatore del corpus reale:
+`scripts/generate_lex_source_corpus.py`.
+
+Regole:
+
+- legge solo `web_verification_evidence`;
+- non naviga il web;
+- non chiama LLM o provider esterni;
+- include nel corpus solo evidenze con `content_text` e `context_chars`
+  sufficienti;
+- conserva metadati fonte: `review_id`, `normalized_document_id`,
+  `source_url`, `attachment_url`, `sha256`, `source_code`,
+  `verification_status`;
+- produce `manifest.json`, `documents.jsonl`, `chunks.jsonl`,
+  `expected_queries.jsonl` e un `documenti_ai/documenti_ai.json` compatibile
+  con la pipeline dataset Lex;
+- abilita l'uso RAG delle evidenze verificate senza revisione umana;
+- non abilita training automatico: la revisione umana resta richiesta solo se
+  le Q&A candidate vengono esportate o usate per training/fine-tuning.
+
+Prova locale del 18 maggio 2026 sul DB
+`data/intelligence/legal_updates.db`:
+
+```powershell
+python scripts\generate_lex_source_corpus.py `
+  --intelligence-db data\intelligence\legal_updates.db `
+  --output-dir tmp\lex-source-corpus-local `
+  --limit 100 `
+  --overwrite
+```
+
+Esito: 2 evidenze verificate leggibili, 2 documenti corpus, 13 chunk.
+
+Dry-run dataset sul corpus generato:
+
+```powershell
+$env:PYTHONPATH='.'
+python scripts\build_lex_studio_dataset.py `
+  --tenant-id legal-sources `
+  --document-ai-json tmp\lex-source-corpus-local\documenti_ai\documenti_ai.json `
+  --max-documents 100
+```
+
+Esito RAG: 2 documenti e 13 chunk leggibili da Lex senza revisione umana.
+
+Esito dataset opzionale: 13 task Q&A candidate e 13 coppie candidate, training
+automatico disattivato, training esterno disattivato. La revisione umana è
+obbligatoria solo prima di usare quelle Q&A per training/fine-tuning. È stato
+rilevato 1 documento/chunk sensibile: l'export dataset resta governato e non va
+trattato come training pronto.
+
+## Prova Lex Locale
+
+Prova del 18 maggio 2026 sulla domanda:
+
+```text
+Questione Penale Pendente del ricorso R.G. 9926/2026
+```
+
+Esito atteso e verificato:
+
+- rotta Lex: `official_sources_lookup`;
+- sorgenti effettive: pagina Cassazione QSP50194 e allegato `Ordinanza di
+  rimessione`;
+- PDF restituito:
+  `https://www.cortedicassazione.it/resources/cms/documents/Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf`;
+- nota visibile sulla discrepanza tra `R.G. 9926/2026` nella domanda e
+  `R.G. 9966/2026` nell'allegato;
+- nessun fallback `Non ho trovato dati reali sufficienti`;
+- nessuna fonte non pertinente come `Camera Arbitrale` tra risposta e sorgenti.
+
+La rotta con identificativo specifico filtra l'indice generale delle fonti
+ufficiali: le schede generiche restano disponibili per ricerche generali, ma non
+devono contaminare una risposta puntuale già fondata su `legal_updates.db`.

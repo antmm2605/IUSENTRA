@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from lex.formatting.ui_payloads import direct_answer_payload
 from lex.research.query_helpers import is_exact_legal_reference_query
 
 from .models import OperationalAnswer
+from .query_router import OFFICIAL_SOURCE_LOOKUP_TOKENS
 from .serializers import clean_spaces
 from .service import OperationalKnowledgeService
 from .settings import OperationalKnowledgeSettings
@@ -168,6 +170,8 @@ def _should_defer_to_public_legal_research(
         return False
     if any(token in text for token in _SOURCE_OVERVIEW_TERMS):
         return False
+    if _is_official_source_lookup_question(text):
+        return False
     if is_exact_legal_reference_query(text):
         return True
 
@@ -194,6 +198,12 @@ def _should_defer_to_public_legal_research(
         return True
     has_public_term = any(token in text for token in _PUBLIC_LEGAL_TERMS)
     return has_public_term and not has_studio_term
+
+
+def _is_official_source_lookup_question(text: str) -> bool:
+    if any(token in text for token in OFFICIAL_SOURCE_LOOKUP_TOKENS):
+        return True
+    return bool(re.search(r"\br\.?\s*g\.?\s*(?:n\.?\s*)?\d{1,7}/\d{4}\b", text))
 
 
 def _has_operational_permission_context(user: Any) -> bool:

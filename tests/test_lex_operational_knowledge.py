@@ -567,6 +567,173 @@ def test_rg_questione_penale_usa_archivio_legale_e_allegato_ufficiale():
     assert any(source.source_id == "update_intelligence" for source in answer.sources)
 
 
+def test_rg_questione_penale_non_trascina_fonti_non_pertinenti():
+    class _Repo:
+        def search_lex_sources(self, query: str, limit: int = 6):
+            return [
+                {
+                    "id": "web-evidence-page",
+                    "title": "Questione Penale Pendente del ricorso R.G. 9926/2026 ud. 09/07/2026",
+                    "source_name": "Corte Suprema di Cassazione",
+                    "official_url": "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP50194",
+                    "excerpt": "Questione penale pendente R.G. 9926/2026.",
+                    "verified_reference": True,
+                    "score": 2.0,
+                },
+                {
+                    "id": "web-evidence-attachment",
+                    "title": "Ordinanza di rimessione",
+                    "source_name": "Corte Suprema di Cassazione",
+                    "official_url": "https://www.cortedicassazione.it/resources/cms/documents/Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf",
+                    "attachment_url": "https://www.cortedicassazione.it/resources/cms/documents/Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf",
+                    "excerpt": "Nota Ufficio Spoglio V Sezione penale. R.G. 9966/2026. Ordinanza di rimessione.",
+                    "verified_reference": True,
+                    "score": 1.48,
+                },
+                {
+                    "id": "web-evidence-noise",
+                    "title": "Camera Arbitrale e di Conciliazione",
+                    "source_name": "Ministero della giustizia",
+                    "official_url": "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX",
+                    "excerpt": "Organismo di mediazione attivo.",
+                    "verified_reference": True,
+                    "score": 1.06,
+                },
+            ]
+
+    class _Pipeline:
+        repository = _Repo()
+
+    repos = _base_repositories()
+    repos["update_intelligence"] = _Pipeline()
+    service, user = _service(repositories=repos)
+
+    answer = service.answer(
+        question="Questione Penale Pendente del ricorso R.G. 9926/2026",
+        user=user,
+        studio=SimpleNamespace(slug="tenant-a"),
+        tenant_id="tenant-a",
+    )
+
+    assert answer is not None
+    assert "Allegato ufficiale trovato: Ordinanza di rimessione." in answer.answer
+    assert "Camera Arbitrale" not in answer.answer
+    assert "Nessuna fonte ufficiale citabile" not in answer.answer
+    assert all("Camera Arbitrale" not in source.title for source in answer.sources)
+
+
+def test_rg_questione_penale_end_to_end_da_legal_updates_db(tmp_path: Path, monkeypatch):
+    from pct.legal_update_repository import LegalUpdateRepository
+
+    monkeypatch.setattr(
+        "lex.legal_sources.tools.search_legal_sources",
+        lambda query, limit=6: {"data": {"passages": []}},
+    )
+    repo = LegalUpdateRepository(db_path=str(tmp_path / "legal_updates.db"), json_path="")
+    with sqlite3.connect(repo.db_path) as conn:
+        conn.executemany(
+            """
+            INSERT INTO web_verification_evidence (
+                evidence_key, source_code, source_name, query, origin, title,
+                source_url, attachment_url, attachment_type, sha256, is_official,
+                context_chars, excerpt, content_text, matched_terms_json,
+                verification_status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    "qsp-page",
+                    "cassazione_massimario",
+                    "Corte Suprema di Cassazione",
+                    "Questione Penale Pendente del ricorso R.G. 9926/2026",
+                    "pagina_fonte_ufficiale",
+                    "Questione Penale Pendente del ricorso R.G. 9926/2026 ud. 09/07/2026",
+                    "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP50194",
+                    "",
+                    "",
+                    "a" * 64,
+                    1,
+                    320,
+                    "Questione penale pendente R.G. 9926/2026.",
+                    "Questione penale pendente R.G. 9926/2026. Concordato in appello.",
+                    '["questione penale", "9926/2026"]',
+                    "verified",
+                ),
+                (
+                    "qsp-attachment",
+                    "cassazione_massimario",
+                    "Corte Suprema di Cassazione",
+                    "Questione Penale Pendente del ricorso R.G. 9926/2026",
+                    "allegato_fonte_ufficiale",
+                    "Ordinanza di rimessione",
+                    "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP50194",
+                    "https://www.cortedicassazione.it/resources/cms/documents/Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf",
+                    "pdf",
+                    "b" * 64,
+                    1,
+                    620,
+                    "R.G. 9966/2026. Ordinanza di rimessione.",
+                    "CORTE SUPREMA DI CASSAZIONE. Oggetto: ricorso n. 9966/2026 R.G. Ordinanza di rimessione.",
+                    '["ordinanza", "rimessione", "9966/2026"]',
+                    "verified",
+                ),
+                (
+                    "fonte-non-pertinente",
+                    "mediazione",
+                    "Ministero della giustizia",
+                    "Camera Arbitrale",
+                    "pagina_fonte_ufficiale",
+                    "Camera Arbitrale e di Conciliazione",
+                    "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX",
+                    "",
+                    "",
+                    "c" * 64,
+                    1,
+                    180,
+                    "Organismo di mediazione attivo nel 2026.",
+                    "Camera Arbitrale e di Conciliazione, organismo di mediazione attivo nel 2026.",
+                    '["2026"]',
+                    "verified",
+                ),
+            ],
+        )
+        conn.commit()
+
+    class _Pipeline:
+        repository = repo
+
+    repos = _base_repositories()
+    repos["update_intelligence"] = _Pipeline()
+    service, user = _service(repositories=repos)
+
+    answer = service.answer(
+        question="Questione Penale Pendente del ricorso R.G. 9926/2026",
+        user=user,
+        studio=SimpleNamespace(slug="tenant-a"),
+        tenant_id="tenant-a",
+    )
+
+    assert answer is not None
+    assert answer.route.intent == "official_sources_lookup"
+    assert "Allegato ufficiale trovato: Ordinanza di rimessione." in answer.answer
+    assert "Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf" in answer.answer
+    assert "R.G. 9926/2026" in answer.answer
+    assert "R.G. 9966/2026" in answer.answer
+    assert "Camera Arbitrale" not in answer.answer
+    assert "Nessuna fonte ufficiale citabile" not in answer.answer
+    assert all("Camera Arbitrale" not in source.title for source in answer.sources)
+
+
+def test_request_profile_non_scambia_questione_penale_rg_per_bozza_atto():
+    from lex.research.request_profile import classify_request
+
+    profile = classify_request("Questione Penale Pendente del ricorso R.G. 9926/2026")
+
+    assert profile.intent == "giurisprudenza"
+    assert profile.source_mode == "strict"
+    assert profile.drafting_mode is False
+
+
 def test_editor_professionale_exposes_lex_support():
     service, user = _service(repositories=_base_repositories())
 
@@ -783,6 +950,61 @@ def test_http_bridge_defers_specific_case_law_to_public_research(monkeypatch):
     )
 
     assert payload is None
+
+
+def test_http_bridge_non_devia_questione_penale_rg_in_bozza_atto(monkeypatch):
+    monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
+    from lex.operational_knowledge.integration import build_operational_http_payload
+    from lex.operational_knowledge.models import OperationalAnswer, OperationalRoute, OperationalSourceReference
+
+    class _FakeOperationalKnowledgeService:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def answer(self, **kwargs):
+            assert kwargs["metadata"]["request_profile"]["intent"] == "bozza_atto"
+            return OperationalAnswer(
+                handled=True,
+                answer=(
+                    "Allegato ufficiale trovato: Ordinanza di rimessione.\n"
+                    "PDF: Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf."
+                ),
+                route=OperationalRoute(
+                    "official_sources_lookup",
+                    "official_sources_lookup",
+                    ("fonti_ufficiali", "legal_intelligence", "update_intelligence"),
+                    "questione penale r.g. 9926/2026",
+                ),
+                sources=[
+                    OperationalSourceReference(
+                        source_id="update_intelligence",
+                        source_name="Fonti ufficiali",
+                        source_type="public_source",
+                        object_type="legal_update",
+                        object_id="web-evidence-754",
+                        title="Ordinanza di rimessione",
+                        confidence=0.91,
+                    )
+                ],
+                confidence=0.91,
+                metadata={"operational_layer": True},
+            )
+
+    monkeypatch.setattr("lex.operational_knowledge.integration.OperationalKnowledgeService", _FakeOperationalKnowledgeService)
+
+    payload = build_operational_http_payload(
+        user=_User(_all_permissions()),
+        studio=SimpleNamespace(slug="tenant-a"),
+        data={},
+        current_user_message="Questione Penale Pendente del ricorso R.G. 9926/2026",
+        resolved_effective_question="Questione Penale Pendente del ricorso R.G. 9926/2026",
+        studio_context={"focus_topic": "sentenze_web", "request_profile": {"intent": "bozza_atto", "drafting_mode": True}},
+    )
+
+    assert payload is not None
+    assert payload["workflow"] == "operational_knowledge"
+    assert "Allegato ufficiale trovato: Ordinanza di rimessione." in payload["answer"]
+    assert "Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf" in payload["answer"]
 
 
 def test_http_bridge_defers_without_permission_context(monkeypatch):

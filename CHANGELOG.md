@@ -7,6 +7,10 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.25 - 2026-05-18
+
+- Protetto il remoto `origin/chore/monorepo-foundation`: lo script di igiene repository lo preserva quando rimuove extra remoti e le regole operative vietano a Codex di cancellarlo o aggiornarlo.
+
 ## 2.245.24 - 2026-05-18
 
 - Promosso `Questione Penale Pendente del ricorso R.G. 9926/2026` a caso pilota Lex end-to-end: la risposta ora viene focalizzata sulla domanda dell'avvocato e non solo sul recupero fonte.

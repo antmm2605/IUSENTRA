@@ -4,6 +4,9 @@ param(
         "Codex/legal-electronic-filing-kIxcV",
         "claude/legal-electronic-filing-kIxcV"
     ),
+    [string[]]$ProtectedRemoteBranches = @(
+        "chore/monorepo-foundation"
+    ),
     [switch]$DeleteRemoteExtras
 )
 
@@ -250,6 +253,10 @@ if ($DeleteRemoteExtras) {
         if (-not $name.StartsWith("$RemoteName/")) { continue }
         $shortName = $name.Substring($RemoteName.Length + 1)
         if ($AllowedBranches -contains $shortName) { continue }
+        if ($ProtectedRemoteBranches -contains $shortName) {
+            Write-Host "Branch remoto protetto preservato: $shortName"
+            continue
+        }
         Write-Host "Elimino branch remoto: $shortName"
         Invoke-Git push $RemoteName --delete $shortName
     }

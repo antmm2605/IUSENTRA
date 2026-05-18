@@ -8,6 +8,7 @@
 - **Reattivita' del caricamento obbligatoria:** il software deve restare rapido e reattivo nel caricamento e nel cambio pagina. Ogni modifica deve preservare o migliorare il baseline prestazionale gia' misurato; se un fix tocca shell, route, bootstrap, asset o rendering React, vanno usate verifiche mirate sui tempi e non sono accettati peggioramenti silenziosi.
 - Branch di sviluppo: `Codex/legal-electronic-filing-kIxcV`
 - **Branch remoto da sincronizzare sempre insieme al branch di sviluppo:** `claude/legal-electronic-filing-kIxcV`
+- **Branch remoto protetto da non toccare:** `origin/chore/monorepo-foundation` non deve essere cancellato per nessun motivo e non deve essere aggiornato, pushato o riallineato dai flussi Codex. Va lasciato esattamente al commit remoto esistente, salvo richiesta esplicita futura dell'utente che nomini quel branch.
 - **Deploy Hetzner CPX42 obbligatorio dopo ogni aggiornamento:** ogni modifica completata e pushata deve essere distribuita anche sul server Hetzner `ubuntu-16gb-nbg1-1` (`116.203.45.57`, alias SSH `iusentra-hetzner`) usando il profilo `deploy/hetzner`. Non dichiarare concluso il lavoro finche' il server non e' sul commit pushato, i container non sono healthy e `https://app.iusentra.it/api/pronto` non risponde correttamente.
 - **Pulizia cache build Docker obbligatoria dopo ogni deploy Hetzner:** a fine deploy eseguire sempre `docker builder prune --all --force` e rimuovere eventuale `/opt/iusentra/tmp-backup-snapshot` residuo. La cache build e gli snapshot temporanei non operativi sono rigenerabili/non attivi e non contengono il dato corrente degli studi; non usare comandi che cancellano volumi o dati applicativi.
 - **Arresto PC:** non eseguire mai `shutdown`, riavvio, sospensione o spegnimento del PC per memoria di richieste precedenti. Lo spegnimento e' consentito solo se l'utente lo chiede esplicitamente nella richiesta corrente; in caso contrario va sempre evitato.
@@ -17,13 +18,14 @@
 
 - Sulla macchina locale deve esistere **una sola copia attiva del progetto**: `D:\legale\IUSENTRA`.
 - **Worktree, cartelle duplicate, cloni temporanei e versioni parallele** del repository devono essere rimossi a fine lavoro.
-- I **soli branch ammessi**, sia locali sia remoti, sono:
+- I **soli branch locali ammessi** sono:
   - `Codex/legal-electronic-filing-kIxcV`
   - `claude/legal-electronic-filing-kIxcV`
+- Eccezione remota protetta: `origin/chore/monorepo-foundation` puo' esistere su GitHub, ma non va mai creato localmente, cancellato, pushato o aggiornato da Codex.
 - Non creare branch aggiuntivi per task temporanei. Tutto il lavoro deve confluire nel branch di sviluppo corrente e venire sincronizzato anche sul branch gemello.
 - A fine implementazione verificare sempre che:
   - `git worktree list` mostri solo `D:\legale\IUSENTRA`
-  - `git branch --all` mostri solo i due branch ammessi più `origin/HEAD`
+  - `git branch --all` mostri solo i due branch locali ammessi, i due remoti gemelli, `origin/HEAD` e l'eventuale remoto protetto `origin/chore/monorepo-foundation`
   - i due branch locali e i due branch remoti puntino allo **stesso commit**
 - Per enforcement e cleanup usare lo script: `scripts/repo_hygiene.ps1`
 

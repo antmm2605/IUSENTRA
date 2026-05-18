@@ -1,10 +1,10 @@
 # UI regression, Storybook e gate visuali App V2
 
-Aggiornato: 2026-05-13, fase 9 `fasereact`.
+Aggiornato: 2026-05-18, fase 9 `fasereact`.
 
 ## Stato sintetico
 
-- Storybook: non introdotto. Il frontend non aveva `.storybook`, storie, test runner o dipendenze dedicate; introdurlo ora avrebbe aggiunto peso infrastrutturale non ancora governato.
+- Storybook: presente come infrastruttura frontend. Sono disponibili script e dipendenze Storybook, ma non viene dichiarato come copertura visuale completa né come gate VRT obbligatorio.
 - Test UI: attivi tramite alternativa leggera `scripts/validate_ui_coverage.py`, `frontend/scripts/check-app-v2-frontend.mjs`, typecheck e build Vite.
 - VRT: non attivo. Nessuna baseline visuale viene dichiarata pronta senza un comando reale di screenshot/regressione.
 - Fixture sicure: `frontend/src/test/fixtures/app-v2-ui-fixtures.json`, isolate dal runtime e prive di PII reale, segreti, token, PEC vere o tenant reali.
@@ -20,22 +20,24 @@ npm --prefix frontend run build
 python -m pytest -q tests/test_ui_coverage_phase9.py --tb=short
 ```
 
-Storybook non ha comandi disponibili in questa fase: `npm run storybook`,
-`npm run build-storybook` e `npm run test-storybook` non vengono dichiarati
-finche' la relativa configurazione non esiste.
+I comandi Storybook esistono, ma restano non bloccanti in questa fase:
+`pnpm --filter @iusentra/studio storybook` e
+`pnpm --filter @iusentra/studio build-storybook`. Non sostituiscono
+`validate_ui_coverage.py`, typecheck, build Vite e verifiche browser quando
+richieste.
 
 ## Copertura
 
 | Area | Componente/Pagina | Priorita | Storybook | Component Test | VRT | A11y | Stato |
 |------|-------------------|----------|-----------|----------------|-----|------|-------|
-| Comunicazioni | PEC, email ordinaria, messaggi, notifiche legali | P0/P1 | no, alternativa leggera | si, coverage statico + gate App V2 | no, gap documentato | heading, nomi pulsanti, errori sicuri | ui_tested |
-| Impostazioni | Studio, PEC/SMTP, pagamenti, notifiche, backup, calendari | P1 | no, alternativa leggera | si, coverage statico + gate App V2 | no, gap documentato | label form, segreti mascherati, readonly | ui_tested |
-| Agenda | Nuovo appuntamento | P1 | no, alternativa leggera | si, coverage statico + gate App V2 | no, gap documentato | heading, label input, errori form | ui_tested |
-| Clienti e soggetti | Nuovo cliente, nuovo soggetto | P1 | no, alternativa leggera | si, coverage statico + gate App V2 | no, gap documentato | label form, PII minima, errori sicuri | ui_tested |
-| Documenti e ricerca | Redazione, template, giurisprudenza, ricerca legale | P1 | no, alternativa leggera | si, coverage statico + gate App V2 | no, gap documentato | azioni nominate, empty/error sicuri | ui_tested |
-| Mandato/economico | Preventivi, compensi, fatturazione, incassi, tariffario | P1 | no, alternativa leggera | si, coverage statico + gate App V2 | no, gap documentato | form/azioni nominate, readonly | ui_tested |
-| Telematico | Controlli atti | P0 | no, alternativa leggera | si, coverage statico + gate App V2 | no, gap documentato | stato forbidden/flag-off in italiano | ui_tested |
-| Amministrazione | Registro GDPR nuovo | P1 | no, alternativa leggera | si, coverage statico + gate App V2 | no, gap documentato | permessi e azioni amministrative | ui_tested |
+| Comunicazioni | PEC, email ordinaria, messaggi, notifiche legali | P0/P1 | presente, non gate VRT | si, coverage statico + gate App V2 | no, gap documentato | heading, nomi pulsanti, errori sicuri | ui_tested |
+| Impostazioni | Studio, PEC/SMTP, pagamenti, notifiche, backup, calendari | P1 | presente, non gate VRT | si, coverage statico + gate App V2 | no, gap documentato | label form, segreti mascherati, readonly | ui_tested |
+| Agenda | Nuovo appuntamento | P1 | presente, non gate VRT | si, coverage statico + gate App V2 | no, gap documentato | heading, label input, errori form | ui_tested |
+| Clienti e soggetti | Nuovo cliente, nuovo soggetto | P1 | presente, non gate VRT | si, coverage statico + gate App V2 | no, gap documentato | label form, PII minima, errori sicuri | ui_tested |
+| Documenti e ricerca | Redazione, template, giurisprudenza, ricerca legale | P1 | presente, non gate VRT | si, coverage statico + gate App V2 | no, gap documentato | azioni nominate, empty/error sicuri | ui_tested |
+| Mandato/economico | Preventivi, compensi, fatturazione, incassi, tariffario | P1 | presente, non gate VRT | si, coverage statico + gate App V2 | no, gap documentato | form/azioni nominate, readonly | ui_tested |
+| Telematico | Controlli atti | P0 | presente, non gate VRT | si, coverage statico + gate App V2 | no, gap documentato | stato forbidden/flag-off in italiano | ui_tested |
+| Amministrazione | Registro GDPR nuovo | P1 | presente, non gate VRT | si, coverage statico + gate App V2 | no, gap documentato | permessi e azioni amministrative | ui_tested |
 | Aree partial o legacy | Servizi non parificati | P0/P1 | no | no, da aggiungere prima della promozione | no | pending | partial/blocked/pending |
 
 La tabella pagina per pagina e' generata in `docs/frontend-app-v2-pages.md` e
@@ -126,7 +128,7 @@ La CI App V2 deve eseguire:
 
 ## Gap residui
 
-- Storybook non e' presente e non viene dichiarato pronto.
+- Storybook è presente come infrastruttura, ma non viene dichiarato pronto come copertura visuale completa.
 - VRT/screenshot regression non e' presente e non viene dichiarato pronto.
 - Smoke UI autenticato tenant A/B richiede credenziali ambiente dedicate.
 - Test axe automatici richiedono un runner component/browser futuro.

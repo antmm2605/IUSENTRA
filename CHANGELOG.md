@@ -7,6 +7,14 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.29 - 2026-05-18
+
+- Ridotta `/ricerca-legale` a una pagina operativa: tre sezioni chiare, ricerca principale, filtri utili per studio legale e nessun blocco decorativo o cruscotto non azionabile.
+- I numeri reali già presenti (`Fonti monitorate`, `News pubblicate`, `In revisione`, `Normattiva`, `Gazzetta`, `Mediazione`) diventano accessi funzionali verso schede, filtri e archivi invece di restare KPI isolati.
+- Le fonti monitorate sono visibili in pagina e cliccabili; la fonte Cassazione indicata dall'utente `ultime_sent_ord_e_questioni.page` è stata aggiunta al catalogo degli aggiornamenti legali come fonte ufficiale dedicata.
+- Mediazione resta il percorso specializzato gia' funzionante, ma Ricerca Legale ora espone anche Cassazione, Normattiva, Gazzetta, News, acquisizioni da controllare e Archivio Giurisprudenza in modo pratico.
+- Aggiunta la memoria operativa `docs/COMMIT_PUSH_REQUIRED_GATES.md` e collegata ai documenti esistenti: ogni commit/push deve controllare gate GitHub shardati, CodeQL, supply chain, Frontend React, Coverage, Pytest core, Local Signer e Quality Overlay prima di essere dichiarato chiuso.
+
 ## 2.245.28 - 2026-05-18
 
 - Rafforzato il percorso Cassazione prima del generatore corpus: il backfill ora produce un report qualità per documento con pagina verificata, PDF/allegato, hash, OCR/testo, norme, riferimenti R.G., discrepanze, link cliccabile e stato `pronto` / `pronto_con_note` / `da_ocr`.

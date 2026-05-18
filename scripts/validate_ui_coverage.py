@@ -158,8 +158,10 @@ def validate_docs() -> tuple[int, int]:
         if "vrt_ready" in text or "storybook_ready" in text:
             fail(f"{label}: non deve dichiarare Storybook/VRT ready in fase 9")
 
+    storybook_is_present = storybook_present()
+    expected_storybook_status = "Storybook: presente" if storybook_is_present else "Storybook: non introdotto"
     required_doc_snippets = [
-        "Storybook: non introdotto",
+        expected_storybook_status,
         "VRT: non attivo",
         "frontend/src/test/fixtures/app-v2-ui-fixtures.json",
         "python scripts\\validate_ui_coverage.py",
@@ -172,9 +174,11 @@ def validate_docs() -> tuple[int, int]:
         if snippet not in ui_doc:
             fail(f"docs/ui-regression-and-storybook.md: manca '{snippet}'")
 
-    if storybook_present() and "Storybook: non introdotto" in ui_doc:
+    if storybook_is_present and "Storybook: non introdotto" in ui_doc:
         fail("Storybook risulta presente ma il documento lo dichiara non introdotto")
-    if not storybook_present() and "Storybook: non introdotto" not in ui_doc:
+    if storybook_is_present and "Storybook: presente" not in ui_doc:
+        fail("Storybook risulta presente ma il documento non lo dichiara")
+    if not storybook_is_present and "Storybook: non introdotto" not in ui_doc:
         fail("Storybook assente: il documento deve dichiararlo esplicitamente")
 
     validate_fixtures(fixtures)

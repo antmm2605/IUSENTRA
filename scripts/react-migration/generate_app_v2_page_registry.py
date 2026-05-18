@@ -526,8 +526,8 @@ def _phase7_rows(routes: list[dict[str, object]]) -> list[list[str]]:
 
 def _phase9_storybook_state(route: dict[str, object]) -> str:
     if str(route.get("status") or "") == "react_operational_full" and _priority(route) in {"P0", "P1"}:
-        return "no: Storybook non presente; alternativa leggera validata"
-    return "no: non applicabile finche' la pagina resta pending/partial"
+        return "presente: infrastruttura non bloccante; alternativa leggera validata"
+    return "presente: non applicabile finché la pagina resta pending/partial"
 
 
 def _phase9_component_test(route: dict[str, object]) -> str:
@@ -732,7 +732,7 @@ def _registry_doc(
         "",
         "Aggiornato: 2026-05-14, fase 10 `fasereact`.",
         "",
-        "Questo registro e' generato da `scripts/react-migration/generate_app_v2_page_registry.py` a partire da manifest React, route App V2, feature flag, mapping routing sicuro e discovery Flask. La fase 10 collega il registro alla matrice test end-to-end, mantenendo la copertura UI fase 9 senza dichiarare Storybook o VRT attivi quando nel repo non sono presenti.",
+        "Questo registro è generato da `scripts/react-migration/generate_app_v2_page_registry.py` a partire da manifest React, route App V2, feature flag, mapping routing sicuro e discovery Flask. La fase 10 collega il registro alla matrice test end-to-end, mantenendo la copertura UI fase 9 senza dichiarare Storybook come gate visuale completo o VRT attiva.",
         "",
         "## Sintesi discovery",
         "",
@@ -773,7 +773,7 @@ def _registry_doc(
         "",
         "## Copertura UI fase 9",
         "",
-        "Storybook non e' presente nel frontend e non viene introdotto in questa fase per evitare una dipendenza pesante non gia' governata dal repo. La copertura minima fase 9 usa fixture sicure isolate, `scripts/validate_ui_coverage.py`, `npm --prefix frontend run test` e la build Vite. VRT resta gap documentato: nessuna riga viene marcata pronta per regressione visuale senza un comando reale eseguito.",
+        "Storybook è presente come infrastruttura frontend, ma non è dichiarato copertura visuale completa né gate VRT. La copertura minima fase 9 usa fixture sicure isolate, `scripts/validate_ui_coverage.py`, `npm --prefix frontend run test` e la build Vite. VRT resta gap documentato: nessuna riga viene marcata pronta per regressione visuale senza un comando reale eseguito.",
         "",
         _table(
             ["Area", "Pagina", "Priorita", "Component", "Storybook story", "Component test", "VRT", "Stati coperti", "Responsive", "A11y", "Stato finale"],

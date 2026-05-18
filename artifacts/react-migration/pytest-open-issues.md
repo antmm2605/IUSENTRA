@@ -302,6 +302,14 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 | --- | --- | --- | --- | --- |
 | Matrice Lex template atti, redazione, editor, bozze e documenti prodotti | `tests/test_lex_atti_redazione_knowledge_matrix.py` con matrici email e agenda collegate | Nessuna issue aperta nuova | Il worker J ha aggiunto solo governance documentale e test read-only: sorgenti reali tenant-aware, campi ammessi/esclusi, Q&A candidate, permessi/privacy, azioni consentite e divieti su sovrascrittura, firma, deposito, PEC, export definitivo, fonti inventate e chain-of-thought. Nessun codice runtime, nessun training automatico e nessuna bozza salvata. | Prima dell'implementazione runtime del collector dataset/RAG aggiungere fixture tenant-aware con `TEMPLATE_ATTI_DB`, `REDACTION_ASSISTANT_DB`, `FASCICOLI_DB`, `FASCICOLI_DOCS`, caso senza tenant e verifica manifest senza segreti, path assoluti, prompt raw o file binari originali. |
 
+## Note Ricerca Legale pratica e gate commit 2.245.29 - 2026-05-18
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| `/ricerca-legale` operativa | Pytest mirati, gate React, typecheck, build e documenti | Nessuna issue aperta nuova | La pagina è stata ridotta a ricerca, filtri e accessi reali; i conteggi non restano più KPI isolati. La fonte Cassazione `ultime_sent_ord_e_questioni.page` è catalogata tra le fonti ufficiali. | Per modifiche future rilanciare almeno `tests/test_react_legal_intelligence_search.py`, `test_fonti_default_includono_pagina_cassazione_ultime_sent_ord_e_questioni`, `pnpm --filter @iusentra/studio test`, typecheck e build. |
+| Storybook App V2 | `pnpm --filter @iusentra/studio test`; `tests/test_ui_coverage_phase9.py` | Risolto | Il gate intercettava una deriva reale: Storybook è presente in `frontend/package.json`, mentre documenti e test lo dichiaravano ancora non introdotto. | Aggiornati documenti, generatori e test: Storybook è presente come infrastruttura non bloccante; VRT resta non attivo e non viene dichiarato pronto. |
+| Processo commit/push | Documentazione operativa | Tracciato | La lista completa dei gate GitHub shardati richiesta dall'utente è stata scritta in `docs/COMMIT_PUSH_REQUIRED_GATES.md` e collegata a `AGENTS.md` e `docs/ci-cd-gates.md`. | Prima di dichiarare chiuso un commit/push controllare quella checklist e non confondere job aggregatori con shard reali. |
+
 ## Note Ricerca Legale e Mediazione 2.245.9 - 2026-05-17
 
 | Area | Gate | Stato | Nota | Azione |

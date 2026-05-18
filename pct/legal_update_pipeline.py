@@ -104,6 +104,23 @@ DEFAULT_SOURCE_ROWS: tuple[dict[str, Any], ...] = (
         "notes": "Massimario e raccolte della Cassazione.",
     },
     {
+        "name": "Cassazione - ultime sentenze, ordinanze e questioni",
+        "code": "cassazione_ultime_sent_ord_questioni",
+        "category": "giurisprudenza",
+        "base_url": "https://www.cortedicassazione.it/it/ultime_sent_ord_e_questioni.page",
+        "source_type": "web",
+        "trust_class": "A",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 180,
+        "parser_type": "html",
+        "notes": (
+            "Pagina ufficiale Cassazione per ultime sentenze, ordinanze, questioni pendenti "
+            "e rinvii: deve essere acquisita con pagina, allegati, hash e testo leggibile "
+            "prima del corpus RAG."
+        ),
+    },
+    {
         "name": "Giustizia Amministrativa",
         "code": "giustizia_amministrativa",
         "category": "giurisprudenza",

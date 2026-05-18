@@ -38,6 +38,10 @@ ambiente esterno o credenziali smoke.
 
 ## Gate bloccanti
 
+- Il processo operativo da seguire prima di dichiarare chiusa una consegna è in `docs/COMMIT_PUSH_REQUIRED_GATES.md`. La checklist comprende CodeQL, code scanning, dependency review, supply chain, governance, lint, smoke, Frontend React, Coverage 12/12, Pytest core shardato, Local Signer/PKCS#11 su macOS/Ubuntu/Windows e CI Quality Overlay su `push` e, quando esiste una PR, su `pull_request`.
+- Gli aggregatori `CI / Pytest core`, `CI / Coverage moduli critici` e `CI / Local Signer e PKCS#11` sono riepiloghi: la diagnosi primaria è lo shard reale. Se qualcosa è `Skipped`, controllare prima `Lint + syntax`, `Governance repo` e smoke upstream.
+- Il check aggregatore storico `CI / Coverage moduli critici` senza `parte` non è più un gate richiesto e non deve essere reintrodotto come blocco PR: la coverage critica è governata dalle 12 parti.
+
 - Backend: install ripetibile Python, import/syntax, lint fatal, smoke Flask, scheduler worker, shard core pytest.
 - Sicurezza backend: `tests/test_auth.py`, `tests/test_backend_security_phase5.py`, `tests/test_tenant_isolation_runtime.py`, `tests/test_app_v2_feature_flags.py`, `tests/test_app_v2_routing.py`.
 - Contratti API: `generate_api_contracts.py --check`, `validate_openapi.py`, `verify_openapi_provider.py`, `smoke_app_v2_all.py --subset contracts`, `tests/test_openapi_contracts_phase6.py`.
@@ -52,7 +56,7 @@ ambiente esterno o credenziali smoke.
 - `Smoke Staging`: manuale/post-deploy, usa l'orchestrator fase 13 in modalita read-only; richiede environment protetto e, per profili autenticati, secrets dedicati.
 - `E2E Nightly`: nightly/manuale, copre flussi piu' lunghi.
 - `Performance Nightly`: nightly/manuale, produce baseline runtime.
-- Storybook/VRT: non attivi. Non esiste comando reale nel repo, quindi non sono dichiarati gate.
+- Storybook: presente come infrastruttura frontend, non dichiarato gate visuale completo. VRT: non attivo.
 
 ## Artifact
 
@@ -143,7 +147,7 @@ coverage-critical e dependency critical.
 
 ## Gap residui
 
-1. Storybook/VRT non sono presenti: restano gap documentati, non gate fittizi.
+1. Storybook è presente come infrastruttura, ma non è copertura visuale completa; VRT resta gap documentato, non gate fittizio.
 2. Smoke autenticati richiedono secrets GitHub dedicati e account smoke reali.
 3. Branch protection non e' codificata come IaC nel repository; i required checks vanno impostati in GitHub.
 4. `pip-audit` non ha baseline legacy: il job e' bloccante su stato corrente e puo' richiedere triage se emergono CVE transitive.

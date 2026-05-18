@@ -92,6 +92,18 @@ def test_fonti_default_includono_codici_fondamentali_e_cassazione_verificata():
     assert "cortedicassazione.it" in str(rows_by_code["cassazione_citazioni_verificate"]["base_url"])
 
 
+def test_fonti_default_includono_pagina_cassazione_ultime_sent_ord_e_questioni():
+    rows_by_code = {str(row["code"]): row for row in DEFAULT_SOURCE_ROWS}
+    row = rows_by_code["cassazione_ultime_sent_ord_questioni"]
+
+    assert row["category"] == "giurisprudenza"
+    assert row["base_url"] == "https://www.cortedicassazione.it/it/ultime_sent_ord_e_questioni.page"
+    assert row["parser_type"] == "html"
+    assert row["is_official"] is True
+    assert row["enabled"] is True
+    assert "allegati" in str(row["notes"]).lower()
+
+
 def _write_studio_config(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(

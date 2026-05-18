@@ -18,7 +18,7 @@ La fase 10 consolida i test esistenti senza dichiarare passati comandi non esegu
 - Route manifest: 106.
 - Route P0/P1: 69.
 - Route P0/P1 con stato `tested`: 48.
-- File test/smoke censiti: 326.
+- File test/smoke censiti: 352.
 - Stati matrice: blocked=3, partial=40, pending=15, tested=48.
 
 ## Comandi principali
@@ -88,7 +88,7 @@ Rischio noto: primo accesso tenant autenticato dopo restart puo' essere lento pe
 ## Tests non eseguiti o bloccati
 
 - Smoke autenticati tenant A/B/readonly: richiedono env `IUSENTRA_*_USER/PASSWORD`, `IUSENTRA_SMOKE_API_KEY` e ID documento sintetico.
-- Frontend component coverage e VRT: tool non presenti nel repo.
+- Storybook: presente come infrastruttura frontend, non ancora gate visuale completo; VRT e test browser component dedicati restano non attivi.
 - E2E browser Playwright/Cypress: tool non presenti; presenti E2E Python/test client.
 
 ## Commands recommended for CI

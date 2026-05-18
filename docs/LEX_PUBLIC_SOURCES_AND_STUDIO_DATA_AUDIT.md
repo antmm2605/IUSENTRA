@@ -4,6 +4,35 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.245.29 - 2026-05-18
+
+Ricerca Legale e catalogo fonti sono stati riallineati alla logica decisa sul
+caso Cassazione: prima dati reali visibili e interrogabili, poi generatore
+corpus solo sui documenti pronti.
+
+Passaggi tracciati:
+
+- la pagina `/ricerca-legale` non mostra più un cruscotto descrittivo separato:
+  i conteggi reali diventano accessi operativi verso fonti, news, acquisizioni,
+  Normattiva, Gazzetta, Registro mediazione e Archivio Giurisprudenza;
+- la lista `Fonti monitorate` è resa dentro la pagina con stato e famiglia
+  della fonte, e ogni fonte avvia una ricerca invece di restare un link
+  generico;
+- `https://www.cortedicassazione.it/it/ultime_sent_ord_e_questioni.page` è
+  stata aggiunta al catalogo degli aggiornamenti legali come fonte ufficiale
+  Cassazione dedicata (`cassazione_ultime_sent_ord_questioni`);
+- la fonte Cassazione deve essere navigata con la stessa sequenza già stabilita:
+  DB -> pagina ufficiale -> allegati/PDF -> download/cache -> hash -> OCR/testo
+  -> metadati qualita' -> documenti pronti -> corpus RAG;
+- il commit/push deve seguire la checklist `docs/COMMIT_PUSH_REQUIRED_GATES.md`,
+  che rende espliciti i gate shardati e impedisce di usare aggregatori o suite
+  monolitiche come diagnosi primaria.
+
+Verifiche locali già eseguite in questa tranche:
+
+- `python -m pytest tests\test_legal_updates_pipeline.py::test_fonti_default_includono_pagina_cassazione_ultime_sent_ord_e_questioni tests\test_react_legal_intelligence_search.py -q`;
+- `pnpm --filter @iusentra/studio typecheck`.
+
 ## Aggiornamento operativo 2.245.24 - 2026-05-18
 
 Il caso Cassazione `QSP50194` / `R.G. 9926/2026` è diventato il caso pilota

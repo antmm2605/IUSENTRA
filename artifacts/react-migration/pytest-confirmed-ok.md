@@ -2218,6 +2218,20 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python3 /tmp/purge_downloaded_mailboxes.py --data-root /opt/iusentra/data --apply` su Hetzner | OK | Recuperati 36.7 GiB cancellando solo PEC/email ordinaria scaricate, allegati e stati di risincronizzazione; configurazioni casella preservate. |
 | `python scripts\purge_downloaded_mailboxes.py --data-root data --apply` locale | OK | Recuperati 30.1 GiB localmente con la stessa procedura governata; non sono stati toccati i file configurazione studio. |
 
+## Ricerca Legale pratica e Cassazione catalogata 2.245.29 - 2026-05-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests\test_legal_updates_pipeline.py::test_fonti_default_includono_pagina_cassazione_ultime_sent_ord_e_questioni tests\test_react_legal_intelligence_search.py -q` | OK | 14/14 passati: fonte ufficiale Cassazione `ultime_sent_ord_e_questioni.page` censita e regressioni payload Ricerca Legale verdi. |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript confermato dopo la riduzione operativa di `/ricerca-legale`. |
+| `pnpm --filter @iusentra/studio test` | OK | Contratti React, App V2 frontend, Legal Skills e UI coverage verdi; il gate ora registra correttamente `Storybook=presente` e `VRT=non attivo`. |
+| `python -m pytest tests\test_ui_coverage_phase9.py -q --tb=short` | OK | 3/3 passati dopo correzione della deriva documentale: Storybook è presente come infrastruttura, ma non è gate visuale completo. |
+| `python -m pytest tests\test_legal_updates_pipeline.py::test_fonti_default_includono_pagina_cassazione_ultime_sent_ord_e_questioni tests\test_react_legal_intelligence_search.py -q --tb=short` | OK | 14/14 passati nel rerun finale sul perimetro Cassazione/Ricerca Legale. |
+| `pnpm --filter @iusentra/studio build` | OK | Build Vite completata in 7.31s; asset React rigenerati in `web/static/react`, con chunk `LegalIntelligencePage-BLxgRDaC.js` e CSS `LegalIntelligencePage-BiL_Fy4Y.css`. |
+| `python scripts\react-migration\generate_app_v2_page_registry.py --check`; `python scripts\react-migration\generate_app_v2_test_docs.py --check` | OK | Registri App V2 e documenti test allineati dopo aggiornamento Storybook presente/non-gate. |
+| `python scripts\validate_docs_links.py ...`; `python scripts\validate_docs_commands.py` | OK | Link documentali e comandi documentati validati dopo aggiornamento gate commit e Storybook. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_utf8_integrity.py -q --tb=short` | OK | Packaging sincronizzato, readiness release e integrità UTF-8 confermate per `2.245.29`. |
+
 # Aggiornamenti legali evidenze web 2.245.12 - 2026-05-17
 
 | Comando / verifica | Esito | Nota |

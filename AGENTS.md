@@ -28,6 +28,7 @@
   - `git branch --all` mostri solo i due branch locali ammessi, i due remoti gemelli, `origin/HEAD` e l'eventuale remoto protetto `origin/chore/monorepo-foundation`
   - i due branch locali e i due branch remoti puntino allo **stesso commit**
 - Per enforcement e cleanup usare lo script: `scripts/repo_hygiene.ps1`
+- **Processo obbligatorio commit/push:** prima di dichiarare concluso un lavoro bisogna seguire `docs/COMMIT_PUSH_REQUIRED_GATES.md`. La lista include CodeQL, code scanning, dependency review, supply chain, governance, lint, smoke, Frontend React, Coverage 12/12, Pytest core shardato, Local Signer/PKCS#11 su macOS/Ubuntu/Windows e CI Quality Overlay su `push` e, quando presente, su `pull_request`. Gli aggregatori non sono diagnosi primaria: se qualcosa è rosso o `Skipped`, controllare prima `Lint + syntax`, `Governance repo`, smoke upstream e lo shard reale. Non usare `python -m pytest -q` monolitico come sostituto e non reintrodurre il vecchio aggregatore `CI / Coverage moduli critici` senza `parte` come required check.
 
 ## Memoria operativa obbligatoria — test, gate e runtime
 

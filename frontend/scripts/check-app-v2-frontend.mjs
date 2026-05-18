@@ -82,7 +82,7 @@ assertContains(areaRequirementsDoc, 'blocked', 'docs/app-v2-area-requirements.md
 assertContains(areaRequirementsDoc, 'scripts/smoke_app_v2_workflows.py --list', 'docs/app-v2-area-requirements.md smoke workflow')
 assertContains(frontendDoc, 'Copertura UI fase 9', 'docs/frontend-app-v2-pages.md fase 9')
 assertContains(registryDoc, 'Copertura UI fase 9', 'registry fase 9')
-assertContains(uiRegressionDoc, 'Storybook: non introdotto', 'docs/ui-regression-and-storybook.md Storybook')
+assertContains(uiRegressionDoc, 'Storybook: presente', 'docs/ui-regression-and-storybook.md Storybook')
 assertContains(uiRegressionDoc, 'VRT: non attivo', 'docs/ui-regression-and-storybook.md VRT')
 assertContains(uiRegressionDoc, 'python scripts\\validate_ui_coverage.py', 'docs/ui-regression-and-storybook.md gate')
 assertContains(uiFixtures, '"phase": "9"', 'fixture UI fase 9')

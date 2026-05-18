@@ -16,7 +16,7 @@ Sintesi corrente dai registri generati:
 - route manifest: 98;
 - priorita: P0=30, P1=33, P2=35;
 - aree: `complete_tested`=4, `complete_unverified`=4, `partial`=6, `blocked`=1;
-- Storybook/VRT: non presenti, gap documentato;
+- Storybook: presente come infrastruttura frontend, non gate visuale completo; VRT: non attivo, gap documentato;
 - smoke autenticati: richiedono env dedicate, non sono marcati verdi se assenti.
 
 ## Regole App V2

@@ -482,7 +482,7 @@ def _test_plan_doc(routes: list[dict[str, object]], inventory_rows: list[TestInv
             "## Tests non eseguiti o bloccati",
             "",
             "- Smoke autenticati tenant A/B/readonly: richiedono env `IUSENTRA_*_USER/PASSWORD`, `IUSENTRA_SMOKE_API_KEY` e ID documento sintetico.",
-            "- Frontend component coverage e VRT: tool non presenti nel repo.",
+            "- Storybook: presente come infrastruttura frontend, non ancora gate visuale completo; VRT e test browser component dedicati restano non attivi.",
             "- E2E browser Playwright/Cypress: tool non presenti; presenti E2E Python/test client.",
             "",
             "## Commands recommended for CI",

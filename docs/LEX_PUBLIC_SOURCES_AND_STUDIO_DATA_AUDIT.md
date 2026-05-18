@@ -4,6 +4,30 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.245.32 - 2026-05-18
+
+Aggiunta la Fase 3 job queue per fonti legali, necessaria prima di estendere
+Cassazione e le altre fonti oltre il caso pilota.
+
+Passaggi tracciati:
+
+- aggiunto `pct/legal_update_job_queue.py` con coda SQLite persistente per
+  fonte, pagina, PDF/allegato o documento;
+- ogni job registra chiave dedupe, hash contenuto, fonte, URL, tipo elemento,
+  payload stabile, tentativi, timeout, stato, errore leggibile e orari;
+- `claim_next`, `complete`, `fail` e `recover_stale_running` permettono retry,
+  timeout finale e ripresa dei job rimasti in corso dopo crash del worker;
+- il batch runner espone `build_legal_update_source_job_queue`, così una
+  tranche di fonti può essere accodata e verificata prima di avviare i
+  subprocess;
+- la deduplica conserva un solo job per lo stesso documento/hash, ma crea un
+  nuovo job quando cambia l'hash del contenuto.
+
+Verifiche eseguite:
+
+- `python -m py_compile pct\legal_update_job_queue.py pct\legal_update_batch_runner.py`;
+- `python -m pytest tests\test_legal_update_job_queue.py tests\test_legal_update_batch_runner.py -q --tb=short`.
+
 ## Aggiornamento operativo 2.245.31 - 2026-05-18
 
 Aggiunta la Fase 2 TokenJuice, reimplementata in Python per Lex senza copiare

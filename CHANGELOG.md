@@ -7,6 +7,13 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.32 - 2026-05-18
+
+- Aggiunta la Fase 3 job queue per fonti legali: `pct/legal_update_job_queue.py` introduce coda SQLite persistente con deduplica, hash contenuto, stato, retry, timeout, errore leggibile e recupero dei job rimasti in corso.
+- Il batch runner può ora preparare una coda di fonti senza eseguire subito i subprocess, utile per Cassazione e backfill progressivi prima del generatore corpus.
+- La deduplica usa fonte, URL, tipo elemento, payload stabile e hash contenuto: stesso documento resta unico, contenuto cambiato genera un nuovo job.
+- Aggiunti test su deduplica, retry, timeout finale, ripresa da crash e ponte batch-runner/coda.
+
 ## 2.245.31 - 2026-05-18
 
 - Aggiunta la Fase 2 TokenJuice per Lex: `lex/tokenjuice.py` compatta in modo deterministico HTML, JSON, log, OCR/PDF già estratti e testi legali lunghi prima che arrivino al modello.

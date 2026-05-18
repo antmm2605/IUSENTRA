@@ -1,12 +1,19 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-18, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
+Aggiornato: 2026-05-18, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Job queue fonti legali - 2026-05-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\legal_update_job_queue.py pct\legal_update_batch_runner.py` | OK | Sintassi confermata per coda persistente e ponte batch runner. |
+| `python -m pytest tests\test_legal_update_job_queue.py tests\test_legal_update_batch_runner.py -q --tb=short` | OK | 13/13 passati: deduplica, hash contenuto, retry, timeout finale, recupero job running dopo crash e accodamento fonti senza subprocess. |
 
 ### TokenJuice Lex - 2026-05-18
 

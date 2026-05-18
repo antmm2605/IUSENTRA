@@ -7,6 +7,7 @@ import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Callable, Sequence
 
 
@@ -190,6 +191,50 @@ def build_legal_update_job_command(
         if not auto_publish:
             command.append("--no-auto-publish")
     return command
+
+
+def build_legal_update_source_job_queue(
+    config: LegalUpdateJobConfig,
+    *,
+    source_codes: Sequence[str],
+    queue_db_path: str = "",
+    item_timeout_seconds: int = 180,
+    max_attempts: int = 3,
+) -> dict[str, Any]:
+    """Accoda fonti come job deduplicati senza eseguire subprocess.
+
+    È il ponte deterministico tra catalogo fonti e worker: utile per backfill
+    Cassazione, PDF/allegati e fonti pubbliche quando si vuole prima vedere la
+    coda e poi processarla a piccoli lotti.
+    """
+
+    from pct.legal_update_job_queue import LEGAL_UPDATE_JOB_QUEUE_SCHEMA, LegalUpdateJobQueue
+
+    target = Path(queue_db_path) if str(queue_db_path or "").strip() else _default_queue_db_path(config)
+    queue = LegalUpdateJobQueue(target)
+    jobs = []
+    for source_code in [str(code or "").strip() for code in source_codes if str(code or "").strip()]:
+        jobs.append(
+            queue.enqueue(
+                source_code=source_code,
+                item_kind="fonte",
+                payload={"source_code": source_code, "mode": "legal_update_source"},
+                timeout_seconds=item_timeout_seconds,
+                max_attempts=max_attempts,
+            ).to_dict()
+        )
+    return {
+        "ok": True,
+        "schema": LEGAL_UPDATE_JOB_QUEUE_SCHEMA,
+        "queue_db_path": str(target),
+        "jobs": jobs,
+        "summary": queue.summary(),
+    }
+
+
+def _default_queue_db_path(config: LegalUpdateJobConfig) -> Path:
+    anchor = Path(str(config.intelligence_db or "./intelligence/motori.json"))
+    return anchor.parent / "legal_update_jobs.sqlite"
 
 
 def run_legal_update_subprocess(

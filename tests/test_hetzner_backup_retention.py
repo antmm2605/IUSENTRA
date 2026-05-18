@@ -43,7 +43,9 @@ def test_backup_script_applica_tetto_spazio_e_compressione_alta():
     assert "--long=" in script
     assert "source \"$ENV_FILE\"" in script
     assert "run_tar_zstd_backup" in script
-    assert "PIPESTATUS[0]" in script
+    assert 'pipeline_statuses=("${PIPESTATUS[@]}")' in script
+    assert 'tar_status="${pipeline_statuses[0]:-1}"' in script
+    assert 'zstd_status="${pipeline_statuses[1]:-1}"' in script
     assert "tar_status > 1" in script
     assert "tar_status == 1" in script
     assert "snapshot best-effort" in script

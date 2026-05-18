@@ -1,12 +1,20 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-18, Lex dati studio, soggetti/parti, bozze, AI mobile produzione e Documenti AI p7m/txt/eml.
+Aggiornato: 2026-05-18, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml e backup Hetzner.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Backup Hetzner preventivo - 2026-05-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `bash -n deploy/hetzner/backup.sh` | OK | Sintassi Bash confermata dopo la cattura immediata degli stati della pipeline `tar | zstd`. |
+| `python -m pytest tests\test_hetzner_backup_retention.py -q` | OK | 3/3 passati: retention, esclusione Ollama e guardia su `PIPESTATUS` restano governate. |
+| `python -m ruff check tests\test_hetzner_backup_retention.py` | OK | Ruff mirato verde sul test aggiornato. |
 
 ### Lex dati studio, bozze e Documenti AI p7m/txt/eml - 2026-05-18
 

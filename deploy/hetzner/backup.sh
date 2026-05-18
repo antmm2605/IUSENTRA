@@ -163,14 +163,16 @@ prune_by_total_size() {
 }
 
 run_tar_zstd_backup() {
+  local pipeline_statuses
   local tar_status
   local zstd_status
 
   set +e
   tar "${tar_exclude_args[@]}" --warning=no-file-changed -cpf - -C "$DATA_DIR" . \
     | zstd -T0 "-${ZSTD_LEVEL}" "--long=${ZSTD_LONG_WINDOW}" -o "$OUT"
-  tar_status=${PIPESTATUS[0]}
-  zstd_status=${PIPESTATUS[1]}
+  pipeline_statuses=("${PIPESTATUS[@]}")
+  tar_status="${pipeline_statuses[0]:-1}"
+  zstd_status="${pipeline_statuses[1]:-1}"
   set -e
 
   if (( zstd_status != 0 )); then

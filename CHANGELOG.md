@@ -19,6 +19,7 @@
 - Su telefono e tablet `Impostazioni -> AI Locale` non propone più installazione Ollama o download modelli: Lex usa il language model, gli embedding e l'indice documenti sul server di produzione IUSENTRA, mentre il pannello `Archivio e revisione Lex` chiarisce che dataset/export sono facoltativi e non servono per usare il RAG ordinario.
 - Il bridge HTTP non manda più le letture PEC classificate come `pec_comunicazioni` nel flusso bozza/web quando la domanda chiede di consultare la casella; restano invece nel layer operativo deterministico.
 - Rafforzato il gateway dati studio per le varianti `scheda cliente` e per i gestori che espongono `get` invece di `ottieni`.
+- Il backup Hetzner `.tar.zst` cattura ora subito gli stati della pipeline `tar | zstd`, evitando l'errore `PIPESTATUS[1]: unbound variable` che poteva bloccare il backup preventivo prima del deploy.
 
 ## 2.245.15 - 2026-05-17
 

@@ -7,6 +7,13 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.35 - 2026-05-18
+
+- Aggiunta la Fase 6 UI Intelligence: Ricerca Legale mostra ora stato reale delle fonti, fonti pronte/non pronte, coda job, errori, documenti letti, testo disponibile e domande qualità del ciclo DB -> fonte -> allegati -> OCR -> RAG -> Lex.
+- Il payload React di Ricerca Legale espone `autofetchMonitor` costruito dal monitor operativo già introdotto per le fonti pubbliche, evitando contatori isolati senza spiegazione.
+- Archivio Giurisprudenza mostra il presidio dati per RAG: schede con fonte, testo disponibile, testo da completare e fonti da verificare.
+- Aggiunti test mirati su monitor acquisizione fonti reali e stato dati giurisprudenza, con build React aggiornata.
+
 ## 2.245.34 - 2026-05-18
 
 - Aggiunta la Fase 5 Auto-fetch governato per fonti legali: `pct/legal_update_autofetch.py` introduce tick con budget per fonte, cursori persistenti, coda deduplicata, timeout per elemento e monitor operativo.

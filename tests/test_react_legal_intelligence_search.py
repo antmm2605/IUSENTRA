@@ -24,9 +24,12 @@ class _Manager:
 
 
 class _Repository:
-    def __init__(self, *, news=None, search_rows=None):
+    def __init__(self, *, news=None, search_rows=None, sources=None, activity=None, agent_runs=None):
         self.news = list(news or [])
         self.search_rows = list(search_rows or [])
+        self.sources = list(sources or [])
+        self.activity = dict(activity or {})
+        self.agent_runs = dict(agent_runs or {})
         self.search_queries = []
 
     def list_news(self, **kwargs):
@@ -38,6 +41,17 @@ class _Repository:
     def search_lex_sources(self, query, *, limit=12):
         self.search_queries.append((query, limit))
         return self.search_rows
+
+    def list_sources(self, enabled_only=False):
+        if enabled_only:
+            return [source for source in self.sources if source.get("enabled", True)]
+        return self.sources
+
+    def source_activity_summary(self):
+        return self.activity
+
+    def latest_source_agent_runs(self):
+        return self.agent_runs
 
 
 class _Pipeline:
@@ -104,6 +118,47 @@ def test_ricerca_legale_mostra_presidio_lex_ai_nella_pagina_studio(tmp_path):
     agent_metric = next(metric for metric in payload["metrics"] if metric["id"] == "agenti_lex")
     assert agent_metric["value"] == len(LEGAL_AGENT_FOCUS)
     assert "pronti" in agent_metric["note"]
+
+
+def test_ricerca_legale_espone_monitor_acquisizione_fonti_reali(tmp_path):
+    repository = _Repository(
+        sources=[
+            {"id": 1, "code": "cassazione", "name": "Corte di Cassazione", "enabled": True, "is_official": True},
+            {"id": 2, "code": "gazzetta_ufficiale", "name": "Gazzetta Ufficiale", "enabled": True, "is_official": True},
+        ],
+        activity={
+            "cassazione": {
+                "raw_documents": 3,
+                "normalized_documents": 3,
+                "review_pending": 0,
+                "review_published": 2,
+            },
+            "gazzetta_ufficiale": {
+                "raw_documents": 0,
+                "normalized_documents": 0,
+                "review_pending": 0,
+                "review_published": 0,
+            },
+        },
+    )
+
+    payload = _payload(
+        repository,
+        page="ricerca-legale",
+        config={"LEGAL_INTELLIGENCE_DB": str(tmp_path / "motori.json")},
+    )
+
+    monitor = payload["autofetchMonitor"]
+    assert monitor["sources_total"] == 2
+    assert monitor["sources_ready"] == 1
+    assert monitor["sources_not_ready"] == 1
+    assert any(question.startswith("La fonte risulta censita") for question in monitor["quality_questions"])
+    sections = {section["id"]: section for section in payload["sections"]}
+    assert "acquisizione_fonti" in sections
+    assert "domande_qualita_fonti" in sections
+    fonti = sections["fonti"]
+    assert any(item["label"] == "Corte di Cassazione" and item["tone"] == "success" for item in fonti["items"])
+    assert any(metric["id"] == "fonti_pronte" and metric["value"] == 1 for metric in payload["metrics"])
 
 
 def test_ricerca_legale_interroga_repository_e_mantiene_estratti(monkeypatch):

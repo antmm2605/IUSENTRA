@@ -55,6 +55,52 @@ export type LegalIntelligencePageData = {
   forms: []
   warnings: LegalWarning[]
   filters: Record<string, string>
+  autofetchMonitor: LegalAutofetchMonitor
+}
+
+export type LegalAutofetchSource = {
+  sourceCode: string
+  sourceName: string
+  status: string
+  reason: string
+  rawDocuments: number
+  normalizedDocuments: number
+  reviewPending: number
+  reviewPublished: number
+  lastEnqueuedAt: string
+  lastFinishedAt: string
+  lastJobId: string
+  consecutiveFailures: number
+}
+
+export type LegalAutofetchReadiness = {
+  status: string
+  blockedSources: number
+  queuedJobs: number
+  runningJobs: number
+  failedJobs: number
+  timeoutJobs: number
+}
+
+export type LegalAutofetchQueue = {
+  total: number
+  queued: number
+  running: number
+  completed: number
+  failed: number
+  timeout: number
+  skipped: number
+}
+
+export type LegalAutofetchMonitor = {
+  generatedAt: string
+  sourcesTotal: number
+  sourcesReady: number
+  sourcesNotReady: number
+  qualityQuestions: string[]
+  readiness: LegalAutofetchReadiness
+  queue: LegalAutofetchQueue
+  sources: LegalAutofetchSource[]
 }
 
 export const emptyLegalIntelligencePage: LegalIntelligencePageData = {
@@ -75,6 +121,31 @@ export const emptyLegalIntelligencePage: LegalIntelligencePageData = {
   forms: [],
   warnings: [],
   filters: {},
+  autofetchMonitor: {
+    generatedAt: '',
+    sourcesTotal: 0,
+    sourcesReady: 0,
+    sourcesNotReady: 0,
+    qualityQuestions: [],
+    readiness: {
+      status: '',
+      blockedSources: 0,
+      queuedJobs: 0,
+      runningJobs: 0,
+      failedJobs: 0,
+      timeoutJobs: 0,
+    },
+    queue: {
+      total: 0,
+      queued: 0,
+      running: 0,
+      completed: 0,
+      failed: 0,
+      timeout: 0,
+      skipped: 0,
+    },
+    sources: [],
+  },
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -97,6 +168,15 @@ function scalar(value: unknown): string | number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
   if (typeof value === 'string') return sanitizeDisplayText(value.trim())
   return ''
+}
+
+function integer(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return Math.trunc(value)
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number.parseInt(value, 10)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
 }
 
 function tone(value: unknown): LegalTone {
@@ -165,6 +245,55 @@ function normaliseWarning(input: unknown): LegalWarning {
   return {
     code: display(item.code) || 'warning',
     message: display(item.message) || 'Avviso disponibile.',
+  }
+}
+
+function normaliseAutofetchSource(input: unknown): LegalAutofetchSource {
+  const item = asRecord(input)
+  return {
+    sourceCode: text(item.source_code) || text(item.sourceCode) || text(item.id) || 'fonte',
+    sourceName: display(item.source_name) || display(item.sourceName) || display(item.label) || 'Fonte',
+    status: display(item.status) || 'da verificare',
+    reason: display(item.reason),
+    rawDocuments: integer(item.raw_documents ?? item.rawDocuments),
+    normalizedDocuments: integer(item.normalized_documents ?? item.normalizedDocuments),
+    reviewPending: integer(item.review_pending ?? item.reviewPending),
+    reviewPublished: integer(item.review_published ?? item.reviewPublished),
+    lastEnqueuedAt: display(item.last_enqueued_at ?? item.lastEnqueuedAt),
+    lastFinishedAt: display(item.last_finished_at ?? item.lastFinishedAt),
+    lastJobId: display(item.last_job_id ?? item.lastJobId),
+    consecutiveFailures: integer(item.consecutive_failures ?? item.consecutiveFailures),
+  }
+}
+
+function normaliseAutofetchMonitor(input: unknown): LegalAutofetchMonitor {
+  const item = asRecord(input)
+  const readiness = asRecord(item.readiness)
+  const queue = asRecord(item.queue)
+  return {
+    generatedAt: display(item.generated_at ?? item.generatedAt),
+    sourcesTotal: integer(item.sources_total ?? item.sourcesTotal),
+    sourcesReady: integer(item.sources_ready ?? item.sourcesReady),
+    sourcesNotReady: integer(item.sources_not_ready ?? item.sourcesNotReady),
+    qualityQuestions: textList(item.quality_questions ?? item.qualityQuestions),
+    readiness: {
+      status: display(readiness.status),
+      blockedSources: integer(readiness.blocked_sources ?? readiness.blockedSources),
+      queuedJobs: integer(readiness.queued_jobs ?? readiness.queuedJobs),
+      runningJobs: integer(readiness.running_jobs ?? readiness.runningJobs),
+      failedJobs: integer(readiness.failed_jobs ?? readiness.failedJobs),
+      timeoutJobs: integer(readiness.timeout_jobs ?? readiness.timeoutJobs),
+    },
+    queue: {
+      total: integer(queue.total),
+      queued: integer(queue.queued),
+      running: integer(queue.running),
+      completed: integer(queue.completed),
+      failed: integer(queue.failed),
+      timeout: integer(queue.timeout),
+      skipped: integer(queue.skipped),
+    },
+    sources: list(item.sources).map(normaliseAutofetchSource).filter((source) => source.sourceCode),
   }
 }
 
@@ -241,6 +370,7 @@ function normalisePage(input: unknown): LegalIntelligencePageData {
     forms: [],
     warnings: list(page.warnings).map(normaliseWarning),
     filters,
+    autofetchMonitor: normaliseAutofetchMonitor(page.autofetchMonitor ?? page.autofetch_monitor),
   }
 }
 

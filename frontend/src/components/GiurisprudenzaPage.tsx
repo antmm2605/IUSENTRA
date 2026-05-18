@@ -98,6 +98,7 @@ function sectionById(data: GiurisprudenzaPageData, id: string) {
 
 function sectionIcon(section: LegalSection) {
   if (section.id === 'citazioni_verificate') return <CheckCircle2 size={18} aria-hidden="true" />
+  if (section.id === 'presidio_dati') return <Database size={18} aria-hidden="true" />
   if (section.id === 'lex_presidio') return <Bot size={18} aria-hidden="true" />
   if (section.id === 'archivi_ufficiali') return <Database size={18} aria-hidden="true" />
   return <ShieldCheck size={18} aria-hidden="true" />
@@ -162,7 +163,7 @@ function KnowledgeStatusCard({ section }: { section: LegalSection }) {
 }
 
 function KnowledgeStatusPanel({ data }: { data: GiurisprudenzaPageData }) {
-  const sections = ['citazioni_verificate', 'lex_presidio', 'archivi_ufficiali', 'ai_avanzata']
+  const sections = ['citazioni_verificate', 'presidio_dati', 'lex_presidio', 'archivi_ufficiali', 'ai_avanzata']
     .map((id) => sectionById(data, id))
     .filter(Boolean) as LegalSection[]
   if (!sections.length) return null

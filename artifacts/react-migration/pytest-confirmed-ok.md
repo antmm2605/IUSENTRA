@@ -1,12 +1,22 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-18, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
+Aggiornato: 2026-05-18, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### UI Intelligence Ricerca Legale/Giurisprudenza/AI - 2026-05-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\services\react_legal_intelligence_bridge.py web\services\react_giurisprudenza_bridge.py` | OK | Sintassi confermata per monitor acquisizione fonti e presidio dati giurisprudenza. |
+| `python -m pytest tests\test_react_legal_intelligence_search.py tests\test_giurisprudenza.py::test_react_giurisprudenza_espone_presidio_dati_per_rag tests\test_giurisprudenza.py::test_react_giurisprudenza_espone_presidio_citazioni_lex -q --tb=short` | OK | 16/16 passati: Ricerca Legale espone `autofetchMonitor`, fonti pronte/non pronte e domande qualità; Giurisprudenza espone schede con fonte, testo disponibile e testo da completare. |
+| `npm run typecheck --prefix frontend`; `npm run build --prefix frontend` | OK | TypeScript e build Vite completati; bundle React aggiornato per Ricerca Legale e Archivio Giurisprudenza. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short`; `git diff --check -- . ':!data/*'` | OK | Packaging e readiness 9/9 verdi dopo bump `2.245.35`; whitespace check pulito. |
+| `python -m pct.cli utf8-integrity --check-only --root ... --report %TEMP%\iusentra_utf8_phase6_report.json --json` | OK | Controllo UTF-8 sui file testuali toccati: nessun mojibake o carattere sostitutivo rilevato. |
 
 ### Auto-fetch governato fonti legali - 2026-05-18
 

@@ -269,6 +269,49 @@ def _empty_payload(source: str, message: str) -> dict[str, Any]:
     }
 
 
+def _data_readiness_section(records: list[dict[str, Any]], sources: list[dict[str, Any]]) -> dict[str, Any]:
+    official_records = sum(1 for record in records if record.get("officialSource") or _text(record.get("sourceHref")))
+    full_text_records = sum(1 for record in records if record.get("fullTextAvailable"))
+    source_blocked = sum(1 for source in sources if _text(source.get("stateLabel")).lower() in {"da verificare", "recupero assistito"})
+    missing_text = max(len(records) - full_text_records, 0)
+    return _section(
+        "presidio_dati",
+        "Stato dati giurisprudenza",
+        "monitor",
+        [
+            _item(
+                "fonti_collegate",
+                "Schede con fonte",
+                official_records,
+                "Provvedimenti con link o fonte originale indicata.",
+                "success" if official_records else "warning",
+            ),
+            _item(
+                "testo_disponibile",
+                "Testo disponibile",
+                full_text_records,
+                "Schede con testo integrale o normalizzato per ricerca e Lex.",
+                "success" if full_text_records else "warning",
+            ),
+            _item(
+                "testo_mancante",
+                "Testo da completare",
+                missing_text,
+                "Schede che richiedono import, lettura PDF o OCR prima del RAG.",
+                "warning" if missing_text else "success",
+            ),
+            _item(
+                "fonti_da_verificare",
+                "Fonti da verificare",
+                source_blocked,
+                "Fonti censite ma non ancora pienamente pronte.",
+                "warning" if source_blocked else "success",
+            ),
+        ],
+        "Nessun dato giurisprudenziale da valutare.",
+    )
+
+
 def build_react_giurisprudenza_payload(
     *,
     get_giurisprudenza: Callable[[], Any],
@@ -322,6 +365,7 @@ def build_react_giurisprudenza_payload(
     verified_citations_section = build_verified_citations_section(config=config, records=records)
     official_archives_section = build_official_archive_section()
     advanced_ai_section = build_advanced_ai_section()
+    data_readiness_section = _data_readiness_section(records, sources)
     lex_agent_metric = build_lex_agent_metric(config=config, focus_agent_ids=GIURISPRUDENZA_AGENT_FOCUS)
 
     return {
@@ -346,6 +390,7 @@ def build_react_giurisprudenza_payload(
         ],
         "sections": [
             verified_citations_section,
+            data_readiness_section,
             lex_presidio_section,
             official_archives_section,
             advanced_ai_section,

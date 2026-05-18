@@ -3,11 +3,18 @@
 from __future__ import annotations
 
 import re
+import os
 from collections.abc import Iterable, Mapping
 from datetime import datetime, timezone
 from typing import Any, Callable
 from urllib.parse import urlparse
 
+from pct.legal_update_batch_runner import LegalUpdateJobConfig
+from pct.legal_update_autofetch import (
+    LEGAL_SOURCE_QUALITY_QUESTIONS,
+    LegalAutoFetchConfig,
+    build_legal_update_operational_monitor,
+)
 from web.services.lex_studio_knowledge_status import (
     LEGAL_AGENT_FOCUS,
     build_advanced_ai_section,
@@ -120,6 +127,18 @@ def _short(value: Any, limit: int = 220) -> str:
     if len(text) <= limit:
         return text
     return text[: limit - 1].rstrip() + "..."
+
+
+def _flag_enabled(value: Any) -> bool:
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on", "si", "sì"}
+
+
+def _positive_int(value: Any, default: int) -> int:
+    try:
+        parsed = int(str(value or "").strip())
+        return parsed if parsed > 0 else default
+    except (TypeError, ValueError):
+        return default
 
 
 def _restore_italian_accents(value: Any) -> str:
@@ -1480,6 +1499,137 @@ def _source_items(snapshot: Mapping[str, Any], update_snapshot: Mapping[str, Any
     return items
 
 
+def _legal_autofetch_config(config: Mapping[str, Any] | None) -> LegalAutoFetchConfig:
+    cfg_source = dict(config or {})
+    item_timeout_default = _positive_int(os.getenv("IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS"), 180)
+    source_budget_default = _positive_int(os.getenv("IUSENTRA_LEGAL_AUTOFETCH_SOURCE_BUDGET"), 8)
+    publish_default = _positive_int(os.getenv("IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS"), 80)
+    job_config = LegalUpdateJobConfig(
+        intelligence_db=str(
+            cfg_source.get("LEGAL_INTELLIGENCE_DB")
+            or os.getenv("LEGAL_INTELLIGENCE_DB")
+            or os.getenv("IUSENTRA_LEGAL_INTELLIGENCE_DB")
+            or "./intelligence/motori.json"
+        ),
+        giurisprudenza_db=str(
+            cfg_source.get("GIURISPRUDENZA_DB")
+            or os.getenv("GIURISPRUDENZA_DB")
+            or os.getenv("IUSENTRA_GIURISPRUDENZA_DB")
+            or ""
+        ),
+        ai_base_url=str(
+            cfg_source.get("LOCAL_AI_BASE_URL")
+            or cfg_source.get("PCT_LOCAL_AI_BASE_URL")
+            or ""
+        ).strip(),
+        ai_model=str(
+            cfg_source.get("LOCAL_AI_CHAT_MODEL")
+            or cfg_source.get("OLLAMA_MODEL")
+            or "mistral"
+        ).strip(),
+        export_json_enabled=_flag_enabled(cfg_source.get("LEGAL_UPDATES_EXPORT_JSON_ENABLED")),
+        mirror_giurisprudenza_json_enabled=_flag_enabled(
+            cfg_source.get("LEGAL_UPDATES_MIRROR_GIURISPRUDENZA_JSON_ENABLED")
+        ),
+    )
+    return LegalAutoFetchConfig.from_job_config(
+        job_config,
+        source_budget=_positive_int(
+            cfg_source.get("LEGAL_AUTOFETCH_SOURCE_BUDGET")
+            or cfg_source.get("IUSENTRA_LEGAL_AUTOFETCH_SOURCE_BUDGET"),
+            source_budget_default,
+        ),
+        item_timeout_seconds=_positive_int(
+            cfg_source.get("LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS")
+            or cfg_source.get("IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS"),
+            item_timeout_default,
+        ),
+        publish_max_items=_positive_int(
+            cfg_source.get("LEGAL_UPDATES_PUBLISH_MAX_ITEMS")
+            or cfg_source.get("IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS"),
+            publish_default,
+        ),
+        max_attempts=_positive_int(
+            cfg_source.get("LEGAL_AUTOFETCH_MAX_ATTEMPTS")
+            or os.getenv("IUSENTRA_LEGAL_AUTOFETCH_MAX_ATTEMPTS"),
+            3,
+        ),
+        execute_due_sources=False,
+    )
+
+
+def _autofetch_monitor(
+    pipeline: Any,
+    config: Mapping[str, Any] | None,
+    warnings: list[dict[str, str]],
+) -> dict[str, Any]:
+    cfg_source = dict(config or {})
+    if not (
+        cfg_source.get("LEGAL_INTELLIGENCE_DB")
+        or os.getenv("LEGAL_INTELLIGENCE_DB")
+        or os.getenv("IUSENTRA_LEGAL_INTELLIGENCE_DB")
+    ):
+        return {}
+    try:
+        monitor = build_legal_update_operational_monitor(
+            _legal_autofetch_config(cfg_source),
+            pipeline=pipeline,
+        )
+    except Exception:
+        return {}
+    return monitor if isinstance(monitor, dict) else {}
+
+
+def _autofetch_tone(status: Any) -> str:
+    value = _text(status).lower()
+    if value == "pronta" or value == "pronto":
+        return "success"
+    if value in {"da_verificare", "da verificare", "non_pronta", "non pronta"}:
+        return "warning"
+    if value in {"errore", "failed", "timeout", "bloccata"}:
+        return "danger"
+    if value in {"non_monitorata", "non monitorata"}:
+        return "neutral"
+    return "info" if value else "neutral"
+
+
+def _autofetch_source_items(monitor: Mapping[str, Any]) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    for index, row in enumerate(_list(monitor.get("sources")), start=1):
+        if not isinstance(row, dict):
+            continue
+        label = _text(row.get("source_name") or row.get("source_code")) or "Fonte"
+        status = _text(row.get("status") or "da_verificare")
+        raw_documents = _positive_int(row.get("raw_documents"), 0)
+        normalized = _positive_int(row.get("normalized_documents"), 0)
+        published = _positive_int(row.get("review_published"), 0)
+        pending = _positive_int(row.get("review_pending"), 0)
+        count_note = (
+            f"letti {raw_documents}, testo {normalized}, pubblicati {published}, da verificare {pending}"
+            if raw_documents or normalized or published or pending
+            else _text(row.get("reason"))
+        )
+        items.append(
+            _item(
+                f"autofetch_{index}_{_text(row.get('source_code')) or 'fonte'}",
+                label,
+                status.replace("_", " "),
+                count_note or "Fonte censita, in attesa di acquisizione.",
+                _autofetch_tone(status),
+            )
+        )
+    return items
+
+
+def _autofetch_quality_items(monitor: Mapping[str, Any]) -> list[dict[str, Any]]:
+    questions = _list(monitor.get("quality_questions")) or list(LEGAL_SOURCE_QUALITY_QUESTIONS)
+    return [
+        _item(f"qualita_{index}", _text(question), "controllo", "Domanda obbligatoria nel ciclo DB -> fonte -> allegati -> OCR -> RAG -> Lex.", "neutral")
+        for index, question in enumerate(questions[:10], start=1)
+        if _text(question)
+    ]
+
+
 def _official_archive_items(normattiva_counts: Mapping[str, Any], gazzetta_counts: Mapping[str, Any]) -> list[dict[str, Any]]:
     normattiva_available = bool(normattiva_counts.get("available"))
     gazzetta_available = bool(gazzetta_counts.get("available"))
@@ -1582,6 +1732,8 @@ def build_react_legal_intelligence_payload(
     mediazione_official_records = _mediazione_official_registry_records()
     matters = _matters(pipeline, warnings)
     source_items = _source_items(snapshot, update_snapshot)
+    autofetch_monitor = _autofetch_monitor(pipeline, config, warnings)
+    autofetch_source_items = _autofetch_source_items(autofetch_monitor)
     official_counts = _official_archive_counts(warnings)
     normattiva_counts = _dict(official_counts.get("normattiva"))
     gazzetta_counts = _dict(official_counts.get("gazzetta"))
@@ -1666,6 +1818,28 @@ def build_react_legal_intelligence_payload(
         },
         "metrics": [
             _metric("fonti_monitorate", "Fonti monitorate", int(headline.get("fonti_monitorate") or update_headline.get("sources") or 0), "Archivio e monitor governato", "primary"),
+            _metric(
+                "fonti_pronte",
+                "Fonti pronte",
+                int(autofetch_monitor.get("sources_ready") or 0),
+                "Documenti acquisiti o pubblicati",
+                "success" if int(autofetch_monitor.get("sources_ready") or 0) else "neutral",
+            ),
+            _metric(
+                "fonti_non_pronte",
+                "Fonti da verificare",
+                int(autofetch_monitor.get("sources_not_ready") or 0),
+                "Motivo visibile nel monitor fonti",
+                "warning" if int(autofetch_monitor.get("sources_not_ready") or 0) else "success",
+            ),
+            _metric(
+                "coda_fonti",
+                "Coda fonti",
+                int(_dict(autofetch_monitor.get("queue")).get("queued") or 0)
+                + int(_dict(autofetch_monitor.get("queue")).get("running") or 0),
+                "Job in attesa o in esecuzione",
+                "info",
+            ),
             _metric("news_pubblicate", "News pubblicate", int(update_headline.get("published_news") or len(news_records)), "Disponibili nello studio", "info"),
             _metric("review", "In revisione", int(update_headline.get("review_pending") or headline.get("tabelle_da_validare") or 0), "Percorso governato", "warning"),
             _metric(
@@ -1697,7 +1871,44 @@ def build_react_legal_intelligence_payload(
             ),
             lex_presidio_section,
             advanced_ai_section,
-            _section("fonti", "Stato fonti", "fonti", source_items, "Nessuna fonte disponibile."),
+            _section(
+                "acquisizione_fonti",
+                "Acquisizione fonti",
+                "monitor",
+                [
+                    _item(
+                        "pronte",
+                        "Fonti pronte",
+                        int(autofetch_monitor.get("sources_ready") or 0),
+                        "Fonti con documenti letti, testo normalizzato o schede pubblicate.",
+                        "success" if int(autofetch_monitor.get("sources_ready") or 0) else "neutral",
+                    ),
+                    _item(
+                        "da_verificare",
+                        "Fonti da verificare",
+                        int(autofetch_monitor.get("sources_not_ready") or 0),
+                        "Fonti censite ma senza documenti, con OCR/testo mancante o ultimo controllo non riuscito.",
+                        "warning" if int(autofetch_monitor.get("sources_not_ready") or 0) else "success",
+                    ),
+                    _item(
+                        "coda",
+                        "Coda job",
+                        int(_dict(autofetch_monitor.get("queue")).get("total") or 0),
+                        "Job governati con deduplica, retry, timeout e ripresa.",
+                        "info",
+                    ),
+                    _item(
+                        "stato",
+                        "Stato complessivo",
+                        _dict(autofetch_monitor.get("readiness")).get("status") or "da verificare",
+                        "Pronto solo quando non ci sono fonti bloccate o job falliti.",
+                        _autofetch_tone(_dict(autofetch_monitor.get("readiness")).get("status")),
+                    ),
+                ],
+                "Monitor acquisizione non disponibile.",
+            ),
+            _section("fonti", "Stato fonti", "fonti", autofetch_source_items or source_items, "Nessuna fonte disponibile."),
+            _section("domande_qualita_fonti", "Controlli qualità fonti", "checklist", _autofetch_quality_items(autofetch_monitor), "Nessun controllo qualità disponibile."),
             _section(
                 "news",
                 "News legali",
@@ -1742,6 +1953,7 @@ def build_react_legal_intelligence_payload(
         "forms": [],
         "warnings": warnings,
         "filters": dict(query or {}),
+        "autofetchMonitor": autofetch_monitor,
     }
 
 

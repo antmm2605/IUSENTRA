@@ -527,6 +527,39 @@ def test_react_giurisprudenza_espone_presidio_citazioni_lex(tmp_path: Path):
     assert record["reliabilityNote"]
 
 
+def test_react_giurisprudenza_espone_presidio_dati_per_rag(tmp_path: Path):
+    from web.services.react_giurisprudenza_bridge import build_react_giurisprudenza_payload
+
+    gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
+    gestore.salva(
+        {
+            "titolo": "Cassazione su concordato in appello",
+            "source_system": "cassazione",
+            "numero_provvedimento": "9926/2026",
+            "url_pagina_ufficiale": "https://www.cortedicassazione.it/",
+            "massima": "Testo normalizzato disponibile per ricerca e Lex.",
+            "stato_citabilita": "citabile",
+        }
+    )
+    gestore.salva(
+        {
+            "titolo": "Ordinanza da completare",
+            "source_system": "cassazione",
+            "numero_provvedimento": "9966/2026",
+            "stato_citabilita": "da verificare",
+        }
+    )
+
+    payload = build_react_giurisprudenza_payload(get_giurisprudenza=lambda: gestore)
+
+    sections = {section["id"]: section for section in payload["sections"]}
+    assert "presidio_dati" in sections
+    data_section = sections["presidio_dati"]
+    assert any(item["label"] == "Schede con fonte" and item["value"] >= 1 for item in data_section["items"])
+    assert any(item["label"] == "Testo disponibile" and item["value"] >= 1 for item in data_section["items"])
+    assert any(item["label"] == "Testo da completare" and item["tone"] == "warning" for item in data_section["items"])
+
+
 def test_importa_da_url_pubblico_compila_metadati(tmp_path: Path):
     gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
     html = b"""

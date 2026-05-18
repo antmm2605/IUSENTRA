@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  AlertTriangle,
   ArrowRight,
   Archive,
   BookOpen,
+  CheckCircle2,
+  Clock3,
   ExternalLink,
+  Files,
   FileSearch,
   Filter,
   Globe2,
@@ -15,7 +19,7 @@ import {
   Search,
   SearchCheck,
 } from 'lucide-react'
-import { Badge } from '../ui/Badge'
+import { Badge, type BadgeTone } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
 import { LoadingState } from '../ui/LoadingState'
@@ -27,6 +31,7 @@ import {
   getLegalIntelligenceNewsPage,
   getLegalIntelligencePage,
   getRicercaLegalePage,
+  type LegalAutofetchSource,
   type LegalIntelligencePageData,
   type LegalIntelligenceRecord,
 } from '../legalIntelligenceData'
@@ -163,6 +168,133 @@ function metricById(data: LegalIntelligencePageData, id: string) {
 function sectionById(data: LegalIntelligencePageData, id: string) {
   return data.sections.find((section) => section.id === id)
 }
+function sourceStatusTone(status: string): BadgeTone {
+  const value = status.toLocaleLowerCase('it-IT').replace(/_/g, ' ')
+  if (value === 'pronta' || value === 'pronto') return 'success'
+  if (value === 'da verificare' || value === 'non pronta') return 'warning'
+  if (value === 'failed' || value === 'timeout' || value === 'errore') return 'danger'
+  if (value === 'non monitorata') return 'neutral'
+  return 'info'
+}
+function readableStatus(status: string) {
+  const value = status.replace(/_/g, ' ').trim()
+  if (!value) return 'da verificare'
+  return value.slice(0, 1).toLocaleUpperCase('it-IT') + value.slice(1)
+}
+function sourceProgress(source: LegalAutofetchSource) {
+  const parts = [
+    source.rawDocuments ? `${source.rawDocuments.toLocaleString('it-IT')} letti` : '',
+    source.normalizedDocuments ? `${source.normalizedDocuments.toLocaleString('it-IT')} con testo` : '',
+    source.reviewPublished ? `${source.reviewPublished.toLocaleString('it-IT')} pubblicati` : '',
+    source.reviewPending ? `${source.reviewPending.toLocaleString('it-IT')} da verificare` : '',
+  ].filter(Boolean)
+  return parts.length ? parts.join(' · ') : source.reason || 'Fonte censita, in attesa di acquisizione.'
+}
+function AcquisitionReadinessPanel({
+  data,
+  onArchiveSearch,
+}: {
+  data: LegalIntelligencePageData
+  onArchiveSearch: (query: string, scope?: string, source?: string) => void
+}) {
+  const monitor = data.autofetchMonitor
+  const hasMonitor = monitor.sourcesTotal > 0 || monitor.sources.length > 0
+  if (!hasMonitor) return null
+  const queueOpen = monitor.queue.queued + monitor.queue.running
+  const failedJobs = monitor.queue.failed + monitor.queue.timeout
+  const sourcePreview = [...monitor.sources]
+    .sort((first, second) => {
+      const order: Record<string, number> = { da_verificare: 0, 'da verificare': 0, non_pronta: 1, pronta: 2, non_monitorata: 3 }
+      return (order[first.status] ?? 4) - (order[second.status] ?? 4) || first.sourceName.localeCompare(second.sourceName, 'it-IT')
+    })
+    .slice(0, 12)
+  const cards = [
+    {
+      id: 'ready',
+      label: 'Fonti pronte',
+      value: monitor.sourcesReady,
+      note: 'Con documenti letti, testo o schede pubblicate.',
+      icon: <CheckCircle2 size={18} aria-hidden="true" />,
+      tone: 'success' as BadgeTone,
+    },
+    {
+      id: 'blocked',
+      label: 'Da verificare',
+      value: monitor.sourcesNotReady,
+      note: 'Manca acquisizione, testo, OCR o ultimo controllo.',
+      icon: <AlertTriangle size={18} aria-hidden="true" />,
+      tone: monitor.sourcesNotReady ? 'warning' as BadgeTone : 'success' as BadgeTone,
+    },
+    {
+      id: 'queue',
+      label: 'Coda',
+      value: queueOpen,
+      note: 'Job in attesa o in esecuzione.',
+      icon: <Clock3 size={18} aria-hidden="true" />,
+      tone: 'info' as BadgeTone,
+    },
+    {
+      id: 'failed',
+      label: 'Errori',
+      value: failedJobs,
+      note: 'Job falliti o scaduti da riprendere.',
+      icon: <Files size={18} aria-hidden="true" />,
+      tone: failedJobs ? 'danger' as BadgeTone : 'neutral' as BadgeTone,
+    },
+  ]
+  return (
+    <div className="iu-li-acquisition" aria-label="Stato reale acquisizione fonti">
+      <div className="iu-li-acquisition__cards">
+        {cards.map((card) => (
+          <article className="iu-li-acquisition__card" key={card.id}>
+            <span className="iu-li-acquisition__icon">{card.icon}</span>
+            <div>
+              <span>{card.label}</span>
+              <strong>{card.value.toLocaleString('it-IT')}</strong>
+              <small>{card.note}</small>
+            </div>
+            <Badge tone={card.tone}>Stato</Badge>
+          </article>
+        ))}
+      </div>
+      {sourcePreview.length ? (
+        <div className="iu-li-acquisition__sources">
+          <div className="iu-li-source-preview__head">
+            <strong>Fonti e documenti</strong>
+            <ButtonLink href="/admin/aggiornamenti-legali/fonti" tone="neutral">Gestisci fonti</ButtonLink>
+          </div>
+          <div className="iu-li-acquisition__source-grid">
+            {sourcePreview.map((source) => (
+              <button
+                className="iu-li-acquisition__source"
+                key={source.sourceCode}
+                onClick={() => onArchiveSearch(source.sourceName, '', source.sourceName)}
+                type="button"
+              >
+                <span>
+                  <strong>{source.sourceName}</strong>
+                  <Badge tone={sourceStatusTone(source.status)}>{readableStatus(source.status)}</Badge>
+                </span>
+                <small>{sourceProgress(source)}</small>
+                {source.lastFinishedAt ? <em>Ultimo controllo {formatDate(source.lastFinishedAt)}</em> : null}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {monitor.qualityQuestions.length ? (
+        <div className="iu-li-acquisition__checks" aria-label="Domande qualità fonte">
+          <strong>Domande obbligatorie</strong>
+          <ul>
+            {monitor.qualityQuestions.slice(0, 6).map((question) => (
+              <li key={question}>{question}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  )
+}
 function DataAccessPanel({
   data,
   onArchiveSearch,
@@ -227,7 +359,7 @@ function DataAccessPanel({
       id: 'review',
       label: 'Da controllare',
       value: formatMetricValue(review.value),
-      note: 'Documenti acquisiti da completare prima dell’uso',
+      note: "Documenti acquisiti da completare prima dell'uso",
       href: '/admin/aggiornamenti-legali/staging',
       action: 'Vedi acquisizioni',
     } : null,
@@ -254,10 +386,11 @@ function DataAccessPanel({
       <header className="iu-li-section-head">
         <SearchCheck size={18} aria-hidden="true" />
         <div>
-          <h2>Dati disponibili</h2>
-          <p>Conteggi reali collegati ad archivi consultabili: usa la ricerca e i filtri per vedere le schede, non solo il numero.</p>
+          <h2>Fonti e acquisizioni</h2>
+          <p>Stato reale delle fonti: documenti letti, testo disponibile, coda, errori e ragioni di pronto o da verificare.</p>
         </div>
       </header>
+      <AcquisitionReadinessPanel data={data} onArchiveSearch={onArchiveSearch} />
       <div className="iu-li-data-access__grid">
         {items.map((item) => (
           <article className="iu-li-data-access__item" key={item.id}>

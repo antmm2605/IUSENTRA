@@ -1,5 +1,20 @@
 # Migrazione progressiva Flask + React
 
+## UI Intelligence fonti legali - 2026-05-18 - 2.245.35
+
+Ricerca Legale non deve più presentare contatori isolati. La pagina React legge
+il monitor operativo delle fonti e mostra fonti pronte, fonti da verificare,
+coda job, errori, documenti letti, testo disponibile, schede pubblicate e
+ragione dello stato. Le domande qualità stabilite per il ciclo DB -> pagina
+ufficiale -> allegati/PDF -> hash -> OCR/testo -> RAG -> Lex sono visibili
+nella pagina, così la logica resta davanti agli occhi prima del generatore
+corpus.
+
+Archivio Giurisprudenza espone ora anche il presidio dati per RAG: schede con
+fonte, testo disponibile, testo da completare e fonti da verificare. Il
+comportamento è coperto da test mirati e dalla build React della release
+`2.245.35`.
+
 ## Lex AI risposte studio e impaginazione - 2026-05-17 - 2.245.8
 
 Il widget Lex mantiene una resa da editor leggero per le risposte: Markdown

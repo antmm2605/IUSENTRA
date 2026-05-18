@@ -18,6 +18,8 @@ Aggiornamento 2026-05-18, test reale definitivo: l'utente ha confermato che la r
 
 Aggiornamento 2026-05-18, tranche Cassazione prima del corpus: il backfill delle evidenze Cassazione produce ora report qualità per documento con pagina, PDF/allegato, hash, OCR/testo, norme estratte, riferimenti R.G., discrepanze, link cliccabile, stato pronto/non pronto e `question_matrix` con le domande da avvocato. Il download allegati riusa prima i PDF già presenti nello storage server (`/data/intelligence/downloads`, `/data/fonti_ufficiali`, `/data/tenants` o directory configurate) e il generatore corpus filtra solo schede documentali Cassazione, escludendo pagine generiche del sito.
 
+Aggiornamento 2026-05-18, destinazioni delle fonti pronte: quando una fonte Cassazione o giurisprudenziale supera il controllo qualità, il risultato non deve restare nel job o nel corpus. Deve alimentare tre superfici utente: Lex Chat AI per le risposte, `/ricerca-legale` per la ricerca/scheda operativa e Archivio Giurisprudenza per la consultazione delle fonti giurisprudenziali.
+
 Aggiornamento 2026-05-18, `Web libero` chat Lex: quando il flag manuale è attivo, il router deve usare solo la ricerca web libera della singola richiesta, senza fonti DB/fascicolo come contesto di risposta, senza allowlist ufficiale, senza blocco da fonte autorizzata e senza warning visibili. I risultati restano `web_libero`, `verified_reference=false`, `saved_to_db=false`; controllo e responsabilità professionale spettano all'avvocato.
 
 ## Regole di accesso

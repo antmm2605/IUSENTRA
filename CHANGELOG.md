@@ -14,6 +14,7 @@
 - Il download degli allegati prova prima il riuso dei PDF già presenti nello storage server (`/data/intelligence/downloads`, `/data/fonti_ufficiali`, `/data/tenants` o directory configurate), evitando riscarichi e OCR inutili.
 - Filtrate le tranche Cassazione e il generatore corpus sulle sole schede documentali reali; pagine generiche del sito come privacy, URP, eventi o preferenze non entrano più nella prova corpus.
 - Eseguita una tranche locale Cassazione con 10 documenti filtrati: 10/10 pronti, 10 PDF letti, 12 allegati salvati, nessun OCR mancante; generato corpus RAG Cassazione da 50 documenti e 538 chunk senza LLM.
+- Precisato che le fonti pronte devono arrivare alle tre superfici utente: Lex Chat AI, `/ricerca-legale` e Archivio Giurisprudenza quando sono giurisprudenziali o Cassazione.
 
 ## 2.245.27 - 2026-05-18
 

@@ -97,6 +97,9 @@ Aggiornamento operativo 2.245.28 - 2026-05-18:
   mancante;
 - solo dopo questa verifica è stato generato un corpus locale Cassazione da 50
   documenti e 538 chunk RAG, con `question_matrix` nelle query attese;
+- le fonti pronte non devono restare solo nel job o nel corpus: devono essere
+  usabili in Lex Chat AI, visibili in `/ricerca-legale` e consultabili in
+  Archivio Giurisprudenza quando sono fonti giurisprudenziali o Cassazione;
 - test mirati passati: 18 test su allegati/OCR/cache, backfill, filtro
   Cassazione e generatore corpus; 4 test UTF-8; `git diff --check`;
 - questo controllo è deterministico e non consuma crediti LLM. Lex/LLM resta

@@ -404,6 +404,21 @@ Questa matrice viene generata in modo deterministico dal job
 naviga oltre il connettore già previsto e serve a decidere se la fonte è pronta
 per la tranche e, solo dopo, per il corpus RAG.
 
+## Destinazioni obbligatorie delle fonti pronte
+
+Una fonte Cassazione o giurisprudenziale che passa il controllo qualità non deve
+restare visibile solo nel job tecnico o nel corpus generato. Quando il report
+segna `ready=true` e `corpus_ready=true`, la stessa evidenza deve diventare:
+
+- interrogabile da Lex Chat AI, con risposta sintetica e fonti separate;
+- ricercabile in `/ricerca-legale`, tramite schede operative e link fonte/PDF;
+- consultabile in Archivio Giurisprudenza quando la natura della fonte è
+  sentenza, ordinanza, questione Cassazione o documento giurisprudenziale.
+
+Il generatore corpus resta successivo alla tranche, ma il risultato finale
+atteso dall'avvocato è su questi tre punti utente: Lex Chat AI, Ricerca Legale e
+Archivio Giurisprudenza.
+
 ## Riuso PDF già presenti sul server
 
 Il passaggio `pagina ufficiale -> allegato/PDF` non deve riscaricare un allegato

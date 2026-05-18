@@ -35,6 +35,34 @@ HTML_FIXTURE = """
 """
 
 
+def test_download_limited_riusa_pdf_gia_presente_in_cache_server(tmp_path, monkeypatch):
+    source_url = "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP50194"
+    attachment_url = (
+        "https://www.cortedicassazione.it/resources/cms/documents/"
+        "Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf"
+    )
+    cached_dir = tmp_path / "downloads" / "cassazione"
+    cached_dir.mkdir(parents=True)
+    cached_pdf = cached_dir / "Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf"
+    cached_pdf.write_bytes(b"%PDF-1.7\ncache server\n")
+
+    def forbidden_get(*_args: Any, **_kwargs: Any):
+        raise AssertionError("Non deve riscaricare un PDF gia' presente in cache.")
+
+    monkeypatch.setenv("IUSENTRA_LEGAL_VERIFICATION_DOWNLOAD_CACHE_DIR", str(tmp_path / "downloads"))
+    monkeypatch.setattr(verification.requests, "get", forbidden_get)
+
+    content, content_type = verification._download_limited(
+        attachment_url,
+        timeout=2,
+        max_bytes=1024 * 1024,
+        base_url=source_url,
+    )
+
+    assert content == b"%PDF-1.7\ncache server\n"
+    assert content_type == "application/pdf"
+
+
 def test_helper_scarica_pdf_ufficiale_e_rifiuta_dominio_simile(monkeypatch):
     source_url = "https://www.gazzettaufficiale.it/eli/id/2026/05/11/26G00056/sg"
     attachment_url = "https://www.gazzettaufficiale.it/resources/cms/documents/testo-ufficiale.pdf"

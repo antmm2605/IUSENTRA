@@ -26,6 +26,16 @@ from lex.dataset.models import DocumentPage, StudioDatasetDocument, stable_id
 
 DEFAULT_TENANT_ID = "legal-sources"
 DEFAULT_OUTPUT_DIR = Path("tmp") / "lex-source-corpus"
+CASSAZIONE_DOCUMENT_URL_MARKERS = (
+    "/it/civile_dettaglio.page",
+    "/it/penale_dettaglio.page",
+    "/it/qsp_dettaglio.page",
+    "/it/qsc_dettaglio.page",
+    "/it/quc_dettaglio.page",
+    "/it/rlc_dettaglio.page",
+    "/it/rlp_dettaglio.page",
+    "/it/su_dettaglio.page",
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -139,6 +149,19 @@ def _load_evidence_rows(options: SourceCorpusOptions) -> list[dict[str, Any]]:
     if options.source_codes:
         clauses.append("LOWER(COALESCE(e.source_code, '')) IN ({})".format(",".join("?" for _ in options.source_codes)))
         params.extend(options.source_codes)
+        if "cassazione_massimario" in options.source_codes:
+            url_haystack = (
+                "LOWER(COALESCE(e.source_url, '') || ' ' || "
+                "COALESCE(e.attachment_url, '') || ' ' || COALESCE(r.source_url, ''))"
+            )
+            clauses.append(
+                "("
+                "LOWER(COALESCE(e.source_code, '')) <> 'cassazione_massimario'"
+                " OR "
+                + " OR ".join(f"{url_haystack} LIKE ?" for _ in CASSAZIONE_DOCUMENT_URL_MARKERS)
+                + ")"
+            )
+            params.extend(f"%{marker}%" for marker in CASSAZIONE_DOCUMENT_URL_MARKERS)
     if options.review_ids:
         clauses.append("COALESCE(e.review_id, 0) IN ({})".format(",".join("?" for _ in options.review_ids)))
         params.extend(int(item) for item in options.review_ids)
@@ -232,6 +255,11 @@ def _manifest(
         "evidence_count": len(rows),
         "statuses": list(options.statuses),
         "source_codes": list(options.source_codes),
+        "source_filters": {
+            "cassazione_massimario": "solo schede documentali Cassazione: civile, penale, questioni, rinvii e relazioni"
+            if "cassazione_massimario" in options.source_codes
+            else "",
+        },
         "review_ids": list(options.review_ids),
         "min_context_chars": options.min_context_chars,
         "document_ai_json": str(document_ai_path),
@@ -317,7 +345,27 @@ def _expected_query(row: dict[str, Any]) -> dict[str, Any]:
         "expected_attachment_url": attachment_url,
         "expected_sha256": _clean(row.get("sha256")),
         "expected_terms": _json_list(row.get("matched_terms_json")),
+        "question_matrix": _expected_question_matrix(title, bool(attachment_url)),
     }
+
+
+def _expected_question_matrix(title: str, has_attachment: bool) -> list[dict[str, str]]:
+    subject = title or "questa fonte"
+    rows = [
+        ("sintesi", f"Mi puoi sintetizzare {subject}?"),
+        ("natura_atto", "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?"),
+        ("oggetto", "Qual è l'oggetto della questione o della decisione?"),
+        ("stato", "Qual è lo stato del procedimento o dell'atto?"),
+        ("punto_diritto", "Qual è il punto di diritto o il principio in discussione?"),
+        ("motivi", "Quali sono i motivi, le censure o i passaggi rilevanti indicati nel testo?"),
+        ("norme", "Quali norme sono richiamate e perché contano?"),
+        ("effetto_pratico", "Qual è l'effetto pratico per un avvocato che deve usare questa fonte?"),
+        ("esito", "Risulta già un esito finale oppure la questione è ancora pendente?"),
+    ]
+    if has_attachment:
+        rows.append(("pdf_allegato", "Quale PDF o allegato ufficiale è collegato e il link è cliccabile?"))
+    rows.append(("discrepanze", "Ci sono discrepanze tra scheda, PDF, metadati o riferimenti numerici?"))
+    return [{"check": key, "question": question} for key, question in rows]
 
 
 def _prepare_output_dir(path: Path, *, overwrite: bool) -> None:

@@ -16,6 +16,8 @@ Aggiornamento 2026-05-18, regola attribuzione scheda/PDF: per `QSP50194` non va 
 
 Aggiornamento 2026-05-18, test reale definitivo: l'utente ha confermato che la risposta alla sintesi della questione penale `R.G. 9926/2026` è corretta. Il percorso approvato è DB -> pagina ufficiale -> allegato -> OCR/PDF -> retrieval operativo -> risposta Lex -> test. Questa forma diventa baseline per il generatore corpus: sintesi unica, norme spiegate, PDF cliccabile, nota R.G. separata, nessun OCR grezzo e nessuna sezione ripetuta.
 
+Aggiornamento 2026-05-18, tranche Cassazione prima del corpus: il backfill delle evidenze Cassazione produce ora report qualità per documento con pagina, PDF/allegato, hash, OCR/testo, norme estratte, riferimenti R.G., discrepanze, link cliccabile, stato pronto/non pronto e `question_matrix` con le domande da avvocato. Il download allegati riusa prima i PDF già presenti nello storage server (`/data/intelligence/downloads` o directory configurate) e il generatore corpus filtra solo schede documentali Cassazione, escludendo pagine generiche del sito.
+
 Aggiornamento 2026-05-18, `Web libero` chat Lex: quando il flag manuale è attivo, il router deve usare solo la ricerca web libera della singola richiesta, senza fonti DB/fascicolo come contesto di risposta, senza allowlist ufficiale, senza blocco da fonte autorizzata e senza warning visibili. I risultati restano `web_libero`, `verified_reference=false`, `saved_to_db=false`; controllo e responsabilità professionale spettano all'avvocato.
 
 ## Regole di accesso

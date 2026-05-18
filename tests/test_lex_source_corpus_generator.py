@@ -150,3 +150,71 @@ def test_generate_lex_source_corpus_filtra_evidenze_senza_testo(tmp_path: Path):
 
     assert result["documents_count"] == 0
     assert result["chunks_count"] == 0
+
+
+def test_generate_lex_source_corpus_cassazione_filtra_pagine_non_documentali(tmp_path: Path):
+    db_path = tmp_path / "legal_updates.db"
+    output_dir = tmp_path / "corpus"
+    _make_db(db_path)
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.execute(
+            "INSERT INTO source_documents_raw (id, source_id, source_url) VALUES (11, 1, ?)",
+            ("https://www.cortedicassazione.it/page/it/privacy_policy?contentId=NTZ00001",),
+        )
+        conn.execute(
+            "INSERT INTO source_documents_normalized (id, raw_document_id, title) VALUES (21, 11, ?)",
+            ("Privacy policy",),
+        )
+        conn.execute(
+            """
+            INSERT INTO web_verification_evidence (
+                id, evidence_key, review_id, normalized_document_id, source_code, source_name,
+                query, origin, title, source_url, attachment_url, attachment_type, sha256,
+                is_official, context_chars, excerpt, content_text, matched_terms_json,
+                verification_status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                2,
+                "ev-key-privacy",
+                391,
+                21,
+                "cassazione_massimario",
+                "Cassazione",
+                "privacy policy",
+                "fonte_acquisita",
+                "Privacy policy",
+                "https://www.cortedicassazione.it/page/it/privacy_policy?contentId=NTZ00001",
+                "",
+                "",
+                "",
+                1,
+                120,
+                "Privacy policy del sito.",
+                "Privacy policy del sito.",
+                json.dumps(["privacy"]),
+                "verified",
+            ),
+        )
+        conn.commit()
+
+    result = generate_source_corpus(
+        SourceCorpusOptions(
+            intelligence_db=db_path,
+            output_dir=output_dir,
+            tenant_id="tenant-fonti",
+            source_codes=("cassazione_massimario",),
+            limit=10,
+            overwrite=True,
+        )
+    )
+
+    documents = [json.loads(line) for line in (output_dir / "documents.jsonl").read_text(encoding="utf-8").splitlines()]
+    expected = [json.loads(line) for line in (output_dir / "expected_queries.jsonl").read_text(encoding="utf-8").splitlines()]
+    manifest = json.loads((output_dir / "manifest.json").read_text(encoding="utf-8"))
+
+    assert result["documents_count"] == 1
+    assert documents[0]["metadata"]["source_url"].endswith("QSP50194")
+    assert "Privacy policy" not in documents[0]["title"]
+    assert [row["check"] for row in expected[0]["question_matrix"]][:3] == ["sintesi", "natura_atto", "oggetto"]
+    assert manifest["source_filters"]["cassazione_massimario"].startswith("solo schede documentali")

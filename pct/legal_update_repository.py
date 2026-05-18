@@ -293,6 +293,18 @@ def _review_lookup_terms(value: Any) -> list[str]:
     return terms
 
 
+_CASSAZIONE_DOCUMENT_URL_MARKERS = (
+    "/it/civile_dettaglio.page",
+    "/it/penale_dettaglio.page",
+    "/it/qsp_dettaglio.page",
+    "/it/qsc_dettaglio.page",
+    "/it/quc_dettaglio.page",
+    "/it/rlc_dettaglio.page",
+    "/it/rlp_dettaglio.page",
+    "/it/su_dettaglio.page",
+)
+
+
 def _limit_value(value: Any, *, default: int = 12, maximum: int = 80) -> int:
     try:
         parsed = int(value)
@@ -367,6 +379,274 @@ def _lex_candidate_score(row: dict[str, Any], terms: list[str], *, query: str = 
         if context_chars > 0:
             score += 0.06
     return round(min(2.0, score), 4)
+
+
+_RG_REFERENCE_RE = re.compile(
+    r"\b(?:r\.?\s*g\.?|rg|ricorso\s+n\.?|ricorso\s+nr\.?)\s*(?:n\.?\s*)?(?P<number>\d{1,6})\s*/\s*(?P<year>\d{2,4})",
+    re.IGNORECASE,
+)
+_RG_FILENAME_RE = re.compile(r"\bRG[_\s.-]*(?P<number>\d{1,6})[_\s.-]*(?P<year>20\d{2})\b", re.IGNORECASE)
+_ARTICLE_REFERENCE_RE = re.compile(
+    r"\bartt?\.?\s+[0-9][0-9a-zA-Z.,\-\s]{0,80}"
+    r"(?:c\.p\.p\.|c\.p\.|c\.c\.|c\.p\.c\.|cod\.\s+proc\.\s+pen\.|cod\.\s+pen\.|cod\.\s+civ\.)?",
+    re.IGNORECASE,
+)
+
+
+def _quality_year(value: str) -> str:
+    year = _clean_spaces(value)
+    if len(year) == 2:
+        return f"20{year}" if int(year) <= 80 else f"19{year}"
+    return year
+
+
+def _quality_unique(values: Iterable[Any], *, limit: int = 20) -> list[str]:
+    rows: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        clean = _clean_spaces(value)
+        key = clean.casefold()
+        if not clean or key in seen:
+            continue
+        seen.add(key)
+        rows.append(clean)
+        if len(rows) >= limit:
+            break
+    return rows
+
+
+def _quality_rg_references(text: str) -> list[str]:
+    refs: list[str] = []
+    for match in _RG_REFERENCE_RE.finditer(text or ""):
+        refs.append(f"{match.group('number')}/{_quality_year(match.group('year'))}")
+    for match in _RG_FILENAME_RE.finditer(text or ""):
+        refs.append(f"{match.group('number')}/{_quality_year(match.group('year'))}")
+    return _quality_unique(refs, limit=12)
+
+
+def _quality_norm_references(text: str) -> list[str]:
+    refs: list[str] = []
+    for match in _ARTICLE_REFERENCE_RE.finditer(text or ""):
+        value = _clean_spaces(match.group(0))
+        if len(value) > 110:
+            value = value[:107].rstrip(" ,.;") + "..."
+        refs.append(value)
+    return _quality_unique(refs, limit=20)
+
+
+def _quality_pdf_like(row: dict[str, Any]) -> bool:
+    attachment_type = _normalize_token(row.get("attachment_type"))
+    url = _normalize_token(row.get("attachment_url"))
+    return attachment_type == "pdf" or ".pdf" in url or url.endswith("/pdf")
+
+
+def _quality_real_text(row: dict[str, Any]) -> bool:
+    text = _clean_spaces(row.get("content_text") or row.get("excerpt"))
+    if not text:
+        return False
+    if "testo non estraibile" in text.casefold():
+        return False
+    try:
+        return int(row.get("context_chars") or 0) > 0
+    except (TypeError, ValueError):
+        return False
+
+
+def _quality_ocr_flags(text: str) -> list[str]:
+    source = str(text or "")
+    folded = source.casefold()
+    flags: list[str] = []
+    if "\ufffd" in source:
+        flags.append("caratteri sostitutivi")
+    if "\u00c3" in source or "\u00c2" in source or "\u00e2\u20ac" in source:
+        flags.append("mojibake")
+    if "(cid:" in folded:
+        flags.append("segnaposto CID")
+    if "|" in source:
+        flags.append("separatori anomali")
+    if re.search(r"\bmesi\s+o\b", folded) or re.search(r"\bedi\b", folded):
+        flags.append("parole probabilmente deformate")
+    return _quality_unique(flags, limit=8)
+
+
+def _quality_question_matrix(
+    *,
+    title: str,
+    rg_references: list[str],
+    norm_references: list[str],
+    pdf_found: bool,
+    rg_discrepancy: bool,
+) -> list[dict[str, str]]:
+    subject = title or "questo documento"
+    primary_rg = rg_references[0] if rg_references else ""
+    reference = f" R.G. {primary_rg}" if primary_rg else ""
+    questions = [
+        ("sintesi", f"Mi puoi sintetizzare {subject}{reference}?"),
+        ("natura_atto", "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?"),
+        ("oggetto", "Qual è l'oggetto della questione o della decisione?"),
+        ("stato", "Qual è lo stato del procedimento o dell'atto?"),
+        ("punto_diritto", "Qual è il punto di diritto o il principio in discussione?"),
+        ("motivi", "Quali sono i motivi, le censure o i passaggi rilevanti indicati nel testo?"),
+        ("norme", "Quali norme sono richiamate e perché contano?"),
+        ("effetto_pratico", "Qual è l'effetto pratico per un avvocato che deve usare questa fonte?"),
+        ("esito", "Risulta già un esito finale oppure la questione è ancora pendente?"),
+    ]
+    if pdf_found:
+        questions.append(("pdf_allegato", "Quale PDF o allegato ufficiale è collegato e il link è cliccabile?"))
+    if rg_discrepancy:
+        questions.append(("discrepanza_rg", "Ci sono discrepanze tra il numero R.G. della scheda e quello del PDF?"))
+    if norm_references:
+        questions.append(("articoli", "Puoi spiegare gli articoli richiamati senza limitarti a citarli?"))
+    return [{"check": key, "question": value} for key, value in questions]
+
+
+def _web_evidence_quality_summary(items: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "total": len(items),
+        "ready": sum(1 for item in items if item.get("ready")),
+        "not_ready": sum(1 for item in items if not item.get("ready")),
+        "corpus_ready": sum(1 for item in items if item.get("corpus_ready")),
+        "source_found": sum(1 for item in items if item.get("source_found")),
+        "pdf_found": sum(1 for item in items if item.get("pdf_found")),
+        "pdf_text_ready": sum(1 for item in items if item.get("pdf_text_ready")),
+        "needs_ocr": sum(1 for item in items if item.get("ocr_status") == "da_eseguire"),
+        "ocr_dirty": sum(1 for item in items if item.get("ocr_dirty")),
+        "rg_discrepancies": sum(1 for item in items if item.get("rg_discrepancy")),
+        "hash_missing": sum(1 for item in items if item.get("attachment_found") and not item.get("hash_ready")),
+        "text_missing": sum(1 for item in items if not item.get("text_read")),
+    }
+
+
+def _web_evidence_quality_item(review: dict[str, Any], rows: list[dict[str, Any]]) -> dict[str, Any]:
+    review_id = int(review.get("id") or (rows[0].get("review_id") if rows else 0) or 0)
+    normalized_document_id = int(
+        review.get("normalized_document_id") or (rows[0].get("normalized_document_id") if rows else 0) or 0
+    )
+    title = _first_text(
+        review.get("title"),
+        *(row.get("title") for row in rows),
+        "Documento fonte ufficiale",
+    )
+    source_url = _first_text(review.get("source_url"), *(row.get("source_url") for row in rows))
+    source_code = _first_text(review.get("source_code"), *(row.get("source_code") for row in rows))
+    source_name = _first_text(review.get("source_name"), *(row.get("source_name") for row in rows))
+    attachment_rows = [row for row in rows if _clean_spaces(row.get("attachment_url"))]
+    pdf_rows = [row for row in attachment_rows if _quality_pdf_like(row)]
+    text_rows = [row for row in rows if _quality_real_text(row)]
+    pdf_text_rows = [row for row in pdf_rows if _quality_real_text(row)]
+    row_text = _clean_spaces(
+        " ".join(
+            _clean_spaces(value)
+            for row in rows
+            for value in (
+                row.get("title"),
+                row.get("source_url"),
+                row.get("attachment_url"),
+                row.get("excerpt"),
+                row.get("content_text"),
+            )
+        )
+    )
+    review_text = _clean_spaces(
+        " ".join(
+            _clean_spaces(review.get(field))
+            for field in (
+                "title",
+                "source_url",
+                "summary_short",
+                "summary_long",
+                "what_changes",
+                "body_short",
+                "body_text",
+            )
+        )
+    )
+    all_text = _clean_spaces(f"{review_text} {row_text}")
+    rg_references = _quality_rg_references(all_text)
+    norm_references = _quality_norm_references(all_text)
+    ocr_flags = _quality_ocr_flags(row_text)
+    attachment_urls = _quality_unique((row.get("attachment_url") for row in attachment_rows), limit=8)
+    pdf_urls = _quality_unique((row.get("attachment_url") for row in pdf_rows), limit=8)
+    source_found = bool(rows and source_url)
+    attachment_found = bool(attachment_rows)
+    pdf_found = bool(pdf_rows)
+    text_read = bool(text_rows)
+    pdf_text_ready = bool(pdf_text_rows)
+    hash_ready = not attachment_found or any(_clean_spaces(row.get("sha256")) for row in attachment_rows)
+    pdf_clickable = not pdf_found or any(_clean_spaces(row.get("attachment_url")).startswith(("http://", "https://")) for row in pdf_rows)
+    rg_discrepancy = len(set(rg_references)) > 1
+    if pdf_found and pdf_text_ready:
+        ocr_status = "leggibile_con_note" if ocr_flags else "pulito"
+    elif pdf_found:
+        ocr_status = "da_eseguire"
+    elif text_read:
+        ocr_status = "non_richiesto"
+    else:
+        ocr_status = "testo_mancante"
+    warnings: list[str] = []
+    if not source_found:
+        warnings.append("fonte non ancora verificata")
+    if pdf_found and not pdf_text_ready:
+        warnings.append("PDF presente ma testo OCR mancante")
+    if attachment_found and not hash_ready:
+        warnings.append("hash allegato mancante")
+    if not text_read:
+        warnings.append("testo leggibile mancante")
+    if ocr_flags:
+        warnings.append("OCR leggibile ma da controllare")
+    if rg_discrepancy:
+        warnings.append("riferimenti R.G. discordanti")
+    if not pdf_clickable:
+        warnings.append("link PDF non cliccabile")
+    ready = bool(source_found and text_read and hash_ready and pdf_clickable and (not pdf_found or pdf_text_ready))
+    corpus_ready = bool(ready)
+    if ready and (ocr_flags or rg_discrepancy):
+        status = "pronto_con_note"
+    elif ready:
+        status = "pronto"
+    elif pdf_found and not pdf_text_ready:
+        status = "da_ocr"
+    elif not text_read:
+        status = "testo_mancante"
+    elif not source_found:
+        status = "fonte_non_verificata"
+    else:
+        status = "non_pronto"
+    return {
+        "review_id": review_id,
+        "normalized_document_id": normalized_document_id,
+        "title": title,
+        "source_code": source_code,
+        "source_name": source_name,
+        "source_url": source_url,
+        "source_found": source_found,
+        "attachment_found": attachment_found,
+        "attachment_urls": attachment_urls,
+        "pdf_found": pdf_found,
+        "pdf_urls": pdf_urls,
+        "pdf_clickable": pdf_clickable,
+        "hash_ready": hash_ready,
+        "text_read": text_read,
+        "context_chars": max((int(row.get("context_chars") or 0) for row in rows), default=0),
+        "pdf_text_ready": pdf_text_ready,
+        "ocr_status": ocr_status,
+        "ocr_dirty": bool(ocr_flags),
+        "ocr_flags": ocr_flags,
+        "norm_references": norm_references,
+        "rg_references": rg_references,
+        "rg_discrepancy": rg_discrepancy,
+        "question_matrix": _quality_question_matrix(
+            title=title,
+            rg_references=rg_references,
+            norm_references=norm_references,
+            pdf_found=pdf_found,
+            rg_discrepancy=rg_discrepancy,
+        ),
+        "ready": ready,
+        "corpus_ready": corpus_ready,
+        "status": status,
+        "warnings": _quality_unique(warnings, limit=12),
+    }
 
 
 def _search_clause(fields: tuple[str, ...], terms: list[str], params: list[Any]) -> str:
@@ -981,6 +1261,31 @@ class LegalUpdateRepository:
                 "system",
             )
         return {"saved": saved, "attachments": len(attachment_rows)}
+
+    def web_evidence_quality_for_review(
+        self,
+        review_id: int,
+        *,
+        review: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Restituisce lo stato pagina/PDF/OCR/hash prima di usare il documento nel corpus."""
+
+        resolved_review = dict(review or self.get_review_item(int(review_id)) or {})
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT *
+                FROM web_verification_evidence
+                WHERE COALESCE(review_id, 0) = ?
+                ORDER BY is_official DESC, context_chars DESC, updated_at DESC, id DESC
+                """,
+                (int(review_id or 0),),
+            ).fetchall()
+        return _web_evidence_quality_item(resolved_review, [dict(row) for row in rows])
+
+    @staticmethod
+    def summarize_web_evidence_quality(items: list[dict[str, Any]]) -> dict[str, Any]:
+        return _web_evidence_quality_summary(items)
 
     def get_source_by_code(self, code: str) -> dict[str, Any] | None:
         with self._connect() as conn:
@@ -1699,6 +2004,13 @@ class LegalUpdateRepository:
         if source_codes:
             clauses.append("s.code IN ({})".format(",".join("?" for _ in source_codes)))
             params.extend(_normalize_token(code) for code in source_codes)
+            if set(_normalize_token(code) for code in source_codes) == {"cassazione_massimario"}:
+                clauses.append(
+                    "("
+                    + " OR ".join("LOWER(COALESCE(r.source_url, '')) LIKE ?" for _ in _CASSAZIONE_DOCUMENT_URL_MARKERS)
+                    + ")"
+                )
+                params.extend(f"%{marker}%" for marker in _CASSAZIONE_DOCUMENT_URL_MARKERS)
         review_id_values = tuple(int(value) for value in review_ids if int(value or 0) > 0)
         if review_id_values:
             clauses.append("q.id IN ({})".format(",".join("?" for _ in review_id_values)))

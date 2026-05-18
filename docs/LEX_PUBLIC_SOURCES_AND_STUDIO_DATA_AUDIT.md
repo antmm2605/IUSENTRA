@@ -70,6 +70,38 @@ Questa regola è il blocco da tenere davanti prima del generatore corpus: prima
 separazione corretta di scheda, allegato e OCR su un documento, poi propagazione
 agli altri documenti.
 
+Aggiornamento operativo 2.245.28 - 2026-05-18:
+
+- il backfill delle evidenze Cassazione ora restituisce un report qualità per
+  documento prima del generatore corpus;
+- il report distingue pagina verificata, PDF/allegato trovato, hash presente,
+  testo letto, OCR pulito/sporco, norme estratte, riferimenti R.G.,
+  discrepanze, link PDF cliccabile e stato `pronto`, `pronto_con_note`,
+  `da_ocr` o `testo_mancante`;
+- la matrice delle domande da avvocato è diventata un campo obbligatorio
+  `question_matrix`: sintesi, natura dell'atto, oggetto, stato, punto di
+  diritto, motivi/censure, norme spiegate, effetto pratico, esito, PDF/allegato
+  e discrepanza R.G. quando presente;
+- il download PDF ora prova prima il riuso della cache runtime del server
+  (`/data/intelligence/downloads` quando `PCT_DATA_ROOT=/data`, oppure le
+  directory configurate con `IUSENTRA_LEGAL_VERIFICATION_DOWNLOAD_CACHE_DIR` /
+  `IUSENTRA_LEGAL_DOWNLOAD_CACHE_DIR`), così un PDF già presente non viene
+  scaricato di nuovo;
+- la tranche reale ha prima evidenziato rumore da pagine generiche del sito
+  Cassazione; il filtro è stato quindi ristretto alle schede documentali
+  (`civile_dettaglio`, `penale_dettaglio`, `qsp_dettaglio`, `qsc_dettaglio`,
+  `quc_dettaglio`, `rlc_dettaglio`, `rlp_dettaglio`, `su_dettaglio`);
+- la verifica filtrata locale ha controllato 10 documenti Cassazione: 10/10
+  pronti, 10 PDF letti, 12 allegati salvati, nessun OCR mancante, nessun hash
+  mancante;
+- solo dopo questa verifica è stato generato un corpus locale Cassazione da 50
+  documenti e 538 chunk RAG, con `question_matrix` nelle query attese;
+- test mirati passati: 18 test su allegati/OCR/cache, backfill, filtro
+  Cassazione e generatore corpus; 4 test UTF-8; `git diff --check`;
+- questo controllo è deterministico e non consuma crediti LLM. Lex/LLM resta
+  riservato alla risposta finale o a test qualità espliciti, non al download,
+  hash, OCR o chunking.
+
 Approvazione reale del 18 maggio 2026:
 
 - domanda validata: `mi puoi sintetizzare questa sentenza Penale Pendente del

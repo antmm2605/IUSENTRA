@@ -535,7 +535,7 @@ def test_backfill_web_verification_evidence_rinfresca_allegato_ocr_vuoto(tmp_pat
             "source_id": source["id"],
             "external_id": "qsp-50194",
             "source_url": qsp_url,
-            "title": "Questione penale pendente",
+            "title": "Questione Penale Pendente del ricorso R.G. 9926/2026",
             "published_at": "2026-05-05",
             "raw_html": "",
             "raw_text": "Questione penale pendente da completare con allegato.",
@@ -547,7 +547,7 @@ def test_backfill_web_verification_evidence_rinfresca_allegato_ocr_vuoto(tmp_pat
     normalized = pipeline.repository.save_normalized_document(
         int(raw["id"]),
         {
-            "title": "Questione penale pendente",
+            "title": "Questione Penale Pendente del ricorso R.G. 9926/2026",
             "body_text": "Questione penale pendente da completare con allegato.",
             "body_short": "Questione penale pendente.",
             "language": "it",
@@ -620,6 +620,15 @@ def test_backfill_web_verification_evidence_rinfresca_allegato_ocr_vuoto(tmp_pat
         },
     )
     ocr_text = "Ricorso n. 9966/2026 R.G. e udienza del 9 luglio 2026 davanti alla Corte di cassazione."
+    stale_quality = pipeline.repository.web_evidence_quality_for_review(
+        int(review["id"]),
+        review=pipeline.repository.get_review_item(int(review["id"])),
+    )
+    assert stale_quality["status"] == "da_ocr"
+    assert stale_quality["pdf_found"] is True
+    assert stale_quality["pdf_text_ready"] is False
+    assert stale_quality["ocr_status"] == "da_eseguire"
+    assert "PDF presente ma testo OCR mancante" in stale_quality["warnings"]
 
     monkeypatch.setattr(
         "pct.legal_update_pipeline.verify_legal_update_against_public_sources",
@@ -668,6 +677,34 @@ def test_backfill_web_verification_evidence_rinfresca_allegato_ocr_vuoto(tmp_pat
     assert "9966/2026" in evidence_rows[0]["excerpt"]
     assert attachments[0]["context_chars"] == len(ocr_text)
     assert "9966/2026" in attachments[0]["text_excerpt"]
+    assert report["items"][0]["quality_status"] == "pronto_con_note"
+    assert report["items"][0]["quality_ready"] is True
+    assert report["quality"]["summary"]["total"] == 1
+    assert report["quality"]["summary"]["ready"] == 1
+    assert report["quality"]["summary"]["pdf_found"] == 1
+    assert report["quality"]["summary"]["pdf_text_ready"] == 1
+    assert report["quality"]["summary"]["rg_discrepancies"] == 1
+    quality_item = report["quality"]["items"][0]
+    assert quality_item["pdf_clickable"] is True
+    assert quality_item["hash_ready"] is True
+    assert quality_item["text_read"] is True
+    assert quality_item["ocr_status"] == "pulito"
+    assert quality_item["rg_references"] == ["9926/2026", "9966/2026"]
+    assert "riferimenti R.G. discordanti" in quality_item["warnings"]
+    question_checks = [row["check"] for row in quality_item["question_matrix"]]
+    assert question_checks[:9] == [
+        "sintesi",
+        "natura_atto",
+        "oggetto",
+        "stato",
+        "punto_diritto",
+        "motivi",
+        "norme",
+        "effetto_pratico",
+        "esito",
+    ]
+    assert "pdf_allegato" in question_checks
+    assert "discrepanza_rg" in question_checks
 
 
 def test_backfill_web_verification_evidence_query_cerca_in_evidenze_e_allegati(tmp_path: Path, monkeypatch):
@@ -785,6 +822,116 @@ def test_backfill_web_verification_evidence_query_cerca_in_evidenze_e_allegati(t
     assert report["selected"] == 1
     assert report["checked"] == 1
     assert calls == ["Questione penale pendente"]
+
+
+def test_backfill_cassazione_esclude_pagine_non_documentali_dalla_tranche(tmp_path: Path, monkeypatch):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+    source = pipeline.repository.get_source_by_code("cassazione_massimario")
+    assert source is not None
+
+    def _review_for(*, external_id: str, source_url: str, title: str) -> int:
+        raw = pipeline.repository.save_raw_document(
+            {
+                "source_id": source["id"],
+                "external_id": external_id,
+                "source_url": source_url,
+                "title": title,
+                "published_at": "2026-05-18",
+                "raw_html": "",
+                "raw_text": title,
+                "content_hash": f"hash-{external_id}",
+                "fetch_status": "fetched",
+                "http_status": 200,
+            }
+        )
+        normalized = pipeline.repository.save_normalized_document(
+            int(raw["id"]),
+            {
+                "title": title,
+                "body_text": title,
+                "body_short": title,
+                "language": "it",
+                "issuer": "Corte Suprema di Cassazione",
+                "document_date": "2026-05-18",
+                "document_type_guess": "giurisprudenza",
+                "attachments_json": [],
+            },
+        )
+        analysis = pipeline.repository.save_analysis(
+            int(normalized["id"]),
+            {
+                "classification_type": "GIURISPRUDENZA",
+                "confidence_score": 0.80,
+                "impact_level": "medio",
+                "summary_short": title,
+                "summary_long": title,
+                "what_changes": "",
+                "extracted_entities_json": {},
+                "proposed_action": "NEWS_ONLY",
+                "target_entity_type": "",
+                "target_entity_id": None,
+            },
+        )
+        review = pipeline.repository.upsert_review_item(
+            {
+                "normalized_document_id": int(normalized["id"]),
+                "analysis_id": int(analysis["id"]),
+                "proposal_type": "commento",
+                "proposed_action": "NEWS_ONLY",
+                "target_entity_type": "",
+                "target_entity_id": None,
+                "proposal_payload_json": {},
+                "status": "approved",
+                "priority": 80,
+            }
+        )
+        return int(review["id"])
+
+    legal_id = _review_for(
+        external_id="cassazione-sentenza",
+        source_url="https://www.cortedicassazione.it/it/penale_dettaglio.page?contentId=SZP50088",
+        title="Sentenza n. 14882 ud. 17/03/2026",
+    )
+    _review_for(
+        external_id="cassazione-privacy",
+        source_url="https://www.cortedicassazione.it/page/it/privacy_policy?contentId=NTZ00001",
+        title="Privacy policy",
+    )
+    calls: list[str] = []
+
+    def fake_verify(review, source, **kwargs):
+        calls.append(str(review["title"]))
+        return {
+            "ok": True,
+            "reason": "Fonte diretta verificata.",
+            "confirmation_count": 1,
+            "official_confirmations": 1,
+            "confirmations": [
+                {
+                    "origin": "fonte_acquisita",
+                    "source_name": source["name"],
+                    "title": review["title"],
+                    "url": review["source_url"],
+                    "official": True,
+                    "excerpt": review["title"],
+                    "content": review["title"],
+                    "context_chars": len(str(review["title"])),
+                }
+            ],
+        }
+
+    monkeypatch.setattr("pct.legal_update_pipeline.verify_legal_update_against_public_sources", fake_verify)
+
+    report = pipeline.backfill_web_verification_evidence(
+        limit=10,
+        source_codes=["cassazione_massimario"],
+        statuses=("approved",),
+    )
+
+    assert report["selected"] == 1
+    assert report["checked"] == 1
+    assert report["items"][0]["review_id"] == legal_id
+    assert calls == ["Sentenza n. 14882 ud. 17/03/2026"]
 
 
 def test_backfill_web_verification_evidence_lavora_solo_record_azionabili(tmp_path: Path, monkeypatch):

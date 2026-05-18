@@ -1687,6 +1687,7 @@ class LegalUpdatePipeline:
         verification_evidence_saved = 0
         verification_attachments_saved = 0
         rows: list[dict[str, Any]] = []
+        quality_items: list[dict[str, Any]] = []
         for review in reviews:
             if max_seconds and time.monotonic() - started >= max(1, int(max_seconds)):
                 stopped_for_time_limit = True
@@ -1700,6 +1701,8 @@ class LegalUpdatePipeline:
             verification_attempts += int(evidence.get("attempted") or 0)
             verification_evidence_saved += int(evidence.get("saved") or 0)
             verification_attachments_saved += int(evidence.get("attachments") or 0)
+            quality = self.repository.web_evidence_quality_for_review(int(review.get("id") or 0), review=review)
+            quality_items.append(quality)
             rows.append(
                 {
                     "review_id": int(review.get("id") or 0),
@@ -1709,6 +1712,8 @@ class LegalUpdatePipeline:
                     "attachments": int(evidence.get("attachments") or 0),
                     "ok": bool(evidence.get("ok")),
                     "reason": _truncate(evidence.get("reason") or "", 180),
+                    "quality_status": _clean_spaces(quality.get("status")),
+                    "quality_ready": bool(quality.get("ready")),
                 }
             )
         self._export_repository_json_if_enabled()
@@ -1729,6 +1734,10 @@ class LegalUpdatePipeline:
             "verification_evidence_saved": verification_evidence_saved,
             "verification_attachments_saved": verification_attachments_saved,
             "items": rows,
+            "quality": {
+                "summary": self.repository.summarize_web_evidence_quality(quality_items),
+                "items": quality_items,
+            },
             "dashboard": self.repository.dashboard_snapshot(),
         }
 

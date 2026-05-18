@@ -5,6 +5,7 @@ import json
 import os
 import re
 from html import unescape
+from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urljoin, urlparse
 
@@ -573,12 +574,134 @@ def _attachment_title(label: str, attachment_url: str) -> str:
     return cleaned
 
 
+def _download_cache_enabled() -> bool:
+    raw = str(os.getenv("IUSENTRA_LEGAL_VERIFICATION_USE_ATTACHMENT_CACHE", "1") or "").strip().lower()
+    if raw in {"0", "false", "no", "off"}:
+        return False
+    return bool(
+        _clean_spaces(os.getenv("IUSENTRA_LEGAL_VERIFICATION_DOWNLOAD_CACHE_DIR"))
+        or _clean_spaces(os.getenv("IUSENTRA_LEGAL_DOWNLOAD_CACHE_DIR"))
+        or _clean_spaces(os.getenv("PCT_DATA_ROOT"))
+    )
+
+
+def _download_cache_roots() -> list[Path]:
+    if not _download_cache_enabled():
+        return []
+    roots: list[Path] = []
+    for name in ("IUSENTRA_LEGAL_VERIFICATION_DOWNLOAD_CACHE_DIR", "IUSENTRA_LEGAL_DOWNLOAD_CACHE_DIR"):
+        configured = _clean_spaces(os.getenv(name))
+        if configured:
+            roots.append(Path(configured))
+    data_root = _clean_spaces(os.getenv("PCT_DATA_ROOT"))
+    if data_root:
+        roots.append(Path(data_root) / "intelligence" / "downloads")
+        roots.append(Path(data_root) / "tenants")
+    unique: list[Path] = []
+    seen: set[str] = set()
+    for root in roots:
+        key = str(root)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(root)
+    return unique
+
+
+def _cacheable_download_type(url: str, content_type: str = "") -> str:
+    file_type = _file_type_from_url(url, content_type)
+    return file_type if file_type in {"pdf", "docx", "doc", "xml", "txt"} else ""
+
+
+def _cache_content_type(file_type: str) -> str:
+    return {
+        "pdf": "application/pdf",
+        "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "doc": "application/msword",
+        "xml": "application/xml",
+        "txt": "text/plain",
+    }.get(file_type, "application/octet-stream")
+
+
+def _safe_cache_filename(url: str) -> str:
+    filename = _filename_from_url(url)
+    if not filename:
+        return ""
+    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", filename).strip("._")
+    return safe[:180]
+
+
+def _cached_download_candidates(url: str) -> list[Path]:
+    filename = _safe_cache_filename(url)
+    if not filename:
+        return []
+    domain = _domain(url) or "fonte"
+    candidates: list[Path] = []
+    seen: set[str] = set()
+    for root in _download_cache_roots():
+        direct = (
+            root / filename,
+            root / domain / filename,
+            root / "legal_updates" / domain / filename,
+            root / "cassazione" / filename,
+        )
+        for candidate in direct:
+            key = str(candidate)
+            if key not in seen:
+                seen.add(key)
+                candidates.append(candidate)
+        if root.exists() and root.is_dir():
+            try:
+                for candidate in root.rglob(filename):
+                    key = str(candidate)
+                    if key not in seen:
+                        seen.add(key)
+                        candidates.append(candidate)
+            except OSError:
+                continue
+    return candidates
+
+
+def _load_cached_download(url: str, *, max_bytes: int) -> tuple[bytes, str]:
+    file_type = _cacheable_download_type(url)
+    if not file_type:
+        return b"", ""
+    for candidate in _cached_download_candidates(url):
+        try:
+            if not candidate.is_file() or candidate.stat().st_size > max_bytes:
+                continue
+            return candidate.read_bytes(), _cache_content_type(file_type)
+        except OSError:
+            continue
+    return b"", ""
+
+
+def _store_download_cache(url: str, content: bytes, content_type: str) -> None:
+    if not content or not _cacheable_download_type(url, content_type):
+        return
+    filename = _safe_cache_filename(url)
+    roots = _download_cache_roots()
+    if not filename or not roots:
+        return
+    target_root = roots[0] / "legal_updates" / (_domain(url) or "fonte")
+    try:
+        target_root.mkdir(parents=True, exist_ok=True)
+        target = target_root / filename
+        if not target.exists() or target.stat().st_size != len(content):
+            target.write_bytes(content)
+    except OSError:
+        return
+
+
 def _download_limited(url: str, *, timeout: int, max_bytes: int, base_url: str = "") -> tuple[bytes, str]:
     target = _clean_spaces(url)
     if base_url and not _is_allowed_attachment_url(target, base_url):
         return b"", ""
     if not base_url and not _is_recognized_official_url(target):
         return b"", ""
+    cached_content, cached_type = _load_cached_download(target, max_bytes=max_bytes)
+    if cached_content:
+        return cached_content, cached_type
     current_url = target
     redirects = 0
     try:
@@ -621,7 +744,10 @@ def _download_limited(url: str, *, timeout: int, max_bytes: int, base_url: str =
             chunks.append(chunk)
     except Exception:
         return b"", str(getattr(response, "headers", {}).get("content-type", "") or "")
-    return b"".join(chunks), str(getattr(response, "headers", {}).get("content-type", "") or "")
+    content = b"".join(chunks)
+    content_type = str(getattr(response, "headers", {}).get("content-type", "") or "")
+    _store_download_cache(target, content, content_type)
+    return content, content_type
 
 
 def _text_from_html(html_text: str) -> str:

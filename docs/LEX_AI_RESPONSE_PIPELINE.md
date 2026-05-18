@@ -379,6 +379,92 @@ Approvazione utente 18 maggio 2026: la risposta prodotta dopo questa correzione
 momento il caso `QSP50194` / `R.G. 9926/2026` è il test reale definitivo da
 preservare prima di lavorare sul generatore corpus.
 
+## Matrice domande obbligatorie prima del corpus
+
+Prima del generatore corpus ogni documento Cassazione della tranche deve essere
+controllato anche contro le domande da avvocato stabilite sul caso pilota. Il
+report qualità del backfill deve quindi esporre una `question_matrix` con almeno
+questi controlli:
+
+- sintesi vera della fonte richiesta;
+- natura dell'atto: sentenza definitiva, ordinanza, questione pendente o altro;
+- oggetto della questione o decisione;
+- stato del procedimento o dell'atto;
+- punto di diritto o principio in discussione;
+- motivi, censure o passaggi rilevanti;
+- norme richiamate e spiegazione del perché contano;
+- effetto pratico per l'avvocato;
+- esito finale o pendenza;
+- PDF/allegato ufficiale e link cliccabile quando presente;
+- discrepanza R.G. quando scheda e PDF riportano numeri diversi;
+- articoli richiamati spiegati, non solo elencati, quando il testo li contiene.
+
+Questa matrice viene generata in modo deterministico dal job
+`python -m pct.legal_update_job --backfill-web-evidence`: non usa LLM, non
+naviga oltre il connettore già previsto e serve a decidere se la fonte è pronta
+per la tranche e, solo dopo, per il corpus RAG.
+
+## Riuso PDF già presenti sul server
+
+Il passaggio `pagina ufficiale -> allegato/PDF` non deve riscaricare un allegato
+quando il file è già presente nello storage runtime. Prima della richiesta HTTP
+il backfill controlla la cache allegati configurata:
+
+- `IUSENTRA_LEGAL_VERIFICATION_DOWNLOAD_CACHE_DIR`;
+- `IUSENTRA_LEGAL_DOWNLOAD_CACHE_DIR`;
+- in produzione Hetzner, se `PCT_DATA_ROOT=/data`, anche
+  `/data/intelligence/downloads`.
+
+Se trova un PDF con lo stesso nome, lo usa direttamente per hash, testo e OCR.
+Solo se il file non è presente passa al download dalla fonte ufficiale e salva
+il file nella cache runtime per i passaggi successivi. Questo mantiene la prova
+end-to-end ma evita download e OCR ripetuti quando il materiale è già sul server.
+
+## Tranche Cassazione del 18 maggio 2026
+
+Sequenza eseguita dopo il caso pilota:
+
+1. Backfill Cassazione su 20 record: il flusso pagina -> allegato -> OCR/testo
+   ha salvato 41 evidenze e 21 allegati, tutti pronti, ma il lotto ha mostrato
+   che alcune pagine generiche del sito potevano entrare nella tranche.
+2. Correzione selezione: per `cassazione_massimario` il backfill e il
+   generatore corpus accettano solo schede documentali Cassazione:
+   `civile_dettaglio`, `penale_dettaglio`, `qsp_dettaglio`, `qsc_dettaglio`,
+   `quc_dettaglio`, `rlc_dettaglio`, `rlp_dettaglio` e `su_dettaglio`.
+3. Backfill filtrato su 10 record: 10 controllati, 22 evidenze salvate, 12
+   allegati, 10/10 pronti, 10 PDF trovati e letti, 0 OCR mancanti, 0 hash
+   mancanti.
+4. Generatore corpus dopo la tranche:
+
+```powershell
+python scripts\generate_lex_source_corpus.py `
+  --intelligence-db data\intelligence\legal_updates.db `
+  --output-dir tmp\lex-source-corpus-cassazione-tranche `
+  --source-code cassazione_massimario `
+  --limit 50 `
+  --overwrite
+```
+
+Esito locale: 50 documenti Cassazione, 538 chunk RAG, filtro documentale attivo,
+`expected_queries.jsonl` arricchito con `question_matrix`. Il comando non naviga
+il web e non chiama LLM.
+
+Verifiche mirate:
+
+```powershell
+python -m pytest tests\test_legal_update_web_verification_attachments.py `
+  tests\test_lex_source_corpus_generator.py `
+  tests\test_legal_update_publish_context.py::test_backfill_web_verification_evidence_rinfresca_allegato_ocr_vuoto `
+  tests\test_legal_update_publish_context.py::test_backfill_web_verification_evidence_query_cerca_in_evidenze_e_allegati `
+  tests\test_legal_update_publish_context.py::test_backfill_cassazione_esclude_pagine_non_documentali_dalla_tranche `
+  tests\test_legal_update_batch_runner.py::test_legal_update_job_cli_backfill_evidenze_usa_limiti_governati -q
+python -m pytest tests\test_utf8_integrity.py -q
+git diff --check
+```
+
+Esito: 18 test mirati passati, 4 test UTF-8 passati, diff senza whitespace
+errati.
+
 Passaggi eseguiti per arrivare al test definitivo:
 
 1. Domanda reale iniziale: `mi puoi sintetizzare questa sentenza Penale Pendente

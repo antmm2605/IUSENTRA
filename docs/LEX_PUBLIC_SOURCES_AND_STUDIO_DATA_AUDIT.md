@@ -4,6 +4,21 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.245.19 - 2026-05-18
+
+Il test reale su Cassazione `QSP50194` ha evidenziato un secondo blocco:
+l'OCR in produzione leggeva il PDF, ma il backfill non selezionava più il record
+perché il database conteneva già evidenze web vecchie con allegato a
+`context_chars=0`.
+
+Da questa versione il backfill mirato con `--backfill-review-id` o
+`--backfill-query` può rientrare sui record già tracciati, cerca anche in
+`attachments_json` e nelle evidenze salvate, e aggiorna l'allegato normalizzato
+quando il nuovo testo OCR è più ricco della prova precedente. Le vecchie prove
+con `testo non estraibile` vengono sostituite dalla prova interrogabile, così
+Lex può recuperare non solo pagina, URL e hash, ma anche il contenuto OCR
+dell'ordinanza.
+
 ## Aggiornamento operativo 2.245.18 - 2026-05-18
 
 La prova su Cassazione `QSP50194` ha confermato che la pagina ufficiale e

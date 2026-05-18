@@ -7,6 +7,12 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.19 - 2026-05-18
+
+- Il backfill delle evidenze web legali può rientrare su record scelti o su query mirate anche quando esistono vecchie evidenze inutili: casi come Cassazione `QSP50194` non restano esclusi solo perché avevano già una riga con allegato a `context_chars=0`.
+- La selezione mirata cerca anche in `attachments_json` e nelle evidenze già salvate, inclusi URL pagina, URL allegato, estratti e testo, così una query come `QSP50194` aggancia il record anche se il codice è presente solo nell'allegato o nella prova precedente.
+- Quando arriva testo OCR migliore, l'allegato normalizzato viene aggiornato e la vecchia prova `testo non estraibile` viene sostituita dalla prova interrogabile, evitando che Lex continui a vedere solo URL e hash.
+
 ## 2.245.18 - 2026-05-18
 
 - L'archivio legale ora applica l'OCR agli allegati PDF ufficiali scaricati quando il PDF non contiene testo selezionabile: casi come Cassazione `QSP50194` non restano più con allegato salvato ma testo vuoto.

@@ -1,6 +1,6 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-18, Cassazione QSP50194/OCR allegati legali, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
+Aggiornato: 2026-05-18, Cassazione QSP50194/OCR allegati legali e rientro backfill, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
 
 ## Regola operativa
 
@@ -13,11 +13,14 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | Comando / verifica | Esito | Nota |
 | --- | --- | --- |
 | `python -m pytest tests\test_document_intelligence_extraction.py tests\test_legal_update_web_verification_attachments.py -q --tb=short` | OK | 19/19 passati: PDF scansionati senza testo selezionabile passano all'OCR e la forma Cassazione `QSP50194` salva il testo dell'allegato nel contesto. |
+| `python -m py_compile pct\legal_update_repository.py tests\test_legal_update_publish_context.py`; `python -m pytest tests\test_legal_update_publish_context.py::test_backfill_web_verification_evidence_rinfresca_allegato_ocr_vuoto tests\test_legal_update_publish_context.py::test_backfill_web_verification_evidence_query_cerca_in_evidenze_e_allegati -q --tb=short` | OK | Il backfill rientra sui record già tracciati con allegato OCR vuoto, aggiorna `attachments_json` con il testo migliore e trova `QSP50194` anche quando il codice è solo in allegati/evidenze salvate. |
+| `python -m ruff check pct\legal_update_repository.py tests\test_legal_update_publish_context.py`; `python -m pytest tests\test_legal_update_publish_context.py -q --tb=short` | OK | Ruff verde e 11/11 passati sul dominio pubblicazione/backfill fonti legali dopo il refresh delle evidenze esistenti. |
+| `python -m pytest tests\test_document_intelligence_extraction.py tests\test_legal_update_web_verification_attachments.py tests\test_legal_update_publish_context.py tests\test_legal_update_batch_runner.py -q --tb=short` | OK | 38/38 passati sul perimetro OCR allegati, verifica web, backfill e runner legal update. |
 | `python -m ruff check pct\document_intelligence\extraction.py tests\test_document_intelligence_extraction.py tests\test_legal_update_web_verification_attachments.py` | OK | Ruff mirato verde sull'estrattore PDF/OCR e sui test di verifica web allegati. |
 | `python -m py_compile pct\document_intelligence\extraction.py pct\legal_update_web_verification.py tests\test_document_intelligence_extraction.py tests\test_legal_update_web_verification_attachments.py` | OK | Sintassi Python confermata dopo il fallback OCR degli allegati legali ufficiali. |
 | Backfill locale mirato `QSP50194` e query Lex su `legal_updates.db` | OK | Il record `review_id=390` salva pagina Cassazione e allegato ufficiale con hash; la ricerca Lex trova `QSP50194`, `Questione penale 9926/2026` e `Ordinanza di rimessione Turco Morosini`. Nel runtime locale manca Tesseract, quindi il testo OCR reale verrà verificato nel container di produzione. |
-| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | Packaging sincronizzato e readiness 9/9 dopo bump `2.245.18`. |
-| `python -m pct.cli utf8-integrity --check-only --root CHANGELOG.md --root docs\LEX_PUBLIC_SOURCES_AND_STUDIO_DATA_AUDIT.md --root artifacts\react-migration\pytest-confirmed-ok.md --root artifacts\react-migration\pytest-open-issues.md --json`; `git diff --check -- ...` | OK | UTF-8 e whitespace puliti su changelog, audit Lex e report aggiornati. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | Packaging sincronizzato e readiness 9/9 dopo bump `2.245.19`. |
+| `python -m pct.cli utf8-integrity --check-only --root CHANGELOG.md --root docs\LEX_PUBLIC_SOURCES_AND_STUDIO_DATA_AUDIT.md --root artifacts\react-migration\pytest-confirmed-ok.md --root artifacts\react-migration\pytest-open-issues.md --json`; `git diff --check -- ...` | OK | UTF-8 e whitespace puliti su changelog, audit Lex e report aggiornati dopo il rientro backfill. |
 | `bash -n deploy/hetzner/backup.sh`; `node --check web\static\js\local-ai-browser-bridge.js`; `node --check web\static\js\pct-lex-assistant.js`; `python -m pytest tests\test_hetzner_backup_retention.py tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short`; `python -m pytest tests\test_web_bootstrap.py::test_lex_assistant_usa_componente_esterno_e_posizione_persistente tests\test_react_shell.py::test_react_agenda_pagina_separata_collegata_nav_e_api -q --tb=short` | OK | Guardie precedenti ancora verdi prima del commit: backup Hetzner, packaging, widget Lex e shell React. |
 
 ### Lex AI mobile produzione - 2026-05-18

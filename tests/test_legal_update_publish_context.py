@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from pct.legal_update_pipeline import build_legal_update_pipeline
@@ -517,6 +518,273 @@ def test_backfill_web_verification_evidence_filtra_riferimento_esatto(tmp_path: 
     assert [(row["review_id"], row["title"]) for row in evidence_rows] == [
         (target_review_id, "Circolare numero 53 del 07-05-2026")
     ]
+
+
+def test_backfill_web_verification_evidence_rinfresca_allegato_ocr_vuoto(tmp_path: Path, monkeypatch):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+    source = pipeline.repository.get_source_by_code("cassazione_massimario")
+    assert source is not None
+    qsp_url = "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP50194"
+    attachment_url = (
+        "https://www.cortedicassazione.it/resources/cms/documents/"
+        "Nota_Ufficio_Spoglio_V_Sez._penale_RG_9966_2026_1.pdf"
+    )
+    stale_note = "Allegato scaricato dalla fonte ufficiale; testo non estraibile automaticamente."
+    raw = pipeline.repository.save_raw_document(
+        {
+            "source_id": source["id"],
+            "external_id": "qsp-50194",
+            "source_url": qsp_url,
+            "title": "Questione penale pendente",
+            "published_at": "2026-05-05",
+            "raw_html": "",
+            "raw_text": "Questione penale pendente da completare con allegato.",
+            "content_hash": "hash-qsp-50194",
+            "fetch_status": "fetched",
+            "http_status": 200,
+        }
+    )
+    normalized = pipeline.repository.save_normalized_document(
+        int(raw["id"]),
+        {
+            "title": "Questione penale pendente",
+            "body_text": "Questione penale pendente da completare con allegato.",
+            "body_short": "Questione penale pendente.",
+            "language": "it",
+            "issuer": "Corte Suprema di Cassazione",
+            "document_date": "2026-05-05",
+            "document_type_guess": "questione penale",
+            "attachments_json": [
+                {
+                    "title": "Ordinanza di rimessione",
+                    "url": attachment_url,
+                    "source_url": qsp_url,
+                    "attachment_type": "pdf",
+                    "sha256": "sha-qsp-ocr",
+                    "verified": True,
+                    "text_excerpt": stale_note,
+                    "context_chars": 0,
+                }
+            ],
+        },
+    )
+    analysis = pipeline.repository.save_analysis(
+        int(normalized["id"]),
+        {
+            "classification_type": "GIURISPRUDENZA",
+            "confidence_score": 0.74,
+            "impact_level": "medio",
+            "summary_short": "Questione penale pendente da completare.",
+            "summary_long": "Questione penale pendente da completare.",
+            "what_changes": "",
+            "extracted_entities_json": {},
+            "proposed_action": "NEWS_ONLY",
+            "target_entity_type": "",
+            "target_entity_id": None,
+        },
+    )
+    review = pipeline.repository.upsert_review_item(
+        {
+            "normalized_document_id": int(normalized["id"]),
+            "analysis_id": int(analysis["id"]),
+            "proposal_type": "commento",
+            "proposed_action": "NEWS_ONLY",
+            "target_entity_type": "",
+            "target_entity_id": None,
+            "proposal_payload_json": {},
+            "status": "approved",
+            "priority": 80,
+        }
+    )
+    pipeline.repository.record_web_verification_evidence(
+        review_id=int(review["id"]),
+        normalized_document_id=int(normalized["id"]),
+        source=source,
+        verification={
+            "confirmations": [
+                {
+                    "origin": "allegato_fonte_ufficiale",
+                    "source_name": "Corte Suprema di Cassazione",
+                    "title": "Ordinanza di rimessione",
+                    "source_url": qsp_url,
+                    "attachment_url": attachment_url,
+                    "attachment_type": "pdf",
+                    "sha256": "sha-qsp-ocr",
+                    "official": True,
+                    "excerpt": stale_note,
+                    "content": stale_note,
+                    "context_chars": 0,
+                    "matched_terms": [],
+                }
+            ]
+        },
+    )
+    ocr_text = "Ricorso n. 9966/2026 R.G. e udienza del 9 luglio 2026 davanti alla Corte di cassazione."
+
+    monkeypatch.setattr(
+        "pct.legal_update_pipeline.verify_legal_update_against_public_sources",
+        lambda review, source, **kwargs: {
+            "ok": True,
+            "reason": "Allegato ufficiale letto con OCR.",
+            "confirmation_count": 1,
+            "official_confirmations": 1,
+            "confirmations": [
+                {
+                    "origin": "allegato_fonte_ufficiale",
+                    "source_name": source["name"],
+                    "title": "Ordinanza di rimessione",
+                    "source_url": qsp_url,
+                    "attachment_url": attachment_url,
+                    "attachment_type": "pdf",
+                    "sha256": "sha-qsp-ocr",
+                    "official": True,
+                    "excerpt": ocr_text,
+                    "content": ocr_text,
+                    "context_chars": len(ocr_text),
+                    "matched_terms": ["9966", "2026"],
+                }
+            ],
+        },
+    )
+
+    report = pipeline.backfill_web_verification_evidence(limit=5, review_ids=(int(review["id"]),))
+
+    with pipeline.repository._connect() as conn:
+        evidence_rows = conn.execute(
+            "SELECT attachment_url, context_chars, excerpt FROM web_verification_evidence"
+        ).fetchall()
+        attachments_json = conn.execute(
+            "SELECT attachments_json FROM source_documents_normalized WHERE id = ?",
+            (int(normalized["id"]),),
+        ).fetchone()["attachments_json"]
+
+    attachments = json.loads(attachments_json)
+    assert report["selected"] == 1
+    assert report["checked"] == 1
+    assert report["verification_attachments_saved"] == 1
+    assert len(evidence_rows) == 1
+    assert evidence_rows[0]["attachment_url"] == attachment_url
+    assert evidence_rows[0]["context_chars"] == len(ocr_text)
+    assert "9966/2026" in evidence_rows[0]["excerpt"]
+    assert attachments[0]["context_chars"] == len(ocr_text)
+    assert "9966/2026" in attachments[0]["text_excerpt"]
+
+
+def test_backfill_web_verification_evidence_query_cerca_in_evidenze_e_allegati(tmp_path: Path, monkeypatch):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+    source = pipeline.repository.get_source_by_code("cassazione_massimario")
+    assert source is not None
+    qsp_url = "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP50194"
+    attachment_url = "https://www.cortedicassazione.it/resources/cms/documents/qsp50194.pdf"
+    raw = pipeline.repository.save_raw_document(
+        {
+            "source_id": source["id"],
+            "external_id": "cassazione-query-ocr",
+            "source_url": "https://www.cortedicassazione.it/it/qsp.page",
+            "title": "Questione penale pendente",
+            "published_at": "2026-05-05",
+            "raw_html": "",
+            "raw_text": "Questione penale pendente.",
+            "content_hash": "hash-cassazione-query-ocr",
+            "fetch_status": "fetched",
+            "http_status": 200,
+        }
+    )
+    normalized = pipeline.repository.save_normalized_document(
+        int(raw["id"]),
+        {
+            "title": "Questione penale pendente",
+            "body_text": "Questione penale pendente.",
+            "body_short": "Questione penale pendente.",
+            "language": "it",
+            "issuer": "Corte Suprema di Cassazione",
+            "document_date": "2026-05-05",
+            "document_type_guess": "questione penale",
+            "attachments_json": [{"title": "Allegato", "url": attachment_url, "source_url": qsp_url}],
+        },
+    )
+    analysis = pipeline.repository.save_analysis(
+        int(normalized["id"]),
+        {
+            "classification_type": "GIURISPRUDENZA",
+            "confidence_score": 0.74,
+            "impact_level": "medio",
+            "summary_short": "Questione penale pendente.",
+            "summary_long": "Questione penale pendente.",
+            "what_changes": "",
+            "extracted_entities_json": {},
+            "proposed_action": "NEWS_ONLY",
+            "target_entity_type": "",
+            "target_entity_id": None,
+        },
+    )
+    review = pipeline.repository.upsert_review_item(
+        {
+            "normalized_document_id": int(normalized["id"]),
+            "analysis_id": int(analysis["id"]),
+            "proposal_type": "commento",
+            "proposed_action": "NEWS_ONLY",
+            "target_entity_type": "",
+            "target_entity_id": None,
+            "proposal_payload_json": {},
+            "status": "approved",
+            "priority": 80,
+        }
+    )
+    pipeline.repository.record_web_verification_evidence(
+        review_id=int(review["id"]),
+        normalized_document_id=int(normalized["id"]),
+        source=source,
+        verification={
+            "confirmations": [
+                {
+                    "origin": "allegato_fonte_ufficiale",
+                    "source_name": "Corte Suprema di Cassazione",
+                    "title": "Allegato",
+                    "source_url": qsp_url,
+                    "attachment_url": attachment_url,
+                    "attachment_type": "pdf",
+                    "sha256": "sha-query-qsp",
+                    "official": True,
+                    "excerpt": "Allegato scaricato dalla fonte ufficiale; testo non estraibile automaticamente.",
+                    "content": "Allegato scaricato dalla fonte ufficiale; testo non estraibile automaticamente.",
+                    "context_chars": 0,
+                }
+            ]
+        },
+    )
+    calls: list[str] = []
+
+    def fake_verify(review, source, **kwargs):
+        calls.append(str(review["title"]))
+        return {
+            "ok": True,
+            "reason": "Fonte diretta verificata.",
+            "confirmation_count": 1,
+            "official_confirmations": 1,
+            "confirmations": [
+                {
+                    "origin": "fonte_acquisita",
+                    "source_name": source["name"],
+                    "title": "Questione penale pendente QSP50194",
+                    "url": qsp_url,
+                    "official": True,
+                    "excerpt": "Questione QSP50194 verificata.",
+                    "content": "Questione QSP50194 verificata.",
+                    "context_chars": 30,
+                    "matched_terms": ["qsp50194"],
+                    "query": "QSP50194",
+                }
+            ],
+        }
+
+    monkeypatch.setattr("pct.legal_update_pipeline.verify_legal_update_against_public_sources", fake_verify)
+
+    report = pipeline.backfill_web_verification_evidence(limit=10, query="QSP50194")
+
+    assert report["selected"] == 1
+    assert report["checked"] == 1
+    assert calls == ["Questione penale pendente"]
 
 
 def test_backfill_web_verification_evidence_lavora_solo_record_azionabili(tmp_path: Path, monkeypatch):

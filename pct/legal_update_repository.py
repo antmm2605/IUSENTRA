@@ -5,10 +5,11 @@ import json
 import re
 import sqlite3
 import unicodedata
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from pct.postgres_runtime_support import PostgresRepositoryBackend
@@ -232,7 +233,7 @@ def _archive_identity_key(entity_type: str, row: dict[str, Any]) -> str:
             row.get("related_jurisprudence_id"),
             row.get("related_prassi_id"),
         )
-        for rel_type, rel_id in zip(("normative", "jurisprudence", "prassi"), related):
+        for rel_type, rel_id in zip(("normative", "jurisprudence", "prassi"), related, strict=True):
             if rel_id:
                 return f"news|{rel_type}|{rel_id}|{_canonical_text(row.get('news_type'))}"
         url_key = _canonical_url(row.get("source_url"))
@@ -374,7 +375,7 @@ class LegalUpdateDbConfig:
     json_path: str
 
     @classmethod
-    def from_anchor(cls, intelligence_db_path: str) -> "LegalUpdateDbConfig":
+    def from_anchor(cls, intelligence_db_path: str) -> LegalUpdateDbConfig:
         return cls(
             db_path=derive_legal_updates_db_path(intelligence_db_path),
             json_path=derive_legal_updates_json_path(intelligence_db_path),
@@ -793,20 +794,44 @@ class LegalUpdateRepository:
                 if not (source_url or attachment_url or excerpt or content_text):
                     continue
                 matched_terms = row.get("matched_terms") if isinstance(row.get("matched_terms"), list) else []
-                evidence_key = _sha1(
-                    "|".join(
+                context_chars = max(0, int(row.get("context_chars") or 0))
+                evidence_key_parts = [
+                    str(review_id or ""),
+                    str(normalized_document_id or ""),
+                    _normalize_token(row.get("origin")),
+                    source_url,
+                    attachment_url,
+                    _clean_spaces(row.get("sha256")),
+                    title,
+                ]
+                if not attachment_url:
+                    evidence_key_parts.append(excerpt[:220])
+                evidence_key = _sha1("|".join(evidence_key_parts))
+                if attachment_url and context_chars > 0:
+                    conn.execute(
+                        """
+                        DELETE FROM web_verification_evidence
+                        WHERE COALESCE(review_id, 0) = ?
+                          AND COALESCE(normalized_document_id, 0) = ?
+                          AND origin = ?
+                          AND source_url = ?
+                          AND attachment_url = ?
+                          AND sha256 = ?
+                          AND (
+                              COALESCE(context_chars, 0) <= 0
+                              OR COALESCE(content_text, '') = ''
+                              OR LOWER(COALESCE(excerpt, '')) LIKE '%testo non estraibile%'
+                          )
+                        """,
                         (
-                            str(review_id or ""),
-                            str(normalized_document_id or ""),
+                            int(review_id or 0),
+                            int(normalized_document_id or 0),
                             _normalize_token(row.get("origin")),
                             source_url,
                             attachment_url,
                             _clean_spaces(row.get("sha256")),
-                            title,
-                            excerpt[:220],
-                        )
+                        ),
                     )
-                )
                 conn.execute(
                     """
                     INSERT INTO web_verification_evidence (
@@ -848,7 +873,7 @@ class LegalUpdateRepository:
                         _clean_spaces(row.get("attachment_type")),
                         _clean_spaces(row.get("sha256")),
                         1 if bool(row.get("official")) else 0,
-                        max(0, int(row.get("context_chars") or 0)),
+                        context_chars,
                         excerpt,
                         content_text,
                         _json_dump(matched_terms),
@@ -866,7 +891,7 @@ class LegalUpdateRepository:
                             "sha256": _clean_spaces(row.get("sha256")),
                             "verified": True,
                             "text_excerpt": excerpt,
-                            "context_chars": max(0, int(row.get("context_chars") or 0)),
+                            "context_chars": context_chars,
                         }
                     )
             if attachment_rows and int(normalized_document_id or 0):
@@ -889,6 +914,26 @@ class LegalUpdateRepository:
                         if key and key not in by_url:
                             by_url[key] = item
                             changed = True
+                        elif key:
+                            current_item = by_url.get(key) or {}
+                            try:
+                                current_chars = int(current_item.get("context_chars") or 0)
+                            except (TypeError, ValueError):
+                                current_chars = 0
+                            try:
+                                new_chars = int(item.get("context_chars") or 0)
+                            except (TypeError, ValueError):
+                                new_chars = 0
+                            current_excerpt = _clean_spaces(current_item.get("text_excerpt") or current_item.get("excerpt"))
+                            if (
+                                new_chars > current_chars
+                                or (new_chars > 0 and not current_excerpt)
+                                or "testo non estraibile" in current_excerpt.lower()
+                            ):
+                                merged = dict(current_item)
+                                merged.update(item)
+                                by_url[key] = merged
+                                changed = True
                     if changed:
                         conn.execute(
                             """
@@ -1621,13 +1666,6 @@ class LegalUpdateRepository:
         clauses = [
             "q.status <> 'rejected'",
             "r.source_url <> ''",
-            """
-            NOT EXISTS (
-                SELECT 1
-                FROM web_verification_evidence e
-                WHERE e.normalized_document_id = q.normalized_document_id
-            )
-            """,
         ]
         params: list[Any] = []
         status_values = tuple(_normalize_token(status) for status in (statuses or ()) if _normalize_token(status))
@@ -1644,6 +1682,29 @@ class LegalUpdateRepository:
             clauses.append("q.id IN ({})".format(",".join("?" for _ in review_id_values)))
             params.extend(review_id_values)
         lookup_terms = _review_lookup_terms(query)
+        if not review_id_values and not lookup_terms:
+            clauses.append(
+                """
+                (
+                    NOT EXISTS (
+                        SELECT 1
+                        FROM web_verification_evidence e
+                        WHERE e.normalized_document_id = q.normalized_document_id
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM web_verification_evidence e
+                        WHERE e.normalized_document_id = q.normalized_document_id
+                          AND COALESCE(e.attachment_url, '') <> ''
+                          AND (
+                              COALESCE(e.context_chars, 0) <= 0
+                              OR COALESCE(e.content_text, '') = ''
+                              OR LOWER(COALESCE(e.excerpt, '')) LIKE '%testo non estraibile%'
+                          )
+                    )
+                )
+                """
+            )
         for term in lookup_terms:
             like_value = f"%{term}%"
             clauses.append(
@@ -1651,13 +1712,27 @@ class LegalUpdateRepository:
                 (
                     LOWER(COALESCE(n.title, '')) LIKE ?
                     OR LOWER(COALESCE(n.body_text, '')) LIKE ?
+                    OR LOWER(COALESCE(n.attachments_json, '')) LIKE ?
                     OR LOWER(COALESCE(r.title, '')) LIKE ?
                     OR LOWER(COALESCE(r.source_url, '')) LIKE ?
                     OR LOWER(COALESCE(a.summary_short, '')) LIKE ?
+                    OR EXISTS (
+                        SELECT 1
+                        FROM web_verification_evidence e
+                        WHERE e.normalized_document_id = q.normalized_document_id
+                          AND (
+                              LOWER(COALESCE(e.title, '')) LIKE ?
+                              OR LOWER(COALESCE(e.query, '')) LIKE ?
+                              OR LOWER(COALESCE(e.source_url, '')) LIKE ?
+                              OR LOWER(COALESCE(e.attachment_url, '')) LIKE ?
+                              OR LOWER(COALESCE(e.excerpt, '')) LIKE ?
+                              OR LOWER(COALESCE(e.content_text, '')) LIKE ?
+                          )
+                    )
                 )
                 """
             )
-            params.extend([like_value, like_value, like_value, like_value, like_value])
+            params.extend([like_value] * 12)
         if not include_open_data:
             clauses.append("COALESCE(s.source_type, '') <> 'open_data'")
             clauses.append("COALESCE(s.parser_type, '') <> 'ckan_json'")

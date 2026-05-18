@@ -18,7 +18,7 @@ La fase 10 consolida i test esistenti senza dichiarare passati comandi non esegu
 - Route manifest: 106.
 - Route P0/P1: 69.
 - Route P0/P1 con stato `tested`: 48.
-- File test/smoke censiti: 358.
+- File test/smoke censiti: 360.
 - Stati matrice: blocked=3, partial=40, pending=15, tested=48.
 
 ## Comandi principali

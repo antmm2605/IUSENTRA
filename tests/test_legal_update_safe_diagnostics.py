@@ -343,8 +343,77 @@ def test_backfill_diagnostics_arricchisce_riferimenti_e_domande_senza_pubblicare
     assert any("?" in term for term in matched_terms)
 
 
+def test_backfill_diagnostics_supporta_missing_multipli_senza_pubblicare(tmp_path):
+    intelligence_db = tmp_path / "intelligence" / "motori.json"
+    pipeline = build_legal_update_pipeline(str(intelligence_db))
+    pipeline.repository.upsert_sources(
+        [
+            {
+                "name": "Cassazione",
+                "code": "cassazione_ultime_sent_ord_questioni",
+                "category": "giurisprudenza",
+                "base_url": "https://www.cortedicassazione.it/",
+                "source_type": "web",
+                "trust_class": "A",
+                "is_official": True,
+                "enabled": True,
+                "polling_minutes": 720,
+                "parser_type": "html",
+            }
+        ]
+    )
+    with pipeline.repository._connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO web_verification_evidence (
+                evidence_key, source_code, source_name, query, origin, title,
+                source_url, attachment_url, attachment_type, sha256, is_official,
+                context_chars, excerpt, content_text, matched_terms_json,
+                verification_status, created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """,
+            (
+                "fixture-evidence-multiple",
+                "cassazione_ultime_sent_ord_questioni",
+                "Cassazione",
+                "R.G. 9926/2026",
+                "fonte_ufficiale",
+                "Questione Penale Pendente R.G. 9926/2026",
+                "https://www.cortedicassazione.it/it/qsp_dettaglio.page?contentId=QSP50194",
+                "https://www.cortedicassazione.it/documenti/qsp50194.pdf",
+                "pdf",
+                "fixture-sha",
+                1,
+                180,
+                "PDF ufficiale con R.G. 9966/2026.",
+                "Il PDF richiama art. 606 c.p.p., D.Lgs. 150/2022 e ricorso R.G. 9966/2026.",
+                "[]",
+                "verified",
+            ),
+        )
+        conn.commit()
+
+    report = run_legal_updates_backfill_diagnostics(
+        intelligence_db=str(intelligence_db),
+        source_code="cassazione_ultime_sent_ord_questioni",
+        missing="references,questions",
+        limit=5,
+        max_seconds=10,
+        no_publish=True,
+    )
+
+    assert report["ok"] is True
+    assert report["missing_kinds"] == ["references", "questions"]
+    assert len(report["reports"]) == 2
+    assert report["summary"]["references_added"] > 0
+    assert report["summary"]["questions_added"] > 0
+    assert report["autopublished"]["count"] == 0
+
+
 def test_cli_canary_e_backfill_supportano_json_e_limiti(monkeypatch):
     import pct.legal_update_diagnostics as diagnostics
+    backfill_calls: list[str] = []
 
     def fake_canary(**kwargs):
         assert kwargs["source_code"] == "normattiva"
@@ -354,10 +423,11 @@ def test_cli_canary_e_backfill_supportano_json_e_limiti(monkeypatch):
         return {"ok": True, "source_code": "normattiva", "processed": 0, "documents_found": 0, "no_publish": True, "errors": []}
 
     def fake_backfill(**kwargs):
-        assert kwargs["missing"] == "references"
+        assert kwargs["missing"] in {"references", "references,questions"}
         assert kwargs["limit"] == 2
         assert kwargs["no_publish"] is True
-        return {"ok": True, "checked": 0, "updated": 0, "missing": "references"}
+        backfill_calls.append(kwargs["missing"])
+        return {"ok": True, "checked": 0, "updated": 0, "missing": kwargs["missing"]}
 
     monkeypatch.setattr(diagnostics, "run_legal_updates_canary", fake_canary)
     monkeypatch.setattr(diagnostics, "run_legal_updates_backfill_diagnostics", fake_backfill)
@@ -381,11 +451,28 @@ def test_cli_canary_e_backfill_supportano_json_e_limiti(monkeypatch):
             "--json",
         ],
     )
+    backfill_multiple = runner.invoke(
+        cli,
+        [
+            "legal-updates-backfill-diagnostics",
+            "--source",
+            "normattiva",
+            "--missing",
+            "references,questions",
+            "--limit",
+            "2",
+            "--no-publish",
+            "--json",
+        ],
+    )
 
     assert canary.exit_code == 0, canary.output
     assert json.loads(canary.output)["source_code"] == "normattiva"
     assert backfill.exit_code == 0, backfill.output
     assert json.loads(backfill.output)["missing"] == "references"
+    assert backfill_multiple.exit_code == 0, backfill_multiple.output
+    assert json.loads(backfill_multiple.output)["missing"] == "references,questions"
+    assert backfill_calls == ["references", "references,questions"]
 
 
 def test_reference_extractor_riconosce_cause_cgue():

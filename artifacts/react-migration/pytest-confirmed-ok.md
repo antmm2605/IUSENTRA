@@ -1,10 +1,28 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-19, Fase 6 normativa e archivi base 2.245.47, Fase 5 fonti verdi Aggiornamenti legali 2.245.46, strumenti sicuri canary/backfill Aggiornamenti legali 2.245.42, capability registry/parser fixture Aggiornamenti legali 2.245.41, collegamento Lex/Ricerca Legale per Corte Costituzionale n. 50/2026, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
+Aggiornato: 2026-05-19, Fase 7 backfill mirato PDF/OCR/riferimenti/domande 2.245.48, Fase 6 normativa e archivi base 2.245.47, Fase 5 fonti verdi Aggiornamenti legali 2.245.46, strumenti sicuri canary/backfill Aggiornamenti legali 2.245.42, capability registry/parser fixture Aggiornamenti legali 2.245.41, collegamento Lex/Ricerca Legale per Corte Costituzionale n. 50/2026, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
+
+## Update Intelligence Fase 7 backfill mirato PDF/OCR/riferimenti/domande 2.245.48 - 2026-05-19
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\cli.py pct\legal_update_diagnostics.py` | OK | Sintassi confermata dopo supporto `--missing` multiplo e output CLI UTF-8. |
+| `python -m pytest tests/test_legal_update_safe_diagnostics.py -q --tb=short` | OK | 7/7 passati: canary/backfill JSON, limiti obbligatori e combinazione `references,questions`. |
+| `python -m pct.cli legal-updates-backfill-diagnostics --missing attachments --limit 50 --max-seconds 120 --no-publish --json` | OK | Report salvato in `artifacts/legal-updates/phase7-backfill-2026-05-19/attachments.json`; 0 selezionati dopo il primo tentativo rientrato, nessuna pubblicazione. |
+| `python -m pct.cli legal-updates-backfill-diagnostics --missing ocr --limit 30 --max-seconds 120 --no-publish --json` | OK | Report `ocr.json`; 0 PDF con OCR/testo mancante nel perimetro. |
+| `python -m pct.cli legal-updates-backfill-diagnostics --missing references --limit 50 --max-seconds 120 --no-publish --json` | OK | Report `references.json`; 50 selezionati, 50 processati, 14 aggiornati, 20 riferimenti aggiunti, 0 falliti. |
+| `python -m pct.cli legal-updates-backfill-diagnostics --missing questions --limit 50 --max-seconds 120 --no-publish --json` | OK | Report `questions.json`; 0 domande mancanti selezionabili. |
+| `python -m pct.cli legal-updates-backfill-diagnostics --source cassazione_ultime_sent_ord_questioni --missing attachments,ocr,references,questions --limit 20 --max-seconds 120 --no-publish --json` | OK | Report `cassazione_ultime_sent_ord_questioni.json`; fonte già completa per il perimetro selezionato. |
+| `python -m pct.cli legal-updates-backfill-diagnostics --include-open-data --missing references,questions --limit 20 --max-seconds 120 --no-publish --json` | OK | Report `open_data_rag_only.json`; 20 selezionati/processati, 20 invariati, 0 pubblicazioni. |
+| `python -m pytest tests/test_legal_update_publish_context.py tests/test_legal_update_web_verification_attachments.py tests/test_document_intelligence_extraction.py -q --tb=short` | OK | 39/39 passati: allegati, OCR, riferimenti, publish context e Document Intelligence. |
+| `python -m pytest tests/test_lex_source_corpus_generator.py tests/test_lex_operational_knowledge.py tests/test_react_legal_intelligence_search.py -q --tb=short` | OK | 75/75 passati: corpus Lex, ranking allegati, conoscenza operativa e Ricerca Legale. |
+| `python tools/sync_packaging_files.py --check`; `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q --tb=short` | OK | Packaging sincronizzato e 9/9 passati dopo bump `2.245.48`. |
+| `python scripts/react-migration/generate_api_contracts.py`; `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py docs/openapi.yaml`; `python scripts/verify_openapi_provider.py`; `python -m pytest -q tests/test_openapi_contracts_phase6.py --tb=short` | OK | OpenAPI riallineato a `2.245.48`; provider verification OK e contratti fase 6 5/5. |
+| `python tools/check_repo_governance.py`; `python -m pytest tests/test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | Governance OK, UTF-8 4/4 e whitespace senza errori; `git diff --check` segnala solo warning CRLF su dati runtime preesistenti e `docs/openapi.yaml` rigenerato. |
 
 ## Update Intelligence Fase 6 normativa e archivi base 2.245.47 - 2026-05-19
 

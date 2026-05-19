@@ -2,6 +2,14 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.245.48 - 2026-05-19
+
+Completata la Fase 7 con backfill diagnostico mirato su PDF/OCR/riferimenti/domande. La fase non ha eseguito backup, Web libero, pubblicazione automatica o import massivo: ogni comando ha usato `--limit`, `--max-seconds 120`, `--no-publish` e report JSON salvato in `artifacts/legal-updates/phase7-backfill-2026-05-19/`.
+
+Il repository locale degli aggiornamenti legali è stato controllato con 168 evidenze web già presenti: tutte hanno testo leggibile e termini/domande salvati; non risultano PDF con testo zero o OCR mancante nel perimetro selezionato. Il backfill riferimenti ha controllato 50 evidenze, ne ha aggiornate 14 e ha aggiunto 20 riferimenti; le fonti Cassazione specifiche e RAG-only/open data sono rimaste invariate.
+
+Lex e Ricerca Legale leggono questi aggiornamenti direttamente dal repository locale: lo stato è migliorato sui riferimenti delle evidenze aggiornate, senza nuove pubblicazioni e senza trasformare fonti RAG-only in news o giurisprudenza strutturata.
+
 ## Aggiornamento operativo 2.245.47 - 2026-05-19
 
 Completata la Fase 6 su normativa e archivi base senza backup, senza download ciechi e senza import massivo. Gli archivi locali già presenti sono stati verificati e collegati: Normattiva locale contiene 42.677 documenti, 238.110 articoli e 279.777 chunk; Gazzetta locale contiene 12 documenti e 1.852 chunk. Il report canonico è `artifacts/legal-updates/phase6-normativa-archives-2026-05-19/phase6-report.md`.

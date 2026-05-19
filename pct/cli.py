@@ -68,6 +68,14 @@ from .scadenziario import (
 from .timesheet import GestioneTimesheet
 
 
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
+
 def _env_int_option(name: str, default: int) -> int:
     try:
         value = int(os.getenv(name, str(default)) or default)
@@ -2817,7 +2825,11 @@ def cmd_legal_updates_canary(
 @click.option("--source", "source_code", default="", help="Limita il backfill a una fonte")
 @click.option("--review-id", type=int, default=0, help="Limita il backfill a una review")
 @click.option("--query", default="", help="Filtro testuale mirato")
-@click.option("--missing", required=True, type=click.Choice(["attachments", "ocr", "references", "questions"]), help="Tipo di diagnosi mancante")
+@click.option(
+    "--missing",
+    required=True,
+    help="Tipo di diagnosi mancante: attachments, ocr, references, questions o lista separata da virgole",
+)
 @click.option("--limit", required=True, type=int, help="Limite obbligatorio di elementi")
 @click.option("--max-seconds", type=int, default=60, show_default=True, help="Budget massimo del backfill")
 @click.option("--include-closed", is_flag=True, default=False, help="Include elementi chiusi")

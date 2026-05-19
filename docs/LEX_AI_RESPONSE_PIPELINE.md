@@ -7,6 +7,14 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.245.48 - 19 maggio 2026
+
+La Fase 7 ha eseguito solo backfill mirati, con limiti espliciti e `--no-publish`, sui documenti già acquisiti o pubblicati. Non è stato usato Web libero e non è stato avviato alcun import massivo.
+
+`legal-updates-backfill-diagnostics` ora supporta `--missing` multipli separati da virgole. Il report JSON contiene `summary` con selezionati, processati, aggiornati, invariati, falliti, motivi di fallimento, PDF/OCR completati, riferimenti aggiunti, domande aggiunte e segnali di aggiornamento per Lex/Ricerca Legale.
+
+Risultato reale della fase: allegati e OCR non avevano più elementi selezionabili nel perimetro; il backfill riferimenti ha controllato 50 evidenze, aggiornandone 14 e aggiungendo 20 riferimenti; le domande contestuali erano già complete. Lex e Ricerca Legale devono quindi usare questi riferimenti aggiornati dal repository locale, senza creare nuove pubblicazioni o sintesi inventate.
+
 ## Aggiornamento operativo 2.245.45 - 19 maggio 2026
 
 Il primo pilot `guarded` ha pubblicato solo documenti letti nel canary corrente e ha verificato che Lex possa rispondere usando testo pagina, PDF/OCR e allegati ufficiali. Sono entrati 9 contenuti: 3 Cassazione, 3 circolari INPS e 3 provvedimenti AGCOM. Tutti hanno riferimenti e domande contestuali salvati.

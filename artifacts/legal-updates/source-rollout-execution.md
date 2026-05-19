@@ -2,6 +2,21 @@
 
 Aggiornato il 19 maggio 2026. Questo file trasforma `source-rollout-plan.md` in backlog eseguibile con stato prima/dopo della tranche codice.
 
+## Aggiornamento Fase 7 - backfill mirato PDF/OCR/riferimenti/domande
+
+Aggiornato il 19 maggio 2026. La fase è stata eseguita senza backup, senza Web libero, senza pubblicazione automatica e senza backfill globale non limitato. Il report operativo è `artifacts/legal-updates/phase7-backfill-2026-05-19/phase7-backfill-report.md`.
+
+| area | stato rilevato | azione eseguita | esito |
+|---|---|---|---|
+| CLI backfill | `--missing` accettava solo un valore e la combinazione richiesta sarebbe stata respinta da `click.Choice`; su Windows il JSON poteva fallire in stampa con stream `cp1252` | aggiunto parsing comma-separated per `attachments,ocr,references,questions`, report `summary` e output UTF-8 | comandi singoli e combinati eseguibili con JSON, limiti e `--no-publish` preservati |
+| Allegati/PDF/OCR | repository locale con 168 evidenze, 47 allegati, 168 testi leggibili e 0 PDF con testo/OCR mancante nel perimetro selezionato | backfill `attachments` e `ocr` con limiti 50/30 e 120 secondi | nessun nuovo elemento selezionabile; nessun OCR fallito nascosto |
+| Riferimenti | alcune evidenze web avevano termini salvati ma riferimenti normativi/identificativi incompleti | backfill `references` limitato a 50 evidenze | 50 selezionate, 50 processate, 14 aggiornate, 20 riferimenti aggiunti, 0 fallite |
+| Domande contestuali | le evidenze selezionabili avevano già matrice domande | backfill `questions` limitato a 50 | 0 selezionate; nessuna domanda aggiunta |
+| Cassazione specifica | `cassazione_ultime_sent_ord_questioni` risultava già completa per allegati/OCR/riferimenti/domande | backfill combinato con `--source cassazione_ultime_sent_ord_questioni --limit 20` | 0 selezionate; stato Lex/Ricerca Legale invariato |
+| Fonti RAG-only/open data | serviva controllo limitato senza promozione | backfill `--include-open-data --missing references,questions --limit 20` | 20 selezionate e processate, 20 invariate, 0 pubblicazioni |
+
+Verifiche mirate già eseguite: `py_compile` CLI/backfill, `tests/test_legal_update_safe_diagnostics.py`, shard allegati/OCR/document intelligence, shard corpus Lex/Ricerca Legale, governance, UTF-8 e `git diff --check`. Gli esiti sono registrati anche in `artifacts/react-migration/pytest-confirmed-ok.md`.
+
 ## Aggiornamento Fase 6 - normativa e archivi base
 
 Aggiornato il 19 maggio 2026. La fase normativa è stata eseguita senza backup, senza download ciechi, senza import massivo e senza ricostruire gli archivi già presenti. Il report operativo è `artifacts/legal-updates/phase6-normativa-archives-2026-05-19/phase6-report.md`.

@@ -1,0 +1,42 @@
+﻿{
+  "ok": true,
+  "checked": 0,
+  "updated": 0,
+  "failed": 0,
+  "references_added": 0,
+  "questions_added": 0,
+  "failure_reasons": [],
+  "selected": 0,
+  "stopped_for_time_limit": false,
+  "duration_seconds": 0.0,
+  "include_closed": false,
+  "include_open_data": false,
+  "source_code": "",
+  "review_id": null,
+  "query": "",
+  "items": [],
+  "schema": "iusentra.legal_updates.backfill_diagnostics.v1",
+  "mode": "backfill_diagnostics",
+  "missing": "questions",
+  "no_publish": true,
+  "autopublished": {
+    "count": 0,
+    "items": []
+  },
+  "summary": {
+    "selected": 0,
+    "processed": 0,
+    "updated": 0,
+    "unchanged": 0,
+    "failed": 0,
+    "failure_reasons": [],
+    "pdf_completed": 0,
+    "ocr_completed": 0,
+    "attachments_completed": 0,
+    "references_added": 0,
+    "questions_added": 0,
+    "lex_updated": false,
+    "ricerca_legale_updated": false
+  },
+  "unchanged": 0
+}

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
-from datetime import datetime, timezone
 import json
 import os
 import time
-from typing import Any, Callable
+from contextlib import contextmanager
+from datetime import UTC, datetime
+from typing import Any
 
 import requests
 
@@ -19,10 +19,10 @@ from pct.legal_update_source_capabilities import (
 )
 from pct.legal_update_web_verification import verify_legal_update_against_public_sources
 
-
 CANARY_SCHEMA = "iusentra.legal_updates.canary.v1"
 BACKFILL_SCHEMA = "iusentra.legal_updates.backfill_diagnostics.v1"
-MISSING_KINDS = {"attachments", "ocr", "references", "questions"}
+MISSING_KINDS = ("attachments", "ocr", "references", "questions")
+MISSING_KIND_SET = set(MISSING_KINDS)
 MAX_CANARY_LIMIT = 50
 MAX_BACKFILL_LIMIT = 250
 MAX_ATTACHMENTS_PER_DOCUMENT = 4
@@ -206,20 +206,103 @@ def run_legal_updates_backfill_diagnostics(
 ) -> dict[str, Any]:
     """Esegue un backfill mirato senza scansioni infinite e senza pubblicazione automatica."""
 
-    missing_kind = _clean_code(missing)
-    if missing_kind not in MISSING_KINDS:
-        raise ValueError("Valore --missing non valido: usare attachments, ocr, references o questions.")
+    missing_kinds = _parse_missing_kinds(missing)
     safe_limit = _required_limit(limit, max_limit=MAX_BACKFILL_LIMIT)
     code = _clean_code(source_code)
+    started = time.monotonic()
     pipeline = build_legal_update_pipeline(
         intelligence_db,
         giurisprudenza_db_path=giurisprudenza_db,
     )
     pipeline.repository.upsert_sources(list(DEFAULT_SOURCE_ROWS))
 
+    if len(missing_kinds) > 1:
+        reports: list[dict[str, Any]] = []
+        for missing_kind in missing_kinds:
+            remaining_seconds = _remaining_seconds(started, max_seconds)
+            if max_seconds and remaining_seconds <= 0:
+                reports.append(
+                    _with_backfill_summary(
+                        {
+                            "ok": False,
+                            "schema": BACKFILL_SCHEMA,
+                            "mode": "backfill_diagnostics",
+                            "missing": missing_kind,
+                            "no_publish": bool(no_publish),
+                            "selected": 0,
+                            "checked": 0,
+                            "updated": 0,
+                            "items": [],
+                            "errors": ["Budget tempo esaurito prima di questa fase."],
+                            "stopped_for_time_limit": True,
+                            "autopublished": {"count": 0, "items": []},
+                        },
+                        missing_kind,
+                    )
+                )
+                continue
+            reports.append(
+                _run_single_backfill_diagnostics(
+                    pipeline,
+                    missing_kind=missing_kind,
+                    code=code,
+                    review_id=int(review_id or 0),
+                    query=query,
+                    limit=safe_limit,
+                    max_seconds=remaining_seconds,
+                    include_closed=include_closed,
+                    include_open_data=include_open_data,
+                    no_publish=no_publish,
+                )
+            )
+        result = {
+            "schema": BACKFILL_SCHEMA,
+            "mode": "backfill_diagnostics",
+            "missing": ",".join(missing_kinds),
+            "missing_kinds": missing_kinds,
+            "no_publish": bool(no_publish),
+            "ok": all(bool(report.get("ok")) for report in reports),
+            "source_code": code,
+            "review_id": int(review_id or 0) or None,
+            "query": _clean(query),
+            "limit": safe_limit,
+            "max_seconds": max(0, int(max_seconds or 0)),
+            "duration_seconds": round(time.monotonic() - started, 2),
+            "reports": reports,
+            "autopublished": {"count": sum(int((report.get("autopublished") or {}).get("count") or 0) for report in reports), "items": []},
+        }
+        return _with_combined_backfill_summary(result)
+
+    return _run_single_backfill_diagnostics(
+        pipeline,
+        missing_kind=missing_kinds[0],
+        code=code,
+        review_id=int(review_id or 0),
+        query=query,
+        limit=safe_limit,
+        max_seconds=max(0, int(max_seconds or 0)),
+        include_closed=include_closed,
+        include_open_data=include_open_data,
+        no_publish=no_publish,
+    )
+
+
+def _run_single_backfill_diagnostics(
+    pipeline: Any,
+    *,
+    missing_kind: str,
+    code: str,
+    review_id: int,
+    query: str,
+    limit: int,
+    max_seconds: int,
+    include_closed: bool,
+    include_open_data: bool,
+    no_publish: bool,
+) -> dict[str, Any]:
     if missing_kind in {"attachments", "ocr"}:
         report = pipeline.backfill_web_verification_evidence(
-            limit=safe_limit,
+            limit=limit,
             source_codes=[code] if code else None,
             include_closed=include_closed,
             include_open_data=include_open_data,
@@ -237,10 +320,10 @@ def run_legal_updates_backfill_diagnostics(
             }
         )
         if not no_publish:
-            report["autopublished"] = pipeline.publish_auto_news(limit=min(safe_limit, 20))
+            report["autopublished"] = pipeline.publish_auto_news(limit=min(limit, 20))
         else:
             report.setdefault("autopublished", {"count": 0, "items": []})
-        return report
+        return _with_backfill_summary(report, missing_kind)
 
     report = _backfill_evidence_enrichment(
         pipeline.repository,
@@ -248,7 +331,7 @@ def run_legal_updates_backfill_diagnostics(
         source_code=code,
         review_id=int(review_id or 0),
         query=query,
-        limit=safe_limit,
+        limit=limit,
         max_seconds=max(0, int(max_seconds or 0)),
         include_closed=include_closed,
         include_open_data=include_open_data,
@@ -262,7 +345,132 @@ def run_legal_updates_backfill_diagnostics(
             "autopublished": {"count": 0, "items": []},
         }
     )
+    return _with_backfill_summary(report, missing_kind)
+
+
+def _parse_missing_kinds(value: Any) -> list[str]:
+    raw = _clean(value)
+    if not raw:
+        raise ValueError("Valore --missing non valido: usare attachments, ocr, references o questions.")
+    if _clean_code(raw) == "all":
+        return list(MISSING_KINDS)
+    chunks = [chunk.strip() for part in raw.replace(";", ",").split(",") for chunk in [part] if chunk.strip()]
+    kinds: list[str] = []
+    invalid: list[str] = []
+    for chunk in chunks:
+        kind = _clean_code(chunk)
+        if kind not in MISSING_KIND_SET:
+            invalid.append(chunk)
+            continue
+        if kind not in kinds:
+            kinds.append(kind)
+    if invalid or not kinds:
+        raise ValueError("Valore --missing non valido: usare attachments, ocr, references o questions.")
+    return kinds
+
+
+def _remaining_seconds(started: float, max_seconds: int) -> int:
+    budget = max(0, int(max_seconds or 0))
+    if budget <= 0:
+        return 0
+    elapsed = int(time.monotonic() - started)
+    return max(0, budget - elapsed)
+
+
+def _with_backfill_summary(report: dict[str, Any], missing_kind: str) -> dict[str, Any]:
+    summary = _single_backfill_summary(report, missing_kind)
+    report["summary"] = summary
+    report["selected"] = summary["selected"]
+    report["checked"] = summary["processed"]
+    report["updated"] = summary["updated"]
+    report["failed"] = summary["failed"]
+    report["unchanged"] = summary["unchanged"]
     return report
+
+
+def _with_combined_backfill_summary(report: dict[str, Any]) -> dict[str, Any]:
+    summaries = [
+        dict(item.get("summary") or _single_backfill_summary(item, str(item.get("missing") or "")))
+        for item in list(report.get("reports") or [])
+        if isinstance(item, dict)
+    ]
+    failure_reasons: list[str] = []
+    for summary in summaries:
+        failure_reasons.extend(str(reason) for reason in summary.get("failure_reasons") or [] if str(reason).strip())
+    report["summary"] = {
+        "selected": sum(int(item.get("selected") or 0) for item in summaries),
+        "processed": sum(int(item.get("processed") or 0) for item in summaries),
+        "updated": sum(int(item.get("updated") or 0) for item in summaries),
+        "unchanged": sum(int(item.get("unchanged") or 0) for item in summaries),
+        "failed": sum(int(item.get("failed") or 0) for item in summaries),
+        "failure_reasons": _unique_terms(failure_reasons)[:12],
+        "pdf_completed": sum(int(item.get("pdf_completed") or 0) for item in summaries),
+        "ocr_completed": sum(int(item.get("ocr_completed") or 0) for item in summaries),
+        "attachments_completed": sum(int(item.get("attachments_completed") or 0) for item in summaries),
+        "references_added": sum(int(item.get("references_added") or 0) for item in summaries),
+        "questions_added": sum(int(item.get("questions_added") or 0) for item in summaries),
+        "lex_updated": any(bool(item.get("lex_updated")) for item in summaries),
+        "ricerca_legale_updated": any(bool(item.get("ricerca_legale_updated")) for item in summaries),
+    }
+    report["selected"] = report["summary"]["selected"]
+    report["checked"] = report["summary"]["processed"]
+    report["updated"] = report["summary"]["updated"]
+    report["unchanged"] = report["summary"]["unchanged"]
+    report["failed"] = report["summary"]["failed"]
+    return report
+
+
+def _single_backfill_summary(report: dict[str, Any], missing_kind: str) -> dict[str, Any]:
+    items = [item for item in list(report.get("items") or []) if isinstance(item, dict)]
+    processed = int(report.get("checked") or report.get("processed") or 0)
+    selected = int(report.get("selected") or len(items))
+    verification_updated = int(report.get("verification_evidence_saved") or 0)
+    enrichment_updated = int(report.get("updated") or 0)
+    updated = max(verification_updated, enrichment_updated)
+    failed_items = [item for item in items if item.get("ok") is False or item.get("error")]
+    skipped = int(report.get("skipped") or 0)
+    failure_reasons = [
+        _truncate(item.get("reason") or item.get("error") or "elemento non completato", 180)
+        for item in failed_items
+    ]
+    failure_reasons.extend(_truncate(error, 180) for error in list(report.get("errors") or []) if _clean(error))
+    if skipped:
+        failure_reasons.append("record non azionabili o fonte non attendibile")
+    failed = len(failed_items) + skipped + len(list(report.get("errors") or []))
+    quality_summary = dict((report.get("quality") or {}).get("summary") or {})
+    references_added = int(report.get("references_added") or 0)
+    questions_added = int(report.get("questions_added") or 0)
+    if missing_kind == "references" and not references_added:
+        references_added = sum(int(item.get("terms_added") or 0) for item in items if item.get("updated"))
+    if missing_kind == "questions" and not questions_added:
+        questions_added = sum(int(item.get("terms_added") or 0) for item in items if item.get("updated"))
+    pdf_completed = int(quality_summary.get("pdf_text_ready") or 0)
+    ocr_completed = sum(
+        1
+        for item in list((report.get("quality") or {}).get("items") or [])
+        if isinstance(item, dict)
+        and item.get("pdf_found")
+        and item.get("pdf_text_ready")
+        and str(item.get("ocr_status") or "") in {"pulito", "leggibile_con_note"}
+    )
+    attachments_completed = int(report.get("verification_attachments_saved") or 0)
+    unchanged = max(0, processed - updated - failed)
+    lex_updated = bool(updated or references_added or questions_added or pdf_completed or attachments_completed)
+    return {
+        "selected": selected,
+        "processed": processed,
+        "updated": updated,
+        "unchanged": unchanged,
+        "failed": failed,
+        "failure_reasons": _unique_terms(failure_reasons)[:12],
+        "pdf_completed": pdf_completed,
+        "ocr_completed": ocr_completed,
+        "attachments_completed": attachments_completed,
+        "references_added": references_added,
+        "questions_added": questions_added,
+        "lex_updated": lex_updated,
+        "ricerca_legale_updated": lex_updated,
+    }
 
 
 def _document_diagnostic(source: dict[str, Any], document: dict[str, Any]) -> dict[str, Any]:
@@ -654,6 +862,10 @@ def _backfill_evidence_enrichment(
     )
     checked = 0
     updated = 0
+    failed = 0
+    references_added = 0
+    questions_added = 0
+    failure_reasons: list[str] = []
     stopped_for_time_limit = False
     items: list[dict[str, Any]] = []
     with repository._connect() as conn:
@@ -663,63 +875,95 @@ def _backfill_evidence_enrichment(
                 break
             checked += 1
             payload = dict(row)
-            text = _clean(
-                " ".join(
-                    str(payload.get(key) or "")
-                    for key in ("title", "query", "excerpt", "content_text", "source_url", "attachment_url")
+            try:
+                text = _clean(
+                    " ".join(
+                        str(payload.get(key) or "")
+                        for key in ("title", "query", "excerpt", "content_text", "source_url", "attachment_url")
+                    )
                 )
-            )
-            references = extract_references(
-                text,
-                source_url=payload.get("source_url"),
-                attachment_url=payload.get("attachment_url"),
-                limit=24,
-            )
-            questions = generate_context_questions(
-                source_code=payload.get("source_code"),
-                title=payload.get("title") or "evidenza fonte ufficiale",
-                body=text,
-                pdf_text=payload.get("content_text") if payload.get("attachment_url") else "",
-                references=references,
-                classification=payload.get("attachment_type") or payload.get("origin"),
-                source_url=payload.get("source_url"),
-                attachment_url=payload.get("attachment_url"),
-                limit=8,
-            )
-            existing_terms = _terms_from_json(payload.get("matched_terms_json"))
-            incoming_terms = (
-                reference_labels(references, limit=16)
-                if missing == "references"
-                else [_clean(item.get("question")) for item in questions if _clean(item.get("question"))]
-            )
-            merged_terms = _unique_terms([*existing_terms, *incoming_terms])
-            changed = merged_terms != existing_terms
-            if changed:
-                conn.execute(
-                    """
-                    UPDATE web_verification_evidence
-                    SET matched_terms_json = ?, updated_at = CURRENT_TIMESTAMP
-                    WHERE id = ?
-                    """,
-                    (json.dumps(merged_terms, ensure_ascii=False), int(payload["id"])),
+                references = extract_references(
+                    text,
+                    source_url=payload.get("source_url"),
+                    attachment_url=payload.get("attachment_url"),
+                    limit=24,
                 )
-                updated += 1
-            items.append(
-                {
-                    "evidence_id": int(payload["id"]),
-                    "review_id": int(payload.get("review_id") or 0) or None,
-                    "source_code": payload.get("source_code") or "",
-                    "title": _truncate(payload.get("title"), 160),
-                    "references": len(references),
-                    "questions": len(questions),
-                    "updated": changed,
-                }
-            )
+                questions = generate_context_questions(
+                    source_code=payload.get("source_code"),
+                    title=payload.get("title") or "evidenza fonte ufficiale",
+                    body=text,
+                    pdf_text=payload.get("content_text") if payload.get("attachment_url") else "",
+                    references=references,
+                    classification=payload.get("attachment_type") or payload.get("origin"),
+                    source_url=payload.get("source_url"),
+                    attachment_url=payload.get("attachment_url"),
+                    limit=8,
+                )
+                existing_terms = _terms_from_json(payload.get("matched_terms_json"))
+                incoming_terms = (
+                    reference_labels(references, limit=16)
+                    if missing == "references"
+                    else [_clean(item.get("question")) for item in questions if _clean(item.get("question"))]
+                )
+                existing_keys = {_clean(term).casefold() for term in existing_terms if _clean(term)}
+                added_terms = [
+                    _clean(term)
+                    for term in incoming_terms
+                    if _clean(term) and _clean(term).casefold() not in existing_keys
+                ]
+                merged_terms = _unique_terms([*existing_terms, *incoming_terms])
+                changed = merged_terms != existing_terms
+                if changed:
+                    conn.execute(
+                        """
+                        UPDATE web_verification_evidence
+                        SET matched_terms_json = ?, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = ?
+                        """,
+                        (json.dumps(merged_terms, ensure_ascii=False), int(payload["id"])),
+                    )
+                    updated += 1
+                    if missing == "references":
+                        references_added += len(added_terms)
+                    else:
+                        questions_added += len(added_terms)
+                items.append(
+                    {
+                        "evidence_id": int(payload["id"]),
+                        "review_id": int(payload.get("review_id") or 0) or None,
+                        "source_code": payload.get("source_code") or "",
+                        "title": _truncate(payload.get("title"), 160),
+                        "references": len(references),
+                        "questions": len(questions),
+                        "terms_added": len(added_terms) if changed else 0,
+                        "updated": changed,
+                        "ok": True,
+                    }
+                )
+            except Exception as exc:
+                failed += 1
+                reason = f"Evidenza non completata: {_truncate(exc)}"
+                failure_reasons.append(reason)
+                items.append(
+                    {
+                        "evidence_id": int(payload.get("id") or 0),
+                        "review_id": int(payload.get("review_id") or 0) or None,
+                        "source_code": payload.get("source_code") or "",
+                        "title": _truncate(payload.get("title"), 160),
+                        "updated": False,
+                        "ok": False,
+                        "error": reason,
+                    }
+                )
         conn.commit()
     return {
         "ok": True,
         "checked": checked,
         "updated": updated,
+        "failed": failed,
+        "references_added": references_added,
+        "questions_added": questions_added,
+        "failure_reasons": _unique_terms(failure_reasons)[:12],
         "selected": len(rows),
         "stopped_for_time_limit": stopped_for_time_limit,
         "duration_seconds": round(time.monotonic() - started, 2),
@@ -1006,7 +1250,7 @@ def _time_exhausted(started: float, max_seconds: int) -> bool:
 
 
 def _utc_now_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 @contextmanager

@@ -7,6 +7,14 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.48 - 2026-05-19
+
+- Completata la Fase 7 di backfill mirato PDF/OCR/riferimenti/domande senza backup, senza Web libero, senza pubblicazione automatica e senza scansione globale non limitata.
+- `legal-updates-backfill-diagnostics --missing` accetta ora liste separate da virgole, ad esempio `attachments,ocr,references,questions`, e restituisce un riepilogo macchina con selezionati, processati, aggiornati, invariati, falliti, motivi, PDF/OCR, riferimenti, domande, Lex e Ricerca Legale.
+- Reso l'output CLI robusto in UTF-8 su Windows, evitando errori di stampa JSON quando i contenuti ufficiali contengono caratteri non rappresentabili in `cp1252`.
+- Backfill reale: 50 evidenze controllate per riferimenti, 14 aggiornate, 20 riferimenti aggiunti, 0 fallimenti; allegati/OCR e Cassazione specifica risultano già completi nel perimetro selezionato.
+- Salvati report e JSON diagnostici in `artifacts/legal-updates/phase7-backfill-2026-05-19/`; test mirati backfill, OCR, allegati, corpus Lex, Ricerca Legale, governance, UTF-8 e whitespace verdi.
+
 ## 2.245.47 - 2026-05-19
 
 - Completata la Fase 6 normativa e archivi base senza backup, download ciechi o import massivo: gli archivi Normattiva/Gazzetta già presenti vengono verificati, collegati e interrogati in modo incrementale.

@@ -40,6 +40,8 @@ Aggiornamento 2026-05-19, Fase 5 fonti verdi 2.245.46: il repository fonti uffic
 
 Aggiornamento 2026-05-19, Fase 6 normativa e archivi base 2.245.47: Lex deve interrogare gli archivi Normattiva/Gazzetta locali prima dei fallback esterni quando la domanda è normativa. Le query sui codici fondamentali riconoscono codice e articolo e, se il DB non ha il chunk autonomo, leggono il raw ZIP Normattiva già presente senza inventare URL. Gazzetta viene deduplicata per documento. EUR-Lex resta fonte UE ufficiale `RAG-only` finché il parser CELEX non è stabilizzato; Studio Cataldi e Avvocato Andreani restano fuori dal corpus ufficiale.
 
+Aggiornamento 2026-05-19, Fase 7 backfill mirato 2.245.48: gli aggiornamenti legali possono essere completati con `legal-updates-backfill-diagnostics --missing` singolo o multiplo, sempre con limite e `--no-publish`. La fase reale ha confermato 0 PDF/OCR mancanti nel perimetro, 14 evidenze aggiornate con 20 riferimenti aggiunti e nessuna domanda contestuale mancante. Lex e Ricerca Legale devono considerare aggiornato il contesto delle evidenze modificate, ma non devono pubblicare, promuovere RAG-only o inventare sintesi in assenza di testo fonte.
+
 ## Regole di accesso
 
 - Tenant: ricavato dal contesto Flask (`g.tenant`, `g.tenant_context_slug`, `g.data_paths`) o da contesto applicativo esplicito nei test.

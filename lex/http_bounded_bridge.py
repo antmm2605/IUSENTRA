@@ -748,6 +748,13 @@ def build_bounded_http_payload(
     studio_context = dict(studio_context or {})
     studio_context.setdefault("effective_question", resolved_effective_question)
     free_web_enabled = _manual_free_web_enabled(data, studio_context)
+    if (
+        _payload_flag(data.get("allow_unbounded_generation"))
+        and not _governed_only_enabled()
+        and not list(attachments or [])
+        and not free_web_enabled
+    ):
+        return None
     if not _should_use_bounded_workflow(attachments=attachments, studio_context=studio_context):
         return None
 

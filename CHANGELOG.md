@@ -7,6 +7,10 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.56 - 2026-05-19
+
+- Preservata la modalità companion locale autorizzata: con `LEX_GOVERNED_ONLY=0`, `LEX_RAW_CHAT_ENABLED=1` e `allow_unbounded_generation`, il focus fascicolo non viene assorbito dal workflow bounded.
+
 ## 2.245.55 - 2026-05-19
 
 - Rafforzato Lex sul contesto operativo dello studio senza addestramento grezzo: il nuovo intento `studio_context_lookup` instrada richieste come "usa tutto il contesto studio" verso Operational Knowledge e Ricerca Studio, mantenendo tenant, permessi e audit.

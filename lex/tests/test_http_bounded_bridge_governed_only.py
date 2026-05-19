@@ -44,13 +44,15 @@ def _base_context(**overrides):
     return payload
 
 
-def _call(studio_context, monkeypatch, *, question="Che cosa devo fare oggi?", attachments=None):
+def _call(studio_context, monkeypatch, *, question="Che cosa devo fare oggi?", attachments=None, data=None):
     service = DummyLexService()
     monkeypatch.setattr("lex.http_bounded_bridge._application_lex_service", lambda: service)
+    request_data = {"session_id": "sess"}
+    request_data.update(data or {})
     payload = build_bounded_http_payload(
         user=SimpleNamespace(username="utente"),
         studio=SimpleNamespace(slug="studio"),
-        data={"session_id": "sess"},
+        data=request_data,
         current_user_message=question,
         resolved_effective_question=question,
         studio_context=studio_context,
@@ -67,6 +69,22 @@ def test_governed_only_instrada_richiesta_operativa_generica(monkeypatch):
     assert payload is not None
     assert service.last_request is not None
     assert service.last_request.intent == "ask_lex"
+
+
+def test_modalita_companion_autorizzata_non_viene_assorbita_dai_focus_operativi(monkeypatch):
+    monkeypatch.setenv("LEX_GOVERNED_ONLY", "0")
+    monkeypatch.setenv("LEX_RAW_CHAT_ENABLED", "1")
+    context = _base_context(focus_topic="fascicoli", focus_label="procedimenti attivi")
+
+    payload, service = _call(
+        context,
+        monkeypatch,
+        question="Qual e' la prossima attivita' operativa?",
+        data={"allow_unbounded_generation": True, "fascicolo_id": "fas-1"},
+    )
+
+    assert payload is None
+    assert service.last_request is None
 
 
 def test_governed_only_instrada_normativa_senza_focus_esplicito(monkeypatch):

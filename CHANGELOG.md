@@ -7,6 +7,15 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.43 - 2026-05-19
+
+- Eseguita la tornata canary no-publish sulle dieci fonti richieste con `--limit 3`, `--max-seconds 90`, `--direct-only`, diagnostica salvata e report verde/giallo/rosso in `artifacts/legal-updates/canary-report-2026-05-19.md`.
+- Corretto il parser Gazzetta Ufficiale: usa l'elenco ufficiale degli ultimi 30 giorni della Serie Generale e costruisce link PDF non criptati senza passare dalla homepage o da paginazioni lente.
+- Corretto `inps_messaggi`: il feed RSS pubblico risponde con contenuti incoerenti, quindi la fonte ora usa l'API elenco della pagina ufficiale e filtra solo elementi `Messaggio`, con dettaglio e verifica allegati dove presenti.
+- Rafforzati filtri e ranking fonte-specifici per AGCOM, ANAC e Garante: entrano provvedimenti, delibere, pareri e docweb ufficiali; restano fuori navigazione, social, trasparenza e servizi.
+- Migliorata la diagnostica canary per elementi invariati, che ora riporta comunque documento normalizzato, `review_id` e qualità evidenze; ripulita la gestione UTF-8/mojibake in parser e report.
+- Aggiunti test mirati per parser Gazzetta, INPS messaggi via API, AGCOM/ANAC/Garante, Curia CGUE, fallback feed e riparazione mojibake, preservando i check CI shardati senza reintrodurre aggregatori coverage obsoleti.
+
 ## 2.245.42 - 2026-05-19
 
 - Aggiunti gli strumenti sicuri `python -m pct.cli legal-updates-canary` e `python -m pct.cli legal-updates-backfill-diagnostics` per provare una sola fonte o arricchire evidenze mirate con limiti obbligatori, budget tempo, `--no-publish`, `--direct-only`, diagnostica JSON e nessun import massivo.

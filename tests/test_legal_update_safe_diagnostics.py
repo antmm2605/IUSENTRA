@@ -12,6 +12,7 @@ from pct.legal_update_diagnostics import (
     run_legal_updates_canary,
 )
 from pct.legal_update_pipeline import build_legal_update_pipeline
+from pct.legal_reference_extractor import extract_references, reference_labels
 
 
 FIXTURES = Path(__file__).parent / "fixtures" / "legal_updates"
@@ -271,3 +272,11 @@ def test_cli_canary_e_backfill_supportano_json_e_limiti(monkeypatch):
     assert json.loads(canary.output)["source_code"] == "normattiva"
     assert backfill.exit_code == 0, backfill.output
     assert json.loads(backfill.output)["missing"] == "references"
+
+
+def test_reference_extractor_riconosce_cause_cgue():
+    refs = extract_references("Sentenza della Corte nella causa C-155/25 e causa T-24/25.")
+    labels = reference_labels(refs, allowed_types=("eu_case",))
+
+    assert "causa C-155/25" in labels
+    assert "causa T-24/25" in labels

@@ -300,8 +300,8 @@ SOURCE_CAPABILITIES: dict[str, SourceCapability] = {
     ),
     "inps_messaggi": _cap(
         "inps_messaggi",
-        item_strategy="feed_items",
-        detail_strategy="feed_detail_if_poor",
+        item_strategy="inps_search_api",
+        detail_strategy="detail_html",
         attachment_strategy="official_pdf_links",
         publication_destination="prassi_or_news",
         rag_destination="official_prassi_rag",
@@ -601,7 +601,10 @@ def source_exclusion_reason(
     text = _haystack(title, body_text, url, source.get("category"))
     if capability.publication_destination == "out_of_scope":
         return "Fonte secondaria non ufficiale: resta fuori dal corpus ufficiale e si usa solo con Web libero manuale."
-    if any(marker in text for marker in NAVIGATION_MARKERS) and not has_structured_reference:
+    navigation_markers = NAVIGATION_MARKERS
+    if code == "garante_privacy":
+        navigation_markers = tuple(marker for marker in NAVIGATION_MARKERS if marker != "newsletter")
+    if any(marker in text for marker in navigation_markers) and not has_structured_reference:
         return "Pagina di navigazione, privacy, cookie, contatti o supporto: non pubblicabile come aggiornamento."
     if any(marker in text for marker in ACCOUNTING_LOW_VALUE_MARKERS) and not _has_positive_legal_context(text):
         return "Atto contabile interno senza ricorso, appalto, contenzioso o sanzione: fuori perimetro studio legale."

@@ -2369,6 +2369,21 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python3 /tmp/purge_downloaded_mailboxes.py --data-root /opt/iusentra/data --apply` su Hetzner | OK | Recuperati 36.7 GiB cancellando solo PEC/email ordinaria scaricate, allegati e stati di risincronizzazione; configurazioni casella preservate. |
 | `python scripts\purge_downloaded_mailboxes.py --data-root data --apply` locale | OK | Recuperati 30.1 GiB localmente con la stessa procedura governata; non sono stati toccati i file configurazione studio. |
 
+## Canary controllato fonti legali 2.245.43 - 2026-05-19
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pct.cli legal-updates-canary --source <fonte> --limit 3 --max-seconds 90 --no-publish --direct-only --save-diagnostics --json` su Cassazione, Gazzetta, INPS circolari, INPS messaggi, AGCOM, ANAC, Garante, PST, OpenGA sentenze e Curia | OK | Tutte le run no-publish completate con diagnostica JSON UTF-8 in `artifacts/legal-updates/canary-2026-05-19/`; report verde/giallo/rosso in `artifacts/legal-updates/canary-report-2026-05-19.md`. |
+| `python -m py_compile pct/legal_update_pipeline.py pct/legal_update_repository.py pct/legal_update_web_verification.py pct/legal_update_autofetch.py pct/legal_update_batch_runner.py pct/legal_update_source_parsers.py pct/legal_update_source_capabilities.py pct/legal_update_diagnostics.py pct/legal_reference_extractor.py web/blueprints/legal_updates_admin.py web/services/legal_update_surface.py lex/retrieval/sources/legal_updates.py` | OK | Sintassi confermata dopo parser Gazzetta, INPS messaggi API, diagnostica invariati e riparazione UTF-8. |
+| `python -m pytest tests/test_legal_update_source_parsers.py tests/test_legal_update_safe_diagnostics.py tests/test_legal_update_source_capabilities.py tests/test_legal_updates_pipeline.py::test_fonte_inps_messaggi_usa_pagina_operativa tests/test_legal_updates_pipeline.py::test_fonti_default_includono_pagina_cassazione_ultime_sent_ord_e_questioni -q --tb=short` | OK | 25/25 passati: fixture/parser per Gazzetta, INPS messaggi, AGCOM, ANAC, Garante, Curia e diagnostica canary. |
+| `python -m pytest tests/test_legal_updates_pipeline.py -q --tb=short` | OK | 41/41 passati dopo allineamento fixture Gazzetta e policy `inps_messaggi` HTML/API. |
+| `python -m pytest tests/test_legal_update_publish_context.py tests/test_legal_update_web_verification_attachments.py tests/test_document_intelligence_extraction.py -q --tb=short` | OK | 36/36 passati: pubblicazione contestuale, allegati/PDF e Document Intelligence invariati. |
+| `python -m pytest tests/test_lex_source_corpus_generator.py tests/test_react_legal_intelligence_search.py -q --tb=short` | OK | 24/24 passati: corpus Lex e payload Ricerca Legale compatibili con evidenze PDF/OCR/domande. |
+| `python -m pytest tests/test_legal_update_autofetch.py tests/test_legal_update_surface_jobs.py tests/test_legal_update_job_queue.py tests/test_legal_update_batch_runner.py -q --tb=short` | OK | 18/18 passati: job/autofetch/batch runner restano separati per fonte e non massivi. |
+| `python -m pytest tests/test_ci_coverage_config.py tests/test_ci_no_regression_contract.py -q --tb=short` | OK | 7/7 passati: confermati gli shard CI divisi; nessun vecchio aggregatore `Coverage moduli critici` senza `parte` reintrodotto. |
+| `python tools/check_repo_governance.py`; `python -m pytest tests/test_utf8_integrity.py -q --tb=short`; `python -m pct.cli utf8-integrity --check-only ... --json`; `git diff --check` | OK | Governance repo, test UTF-8, scan UTF-8 mirato e whitespace diff check verdi. |
+| `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py docs/openapi.yaml`; `python scripts/verify_openapi_provider.py`; `python scripts/react-migration/generate_app_v2_test_docs.py --check`; `python tools/sync_packaging_files.py --check`; `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q --tb=short` | OK | Contratti/documenti/versione `2.245.43`, packaging e readiness allineati. |
+
 ## Ricerca Legale pratica e Cassazione catalogata 2.245.29 - 2026-05-18
 
 | Comando / verifica | Esito | Nota |

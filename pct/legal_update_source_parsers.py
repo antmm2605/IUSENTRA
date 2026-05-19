@@ -23,8 +23,13 @@ RequestGet = Callable[..., Any]
 HTML_DATE_RE = re.compile(r"\b([0-3]?\d/[01]?\d/[12]\d{3})\b")
 PAGER_FRAME_RE = re.compile(r'parametriUrl\("(?P<element>[^"]+)",\s*"(?P<page>[^"]+)"\)')
 ATTACHMENT_EXTENSIONS = (".pdf", ".xml", ".doc", ".docx", ".odt", ".rtf", ".txt", ".zip")
-ATTACHMENT_LABELS = ("pdf", "allegato", "scarica", "download", "testo", "documento", "provvedimento")
+ATTACHMENT_LABELS = ("pdf", "allegato", "scarica", "download", "testo", "documento ufficiale")
 CASSAZIONE_LATEST_SOURCE_CODE = "cassazione_ultime_sent_ord_questioni"
+GAZZETTA_SOURCE_CODE = "gazzetta_ufficiale"
+GAZZETTA_SERIE_GENERALE_URL = "https://www.gazzettaufficiale.it/30giorni/serie_generale"
+INPS_MESSAGGI_SOURCE_CODE = "inps_messaggi"
+INPS_CIRCOLARI_MESSAGGI_PARENT = "/content/dam/inps-site/it/scorporati/circolari-e-messaggi"
+INPS_CIRCOLARI_MESSAGGI_API = "https://www.inps.it/content/scorporati/search/jcr:content.search.{selectors}.json"
 CASSAZIONE_LATEST_CATEGORY_MARKERS = (
     "giurisprudenza_penale.page",
     "giurisprudenza_civile.page",
@@ -42,32 +47,43 @@ CASSAZIONE_DETAIL_URL_MARKERS = (
 
 
 def fetch_source_documents(source: dict[str, Any], *, request_get: RequestGet) -> list[dict[str, Any]]:
-    response = _request(source["base_url"], request_get=request_get)
+    listing_url = _source_listing_url(source)
+    response = _request(listing_url, request_get=request_get)
     content_type = _header(response, "content-type")
     text = _response_text(response)
     parser_type = _clean_spaces(source.get("parser_type")).lower()
     capability = get_source_capability(source.get("code"), category=source.get("category"))
 
-    if parser_type == "ckan_json" or capability.item_strategy == "ckan_package_resources":
-        docs = _extract_ckan_items(source, source["base_url"], text, request_get=request_get)
+    source_code = _clean_spaces(source.get("code")).lower()
+
+    if source_code == GAZZETTA_SOURCE_CODE:
+        docs = _extract_gazzetta_items(source, listing_url, text)
+    elif source_code == INPS_MESSAGGI_SOURCE_CODE:
+        docs = _extract_inps_circolari_messaggi_api(source, listing_url, text, tipo="Messaggio")
+        docs = _fetch_detail_pages(source, docs, request_get=request_get)
+    elif parser_type == "ckan_json" or capability.item_strategy == "ckan_package_resources":
+        docs = _extract_ckan_items(source, listing_url, text, request_get=request_get)
     elif parser_type in {"feed", "rss", "atom"} or _looks_like_feed(text, content_type):
-        docs = _extract_feed_items(source, source["base_url"], text, request_get=request_get)
+        docs = _extract_feed_items(source, listing_url, text, request_get=request_get)
     elif _clean_spaces(source.get("code")).lower() == CASSAZIONE_LATEST_SOURCE_CODE:
         docs = _extract_cassazione_latest(source, text, request_get=request_get)
     else:
-        docs = _extract_html_listing(source, source["base_url"], text)
+        docs = _filter_source_documents(source, _extract_html_listing(source, listing_url, text))
         docs = _fetch_detail_pages(source, docs, request_get=request_get)
         for page in _extract_pager_frames(text):
-            page_url = _set_query_param(source["base_url"], "frame3_item", page)
+            page_url = _set_query_param(listing_url, "frame3_item", page)
             try:
                 page_response = _request(page_url, request_get=request_get)
             except Exception:
                 continue
             page_docs = _extract_html_listing(source, page_url, _response_text(page_response))
+            page_docs = _filter_source_documents(source, page_docs)
             docs.extend(_fetch_detail_pages(source, page_docs, request_get=request_get))
-        docs = _merge_unique_documents(docs)
+        docs = _filter_source_documents(source, _merge_unique_documents(docs))
 
-    if not docs:
+    docs = _filter_source_documents(source, docs)
+
+    if not docs and not _strict_no_fallback_source(source):
         docs = [_fallback_document(source, text)]
     http_status = int(getattr(response, "status_code", 200) or 0)
     for row in docs:
@@ -97,15 +113,93 @@ def _header(response: Any, name: str) -> str:
 
 
 def _response_text(response: Any) -> str:
+    if hasattr(response, "content"):
+        content = bytes(response.content or b"")
+        if content:
+            candidates: list[str] = []
+            header = _header(response, "content-type")
+            charset_match = re.search(r"charset=([^;\s]+)", header, flags=re.I)
+            for value in (
+                getattr(response, "encoding", None),
+                charset_match.group(1) if charset_match else "",
+                getattr(response, "apparent_encoding", None),
+                "utf-8",
+                "windows-1252",
+                "iso-8859-1",
+            ):
+                encoding = _clean_spaces(value).lower()
+                if encoding and encoding not in candidates:
+                    candidates.append(encoding)
+            decoded = [_decode_candidate(content, encoding) for encoding in candidates]
+            if decoded:
+                return min(decoded, key=_decode_penalty)
     if hasattr(response, "text"):
         return str(response.text or "")
-    if hasattr(response, "content"):
-        return bytes(response.content or b"").decode("utf-8", errors="ignore")
     return ""
 
 
+def _decode_candidate(content: bytes, encoding: str) -> str:
+    try:
+        return content.decode(encoding, errors="replace")
+    except (LookupError, UnicodeDecodeError):
+        return content.decode("utf-8", errors="replace")
+
+
+def _decode_penalty(text: str) -> tuple[int, int]:
+    lowered = text.lower()
+    mojibake = sum(
+        lowered.count(marker)
+        for marker in (
+            "\u00e3",
+            "\u00e2",
+            "\u00c3",
+            "\u00c2",
+            "\u00e2\u20ac",
+            "\u00e2\u20ac\u2122",
+            "\u00ef\u00bf\u00bd",
+            "\ufffd",
+        )
+    )
+    return (mojibake, text.count("\ufffd"))
+
+
+def _source_listing_url(source: dict[str, Any]) -> str:
+    code = _clean_spaces(source.get("code")).lower()
+    if code == GAZZETTA_SOURCE_CODE:
+        return GAZZETTA_SERIE_GENERALE_URL
+    if code == INPS_MESSAGGI_SOURCE_CODE:
+        return _inps_circolari_messaggi_api_url(limit=20)
+    return _clean_spaces(source.get("base_url"))
+
+
 def _clean_spaces(value: Any) -> str:
-    return " ".join(str(value or "").split()).strip()
+    repaired = _repair_mojibake(str(value or ""))
+    return " ".join(repaired.split()).strip()
+
+
+def _repair_mojibake(text: str) -> str:
+    if not text:
+        return ""
+    if not any(
+        marker in text
+        for marker in (
+            "\u00c3",
+            "\u00c2",
+            "\u00e2\u20ac",
+            "\u00e2\u20ac\u2122",
+            "\u00e2\u20ac\u0153",
+            "\u00ef\u00bf\u00bd",
+            "\ufffd",
+        )
+    ):
+        return text
+    candidates = [text]
+    for encoding in ("latin-1", "windows-1252"):
+        try:
+            candidates.append(text.encode(encoding, errors="strict").decode("utf-8", errors="replace"))
+        except (UnicodeEncodeError, UnicodeDecodeError, LookupError):
+            continue
+    return min(candidates, key=_decode_penalty)
 
 
 def _env_int(name: str, default: int) -> int:
@@ -162,7 +256,7 @@ def _extract_feed_items(source: dict[str, Any], base_url: str, content: str, *, 
         return []
     docs: list[dict[str, Any]] = []
     for item in root.findall(".//item") + root.findall(".//{*}entry"):
-        title = _clean_spaces(item.findtext("title") or item.findtext("{*}title"))
+        title = _clean_feed_title(source, item.findtext("title") or item.findtext("{*}title"))
         link = _clean_spaces(item.findtext("link") or item.findtext("{*}link"))
         if not link:
             link_node = item.find("{*}link")
@@ -192,6 +286,15 @@ def _extract_feed_items(source: dict[str, Any], base_url: str, content: str, *, 
             _merge_detail(source, row, absolute_url, request_get=request_get)
         docs.append(row)
     return _merge_unique_documents(docs)
+
+
+def _clean_feed_title(source: dict[str, Any], value: Any) -> str:
+    title = _clean_spaces(value)
+    code = _clean_spaces(source.get("code")).lower()
+    if code == "curia_cgue_rss":
+        cleaned = re.sub(r"^\d+\/.+:\s*(?:null\s*-\s*)?", "", title, flags=re.I).strip()
+        return cleaned or title
+    return title
 
 
 def _extract_html_listing(source: dict[str, Any], base_url: str, content: str) -> list[dict[str, Any]]:
@@ -275,6 +378,202 @@ def _extract_html_listing(source: dict[str, Any], base_url: str, content: str) -
     ]
 
 
+def _extract_gazzetta_items(source: dict[str, Any], base_url: str, content: str) -> list[dict[str, Any]]:
+    try:
+        tree = lxml_html.fromstring(content)
+    except (ValueError, TypeError):
+        return []
+    rows_by_key: dict[str, dict[str, Any]] = {}
+    for anchor in tree.xpath("//a[@href]"):
+        href = _clean_spaces(anchor.attrib.get("href"))
+        label = _clean_spaces(anchor.text_content())
+        if "downloadPdf" not in href and "pdfPaginato" not in href:
+            continue
+        absolute = _normalize_document_url(urljoin(base_url, href))
+        params = dict(parse_qsl(urlsplit(absolute).query, keep_blank_values=True))
+        issue_date = _clean_spaces(params.get("dataPubblicazioneGazzetta"))
+        issue_number = _clean_spaces(params.get("numeroGazzetta"))
+        issue_series = _clean_spaces(params.get("tipoSerie") or "SG")
+        if not issue_date or not issue_number:
+            continue
+        key = "|".join(
+            _clean_spaces(params.get(name))
+            for name in (
+                "dataPubblicazioneGazzetta",
+                "numeroGazzetta",
+                "tipoSerie",
+                "tipoSupplemento",
+                "numeroSupplemento",
+                "progressivo",
+                "edizione",
+            )
+        )
+        download_url = _gazzetta_download_url(absolute, params)
+        detail_url = _gazzetta_detail_url(absolute, params)
+        title = _gazzetta_title(issue_date, issue_number, issue_series, params)
+        body = _clean_spaces(
+            f"{title}. Fascicolo ufficiale della Gazzetta Ufficiale, serie {issue_series}, "
+            f"pubblicato il {_gazzetta_date_it(issue_date)}. Allegato PDF ufficiale disponibile."
+        )
+        row = {
+            "external_id": _sha256(f"{source.get('code')}|{key}|{download_url}"),
+            "source_url": detail_url,
+            "title": title,
+            "published_at": _gazzetta_iso_date(issue_date),
+            "raw_html": "",
+            "raw_text": body,
+            "body_short": _truncate(body),
+            "attachments_json": [
+                {
+                    "title": label if "criptato" not in label.lower() else "Download PDF",
+                    "url": download_url,
+                    "attachment_type": "pdf",
+                }
+            ],
+        }
+        existing = rows_by_key.get(key)
+        if existing:
+            existing_url = _clean_spaces((existing.get("attachments_json") or [{}])[0].get("url")).lower()
+            incoming_url = download_url.lower()
+            if "pdf.p7m" in incoming_url and "pdf.p7m" not in existing_url:
+                continue
+        rows_by_key[key] = row
+    rows = list(rows_by_key.values())
+    rows.sort(key=lambda row: row.get("published_at") or "", reverse=True)
+    if not rows and "<article" in content.lower():
+        return _extract_html_listing(source, base_url, content)
+    return rows
+
+
+def _extract_inps_circolari_messaggi_api(
+    source: dict[str, Any],
+    base_url: str,
+    content: str,
+    *,
+    tipo: str,
+) -> list[dict[str, Any]]:
+    try:
+        payload = json.loads(content)
+    except (TypeError, ValueError):
+        return []
+    rows = ((payload.get("data") or {}).get("results") or []) if isinstance(payload, dict) else []
+    docs: list[dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        row_type = _clean_spaces(row.get("tipo"))
+        if row_type.lower() != tipo.lower():
+            continue
+        selector = _clean_spaces(row.get("selectors"))
+        number = _clean_spaces(row.get("numero"))
+        published = _clean_spaces(row.get("dataPubblicazione"))
+        subject = _clean_spaces(row.get("oggetto"))
+        if not selector or not number:
+            continue
+        title = f"{tipo} numero {number}"
+        if published:
+            title = f"{title} del {published}"
+        detail_url = (
+            "https://www.inps.it/it/it/inps-comunica/atti/circolari-messaggi-e-normativa/"
+            f"dettaglio.{selector}.html"
+        )
+        body = _clean_spaces(f"{title}. {subject}")
+        docs.append(
+            {
+                "external_id": _sha256(f"{source.get('code')}|{selector}"),
+                "source_url": detail_url,
+                "title": title,
+                "published_at": _parse_pub_date(published),
+                "raw_html": "",
+                "raw_text": body,
+                "body_short": _truncate(body),
+                "attachments_json": [],
+            }
+        )
+    return _merge_unique_documents(docs)
+
+
+def _inps_circolari_messaggi_api_url(*, limit: int) -> str:
+    selectors = ".".join(
+        _clean_spaces(value).encode("utf-8").hex()
+        for value in (
+            INPS_CIRCOLARI_MESSAGGI_PARENT,
+            "0",
+            str(max(1, int(limit or 10))),
+            "giorno",
+            "DESC",
+            "circolari-e-messaggi",
+        )
+    )
+    return INPS_CIRCOLARI_MESSAGGI_API.format(selectors=selectors)
+
+
+def _gazzetta_download_url(url: str, params: dict[str, str]) -> str:
+    split = urlsplit(url)
+    clean = {
+        name: params.get(name)
+        for name in (
+            "dataPubblicazioneGazzetta",
+            "numeroGazzetta",
+            "tipoSerie",
+            "tipoSupplemento",
+            "numeroSupplemento",
+            "progressivo",
+            "estensione",
+            "edizione",
+        )
+        if params.get(name)
+    }
+    clean.setdefault("tipoSupplemento", "GU")
+    clean.setdefault("numeroSupplemento", "0")
+    clean.setdefault("progressivo", "0")
+    clean.setdefault("estensione", "pdf")
+    clean.setdefault("edizione", "0")
+    return urlunsplit((split.scheme, split.netloc, "/do/gazzetta/downloadPdf", urlencode(clean), ""))
+
+
+def _gazzetta_detail_url(url: str, params: dict[str, str]) -> str:
+    split = urlsplit(url)
+    clean = {
+        "dataPubblicazioneGazzetta": _gazzetta_iso_date(params.get("dataPubblicazioneGazzetta") or ""),
+        "numeroGazzetta": params.get("numeroGazzetta") or "",
+        "elenco30giorni": "true",
+    }
+    return urlunsplit((split.scheme, split.netloc, "/gazzetta/serie_generale/caricaDettaglio", urlencode(clean), ""))
+
+
+def _gazzetta_title(issue_date: str, issue_number: str, issue_series: str, params: dict[str, str]) -> str:
+    supplement = _clean_spaces(params.get("tipoSupplemento"))
+    supplement_number = _clean_spaces(params.get("numeroSupplemento"))
+    suffix = f" ({supplement} n. {supplement_number})" if supplement and supplement != "GU" and supplement_number else ""
+    return f"Gazzetta Ufficiale - {_gazzetta_series_label(issue_series)} n. {issue_number} del {_gazzetta_date_it(issue_date)}{suffix}"
+
+
+def _gazzetta_series_label(value: str) -> str:
+    return {
+        "SG": "Serie Generale",
+        "1SS": "1a Serie Speciale",
+        "2SS": "2a Serie Speciale",
+        "3SS": "3a Serie Speciale",
+        "4SS": "4a Serie Speciale",
+        "5SS": "5a Serie Speciale",
+    }.get((value or "").upper(), value or "Serie")
+
+
+def _gazzetta_iso_date(value: str) -> str:
+    text = _clean_spaces(value)
+    if re.fullmatch(r"\d{8}", text):
+        return f"{text[0:4]}-{text[4:6]}-{text[6:8]}"
+    return text
+
+
+def _gazzetta_date_it(value: str) -> str:
+    text = _clean_spaces(value)
+    if re.fullmatch(r"\d{8}", text):
+        return f"{text[6:8]}/{text[4:6]}/{text[0:4]}"
+    return text
+
+
 def _fetch_detail_pages(source: dict[str, Any], docs: list[dict[str, Any]], *, request_get: RequestGet) -> list[dict[str, Any]]:
     detail_limit = _env_int("IUSENTRA_LEGAL_DETAIL_MAX_ITEMS", 30)
     fetched = 0
@@ -286,6 +585,98 @@ def _fetch_detail_pages(source: dict[str, Any], docs: list[dict[str, Any]], *, r
         if _merge_detail(source, row, _clean_spaces(row.get("source_url")), request_get=request_get):
             fetched += 1
     return _merge_unique_documents(docs)
+
+
+def _filter_source_documents(source: dict[str, Any], docs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    code = _clean_spaces(source.get("code")).lower()
+    if not docs:
+        return []
+    filtered: list[dict[str, Any]] = []
+    for row in docs:
+        reason = _source_specific_exclusion_reason(code, row)
+        if reason:
+            row["source_exclusion_reason"] = reason
+            continue
+        filtered.append(row)
+    if code in {"agcom_provvedimenti", "anac_documenti", "garante_privacy"}:
+        filtered.sort(key=lambda row: _source_document_score(code, row), reverse=True)
+    return _dedupe_by_url(filtered)
+
+
+def _dedupe_by_url(docs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows: dict[str, dict[str, Any]] = {}
+    for row in docs:
+        key = _normalize_document_url(_clean_spaces(row.get("source_url"))) or _clean_spaces(row.get("external_id"))
+        if not key:
+            continue
+        previous = rows.get(key)
+        if not previous:
+            rows[key] = row
+            continue
+        if _source_document_score(_clean_spaces(row.get("source_code")), row) >= _source_document_score(_clean_spaces(previous.get("source_code")), previous):
+            if len(_clean_spaces(row.get("raw_text"))) >= len(_clean_spaces(previous.get("raw_text"))):
+                rows[key] = row
+    return list(rows.values())
+
+
+def _source_specific_exclusion_reason(code: str, row: dict[str, Any]) -> str:
+    blob = _clean_spaces(f"{row.get('title')} {row.get('raw_text')} {row.get('source_url')}").lower()
+    url = _clean_spaces(row.get("source_url")).lower()
+    if code == "agcom_provvedimenti":
+        if "agcom.it/provvedimenti/" not in url and "/provvedimenti/" not in url:
+            return "Link AGCOM di navigazione o servizio: non è un provvedimento."
+        if any(marker in blob for marker in ("autorità trasparente", "quadro legislativo", "archivio dei provvedimenti")):
+            return "Pagina AGCOM di navigazione: non è un provvedimento operativo."
+        if not any(marker in blob for marker in ("delibera", "determina", "provvedimento", "sanzion", "controvers", "corecom", "tutela utenti", "diritto d'autore", "comunicazione")):
+            return "Voce AGCOM senza estremi di provvedimento, sanzione o controversia."
+    if code == "anac_documenti":
+        if "anticorruzione.it/-/" not in url and "/-/" not in url:
+            return "Link ANAC di navigazione o servizio: non è un documento."
+        if not any(marker in blob for marker in ("delibera", "parere", "precontenzioso", "atto del presidente", "atto a firma", "comunicato", "bando tipo", "linee guida")):
+            return "Voce ANAC senza estremi di delibera, parere, atto o comunicato operativo."
+    if code == "garante_privacy":
+        if "docweb-display/docweb" not in url:
+            return "Link Garante di navigazione, social o servizio: non è una newsletter/provvedimento."
+        if not any(marker in blob for marker in ("newsletter", "provvedimento", "sanzion", "privacy", "garante")):
+            return "Voce Garante senza contenuto privacy operativo."
+    if code == "inps_messaggi":
+        title_url = _clean_spaces(f"{row.get('title')} {row.get('source_url')}").lower()
+        if "messaggio-numero" not in title_url and "messaggio numero" not in title_url:
+            return "Voce INPS diversa da messaggio operativo."
+    if code == "inps_circolari":
+        title_url = _clean_spaces(f"{row.get('title')} {row.get('source_url')}").lower()
+        if "circolare-numero" not in title_url and "circolare numero" not in title_url:
+            return "Voce INPS diversa da circolare operativa."
+    return ""
+
+
+def _source_document_score(code: str, row: dict[str, Any]) -> int:
+    blob = _clean_spaces(f"{row.get('title')} {row.get('raw_text')} {row.get('source_url')}").lower()
+    score = 0
+    markers = {
+        "agcom_provvedimenti": ("delibera", "determina", "provvedimento", "sanzion", "controvers", "corecom", "tutela utenti", "diritto d'autore"),
+        "anac_documenti": ("delibera", "parere", "precontenzioso", "atto del presidente", "bando tipo", "linee guida"),
+        "garante_privacy": ("newsletter", "provvedimento", "sanzion", "docweb"),
+    }.get(code, ())
+    for marker in markers:
+        if marker in blob:
+            score += 10
+    if re.search(r"\b\d+/\d{2,4}\b|\bn\.\s*\d+", blob):
+        score += 5
+    if row.get("published_at"):
+        score += 3
+    return score
+
+
+def _strict_no_fallback_source(source: dict[str, Any]) -> bool:
+    if _clean_spaces(source.get("parser_type")).lower() in {"feed", "rss", "atom"}:
+        return True
+    return _clean_spaces(source.get("code")).lower() in {
+        GAZZETTA_SOURCE_CODE,
+        "agcom_provvedimenti",
+        "anac_documenti",
+        "garante_privacy",
+    }
 
 
 def _should_fetch_detail(source: dict[str, Any], row: dict[str, Any]) -> bool:
@@ -377,6 +768,8 @@ def _attachment_candidates(text: str, base_url: str) -> list[dict[str, str]]:
 def _looks_like_attachment(url: str, label: str) -> bool:
     lower = f"{url} {label}".lower()
     path = urlsplit(url).path.lower()
+    if "open data" in lower or "dati-e-bilanci/open-data" in lower:
+        return False
     return path.endswith(ATTACHMENT_EXTENSIONS) or any(marker in lower for marker in ATTACHMENT_LABELS)
 
 

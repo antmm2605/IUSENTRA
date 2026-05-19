@@ -1,0 +1,246 @@
+{
+  "schema": "iusentra.legal_updates.canary.v1",
+  "ok": true,
+  "mode": "canary",
+  "source_code": "openga_sentenze",
+  "source_name": "OpenGA - Sentenze",
+  "limit": 3,
+  "max_seconds": 90,
+  "no_publish": true,
+  "direct_only": true,
+  "documents_found": 372,
+  "processed": 0,
+  "skipped_unchanged": 3,
+  "web_verification_attempts": 0,
+  "verification_evidence_saved": 0,
+  "verification_attachments_saved": 0,
+  "autopublished": {
+    "count": 0,
+    "items": []
+  },
+  "stopped_for_time_limit": false,
+  "duration_seconds": 22.03,
+  "items": [
+    {
+      "external_id": "a1bcc54de0a61ac74c9eba5997e233a7ba72705aae1690cd0ca9f72af93bbf79",
+      "title": "CDS - Sentenze - CDS - Sentenze - 2024",
+      "source_url": "https://openga.giustizia-amministrativa.it/dataset/1112a570-e037-4611-82e2-b2a206149225/resource/1568e5db-60f6-4771-9dc0-29201a9695ad/download/cds-sentenze-2024.csv",
+      "published_at": "",
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "title": "CDS - Sentenze - 2024",
+          "url": "https://openga.giustizia-amministrativa.it/dataset/1112a570-e037-4611-82e2-b2a206149225/resource/1568e5db-60f6-4771-9dc0-29201a9695ad/download/cds-sentenze-2024.csv",
+          "attachment_type": ""
+        }
+      ],
+      "reference_count": 1,
+      "reference_labels": [
+        "2024"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare CDS - Sentenze - CDS - Sentenze - 2024?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza se documentale, altrimenti solo RAG",
+      "rag_destination": "official_open_data_rag",
+      "exclusion_reason": "",
+      "status": "invariato",
+      "normalized_document_id": 22,
+      "review_id": 22,
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 12000,
+        "ocr_status": "non_richiesto",
+        "references": 4,
+        "questions": 14,
+        "warnings": []
+      }
+    },
+    {
+      "external_id": "2bccefe5fc7931070e316297f6e73d1c5524ab46000eb2b0d7f3f4a780c8530d",
+      "title": "CDS - Sentenze - CDS - Sentenze - 2024",
+      "source_url": "https://openga.giustizia-amministrativa.it/dataset/1112a570-e037-4611-82e2-b2a206149225/resource/2d34d667-f1be-4690-b1ea-ff0212812722/download/cds-sentenze-2024.json",
+      "published_at": "",
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "title": "CDS - Sentenze - 2024",
+          "url": "https://openga.giustizia-amministrativa.it/dataset/1112a570-e037-4611-82e2-b2a206149225/resource/2d34d667-f1be-4690-b1ea-ff0212812722/download/cds-sentenze-2024.json",
+          "attachment_type": ""
+        }
+      ],
+      "reference_count": 20,
+      "reference_labels": [
+        "ART. 6",
+        "art. 120 c.p.",
+        "L. 100",
+        "L. 21 SETTEMBRE 1987, N. 387",
+        "CONSIGLIO DI STATO",
+        "TAR CALABRIA",
+        "DECRETO N. 1728",
+        "SENTENZA N.528"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare CDS - Sentenze - CDS - Sentenze - 2024?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza se documentale, altrimenti solo RAG",
+      "rag_destination": "official_open_data_rag",
+      "exclusion_reason": "",
+      "status": "invariato",
+      "normalized_document_id": 23,
+      "review_id": 23,
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 12000,
+        "ocr_status": "non_richiesto",
+        "references": 4,
+        "questions": 14,
+        "warnings": []
+      }
+    },
+    {
+      "external_id": "d3704b0d1c8ac64434cbda74e071b0c7845b78707943fa33de8b9d49e5acff9b",
+      "title": "CDS - Sentenze - CDS - Sentenze - 2024",
+      "source_url": "https://openga.giustizia-amministrativa.it/dataset/1112a570-e037-4611-82e2-b2a206149225/resource/e959f5a1-9628-49c7-abed-aeccafbdbe86/download/cds-sentenze-2024.ods",
+      "published_at": "",
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "title": "CDS - Sentenze - 2024",
+          "url": "https://openga.giustizia-amministrativa.it/dataset/1112a570-e037-4611-82e2-b2a206149225/resource/e959f5a1-9628-49c7-abed-aeccafbdbe86/download/cds-sentenze-2024.ods",
+          "attachment_type": ""
+        }
+      ],
+      "reference_count": 1,
+      "reference_labels": [
+        "2024"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare CDS - Sentenze - CDS - Sentenze - 2024?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza se documentale, altrimenti solo RAG",
+      "rag_destination": "official_open_data_rag",
+      "exclusion_reason": "",
+      "status": "invariato",
+      "normalized_document_id": 24,
+      "review_id": 24,
+      "quality": {
+        "status": "pronto_con_note",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 866,
+        "ocr_status": "non_richiesto",
+        "references": 0,
+        "questions": 13,
+        "warnings": [
+          "OCR leggibile ma da controllare"
+        ]
+      }
+    }
+  ],
+  "errors": [],
+  "diagnostics_saved": true
+}

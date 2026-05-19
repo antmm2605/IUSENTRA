@@ -67,8 +67,9 @@ def test_fonti_default_includono_presidi_utili_per_studi_legali():
     }.issubset(codes)
     rows_by_code = {str(row["code"]): row for row in DEFAULT_SOURCE_ROWS}
     assert rows_by_code["inail_istruzioni_operative"]["enabled"] is False
-    for code in ("inps_circolari", "inps_messaggi", "inps_sentenze", "curia_cgue_rss", "istat_prezzi"):
+    for code in ("inps_circolari", "inps_sentenze", "curia_cgue_rss", "istat_prezzi"):
         assert rows_by_code[code]["parser_type"] == "feed"
+    assert rows_by_code["inps_messaggi"]["parser_type"] == "html"
 
 
 def test_fonti_default_includono_codici_fondamentali_e_cassazione_verificata():
@@ -102,6 +103,13 @@ def test_fonti_default_includono_pagina_cassazione_ultime_sent_ord_e_questioni()
     assert row["is_official"] is True
     assert row["enabled"] is True
     assert "allegati" in str(row["notes"]).lower()
+
+
+def test_fonte_inps_messaggi_usa_pagina_operativa():
+    row = next(source for source in DEFAULT_SOURCE_ROWS if source["code"] == "inps_messaggi")
+
+    assert row["base_url"].endswith("/circolari-messaggi-e-normativa.html")
+    assert row["parser_type"] == "html"
 
 
 def test_cassazione_ultime_sent_ord_questioni_estrae_solo_schede_documentali(tmp_path: Path):

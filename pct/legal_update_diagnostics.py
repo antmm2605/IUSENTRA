@@ -83,6 +83,7 @@ def run_legal_updates_canary(
             if existing and _clean(existing.get("content_hash")) == _clean(document.get("content_hash")):
                 skipped_unchanged += 1
                 item["status"] = "invariato"
+                item.update(_existing_review_context(pipeline.repository, existing))
                 items.append(item)
                 continue
             processed = pipeline.process_document(source, document, direct_only=direct_only)
@@ -391,6 +392,35 @@ def _backfill_evidence_enrichment(
     }
 
 
+def _existing_review_context(repository: Any, raw_document: dict[str, Any]) -> dict[str, Any]:
+    raw_id = int((raw_document or {}).get("id") or 0)
+    if raw_id <= 0:
+        return {}
+    normalized = repository.get_normalized_by_raw(raw_id) or {}
+    normalized_id = int(normalized.get("id") or 0)
+    if normalized_id <= 0:
+        return {}
+    review_id = 0
+    with repository._connect() as conn:
+        row = conn.execute(
+            """
+            SELECT id
+            FROM review_queue
+            WHERE normalized_document_id = ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (normalized_id,),
+        ).fetchone()
+        review_id = int(row["id"] or 0) if row else 0
+    payload: dict[str, Any] = {"normalized_document_id": normalized_id}
+    if review_id:
+        review = repository.get_review_item(review_id) or {}
+        payload["review_id"] = review_id
+        payload["quality"] = _quality_summary(repository.web_evidence_quality_for_review(review_id, review=review))
+    return payload
+
+
 def _select_evidence_rows(
     repository: Any,
     *,
@@ -545,7 +575,8 @@ def _required_limit(value: int, *, max_limit: int) -> int:
 
 
 def _clean(value: Any) -> str:
-    return " ".join(str(value or "").split()).strip()
+    repaired = _repair_mojibake(str(value or ""))
+    return " ".join(repaired.split()).strip()
 
 
 def _clean_code(value: Any) -> str:
@@ -555,6 +586,49 @@ def _clean_code(value: Any) -> str:
 def _truncate(value: Any, limit: int = 220) -> str:
     text = _clean(value)
     return text if len(text) <= limit else text[: limit - 3].rstrip() + "..."
+
+
+def _repair_mojibake(text: str) -> str:
+    if not text:
+        return ""
+    if not any(
+        marker in text
+        for marker in (
+            "\u00c3",
+            "\u00c2",
+            "\u00e2\u20ac",
+            "\u00e2\u20ac\u2122",
+            "\u00e2\u20ac\u0153",
+            "\u00ef\u00bf\u00bd",
+            "\ufffd",
+        )
+    ):
+        return text
+    candidates = [text]
+    for encoding in ("latin-1", "windows-1252"):
+        try:
+            candidates.append(text.encode(encoding, errors="strict").decode("utf-8", errors="replace"))
+        except (UnicodeEncodeError, UnicodeDecodeError, LookupError):
+            continue
+    return min(candidates, key=_decode_penalty)
+
+
+def _decode_penalty(text: str) -> tuple[int, int]:
+    lowered = text.lower()
+    mojibake = sum(
+        lowered.count(marker)
+        for marker in (
+            "\u00e3",
+            "\u00e2",
+            "\u00c3",
+            "\u00c2",
+            "\u00e2\u20ac",
+            "\u00e2\u20ac\u2122",
+            "\u00ef\u00bf\u00bd",
+            "\ufffd",
+        )
+    )
+    return (mojibake, text.count("\ufffd"))
 
 
 def _time_exhausted(started: float, max_seconds: int) -> bool:

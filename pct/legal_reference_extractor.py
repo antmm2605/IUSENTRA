@@ -28,6 +28,7 @@ ACT_RE = re.compile(
     re.IGNORECASE,
 )
 EU_ACT_RE = re.compile(r"\b(?:Regolamento|Direttiva)\s+\(?UE\)?\s+[0-9]{4}/[0-9]{1,6}", re.IGNORECASE)
+EU_CASE_RE = re.compile(r"\b(?:causa\s+)?(?:C|T|F)-[0-9]{1,5}/[0-9]{2,4}\b", re.IGNORECASE)
 COURT_RE = re.compile(
     r"\b(?:Corte\s+Suprema\s+di\s+Cassazione|Corte\s+di\s+Cassazione|Cassazione|Corte\s+costituzionale|"
     r"Consiglio\s+di\s+Stato|TAR(?:\s+[A-Za-zàèéìòù]+)?|CGUE|Corte\s+di\s+giustizia\s+UE|CEDU|Corte\s+EDU)\b",
@@ -82,6 +83,7 @@ def extract_references(
         (ARTICLE_RE, "article", 0.9),
         (ACT_RE, "act", 0.88),
         (EU_ACT_RE, "eu_act", 0.88),
+        (EU_CASE_RE, "eu_case", 0.86),
         (COURT_RE, "court", 0.76),
         (DECISION_RE, "decision", 0.86),
         (RG_RE, "rg", 0.9),

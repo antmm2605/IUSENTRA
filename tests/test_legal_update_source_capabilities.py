@@ -136,7 +136,8 @@ def test_reference_extractor_espone_schema_dedicato_senza_link_inventati():
     refs = extract_references(
         (
             "Sentenza Cassazione n. 11417 del 27/04/2026: richiamati art. 606 c.p.p., "
-            "art. 2946 c.c., D.Lgs. 150/2022, Regolamento UE 2016/679 e R.G. 9926/2026."
+            "art. 2946 c.c., D.Lgs. 150/2022, Regolamento UE 2016/679, "
+            "CELEX:32024R1689 e R.G. 9926/2026."
         ),
         source_url="https://www.cortedicassazione.it/it/penale_dettaglio.page?contentId=SZP1",
         attachment_url="https://www.cortedicassazione.it/doc.pdf",
@@ -145,6 +146,7 @@ def test_reference_extractor_espone_schema_dedicato_senza_link_inventati():
     assert any(row["reference_type"] == "article" and "art. 606 c.p.p." in row["normalized_text"] for row in refs)
     assert any(row["reference_type"] == "act" and "D.Lgs." in row["normalized_text"] for row in refs)
     assert any(row["reference_type"] == "eu_act" for row in refs)
+    assert any(row["reference_type"] == "celex" and row["normalized_text"] == "CELEX:32024R1689" for row in refs)
     assert any(row["reference_type"] == "rg" and "9926/2026" in row["normalized_text"] for row in refs)
     assert all(row["source_url"].startswith("https://www.cortedicassazione.it") for row in refs)
     assert all(row["attachment_url"].endswith("doc.pdf") for row in refs)
@@ -171,6 +173,7 @@ def test_context_questions_generano_domande_da_avvocato_con_ragione():
 
     assert any(row["type"] == "pdf_allegato" for row in questions)
     assert any(row["type"] == "articoli_pdf" for row in questions)
+    assert any(row["type"] == "articoli_cpp_pdf" and row["question"] == "Quali articoli del c.p.p. sono richiamati nel PDF?" for row in questions)
     assert any(row["type"] == "discrepanza_rg" for row in questions)
     assert all(row["question"] and row["reason"] and row["source"] for row in questions)
 

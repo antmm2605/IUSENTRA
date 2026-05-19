@@ -2507,6 +2507,20 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python tools/check_repo_governance.py`; `python -m pytest tests/test_utf8_integrity.py -q --tb=short`; `python -m pct.cli utf8-integrity --check-only ... --json`; `git diff --check` | OK | Governance repo, test UTF-8, scan UTF-8 mirato e whitespace diff check verdi. |
 | `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py docs/openapi.yaml`; `python scripts/verify_openapi_provider.py`; `python scripts/react-migration/generate_app_v2_test_docs.py --check`; `python tools/sync_packaging_files.py --check`; `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q --tb=short` | OK | Contratti/documenti/versione `2.245.43`, packaging e readiness allineati. |
 
+## Fase 11.5 chiusura buchi fonti legali 2.245.53 - 2026-05-19
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct/legal_update_pipeline.py pct/legal_update_repository.py pct/legal_update_autofetch.py pct/legal_update_health_report.py pct/cli.py web/services/legal_update_surface.py` | OK | Sintassi confermata dopo CLI `legal-updates-run-progressive`, canary Archivio Giurisprudenza e presidi CELEX/QSP. |
+| `python -m pytest tests/test_legal_update_source_capabilities.py tests/test_legal_update_source_parsers.py tests/test_legal_update_safe_diagnostics.py -q --tb=short` | OK | 38/38 passati: capability, parser, EUR-Lex CELEX, OpenGA e diagnostica sicura. |
+| `python -m pytest tests/test_legal_update_autofetch.py tests/test_legal_update_surface_jobs.py tests/test_legal_update_job_queue.py tests/test_legal_update_batch_runner.py -q --tb=short` | OK | 27/27 passati: ciclo progressivo dry-run/guarded-only, budget, timeout, coda e batch runner separati. |
+| `python -m pytest tests/test_legal_updates_pipeline.py -q --tb=short` | OK | 42/42 passati: pipeline aggiornamenti legali completa senza monolitico. |
+| `python -m pytest tests/test_legal_update_publish_context.py tests/test_legal_update_web_verification_attachments.py tests/test_document_intelligence_extraction.py -q --tb=short` | OK | 39/39 passati: publish context, allegati/PDF/OCR e Document Intelligence. |
+| `python -m pytest tests/test_lex_source_corpus_generator.py tests/test_lex_operational_knowledge.py tests/test_react_legal_intelligence_search.py tests/test_giurisprudenza.py -q --tb=short` | OK | 99/99 passati: corpus Lex, QSP/R.G., Ricerca Legale e Archivio Giurisprudenza. |
+| `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py`; `python scripts/verify_openapi_provider.py` | OK | Drift OpenAPI del precedente `Lint + syntax` corretto e verificato localmente. |
+| `python tools/sync_packaging_files.py --check`; `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q --tb=short` | OK | Packaging sincronizzato e 9/9 test packaging/readiness passati dopo bump `2.245.53`. |
+| `python tools/check_repo_governance.py`; `python -m pytest tests/test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | Governance OK, UTF-8 4/4, whitespace OK; `git diff --check` mostra solo warning CRLF/LF su file toccati/runtime non committati. |
+
 ## Ricerca Legale pratica e Cassazione catalogata 2.245.29 - 2026-05-18
 
 | Comando / verifica | Esito | Nota |

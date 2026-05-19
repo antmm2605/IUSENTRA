@@ -7,6 +7,14 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.53 - 2026-05-19
+
+- Chiusa la Fase 11.5 degli aggiornamenti legali senza scheduler esteso, import massivo, Web libero automatico o pubblicazione incontrollata.
+- Aggiunto `legal-updates-run-progressive` per un ciclo scheduler/autofetch controllato: solo fonti verdi, `--guarded-only` obbligatorio, budget fonte, timeout per item, dry-run e nessuna fonte RAG-only/osservazione in pubblicazione.
+- Aggiunto il canary `legal-updates-giurisprudenza-structured-canary` per bloccare la promozione dell'Archivio Giurisprudenza quando mancano corte, numero, anno, data, fonte ufficiale o testo/PDF.
+- Rafforzati i presidi su Cassazione `QSP50194`/`art. 606 c.p.p.`, EUR-Lex CELEX e OpenGA: fixture/test dedicati, domanda PDF specifica per il c.p.p., CELEX riconosciuto ma ancora RAG-only se incompleto, dataset OpenGA non promossi come sentenze.
+- Documentati Vercel come status esterno fuori gate IUSENTRA e i file runtime sporchi come dati preservati non committati.
+
 ## 2.245.52 - 2026-05-19
 
 - Aggiunto il regime controllato Fase 11 per gli aggiornamenti legali con `python -m pct.cli legal-updates-health-report --json`.

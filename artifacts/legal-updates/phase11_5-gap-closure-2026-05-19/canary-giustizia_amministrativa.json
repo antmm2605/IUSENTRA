@@ -1,0 +1,32 @@
+{
+  "schema": "iusentra.legal_updates.canary.v1",
+  "ok": false,
+  "mode": "canary",
+  "source_code": "giustizia_amministrativa",
+  "source_name": "Giustizia Amministrativa",
+  "limit": 2,
+  "max_seconds": 60,
+  "no_publish": true,
+  "publish_mode": "off",
+  "direct_only": true,
+  "documents_found": 0,
+  "processed": 0,
+  "skipped_unchanged": 0,
+  "web_verification_attempts": 0,
+  "verification_evidence_saved": 0,
+  "verification_attachments_saved": 0,
+  "autopublished": {
+    "count": 0,
+    "items": []
+  },
+  "stopped_for_time_limit": false,
+  "duration_seconds": 0.38,
+  "items": [],
+  "errors": [
+    "Lettura fonte non completata: HTTPSConnectionPool(host='www.giustizia-amministrativa.it', port=443): Max retries exceeded with url: / (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unab..."
+  ],
+  "inner_errors": [
+    "Lettura fonte non completata: HTTPSConnectionPool(host='www.giustizia-amministrativa.it', port=443): Max retries exceeded with url: / (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unab..."
+  ],
+  "diagnostics_saved": true
+}

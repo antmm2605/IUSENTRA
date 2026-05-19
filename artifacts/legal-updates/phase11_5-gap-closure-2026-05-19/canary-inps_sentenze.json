@@ -1,0 +1,108 @@
+{
+  "schema": "iusentra.legal_updates.canary.v1",
+  "ok": true,
+  "mode": "canary",
+  "source_code": "inps_sentenze",
+  "source_name": "INPS - sentenze",
+  "limit": 2,
+  "max_seconds": 60,
+  "no_publish": true,
+  "publish_mode": "off",
+  "direct_only": true,
+  "documents_found": 1,
+  "processed": 1,
+  "skipped_unchanged": 0,
+  "web_verification_attempts": 1,
+  "verification_evidence_saved": 1,
+  "verification_attachments_saved": 0,
+  "autopublished": {
+    "count": 0,
+    "items": []
+  },
+  "stopped_for_time_limit": false,
+  "duration_seconds": 3.94,
+  "items": [
+    {
+      "external_id": "f923742e99b7006fbc2ef0e2004cf20cb8d58c7b12e50be16b6a6de6ffc98513",
+      "title": "Corte di Cassazione 23 febbraio 2026 – 17 marzo 2026 n. 6005",
+      "source_url": "https://www.inps.it/it/it.rss.sentenze.xml",
+      "published_at": "",
+      "attachment_count": 0,
+      "attachments": [],
+      "reference_count": 18,
+      "reference_labels": [
+        "Corte di Cassazione",
+        "cassazione",
+        "Corte costituzionale",
+        "23 febbraio 2026",
+        "17 marzo 2026",
+        "27 gennaio 2026",
+        "28 gennaio 2026",
+        "30 marzo 2026"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare Corte di Cassazione 23 febbraio 2026 – 17 marzo 2026 n. 6005?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "giurisprudenza",
+      "destination_label": "Giurisprudenza o RAG",
+      "rag_destination": "official_case_law_rag",
+      "exclusion_reason": "",
+      "status": "analizzato",
+      "review_id": 116,
+      "normalized_document_id": 116,
+      "verification": {
+        "attempted": 1,
+        "saved": 1,
+        "attachments": 0,
+        "ok": true,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "reason": "Verifica pubblica completata con fonti coerenti."
+      },
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 4110,
+        "ocr_status": "non_richiesto",
+        "references": 0,
+        "questions": 14,
+        "warnings": []
+      }
+    }
+  ],
+  "errors": [],
+  "diagnostics_saved": true
+}

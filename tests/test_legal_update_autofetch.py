@@ -4,18 +4,22 @@ import json
 import subprocess
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
 from pct.legal_update_autofetch import (
     LEGAL_SOURCE_QUALITY_QUESTIONS,
     LEGAL_UPDATE_AUTOFETCH_SCHEMA,
     LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES,
     LegalAutoFetchConfig,
     build_legal_autofetch_plan,
+    build_legal_update_progressive_run_plan,
     legal_update_progressive_source_classification,
     legal_update_progressive_scheduler_payload,
     run_legal_update_autofetch_tick,
+    run_legal_update_progressive_cycle,
 )
-from pct.legal_update_health_report import build_legal_updates_health_report
-from pct.legal_update_pipeline import DEFAULT_SOURCE_ROWS
+from pct.legal_update_health_report import build_giurisprudenza_structured_canary, build_legal_updates_health_report
+from pct.legal_update_pipeline import DEFAULT_SOURCE_ROWS, build_legal_update_pipeline
 from pct.legal_update_source_capabilities import get_source_capability
 
 
@@ -226,6 +230,117 @@ def test_autofetch_tick_accoda_deduplica_esegue_e_aggiorna_monitor(tmp_path):
     assert cursor_payload["sources"]["cassazione_massimario"]["last_status"] == "completed"
 
 
+def test_progressive_run_plan_esclude_fonti_non_verdi(tmp_path):
+    config = LegalAutoFetchConfig(
+        intelligence_db=str(tmp_path / "motori.json"),
+        queue_db_path=str(tmp_path / "jobs.sqlite"),
+        cursor_path=str(tmp_path / "cursors.json"),
+        source_budget=3,
+    )
+
+    report = build_legal_update_progressive_run_plan(
+        config,
+        pipeline=FakePipeline(),
+        now=datetime(2026, 5, 18, 10, 0, tzinfo=UTC),
+    )
+
+    assert report["publication_mode"] == "guarded"
+    assert report["green_source_codes"] == ["gazzetta_ufficiale"]
+    assert report["plan"]["selected"][0]["source_code"] == "gazzetta_ufficiale"
+    excluded = {row["source_code"]: row for row in report["excluded_sources"]}
+    assert excluded["cassazione_massimario"]["classification"] == "osservazione"
+
+
+def test_progressive_cycle_dry_run_non_accoda_e_non_esegue(tmp_path):
+    calls: list[list[str]] = []
+
+    def runner(command, **kwargs):
+        calls.append(list(command))
+        return subprocess.CompletedProcess(command, 0, stdout="{}", stderr="")
+
+    config = LegalAutoFetchConfig(
+        intelligence_db=str(tmp_path / "motori.json"),
+        queue_db_path=str(tmp_path / "jobs.sqlite"),
+        cursor_path=str(tmp_path / "cursors.json"),
+        source_budget=1,
+    )
+
+    report = run_legal_update_progressive_cycle(
+        config,
+        guarded_only=True,
+        dry_run=True,
+        pipeline=FakePipeline(),
+        runner=runner,
+        now=datetime(2026, 5, 18, 10, 0, tzinfo=UTC),
+    )
+
+    assert report["dry_run"] is True
+    assert report["executed"] is False
+    assert report["enqueued_jobs"] == []
+    assert calls == []
+    assert not (tmp_path / "jobs.sqlite").exists()
+
+
+def test_progressive_cycle_richiede_guarded_only(tmp_path):
+    config = LegalAutoFetchConfig(
+        intelligence_db=str(tmp_path / "motori.json"),
+        queue_db_path=str(tmp_path / "jobs.sqlite"),
+        cursor_path=str(tmp_path / "cursors.json"),
+    )
+
+    with pytest.raises(ValueError, match="guarded-only"):
+        run_legal_update_progressive_cycle(config, guarded_only=False, dry_run=True, pipeline=FakePipeline())
+
+
+def test_progressive_cycle_rispetta_budget_timeout_e_publish_max(tmp_path):
+    pipeline = FakePipeline()
+    pipeline.repository.sources.append(
+        {
+            "id": 4,
+            "code": "inps_circolari",
+            "name": "INPS circolari",
+            "base_url": "https://www.inps.it/",
+            "category": "prassi",
+            "enabled": True,
+            "is_official": True,
+            "polling_minutes": 1440,
+        }
+    )
+    calls: list[tuple[list[str], int]] = []
+
+    def runner(command, **kwargs):
+        calls.append((list(command), int(kwargs.get("timeout") or 0)))
+        if "--publish-only" in command:
+            return subprocess.CompletedProcess(command, 0, stdout=json.dumps({"published_count": 0}), stderr="")
+        payload = {"ok": True, "payload": {"report": {"reports": [{"documents_found": 1, "processed": 1}]}}}
+        return subprocess.CompletedProcess(command, 0, stdout=json.dumps(payload), stderr="")
+
+    config = LegalAutoFetchConfig(
+        intelligence_db=str(tmp_path / "motori.json"),
+        giurisprudenza_db=str(tmp_path / "giurisprudenza.json"),
+        queue_db_path=str(tmp_path / "jobs.sqlite"),
+        cursor_path=str(tmp_path / "cursors.json"),
+        source_budget=1,
+        item_timeout_seconds=7,
+        publish_max_items=2,
+    )
+
+    report = run_legal_update_progressive_cycle(
+        config,
+        guarded_only=True,
+        dry_run=False,
+        pipeline=pipeline,
+        runner=runner,
+        now=datetime(2026, 5, 18, 10, 0, tzinfo=UTC),
+    )
+
+    assert report["plan"]["selected_count"] == 1
+    assert len(report["enqueued_jobs"]) == 1
+    assert len([command for command, _timeout in calls if "--source-code" in command]) == 1
+    assert len([command for command, _timeout in calls if "--publish-only" in command]) <= 2
+    assert {timeout for _command, timeout in calls} == {7}
+
+
 def test_autofetch_monitor_mostra_fonti_pronte_e_da_verificare(tmp_path):
     config = LegalAutoFetchConfig(
         intelligence_db=str(tmp_path / "motori.json"),
@@ -284,3 +399,13 @@ def test_health_report_regime_controllato_include_dashboard_retry_backfill(tmp_p
         "pilot",
         "scheduler",
     ]
+
+
+def test_giurisprudenza_structured_canary_non_forza_promozione_senza_chiavi(tmp_path):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+
+    report = build_giurisprudenza_structured_canary(pipeline=pipeline, limit=20)
+
+    assert report["status"] == "chiuso_con_blocco_intenzionale"
+    assert report["complete_candidate_count"] == 0
+    assert "non viene forzata" in report["reason"]

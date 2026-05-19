@@ -1,0 +1,27 @@
+{
+  "schema": "iusentra.legal_updates.canary.v1",
+  "ok": true,
+  "mode": "canary",
+  "source_code": "corte_costituzionale",
+  "source_name": "Corte Costituzionale",
+  "limit": 2,
+  "max_seconds": 60,
+  "no_publish": true,
+  "publish_mode": "off",
+  "direct_only": true,
+  "documents_found": 0,
+  "processed": 0,
+  "skipped_unchanged": 0,
+  "web_verification_attempts": 0,
+  "verification_evidence_saved": 0,
+  "verification_attachments_saved": 0,
+  "autopublished": {
+    "count": 0,
+    "items": []
+  },
+  "stopped_for_time_limit": false,
+  "duration_seconds": 0.86,
+  "items": [],
+  "errors": [],
+  "diagnostics_saved": true
+}

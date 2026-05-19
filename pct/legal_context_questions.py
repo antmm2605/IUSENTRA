@@ -86,6 +86,8 @@ def generate_context_questions(
     if attachment_url or pdf_text:
         rows.append(("pdf_allegato", "Quale PDF o allegato ufficiale contiene il testo e il link è cliccabile?", "rendere verificabile il testo ufficiale", "allegato"))
         rows.append(("articoli_pdf", "Quali articoli sono richiamati nel PDF o nell'allegato OCR?", "usare gli articoli estratti dal documento", "PDF/OCR"))
+        if any(marker in haystack for marker in ("c.p.p.", "cod. proc. pen", "codice di procedura penale")):
+            rows.append(("articoli_cpp_pdf", "Quali articoli del c.p.p. sono richiamati nel PDF?", "isolare i riferimenti processuali penali dell'allegato", "PDF/OCR"))
     if has_rg_discrepancy:
         rows.append(("discrepanza_rg", "Ci sono discrepanze tra il numero R.G. della scheda e quello del PDF?", "separare dati scheda e dati allegato", "R.G."))
     if norm_labels:

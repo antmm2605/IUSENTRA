@@ -28,6 +28,14 @@ from pct.legal_update_source_capabilities import get_source_capability
 
 LEGAL_UPDATES_HEALTH_REPORT_SCHEMA = "iusentra.legal_updates_health_report.v1"
 BACKFILL_MISSING_KINDS: tuple[str, ...] = ("attachments", "ocr", "references", "questions")
+GIURISPRUDENZA_STRUCTURED_CANARY_SOURCES: tuple[str, ...] = (
+    "cassazione_ultime_sent_ord_questioni",
+    "corte_conti",
+    "curia_cgue_rss",
+    "openga_sentenze",
+    "openga_ordinanze",
+    "corte_costituzionale",
+)
 
 
 def build_legal_updates_health_report(
@@ -424,6 +432,83 @@ def _new_source_procedure_payload() -> dict[str, Any]:
             "Fare pilot guarded su pochi documenti prima di abilitarla.",
             "Inserire nello scheduler solo dopo report verde e policy no-publish/guarded esplicita.",
         ],
+    }
+
+
+def build_giurisprudenza_structured_canary(
+    *,
+    intelligence_db: str = "./intelligence/motori.json",
+    giurisprudenza_db: str = "",
+    ai_base_url: str = "",
+    ai_model: str = "mistral",
+    pipeline: LegalUpdatePipeline | None = None,
+    limit: int = 100,
+) -> dict[str, Any]:
+    """Verifica se esistono schede giurisprudenziali pubblicabili con chiavi minime."""
+
+    runtime_pipeline = pipeline or build_legal_update_pipeline(
+        intelligence_db,
+        giurisprudenza_db_path=giurisprudenza_db,
+        ai_base_url=ai_base_url,
+        ai_model=ai_model,
+    )
+    rows: list[dict[str, Any]] = []
+    try:
+        review_rows = runtime_pipeline.repository.list_review_queue(
+            statuses=("pending", "approved", "published"),
+            limit=max(1, int(limit or 1)),
+        )
+    except Exception:
+        review_rows = []
+    for row in review_rows:
+        item = dict(row)
+        try:
+            if item.get("id"):
+                item = dict(runtime_pipeline.repository.get_review_item(int(item["id"])) or item)
+        except Exception:
+            pass
+        source_code = _source_code(item.get("source_code"))
+        if source_code not in GIURISPRUDENZA_STRUCTURED_CANARY_SOURCES:
+            continue
+        attachments = item.get("attachments_json") if isinstance(item.get("attachments_json"), list) else []
+        text_or_pdf = bool(_first_text(item.get("body_text"), item.get("body_short"), item.get("summary_long"), item.get("summary_short")) or attachments)
+        required = {
+            "corte": _first_text(item.get("court_name")),
+            "numero": _first_text(item.get("decision_number")),
+            "anno": _first_text(item.get("decision_year")),
+            "data": _first_text(item.get("effective_date"), item.get("document_date"), item.get("published_at")),
+            "fonte_ufficiale": _first_text(item.get("source_url")),
+            "testo_pdf": "presente" if text_or_pdf else "",
+        }
+        missing = [key for key, value in required.items() if not value]
+        rows.append(
+            {
+                "review_id": item.get("id"),
+                "source_code": source_code,
+                "title": item.get("title") or "",
+                "status": item.get("status") or "",
+                "proposed_action": item.get("proposed_action") or item.get("analysis_proposed_action") or "",
+                "required_keys": required,
+                "missing_keys": missing,
+                "complete": not missing,
+                "can_promote_guarded": not missing and (item.get("proposed_action") or item.get("analysis_proposed_action")) == "NEW_CASE_LAW",
+            }
+        )
+    complete = [row for row in rows if row["complete"]]
+    return {
+        "schema": "iusentra.legal_updates.giurisprudenza_structured_canary.v1",
+        "generated_at": _now_iso(),
+        "sources_checked": list(GIURISPRUDENZA_STRUCTURED_CANARY_SOURCES),
+        "items_checked": len(rows),
+        "complete_candidates": complete,
+        "complete_candidate_count": len(complete),
+        "status": "chiuso" if complete else "chiuso_con_blocco_intenzionale",
+        "reason": (
+            "Sono presenti schede con corte, numero, anno, data, fonte ufficiale e testo/PDF."
+            if complete
+            else "Nessuna scheda ha tutte le chiavi minime: la promozione strutturata resta bloccata e non viene forzata."
+        ),
+        "items": rows,
     }
 
 

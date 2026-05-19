@@ -137,6 +137,7 @@ indexes/normattiva/
 /intelligence/downloads/
 /intelligence/giurisprudenza.json
 /intelligence/local_ai.db
+/intelligence/workspace_intelligence.json
 /portale/import_log.json
 /data/portale/import_log.json
 /tmp/

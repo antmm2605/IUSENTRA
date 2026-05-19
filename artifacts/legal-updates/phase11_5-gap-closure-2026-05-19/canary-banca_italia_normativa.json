@@ -1,0 +1,181 @@
+{
+  "schema": "iusentra.legal_updates.canary.v1",
+  "ok": true,
+  "mode": "canary",
+  "source_code": "banca_italia_normativa",
+  "source_name": "Banca d'Italia - normativa di vigilanza",
+  "limit": 2,
+  "max_seconds": 60,
+  "no_publish": true,
+  "publish_mode": "off",
+  "direct_only": true,
+  "documents_found": 145,
+  "processed": 2,
+  "skipped_unchanged": 0,
+  "web_verification_attempts": 2,
+  "verification_evidence_saved": 2,
+  "verification_attachments_saved": 0,
+  "autopublished": {
+    "count": 0,
+    "items": []
+  },
+  "stopped_for_time_limit": false,
+  "duration_seconds": 2.96,
+  "items": [
+    {
+      "external_id": "83459f32033dace0baad64eb7fccb041b7fa120480d68dcc8d96cac24dab66dd",
+      "title": "EN Go to english version",
+      "source_url": "https://www.bancaditalia.it/compiti/vigilanza/normativa/archivio-norme/index.html?com.dotmarketing.htmlpage.language=1",
+      "published_at": "",
+      "attachment_count": 0,
+      "attachments": [],
+      "reference_count": 24,
+      "reference_labels": [
+        "01 October 2025",
+        "09 July 2025",
+        "10 January 2023",
+        "24 November 2022",
+        "12 January 2022",
+        "11 November 2021",
+        "17 January 2018",
+        "01 April 2016"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare EN Go to english version?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "normativa",
+      "destination_label": "Prassi o normativa",
+      "rag_destination": "official_prassi_rag",
+      "exclusion_reason": "",
+      "status": "analizzato",
+      "review_id": 124,
+      "normalized_document_id": 124,
+      "verification": {
+        "attempted": 1,
+        "saved": 1,
+        "attachments": 0,
+        "ok": true,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "reason": "Verifica pubblica completata con fonti coerenti."
+      },
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 2354,
+        "ocr_status": "non_richiesto",
+        "references": 0,
+        "questions": 12,
+        "warnings": []
+      }
+    },
+    {
+      "external_id": "2224783814bf49c1aad821e77e875cddc69f3f90ca28e4cbccd2a83d14c87168",
+      "title": "Funzioni e governance",
+      "source_url": "https://www.bancaditalia.it/chi-siamo/funzioni-governance/index.html",
+      "published_at": "",
+      "attachment_count": 0,
+      "attachments": [],
+      "reference_count": 1,
+      "reference_labels": [
+        "1947"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare Funzioni e governance?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "normativa",
+      "destination_label": "Prassi o normativa",
+      "rag_destination": "official_prassi_rag",
+      "exclusion_reason": "",
+      "status": "analizzato",
+      "review_id": 125,
+      "normalized_document_id": 125,
+      "verification": {
+        "attempted": 1,
+        "saved": 1,
+        "attachments": 0,
+        "ok": false,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "reason": "Fonte ufficiale diretta acquisita, ma servono ulteriori conferme prima di trattare il riferimento come completato."
+      },
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 1478,
+        "ocr_status": "non_richiesto",
+        "references": 0,
+        "questions": 12,
+        "warnings": []
+      }
+    }
+  ],
+  "errors": [],
+  "diagnostics_saved": true
+}

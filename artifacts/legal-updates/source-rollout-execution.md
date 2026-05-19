@@ -2,6 +2,21 @@
 
 Aggiornato il 19 maggio 2026. Questo file trasforma `source-rollout-plan.md` in backlog eseguibile con stato prima/dopo della tranche codice.
 
+## Aggiornamento Fase 11.5 - chiusura buchi residui
+
+Report operativo: `artifacts/legal-updates/phase11_5-gap-closure-2026-05-19/gap-closure-report.md`.
+
+| buco | azione eseguita | esito |
+|---|---|---|
+| Cassazione `QSP50194`/`c.p.p.` | canary no-publish e backfill mirato su `cassazione_ultime_sent_ord_questioni`; verifica diretta del detail `contentId=QSP50194`; fixture/test su `art. 606 c.p.p.` e domanda PDF specifica | chiuso con diagnosi: dettaglio raggiungibile e parser coperto, ma non presente nell'indice ultime a limite 5; nessun import storico forzato |
+| Archivio Giurisprudenza a 0 schede | aggiunto `legal-updates-giurisprudenza-structured-canary`; controllate review da Cassazione, Corte dei conti, Curia, OpenGA e Corte costituzionale | chiuso con blocco intenzionale: nessuna scheda ha tutte le chiavi minime |
+| Fonti in osservazione | eseguiti canary no-publish `limit 2` con diagnostica salvata in `phase11_5-gap-closure-2026-05-19` | decisione fonte per fonte: nessuna aggiunta allo scheduler in questa fase |
+| EUR-Lex | fixture CELEX minima e test estrazione `CELEX:32024R1689`; policy ancora RAG-only se chiavi incomplete | chiuso con blocco intenzionale, nessuna pubblicazione UE strutturata |
+| OpenGA | canary su sentenze, ordinanze, decreti e pareri; test su CSV/JSON/ODS non pubblicabili e PDF concreto candidato | chiuso come RAG-only per dataset, documento concreto rinviato a pilot guarded futuro |
+| Scheduler controllato | aggiunto `legal-updates-run-progressive` con `--guarded-only` obbligatorio e dry-run | disponibile senza reintrodurre aggregatori o scheduler esteso |
+| Runtime sporchi | `data/tenants/...` preservati; aggiunto ignore mirato per `intelligence/workspace_intelligence.json` | dati runtime non committati |
+| Vercel failure | verificato status esterno `Vercel` failure separato da GitHub Actions | documentato come provider fuori gate IUSENTRA; non equivale a CI verde |
+
 ## Aggiornamento Fase 11 - regime controllato e manutenzione fonti
 
 Aggiornato il 19 maggio 2026. La fase prepara la manutenzione ordinaria senza backup, senza import massivo e senza pubblicazioni incontrollate.

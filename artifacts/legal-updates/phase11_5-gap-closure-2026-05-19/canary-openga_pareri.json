@@ -1,0 +1,175 @@
+﻿{
+  "schema": "iusentra.legal_updates.canary.v1",
+  "ok": true,
+  "mode": "canary",
+  "source_code": "openga_pareri",
+  "source_name": "OpenGA - Pareri",
+  "limit": 2,
+  "max_seconds": 60,
+  "no_publish": true,
+  "publish_mode": "off",
+  "direct_only": true,
+  "documents_found": 24,
+  "processed": 0,
+  "skipped_unchanged": 2,
+  "web_verification_attempts": 0,
+  "verification_evidence_saved": 0,
+  "verification_attachments_saved": 0,
+  "autopublished": {
+    "count": 0,
+    "items": []
+  },
+  "stopped_for_time_limit": false,
+  "duration_seconds": 7.82,
+  "items": [
+    {
+      "external_id": "a213baba50d89e258edffd29f8c645ef0c4944d116eee8c7384d0130474c6e9d",
+      "title": "CDS - Pareri - CDS - Pareri - 2024",
+      "source_url": "https://openga.giustizia-amministrativa.it/dataset/35a6906c-241f-485f-80ef-522bd5e3770d/resource/a5c81332-821d-48b6-b003-bbd327090568/download/cds-pareri-2024.csv",
+      "published_at": "",
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "title": "CDS - Pareri - 2024",
+          "url": "https://openga.giustizia-amministrativa.it/dataset/35a6906c-241f-485f-80ef-522bd5e3770d/resource/a5c81332-821d-48b6-b003-bbd327090568/download/cds-pareri-2024.csv",
+          "attachment_type": ""
+        }
+      ],
+      "reference_count": 1,
+      "reference_labels": [
+        "2024"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare CDS - Pareri - CDS - Pareri - 2024?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza se documentale, altrimenti solo RAG",
+      "rag_destination": "official_open_data_rag",
+      "exclusion_reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+      "status": "invariato",
+      "normalized_document_id": 91,
+      "review_id": 91,
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 12000,
+        "ocr_status": "non_richiesto",
+        "references": 4,
+        "questions": 14,
+        "warnings": []
+      }
+    },
+    {
+      "external_id": "d38882e7af0cc8ed6e05fc10d49cf2aab6630aa5b8de0722c6ff84b30da947a5",
+      "title": "CDS - Pareri - CDS - Pareri - 2024",
+      "source_url": "https://openga.giustizia-amministrativa.it/dataset/35a6906c-241f-485f-80ef-522bd5e3770d/resource/0d6464eb-14c7-4ffb-8af6-11b90833e6b3/download/cds-pareri-2024.json",
+      "published_at": "",
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "title": "CDS - Pareri - 2024",
+          "url": "https://openga.giustizia-amministrativa.it/dataset/35a6906c-241f-485f-80ef-522bd5e3770d/resource/0d6464eb-14c7-4ffb-8af6-11b90833e6b3/download/cds-pareri-2024.json",
+          "attachment_type": ""
+        }
+      ],
+      "reference_count": 24,
+      "reference_labels": [
+        "ART. 117",
+        "D.M. 495",
+        "D.LGS. 12 LUGLIO 2010 N. 104",
+        "DECRETO 484605",
+        "DECRETO N. 826",
+        "DELIBERA N. 71",
+        "ORDINANZA N. 2037",
+        "DELIBERA 31"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare CDS - Pareri - CDS - Pareri - 2024?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza se documentale, altrimenti solo RAG",
+      "rag_destination": "official_open_data_rag",
+      "exclusion_reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+      "status": "invariato",
+      "normalized_document_id": 92,
+      "review_id": 92,
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 12000,
+        "ocr_status": "non_richiesto",
+        "references": 3,
+        "questions": 14,
+        "warnings": []
+      }
+    }
+  ],
+  "errors": [],
+  "diagnostics_saved": true
+}

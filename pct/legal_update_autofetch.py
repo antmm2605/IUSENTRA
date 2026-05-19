@@ -510,6 +510,128 @@ def build_legal_autofetch_plan(
     }
 
 
+def build_legal_update_progressive_run_plan(
+    config: LegalAutoFetchConfig,
+    *,
+    pipeline: LegalUpdatePipeline | None = None,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Piano del ciclo progressivo controllato, senza enqueue o pubblicazione."""
+
+    runtime_pipeline = pipeline or build_legal_update_pipeline(
+        config.intelligence_db,
+        giurisprudenza_db_path=config.giurisprudenza_db,
+        ai_base_url=config.ai_base_url,
+        ai_model=config.ai_model,
+        export_json_enabled=config.export_json_enabled,
+        mirror_giurisprudenza_json_enabled=config.mirror_giurisprudenza_json_enabled,
+    )
+    sources = list(runtime_pipeline.repository.list_sources(enabled_only=False))
+    green_source_codes = legal_update_progressive_step1_source_codes(sources)
+    cursor_payload = LegalAutoFetchCursorStore(_cursor_path(config)).load()
+    plan = build_legal_autofetch_plan(
+        sources,
+        cursor_payload=cursor_payload,
+        now=now,
+        source_budget=config.source_budget,
+        only_source_codes=green_source_codes,
+    )
+    excluded_sources: list[dict[str, Any]] = []
+    for source in sources:
+        code = _source_code(source.get("code"))
+        if not code or code in green_source_codes:
+            continue
+        excluded_sources.append(
+            {
+                "source_code": code,
+                "source_name": str(source.get("name") or code),
+                "classification": legal_update_progressive_source_classification(code),
+                "publication_policy": legal_update_progressive_publication_policy(code),
+                "reason": legal_update_progressive_exclusion_reason(code),
+            }
+        )
+    return {
+        "ok": True,
+        "schema": LEGAL_UPDATE_AUTOFETCH_SCHEMA,
+        "mode": "progressive_controlled_cycle_plan",
+        "publication_mode": "guarded",
+        "guarded_only": True,
+        "will_execute": False,
+        "green_source_codes": list(green_source_codes),
+        "rag_only_source_codes": list(LEGAL_UPDATE_PROGRESSIVE_RAG_ONLY_SOURCE_CODES),
+        "observation_source_codes": list(LEGAL_UPDATE_PROGRESSIVE_OBSERVATION_SOURCE_CODES),
+        "archive_source_codes": list(LEGAL_UPDATE_PROGRESSIVE_ARCHIVE_SOURCE_CODES),
+        "excluded_sources": excluded_sources,
+        "source_budget": config.source_budget,
+        "publish_max_items": config.publish_max_items,
+        "item_timeout_seconds": config.item_timeout_seconds,
+        "max_attempts": config.max_attempts,
+        "plan": plan,
+    }
+
+
+def run_legal_update_progressive_cycle(
+    config: LegalAutoFetchConfig,
+    *,
+    guarded_only: bool,
+    dry_run: bool = False,
+    pipeline: LegalUpdatePipeline | None = None,
+    runner: Any = None,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Esegue un solo ciclo autofetch controllato sulle sole fonti verdi."""
+
+    if not guarded_only:
+        raise ValueError("--guarded-only e' obbligatorio per il ciclo progressivo controllato")
+    runtime_pipeline = pipeline or build_legal_update_pipeline(
+        config.intelligence_db,
+        giurisprudenza_db_path=config.giurisprudenza_db,
+        ai_base_url=config.ai_base_url,
+        ai_model=config.ai_model,
+        export_json_enabled=config.export_json_enabled,
+        mirror_giurisprudenza_json_enabled=config.mirror_giurisprudenza_json_enabled,
+    )
+    plan_payload = build_legal_update_progressive_run_plan(config, pipeline=runtime_pipeline, now=now)
+    if dry_run:
+        return {
+            **plan_payload,
+            "mode": "progressive_controlled_cycle_dry_run",
+            "dry_run": True,
+            "executed": False,
+            "enqueued_jobs": [],
+            "execution_report": {
+                "ok": True,
+                "mode": "dry_run",
+                "reports": [],
+                "published": 0,
+                "scarti": [],
+                "errors": [],
+            },
+        }
+
+    result = run_legal_update_autofetch_tick(
+        config,
+        pipeline=runtime_pipeline,
+        source_codes=plan_payload["green_source_codes"],
+        runner=runner,
+        now=now,
+    )
+    execution_report = dict(result.get("execution_report") or {})
+    return {
+        **result,
+        "mode": "progressive_controlled_cycle",
+        "publication_mode": "guarded",
+        "guarded_only": True,
+        "dry_run": False,
+        "executed": True,
+        "green_source_codes": plan_payload["green_source_codes"],
+        "excluded_sources": plan_payload["excluded_sources"],
+        "published": int((execution_report.get("autopublished") or {}).get("count") or 0),
+        "scarti": list(execution_report.get("skipped") or []),
+        "errors": list(execution_report.get("errors") or []),
+    }
+
+
 def run_legal_update_autofetch_tick(
     config: LegalAutoFetchConfig,
     *,

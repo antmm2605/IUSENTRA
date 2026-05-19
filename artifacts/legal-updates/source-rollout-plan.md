@@ -12,6 +12,16 @@ Retry e backfill restano conservativi: ogni job ha `max_attempts`, timeout per e
 
 Procedura nuova fonte: aggiungere capability, fixture offline, canary con limite e `--no-publish`, report qualità, pilot guarded su pochi documenti e solo dopo abilitarla nello scheduler. Nessuna nuova fonte va inserita direttamente nel ciclo automatico senza questi passaggi.
 
+## Aggiornamento Fase 11.5 - chiusura buchi residui 19 maggio 2026
+
+Il ciclo controllato prima del popolamento produzione è ora esplicito: `python -m pct.cli legal-updates-run-progressive --source-budget 3 --publish-max-items 5 --item-timeout-seconds 120 --guarded-only --json`. Il comando usa solo fonti verdi progressive, esclude fonti in osservazione, RAG-only, archivi locali e fonti secondarie, rispetta budget/timeout/cursori/coda e supporta `--dry-run` senza enqueue o pubblicazione.
+
+La procedura Archivio Giurisprudenza strutturato è governata da `python -m pct.cli legal-updates-giurisprudenza-structured-canary --json`: una scheda può essere promossa solo se ha corte, numero, anno, data, fonte ufficiale e testo/PDF. In assenza di chiavi complete lo stato è chiuso con blocco intenzionale e nessuna promozione viene forzata.
+
+Cassazione `QSP50194` resta il caso pilota: il dettaglio diretto `contentId=QSP50194` è raggiungibile e contiene riferimenti al c.p.p., ma il canary su `ultime_sent_ord_e_questioni` a limite 5 oggi non lo include. La chiusura della lacuna è quindi: parser di dettaglio e fixture preservati, domanda mirata “Quali articoli del c.p.p. sono richiamati nel PDF?” testata, e diagnosi salvata senza import storico o pubblicazione forzata.
+
+EUR-Lex riconosce CELEX nelle evidenze e nelle fixture, ma resta `RAG-only`: nessuna pubblicazione UE strutturata è ammessa senza CELEX, titolo, tipo atto, numero, anno, fonte ufficiale e testo leggibile. OpenGA resta `RAG-only` per CSV/JSON/ODS/cataloghi; soltanto un PDF o documento concreto con TAR/CdS, numero e anno può diventare candidato guarded in una fase futura.
+
 ## Aggiornamento Fase 9 - fonti verdi estese 19 maggio 2026
 
 La Fase 9 abilita nello scheduler progressivo solo le fonti verdi: `cassazione_ultime_sent_ord_questioni`, `corte_conti`, `curia_cgue_rss`, `inps_circolari`, `inps_messaggi`, `agcom_provvedimenti`, `anac_documenti`, `garante_privacy` e `gazzetta_ufficiale`. Il budget passa a 3 fonti per ciclo, resta il timeout per elemento e la pubblicazione automatica resta guarded.

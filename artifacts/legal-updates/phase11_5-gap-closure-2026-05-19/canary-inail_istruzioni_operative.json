@@ -1,0 +1,32 @@
+{
+  "schema": "iusentra.legal_updates.canary.v1",
+  "ok": false,
+  "mode": "canary",
+  "source_code": "inail_istruzioni_operative",
+  "source_name": "INAIL - istruzioni operative",
+  "limit": 2,
+  "max_seconds": 60,
+  "no_publish": true,
+  "publish_mode": "off",
+  "direct_only": true,
+  "documents_found": 0,
+  "processed": 0,
+  "skipped_unchanged": 0,
+  "web_verification_attempts": 0,
+  "verification_evidence_saved": 0,
+  "verification_attachments_saved": 0,
+  "autopublished": {
+    "count": 0,
+    "items": []
+  },
+  "stopped_for_time_limit": false,
+  "duration_seconds": 0.32,
+  "items": [],
+  "errors": [
+    "Lettura fonte non completata: HTTPSConnectionPool(host='www.inail.it', port=443): Max retries exceeded with url: /portale/it/atti-e-documenti/note-provvedimenti-e-istruzioni-operative/istruzioni-operative.html (Caused by SSLError(SSLError(1, '[SSL..."
+  ],
+  "inner_errors": [
+    "Lettura fonte non completata: HTTPSConnectionPool(host='www.inail.it', port=443): Max retries exceeded with url: /portale/it/atti-e-documenti/note-provvedimenti-e-istruzioni-operative/istruzioni-operative.html (Caused by SSLError(SSLError(1, '[SSL..."
+  ],
+  "diagnostics_saved": true
+}

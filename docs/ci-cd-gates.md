@@ -1,6 +1,6 @@
 # CI/CD gates IUSENTRA
 
-Aggiornato: 2026-05-14, fase 13 `fasereact`.
+Aggiornato: 2026-05-19, fase 11.5 fonti legali.
 
 ## Obiettivo
 
@@ -41,6 +41,7 @@ ambiente esterno o credenziali smoke.
 - Il processo operativo da seguire prima di dichiarare chiusa una consegna è in `docs/COMMIT_PUSH_REQUIRED_GATES.md`. La checklist comprende CodeQL, code scanning, dependency review, supply chain, governance, lint, smoke, Frontend React, Coverage 12/12, Pytest core shardato, Local Signer/PKCS#11 su macOS/Ubuntu/Windows e CI Quality Overlay su `push` e, quando esiste una PR, su `pull_request`.
 - Gli aggregatori ancora presenti, come `CI / Pytest core` e `CI / Local Signer e PKCS#11`, sono riepiloghi: la diagnosi primaria è lo shard reale. Se qualcosa è `Skipped`, controllare prima `Lint + syntax`, `Governance repo` e smoke upstream.
 - Il check aggregatore storico `CI / Coverage moduli critici` senza `parte` è stato eliminato e non deve essere reintrodotto come blocco PR, riepilogo canonico o required check: la coverage critica è governata dalle 12 parti `Coverage moduli critici parte */12`.
+- Lo status esterno `Vercel` non è un gate di qualità IUSENTRA per questi branch: il deploy reale è Hetzner. Se Vercel resta `failure` come status provider, non dichiarare comunque “CI tutto verde” senza distinguere GitHub Actions reali, CodeQL/security e quello status esterno fuori processo.
 
 - Backend: install ripetibile Python, import/syntax, lint fatal, smoke Flask, scheduler worker, shard core pytest.
 - Sicurezza backend: `tests/test_auth.py`, `tests/test_backend_security_phase5.py`, `tests/test_tenant_isolation_runtime.py`, `tests/test_app_v2_feature_flags.py`, `tests/test_app_v2_routing.py`.

@@ -19,6 +19,14 @@ La Fase 11 introduce il regime controllato degli aggiornamenti legali. `python -
 
 Lex deve considerare questo report come presidio di manutenzione: fonti in osservazione, RAG-only o non pubblicabili non diventano basi certe della risposta finché non passano capability, fixture, canary, report, pilot guarded e abilitazione scheduler. I backfill ammessi restano solo mirati ad allegati, OCR, riferimenti e domande mancanti, sempre senza pubblicazione automatica.
 
+## Aggiornamento operativo 2.245.53 - 19 maggio 2026
+
+La Fase 11.5 aggiunge due presidi prima del popolamento produzione: `legal-updates-run-progressive --guarded-only` per un ciclo controllato sulle sole fonti verdi e `legal-updates-giurisprudenza-structured-canary --json` per impedire che l'Archivio Giurisprudenza venga popolato senza corte, numero, anno, data, fonte ufficiale e testo/PDF.
+
+Per Lex, `QSP50194` resta un caso pilota con diagnosi esplicita: il dettaglio diretto è raggiungibile e contiene `art. 606 c.p.p.`, ma il canary delle ultime 5 schede Cassazione del 19 maggio 2026 non lo ha restituito. Le risposte devono quindi usare evidenze DB/fixture quando presenti e dichiarare la lacuna se il repository corrente non contiene ancora quella scheda/PDF, senza inventare import o pubblicazioni.
+
+EUR-Lex può riconoscere CELEX ma resta RAG-only finché non sono presenti tutte le chiavi strutturate; OpenGA resta RAG-only per dataset tabellari, mentre eventuali PDF giurisprudenziali concreti potranno entrare solo da pilot guarded futuro.
+
 ## Aggiornamento operativo 2.245.49 - 19 maggio 2026
 
 La Fase 8 restringe lo scheduler degli aggiornamenti legali al solo step 1 progressivo: `cassazione_ultime_sent_ord_questioni`, `inps_circolari`, `inps_messaggi` e `agcom_provvedimenti`. Le fonti fuori step, incluse ANAC e Garante, non devono diventare base certa della risposta Lex finché non passano un canary/report verde dedicato.

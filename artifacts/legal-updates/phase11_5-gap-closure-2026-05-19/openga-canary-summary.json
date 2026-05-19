@@ -1,0 +1,54 @@
+﻿[
+    {
+        "source":  "openga_sentenze",
+        "exit_code":  0,
+        "ok":  true,
+        "documents_found":  372,
+        "processed":  0,
+        "evidence_saved":  0,
+        "attachments_saved":  0,
+        "published":  null,
+        "stopped_for_time_limit":  false,
+        "first_title":  "CDS - Sentenze - CDS - Sentenze - 2024",
+        "errors":  ""
+    },
+    {
+        "source":  "openga_ordinanze",
+        "exit_code":  0,
+        "ok":  true,
+        "documents_found":  372,
+        "processed":  0,
+        "evidence_saved":  0,
+        "attachments_saved":  0,
+        "published":  null,
+        "stopped_for_time_limit":  false,
+        "first_title":  "CDS - Ordinanze - CDS - Ordinanze - 2024",
+        "errors":  ""
+    },
+    {
+        "source":  "openga_decreti",
+        "exit_code":  0,
+        "ok":  true,
+        "documents_found":  370,
+        "processed":  0,
+        "evidence_saved":  0,
+        "attachments_saved":  0,
+        "published":  null,
+        "stopped_for_time_limit":  false,
+        "first_title":  "CDS - Decreti - CDS - Decreti - 2025",
+        "errors":  ""
+    },
+    {
+        "source":  "openga_pareri",
+        "exit_code":  0,
+        "ok":  true,
+        "documents_found":  24,
+        "processed":  0,
+        "evidence_saved":  0,
+        "attachments_saved":  0,
+        "published":  null,
+        "stopped_for_time_limit":  false,
+        "first_title":  "CDS - Pareri - CDS - Pareri - 2024",
+        "errors":  ""
+    }
+]

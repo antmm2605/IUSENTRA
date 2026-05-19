@@ -1,0 +1,188 @@
+{
+  "schema": "iusentra.legal_updates.canary.v1",
+  "ok": true,
+  "mode": "canary",
+  "source_code": "agenzia_entrate",
+  "source_name": "Agenzia Entrate",
+  "limit": 2,
+  "max_seconds": 60,
+  "no_publish": true,
+  "publish_mode": "off",
+  "direct_only": true,
+  "documents_found": 21,
+  "processed": 2,
+  "skipped_unchanged": 0,
+  "web_verification_attempts": 2,
+  "verification_evidence_saved": 2,
+  "verification_attachments_saved": 0,
+  "autopublished": {
+    "count": 0,
+    "items": []
+  },
+  "stopped_for_time_limit": false,
+  "duration_seconds": 1.88,
+  "items": [
+    {
+      "external_id": "799aa5979d908535532737dbe6acf5f4d23116f43864c358d1c49c4bfe309f15",
+      "title": "Ministero dell'Economia e delle Finanze",
+      "source_url": "https://www.mef.gov.it/index.html",
+      "published_at": "",
+      "attachment_count": 0,
+      "attachments": [],
+      "reference_count": 22,
+      "reference_labels": [
+        "art. 26",
+        "art. 58",
+        "D.Lgs. 30 marzo 2001, n. 165",
+        "l. n. 488/1999",
+        "L. n. 388",
+        "14 maggio 2026",
+        "04 maggio 2026",
+        "29 aprile 2026"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare Ministero dell'Economia e delle Finanze?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "prassi",
+      "destination_label": "Prassi o notizia",
+      "rag_destination": "official_prassi_rag",
+      "exclusion_reason": "",
+      "status": "analizzato",
+      "review_id": 117,
+      "normalized_document_id": 117,
+      "verification": {
+        "attempted": 1,
+        "saved": 1,
+        "attachments": 0,
+        "ok": false,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "reason": "Fonte ufficiale diretta acquisita, ma servono ulteriori conferme prima di trattare il riferimento come completato."
+      },
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 5045,
+        "ocr_status": "non_richiesto",
+        "references": 5,
+        "questions": 13,
+        "warnings": []
+      }
+    },
+    {
+      "external_id": "052ab207b20821c8c2ec260437f7f9d11fbddc730d6d0b8c35af4485e1116fce",
+      "title": "Vai al sito Agenzia delle Entrate",
+      "source_url": "https://www.agenziaentrate.gov.it/portale/home",
+      "published_at": "",
+      "attachment_count": 0,
+      "attachments": [],
+      "reference_count": 12,
+      "reference_labels": [
+        "art. 1",
+        "Dl n. 14/2019",
+        "L. 68/99",
+        "8 giugno 2026",
+        "26 Precompilata 2026",
+        "30 aprile 2026",
+        "17 giugno 2026",
+        "15 aprile 2026"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare Vai al sito Agenzia delle Entrate?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "prassi",
+      "destination_label": "Prassi o notizia",
+      "rag_destination": "official_prassi_rag",
+      "exclusion_reason": "",
+      "status": "analizzato",
+      "review_id": 118,
+      "normalized_document_id": 118,
+      "verification": {
+        "attempted": 1,
+        "saved": 1,
+        "attachments": 0,
+        "ok": false,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "reason": "Fonte ufficiale diretta acquisita, ma servono ulteriori conferme prima di trattare il riferimento come completato."
+      },
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 8231,
+        "ocr_status": "non_richiesto",
+        "references": 3,
+        "questions": 13,
+        "warnings": []
+      }
+    }
+  ],
+  "errors": [],
+  "diagnostics_saved": true
+}

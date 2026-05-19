@@ -1,0 +1,175 @@
+﻿{
+  "schema": "iusentra.legal_updates.canary.v1",
+  "ok": true,
+  "mode": "canary",
+  "source_code": "openga_decreti",
+  "source_name": "OpenGA - Decreti",
+  "limit": 2,
+  "max_seconds": 60,
+  "no_publish": true,
+  "publish_mode": "off",
+  "direct_only": true,
+  "documents_found": 370,
+  "processed": 0,
+  "skipped_unchanged": 2,
+  "web_verification_attempts": 0,
+  "verification_evidence_saved": 0,
+  "verification_attachments_saved": 0,
+  "autopublished": {
+    "count": 0,
+    "items": []
+  },
+  "stopped_for_time_limit": false,
+  "duration_seconds": 17.48,
+  "items": [
+    {
+      "external_id": "ae72b2fa8f41b0da2a62eb52424fda2304782eeed2b0fd39bd8c0bf39edff48b",
+      "title": "CDS - Decreti - CDS - Decreti - 2025",
+      "source_url": "https://openga.giustizia-amministrativa.it/dataset/44db5793-aeac-429c-9d43-8fb8d27badfa/resource/bb70457e-7455-4e6c-b15f-577695fd2cf8/download/cds-decreti-2025.csv",
+      "published_at": "",
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "title": "CDS - Decreti - 2025",
+          "url": "https://openga.giustizia-amministrativa.it/dataset/44db5793-aeac-429c-9d43-8fb8d27badfa/resource/bb70457e-7455-4e6c-b15f-577695fd2cf8/download/cds-decreti-2025.csv",
+          "attachment_type": ""
+        }
+      ],
+      "reference_count": 1,
+      "reference_labels": [
+        "2025"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare CDS - Decreti - CDS - Decreti - 2025?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza se documentale, altrimenti solo RAG",
+      "rag_destination": "official_open_data_rag",
+      "exclusion_reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+      "status": "invariato",
+      "normalized_document_id": 89,
+      "review_id": 89,
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 12000,
+        "ocr_status": "non_richiesto",
+        "references": 4,
+        "questions": 14,
+        "warnings": []
+      }
+    },
+    {
+      "external_id": "dd6ae7dbfdd0f16d52bd16cb1660fe1cc07a69c078ebb2c33741a00078695573",
+      "title": "CDS - Decreti - CDS - Decreti - 2025",
+      "source_url": "https://openga.giustizia-amministrativa.it/dataset/44db5793-aeac-429c-9d43-8fb8d27badfa/resource/e2d1ee76-df51-4a93-9e71-7546291c3201/download/cds-decreti-2025.json",
+      "published_at": "",
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "title": "CDS - Decreti - 2025",
+          "url": "https://openga.giustizia-amministrativa.it/dataset/44db5793-aeac-429c-9d43-8fb8d27badfa/resource/e2d1ee76-df51-4a93-9e71-7546291c3201/download/cds-decreti-2025.json",
+          "attachment_type": ""
+        }
+      ],
+      "reference_count": 22,
+      "reference_labels": [
+        "ART. 42BIS",
+        "ART. 41",
+        "ART. 42",
+        "DPR 327",
+        "CONSIGLIO DI STATO",
+        "TAR LAZIO",
+        "TAR PUGLIA",
+        "SENTENZA 12474"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare CDS - Decreti - CDS - Decreti - 2025?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza se documentale, altrimenti solo RAG",
+      "rag_destination": "official_open_data_rag",
+      "exclusion_reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+      "status": "invariato",
+      "normalized_document_id": 90,
+      "review_id": 90,
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 12000,
+        "ocr_status": "non_richiesto",
+        "references": 4,
+        "questions": 14,
+        "warnings": []
+      }
+    }
+  ],
+  "errors": [],
+  "diagnostics_saved": true
+}

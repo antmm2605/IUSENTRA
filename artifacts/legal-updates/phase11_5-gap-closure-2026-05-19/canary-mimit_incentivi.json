@@ -1,0 +1,205 @@
+{
+  "schema": "iusentra.legal_updates.canary.v1",
+  "ok": true,
+  "mode": "canary",
+  "source_code": "mimit_incentivi",
+  "source_name": "MIMIT - incentivi e imprese",
+  "limit": 2,
+  "max_seconds": 60,
+  "no_publish": true,
+  "publish_mode": "off",
+  "direct_only": true,
+  "documents_found": 10,
+  "processed": 2,
+  "skipped_unchanged": 0,
+  "web_verification_attempts": 2,
+  "verification_evidence_saved": 4,
+  "verification_attachments_saved": 2,
+  "autopublished": {
+    "count": 0,
+    "items": []
+  },
+  "stopped_for_time_limit": false,
+  "duration_seconds": 14.95,
+  "items": [
+    {
+      "external_id": "ad9a8563036b29ac8e08553811ad318cfe7f1a1d35f3f5d64f1fdf2354207f7b",
+      "title": "Decreto direttoriale 13 maggio 2026 - Accordi per l&#039;innovazione – 2025. Aggiornamento graduatoria aree tematiche allegato 2 D.M. 04/09/2025",
+      "source_url": "https://www.mimit.gov.it/it/normativa/decreti-direttoriali/decreto-direttoriale-13-maggio-2026-accordi-per-linnovazione-2025-aggiornamento-graduatoria-aree-tematiche-allegato-2-d-m-04-09-2025",
+      "published_at": "2026-05-13",
+      "attachment_count": 8,
+      "attachments": [
+        {
+          "title": "IT",
+          "url": "https://www.mimit.gov.it/it/normativa/decreti-direttoriali/decreto-direttoriale-13-maggio-2026-accordi-per-linnovazione-2025-aggiornamento-graduatoria-aree-tematiche-allegato-2-d-m-04-09-2025",
+          "attachment_type": ""
+        },
+        {
+          "title": "Facebook",
+          "url": "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fwww.mimit.gov.it%2Fit%2Fnormativa%2Fdecreti-direttoriali%2Fdecreto-direttoriale-13-maggio-2026-accordi-per-linnovazione-2025-aggiornamento-graduatoria-aree-tematiche-allegato-2-d-m-04-09-2025",
+          "attachment_type": ""
+        },
+        {
+          "title": "Twitter",
+          "url": "https://www.twitter.com/share?text=Decreto direttoriale 13 maggio 2026 - Accordi per l'innovazione – 2025. Aggiornamento graduatoria aree tematiche allegato 2 D.M. 04/09/2025&url=https%3A%2F%2Fwww.mimit.gov.it%2Fit%2Fnormativa%2Fdecreti-direttoriali%2Fdecreto-direttoriale-13-maggio-2026-accordi-per-linnovazione-2025-aggiornamento-graduatoria-aree-tematiche-allegato-2-d-m-04-09-2025",
+          "attachment_type": ""
+        },
+        {
+          "title": "Linkedin",
+          "url": "https://www.linkedin.com/shareArticle?mini=true&url=https%3A%2F%2Fwww.mimit.gov.it%2Fit%2Fnormativa%2Fdecreti-direttoriali%2Fdecreto-direttoriale-13-maggio-2026-accordi-per-linnovazione-2025-aggiornamento-graduatoria-aree-tematiche-allegato-2-d-m-04-09-2025",
+          "attachment_type": ""
+        }
+      ],
+      "reference_count": 8,
+      "reference_labels": [
+        "D.M. 04/09",
+        "DM 4",
+        "13 maggio 2026",
+        "04/09/2025",
+        "6 marzo 2026",
+        "4 settembre 2025",
+        "2026",
+        "2025"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare Decreto direttoriale 13 maggio 2026 - Accordi per l&#039;innovazione – 2025. Aggiornamento graduatoria aree tematiche allegato 2 D.M. 04/09/2025?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "prassi",
+      "destination_label": "Prassi o notizia",
+      "rag_destination": "official_prassi_rag",
+      "exclusion_reason": "",
+      "status": "analizzato",
+      "review_id": 126,
+      "normalized_document_id": 126,
+      "verification": {
+        "attempted": 1,
+        "saved": 3,
+        "attachments": 2,
+        "ok": true,
+        "confirmations": 3,
+        "official_confirmations": 3,
+        "reason": "Verifica pubblica completata con fonti coerenti."
+      },
+      "quality": {
+        "status": "pronto_con_note",
+        "ready": true,
+        "attachment_found": true,
+        "pdf_found": true,
+        "text_read": true,
+        "context_chars": 38688,
+        "ocr_status": "leggibile_con_note",
+        "references": 20,
+        "questions": 15,
+        "warnings": [
+          "OCR leggibile ma da controllare"
+        ]
+      }
+    },
+    {
+      "external_id": "b6ba0afff5b5f41ab3853870e73446d95c88675f7bbcb759384f9ac888f7b22d",
+      "title": "Mimit: Urso incontra Orsini, focus su competitività e semplificazioni per le imprese",
+      "source_url": "https://www.mimit.gov.it/it/notizie-stampa/mimit-urso-incontra-orsini-focus-su-competitivita-e-semplificazioni-per-le-imprese",
+      "published_at": "2026-04-29",
+      "attachment_count": 0,
+      "attachments": [],
+      "reference_count": 2,
+      "reference_labels": [
+        "29 Aprile 2026",
+        "2026"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare Mimit: Urso incontra Orsini, focus su competitività e semplificazioni per le imprese?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "prassi",
+      "destination_label": "Prassi o notizia",
+      "rag_destination": "official_prassi_rag",
+      "exclusion_reason": "",
+      "status": "analizzato",
+      "review_id": 127,
+      "normalized_document_id": 127,
+      "verification": {
+        "attempted": 1,
+        "saved": 1,
+        "attachments": 0,
+        "ok": true,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "reason": "Verifica pubblica completata con fonti coerenti."
+      },
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 1964,
+        "ocr_status": "non_richiesto",
+        "references": 0,
+        "questions": 11,
+        "warnings": []
+      }
+    }
+  ],
+  "errors": [],
+  "diagnostics_saved": true
+}

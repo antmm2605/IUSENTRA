@@ -306,6 +306,16 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 | --- | --- | --- | --- | --- |
 | Fase 11 fonti legali | Health report, dashboard qualità, shard legal updates, governance, UTF-8 e diff check | Nessuna issue aperta nuova | Il regime controllato è stato predisposto senza backup e senza import massivo. Il report periodico e la dashboard leggono dati già presenti; i backfill restano mirati e no-publish. | Per modifiche future rilanciare il report `legal-updates-health-report --json`, gli shard legal updates separati e i gate UTF-8/governance. |
 
+## Note Fase 11.5 fonti legali 2.245.53 - 2026-05-19
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Cassazione `QSP50194` | Canary/backfill no-publish, fixture e test QSP/c.p.p. | Chiuso con diagnosi, non importato a forza | Il detail diretto `contentId=QSP50194` è raggiungibile e contiene `art. 606 c.p.p.`, ma il canary sulle ultime 5 schede non lo restituisce. | Non inventare la scheda nel DB corrente; acquisirla solo con job storico mirato o quando rientra nell'indice ufficiale. |
+| Archivio Giurisprudenza strutturato | `legal-updates-giurisprudenza-structured-canary --json` | Blocco intenzionale | Nessuna scheda controllata ha tutte le chiavi minime corte, numero, anno, data, fonte ufficiale e testo/PDF. | Non forzare promozioni; ripetere il canary dopo pilot documentale o parser con chiavi complete. |
+| Fonti in osservazione | Canary no-publish limitati | Blocco intenzionale | Giustizia Amministrativa/INAIL falliscono per SSL, AGCM supera il budget e molte fonti producono home/cataloghi o documenti non ancora stabili. | Restano fuori scheduler finché non passano canary verde dedicato. |
+| Vercel status esterno | GitHub commit status | Fuori gate IUSENTRA | Lo status `Vercel` può restare failure perché il deploy reale è Hetzner; non va confuso con i gate GitHub Actions. | Non dichiarare “CI tutto verde” se resta failure esterno; distinguere provider esterno e CI reale. |
+| Runtime dirty locale | `git status --short` | Preservato, non committato | `data/tenants/.../assistente_redazionale.json` e `data/tenants/.../preventivi/conferimenti.json` sono dati runtime esistenti; `intelligence/workspace_intelligence.json` è ora ignorato. | Non cancellare dati tenant reali senza richiesta esplicita. |
+
 ## Note Ricerca Legale con contesto fonte 2.239.3 - 2026-05-16
 
 | Area | Gate | Stato | Nota | Azione |

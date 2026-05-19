@@ -1,0 +1,188 @@
+{
+  "schema": "iusentra.legal_updates.canary.v1",
+  "ok": true,
+  "mode": "canary",
+  "source_code": "ministero_lavoro",
+  "source_name": "Ministero del Lavoro",
+  "limit": 2,
+  "max_seconds": 60,
+  "no_publish": true,
+  "publish_mode": "off",
+  "direct_only": true,
+  "documents_found": 120,
+  "processed": 2,
+  "skipped_unchanged": 0,
+  "web_verification_attempts": 2,
+  "verification_evidence_saved": 2,
+  "verification_attachments_saved": 0,
+  "autopublished": {
+    "count": 0,
+    "items": []
+  },
+  "stopped_for_time_limit": false,
+  "duration_seconds": 2.19,
+  "items": [
+    {
+      "external_id": "73c094f19f049e985a8c5aa601611a6d97e16de67ad89ab5b537d7e42f50d4ff",
+      "title": "Ministro e Ministero",
+      "source_url": "https://www.lavoro.gov.it/ministro-e-ministero/Pagine/default",
+      "published_at": "",
+      "attachment_count": 0,
+      "attachments": [],
+      "reference_count": 14,
+      "reference_labels": [
+        "19 maggio 2026",
+        "14 maggio 2026",
+        "13 maggio 2026",
+        "21 maggio 2026",
+        "18 maggio 2026",
+        "5 maggio 2026",
+        "30 aprile 2026",
+        "15 maggio 2026"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare Ministro e Ministero?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "prassi",
+      "destination_label": "Prassi o notizia",
+      "rag_destination": "official_prassi_rag",
+      "exclusion_reason": "",
+      "status": "analizzato",
+      "review_id": 119,
+      "normalized_document_id": 119,
+      "verification": {
+        "attempted": 1,
+        "saved": 1,
+        "attachments": 0,
+        "ok": true,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "reason": "Verifica pubblica completata con fonti coerenti."
+      },
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 3674,
+        "ocr_status": "non_richiesto",
+        "references": 0,
+        "questions": 13,
+        "warnings": []
+      }
+    },
+    {
+      "external_id": "24990e352545132d7d46d383643c9553c37a6b5b696663a20f3b0392502cd755",
+      "title": "Il Ministro",
+      "source_url": "https://www.lavoro.gov.it/ministro-e-ministero/ministro/Pagine/default",
+      "published_at": "",
+      "attachment_count": 0,
+      "attachments": [],
+      "reference_count": 9,
+      "reference_labels": [
+        "1965",
+        "1994",
+        "2005",
+        "2022",
+        "2009",
+        "2015",
+        "2014",
+        "2020"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare Il Ministro?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "prassi",
+      "destination_label": "Prassi o notizia",
+      "rag_destination": "official_prassi_rag",
+      "exclusion_reason": "",
+      "status": "analizzato",
+      "review_id": 120,
+      "normalized_document_id": 120,
+      "verification": {
+        "attempted": 1,
+        "saved": 1,
+        "attachments": 0,
+        "ok": true,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "reason": "Verifica pubblica completata con fonti coerenti."
+      },
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 1701,
+        "ocr_status": "non_richiesto",
+        "references": 0,
+        "questions": 12,
+        "warnings": []
+      }
+    }
+  ],
+  "errors": [],
+  "diagnostics_saved": true
+}

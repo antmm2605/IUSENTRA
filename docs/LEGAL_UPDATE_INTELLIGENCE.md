@@ -178,6 +178,20 @@ Budget governati:
 
 La pubblicazione resta guarded: il job fonte acquisisce e registra l'esito, poi la coda pubblica al massimo cinque elementi idonei. OpenGA, PST, Dati Normattiva, EUR-Lex e ISTAT restano RAG-only/no-publish; Normattiva e i codici fondamentali alimentano Ricerca Legale e Lex tramite archivi locali o canary diagnostici, non tramite batch fonte web massivo. Le fonti in osservazione restano escluse fino a canary/report verde dedicato.
 
+Comando manuale di ciclo controllato prima del popolamento produzione:
+
+```bash
+python -m pct.cli legal-updates-run-progressive --source-budget 3 --publish-max-items 5 --item-timeout-seconds 120 --guarded-only --json
+```
+
+Usare `--dry-run` per vedere il piano senza accodare job o pubblicare. L'Archivio Giurisprudenza strutturato si verifica con:
+
+```bash
+python -m pct.cli legal-updates-giurisprudenza-structured-canary --json
+```
+
+Il canary deve restare bloccante se mancano corte, numero, anno, data, fonte ufficiale o testo/PDF.
+
 La fascia notturna evita carico operativo durante l'uso quotidiano e consente di pubblicare solo nuovi contenuti idonei prima dell'avvio della giornata di studio.
 
 La UI amministrativa dedicata e' in:

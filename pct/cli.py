@@ -2881,6 +2881,116 @@ def cmd_legal_updates_backfill_diagnostics(
     )
 
 
+@cli.command("legal-updates-run-progressive")
+@click.option("--intelligence-db", default=lambda: os.getenv("PCT_LEGAL_INTELLIGENCE_DB", "./intelligence/motori.json"), show_default="PCT_LEGAL_INTELLIGENCE_DB o ./intelligence/motori.json", help="Anchor del motore legale")
+@click.option("--giurisprudenza-db", default=lambda: os.getenv("PCT_GIURISPRUDENZA_DB", "./intelligence/giurisprudenza.json"), show_default="PCT_GIURISPRUDENZA_DB o ./intelligence/giurisprudenza.json", help="Archivio giurisprudenza per eventuale mirror controllato")
+@click.option("--queue-db", default="", help="Percorso esplicito della coda job aggiornamenti legali")
+@click.option("--cursor-path", default="", help="Percorso esplicito dei cursori scheduler aggiornamenti legali")
+@click.option("--source-budget", type=int, default=3, show_default=True, help="Numero massimo di fonti verdi da eseguire nel ciclo")
+@click.option("--publish-max-items", type=int, default=5, show_default=True, help="Numero massimo di pubblicazioni guarded nel ciclo")
+@click.option("--item-timeout-seconds", type=int, default=120, show_default=True, help="Timeout per ciascuna fonte/job")
+@click.option("--max-attempts", type=int, default=3, show_default=True, help="Tentativi massimi per job in coda")
+@click.option("--guarded-only", is_flag=True, default=False, help="Obbligatorio: consente solo pubblicazione guarded")
+@click.option("--dry-run", is_flag=True, default=False, help="Mostra solo il piano senza accodare o pubblicare")
+@click.option("--local-ai-url", default=lambda: os.getenv("LOCAL_AI_BASE_URL", ""), help="Endpoint Ollama locale")
+@click.option("--local-ai-model", default=lambda: os.getenv("LOCAL_AI_CHAT_MODEL", os.getenv("OLLAMA_MODEL", "mistral")), show_default="LOCAL_AI_CHAT_MODEL o OLLAMA_MODEL o mistral", help="Modello locale per arricchimento AI")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Stampa output JSON")
+def cmd_legal_updates_run_progressive(
+    intelligence_db,
+    giurisprudenza_db,
+    queue_db,
+    cursor_path,
+    source_budget,
+    publish_max_items,
+    item_timeout_seconds,
+    max_attempts,
+    guarded_only,
+    dry_run,
+    local_ai_url,
+    local_ai_model,
+    as_json,
+):
+    """Esegue un ciclo scheduler/autofetch controllato sulle sole fonti verdi."""
+    from pct.legal_update_autofetch import LegalAutoFetchConfig, run_legal_update_progressive_cycle
+
+    config = LegalAutoFetchConfig(
+        intelligence_db=str(intelligence_db or "./intelligence/motori.json"),
+        giurisprudenza_db=str(giurisprudenza_db or ""),
+        ai_base_url=str(local_ai_url or ""),
+        ai_model=str(local_ai_model or "mistral"),
+        queue_db_path=str(queue_db or ""),
+        cursor_path=str(cursor_path or ""),
+        source_budget=max(1, int(source_budget or 1)),
+        publish_max_items=max(0, int(publish_max_items or 0)),
+        item_timeout_seconds=max(1, int(item_timeout_seconds or 1)),
+        max_attempts=max(1, int(max_attempts or 1)),
+        execute_due_sources=True,
+    )
+    if not guarded_only:
+        payload = {
+            "ok": False,
+            "error": "--guarded-only e' obbligatorio: il ciclo non puo' pubblicare fuori dal guardrail.",
+            "mode": "progressive_controlled_cycle",
+        }
+        if as_json:
+            click.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+        raise click.ClickException(payload["error"])
+    try:
+        report = run_legal_update_progressive_cycle(
+            config,
+            guarded_only=True,
+            dry_run=bool(dry_run),
+        )
+    except Exception as exc:
+        if as_json:
+            click.echo(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False, indent=2))
+        raise click.ClickException(str(exc))
+
+    if as_json:
+        click.echo(json.dumps(report, ensure_ascii=False, indent=2))
+        return
+    plan = dict(report.get("plan") or {})
+    click.echo("Ciclo progressivo aggiornamenti legali")
+    click.echo(f"Modalita': {'dry-run' if dry_run else 'esecuzione controllata'}")
+    click.echo(f"Fonti selezionate: {plan.get('selected_count', 0)}")
+    click.echo(f"Fonti verdi abilitate: {', '.join(report.get('green_source_codes') or [])}")
+    click.echo(f"Pubblicazione: guarded-only, limite {config.publish_max_items}")
+
+
+@cli.command("legal-updates-giurisprudenza-structured-canary")
+@click.option("--intelligence-db", default=lambda: os.getenv("PCT_LEGAL_INTELLIGENCE_DB", "./intelligence/motori.json"), show_default="PCT_LEGAL_INTELLIGENCE_DB o ./intelligence/motori.json", help="Anchor del motore legale")
+@click.option("--giurisprudenza-db", default=lambda: os.getenv("PCT_GIURISPRUDENZA_DB", "./intelligence/giurisprudenza.json"), show_default="PCT_GIURISPRUDENZA_DB o ./intelligence/giurisprudenza.json", help="Archivio giurisprudenza per eventuale mirror controllato")
+@click.option("--limit", type=int, default=100, show_default=True, help="Numero massimo di review da controllare")
+@click.option("--local-ai-url", default=lambda: os.getenv("LOCAL_AI_BASE_URL", ""), help="Endpoint Ollama locale")
+@click.option("--local-ai-model", default=lambda: os.getenv("LOCAL_AI_CHAT_MODEL", os.getenv("OLLAMA_MODEL", "mistral")), show_default="LOCAL_AI_CHAT_MODEL o OLLAMA_MODEL o mistral", help="Modello locale per arricchimento AI")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Stampa output JSON")
+def cmd_legal_updates_giurisprudenza_structured_canary(
+    intelligence_db,
+    giurisprudenza_db,
+    limit,
+    local_ai_url,
+    local_ai_model,
+    as_json,
+):
+    """Verifica schede giurisprudenziali strutturate senza promozione forzata."""
+    from pct.legal_update_health_report import build_giurisprudenza_structured_canary
+
+    report = build_giurisprudenza_structured_canary(
+        intelligence_db=intelligence_db,
+        giurisprudenza_db=giurisprudenza_db,
+        ai_base_url=local_ai_url,
+        ai_model=local_ai_model,
+        limit=limit,
+    )
+    if as_json:
+        click.echo(json.dumps(report, ensure_ascii=False, indent=2))
+        return
+    click.echo("Canary Archivio Giurisprudenza strutturato")
+    click.echo(f"Stato: {report.get('status')}")
+    click.echo(f"Candidati completi: {report.get('complete_candidate_count', 0)}")
+    click.echo(str(report.get("reason") or ""))
+
+
 @cli.command("legal-updates-health-report")
 @click.option("--intelligence-db", default=lambda: os.getenv("PCT_LEGAL_INTELLIGENCE_DB", "./intelligence/motori.json"), show_default="PCT_LEGAL_INTELLIGENCE_DB o ./intelligence/motori.json", help="Anchor del motore legale")
 @click.option("--giurisprudenza-db", default=lambda: os.getenv("PCT_GIURISPRUDENZA_DB", "./intelligence/giurisprudenza.json"), show_default="PCT_GIURISPRUDENZA_DB o ./intelligence/giurisprudenza.json", help="Archivio giurisprudenza per eventuale mirror controllato")

@@ -14,6 +14,16 @@ La Fase 11 aggiunge il report sanitario di regime `legal-updates-health-report -
 
 La manutenzione periodica può usare solo backfill mirati (`attachments`, `ocr`, `references`, `questions`) con `--no-publish`. Le nuove fonti devono passare da capability, fixture, canary, report, pilot guarded e scheduler: nessuna fonte viene pubblicata automaticamente per sola presenza nel catalogo.
 
+## Aggiornamento operativo 2.245.53 - 2026-05-19
+
+La Fase 11.5 chiude i residui prima del popolamento produzione senza attivare scheduler esteso, import massivo, Web libero automatico o pubblicazione fuori guardia. Il report operativo è `artifacts/legal-updates/phase11_5-gap-closure-2026-05-19/gap-closure-report.md`.
+
+Il comando controllato per un singolo ciclo è `python -m pct.cli legal-updates-run-progressive --source-budget 3 --publish-max-items 5 --item-timeout-seconds 120 --guarded-only --json`: usa solo fonti verdi progressive, rispetta coda/cursori/budget/timeout, supporta `--dry-run` e lascia fuori fonti in osservazione, RAG-only, archivi locali e fonti secondarie. Il canary `legal-updates-giurisprudenza-structured-canary --json` impedisce la promozione dell'Archivio Giurisprudenza se mancano corte, numero, anno, data, fonte ufficiale o testo/PDF.
+
+Cassazione `QSP50194` è stata verificata come dettaglio diretto raggiungibile con riferimento `art. 606 c.p.p.`, ma non compare nel canary delle ultime 5 schede del 19 maggio 2026. La lacuna è chiusa come diagnosi controllata: fixture e test preservano parser di detail `contentId`, estrazione `art. 606 c.p.p.`, domanda “Quali articoli del c.p.p. sono richiamati nel PDF?” e ranking su allegato/PDF, senza import storico o pubblicazione forzata.
+
+EUR-Lex riconosce CELEX su fixture minima ma resta `RAG-only` finché non sono presenti tutte le chiavi strutturate. OpenGA resta `RAG-only` per dataset tabellari e record di stato; un eventuale PDF/documento concreto con TAR/CdS, numero e anno potrà entrare solo in un futuro pilot guarded.
+
 ## Aggiornamento operativo 2.245.49 - 2026-05-19
 
 Attivata la Fase 8 per lo scheduler progressivo degli aggiornamenti legali. Lo step 1 non avvia tutte le fonti: usa solo `cassazione_ultime_sent_ord_questioni`, `inps_circolari`, `inps_messaggi` e `agcom_provvedimenti`, con budget `2` fonti per ciclo, timeout `120` secondi per elemento, massimo `5` pubblicazioni guarded e massimo `5` schede Cassazione ultime per scansione.

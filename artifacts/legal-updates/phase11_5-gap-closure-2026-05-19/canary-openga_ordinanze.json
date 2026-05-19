@@ -1,0 +1,172 @@
+﻿{
+  "schema": "iusentra.legal_updates.canary.v1",
+  "ok": true,
+  "mode": "canary",
+  "source_code": "openga_ordinanze",
+  "source_name": "OpenGA - Ordinanze",
+  "limit": 2,
+  "max_seconds": 60,
+  "no_publish": true,
+  "publish_mode": "off",
+  "direct_only": true,
+  "documents_found": 372,
+  "processed": 0,
+  "skipped_unchanged": 2,
+  "web_verification_attempts": 0,
+  "verification_evidence_saved": 0,
+  "verification_attachments_saved": 0,
+  "autopublished": {
+    "count": 0,
+    "items": []
+  },
+  "stopped_for_time_limit": false,
+  "duration_seconds": 19.98,
+  "items": [
+    {
+      "external_id": "93166883d27b69556e1cdd629e2ea30524f0fbd68726af665037741a6c7d8fe7",
+      "title": "CDS - Ordinanze - CDS - Ordinanze - 2024",
+      "source_url": "https://openga.giustizia-amministrativa.it/dataset/5bc2801d-bb7b-4b53-918c-6ffa0ba95057/resource/e6268c03-6073-4161-97e9-50b770172e55/download/cds-ordinanze-2024.csv",
+      "published_at": "",
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "title": "CDS - Ordinanze - 2024",
+          "url": "https://openga.giustizia-amministrativa.it/dataset/5bc2801d-bb7b-4b53-918c-6ffa0ba95057/resource/e6268c03-6073-4161-97e9-50b770172e55/download/cds-ordinanze-2024.csv",
+          "attachment_type": ""
+        }
+      ],
+      "reference_count": 1,
+      "reference_labels": [
+        "2024"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare CDS - Ordinanze - CDS - Ordinanze - 2024?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza se documentale, altrimenti solo RAG",
+      "rag_destination": "official_open_data_rag",
+      "exclusion_reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+      "status": "invariato",
+      "normalized_document_id": 87,
+      "review_id": 87,
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 12000,
+        "ocr_status": "non_richiesto",
+        "references": 2,
+        "questions": 14,
+        "warnings": []
+      }
+    },
+    {
+      "external_id": "3c113032fddf8d3263f426e386cac6e6be9ffcdc3e81d8abba8dde826626ea6e",
+      "title": "CDS - Ordinanze - CDS - Ordinanze - 2024",
+      "source_url": "https://openga.giustizia-amministrativa.it/dataset/5bc2801d-bb7b-4b53-918c-6ffa0ba95057/resource/268e2ab1-0b84-4944-94c7-5d6a2cdc5a96/download/cds-ordinanze-2024.json",
+      "published_at": "",
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "title": "CDS - Ordinanze - 2024",
+          "url": "https://openga.giustizia-amministrativa.it/dataset/5bc2801d-bb7b-4b53-918c-6ffa0ba95057/resource/268e2ab1-0b84-4944-94c7-5d6a2cdc5a96/download/cds-ordinanze-2024.json",
+          "attachment_type": ""
+        }
+      ],
+      "reference_count": 5,
+      "reference_labels": [
+        "L. N. 205",
+        "TAR PER",
+        "2024",
+        "2023",
+        "2017"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare CDS - Ordinanze - CDS - Ordinanze - 2024?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza se documentale, altrimenti solo RAG",
+      "rag_destination": "official_open_data_rag",
+      "exclusion_reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+      "status": "invariato",
+      "normalized_document_id": 88,
+      "review_id": 88,
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 12000,
+        "ocr_status": "non_richiesto",
+        "references": 1,
+        "questions": 14,
+        "warnings": []
+      }
+    }
+  ],
+  "errors": [],
+  "diagnostics_saved": true
+}

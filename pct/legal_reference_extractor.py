@@ -28,6 +28,7 @@ ACT_RE = re.compile(
     re.IGNORECASE,
 )
 EU_ACT_RE = re.compile(r"\b(?:Regolamento|Direttiva)\s+\(?UE\)?\s+[0-9]{4}/[0-9]{1,6}", re.IGNORECASE)
+CELEX_RE = re.compile(r"\b(?:CELEX[:\s]*)?(?P<celex>[0-9][0-9]{4}[A-Z]{1,3}[0-9]{3,4})\b", re.IGNORECASE)
 EU_CASE_RE = re.compile(r"\b(?:causa\s+)?(?:C|T|F)-[0-9]{1,5}/[0-9]{2,4}\b", re.IGNORECASE)
 COURT_RE = re.compile(
     r"\b(?:Corte\s+Suprema\s+di\s+Cassazione|Corte\s+di\s+Cassazione|Cassazione|Corte\s+costituzionale|"
@@ -83,6 +84,7 @@ def extract_references(
         (ARTICLE_RE, "article", 0.9),
         (ACT_RE, "act", 0.88),
         (EU_ACT_RE, "eu_act", 0.88),
+        (CELEX_RE, "celex", 0.91),
         (EU_CASE_RE, "eu_case", 0.86),
         (COURT_RE, "court", 0.76),
         (DECISION_RE, "decision", 0.86),
@@ -197,6 +199,9 @@ def _append_reference(
 
 def _normalize_reference(value: str) -> str:
     text = clean_spaces(value)
+    celex_match = re.fullmatch(r"(?:CELEX[:\s]*)?([0-9][0-9]{4}[A-Z]{1,3}[0-9]{3,4})", text, flags=re.IGNORECASE)
+    if celex_match:
+        return f"CELEX:{celex_match.group(1).upper()}"
     text = re.sub(r"\barticoli\b", "artt.", text, flags=re.IGNORECASE)
     text = re.sub(r"\barticolo\b", "art.", text, flags=re.IGNORECASE)
     text = re.sub(r"\bartt\b(?!\.)", "artt.", text, flags=re.IGNORECASE)

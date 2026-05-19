@@ -1179,6 +1179,11 @@ def test_search_lex_sources_include_pdf_ocr_riferimenti_e_domande(tmp_path: Path
     assert "9966/2026" in first["rg_references"]
     assert any(row["check"] == "pdf_allegato" for row in first["contextual_questions"])
     assert any(row["check"] == "articoli" for row in first["contextual_questions"])
+    assert any(
+        row["check"] == "articoli_cpp_pdf"
+        and row["question"] == "Quali articoli del c.p.p. sono richiamati nel PDF?"
+        for row in first["contextual_questions"]
+    )
     assert any("Riferimenti normativi" in point for point in first["key_points"])
     assert any("Domanda per Lex" in check for check in first["operational_checks"])
 

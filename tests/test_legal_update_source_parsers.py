@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from pct.legal_update_pipeline import DEFAULT_SOURCE_ROWS
+from pct.legal_reference_extractor import extract_references
 from pct.legal_update_source_parsers import fetch_source_documents
 
 
@@ -44,6 +46,31 @@ def test_parser_html_vuoto_resta_diagnostico_per_fonte_rag_only():
     assert docs[0]["source_url"] == source["base_url"]
     assert docs[0]["title"] == "EUR-Lex"
     assert docs[0]["publication_destination"] == "rag_only"
+
+
+def test_parser_eur_lex_riconosce_celex_ma_resta_rag_only():
+    source = _source("eur_lex")
+    fixture = Path("tests/fixtures/legal_updates/eur_lex_celex.html").read_text(encoding="utf-8")
+
+    docs = fetch_source_documents(source, request_get=lambda url, **_kwargs: DummyResponse(fixture, url=str(url)))
+
+    assert docs
+    row = next(item for item in docs if "CELEX:32024R1689" in item["raw_text"])
+    assert row["publication_destination"] == "rag_only"
+    assert "RAG ufficiale UE" in row["source_exclusion_reason"]
+    refs = extract_references(row["raw_text"], source_url=row["source_url"])
+    assert any(row["reference_type"] == "celex" and row["normalized_text"] == "CELEX:32024R1689" for row in refs)
+
+
+def test_parser_eur_lex_senza_celex_non_diventa_pubblicazione_strutturata():
+    source = _source("eur_lex")
+    html = "<html><body><article><h1>Pagina UE senza identificativo</h1><p>Testo generico.</p></article></body></html>"
+
+    docs = fetch_source_documents(source, request_get=lambda url, **_kwargs: DummyResponse(html, url=str(url)))
+
+    assert len(docs) == 1
+    assert docs[0]["publication_destination"] == "rag_only"
+    assert extract_references(docs[0]["raw_text"], source_url=docs[0]["source_url"]) == []
 
 
 def test_parser_html_listing_detail_estrae_testo_e_allegato_pdf():

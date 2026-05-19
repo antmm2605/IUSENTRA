@@ -10,6 +10,8 @@ from web.helpers import get_legal_intelligence
 try:
     from lex.retrieval.official_sources_retriever import (
         search_gazzetta as _search_gazzetta,
+    )
+    from lex.retrieval.official_sources_retriever import (
         search_normattiva as _search_normattiva,
     )
 except Exception:  # pragma: no cover - modulo opzionale in ambienti ridotti

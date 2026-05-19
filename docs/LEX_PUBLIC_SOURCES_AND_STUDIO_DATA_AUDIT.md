@@ -2,6 +2,14 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.245.57 - 2026-05-19
+
+Il flusso documento di Lex ora privilegia l'editor professionale rispetto agli export separati: le bozze o risposte generabili in documento mostrano `Apri con editor` quando l'import nel fascicolo è disponibile, senza pulsante Markdown. Per compatibilità, un eventuale click su un vecchio pulsante Word già renderizzato apre comunque l'editor se `editorImportUrl` è presente.
+
+La dettatura è stata corretta per non partire già in conto alla rovescia: il silenzio viene misurato solo dopo una prima trascrizione. Questo evita chiusure immediate o risposte vuote quando l'avvocato attiva il microfono e parla dopo qualche secondo.
+
+I documenti caricati manualmente nella chat Lex sono trattati come domanda sul documento quando la richiesta parla di sintesi, spiegazione, analisi, estrazione o punti importanti. L'allegato resta tenant-aware, citabile come `user_attachment` e non viene confuso con una ricerca legale, una PEC o una bozza.
+
 ## Aggiornamento operativo 2.245.55 - 2026-05-19
 
 Rafforzato l'aggancio tra Lex e tutto il contesto studio senza introdurre addestramento su dati grezzi. `studio_context_lookup` è il nuovo profilo per richieste generali sul DB operativo interno e resta tenant-aware, permission-aware e auditabile. Il routing continua a escludere fonti legali pubbliche già governate.

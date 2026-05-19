@@ -7,6 +7,14 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.57 - 2026-05-19
+
+- Rafforzate le azioni documento di Lex: quando l'import nel fascicolo è disponibile la risposta generata mostra `Apri con editor` come azione primaria, elimina il pulsante Markdown e apre l'editor professionale anche per eventuali vecchie azioni Word già renderizzate.
+- Stabilizzata la dettatura del widget Lex: il timer di silenzio parte solo dopo il primo testo riconosciuto, gli errori `no-speech`/`aborted` chiudono la sessione senza bloccare l'interfaccia e i permessi microfono negati mostrano un messaggio chiaro.
+- I documenti caricati in chat vengono instradati come richiesta sul documento quando l'avvocato chiede spiegazioni, sintesi, analisi o punti importanti, evitando che il contesto fascicolo assorba l'allegato.
+- Esplicitata la memoria operativa sugli aggregatori legacy: eventuali riepiloghi storici restano solo advisory, mentre i required check continuano a essere gli shard divisi per fasi e per parti.
+- Aggiunti test mirati JS e Python su editor, dettatura e workflow documento, preservando i check divisi per fasi senza reintrodurre aggregatori legacy.
+
 ## 2.245.56 - 2026-05-19
 
 - Preservata la modalità companion locale autorizzata: con `LEX_GOVERNED_ONLY=0`, `LEX_RAW_CHAT_ENABLED=1` e `allow_unbounded_generation`, il focus fascicolo non viene assorbito dal workflow bounded.

@@ -20,6 +20,8 @@ Gli aggregatori non sono diagnosi primaria. Se un aggregatore è rosso o `Skippe
 
 Il vecchio aggregatore `CI / Coverage moduli critici` senza `parte` non deve essere reintrodotto come blocco PR: la coverage critica è governata dalle 12 parti.
 
+Se GitHub, una dashboard esterna o un riepilogo storico espone ancora un aggregatore legacy, va trattato solo come advisory compatibile e registrato nella memoria operativa insieme agli shard reali verificati. Non va messo in branch protection, non diventa required check e non può sostituire `Coverage moduli critici parte */12` né gli shard Pytest/Signer per fase.
+
 ## Gate richiesti
 
 Sicurezza e supply chain:

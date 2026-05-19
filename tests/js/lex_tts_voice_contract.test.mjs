@@ -7,12 +7,18 @@ function loadScript(context, relativePath) {
   vm.runInContext(source, context, { filename: relativePath })
 }
 
-function makeContext() {
+function makeContext(options = {}) {
   const spoken = []
+  const timers = []
   const context = {
     console,
     spoken,
+    timers,
     setTimeout(fn) {
+      if (options.deferTimers) {
+        timers.push(fn)
+        return timers.length
+      }
       fn()
       return 1
     },
@@ -77,5 +83,58 @@ const fallbackOnly = makeContext()
 loadScript(fallbackOnly, 'web/static/js/pct-lex-assistant-voice.js')
 assert.equal(fallbackOnly.PctLexVoice.speak('Voce browser ancora disponibile.', { lang: 'it-IT' }), true)
 assert.ok(fallbackOnly.spoken.includes('Voce browser ancora disponibile.'))
+
+const recognitionContext = makeContext({ deferTimers: true })
+class FakeRecognition {
+  constructor() {
+    this.started = 0
+    this.stopped = 0
+    FakeRecognition.last = this
+  }
+
+  start() {
+    this.started += 1
+  }
+
+  stop() {
+    this.stopped += 1
+    if (this.onend) {
+      this.onend()
+    }
+  }
+
+  emitResult(transcript, isFinal = false) {
+    if (this.onresult) {
+      this.onresult({
+        resultIndex: 0,
+        results: [
+          {
+            0: { transcript },
+            isFinal,
+          },
+        ],
+      })
+    }
+  }
+}
+recognitionContext.webkitSpeechRecognition = FakeRecognition
+loadScript(recognitionContext, 'web/static/js/pct-lex-assistant-voice.js')
+assert.equal(recognitionContext.PctLexVoice.supportsRecognition(), true)
+const transcriptEvents = []
+const listeningPromise = recognitionContext.PctLexVoice.startListening({
+  lang: 'it-IT',
+  silenceMs: 3000,
+  onTranscript(text, interim) {
+    transcriptEvents.push({ text, interim })
+  },
+})
+assert.equal(FakeRecognition.last.started, 1)
+assert.equal(recognitionContext.timers.length, 0)
+FakeRecognition.last.emitResult('spiegami il documento caricato', false)
+assert.equal(transcriptEvents.at(-1).text, 'spiegami il documento caricato')
+assert.equal(transcriptEvents.at(-1).interim, true)
+assert.equal(recognitionContext.timers.length, 1)
+recognitionContext.PctLexVoice.stopListening()
+assert.equal(await listeningPromise, 'spiegami il documento caricato')
 
 console.log('lex_tts_voice_contract.test.mjs OK')

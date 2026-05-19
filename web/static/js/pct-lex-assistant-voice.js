@@ -240,6 +240,18 @@
           finishRecognition(session, resolve);
           return;
         }
+        if (code === 'no-speech' || code === 'aborted') {
+          finishRecognition(session, resolve);
+          return;
+        }
+        if (code === 'not-allowed' || code === 'service-not-allowed') {
+          failRecognition(
+            session,
+            reject,
+            new Error('Dettatura vocale non autorizzata dal browser. Controlla il permesso del microfono e riprova.')
+          );
+          return;
+        }
         failRecognition(
           session,
           reject,
@@ -272,7 +284,6 @@
 
       try {
         recognition.start();
-        scheduleSilenceStop(session);
       } catch (startError) {
         failRecognition(session, reject, startError);
       }

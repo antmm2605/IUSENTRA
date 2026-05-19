@@ -38,6 +38,20 @@ assert.equal(freeWebPayload.web_execution_requested, true)
 assert.equal(freeWebPayload.public_web_forced, true)
 assert.equal(freeWebPayload.source_mode, 'free_web')
 hooks.setFreeWebEnabled(false, { silent: true })
+hooks.setAttachmentsForTest([
+  {
+    id: 'doc-1',
+    name: 'memoria.pdf',
+    mime_type: 'application/pdf',
+    text_excerpt: 'Il documento contiene una sintesi dei fatti e tre punti rilevanti.',
+  },
+])
+const attachmentPayload = hooks.buildChatRequestPayload('spiegami i punti più importanti del documento')
+assert.equal(attachmentPayload.attachment_request_mode, 'document_question')
+assert.equal(attachmentPayload.attachment_question, 'spiegami i punti più importanti del documento')
+assert.match(attachmentPayload.attachment_prompt_block, /DOCUMENTI CARICATI DALL'UTENTE/)
+assert.match(attachmentPayload.attachment_prompt_block, /memoria\.pdf/)
+hooks.setAttachmentsForTest([])
 
 const rendered = hooks.renderMarkdown(`# Sintesi operativa
 
@@ -119,8 +133,17 @@ const actionHtml = docs.buildGeneratedDocumentActions({
   editorImportUrl: '/api/v1/ui/fascicoli/FAS-1/editor-ai/importa-bozza',
 })
 assert.match(actionHtml, /data-generated-open-editor="true"/)
-assert.match(actionHtml, /Apri nell&#39;editor|Apri nell'editor/)
-assert.match(actionHtml, /data-generated-download="docx"/)
+assert.match(actionHtml, /Apri con editor/)
+assert.doesNotMatch(actionHtml, /Scarica Markdown/)
+assert.doesNotMatch(actionHtml, /data-generated-download="docx"/)
+
+const actionHtmlWithoutEditor = docs.buildGeneratedDocumentActions({
+  title: 'BOZZA \u2014 DIFFIDA E MESSA IN MORA',
+  answer: normalizedDraft,
+})
+assert.match(actionHtmlWithoutEditor, /data-generated-download="docx"/)
+assert.match(actionHtmlWithoutEditor, /Scarica Word/)
+assert.doesNotMatch(actionHtmlWithoutEditor, /Scarica Markdown/)
 
 const pecDraftAnswer = "Riferimento: PEC e firma digitale\nBOZZA \u2014 PEC FORMALE**********\nA: [nome@pec.destinatario.it]\nOggetto: [Oggetto della PEC]"
 const pecDraftTitle = docs.suggestGeneratedTitle({ answer: pecDraftAnswer })

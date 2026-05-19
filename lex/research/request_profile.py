@@ -277,7 +277,13 @@ _INTENT_CATALOG: tuple[dict[str, Any], ...] = (
     {
         "intent": "sintesi_fascicolo",
         "label": "sintesi fascicolo",
-        "patterns": (r"\briassum", r"\bsintesi fascicolo\b", r"\bstato fascicolo\b", r"\bquadro fascicolo\b"),
+        "patterns": (
+            r"\briassum\w*\b.*\bfascicolo\b",
+            r"\bfascicolo\b.*\briassum\w*\b",
+            r"\bsintesi fascicolo\b",
+            r"\bstato fascicolo\b",
+            r"\bquadro fascicolo\b",
+        ),
         "schema": ("Sintesi", "Eventi rilevanti", "Criticita", "Prossime azioni", "Fonti e affidabilita"),
         "risk": "medium",
         "source_mode": "balanced",
@@ -288,7 +294,17 @@ _INTENT_CATALOG: tuple[dict[str, Any], ...] = (
     {
         "intent": "sintesi_documento",
         "label": "sintesi documento",
-        "patterns": (r"\briassum", r"\bsintesi documento\b", r"\bestrai\b", r"\banalizza il pdf\b", r"\banalizza documento\b"),
+        "patterns": (
+            r"\briassum\w*\b",
+            r"\bsintesi documento\b",
+            r"\bspiega(?:mi)?\b",
+            r"\bpunti\s+(?:piu|più\s+)?importanti\b",
+            r"\bdocumento caricato\b",
+            r"\ballegato caricato\b",
+            r"\bestrai\b",
+            r"\banalizza il pdf\b",
+            r"\banalizza documento\b",
+        ),
         "schema": ("Sintesi", "Punti chiave", "Rischi o lacune", "Prossime azioni", "Fonti e affidabilita"),
         "risk": "medium",
         "source_mode": "balanced",

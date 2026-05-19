@@ -2051,6 +2051,14 @@
       mode: mode,
       page_section: payload.page_context || mode,
     };
+    if (state.attachments.length) {
+      var docs = documentsHelper();
+      requestPayload.attachment_question = currentText;
+      requestPayload.attachment_request_mode = 'document_question';
+      if (docs && docs.buildPromptBlock) {
+        requestPayload.attachment_prompt_block = docs.buildPromptBlock(state.attachments);
+      }
+    }
     if (state.freeWebEnabled) {
       requestPayload.free_web_enabled = true;
       requestPayload.force_free_web_search = true;
@@ -3183,6 +3191,17 @@
           setStatus('Documento Markdown generato da Lex scaricato.');
           return;
         }
+        if (format === 'docx' && payload.editorImportUrl && docs.openGeneratedInEditor) {
+          setStatus('Apro la risposta nell\'editor professionale...');
+          docs.openGeneratedInEditor(payload)
+            .then(function () {
+              setStatus('Risposta aperta nell\'editor professionale.');
+            })
+            .catch(function (error) {
+              setStatus('Apertura nell\'editor non riuscita: ' + String((error && error.message) || 'errore sconosciuto'));
+            });
+          return;
+        }
         if (format === 'docx' && docs.downloadGeneratedDocx) {
           setStatus('Lex sta preparando il documento Word...');
           docs.downloadGeneratedDocx(payload)
@@ -3369,6 +3388,9 @@
       buildChatRequestPayload: buildChatRequestPayload,
       resolveConversationFocus: resolveConversationFocus,
       setFreeWebEnabled: setFreeWebEnabled,
+      setAttachmentsForTest: function (attachments) {
+        state.attachments = Array.isArray(attachments) ? attachments.slice(0, 4) : [];
+      },
     };
   }
 

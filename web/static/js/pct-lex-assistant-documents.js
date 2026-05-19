@@ -181,14 +181,17 @@
         '</button>'
       )
       : '<span>' + title + '</span>';
-    var openEditorButton = editorImportUrl
+    var primaryActionButton = editorImportUrl
       ? (
         '<button class="pct-ai-generated-btn pct-ai-generated-btn--primary" type="button" data-generated-open-editor="true">' +
-          '<i class="bi bi-pencil-square"></i><span>Apri nell\'editor</span>' +
+          '<i class="bi bi-pencil-square"></i><span>Apri con editor</span>' +
         '</button>'
       )
-      : '';
-    var docxClass = editorImportUrl ? 'pct-ai-generated-btn' : 'pct-ai-generated-btn pct-ai-generated-btn--primary';
+      : (
+        '<button class="pct-ai-generated-btn pct-ai-generated-btn--primary" type="button" data-generated-download="docx">' +
+          '<i class="bi bi-file-earmark-word"></i><span>Scarica Word</span>' +
+        '</button>'
+      );
     return (
       '<div class="pct-ai-generated-actions" data-generated-document-actions="true">' +
         '<div class="pct-ai-generated-actions__meta">' +
@@ -196,13 +199,7 @@
           titleMarkup +
         '</div>' +
         '<div class="pct-ai-generated-actions__buttons">' +
-          openEditorButton +
-          '<button class="' + docxClass + '" type="button" data-generated-download="docx">' +
-            '<i class="bi bi-file-earmark-word"></i><span>Scarica Word</span>' +
-          '</button>' +
-          '<button class="pct-ai-generated-btn" type="button" data-generated-download="md">' +
-            '<i class="bi bi-file-earmark-text"></i><span>Scarica Markdown</span>' +
-          '</button>' +
+          primaryActionButton +
         '</div>' +
       '</div>'
     );

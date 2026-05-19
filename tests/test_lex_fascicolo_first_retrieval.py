@@ -227,6 +227,55 @@ def test_payload_http_documenti_caricati_usano_workflow_documento(monkeypatch):
     assert any("Allegato caricato: memo.txt" in citation for citation in payload["citations"])
 
 
+def test_payload_http_documenti_caricati_forzano_domanda_sul_documento(monkeypatch):
+    captured: dict[str, LexRequest] = {}
+
+    class FakeLexService:
+        def ask(self, request: LexRequest):
+            captured["request"] = request
+            return LexResponse(
+                answer="Il documento caricato contiene tre punti principali.",
+                metadata={"workflow": "documento", "external_sources_used": False},
+                evidence_summary={"evidence_count": 1},
+                answer_mode="grounded",
+                confidence=0.86,
+            )
+
+    monkeypatch.setattr("lex.http_bounded_bridge._application_lex_service", lambda: FakeLexService())
+    payload = build_bounded_http_payload(
+        user=SimpleNamespace(id="user-1"),
+        studio=SimpleNamespace(slug="tenant-a"),
+        data={"messages": [], "attachment_request_mode": "document_question"},
+        current_user_message="spiegami quali sono i punti più importanti del documento",
+        resolved_effective_question="spiegami quali sono i punti più importanti del documento",
+        studio_context={
+            "focus_topic": "fascicoli",
+            "sources": [],
+            "structured_context": {"fascicolo": {"id": "fas-1"}},
+            "request_profile": {"intent": "domanda_generica"},
+        },
+        attachments=[
+            {
+                "id": "doc-2",
+                "name": "contratto.pdf",
+                "mime_type": "application/pdf",
+                "text_excerpt": "Contratto con tre clausole essenziali: pagamento, consegna e penale.",
+                "text_chars": 70,
+                "truncated": False,
+            }
+        ],
+    )
+
+    assert payload is not None
+    assert captured["request"].intent == "analyze_document"
+    assert captured["request"].workflow_hint == "documento"
+    assert captured["request"].metadata["request_profile"]["intent"] == "sintesi_documento"
+    assert captured["request"].metadata["attachment_request_mode"] == "document_question"
+    seed_sources = captured["request"].metadata["studio_context_seed"]["sources"]
+    assert seed_sources[0]["metadata"]["origin"] == "user_attachment"
+    assert any("Allegato caricato: contratto.pdf" in citation for citation in payload["citations"])
+
+
 def test_payload_http_fonti_esterne_hanno_ragione(monkeypatch):
     class FakeLexService:
         def ask(self, request: LexRequest):

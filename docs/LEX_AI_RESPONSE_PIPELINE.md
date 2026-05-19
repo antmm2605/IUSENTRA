@@ -7,6 +7,14 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.245.57 - 19 maggio 2026
+
+Le azioni sulle risposte documentali di Lex sono state ricondotte all'editor professionale: se la route di import nel fascicolo è disponibile, il widget mostra `Apri con editor` come azione primaria, non propone più il download Markdown e apre l'editor anche se l'utente clicca una vecchia azione Word già presente nella chat.
+
+La dettatura non deve più chiudersi prima che l'avvocato inizi a parlare: il timer di silenzio parte solo dopo il primo testo riconosciuto. Gli eventi `no-speech` e `aborted` chiudono la sessione senza errore bloccante, mentre il permesso microfono negato viene segnalato con un messaggio operativo chiaro.
+
+Quando l'avvocato carica un documento e chiede "spiegami", "riassumi", "analizza" o "quali sono i punti più importanti", il bridge HTTP forza il workflow `documento` e conserva gli allegati come evidenze `user_attachment`. Il contesto fascicolo resta disponibile, ma non deve assorbire la richiesta sul file caricato.
+
 ## Aggiornamento operativo 2.245.55 - 19 maggio 2026
 
 Lex non viene addestrata su prompt o dump grezzi dello studio: le domande sul contesto operativo passano da sorgenti interne governate. Il nuovo intento `studio_context_lookup` copre richieste esplicite come "usa tutto il contesto studio", "database studio" e "memoria studio", instradandole verso Operational Knowledge e `StudioDatabaseSource` senza attivare fonti legali pubbliche.

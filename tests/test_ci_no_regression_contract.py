@@ -51,6 +51,18 @@ def test_ci_keeps_core_and_coverage_gates() -> None:
     assert max(thresholds) >= 100
 
 
+def test_legacy_coverage_aggregator_resta_solo_advisory_documentato() -> None:
+    commit_gates = _read("docs/COMMIT_PUSH_REQUIRED_GATES.md")
+    ci_gates = _read("docs/ci-cd-gates.md")
+    combined = "\n".join((commit_gates, ci_gates))
+
+    assert "aggregatore legacy" in combined
+    assert "solo advisory" in combined
+    assert "memoria operativa" in combined
+    assert "non diventa required check" in combined
+    assert "Coverage moduli critici parte */12" in combined
+
+
 def test_pytest_core_uses_ten_parallel_shards_without_removing_tests() -> None:
     workflow = _read(".github/workflows/ci.yml")
     shards_section = workflow.split("tests-core-shards:", 1)[1].split("tests-core:", 1)[0]

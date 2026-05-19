@@ -101,6 +101,32 @@ _COMMUNICATION_LOOKUP_TERMS = (
     "allegati pec",
     "allegati email",
 )
+_ATTACHMENT_DOCUMENT_INTENTS = {"sintesi_documento", "spiegazione_cliente"}
+_ATTACHMENT_EXCLUDED_INTENTS = {
+    "bozza_lettera",
+    "bozza_atto",
+    "comunicazioni_lookup",
+    "studio_context_lookup",
+    "normativa",
+    "giurisprudenza",
+    "giurisprudenza_specifica",
+}
+_ATTACHMENT_DOCUMENT_TERMS = (
+    "document",
+    "allegat",
+    "file",
+    "pdf",
+    "riassum",
+    "sintesi",
+    "spiega",
+    "punti",
+    "important",
+    "analizza",
+    "estrai",
+    "contenuto",
+    "lettura",
+    "caricat",
+)
 
 
 def _clean_spaces(value: Any) -> str:
@@ -158,6 +184,25 @@ def _is_communication_lookup(
     if focus_topic == "pec_firma" and any(token in text for token in ("ricevut", "inviat", "allegat", "mittent", "destinatar", "casella")):
         return True
     return False
+
+
+def _should_route_attachments_as_document_request(
+    question: str,
+    studio_context: dict[str, Any],
+    request_profile: dict[str, Any],
+    attachments: list[dict[str, Any]] | None,
+) -> bool:
+    if not list(attachments or []):
+        return False
+    profile_intent = _clean_spaces(request_profile.get("intent")).lower()
+    if profile_intent in _ATTACHMENT_EXCLUDED_INTENTS:
+        return False
+    if _is_communication_lookup(question, studio_context, request_profile):
+        return False
+    if profile_intent in _ATTACHMENT_DOCUMENT_INTENTS:
+        return True
+    text = _clean_spaces(question).lower()
+    return any(token in text for token in _ATTACHMENT_DOCUMENT_TERMS)
 
 
 def apply_manual_free_web_context(data: dict[str, Any], studio_context: dict[str, Any]) -> dict[str, Any]:
@@ -762,6 +807,18 @@ def build_bounded_http_payload(
     if free_web_enabled:
         request_profile["source_mode"] = "free_web"
         request_profile["needs_external_validation"] = True
+    if _should_route_attachments_as_document_request(
+        resolved_effective_question,
+        studio_context,
+        request_profile,
+        attachments,
+    ):
+        request_profile["intent"] = "sintesi_documento"
+        request_profile["intent_label"] = request_profile.get("intent_label") or "analisi documento caricato"
+        request_profile["document_attachment_mode"] = True
+        request_profile["needs_internal_retrieval"] = True
+        request_profile["drafting_mode"] = False
+        studio_context["request_profile"] = request_profile
     metadata = dict(data or {})
     workflow_hint = _resolve_workflow_hint(studio_context, request_profile)
     fascicolo_first = _is_fascicolo_first_request(data, studio_context, workflow_hint)
@@ -817,6 +874,11 @@ def build_bounded_http_payload(
             },
         }
     )
+    if list(attachments or []):
+        metadata["attachment_question"] = resolved_effective_question
+        metadata["attachment_request_mode"] = (
+            "document_question" if request_profile.get("document_attachment_mode") else "evidence_context"
+        )
     if free_web_enabled:
         return _free_web_direct_payload(
             user=user,

@@ -55,6 +55,8 @@ class StudioReasoningReport:
     object_links_count: int = 0
     evidence_sufficient: bool = False
     confidence_adjustment: float = 0.0
+    entity_map: dict[str, Any] = field(default_factory=dict)
+    fascicolo_timeline: list[dict[str, Any]] = field(default_factory=list)
     steps: tuple[StudioReasoningStep, ...] = field(default_factory=tuple)
 
     def to_dict(self) -> dict[str, Any]:
@@ -75,6 +77,8 @@ class StudioReasoningReport:
                 "evidence_sufficient": self.evidence_sufficient,
                 "confidence_adjustment": self.confidence_adjustment,
             },
+            "entity_map": self.entity_map,
+            "fascicolo_timeline": list(self.fascicolo_timeline),
             "rag_policy": {
                 "tenant_aware": True,
                 "internal_sources_only": True,
@@ -167,6 +171,8 @@ class LexStudioReasoner:
             confidence_adjustment -= min(0.12, len(gaps) * 0.02)
 
         evidence_sufficient = bool(verified) and evidence_count > 0
+        entity_map = _build_entity_map(results)
+        fascicolo_timeline = _build_fascicolo_timeline(results)
         completed_steps = self._completed_steps(
             plan=plan,
             verified=tuple(verified),
@@ -186,6 +192,8 @@ class LexStudioReasoner:
             object_links_count=object_links_count,
             evidence_sufficient=evidence_sufficient,
             confidence_adjustment=round(confidence_adjustment, 4),
+            entity_map=entity_map,
+            fascicolo_timeline=fascicolo_timeline,
             steps=completed_steps,
         )
 
@@ -285,6 +293,166 @@ def _result_evidence_count(result: OperationalToolResult) -> int:
     if result.data:
         return 1
     return len(result.sources or [])
+
+
+def _build_entity_map(results: list[OperationalToolResult]) -> dict[str, Any]:
+    nodes: list[dict[str, Any]] = []
+    relations: list[dict[str, Any]] = []
+    node_keys: set[tuple[str, str]] = set()
+    relation_keys: set[tuple[str, str, str]] = set()
+
+    def add_node(node_type: str, node_id: str, label: str, source_id: str, action_url: str = "") -> None:
+        key = (node_type, node_id)
+        if not node_type or not node_id or key in node_keys:
+            return
+        node_keys.add(key)
+        nodes.append(
+            {
+                "type": node_type,
+                "id": node_id,
+                "label": label or node_id,
+                "source_id": source_id,
+                "action_url": action_url,
+            }
+        )
+
+    def add_relation(from_key: str, to_key: str, label: str) -> None:
+        key = (from_key, to_key, label)
+        if not from_key or not to_key or key in relation_keys:
+            return
+        relation_keys.add(key)
+        relations.append({"from": from_key, "to": to_key, "label": label})
+
+    for result in results:
+        if not result.ok:
+            continue
+        for row in _result_rows(result):
+            node_type = _node_type(result.source_id, row)
+            node_id = _row_id(row)
+            if not node_id:
+                continue
+            add_node(node_type, node_id, _row_label(row), result.source_id, _clean(row.get("action_url")))
+            current_key = f"{node_type}:{node_id}"
+            cliente_id = _clean(row.get("id_cliente") or row.get("cliente_id"))
+            if cliente_id and node_type != "cliente":
+                add_node("cliente", cliente_id, _clean(row.get("nome_cliente")) or cliente_id, "clienti")
+                add_relation(f"cliente:{cliente_id}", current_key, "collegato")
+            fascicolo_id = _clean(row.get("id_fascicolo") or row.get("fascicolo_id") or row.get("id_pratica"))
+            if fascicolo_id and node_type != "fascicolo":
+                add_node("fascicolo", fascicolo_id, fascicolo_id, "fascicoli", f"/fascicoli/{fascicolo_id}")
+                add_relation(f"fascicolo:{fascicolo_id}", current_key, "contiene")
+            soggetto_id = _clean(row.get("id_soggetto") or row.get("soggetto_id"))
+            if soggetto_id and node_type != "soggetto":
+                add_node("soggetto", soggetto_id, _clean(row.get("nome_completo")) or soggetto_id, "soggetti")
+                add_relation(current_key, f"soggetto:{soggetto_id}", "riguarda")
+
+    return {"nodes": nodes[:80], "relations": relations[:120]}
+
+
+def _build_fascicolo_timeline(results: list[OperationalToolResult]) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    for result in results:
+        if not result.ok:
+            continue
+        for row in _result_rows(result):
+            when = _first_date(row)
+            if not when:
+                continue
+            events.append(
+                {
+                    "date": when,
+                    "type": _timeline_type(result.source_id),
+                    "source_id": result.source_id,
+                    "object_id": _row_id(row),
+                    "label": _row_label(row),
+                    "action_url": _clean(row.get("action_url")),
+                    "fascicolo_id": _clean(row.get("id_fascicolo") or row.get("fascicolo_id") or row.get("id_pratica")),
+                }
+            )
+    return sorted(events, key=lambda item: item["date"])[:80]
+
+
+def _result_rows(result: OperationalToolResult) -> list[dict[str, Any]]:
+    if isinstance(result.data, list):
+        return [dict(item) for item in result.data if isinstance(item, dict)]
+    if isinstance(result.data, dict):
+        return [dict(result.data)]
+    return []
+
+
+def _node_type(source_id: str, row: dict[str, Any]) -> str:
+    if source_id == "clienti":
+        return "cliente"
+    if source_id == "fascicoli":
+        return "fascicolo"
+    if source_id == "soggetti":
+        return "parte" if _clean(row.get("record_kind")) == "parte" else "soggetto"
+    if source_id == "documenti_fascicolo":
+        return "documento"
+    if source_id in {"email_pec", "email_ordinaria"}:
+        return "email"
+    if source_id == "messaggi":
+        return "messaggio"
+    if source_id == "scadenziario":
+        return "scadenza"
+    if source_id == "agenda":
+        return "agenda"
+    if source_id == "preventivi":
+        return "preventivo"
+    if source_id == "conferimenti":
+        return "conferimento"
+    if source_id == "fatturazione":
+        return "parcella"
+    return source_id
+
+
+def _timeline_type(source_id: str) -> str:
+    return {
+        "fascicoli": "fascicolo",
+        "documenti_fascicolo": "documento",
+        "scadenziario": "scadenza",
+        "agenda": "agenda",
+        "email_pec": "pec",
+        "email_ordinaria": "email",
+        "messaggi": "messaggio",
+        "fatturazione": "economico",
+        "preventivi": "preventivo",
+        "conferimenti": "conferimento",
+    }.get(source_id, source_id)
+
+
+def _row_id(row: dict[str, Any]) -> str:
+    return _clean(row.get("id") or row.get("numero") or row.get("number") or row.get("source_id"))
+
+
+def _row_label(row: dict[str, Any]) -> str:
+    for key in ("nome_completo", "titolo", "title", "oggetto", "numero", "number", "nome", "name", "ragione_sociale", "id"):
+        value = _clean(row.get(key))
+        if value:
+            return value
+    return "Elemento"
+
+
+def _first_date(row: dict[str, Any]) -> str:
+    for key in (
+        "data",
+        "data_ora",
+        "data_scadenza",
+        "data_apertura",
+        "data_caricamento",
+        "ricevuta_il",
+        "inviato_il",
+        "creato_il",
+        "modificato_il",
+    ):
+        value = _clean(row.get(key))
+        if value:
+            return value
+    return ""
+
+
+def _clean(value: Any) -> str:
+    return " ".join(str(value or "").split()).strip()
 
 
 def _append_unique(items: list[str], value: str) -> None:

@@ -7,6 +7,12 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.59 - 2026-05-19
+
+- Estesa la tranche `Lex Studio Reasoner` con mappa entità e timeline fascicolo nei metadata `studio_reasoner`, costruite solo dai risultati operativi autorizzati.
+- Arricchiti PEC, email, fascicoli, documenti e allegati con link applicativi reali: la risposta può aprire la comunicazione, l'allegato, il fascicolo e il documento nell'editor professionale quando la route esiste.
+- Aggiunti test su "ultima PEC ricevuta" con allegato apribile e su fascicolo/documento con timeline e mappa entità; confermato lo shard completo Operational Knowledge.
+
 ## 2.245.58 - 2026-05-19
 
 - Avviata la tranche `Lex Studio Reasoner`: il layer Operational Knowledge costruisce un piano governato `llm_rag_governato`, verifica le sole fonti interne tenant-aware e allega il report `studio_reasoner` alle risposte Lex senza esporre ragionamenti grezzi.

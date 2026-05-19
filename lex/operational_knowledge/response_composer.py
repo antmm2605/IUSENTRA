@@ -145,6 +145,8 @@ class OperationalResponseComposer:
         if clienti:
             cliente = clienti[0]
             lines.append(f"Scheda cliente: {_label(cliente)}.")
+            if link := _row_link(cliente, label="Apri scheda cliente"):
+                lines.append(f"Collegamento: {link}.")
             lines.extend(_cliente_identity_lines(cliente))
             contacts = []
             for key, label in (
@@ -239,12 +241,14 @@ class OperationalResponseComposer:
         if fascicoli:
             fascicolo = fascicoli[0]
             lines.append(f"Fascicolo: {_label(fascicolo)}.")
+            if link := _row_link(fascicolo, label="Apri fascicolo"):
+                lines.append(f"Collegamento: {link}.")
             for key, label in (("stato", "Stato"), ("tribunale", "Ufficio"), ("nome_cliente", "Cliente"), ("controparte", "Controparte")):
                 if clean_spaces(fascicolo.get(key)):
                     lines.append(f"{label}: {fascicolo.get(key)}.")
         if documenti:
             lines.append(f"Documenti collegati o indicizzati: {len(documenti)}.")
-            lines.extend(f"- {_label(row)}" for row in documenti[:5])
+            lines.extend(f"- {_row_link(row) or _label(row)}" for row in documenti[:5])
         for source_id, label in (("scadenziario", "Scadenze"), ("agenda", "Agenda"), ("preventivi", "Preventivi"), ("fatturazione", "Parcelle")):
             rows = _data_for(results, source_id)
             if rows:
@@ -467,7 +471,7 @@ class OperationalResponseComposer:
                 continue
             found = True
             lines.append(f"{label}: {len(rows)} elementi consultabili.")
-            lines.extend(f"- {_label(row)}" for row in rows[:2])
+            lines.extend(f"- {_row_link(row) or _label(row)}" for row in rows[:2])
         if not found:
             lines.append("Non ho trovato elementi reali consultabili nelle sorgenti operative abilitate.")
         if gaps:
@@ -530,6 +534,13 @@ def _label(row: dict[str, Any]) -> str:
         if value:
             return value
     return "Elemento"
+
+
+def _row_link(row: dict[str, Any], *, label: str = "") -> str:
+    url = clean_spaces(row.get("action_url"))
+    if not url:
+        return ""
+    return _markdown_link(url, label=label or _label(row))
 
 
 def _extract_until_label(text: str, pattern: str, stop_labels: tuple[str, ...]) -> str:
@@ -1421,11 +1432,29 @@ def _communication_details(row: dict[str, Any], *, include_folder: bool = False)
     pct_state = clean_spaces(row.get("stato_pct"))
     if pct_state:
         details.append(f"Esito telematico rilevato: {pct_state}.")
+    if link := _row_link(row, label="Apri comunicazione"):
+        details.append(f"Collegamento: {link}.")
+    attachment_links = _attachment_links(row)
+    if attachment_links:
+        details.append("Allegati apribili: " + ", ".join(attachment_links[:5]) + ".")
     return details
 
 
 def _sort_communications(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(rows, key=_communication_sort_key, reverse=True)
+
+
+def _attachment_links(row: dict[str, Any]) -> list[str]:
+    links: list[str] = []
+    for attachment in list(row.get("allegati") or []):
+        if not isinstance(attachment, dict):
+            continue
+        url = clean_spaces(attachment.get("view_url"))
+        if not url:
+            continue
+        label = clean_spaces(attachment.get("nome")) or "Allegato"
+        links.append(_markdown_link(url, label=label))
+    return links
 
 
 def _communication_sort_key(row: dict[str, Any]) -> tuple[int, str]:

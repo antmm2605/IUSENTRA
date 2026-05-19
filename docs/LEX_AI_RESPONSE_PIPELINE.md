@@ -7,6 +7,12 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.245.59 - 19 maggio 2026
+
+Seconda fase della tranche `Lex Studio Reasoner`: il report `studio_reasoner` include ora `entity_map` e `fascicolo_timeline`. La mappa collega clienti, fascicoli, soggetti/parti, documenti, scadenze, agenda, PEC/email e dati economici solo quando emergono dai risultati interni autorizzati. La timeline usa le date già presenti nei record del fascicolo, senza inferire eventi non registrati.
+
+Le risposte operative possono esporre link applicativi apribili: PEC ed email puntano alla scheda messaggio, gli allegati alle route allegato, i fascicoli alla scheda pratica e i documenti fascicolo all'editor professionale. I link sono generati dai tool operativi dopo il controllo tenant/RBAC; non usano path filesystem e non espongono storage interno.
+
 ## Aggiornamento operativo 2.245.58 - 19 maggio 2026
 
 Prima fase della tranche `Lex Studio Reasoner`: il layer operativo costruisce ora un piano `llm_rag_governato` per ogni risposta gestita da Operational Knowledge. Il piano non è un prompt grezzo né un addestramento sui dati dello studio: descrive in modo verificabile classificazione, retrieval interno, verifica fonti e composizione della risposta.

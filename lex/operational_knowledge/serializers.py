@@ -323,6 +323,10 @@ def serialize_email_message(record: Any, *, include_body: bool = False) -> dict[
         "data": data.get("data") or data.get("ricevuta_il"),
         "anteprima": data.get("anteprima") or clean_spaces(data.get("corpo_testo") or "")[:160],
         "allegati_count": len(allegati),
+        "allegati": [
+            serialize_email_attachment(attachment, index=index)
+            for index, attachment in enumerate(allegati[:20])
+        ],
         "origine": data.get("origine"),
         "stato_pct": data.get("stato_pct"),
         "auto_registrata": data.get("auto_registrata"),

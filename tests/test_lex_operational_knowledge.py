@@ -247,8 +247,16 @@ def _base_repositories():
         id_cliente="cli-1",
         nome_cliente="Mario Rossi",
         stato="APERTO",
+        data_apertura="2026-05-01",
         documenti=[
-            SimpleNamespace(id="doc-1", nome="ricorso.pdf", tipo="ATTO", percorso="D:/segreto/ricorso.pdf", sha256="abc123"),
+            SimpleNamespace(
+                id="doc-1",
+                nome="ricorso.pdf",
+                tipo="ATTO",
+                percorso="D:/segreto/ricorso.pdf",
+                sha256="abc123",
+                data_caricamento="2026-05-10",
+            ),
         ],
         tenant_id="tenant-a",
     )
@@ -531,6 +539,40 @@ def test_latest_pec_question_returns_real_latest_message_details():
     assert "Data: 2026-05-17." in answer.answer
     assert "Allegati: 1." in answer.answer
     assert "Non ho trovato dati reali sufficienti" not in answer.answer
+
+
+def test_latest_pec_response_exposes_openable_message_and_attachment_links():
+    service, user = _service(repositories=_base_repositories())
+
+    answer = service.answer(question="ultima PEC ricevuta", user=user, studio=SimpleNamespace(slug="tenant-a"))
+
+    assert answer is not None
+    assert "Collegamento: [Apri comunicazione](/email/messaggio/pec-1)." in answer.answer
+    assert "Allegati apribili: [ricevuta.eml](/email/messaggio/pec-1/allegato/0)." in answer.answer
+    assert any(obj.object_type == "email" and obj.action_url == "/email/messaggio/pec-1" for obj in answer.objects)
+    assert any(obj.object_type == "allegato_email" and obj.action_url == "/email/messaggio/pec-1/allegato/0" for obj in answer.objects)
+
+
+def test_fascicolo_reasoner_builds_entity_map_timeline_and_editor_links():
+    service, user = _service(repositories=_base_repositories())
+
+    answer = service.answer(
+        question="Analizza i documenti presenti nel fascicolo",
+        user=user,
+        studio=SimpleNamespace(slug="tenant-a"),
+        metadata={"fascicolo_id": "fas-1"},
+    )
+
+    assert answer is not None
+    assert "[ricorso.pdf](/fascicoli/fas-1/documenti/doc-1/editor)" in answer.answer
+    assert any(obj.object_type == "fascicolo" and obj.action_url == "/fascicoli/fas-1" for obj in answer.objects)
+    assert any(obj.object_type == "documento" and obj.action_url == "/fascicoli/fas-1/documenti/doc-1/editor" for obj in answer.objects)
+    report = answer.metadata["studio_reasoner"]
+    nodes = report["entity_map"]["nodes"]
+    timeline = report["fascicolo_timeline"]
+    assert any(node["type"] == "fascicolo" and node["id"] == "fas-1" for node in nodes)
+    assert any(node["type"] == "documento" and node["action_url"].endswith("/documenti/doc-1/editor") for node in nodes)
+    assert any(event["type"] == "documento" and event["object_id"] == "doc-1" for event in timeline)
 
 
 def test_lex_studio_reasoner_attaches_governed_rag_report_to_latest_pec():

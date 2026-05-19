@@ -2,6 +2,12 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.245.59 - 2026-05-19
+
+Fase 2 `Lex Studio Reasoner`: aggiunte mappa entità, timeline fascicolo e link apribili generati dalle sorgenti operative. Il report `studio_reasoner` include nodi/relazioni e timeline costruiti dai soli risultati autorizzati; i link puntano a route interne per fascicolo, documento editor, PEC/email e allegati. Non sono esposti path locali, storage o allegati fuori tenant.
+
+Gate fase 2 confermati: test mirati su PEC/allegato apribile e fascicolo/documento editor, `python -m ruff check ...`, `python -m compileall lex/operational_knowledge` e `python -m pytest tests/test_lex_operational_knowledge.py -q --tb=short`.
+
 ## Aggiornamento operativo 2.245.58 - 2026-05-19
 
 Avviata la tranche `Lex Studio Reasoner` con il nucleo planner/verificatore: le risposte operative allegano metadata `studio_reasoner` con piano `llm_rag_governato`, fonti interne verificate, lacune, fonti mancanti e policy RAG. Il verificatore studio esclude fonti pubbliche/legali già governate (`fonti_ufficiali`, `legal_intelligence`, `update_intelligence`, `web_libero`) e non reintroduce aggregatori legacy.

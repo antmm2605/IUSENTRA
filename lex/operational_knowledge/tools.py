@@ -384,6 +384,8 @@ class OperationalKnowledgeTools:
         docs = list(getattr(fascicolo, "documenti", []) or [])
         rows = [serialize_documento(item) for item in docs]
         rows.extend(self._document_ai_rows(fascicolo_id, context))
+        for row in rows:
+            row.setdefault("id_fascicolo", fascicolo_id)
         result = self._plain_result("documenti_fascicolo", context, rows, "documento")
         if not rows:
             result.coverage_gaps.append("Nessun documento collegato o indicizzato per il fascicolo.")
@@ -864,6 +866,7 @@ class OperationalKnowledgeTools:
         return result
 
     def _plain_result(self, source_id: str, context: OperationalQueryContext, data: list[dict[str, Any]], object_type: str) -> OperationalToolResult:
+        data = [_with_action_links(source_id, object_type, dict(row)) for row in data]
         sources = [
             self._source_ref(
                 source_id,
@@ -882,6 +885,7 @@ class OperationalKnowledgeTools:
                     or ""
                 ),
                 confidence=0.82 if data else 0.35,
+                action_url=clean_spaces(row.get("action_url")),
             )
             for row in data[:20]
         ]
@@ -901,9 +905,11 @@ class OperationalKnowledgeTools:
                     or ""
                 ),
                 source_id=source_id,
+                action_url=clean_spaces(row.get("action_url")),
             )
             for row in data[:20]
         ]
+        objects.extend(_email_attachment_objects(source_id, data[:20]))
         return OperationalToolResult(bool(data), source_id, data=data, sources=sources, objects=objects)
 
     def _filter_text_rows(
@@ -933,6 +939,7 @@ class OperationalKnowledgeTools:
         object_id: str = "",
         title: str = "",
         confidence: float = 0.0,
+        action_url: str = "",
     ) -> OperationalSourceReference:
         source = self.registry.get(source_id)
         permission = ""
@@ -948,7 +955,7 @@ class OperationalKnowledgeTools:
             confidence=confidence,
             internal=bool(source.internal if source else True),
             permission_applied=permission or "ai.usa",
-            metadata={"tenant_id": context.tenant_id},
+            metadata={"tenant_id": context.tenant_id, "action_url": clean_spaces(action_url)},
         )
 
     def _document_ai_rows(self, fascicolo_id: str, context: OperationalQueryContext) -> list[dict[str, Any]]:
@@ -978,6 +985,93 @@ class OperationalKnowledgeTools:
                 if item is not None
             )
         return self.guard.record_belongs_to_tenant(context, row)
+
+
+def _with_action_links(source_id: str, object_type: str, row: dict[str, Any]) -> dict[str, Any]:
+    action_url = clean_spaces(row.get("action_url")) or _action_url(source_id, object_type, row)
+    if action_url:
+        row["action_url"] = action_url
+    if source_id in {"email_pec", "email_ordinaria"}:
+        message_url = _action_url(source_id, "email", row)
+        if message_url:
+            row["action_url"] = message_url
+        attachments = []
+        for attachment in list(row.get("allegati") or [])[:20]:
+            if not isinstance(attachment, dict):
+                continue
+            enriched = dict(attachment)
+            index = _int(enriched.get("index"))
+            base = "/email/messaggio" if source_id == "email_pec" else "/email-ordinaria/messaggio"
+            email_id = clean_spaces(row.get("id"))
+            if email_id:
+                enriched["view_url"] = f"{base}/{email_id}/allegato/{index}"
+                enriched["download_url"] = f"{base}/{email_id}/allegato/{index}?download=1"
+            attachments.append(enriched)
+        row["allegati"] = attachments
+    return row
+
+
+def _action_url(source_id: str, object_type: str, row: dict[str, Any]) -> str:
+    object_id = clean_spaces(row.get("id") or row.get("numero") or row.get("number") or row.get("source_id"))
+    if not object_id:
+        return ""
+    if source_id == "clienti" or object_type == "cliente":
+        return f"/clienti/{object_id}/cartella"
+    if source_id == "soggetti" and object_type in {"soggetto", "parte"}:
+        if object_type == "parte" and clean_spaces(row.get("id_fascicolo")):
+            return f"/fascicoli/{clean_spaces(row.get('id_fascicolo'))}"
+        return f"/soggetti/{object_id}"
+    if source_id == "fascicoli" or object_type == "fascicolo":
+        return f"/fascicoli/{object_id}"
+    if source_id == "documenti_fascicolo" or object_type == "documento":
+        fascicolo_id = clean_spaces(row.get("id_fascicolo") or row.get("fascicolo_id"))
+        if fascicolo_id:
+            return f"/fascicoli/{fascicolo_id}/documenti/{object_id}/editor"
+    if source_id == "email_pec":
+        return f"/email/messaggio/{object_id}"
+    if source_id == "email_ordinaria":
+        return f"/email-ordinaria/messaggio/{object_id}"
+    if source_id == "agenda":
+        return "/agenda"
+    if source_id == "scadenziario":
+        return "/scadenziario"
+    if source_id == "preventivi":
+        return f"/preventivi/p/{object_id}"
+    if source_id == "conferimenti":
+        return f"/preventivi/conferimento/{object_id}"
+    return ""
+
+
+def _email_attachment_objects(source_id: str, rows: list[dict[str, Any]]) -> list[OperationalObjectReference]:
+    objects: list[OperationalObjectReference] = []
+    if source_id not in {"email_pec", "email_ordinaria"}:
+        return objects
+    for row in rows:
+        email_id = clean_spaces(row.get("id"))
+        if not email_id:
+            continue
+        for attachment in list(row.get("allegati") or [])[:20]:
+            if not isinstance(attachment, dict):
+                continue
+            index = _int(attachment.get("index"))
+            label = clean_spaces(attachment.get("nome")) or f"Allegato {index + 1}"
+            objects.append(
+                OperationalObjectReference(
+                    object_type="allegato_email",
+                    object_id=f"{email_id}#{index}",
+                    label=label,
+                    source_id=source_id,
+                    action_url=clean_spaces(attachment.get("view_url")),
+                )
+            )
+    return objects
+
+
+def _int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except Exception:
+        return default
 
 
 def _call(obj: Any, method_name: str, *args: Any, **kwargs: Any) -> Any:

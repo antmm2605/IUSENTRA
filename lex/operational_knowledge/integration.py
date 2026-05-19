@@ -320,6 +320,7 @@ def _source_row(source) -> dict[str, Any]:
         "source_id": source.source_id,
         "object_type": source.object_type,
         "object_id": source.object_id,
+        "action_url": clean_spaces((source.metadata or {}).get("action_url")),
         "internal": source.internal,
         "retrieved_at": source.retrieved_at,
         "permission_applied": source.permission_applied,

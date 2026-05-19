@@ -36,6 +36,8 @@ Aggiornamento 2026-05-19, correzione fonti gialle 2.245.44: la Fase 3 post-canar
 
 Aggiornamento 2026-05-19, pilot guarded fonti 2.245.45: il primo pilot ha pubblicato 9 contenuti su `cassazione_ultime_sent_ord_questioni`, `inps_circolari` e `agcom_provvedimenti`, limitando la pubblicazione ai soli documenti letti dal canary corrente. Lex deve usare testo pagina, PDF/OCR e allegati ufficiali salvati; quando la domanda chiede PDF/allegato/documento, il risultato con `attachment_url` va ordinato prima della sola pagina. Le schede Cassazione senza corte/numero/anno completi restano RAG ufficiale e preparazione per Archivio Giurisprudenza, non voce strutturata. Le circolari INPS restano notizie/prassi verificate se non esiste una chiave normativa coerente.
 
+Aggiornamento 2026-05-19, Fase 5 fonti verdi 2.245.46: il repository fonti ufficiali contiene ora 20 pubblicazioni guarded aggiuntive/riconfermate su Cassazione, INPS, AGCOM, Corte dei conti e Curia CGUE. Lex e Ricerca Legale devono interrogare questi contenuti con filtro fonte quando la domanda nomina la fonte o un identificativo specifico, soprattutto per cause Curia come `C-797/23` dove una query generica su `Sentenza della Corte` può favorire Corte dei conti. ANAC e Garante restano acquisizioni da verificare, non contenuti pubblicati. PST tecnico e OpenGA tabellare restano RAG-only e non vanno proposti come news.
+
 ## Regole di accesso
 
 - Tenant: ricavato dal contesto Flask (`g.tenant`, `g.tenant_context_slug`, `g.data_paths`) o da contesto applicativo esplicito nei test.

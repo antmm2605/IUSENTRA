@@ -1,0 +1,110 @@
+{
+  "schema": "iusentra.legal_updates.canary.v1",
+  "ok": true,
+  "mode": "canary",
+  "source_code": "pst_giustizia_download",
+  "source_name": "PST Giustizia - download tecnici",
+  "limit": 5,
+  "max_seconds": 120,
+  "no_publish": false,
+  "publish_mode": "guarded",
+  "direct_only": true,
+  "documents_found": 1,
+  "processed": 0,
+  "skipped_unchanged": 1,
+  "web_verification_attempts": 0,
+  "verification_evidence_saved": 0,
+  "verification_attachments_saved": 0,
+  "autopublished": {
+    "count": 0,
+    "items": [],
+    "published_items": [],
+    "skipped": [
+      {
+        "id": 54,
+        "title": "PST Giustizia - download tecnici",
+        "reason": "destinazione non pubblicabile: solo RAG o fuori perimetro"
+      }
+    ],
+    "mode": "guarded",
+    "web_verification_attempts": 0,
+    "verification_evidence_saved": 0,
+    "verification_attachments_saved": 0,
+    "stopped_for_time_limit": false
+  },
+  "stopped_for_time_limit": false,
+  "duration_seconds": 0.51,
+  "items": [
+    {
+      "external_id": "2e8fca6f4fa4606622019240c2e8d16f9b33cf30127be579dc140a87f159a0f0",
+      "title": "PST Giustizia - download tecnici",
+      "source_url": "https://pst.giustizia.it/PST/it/download.page",
+      "published_at": "",
+      "attachment_count": 0,
+      "attachments": [],
+      "reference_count": 0,
+      "reference_labels": [],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare PST Giustizia - download tecnici?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Solo RAG",
+      "rag_destination": "telematico_rag",
+      "exclusion_reason": "Pagina di navigazione, privacy, cookie, contatti o supporto: non pubblicabile come aggiornamento.",
+      "status": "invariato",
+      "normalized_document_id": 54,
+      "review_id": 54,
+      "quality": {
+        "status": "pronto_con_note",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 2541,
+        "ocr_status": "non_richiesto",
+        "references": 0,
+        "questions": 13,
+        "warnings": [
+          "OCR leggibile ma da controllare"
+        ]
+      },
+      "guarded_publish": {
+        "published": false,
+        "reason": "destinazione non pubblicabile: solo RAG o fuori perimetro",
+        "review_id": 54
+      }
+    }
+  ],
+  "errors": [],
+  "diagnostics_saved": true
+}

@@ -2,6 +2,14 @@
 
 Aggiornato il 18 maggio 2026. Ricognizione svolta partendo da `/admin/aggiornamenti-legali/` e dai moduli `pct/legal_update_pipeline.py`, `pct/legal_update_repository.py`, `pct/legal_update_web_verification.py`, `pct/legal_update_autofetch.py`, `pct/legal_update_batch_runner.py`, `web/services/legal_update_surface.py`, `web/blueprints/legal_updates_admin.py`, Ricerca Legale React, Archivio Giurisprudenza e sorgenti Lex.
 
+## Aggiornamento Fase 5 - popolamento primo gruppo verde 19 maggio 2026
+
+La Fase 5 estende il pilot `guarded` senza trasformarlo in import massivo. Il gruppo pubblicato resta limitato alle fonti che hanno superato le guardie nel run diretto: `cassazione_ultime_sent_ord_questioni`, `inps_circolari`, `inps_messaggi`, `agcom_provvedimenti`, `corte_conti` e `curia_cgue_rss`. ANAC e Garante sono stati acquisiti ma non pubblicati perché il guarded richiede conferme ulteriori o riferimenti ritrovabili nella diagnosi. Corte costituzionale è stata esclusa dalla pubblicazione perché la fonte diretta non ha restituito schede pronuncia verificabili dopo il blocco del fallback su captcha/navigazione.
+
+PST Giustizia download e OpenGA sentenze sono stati trattati secondo destinazione corretta: `RAG-only`, zero pubblicazioni news/prassi/giurisprudenza. Le altre fonti candidate ancora in osservazione (`cassazione_citazioni_verificate`, `inps_sentenze`, `agcm_bollettino`, `ministero_lavoro_interpelli`, `agenzia_entrate`, `openga_ordinanze`, `openga_decreti`, `openga_pareri`) restano fuori dalla pubblicazione fino a canary verde dedicato.
+
+Regola aggiunta al piano: le fonti giurisdizionali HTML non possono usare fallback generico quando la pagina restituisce homepage, captcha o link di servizio. Per Corte costituzionale sono valide solo schede `/scheda-pronuncia/<anno>/<numero>`; per Corte dei conti sono validi solo documenti sotto `/Home/Documenti/` con dettaglio sentenza/documento e PDF ufficiale leggibile o label PDF verificabile.
+
 ## Aggiornamento Fase 4 - pilot guarded 19 maggio 2026
 
 Il primo pilot di pubblicazione deve restare controllato: massimo 3 fonti verdi, massimo 3 documenti per fonte, niente import massivo, niente scheduler globale e niente pubblicazione da fonti gialle/rosse. La modalità `guarded` del canary pubblica solo i `review_id` prodotti o riletti nel run corrente e applica guardie su trust ufficiale, testo leggibile, PDF/OCR, filtro studio legale, cookie/navigazione, duplicati, destinazione, riferimenti, domande contestuali e assenza di codice grezzo in UI.

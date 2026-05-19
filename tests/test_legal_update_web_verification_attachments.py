@@ -192,6 +192,46 @@ def test_helper_non_scambia_menu_html_inps_per_allegato():
     ]
 
 
+def test_helper_legge_download_corte_conti_con_label_pdf(monkeypatch):
+    source_url = "https://www.corteconti.it/HOME/Documenti/DettaglioDocumenti?Id=74640cec"
+    attachment_url = "https://www.corteconti.it/Download?id=3f0619f6"
+    pdf_bytes = b"%PDF-1.7\n% sentenza corte conti\n"
+    requested: list[str] = []
+
+    def fake_get(url: str, **kwargs: Any) -> DummyResponse:
+        requested.append(str(url))
+        if str(url) == source_url:
+            return DummyResponse(
+                """
+                <html><body><main>
+                  <h1>Sentenza n. 127/2026</h1>
+                  <p>Responsabilità erariale e appalti pubblici.</p>
+                  <a href="/Download?id=3f0619f6">Sentenza n. 127/2026 [141,324 KB PDF]</a>
+                </main></body></html>
+                """.encode("utf-8"),
+                content_type="text/html; charset=utf-8",
+            )
+        if str(url) == attachment_url:
+            return DummyResponse(pdf_bytes, content_type="application/pdf")
+        raise AssertionError(f"URL inatteso: {url}")
+
+    monkeypatch.setattr(verification.requests, "get", fake_get)
+    monkeypatch.setattr(
+        verification,
+        "_text_from_attachment",
+        lambda url, content, content_type: "Sentenza n. 127/2026 su responsabilità erariale e appalti pubblici.",
+    )
+
+    context, attachments = verification._fetch_official_web_context_with_attachments(source_url, timeout=2)
+
+    assert requested == [source_url, attachment_url]
+    assert "Responsabilità erariale" in context
+    assert len(attachments) == 1
+    assert attachments[0]["attachment_url"] == attachment_url
+    assert attachments[0]["attachment_type"] == "pdf"
+    assert attachments[0]["source_name"] == "Corte dei Conti"
+
+
 def test_helper_gazzetta_non_scambia_pagina_aiuto_pdf_per_allegato(monkeypatch):
     source_url = "https://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00056/sg"
     issue_pdf = "https://www.gazzettaufficiale.it/eli/gu/2026/03/27/72/sg/pdf"

@@ -2,6 +2,32 @@
 
 Aggiornato il 19 maggio 2026. Questo file trasforma `source-rollout-plan.md` in backlog eseguibile con stato prima/dopo della tranche codice.
 
+## Aggiornamento Fase 5 - primo gruppo fonti verdi
+
+Aggiornato il 19 maggio 2026 dopo il popolamento controllato del primo gruppo fonti verdi. Ogni fonte è stata eseguita separatamente con `--limit 5`, `--max-seconds 120`, `--allow-publish`, `--publish-mode guarded`, `--direct-only`, `--save-diagnostics` e output JSON salvato in `artifacts/legal-updates/phase5-green-2026-05-19/`. Non sono stati avviati import massivi, scheduler globale o Web libero.
+
+| fonte | trovati | processati | pubblicati | scarti / destinazione | esito |
+|---|---:|---:|---:|---|---|
+| `cassazione_ultime_sent_ord_questioni` | 5 | 0 nuovi, 5 invariati | 5 | nessuno | verde; 3 già pilot e 2 ulteriori schede pubblicate come news/RAG ufficiale con PDF/OCR |
+| `inps_circolari` | 50 | 2 nuovi, 3 invariati | 5 | nessuno | verde; circolari pubblicate come news verificate, non normativa incoerente |
+| `inps_messaggi` | 9 | 2 nuovi, 3 invariati | 2 | 3 scarti per testo tecnico grezzo | verde parziale; pubblicati solo messaggi con testo UI pulito |
+| `agcom_provvedimenti` | 30 | 2 nuovi, 3 invariati | 4 | 1 duplicato già pubblicato | verde; delibere/determine con PDF e riferimenti |
+| `corte_conti` | 10 | 5 | 3 | 2 RAG-only per riferimenti non ritrovati nella diagnosi | verde dopo fix parser; titoli reali da allegato e download PDF letti |
+| `curia_cgue_rss` | 10 | 2 nuovi, 3 invariati | 1 | 4 scarti per riferimenti non ritrovati nella diagnosi | verde parziale; la causa `C-797/23` è pubblicata e interrogabile |
+| `corte_costituzionale` | 0 | 0 | 0 | fonte diretta bloccata/nessuna scheda pronuncia verificabile | esclusa dalla pubblicazione; fallback navigazione/captcha bloccato |
+| `anac_documenti` | 25 | 3 nuovi, 2 invariati | 0 | 5 scarti: servono conferme ulteriori | acquisita ma non pubblicata |
+| `garante_privacy` | 5 | 5 | 0 | 3 conferme insufficienti, 2 riferimenti non ritrovati | acquisita ma non pubblicata |
+| `pst_giustizia_download` | 1 | 0 nuovi, 1 invariato | 0 | RAG-only tecnico | nessuna news pubblicata |
+| `openga_sentenze` | 372 | 3 nuovi, 2 invariati | 0 | RAG-only dataset tabellare | nessuna news/giurisprudenza pubblicata |
+
+Verifica post-fase: `verification.json` registra 20 documenti pubblicati unici, 20/20 ritrovabili da Ricerca Legale con query fonte mirata, 20/20 interrogabili da Lex, 8 elementi RAG-only/non pubblicati e 26 scarti guarded. L'Archivio Giurisprudenza strutturato non riceve nuove schede in questa fase: le pronunce pubblicate restano news/RAG ufficiale finché la promozione strutturata non passa chiavi e guardie specifiche.
+
+Correzioni applicate durante la fase:
+
+- `corte_costituzionale`: il parser non crea più documenti fallback da captcha, pagine in inglese o navigazione e accetta solo URL `/scheda-pronuncia/<anno>/<numero>`.
+- `corte_conti`: il parser scarta navigazione (`INTRANET`, `BIBLIOTECA`, sedi, breadcrumb), usa il titolo reale del PDF/sentenza quando la pagina mostra `Leggi di più` o `Dettaglio documenti`, e la verifica allegati legge i download ufficiali `/Download?id=...` marcati PDF dalla label.
+- Gli artifact della fase 5 sono stati rigenerati con output UTF-8 reale e controllati senza caratteri sostitutivi.
+
 ## Aggiornamento Fase 4 - primo pilot guarded
 
 Aggiornato il 19 maggio 2026 dopo il pilot controllato con `--publish-mode guarded`. Non è stato avviato import massivo, non è stato lanciato lo scheduler globale e la pubblicazione è rimasta limitata ai soli documenti letti dal canary corrente.

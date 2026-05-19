@@ -8,6 +8,14 @@ Completato il primo pilot di pubblicazione `guarded` su tre sole fonti verdi: `c
 
 La verifica post-pilot conferma che i contenuti appaiono nell'archivio admin, sono ricercabili da Ricerca Legale, sono interrogabili da Lex e premiano il PDF o l'allegato quando la domanda lo richiede. Le schede Cassazione pubblicate come news sono pronte per RAG/Archivio Giurisprudenza ma non vengono inserite come giurisprudenza strutturata se mancano corte, numero o anno. Le circolari INPS non vengono pubblicate come normativa quando la chiave estratta descrive la circolare e non un atto normativo.
 
+## Aggiornamento operativo 2.245.46 - 2026-05-19
+
+Completata la Fase 5 sul primo gruppo fonti verdi con esecuzione fonte per fonte, limiti `5/120s`, `direct-only`, pubblicazione `guarded`, zero Web libero, zero import massivo e zero scheduler globale. Il report canonico è `artifacts/legal-updates/phase5-green-2026-05-19/phase5-green-report.md`, con verifica macchina in `verification.json`.
+
+Esito: 20 documenti pubblicati unici, 8 documenti RAG-only/non pubblicati, 26 scarti guarded. Ricerca Legale e Lex ritrovano 20/20 pubblicati con query mirata alla fonte. Nessuna nuova scheda strutturata in Archivio Giurisprudenza: le pronunce pubblicate restano news/RAG ufficiale finché non passano una promozione strutturata dedicata.
+
+Correzioni di qualità: Corte costituzionale non crea più contenuti da captcha/homepage/navigazione; Corte dei conti non acquisisce link di servizio e usa titoli reali da allegati PDF ufficiali quando la pagina mostra solo etichette generiche. PST e OpenGA tabellare restano solo RAG-only.
+
 ## Aggiornamento operativo 2.245.44 - 2026-05-19
 
 La Fase 3 post-canary ha corretto solo le fonti gialle del report precedente:

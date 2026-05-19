@@ -1,0 +1,567 @@
+{
+  "schema": "iusentra.legal_updates.canary.v1",
+  "ok": true,
+  "mode": "canary",
+  "source_code": "corte_conti",
+  "source_name": "Corte dei Conti",
+  "limit": 5,
+  "max_seconds": 120,
+  "no_publish": false,
+  "publish_mode": "guarded",
+  "direct_only": true,
+  "documents_found": 10,
+  "processed": 5,
+  "skipped_unchanged": 0,
+  "web_verification_attempts": 5,
+  "verification_evidence_saved": 14,
+  "verification_attachments_saved": 9,
+  "autopublished": {
+    "count": 3,
+    "items": [
+      67,
+      68,
+      69
+    ],
+    "published_items": [
+      {
+        "id": 67,
+        "title": "Sentenza n. 127/2026",
+        "source_code": "corte_conti",
+        "destination": "news",
+        "quality": {
+          "status": "pronto",
+          "ready": true,
+          "attachment_found": true,
+          "pdf_found": true,
+          "text_read": true,
+          "context_chars": 12169,
+          "ocr_status": "pulito",
+          "references": 8,
+          "questions": 16,
+          "warnings": []
+        }
+      },
+      {
+        "id": 68,
+        "title": "Sentenza n. 63/2026 e Massima",
+        "source_code": "corte_conti",
+        "destination": "news",
+        "quality": {
+          "status": "pronto",
+          "ready": true,
+          "attachment_found": true,
+          "pdf_found": true,
+          "text_read": true,
+          "context_chars": 28116,
+          "ocr_status": "pulito",
+          "references": 10,
+          "questions": 15,
+          "warnings": []
+        }
+      },
+      {
+        "id": 69,
+        "title": "Sentenza n. 96/2026",
+        "source_code": "corte_conti",
+        "destination": "news",
+        "quality": {
+          "status": "pronto",
+          "ready": true,
+          "attachment_found": true,
+          "pdf_found": true,
+          "text_read": true,
+          "context_chars": 13847,
+          "ocr_status": "pulito",
+          "references": 5,
+          "questions": 15,
+          "warnings": []
+        }
+      }
+    ],
+    "skipped": [
+      {
+        "id": 70,
+        "title": "Sentenza n. 91/2026",
+        "reason": "riferimenti non ritrovati nella diagnosi fonte"
+      },
+      {
+        "id": 71,
+        "title": "Sentenza n. 94/2026",
+        "reason": "riferimenti non ritrovati nella diagnosi fonte"
+      }
+    ],
+    "mode": "guarded",
+    "web_verification_attempts": 5,
+    "verification_evidence_saved": 14,
+    "verification_attachments_saved": 9,
+    "stopped_for_time_limit": false
+  },
+  "stopped_for_time_limit": false,
+  "duration_seconds": 47.78,
+  "items": [
+    {
+      "external_id": "9ac251f38546b90760fd4cd8fe6ec900913b2baf2d2524b124461fd155762d8d",
+      "title": "Sentenza n. 127/2026",
+      "source_url": "https://www.corteconti.it/HOME/Documenti/DettaglioDocumenti?Id=74640cec-fe53-4f3b-a602-00aa79f24ec4",
+      "published_at": "2026-04-27",
+      "attachment_count": 2,
+      "attachments": [
+        {
+          "title": "Sentenza n. 127/2026 [141,324 KB PDF]",
+          "url": "https://www.corteconti.it/Download?id=3f0619f6-8f49-4dd4-9b52-e1aece751e56",
+          "attachment_type": ""
+        },
+        {
+          "title": "Massima allegata alla sentenza n. 127/2026 [101,098 KB PDF]",
+          "url": "https://www.corteconti.it/Download?id=edf545d0-c611-4edb-aaad-185835ba549d",
+          "attachment_type": ""
+        }
+      ],
+      "reference_count": 5,
+      "reference_labels": [
+        "Sentenza n. 127/2026",
+        "sentenza 27",
+        "27/04/2026",
+        "27 aprile 2026",
+        "2026"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare Sentenza n. 127/2026?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza o solo RAG",
+      "rag_destination": "official_case_law_rag",
+      "exclusion_reason": "",
+      "status": "analizzato",
+      "review_id": 67,
+      "normalized_document_id": 67,
+      "verification": {
+        "attempted": 1,
+        "saved": 3,
+        "attachments": 2,
+        "ok": true,
+        "confirmations": 3,
+        "official_confirmations": 3,
+        "reason": "Verifica pubblica completata con fonti coerenti."
+      },
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": true,
+        "pdf_found": true,
+        "text_read": true,
+        "context_chars": 12169,
+        "ocr_status": "pulito",
+        "references": 8,
+        "questions": 16,
+        "warnings": []
+      },
+      "guarded_publish": {
+        "published": true,
+        "review_id": 67,
+        "destination": "news"
+      }
+    },
+    {
+      "external_id": "5e58db7c6ac7edd356af0fd1ed80e020a12cb9c490b85b302baa37a736c44c35",
+      "title": "Sentenza n. 63/2026 e Massima",
+      "source_url": "https://www.corteconti.it/HOME/Documenti/DettaglioDocumenti?Id=18df5f9c-40a1-4f2d-b00b-17177a0151c7",
+      "published_at": "2026-04-01",
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "title": "Sentenza n. 63/2026 e Massima [366,15 KB PDF]",
+          "url": "https://www.corteconti.it/Download?id=24392807-e331-4dc5-8bc5-1dc31ea318fb",
+          "attachment_type": ""
+        }
+      ],
+      "reference_count": 7,
+      "reference_labels": [
+        "art. 1",
+        "art. 2126 c.c.",
+        "l. n. 20/1994",
+        "Sentenza n. 63/2026",
+        "01/04/2026",
+        "2026",
+        "1994"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare Sentenza n. 63/2026 e Massima?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza o solo RAG",
+      "rag_destination": "official_case_law_rag",
+      "exclusion_reason": "",
+      "status": "analizzato",
+      "review_id": 68,
+      "normalized_document_id": 68,
+      "verification": {
+        "attempted": 1,
+        "saved": 2,
+        "attachments": 1,
+        "ok": true,
+        "confirmations": 2,
+        "official_confirmations": 2,
+        "reason": "Verifica pubblica completata con fonti coerenti."
+      },
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": true,
+        "pdf_found": true,
+        "text_read": true,
+        "context_chars": 28116,
+        "ocr_status": "pulito",
+        "references": 10,
+        "questions": 15,
+        "warnings": []
+      },
+      "guarded_publish": {
+        "published": true,
+        "review_id": 68,
+        "destination": "news"
+      }
+    },
+    {
+      "external_id": "a5f17fe72061b8596dae77870102ff6e60eba007631dd525be22a0b42e54330c",
+      "title": "Sentenza n. 96/2026",
+      "source_url": "https://www.corteconti.it/HOME/Documenti/DettaglioDocumenti?Id=13c38a1d-19d5-40df-935e-02a976ec8964",
+      "published_at": "2026-03-31",
+      "attachment_count": 2,
+      "attachments": [
+        {
+          "title": "Sentenza n. 96/2026 [234,665 KB PDF]",
+          "url": "https://www.corteconti.it/Download?id=a1bd33ae-2e54-4a1e-b02d-ebbe6d01eb74",
+          "attachment_type": ""
+        },
+        {
+          "title": "Massima allegata alla sentenza n. 96/2026 [58,245 KB PDF]",
+          "url": "https://www.corteconti.it/Download?id=15bfa599-5ab0-4cc6-ac82-08817ebcfb9a",
+          "attachment_type": ""
+        }
+      ],
+      "reference_count": 5,
+      "reference_labels": [
+        "Sentenza n. 96/2026",
+        "sentenza 31",
+        "31/03/2026",
+        "31 marzo 2026",
+        "2026"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare Sentenza n. 96/2026?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza o solo RAG",
+      "rag_destination": "official_case_law_rag",
+      "exclusion_reason": "",
+      "status": "analizzato",
+      "review_id": 69,
+      "normalized_document_id": 69,
+      "verification": {
+        "attempted": 1,
+        "saved": 3,
+        "attachments": 2,
+        "ok": true,
+        "confirmations": 3,
+        "official_confirmations": 3,
+        "reason": "Verifica pubblica completata con fonti coerenti."
+      },
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": true,
+        "pdf_found": true,
+        "text_read": true,
+        "context_chars": 13847,
+        "ocr_status": "pulito",
+        "references": 5,
+        "questions": 15,
+        "warnings": []
+      },
+      "guarded_publish": {
+        "published": true,
+        "review_id": 69,
+        "destination": "news"
+      }
+    },
+    {
+      "external_id": "1e7ca08fd7ae261fe0c8edce09cf73373e28198554a57e0b8824ac7da8b09de9",
+      "title": "Sentenza n. 91/2026",
+      "source_url": "https://www.corteconti.it/HOME/Documenti/DettaglioDocumenti?Id=7ab21815-7ed9-4853-b312-156d2c543465",
+      "published_at": "2026-03-31",
+      "attachment_count": 2,
+      "attachments": [
+        {
+          "title": "Sentenza n. 91/2026 [243,588 KB PDF]",
+          "url": "https://www.corteconti.it/Download?id=33c0c40e-9cc8-4639-b981-991215f6610a",
+          "attachment_type": ""
+        },
+        {
+          "title": "Massima allegata alla sentenza n. 91/2026 [58,812 KB PDF]",
+          "url": "https://www.corteconti.it/Download?id=9db1cf92-8db3-42fc-831e-1c40be9c5085",
+          "attachment_type": ""
+        }
+      ],
+      "reference_count": 5,
+      "reference_labels": [
+        "Sentenza n. 91/2026",
+        "sentenza 31",
+        "31/03/2026",
+        "31 marzo 2026",
+        "2026"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare Sentenza n. 91/2026?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza o solo RAG",
+      "rag_destination": "official_case_law_rag",
+      "exclusion_reason": "",
+      "status": "analizzato",
+      "review_id": 70,
+      "normalized_document_id": 70,
+      "verification": {
+        "attempted": 1,
+        "saved": 3,
+        "attachments": 2,
+        "ok": true,
+        "confirmations": 3,
+        "official_confirmations": 3,
+        "reason": "Verifica pubblica completata con fonti coerenti."
+      },
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": true,
+        "pdf_found": true,
+        "text_read": true,
+        "context_chars": 14288,
+        "ocr_status": "pulito",
+        "references": 0,
+        "questions": 14,
+        "warnings": []
+      },
+      "guarded_publish": {
+        "published": false,
+        "reason": "riferimenti non ritrovati nella diagnosi fonte",
+        "review_id": 70
+      }
+    },
+    {
+      "external_id": "1836a1076257d375dbc789568cac57d5b6c1af5ce937426f949161bbbb9e3dcb",
+      "title": "Sentenza n. 94/2026",
+      "source_url": "https://www.corteconti.it/HOME/Documenti/DettaglioDocumenti?Id=24c5748e-8e5c-47d0-8a17-79b006bebdd5",
+      "published_at": "2026-03-31",
+      "attachment_count": 2,
+      "attachments": [
+        {
+          "title": "Sentenza n. 94/2026 [197,463 KB PDF]",
+          "url": "https://www.corteconti.it/Download?id=d3f09b4f-f05f-4d06-b2d7-ca8377dbac5e",
+          "attachment_type": ""
+        },
+        {
+          "title": "Massima allegata alla sentenza n. 94/2026 [56,724 KB PDF]",
+          "url": "https://www.corteconti.it/Download?id=7ae28b1e-6e34-4e06-bc0d-aa1950d1c6dc",
+          "attachment_type": ""
+        }
+      ],
+      "reference_count": 5,
+      "reference_labels": [
+        "Sentenza n. 94/2026",
+        "sentenza 31",
+        "31/03/2026",
+        "31 marzo 2026",
+        "2026"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare Sentenza n. 94/2026?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza o solo RAG",
+      "rag_destination": "official_case_law_rag",
+      "exclusion_reason": "",
+      "status": "analizzato",
+      "review_id": 71,
+      "normalized_document_id": 71,
+      "verification": {
+        "attempted": 1,
+        "saved": 3,
+        "attachments": 2,
+        "ok": true,
+        "confirmations": 3,
+        "official_confirmations": 3,
+        "reason": "Verifica pubblica completata con fonti coerenti."
+      },
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": true,
+        "pdf_found": true,
+        "text_read": true,
+        "context_chars": 10273,
+        "ocr_status": "pulito",
+        "references": 0,
+        "questions": 14,
+        "warnings": []
+      },
+      "guarded_publish": {
+        "published": false,
+        "reason": "riferimenti non ritrovati nella diagnosi fonte",
+        "review_id": 71
+      }
+    }
+  ],
+  "errors": [],
+  "diagnostics_saved": true
+}

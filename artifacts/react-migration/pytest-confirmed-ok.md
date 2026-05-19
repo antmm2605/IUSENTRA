@@ -1,10 +1,23 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-19, strumenti sicuri canary/backfill Aggiornamenti legali 2.245.42, capability registry/parser fixture Aggiornamenti legali 2.245.41, collegamento Lex/Ricerca Legale per Corte Costituzionale n. 50/2026, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
+Aggiornato: 2026-05-19, Fase 5 fonti verdi Aggiornamenti legali 2.245.46, strumenti sicuri canary/backfill Aggiornamenti legali 2.245.42, capability registry/parser fixture Aggiornamenti legali 2.245.41, collegamento Lex/Ricerca Legale per Corte Costituzionale n. 50/2026, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
+
+## Update Intelligence Fase 5 fonti verdi 2.245.46 - 2026-05-19
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_legal_update_source_parsers.py tests/test_legal_update_web_verification_attachments.py -q --tb=short` | OK | 34/34 passati dopo guardie Corte costituzionale/Corte dei conti, download PDF `/Download?id=...` e titoli reali da allegato. |
+| `python -m pct.cli legal-updates-canary` equivalente via `run_legal_updates_canary()` su `cassazione_ultime_sent_ord_questioni`, `corte_costituzionale`, `corte_conti`, `curia_cgue_rss`, `inps_circolari`, `inps_messaggi`, `agcom_provvedimenti`, `anac_documenti`, `garante_privacy`, `pst_giustizia_download`, `openga_sentenze` con `limit=5`, `max_seconds=120`, `publish_mode=guarded`, `direct_only=True`, `save_diagnostics=True` | OK | Report JSON salvati in `artifacts/legal-updates/phase5-green-2026-05-19/`. Nessun import massivo, nessuno scheduler globale, nessun Web libero. |
+| `artifacts/legal-updates/phase5-green-2026-05-19/verification.json` | OK | 20 documenti pubblicati unici, 20/20 Ricerca Legale, 20/20 Lex, 8 RAG-only/non pubblicati, 26 scarti guarded, 0 schede giurisprudenza strutturate nuove. |
+| `python -m pytest tests/test_legal_updates_pipeline.py -q --tb=short` | OK | 41/41 passati: pipeline aggiornamenti legali preservata dopo il popolamento guarded. |
+| `python -m pytest tests/test_legal_update_publish_context.py tests/test_legal_update_web_verification_attachments.py tests/test_document_intelligence_extraction.py -q --tb=short` | OK | 39/39 passati: pubblicazione contestuale, allegati/verifica web e Document Intelligence restano coerenti. |
+| `python -m pytest tests/test_lex_source_corpus_generator.py tests/test_lex_operational_knowledge.py tests/test_react_legal_intelligence_search.py tests/test_giurisprudenza.py -q --tb=short` | OK | 99/99 passati: corpus Lex, conoscenza operativa, Ricerca Legale React e Archivio Giurisprudenza compatibili con i documenti pubblicati/RAG-only. |
+| `python tools/check_repo_governance.py`; `python -m pytest tests/test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | Governance OK, UTF-8 4/4 e whitespace senza errori; `git diff --check` segnala solo warning CRLF su file runtime o YAML già toccati, non errori. |
+| `python tools/sync_packaging_files.py --check`; `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q --tb=short`; `python scripts/validate_openapi.py docs/openapi.yaml`; `python scripts/verify_openapi_provider.py`; `python -m pytest -q tests/test_openapi_contracts_phase6.py --tb=short` | OK | Packaging/readiness 9/9, OpenAPI valido, provider verification OK e contratti fase 6 5/5 dopo bump `2.245.46`. |
 
 ## Update Intelligence pilot guarded 2.245.45 - 2026-05-19
 

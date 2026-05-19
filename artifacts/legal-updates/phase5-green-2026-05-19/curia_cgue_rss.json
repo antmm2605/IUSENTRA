@@ -1,0 +1,457 @@
+{
+  "schema": "iusentra.legal_updates.canary.v1",
+  "ok": true,
+  "mode": "canary",
+  "source_code": "curia_cgue_rss",
+  "source_name": "Curia - Corte di giustizia UE",
+  "limit": 5,
+  "max_seconds": 120,
+  "no_publish": false,
+  "publish_mode": "guarded",
+  "direct_only": true,
+  "documents_found": 10,
+  "processed": 2,
+  "skipped_unchanged": 3,
+  "web_verification_attempts": 2,
+  "verification_evidence_saved": 2,
+  "verification_attachments_saved": 0,
+  "autopublished": {
+    "count": 1,
+    "items": [
+      72
+    ],
+    "published_items": [
+      {
+        "id": 72,
+        "title": "Sentenza della Corte nella causa C-797/23",
+        "source_code": "curia_cgue_rss",
+        "destination": "news",
+        "quality": {
+          "status": "pronto_con_note",
+          "ready": true,
+          "attachment_found": false,
+          "pdf_found": false,
+          "text_read": true,
+          "context_chars": 8918,
+          "ocr_status": "non_richiesto",
+          "references": 1,
+          "questions": 14,
+          "warnings": [
+            "OCR leggibile ma da controllare"
+          ]
+        }
+      }
+    ],
+    "skipped": [
+      {
+        "id": 43,
+        "title": "Sentenza del Tribunale nella causa T-24/25",
+        "reason": "riferimenti non ritrovati nella diagnosi fonte"
+      },
+      {
+        "id": 44,
+        "title": "Sentenza della Corte nella causa C-155/25",
+        "reason": "riferimenti non ritrovati nella diagnosi fonte"
+      },
+      {
+        "id": 45,
+        "title": "Sentenza della Corte nella causa C-286/25",
+        "reason": "riferimenti non ritrovati nella diagnosi fonte"
+      },
+      {
+        "id": 73,
+        "title": "Sentenza della Corte nella causa C-747/22",
+        "reason": "riferimenti non ritrovati nella diagnosi fonte"
+      }
+    ],
+    "mode": "guarded",
+    "web_verification_attempts": 5,
+    "verification_evidence_saved": 5,
+    "verification_attachments_saved": 0,
+    "stopped_for_time_limit": false
+  },
+  "stopped_for_time_limit": false,
+  "duration_seconds": 17.01,
+  "items": [
+    {
+      "external_id": "a2cee13f179716fa3a5e9705313033d6be7ec43ecc54c60b40b6f5afa9004c18",
+      "title": "Sentenza del Tribunale nella causa T-24/25",
+      "source_url": "https://curia.europa.eu/site/jcms/p1_1000083638",
+      "published_at": "2026-05-13",
+      "attachment_count": 0,
+      "attachments": [],
+      "reference_count": 2,
+      "reference_labels": [
+        "causa T-24/25",
+        "2026"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare Sentenza del Tribunale nella causa T-24/25?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "giurisprudenza",
+      "destination_label": "Giurisprudenza UE",
+      "rag_destination": "official_eu_case_law_rag",
+      "exclusion_reason": "",
+      "status": "invariato",
+      "normalized_document_id": 43,
+      "review_id": 43,
+      "quality": {
+        "status": "pronto_con_note",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 4969,
+        "ocr_status": "non_richiesto",
+        "references": 0,
+        "questions": 12,
+        "warnings": [
+          "OCR leggibile ma da controllare"
+        ]
+      },
+      "guarded_publish": {
+        "published": false,
+        "reason": "riferimenti non ritrovati nella diagnosi fonte",
+        "review_id": 43
+      }
+    },
+    {
+      "external_id": "41a26a343f63fc79fd057a8b52bc449f51464e7338da6f36aa17076cc9ea8493",
+      "title": "Sentenza della Corte nella causa C-155/25",
+      "source_url": "https://curia.europa.eu/site/jcms/p1_1000083639",
+      "published_at": "2026-05-13",
+      "attachment_count": 0,
+      "attachments": [],
+      "reference_count": 2,
+      "reference_labels": [
+        "causa C-155/25",
+        "2026"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare Sentenza della Corte nella causa C-155/25?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "giurisprudenza",
+      "destination_label": "Giurisprudenza UE",
+      "rag_destination": "official_eu_case_law_rag",
+      "exclusion_reason": "",
+      "status": "invariato",
+      "normalized_document_id": 44,
+      "review_id": 44,
+      "quality": {
+        "status": "pronto_con_note",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 4026,
+        "ocr_status": "non_richiesto",
+        "references": 0,
+        "questions": 12,
+        "warnings": [
+          "OCR leggibile ma da controllare"
+        ]
+      },
+      "guarded_publish": {
+        "published": false,
+        "reason": "riferimenti non ritrovati nella diagnosi fonte",
+        "review_id": 44
+      }
+    },
+    {
+      "external_id": "34531c2646e73db8e522e6043e126e36d6afa889785c820c62acc2077d2fb5db",
+      "title": "Sentenza della Corte nella causa C-286/25",
+      "source_url": "https://curia.europa.eu/site/jcms/p1_1000083640",
+      "published_at": "2026-05-13",
+      "attachment_count": 0,
+      "attachments": [],
+      "reference_count": 2,
+      "reference_labels": [
+        "causa C-286/25",
+        "2026"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare Sentenza della Corte nella causa C-286/25?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "giurisprudenza",
+      "destination_label": "Giurisprudenza UE",
+      "rag_destination": "official_eu_case_law_rag",
+      "exclusion_reason": "",
+      "status": "invariato",
+      "normalized_document_id": 45,
+      "review_id": 45,
+      "quality": {
+        "status": "pronto_con_note",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 5680,
+        "ocr_status": "non_richiesto",
+        "references": 0,
+        "questions": 12,
+        "warnings": [
+          "OCR leggibile ma da controllare"
+        ]
+      },
+      "guarded_publish": {
+        "published": false,
+        "reason": "riferimenti non ritrovati nella diagnosi fonte",
+        "review_id": 45
+      }
+    },
+    {
+      "external_id": "fce9e99f0a526563d3a4b5a82af752df4362d7a877a2b7be951ac66976bbacf6",
+      "title": "Sentenza della Corte nella causa C-797/23",
+      "source_url": "https://curia.europa.eu/site/jcms/p1_1000083513",
+      "published_at": "2026-05-12",
+      "attachment_count": 0,
+      "attachments": [],
+      "reference_count": 2,
+      "reference_labels": [
+        "causa C-797/23",
+        "2026"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare Sentenza della Corte nella causa C-797/23?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "giurisprudenza",
+      "destination_label": "Giurisprudenza UE",
+      "rag_destination": "official_eu_case_law_rag",
+      "exclusion_reason": "",
+      "status": "analizzato",
+      "review_id": 72,
+      "normalized_document_id": 72,
+      "verification": {
+        "attempted": 1,
+        "saved": 1,
+        "attachments": 0,
+        "ok": true,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "reason": "Verifica pubblica completata con fonti coerenti."
+      },
+      "quality": {
+        "status": "pronto_con_note",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 8918,
+        "ocr_status": "non_richiesto",
+        "references": 1,
+        "questions": 14,
+        "warnings": [
+          "OCR leggibile ma da controllare"
+        ]
+      },
+      "guarded_publish": {
+        "published": true,
+        "review_id": 72,
+        "destination": "news"
+      }
+    },
+    {
+      "external_id": "9ec9880ffd1b99679c6dfa09c5597849191f9516cee85bb5cd7c4f724335640e",
+      "title": "Sentenza della Corte nella causa C-747/22",
+      "source_url": "https://curia.europa.eu/site/jcms/p1_1000083218",
+      "published_at": "2026-05-07",
+      "attachment_count": 0,
+      "attachments": [],
+      "reference_count": 2,
+      "reference_labels": [
+        "causa C-747/22",
+        "2026"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare Sentenza della Corte nella causa C-747/22?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "giurisprudenza",
+      "destination_label": "Giurisprudenza UE",
+      "rag_destination": "official_eu_case_law_rag",
+      "exclusion_reason": "",
+      "status": "analizzato",
+      "review_id": 73,
+      "normalized_document_id": 73,
+      "verification": {
+        "attempted": 1,
+        "saved": 1,
+        "attachments": 0,
+        "ok": true,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "reason": "Verifica pubblica completata con fonti coerenti."
+      },
+      "quality": {
+        "status": "pronto_con_note",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 6775,
+        "ocr_status": "non_richiesto",
+        "references": 0,
+        "questions": 13,
+        "warnings": [
+          "OCR leggibile ma da controllare"
+        ]
+      },
+      "guarded_publish": {
+        "published": false,
+        "reason": "riferimenti non ritrovati nella diagnosi fonte",
+        "review_id": 73
+      }
+    }
+  ],
+  "errors": [],
+  "diagnostics_saved": true
+}

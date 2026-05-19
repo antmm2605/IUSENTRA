@@ -13,6 +13,18 @@ Il primo pilot `guarded` ha pubblicato solo documenti letti nel canary corrente 
 
 Quando la domanda chiede PDF, allegato, documento ufficiale, circolare o delibera, il ranking delle fonti Lex deve riconoscere la fonte ufficiale richiesta e premiare l'allegato rispetto alla sola pagina. Le schede Cassazione senza corte/numero/anno completi restano utilizzabili da Lex e Ricerca Legale come RAG ufficiale, ma non vanno trasformate in una voce strutturata di Archivio Giurisprudenza finché le chiavi non sono complete.
 
+## Aggiornamento operativo 2.245.46 - 19 maggio 2026
+
+La Fase 5 ha popolato il primo gruppo di fonti verdi con budget controllato (`limit 5`, `max_seconds 120`, `publish-mode guarded`, `direct-only`). Sono stati pubblicati 20 documenti unici, tutti ritrovabili in Ricerca Legale con query fonte mirata e interrogabili da Lex tramite `LegalUpdateRepository.search_lex_sources()`.
+
+Lex deve distinguere tre stati della Fase 5:
+
+- pubblicati e interrogabili: Cassazione ultime, INPS circolari/messaggi, AGCOM, Corte dei conti e Curia CGUE;
+- acquisiti ma non pubblicati: ANAC e Garante quando il guarded rileva conferme insufficienti o riferimenti non ritrovati nella diagnosi;
+- RAG-only/non pubblicabili: PST tecnico e OpenGA tabellare, che non devono comparire come news.
+
+Per le fonti giurisdizionali HTML è obbligatorio evitare fallback da homepage, captcha o navigazione: Corte costituzionale accetta solo schede pronuncia ufficiali, mentre Corte dei conti accetta solo documenti giurisdizionali con titolo reale e download PDF verificabile.
+
 ## Aggiornamento operativo 2.245.42 - 19 maggio 2026
 
 La pipeline dispone ora di due strumenti sicuri prima del popolamento fonte per

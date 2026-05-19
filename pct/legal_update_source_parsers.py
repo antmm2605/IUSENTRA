@@ -639,6 +639,20 @@ def _source_specific_exclusion_reason(code: str, row: dict[str, Any]) -> str:
             return "Link Garante di navigazione, social o servizio: non è una newsletter/provvedimento."
         if not any(marker in blob for marker in ("newsletter", "provvedimento", "sanzion", "privacy", "garante")):
             return "Voce Garante senza contenuto privacy operativo."
+    if code == "corte_costituzionale":
+        if "/scheda-pronuncia/" not in url:
+            return "Link Corte costituzionale di navigazione o servizio: non è una scheda pronuncia."
+        if not re.search(r"/scheda-pronuncia/\d{4}/\d+", url):
+            return "Scheda Corte costituzionale senza estremi anno/numero della pronuncia."
+        if not any(marker in blob for marker in ("sentenza", "ordinanza", "pronuncia", "deposito", "costituzional")):
+            return "Voce Corte costituzionale senza contenuto di pronuncia."
+    if code == "corte_conti":
+        if "/home/documenti/" not in url:
+            return "Link Corte dei conti di navigazione o servizio: non è un documento giurisdizionale."
+        if not any(marker in url for marker in ("dettaglio", "sentenza", ".pdf")):
+            return "Link Corte dei conti senza dettaglio sentenza o documento ufficiale."
+        if not any(marker in blob for marker in ("sentenza", "sezione giurisdizionale", "responsabilità erariale", "giudizio di conto", "appalto")):
+            return "Voce Corte dei conti senza contenuto giurisdizionale operativo."
     if code == "pst_giustizia_download":
         generic_pages = (
             "download.page",
@@ -700,6 +714,8 @@ def _strict_no_fallback_source(source: dict[str, Any]) -> bool:
         GAZZETTA_SOURCE_CODE,
         "agcom_provvedimenti",
         "anac_documenti",
+        "corte_conti",
+        "corte_costituzionale",
         "garante_privacy",
     }
 
@@ -741,12 +757,68 @@ def _merge_detail(source: dict[str, Any], row: dict[str, Any], url: str, *, requ
         if len(merged_text) >= len(current_text):
             row["raw_text"] = merged_text
             row["body_short"] = _truncate(merged_text)
+    if _is_generic_link_title(row.get("title")):
+        detail_title = _detail_title_from_html(detail_html)
+        if detail_title:
+            row["title"] = detail_title
     row["raw_html"] = detail_html[:20000]
     row["detail_http_status"] = int(getattr(response, "status_code", 200) or 0)
     attachments = _attachment_links(detail_html, url)
     if attachments:
         row["attachments_json"] = _merge_attachments(row.get("attachments_json"), attachments)
+    if _is_generic_link_title(row.get("title")):
+        attachment_title = _detail_title_from_attachments(row.get("attachments_json"))
+        if attachment_title:
+            row["title"] = attachment_title
     return True
+
+
+def _is_generic_link_title(value: Any) -> bool:
+    text = _clean_spaces(value).casefold()
+    return text in {
+        "corte dei conti",
+        "corte costituzionale",
+        "dettaglio documenti",
+        "leggi di più",
+        "leggi di piu",
+        "menu a briciole",
+        "visualizza la scheda",
+        "apri scheda",
+        "apri",
+    }
+
+
+def _detail_title_from_html(html_text: str) -> str:
+    try:
+        tree = lxml_html.fromstring(html_text)
+    except (ValueError, TypeError):
+        return ""
+    for selector in ("//main//h1", "//article//h1", "//h1", "//main//h2", "//article//h2", "//title"):
+        values = [_clean_spaces(node.text_content()) for node in tree.xpath(selector)]
+        for value in values:
+            if value and not _is_generic_link_title(value):
+                return value
+    return ""
+
+
+def _detail_title_from_attachments(payload: Any) -> str:
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload or "[]")
+        except json.JSONDecodeError:
+            payload = []
+    if not isinstance(payload, list):
+        return ""
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        title = _clean_spaces(item.get("title") or item.get("label"))
+        if not title:
+            continue
+        title = re.sub(r"\s*\[[^\]]*(?:pdf|kb)[^\]]*\]\s*$", "", title, flags=re.IGNORECASE).strip()
+        if title and not _is_generic_link_title(title):
+            return title
+    return ""
 
 
 def _text_from_html_content(content: str) -> str:

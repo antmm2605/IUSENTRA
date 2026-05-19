@@ -70,6 +70,84 @@ def test_parser_html_listing_detail_estrae_testo_e_allegato_pdf():
     assert docs[0]["attachments_json"][0]["url"].endswith("sentenza-123-2026.pdf")
 
 
+def test_parser_corte_conti_non_prende_link_di_navigazione():
+    source = _source("corte_conti")
+    listing = """
+    <html><body>
+      <a href="/Home/Organizzazione/Intranet">INTRANET</a>
+      <a href="/Home/Biblioteca">BIBLIOTECA</a>
+      <a href="/Home/ChiSiamo/SediStoriche">Sedi storiche</a>
+    </body></html>
+    """
+
+    docs = fetch_source_documents(source, request_get=lambda url, **_kwargs: DummyResponse(listing, url=str(url)))
+
+    assert docs == []
+
+
+def test_parser_corte_conti_sostituisce_leggi_di_piu_con_titolo_scheda():
+    source = _source("corte_conti")
+    listing = """
+    <html><body>
+      <article>
+        <a href="/Home/Documenti/DettaglioDocumenti?Id=74640cec">Leggi di più</a>
+        <p>Sentenza pubblicata il 27/04/2026.</p>
+      </article>
+    </body></html>
+    """
+    detail = """
+    <html><body><main>
+      <h1>Sentenza n. 127/2026</h1>
+      <p>Responsabilità erariale e appalti pubblici.</p>
+      <a href="/Download?id=3f0619f6">Sentenza n. 127/2026 [141,324 KB PDF]</a>
+    </main></body></html>
+    """
+
+    def fake_get(url, **_kwargs):
+        target = str(url)
+        if "DettaglioDocumenti" in target:
+            return DummyResponse(detail, url=target)
+        return DummyResponse(listing, url=target)
+
+    docs = fetch_source_documents(source, request_get=fake_get)
+
+    assert len(docs) == 1
+    assert docs[0]["title"] == "Sentenza n. 127/2026"
+    assert "Responsabilità erariale" in docs[0]["raw_text"]
+    assert docs[0]["attachments_json"][0]["url"].endswith("/Download?id=3f0619f6")
+
+
+def test_parser_corte_conti_usa_titolo_allegato_se_h1_generico():
+    source = _source("corte_conti")
+    listing = """
+    <html><body>
+      <article>
+        <a href="/Home/Documenti/DettaglioDocumenti?Id=74640cec">Leggi di più</a>
+        <p>Sentenza pubblicata il 27/04/2026.</p>
+      </article>
+    </body></html>
+    """
+    detail = """
+    <html><body><main>
+      <h1>Dettaglio documenti</h1>
+      <h2>menu a briciole</h2>
+      <p>Responsabilità erariale e appalti pubblici.</p>
+      <a href="/Download?id=3f0619f6">Sentenza n. 127/2026 [141,324 KB PDF]</a>
+    </main></body></html>
+    """
+
+    def fake_get(url, **_kwargs):
+        target = str(url)
+        if "DettaglioDocumenti" in target:
+            return DummyResponse(detail, url=target)
+        return DummyResponse(listing, url=target)
+
+    docs = fetch_source_documents(source, request_get=fake_get)
+
+    assert len(docs) == 1
+    assert docs[0]["title"] == "Sentenza n. 127/2026"
+
+
 def test_parser_feed_fetch_detail_se_descrizione_povera_e_conserva_pdf():
     source = _source("curia_cgue_rss")
     feed = """
@@ -349,6 +427,49 @@ def test_parser_anac_prende_documenti_operativi_non_servizi():
     assert "Contattaci" not in docs[0]["title"]
     assert "art. 120 c.p.a." in docs[0]["raw_text"]
     assert docs[0].get("attachments_json") in (None, [])
+
+
+def test_parser_corte_costituzionale_prende_solo_schede_pronuncia():
+    source = _source("corte_costituzionale")
+    listing = """
+    <html><body>
+      <a href="/contenuti/link/decisioni-del-mese">Decisioni del mese</a>
+      <article>
+        <a href="/scheda-pronuncia/2026/76">Sentenza n. 76/2026</a>
+        <p>Deposito del 12/05/2026, questione di legittimità costituzionale.</p>
+      </article>
+    </body></html>
+    """
+    detail = """
+    <html><body><main>
+      <h1>Sentenza n. 76/2026</h1>
+      <p>La Corte costituzionale decide su art. 24 Cost. e processo amministrativo.</p>
+      <a href="/stampa-pdf-pronuncia/2026/76">Versione Pdf</a>
+    </main></body></html>
+    """
+
+    def fake_get(url, **_kwargs):
+        target = str(url)
+        if "/scheda-pronuncia/" in target:
+            return DummyResponse(detail, url=target)
+        return DummyResponse(listing, url=target)
+
+    docs = fetch_source_documents(source, request_get=fake_get)
+
+    assert len(docs) == 1
+    assert docs[0]["title"] == "Sentenza n. 76/2026"
+    assert "art. 24 Cost." in docs[0]["raw_text"]
+    assert docs[0]["source_url"].endswith("/scheda-pronuncia/2026/76")
+    assert docs[0]["attachments_json"][0]["url"].endswith("/stampa-pdf-pronuncia/2026/76")
+
+
+def test_parser_corte_costituzionale_non_crea_fallback_su_captcha():
+    source = _source("corte_costituzionale")
+    html = "<html><head><title>Radware Captcha Page</title></head><body>validate.perfdrive.com</body></html>"
+
+    docs = fetch_source_documents(source, request_get=lambda url, **_kwargs: DummyResponse(html, url=str(url)))
+
+    assert docs == []
 
 
 def test_parser_garante_prende_newsletter_docweb_non_social():

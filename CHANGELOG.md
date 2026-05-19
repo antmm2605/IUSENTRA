@@ -7,6 +7,14 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.46 - 2026-05-19
+
+- Eseguita la Fase 5 di popolamento controllato del primo gruppo fonti verdi con `limit 5`, `max_seconds 120`, `publish-mode guarded`, `direct-only`, nessun Web libero, nessun import massivo e nessuno scheduler globale.
+- Pubblicati 20 documenti verificati: Cassazione ultime sentenze/ordinanze/questioni, INPS circolari, INPS messaggi, AGCOM, Corte dei conti e Curia CGUE; tutti risultano interrogabili da Lex e ritrovabili in Ricerca Legale con query fonte mirata.
+- Conservate come non pubblicate le fonti RAG-only o non abbastanza confermate: PST tecnico e OpenGA tabellare restano solo evidenza RAG; ANAC e Garante sono acquisiti ma non pubblicati perché il guarded richiede conferme ulteriori o riferimenti ritrovabili nella diagnosi.
+- Rafforzati i parser Corte costituzionale e Corte dei conti: niente fallback su captcha/navigazione, accettazione solo di schede pronuncia/documenti giurisdizionali, lettura dei download Corte dei conti con label PDF e sostituzione dei titoli generici con il titolo del documento ufficiale.
+- Salvati report e verifica in `artifacts/legal-updates/phase5-green-2026-05-19/`, con risultati per fonte, documenti pubblicati, RAG-only, scarti guarded e stato Lex/Ricerca Legale/Archivio Giurisprudenza.
+
 ## 2.245.45 - 2026-05-19
 
 - Eseguito il primo pilot controllato con pubblicazione `guarded`, senza import massivo e senza scheduler globale, sulle tre fonti verdi consigliate: `cassazione_ultime_sent_ord_questioni`, `inps_circolari` e `agcom_provvedimenti`.

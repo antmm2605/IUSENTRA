@@ -1,0 +1,479 @@
+{
+  "schema": "iusentra.legal_updates.canary.v1",
+  "ok": true,
+  "mode": "canary",
+  "source_code": "openga_sentenze",
+  "source_name": "OpenGA - Sentenze",
+  "limit": 5,
+  "max_seconds": 120,
+  "no_publish": false,
+  "publish_mode": "guarded",
+  "direct_only": true,
+  "documents_found": 372,
+  "processed": 3,
+  "skipped_unchanged": 2,
+  "web_verification_attempts": 3,
+  "verification_evidence_saved": 3,
+  "verification_attachments_saved": 0,
+  "autopublished": {
+    "count": 0,
+    "items": [],
+    "published_items": [],
+    "skipped": [
+      {
+        "id": 22,
+        "title": "CDS - Sentenze - CDS - Sentenze - 2024",
+        "reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG."
+      },
+      {
+        "id": 23,
+        "title": "CDS - Sentenze - CDS - Sentenze - 2024",
+        "reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG."
+      },
+      {
+        "id": 24,
+        "title": "CDS - Sentenze - CDS - Sentenze - 2024",
+        "reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG."
+      },
+      {
+        "id": 83,
+        "title": "CDS - Sentenze - CDS - Sentenze - 2023",
+        "reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG."
+      },
+      {
+        "id": 84,
+        "title": "CDS - Sentenze - CDS - Sentenze - 2023",
+        "reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG."
+      }
+    ],
+    "mode": "guarded",
+    "web_verification_attempts": 0,
+    "verification_evidence_saved": 0,
+    "verification_attachments_saved": 0,
+    "stopped_for_time_limit": false
+  },
+  "stopped_for_time_limit": false,
+  "duration_seconds": 26.71,
+  "items": [
+    {
+      "external_id": "a1bcc54de0a61ac74c9eba5997e233a7ba72705aae1690cd0ca9f72af93bbf79",
+      "title": "CDS - Sentenze - CDS - Sentenze - 2024",
+      "source_url": "https://openga.giustizia-amministrativa.it/dataset/1112a570-e037-4611-82e2-b2a206149225/resource/1568e5db-60f6-4771-9dc0-29201a9695ad/download/cds-sentenze-2024.csv",
+      "published_at": "",
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "title": "CDS - Sentenze - 2024",
+          "url": "https://openga.giustizia-amministrativa.it/dataset/1112a570-e037-4611-82e2-b2a206149225/resource/1568e5db-60f6-4771-9dc0-29201a9695ad/download/cds-sentenze-2024.csv",
+          "attachment_type": ""
+        }
+      ],
+      "reference_count": 1,
+      "reference_labels": [
+        "2024"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare CDS - Sentenze - CDS - Sentenze - 2024?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza se documentale, altrimenti solo RAG",
+      "rag_destination": "official_open_data_rag",
+      "exclusion_reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+      "status": "invariato",
+      "normalized_document_id": 22,
+      "review_id": 22,
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 12000,
+        "ocr_status": "non_richiesto",
+        "references": 4,
+        "questions": 14,
+        "warnings": []
+      },
+      "guarded_publish": {
+        "published": false,
+        "reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+        "review_id": 22
+      }
+    },
+    {
+      "external_id": "2bccefe5fc7931070e316297f6e73d1c5524ab46000eb2b0d7f3f4a780c8530d",
+      "title": "CDS - Sentenze - CDS - Sentenze - 2024",
+      "source_url": "https://openga.giustizia-amministrativa.it/dataset/1112a570-e037-4611-82e2-b2a206149225/resource/2d34d667-f1be-4690-b1ea-ff0212812722/download/cds-sentenze-2024.json",
+      "published_at": "",
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "title": "CDS - Sentenze - 2024",
+          "url": "https://openga.giustizia-amministrativa.it/dataset/1112a570-e037-4611-82e2-b2a206149225/resource/2d34d667-f1be-4690-b1ea-ff0212812722/download/cds-sentenze-2024.json",
+          "attachment_type": ""
+        }
+      ],
+      "reference_count": 20,
+      "reference_labels": [
+        "ART. 6",
+        "art. 120 c.p.",
+        "L. 100",
+        "L. 21 SETTEMBRE 1987, N. 387",
+        "CONSIGLIO DI STATO",
+        "TAR CALABRIA",
+        "DECRETO N. 1728",
+        "SENTENZA N.528"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare CDS - Sentenze - CDS - Sentenze - 2024?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza se documentale, altrimenti solo RAG",
+      "rag_destination": "official_open_data_rag",
+      "exclusion_reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+      "status": "invariato",
+      "normalized_document_id": 23,
+      "review_id": 23,
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 12000,
+        "ocr_status": "non_richiesto",
+        "references": 4,
+        "questions": 14,
+        "warnings": []
+      },
+      "guarded_publish": {
+        "published": false,
+        "reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+        "review_id": 23
+      }
+    },
+    {
+      "external_id": "d3704b0d1c8ac64434cbda74e071b0c7845b78707943fa33de8b9d49e5acff9b",
+      "title": "CDS - Sentenze - CDS - Sentenze - 2024",
+      "source_url": "https://openga.giustizia-amministrativa.it/dataset/1112a570-e037-4611-82e2-b2a206149225/resource/e959f5a1-9628-49c7-abed-aeccafbdbe86/download/cds-sentenze-2024.ods",
+      "published_at": "",
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "title": "CDS - Sentenze - 2024",
+          "url": "https://openga.giustizia-amministrativa.it/dataset/1112a570-e037-4611-82e2-b2a206149225/resource/e959f5a1-9628-49c7-abed-aeccafbdbe86/download/cds-sentenze-2024.ods",
+          "attachment_type": ""
+        }
+      ],
+      "reference_count": 1,
+      "reference_labels": [
+        "2024"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare CDS - Sentenze - CDS - Sentenze - 2024?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza se documentale, altrimenti solo RAG",
+      "rag_destination": "official_open_data_rag",
+      "exclusion_reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+      "status": "analizzato",
+      "review_id": 24,
+      "normalized_document_id": 24,
+      "verification": {
+        "attempted": 1,
+        "saved": 1,
+        "attachments": 0,
+        "ok": true,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "reason": "Verifica pubblica completata con fonti coerenti."
+      },
+      "quality": {
+        "status": "pronto_con_note",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 866,
+        "ocr_status": "non_richiesto",
+        "references": 0,
+        "questions": 13,
+        "warnings": [
+          "OCR leggibile ma da controllare"
+        ]
+      },
+      "guarded_publish": {
+        "published": false,
+        "reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+        "review_id": 24
+      }
+    },
+    {
+      "external_id": "e668d07dc61f76a4e6ea3ff1b4d200179083184f9dc681807cdc269d0eef7e36",
+      "title": "CDS - Sentenze - CDS - Sentenze - 2023",
+      "source_url": "https://openga.giustizia-amministrativa.it/dataset/1112a570-e037-4611-82e2-b2a206149225/resource/3b2725cb-b776-40e8-9d39-5880ea2062e7/download/cds-sentenze-2023.csv",
+      "published_at": "",
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "title": "CDS - Sentenze - 2023",
+          "url": "https://openga.giustizia-amministrativa.it/dataset/1112a570-e037-4611-82e2-b2a206149225/resource/3b2725cb-b776-40e8-9d39-5880ea2062e7/download/cds-sentenze-2023.csv",
+          "attachment_type": ""
+        }
+      ],
+      "reference_count": 1,
+      "reference_labels": [
+        "2023"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare CDS - Sentenze - CDS - Sentenze - 2023?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza se documentale, altrimenti solo RAG",
+      "rag_destination": "official_open_data_rag",
+      "exclusion_reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+      "status": "analizzato",
+      "review_id": 83,
+      "normalized_document_id": 83,
+      "verification": {
+        "attempted": 1,
+        "saved": 1,
+        "attachments": 0,
+        "ok": true,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "reason": "Verifica pubblica completata con fonti coerenti."
+      },
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 11999,
+        "ocr_status": "non_richiesto",
+        "references": 4,
+        "questions": 14,
+        "warnings": []
+      },
+      "guarded_publish": {
+        "published": false,
+        "reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+        "review_id": 83
+      }
+    },
+    {
+      "external_id": "b98d8f5b564cacf15971777654b390f5693c659e0d0218d9e15720e45582ec54",
+      "title": "CDS - Sentenze - CDS - Sentenze - 2023",
+      "source_url": "https://openga.giustizia-amministrativa.it/dataset/1112a570-e037-4611-82e2-b2a206149225/resource/2cd98510-b108-4595-94bd-fdb16fb904b5/download/cds-sentenze-2023.json",
+      "published_at": "",
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "title": "CDS - Sentenze - 2023",
+          "url": "https://openga.giustizia-amministrativa.it/dataset/1112a570-e037-4611-82e2-b2a206149225/resource/2cd98510-b108-4595-94bd-fdb16fb904b5/download/cds-sentenze-2023.json",
+          "attachment_type": ""
+        }
+      ],
+      "reference_count": 15,
+      "reference_labels": [
+        "ART. 6",
+        "art. 120 c.p.",
+        "L. 21 SETTEMBRE 1987 N.387",
+        "L. 21 SETTEMBRE 1987, N. 387",
+        "21 SETTEMBRE 1987",
+        "9 OTTOBRE 2016",
+        "2023",
+        "2007"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare CDS - Sentenze - CDS - Sentenze - 2023?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza se documentale, altrimenti solo RAG",
+      "rag_destination": "official_open_data_rag",
+      "exclusion_reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+      "status": "analizzato",
+      "review_id": 84,
+      "normalized_document_id": 84,
+      "verification": {
+        "attempted": 1,
+        "saved": 1,
+        "attachments": 0,
+        "ok": false,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "reason": "Fonte ufficiale diretta acquisita, ma servono ulteriori conferme prima di trattare il riferimento come completato."
+      },
+      "quality": {
+        "status": "pronto",
+        "ready": true,
+        "attachment_found": false,
+        "pdf_found": false,
+        "text_read": true,
+        "context_chars": 12000,
+        "ocr_status": "non_richiesto",
+        "references": 4,
+        "questions": 14,
+        "warnings": []
+      },
+      "guarded_publish": {
+        "published": false,
+        "reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+        "review_id": 84
+      }
+    }
+  ],
+  "errors": [],
+  "diagnostics_saved": true
+}

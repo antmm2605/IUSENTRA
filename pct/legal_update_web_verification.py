@@ -158,6 +158,12 @@ def _looks_like_attachment(href: str, label: str) -> bool:
         return True
     if "downloadpdf" in path or "pdfpaginato" in path or "estensione=pdf" in query:
         return True
+    if "/download" in path and any(marker in text for marker in ("pdf", "allegato", "documento", "sentenza", "massima")):
+        return True
+    if any(marker in text for marker in (" pdf", "[pdf", "versione pdf")) and any(
+        marker in path for marker in ("/download", "/documenti/", "/resources/", "/allegati/")
+    ):
+        return True
     if path.endswith((".html", ".htm")):
         return (
             any(marker in text for marker in ("scarica", "download", "allegato"))

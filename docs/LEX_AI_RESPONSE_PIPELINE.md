@@ -7,6 +7,12 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.245.51 - 19 maggio 2026
+
+La Fase 10 ha chiuso l'audit finale del sistema aggiornamenti legali senza import massivo. La policy progressiva classifica tutte le fonti censite in `DEFAULT_SOURCE_ROWS`: verdi con pubblicazione guarded, RAG-only/no-publish, osservazione/bloccate, archivi locali/no-publish o fuori perimetro solo per fonti secondarie non ufficiali.
+
+Per Lex questo significa che il routing non deve più incontrare fonti ufficiali senza classe operativa. Le domande su allegati, PDF, articoli, INPS, AGCOM e Cassazione devono interrogare prima il repository locale, usando pagina, allegato/PDF/OCR, riferimenti e domande contestuali; se il dataset locale non contiene ancora una specifica evidenza, Lex deve dichiarare la lacuna o usare solo il Web libero manuale quando richiesto dall'avvocato.
+
 ## Aggiornamento operativo 2.245.49 - 19 maggio 2026
 
 La Fase 8 restringe lo scheduler degli aggiornamenti legali al solo step 1 progressivo: `cassazione_ultime_sent_ord_questioni`, `inps_circolari`, `inps_messaggi` e `agcom_provvedimenti`. Le fonti fuori step, incluse ANAC e Garante, non devono diventare base certa della risposta Lex finché non passano un canary/report verde dedicato.

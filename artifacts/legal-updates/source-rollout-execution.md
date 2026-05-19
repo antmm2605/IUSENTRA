@@ -2,6 +2,18 @@
 
 Aggiornato il 19 maggio 2026. Questo file trasforma `source-rollout-plan.md` in backlog eseguibile con stato prima/dopo della tranche codice.
 
+## Aggiornamento Fase 10 - audit finale prima del regime
+
+Aggiornato il 19 maggio 2026. La fase ha verificato l'intero catalogo `DEFAULT_SOURCE_ROWS` dopo il popolamento progressivo, senza import massivo e senza backup. Il report operativo è `artifacts/legal-updates/phase10-final-audit-2026-05-19/phase10-final-audit-report.md`.
+
+| area | stato rilevato | azione eseguita | esito |
+|---|---|---|---|
+| Copertura fonti | alcune fonti ufficiali del catalogo ricadevano ancora nel fallback generico `fuori_perimetro` se non presenti nei set progressivi | completata la classificazione progressiva per OpenGA catalogo/stati, Cassazione Massimario e Giustizia Amministrativa diretta | tutte le fonti ufficiali del catalogo hanno classe esplicita verde, RAG-only, osservazione o archivio; le fonti private restano `out_of_scope` |
+| Ricerca Legale e Lex | il repository espone fonti pronte/non pronte, PDF/OCR, riferimenti e domande; il DB locale non contiene oggi evidenze Cassazione con `c.p.p.`/QSP50194 | eseguiti probe mirati su allegati, articoli PDF, INPS, AGCOM e Cassazione/c.p.p. | Lex e Ricerca Legale usano pagina, PDF/OCR, riferimenti e domande; il buco Cassazione/c.p.p. è registrato come rischio reale da canary mirato |
+| Archivio Giurisprudenza | il run progressivo non ha prodotto decisioni con chiavi minime complete | mantenuta la promozione strutturata bloccata senza chiavi | PDF/OCR restano interrogabili da RAG/news; 0 schede nuove nell'archivio strutturato |
+| Scheduler | il piano progressivo deve restare conservativo | verificati budget, timeout, `publish guarded`, fonti verdi abilitate, esclusione gialle/rosse/osservazione e 0 running stantii | ciclo pronto per regime prudente, senza mascherare errori interni |
+| Gate | richiesti controlli divisi per fasi, senza aggregatori storici | eseguiti shard pytest, typecheck/build, governance, UTF-8 e diff check separati | tutti verdi e registrati in `artifacts/react-migration/pytest-confirmed-ok.md` |
+
 ## Aggiornamento Fase 9 - estensione a tutte le fonti verdi
 
 Aggiornato il 19 maggio 2026. La fase ha esteso il popolamento progressivo alle fonti verdi rimanenti, mantenendo budget basso/medio, `publish-mode guarded` per le sole fonti verdi, nessuna pubblicazione per RAG-only/archivi/codici e stop su errore reale. Il report operativo è `artifacts/legal-updates/phase9-green-2026-05-19/phase9-green-report.md`.

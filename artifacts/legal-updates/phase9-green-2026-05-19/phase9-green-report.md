@@ -21,16 +21,25 @@ Fonti RAG-only:
 - `dati_normattiva`
 - `eur_lex`
 - `istat_prezzi`
+- `openga_giustizia_amministrativa`
+- `openga_calendario_udienze`
 - `openga_sentenze`
 - `openga_ordinanze`
 - `openga_decreti`
 - `openga_pareri`
+- `openga_provvedimenti_pubblicati`
+- `openga_ricorsi_definiti`
+- `openga_ricorsi_pendenti`
+- `openga_ricorsi_pervenuti`
 - `pst_giustizia_download`
 
 Fonti in osservazione:
 
+- `cassazione_massimario`
 - `cassazione_citazioni_verificate`
 - `corte_costituzionale`
+- `giustizia_amministrativa`
+- `giustizia_amministrativa_decisioni_pareri`
 - `inps_sentenze`
 - `agenzia_entrate`
 - `ministero_lavoro`

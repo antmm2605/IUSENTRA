@@ -7,6 +7,14 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.51 - 2026-05-19
+
+- Completato l'audit finale Fase 10 degli aggiornamenti legali senza backup e senza import massivo.
+- Chiuso il buco di classificazione macchina per le fonti `DEFAULT_SOURCE_ROWS`: tutte le fonti ufficiali e istituzionali ora ricadono in `verde_abilitata`, `rag_only`, `osservazione` o `archivio_locale`; solo le fonti secondarie non ufficiali restano `fuori_perimetro`.
+- Estesa la lista RAG-only alle fonti OpenGA tabellari o di stato non ancora pubblicabili e la lista osservazione a Cassazione Massimario, Giustizia Amministrativa diretta e Decisioni/Pareri.
+- Aggiunta guardia test sullo scheduler progressivo per impedire regressioni a fonti ufficiali non classificate.
+- Rieseguiti i gate separati richiesti: pipeline aggiornamenti legali, publish/PDF/OCR, corpus Lex/Ricerca Legale/Giurisprudenza, scheduler/autofetch/job queue, typecheck/build frontend, governance, UTF-8 e whitespace.
+
 ## 2.245.50 - 2026-05-19
 
 - Estesa la Fase 9 degli aggiornamenti legali a tutte le fonti verdi rimaste: Cassazione ultime, Corte dei conti, Curia CGUE, INPS circolari/messaggi, AGCOM, ANAC, Garante Privacy e Gazzetta Ufficiale.

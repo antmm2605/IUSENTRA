@@ -10,9 +10,12 @@ from pct.legal_update_autofetch import (
     LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES,
     LegalAutoFetchConfig,
     build_legal_autofetch_plan,
+    legal_update_progressive_source_classification,
     legal_update_progressive_scheduler_payload,
     run_legal_update_autofetch_tick,
 )
+from pct.legal_update_pipeline import DEFAULT_SOURCE_ROWS
+from pct.legal_update_source_capabilities import get_source_capability
 
 
 class FakeRepository:
@@ -143,6 +146,23 @@ def test_scheduler_progressivo_step1_abilita_solo_fonti_verdi():
     excluded = {row["source_code"]: row["reason"] for row in payload["excluded_sources"]}
     assert "RAG-only" in excluded["openga_sentenze"]
     assert "osservazione" in excluded["corte_costituzionale"]
+
+
+def test_scheduler_progressivo_classifica_tutte_le_fonti_ufficiali_del_catalogo():
+    allowed = {
+        "verde_abilitata",
+        "rag_only",
+        "osservazione",
+        "archivio_locale",
+        "fuori_perimetro",
+    }
+
+    for source in DEFAULT_SOURCE_ROWS:
+        code = str(source["code"])
+        classification = legal_update_progressive_source_classification(code)
+        assert classification in allowed
+        if get_source_capability(code).publication_destination != "out_of_scope":
+            assert classification != "fuori_perimetro", code
 
 
 def test_autofetch_tick_accoda_deduplica_esegue_e_aggiorna_monitor(tmp_path):

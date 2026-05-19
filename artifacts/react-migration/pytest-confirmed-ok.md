@@ -1,10 +1,26 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-19, Fase 9 fonti verdi estese 2.245.50, Fase 8 scheduler progressivo 2.245.49, Fase 7 backfill mirato PDF/OCR/riferimenti/domande 2.245.48, Fase 6 normativa e archivi base 2.245.47, Fase 5 fonti verdi Aggiornamenti legali 2.245.46, strumenti sicuri canary/backfill Aggiornamenti legali 2.245.42, capability registry/parser fixture Aggiornamenti legali 2.245.41, collegamento Lex/Ricerca Legale per Corte Costituzionale n. 50/2026, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
+Aggiornato: 2026-05-19, Fase 10 audit finale aggiornamenti legali 2.245.51, Fase 9 fonti verdi estese 2.245.50, Fase 8 scheduler progressivo 2.245.49, Fase 7 backfill mirato PDF/OCR/riferimenti/domande 2.245.48, Fase 6 normativa e archivi base 2.245.47, Fase 5 fonti verdi Aggiornamenti legali 2.245.46, strumenti sicuri canary/backfill Aggiornamenti legali 2.245.42, capability registry/parser fixture Aggiornamenti legali 2.245.41, collegamento Lex/Ricerca Legale per Corte Costituzionale n. 50/2026, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
+
+## Update Intelligence Fase 10 audit finale 2.245.51 - 2026-05-19
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_legal_updates_pipeline.py -q --tb=short` | OK | 41/41 passati: pipeline, admin aggiornamenti legali, staging/review/archivio e assenza di codici grezzi nelle pagine principali. |
+| `python -m pytest tests/test_legal_update_publish_context.py tests/test_legal_update_web_verification_attachments.py tests/test_document_intelligence_extraction.py -q --tb=short` | OK | 39/39 passati: contesto pubblicazione, allegati ufficiali, PDF/OCR e Document Intelligence. |
+| `python -m pytest tests/test_lex_source_corpus_generator.py tests/test_lex_operational_knowledge.py tests/test_react_legal_intelligence_search.py tests/test_giurisprudenza.py -q --tb=short` | OK | Corpus Lex, conoscenza operativa, Ricerca Legale React e Archivio Giurisprudenza verdi. |
+| `python -m pytest tests/test_legal_update_autofetch.py tests/test_legal_update_surface_jobs.py tests/test_legal_update_job_queue.py tests/test_legal_update_batch_runner.py -q --tb=short` | OK | 21/21 passati: scheduler progressivo, classificazione completa fonti `DEFAULT_SOURCE_ROWS`, job queue e batch runner. |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript senza errori. |
+| `pnpm --filter @iusentra/studio build` | OK | Build Vite completata. |
+| `python tools/check_repo_governance.py` | OK | Governance check OK, `web/app.py` resta a 40 righe e 0 route inline. |
+| `python -m pytest tests/test_utf8_integrity.py -q --tb=short` | OK | 4/4 passati: nessun mojibake intercettato dal servizio. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump `2.245.51`. |
+| `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q --tb=short` | OK | 9/9 passati: versione allineata tra package, Docker e Railway; readiness release preservata. |
+| `git diff --check` | OK | Nessun errore whitespace; resta solo warning CRLF/LF su file runtime preesistente non committato. |
 
 ## Update Intelligence Fase 9 fonti verdi estese 2.245.50 - 2026-05-19
 

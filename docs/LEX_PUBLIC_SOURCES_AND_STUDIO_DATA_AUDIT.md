@@ -2,6 +2,12 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.245.51 - 2026-05-19
+
+Completato l'audit finale Fase 10 sugli aggiornamenti legali senza backup e senza import massivo. La classificazione macchina ora copre tutte le fonti `DEFAULT_SOURCE_ROWS`: fonti verdi abilitate, fonti RAG-only, fonti in osservazione, archivi locali e fonti secondarie fuori perimetro.
+
+Le fonti OpenGA tabellari o di stato non pubblicabili restano RAG-only; Cassazione Massimario, Giustizia Amministrativa diretta e Decisioni/Pareri restano in osservazione finché non passano canary verde dedicato. Lex e Ricerca Legale continuano a usare testo pagina, PDF/OCR, riferimenti e domande contestuali già salvati, senza promuovere cataloghi tecnici o fonti in osservazione a notizie.
+
 ## Aggiornamento operativo 2.245.49 - 2026-05-19
 
 Attivata la Fase 8 per lo scheduler progressivo degli aggiornamenti legali. Lo step 1 non avvia tutte le fonti: usa solo `cassazione_ultime_sent_ord_questioni`, `inps_circolari`, `inps_messaggi` e `agcom_provvedimenti`, con budget `2` fonti per ciclo, timeout `120` secondi per elemento, massimo `5` pubblicazioni guarded e massimo `5` schede Cassazione ultime per scansione.

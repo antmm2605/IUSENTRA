@@ -6,9 +6,9 @@ Aggiornato il 18 maggio 2026. Ricognizione svolta partendo da `/admin/aggiorname
 
 La Fase 9 abilita nello scheduler progressivo solo le fonti verdi: `cassazione_ultime_sent_ord_questioni`, `corte_conti`, `curia_cgue_rss`, `inps_circolari`, `inps_messaggi`, `agcom_provvedimenti`, `anac_documenti`, `garante_privacy` e `gazzetta_ufficiale`. Il budget passa a 3 fonti per ciclo, resta il timeout per elemento e la pubblicazione automatica resta guarded.
 
-Restano RAG-only e non pubblicabili come news generiche: OpenGA documentale/tabellare, PST Giustizia download, Dati Normattiva, EUR-Lex finché il parser CELEX non è stabile e ISTAT prezzi/calcoli salvo documento operativo specifico. Normattiva e i codici fondamentali restano archivi locali o canary no-publish: alimentano Ricerca Legale/Lex, non batch fonte web massivo.
+Restano RAG-only e non pubblicabili come news generiche: tutte le fonti OpenGA tabellari o di stato (`openga_giustizia_amministrativa`, `openga_calendario_udienze`, `openga_sentenze`, `openga_ordinanze`, `openga_decreti`, `openga_pareri`, `openga_provvedimenti_pubblicati`, `openga_ricorsi_definiti`, `openga_ricorsi_pendenti`, `openga_ricorsi_pervenuti`), PST Giustizia download, Dati Normattiva, EUR-Lex finché il parser CELEX non è stabile e ISTAT prezzi/calcoli salvo documento operativo specifico. Normattiva e i codici fondamentali restano archivi locali o canary no-publish: alimentano Ricerca Legale/Lex, non batch fonte web massivo.
 
-Restano in osservazione e fuori pubblicazione: `cassazione_citazioni_verificate`, `corte_costituzionale`, `inps_sentenze`, `agenzia_entrate`, `ministero_lavoro`, `ministero_lavoro_interpelli`, `agcm_bollettino`, `banca_italia_normativa`, `inail_istruzioni_operative` e `mimit_incentivi`.
+Restano in osservazione e fuori pubblicazione: `cassazione_massimario`, `cassazione_citazioni_verificate`, `corte_costituzionale`, `giustizia_amministrativa`, `giustizia_amministrativa_decisioni_pareri`, `inps_sentenze`, `agenzia_entrate`, `ministero_lavoro`, `ministero_lavoro_interpelli`, `agcm_bollettino`, `banca_italia_normativa`, `inail_istruzioni_operative` e `mimit_incentivi`.
 
 ## Aggiornamento Fase 6 - normativa e archivi base 19 maggio 2026
 

@@ -2,6 +2,12 @@
 
 Aggiornato il 18 maggio 2026. Ricognizione svolta partendo da `/admin/aggiornamenti-legali/` e dai moduli `pct/legal_update_pipeline.py`, `pct/legal_update_repository.py`, `pct/legal_update_web_verification.py`, `pct/legal_update_autofetch.py`, `pct/legal_update_batch_runner.py`, `web/services/legal_update_surface.py`, `web/blueprints/legal_updates_admin.py`, Ricerca Legale React, Archivio Giurisprudenza e sorgenti Lex.
 
+## Aggiornamento Fase 4 - pilot guarded 19 maggio 2026
+
+Il primo pilot di pubblicazione deve restare controllato: massimo 3 fonti verdi, massimo 3 documenti per fonte, niente import massivo, niente scheduler globale e niente pubblicazione da fonti gialle/rosse. La modalità `guarded` del canary pubblica solo i `review_id` prodotti o riletti nel run corrente e applica guardie su trust ufficiale, testo leggibile, PDF/OCR, filtro studio legale, cookie/navigazione, duplicati, destinazione, riferimenti, domande contestuali e assenza di codice grezzo in UI.
+
+Fonti scelte e promosse per il primo pilot: `cassazione_ultime_sent_ord_questioni`, `inps_circolari`, `agcom_provvedimenti`. Le circolari INPS restano pubblicabili come notizie/prassi verificata e non devono creare normativa quando le chiavi estratte identificano solo la circolare. Le schede Cassazione senza chiavi complete corte/numero/anno alimentano Lex, Ricerca Legale e preparazione Archivio Giurisprudenza, ma non generano una scheda giurisprudenziale strutturata.
+
 ## Flusso ricostruito
 
 - Dashboard: legge `dashboard_snapshot()` e `build_legal_update_surface()`, espone fonti, documenti letti, analisi, coda revisione, pubblicati, evidenze web, allegati e collegamenti verso Ricerca Legale.

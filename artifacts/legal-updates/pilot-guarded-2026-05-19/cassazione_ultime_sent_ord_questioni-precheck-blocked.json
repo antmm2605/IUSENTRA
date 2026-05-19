@@ -1,0 +1,269 @@
+{
+  "schema": "iusentra.legal_updates.canary.v1",
+  "ok": true,
+  "mode": "canary",
+  "source_code": "cassazione_ultime_sent_ord_questioni",
+  "source_name": "Cassazione - ultime sentenze, ordinanze e questioni",
+  "limit": 3,
+  "max_seconds": 90,
+  "no_publish": false,
+  "publish_mode": "guarded",
+  "direct_only": true,
+  "documents_found": 3,
+  "processed": 0,
+  "skipped_unchanged": 3,
+  "web_verification_attempts": 0,
+  "verification_evidence_saved": 0,
+  "verification_attachments_saved": 0,
+  "autopublished": {
+    "count": 0,
+    "items": [],
+    "published_items": [],
+    "skipped": [
+      {
+        "id": 1,
+        "title": "Vai al documento Sospensione del processo al di fuori dei casi tipici - Illegittimità - Impugnabilità con il regolamento di competenza - Mancata impugnazione - Conseguenze. del...",
+        "reason": "testo pagina non abbastanza leggibile per la pubblicazione"
+      },
+      {
+        "id": 2,
+        "title": "Vai al documento Interpretazione e portata dell’art. 7 quinquies della l. n. 212 del 2000 - Violazione di diritti fondamentali del contribuente - Principio di inutilizzabilità d...",
+        "reason": "testo pagina non abbastanza leggibile per la pubblicazione"
+      },
+      {
+        "id": 3,
+        "title": "Vai al documento Giudicato esterno - Accertamento e prova - Certificazione ex art. 124 disp. att. c.p.c. - Altre libere modalità dimostrative. del 12/05/26",
+        "reason": "testo pagina non abbastanza leggibile per la pubblicazione"
+      }
+    ],
+    "mode": "guarded",
+    "web_verification_attempts": 0,
+    "verification_evidence_saved": 0,
+    "verification_attachments_saved": 0,
+    "stopped_for_time_limit": false
+  },
+  "stopped_for_time_limit": false,
+  "duration_seconds": 2.95,
+  "items": [
+    {
+      "external_id": "0808d0c640c4c0874259b668e8079528b83e252643572a031284aa6ef7b4bc4a",
+      "title": "Vai al documento Sospensione del processo al di fuori dei casi tipici - Illegittimità - Impugnabilità con il regolamento di competenza - Mancata impugnazione - Conseguenze. del...",
+      "source_url": "https://www.cortedicassazione.it/it/civile_dettaglio.page?contentId=SZC50542",
+      "published_at": "",
+      "attachment_count": 0,
+      "attachments": [],
+      "reference_count": 1,
+      "reference_labels": [
+        "contentId=SZC50542"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare Vai al documento Sospensione del processo al di fuori dei casi tipici - Illegittimità - Impugnabilità con il regolamento di competenza - Mancata impugnazione - Conseguenze. del 15/05/26?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "giurisprudenza",
+      "destination_label": "Giurisprudenza o RAG",
+      "rag_destination": "official_case_law_rag",
+      "exclusion_reason": "",
+      "status": "invariato",
+      "normalized_document_id": 1,
+      "review_id": 1,
+      "quality": {
+        "status": "pronto_con_note",
+        "ready": true,
+        "attachment_found": true,
+        "pdf_found": true,
+        "text_read": true,
+        "context_chars": 71009,
+        "ocr_status": "leggibile_con_note",
+        "references": 12,
+        "questions": 17,
+        "warnings": [
+          "OCR leggibile ma da controllare",
+          "riferimenti R.G. discordanti"
+        ]
+      },
+      "guarded_publish": {
+        "published": false,
+        "reason": "testo pagina non abbastanza leggibile per la pubblicazione",
+        "review_id": 1
+      }
+    },
+    {
+      "external_id": "e0c39d8ac7d39d31e164afcfcfe07ccfd801ae667a5ceec181a0e2da65844423",
+      "title": "Vai al documento Interpretazione e portata dell’art. 7 quinquies della l. n. 212 del 2000 - Violazione di diritti fondamentali del contribuente - Principio di inutilizzabilità d...",
+      "source_url": "https://www.cortedicassazione.it/it/civile_dettaglio.page?contentId=SZC50431",
+      "published_at": "",
+      "attachment_count": 0,
+      "attachments": [],
+      "reference_count": 4,
+      "reference_labels": [
+        "art. 7",
+        "l. n. 212",
+        "2000",
+        "contentId=SZC50431"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare Vai al documento Interpretazione e portata dell’art. 7 quinquies della l. n. 212 del 2000 - Violazione di diritti fondamentali del contribuente - Principio di inutilizzabilità degli atti e dei documenti - Sussistenza. del 12/05/26?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "giurisprudenza",
+      "destination_label": "Giurisprudenza o RAG",
+      "rag_destination": "official_case_law_rag",
+      "exclusion_reason": "",
+      "status": "invariato",
+      "normalized_document_id": 2,
+      "review_id": 2,
+      "quality": {
+        "status": "pronto_con_note",
+        "ready": true,
+        "attachment_found": true,
+        "pdf_found": true,
+        "text_read": true,
+        "context_chars": 57411,
+        "ocr_status": "leggibile_con_note",
+        "references": 20,
+        "questions": 16,
+        "warnings": [
+          "OCR leggibile ma da controllare"
+        ]
+      },
+      "guarded_publish": {
+        "published": false,
+        "reason": "testo pagina non abbastanza leggibile per la pubblicazione",
+        "review_id": 2
+      }
+    },
+    {
+      "external_id": "c5fad27933922ce0e2b93ce1b932363e60d2ea8d9a5d958dc0738f7aed105ce6",
+      "title": "Vai al documento Giudicato esterno - Accertamento e prova - Certificazione ex art. 124 disp. att. c.p.c. - Altre libere modalità dimostrative. del 12/05/26",
+      "source_url": "https://www.cortedicassazione.it/it/civile_dettaglio.page?contentId=SZC50428",
+      "published_at": "",
+      "attachment_count": 0,
+      "attachments": [],
+      "reference_count": 2,
+      "reference_labels": [
+        "art. 124",
+        "contentId=SZC50428"
+      ],
+      "question_count": 8,
+      "questions": [
+        {
+          "type": "sintesi",
+          "question": "Mi puoi sintetizzare Vai al documento Giudicato esterno - Accertamento e prova - Certificazione ex art. 124 disp. att. c.p.c. - Altre libere modalità dimostrative. del 12/05/26?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo"
+        },
+        {
+          "type": "natura_atto",
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte"
+        },
+        {
+          "type": "oggetto",
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo"
+        },
+        {
+          "type": "stato",
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo"
+        },
+        {
+          "type": "punto_diritto",
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo"
+        }
+      ],
+      "destination": "giurisprudenza",
+      "destination_label": "Giurisprudenza o RAG",
+      "rag_destination": "official_case_law_rag",
+      "exclusion_reason": "",
+      "status": "invariato",
+      "normalized_document_id": 3,
+      "review_id": 3,
+      "quality": {
+        "status": "pronto_con_note",
+        "ready": true,
+        "attachment_found": true,
+        "pdf_found": true,
+        "text_read": true,
+        "context_chars": 27310,
+        "ocr_status": "leggibile_con_note",
+        "references": 18,
+        "questions": 16,
+        "warnings": [
+          "OCR leggibile ma da controllare"
+        ]
+      },
+      "guarded_publish": {
+        "published": false,
+        "reason": "testo pagina non abbastanza leggibile per la pubblicazione",
+        "review_id": 3
+      }
+    }
+  ],
+  "errors": [],
+  "diagnostics_saved": true
+}

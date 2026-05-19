@@ -7,6 +7,14 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.45 - 2026-05-19
+
+- Eseguito il primo pilot controllato con pubblicazione `guarded`, senza import massivo e senza scheduler globale, sulle tre fonti verdi consigliate: `cassazione_ultime_sent_ord_questioni`, `inps_circolari` e `agcom_provvedimenti`.
+- Aggiunto `--publish-mode off|guarded|auto` al canary: la modalità guarded pubblica solo i documenti letti nel canary corrente dopo controlli su fonte ufficiale/trust, testo leggibile, PDF/OCR, interesse per studio legale, duplicati, destinazione, riferimenti, domande contestuali e testo UI non tecnico.
+- Pubblicati 9 documenti verificati: 3 Cassazione, 3 circolari INPS e 3 provvedimenti AGCOM. Le circolari INPS con chiavi normative incoerenti vengono pubblicate come notizie verificate, non come normativa.
+- Verificati Archivio aggiornamenti, Ricerca Legale, Lex e preparazione Archivio Giurisprudenza: i PDF/allegati vengono premiati quando la domanda chiede allegato o documento ufficiale; i record Cassazione restano pronti per RAG/Archivio Giurisprudenza senza creare schede strutturate quando mancano corte, numero o anno.
+- Salvata la diagnostica del pilot in `artifacts/legal-updates/pilot-guarded-2026-05-19/`, includendo gli scarti intermedi che hanno portato alle guardie corrette su testo pagina, testo tecnico visibile e classificazione prassi.
+
 ## 2.245.44 - 2026-05-19
 
 - Corretta la Fase 3 post-canary sulle sole fonti gialle: Gazzetta Ufficiale passa a verde leggendo i PDF già normalizzati anche sugli elementi invariati; ANAC e Garante non creano più allegati fittizi da testo o link normativi generici.

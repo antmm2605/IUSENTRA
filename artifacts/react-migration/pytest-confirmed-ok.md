@@ -6,6 +6,21 @@ Aggiornato: 2026-05-19, strumenti sicuri canary/backfill Aggiornamenti legali 2.
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
+## Update Intelligence pilot guarded 2.245.45 - 2026-05-19
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct/legal_update_diagnostics.py pct/cli.py pct/legal_update_repository.py tests/test_legal_update_safe_diagnostics.py tests/test_legal_update_publish_context.py` | OK | Sintassi confermata dopo `--publish-mode guarded`, guardie di pubblicazione e ranking allegati/fonte. |
+| `python -m pct.cli legal-updates-canary --source cassazione_ultime_sent_ord_questioni --limit 3 --max-seconds 90 --direct-only --save-diagnostics --publish-mode guarded --json` | OK | Pubblicati 3/3 documenti Cassazione del canary corrente; diagnostica salvata in `artifacts/legal-updates/pilot-guarded-2026-05-19/cassazione_ultime_sent_ord_questioni.json`. |
+| `python -m pct.cli legal-updates-canary --source inps_circolari --limit 3 --max-seconds 90 --direct-only --save-diagnostics --publish-mode guarded --json` | OK | Pubblicate 3/3 circolari INPS come notizie verificate, senza promozione normativa incoerente; diagnostica salvata nella cartella pilot. |
+| `python -m pct.cli legal-updates-canary --source agcom_provvedimenti --limit 3 --max-seconds 90 --direct-only --save-diagnostics --publish-mode guarded --json` | OK | Pubblicati 3/3 provvedimenti AGCOM: 2 news e 1 prassi; diagnostica salvata nella cartella pilot. |
+| Verifica post-pilot `artifacts/legal-updates/pilot-guarded-2026-05-19/verification.json` | OK | 9 documenti pubblicati, 0 duplicati, archivio admin renderizzato, Ricerca Legale e Lex positivi per 9/9, allegati premiati quando richiesti, Cassazione preparata per Archivio Giurisprudenza senza schede strutturate incomplete. |
+| `python -m pytest tests/test_legal_updates_pipeline.py -q --tb=short` | OK | 41/41 passati: pipeline aggiornamenti legali preservata. |
+| `python -m pytest tests/test_legal_update_publish_context.py tests/test_legal_update_web_verification_attachments.py -q --tb=short` | OK | 29/29 passati: contesto pubblicazione, deduplica, PDF/OCR, allegati e ranking Lex. |
+| `python -m pytest tests/test_lex_source_corpus_generator.py tests/test_lex_operational_knowledge.py tests/test_react_legal_intelligence_search.py tests/test_giurisprudenza.py -q --tb=short` | OK | 99/99 passati: corpus Lex, conoscenza operativa, Ricerca Legale React e Archivio Giurisprudenza. |
+| `python -m pytest tests/test_legal_update_safe_diagnostics.py -q --tb=short` | OK | 6/6 passati: CLI canary/backfill e diagnostica sicura preservati. |
+| `python tools/check_repo_governance.py`; `python -m pytest tests/test_utf8_integrity.py -q --tb=short`; `python tools/sync_packaging_files.py --check`; `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q --tb=short`; `git diff --check` | OK | Governance OK, UTF-8 4/4, packaging sincronizzato, release/readiness 9/9. `git diff --check` senza errori; resta solo il warning CRLF sul file runtime preesistente fuori perimetro. |
+
 ## Update Intelligence strumenti sicuri canary/backfill 2.245.42 - 2026-05-19
 
 | Comando / verifica | Esito | Nota |

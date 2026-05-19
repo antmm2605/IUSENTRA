@@ -1336,6 +1336,65 @@ def test_search_lex_sources_premia_allegato_quando_domanda_chiede_allegato(tmp_p
     assert results[0]["attachment_url"] == attachment_url
 
 
+def test_search_lex_sources_premia_pdf_a_parita_di_titolo_quando_domanda_chiede_allegato(tmp_path: Path):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+    source_url = (
+        "https://www.inps.it/it/it/inps-comunica/atti/circolari-messaggi-e-normativa/"
+        "dettaglio.circolari-e-messaggi.2026.05.circolare-numero-55-del-14-05-2026_15258.html"
+    )
+    attachment_url = (
+        "https://www.inps.it/content/dam/inps-site/it/scorporati/circolari-e-messaggi/"
+        "2026/05/Circolare_15258/Allegati/16770_Circolare-numero-55-del-14-05-2026.pdf"
+    )
+
+    with pipeline.repository._connect() as conn:
+        for evidence_key, attachment, context_chars in (
+            ("inps-page", "", 12000),
+            ("inps-pdf", attachment_url, 70000),
+        ):
+            conn.execute(
+                """
+                INSERT INTO web_verification_evidence (
+                    evidence_key, source_code, source_name, query, origin, title,
+                    source_url, attachment_url, attachment_type, sha256, is_official,
+                    context_chars, excerpt, content_text, matched_terms_json,
+                    verification_status, created_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    evidence_key,
+                    "inps_circolari",
+                    "INPS - circolari",
+                    "Circolare numero 55 del 14-05-2026",
+                    "allegato_fonte_ufficiale" if attachment else "fonte_acquisita",
+                    "Circolare numero 55 del 14-05-2026",
+                    source_url,
+                    attachment,
+                    "pdf" if attachment else "",
+                    "sha-inps" if attachment else "",
+                    1,
+                    context_chars,
+                    "Circolare INPS numero 55 del 14-05-2026.",
+                    "Circolare INPS numero 55 del 14-05-2026 con PDF ufficiale.",
+                    '["D.L. 30 aprile 2026, n. 62"]',
+                    "verified",
+                    "2026-05-19 00:00:00",
+                    "2026-05-19 00:00:00",
+                ),
+            )
+        conn.commit()
+
+    results = pipeline.repository.search_lex_sources(
+        "INPS Circolare numero 55 del 14-05-2026 PDF allegato",
+        limit=3,
+    )
+
+    assert results
+    assert results[0]["source_code"] == "inps_circolari"
+    assert results[0]["attachment_url"] == attachment_url
+
+
 def test_publish_auto_news_salva_diagnosi_quando_web_non_trova_conferme(tmp_path: Path, monkeypatch):
     pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
     source = pipeline.repository.get_source_by_code("agcom_provvedimenti")

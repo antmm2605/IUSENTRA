@@ -296,6 +296,7 @@ def _looks_like_exact_legal_source_query(value: Any) -> bool:
     text = _clean_spaces(value).lower()
     return bool(
         re.search(r"\b(?:sentenza|ordinanza|decreto|provvedimento)\b.{0,120}\bn\.?\s*\d{1,6}", text)
+        or re.search(r"\b(?:circolare|messaggio|delibera|determina|parere)\b.{0,80}\b(?:numero\s+|n\.?\s*)?\d{1,6}", text)
         or re.search(r"\bn\.?\s*\d{1,6}\s+del\s+\d{1,2}[/-]\d{1,2}[/-]\d{2,4}", text)
         or re.search(r"\bn\.?\s*\d{1,6}/\d{4}", text)
     )
@@ -303,7 +304,27 @@ def _looks_like_exact_legal_source_query(value: Any) -> bool:
 
 def _requested_official_source_code(value: Any) -> str:
     text = _clean_spaces(value).lower()
-    if not _looks_like_exact_legal_source_query(text):
+    has_source_marker = any(
+        marker in text
+        for marker in (
+            "corte costituzionale",
+            "cortecostituzionale.it",
+            "cassazione",
+            "corte suprema",
+            "cortedicassazione.it",
+            "consiglio di stato",
+            "giustizia-amministrativa.it",
+            "inps",
+            "inps.it",
+            "agcom",
+            "agcom.it",
+            "anac",
+            "anticorruzione.it",
+            "garante privacy",
+            "garanteprivacy.it",
+        )
+    )
+    if not _looks_like_exact_legal_source_query(text) and not has_source_marker:
         return ""
     if "corte costituzionale" in text or "cortecostituzionale.it" in text:
         return "corte_costituzionale"
@@ -311,6 +332,18 @@ def _requested_official_source_code(value: Any) -> str:
         return "cassazione"
     if "consiglio di stato" in text or "tar " in f"{text} " or "giustizia-amministrativa.it" in text:
         return "giustizia_amministrativa"
+    if "inps" in text or "inps.it" in text:
+        if "messaggio" in text:
+            return "inps_messaggi"
+        if "circolare" in text:
+            return "inps_circolari"
+        return "inps"
+    if "agcom" in text or "agcom.it" in text:
+        return "agcom_provvedimenti"
+    if "anac" in text or "anticorruzione.it" in text:
+        return "anac"
+    if "garante privacy" in text or "garanteprivacy.it" in text:
+        return "garante_privacy"
     return ""
 
 
@@ -335,6 +368,14 @@ def _row_official_source_code(row: dict[str, Any]) -> str:
         return "cassazione"
     if "giustizia-amministrativa.it" in source_raw or "consiglio di stato" in source_raw or re.search(r"\btar\b", source_raw):
         return "giustizia_amministrativa"
+    if "inps.it" in source_raw or "inps_" in source_raw or "inps -" in source_raw:
+        return "inps"
+    if "agcom.it" in source_raw or "agcom_" in source_raw or "agcom -" in source_raw:
+        return "agcom"
+    if "anticorruzione.it" in source_raw or "anac_" in source_raw or "anac -" in source_raw:
+        return "anac"
+    if "garanteprivacy.it" in source_raw or "garante_privacy" in source_raw or "garante privacy" in source_raw:
+        return "garante_privacy"
 
     content_raw = _clean_spaces(
         " ".join(
@@ -350,12 +391,29 @@ def _row_official_source_code(row: dict[str, Any]) -> str:
         return "cassazione"
     if "giustizia-amministrativa.it" in content_raw or "consiglio di stato" in content_raw or re.search(r"\btar\b", content_raw):
         return "giustizia_amministrativa"
+    if "inps.it" in content_raw or "inps" in content_raw:
+        return "inps"
+    if "agcom.it" in content_raw or "agcom" in content_raw:
+        return "agcom"
+    if "anticorruzione.it" in content_raw or "anac" in content_raw:
+        return "anac"
+    if "garanteprivacy.it" in content_raw or "garante privacy" in content_raw:
+        return "garante_privacy"
     return ""
 
 
 def _row_matches_requested_official_source(row: dict[str, Any], requested_source: str) -> bool:
     if not requested_source:
         return True
+    source_code = _normalize_token(row.get("source_code"))
+    if requested_source in {
+        "inps_circolari",
+        "inps_messaggi",
+        "agcom_provvedimenti",
+        "anac_documenti",
+        "garante_privacy",
+    }:
+        return source_code == requested_source
     source = _row_official_source_code(row)
     return bool(source and source == requested_source)
 
@@ -491,7 +549,7 @@ def _lex_candidate_score(row: dict[str, Any], terms: list[str], *, query: str = 
             context_chars = 0
         if context_chars > 0:
             score += 0.06
-    return round(min(2.0, score), 4)
+    return round(min(3.0, score), 4)
 
 
 _RG_REFERENCE_RE = re.compile(
@@ -3255,13 +3313,27 @@ class LegalUpdateRepository:
             )
             for payload in (self._lex_evidence_payload(row, terms, query=query),)
         ]
-        payloads.sort(
-            key=lambda row: (
-                float(row.get("score") or 0.0),
-                _clean_spaces(row.get("published_at")),
-            ),
-            reverse=True,
+        attachment_requested = any(
+            term in {"allegato", "pdf", "documento", "ordinanza", "sentenza", "testo", "ufficiale", "rimessione", "nota"}
+            for term in terms
         )
+        if attachment_requested:
+            payloads.sort(
+                key=lambda row: (
+                    1 if _clean_spaces(row.get("attachment_url")) else 0,
+                    float(row.get("score") or 0.0),
+                    _clean_spaces(row.get("published_at")),
+                ),
+                reverse=True,
+            )
+        else:
+            payloads.sort(
+                key=lambda row: (
+                    float(row.get("score") or 0.0),
+                    _clean_spaces(row.get("published_at")),
+                ),
+                reverse=True,
+            )
         seen: set[tuple[str, str]] = set()
         deduped: list[dict[str, Any]] = []
         for row in payloads:

@@ -7,6 +7,12 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.245.45 - 19 maggio 2026
+
+Il primo pilot `guarded` ha pubblicato solo documenti letti nel canary corrente e ha verificato che Lex possa rispondere usando testo pagina, PDF/OCR e allegati ufficiali. Sono entrati 9 contenuti: 3 Cassazione, 3 circolari INPS e 3 provvedimenti AGCOM. Tutti hanno riferimenti e domande contestuali salvati.
+
+Quando la domanda chiede PDF, allegato, documento ufficiale, circolare o delibera, il ranking delle fonti Lex deve riconoscere la fonte ufficiale richiesta e premiare l'allegato rispetto alla sola pagina. Le schede Cassazione senza corte/numero/anno completi restano utilizzabili da Lex e Ricerca Legale come RAG ufficiale, ma non vanno trasformate in una voce strutturata di Archivio Giurisprudenza finché le chiavi non sono complete.
+
 ## Aggiornamento operativo 2.245.42 - 19 maggio 2026
 
 La pipeline dispone ora di due strumenti sicuri prima del popolamento fonte per

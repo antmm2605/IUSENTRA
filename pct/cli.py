@@ -2757,6 +2757,13 @@ def cmd_aggiornamenti_legali(intelligence_db, giurisprudenza_db, source_codes, n
 @click.option("--limit", required=True, type=int, help="Limite obbligatorio di documenti da leggere")
 @click.option("--max-seconds", type=int, default=60, show_default=True, help="Budget massimo del canary")
 @click.option("--no-publish/--allow-publish", default=True, show_default=True, help="Mantiene disattivata la pubblicazione automatica")
+@click.option(
+    "--publish-mode",
+    type=click.Choice(["off", "guarded", "auto"]),
+    default="off",
+    show_default=True,
+    help="Modalità pubblicazione: off, guarded limitata ai documenti del canary, auto storica",
+)
 @click.option("--direct-only/--allow-web-search", default=True, show_default=True, help="Usa solo pagina fonte e allegati diretti")
 @click.option("--save-diagnostics", is_flag=True, default=False, help="Registra l'esito come ultimo canary della fonte")
 @click.option("--json", "as_json", is_flag=True, default=False, help="Stampa output JSON")
@@ -2767,6 +2774,7 @@ def cmd_legal_updates_canary(
     limit,
     max_seconds,
     no_publish,
+    publish_mode,
     direct_only,
     save_diagnostics,
     as_json,
@@ -2782,6 +2790,7 @@ def cmd_legal_updates_canary(
             limit=limit,
             max_seconds=max_seconds,
             no_publish=no_publish,
+            publish_mode=publish_mode,
             direct_only=direct_only,
             save_diagnostics=save_diagnostics,
         )
@@ -2796,7 +2805,7 @@ def cmd_legal_updates_canary(
         "Canary aggiornamenti legali: "
         f"{report['source_code']} - {report['processed']} analizzati su "
         f"{report['documents_found']} letti, pubblicazione "
-        f"{'disattivata' if report['no_publish'] else 'consentita'}."
+        f"{report.get('publish_mode') or ('disattivata' if report['no_publish'] else 'consentita')}."
     )
     if report.get("errors"):
         click.echo("Errori: " + "; ".join(report["errors"][:3]))

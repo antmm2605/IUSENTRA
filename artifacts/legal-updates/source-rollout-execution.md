@@ -2,6 +2,25 @@
 
 Aggiornato il 19 maggio 2026. Questo file trasforma `source-rollout-plan.md` in backlog eseguibile con stato prima/dopo della tranche codice.
 
+## Aggiornamento Fase 4 - primo pilot guarded
+
+Aggiornato il 19 maggio 2026 dopo il pilot controllato con `--publish-mode guarded`. Non è stato avviato import massivo, non è stato lanciato lo scheduler globale e la pubblicazione è rimasta limitata ai soli documenti letti dal canary corrente.
+
+| fonte | documenti processati | documenti pubblicati | destinazione | esito |
+|---|---:|---:|---|---|
+| `cassazione_ultime_sent_ord_questioni` | 3 invariati con evidenze rinfrescate | 3 | news + RAG ufficiale pronto | verde con note OCR/R.G.; Archivio Giurisprudenza preparato, senza scheda strutturata perché mancano chiavi complete corte/numero/anno |
+| `inps_circolari` | 3 invariati con evidenze rinfrescate | 3 | news | verde; downgrade guarded da normativa a notizia verificata per evitare chiavi normative incoerenti su circolari |
+| `agcom_provvedimenti` | 3 invariati con evidenze rinfrescate | 3 | 2 news, 1 prassi | verde; delibere e determina con testo/PDF/riferimenti/domande pronti |
+
+Diagnostica salvata in `artifacts/legal-updates/pilot-guarded-2026-05-19/`. Il file `verification.json` conferma 9 documenti pubblicati, 0 duplicati, render dell'archivio admin, Ricerca Legale e Lex positivi per tutti i contenuti, allegati premiati nelle domande su PDF/documenti ufficiali e 9 elementi presenti nell'archivio news più 1 in prassi.
+
+Problemi emersi e risolti durante il pilot:
+
+- la prima guardia Cassazione bloccava documenti con testo pagina breve anche quando PDF/OCR ufficiale era già letto; ora il guarded accetta evidenza/PDF/OCR leggibile;
+- le circolari INPS potevano essere proposte come normativa per numero/data della circolare; ora una fonte di prassi non crea normativa se la chiave non è coerente e viene limitata a notizia verificata;
+- il controllo sui testi tecnici non interpreta più `null` dentro parole italiane e, per le notizie, valuta i campi realmente visibili;
+- il ranking Lex/Ricerca Legale riconosce INPS, AGCOM, ANAC e Garante e porta in testa il PDF/allegato quando la domanda lo richiede.
+
 ## Tranche completata in questa esecuzione
 
 | fonte | problema concreto | file modificati | test da creare/eseguire | stato prima | stato dopo |

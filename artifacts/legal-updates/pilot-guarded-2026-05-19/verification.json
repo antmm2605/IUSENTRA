@@ -1,0 +1,378 @@
+{
+  "ok": true,
+  "items_count": 9,
+  "published_count": 9,
+  "archive_counts": {
+    "news": 9,
+    "normative": 0,
+    "jurisprudence": 0,
+    "prassi": 1
+  },
+  "admin_archive_route": {
+    "ok": true,
+    "status": "rendered",
+    "titles_found": 9,
+    "error": ""
+  },
+  "duplicates": {
+    "groups": 0,
+    "duplicate_items": 0,
+    "by_type": {
+      "normative": 0,
+      "jurisprudence": 0,
+      "prassi": 0,
+      "news": 0
+    }
+  },
+  "items": [
+    {
+      "review_id": 1,
+      "source_code": "cassazione_ultime_sent_ord_questioni",
+      "title": "Vai al documento Sospensione del processo al di fuori dei casi tipici - Illegittimità - Impugnabilità con il regolamento di competenza - Mancata impugnazione - Conseguenze. del...",
+      "guarded_published": true,
+      "guarded_destination": "news",
+      "archive_matches": [
+        {
+          "archive": "news",
+          "id": 1,
+          "title": "Vai al documento Sospensione del processo al di fuori dei casi tipici - Illegittimità - Impugnabilità con il regolamento di competenza - Mancata impugnazione - Conseguenze. del 15/05/26",
+          "source_document_id": 1,
+          "publication_status": "published"
+        }
+      ],
+      "admin_archive_ok": true,
+      "ricerca_legale_ok": true,
+      "ricerca_legale_top": {
+        "title": "13651_05_2026_civ_no-index.pdf",
+        "source_code": "cassazione_ultime_sent_ord_questioni",
+        "attachment_url": "https://www.cortedicassazione.it/resources/cms/documents/13651_05_2026_civ_noindex.pdf"
+      },
+      "lex_ok": true,
+      "lex_context_chars": 27310,
+      "attachment_promoted": true,
+      "attachment_top": {
+        "title": "13651_05_2026_civ_no-index.pdf",
+        "source_code": "cassazione_ultime_sent_ord_questioni",
+        "attachment_url": "https://www.cortedicassazione.it/resources/cms/documents/13651_05_2026_civ_noindex.pdf"
+      },
+      "references_saved": 14,
+      "questions_saved": 17,
+      "quality_ready": true,
+      "quality_status": "pronto_con_note",
+      "jurisprudence_archive_ok": false,
+      "jurisprudence_prepared": true,
+      "jurisprudence_reason": "RAG ufficiale pronto; record strutturato non creato perché le chiavi corte/numero/anno non erano complete nel pilot."
+    },
+    {
+      "review_id": 2,
+      "source_code": "cassazione_ultime_sent_ord_questioni",
+      "title": "Vai al documento Interpretazione e portata dell’art. 7 quinquies della l. n. 212 del 2000 - Violazione di diritti fondamentali del contribuente - Principio di inutilizzabilità d...",
+      "guarded_published": true,
+      "guarded_destination": "news",
+      "archive_matches": [
+        {
+          "archive": "news",
+          "id": 2,
+          "title": "Vai al documento Interpretazione e portata dell’art. 7 quinquies della l. n. 212 del 2000 - Violazione di diritti fondamentali del contribuente - Principio di inutilizzabilità degli atti e dei documenti - Sussistenza. del 12/05/26",
+          "source_document_id": 2,
+          "publication_status": "published"
+        }
+      ],
+      "admin_archive_ok": true,
+      "ricerca_legale_ok": true,
+      "ricerca_legale_top": {
+        "title": "13696_05_2026_civ_no-index.pdf",
+        "source_code": "cassazione_ultime_sent_ord_questioni",
+        "attachment_url": "https://www.cortedicassazione.it/resources/cms/documents/13696_05_2026_civ_noindex.pdf"
+      },
+      "lex_ok": true,
+      "lex_context_chars": 57411,
+      "attachment_promoted": true,
+      "attachment_top": {
+        "title": "13696_05_2026_civ_no-index.pdf",
+        "source_code": "cassazione_ultime_sent_ord_questioni",
+        "attachment_url": "https://www.cortedicassazione.it/resources/cms/documents/13696_05_2026_civ_noindex.pdf"
+      },
+      "references_saved": 20,
+      "questions_saved": 16,
+      "quality_ready": true,
+      "quality_status": "pronto_con_note",
+      "jurisprudence_archive_ok": false,
+      "jurisprudence_prepared": true,
+      "jurisprudence_reason": "RAG ufficiale pronto; record strutturato non creato perché le chiavi corte/numero/anno non erano complete nel pilot."
+    },
+    {
+      "review_id": 3,
+      "source_code": "cassazione_ultime_sent_ord_questioni",
+      "title": "Vai al documento Giudicato esterno - Accertamento e prova - Certificazione ex art. 124 disp. att. c.p.c. - Altre libere modalità dimostrative. del 12/05/26",
+      "guarded_published": true,
+      "guarded_destination": "news",
+      "archive_matches": [
+        {
+          "archive": "news",
+          "id": 3,
+          "title": "Vai al documento Giudicato esterno - Accertamento e prova - Certificazione ex art. 124 disp. att. c.p.c. - Altre libere modalità dimostrative. del 12/05/26",
+          "source_document_id": 3,
+          "publication_status": "published"
+        }
+      ],
+      "admin_archive_ok": true,
+      "ricerca_legale_ok": true,
+      "ricerca_legale_top": {
+        "title": "13651_05_2026_civ_no-index.pdf",
+        "source_code": "cassazione_ultime_sent_ord_questioni",
+        "attachment_url": "https://www.cortedicassazione.it/resources/cms/documents/13651_05_2026_civ_noindex.pdf"
+      },
+      "lex_ok": true,
+      "lex_context_chars": 27310,
+      "attachment_promoted": true,
+      "attachment_top": {
+        "title": "13651_05_2026_civ_no-index.pdf",
+        "source_code": "cassazione_ultime_sent_ord_questioni",
+        "attachment_url": "https://www.cortedicassazione.it/resources/cms/documents/13651_05_2026_civ_noindex.pdf"
+      },
+      "references_saved": 18,
+      "questions_saved": 16,
+      "quality_ready": true,
+      "quality_status": "pronto_con_note",
+      "jurisprudence_archive_ok": false,
+      "jurisprudence_prepared": true,
+      "jurisprudence_reason": "RAG ufficiale pronto; record strutturato non creato perché le chiavi corte/numero/anno non erano complete nel pilot."
+    },
+    {
+      "review_id": 4,
+      "source_code": "inps_circolari",
+      "title": "Circolare numero 55 del 14-05-2026",
+      "guarded_published": true,
+      "guarded_destination": "news",
+      "archive_matches": [
+        {
+          "archive": "news",
+          "id": 4,
+          "title": "Circolare numero 55 del 14-05-2026",
+          "source_document_id": 4,
+          "publication_status": "published"
+        }
+      ],
+      "admin_archive_ok": true,
+      "ricerca_legale_ok": true,
+      "ricerca_legale_top": {
+        "title": "Circolare numero 55 del 14-05-2026",
+        "source_code": "inps_circolari",
+        "attachment_url": "https://www.inps.it/content/dam/inps-site/it/scorporati/circolari-e-messaggi/2026/05/Circolare_15258/Allegati/16770_Circolare-numero-55-del-14-05-2026.pdf"
+      },
+      "lex_ok": true,
+      "lex_context_chars": 70294,
+      "attachment_promoted": true,
+      "attachment_top": {
+        "title": "Circolare numero 55 del 14-05-2026",
+        "source_code": "inps_circolari",
+        "attachment_url": "https://www.inps.it/content/dam/inps-site/it/scorporati/circolari-e-messaggi/2026/05/Circolare_15258/Allegati/16770_Circolare-numero-55-del-14-05-2026.pdf"
+      },
+      "references_saved": 11,
+      "questions_saved": 16,
+      "quality_ready": true,
+      "quality_status": "pronto_con_note",
+      "jurisprudence_archive_ok": false,
+      "jurisprudence_prepared": false,
+      "jurisprudence_reason": ""
+    },
+    {
+      "review_id": 5,
+      "source_code": "inps_circolari",
+      "title": "Circolare numero 56 del 14-05-2026",
+      "guarded_published": true,
+      "guarded_destination": "news",
+      "archive_matches": [
+        {
+          "archive": "news",
+          "id": 5,
+          "title": "Circolare numero 56 del 14-05-2026",
+          "source_document_id": 5,
+          "publication_status": "published"
+        }
+      ],
+      "admin_archive_ok": true,
+      "ricerca_legale_ok": true,
+      "ricerca_legale_top": {
+        "title": "Circolare numero 56 del 14-05-2026",
+        "source_code": "inps_circolari",
+        "attachment_url": "https://www.inps.it/content/dam/inps-site/it/scorporati/circolari-e-messaggi/2026/05/Circolare_15259/Allegati/16771_Circolare-numero-56-del-14-05-2026.pdf"
+      },
+      "lex_ok": true,
+      "lex_context_chars": 52466,
+      "attachment_promoted": true,
+      "attachment_top": {
+        "title": "Circolare numero 56 del 14-05-2026",
+        "source_code": "inps_circolari",
+        "attachment_url": "https://www.inps.it/content/dam/inps-site/it/scorporati/circolari-e-messaggi/2026/05/Circolare_15259/Allegati/16771_Circolare-numero-56-del-14-05-2026.pdf"
+      },
+      "references_saved": 8,
+      "questions_saved": 16,
+      "quality_ready": true,
+      "quality_status": "pronto",
+      "jurisprudence_archive_ok": false,
+      "jurisprudence_prepared": false,
+      "jurisprudence_reason": ""
+    },
+    {
+      "review_id": 6,
+      "source_code": "inps_circolari",
+      "title": "Circolare numero 57 del 14-05-2026",
+      "guarded_published": true,
+      "guarded_destination": "news",
+      "archive_matches": [
+        {
+          "archive": "news",
+          "id": 6,
+          "title": "Circolare numero 57 del 14-05-2026",
+          "source_document_id": 6,
+          "publication_status": "published"
+        }
+      ],
+      "admin_archive_ok": true,
+      "ricerca_legale_ok": true,
+      "ricerca_legale_top": {
+        "title": "Circolare numero 57 del 14-05-2026",
+        "source_code": "inps_circolari",
+        "attachment_url": "https://www.inps.it/content/dam/inps-site/it/scorporati/circolari-e-messaggi/2026/05/Circolare_15260/Allegati/16772_Circolare-numero-57-del-14-05-2026.pdf"
+      },
+      "lex_ok": true,
+      "lex_context_chars": 68000,
+      "attachment_promoted": true,
+      "attachment_top": {
+        "title": "Circolare numero 57 del 14-05-2026",
+        "source_code": "inps_circolari",
+        "attachment_url": "https://www.inps.it/content/dam/inps-site/it/scorporati/circolari-e-messaggi/2026/05/Circolare_15260/Allegati/16772_Circolare-numero-57-del-14-05-2026.pdf"
+      },
+      "references_saved": 15,
+      "questions_saved": 16,
+      "quality_ready": true,
+      "quality_status": "pronto_con_note",
+      "jurisprudence_archive_ok": false,
+      "jurisprudence_prepared": false,
+      "jurisprudence_reason": ""
+    },
+    {
+      "review_id": 31,
+      "source_code": "agcom_provvedimenti",
+      "title": "Delibera 28/26/CSP",
+      "guarded_published": true,
+      "guarded_destination": "news",
+      "archive_matches": [
+        {
+          "archive": "news",
+          "id": 7,
+          "title": "Delibera 28/26/CSP",
+          "source_document_id": 31,
+          "publication_status": "published"
+        }
+      ],
+      "admin_archive_ok": true,
+      "ricerca_legale_ok": true,
+      "ricerca_legale_top": {
+        "title": "Documento Principale",
+        "source_code": "agcom_provvedimenti",
+        "attachment_url": "https://www.agcom.it/sites/default/files/provvedimenti/delibera/2026/DDA_14932_Delibera_Archiviazione_omissis.pdf"
+      },
+      "lex_ok": true,
+      "lex_context_chars": 10012,
+      "attachment_promoted": true,
+      "attachment_top": {
+        "title": "Documento Principale",
+        "source_code": "agcom_provvedimenti",
+        "attachment_url": "https://www.agcom.it/sites/default/files/provvedimenti/delibera/2026/DDA_14932_Delibera_Archiviazione_omissis.pdf"
+      },
+      "references_saved": 20,
+      "questions_saved": 16,
+      "quality_ready": true,
+      "quality_status": "pronto",
+      "jurisprudence_archive_ok": false,
+      "jurisprudence_prepared": false,
+      "jurisprudence_reason": ""
+    },
+    {
+      "review_id": 32,
+      "source_code": "agcom_provvedimenti",
+      "title": "Delibera 102/26/CONS",
+      "guarded_published": true,
+      "guarded_destination": "news",
+      "archive_matches": [
+        {
+          "archive": "news",
+          "id": 8,
+          "title": "Delibera 102/26/CONS",
+          "source_document_id": 32,
+          "publication_status": "published"
+        }
+      ],
+      "admin_archive_ok": true,
+      "ricerca_legale_ok": true,
+      "ricerca_legale_top": {
+        "title": "Documento Principale",
+        "source_code": "agcom_provvedimenti",
+        "attachment_url": "https://www.agcom.it/sites/default/files/provvedimenti/delibera/2026/102_26_CONS.pdf"
+      },
+      "lex_ok": true,
+      "lex_context_chars": 25836,
+      "attachment_promoted": true,
+      "attachment_top": {
+        "title": "Allegato AProvvedimento recante le disposizioni attuative dell’articolo 33 del d. lgs. 8 novembre 2021, n. 208 relative alla lista degli eventi di particolare rilevanza per la s...",
+        "source_code": "agcom_provvedimenti",
+        "attachment_url": "https://www.agcom.it/sites/default/files/media/allegato/2026/All.%20A%20del.%20n.%20102_26_CONS.pdf"
+      },
+      "references_saved": 8,
+      "questions_saved": 16,
+      "quality_ready": true,
+      "quality_status": "pronto",
+      "jurisprudence_archive_ok": false,
+      "jurisprudence_prepared": false,
+      "jurisprudence_reason": ""
+    },
+    {
+      "review_id": 33,
+      "source_code": "agcom_provvedimenti",
+      "title": "Determina 9/26/DTC/CP",
+      "guarded_published": true,
+      "guarded_destination": "prassi",
+      "archive_matches": [
+        {
+          "archive": "news",
+          "id": 9,
+          "title": "Determina 9/26/DTC/CP",
+          "source_document_id": 33,
+          "publication_status": "published"
+        },
+        {
+          "archive": "prassi",
+          "id": 1,
+          "title": "Determina 9/26/DTC/CP",
+          "source_document_id": 33,
+          "publication_status": "published"
+        }
+      ],
+      "admin_archive_ok": true,
+      "ricerca_legale_ok": true,
+      "ricerca_legale_top": {
+        "title": "Documento Principale",
+        "source_code": "agcom_provvedimenti",
+        "attachment_url": "https://www.agcom.it/sites/default/files/provvedimenti/determina/2026/Determina%209-26-dtc-cp.pdf"
+      },
+      "lex_ok": true,
+      "lex_context_chars": 9273,
+      "attachment_promoted": true,
+      "attachment_top": {
+        "title": "Documento Principale",
+        "source_code": "agcom_provvedimenti",
+        "attachment_url": "https://www.agcom.it/sites/default/files/provvedimenti/determina/2026/Determina%209-26-dtc-cp.pdf"
+      },
+      "references_saved": 10,
+      "questions_saved": 16,
+      "quality_ready": true,
+      "quality_status": "pronto",
+      "jurisprudence_archive_ok": false,
+      "jurisprudence_prepared": false,
+      "jurisprudence_reason": ""
+    }
+  ]
+}

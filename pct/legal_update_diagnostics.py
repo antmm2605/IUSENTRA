@@ -17,6 +17,7 @@ from pct.legal_update_source_capabilities import (
     publication_destination_label,
     source_exclusion_reason,
 )
+from pct.legal_update_web_verification import verify_legal_update_against_public_sources
 
 
 CANARY_SCHEMA = "iusentra.legal_updates.canary.v1"
@@ -25,6 +26,7 @@ MISSING_KINDS = {"attachments", "ocr", "references", "questions"}
 MAX_CANARY_LIMIT = 50
 MAX_BACKFILL_LIMIT = 250
 MAX_ATTACHMENTS_PER_DOCUMENT = 4
+PUBLISH_MODES = {"off", "guarded", "auto"}
 
 
 def run_legal_updates_canary(
@@ -35,6 +37,7 @@ def run_legal_updates_canary(
     limit: int,
     max_seconds: int = 60,
     no_publish: bool = True,
+    publish_mode: str = "off",
     direct_only: bool = True,
     save_diagnostics: bool = False,
     request_get: RequestGet = requests.get,
@@ -43,6 +46,7 @@ def run_legal_updates_canary(
 
     code = _clean_code(source_code)
     safe_limit = _required_limit(limit, max_limit=MAX_CANARY_LIMIT)
+    resolved_publish_mode = _resolve_publish_mode(publish_mode, no_publish=no_publish)
     started_at = _utc_now_iso()
     started = time.monotonic()
     errors: list[str] = []
@@ -122,7 +126,17 @@ def run_legal_updates_canary(
             errors.append(message)
         items.append(item)
 
-    if not no_publish and not stopped_for_time_limit:
+    if resolved_publish_mode == "guarded" and not stopped_for_time_limit:
+        autopublished = _publish_guarded_canary_items(
+            pipeline,
+            source=source,
+            items=items,
+            limit=safe_limit,
+            started=started,
+            max_seconds=max_seconds,
+            direct_only=direct_only,
+        )
+    elif resolved_publish_mode == "auto" and not stopped_for_time_limit:
         autopublished = pipeline.publish_auto_news(limit=min(safe_limit, 20))
 
     duration_ms = int((time.monotonic() - started) * 1000)
@@ -135,7 +149,8 @@ def run_legal_updates_canary(
         "source_name": source.get("name") or "",
         "limit": safe_limit,
         "max_seconds": max(0, int(max_seconds or 0)),
-        "no_publish": bool(no_publish),
+        "no_publish": resolved_publish_mode == "off",
+        "publish_mode": resolved_publish_mode,
         "direct_only": bool(direct_only),
         "documents_found": len(documents),
         "processed": sum(1 for item in items if item.get("status") == "analizzato"),
@@ -299,6 +314,319 @@ def _document_diagnostic(source: dict[str, Any], document: dict[str, Any]) -> di
         "exclusion_reason": exclusion,
         "status": "letto",
     }
+
+
+def _resolve_publish_mode(value: Any, *, no_publish: bool) -> str:
+    mode = _clean_code(value or "")
+    if not mode or mode == "default":
+        return "off" if no_publish else "auto"
+    if mode not in PUBLISH_MODES:
+        raise ValueError("Valore --publish-mode non valido: usare off, guarded o auto.")
+    if mode == "off":
+        return "off" if no_publish else "auto"
+    return mode
+
+
+def _publish_guarded_canary_items(
+    pipeline: Any,
+    *,
+    source: dict[str, Any],
+    items: list[dict[str, Any]],
+    limit: int,
+    started: float,
+    max_seconds: int,
+    direct_only: bool,
+) -> dict[str, Any]:
+    """Pubblica solo gli elementi letti dal canary che superano tutte le guardie."""
+
+    published: list[int] = []
+    published_items: list[dict[str, Any]] = []
+    skipped: list[dict[str, Any]] = []
+    verification_attempts = 0
+    verification_evidence_saved = 0
+    verification_attachments_saved = 0
+    stopped_for_time_limit = False
+    for item in items:
+        if len(published) >= max(1, int(limit or 1)):
+            break
+        if _time_exhausted(started, max_seconds):
+            stopped_for_time_limit = True
+            break
+        review_id = int(item.get("review_id") or 0)
+        if review_id <= 0:
+            _guarded_skip(item, skipped, review_id, "review assente per il documento letto")
+            continue
+        review = pipeline.repository.get_review_item(review_id) or {}
+        guard = _guarded_publication_precheck(pipeline, source, review, item)
+        if not guard["ok"]:
+            _mark_guarded_skip(pipeline, review_id, guard["reason"])
+            _guarded_skip(item, skipped, review_id, guard["reason"])
+            continue
+        try:
+            verification = verify_legal_update_against_public_sources(review, source, direct_only=direct_only)
+        except Exception as exc:
+            verification = {
+                "ok": False,
+                "reason": f"Verifica fonte non completata nel pilot guarded: {_truncate(exc, 180)}",
+                "confirmation_count": 0,
+                "official_confirmations": 0,
+                "confirmations": [],
+                "searched": {},
+            }
+        verification_attempts += 1
+        evidence = pipeline._record_verification_evidence(
+            review,
+            source,
+            verification,
+            status="verified" if verification.get("ok") else "insufficient",
+        )
+        verification_evidence_saved += int(evidence.get("saved") or 0)
+        verification_attachments_saved += int(evidence.get("attachments") or 0)
+        if not verification.get("ok"):
+            reason = _truncate(verification.get("reason") or "verifica fonte insufficiente", 220)
+            _mark_guarded_skip(pipeline, review_id, reason)
+            _guarded_skip(
+                item,
+                skipped,
+                review_id,
+                reason,
+                confirmations=int(verification.get("confirmation_count") or 0),
+                evidence_saved=int(evidence.get("saved") or 0),
+                attachments_saved=int(evidence.get("attachments") or 0),
+            )
+            continue
+        refreshed_review = pipeline.repository.get_review_item(review_id) or review
+        quality = pipeline.repository.web_evidence_quality_for_review(review_id, review=refreshed_review)
+        post_guard = _guarded_publication_quality_check(source, refreshed_review, item, quality)
+        if not post_guard["ok"]:
+            _mark_guarded_skip(pipeline, review_id, post_guard["reason"])
+            _guarded_skip(item, skipped, review_id, post_guard["reason"])
+            continue
+        if str(refreshed_review.get("status") or "").lower() != "approved":
+            pipeline.repository.set_review_status(
+                review_id,
+                "approved",
+                reviewer="pilot-guarded",
+                notes="Pilot guarded: guardie fonte, testo, allegati, duplicati e destinazione superate.",
+            )
+        try:
+            result = pipeline.publish_review(review_id, reviewer="pilot-guarded", verification=verification)
+        except Exception as exc:
+            reason = f"errore pubblicazione guarded: {_truncate(exc, 180)}"
+            _mark_guarded_skip(pipeline, review_id, reason)
+            _guarded_skip(item, skipped, review_id, reason)
+            continue
+        published.append(review_id)
+        published_items.append(
+            {
+                "id": review_id,
+                "title": _truncate(refreshed_review.get("title"), 180),
+                "source_code": source.get("code") or "",
+                "destination": _published_destination(result),
+                "quality": _quality_summary(quality),
+            }
+        )
+        item["guarded_publish"] = {
+            "published": True,
+            "review_id": review_id,
+            "destination": published_items[-1]["destination"],
+        }
+    if published:
+        pipeline.repository.deduplicate_archive(performed_by="pilot-guarded")
+    return {
+        "count": len(published),
+        "items": published,
+        "published_items": published_items,
+        "skipped": skipped,
+        "mode": "guarded",
+        "web_verification_attempts": verification_attempts,
+        "verification_evidence_saved": verification_evidence_saved,
+        "verification_attachments_saved": verification_attachments_saved,
+        "stopped_for_time_limit": stopped_for_time_limit,
+    }
+
+
+def _guarded_publication_precheck(
+    pipeline: Any,
+    source: dict[str, Any],
+    review: dict[str, Any],
+    item: dict[str, Any],
+) -> dict[str, Any]:
+    if not review:
+        return {"ok": False, "reason": "review non trovata"}
+    source_code = _clean_code(source.get("code"))
+    capability = get_source_capability(source_code, category=source.get("category"))
+    if not pipeline._is_trusted_update_source(source):
+        return {"ok": False, "reason": "fonte non ufficiale o trust insufficiente"}
+    if capability.publication_destination in {"rag_only", "out_of_scope"}:
+        return {"ok": False, "reason": "destinazione non pubblicabile: solo RAG o fuori perimetro"}
+    title = _clean(review.get("title"))
+    body_text = _clean(review.get("body_text") or review.get("body_short") or review.get("summary_long"))
+    quality = item.get("quality") if isinstance(item.get("quality"), dict) else {}
+    has_evidence_text = bool(quality.get("text_read") and int(quality.get("context_chars") or 0) >= 400)
+    if len(body_text) < 400 and not has_evidence_text:
+        return {"ok": False, "reason": "testo pagina non abbastanza leggibile per la pubblicazione"}
+    exclusion = source_exclusion_reason(
+        source,
+        title=title,
+        body_text=body_text,
+        url=review.get("source_url") or source.get("base_url"),
+        has_structured_reference=pipeline._has_structured_reference(review),
+    )
+    if exclusion:
+        return {"ok": False, "reason": exclusion}
+    if pipeline._is_non_actionable_source_metadata(source, review, review):
+        return {"ok": False, "reason": "filtro interesse studio legale non positivo"}
+    proposed_action, resolved_review = pipeline._resolve_publish_action(review)
+    canonical_destination = capability.to_dict().get("destination")
+    if canonical_destination == "prassi" and proposed_action in {"NEW_NORMATIVE", "UPDATE_NORMATIVE"}:
+        downgraded = pipeline.repository.set_review_proposed_action(
+            int(review["id"]),
+            "NEWS_ONLY",
+            target_entity_type="",
+            target_entity_id=None,
+            reviewer="pilot-guarded",
+            notes=(
+                "Pilot guarded: fonte di prassi con chiave normativa non coerente; "
+                "pubblicazione limitata a notizia verificata."
+            ),
+        )
+        if downgraded:
+            proposed_action, resolved_review = pipeline._resolve_publish_action(downgraded)
+    if proposed_action in {"DUPLICATE", "OUT_OF_SCOPE"}:
+        return {"ok": False, "reason": f"azione non pubblicabile: {proposed_action.lower()}"}
+    if proposed_action not in {"NEWS_ONLY", "NEW_NORMATIVE", "UPDATE_NORMATIVE", "NEW_CASE_LAW", "NEW_PRASSI"}:
+        return {"ok": False, "reason": "destinazione di pubblicazione non risolta"}
+    duplicate = pipeline.repository.find_published_duplicate(
+        source=source,
+        normalized={
+            "title": resolved_review.get("title"),
+            "source_url": resolved_review.get("source_url"),
+            "published_at": resolved_review.get("published_at"),
+            "document_date": resolved_review.get("document_date"),
+            "issuer": resolved_review.get("issuer"),
+        },
+        analysis={
+            "classification_type": resolved_review.get("classification_type"),
+            "issuer": resolved_review.get("analysis_issuer") or resolved_review.get("issuer"),
+            "norm_type": resolved_review.get("norm_type"),
+            "norm_number": resolved_review.get("norm_number"),
+            "norm_year": resolved_review.get("norm_year"),
+            "decision_number": resolved_review.get("decision_number"),
+            "decision_year": resolved_review.get("decision_year"),
+            "court_name": resolved_review.get("court_name"),
+            "effective_date": resolved_review.get("effective_date"),
+        },
+    )
+    if duplicate:
+        return {"ok": False, "reason": "duplicato già pubblicato"}
+    visible_fields = (
+        ("title", "summary_short", "what_changes")
+        if proposed_action == "NEWS_ONLY"
+        else ("title", "summary_short", "summary_long", "what_changes")
+    )
+    visible_text = _clean(" ".join(_clean(resolved_review.get(field)) for field in visible_fields))
+    if _looks_like_raw_technical_text(title) or _looks_like_raw_technical_text(visible_text):
+        return {"ok": False, "reason": "testo tecnico grezzo non pubblicabile in UI"}
+    if proposed_action != "NEWS_ONLY" and _looks_like_raw_technical_text(body_text):
+        return {"ok": False, "reason": "testo tecnico grezzo non pubblicabile in UI"}
+    if int(item.get("question_count") or 0) <= 0:
+        return {"ok": False, "reason": "domande contestuali non salvate"}
+    if int(item.get("reference_count") or 0) <= 0:
+        return {"ok": False, "reason": "riferimenti normativi o identificativi non salvati"}
+    return {"ok": True, "reason": ""}
+
+
+def _guarded_publication_quality_check(
+    source: dict[str, Any],
+    review: dict[str, Any],
+    item: dict[str, Any],
+    quality: dict[str, Any],
+) -> dict[str, Any]:
+    capability = get_source_capability(source.get("code"), category=source.get("category"))
+    if not quality.get("ready"):
+        return {"ok": False, "reason": "diagnosi fonte/PDF/OCR non pronta"}
+    if not quality.get("text_read"):
+        return {"ok": False, "reason": "testo leggibile non disponibile"}
+    if capability.pdf_required and not quality.get("pdf_found"):
+        return {"ok": False, "reason": "PDF ufficiale richiesto ma non disponibile"}
+    if quality.get("pdf_found") and not quality.get("pdf_text_ready"):
+        return {"ok": False, "reason": "PDF presente ma testo/OCR non disponibile"}
+    if quality.get("attachment_found") and not quality.get("hash_ready"):
+        return {"ok": False, "reason": "hash allegato non salvato"}
+    if not quality.get("pdf_clickable"):
+        return {"ok": False, "reason": "allegato PDF non cliccabile"}
+    if not list(quality.get("question_matrix") or []):
+        return {"ok": False, "reason": "domande contestuali mancanti nella qualità fonte"}
+    if int(item.get("reference_count") or 0) > 0 and not (
+        list(quality.get("norm_references") or []) or list(quality.get("rg_references") or [])
+    ):
+        return {"ok": False, "reason": "riferimenti non ritrovati nella diagnosi fonte"}
+    return {"ok": True, "reason": ""}
+
+
+def _looks_like_raw_technical_text(value: Any) -> bool:
+    text = _clean(value).lower()
+    if not text:
+        return False
+    technical_markers = (
+        "```",
+        "{",
+        "}",
+        "<script",
+        "<html",
+        "payload",
+        "json_api",
+        "backend",
+        "frontend",
+        "provider",
+        "webhook",
+        "runtime",
+    )
+    if any(marker in text for marker in technical_markers):
+        braces = text.count("{") + text.count("}")
+        return braces >= 2 or any(marker not in {"{", "}"} for marker in technical_markers if marker in text)
+    padded = f" {text} "
+    if " undefined " in padded or " null " in padded:
+        return True
+    return False
+
+
+def _mark_guarded_skip(pipeline: Any, review_id: int, reason: str) -> None:
+    try:
+        pipeline.repository.set_review_status(
+            int(review_id),
+            "pending",
+            reviewer="pilot-guarded",
+            notes=f"Pilot guarded non pubblicato: {_truncate(reason, 220)}",
+            priority=10,
+        )
+    except Exception:
+        return
+
+
+def _guarded_skip(
+    item: dict[str, Any],
+    skipped: list[dict[str, Any]],
+    review_id: int,
+    reason: str,
+    **extra: Any,
+) -> None:
+    payload = {
+        "id": int(review_id or 0) or None,
+        "title": _truncate(item.get("title"), 180),
+        "reason": _truncate(reason, 220),
+    }
+    payload.update(extra)
+    skipped.append(payload)
+    item["guarded_publish"] = {"published": False, "reason": payload["reason"], "review_id": payload["id"]}
+
+
+def _published_destination(result: dict[str, Any]) -> str:
+    for key in ("jurisprudence", "prassi", "normative", "news"):
+        if key in result:
+            return key
+    return "pubblicato"
 
 
 def _backfill_evidence_enrichment(

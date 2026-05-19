@@ -350,6 +350,7 @@ def test_cli_canary_e_backfill_supportano_json_e_limiti(monkeypatch):
         assert kwargs["source_code"] == "normattiva"
         assert kwargs["limit"] == 1
         assert kwargs["no_publish"] is True
+        assert kwargs["publish_mode"] == "off"
         return {"ok": True, "source_code": "normattiva", "processed": 0, "documents_found": 0, "no_publish": True, "errors": []}
 
     def fake_backfill(**kwargs):
@@ -364,7 +365,7 @@ def test_cli_canary_e_backfill_supportano_json_e_limiti(monkeypatch):
 
     canary = runner.invoke(
         cli,
-        ["legal-updates-canary", "--source", "normattiva", "--limit", "1", "--no-publish", "--json"],
+        ["legal-updates-canary", "--source", "normattiva", "--limit", "1", "--no-publish", "--publish-mode", "off", "--json"],
     )
     backfill = runner.invoke(
         cli,

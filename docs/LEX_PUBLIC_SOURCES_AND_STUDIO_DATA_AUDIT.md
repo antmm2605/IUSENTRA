@@ -2,6 +2,12 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.245.45 - 2026-05-19
+
+Completato il primo pilot di pubblicazione `guarded` su tre sole fonti verdi: `cassazione_ultime_sent_ord_questioni`, `inps_circolari` e `agcom_provvedimenti`. Sono stati pubblicati 9 documenti verificati, con testo leggibile, PDF/OCR o allegati gestiti, riferimenti e domande contestuali. Nessun import massivo, nessuno scheduler globale e nessuna fonte gialla/rossa sono stati attivati.
+
+La verifica post-pilot conferma che i contenuti appaiono nell'archivio admin, sono ricercabili da Ricerca Legale, sono interrogabili da Lex e premiano il PDF o l'allegato quando la domanda lo richiede. Le schede Cassazione pubblicate come news sono pronte per RAG/Archivio Giurisprudenza ma non vengono inserite come giurisprudenza strutturata se mancano corte, numero o anno. Le circolari INPS non vengono pubblicate come normativa quando la chiave estratta descrive la circolare e non un atto normativo.
+
 ## Aggiornamento operativo 2.245.44 - 2026-05-19
 
 La Fase 3 post-canary ha corretto solo le fonti gialle del report precedente:

@@ -2,6 +2,12 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.245.60 - 2026-05-19
+
+Fase 3 `Lex Studio Reasoner`: il payload operativo restituito alla chat Lex porta in primo piano `studio_reasoner`, `entity_map`, `fascicolo_timeline` e `operational_links`. I link sono deduplicati e derivano da oggetti/sorgenti interne autorizzate: fascicoli, documenti in editor, comunicazioni PEC/email e allegati.
+
+Gate fase 3 aggiunto: test bounded HTTP con risposta fascicolo/documento che verifica reasoner mode `llm_rag_governato`, mappa entità, timeline, link editor e conteggi evidenza. Restano esclusi Web libero, fonti legali pubbliche e vecchi aggregatori CI.
+
 ## Aggiornamento operativo 2.245.59 - 2026-05-19
 
 Fase 2 `Lex Studio Reasoner`: aggiunte mappa entità, timeline fascicolo e link apribili generati dalle sorgenti operative. Il report `studio_reasoner` include nodi/relazioni e timeline costruiti dai soli risultati autorizzati; i link puntano a route interne per fascicolo, documento editor, PEC/email e allegati. Non sono esposti path locali, storage o allegati fuori tenant.

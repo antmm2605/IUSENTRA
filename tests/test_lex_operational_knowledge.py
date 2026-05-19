@@ -1397,6 +1397,134 @@ def test_http_bridge_routes_pec_lookup_to_operational_layer(monkeypatch):
     assert payload["answer"] == "Ultima PEC trovata: Esito deposito."
 
 
+def test_bounded_chat_payload_exposes_studio_reasoner_links_map_and_timeline(monkeypatch):
+    monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
+    from lex.http_bounded_bridge import build_bounded_http_payload
+    from lex.operational_knowledge.models import (
+        OperationalAnswer,
+        OperationalObjectReference,
+        OperationalRoute,
+        OperationalSourceReference,
+    )
+    from lex.research.request_profile import classify_request
+
+    reasoner_report = {
+        "name": "Lex Studio Reasoner",
+        "mode": "llm_rag_governato",
+        "entity_map": {
+            "nodes": [
+                {
+                    "type": "fascicolo",
+                    "id": "fas-1",
+                    "label": "RG 10/2026",
+                    "source_id": "fascicoli",
+                    "action_url": "/fascicoli/fas-1",
+                },
+                {
+                    "type": "documento",
+                    "id": "doc-1",
+                    "label": "ricorso.pdf",
+                    "source_id": "documenti_fascicolo",
+                    "action_url": "/fascicoli/fas-1/documenti/doc-1/editor",
+                },
+            ],
+            "relations": [{"from": "fascicolo:fas-1", "to": "documento:doc-1", "label": "contiene"}],
+        },
+        "fascicolo_timeline": [
+            {
+                "date": "2026-05-10",
+                "type": "documento",
+                "source_id": "documenti_fascicolo",
+                "object_id": "doc-1",
+                "label": "ricorso.pdf",
+                "action_url": "/fascicoli/fas-1/documenti/doc-1/editor",
+                "fascicolo_id": "fas-1",
+            }
+        ],
+        "rag_policy": {
+            "tenant_aware": True,
+            "internal_sources_only": True,
+            "excludes_public_legal_sources": True,
+            "no_legacy_aggregator": True,
+            "no_raw_prompt_context": True,
+        },
+    }
+
+    class _FakeOperationalKnowledgeService:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def answer(self, **kwargs):
+            assert kwargs["metadata"]["fascicolo_id"] == "fas-1"
+            return OperationalAnswer(
+                handled=True,
+                answer="Documenti del fascicolo: [ricorso.pdf](/fascicoli/fas-1/documenti/doc-1/editor).",
+                route=OperationalRoute("documenti_fascicolo", "documenti_fascicolo", ("fascicoli", "documenti_fascicolo"), ""),
+                sources=[
+                    OperationalSourceReference(
+                        source_id="documenti_fascicolo",
+                        source_name="Documenti fascicolo",
+                        source_type="studio",
+                        object_type="documento",
+                        object_id="doc-1",
+                        title="ricorso.pdf",
+                        confidence=0.91,
+                        metadata={"action_url": "/fascicoli/fas-1/documenti/doc-1/editor"},
+                    )
+                ],
+                objects=[
+                    OperationalObjectReference(
+                        object_type="fascicolo",
+                        object_id="fas-1",
+                        label="Apri fascicolo",
+                        source_id="fascicoli",
+                        action_url="/fascicoli/fas-1",
+                    ),
+                    OperationalObjectReference(
+                        object_type="documento",
+                        object_id="doc-1",
+                        label="Apri ricorso.pdf",
+                        source_id="documenti_fascicolo",
+                        action_url="/fascicoli/fas-1/documenti/doc-1/editor",
+                    ),
+                ],
+                confidence=0.91,
+                metadata={
+                    "operational_layer": True,
+                    "studio_reasoner": reasoner_report,
+                    "reasoner_mode": "llm_rag_governato",
+                    "rag_governato": True,
+                },
+            )
+
+    monkeypatch.setattr("lex.operational_knowledge.integration.OperationalKnowledgeService", _FakeOperationalKnowledgeService)
+
+    question = "Analizza i documenti presenti nel fascicolo"
+    profile = classify_request(question)
+    payload = build_bounded_http_payload(
+        user=_User(_all_permissions()),
+        studio=SimpleNamespace(slug="tenant-a"),
+        data={"messages": [], "fascicolo_id": "fas-1"},
+        current_user_message=question,
+        resolved_effective_question=question,
+        studio_context={"focus_topic": "fascicoli", "request_profile": profile.to_dict()},
+        attachments=[],
+    )
+
+    assert payload is not None
+    assert payload["workflow"] == "operational_knowledge"
+    assert payload["studio_reasoner"]["mode"] == "llm_rag_governato"
+    assert payload["rag_governato"] is True
+    assert payload["reasoner_mode"] == "llm_rag_governato"
+    assert payload["entity_map"]["nodes"][1]["action_url"].endswith("/documenti/doc-1/editor")
+    assert payload["fascicolo_timeline"][0]["object_id"] == "doc-1"
+    assert any(link["url"] == "/fascicoli/fas-1/documenti/doc-1/editor" for link in payload["operational_links"])
+    assert payload["evidence_summary"]["studio_reasoner"] is True
+    assert payload["evidence_summary"]["operational_link_count"] == 2
+    assert payload["evidence_summary"]["entity_count"] == 2
+    assert payload["evidence_summary"]["timeline_event_count"] == 1
+
+
 def test_http_bridge_routes_ultima_pec_ricevuta_to_operational_layer_without_draft(monkeypatch):
     monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
     from lex.http_bounded_bridge import build_bounded_http_payload

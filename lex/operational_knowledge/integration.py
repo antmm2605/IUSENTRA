@@ -257,6 +257,10 @@ def operational_answer_to_http_payload(
     studio_context = dict(studio_context or {})
     sources = [_source_row(source) for source in answer.sources]
     citations = [source.label() for source in answer.sources if clean_spaces(source.label())]
+    studio_reasoner = dict((answer.metadata or {}).get("studio_reasoner") or {})
+    entity_map = dict(studio_reasoner.get("entity_map") or {})
+    fascicolo_timeline = list(studio_reasoner.get("fascicolo_timeline") or [])
+    operational_links = _operational_links(answer, sources)
     payload = direct_answer_payload(
         current_user_message,
         answer.answer,
@@ -293,15 +297,25 @@ def operational_answer_to_http_payload(
             "missing_evidence": list(answer.coverage_gaps or []),
             "coverage_gaps": list(answer.coverage_gaps or []),
             "operational_objects": [obj.to_dict() for obj in answer.objects],
+            "operational_links": operational_links,
+            "studio_reasoner": studio_reasoner,
+            "reasoner_mode": clean_spaces((answer.metadata or {}).get("reasoner_mode")),
+            "rag_governato": bool((answer.metadata or {}).get("rag_governato")),
+            "entity_map": entity_map,
+            "fascicolo_timeline": fascicolo_timeline,
             "permissions_applied": list(answer.permissions_applied or []),
             "fallback_triggered": False,
             "audit_event_id": answer.audit_event_id,
             "evidence_summary": {
                 "evidence_count": len(answer.sources),
                 "object_count": len(answer.objects),
+                "operational_link_count": len(operational_links),
+                "entity_count": len(list(entity_map.get("nodes") or [])),
+                "timeline_event_count": len(fascicolo_timeline),
                 "coverage_gap_count": len(answer.coverage_gaps),
                 "evidence_sufficient": confidence >= 0.55 and not answer.blocked_reason,
                 "operational_knowledge": True,
+                "studio_reasoner": bool(studio_reasoner),
             },
             "metadata": answer.metadata,
         }
@@ -325,6 +339,44 @@ def _source_row(source) -> dict[str, Any]:
         "retrieved_at": source.retrieved_at,
         "permission_applied": source.permission_applied,
     }
+
+
+def _operational_links(answer: OperationalAnswer, sources: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    links: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def add_link(*, label: str, url: str, object_type: str = "", object_id: str = "", source_id: str = "") -> None:
+        clean_url = clean_spaces(url)
+        if not clean_url or clean_url in seen:
+            return
+        seen.add(clean_url)
+        links.append(
+            {
+                "label": clean_spaces(label) or clean_url,
+                "url": clean_url,
+                "object_type": clean_spaces(object_type),
+                "object_id": clean_spaces(object_id),
+                "source_id": clean_spaces(source_id),
+            }
+        )
+
+    for obj in list(answer.objects or []):
+        add_link(
+            label=obj.label,
+            url=obj.action_url,
+            object_type=obj.object_type,
+            object_id=obj.object_id,
+            source_id=obj.source_id,
+        )
+    for source in sources:
+        add_link(
+            label=source.get("title") or source.get("excerpt") or source.get("id"),
+            url=source.get("action_url"),
+            object_type=source.get("object_type"),
+            object_id=source.get("object_id"),
+            source_id=source.get("source_id"),
+        )
+    return links[:60]
 
 
 def _tenant_id(studio: Any, metadata: dict[str, Any]) -> str:

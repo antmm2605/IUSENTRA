@@ -7,6 +7,12 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.60 - 2026-05-19
+
+- Collegato il `Lex Studio Reasoner` al payload chat bounded: le risposte operative espongono ora `studio_reasoner`, `entity_map`, `fascicolo_timeline`, `rag_governato` e `reasoner_mode` anche al bridge HTTP usato dalla chat Lex.
+- Aggiunta la lista `operational_links` deduplicata per aprire direttamente fascicoli, documenti in editor professionale, PEC/email e allegati dai risultati interni autorizzati.
+- Esteso il riepilogo evidenze con conteggi di link, entità e timeline; aggiunto test end-to-end sul bridge bounded per preservare LLM + RAG governato + ragionatore studio senza aggregatori legacy.
+
 ## 2.245.59 - 2026-05-19
 
 - Estesa la tranche `Lex Studio Reasoner` con mappa entità e timeline fascicolo nei metadata `studio_reasoner`, costruite solo dai risultati operativi autorizzati.

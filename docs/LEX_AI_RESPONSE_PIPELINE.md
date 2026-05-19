@@ -7,6 +7,12 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.245.60 - 19 maggio 2026
+
+Terza fase della tranche `Lex Studio Reasoner`: il bridge HTTP bounded espone al widget Lex il report governato `studio_reasoner`, la `entity_map`, la `fascicolo_timeline`, `rag_governato`, `reasoner_mode` e i collegamenti `operational_links`. La chat può quindi aprire fascicolo, documento in editor professionale, PEC/email e allegati usando route applicative già autorizzate.
+
+Il riepilogo evidenze indica anche conteggi di link operativi, entità e timeline. Il comportamento resta separato dal Web libero e dalle fonti legali pubbliche: nessun aggregatore legacy viene reintrodotto e il reasoning studio continua a verificare solo sorgenti interne tenant-aware.
+
 ## Aggiornamento operativo 2.245.59 - 19 maggio 2026
 
 Seconda fase della tranche `Lex Studio Reasoner`: il report `studio_reasoner` include ora `entity_map` e `fascicolo_timeline`. La mappa collega clienti, fascicoli, soggetti/parti, documenti, scadenze, agenda, PEC/email e dati economici solo quando emergono dai risultati interni autorizzati. La timeline usa le date già presenti nei record del fascicolo, senza inferire eventi non registrati.

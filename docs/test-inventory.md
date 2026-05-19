@@ -185,7 +185,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Security | tests/test_gazzetta_connector.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Security | tests/test_healthcheck.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Security | tests/test_legal_intelligence_repository.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| Backend domain | Security | tests/test_legal_update_safe_diagnostics.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Security | tests/test_legal_update_safe_diagnostics.py | file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Security | tests/test_legal_update_source_capabilities.py | contratto, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Security | tests/test_legal_update_source_parsers.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Security | tests/test_legal_update_web_verification_attachments.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import os
 import sys
+from types import SimpleNamespace
 
 import pytest
 
@@ -249,6 +250,245 @@ def test_gateway_web_libero_parte_solo_con_modalita_libera(monkeypatch):
 # ---------------------------------------------------------------------------
 # CASO 11: Allegato non indicizzato → risposta indicazione
 # ---------------------------------------------------------------------------
+
+def test_gateway_pratica_professionale_naviga_siti_per_avvocati_senza_farne_fonte_vincolante(monkeypatch):
+    from lex.research.public_legal_research_gateway import run_public_legal_research
+    from lex.research.privacy_safe_query_rewriter import rewrite_query_for_legal_research
+
+    captured: dict[str, str] = {}
+
+    def _fake_professional_web(query, limit_results=8):
+        captured["query"] = query
+        return [
+            {
+                "id": "studio-1",
+                "title": "Nota operativa di studio legale sulla mediazione",
+                "url": "https://www.studiolegale-esempio.it/mediazione-prassi",
+                "source_name": "Studio legale esempio",
+                "excerpt": "Commento pratico non vincolante destinato ad avvocati.",
+                "trust_score": 0.77,
+                "verified_reference": True,
+            }
+        ]
+
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._search_free_web", _fake_professional_web)
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._FREE_WEB_AVAILABLE", True)
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._OFFICIAL_RETRIEVAL_AVAILABLE", False)
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._WEB_AVAILABLE", False)
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._LDR_AVAILABLE", False)
+
+    query = rewrite_query_for_legal_research("mediazione obbligatoria condominio")
+    result = run_public_legal_research(query, source_mode="pratica_professionale", max_results=4)
+    pack = result.to_evidence_pack_dict()
+
+    assert result.professional_practice_used is True
+    assert "studio legale" in captured["query"].lower()
+    assert result.sources
+    assert result.sources[0].source_type == "knowhow_professionale"
+    assert result.sources[0].official is False
+    assert result.sources[0].trust_score <= 0.58
+    assert result.official_sources == []
+    assert pack["evidence_sufficient"] is False
+    assert pack["evidence_pack"]["metadata"]["professional_practice_non_binding"] is True
+    assert pack["evidence_pack"]["metadata"]["professional_practice_can_contradict_lawyer"] is False
+    assert "spunti di prassi" in " ".join(result.next_actions)
+
+
+def test_gateway_pratica_professionale_scarta_risultati_vuoti(monkeypatch):
+    from lex.research.public_legal_research_gateway import run_public_legal_research
+    from lex.research.privacy_safe_query_rewriter import rewrite_query_for_legal_research
+
+    monkeypatch.setattr(
+        "lex.research.public_legal_research_gateway._search_official",
+        lambda query: [{"id": "empty-official"}],
+    )
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._search_free_web", lambda query, limit_results=8: [])
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._FREE_WEB_AVAILABLE", True)
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._OFFICIAL_RETRIEVAL_AVAILABLE", True)
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._WEB_AVAILABLE", False)
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._LDR_AVAILABLE", False)
+
+    query = rewrite_query_for_legal_research("opposizione decreto ingiuntivo")
+    result = run_public_legal_research(query, source_mode="pratica_professionale", max_results=4)
+
+    assert result.professional_practice_used is True
+    assert result.sources == []
+    assert result.missing_evidence
+    assert all(source.title != "Fonte senza titolo" for source in result.sources)
+
+
+def test_gateway_pratica_professionale_alimenta_rag_lex_senza_promozione_a_fonte(monkeypatch):
+    from lex.retrieval.legal_research_integrator import (
+        merge_public_research_into_evidence,
+        run_public_research_for_request,
+    )
+
+    def _fake_professional_web(query, limit_results=8):
+        return [
+            {
+                "id": "practice-1",
+                "title": "Opposizione a decreto ingiuntivo e mediazione",
+                "url": "https://www.studiolegale-esempio.it/opposizione-mediazione",
+                "source_name": "Studio legale esempio",
+                "excerpt": "La prassi segnala di distinguere termini di opposizione, avvio mediazione e fase monitoria.",
+                "trust_score": 0.72,
+                "verified_reference": True,
+            }
+        ]
+
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._search_free_web", _fake_professional_web)
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._FREE_WEB_AVAILABLE", True)
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._OFFICIAL_RETRIEVAL_AVAILABLE", False)
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._WEB_AVAILABLE", False)
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._LDR_AVAILABLE", False)
+
+    public = run_public_research_for_request(
+        SimpleNamespace(
+            query="mediazione obbligatoria condominio opposizione decreto ingiuntivo",
+            fascicolo_id="",
+            metadata={"source_mode": "pratica_professionale"},
+        ),
+        {},
+        "prassi",
+        source_mode="pratica_professionale",
+        max_results=3,
+    )
+    merged = merge_public_research_into_evidence(
+        {"items": [], "trusted_sources": [], "evidence_pack": {"sufficient": False, "metadata": {}}},
+        public,
+    )
+    metadata = merged["evidence_pack"]["metadata"]
+
+    assert public["professional_practice_used"] is True
+    assert merged["items"][0]["source_type"] == "knowhow_professionale"
+    assert merged["items"][0]["verified_reference"] is False
+    assert merged["evidence_pack"]["sufficient"] is False
+    assert merged.get("evidence_sufficient") is not True
+    assert merged["trusted_sources"] == []
+    assert merged["professional_practice_sources"][0]["url"].startswith("https://")
+    assert metadata["professional_practice_non_binding"] is True
+    assert metadata["professional_practice_can_contradict_lawyer"] is False
+    assert metadata["professional_practice_source_count"] == 1
+    assert "fonte ufficiale" in " ".join(metadata["professional_practice_usage_rules"]).lower()
+
+
+def test_audit_pratica_web_rag_conversazione_avvocato_raggiunge_99_percento(monkeypatch):
+    from lex.contracts import ProviderDraft
+    from lex.guards.legal_answer_quality_guard import LegalAnswerQualityGuard
+    from lex.retrieval.legal_research_integrator import (
+        merge_public_research_into_evidence,
+        run_public_research_for_request,
+    )
+
+    topics = [
+        "opposizione decreto ingiuntivo e mediazione",
+        "termini opposizione a decreto ingiuntivo",
+        "condominio e mediazione obbligatoria",
+        "atto di citazione in opposizione",
+        "istanza di sospensione provvisoria esecuzione",
+        "pignoramento presso terzi",
+        "precetto e notifica PEC",
+        "diffida ad adempiere",
+        "transazione stragiudiziale",
+        "recupero credito professionale",
+        "responsabilità medica",
+        "licenziamento disciplinare",
+        "locazione morosità",
+        "separazione consensuale",
+        "affidamento minori",
+        "successione ereditaria",
+        "divisione immobiliare",
+        "amministratore di condominio",
+        "sinistro stradale",
+        "querela e remissione",
+        "appello civile",
+        "ricorso per cassazione civile",
+        "memoria conclusionale",
+        "note scritte udienza",
+        "decreto ingiuntivo telematico",
+    ]
+    prompts = [
+        f"{topic}: parliamone come colleghi e dammi spunti operativi"
+        for topic in topics
+        for _ in range(4)
+    ]
+    captured_queries: list[str] = []
+
+    def _fake_professional_web(query, limit_results=8):
+        captured_queries.append(query)
+        topic = query.split(" prassi ", 1)[0]
+        slug = "-".join(topic.lower().split()[:6])
+        return [
+            {
+                "id": f"practice-{len(captured_queries)}",
+                "title": f"Nota pratica per avvocati: {topic}",
+                "url": f"https://www.studiolegale-esempio.it/{slug}",
+                "source_name": "Studio legale esempio",
+                "excerpt": (
+                    f"Per {topic} la traccia operativa distingue presupposti, termini, documenti, "
+                    "rischi processuali e possibile prossima azione."
+                ),
+                "trust_score": 0.74,
+                "verified_reference": True,
+            }
+        ]
+
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._search_free_web", _fake_professional_web)
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._FREE_WEB_AVAILABLE", True)
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._OFFICIAL_RETRIEVAL_AVAILABLE", False)
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._WEB_AVAILABLE", False)
+    monkeypatch.setattr("lex.research.public_legal_research_gateway._LDR_AVAILABLE", False)
+
+    guard = LegalAnswerQualityGuard()
+    successes = 0
+    failures: list[str] = []
+
+    for prompt in prompts:
+        public = run_public_research_for_request(
+            SimpleNamespace(query=prompt, fascicolo_id="", metadata={"source_mode": "pratica_professionale"}),
+            {},
+            "prassi",
+            source_mode="pratica_professionale",
+            max_results=3,
+        )
+        merged = merge_public_research_into_evidence(
+            {"items": [], "trusted_sources": [], "evidence_pack": {"sufficient": False, "metadata": {}}},
+            public,
+        )
+        items = list(merged.get("items") or [])
+        metadata = dict((merged.get("evidence_pack") or {}).get("metadata") or {})
+        source = items[0] if items else {}
+        answer = (
+            "Avvocato, come confronto tra colleghi userei questa acquisizione solo come prassi non vincolante. "
+            f"Dal materiale acquisito emerge: {source.get('content', '')} "
+            f"Fonti professionali: {source.get('title', '')} ({source.get('official_url', '')}). "
+            "Limite: non è una fonte ufficiale e non la uso per contraddirla; per affermare il diritto serve fonte primaria."
+        )
+        verdict = guard.check(workflow="prassi", draft=ProviderDraft(text=answer), evidence=merged)
+        checks = [
+            bool(public.get("professional_practice_used")),
+            bool(items),
+            source.get("source_type") == "knowhow_professionale",
+            source.get("verified_reference") is False,
+            bool(source.get("content")),
+            metadata.get("professional_practice_non_binding") is True,
+            metadata.get("professional_practice_can_contradict_lawyer") is False,
+            merged.get("trusted_sources") == [],
+            (merged.get("evidence_pack") or {}).get("sufficient") is False,
+            verdict.allowed is True,
+            "fonte primaria" in answer.lower(),
+        ]
+        if all(checks):
+            successes += 1
+        else:
+            failures.append(prompt)
+
+    score = successes / len(prompts)
+
+    assert captured_queries
+    assert all("studio legale" in query.lower() for query in captured_queries)
+    assert score >= 0.99, f"Audit web/RAG sotto soglia: {score:.2%}; failure={failures[:5]}"
+
 
 def test_caso_11_documento_non_indicizzato():
     """Documento non indicizzato → risposta needs_review con next_actions."""

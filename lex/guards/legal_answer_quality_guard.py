@@ -11,6 +11,7 @@ Blocca:
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from lex.contracts import GuardVerdict
@@ -20,6 +21,22 @@ LEGAL_WORKFLOWS = {"normativa", "giurisprudenza", "prassi", "research", "fonti",
 
 DRAFTING_WORKFLOWS = {
     "drafting_legal_letter", "lettera", "bozza_lettera", "atto", "bozza_atto", "pec_comunicazioni",
+}
+
+STUDIO_WORKFLOWS = {
+    "studio_data_lookup",
+    "client_situation",
+    "client_fascicoli",
+    "soggetti_lookup",
+    "communications_lookup",
+    "deadlines_overview",
+    "agenda_overview",
+    "fascicolo_summary",
+    "build_case_timeline",
+    "documenti_fascicolo",
+    "billing_summary",
+    "client_economic_summary",
+    "draft_communication",
 }
 
 # Formule generiche vietate
@@ -74,6 +91,19 @@ CHATBOT_MARKERS = (
     "se hai bisogno di ulteriori informazioni",
 )
 
+# Lex può correggere l'avvocato solo con fonte primaria verificata quasi certa.
+CONTRADICTION_MARKERS = (
+    "ti sbagli",
+    "hai torto",
+    "non e' corretto quanto dici",
+    "non è corretto quanto dici",
+    "non e' vero",
+    "non è vero",
+    "l'avvocato sbaglia",
+    "contrariamente a quanto affermi",
+    "contrariamente a quanto indicato dall'avvocato",
+)
+
 # Pattern JSON/codice indesiderato in risposta non tecnica
 JSON_MARKERS = (
     '{"risposta"',
@@ -87,6 +117,7 @@ JSON_MARKERS = (
 
 SOURCE_MARKERS = ("fonte", "fonti", "evidenz", "norma", "sentenza", "art.", "articolo")
 LIMIT_MARKERS = ("limiti", "verific", "non determinabile", "non disponibile", "da controllare")
+RAW_VISIBLE_DATE_RE = re.compile(r"\b(?:19|20)\d{2}-\d{2}-\d{2}(?:(?:T|\s)\d{2}:\d{2}(?::\d{2})?)?\b")
 
 # Frammenti inglesi che NON devono comparire in risposte legali
 ENGLISH_LEGAL_FRAGMENTS = (
@@ -126,6 +157,46 @@ def _source_titles(evidence: Any) -> list[str]:
         if title:
             titles.append(title)
     return titles
+
+
+def _item_confidence(item: Any) -> float:
+    values = []
+    for key in ("confidence", "score", "trust_score"):
+        value = item.get(key) if isinstance(item, dict) else getattr(item, key, None)
+        try:
+            values.append(float(value or 0.0))
+        except (TypeError, ValueError):
+            continue
+    return max(values or [0.0])
+
+
+def _item_verified_primary(item: Any) -> bool:
+    if isinstance(item, dict):
+        source_level = item.get("source_level")
+        verified = bool(item.get("verified_reference") or item.get("official_url"))
+        source_type = str(item.get("source_type") or item.get("type") or "").lower()
+    else:
+        source_level = getattr(item, "source_level", None)
+        verified = bool(getattr(item, "verified_reference", False) or getattr(item, "official_url", None))
+        source_type = str(getattr(item, "source_type", "") or "").lower()
+    try:
+        primary_level = int(source_level if source_level is not None else 9) <= 1
+    except (TypeError, ValueError):
+        primary_level = False
+    primary_type = any(token in source_type for token in ("normativa", "giurisprudenza", "fonte_ufficiale", "official"))
+    return verified and (primary_level or primary_type)
+
+
+def _has_contradiction_grade_source(evidence: Any) -> bool:
+    if isinstance(evidence, dict):
+        pack = dict(evidence.get("evidence_pack") or {})
+        try:
+            trust = float(pack.get("aggregate_trust_score") or 0.0)
+        except (TypeError, ValueError):
+            trust = 0.0
+        if trust >= 0.99 and (evidence.get("official_sources") or pack.get("official_sources")):
+            return True
+    return any(_item_verified_primary(item) and _item_confidence(item) >= 0.99 for item in _evidence_items(evidence))
 
 
 class LegalAnswerQualityGuard:
@@ -173,7 +244,32 @@ class LegalAnswerQualityGuard:
                 risk_level="medium",
             )
 
-        # 3. Blocco JSON non richiesto (solo per workflow non tecnici)
+        # 3. Blocco contraddizione verso l'avvocato senza fonte quasi certa.
+        contradiction_hits = [m for m in CONTRADICTION_MARKERS if m in normalized]
+        if contradiction_hits and not _has_contradiction_grade_source(evidence):
+            warnings.append("La risposta contraddice l'avvocato senza fonte primaria verificata al 99%.")
+            reasons.append("Contraddizione non consentita senza riscontro ufficiale quasi certo.")
+            _mark_draft(draft, warnings)
+            return GuardVerdict(
+                allowed=False,
+                warnings=warnings,
+                reasons=reasons,
+                risk_level="high",
+            )
+
+        # 4. Date visibili: Lex deve usare formato italiano nelle risposte professionali.
+        if workflow in LEGAL_WORKFLOWS | DRAFTING_WORKFLOWS | STUDIO_WORKFLOWS and RAW_VISIBLE_DATE_RE.search(text):
+            warnings.append("La risposta contiene date tecniche non adatte al linguaggio professionale italiano.")
+            reasons.append("Le date visibili devono usare il formato 'giorno mese anno' in italiano.")
+            _mark_draft(draft, warnings)
+            return GuardVerdict(
+                allowed=False,
+                warnings=warnings,
+                reasons=reasons,
+                risk_level="medium",
+            )
+
+        # 5. Blocco JSON non richiesto (solo per workflow non tecnici)
         if workflow not in {"documento_editor", "document_editor"}:
             json_hits = [m for m in JSON_MARKERS if m in text[:200]]
             if json_hits:
@@ -187,7 +283,7 @@ class LegalAnswerQualityGuard:
                     risk_level="medium",
                 )
 
-        # 4. Blocco inglese in workflow di redazione
+        # 6. Blocco inglese in workflow di redazione
         if workflow in DRAFTING_WORKFLOWS:
             english_hits = [m for m in ENGLISH_LEGAL_FRAGMENTS if m in normalized]
             if english_hits:
@@ -201,13 +297,13 @@ class LegalAnswerQualityGuard:
                     risk_level="high",
                 )
 
-        # 5. Formule generiche
+        # 7. Formule generiche
         generic_hits = [marker for marker in GENERIC_MARKERS if marker in normalized]
         if generic_hits:
             warnings.append("Risposta generica o conversazionale non adatta a Lex legale.")
             reasons.append("Generic legal answer")
 
-        # 6. Workflow legali: verifica fonti e limiti
+        # 8. Workflow legali: verifica fonti e limiti
         if workflow in LEGAL_WORKFLOWS:
             has_evidence = bool(_evidence_items(evidence))
             has_sources = any(marker in normalized for marker in SOURCE_MARKERS)

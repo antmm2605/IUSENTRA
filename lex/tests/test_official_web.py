@@ -11,8 +11,8 @@ from lex.retrieval.sources.official_web import OfficialWebSource
 
 
 class _FakeResponse:
-    def __init__(self, body: str) -> None:
-        self.status_code = 200
+    def __init__(self, body: str, status_code: int = 200) -> None:
+        self.status_code = status_code
         self.text = body
 
 
@@ -69,6 +69,123 @@ def test_search_free_public_web_accetta_risultati_pubblici_non_allowlist():
     assert len(results) == 1
     assert results[0]["domain"] == "forogiuridico.it"
     assert results[0]["source_access_label"] == "Web libero"
+
+
+def test_search_free_public_web_usa_fallback_pubblico_se_duckduckgo_blocca():
+    duckduckgo_challenge = "<html><body><form id='challenge-form'></form></body></html>"
+    yahoo_body = """
+    <html>
+      <body>
+        <div class="algo">
+          <div class="compTitle">
+            <a href="https://www.studiolegale-esempio.it/opposizione-decreto-ingiuntivo">
+              Studio legale - opposizione a decreto ingiuntivo
+            </a>
+          </div>
+          <div class="compText">
+            Nota operativa per avvocati su termini, prassi e mediazione.
+          </div>
+        </div>
+      </body>
+    </html>
+    """
+    calls: list[str] = []
+
+    def fake_get(url, **kwargs):
+        calls.append(url)
+        if "duckduckgo" in url:
+            return _FakeResponse(duckduckgo_challenge, status_code=202)
+        if "search.yahoo.com" in url:
+            return _FakeResponse(yahoo_body)
+        return _FakeResponse("<html><body></body></html>")
+
+    results = search_free_public_web(
+        "opposizione decreto ingiuntivo prassi avvocati",
+        request_get=fake_get,
+        limit_results=3,
+    )
+
+    assert any("duckduckgo" in call for call in calls)
+    assert any("search.yahoo.com" in call for call in calls)
+    assert len(results) == 1
+    assert results[0]["domain"] == "studiolegale-esempio.it"
+    assert results[0]["search_engine"] == "yahoo"
+    assert results[0]["source_priority"] == "web_libero"
+
+
+def test_search_free_public_web_usa_google_pubblico_oltre_duckduckgo():
+    google_body = """
+    <html>
+      <body>
+        <div class="g">
+          <a href="/url?q=https://www.studiolegale-esempio.it/mediazione-opposizione-decreto-ingiuntivo&amp;sa=U">
+            <h3>Mediazione e opposizione a decreto ingiuntivo</h3>
+          </a>
+          <div class="VwiC3b">Nota professionale per avvocati su opposizione e mediazione.</div>
+        </div>
+      </body>
+    </html>
+    """
+    calls: list[str] = []
+
+    def fake_get(url, **kwargs):
+        calls.append(url)
+        if "duckduckgo" in url:
+            return _FakeResponse("<html><body></body></html>", status_code=202)
+        if "google.com" in url:
+            return _FakeResponse(google_body)
+        return _FakeResponse("<html><body></body></html>")
+
+    results = search_free_public_web(
+        "opposizione decreto ingiuntivo mediazione avvocati",
+        request_get=fake_get,
+        limit_results=2,
+    )
+
+    assert any("duckduckgo" in call for call in calls)
+    assert any("google.com" in call for call in calls)
+    assert not any("search.yahoo.com" in call for call in calls)
+    assert len(results) == 1
+    assert results[0]["search_engine"] == "google"
+    assert results[0]["domain"] == "studiolegale-esempio.it"
+    assert results[0]["title"] == "Mediazione e opposizione a decreto ingiuntivo"
+    assert "Nota professionale" in results[0]["excerpt"]
+
+
+def test_search_free_public_web_usa_ecosia_se_altri_motori_non_restituiscono_risultati():
+    ecosia_body = """
+    <html>
+      <body>
+        <article>
+          <h2>
+            <a href="https://www.studioassociatoborselli.it/opposizione-a-decreto-ingiuntivo-spetta-al-creditore-promuovere-la-mediazione/">
+              Opposizione a decreto ingiuntivo: creditore e mediazione
+            </a>
+          </h2>
+          <p>Approfondimento professionale su mediazione e giudizio di opposizione.</p>
+        </article>
+      </body>
+    </html>
+    """
+    calls: list[str] = []
+
+    def fake_get(url, **kwargs):
+        calls.append(url)
+        if "ecosia.org" in url:
+            return _FakeResponse(ecosia_body)
+        return _FakeResponse("<html><body></body></html>", status_code=202)
+
+    results = search_free_public_web(
+        "opposizione decreto ingiuntivo mediazione obbligatoria",
+        request_get=fake_get,
+        limit_results=2,
+    )
+
+    assert any("ecosia.org" in call for call in calls)
+    assert len(results) == 1
+    assert results[0]["search_engine"] == "ecosia"
+    assert results[0]["domain"] == "studioassociatoborselli.it"
+    assert "mediazione" in results[0]["title"].lower()
 
 
 def test_official_web_source_in_modalita_libera_non_usa_allowlist_ufficiale():

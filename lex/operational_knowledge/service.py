@@ -12,7 +12,7 @@ from .permission_guard import resolve_query_context
 from .query_router import OperationalQueryRouter
 from .reasoner import LexStudioReasoner
 from .response_composer import OperationalResponseComposer
-from .serializers import serialize_generic
+from .serializers import clean_spaces, serialize_generic
 from .settings import OperationalKnowledgeSettings
 from .tools import OperationalKnowledgeTools, current_week_range
 
@@ -48,26 +48,30 @@ class OperationalKnowledgeService:
             return None
 
         metadata = dict(metadata or {})
-        route = self.router.route(question, metadata=metadata)
+        question_for_route, metadata = _apply_conversation_followup(question, metadata)
+        route = self.router.route(question_for_route, metadata=metadata)
         if route is None:
             return None
 
         context = resolve_query_context(user=user, studio=studio, tenant_id=tenant_id)
-        plan = self.reasoner.build_plan(question=question, route=route)
+        plan = self.reasoner.build_plan(question=question_for_route, route=route)
         if route.blocks_legal_action:
-            answer = self.composer.compose(question=question, route=route, results=[], blocked_reason="legal_action_blocked")
+            answer = self.composer.compose(question=question_for_route, route=route, results=[], blocked_reason="legal_action_blocked")
             report = self.reasoner.verify(plan=plan, results=[])
             self.reasoner.apply(answer, report)
             answer.audit_event_id = self._audit(context, question, route, answer, outcome="blocked")
             return answer
 
-        results = self._execute_route(route, context, question, metadata)
+        results = self._execute_route(route, context, question_for_route, metadata)
         answer = self.composer.compose(
-            question=question,
+            question=question_for_route,
             route=route,
             results=results,
             blocked_reason=_policy_blocked_reason(results),
         )
+        answer.metadata["user_question"] = question
+        if question_for_route != question:
+            answer.metadata["conversation_effective_question"] = question_for_route
         report = self.reasoner.verify(plan=plan, results=results)
         self.reasoner.apply(answer, report)
         outcome = "ok" if any(result.ok for result in results) else "blocked"
@@ -75,10 +79,22 @@ class OperationalKnowledgeService:
         return answer
 
     def _execute_route(self, route: OperationalRoute, context, question: str, metadata: dict[str, Any]) -> list[OperationalToolResult]:
-        entity_query = route.entity_query or question
-        fascicolo_id = str(metadata.get("fascicolo_id") or metadata.get("pratica_id") or "").strip()
-        cliente_id = str(metadata.get("cliente_id") or metadata.get("client_id") or "").strip()
+        entity_query = route.entity_query
         active_context = dict(metadata.get("active_context") or {}) if isinstance(metadata.get("active_context"), dict) else {}
+        fascicolo_id = str(
+            metadata.get("fascicolo_id")
+            or metadata.get("pratica_id")
+            or active_context.get("case_id")
+            or active_context.get("linked_case_id")
+            or ""
+        ).strip()
+        cliente_id = str(
+            metadata.get("cliente_id")
+            or metadata.get("client_id")
+            or active_context.get("client_id")
+            or active_context.get("linked_client_id")
+            or ""
+        ).strip()
         context_type = str(active_context.get("context_type") or metadata.get("context_type") or "").strip().lower()
         pec_id = str(active_context.get("pec_id") or metadata.get("pec_id") or metadata.get("email_id") or "").strip()
 
@@ -89,7 +105,7 @@ class OperationalKnowledgeService:
             ]
 
         if route.intent == "studio_context_overview":
-            return self._studio_context_overview_route(context, entity_query or question)
+            return self._studio_context_overview_route(context, entity_query)
 
         if route.intent in {"client_situation", "client_fascicoli", "client_economic_summary"}:
             return self._client_route(route, context, entity_query, cliente_id=cliente_id)
@@ -193,7 +209,7 @@ class OperationalKnowledgeService:
                 self.tools.get_pagamenti_status(context, limit=self.settings.max_results),
             ]
 
-        if route.intent == "communications_lookup":
+        if route.intent in {"communications_lookup", "draft_communication"}:
             return self._communications_route(
                 context,
                 route.entity_query,
@@ -265,7 +281,7 @@ class OperationalKnowledgeService:
         return results
 
     def _studio_context_overview_route(self, context, entity_query: str) -> list[OperationalToolResult]:
-        query = entity_query or ""
+        query = "" if _is_generic_studio_overview_query(entity_query) else (entity_query or "")
         return [
             self.tools.search_clienti(query, context, limit=4),
             self.tools.search_fascicoli(query, context, limit=4),
@@ -319,30 +335,57 @@ class OperationalKnowledgeService:
         wants_pec = "pec" in lowered
         wants_ordinary = "posta ordinaria" in lowered or "email ordinaria" in lowered or "smtp" in lowered or "imap" in lowered
         wants_mailbox = wants_pec or wants_ordinary or "email" in lowered or "posta" in lowered
+        mail_query = "" if _should_ignore_mailbox_text_filter(question, entity_query, has_scope=bool(cliente_id or fascicolo_id or pec_id)) else entity_query
         if pec_id and (wants_pec or context_type == "pec"):
             return [self.tools.get_pec_message(pec_id, context), self.tools.list_pec_attachments(pec_id, context)]
         if pec_id and (wants_ordinary or context_type == "email"):
             return [self.tools.get_ordinary_email_message(pec_id, context), self.tools.list_ordinary_email_attachments(pec_id, context)]
         if fascicolo_id:
-            results = [self.tools.get_fascicolo(fascicolo_id, context), self.tools.get_messaggi_by_fascicolo(fascicolo_id, context)]
+            fascicolo = self.tools.get_fascicolo(fascicolo_id, context)
+            results = [fascicolo, self.tools.get_messaggi_by_fascicolo(fascicolo_id, context)]
+            if not fascicolo.ok:
+                return results
             if wants_pec:
-                results.append(self.tools.list_pec_messages(context, query=entity_query, limit=self.settings.max_results))
+                results.append(
+                    _scope_communication_result(
+                        self.tools.list_pec_messages(context, query=mail_query, limit=self.settings.max_results),
+                        fascicolo_id=fascicolo_id,
+                    )
+                )
             if wants_ordinary:
-                results.append(self.tools.list_ordinary_email_messages(context, query=entity_query, limit=self.settings.max_results))
+                results.append(
+                    _scope_communication_result(
+                        self.tools.list_ordinary_email_messages(context, query=mail_query, limit=self.settings.max_results),
+                        fascicolo_id=fascicolo_id,
+                    )
+                )
             return results
         if cliente_id:
-            results = [self.tools.get_cliente_by_id(cliente_id, context), self.tools.get_messaggi_by_cliente(cliente_id, context)]
+            cliente = self.tools.get_cliente_by_id(cliente_id, context)
+            results = [cliente, self.tools.get_messaggi_by_cliente(cliente_id, context)]
+            if not cliente.ok:
+                return results
             if wants_pec:
-                results.append(self.tools.list_pec_messages(context, query=entity_query, limit=self.settings.max_results))
+                results.append(
+                    _scope_communication_result(
+                        self.tools.list_pec_messages(context, query=mail_query, limit=self.settings.max_results),
+                        cliente_id=cliente_id,
+                    )
+                )
             if wants_ordinary:
-                results.append(self.tools.list_ordinary_email_messages(context, query=entity_query, limit=self.settings.max_results))
+                results.append(
+                    _scope_communication_result(
+                        self.tools.list_ordinary_email_messages(context, query=mail_query, limit=self.settings.max_results),
+                        cliente_id=cliente_id,
+                    )
+                )
             return results
         if wants_mailbox and not ("cliente" in lowered or "fascicolo" in lowered or "pratica" in lowered):
             results: list[OperationalToolResult] = []
             if wants_pec or not wants_ordinary:
-                results.append(self.tools.list_pec_messages(context, query=entity_query, limit=self.settings.max_results))
+                results.append(self.tools.list_pec_messages(context, query=mail_query, limit=self.settings.max_results))
             if wants_ordinary or not wants_pec:
-                results.append(self.tools.list_ordinary_email_messages(context, query=entity_query, limit=self.settings.max_results))
+                results.append(self.tools.list_ordinary_email_messages(context, query=mail_query, limit=self.settings.max_results))
             return results
         if "fascicolo" in question.lower() or "pratica" in question.lower():
             fascicoli = self.tools.search_fascicoli(entity_query, context, limit=2)
@@ -351,9 +394,19 @@ class OperationalKnowledgeService:
                 target = str((fascicoli.data or [{}])[0].get("id") or "")
                 results.append(self.tools.get_messaggi_by_fascicolo(target, context))
                 if wants_pec:
-                    results.append(self.tools.list_pec_messages(context, query=entity_query, limit=self.settings.max_results))
+                    results.append(
+                        _scope_communication_result(
+                            self.tools.list_pec_messages(context, query=mail_query, limit=self.settings.max_results),
+                            fascicolo_id=target,
+                        )
+                    )
                 if wants_ordinary:
-                    results.append(self.tools.list_ordinary_email_messages(context, query=entity_query, limit=self.settings.max_results))
+                    results.append(
+                        _scope_communication_result(
+                            self.tools.list_ordinary_email_messages(context, query=mail_query, limit=self.settings.max_results),
+                            fascicolo_id=target,
+                        )
+                    )
             return results
         clienti = self.tools.search_clienti(entity_query, context, limit=2)
         results = [clienti]
@@ -361,9 +414,19 @@ class OperationalKnowledgeService:
             target = str((clienti.data or [{}])[0].get("id") or "")
             results.append(self.tools.get_messaggi_by_cliente(target, context))
             if wants_pec:
-                results.append(self.tools.list_pec_messages(context, query=entity_query, limit=self.settings.max_results))
+                results.append(
+                    _scope_communication_result(
+                        self.tools.list_pec_messages(context, query=mail_query, limit=self.settings.max_results),
+                        cliente_id=target,
+                    )
+                )
             if wants_ordinary:
-                results.append(self.tools.list_ordinary_email_messages(context, query=entity_query, limit=self.settings.max_results))
+                results.append(
+                    _scope_communication_result(
+                        self.tools.list_ordinary_email_messages(context, query=mail_query, limit=self.settings.max_results),
+                        cliente_id=target,
+                    )
+                )
         return results
 
     def _first_fascicolo_id(self, entity_query: str, context) -> str:
@@ -404,6 +467,247 @@ def _policy_blocked_reason(results: list[OperationalToolResult]) -> str:
         if result.blocked_reason in policy_reasons:
             return result.blocked_reason
     return ""
+
+
+def _apply_conversation_followup(question: str, metadata: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    clean_question = clean_spaces(question)
+    if not clean_question:
+        return question, metadata
+    reference = _conversation_reference(metadata)
+    if not reference:
+        return question, metadata
+    text = clean_question.lower()
+    if _looks_like_fresh_operational_question(text):
+        return question, metadata
+    active_context = dict(metadata.get("active_context") or {}) if isinstance(metadata.get("active_context"), dict) else {}
+    effective = clean_question
+
+    if reference.get("pec_id") and _is_short_followup(
+        text,
+        ("allegat", "mittent", "mandat", "arriv", "data", "oggett", "destinatar", "risposta", "rispondi", "bozza", "scrivi", "redigi", "spiega"),
+    ):
+        active_context.update({"context_type": "pec", "pec_id": reference["pec_id"]})
+        metadata["pec_id"] = reference["pec_id"]
+        if any(token in text for token in ("risposta", "rispondi", "bozza", "scrivi", "redigi", "prepara")):
+            effective = "scrivi risposta alla PEC precedente"
+        elif "allegat" in text:
+            effective = "allegati della PEC precedente"
+        else:
+            effective = "spiegami la PEC precedente"
+
+    elif reference.get("email_id") and _is_short_followup(
+        text,
+        ("allegat", "mittent", "mandat", "arriv", "data", "oggett", "destinatar", "risposta", "rispondi", "bozza", "scrivi", "redigi", "spiega"),
+    ):
+        active_context.update({"context_type": "email", "pec_id": reference["email_id"]})
+        metadata["pec_id"] = reference["email_id"]
+        if any(token in text for token in ("risposta", "rispondi", "bozza", "scrivi", "redigi", "prepara")):
+            effective = "scrivi risposta alla email ordinaria precedente"
+        elif "allegat" in text:
+            effective = "allegati della email ordinaria precedente"
+        else:
+            effective = "spiegami la email ordinaria precedente"
+
+    elif reference.get("case_id") and _is_short_followup(
+        text,
+        (
+            "scadenz",
+            "agenda",
+            "timeline",
+            "cronologia",
+            "controparte",
+            "soggett",
+            "parti",
+            "document",
+            "pagament",
+            "fattur",
+            "riepilogo",
+            "strateg",
+            "risch",
+            "critic",
+            "azione",
+            "azioni",
+            "prossim",
+            "priorit",
+            "punto",
+            "punti",
+            "important",
+        ),
+    ):
+        active_context.update({"context_type": "case", "case_id": reference["case_id"]})
+        metadata["fascicolo_id"] = reference["case_id"]
+        if any(token in text for token in ("controparte", "soggett", "parti")):
+            effective = "quali soggetti sono collegati al fascicolo precedente"
+        elif any(token in text for token in ("scadenz", "agenda")):
+            effective = "scadenze e agenda del fascicolo precedente"
+        elif any(token in text for token in ("pagament", "fattur")):
+            effective = "pagamenti e fatture del fascicolo precedente"
+        elif "timeline" in text or "cronologia" in text:
+            effective = "costruisci timeline del fascicolo precedente"
+        elif any(token in text for token in ("document", "punto", "punti", "important")):
+            effective = "analizza i documenti del fascicolo precedente"
+        else:
+            effective = "fammi il riepilogo del fascicolo precedente"
+
+    elif reference.get("document_id") and _is_short_followup(text, ("riassum", "spiega", "analizza", "punti", "important", "document", "atto")):
+        active_context.update({"context_type": "document", "document_id": reference["document_id"]})
+        if reference.get("case_id"):
+            active_context["linked_case_id"] = reference["case_id"]
+            metadata["fascicolo_id"] = reference["case_id"]
+        metadata["document_id"] = reference["document_id"]
+        effective = "analizza il documento precedente e indica i punti importanti"
+
+    elif reference.get("client_id") and _is_short_followup(text, ("fascicol", "scadenz", "agenda", "pagament", "fattur", "recapit", "pec", "email", "situazione")):
+        active_context.update({"context_type": "client", "client_id": reference["client_id"]})
+        metadata["cliente_id"] = reference["client_id"]
+        if "fascicol" in text:
+            effective = "quali fascicoli ha il cliente precedente"
+        elif any(token in text for token in ("pagament", "fattur")):
+            effective = "verifica pagamenti e fatture del cliente precedente"
+        elif any(token in text for token in ("pec", "email")):
+            effective = "comunicazioni PEC/email del cliente precedente"
+        elif any(token in text for token in ("scadenz", "agenda")):
+            effective = "scadenze e agenda del cliente precedente"
+        else:
+            effective = "dammi la scheda cliente precedente"
+
+    if active_context:
+        metadata["active_context"] = active_context
+    return effective, metadata
+
+
+def _conversation_reference(metadata: dict[str, Any]) -> dict[str, str]:
+    messages = list(metadata.get("messages") or [])
+    if not messages:
+        return {}
+    reference: dict[str, str] = {}
+    for message in reversed(messages[-8:]):
+        if not isinstance(message, dict):
+            continue
+        content = clean_spaces(message.get("content"))
+        if not content:
+            continue
+        reference.update(_extract_reference_from_text(content))
+        if reference:
+            return reference
+    return reference
+
+
+def _extract_reference_from_text(text: str) -> dict[str, str]:
+    reference: dict[str, str] = {}
+    pec_match = re.search(r"/email/messaggio/([^/\s)]+)", text)
+    if pec_match:
+        reference["pec_id"] = pec_match.group(1)
+    email_match = re.search(r"/email-ordinaria/messaggio/([^/\s)]+)", text)
+    if email_match:
+        reference["email_id"] = email_match.group(1)
+    document_match = re.search(r"/fascicoli/([^/\s)]+)/documenti/([^/\s)]+)/editor", text)
+    if document_match:
+        reference["case_id"] = document_match.group(1)
+        reference["document_id"] = document_match.group(2)
+    case_match = re.search(r"/fascicoli/([^/\s)]+)", text)
+    if case_match and not reference.get("case_id"):
+        reference["case_id"] = case_match.group(1)
+    client_match = re.search(r"/clienti/([^/\s)]+)/cartella", text)
+    if client_match:
+        reference["client_id"] = client_match.group(1)
+    return reference
+
+
+def _is_short_followup(text: str, tokens: tuple[str, ...]) -> bool:
+    if any(token in text for token in tokens):
+        return True
+    words = [word for word in re.split(r"\W+", text, flags=re.UNICODE) if word]
+    return 0 < len(words) <= 4 and any(word in {"e", "poi", "anche", "quindi", "questo", "questa", "quello", "quella"} for word in words)
+
+
+def _is_generic_studio_overview_query(entity_query: str) -> bool:
+    text = re.sub(r"[^\w ]+", " ", str(entity_query or "").lower(), flags=re.UNICODE)
+    tokens = [token for token in clean_spaces(text).split() if token]
+    if not tokens:
+        return True
+    generic = {
+        "contesto",
+        "database",
+        "studio",
+        "memoria",
+        "quadro",
+        "situazione",
+        "guardare",
+        "oggi",
+        "domani",
+        "settimana",
+        "devo",
+        "cosa",
+        "dimmi",
+        "priorita",
+        "priorità",
+    }
+    return all(token in generic for token in tokens)
+
+
+def _looks_like_fresh_operational_question(text: str) -> bool:
+    clean = clean_spaces(text).lower()
+    if not clean:
+        return False
+    if any(token in clean for token in ("preventivo", "conferimento", "template", "modello atto", "modelli atto")):
+        return True
+    if "pec" in clean and ("fascicolo" in clean or "pratica" in clean):
+        return True
+    if ("ho in agenda" in clean or "cosa ho in agenda" in clean) and not clean.startswith(("e ", "anche ", "poi ")):
+        return True
+    return False
+
+
+def _should_ignore_mailbox_text_filter(question: str, entity_query: str, *, has_scope: bool) -> bool:
+    text = clean_spaces(question).lower()
+    query = clean_spaces(entity_query).lower()
+    if has_scope:
+        return True
+    if any(token in text for token in ("ultim", "ricevut", "inviat", "risposta", "rispondi", "scrivi", "redigi", "prepara", "bozza")):
+        return True
+    return query in {"pec", "email", "posta", "messaggio", "messaggi"}
+
+
+def _scope_communication_result(
+    result: OperationalToolResult,
+    *,
+    cliente_id: str = "",
+    fascicolo_id: str = "",
+) -> OperationalToolResult:
+    if not result.ok or not isinstance(result.data, list):
+        return result
+    scoped_rows = []
+    for row in result.data:
+        if not isinstance(row, dict):
+            continue
+        row_cliente = clean_spaces(row.get("id_cliente") or row.get("cliente_id"))
+        row_fascicolo = clean_spaces(row.get("id_fascicolo") or row.get("fascicolo_id") or row.get("id_pratica"))
+        if cliente_id and row_cliente == clean_spaces(cliente_id):
+            scoped_rows.append(row)
+            continue
+        if fascicolo_id and row_fascicolo == clean_spaces(fascicolo_id):
+            scoped_rows.append(row)
+    if scoped_rows:
+        ids = {clean_spaces(row.get("id")) for row in scoped_rows if clean_spaces(row.get("id"))}
+        result.data = scoped_rows
+        result.sources = [source for source in result.sources if clean_spaces(source.object_id) in ids]
+        result.objects = [
+            obj
+            for obj in result.objects
+            if clean_spaces(obj.object_id) in ids
+            or any(clean_spaces(obj.object_id).startswith(f"{item}#") for item in ids)
+        ]
+        return result
+    result.ok = False
+    result.data = []
+    result.sources = []
+    result.objects = []
+    if fascicolo_id:
+        result.coverage_gaps.append("Nessuna PEC/email collegata con certezza al fascicolo indicato.")
+    elif cliente_id:
+        result.coverage_gaps.append("Nessuna PEC/email collegata con certezza al cliente indicato.")
+    return result
 
 
 def _should_integrate_free_web_articles(question: str) -> bool:

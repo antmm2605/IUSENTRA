@@ -2,6 +2,20 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.245.63 - 2026-05-20
+
+Audit conversazionale esteso su `Lex Studio Reasoner`: la chat non tratta più ogni messaggio come domanda isolata, ma mantiene il riferimento professionale appena citato quando l'avvocato prosegue il dialogo. I riferimenti ammessi sono solo oggetti con link operativo o identificativo interno già presenti nella risposta precedente: PEC/email, allegato, fascicolo, documento editor e cliente.
+
+La matrice positiva verifica domande ampie su ultima PEC globale, ultima PEC nel fascicolo, allegati, email ordinaria, soggetti e parti, controparte, scheda cliente, fascicoli del cliente, timeline fascicolo, analisi documenti, scadenze, agenda, riepilogo fascicolo, pagamenti/fatture e contesto studio. La matrice negativa verifica fascicolo inesistente senza leak globale, utente senza permesso e cliente ambiguo.
+
+La bozza è ammessa solo quando richiesta in modo espresso. `draft_communication` recupera prima PEC/email con `GovernedRetrieval`, poi compone una bozza verificabile; una consultazione come "ultima PEC ricevuta" resta invece una risposta con fonte, allegati e azioni apribili.
+
+La pratica web professionale è un canale separato dalle fonti ufficiali: siti di studi legali, commenti per avvocati e materiali di prassi possono alimentare solo know-how non vincolante. Non fanno prova del diritto, non vengono pubblicati automaticamente e non possono contraddire l'avvocato; per smentire serve fonte primaria verificata con confidenza almeno 99%.
+
+Il canale live è stato rafforzato: `search_free_public_web()` usa DuckDuckGo HTML e, se non riceve risultati utili, passa a Google pubblico, Yahoo ed Ecosia. Il parser scarta pagine dei motori, URL locali e risultati vuoti, pulisce i titoli e conserva motore, dominio, URL ed estratto. Il gate web/RAG al 99% verifica cento somministrazioni di pratica professionale verso Lex: il contenuto acquisito deve arrivare negli item RAG, restare `knowhow_professionale`, non rendere sufficiente l'evidence pack e non entrare tra le fonti trusted.
+
+La fase linguaggio giuridico/date aggiunge un audit al 99% su cento turni conversazionali studio: ogni data visibile deve essere resa in italiano (`17 maggio 2026`, `21 maggio 2026 alle 10:00`) e nessuna risposta professionale può uscire con formato ISO tecnico. Il controllo copre PEC/email, allegati, fascicoli, documenti, soggetti, scadenze, agenda, pagamenti, scheda cliente, privacy, timeline e bozze richieste esplicitamente.
+
 ## Aggiornamento operativo 2.245.61 - 2026-05-19
 
 La superficie utente di Lex viene governata come chat unica professionale: `LexUnifiedChat` è il contratto centrale riutilizzabile da ogni sezione, mentre `Lex Studio Reasoner` resta il motore operativo. Il payload HTTP espone contesto attivo, intent, contesto strutturato, verifica fonti, blocchi renderizzabili e azioni operative senza duplicare pannelli per PEC, fascicoli, documenti o pagamenti.

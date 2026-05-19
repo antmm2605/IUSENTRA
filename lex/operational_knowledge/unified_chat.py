@@ -114,6 +114,8 @@ class IntentRouter:
         text = clean_spaces(question).lower()
         context_type = clean_spaces(active_context.get("context_type")).lower()
         source_ids = {clean_spaces(source.get("source_id")) for source in sources}
+        if route_intent == "draft_communication":
+            return "draft_communication"
         if route_intent == "communications_lookup":
             if context_type == "email" or ("email_ordinaria" in source_ids and "email_pec" not in source_ids and "pec" not in text):
                 return "consult_email"
@@ -253,10 +255,10 @@ class LexActions:
                     url=clean_spaces(attachment.get("view_url") or attachment.get("download_url")),
                     icon="paperclip",
                 )
-        if detected_intent in {"consult_pec", "consult_email"} and any(source.get("source_id") in _COMMUNICATION_SOURCE_IDS for source in sources):
+        if detected_intent in {"consult_pec", "consult_email", "draft_communication"} and any(source.get("source_id") in _COMMUNICATION_SOURCE_IDS for source in sources):
             add(
                 "draft_reply",
-                "Prepara bozza risposta",
+                "Apri bozza risposta" if detected_intent == "draft_communication" else "Prepara bozza risposta",
                 prompt="Prepara una bozza di risposta alla comunicazione selezionata usando solo le fonti interne citate.",
                 icon="pencil-square",
             )

@@ -7,6 +7,7 @@ import ipaddress
 import os
 import re
 import time
+import base64
 from collections.abc import Callable
 from typing import Any
 from urllib.parse import parse_qs, unquote, urljoin, urlparse
@@ -27,6 +28,21 @@ DEFAULT_WEB_SOURCE_IDS: tuple[str, ...] = (
 )
 
 _OFFICIAL_SEARCH_URL = "https://html.duckduckgo.com/html/"
+_FREE_SEARCH_URLS: tuple[tuple[str, str, str], ...] = (
+    ("duckduckgo", _OFFICIAL_SEARCH_URL, "q"),
+    ("google", "https://www.google.com/search", "q"),
+    ("yahoo", "https://search.yahoo.com/search", "p"),
+    ("ecosia", "https://www.ecosia.org/search", "q"),
+)
+_FREE_SEARCH_ENGINE_DOMAINS = {
+    "bing.com",
+    "duckduckgo.com",
+    "google.com",
+    "www.google.com",
+    "search.yahoo.com",
+    "yahoo.com",
+    "ecosia.org",
+}
 _CASSAZIONE_PENALE_LIST_URL = "https://www.cortedicassazione.it/it/giurisprudenza_penale.page"
 _GAZZETTA_ARCHIVE_URL = "https://www.gazzettaufficiale.it/showArchivioNews"
 _DIRECT_URL_RE = re.compile(r"https?://[^\s<>'\")\]]+")
@@ -238,6 +254,28 @@ def _extract_result_url(raw_url: str) -> str:
         uddg = parse_qs(parsed.query).get("uddg", [])
         if uddg:
             return unquote(uddg[0])
+    if (not parsed.netloc or _normalize_domain(parsed.netloc).endswith("google.com")) and parsed.path in {
+        "/url",
+        "/interstitial",
+    }:
+        for key in ("q", "url"):
+            target = parse_qs(parsed.query).get(key, [])
+            if target:
+                return unquote(target[0])
+    host = _normalize_domain(parsed.netloc)
+    if host.endswith("bing.com") and parsed.path.startswith("/ck/"):
+        encoded_url = parse_qs(parsed.query).get("u", [])
+        if encoded_url:
+            value = unquote(encoded_url[0])
+            if value.startswith("a1"):
+                value = value[2:]
+            try:
+                padding = "=" * (-len(value) % 4)
+                decoded = base64.urlsafe_b64decode(f"{value}{padding}").decode("utf-8", errors="ignore")
+            except Exception:
+                decoded = ""
+            if decoded.startswith(("http://", "https://")):
+                return decoded
     return str(raw_url or "").strip()
 
 
@@ -270,6 +308,82 @@ def _is_public_web_url(url: str) -> bool:
         or address.is_reserved
         or address.is_unspecified
     )
+
+
+def _search_result_nodes(document: Any) -> list[Any]:
+    nodes = document.xpath(
+        "//div[contains(@class, 'result')] | "
+        "//li[contains(@class, 'b_algo')] | "
+        "//div[contains(concat(' ', normalize-space(@class), ' '), ' g ')] | "
+        "//div[.//a[h3]]"
+    )
+    if nodes:
+        return list(nodes)
+    nodes = document.xpath("//div[contains(@class, 'algo')] | //article")
+    return list(nodes)
+
+
+def _search_link_nodes(node: Any) -> list[Any]:
+    return list(
+        node.xpath(
+            ".//a[contains(@class, 'result__a')] | "
+            ".//a[.//h3][@href] | "
+            ".//h2//a[@href] | "
+            ".//*[contains(@class, 'compTitle')]//a[@href] | "
+            ".//h3//a[@href] | "
+            ".//a[@href]"
+        )
+    )
+
+
+def _search_snippet(node: Any) -> str:
+    snippet_nodes = node.xpath(
+        ".//*[contains(@class, 'result__snippet')] | "
+        ".//*[contains(@class, 'snippet')] | "
+        ".//a[contains(@class, 'result__snippet')] | "
+        ".//*[contains(@class, 'b_caption')]//p | "
+        ".//*[contains(@class, 'compText')] | "
+        ".//*[contains(@class, 'VwiC3b')] | "
+        ".//*[contains(@class, 'aCOpRe')] | "
+        ".//*[contains(@class, 'IsZvec')] | "
+        ".//p"
+    )
+    return _clean_spaces(snippet_nodes[0].text_content()) if snippet_nodes else ""
+
+
+def _clean_search_title(raw_title: str, domain: str) -> str:
+    title = _clean_spaces(re.sub(r"https?://\S+", " ", str(raw_title or "")))
+    for separator in (" › ", " > "):
+        if separator in title:
+            title = title.split(separator)[-1].strip()
+    title = re.sub(r"^[a-z0-9_./-]{8,}(?=[A-ZÀ-Ý])", "", title).strip()
+    title = title.strip("› >|-")
+    return title or domain
+
+
+def _is_search_engine_domain(domain: str) -> bool:
+    normalized = _normalize_domain(domain)
+    return any(normalized == root or normalized.endswith("." + root) for root in _FREE_SEARCH_ENGINE_DOMAINS)
+
+
+def _search_title_score(title: str, domain: str) -> int:
+    clean = _clean_spaces(title).lower()
+    if not clean:
+        return -100
+    score = 0
+    if " " in clean:
+        score += 8
+    if domain and domain in clean:
+        score -= 6
+    if re.search(r"\.(?:it|com|org|net|pdf|docx?|aspx?|html?)\b", clean):
+        score -= 5
+    if re.search(r"/|›|>", clean):
+        score -= 4
+    if len(clean) < 8:
+        score -= 2
+    if len(clean) > 160:
+        score -= 2
+    return score
 
 
 def _match_source_id_for_domain(source_ids: list[str], domain: str) -> str:
@@ -875,76 +989,78 @@ def search_free_public_web(
 
         fetch = requests.get
 
-    try:
-        response = fetch(
-            _OFFICIAL_SEARCH_URL,
-            params={"q": query},
-            headers={"User-Agent": USER_AGENT},
-            timeout=6,
-        )
-    except Exception:
-        return []
-
-    status_code = int(getattr(response, "status_code", 0) or 0)
-    if status_code >= 400:
-        return []
-
-    body = str(getattr(response, "text", "") or "")
-    if not body.strip():
-        return []
-
-    try:
-        document = lxml_html.fromstring(body)
-    except Exception:
-        return []
-
-    nodes = document.xpath("//div[contains(@class, 'result')]")
-    if not nodes:
-        nodes = document.xpath("//article")
-
     results: list[dict[str, Any]] = []
     seen_urls: set[str] = set()
-    for node in nodes:
-        link_nodes = node.xpath(".//a[contains(@class, 'result__a')] | .//h2//a | .//a[@href]")
-        if not link_nodes:
+    for engine_name, search_url, query_param in _FREE_SEARCH_URLS:
+        try:
+            response = fetch(
+                search_url,
+                params={query_param: query},
+                headers={"User-Agent": USER_AGENT},
+                timeout=6,
+            )
+        except Exception:
             continue
-        link = link_nodes[0]
-        url = _extract_result_url(link.get("href") or "")
-        if not _is_public_web_url(url) or url in seen_urls:
+
+        status_code = int(getattr(response, "status_code", 0) or 0)
+        if status_code >= 400:
             continue
-        seen_urls.add(url)
-        parsed = urlparse(url)
-        domain = _normalize_domain(parsed.netloc)
-        title = _clean_spaces(link.text_content()) or domain
-        snippet_nodes = node.xpath(
-            ".//*[contains(@class, 'result__snippet')] | "
-            ".//*[contains(@class, 'snippet')] | "
-            ".//a[contains(@class, 'result__snippet')]"
-        )
-        snippet = _clean_spaces(snippet_nodes[0].text_content()) if snippet_nodes else ""
-        results.append(
-            {
-                "id": f"free-web-search:{hashlib.sha1(url.encode('utf-8')).hexdigest()[:12]}",
-                "title": title,
-                "url": url,
-                "official_url": url,
-                "source_home_url": f"{parsed.scheme}://{domain}",
-                "domain": domain,
-                "source_id": domain,
-                "source_name": domain,
-                "kind": "pdf" if parsed.path.lower().endswith(".pdf") else "html",
-                "excerpt": snippet,
-                "source_access_status": "public",
-                "source_access_label": "Web libero",
-                "source_category": "ricerca_web",
-                "source_priority": "web_libero",
-                "source_requires_credentials": False,
-                "source_restricted": False,
-                "source_supports_web_search": True,
-                "trust_score": 0.55,
-            }
-        )
-        if len(results) >= limit:
+
+        body = str(getattr(response, "text", "") or "")
+        if not body.strip():
+            continue
+
+        try:
+            document = lxml_html.fromstring(body)
+        except Exception:
+            continue
+
+        for node in _search_result_nodes(document):
+            link_nodes = _search_link_nodes(node)
+            if not link_nodes:
+                continue
+            candidates: list[tuple[int, str, str, str, Any]] = []
+            for link in link_nodes:
+                url = _extract_result_url(link.get("href") or "")
+                parsed = urlparse(url)
+                domain = _normalize_domain(parsed.netloc)
+                if _is_search_engine_domain(domain) or not _is_public_web_url(url) or url in seen_urls:
+                    continue
+                title = _clean_search_title(link.text_content(), domain)
+                candidates.append((_search_title_score(title, domain), url, domain, title, link))
+            if not candidates:
+                continue
+            _, url, domain, title, link = sorted(candidates, key=lambda item: item[0], reverse=True)[0]
+            seen_urls.add(url)
+            title = _clean_search_title(link.text_content(), domain)
+            snippet = _search_snippet(node)
+            results.append(
+                {
+                    "id": f"free-web-search:{hashlib.sha1(url.encode('utf-8')).hexdigest()[:12]}",
+                    "title": title,
+                    "url": url,
+                    "official_url": url,
+                    "source_home_url": f"{parsed.scheme}://{domain}",
+                    "domain": domain,
+                    "source_id": domain,
+                    "source_name": domain,
+                    "kind": "pdf" if parsed.path.lower().endswith(".pdf") else "html",
+                    "excerpt": snippet,
+                    "source_access_status": "public",
+                    "source_access_label": "Web libero",
+                    "source_category": "ricerca_web",
+                    "source_priority": "web_libero",
+                    "source_requires_credentials": False,
+                    "source_restricted": False,
+                    "source_supports_web_search": True,
+                    "trust_score": 0.55,
+                    "search_engine": engine_name,
+                }
+            )
+            if len(results) >= limit:
+                _SEARCH_CACHE[cache_key] = (now, [dict(item) for item in results])
+                return [dict(item) for item in results]
+        if results:
             break
 
     _SEARCH_CACHE[cache_key] = (now, [dict(item) for item in results])

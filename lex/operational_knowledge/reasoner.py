@@ -86,6 +86,20 @@ class StudioReasoningReport:
                 "no_legacy_aggregator": True,
                 "no_raw_prompt_context": True,
             },
+            "colleague_policy": {
+                "conversation_style": "confronto professionale tra colleghi",
+                "lawyer_position_is_default": True,
+                "contradict_lawyer_min_confidence": 0.99,
+                "contradict_lawyer_requires_verified_primary_source": True,
+                "jurisprudence_practice_mode": "canary_web_governato_no_publish",
+                "jurisprudence_practice_sources": [
+                    "Cassazione",
+                    "Corte costituzionale",
+                    "Giustizia amministrativa",
+                    "fonti ufficiali o archiviate",
+                ],
+                "jurisprudence_practice_publishes_without_review": False,
+            },
         }
 
 

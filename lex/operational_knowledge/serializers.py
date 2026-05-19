@@ -330,6 +330,8 @@ def serialize_email_message(record: Any, *, include_body: bool = False) -> dict[
         "origine": data.get("origine"),
         "stato_pct": data.get("stato_pct"),
         "auto_registrata": data.get("auto_registrata"),
+        "id_cliente": data.get("id_cliente") or data.get("cliente_id"),
+        "id_fascicolo": data.get("id_fascicolo") or data.get("fascicolo_id") or data.get("id_pratica"),
     }
     if include_body:
         payload["corpo_testo"] = clean_spaces(data.get("corpo_testo"))[:6000]

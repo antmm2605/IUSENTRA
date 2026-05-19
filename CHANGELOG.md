@@ -7,6 +7,18 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.63 - 2026-05-20
+
+- Rafforzato `Lex Studio Reasoner` come conversazione operativa tra colleghi: i follow-up brevi ricordano PEC/email, fascicolo, documento o cliente appena citati tramite link operativi verificati, non tramite prompt grezzo.
+- Ampliata la matrice reale di domande Lex su PEC, email ordinaria, allegati, fascicoli, documenti, soggetti, controparti, scadenze, agenda, clienti, pagamenti, fatture, priorità studio e bozze richieste esplicitamente.
+- Corretto lo scope governato di PEC/email: un fascicolo inesistente non ricade sulla PEC globale, l'utente senza permessi non riceve fonti e i clienti ambigui producono chiarimento/opzioni.
+- Aggiunta la pratica web professionale non vincolante: Lex può raccogliere spunti da siti di studi legali e contenuti per avvocati come know-how, senza promozione automatica a fonte ufficiale e senza usarli per contraddire l'avvocato.
+- Potenziato il motore `Web libero` con fallback pubblico Google, Yahoo ed Ecosia oltre DuckDuckGo HTML: se un canale non restituisce risultati live, Lex passa al successivo senza inventare fonti.
+- Aggiunto audit web/RAG al 99% su cento somministrazioni verso conversazione con l'avvocato: i contenuti acquisiti restano `knowhow_professionale`, alimentano il ragionamento come prassi e non diventano fonti ufficiali o trusted source.
+- Chiusa la fase linguaggio giuridico/date: le risposte operative Lex formattano le date visibili come `17 maggio 2026` o `21 maggio 2026 alle 10:00`, e la guardia qualità blocca date tecniche ISO nelle risposte professionali.
+- Applicata la regola di confronto professionale: Lex non contraddice l'avvocato salvo fonte primaria verificata con confidenza almeno 99%.
+- Documentati audit e gate mirati senza reintrodurre aggregatori legacy: i check restano divisi per fase e per perimetro toccato.
+
 ## 2.245.61 - 2026-05-19
 
 - Introdotta `LexUnifiedChat` come contratto unico della chat operativa: contesto attivo, intent, contesto strutturato, verifica fonti, blocchi renderer e azioni passano dal `Lex Studio Reasoner` senza pannelli separati per modulo.

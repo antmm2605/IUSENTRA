@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import hashlib
 import os
-import time
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -45,11 +44,7 @@ except Exception:  # pragma: no cover
 
 
 try:
-    from lex.integrations.local_deep_research_client import (
-        LocalDeepResearchClient,
-        LocalDeepResearchError,
-        LocalDeepResearchPolicyError,
-    )
+    from lex.integrations.local_deep_research_client import LocalDeepResearchClient
     _LDR_AVAILABLE = True
 except Exception:  # pragma: no cover
     _LDR_AVAILABLE = False
@@ -116,6 +111,7 @@ class PublicLegalResearchResult:
     web_used: bool = False
     web_blocked_reason: str = ""
     free_web_used: bool = False
+    professional_practice_used: bool = False
 
     def to_evidence_pack_dict(self) -> dict[str, Any]:
         """Converte in formato compatibile con EvidencePack per il pipeline Lex."""
@@ -143,11 +139,31 @@ class PublicLegalResearchResult:
                     "web_used": self.web_used,
                     "web_blocked_reason": self.web_blocked_reason,
                     "free_web_used": self.free_web_used,
+                    "professional_practice_used": self.professional_practice_used,
+                    "professional_practice_non_binding": self.professional_practice_used,
+                    "professional_practice_can_contradict_lawyer": False,
+                    "professional_practice_usage_rules": (
+                        [
+                            "Usare come spunti di prassi, lessico, struttura e controllo operativo.",
+                            "Non usare come fonte ufficiale o prova del diritto vigente.",
+                            "Non contraddire l'avvocato senza fonte primaria verificata al 99%.",
+                            "Non pubblicare automaticamente nel corpus o negli aggiornamenti legali.",
+                        ]
+                        if self.professional_practice_used
+                        else []
+                    ),
+                    "professional_practice_source_count": (
+                        len([s for s in self.sources if s.source_type == "knowhow_professionale"])
+                        if self.professional_practice_used
+                        else 0
+                    ),
                     "public_research_query": self.query_used,
                     "external_sources_used": self.web_used or self.ldr_used,
                     "external_sources_reason": (
                         "Ricerca web libera attivata manualmente dall'utente."
                         if self.free_web_used
+                        else "Pratica web professionale non vincolante su siti e contenuti per avvocati."
+                        if self.professional_practice_used
                         else "Ricerca pubblica governata su fonti ufficiali." if self.web_used else ""
                     ),
                 },
@@ -254,11 +270,23 @@ def _deduplicate_sources(sources: list[NormalizedSource]) -> list[NormalizedSour
     seen: set[str] = set()
     result: list[NormalizedSource] = []
     for src in sources:
+        if not _is_meaningful_source(src):
+            continue
         key = src.url or src.id
         if key and key not in seen:
             seen.add(key)
             result.append(src)
     return result
+
+
+def _is_meaningful_source(source: NormalizedSource) -> bool:
+    title = str(source.title or "").strip().lower()
+    return bool(
+        source.url
+        or source.excerpt
+        or source.source_name
+        or (title and title != "fonte senza titolo")
+    )
 
 
 def _rank_sources(sources: list[NormalizedSource]) -> list[NormalizedSource]:
@@ -284,10 +312,33 @@ def _compute_confidence_seed(
 
 
 _FREE_WEB_MODES = {"free", "free_web", "web_libero", "web libero", "ricerca_libera", "ricerca libera", "libera"}
+_PROFESSIONAL_PRACTICE_MODES = {
+    "pratica_professionale",
+    "pratica professionale",
+    "knowhow_professionale",
+    "know-how professionale",
+    "lawyer_practice",
+    "professional_practice",
+    "studi_legali",
+}
 
 
 def _is_free_web_mode(source_mode: str) -> bool:
     return str(source_mode or "").strip().lower() in _FREE_WEB_MODES
+
+
+def _is_professional_practice_mode(source_mode: str) -> bool:
+    return str(source_mode or "").strip().lower() in _PROFESSIONAL_PRACTICE_MODES
+
+
+def _professional_practice_query(public_query: str) -> str:
+    base = str(public_query or "").strip()
+    if not base:
+        return ""
+    return (
+        f'{base} "studio legale" avvocati prassi operativa '
+        "commento professionale guida pratica"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -320,6 +371,7 @@ def run_public_legal_research(
     """
     public_query = str(query.public_research_query or query.original_query or "").strip()
     free_web_mode = _is_free_web_mode(source_mode)
+    professional_practice_mode = _is_professional_practice_mode(source_mode)
     if not public_query:
         return PublicLegalResearchResult(
             query_used="",
@@ -387,36 +439,45 @@ def run_public_legal_research(
         log.append(f"[2] Ricerca web BLOCCATA: {result.web_blocked_reason}")
     elif not _WEB_AVAILABLE:
         result.web_blocked_reason = "Modulo ricerca web ufficiale non disponibile."
-        log.append(f"[2] Ricerca web non disponibile.")
+        log.append("[2] Ricerca web non disponibile.")
 
     # ------------------------------------------------------------------
     # Step 2b: ricerca web libera manuale (solo flag esplicito utente)
     # ------------------------------------------------------------------
-    if free_web_mode:
+    if free_web_mode or professional_practice_mode:
         if _FREE_WEB_AVAILABLE:
-            log.append(f"[2b] Ricerca web libera manuale per: «{public_query[:80]}»")
+            search_query = _professional_practice_query(public_query) if professional_practice_mode else public_query
+            label = "pratica professionale" if professional_practice_mode else "web libera manuale"
+            log.append(f"[2b] Ricerca {label} per: «{search_query[:80]}»")
             result.web_used = True
-            result.free_web_used = True
+            result.free_web_used = bool(free_web_mode)
+            result.professional_practice_used = bool(professional_practice_mode)
             result.web_blocked_reason = ""
             try:
-                free_rows = _search_free_web(public_query, limit_results=max_results) or []
+                free_rows = _search_free_web(search_query, limit_results=max_results) or []
                 for row in free_rows[:max_results]:
                     row_dict = row if isinstance(row, dict) else vars(row)
-                    normalized = _normalize_row(row_dict, source_type="web_libero")
+                    normalized = _normalize_row(
+                        row_dict,
+                        source_type="knowhow_professionale" if professional_practice_mode else "web_libero",
+                    )
+                    if professional_practice_mode:
+                        normalized.official = False
+                        normalized.trust_score = min(normalized.trust_score, 0.58)
                     if not normalized.source_restricted:
                         all_sources.append(normalized)
                     else:
                         result.coverage_gaps.append(
                             f"Fonte web riservata non accessibile: {normalized.title}"
                         )
-                log.append(f"  → {len(free_rows)} risultati web libero trovati.")
+                log.append(f"  → {len(free_rows)} risultati {label} trovati.")
             except Exception as exc:  # pragma: no cover
-                log.append(f"  → Errore ricerca web libera: {exc}")
-                result.warnings.append(f"Ricerca web libera non disponibile: {exc}")
+                log.append(f"  → Errore ricerca {label}: {exc}")
+                result.warnings.append(f"Ricerca {label} non disponibile: {exc}")
                 result.web_blocked_reason = str(exc)
         else:
-            result.web_blocked_reason = "Modulo ricerca web libera non disponibile."
-            log.append("[2b] Ricerca web libera non disponibile.")
+            result.web_blocked_reason = "Modulo ricerca web libera/pratica professionale non disponibile."
+            log.append("[2b] Ricerca web libera/pratica professionale non disponibile.")
 
     # ------------------------------------------------------------------
     # Step 3: Local Deep Research (solo se consentito e configurato)
@@ -512,6 +573,12 @@ def run_public_legal_research(
             "Cerca direttamente su Normattiva.it, Gazzetta Ufficiale o Cassazione.it."
         )
         log.append("[5] Nessuna fonte trovata.")
+
+    elif professional_practice_mode:
+        result.next_actions.append(
+            "Usa le fonti professionali come spunti di prassi e stile; per affermare il diritto cerca una fonte ufficiale."
+        )
+        log.append("[5] Fonti professionali non vincolanti acquisite come know-how, senza pubblicazione automatica.")
 
     elif not result.official_sources:
         if free_web_mode:

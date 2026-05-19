@@ -3,10 +3,28 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from typing import Any
 
 from .models import OperationalAnswer, OperationalRoute, OperationalSourceReference, OperationalToolResult
 from .serializers import clean_spaces
+
+
+_ITALIAN_MONTHS = {
+    1: "gennaio",
+    2: "febbraio",
+    3: "marzo",
+    4: "aprile",
+    5: "maggio",
+    6: "giugno",
+    7: "luglio",
+    8: "agosto",
+    9: "settembre",
+    10: "ottobre",
+    11: "novembre",
+    12: "dicembre",
+}
+_ITALIAN_MONTH_NAMES = tuple(_ITALIAN_MONTHS.values())
 
 
 class OperationalResponseComposer:
@@ -51,6 +69,22 @@ class OperationalResponseComposer:
 
         ok_results = [result for result in results if result.ok]
         if not ok_results:
+            if route.intent == "sources_overview":
+                answer_lines = self._sources_overview(results, gaps)
+                return OperationalAnswer(
+                    handled=True,
+                    answer="\n".join(line for line in answer_lines if clean_spaces(line)),
+                    route=route,
+                    sources=sources,
+                    objects=objects,
+                    confidence=0.55,
+                    coverage_gaps=gaps,
+                    warnings=warnings,
+                    next_actions=["Apri la scheda fonti o ripeti la domanda su un oggetto specifico per vedere le fonti usate."],
+                    permissions_applied=permissions,
+                    blocked_reason=blocked_reason,
+                    metadata={"operational_layer": True, "sources_overview": True},
+                )
             if route.intent in {"deadlines_overview", "agenda_overview"} and results:
                 answer_lines = self._calendar_lines(route, results, gaps)
                 return OperationalAnswer(
@@ -115,13 +149,15 @@ class OperationalResponseComposer:
         if route.intent == "soggetti_lookup":
             return self._soggetti_lines(results, gaps)
         if route.intent in {"fascicolo_summary", "documenti_fascicolo", "build_case_timeline"}:
-            return self._fascicolo_lines(route, results, gaps)
+            return self._fascicolo_lines(route, results, gaps, question=question)
         if route.intent in {"deadlines_overview", "agenda_overview"}:
             return self._calendar_lines(route, results, gaps)
         if route.intent in {"preventivo_summary", "conferimento_summary", "billing_summary", "tariffario_lookup", "unbilled_activity"}:
             return self._economic_lines(route, results, gaps)
         if route.intent in {"legal_update_overview", "official_sources_lookup"}:
             return self._legal_sources_lines(results, gaps, question=question)
+        if route.intent == "draft_communication":
+            return self._communication_draft_lines(results, gaps)
         if route.intent == "communications_lookup":
             return self._communications_lines(results, gaps)
         if route.intent == "studio_context_overview":
@@ -180,10 +216,14 @@ class OperationalResponseComposer:
         preventivi = _data_for(results, "preventivi")
         conferimenti = _data_for(results, "conferimenti")
         parcelle = _data_for(results, "fatturazione")
+        pagamenti = _data_for(results, "pagamenti")
         if route.intent in {"client_situation", "client_economic_summary"} and (preventivi or conferimenti or parcelle):
             lines.append(
                 f"Quadro economico: preventivi {len(preventivi)}, conferimenti {len(conferimenti)}, parcelle {len(parcelle)}."
             )
+        if pagamenti:
+            lines.append(f"Pagamenti collegati: {len(pagamenti)}.")
+            lines.extend(f"- {_payment_line(row)}" for row in pagamenti[:4])
         if gaps:
             lines.append("Limiti: " + "; ".join(gaps[:3]) + ".")
         lines.append("Fonti interne: dati del tenant corrente con permessi applicati.")
@@ -203,6 +243,8 @@ class OperationalResponseComposer:
                 details = _soggetto_identity_summary(parte)
                 suffix = f" - {details}" if details else ""
                 lines.append(f"- {role}: {label}{suffix}.")
+                if added_at := _format_italian_date(parte.get("data_aggiunta")):
+                    lines.append(f"  Collegamento al fascicolo registrato il {added_at}.")
                 note = clean_spaces(parte.get("note_parte") or parte.get("note_soggetto"))
                 if note:
                     lines.append(f"  Nota: {_short_text(note)}.")
@@ -229,7 +271,7 @@ class OperationalResponseComposer:
             return lines
         return ["Non ho trovato soggetti o parti reali consultabili nelle sorgenti autorizzate."]
 
-    def _fascicolo_lines(self, route: OperationalRoute, results: list[OperationalToolResult], gaps: list[str]) -> list[str]:
+    def _fascicolo_lines(self, route: OperationalRoute, results: list[OperationalToolResult], gaps: list[str], *, question: str = "") -> list[str]:
         fascicoli = _data_for(results, "fascicoli")
         documenti = _data_for(results, "documenti_fascicolo")
         lines = []
@@ -247,12 +289,21 @@ class OperationalResponseComposer:
                 if clean_spaces(fascicolo.get(key)):
                     lines.append(f"{label}: {fascicolo.get(key)}.")
         if documenti:
-            lines.append(f"Documenti collegati o indicizzati: {len(documenti)}.")
-            lines.extend(f"- {_row_link(row) or _label(row)}" for row in documenti[:5])
+            lines.append(f"Documenti del fascicolo collegati o indicizzati: {len(documenti)}.")
+            if route.intent == "documenti_fascicolo" and _looks_like_document_analysis(question):
+                lines.append("Punti importanti verificabili dai documenti disponibili:")
+            lines.extend(f"- {_document_line(row)}" for row in documenti[:5])
+            if route.intent == "documenti_fascicolo" and _looks_like_document_analysis(question):
+                if any(clean_spaces(row.get("anteprima") or row.get("summary") or row.get("content") or row.get("text")) for row in documenti):
+                    lines.append("Ho usato il testo indicizzato disponibile; eventuali sezioni non indicizzate restano da verificare nel documento originale.")
+                else:
+                    lines.append("Il testo integrale non risulta disponibile in questa evidenza: non invento contenuti e segnalo solo metadati, data, tipo, hash e link editor.")
         for source_id, label in (("scadenziario", "Scadenze"), ("agenda", "Agenda"), ("preventivi", "Preventivi"), ("fatturazione", "Parcelle")):
             rows = _data_for(results, source_id)
             if rows:
                 lines.append(f"{label}: {len(rows)} elementi.")
+                if route.intent == "build_case_timeline":
+                    lines.extend(f"- {_dated_label(row)}" for row in rows[:4])
         if gaps:
             lines.append("Limiti: " + "; ".join(gaps[:3]) + ".")
         lines.append("Fonti interne: fascicolo e moduli collegati autorizzati.")
@@ -263,19 +314,25 @@ class OperationalResponseComposer:
         agenda = _data_for(results, "agenda")
         lines = [f"Scadenze consultabili: {len(scadenze)}.", f"Impegni agenda consultabili: {len(agenda)}."]
         for row in scadenze[:5]:
-            lines.append(f"- Scadenza: {_label(row)}")
+            lines.append(f"- Scadenza: {_dated_label(row)}")
         for row in agenda[:5]:
-            lines.append(f"- Agenda: {_label(row)}")
+            lines.append(f"- Agenda: {_dated_label(row)}")
         if gaps:
             lines.append("Limiti: " + "; ".join(gaps[:3]) + ".")
         lines.append("Fonti interne: agenda e scadenziario del tenant corrente.")
         return lines
 
     def _communications_lines(self, results: list[OperationalToolResult], gaps: list[str]) -> list[str]:
+        clienti = _data_for(results, "clienti")
+        fascicoli = _data_for(results, "fascicoli")
         pec_rows = _sort_communications(_data_for(results, "email_pec"))
         ordinary_rows = _sort_communications(_data_for(results, "email_ordinaria"))
         messages = _sort_communications(_data_for(results, "messaggi"))
         lines: list[str] = []
+        if fascicoli:
+            lines.append(f"Fascicolo di contesto: {_row_link(fascicoli[0]) or _label(fascicoli[0])}.")
+        if clienti:
+            lines.append(f"Cliente di contesto: {_row_link(clienti[0]) or _label(clienti[0])}.")
         if pec_rows:
             latest = pec_rows[0]
             lines.append(f"Ultima PEC trovata: {_label(latest)}.")
@@ -299,6 +356,59 @@ class OperationalResponseComposer:
             return lines
         return ["Non ho trovato comunicazioni reali consultabili nelle caselle autorizzate."]
 
+    def _communication_draft_lines(self, results: list[OperationalToolResult], gaps: list[str]) -> list[str]:
+        pec_rows = _sort_communications(_data_for(results, "email_pec"))
+        ordinary_rows = _sort_communications(_data_for(results, "email_ordinaria"))
+        messages = _sort_communications(_data_for(results, "messaggi"))
+        communication = pec_rows[0] if pec_rows else (ordinary_rows[0] if ordinary_rows else {})
+        if not communication:
+            lines = ["Non ho trovato una PEC o email reale consultabile su cui preparare la risposta."]
+            if messages:
+                lines.append(f"Ho trovato solo messaggi interni collegati: {len(messages)}.")
+            if gaps:
+                lines.append("Limiti: " + "; ".join(gaps[:3]) + ".")
+            lines.append("Serve indicare la PEC/email, il fascicolo o il cliente corretto prima di redigere.")
+            return lines
+
+        is_pec = bool(pec_rows)
+        sender = clean_spaces(communication.get("mittente") or communication.get("mittente_nome"))
+        date_value = _format_italian_date(communication.get("data"))
+        subject = clean_spaces(communication.get("oggetto")) or "comunicazione ricevuta"
+        body_hint = clean_spaces(communication.get("anteprima") or communication.get("corpo_testo"))
+        lines = [
+            "Ho trovato la comunicazione interna da usare come base della risposta.",
+            f"Fonte: {'PEC' if is_pec else 'email ordinaria'} del {date_value or 'data non indicata'}, oggetto \"{subject}\".",
+        ]
+        if sender:
+            lines.append(f"Mittente: {sender}.")
+        if link := _row_link(communication, label="Apri comunicazione"):
+            lines.append(f"Collegamento: {link}.")
+        if communication.get("allegati_count"):
+            lines.append(f"Allegati indicati dalla fonte: {communication.get('allegati_count')}.")
+        lines.extend(
+            [
+                "",
+                "BOZZA — RISPOSTA PEC" if is_pec else "BOZZA — RISPOSTA EMAIL",
+                f"A: {sender or '[destinatario da verificare]'}",
+                f"Oggetto: Riscontro a: {subject}",
+                "",
+                "Con riferimento alla comunicazione ricevuta, si prende atto di quanto indicato nella fonte interna sopra citata.",
+            ]
+        )
+        if body_hint:
+            lines.append(f"In particolare, dalla comunicazione risulta: {_short_text(body_hint, max_length=240)}.")
+        lines.extend(
+            [
+                "Prima dell'invio si resta in attesa di conferma sul contenuto definitivo da comunicare e sugli eventuali allegati da richiamare.",
+                "",
+                "Dati da verificare prima dell'invio: destinatario, oggetto definitivo, posizione del fascicolo, allegati da citare e firma del professionista.",
+                "Fonti interne: comunicazioni del tenant corrente con permessi applicati.",
+            ]
+        )
+        if gaps:
+            lines.append("Limiti: " + "; ".join(gaps[:3]) + ".")
+        return lines
+
     def _economic_lines(self, route: OperationalRoute, results: list[OperationalToolResult], gaps: list[str]) -> list[str]:
         labels = {
             "preventivi": "Preventivi",
@@ -313,7 +423,12 @@ class OperationalResponseComposer:
             rows = _data_for(results, source_id)
             if rows:
                 lines.append(f"{label}: {len(rows)} elementi.")
-                lines.extend(f"- {_label(row)}" for row in rows[:4])
+                if source_id == "pagamenti":
+                    lines.extend(f"- {_payment_line(row)}" for row in rows[:4])
+                elif source_id in {"fatturazione", "preventivi", "conferimenti", "timesheet"}:
+                    lines.extend(f"- {_dated_label(row)}" for row in rows[:4])
+                else:
+                    lines.extend(f"- {_label(row)}" for row in rows[:4])
         if not lines:
             lines.append("Non ho trovato elementi economici reali consultabili per questa richiesta.")
         if gaps:
@@ -383,7 +498,7 @@ class OperationalResponseComposer:
                     source_parts.append(f"ricorrente {ricorrente}")
                 if relator := clean_spaces(case_details.get("relator")):
                     source_parts.append(f"relatore {relator}")
-                if hearing := clean_spaces(case_details.get("hearing")):
+                if hearing := (_format_italian_date(case_details.get("hearing")) or clean_spaces(case_details.get("hearing"))):
                     source_parts.append(f"udienza {hearing}")
                 if source_parts:
                     lines.append("- Scheda: " + "; ".join(source_parts) + ".")
@@ -446,9 +561,13 @@ class OperationalResponseComposer:
 
     def _sources_overview(self, results: list[OperationalToolResult], gaps: list[str]) -> list[str]:
         used = [result.source_id for result in results if result.ok]
-        lines = ["Per questa risposta posso usare solo sorgenti autorizzate e citabili."]
+        lines = ["Fonti operative consultabili: solo sorgenti autorizzate e citabili."]
         if used:
             lines.append("Sorgenti disponibili: " + ", ".join(sorted(set(used))) + ".")
+        else:
+            lines.append(
+                "Fonti interne principali: clienti, fascicoli, soggetti, agenda, scadenziario, documenti fascicolo, PEC/email, preventivi, fatturazione e pagamenti."
+            )
         if gaps:
             lines.append("Sorgenti non disponibili o non autorizzate: " + "; ".join(gaps[:5]) + ".")
         return lines
@@ -466,6 +585,10 @@ class OperationalResponseComposer:
             "pagamenti": "Pagamenti",
         }
         lines = ["Ho consultato il contesto operativo autorizzato dello studio."]
+        priorities = _studio_priority_lines(results)
+        if priorities:
+            lines.append("Priorità operative:")
+            lines.extend(priorities[:5])
         found = False
         for source_id, label in labels.items():
             rows = _data_for(results, source_id)
@@ -513,6 +636,8 @@ class OperationalResponseComposer:
             return ["Controlla la scadenza nel modulo originale prima di comunicare o depositare atti."]
         if route.intent in {"preventivo_summary", "conferimento_summary", "billing_summary", "tariffario_lookup"}:
             return ["Verifica importi, stato e collegamenti nel modulo economico prima di inviare documenti al cliente."]
+        if route.intent == "draft_communication":
+            return ["Apri la comunicazione e rivedi la bozza nell'editor prima di inviarla."]
         if gaps:
             return ["Restringi la richiesta o aggiungi identificativi per colmare i dati mancanti."]
         return []
@@ -530,12 +655,110 @@ def _data_for(results: list[OperationalToolResult], source_id: str) -> list[dict
     return rows
 
 
+def _format_italian_date(value: Any) -> str:
+    text = clean_spaces(value)
+    if not text:
+        return ""
+    lower = text.lower()
+    if any(month in lower for month in _ITALIAN_MONTH_NAMES):
+        return text
+
+    match = re.fullmatch(
+        r"(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})"
+        r"(?:(?:T|\s)(?P<hour>\d{2}):(?P<minute>\d{2})(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?",
+        text,
+    )
+    if not match:
+        match = re.fullmatch(r"(?P<day>\d{1,2})[/-](?P<month>\d{1,2})[/-](?P<year>\d{4})", text)
+    if not match:
+        try:
+            parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        except Exception:
+            return text
+        return _italian_date_parts(parsed.year, parsed.month, parsed.day, parsed.hour, parsed.minute)
+
+    year = int(match.group("year"))
+    month = int(match.group("month"))
+    day = int(match.group("day"))
+    hour = match.groupdict().get("hour")
+    minute = match.groupdict().get("minute")
+    return _italian_date_parts(year, month, day, int(hour) if hour else None, int(minute) if minute else None)
+
+
+def _italian_date_parts(year: int, month: int, day: int, hour: int | None = None, minute: int | None = None) -> str:
+    month_name = _ITALIAN_MONTHS.get(month)
+    if not month_name:
+        return ""
+    base = f"{day} {month_name} {year}"
+    if hour is not None and minute is not None:
+        base += f" alle {hour:02d}:{minute:02d}"
+    return base
+
+
 def _label(row: dict[str, Any]) -> str:
-    for key in ("nome_completo", "titolo", "title", "oggetto", "numero", "number", "nome", "name", "ragione_sociale", "id"):
+    for key in ("nome_completo", "titolo", "title", "oggetto", "descrizione", "numero", "number", "nome", "name", "ragione_sociale", "id"):
         value = clean_spaces(row.get(key))
         if value:
             return value
     return "Elemento"
+
+
+def _dated_label(row: dict[str, Any]) -> str:
+    label = _label(row)
+    for key in ("data_scadenza", "data_ora", "data", "scade_il", "creato_il"):
+        value = _format_italian_date(row.get(key))
+        if value:
+            return f"{label} ({value})"
+    return label
+
+
+def _document_line(row: dict[str, Any]) -> str:
+    label = _row_link(row) or _label(row)
+    details = []
+    for key, prefix in (("tipo", "tipo"), ("data_caricamento", "caricato"), ("sha256", "hash")):
+        value = _format_italian_date(row.get(key)) if key.startswith("data") else clean_spaces(row.get(key))
+        if value:
+            details.append(f"{prefix} {value}")
+    if clean_spaces(row.get("status")):
+        details.append(f"stato {clean_spaces(row.get('status'))}")
+    return label + (f" ({'; '.join(details)})." if details else ".")
+
+
+def _payment_line(row: dict[str, Any]) -> str:
+    label = clean_spaces(row.get("descrizione")) or _label(row)
+    amount = clean_spaces(row.get("importo") or row.get("totale") or row.get("amount"))
+    currency = clean_spaces(row.get("valuta") or row.get("currency"))
+    state = clean_spaces(row.get("stato") or row.get("status"))
+    pieces = []
+    if amount:
+        pieces.append(f"importo {amount}{(' ' + currency) if currency else ''}")
+    if state:
+        pieces.append(f"stato {state}")
+    if created_at := _format_italian_date(row.get("creato_il")):
+        pieces.append(f"creato il {created_at}")
+    return label + (f" ({'; '.join(pieces)})." if pieces else ".")
+
+
+def _looks_like_document_analysis(question: str) -> bool:
+    text = clean_spaces(question).lower()
+    return any(token in text for token in ("analizza", "spiega", "spiegami", "riassumi", "sintesi", "punti important", "punti più important"))
+
+
+def _studio_priority_lines(results: list[OperationalToolResult]) -> list[str]:
+    lines: list[str] = []
+    scadenze = _data_for(results, "scadenziario")
+    agenda = _data_for(results, "agenda")
+    pec = _sort_communications(_data_for(results, "email_pec"))
+    pagamenti = _data_for(results, "pagamenti")
+    if scadenze:
+        lines.append(f"- Scadenza da controllare: {_dated_label(scadenze[0])}.")
+    if agenda:
+        lines.append(f"- Agenda: {_dated_label(agenda[0])}.")
+    if pec:
+        lines.append(f"- Ultima PEC: {_label(pec[0])} ({_format_italian_date(pec[0].get('data')) or 'data non indicata'}).")
+    if pagamenti:
+        lines.append(f"- Pagamenti: {_payment_line(pagamenti[0])}")
+    return lines
 
 
 def _row_link(row: dict[str, Any], *, label: str = "") -> str:
@@ -645,9 +868,9 @@ def _official_case_summary_lines_from_details(details: dict[str, str]) -> list[s
     if references:
         lines.append(f"- Riferimenti normativi: {_sentence_text(references)}")
     info_parts = []
-    if inserted_at := details.get("inserted_at", ""):
+    if inserted_at := (_format_italian_date(details.get("inserted_at", "")) or details.get("inserted_at", "")):
         info_parts.append(f"inserita il {inserted_at}")
-    if hearing := details.get("hearing", ""):
+    if hearing := (_format_italian_date(details.get("hearing", "")) or details.get("hearing", "")):
         info_parts.append(f"udienza {hearing}")
     if relator := details.get("relator", ""):
         info_parts.append(f"relatore {relator}")
@@ -949,7 +1172,7 @@ def _official_question_answer_lines(
             lines.append("- Motivi/censure indicati nell'ordinanza:")
         lines.extend(f"  - {_sentence_text(item)}" for item in complaints[:4])
     if wants_schedule:
-        hearing = clean_spaces(case_details.get("hearing"))
+        hearing = _format_italian_date(case_details.get("hearing")) or clean_spaces(case_details.get("hearing"))
         references = clean_spaces(case_details.get("references"))
         if hearing:
             lines.append(f"- Udienza indicata in scheda: {hearing}.")
@@ -1227,9 +1450,10 @@ def _cliente_identity_lines(cliente: dict[str, Any]) -> list[str]:
     if birth or place or province:
         place_text = f"{place} ({province})" if place and province else place or province
         suffix = f" a {place_text}" if place_text else ""
-        lines.append(f"Nascita: {birth or 'data non indicata'}{suffix}.")
+        birth_label = _format_italian_date(birth) or "data non indicata"
+        lines.append(f"Nascita: {birth_label}{suffix}.")
     for key, label in (("nazionalita", "Nazionalità"), ("sesso", "Sesso"), ("data_costituzione", "Data costituzione")):
-        value = clean_spaces(cliente.get(key))
+        value = _format_italian_date(cliente.get(key)) if key.startswith("data_") else clean_spaces(cliente.get(key))
         if value:
             lines.append(f"{label}: {value}.")
     return lines
@@ -1266,9 +1490,9 @@ def _cliente_document_lines(cliente: dict[str, Any]) -> list[str]:
     if values["rilasciato"]:
         parts.append(f"rilasciato da {values['rilasciato']}")
     if values["rilascio"]:
-        parts.append(f"il {values['rilascio']}")
+        parts.append(f"il {_format_italian_date(values['rilascio']) or values['rilascio']}")
     if values["scadenza"]:
-        parts.append(f"scadenza {values['scadenza']}")
+        parts.append(f"scadenza {_format_italian_date(values['scadenza']) or values['scadenza']}")
     if cliente.get("documento_scaduto") is True:
         parts.append("scaduto")
     return ["Documento: " + ", ".join(parts) + "."]
@@ -1281,7 +1505,7 @@ def _cliente_studio_lines(cliente: dict[str, Any]) -> list[str]:
         ("data_prima_acquisizione", "Prima acquisizione"),
         ("provenienza", "Provenienza"),
     ):
-        value = clean_spaces(cliente.get(key))
+        value = _format_italian_date(cliente.get(key)) if key.startswith("data_") else clean_spaces(cliente.get(key))
         if value:
             lines.append(f"{label}: {value}.")
     tags = [clean_spaces(tag) for tag in list(cliente.get("tag") or []) if clean_spaces(tag)]
@@ -1312,7 +1536,7 @@ def _cliente_privacy_lines(cliente: dict[str, Any]) -> list[str]:
     date = clean_spaces(cliente.get("data_consenso"))
     mode = clean_spaces(cliente.get("modalita_consenso"))
     if date:
-        pieces.append(f"data {date}")
+        pieces.append(f"data {_format_italian_date(date) or date}")
     if mode:
         pieces.append(f"modalità {mode}")
     return ["Privacy: consenso trattamento " + ", ".join(pieces) + "."]
@@ -1346,7 +1570,8 @@ def _soggetto_detail_lines(soggetto: dict[str, Any]) -> list[str]:
     if birth or place or province:
         place_text = f"{place} ({province})" if place and province else place or province
         suffix = f" a {place_text}" if place_text else ""
-        lines.append(f"Nascita: {birth or 'data non indicata'}{suffix}.")
+        birth_label = _format_italian_date(birth) or "data non indicata"
+        lines.append(f"Nascita: {birth_label}{suffix}.")
     sex = clean_spaces(soggetto.get("sesso"))
     if sex:
         lines.append(f"Sesso: {sex}.")
@@ -1412,7 +1637,7 @@ def _markdown_link(url: str, *, label: str = "") -> str:
 def _communication_details(row: dict[str, Any], *, include_folder: bool = False) -> list[str]:
     details: list[str] = []
     sender = clean_spaces(row.get("mittente_nome") or row.get("mittente"))
-    sent_at = clean_spaces(row.get("data") or row.get("ricevuta_il") or row.get("inviato_il"))
+    sent_at = _format_italian_date(row.get("data") or row.get("ricevuta_il") or row.get("inviato_il"))
     recipients = row.get("destinatari")
     recipients_text = clean_spaces(", ".join(str(item) for item in recipients) if isinstance(recipients, list) else recipients)
     if sender:
@@ -1434,6 +1659,9 @@ def _communication_details(row: dict[str, Any], *, include_folder: bool = False)
     pct_state = clean_spaces(row.get("stato_pct"))
     if pct_state:
         details.append(f"Esito telematico rilevato: {pct_state}.")
+    preview = clean_spaces(row.get("anteprima") or row.get("corpo_testo"))
+    if preview:
+        details.append(f"Contenuto rilevante: {_short_text(preview, max_length=220)}.")
     if link := _row_link(row, label="Apri comunicazione"):
         details.append(f"Collegamento: {link}.")
     attachment_links = _attachment_links(row)

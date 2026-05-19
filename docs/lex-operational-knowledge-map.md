@@ -6,6 +6,16 @@ Questa mappa descrive le sorgenti operative reali che Lex AI puo' interrogare in
 
 Il layer operativo resta governato da feature flag, fail-closed in multi-studio e compatibile con Flask, App V2/React, JSON, SQLite e PostgreSQL dove gia' previsto. Dal 2026-05-15 e' attivo di default nel bounded workflow Lex, con opt-out esplicito per rollback.
 
+Aggiornamento 2026-05-20, Lex Studio Reasoner conversazionale 2.245.63: la chat operativa ora risolve follow-up da collega sui riferimenti appena mostrati. La memoria conversazionale estrae solo link e identificativi interni già esposti in risposta (`/email/messaggio/...`, `/email-ordinaria/messaggio/...`, `/fascicoli/...`, documenti editor e cartelle cliente) e li converte in `active_context` verificabile per il turno successivo.
+
+I casi coperti includono "e gli allegati?" dopo una PEC, "preparami una risposta" dopo una PEC, "chi è la controparte?" e "e le scadenze?" dopo un fascicolo, e "quali fascicoli ha?" dopo una scheda cliente. Lo scope fascicolo/cliente è vincolante: se il collegamento non è certo, Lex dichiara la lacuna e non usa risultati globali come surrogato. Le domande di bozza passano da `draft_communication`, che prima recupera la comunicazione interna e poi redige.
+
+La pratica web professionale usa `source_mode=pratica_professionale` nel gateway pubblico: può navigare risultati liberi su siti di studi legali e contenuti per avvocati per acquisire spunti di prassi, struttura e lessico. Tali risultati sono marcati `knowhow_professionale`, non sono fonti vincolanti, non alimentano pubblicazione automatica e non autorizzano Lex a contraddire l'avvocato. La correzione dell'avvocato richiede fonte primaria verificata con confidenza almeno 99%.
+
+Il retrieval web libero tenta DuckDuckGo HTML, Google pubblico, Yahoo ed Ecosia, fermandosi al primo canale che restituisce risultati pubblici significativi. Nel merge RAG la pratica professionale resta separata: alimenta `professional_practice_sources`, conserva le regole d'uso nel metadata e non entra in `trusted_sources` né rende sufficiente l'evidence pack.
+
+La fase linguaggio giuridico/date 2.245.63 normalizza le date visibili direttamente nella composizione operativa: PEC/email, scadenze, agenda, documenti, pagamenti, schede cliente/soggetto, privacy e timeline devono uscire come `17 maggio 2026` o `21 maggio 2026 alle 10:00`. La guardia qualità rifiuta date ISO tecniche nei workflow professionali e l'audit dedicato richiede almeno il 99% su cento turni.
+
 Aggiornamento 2026-05-19, Lex Unified Chat operativa 2.245.61: `LexUnifiedChat` diventa il contratto unico della chat professionale. Ogni sezione può passare `active_context` con tipo contesto, fascicolo, cliente, PEC, documento e scope permessi; il bridge normalizza questi dati con `LexContextProvider` prima di interrogare Operational Knowledge.
 
 Il payload risultante contiene `detected_intent`, `lex_structured_context`, `message_blocks`, `lex_actions` e `source_verification`. Il renderer mostra card PEC/email, allegati, fascicolo, cliente, documenti, scadenze, timeline, fatture/pagamenti e fonti interne. Le bozze non partono da sole: per "ultima PEC ricevuta" Lex consulta e cita la PEC; "Prepara bozza risposta" resta un'azione successiva.

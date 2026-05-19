@@ -7,6 +7,22 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.245.63 - 20 maggio 2026
+
+Lex Studio Reasoner è stato esteso per lavorare come una conversazione tra colleghi. I follow-up brevi dell'avvocato, come "e gli allegati?", "preparami una risposta", "chi è la controparte?", "e le scadenze?" o "quali fascicoli ha?", vengono risolti sul riferimento operativo appena mostrato: PEC/email, fascicolo, documento o cliente. La memoria usa soltanto link e oggetti interni già verificati nella risposta precedente.
+
+La matrice di audit ora copre domande vaste su PEC, email ordinaria, allegati, fascicoli, documenti, soggetti, controparti, timeline, scadenze, agenda, clienti, pagamenti/fatture, priorità studio e bozze esplicitamente richieste. Le bozze restano vietate sulle sole consultazioni: "ultima PEC ricevuta" non redige nulla, mentre "scrivi risposta alla PEC..." recupera prima la fonte interna e poi prepara una bozza governata.
+
+Il gate conversazionale end-to-end richiede almeno il 90% su 30 turni consecutivi. Il primo audit ha prodotto 73% e ha guidato correzioni reali su routing dei follow-up, preventivi, conferimenti, template, agenda, fonti interne e contesto studio; il gate finale è verde.
+
+La pratica su web professionale è distinta dalle fonti ufficiali: Lex può usare siti di studi legali, commenti operativi e contenuti per avvocati come know-how non vincolante, senza addestramento grezzo, senza pubblicazione automatica nel corpus e senza usarli per contraddire l'avvocato. Per correggere l'avvocato serve una fonte primaria verificata con confidenza almeno 99%.
+
+Il motore `Web libero` ora prova più canali pubblici in sequenza: DuckDuckGo HTML, Google pubblico, Yahoo ed Ecosia. Se un canale non restituisce risultati live, Lex passa al successivo; i risultati restano `web_libero` o `knowhow_professionale`, non vengono promossi a fonte ufficiale e non diventano trusted source nel RAG. È stato aggiunto un audit al 99% su cento somministrazioni web/RAG verso conversazione con l'avvocato: ogni acquisizione deve preservare contenuto, fonte, limite d'uso e regola "non contraddire senza fonte primaria".
+
+La fase linguaggio giuridico/date impone il formato italiano nelle risposte rivolte all'avvocato: giorno, mese scritto in italiano e anno, con ora solo quando presente nei dati (`17 maggio 2026`, `21 maggio 2026 alle 10:00`). La composizione deterministica applica il formato a PEC/email, scadenze, agenda, documenti, pagamenti, schede cliente/soggetto, privacy e timeline; la guardia qualità blocca date tecniche ISO nelle risposte professionali. L'audit dedicato verifica cento turni e richiede almeno il 99%.
+
+Sono stati chiusi tre rischi pratici: lo scope fascicolo/cliente viene applicato anche quando il contesto arriva direttamente da `active_context`, una ricerca PEC su fascicolo inesistente non ricade più sulla PEC globale e lo studio context non filtra via le fonti interne quando la domanda non contiene un'entità specifica. I controlli restano divisi per fase e per perimetro Lex; nessun aggregatore legacy è stato reintrodotto.
+
 ## Aggiornamento operativo 2.245.61 - 19 maggio 2026
 
 Lex ha ora un contratto unico di chat operativa: `LexUnifiedChat`. La chat resta il punto di ingresso riutilizzabile da pagina, drawer, modale o assistente globale, mentre il motore sotto è `Lex Studio Reasoner`. Ogni risposta operativa porta `active_context`, `detected_intent`, `lex_structured_context`, `message_blocks`, `lex_actions` e `source_verification`.

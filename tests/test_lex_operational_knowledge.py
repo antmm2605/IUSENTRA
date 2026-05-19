@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sqlite3
 from pathlib import Path
 from types import SimpleNamespace
@@ -13,6 +14,14 @@ from lex.operational_knowledge.service import OperationalKnowledgeService
 from lex.operational_knowledge.settings import OperationalKnowledgeSettings
 from lex.operational_knowledge.tools import OperationalKnowledgeTools
 from lex.tools.registry import LexToolRegistry
+
+RAW_VISIBLE_DATE_RE = re.compile(r"\b(?:19|20)\d{2}-\d{2}-\d{2}(?:(?:T|\s)\d{2}:\d{2}(?::\d{2})?)?\b")
+ITALIAN_MONTH_RE = re.compile(
+    r"\b\d{1,2}\s+"
+    r"(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)"
+    r"\s+(?:19|20)\d{2}\b",
+    re.IGNORECASE,
+)
 
 QSP_ATTACHMENT_OCR_TEXT = (
     "CORTE SUPREMA DI CASSAZIONE QUINTA SEZIONE PENALE. Oggetto: ricorso n. 9966/2026 R.G. "
@@ -336,6 +345,8 @@ def _base_repositories():
                 oggetto="Esito deposito",
                 data="2026-05-17",
                 corpo_testo="Ricevuta di consegna del deposito telematico.",
+                id_cliente="cli-1",
+                id_fascicolo="fas-1",
                 allegati=[{"nome": "ricevuta.eml", "size": 100, "archivio_membro": "aa/ricevuta.eml", "percorso": "D:/segreto/ricevuta.eml"}],
                 origine="IMAP",
                 stato_pct="ACCETTATO",
@@ -353,6 +364,8 @@ def _base_repositories():
                 oggetto="Documenti contratto",
                 data="2026-05-16",
                 corpo_testo="Invio documenti per il contratto di locazione.",
+                id_cliente="cli-1",
+                id_fascicolo="fas-1",
                 allegati=[{"nome": "contratto.pdf", "size": 200, "archivio_membro": "bb/contratto.pdf", "percorso": "D:/segreto/contratto.pdf"}],
                 origine="IMAP",
                 tenant_id="tenant-a",
@@ -406,11 +419,11 @@ def test_client_card_question_returns_real_customer_sheet():
     assert answer is not None
     assert "Scheda cliente: Mario Rossi" in answer.answer
     assert "Codice fiscale: RSSMRA80A01H501U." in answer.answer
-    assert "Nascita: 1980-01-01 a Roma (RM)." in answer.answer
+    assert "Nascita: 1 gennaio 1980 a Roma (RM)." in answer.answer
     assert "Residenza: Via Roma 10, 00100 Roma (RM)." in answer.answer
     assert "Recapiti autorizzati: email mario@example.test; PEC mario@pec.test; telefono 061234." in answer.answer
     assert "Documento: CARTA_IDENTITA, n. AA123456" in answer.answer
-    assert "Privacy: consenso trattamento registrato, data 2026-01-10, modalità digitale." in answer.answer
+    assert "Privacy: consenso trattamento registrato, data 10 gennaio 2026, modalità digitale." in answer.answer
     assert "Procedimenti in scheda: 1." in answer.answer
     assert "Fascicoli collegati: 1" in answer.answer
     assert "Non ho trovato dati reali sufficienti" not in answer.answer
@@ -424,7 +437,7 @@ def test_subject_card_question_returns_real_party_sheet():
     assert answer is not None
     assert "Scheda soggetto: Luigi Bianchi." in answer.answer
     assert "Codice fiscale: BNCLGU80A01H501Z." in answer.answer
-    assert "Nascita: 1980-01-01 a Roma (RM)." in answer.answer
+    assert "Nascita: 1 gennaio 1980 a Roma (RM)." in answer.answer
     assert "Indirizzo: Via Milano 20, 00100 Roma (RM)." in answer.answer
     assert "Recapiti autorizzati: email luigi@example.test; PEC luigi@pec.test; telefono 069999." in answer.answer
     assert "Note operative: Soggetto importato dal fascicolo telematico." in answer.answer
@@ -573,7 +586,7 @@ def test_latest_pec_question_returns_real_latest_message_details():
     assert answer is not None
     assert "Ultima PEC trovata: Esito deposito." in answer.answer
     assert "Mittente: Cancelleria." in answer.answer
-    assert "Data: 2026-05-17." in answer.answer
+    assert "Data: 17 maggio 2026." in answer.answer
     assert "Allegati: 1." in answer.answer
     assert "Non ho trovato dati reali sufficienti" not in answer.answer
 
@@ -588,6 +601,458 @@ def test_latest_pec_response_exposes_openable_message_and_attachment_links():
     assert "Allegati apribili: [ricevuta.eml](/email/messaggio/pec-1/allegato/0)." in answer.answer
     assert any(obj.object_type == "email" and obj.action_url == "/email/messaggio/pec-1" for obj in answer.objects)
     assert any(obj.object_type == "allegato_email" and obj.action_url == "/email/messaggio/pec-1/allegato/0" for obj in answer.objects)
+
+
+def test_lex_studio_reasoner_real_question_audit_matrix():
+    service, user = _service(repositories=_base_repositories())
+    studio = SimpleNamespace(slug="tenant-a")
+    cases = [
+        {
+            "question": "ultima PEC ricevuta",
+            "metadata": {},
+            "intent": "communications_lookup",
+            "must": ["Ultima PEC trovata", "Cancelleria", "Esito deposito", "/email/messaggio/pec-1", "ricevuta.eml"],
+            "must_not": ["BOZZA", "Non ho trovato"],
+            "sources": {"email_pec"},
+        },
+        {
+            "question": "ultima PEC ricevuta",
+            "metadata": {"active_context": {"context_type": "case", "case_id": "fas-1", "client_id": "cli-1"}},
+            "intent": "communications_lookup",
+            "must": ["Rossi / Bianchi", "Aggiornamento pratica", "Esito deposito", "Fonti interne"],
+            "must_not": ["BOZZA", "Non ho trovato"],
+            "sources": {"fascicoli", "messaggi", "email_pec"},
+        },
+        {
+            "question": "spiegami questa PEC e dimmi quali allegati contiene",
+            "metadata": {"active_context": {"context_type": "pec", "pec_id": "pec-1", "linked_case_id": "fas-1", "linked_client_id": "cli-1"}},
+            "intent": "communications_lookup",
+            "must": ["Ricevuta di consegna", "Allegati: 1", "ricevuta.eml", "/email/messaggio/pec-1"],
+            "must_not": ["BOZZA", "Non ho trovato"],
+            "sources": {"email_pec"},
+        },
+        {
+            "question": "ultima email ordinaria ricevuta e allegati",
+            "metadata": {},
+            "intent": "communications_lookup",
+            "must": ["Ultima email ordinaria trovata", "Documenti contratto", "contratto.pdf", "/email-ordinaria/messaggio/mail-1"],
+            "must_not": ["BOZZA", "Non ho trovato"],
+            "sources": {"email_ordinaria"},
+        },
+        {
+            "question": "quali soggetti sono collegati a questa pratica?",
+            "metadata": {"active_context": {"context_type": "case", "case_id": "fas-1", "client_id": "cli-1"}},
+            "intent": "soggetti_lookup",
+            "must": ["Parti del fascicolo: 1", "CONTROPARTE", "Luigi Bianchi", "Resistente nel procedimento"],
+            "must_not": ["Nessun dato reale disponibile", "Parti del fascicolo: 2"],
+            "sources": {"soggetti"},
+        },
+        {
+            "question": "chi è la controparte del fascicolo?",
+            "metadata": {"active_context": {"context_type": "case", "case_id": "fas-1", "client_id": "cli-1"}},
+            "intent": "soggetti_lookup",
+            "must": ["CONTROPARTE", "Luigi Bianchi", "BNCLGU80A01H501Z"],
+            "must_not": ["Nessun dato reale disponibile", "Parti del fascicolo: 2"],
+            "sources": {"soggetti"},
+        },
+        {
+            "question": "Dammi la scheda cliente Rossi",
+            "metadata": {},
+            "intent": "client_situation",
+            "must": ["Scheda cliente: Mario Rossi", "Codice fiscale", "Fascicoli collegati", "Pagamenti collegati"],
+            "must_not": ["Non ho trovato"],
+            "sources": {"clienti", "fascicoli", "pagamenti"},
+        },
+        {
+            "question": "quali fascicoli ha il cliente Rossi?",
+            "metadata": {},
+            "intent": "client_fascicoli",
+            "must": ["Scheda cliente: Mario Rossi", "Fascicoli collegati: 1", "Rossi / Bianchi"],
+            "must_not": ["Non ho trovato"],
+            "sources": {"clienti", "fascicoli"},
+        },
+        {
+            "question": "Costruisci la timeline del fascicolo Rossi",
+            "metadata": {"active_context": {"context_type": "case", "case_id": "fas-1", "client_id": "cli-1"}},
+            "intent": "build_case_timeline",
+            "must": ["Fascicolo: Rossi / Bianchi", "ricorso.pdf", "Costituzione", "Udienza"],
+            "must_not": ["Non ho trovato"],
+            "sources": {"fascicoli", "documenti_fascicolo", "scadenziario", "agenda"},
+        },
+        {
+            "question": "Analizza i documenti presenti nel fascicolo Rossi e dimmi i punti importanti",
+            "metadata": {"active_context": {"context_type": "case", "case_id": "fas-1", "client_id": "cli-1"}},
+            "intent": "documenti_fascicolo",
+            "must": ["Punti importanti verificabili", "ricorso.pdf", "hash abc123", "non invento contenuti"],
+            "must_not": ["Non ho trovato"],
+            "sources": {"fascicoli", "documenti_fascicolo"},
+        },
+        {
+            "question": "Quali scadenze urgenti ho questa settimana?",
+            "metadata": {},
+            "intent": "deadlines_overview",
+            "must": ["Costituzione (20 maggio 2026)", "Udienza (21 maggio 2026 alle 10:00)", "Fonti interne"],
+            "must_not": ["Non ho trovato"],
+            "sources": {"agenda", "scadenziario"},
+        },
+        {
+            "question": "cosa ho in agenda questa settimana?",
+            "metadata": {},
+            "intent": "deadlines_overview",
+            "must": ["Scadenze consultabili", "Impegni agenda consultabili", "Udienza (21 maggio 2026 alle 10:00)"],
+            "must_not": ["Non ho trovato"],
+            "sources": {"agenda", "scadenziario"},
+        },
+        {
+            "question": "fammi il riepilogo del fascicolo Rossi",
+            "metadata": {"active_context": {"context_type": "case", "case_id": "fas-1", "client_id": "cli-1"}},
+            "intent": "fascicolo_summary",
+            "must": ["Fascicolo: Rossi / Bianchi", "ricorso.pdf", "Parcelle: 1 elementi"],
+            "must_not": ["Non ho trovato"],
+            "sources": {"fascicoli", "documenti_fascicolo", "fatturazione"},
+        },
+        {
+            "question": "Verifica pagamenti e fatture del cliente Rossi",
+            "metadata": {"cliente_id": "cli-1"},
+            "intent": "client_economic_summary",
+            "must": ["Quadro economico", "Pagamenti collegati", "Saldo parcella P-1", "500.0 EUR"],
+            "must_not": ["stima", "invent"],
+            "sources": {"clienti", "fatturazione", "pagamenti"},
+        },
+        {
+            "question": "usa tutto il contesto studio e dimmi cosa devo guardare oggi",
+            "metadata": {},
+            "intent": "studio_context_overview",
+            "must": ["Priorità operative", "Clienti: 1", "Fascicoli: 1", "PEC: 1", "Email ordinaria: 1", "Pagamenti: 1"],
+            "must_not": ["Nessun dato reale disponibile"],
+            "sources": {"clienti", "fascicoli", "email_pec", "email_ordinaria", "pagamenti"},
+        },
+        {
+            "question": "scrivi risposta alla PEC di Rossi",
+            "metadata": {},
+            "intent": "draft_communication",
+            "must": ["BOZZA — RISPOSTA PEC", "Esito deposito", "Ricevuta di consegna", "Dati da verificare"],
+            "must_not": ["Non ho trovato"],
+            "sources": {"email_pec"},
+        },
+    ]
+
+    for case in cases:
+        answer = service.answer(
+            question=case["question"],
+            user=user,
+            studio=studio,
+            tenant_id="tenant-a",
+            metadata=case["metadata"],
+        )
+        assert answer is not None, case["question"]
+        assert answer.route.intent == case["intent"], case["question"]
+        for fragment in case["must"]:
+            assert fragment in answer.answer, case["question"]
+        for fragment in case["must_not"]:
+            assert fragment not in answer.answer, case["question"]
+        assert {source.source_id for source in answer.sources}.issuperset(case["sources"]), case["question"]
+        assert answer.confidence >= 0.4, case["question"]
+
+
+def test_lex_studio_reasoner_negative_question_audit_matrix():
+    service, user = _service(repositories=_base_repositories())
+
+    missing_case = service.answer(
+        question="ultima PEC del fascicolo inesistente",
+        user=user,
+        studio=SimpleNamespace(slug="tenant-a"),
+        tenant_id="tenant-a",
+        metadata={"active_context": {"context_type": "case", "case_id": "fas-x"}},
+    )
+    assert missing_case is not None
+    assert "Non ho trovato dati reali sufficienti" in missing_case.answer
+    assert "Esito deposito" not in missing_case.answer
+    assert not any(source.source_id == "email_pec" for source in missing_case.sources)
+    assert any("fascicolo" in gap.lower() for gap in missing_case.coverage_gaps)
+
+    no_mail_permission = _User(_all_permissions() - {"messaggi.leggi"})
+    denied = service.answer(
+        question="ultima PEC ricevuta",
+        user=no_mail_permission,
+        studio=SimpleNamespace(slug="tenant-a"),
+        tenant_id="tenant-a",
+    )
+    assert denied is not None
+    assert denied.blocked_reason == "missing_permission"
+    assert "Non ho trovato dati reali sufficienti" in denied.answer
+    assert not denied.sources
+
+    ambiguous_repositories = _base_repositories()
+    rows = list(ambiguous_repositories["clienti"].rows)
+    rows.append(
+        SimpleNamespace(
+            id="cli-2",
+            nome="Maria",
+            cognome="Rossi",
+            nome_completo="Maria Rossi",
+            tipo="PERSONA_FISICA",
+            stato="ATTIVO",
+            tenant_id="tenant-a",
+        )
+    )
+    ambiguous_repositories["clienti"] = _ListManager(rows)
+    ambiguous_service, ambiguous_user = _service(repositories=ambiguous_repositories)
+    ambiguous = ambiguous_service.answer(
+        question="Dammi la scheda cliente Rossi",
+        user=ambiguous_user,
+        studio=SimpleNamespace(slug="tenant-a"),
+        tenant_id="tenant-a",
+    )
+    assert ambiguous is not None
+    assert "Ho trovato piu" in ambiguous.answer or "Ho trovato più" in ambiguous.answer
+    assert "Mario Rossi" in ambiguous.answer
+    assert "Maria Rossi" in ambiguous.answer
+
+
+def test_lex_studio_reasoner_colleague_conversation_audit():
+    service, user = _service(repositories=_base_repositories())
+    studio = SimpleNamespace(slug="tenant-a")
+    history: list[dict[str, str]] = []
+
+    turns = [
+        {
+            "question": "ultima PEC ricevuta",
+            "must": ["Ultima PEC trovata", "Esito deposito", "/email/messaggio/pec-1"],
+            "intent": "communications_lookup",
+        },
+        {
+            "question": "e gli allegati?",
+            "must": ["Allegati: 1", "ricevuta.eml", "/email/messaggio/pec-1/allegato/0"],
+            "intent": "communications_lookup",
+            "effective": "allegati della PEC precedente",
+        },
+        {
+            "question": "preparami una risposta",
+            "must": ["BOZZA", "RISPOSTA PEC", "Esito deposito", "Dati da verificare"],
+            "intent": "draft_communication",
+            "effective": "scrivi risposta alla PEC precedente",
+        },
+        {
+            "question": "fammi il riepilogo del fascicolo Rossi",
+            "must": ["Fascicolo: Rossi / Bianchi", "ricorso.pdf", "/fascicoli/fas-1"],
+            "intent": "fascicolo_summary",
+        },
+        {
+            "question": "chi è la controparte?",
+            "must": ["CONTROPARTE", "Luigi Bianchi", "Resistente nel procedimento"],
+            "intent": "soggetti_lookup",
+            "effective": "quali soggetti sono collegati al fascicolo precedente",
+        },
+        {
+            "question": "e le scadenze?",
+            "must": ["Costituzione (20 maggio 2026)", "Udienza (21 maggio 2026 alle 10:00)"],
+            "intent": "deadlines_overview",
+            "effective": "scadenze e agenda del fascicolo precedente",
+        },
+        {
+            "question": "Dammi la scheda cliente Rossi",
+            "must": ["Scheda cliente: Mario Rossi", "/clienti/cli-1/cartella"],
+            "intent": "client_situation",
+        },
+        {
+            "question": "quali fascicoli ha?",
+            "must": ["Fascicoli collegati: 1", "Rossi / Bianchi"],
+            "intent": "client_fascicoli",
+            "effective": "quali fascicoli ha il cliente precedente",
+        },
+    ]
+
+    for turn in turns:
+        messages = [*history, {"role": "user", "content": turn["question"]}]
+        answer = service.answer(
+            question=turn["question"],
+            user=user,
+            studio=studio,
+            tenant_id="tenant-a",
+            metadata={"messages": messages},
+        )
+        assert answer is not None, turn["question"]
+        assert answer.route.intent == turn["intent"], turn["question"]
+        for fragment in turn["must"]:
+            assert fragment in answer.answer, turn["question"]
+        if turn.get("effective"):
+            assert answer.metadata.get("conversation_effective_question") == turn["effective"]
+        assert "Non ho trovato dati reali sufficienti" not in answer.answer, turn["question"]
+        assert answer.sources, turn["question"]
+        history.extend(
+            [
+                {"role": "user", "content": turn["question"]},
+                {"role": "assistant", "content": answer.answer},
+            ]
+        )
+
+
+def test_lex_studio_reasoner_colleague_conversation_score_reaches_90_percent():
+    service, user = _service(repositories=_base_repositories())
+    studio = SimpleNamespace(slug="tenant-a")
+    history: list[dict[str, str]] = []
+    turns = [
+        ("ultima PEC ricevuta", "communications_lookup", ["Ultima PEC trovata", "Esito deposito", "/email/messaggio/pec-1"]),
+        ("chi me l'ha mandata e quando?", "communications_lookup", ["Mittente: Cancelleria", "Data: 17 maggio 2026"]),
+        ("e gli allegati?", "communications_lookup", ["Allegati: 1", "ricevuta.eml"]),
+        ("preparami una risposta", "draft_communication", ["BOZZA", "RISPOSTA PEC", "Dati da verificare"]),
+        ("mostrami anche l'email ordinaria ricevuta", "communications_lookup", ["Ultima email ordinaria trovata", "Documenti contratto"]),
+        ("e gli allegati di quella?", "communications_lookup", ["contratto.pdf", "/email-ordinaria/messaggio/mail-1"]),
+        ("scrivi una risposta anche a questa email", "draft_communication", ["BOZZA", "RISPOSTA EMAIL", "Documenti contratto"]),
+        ("fammi il riepilogo del fascicolo Rossi", "fascicolo_summary", ["Fascicolo: Rossi / Bianchi", "ricorso.pdf"]),
+        ("che documenti ci sono?", "documenti_fascicolo", ["Documenti del fascicolo", "ricorso.pdf"]),
+        ("dimmi i punti importanti", "documenti_fascicolo", ["Punti importanti verificabili", "non invento contenuti"]),
+        ("chi e' la controparte?", "soggetti_lookup", ["CONTROPARTE", "Luigi Bianchi"]),
+        ("e le scadenze?", "deadlines_overview", ["Costituzione (20 maggio 2026)", "Udienza"]),
+        ("costruisci la timeline", "build_case_timeline", ["Fascicolo: Rossi / Bianchi", "ricorso.pdf", "Udienza"]),
+        ("e i pagamenti e fatture?", "billing_summary", ["Parcelle/fatture", "Pagamenti"]),
+        ("quali sono le prossime azioni operative?", "fascicolo_summary", ["Fascicolo: Rossi / Bianchi", "Fonti interne"]),
+        ("Dammi la scheda cliente Rossi", "client_situation", ["Scheda cliente: Mario Rossi", "Recapiti autorizzati"]),
+        ("quali recapiti ha?", "client_situation", ["mario@example.test", "mario@pec.test", "061234"]),
+        ("quali fascicoli ha?", "client_fascicoli", ["Fascicoli collegati: 1", "Rossi / Bianchi"]),
+        ("e i pagamenti?", "client_economic_summary", ["Pagamenti collegati", "Saldo parcella P-1"]),
+        ("comunicazioni PEC/email del cliente", "communications_lookup", ["Cliente di contesto", "Esito deposito"]),
+        ("usa tutto il contesto studio e dimmi le priorita'", "studio_context_overview", ["Priorit", "Clienti: 1", "Fascicoli: 1"]),
+        ("cosa devo guardare oggi?", "deadlines_overview", ["Scadenze consultabili", "Fonti interne"]),
+        ("cosa ho in agenda questa settimana?", "deadlines_overview", ["Impegni agenda consultabili", "Udienza"]),
+        ("dammi la scheda soggetto Bianchi", "soggetti_lookup", ["Scheda soggetto: Luigi Bianchi", "BNCLGU80A01H501Z"]),
+        ("riassumi il preventivo opposizione", "preventivo_summary", ["Preventivi: 1", "Conferimenti: 1"]),
+        ("e il conferimento incarico?", "conferimento_summary", ["Conferimenti: 1", "Incarico opposizione"]),
+        ("trova template ricorso opposizione", "template_lookup", ["Template atti", "Ricorso opposizione"]),
+        ("mostrami la situazione del cliente Rossi", "client_situation", ["Scheda cliente: Mario Rossi", "Privacy"]),
+        ("ultima PEC del fascicolo Rossi", "communications_lookup", ["Fascicolo di contesto", "Esito deposito"]),
+        ("quali fonti interne hai usato per questa risposta?", "sources_overview", ["Fonti operative consultabili"]),
+    ]
+    failures: list[str] = []
+
+    for index, (question, expected_intent, fragments) in enumerate(turns, start=1):
+        messages = [*history, {"role": "user", "content": question}]
+        answer = service.answer(
+            question=question,
+            user=user,
+            studio=studio,
+            tenant_id="tenant-a",
+            metadata={"messages": messages},
+        )
+        ok = True
+        detail = ""
+        if answer is None:
+            ok = False
+            detail = "nessuna risposta"
+        elif answer.route.intent != expected_intent:
+            ok = False
+            detail = f"intent {answer.route.intent!r}, atteso {expected_intent!r}"
+        elif "Non ho trovato dati reali sufficienti" in answer.answer:
+            ok = False
+            detail = "risposta negativa generica"
+        else:
+            missing = [fragment for fragment in fragments if fragment not in answer.answer]
+            if missing:
+                ok = False
+                detail = f"frammenti mancanti: {missing}"
+        if not ok:
+            failures.append(f"{index}. {question}: {detail}")
+        if answer is not None:
+            history.extend(
+                [
+                    {"role": "user", "content": question},
+                    {"role": "assistant", "content": answer.answer},
+                ]
+            )
+
+    score = (len(turns) - len(failures)) / len(turns)
+    assert score >= 0.90, f"Score conversazione Lex {score:.0%}, fallimenti: {failures}"
+
+
+def test_lex_studio_reasoner_legal_language_and_dates_audit_reaches_99_percent():
+    service, user = _service(repositories=_base_repositories())
+    studio = SimpleNamespace(slug="tenant-a")
+    history: list[dict[str, str]] = []
+    base_turns = [
+        ("ultima PEC ricevuta", True),
+        ("chi me l'ha mandata e quando?", True),
+        ("e gli allegati?", True),
+        ("preparami una risposta", True),
+        ("mostrami anche l'email ordinaria ricevuta", True),
+        ("scrivi una risposta anche a questa email", True),
+        ("fammi il riepilogo del fascicolo Rossi", True),
+        ("che documenti ci sono?", True),
+        ("dimmi i punti importanti del documento", True),
+        ("chi e' la controparte?", True),
+        ("e le scadenze?", True),
+        ("costruisci la timeline del fascicolo", True),
+        ("e i pagamenti e fatture?", True),
+        ("Dammi la scheda cliente Rossi", True),
+        ("quali recapiti ha?", True),
+        ("quali fascicoli ha?", True),
+        ("e i pagamenti?", True),
+        ("comunicazioni PEC/email del cliente", True),
+        ("usa tutto il contesto studio e dimmi le priorita'", True),
+        ("cosa devo guardare oggi?", True),
+        ("cosa ho in agenda questa settimana?", True),
+        ("dammi la scheda soggetto Bianchi", True),
+        ("riassumi il preventivo opposizione", False),
+        ("e il conferimento incarico?", False),
+        ("trova template ricorso opposizione", False),
+    ]
+    professional_markers = (
+        "fonti interne",
+        "fonte:",
+        "scheda",
+        "fascicolo",
+        "pec",
+        "document",
+        "privacy",
+        "collegamento",
+        "scaden",
+        "agenda",
+        "pagament",
+        "bozza",
+        "limiti",
+        "dati da verificare",
+    )
+    banned_markers = ("sono qui per aiutarti", "come posso aiutarti", "non sono un avvocato")
+    failures: list[str] = []
+    dated_checks = 0
+
+    for index, (question, requires_italian_date) in enumerate(base_turns * 4, start=1):
+        messages = [*history, {"role": "user", "content": question}]
+        answer = service.answer(
+            question=question,
+            user=user,
+            studio=studio,
+            tenant_id="tenant-a",
+            metadata={"messages": messages},
+        )
+        text = answer.answer if answer is not None else ""
+        normalized = text.lower()
+        reasons = []
+        if answer is None:
+            reasons.append("nessuna risposta")
+        if RAW_VISIBLE_DATE_RE.search(text):
+            reasons.append("data tecnica visibile")
+        if requires_italian_date:
+            dated_checks += 1
+            if not ITALIAN_MONTH_RE.search(text):
+                reasons.append("manca data italiana in risposta con dato temporale")
+        if not any(marker in normalized for marker in professional_markers):
+            reasons.append("linguaggio non professionale o senza contesto studio")
+        if any(marker in normalized for marker in banned_markers):
+            reasons.append("formula da chatbot generico")
+        if reasons:
+            failures.append(f"{index}. {question}: {', '.join(reasons)}")
+        if answer is not None:
+            history.extend(
+                [
+                    {"role": "user", "content": question},
+                    {"role": "assistant", "content": answer.answer},
+                ]
+            )
+
+    score = (len(base_turns) * 4 - len(failures)) / (len(base_turns) * 4)
+    assert dated_checks >= 80
+    assert score >= 0.99, f"Audit linguaggio giuridico/date Lex {score:.0%}, fallimenti: {failures}"
 
 
 def test_fascicolo_reasoner_builds_entity_map_timeline_and_editor_links():
@@ -624,6 +1089,9 @@ def test_lex_studio_reasoner_attaches_governed_rag_report_to_latest_pec():
     assert report["rag_policy"]["tenant_aware"] is True
     assert report["rag_policy"]["no_legacy_aggregator"] is True
     assert report["rag_policy"]["excludes_public_legal_sources"] is True
+    assert report["colleague_policy"]["conversation_style"] == "confronto professionale tra colleghi"
+    assert report["colleague_policy"]["contradict_lawyer_min_confidence"] == 0.99
+    assert report["colleague_policy"]["jurisprudence_practice_mode"] == "canary_web_governato_no_publish"
     assert "email_pec" in report["verification"]["verified_internal_sources"]
     assert "fonti_ufficiali" not in report["verification"]["verified_internal_sources"]
     assert report["verification"]["evidence_sufficient"] is True
@@ -1851,19 +2319,21 @@ def test_lex_unified_chat_payments_require_accounting_sources(monkeypatch):
     assert any("fonte contabile" in item for item in missing)
 
 
-def test_lex_draft_request_is_routed_as_drafting_not_pec_lookup():
+def test_lex_draft_request_to_pec_uses_governed_context_before_drafting():
     from lex.operational_knowledge.integration import _should_defer_to_public_legal_research
+    from lex.operational_knowledge.query_router import OperationalQueryRouter
     from lex.research.request_profile import classify_request
 
     question = "scrivi risposta alla PEC di Rossi"
     profile = classify_request(question)
 
     assert profile.drafting_mode is True
+    assert OperationalQueryRouter().route(question).intent == "draft_communication"
     assert _should_defer_to_public_legal_research(
         question,
         metadata={"request_profile": profile.to_dict()},
         studio_context={"focus_topic": "pec_firma", "request_profile": profile.to_dict()},
-    ) is True
+    ) is False
 
 
 def test_bounded_chat_payload_exposes_studio_reasoner_links_map_and_timeline(monkeypatch):

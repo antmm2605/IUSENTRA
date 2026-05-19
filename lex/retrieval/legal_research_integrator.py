@@ -21,6 +21,17 @@ _STRICT_LEGAL_WORKFLOWS = frozenset(
     {"normativa", "giurisprudenza", "prassi", "research", "fonti", "giurisprudenza_specifica"}
 )
 _FREE_WEB_MODES = frozenset({"free", "free_web", "web_libero", "web libero", "ricerca_libera", "ricerca libera", "libera"})
+_PROFESSIONAL_PRACTICE_MODES = frozenset(
+    {
+        "pratica_professionale",
+        "pratica professionale",
+        "knowhow_professionale",
+        "know-how professionale",
+        "lawyer_practice",
+        "professional_practice",
+        "studi_legali",
+    }
+)
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -39,6 +50,14 @@ def _free_web_enabled(metadata: dict[str, Any], source_mode: str) -> bool:
     return mode in _FREE_WEB_MODES or any(
         _flag(metadata.get(key))
         for key in ("free_web_enabled", "free_web", "force_free_web_search", "manual_free_web_enabled")
+    )
+
+
+def _professional_practice_enabled(metadata: dict[str, Any], source_mode: str) -> bool:
+    mode = str(source_mode or metadata.get("source_mode") or "").strip().lower()
+    return mode in _PROFESSIONAL_PRACTICE_MODES or any(
+        _flag(metadata.get(key))
+        for key in ("professional_practice_enabled", "pratica_professionale", "force_professional_practice")
     )
 
 
@@ -126,6 +145,7 @@ def run_public_research_for_request(
     request_profile = dict(metadata.get("request_profile") or {})
     studio_context = dict(context or {})
     free_web_enabled = _free_web_enabled(metadata, source_mode)
+    professional_practice_enabled = _professional_practice_enabled(metadata, source_mode)
 
     if not query_text:
         return {"public_research_error": "Query vuota."}
@@ -164,6 +184,7 @@ def run_public_research_for_request(
             "public_confidence_seed": 0.0,
             "public_research_log": [],
             "free_web_enabled": free_web_enabled,
+            "professional_practice_used": False,
         }
 
     # Step 2: Ricerca pubblica coordinata
@@ -209,6 +230,8 @@ def run_public_research_for_request(
         "fallback_triggered": gateway_result.fallback_triggered,
         "free_web_enabled": free_web_enabled,
         "free_web_used": gateway_result.free_web_used,
+        "professional_practice_used": gateway_result.professional_practice_used,
+        "professional_practice_enabled": professional_practice_enabled,
     }
 
 
@@ -236,6 +259,7 @@ def merge_public_research_into_evidence(
     existing_items = list(merged.get("items") or [])
     public_sources = list(public_research.get("public_sources") or [])
     free_web_enabled = bool(public_research.get("free_web_enabled") or public_research.get("free_web_used"))
+    professional_practice_used = bool(public_research.get("professional_practice_used"))
     if public_sources:
         # Converti NormalizedSource dicts in EvidenceItem-like dicts
         public_items = [
@@ -269,10 +293,24 @@ def merge_public_research_into_evidence(
     public_trusted = [
         str(source.get("source_name") or source.get("title") or "").strip()
         for source in public_sources
-        if str(source.get("source_name") or source.get("title") or "").strip()
+        if not professional_practice_used and str(source.get("source_name") or source.get("title") or "").strip()
     ]
     if public_trusted:
         merged["trusted_sources"] = list(dict.fromkeys([*existing_trusted, *public_trusted]))
+
+    if professional_practice_used and public_sources:
+        existing_practice = list(merged.get("professional_practice_sources") or [])
+        practice_sources = [
+            {
+                "title": str(source.get("title") or "").strip(),
+                "source_name": str(source.get("source_name") or "").strip(),
+                "url": str(source.get("url") or "").strip(),
+                "excerpt": str(source.get("excerpt") or "").strip(),
+            }
+            for source in public_sources
+            if str(source.get("url") or source.get("title") or source.get("excerpt") or "").strip()
+        ]
+        merged["professional_practice_sources"] = [*existing_practice, *practice_sources]
 
     # Aggiungi coverage_gaps pubblici
     existing_gaps = list(merged.get("coverage_gaps") or [])
@@ -296,11 +334,27 @@ def merge_public_research_into_evidence(
             "web_blocked_reason": public_research.get("web_blocked_reason", ""),
             "free_web_enabled": free_web_enabled,
             "free_web_used": public_research.get("free_web_used", False),
+            "professional_practice_used": professional_practice_used,
+            "professional_practice_non_binding": professional_practice_used,
+            "professional_practice_can_contradict_lawyer": False,
+            "professional_practice_source_count": len(public_sources) if professional_practice_used else 0,
+            "professional_practice_usage_rules": (
+                [
+                    "Usare come spunti di prassi, lessico, struttura e controllo operativo.",
+                    "Non usare come fonte ufficiale o prova del diritto vigente.",
+                    "Non contraddire l'avvocato senza fonte primaria verificata al 99%.",
+                    "Non pubblicare automaticamente nel corpus o negli aggiornamenti legali.",
+                ]
+                if professional_practice_used
+                else []
+            ),
             "public_confidence_seed": public_research.get("public_confidence_seed", 0.0),
             "external_sources_used": public_research.get("web_used", False) or public_research.get("ldr_used", False),
             "external_sources_reason": (
                 "Ricerca web libera attivata manualmente dall'utente."
                 if free_web_enabled
+                else "Pratica web professionale non vincolante su siti e contenuti per avvocati."
+                if professional_practice_used
                 else "Ricerca legale pubblica governata su fonti ufficiali anonimizzate."
                 if (public_research.get("web_used") or public_research.get("ldr_used"))
                 else ""
@@ -312,10 +366,10 @@ def merge_public_research_into_evidence(
     ep = dict(merged.get("evidence_pack") or {})
     ep["metadata"] = existing_meta
     # Ricalcola sufficient se ora abbiamo fonti pubbliche ufficiali
-    if (public_official or (free_web_enabled and public_sources)) and not ep.get("sufficient"):
+    if (public_official or (free_web_enabled and public_sources)) and not professional_practice_used and not ep.get("sufficient"):
         ep["sufficient"] = True
     merged["evidence_pack"] = ep
-    if free_web_enabled and public_sources:
+    if free_web_enabled and public_sources and not professional_practice_used:
         merged["evidence_sufficient"] = True
 
     # Aggiungi warnings e next_actions pubblici

@@ -76,6 +76,86 @@ def test_guard_legale_blocca_risposta_generica_su_normativa() -> None:
     assert draft.metadata["legal_quality_guard_applied"] is True
 
 
+def test_guard_legale_non_contraddice_avvocato_senza_fonte_al_99() -> None:
+    draft = ProviderDraft(text="Non è corretto quanto dici: la sentenza decide il contrario.")
+    verdict = LegalAnswerQualityGuard().check(
+        request=SimpleNamespace(query="Secondo me la Cassazione ha accolto."),
+        workflow="giurisprudenza",
+        evidence={
+            "items": [
+                EvidenceItem(
+                    source_type="giurisprudenza",
+                    source_id="cass-1",
+                    title="Cassazione",
+                    content="Massima non integrale.",
+                    score=0.92,
+                    source_level=1,
+                    verified_reference=True,
+                    official_url="https://www.cortedicassazione.it/sentenza.pdf",
+                )
+            ]
+        },
+        draft=draft,
+    )
+
+    assert verdict.allowed is False
+    assert verdict.risk_level == "high"
+    assert "99%" in verdict.warnings[0]
+
+
+def test_guard_legale_permette_correzione_solo_con_fonte_primaria_quasi_certa() -> None:
+    draft = ProviderDraft(text="Non è corretto quanto dici: dalla fonte ufficiale risulta il rigetto.")
+    verdict = LegalAnswerQualityGuard().check(
+        request=SimpleNamespace(query="Secondo me la Cassazione ha accolto."),
+        workflow="giurisprudenza",
+        evidence={
+            "items": [
+                EvidenceItem(
+                    source_type="giurisprudenza",
+                    source_id="cass-1",
+                    title="Cassazione",
+                    content="Fonte ufficiale integrale con dispositivo: rigetta.",
+                    score=0.99,
+                    source_level=1,
+                    verified_reference=True,
+                    official_url="https://www.cortedicassazione.it/sentenza.pdf",
+                )
+            ],
+            "official_sources": ["Cassazione"],
+        },
+        draft=draft,
+    )
+
+    assert verdict.allowed is True
+    assert verdict.risk_level in {"low", "medium"}
+
+
+def test_guard_legale_blocca_date_tecniche_visibili_nelle_risposte_professionali() -> None:
+    draft = ProviderDraft(text="Ultima PEC trovata. Data: 2026-05-17. Fonte: PEC interna.")
+    verdict = LegalAnswerQualityGuard().check(
+        request=SimpleNamespace(query="ultima PEC ricevuta"),
+        workflow="communications_lookup",
+        evidence={"items": [EvidenceItem("email_pec", "pec-1", "PEC", "Fonte interna", 0.9)]},
+        draft=draft,
+    )
+
+    assert verdict.allowed is False
+    assert verdict.risk_level == "medium"
+    assert "giorno mese anno" in verdict.reasons[0]
+
+
+def test_guard_legale_accetta_date_in_formato_italiano() -> None:
+    draft = ProviderDraft(text="Ultima PEC trovata. Data: 17 maggio 2026. Fonte: PEC interna.")
+    verdict = LegalAnswerQualityGuard().check(
+        request=SimpleNamespace(query="ultima PEC ricevuta"),
+        workflow="communications_lookup",
+        evidence={"items": [EvidenceItem("email_pec", "pec-1", "PEC", "Fonte interna", 0.9)]},
+        draft=draft,
+    )
+
+    assert verdict.allowed is True
+
+
 def test_answer_builder_aggiunge_provenance_e_abbassa_confidence_con_warning_qualita() -> None:
     request = LexRequest(
         tenant_id="tenant",

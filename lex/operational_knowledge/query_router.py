@@ -62,6 +62,7 @@ ENTITY_STOPWORDS = {
     "da",
     "db",
     "de",
+    "devo",
     "del",
     "dell",
     "della",
@@ -72,12 +73,16 @@ ENTITY_STOPWORDS = {
     "documenti",
     "domani",
     "dimmi",
+    "cosa",
     "email",
     "editor",
     "economico",
+    "fammi",
     "fascicolo",
     "fascicoli",
     "gli",
+    "guardare",
+    "ha",
     "ho",
     "i",
     "il",
@@ -113,7 +118,10 @@ ENTITY_STOPWORDS = {
     "pratica",
     "prepara",
     "preparami",
+    "precedente",
     "preventivo",
+    "priorita",
+    "priorità",
     "quadro",
     "qual",
     "quale",
@@ -124,6 +132,15 @@ ENTITY_STOPWORDS = {
     "questo",
     "recapiti",
     "riepilogo",
+    "riepiloga",
+    "riassumi",
+    "rispondi",
+    "rispondere",
+    "risposta",
+    "collegata",
+    "collegate",
+    "collegati",
+    "collegato",
     "ricevuta",
     "ricevute",
     "ricevuti",
@@ -135,8 +152,10 @@ ENTITY_STOPWORDS = {
     "sono",
     "soggetto",
     "soggetti",
+    "scrivi",
     "studio",
     "trovami",
+    "trova",
     "template",
     "modello",
     "modelli",
@@ -148,7 +167,11 @@ ENTITY_STOPWORDS = {
     "ultimo",
     "ultimi",
     "urgenti",
+    "redigi",
     "tutto",
+    "chi",
+    "è",
+    "e",
     "assistito",
     "assistiti",
     "controparte",
@@ -247,6 +270,8 @@ class OperationalQueryRouter:
                 sources.append("email_ordinaria")
             if ("email" in text or "posta" in text) and not {"email_pec", "email_ordinaria"}.intersection(sources):
                 sources.extend(["email_pec", "email_ordinaria"])
+            if _looks_like_communication_draft(text):
+                return OperationalRoute("draft_communication", "draft_communication", tuple(dict.fromkeys(sources)), entity_query)
             return OperationalRoute("communications_lookup", "communications_lookup", tuple(dict.fromkeys(sources)), entity_query)
 
         if any(token in text for token in ("cliente", "anagrafica", "recapiti", "situazione di", "situazione del")) or focus_topic == "clienti":
@@ -350,3 +375,9 @@ def _contains_action_block_token(text: str) -> bool:
         if re.search(rf"(^|[^\w]){re.escape(clean)}([^\w]|$)", text, flags=re.UNICODE):
             return True
     return False
+
+
+def _looks_like_communication_draft(text: str) -> bool:
+    if not any(token in text for token in ("pec", "email", "posta", "messaggio")):
+        return False
+    return any(token in text for token in ("scrivi", "redigi", "prepara", "bozza", "risposta", "rispondi"))

@@ -2,6 +2,21 @@
 
 Aggiornato il 19 maggio 2026. Questo file trasforma `source-rollout-plan.md` in backlog eseguibile con stato prima/dopo della tranche codice.
 
+## Aggiornamento Fase 6 - normativa e archivi base
+
+Aggiornato il 19 maggio 2026. La fase normativa è stata eseguita senza backup, senza download ciechi, senza import massivo e senza ricostruire gli archivi già presenti. Il report operativo è `artifacts/legal-updates/phase6-normativa-archives-2026-05-19/phase6-report.md`.
+
+| area | stato rilevato | azione eseguita | esito |
+|---|---|---|---|
+| Normattiva locale | `normattiva.sqlite` presente con 42.677 documenti, 238.110 articoli e 279.777 chunk; raw ZIP e manifest presenti | collegato il retriever a query per codice/articolo, con fallback sui raw ZIP già presenti quando il DB non ha il chunk autonomo | codici fondamentali interrogabili senza nuovi download |
+| Gazzetta locale | `lex_sources.sqlite` presente con 12 documenti e 1.852 chunk | deduplicati i risultati per documento in `search_gazzetta()` | Ricerca Legale non mostra più chunk ripetuti dello stesso fascicolo |
+| Ricerca Legale | già collegata agli archivi ufficiali locali | preservato il bridge e verificato l'uso dei conteggi reali | Normattiva/Gazzetta restano visibili nel payload |
+| Lex | usava soprattutto il catalogo fonti e il repository aggiornamenti | aggiunto contesto Normattiva/Gazzetta da archivi ufficiali in `search_normativa_sources()` | le domande normative ricevono contesto ufficiale locale |
+| EUR-Lex | fonte UE ufficiale censita, parser CELEX dedicato non stabilizzato in questa tranche | classificata come `RAG-only` UE con motivo operativo | nessuna pubblicazione strutturata UE senza fixture CELEX verde |
+| Fonti secondarie | Studio Cataldi e Avvocato Andreani già disabilitate | confermato blocco da fonte ufficiale/corpus | restano solo supporto secondario o Web libero esplicito |
+
+Verifiche mirate già eseguite: `py_compile` dei moduli toccati, `tests/test_normattiva_importer.py`, `tests/test_official_sources_retriever.py`, `tests/test_legal_update_source_capabilities.py`, probe conteggi archivi e probe Lex su `codice civile art. 2043`. I gate completi della fase sono registrati nel report finale e in `artifacts/react-migration/pytest-confirmed-ok.md`.
+
 ## Aggiornamento Fase 5 - primo gruppo fonti verdi
 
 Aggiornato il 19 maggio 2026 dopo il popolamento controllato del primo gruppo fonti verdi. Ogni fonte è stata eseguita separatamente con `--limit 5`, `--max-seconds 120`, `--allow-publish`, `--publish-mode guarded`, `--direct-only`, `--save-diagnostics` e output JSON salvato in `artifacts/legal-updates/phase5-green-2026-05-19/`. Non sono stati avviati import massivi, scheduler globale o Web libero.

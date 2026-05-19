@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sqlite3
+from html import unescape
 from pathlib import Path
 from typing import Any
+from zipfile import BadZipFile, ZipFile
 
 DEFAULT_OFFICIAL_DB = Path("data/fonti_ufficiali/lex_sources.sqlite")
 DEFAULT_NORMATTIVA_DB = Path("data/normativa/normattiva.sqlite")
@@ -14,6 +17,86 @@ CONTAINER_OFFICIAL_DB = Path("/data/fonti_ufficiali/lex_sources.sqlite")
 CONTAINER_NORMATTIVA_DB = Path("/data/normativa/normattiva.sqlite")
 CONTAINER_OFFICIAL_JSONL = Path("/data/fonti_ufficiali/index/lex_sources_chunks.jsonl")
 CONTAINER_NORMATTIVA_JSONL = Path("/data/normativa/index/normattiva_chunks.jsonl")
+DEFAULT_NORMATTIVA_RAW = Path("data/normativa/raw")
+CONTAINER_NORMATTIVA_RAW = Path("/data/normativa/raw")
+
+ARTICLE_QUERY_RE = re.compile(
+    r"\b(?:art\.?|articolo)\s*(?P<number>\d{1,4})(?:[\s.-]+(?P<suffix>bis|ter|quater|quinquies|sexies|septies|octies|nonies|decies))?\b",
+    flags=re.I,
+)
+RAW_ARTICLE_RE = re.compile(
+    r"\bArt\.\s*(?P<number>\d{1,4})(?:[\s.-]+(?P<suffix>bis|ter|quater|quinquies|sexies|septies|octies|nonies|decies))?\s*[.)-]",
+    flags=re.I,
+)
+SEARCH_STOPWORDS = {
+    "a",
+    "al",
+    "alla",
+    "alle",
+    "art",
+    "articolo",
+    "cod",
+    "codice",
+    "commi",
+    "comma",
+    "con",
+    "da",
+    "del",
+    "della",
+    "di",
+    "e",
+    "il",
+    "in",
+    "la",
+    "lo",
+    "per",
+    "sul",
+    "testo",
+}
+CODE_TARGETS: dict[str, dict[str, Any]] = {
+    "codice_civile": {
+        "label": "Codice civile",
+        "numero": "262",
+        "data_atto": "1942-03-16",
+        "file_markers": ("19420316_262", "042U0262"),
+        "aliases": ("codice civile", "c.c.", "cc"),
+    },
+    "codice_procedura_civile": {
+        "label": "Codice di procedura civile",
+        "numero": "1443",
+        "data_atto": "1940-10-28",
+        "file_markers": ("19401028_1443", "040U1443"),
+        "aliases": ("codice procedura civile", "codice di procedura civile", "c.p.c.", "cpc"),
+    },
+    "codice_penale": {
+        "label": "Codice penale",
+        "numero": "1398",
+        "data_atto": "1930-10-19",
+        "file_markers": ("19301019_1398", "030U1398"),
+        "aliases": ("codice penale", "c.p.", "cp"),
+    },
+    "codice_procedura_penale": {
+        "label": "Codice di procedura penale",
+        "numero": "447",
+        "data_atto": "1988-09-22",
+        "file_markers": ("19880922_447", "088G0492"),
+        "aliases": ("codice procedura penale", "codice di procedura penale", "c.p.p.", "cpp"),
+    },
+    "codice_processo_amministrativo": {
+        "label": "Codice del processo amministrativo",
+        "numero": "104",
+        "data_atto": "2010-07-02",
+        "file_markers": ("20100702_104", "010G0127"),
+        "aliases": ("codice processo amministrativo", "codice del processo amministrativo", "c.p.a.", "cpa"),
+    },
+    "codice_strada": {
+        "label": "Codice della strada",
+        "numero": "285",
+        "data_atto": "1992-04-30",
+        "file_markers": ("19920430_285", "092G0306"),
+        "aliases": ("codice strada", "codice della strada", "c.d.s.", "cds", "cod. str."),
+    },
+}
 
 
 def _resolve_runtime_path(
@@ -99,11 +182,11 @@ def search_gazzetta(
     results = search_official_sources(
         query,
         source="gazzetta_ufficiale",
-        limit=max(limit, 1),
+        limit=max(limit * 6, limit, 1),
         db_path=db_path,
         jsonl_path=jsonl_path,
     )
-    return results[:limit]
+    return _dedupe_results(results, limit=limit, keys=("document_id", "url_origine", "titolo"))
 
 
 def official_archive_snapshot(
@@ -290,9 +373,17 @@ def _get_normattiva_chunk(chunk_id: int | str, path: Path) -> dict[str, Any] | N
 def _search_official_db(path: Path, query: str, materia: str | None, source: str | None, limit: int) -> list[dict[str, Any]]:
     if not path.exists():
         return []
-    q = f"%{query.strip()}%"
-    clauses = ["(c.text LIKE ? OR c.title LIKE ? OR d.title LIKE ?)"]
-    params: list[Any] = [q, q, q]
+    clauses: list[str] = []
+    params: list[Any] = []
+    terms = _search_terms(query)
+    if terms:
+        term_clause, term_params = _like_terms_clause(("c.text", "c.title", "d.title", "d.original_url"), terms)
+        clauses.append(term_clause)
+        params.extend(term_params)
+    else:
+        q = f"%{query.strip()}%"
+        clauses.append("(c.text LIKE ? OR c.title LIKE ? OR d.title LIKE ?)")
+        params.extend([q, q, q])
     if materia:
         clauses.append("(c.materia = ? OR d.materia = ? OR d.topics_json LIKE ?)")
         params.extend([materia, materia, f"%{materia}%"])
@@ -325,9 +416,43 @@ def _search_official_db(path: Path, query: str, materia: str | None, source: str
 def _search_normattiva_db(path: Path, query: str, materia: str | None, vigenza: str | None, limit: int) -> list[dict[str, Any]]:
     if not path.exists():
         return []
-    q = f"%{query.strip()}%"
-    clauses = ["(c.chunk_text LIKE ? OR d.titolo LIKE ?)"]
-    params: list[Any] = [q, q]
+    code_key = _detect_code_target(query)
+    article_ref = _extract_article_reference(query)
+    terms = _search_terms(query, drop_code_terms=bool(code_key))
+    clauses: list[str] = []
+    params: list[Any] = []
+    if terms:
+        term_clause, term_params = _like_terms_clause(
+            ("c.chunk_text", "d.titolo", "d.tipo_atto", "d.numero", "a.article_number", "a.article_title", "c.metadata_json"),
+            terms,
+        )
+        clauses.append(term_clause)
+        params.extend(term_params)
+    else:
+        q = f"%{query.strip()}%"
+        clauses.append("(c.chunk_text LIKE ? OR d.titolo LIKE ?)")
+        params.extend([q, q])
+    if code_key:
+        target = CODE_TARGETS[code_key]
+        clauses.append("(d.numero = ? AND d.data_atto = ?)")
+        params.extend([target["numero"], target["data_atto"]])
+    if article_ref:
+        article_patterns = _article_like_patterns(article_ref)
+        clauses.append(
+            "("
+            + " OR ".join(
+                [
+                    "a.article_number LIKE ?",
+                    "a.article_title LIKE ?",
+                    "c.chunk_text LIKE ?",
+                    "c.metadata_json LIKE ?",
+                ]
+                * len(article_patterns)
+            )
+            + ")"
+        )
+        for pattern in article_patterns:
+            params.extend([pattern, pattern, pattern, pattern])
     if materia:
         clauses.append("(d.topics LIKE ? OR c.metadata_json LIKE ?)")
         params.extend([f"%{materia}%", f"%{materia}%"])
@@ -346,15 +471,21 @@ def _search_normattiva_db(path: Path, query: str, materia: str | None, vigenza: 
                    d.xml_entry, d.xml_sha256, d.imported_at
             FROM normative_chunks c
             JOIN normative_documents d ON d.id = c.document_id
+            LEFT JOIN normative_articles a ON a.id = c.article_id
             WHERE {' AND '.join(clauses)}
             ORDER BY d.data_atto DESC, c.id ASC
             LIMIT ?
             """,
             params,
         ).fetchall()
-        return [_row_to_normattiva_chunk(row) for row in rows]
+        results = [_row_to_normattiva_chunk(row) for row in rows]
     finally:
         con.close()
+    if results:
+        return results
+    if code_key:
+        return _search_normattiva_raw_code_articles(path, query, code_key=code_key, article_ref=article_ref, limit=limit)
+    return []
 
 
 def _search_jsonl(path: Path, query: str, materia: str | None, source: str | None, limit: int, default_source: str) -> list[dict[str, Any]]:
@@ -481,3 +612,232 @@ def _loads(value: str | None, fallback: Any) -> Any:
         return json.loads(value)
     except Exception:
         return fallback
+
+
+def _search_terms(query: str, *, drop_code_terms: bool = False) -> list[str]:
+    normalized = _normalize_search_text(query)
+    tokens = re.findall(r"[a-z0-9]+", normalized)
+    stopwords = set(SEARCH_STOPWORDS)
+    if drop_code_terms:
+        stopwords.update({"civile", "penale", "procedura", "processo", "amministrativo", "strada"})
+    terms: list[str] = []
+    for token in tokens:
+        if token in stopwords:
+            continue
+        if len(token) < 2 and not token.isdigit():
+            continue
+        if token not in terms:
+            terms.append(token)
+    return terms[:8]
+
+
+def _normalize_search_text(value: str) -> str:
+    text = str(value or "").lower()
+    text = text.replace("c.p.p.", "cpp")
+    text = text.replace("c.p.c.", "cpc")
+    text = text.replace("c.p.a.", "cpa")
+    text = text.replace("c.d.s.", "cds")
+    text = text.replace("c.c.", "cc")
+    text = text.replace("c.p.", "cp")
+    text = re.sub(r"[-/.,;:()\\[\\]{}]+", " ", text)
+    return " ".join(text.split())
+
+
+def _like_terms_clause(columns: tuple[str, ...], terms: list[str]) -> tuple[str, list[str]]:
+    clauses: list[str] = []
+    params: list[str] = []
+    for term in terms:
+        column_clauses = []
+        for column in columns:
+            column_clauses.append(f"LOWER(COALESCE({column}, '')) LIKE ?")
+            params.append(f"%{term.lower()}%")
+        clauses.append("(" + " OR ".join(column_clauses) + ")")
+    return " AND ".join(clauses), params
+
+
+def _detect_code_target(query: str) -> str | None:
+    normalized = f" {_normalize_search_text(query)} "
+    ordered = [
+        "codice_procedura_penale",
+        "codice_procedura_civile",
+        "codice_processo_amministrativo",
+        "codice_strada",
+        "codice_civile",
+        "codice_penale",
+    ]
+    for key in ordered:
+        aliases = CODE_TARGETS[key]["aliases"]
+        for alias in aliases:
+            alias_norm = _normalize_search_text(alias)
+            if f" {alias_norm} " in normalized:
+                return key
+    return None
+
+
+def _extract_article_reference(query: str) -> str | None:
+    match = ARTICLE_QUERY_RE.search(query or "")
+    if not match:
+        return None
+    number = match.group("number")
+    suffix = (match.group("suffix") or "").lower().strip()
+    return f"{number}{f' {suffix}' if suffix else ''}"
+
+
+def _article_like_patterns(article_ref: str) -> list[str]:
+    ref = " ".join(str(article_ref or "").lower().replace("-", " ").split())
+    if not ref:
+        return []
+    dashed = ref.replace(" ", "-")
+    return list(
+        dict.fromkeys(
+            [
+                f"%Art. {ref}.%",
+                f"%Art. {ref} -%",
+                f"%Art. {dashed}.%",
+                f"%Art. {dashed} -%",
+            ]
+        )
+    )
+
+
+def _dedupe_results(
+    rows: list[dict[str, Any]],
+    *,
+    limit: int,
+    keys: tuple[str, ...],
+) -> list[dict[str, Any]]:
+    seen: set[str] = set()
+    deduped: list[dict[str, Any]] = []
+    for row in rows:
+        key = "|".join(str(row.get(name) or "").strip() for name in keys)
+        if not key.strip("|"):
+            key = json.dumps(row, ensure_ascii=False, sort_keys=True)[:500]
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(row)
+        if len(deduped) >= limit:
+            break
+    return deduped
+
+
+def _normattiva_raw_dir_from_db(db_path: Path) -> Path:
+    env_value = str(os.getenv("PCT_NORMATTIVA_RAW_DIR", "") or "").strip()
+    if env_value:
+        return Path(env_value)
+    if db_path.is_absolute() and str(db_path).replace("\\", "/").startswith("/data/normativa"):
+        return CONTAINER_NORMATTIVA_RAW
+    if db_path.parent.name == "normativa":
+        return db_path.parent / "raw"
+    return db_path.parent / "raw"
+
+
+def _search_normattiva_raw_code_articles(
+    db_path: Path,
+    query: str,
+    *,
+    code_key: str,
+    article_ref: str | None,
+    limit: int,
+) -> list[dict[str, Any]]:
+    raw_dir = _normattiva_raw_dir_from_db(db_path)
+    if not raw_dir.exists():
+        return []
+    target = CODE_TARGETS[code_key]
+    results: list[dict[str, Any]] = []
+    for zip_path in sorted(raw_dir.glob("Codici*.zip")):
+        try:
+            with ZipFile(zip_path) as archive:
+                for entry in archive.namelist():
+                    if not _raw_entry_matches_code(entry, target):
+                        continue
+                    xml_text = archive.read(entry).decode("utf-8", errors="replace")
+                    plain_text = _xml_to_plain_text(xml_text)
+                    excerpt = _article_excerpt_from_text(plain_text, article_ref) if article_ref else _short_plain_text(plain_text)
+                    if not excerpt:
+                        continue
+                    title = _raw_xml_value(xml_text, "titoloDoc") or target["label"]
+                    data_atto = _raw_xml_attr(xml_text, "dataDoc", "norm") or str(target.get("data_atto") or "")
+                    data_atto = _norm_raw_date(data_atto)
+                    results.append(
+                        {
+                            "chunk_id": f"normattiva-raw:{code_key}:{article_ref or 'documento'}",
+                            "document_id": f"normattiva-raw:{code_key}",
+                            "fonte": "Normattiva",
+                            "titolo": title,
+                            "data": data_atto,
+                            "url_origine": str(zip_path),
+                            "path_origine": str(zip_path),
+                            "articolo_o_chunk": f"Art. {article_ref}" if article_ref else "documento",
+                            "testo": excerpt,
+                            "materia": "Normativa",
+                            "vigenza": "ORIGINALE",
+                            "livello_affidabilita": "ufficiale",
+                            "data_acquisizione": "",
+                            "hash_sha256": "",
+                            "metadata": {
+                                "source": "Normattiva Open Data",
+                                "source_path": str(zip_path),
+                                "xml_entry": entry,
+                                "code_key": code_key,
+                                "article_reference": article_ref,
+                                "no_invented_link": True,
+                            },
+                        }
+                    )
+                    if len(results) >= limit:
+                        return results
+        except (BadZipFile, OSError):
+            continue
+    return results
+
+
+def _raw_entry_matches_code(entry: str, target: dict[str, Any]) -> bool:
+    normalized = entry.lower()
+    return any(str(marker).lower() in normalized for marker in target.get("file_markers", ()))
+
+
+def _xml_to_plain_text(xml_text: str) -> str:
+    text = re.sub(r"<[^>]+>", " ", xml_text)
+    text = unescape(text)
+    return " ".join(text.split())
+
+
+def _article_excerpt_from_text(text: str, article_ref: str | None) -> str:
+    if not article_ref:
+        return ""
+    normalized_ref = " ".join(article_ref.replace("-", " ").split())
+    wanted_parts = normalized_ref.split()
+    wanted_number = wanted_parts[0]
+    wanted_suffix = wanted_parts[1] if len(wanted_parts) > 1 else ""
+    matches = list(RAW_ARTICLE_RE.finditer(text))
+    for index, match in enumerate(matches):
+        number = (match.group("number") or "").strip()
+        suffix = (match.group("suffix") or "").strip().lower()
+        if number != wanted_number or suffix != wanted_suffix:
+            continue
+        end = matches[index + 1].start() if index + 1 < len(matches) else min(len(text), match.start() + 1800)
+        return _short_plain_text(text[match.start() : end], limit=1800)
+    return ""
+
+
+def _short_plain_text(text: str, *, limit: int = 1800) -> str:
+    cleaned = " ".join(str(text or "").split())
+    return cleaned[:limit].rstrip()
+
+
+def _raw_xml_value(xml_text: str, tag: str) -> str:
+    match = re.search(rf"<{re.escape(tag)}[^>]*>(.*?)</{re.escape(tag)}>", xml_text, flags=re.I | re.S)
+    return _short_plain_text(unescape(re.sub(r"<[^>]+>", " ", match.group(1)))) if match else ""
+
+
+def _raw_xml_attr(xml_text: str, tag: str, attr: str) -> str:
+    match = re.search(rf"<{re.escape(tag)}[^>]*\b{re.escape(attr)}=[\"']([^\"']+)[\"']", xml_text, flags=re.I)
+    return match.group(1) if match else ""
+
+
+def _norm_raw_date(value: str) -> str:
+    digits = re.sub(r"\D", "", str(value or ""))
+    if len(digits) == 8:
+        return f"{digits[:4]}-{digits[4:6]}-{digits[6:8]}"
+    return value

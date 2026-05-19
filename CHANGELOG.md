@@ -7,6 +7,14 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.47 - 2026-05-19
+
+- Completata la Fase 6 normativa e archivi base senza backup, download ciechi o import massivo: gli archivi Normattiva/Gazzetta già presenti vengono verificati, collegati e interrogati in modo incrementale.
+- Reso più robusto il retrieval Normattiva per codici e articoli: riconosce codice civile, procedura civile, penale, procedura penale, processo amministrativo e strada; quando il DB locale non ha il chunk autonomo legge i raw ZIP Normattiva già presenti senza inventare link.
+- Deduplicati i risultati Gazzetta per documento e aggiunto il contesto Normattiva/Gazzetta a Lex tramite `search_normativa_sources()`, così Ricerca Legale e Lex usano gli archivi ufficiali prima dei fallback esterni.
+- Classificata EUR-Lex come fonte UE ufficiale `RAG-only` finché il parser CELEX non è stabilizzato; confermate Studio Cataldi e Avvocato Andreani come fonti secondarie disabilitate dal corpus ufficiale.
+- Aggiunti test su importer/retriever Normattiva, fallback raw ZIP, deduplica Gazzetta, contesto Lex, EUR-Lex RAG-only e fonti secondarie.
+
 ## 2.245.46 - 2026-05-19
 
 - Eseguita la Fase 5 di popolamento controllato del primo gruppo fonti verdi con `limit 5`, `max_seconds 120`, `publish-mode guarded`, `direct-only`, nessun Web libero, nessun import massivo e nessuno scheduler globale.

@@ -2,6 +2,12 @@
 
 Aggiornato il 18 maggio 2026. Ricognizione svolta partendo da `/admin/aggiornamenti-legali/` e dai moduli `pct/legal_update_pipeline.py`, `pct/legal_update_repository.py`, `pct/legal_update_web_verification.py`, `pct/legal_update_autofetch.py`, `pct/legal_update_batch_runner.py`, `web/services/legal_update_surface.py`, `web/blueprints/legal_updates_admin.py`, Ricerca Legale React, Archivio Giurisprudenza e sorgenti Lex.
 
+## Aggiornamento Fase 6 - normativa e archivi base 19 maggio 2026
+
+La Fase 6 non avvia import massivi: usa gli archivi Normattiva/Gazzetta già presenti, manifest e raw ZIP locali. Normattiva resta la fonte prioritaria per i codici; Gazzetta viene usata come pubblicazione ufficiale deduplicata per documento; Dati Normattiva rimane evidenza tecnica/RAG-only. EUR-Lex è fonte UE ufficiale ma, finché il parser CELEX dedicato non è stabile con fixture verdi, resta `RAG-only` e non produce pubblicazioni strutturate. Fonti secondarie come Studio Cataldi e Avvocato Andreani restano disabilitate e non ufficiali.
+
+I codici `codice_civile`, `codice_procedura_civile`, `codice_penale`, `codice_procedura_penale`, `codice_processo_amministrativo` e `codice_strada` devono essere interrogabili da Ricerca Legale e Lex usando DB/JSONL o raw ZIP già presenti, senza inventare link Normattiva quando il raw XML espone solo path/URN incompleto.
+
 ## Aggiornamento Fase 5 - popolamento primo gruppo verde 19 maggio 2026
 
 La Fase 5 estende il pilot `guarded` senza trasformarlo in import massivo. Il gruppo pubblicato resta limitato alle fonti che hanno superato le guardie nel run diretto: `cassazione_ultime_sent_ord_questioni`, `inps_circolari`, `inps_messaggi`, `agcom_provvedimenti`, `corte_conti` e `curia_cgue_rss`. ANAC e Garante sono stati acquisiti ma non pubblicati perché il guarded richiede conferme ulteriori o riferimenti ritrovabili nella diagnosi. Corte costituzionale è stata esclusa dalla pubblicazione perché la fonte diretta non ha restituito schede pronuncia verificabili dopo il blocco del fallback su captcha/navigazione.

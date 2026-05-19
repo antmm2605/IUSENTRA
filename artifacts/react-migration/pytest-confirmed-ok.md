@@ -1,10 +1,21 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-19, Fase 5 fonti verdi Aggiornamenti legali 2.245.46, strumenti sicuri canary/backfill Aggiornamenti legali 2.245.42, capability registry/parser fixture Aggiornamenti legali 2.245.41, collegamento Lex/Ricerca Legale per Corte Costituzionale n. 50/2026, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
+Aggiornato: 2026-05-19, Fase 6 normativa e archivi base 2.245.47, Fase 5 fonti verdi Aggiornamenti legali 2.245.46, strumenti sicuri canary/backfill Aggiornamenti legali 2.245.42, capability registry/parser fixture Aggiornamenti legali 2.245.41, collegamento Lex/Ricerca Legale per Corte Costituzionale n. 50/2026, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
+
+## Update Intelligence Fase 6 normativa e archivi base 2.245.47 - 2026-05-19
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile lex\retrieval\official_sources_retriever.py lex\retrieval\normativa.py lex\normativa\normattiva_importer.py pct\legal_update_source_capabilities.py` | OK | Sintassi confermata dopo retrieval codici, deduplica Gazzetta, contesto Lex e EUR-Lex RAG-only. |
+| `python -m pytest tests/test_normattiva_client.py tests/test_normattiva_importer.py -q --tb=short` | OK | 6/6 passati: client Normattiva, import XML, articoli in paragrafi HTML e fallback raw ZIP senza link inventati. |
+| `python -m pytest tests/test_official_sources_retriever.py tests/test_legal_update_source_capabilities.py -q --tb=short` | OK | 9/9 passati: deduplica Gazzetta, Lex con contesto Normattiva, EUR-Lex RAG-only e fonti secondarie non ufficiali. |
+| `python -m pytest tests/test_legal_updates_pipeline.py -q --tb=short` | OK | 41/41 passati: pipeline aggiornamenti legali preservata. |
+| `python -m pytest tests/test_lex_source_corpus_generator.py tests/test_react_legal_intelligence_search.py -q --tb=short` | OK | 24/24 passati: corpus Lex e Ricerca Legale restano coerenti con archivi ufficiali. |
+| `python tools/check_repo_governance.py`; `python -m pytest tests/test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | Governance OK, UTF-8 4/4 e whitespace senza errori; `git diff --check` segnala solo warning CRLF su dati runtime preesistenti. |
 
 ## Update Intelligence Fase 5 fonti verdi 2.245.46 - 2026-05-19
 

@@ -237,11 +237,12 @@ SOURCE_CAPABILITIES: dict[str, SourceCapability] = {
     "eur_lex": _cap(
         "eur_lex",
         item_strategy="html_listing",
-        detail_strategy="detail_html",
+        detail_strategy="celex_detail_in_observation",
         attachment_strategy="official_pdf_or_celex",
-        publication_destination="normativa_or_prassi",
+        publication_destination="rag_only",
         rag_destination="official_eu_rag",
         relevance_policy="atti_ue_regolamenti_direttive_celex",
+        exclusion_policy="parser EUR-Lex dedicato non stabilizzato: conservare come RAG UE fino a fixture CELEX verde",
     ),
     "agenzia_entrate": _cap(
         "agenzia_entrate",
@@ -616,6 +617,8 @@ def source_exclusion_reason(
     text = _haystack(title, body_text, url, source.get("category"))
     if capability.publication_destination == "out_of_scope":
         return "Fonte secondaria non ufficiale: resta fuori dal corpus ufficiale e si usa solo con Web libero manuale."
+    if code == "eur_lex":
+        return "Fonte UE in osservazione: parser CELEX dedicato non stabilizzato; conservata solo come RAG ufficiale UE."
     navigation_markers = NAVIGATION_MARKERS
     if code == "garante_privacy":
         navigation_markers = tuple(marker for marker in NAVIGATION_MARKERS if marker != "newsletter")

@@ -33,6 +33,11 @@ NIR_NS = {
     "h": "http://www.w3.org/HTML/1998/html4",
 }
 
+TEXTUAL_ARTICLE_RE = re.compile(
+    r"\bArt\.\s*(?P<number>\d{1,4})(?:[\s.-]+(?P<suffix>bis|ter|quater|quinquies|sexies|septies|octies|nonies|decies))?\s*[.)-]",
+    flags=re.I,
+)
+
 
 @dataclass
 class ArticleRecord:
@@ -160,6 +165,10 @@ def parse_xml(xml_bytes: bytes, *, zip_path: Path, entry: str, collection_name: 
                 topics=topic_names(art_matches),
                 relevance_score=relevance_score(art_matches),
             ))
+        articles = _merge_textual_articles(
+            articles,
+            extract_textual_article_records(full_text, source_title=titolo or "", collection_name=collection_name),
+        )
     else:
         root = ET.fromstring(xml_bytes)  # type: ignore[name-defined]
         titolo = _find_text_et(root, "titoloDoc")
@@ -170,7 +179,7 @@ def parse_xml(xml_bytes: bytes, *, zip_path: Path, entry: str, collection_name: 
         redazione_id = _find_attr_et(root, "redazione", "id")
         data_pubblicazione = norm_date(_find_attr_et(root, "pubblicazione", "norm"))
         full_text = clean_text(" ".join(root.itertext()))
-        articles = []
+        articles = extract_textual_article_records(full_text, source_title=titolo or "", collection_name=collection_name)
 
     matches = detect_topics(titolo or "", full_text[:50000], collection_name=collection_name)
     score = relevance_score(matches)
@@ -208,6 +217,67 @@ def _guess_article_title(article_text: str, art_num: str | None) -> str | None:
         if 4 <= len(part) <= 140 and not re.match(r"^\d+\.?$", part):
             return part
     return None
+
+
+def extract_textual_article_records(
+    text: str,
+    *,
+    source_title: str = "",
+    collection_name: str = "",
+) -> list[ArticleRecord]:
+    """Estrae articoli quando Normattiva codifica il corpo come paragrafi HTML.
+
+    Alcuni codici storici arrivano con pochi nodi NIR ``articolo`` e il testo
+    vero dentro paragrafi ``h:p``. Questo splitter conserva il comportamento
+    XML esistente ma rende indicizzabili gli articoli del corpo normativo.
+    """
+    cleaned = clean_text(text)
+    matches = list(TEXTUAL_ARTICLE_RE.finditer(cleaned))
+    records: list[ArticleRecord] = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(cleaned)
+        article_text = clean_text(cleaned[match.start() : end])
+        if len(article_text) < 24:
+            continue
+        number = _article_number_from_match(match)
+        article_title = _guess_article_title(article_text, number)
+        matches_topics = detect_topics(source_title, article_text, collection_name=collection_name)
+        records.append(
+            ArticleRecord(
+                article_number=number,
+                article_title=article_title,
+                article_text=article_text,
+                topics=topic_names(matches_topics),
+                relevance_score=relevance_score(matches_topics),
+            )
+        )
+    return records
+
+
+def _article_number_from_match(match: re.Match[str]) -> str:
+    suffix = clean_text(match.group("suffix")).lower()
+    number = clean_text(match.group("number"))
+    return f"Art. {number}{f' {suffix}' if suffix else ''}."
+
+
+def _merge_textual_articles(existing: list[ArticleRecord], textual: list[ArticleRecord]) -> list[ArticleRecord]:
+    if not textual:
+        return existing
+    seen = {
+        (
+            clean_text(article.article_number).lower(),
+            clean_text(article.article_text)[:220].lower(),
+        )
+        for article in existing
+    }
+    merged = list(existing)
+    for article in textual:
+        key = (clean_text(article.article_number).lower(), clean_text(article.article_text)[:220].lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        merged.append(article)
+    return merged
 
 
 def _local_name(tag: str) -> str:

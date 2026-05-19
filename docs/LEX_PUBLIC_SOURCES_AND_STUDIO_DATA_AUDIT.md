@@ -2,6 +2,14 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.245.47 - 2026-05-19
+
+Completata la Fase 6 su normativa e archivi base senza backup, senza download ciechi e senza import massivo. Gli archivi locali già presenti sono stati verificati e collegati: Normattiva locale contiene 42.677 documenti, 238.110 articoli e 279.777 chunk; Gazzetta locale contiene 12 documenti e 1.852 chunk. Il report canonico è `artifacts/legal-updates/phase6-normativa-archives-2026-05-19/phase6-report.md`.
+
+Lex e Ricerca Legale usano ora meglio gli archivi ufficiali locali: `search_normattiva()` riconosce query per codice e articolo, usa i raw ZIP Normattiva già presenti quando il DB non espone ancora il singolo articolo come chunk autonomo e non inventa link Normattiva; `search_gazzetta()` deduplica i risultati per documento; `search_normativa_sources()` porta Normattiva/Gazzetta nel contesto Lex prima dei fallback esterni.
+
+I codici verificati come RAG normativo sono: codice civile, codice di procedura civile, codice penale, codice di procedura penale, codice del processo amministrativo e codice della strada. EUR-Lex resta fonte UE ufficiale ma viene tenuta `RAG-only` finché il parser CELEX dedicato non sarà stabilizzato con fixture verdi. Studio Cataldi e Avvocato Andreani restano fonti secondarie disabilitate e non alimentano pubblicazione ufficiale.
+
 ## Aggiornamento operativo 2.245.45 - 2026-05-19
 
 Completato il primo pilot di pubblicazione `guarded` su tre sole fonti verdi: `cassazione_ultime_sent_ord_questioni`, `inps_circolari` e `agcom_provvedimenti`. Sono stati pubblicati 9 documenti verificati, con testo leggibile, PDF/OCR o allegati gestiti, riferimenti e domande contestuali. Nessun import massivo, nessuno scheduler globale e nessuna fonte gialla/rossa sono stati attivati.

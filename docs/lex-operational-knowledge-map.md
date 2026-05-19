@@ -38,6 +38,8 @@ Aggiornamento 2026-05-19, pilot guarded fonti 2.245.45: il primo pilot ha pubbli
 
 Aggiornamento 2026-05-19, Fase 5 fonti verdi 2.245.46: il repository fonti ufficiali contiene ora 20 pubblicazioni guarded aggiuntive/riconfermate su Cassazione, INPS, AGCOM, Corte dei conti e Curia CGUE. Lex e Ricerca Legale devono interrogare questi contenuti con filtro fonte quando la domanda nomina la fonte o un identificativo specifico, soprattutto per cause Curia come `C-797/23` dove una query generica su `Sentenza della Corte` può favorire Corte dei conti. ANAC e Garante restano acquisizioni da verificare, non contenuti pubblicati. PST tecnico e OpenGA tabellare restano RAG-only e non vanno proposti come news.
 
+Aggiornamento 2026-05-19, Fase 6 normativa e archivi base 2.245.47: Lex deve interrogare gli archivi Normattiva/Gazzetta locali prima dei fallback esterni quando la domanda è normativa. Le query sui codici fondamentali riconoscono codice e articolo e, se il DB non ha il chunk autonomo, leggono il raw ZIP Normattiva già presente senza inventare URL. Gazzetta viene deduplicata per documento. EUR-Lex resta fonte UE ufficiale `RAG-only` finché il parser CELEX non è stabilizzato; Studio Cataldi e Avvocato Andreani restano fuori dal corpus ufficiale.
+
 ## Regole di accesso
 
 - Tenant: ricavato dal contesto Flask (`g.tenant`, `g.tenant_context_slug`, `g.data_paths`) o da contesto applicativo esplicito nei test.

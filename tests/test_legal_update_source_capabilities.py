@@ -61,6 +61,7 @@ def test_capability_filtri_scartano_noise_e_tengono_contesto_legale():
     openga = {"code": "openga_sentenze", "source_type": "open_data", "parser_type": "ckan_json", "category": "giurisprudenza"}
     pst = {"code": "pst_giustizia_download", "source_type": "web", "parser_type": "html", "category": "telematico"}
     secondary = {"code": "studiocataldi_codice_civile", "source_type": "web", "parser_type": "html", "category": "normativa"}
+    eur_lex = {"code": "eur_lex", "source_type": "web", "parser_type": "html", "category": "ue"}
 
     assert "Consultazione" in source_exclusion_reason(
         agcom,
@@ -88,6 +89,23 @@ def test_capability_filtri_scartano_noise_e_tengono_contesto_legale():
         body_text="Specifiche PCT e schema busta deposito telematico.",
     ) == ""
     assert "Fonte secondaria" in source_exclusion_reason(secondary, title="Art. 2043 codice civile", body_text="")
+    assert "RAG ufficiale UE" in source_exclusion_reason(
+        eur_lex,
+        title="Regolamento UE 2016/679",
+        body_text="Scheda EUR-Lex con CELEX e testo dell'atto.",
+    )
+
+
+def test_eur_lex_resta_fonte_ue_rag_only_finche_parser_celex_non_e_stabile():
+    source_codes = {row["code"]: row for row in DEFAULT_SOURCE_ROWS}
+    row = source_codes["eur_lex"]
+    capability = get_source_capability("eur_lex")
+
+    assert row["category"] == "ue"
+    assert row["is_official"] is True
+    assert capability.publication_destination == "rag_only"
+    assert capability.rag_destination == "official_eu_rag"
+    assert "CELEX" in capability.exclusion_policy
 
 
 def test_capability_openga_resource_tabellari_restano_solo_rag():

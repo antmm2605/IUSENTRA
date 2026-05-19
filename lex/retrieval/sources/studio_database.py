@@ -10,7 +10,6 @@ from typing import Any
 
 from lex.contracts import EvidenceItem
 
-
 _EXCLUDED_ENTITY_TYPES = {
     "fonte",
     "fonti",

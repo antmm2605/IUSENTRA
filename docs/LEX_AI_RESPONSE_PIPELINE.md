@@ -13,6 +13,12 @@ La Fase 10 ha chiuso l'audit finale del sistema aggiornamenti legali senza impor
 
 Per Lex questo significa che il routing non deve più incontrare fonti ufficiali senza classe operativa. Le domande su allegati, PDF, articoli, INPS, AGCOM e Cassazione devono interrogare prima il repository locale, usando pagina, allegato/PDF/OCR, riferimenti e domande contestuali; se il dataset locale non contiene ancora una specifica evidenza, Lex deve dichiarare la lacuna o usare solo il Web libero manuale quando richiesto dall'avvocato.
 
+## Aggiornamento operativo 2.245.52 - 19 maggio 2026
+
+La Fase 11 introduce il regime controllato degli aggiornamenti legali. `python -m pct.cli legal-updates-health-report --json` è il report periodico canonico: non effettua fetch live e non pubblica, ma legge fonti, coda job, scheduler, retry, PDF/OCR, riferimenti, domande, review e pubblicazioni guarded.
+
+Lex deve considerare questo report come presidio di manutenzione: fonti in osservazione, RAG-only o non pubblicabili non diventano basi certe della risposta finché non passano capability, fixture, canary, report, pilot guarded e abilitazione scheduler. I backfill ammessi restano solo mirati ad allegati, OCR, riferimenti e domande mancanti, sempre senza pubblicazione automatica.
+
 ## Aggiornamento operativo 2.245.49 - 19 maggio 2026
 
 La Fase 8 restringe lo scheduler degli aggiornamenti legali al solo step 1 progressivo: `cassazione_ultime_sent_ord_questioni`, `inps_circolari`, `inps_messaggi` e `agcom_provvedimenti`. Le fonti fuori step, incluse ANAC e Garante, non devono diventare base certa della risposta Lex finché non passano un canary/report verde dedicato.

@@ -2,6 +2,19 @@
 
 Aggiornato il 19 maggio 2026. Questo file trasforma `source-rollout-plan.md` in backlog eseguibile con stato prima/dopo della tranche codice.
 
+## Aggiornamento Fase 11 - regime controllato e manutenzione fonti
+
+Aggiornato il 19 maggio 2026. La fase prepara la manutenzione ordinaria senza backup, senza import massivo e senza pubblicazioni incontrollate.
+
+| area | stato rilevato | azione eseguita | esito |
+|---|---|---|---|
+| Dashboard qualità fonti | la console mostrava fonti, archivio e scheduler, ma non un quadro unico su classi operative, errori, OCR, allegati, riferimenti e domande | aggiunto il payload `source_quality_dashboard` e la sezione `Qualità fonti` nella dashboard admin | visibili fonti attive, in osservazione, RAG-only, non pubblicabili, ultimo controllo, errori, OCR falliti, allegati vuoti, riferimenti/domande mancanti, review pendenti e pubblicazioni guarded |
+| Report periodico | mancava un comando unico per il regime controllato | aggiunto `python -m pct.cli legal-updates-health-report --json` | il JSON include stato fonti, coda, errori, PDF/OCR, riferimenti, domande, scheduler, review, pubblicazioni, retry sicuro, backfill mirato e procedura nuove fonti |
+| Retry sicuro | coda e batch avevano già deduplica, tentativi e timeout, ma non erano esposti nel report sanitario | il report espone max attempts, timeout, errori leggibili, coda e garanzia di pubblicazione solo guarded | retry governato verificabile senza duplicare job e senza pubblicazione fuori guardia |
+| Backfill periodico | il comando diagnostico esisteva già per `attachments`, `ocr`, `references`, `questions` | il report produce piano e comandi periodici solo mirati, sempre con `--no-publish` | nessun backfill globale: solo allegati vuoti, OCR mancanti/falliti, riferimenti mancanti e domande mancanti |
+| Nuove fonti | il piano fonte per fonte descriveva canary e capability, ma serviva una procedura sintetica operativa | aggiunta procedura macchina nel report e nota nel piano | ogni nuova fonte passa da capability, fixture, canary, report, pilot guarded e scheduler solo dopo esito verde |
+| Versione | Fase 10 era a `2.245.51` | bump a `2.245.52` | tranche Fase 11 tracciata come rilascio successivo |
+
 ## Aggiornamento Fase 10 - audit finale prima del regime
 
 Aggiornato il 19 maggio 2026. La fase ha verificato l'intero catalogo `DEFAULT_SOURCE_ROWS` dopo il popolamento progressivo, senza import massivo e senza backup. Il report operativo è `artifacts/legal-updates/phase10-final-audit-2026-05-19/phase10-final-audit-report.md`.

@@ -7,6 +7,13 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.52 - 2026-05-19
+
+- Aggiunto il regime controllato Fase 11 per gli aggiornamenti legali con `python -m pct.cli legal-updates-health-report --json`.
+- Estesa la dashboard admin con il quadro qualità fonti: fonti attive, osservazione, RAG-only, non pubblicabili, ultimo controllo, errori, OCR, allegati vuoti, riferimenti/domande mancanti, review pendenti e pubblicazioni guarded.
+- Esposti nel report sanitario retry sicuro, coda job, scheduler progressivo, backfill periodico solo mirato e procedura obbligatoria per nuove fonti.
+- Confermato che il report non acquisisce fonti, non esegue backup e non pubblica contenuti; le pubblicazioni restano limitate al percorso guarded.
+
 ## 2.245.51 - 2026-05-19
 
 - Completato l'audit finale Fase 10 degli aggiornamenti legali senza backup e senza import massivo.

@@ -8,6 +8,12 @@ Completato l'audit finale Fase 10 sugli aggiornamenti legali senza backup e senz
 
 Le fonti OpenGA tabellari o di stato non pubblicabili restano RAG-only; Cassazione Massimario, Giustizia Amministrativa diretta e Decisioni/Pareri restano in osservazione finché non passano canary verde dedicato. Lex e Ricerca Legale continuano a usare testo pagina, PDF/OCR, riferimenti e domande contestuali già salvati, senza promuovere cataloghi tecnici o fonti in osservazione a notizie.
 
+## Aggiornamento operativo 2.245.52 - 2026-05-19
+
+La Fase 11 aggiunge il report sanitario di regime `legal-updates-health-report --json` e la dashboard qualità fonti. Il report controlla fonti attive, osservazione, RAG-only, non pubblicabili, ultimo controllo, errori, OCR falliti, allegati vuoti, riferimenti mancanti, domande mancanti, review pendenti e pubblicazioni guarded senza avviare import o backup.
+
+La manutenzione periodica può usare solo backfill mirati (`attachments`, `ocr`, `references`, `questions`) con `--no-publish`. Le nuove fonti devono passare da capability, fixture, canary, report, pilot guarded e scheduler: nessuna fonte viene pubblicata automaticamente per sola presenza nel catalogo.
+
 ## Aggiornamento operativo 2.245.49 - 2026-05-19
 
 Attivata la Fase 8 per lo scheduler progressivo degli aggiornamenti legali. Lo step 1 non avvia tutte le fonti: usa solo `cassazione_ultime_sent_ord_questioni`, `inps_circolari`, `inps_messaggi` e `agcom_provvedimenti`, con budget `2` fonti per ciclo, timeout `120` secondi per elemento, massimo `5` pubblicazioni guarded e massimo `5` schede Cassazione ultime per scansione.

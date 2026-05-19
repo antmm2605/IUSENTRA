@@ -2881,6 +2881,51 @@ def cmd_legal_updates_backfill_diagnostics(
     )
 
 
+@cli.command("legal-updates-health-report")
+@click.option("--intelligence-db", default=lambda: os.getenv("PCT_LEGAL_INTELLIGENCE_DB", "./intelligence/motori.json"), show_default="PCT_LEGAL_INTELLIGENCE_DB o ./intelligence/motori.json", help="Anchor del motore legale")
+@click.option("--giurisprudenza-db", default=lambda: os.getenv("PCT_GIURISPRUDENZA_DB", "./intelligence/giurisprudenza.json"), show_default="PCT_GIURISPRUDENZA_DB o ./intelligence/giurisprudenza.json", help="Archivio giurisprudenza per eventuale mirror controllato")
+@click.option("--queue-db", default="", help="Percorso esplicito della coda job aggiornamenti legali")
+@click.option("--cursor-path", default="", help="Percorso esplicito dei cursori scheduler aggiornamenti legali")
+@click.option("--local-ai-url", default=lambda: os.getenv("LOCAL_AI_BASE_URL", ""), help="Endpoint Ollama locale")
+@click.option("--local-ai-model", default=lambda: os.getenv("LOCAL_AI_CHAT_MODEL", os.getenv("OLLAMA_MODEL", "mistral")), show_default="LOCAL_AI_CHAT_MODEL o OLLAMA_MODEL o mistral", help="Modello locale per arricchimento AI")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Stampa output JSON")
+def cmd_legal_updates_health_report(
+    intelligence_db,
+    giurisprudenza_db,
+    queue_db,
+    cursor_path,
+    local_ai_url,
+    local_ai_model,
+    as_json,
+):
+    """Report sanitario del regime controllato aggiornamenti legali."""
+    from pct.legal_update_health_report import build_legal_updates_health_report
+
+    report = build_legal_updates_health_report(
+        intelligence_db=intelligence_db,
+        giurisprudenza_db=giurisprudenza_db,
+        ai_base_url=local_ai_url,
+        ai_model=local_ai_model,
+        queue_db_path=queue_db,
+        cursor_path=cursor_path,
+    )
+    if as_json:
+        click.echo(json.dumps(report, ensure_ascii=False, indent=2))
+        return
+
+    totals = dict((report.get("source_quality_dashboard") or {}).get("totals") or {})
+    retry = dict(report.get("retry_sicuro") or {})
+    backfill = dict(report.get("backfill_periodico") or {})
+    click.echo("Health report aggiornamenti legali")
+    click.echo(f"Stato: {(report.get('readiness') or {}).get('status', 'da verificare')}")
+    click.echo(f"Fonti attive: {totals.get('fonti_attive', 0)}")
+    click.echo(f"Fonti in osservazione: {totals.get('fonti_in_osservazione', 0)}")
+    click.echo(f"Fonti RAG-only: {totals.get('fonti_rag_only', 0)}")
+    click.echo(f"Fonti non pubblicabili: {totals.get('fonti_non_pubblicabili', 0)}")
+    click.echo(f"Errori fonte/coda: {totals.get('errors', 0)} + {retry.get('failed_or_timeout', 0)}")
+    click.echo(f"Backfill mirati pendenti: {backfill.get('pending', {})}")
+
+
 @cli.command("ai-avanzata")
 @click.option("--json", "as_json", is_flag=True, default=False, help="Stampa il payload completo in JSON")
 @click.option("--fail-if-blocked", is_flag=True, default=False, help="Ritorna errore se una capacita' abilitata non e' pronta")

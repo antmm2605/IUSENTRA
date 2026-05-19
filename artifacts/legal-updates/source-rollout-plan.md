@@ -2,6 +2,16 @@
 
 Aggiornato il 18 maggio 2026. Ricognizione svolta partendo da `/admin/aggiornamenti-legali/` e dai moduli `pct/legal_update_pipeline.py`, `pct/legal_update_repository.py`, `pct/legal_update_web_verification.py`, `pct/legal_update_autofetch.py`, `pct/legal_update_batch_runner.py`, `web/services/legal_update_surface.py`, `web/blueprints/legal_updates_admin.py`, Ricerca Legale React, Archivio Giurisprudenza e sorgenti Lex.
 
+## Aggiornamento Fase 11 - regime controllato 19 maggio 2026
+
+La manutenzione ordinaria usa il comando `python -m pct.cli legal-updates-health-report --json` come report periodico canonico. Il report non acquisisce nuove fonti e non pubblica: legge archivio, coda job, cursori scheduler e diagnostica già salvata.
+
+La dashboard admin mostra ora la qualità fonti con questi contatori: fonti attive, fonti in osservazione, fonti RAG-only, fonti non pubblicabili, ultimo controllo, errori, OCR falliti, allegati vuoti, riferimenti mancanti, domande mancanti, review pendenti e pubblicazioni guarded. Le fonti in osservazione o RAG-only non diventano pubblicabili per il solo fatto di essere censite.
+
+Retry e backfill restano conservativi: ogni job ha `max_attempts`, timeout per elemento, deduplica stabile e errore leggibile; il backfill periodico può usare solo `attachments`, `ocr`, `references` e `questions`, sempre con `--no-publish`. Le pubblicazioni automatiche restano `guarded` e limitate dal budget progressivo.
+
+Procedura nuova fonte: aggiungere capability, fixture offline, canary con limite e `--no-publish`, report qualità, pilot guarded su pochi documenti e solo dopo abilitarla nello scheduler. Nessuna nuova fonte va inserita direttamente nel ciclo automatico senza questi passaggi.
+
 ## Aggiornamento Fase 9 - fonti verdi estese 19 maggio 2026
 
 La Fase 9 abilita nello scheduler progressivo solo le fonti verdi: `cassazione_ultime_sent_ord_questioni`, `corte_conti`, `curia_cgue_rss`, `inps_circolari`, `inps_messaggi`, `agcom_provvedimenti`, `anac_documenti`, `garante_privacy` e `gazzetta_ufficiale`. Il budget passa a 3 fonti per ciclo, resta il timeout per elemento e la pubblicazione automatica resta guarded.

@@ -203,6 +203,127 @@
   <div class="li-card mb-3">
     <div class="li-card__body">
       <div class="li-section-head">
+        <div class="li-section-title"><i class="bi bi-clipboard2-pulse me-2 text-primary"></i>Qualità fonti</div>
+        <span class="badge text-bg-light">regime controllato</span>
+      </div>
+      <div class="row g-2 mt-1">
+        <div class="col-6 col-lg">
+          <div class="li-soft-card h-100">
+            <div class="small text-muted">Fonti attive</div>
+            <div class="fw-semibold">{{ payload.source_quality_dashboard.totals.fonti_attive|default(0) }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-lg">
+          <div class="li-soft-card h-100">
+            <div class="small text-muted">In osservazione</div>
+            <div class="fw-semibold">{{ payload.source_quality_dashboard.totals.fonti_in_osservazione|default(0) }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-lg">
+          <div class="li-soft-card h-100">
+            <div class="small text-muted">RAG-only</div>
+            <div class="fw-semibold">{{ payload.source_quality_dashboard.totals.fonti_rag_only|default(0) }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-lg">
+          <div class="li-soft-card h-100">
+            <div class="small text-muted">Non pubblicabili</div>
+            <div class="fw-semibold">{{ payload.source_quality_dashboard.totals.fonti_non_pubblicabili|default(0) }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-lg">
+          <div class="li-soft-card h-100">
+            <div class="small text-muted">Errori</div>
+            <div class="fw-semibold {% if payload.source_quality_dashboard.totals.errors|default(0) %}text-danger{% else %}text-success{% endif %}">
+              {{ payload.source_quality_dashboard.totals.errors|default(0) }}
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-lg">
+          <div class="li-soft-card h-100">
+            <div class="small text-muted">OCR falliti</div>
+            <div class="fw-semibold {% if payload.source_quality_dashboard.totals.ocr_failed|default(0) %}text-danger{% else %}text-success{% endif %}">
+              {{ payload.source_quality_dashboard.totals.ocr_failed|default(0) }}
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-lg">
+          <div class="li-soft-card h-100">
+            <div class="small text-muted">Allegati vuoti</div>
+            <div class="fw-semibold {% if payload.source_quality_dashboard.totals.empty_attachments|default(0) %}text-warning{% else %}text-success{% endif %}">
+              {{ payload.source_quality_dashboard.totals.empty_attachments|default(0) }}
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-lg">
+          <div class="li-soft-card h-100">
+            <div class="small text-muted">Riferimenti mancanti</div>
+            <div class="fw-semibold {% if payload.source_quality_dashboard.totals.missing_references|default(0) %}text-warning{% else %}text-success{% endif %}">
+              {{ payload.source_quality_dashboard.totals.missing_references|default(0) }}
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-lg">
+          <div class="li-soft-card h-100">
+            <div class="small text-muted">Domande mancanti</div>
+            <div class="fw-semibold {% if payload.source_quality_dashboard.totals.missing_questions|default(0) %}text-warning{% else %}text-success{% endif %}">
+              {{ payload.source_quality_dashboard.totals.missing_questions|default(0) }}
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-lg">
+          <div class="li-soft-card h-100">
+            <div class="small text-muted">Pubblicazioni guarded</div>
+            <div class="fw-semibold">{{ payload.source_quality_dashboard.totals.guarded_publications|default(0) }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="table-responsive mt-3">
+        <table class="table li-table align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Fonte</th>
+              <th>Classe</th>
+              <th>Ultimo controllo</th>
+              <th>Segnali qualità</th>
+              <th>Revisioni</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for source in payload.source_quality_dashboard.rows[:8] %}
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ source.source_name }}</div>
+                {% if source.last_error %}<div class="small text-danger">{{ source.last_error }}</div>{% endif %}
+              </td>
+              <td>
+                <span class="badge text-bg-{% if source.classification == 'verde_abilitata' %}success{% elif source.classification == 'osservazione' %}warning{% elif source.classification == 'rag_only' %}info{% else %}secondary{% endif %}">
+                  {{ source.classification_label }}
+                </span>
+                <div class="small text-muted mt-1">{{ source.publication_policy_label }}</div>
+              </td>
+              <td>{% if source.last_check_at %}{{ source.last_check_at|fmt_dataora }}{% else %}<span class="text-muted">mai</span>{% endif %}</td>
+              <td>
+                <div class="small text-muted">OCR {{ source.ocr_failed }} · allegati vuoti {{ source.empty_attachments }}</div>
+                <div class="small text-muted">riferimenti {{ source.missing_references }} · domande {{ source.missing_questions }}</div>
+              </td>
+              <td>
+                <div class="fw-semibold">{{ source.review_pending }}</div>
+                <div class="small text-muted">{{ source.guarded_publications }} guarded</div>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-muted">Nessuna fonte censita.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="li-card mb-3">
+    <div class="li-card__body">
+      <div class="li-section-head">
         <div class="li-section-title"><i class="bi bi-signpost-split me-2 text-primary"></i>Dove finiscono i dati</div>
         <span class="badge text-bg-light">mappa operativa</span>
       </div>

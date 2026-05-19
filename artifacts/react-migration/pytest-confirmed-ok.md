@@ -2426,6 +2426,17 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | Chrome CDP autenticato, report `artifacts/react-migration/visual-2.239.3-legal-intelligence-context/visual-load-audit.md` | OK | 8/8 controlli desktop/mobile su `/legal-intelligence`, `/legal-intelligence/mediazione`, `/ricerca-legale` e `/ricerca-legale?q=mediazione`: nessun overflow, testo tecnico, form POST HTML, console error o redirect login. |
 | Deploy Hetzner CPX42 con `IUSENTRA_SKIP_BACKUP_CRON=1 BRANCH=Codex/legal-electronic-filing-kIxcV bash deploy/hetzner/deploy.sh`; verifiche post-deploy | OK | Server sul commit pushato, cron backup non aggiornato; app, scheduler, OCR, Redis e Ollama healthy; `/api/pronto` pubblico 200 con `versione=2.239.3`; pacchetto container `pct-studio-legale 2.239.3`. |
 
+## Regime controllato fonti legali 2.245.52 - 2026-05-19
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\legal_update_health_report.py pct\cli.py web\services\legal_update_surface.py` | OK | Sintassi confermata dopo health report, CLI e dashboard qualità fonti. |
+| `python -m pct.cli legal-updates-health-report --json` | OK | Report sanitario JSON verificato: stato fonti, coda, errori, PDF/OCR, riferimenti, domande, scheduler, review, pubblicazioni, retry sicuro, backfill mirato e procedura nuove fonti. |
+| `python -m pytest tests\test_legal_update_autofetch.py::test_health_report_regime_controllato_include_dashboard_retry_backfill tests\test_legal_updates_pipeline.py::test_dashboard_update_intelligence_espone_qualita_fonti_regime_controllato -q --tb=short` | OK | 2/2 passati: contratto health report e payload dashboard qualità fonti. |
+| `python -m pytest tests/test_legal_update_autofetch.py tests/test_legal_update_surface_jobs.py tests/test_legal_update_job_queue.py tests/test_legal_update_batch_runner.py -q --tb=short` | OK | 22/22 passati: scheduler controllato, monitor, retry, coda deduplicata e batch per fonte confermati. |
+| `python -m pytest tests/test_legal_updates_pipeline.py -q --tb=short` | OK | 42/42 passati: pipeline aggiornamenti legali e dashboard condivisa confermate dopo Fase 11. |
+| `python tools/check_repo_governance.py`; `python -m pytest tests/test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | Governance repo OK, UTF-8 4/4, whitespace diff check OK; presente solo warning Git CRLF/LF sui dati runtime già sporchi e non committati. |
+
 ## Sblocco Legal Skills default-on 2.238.1 - 2026-05-15
 
 | Comando / verifica | Esito | Nota |

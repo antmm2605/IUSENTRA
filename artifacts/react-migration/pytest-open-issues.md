@@ -300,6 +300,12 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 | --- | --- | --- | --- | --- |
 | `/legal-intelligence/mediazione` accessi ufficiali | Pytest mirato e compileall registrati in `pytest-confirmed-ok.md` | Nessuna issue aperta nuova | La pagina Mediazione espone Registro Organismi di Mediazione, Elenco Enti per la Mediazione ed Elenco Formatori per la Mediazione come tre schede ufficiali distinte; la Ricerca Legale li trova senza avviare fallback web. | Per modifiche future rilanciare `tests/test_react_legal_intelligence_search.py` e verificare visivamente `/legal-intelligence/mediazione` se si tocca `LegalIntelligencePage` o il CSS. |
 
+## Note regime controllato fonti legali 2.245.52 - 2026-05-19
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Fase 11 fonti legali | Health report, dashboard qualità, shard legal updates, governance, UTF-8 e diff check | Nessuna issue aperta nuova | Il regime controllato è stato predisposto senza backup e senza import massivo. Il report periodico e la dashboard leggono dati già presenti; i backfill restano mirati e no-publish. | Per modifiche future rilanciare il report `legal-updates-health-report --json`, gli shard legal updates separati e i gate UTF-8/governance. |
+
 ## Note Ricerca Legale con contesto fonte 2.239.3 - 2026-05-16
 
 | Area | Gate | Stato | Nota | Azione |

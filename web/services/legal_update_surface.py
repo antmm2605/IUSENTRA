@@ -25,6 +25,7 @@ from pct.legal_update_autofetch import (
     legal_update_progressive_step1_source_codes,
     run_legal_update_autofetch_tick,
 )
+from pct.legal_update_health_report import build_legal_source_quality_dashboard
 from pct.legal_update_pipeline import DEFAULT_SOURCE_ROWS, LegalUpdatePipeline, build_legal_update_pipeline
 from pct.legal_update_source_capabilities import (
     publication_destination_label,
@@ -924,10 +925,15 @@ def build_legal_update_surface(
     active_tenants = _active_tenants(cfg_source)
     pipeline = build_legal_update_pipeline_runtime(runtime_app)
     snapshot = pipeline.dashboard_snapshot()
+    sources = pipeline.repository.list_sources(enabled_only=False)
+    progressive_scheduler = legal_update_progressive_scheduler_payload(sources)
     snapshot["official_archives"] = _official_archives_payload()
     snapshot["truth_metrics"] = _truth_metrics_from_snapshot(snapshot, pipeline)
-    snapshot["progressive_scheduler"] = legal_update_progressive_scheduler_payload(
-        pipeline.repository.list_sources(enabled_only=False)
+    snapshot["progressive_scheduler"] = progressive_scheduler
+    snapshot["source_quality_dashboard"] = build_legal_source_quality_dashboard(
+        pipeline,
+        sources=sources,
+        scheduler=progressive_scheduler,
     )
     snapshot["runtime"] = {
         "db_path": pipeline.repository.db_path,

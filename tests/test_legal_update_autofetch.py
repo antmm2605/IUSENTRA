@@ -14,6 +14,7 @@ from pct.legal_update_autofetch import (
     legal_update_progressive_scheduler_payload,
     run_legal_update_autofetch_tick,
 )
+from pct.legal_update_health_report import build_legal_updates_health_report
 from pct.legal_update_pipeline import DEFAULT_SOURCE_ROWS
 from pct.legal_update_source_capabilities import get_source_capability
 
@@ -245,3 +246,41 @@ def test_autofetch_monitor_mostra_fonti_pronte_e_da_verificare(tmp_path):
     assert statuses["cassazione_massimario"] == "pronta"
     assert statuses["gazzetta_ufficiale"] == "da_verificare"
     assert report["monitor"]["readiness"]["status"] == "da_verificare"
+
+
+def test_health_report_regime_controllato_include_dashboard_retry_backfill(tmp_path):
+    report = build_legal_updates_health_report(
+        intelligence_db=str(tmp_path / "motori.json"),
+        giurisprudenza_db=str(tmp_path / "giurisprudenza.json"),
+        queue_db_path=str(tmp_path / "jobs.sqlite"),
+        cursor_path=str(tmp_path / "cursors.json"),
+        pipeline=FakePipeline(),
+    )
+
+    dashboard = report["source_quality_dashboard"]
+    totals = dashboard["totals"]
+
+    assert report["schema"] == "iusentra.legal_updates_health_report.v1"
+    assert totals["fonti_attive"] == 1
+    assert totals["fonti_in_osservazione"] == 1
+    assert totals["fonti_non_pubblicabili"] >= 1
+    assert report["scheduler"]["publication_mode"] == "guarded"
+    assert report["pubblicazioni"]["uncontrolled_publication"] is False
+    assert report["retry_sicuro"]["max_attempts"] == 3
+    assert report["retry_sicuro"]["timeout_seconds"] == 120
+    assert report["retry_sicuro"]["does_not_publish_without_guard"] is True
+    assert set(report["backfill_periodico"]["allowed_missing_kinds"]) == {
+        "attachments",
+        "ocr",
+        "references",
+        "questions",
+    }
+    assert "--no-publish" in report["backfill_periodico"]["combined_command"]
+    assert report["nuove_fonti"]["steps"] == [
+        "capability",
+        "fixture",
+        "canary",
+        "report",
+        "pilot",
+        "scheduler",
+    ]

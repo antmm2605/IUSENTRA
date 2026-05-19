@@ -263,6 +263,28 @@ def _cfg_web(tmp_path: Path) -> dict[str, str]:
     }
 
 
+def test_dashboard_update_intelligence_espone_qualita_fonti_regime_controllato(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.app_context():
+        payload = build_legal_update_surface(app)
+
+    quality = payload["source_quality_dashboard"]
+    totals = quality["totals"]
+
+    assert quality["schema"] == "iusentra.legal_source_quality_dashboard.v1"
+    assert totals["fonti_attive"] >= 1
+    assert "fonti_in_osservazione" in totals
+    assert "fonti_rag_only" in totals
+    assert "fonti_non_pubblicabili" in totals
+    assert "ocr_failed" in totals
+    assert "empty_attachments" in totals
+    assert "missing_references" in totals
+    assert "missing_questions" in totals
+    assert quality["scheduler"]["publication_mode"] == "guarded"
+
+
 def _seed_platform_superadmin(app) -> tuple[str, str]:
     password = "Admin1234!"
     with app.app_context():

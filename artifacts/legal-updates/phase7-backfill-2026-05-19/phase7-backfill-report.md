@@ -28,6 +28,7 @@ Stato repository locale prima della fase operativa: 84 review, 21 news, 3 prassi
 - `legal-updates-backfill-diagnostics --missing` ora accetta liste separate da virgole, ad esempio `attachments,ocr,references,questions`.
 - Il report JSON del backfill include una sezione `summary` con selezionati, processati, aggiornati, invariati, falliti, motivi, PDF/OCR completati, riferimenti e domande aggiunte, stato Lex e Ricerca Legale.
 - L'output CLI viene forzato a UTF-8 quando lo stream lo supporta: il primo tentativo su Windows era arrivato alla generazione del report ma era caduto in stampa JSON per encoding `cp1252` davanti a caratteri UTF-8.
+- Il report diagnostico compatta lo snapshot dashboard in `dashboard_summary`: restano conteggi e qualità, ma non vengono esportati payload applicativi o stream PDF grezzi nei JSON di fase.
 
 ## Backfill eseguiti
 
@@ -90,7 +91,7 @@ La fonte specifica `cassazione_ultime_sent_ord_questioni` resta completa per all
 | Comando | Esito | Nota |
 | --- | --- | --- |
 | `python -m py_compile pct\cli.py pct\legal_update_diagnostics.py` | OK | Sintassi CLI/backfill dopo supporto liste e UTF-8. |
-| `python -m pytest tests/test_legal_update_safe_diagnostics.py -q --tb=short` | OK | 7/7: canary/backfill JSON, limiti e `--missing` multiplo. |
+| `python -m pytest tests/test_legal_update_safe_diagnostics.py -q --tb=short` | OK | 8/8: canary/backfill JSON, limiti, `--missing` multiplo e report compatti senza payload/PDF grezzi. |
 | `python -m pytest tests/test_legal_update_publish_context.py tests/test_legal_update_web_verification_attachments.py tests/test_document_intelligence_extraction.py -q --tb=short` | OK | 39/39: allegati, OCR, riferimenti, publish context e Document Intelligence. |
 | `python -m pytest tests/test_lex_source_corpus_generator.py tests/test_lex_operational_knowledge.py tests/test_react_legal_intelligence_search.py -q --tb=short` | OK | 75/75: corpus Lex, ranking allegati, conoscenza operativa e Ricerca Legale. |
 | `python tools/sync_packaging_files.py --check`; `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q --tb=short` | OK | Packaging sincronizzato e versione `2.245.48` coerente. |

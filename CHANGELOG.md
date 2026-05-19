@@ -12,6 +12,7 @@
 - Completata la Fase 7 di backfill mirato PDF/OCR/riferimenti/domande senza backup, senza Web libero, senza pubblicazione automatica e senza scansione globale non limitata.
 - `legal-updates-backfill-diagnostics --missing` accetta ora liste separate da virgole, ad esempio `attachments,ocr,references,questions`, e restituisce un riepilogo macchina con selezionati, processati, aggiornati, invariati, falliti, motivi, PDF/OCR, riferimenti, domande, Lex e Ricerca Legale.
 - Reso l'output CLI robusto in UTF-8 su Windows, evitando errori di stampa JSON quando i contenuti ufficiali contengono caratteri non rappresentabili in `cp1252`.
+- Compattati i report JSON diagnostici: viene salvato `dashboard_summary` con conteggi e qualità, senza esportare payload applicativi o stream PDF grezzi.
 - Backfill reale: 50 evidenze controllate per riferimenti, 14 aggiornate, 20 riferimenti aggiunti, 0 fallimenti; allegati/OCR e Cassazione specifica risultano già completi nel perimetro selezionato.
 - Salvati report e JSON diagnostici in `artifacts/legal-updates/phase7-backfill-2026-05-19/`; test mirati backfill, OCR, allegati, corpus Lex, Ricerca Legale, governance, UTF-8 e whitespace verdi.
 

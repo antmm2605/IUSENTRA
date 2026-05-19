@@ -10,8 +10,8 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 | Comando / verifica | Esito | Nota |
 | --- | --- | --- |
-| `python -m py_compile pct\cli.py pct\legal_update_diagnostics.py` | OK | Sintassi confermata dopo supporto `--missing` multiplo e output CLI UTF-8. |
-| `python -m pytest tests/test_legal_update_safe_diagnostics.py -q --tb=short` | OK | 7/7 passati: canary/backfill JSON, limiti obbligatori e combinazione `references,questions`. |
+| `python -m py_compile pct\cli.py pct\legal_update_diagnostics.py tests\test_legal_update_safe_diagnostics.py` | OK | Sintassi confermata dopo supporto `--missing` multiplo, output CLI UTF-8 e report backfill compatti. |
+| `python -m ruff check pct\legal_update_diagnostics.py tests\test_legal_update_safe_diagnostics.py`; `python -m pytest tests/test_legal_update_safe_diagnostics.py -q --tb=short` | OK | Ruff verde e 8/8 passati: canary/backfill JSON, limiti obbligatori, combinazione `references,questions` e nessun payload/PDF grezzo nei report. |
 | `python -m pct.cli legal-updates-backfill-diagnostics --missing attachments --limit 50 --max-seconds 120 --no-publish --json` | OK | Report salvato in `artifacts/legal-updates/phase7-backfill-2026-05-19/attachments.json`; 0 selezionati dopo il primo tentativo rientrato, nessuna pubblicazione. |
 | `python -m pct.cli legal-updates-backfill-diagnostics --missing ocr --limit 30 --max-seconds 120 --no-publish --json` | OK | Report `ocr.json`; 0 PDF con OCR/testo mancante nel perimetro. |
 | `python -m pct.cli legal-updates-backfill-diagnostics --missing references --limit 50 --max-seconds 120 --no-publish --json` | OK | Report `references.json`; 50 selezionati, 50 processati, 14 aggiornati, 20 riferimenti aggiunti, 0 falliti. |
@@ -22,7 +22,7 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `python -m pytest tests/test_lex_source_corpus_generator.py tests/test_lex_operational_knowledge.py tests/test_react_legal_intelligence_search.py -q --tb=short` | OK | 75/75 passati: corpus Lex, ranking allegati, conoscenza operativa e Ricerca Legale. |
 | `python tools/sync_packaging_files.py --check`; `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q --tb=short` | OK | Packaging sincronizzato e 9/9 passati dopo bump `2.245.48`. |
 | `python scripts/react-migration/generate_api_contracts.py`; `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py docs/openapi.yaml`; `python scripts/verify_openapi_provider.py`; `python -m pytest -q tests/test_openapi_contracts_phase6.py --tb=short` | OK | OpenAPI riallineato a `2.245.48`; provider verification OK e contratti fase 6 5/5. |
-| `python tools/check_repo_governance.py`; `python -m pytest tests/test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | Governance OK, UTF-8 4/4 e whitespace senza errori; `git diff --check` segnala solo warning CRLF su dati runtime preesistenti e `docs/openapi.yaml` rigenerato. |
+| `python tools/check_repo_governance.py`; `python -m pytest tests/test_utf8_integrity.py -q --tb=short`; `python -m pct.cli utf8-integrity --check-only --root CHANGELOG.md --root artifacts\legal-updates\phase7-backfill-2026-05-19 --root artifacts\react-migration\pytest-confirmed-ok.md --root artifacts\react-migration\pytest-open-issues.md --json`; `git diff --check` | OK | Governance OK, UTF-8 4/4, scan mirato 10 file senza artefatti e whitespace senza errori; `git diff --check` segnala solo warning CRLF su dati runtime preesistenti e JSON di report rigenerati. |
 
 ## Update Intelligence Fase 6 normativa e archivi base 2.245.47 - 2026-05-19
 

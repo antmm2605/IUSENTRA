@@ -8,6 +8,7 @@ from click.testing import CliRunner
 
 from pct.cli import cli
 from pct.legal_update_diagnostics import (
+    _with_backfill_summary,
     run_legal_updates_backfill_diagnostics,
     run_legal_updates_canary,
 )
@@ -409,6 +410,40 @@ def test_backfill_diagnostics_supporta_missing_multipli_senza_pubblicare(tmp_pat
     assert report["summary"]["references_added"] > 0
     assert report["summary"]["questions_added"] > 0
     assert report["autopublished"]["count"] == 0
+
+
+def test_backfill_diagnostics_compatta_dashboard_senza_payload_grezzi():
+    report = _with_backfill_summary(
+        {
+            "checked": 0,
+            "updated": 0,
+            "dashboard": {
+                "headline": {"pending": 2},
+                "quality": {"ready": 1},
+                "review_queue": [
+                    {
+                        "proposal_payload_json": {
+                            "analysis": {
+                                "summary_long": "testo lungo con PDF grezzo da non esportare",
+                            }
+                        }
+                    }
+                ],
+                "sources": [{"code": "cassazione_ultime_sent_ord_questioni"}],
+                "news": [],
+                "audit": [],
+            },
+            "items": [],
+        },
+        "attachments",
+    )
+
+    serialized = json.dumps(report, ensure_ascii=False)
+
+    assert "dashboard" not in report
+    assert report["dashboard_summary"]["review_queue_count"] == 1
+    assert "proposal_payload_json" not in serialized
+    assert "PDF grezzo" not in serialized
 
 
 def test_cli_canary_e_backfill_supportano_json_e_limiti(monkeypatch):

@@ -370,3 +370,9 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 | INPS messaggi | `legal-updates-canary --source inps_messaggi --limit 3 --max-seconds 90 --no-publish` | Risolto | Il feed RSS pubblico `messaggi` restituisce contenuti incoerenti e il feed `atti` contiene gare. La fonte usa ora l'API elenco della pagina ufficiale, filtra `tipo=Messaggio` e segue il dettaglio. | Per modifiche future testare `tests/test_legal_update_source_parsers.py::test_parser_inps_messaggi_scarta_voci_non_messaggio_dal_feed_atti` e rilanciare solo la fonte. |
 | AGCOM, ANAC, Garante | Canary fonte-specifici | Risolto con osservazioni per PDF | I primi risultati prendevano navigazione, servizi, social o trasparenza. Il filtro fonte-specifico ora privilegia delibere/provvedimenti/pareri/docweb ufficiali. | ANAC e Garante restano gialle solo per copertura PDF non costante; non sono blocchi al canary no-publish. |
 | PST e OpenGA | Canary no-publish | In osservazione intenzionale | Le fonti sono coerenti come RAG-only o fonte tecnica/open data e non devono intasare staging/news. | Non candidarle al primo pilot di pubblicazione; usarle per RAG/diagnostica o per pilot documentale separato. |
+
+## Note Fase 7 backfill mirato 2.245.48 - 2026-05-19
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Report JSON backfill | `python tools/check_repo_governance.py` locale e GitHub `Governance repo` | Risolto | Il primo push della fase 7 ha fatto emergere payload lunghi con porzioni PDF grezze nello snapshot dashboard dei JSON `attachments`, `ocr` e Cassazione combinato. Gli aggregatori a valle erano rossi solo per cascata dal gate governance. | La diagnostica backfill ora esporta `dashboard_summary` con conteggi e qualità, senza payload applicativi o stream PDF. Rigenerati solo gli artefatti colpiti e rilanciati governance, UTF-8 e diff check. |

@@ -385,6 +385,26 @@ def _with_backfill_summary(report: dict[str, Any], missing_kind: str) -> dict[st
     report["updated"] = summary["updated"]
     report["failed"] = summary["failed"]
     report["unchanged"] = summary["unchanged"]
+    return _compact_backfill_report(report)
+
+
+def _compact_backfill_report(report: dict[str, Any]) -> dict[str, Any]:
+    """Mantiene il report JSON leggibile evitando snapshot con payload/PDF grezzi."""
+
+    dashboard = report.pop("dashboard", None)
+    if not isinstance(dashboard, dict):
+        return report
+    compact: dict[str, Any] = {}
+    for key in ("headline", "quality"):
+        value = dashboard.get(key)
+        if isinstance(value, dict):
+            compact[key] = value
+    for key in ("sources", "review_queue", "news", "normative", "jurisprudence", "prassi", "audit"):
+        value = dashboard.get(key)
+        if isinstance(value, list):
+            compact[f"{key}_count"] = len(value)
+    if compact:
+        report["dashboard_summary"] = compact
     return report
 
 

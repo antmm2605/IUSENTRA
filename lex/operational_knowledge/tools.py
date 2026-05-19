@@ -344,6 +344,33 @@ class OperationalKnowledgeTools:
     def get_parcelle_by_fascicolo(self, fascicolo_id: str, context: OperationalQueryContext) -> OperationalToolResult:
         return self._list_by_method("fatturazione", context, "get_fatturazione", "per_fascicolo", fascicolo_id, "parcella")
 
+    def get_pagamenti_status(
+        self,
+        context: OperationalQueryContext,
+        *,
+        cliente_id: str = "",
+        parcella_id: str = "",
+        limit: int = 20,
+    ) -> OperationalToolResult:
+        decision = self._decision("pagamenti", context)
+        if not decision.allowed:
+            return self._blocked("pagamenti", decision)
+        manager = self._safe_manager("pagamenti", lambda: self._manager("pagamenti", "get_pagamenti"))
+        if manager is None:
+            return self._unavailable("pagamenti", "Repository pagamenti non disponibile.")
+        try:
+            if cliente_id and hasattr(manager, "link_per_cliente"):
+                rows = list(manager.link_per_cliente(cliente_id))
+            elif parcella_id and hasattr(manager, "link_per_parcella"):
+                rows = list(manager.link_per_parcella(parcella_id))
+            elif hasattr(manager, "tutti_link"):
+                rows = list(manager.tutti_link())
+            else:
+                rows = []
+        except Exception as exc:
+            return self._unavailable("pagamenti", f"Pagamenti non interrogabili: {exc}")
+        return self._rows_result("pagamenti", context, rows[: max(1, int(limit or 20))], serialize_generic, "pagamento", decision)
+
     def get_attivita_by_cliente(self, cliente_id: str, context: OperationalQueryContext) -> OperationalToolResult:
         return self._list_by_method("timesheet", context, "get_timesheet", "per_cliente", cliente_id, "attivita")
 
@@ -886,6 +913,7 @@ class OperationalKnowledgeTools:
                 ),
                 confidence=0.82 if data else 0.35,
                 action_url=clean_spaces(row.get("action_url")),
+                record=_card_record(row),
             )
             for row in data[:20]
         ]
@@ -940,6 +968,7 @@ class OperationalKnowledgeTools:
         title: str = "",
         confidence: float = 0.0,
         action_url: str = "",
+        record: dict[str, Any] | None = None,
     ) -> OperationalSourceReference:
         source = self.registry.get(source_id)
         permission = ""
@@ -955,7 +984,7 @@ class OperationalKnowledgeTools:
             confidence=confidence,
             internal=bool(source.internal if source else True),
             permission_applied=permission or "ai.usa",
-            metadata={"tenant_id": context.tenant_id, "action_url": clean_spaces(action_url)},
+            metadata={"tenant_id": context.tenant_id, "action_url": clean_spaces(action_url), "record": _card_record(record or {})},
         )
 
     def _document_ai_rows(self, fascicolo_id: str, context: OperationalQueryContext) -> list[dict[str, Any]]:
@@ -1039,7 +1068,49 @@ def _action_url(source_id: str, object_type: str, row: dict[str, Any]) -> str:
         return f"/preventivi/p/{object_id}"
     if source_id == "conferimenti":
         return f"/preventivi/conferimento/{object_id}"
+    if source_id == "pagamenti":
+        return "/incassi-pagamenti"
     return ""
+
+
+def _card_record(row: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(row, dict):
+        return {}
+    allowed = (
+        "id",
+        "numero",
+        "number",
+        "nome",
+        "name",
+        "nome_completo",
+        "titolo",
+        "title",
+        "oggetto",
+        "mittente",
+        "destinatari",
+        "data",
+        "data_scadenza",
+        "creato_il",
+        "scade_il",
+        "pagato_il",
+        "stato",
+        "stato_pct",
+        "cartella",
+        "origine",
+        "allegati_count",
+        "allegati",
+        "id_cliente",
+        "id_fascicolo",
+        "id_parcella",
+        "importo",
+        "valuta",
+        "descrizione",
+        "action_url",
+    )
+    payload = {key: row.get(key) for key in allowed if key in row and row.get(key) not in ("", None, [], {})}
+    if "allegati" in payload and isinstance(payload["allegati"], list):
+        payload["allegati"] = [dict(item) for item in payload["allegati"][:12] if isinstance(item, dict)]
+    return payload
 
 
 def _email_attachment_objects(source_id: str, rows: list[dict[str, Any]]) -> list[OperationalObjectReference]:

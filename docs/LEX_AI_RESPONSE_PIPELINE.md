@@ -7,6 +7,16 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.245.61 - 19 maggio 2026
+
+Lex ha ora un contratto unico di chat operativa: `LexUnifiedChat`. La chat resta il punto di ingresso riutilizzabile da pagina, drawer, modale o assistente globale, mentre il motore sotto è `Lex Studio Reasoner`. Ogni risposta operativa porta `active_context`, `detected_intent`, `lex_structured_context`, `message_blocks`, `lex_actions` e `source_verification`.
+
+Il contesto non viene riversato come testo grezzo nel prompt. `LexContextProvider` normalizza contesto globale, fascicolo, PEC/email e documento; `IntentRouter` distingue consultazione PEC/email, documento, timeline, scadenze, pagamenti e bozze; `StructuredContextBuilder` produce schede cliente/fascicolo, comunicazioni, documenti, scadenze, fatture/pagamenti e timeline; `LexSourceVerifier` impedisce affermazioni senza fonte, segnala permessi mancanti, ambiguità cliente e fonti assenti.
+
+Il widget centrale `pct-lex-assistant.js` usa `LexMessageRenderer` per mostrare card PEC/email, allegati, fascicoli, clienti, documenti, scadenze, pagamenti, timeline, fonti interne e azioni apribili. La richiesta "ultima PEC ricevuta" resta consultazione: non genera bozze; la bozza compare solo come azione successiva quando esiste una comunicazione citata.
+
+La memoria dei check resta per fasi: test mirati su contesto globale, contesto fascicolo, contesto PEC, permessi, cliente ambiguo, fonte mancante, timeline, pagamenti e richiesta di bozza esplicita. Nessun aggregatore legacy è stato reintrodotto.
+
 ## Aggiornamento operativo 2.245.60 - 19 maggio 2026
 
 Terza fase della tranche `Lex Studio Reasoner`: il bridge HTTP bounded espone al widget Lex il report governato `studio_reasoner`, la `entity_map`, la `fascicolo_timeline`, `rag_governato`, `reasoner_mode` e i collegamenti `operational_links`. La chat può quindi aprire fascicolo, documento in editor professionale, PEC/email e allegati usando route applicative già autorizzate.

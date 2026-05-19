@@ -13,6 +13,7 @@ from .query_router import OFFICIAL_SOURCE_LOOKUP_TOKENS
 from .serializers import clean_spaces
 from .service import OperationalKnowledgeService
 from .settings import OperationalKnowledgeSettings
+from .unified_chat import LexContextProvider, build_lex_unified_chat
 
 _PUBLIC_LEGAL_FOCUS = {
     "ricerca_legale",
@@ -135,7 +136,7 @@ def build_operational_http_payload(
     if not _has_operational_permission_context(user):
         return None
 
-    metadata = dict(data or {})
+    metadata = LexContextProvider.enrich_metadata(dict(data or {}), studio_context)
     metadata.update(
         {
             "focus_topic": clean_spaces(studio_context.get("focus_topic")),
@@ -158,6 +159,8 @@ def build_operational_http_payload(
     )
     if answer is None or not answer.handled:
         return None
+    answer.metadata = dict(answer.metadata or {})
+    answer.metadata["active_context"] = dict(metadata.get("active_context") or {})
     if _should_fall_back_after_operational_answer(answer):
         return None
     return operational_answer_to_http_payload(
@@ -261,6 +264,14 @@ def operational_answer_to_http_payload(
     entity_map = dict(studio_reasoner.get("entity_map") or {})
     fascicolo_timeline = list(studio_reasoner.get("fascicolo_timeline") or [])
     operational_links = _operational_links(answer, sources)
+    lex_unified_chat = build_lex_unified_chat(
+        answer=answer,
+        current_user_message=current_user_message,
+        resolved_effective_question=resolved_effective_question,
+        studio_context=studio_context,
+        sources=sources,
+        operational_links=operational_links,
+    )
     payload = direct_answer_payload(
         current_user_message,
         answer.answer,
@@ -298,6 +309,15 @@ def operational_answer_to_http_payload(
             "coverage_gaps": list(answer.coverage_gaps or []),
             "operational_objects": [obj.to_dict() for obj in answer.objects],
             "operational_links": operational_links,
+            "lex_unified_chat": lex_unified_chat,
+            "active_context": lex_unified_chat.get("active_context") or {},
+            "detected_intent": lex_unified_chat.get("detected_intent"),
+            "lex_structured_context": lex_unified_chat.get("structured_context") or {},
+            "structured_context": lex_unified_chat.get("structured_context") or {},
+            "message_blocks": lex_unified_chat.get("renderer_blocks") or [],
+            "lex_actions": lex_unified_chat.get("actions") or [],
+            "renderer": "LexMessageRenderer",
+            "chat_component": "LexUnifiedChat",
             "studio_reasoner": studio_reasoner,
             "reasoner_mode": clean_spaces((answer.metadata or {}).get("reasoner_mode")),
             "rag_governato": bool((answer.metadata or {}).get("rag_governato")),
@@ -335,6 +355,7 @@ def _source_row(source) -> dict[str, Any]:
         "object_type": source.object_type,
         "object_id": source.object_id,
         "action_url": clean_spaces((source.metadata or {}).get("action_url")),
+        "record": dict((source.metadata or {}).get("record") or {}),
         "internal": source.internal,
         "retrieved_at": source.retrieved_at,
         "permission_applied": source.permission_applied,

@@ -2,6 +2,14 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.245.61 - 2026-05-19
+
+La superficie utente di Lex viene governata come chat unica professionale: `LexUnifiedChat` è il contratto centrale riutilizzabile da ogni sezione, mentre `Lex Studio Reasoner` resta il motore operativo. Il payload HTTP espone contesto attivo, intent, contesto strutturato, verifica fonti, blocchi renderizzabili e azioni operative senza duplicare pannelli per PEC, fascicoli, documenti o pagamenti.
+
+La consultazione dei dati studio passa da `LexContextProvider`, `IntentRouter`, `StructuredContextBuilder`, `LexSourceVerifier` e `LexActions`. Le fonti interne restano tenant-aware e permission-aware; se una fonte manca, è ambigua o l'utente non ha permesso, Lex non afferma dati non verificati e mostra warning/azioni coerenti.
+
+Gate 2.245.61: test su contesto globale, fascicolo, PEC selezionata, "ultima PEC ricevuta" senza bozza, richiesta esplicita di bozza, permessi mancanti, cliente ambiguo, fonte assente, timeline fascicolo e fonti contabili. Il controllo su "pagamenti" non viene più confuso con il comando dispositivo "paga"; il blocco azioni usa parola intera.
+
 ## Aggiornamento operativo 2.245.60 - 2026-05-19
 
 Fase 3 `Lex Studio Reasoner`: il payload operativo restituito alla chat Lex porta in primo piano `studio_reasoner`, `entity_map`, `fascicolo_timeline` e `operational_links`. I link sono deduplicati e derivano da oggetti/sorgenti interne autorizzate: fascicoli, documenti in editor, comunicazioni PEC/email e allegati.

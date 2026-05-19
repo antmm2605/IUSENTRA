@@ -175,7 +175,7 @@ class OperationalQueryRouter:
 
         if not text:
             return None
-        if any(token in text for token in ACTION_BLOCK_TOKENS):
+        if _contains_action_block_token(text):
             return OperationalRoute(
                 "blocked_legal_action",
                 "execute_legal_action",
@@ -212,11 +212,32 @@ class OperationalQueryRouter:
                     "email_ordinaria",
                     "preventivi",
                     "conferimenti",
+                    "pagamenti",
                 ),
                 entity_query,
             )
         if "quali fonti" in text or "fonti hai usato" in text or text in {"fonti", "mostra fonti"}:
             return OperationalRoute("sources_overview", "sources_overview", ("clienti", "fascicoli", "fonti_ufficiali"), entity_query)
+
+        if any(token in text for token in ("timeline", "cronologia", "linea del tempo")) and (
+            "fascicol" in text or "pratica" in text or focus_topic == "fascicoli"
+        ):
+            return OperationalRoute(
+                "build_case_timeline",
+                "build_case_timeline",
+                (
+                    "fascicoli",
+                    "documenti_fascicolo",
+                    "scadenziario",
+                    "agenda",
+                    "email_pec",
+                    "email_ordinaria",
+                    "messaggi",
+                    "fatturazione",
+                    "pagamenti",
+                ),
+                entity_query,
+            )
 
         if any(token in text for token in ("messagg", "pec", "email", "posta ordinaria")):
             sources = ["clienti", "fascicoli", "messaggi"]
@@ -235,13 +256,13 @@ class OperationalQueryRouter:
                 return OperationalRoute(
                     "client_economic_summary",
                     "client_economic_summary",
-                    ("clienti", "preventivi", "conferimenti", "fatturazione", "timesheet"),
+                    ("clienti", "preventivi", "conferimenti", "fatturazione", "pagamenti", "timesheet"),
                     entity_query,
                 )
             return OperationalRoute(
                 "client_situation",
                 "client_situation",
-                ("clienti", "fascicoli", "scadenziario", "agenda", "preventivi", "conferimenti", "fatturazione"),
+                ("clienti", "fascicoli", "scadenziario", "agenda", "preventivi", "conferimenti", "fatturazione", "pagamenti"),
                 entity_query,
             )
 
@@ -272,7 +293,7 @@ class OperationalQueryRouter:
             return OperationalRoute("conferimento_summary", "conferimento_summary", ("conferimenti", "preventivi", "fascicoli"), entity_query)
 
         if any(token in text for token in ("fattur", "parcell", "incass", "pagament", "quadro economico")):
-            return OperationalRoute("billing_summary", "billing_summary", ("fatturazione", "preventivi", "conferimenti", "timesheet"), entity_query)
+            return OperationalRoute("billing_summary", "billing_summary", ("fatturazione", "preventivi", "conferimenti", "pagamenti", "timesheet"), entity_query)
 
         if _is_official_source_lookup_text(text):
             return OperationalRoute("official_sources_lookup", "official_sources_lookup", ("fonti_ufficiali", "legal_intelligence", "update_intelligence"), entity_query)
@@ -301,7 +322,7 @@ class OperationalQueryRouter:
             return OperationalRoute(
                 "fascicolo_summary",
                 "fascicolo_summary",
-                ("fascicoli", "documenti_fascicolo", "scadenziario", "agenda", "preventivi", "conferimenti", "fatturazione", "timesheet"),
+                ("fascicoli", "documenti_fascicolo", "scadenziario", "agenda", "preventivi", "conferimenti", "fatturazione", "pagamenti", "timesheet"),
                 entity_query,
             )
 
@@ -315,3 +336,17 @@ class OperationalQueryRouter:
             if token not in ENTITY_STOPWORDS and len(token) > 1
         ]
         return clean_spaces(" ".join(tokens))
+
+
+def _contains_action_block_token(text: str) -> bool:
+    for token in ACTION_BLOCK_TOKENS:
+        clean = clean_spaces(token).lower()
+        if not clean:
+            continue
+        if " " in clean:
+            if clean in text:
+                return True
+            continue
+        if re.search(rf"(^|[^\w]){re.escape(clean)}([^\w]|$)", text, flags=re.UNICODE):
+            return True
+    return False

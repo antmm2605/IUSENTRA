@@ -34,6 +34,7 @@
     runtimeStatusPromise: null,
     contextPrimed: false,
     pageContext: null,
+    activeContext: null,
     suppressFabClick: false,
   };
 
@@ -636,6 +637,234 @@
           var label = String(action.label || key || '').trim();
           var prompt = ACTION_PROMPTS[key] || label;
           return '<button type="button" class="pct-ai-action-pill" data-lex-action="' + escapeHtml(prompt) + '">' + escapeHtml(label) + '</button>';
+        }).join('') +
+      '</div>'
+    );
+  }
+
+  function unifiedChatPayload(payload) {
+    var unified = payload && payload.lex_unified_chat && typeof payload.lex_unified_chat === 'object'
+      ? payload.lex_unified_chat
+      : null;
+    if (unified && Array.isArray(unified.renderer_blocks)) {
+      return unified;
+    }
+    if (payload && Array.isArray(payload.message_blocks) && payload.message_blocks.length) {
+      return {
+        component: payload.chat_component || 'LexUnifiedChat',
+        engine: 'Lex Studio Reasoner',
+        renderer_blocks: payload.message_blocks,
+        actions: Array.isArray(payload.lex_actions) ? payload.lex_actions : [],
+      };
+    }
+    return null;
+  }
+
+  function blockIcon(type) {
+    var icons = {
+      warning: 'exclamation-triangle',
+      source_card: 'journal-text',
+      case_card: 'folder2-open',
+      client_card: 'person-vcard',
+      pec_card: 'envelope-check',
+      email_card: 'envelope',
+      document_card: 'file-earmark-text',
+      attachment_card: 'paperclip',
+      deadline_card: 'calendar-check',
+      invoice_card: 'receipt',
+      payment_card: 'credit-card',
+      timeline: 'calendar-week',
+      actions: 'lightning-charge',
+    };
+    return icons[type] || 'info-circle';
+  }
+
+  function formatBlockValue(value) {
+    if (Array.isArray(value)) {
+      return value.map(formatBlockValue).filter(Boolean).join(', ');
+    }
+    if (value && typeof value === 'object') {
+      return Object.keys(value).map(function (key) {
+        return String(value[key] || '').trim();
+      }).filter(Boolean).join(', ');
+    }
+    return String(value || '').trim();
+  }
+
+  function renderBlockFields(fields) {
+    var items = Array.isArray(fields) ? fields.filter(Boolean) : [];
+    if (!items.length) {
+      return '';
+    }
+    return (
+      '<dl class="pct-ai-card__fields">' +
+        items.map(function (field) {
+          var label = String(field && field.label || '').trim();
+          var value = formatBlockValue(field && field.value);
+          if (!label || !value) {
+            return '';
+          }
+          return (
+            '<div class="pct-ai-card__field">' +
+              '<dt>' + escapeHtml(label) + '</dt>' +
+              '<dd>' + escapeHtml(value) + '</dd>' +
+            '</div>'
+          );
+        }).join('') +
+      '</dl>'
+    );
+  }
+
+  function renderUnifiedAction(action) {
+    var label = String(action && action.label || action && action.key || '').trim();
+    if (!label) {
+      return '';
+    }
+    var icon = String(action && action.icon || 'arrow-up-right').trim();
+    var url = String(action && action.url || '').trim();
+    var prompt = String(action && action.prompt || '').trim();
+    var inner = '<i class="bi bi-' + escapeHtml(icon) + '"></i><span>' + escapeHtml(label) + '</span>';
+    if (url) {
+      return '<a class="pct-ai-card-action" href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">' + inner + '</a>';
+    }
+    return '<button type="button" class="pct-ai-card-action" data-lex-action="' + escapeHtml(prompt || label) + '">' + inner + '</button>';
+  }
+
+  function renderCardBlock(block) {
+    var type = String(block && block.type || 'source_card').trim();
+    var title = String(block && block.title || 'Scheda').trim();
+    var subtitle = String(block && block.subtitle || '').trim();
+    var url = String(block && block.url || '').trim();
+    var actions = Array.isArray(block && block.actions) ? block.actions : [];
+    return (
+      '<article class="pct-ai-card pct-ai-card--' + escapeHtml(type.replace(/_/g, '-')) + '">' +
+        '<div class="pct-ai-card__head">' +
+          '<span class="pct-ai-card__icon"><i class="bi bi-' + escapeHtml(blockIcon(type)) + '"></i></span>' +
+          '<div class="pct-ai-card__copy">' +
+            '<h4>' + escapeHtml(title) + '</h4>' +
+            (subtitle ? '<p>' + escapeHtml(subtitle) + '</p>' : '') +
+          '</div>' +
+        '</div>' +
+        renderBlockFields(block && block.fields) +
+        ((url || actions.length)
+          ? '<div class="pct-ai-card__actions">' +
+              (url ? renderUnifiedAction({ label: 'Apri', url: url, icon: 'box-arrow-up-right' }) : '') +
+              actions.map(renderUnifiedAction).join('') +
+            '</div>'
+          : '') +
+      '</article>'
+    );
+  }
+
+  function renderSourceBlock(block) {
+    var items = Array.isArray(block && block.items) ? block.items.filter(Boolean) : [];
+    if (!items.length) {
+      return '';
+    }
+    return (
+      '<section class="pct-ai-unified-section pct-ai-unified-section--sources">' +
+        '<h4><i class="bi bi-journal-text"></i>' + escapeHtml(block.title || 'Fonti interne') + '</h4>' +
+        '<div class="pct-ai-source-grid">' +
+          items.map(function (item) {
+            var title = String(item && (item.title || item.id || item.source_id) || 'Fonte interna').trim();
+            var source = String(item && (item.source_id || item.source_type) || '').trim();
+            var url = String(item && item.url || '').trim();
+            return (
+              '<article class="pct-ai-source-card">' +
+                '<div class="pct-ai-source-card__title">' + escapeHtml(title) + '</div>' +
+                (source ? '<div class="pct-ai-source-card__meta">' + escapeHtml(source) + '</div>' : '') +
+                (url ? '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">Apri fonte</a>' : '') +
+              '</article>'
+            );
+          }).join('') +
+        '</div>' +
+      '</section>'
+    );
+  }
+
+  function renderTimelineBlock(block) {
+    var items = Array.isArray(block && block.items) ? block.items.filter(Boolean) : [];
+    if (!items.length) {
+      return '';
+    }
+    return (
+      '<section class="pct-ai-unified-section pct-ai-unified-section--timeline">' +
+        '<h4><i class="bi bi-calendar-week"></i>' + escapeHtml(block.title || 'Timeline') + '</h4>' +
+        '<ol class="pct-ai-timeline">' +
+          items.map(function (item) {
+            var date = String(item && (item.date || item.data || item.when) || '').trim();
+            var title = String(item && (item.title || item.label || item.source || 'Evento') || '').trim();
+            var source = String(item && (item.source || item.source_id || '') || '').trim();
+            var url = String(item && (item.url || item.action_url || '') || '').trim();
+            return (
+              '<li>' +
+                '<time>' + escapeHtml(date || 'Data non indicata') + '</time>' +
+                '<span>' + escapeHtml(title) + '</span>' +
+                (source ? '<small>' + escapeHtml(source) + '</small>' : '') +
+                (url ? '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">Apri</a>' : '') +
+              '</li>'
+            );
+          }).join('') +
+        '</ol>' +
+      '</section>'
+    );
+  }
+
+  function renderWarningBlock(block) {
+    var items = Array.isArray(block && block.items) ? block.items.filter(Boolean) : [];
+    if (!items.length) {
+      return '';
+    }
+    return (
+      '<div class="pct-ai-callout pct-ai-callout--warning pct-ai-unified-warning">' +
+        '<div class="pct-ai-callout__title"><i class="bi bi-exclamation-triangle me-1"></i>' + escapeHtml(block.title || 'Controlli') + '</div>' +
+        '<ul class="pct-ai-callout__list">' +
+          items.map(function (item) { return '<li>' + escapeHtml(item) + '</li>'; }).join('') +
+        '</ul>' +
+      '</div>'
+    );
+  }
+
+  function renderActionsBlock(block) {
+    var actions = Array.isArray(block && block.items) ? block.items.filter(Boolean) : [];
+    if (!actions.length) {
+      return '';
+    }
+    return (
+      '<section class="pct-ai-unified-section pct-ai-unified-section--actions">' +
+        '<h4><i class="bi bi-lightning-charge"></i>' + escapeHtml(block.title || 'Azioni operative') + '</h4>' +
+        '<div class="pct-ai-card-actions-grid">' + actions.map(renderUnifiedAction).join('') + '</div>' +
+      '</section>'
+    );
+  }
+
+  function renderLexMessageRenderer(payload) {
+    var unified = unifiedChatPayload(payload);
+    var blocks = unified && Array.isArray(unified.renderer_blocks) ? unified.renderer_blocks : [];
+    if (!blocks.length) {
+      return '';
+    }
+    var engine = String(unified.engine || 'Lex Studio Reasoner').trim();
+    return (
+      '<div class="pct-ai-unified-chat" data-lex-component="LexUnifiedChat">' +
+        '<div class="pct-ai-unified-chat__meta">' +
+          '<i class="bi bi-cpu"></i><span>' + escapeHtml(engine) + '</span>' +
+        '</div>' +
+        blocks.map(function (block) {
+          var type = String(block && block.type || '').trim();
+          if (type === 'warning') {
+            return renderWarningBlock(block);
+          }
+          if (type === 'source_card') {
+            return renderSourceBlock(block);
+          }
+          if (type === 'timeline') {
+            return renderTimelineBlock(block);
+          }
+          if (type === 'actions') {
+            return renderActionsBlock(block);
+          }
+          return renderCardBlock(block);
         }).join('') +
       '</div>'
     );
@@ -1570,6 +1799,16 @@
   function buildAnswerHtml(payload, options) {
     var answer = payload && payload.answer ? renderMarkdown(payload.answer) : '<p>Nessuna risposta disponibile.</p>';
     var includeExports = !(options && options.includeExports === false) && !(payload && payload.disableExports);
+    var unifiedRenderer = renderLexMessageRenderer(payload);
+    if (unifiedRenderer) {
+      return (
+        renderReferenceLabel(payload && payload.referenceLabel) +
+        answer +
+        renderConfidence(payload) +
+        unifiedRenderer +
+        (includeExports ? renderGeneratedDocumentActions(payload || {}) : '')
+      );
+    }
     return (
       renderReferenceLabel(payload && payload.referenceLabel) +
       answer +
@@ -1690,6 +1929,109 @@
     return null;
   }
 
+  function pickContextValue() {
+    for (var index = 0; index < arguments.length; index += 1) {
+      var value = arguments[index];
+      if (value === undefined || value === null) {
+        continue;
+      }
+      if (Array.isArray(value)) {
+        if (value.length) {
+          return value;
+        }
+        continue;
+      }
+      var clean = String(value || '').trim();
+      if (clean) {
+        return clean;
+      }
+    }
+    return '';
+  }
+
+  function activeContextTypeFor(contextKey, pagePath) {
+    var haystack = (String(contextKey || '') + ' ' + String(pagePath || '')).toLowerCase();
+    if (haystack.indexOf('/email/messaggio/') >= 0 || haystack.indexOf('email-pec') >= 0 || haystack.indexOf('pec') >= 0) {
+      return 'pec';
+    }
+    if (haystack.indexOf('/email-ordinaria/messaggio/') >= 0 || haystack.indexOf('ordinaria') >= 0) {
+      return 'email';
+    }
+    if (haystack.indexOf('document') >= 0 || haystack.indexOf('/documenti/') >= 0) {
+      return 'document';
+    }
+    if (haystack.indexOf('fascicol') >= 0 || haystack.indexOf('/fascicoli/') >= 0) {
+      return 'case';
+    }
+    if (haystack.indexOf('client') >= 0 || haystack.indexOf('/clienti/') >= 0) {
+      return 'client';
+    }
+    return 'global';
+  }
+
+  function activeContextFromPath(context, pagePath) {
+    var path = String(pagePath || '').trim();
+    if (!path) {
+      return context;
+    }
+    var match = path.match(/\/fascicoli\/([^/?#]+)/);
+    if (match && !context.case_id) {
+      context.case_id = decodeURIComponent(match[1]);
+      context.context_type = context.context_type || 'case';
+    }
+    match = path.match(/\/clienti\/([^/?#]+)/);
+    if (match && !context.client_id) {
+      context.client_id = decodeURIComponent(match[1]);
+      context.context_type = context.context_type || 'client';
+    }
+    match = path.match(/\/email\/messaggio\/([^/?#]+)/);
+    if (match && !context.pec_id) {
+      context.pec_id = decodeURIComponent(match[1]);
+      context.context_type = 'pec';
+    }
+    match = path.match(/\/documenti\/([^/?#]+)\/editor/);
+    if (match && !context.document_id) {
+      context.document_id = decodeURIComponent(match[1]);
+      context.context_type = context.context_type || 'document';
+    }
+    return context;
+  }
+
+  function normalizeLexActiveContext(config, contextKey, pagePath) {
+    config = config && typeof config === 'object' ? config : {};
+    var raw = config.activeContext && typeof config.activeContext === 'object'
+      ? config.activeContext
+      : (config.active_context && typeof config.active_context === 'object' ? config.active_context : {});
+    var permissionsScope = pickContextValue(raw.permissions_scope, raw.permissionsScope, config.permissions_scope, config.permissionsScope);
+    var context = {
+      context_type: pickContextValue(raw.context_type, raw.contextType, config.contextType, config.lexContextType) ||
+        activeContextTypeFor(contextKey, pagePath),
+      case_id: pickContextValue(raw.case_id, raw.caseId, config.caseId, config.lexCaseId, config.fascicoloId),
+      client_id: pickContextValue(raw.client_id, raw.clientId, config.clientId, config.lexClientId, config.clienteId),
+      pec_id: pickContextValue(raw.pec_id, raw.pecId, config.pecId, config.lexPecId, config.emailId),
+      document_id: pickContextValue(raw.document_id, raw.documentId, config.documentId, config.lexDocumentId),
+      linked_case_id: pickContextValue(raw.linked_case_id, raw.linkedCaseId, config.linkedCaseId, config.lexLinkedCaseId),
+      linked_client_id: pickContextValue(raw.linked_client_id, raw.linkedClientId, config.linkedClientId, config.lexLinkedClientId),
+      user_id: pickContextValue(raw.user_id, raw.userId, config.userId, config.lexUserId),
+      permissions_scope: Array.isArray(permissionsScope)
+        ? permissionsScope
+        : String(permissionsScope || '').split(',').map(function (item) { return item.trim(); }).filter(Boolean),
+      page_context: String(contextKey || '').trim(),
+      page_path: String(pagePath || '').trim(),
+      label: pickContextValue(raw.label, raw.context_label, config.contextLabel, config.label),
+    };
+    activeContextFromPath(context, pagePath);
+    Object.keys(context).forEach(function (key) {
+      if (context[key] === '' || (Array.isArray(context[key]) && !context[key].length)) {
+        delete context[key];
+      }
+    });
+    if (!context.context_type) {
+      context.context_type = 'global';
+    }
+    return context;
+  }
+
   function applyLexPageContext(config, options) {
     config = config && typeof config === 'object' ? config : {};
     options = options || {};
@@ -1703,6 +2045,7 @@
       pagePath: pagePath,
       mode: String(config.mode || '').trim(),
     };
+    state.activeContext = normalizeLexActiveContext(config, state.pageContext.context, pagePath);
     if (widget && widget.dataset) {
       widget.dataset.lexContext = state.pageContext.context;
       widget.dataset.pagePath = state.pageContext.pagePath;
@@ -1730,6 +2073,14 @@
     };
   }
 
+  function currentActiveContextPayload() {
+    if (state.activeContext && typeof state.activeContext === 'object') {
+      return Object.assign({}, state.activeContext);
+    }
+    var pageContext = state.pageContext || {};
+    return normalizeLexActiveContext({}, pageContext.context || '', pageContext.pagePath || window.location.pathname || '');
+  }
+
   function saveConversationMemory() {
     try {
       if (!window.sessionStorage) {
@@ -1750,6 +2101,7 @@
           fascId: state.fascId || '',
           contextLabel: conversationContextLabel(),
           pageContext: state.pageContext || null,
+          activeContext: state.activeContext || null,
           history: state.history.slice(-HISTORY_LIMIT),
           attachments: state.attachments.slice(0, 4),
           savedAt: new Date().toISOString(),
@@ -1782,6 +2134,9 @@
       }
       if (parsed && parsed.pageContext && typeof parsed.pageContext === 'object') {
         state.pageContext = parsed.pageContext;
+      }
+      if (parsed && parsed.activeContext && typeof parsed.activeContext === 'object') {
+        state.activeContext = parsed.activeContext;
       }
       return Boolean(state.history.length || state.attachments.length);
     } catch (error) {
@@ -1997,6 +2352,7 @@
       context_label: pageContext.context_label,
       page_context: pageContext.page_context,
       page_path: pageContext.page_path,
+      active_context: currentActiveContextPayload(),
     };
   }
 
@@ -2047,6 +2403,7 @@
       context_label: payload.context_label,
       page_context: payload.page_context,
       page_path: payload.page_path,
+      active_context: payload.active_context,
       attachments: state.attachments.slice(),
       mode: mode,
       page_section: payload.page_context || mode,
@@ -3050,6 +3407,21 @@
     if (dataset.lexPagePath) {
       detail.pagePath = dataset.lexPagePath;
     }
+    [
+      ['lexContextType', 'contextType'],
+      ['lexCaseId', 'caseId'],
+      ['lexClientId', 'clientId'],
+      ['lexPecId', 'pecId'],
+      ['lexDocumentId', 'documentId'],
+      ['lexLinkedCaseId', 'linkedCaseId'],
+      ['lexLinkedClientId', 'linkedClientId'],
+      ['lexUserId', 'userId'],
+      ['lexPermissionsScope', 'permissionsScope'],
+    ].forEach(function (pair) {
+      if (dataset[pair[0]]) {
+        detail[pair[1]] = dataset[pair[0]];
+      }
+    });
     if (href && href !== '#lex') {
       try {
         var url = new URL(href, window.location.origin);
@@ -3386,6 +3758,9 @@
       formatReflectionDuration: formatReflectionDuration,
       buildThinkingBubbleHtml: buildThinkingBubbleHtml,
       buildChatRequestPayload: buildChatRequestPayload,
+      renderLexMessageRenderer: renderLexMessageRenderer,
+      normalizeLexActiveContext: normalizeLexActiveContext,
+      currentActiveContextPayload: currentActiveContextPayload,
       resolveConversationFocus: resolveConversationFocus,
       setFreeWebEnabled: setFreeWebEnabled,
       setAttachmentsForTest: function (attachments) {
@@ -3393,6 +3768,18 @@
       },
     };
   }
+
+  window.IusentraLexUnifiedChat = {
+    open: function (config) {
+      applyLexPageContext(config || readExternalLexContext() || {}, { open: true });
+    },
+    close: closeAssistant,
+    setContext: function (config) {
+      applyLexPageContext(config || {}, { open: false });
+    },
+    reset: clearHistory,
+    renderPayload: buildAnswerHtml,
+  };
 
   window.pctAI = {
     init: init,

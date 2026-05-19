@@ -123,6 +123,20 @@ class _FatturazioneManager:
         return [row for row in self.rows if getattr(row, "id_fascicolo", "") == fascicolo_id]
 
 
+class _PagamentiManager:
+    def __init__(self, rows):
+        self.rows = list(rows)
+
+    def tutti_link(self):
+        return list(self.rows)
+
+    def link_per_cliente(self, cliente_id: str):
+        return [row for row in self.rows if getattr(row, "id_cliente", "") == cliente_id]
+
+    def link_per_parcella(self, parcella_id: str):
+        return [row for row in self.rows if getattr(row, "id_parcella", "") == parcella_id]
+
+
 class _ScadenziarioManager:
     def __init__(self, rows):
         self.rows = list(rows)
@@ -297,6 +311,19 @@ def _base_repositories():
             conferimenti=[SimpleNamespace(id="conf-1", oggetto="Incarico opposizione", id_cliente="cli-1", id_pratica="fas-1", stato="ATTIVO")],
         ),
         "fatturazione": _FatturazioneManager([SimpleNamespace(id="par-1", numero="P-1", id_cliente="cli-1", id_fascicolo="fas-1", totale=500.0)]),
+        "pagamenti": _PagamentiManager([
+            SimpleNamespace(
+                id="pay-1",
+                id_parcella="par-1",
+                id_cliente="cli-1",
+                importo=500.0,
+                descrizione="Saldo parcella P-1",
+                stato="ATTESO",
+                creato_il="2026-05-18T10:00:00",
+                valuta="EUR",
+                tenant_id="tenant-a",
+            )
+        ]),
         "messaggi": _MessaggiManager([SimpleNamespace(id="msg-1", oggetto="Aggiornamento pratica", id_cliente="cli-1", id_fascicolo="fas-1", canale="PEC")]),
         "email_pec": _EmailManager([
             SimpleNamespace(
@@ -483,6 +510,16 @@ def test_preventivo_conferimento_and_billing_do_not_invent_amounts():
     assert "Preventivi: 1" in answer.answer
     assert "1200" not in answer.answer or "EUR" not in answer.answer
     assert any(source.source_id == "preventivi" for source in answer.sources)
+
+
+def test_payment_lookup_uses_real_accounting_source_only_when_available():
+    service, user = _service(repositories=_base_repositories())
+
+    answer = service.answer(question="Verifica pagamenti", user=user, studio=SimpleNamespace(slug="tenant-a"))
+
+    assert answer is not None
+    assert "Pagamenti: 1" in answer.answer
+    assert any(source.source_id == "pagamenti" for source in answer.sources)
 
 
 def test_tariffario_missing_parameters_returns_coverage_gap():
@@ -1395,6 +1432,438 @@ def test_http_bridge_routes_pec_lookup_to_operational_layer(monkeypatch):
     assert payload is not None
     assert payload["workflow"] == "operational_knowledge"
     assert payload["answer"] == "Ultima PEC trovata: Esito deposito."
+
+
+def test_lex_unified_chat_global_context_renders_latest_pec_cards(monkeypatch):
+    monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
+    from lex.operational_knowledge.integration import build_operational_http_payload
+    from lex.operational_knowledge.models import OperationalAnswer, OperationalRoute, OperationalSourceReference
+
+    class _FakeOperationalKnowledgeService:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def answer(self, **kwargs):
+            assert kwargs["metadata"]["active_context"]["context_type"] == "global"
+            return OperationalAnswer(
+                handled=True,
+                answer="Ho trovato l'ultima PEC ricevuta.",
+                route=OperationalRoute("communications_lookup", "communications_lookup", ("email_pec",), ""),
+                sources=[
+                    OperationalSourceReference(
+                        source_id="email_pec",
+                        source_name="Email PEC",
+                        source_type="email_pec",
+                        object_type="email",
+                        object_id="pec-1",
+                        title="Esito deposito",
+                        confidence=0.91,
+                        metadata={
+                            "action_url": "/email/messaggio/pec-1",
+                            "record": {
+                                "id": "pec-1",
+                                "oggetto": "Esito deposito",
+                                "mittente": "cancelleria@pec.test",
+                                "destinatari": ["studio@pec.test"],
+                                "data": "2026-05-19",
+                                "allegati_count": 1,
+                                "allegati": [{"nome": "ricevuta.eml", "view_url": "/email/messaggio/pec-1/allegato/0"}],
+                                "action_url": "/email/messaggio/pec-1",
+                            },
+                        },
+                    )
+                ],
+                confidence=0.91,
+                metadata={"operational_layer": True},
+            )
+
+    monkeypatch.setattr("lex.operational_knowledge.integration.OperationalKnowledgeService", _FakeOperationalKnowledgeService)
+
+    payload = build_operational_http_payload(
+        user=_User(_all_permissions()),
+        studio=SimpleNamespace(slug="tenant-a"),
+        data={"active_context": {"context_type": "global"}},
+        current_user_message="ultima PEC ricevuta",
+        resolved_effective_question="ultima PEC ricevuta",
+        studio_context={"focus_topic": "pec_firma", "request_profile": {"intent": "comunicazioni_lookup"}},
+    )
+
+    assert payload is not None
+    assert payload["chat_component"] == "LexUnifiedChat"
+    assert payload["detected_intent"] == "consult_pec"
+    assert payload["lex_unified_chat"]["engine"] == "Lex Studio Reasoner"
+    assert payload["structured_context"]["active_context"]["context_type"] == "global"
+    assert any(block["type"] == "pec_card" for block in payload["message_blocks"])
+    assert any(block["type"] == "attachment_card" for block in payload["message_blocks"])
+    action_labels = {action["label"] for action in payload["lex_actions"]}
+    assert {"Apri PEC", "Apri allegato", "Prepara bozza risposta"} <= action_labels
+    assert "BOZZA" not in payload["answer"]
+
+
+def test_lex_unified_chat_case_context_scopes_operational_retrieval(monkeypatch):
+    monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
+    from lex.operational_knowledge.integration import build_operational_http_payload
+    from lex.operational_knowledge.models import OperationalAnswer, OperationalRoute, OperationalSourceReference
+
+    class _FakeOperationalKnowledgeService:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def answer(self, **kwargs):
+            assert kwargs["metadata"]["fascicolo_id"] == "fas-1"
+            assert kwargs["metadata"]["active_context"]["case_id"] == "fas-1"
+            return OperationalAnswer(
+                handled=True,
+                answer="Ultima PEC collegata al fascicolo trovata.",
+                route=OperationalRoute("communications_lookup", "communications_lookup", ("fascicoli", "email_pec"), ""),
+                sources=[
+                    OperationalSourceReference(
+                        source_id="fascicoli",
+                        source_name="Fascicoli",
+                        source_type="fascicolo",
+                        object_type="fascicolo",
+                        object_id="fas-1",
+                        title="RG 10/2026",
+                        confidence=0.9,
+                        metadata={"action_url": "/fascicoli/fas-1", "record": {"id": "fas-1", "numero": "RG 10/2026", "action_url": "/fascicoli/fas-1"}},
+                    ),
+                    OperationalSourceReference(
+                        source_id="email_pec",
+                        source_name="Email PEC",
+                        source_type="email_pec",
+                        object_type="email",
+                        object_id="pec-1",
+                        title="Esito deposito",
+                        confidence=0.9,
+                        metadata={"action_url": "/email/messaggio/pec-1", "record": {"id": "pec-1", "oggetto": "Esito deposito", "data": "2026-05-19", "action_url": "/email/messaggio/pec-1"}},
+                    ),
+                ],
+                confidence=0.9,
+                metadata={"operational_layer": True},
+            )
+
+    monkeypatch.setattr("lex.operational_knowledge.integration.OperationalKnowledgeService", _FakeOperationalKnowledgeService)
+
+    payload = build_operational_http_payload(
+        user=_User(_all_permissions()),
+        studio=SimpleNamespace(slug="tenant-a"),
+        data={"active_context": {"context_type": "case", "case_id": "fas-1"}},
+        current_user_message="ultima PEC ricevuta",
+        resolved_effective_question="ultima PEC ricevuta",
+        studio_context={"focus_topic": "fascicoli", "request_profile": {"intent": "comunicazioni_lookup"}},
+    )
+
+    assert payload is not None
+    assert payload["active_context"]["context_type"] == "case"
+    assert payload["active_context"]["case_id"] == "fas-1"
+    assert any(block["type"] == "case_card" for block in payload["message_blocks"])
+    assert any(action["label"] == "Apri fascicolo" for action in payload["lex_actions"])
+
+
+def test_lex_unified_chat_pec_context_passes_selected_pec_id(monkeypatch):
+    monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
+    from lex.operational_knowledge.integration import build_operational_http_payload
+    from lex.operational_knowledge.models import OperationalAnswer, OperationalRoute, OperationalSourceReference
+
+    class _FakeOperationalKnowledgeService:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def answer(self, **kwargs):
+            assert kwargs["metadata"]["pec_id"] == "pec-1"
+            return OperationalAnswer(
+                handled=True,
+                answer="PEC selezionata trovata.",
+                route=OperationalRoute("communications_lookup", "communications_lookup", ("email_pec",), ""),
+                sources=[
+                    OperationalSourceReference(
+                        source_id="email_pec",
+                        source_name="Email PEC",
+                        source_type="email_pec",
+                        object_type="email",
+                        object_id="pec-1",
+                        title="Esito deposito",
+                        confidence=0.88,
+                        metadata={"action_url": "/email/messaggio/pec-1", "record": {"id": "pec-1", "oggetto": "Esito deposito", "data": "2026-05-19", "action_url": "/email/messaggio/pec-1"}},
+                    )
+                ],
+                confidence=0.88,
+                metadata={"operational_layer": True},
+            )
+
+    monkeypatch.setattr("lex.operational_knowledge.integration.OperationalKnowledgeService", _FakeOperationalKnowledgeService)
+
+    payload = build_operational_http_payload(
+        user=_User(_all_permissions()),
+        studio=SimpleNamespace(slug="tenant-a"),
+        data={"active_context": {"context_type": "pec", "pec_id": "pec-1", "linked_case_id": "fas-1"}},
+        current_user_message="leggi questa PEC",
+        resolved_effective_question="leggi questa PEC",
+        studio_context={"focus_topic": "pec_firma", "request_profile": {"intent": "comunicazioni_lookup"}},
+    )
+
+    assert payload is not None
+    assert payload["active_context"]["context_type"] == "pec"
+    assert payload["active_context"]["pec_id"] == "pec-1"
+    assert payload["active_context"]["linked_case_id"] == "fas-1"
+    assert any(block["type"] == "pec_card" for block in payload["message_blocks"])
+
+
+def test_lex_unified_chat_source_verifier_hides_sources_without_permission(monkeypatch):
+    monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
+    from lex.operational_knowledge.integration import build_operational_http_payload
+    from lex.operational_knowledge.models import OperationalAnswer, OperationalRoute
+
+    class _FakeOperationalKnowledgeService:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def answer(self, **kwargs):
+            return OperationalAnswer(
+                handled=True,
+                answer="Non ho trovato dati reali sufficienti nelle sorgenti operative autorizzate per rispondere.",
+                route=OperationalRoute("communications_lookup", "communications_lookup", ("email_pec",), ""),
+                sources=[],
+                confidence=0.2,
+                coverage_gaps=["Accesso a email_pec non consentito."],
+                blocked_reason="missing_permission",
+                metadata={"operational_layer": True},
+            )
+
+    monkeypatch.setattr("lex.operational_knowledge.integration.OperationalKnowledgeService", _FakeOperationalKnowledgeService)
+
+    payload = build_operational_http_payload(
+        user=_User({"ai.usa"}),
+        studio=SimpleNamespace(slug="tenant-a"),
+        data={"active_context": {"context_type": "global"}},
+        current_user_message="ultima PEC ricevuta",
+        resolved_effective_question="ultima PEC ricevuta",
+        studio_context={"focus_topic": "pec_firma", "request_profile": {"intent": "comunicazioni_lookup"}},
+    )
+
+    assert payload is not None
+    assert payload["lex_unified_chat"]["source_verification"]["allowed"] is False
+    assert payload["lex_actions"] == []
+    assert not any(block["type"] == "source_card" for block in payload["message_blocks"])
+    assert any(block["type"] == "warning" for block in payload["message_blocks"])
+
+
+def test_lex_unified_chat_ambiguous_client_returns_clarification_options(monkeypatch):
+    monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
+    from lex.operational_knowledge.integration import build_operational_http_payload
+    from lex.operational_knowledge.models import OperationalAnswer, OperationalRoute, OperationalSourceReference
+
+    class _FakeOperationalKnowledgeService:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def answer(self, **kwargs):
+            return OperationalAnswer(
+                handled=True,
+                answer="Ho trovato più clienti compatibili.",
+                route=OperationalRoute("client_situation", "client_situation", ("clienti",), "rossi"),
+                sources=[
+                    OperationalSourceReference("clienti", "Clienti", "cliente", "cliente", "cli-1", "Mario Rossi", 0.8),
+                    OperationalSourceReference("clienti", "Clienti", "cliente", "cliente", "cli-2", "Maria Rossi", 0.8),
+                ],
+                confidence=0.62,
+                coverage_gaps=["Più clienti compatibili."],
+                metadata={"operational_layer": True},
+            )
+
+    monkeypatch.setattr("lex.operational_knowledge.integration.OperationalKnowledgeService", _FakeOperationalKnowledgeService)
+
+    payload = build_operational_http_payload(
+        user=_User(_all_permissions()),
+        studio=SimpleNamespace(slug="tenant-a"),
+        data={"active_context": {"context_type": "global"}},
+        current_user_message="Dammi i dati del cliente Rossi",
+        resolved_effective_question="Dammi i dati del cliente Rossi",
+        studio_context={"focus_topic": "clienti", "request_profile": {"intent": "cliente_anagrafica"}},
+    )
+
+    assert payload is not None
+    verifier = payload["lex_unified_chat"]["source_verification"]
+    assert verifier["requires_clarification"] is True
+    assert verifier["ambiguous_entities"][0]["type"] == "client"
+    assert any(block["type"] == "warning" for block in payload["message_blocks"])
+
+
+def test_lex_unified_chat_missing_source_returns_clear_negative_result(monkeypatch):
+    monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
+    from lex.operational_knowledge.integration import build_operational_http_payload
+    from lex.operational_knowledge.models import OperationalAnswer, OperationalRoute
+
+    class _FakeOperationalKnowledgeService:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def answer(self, **kwargs):
+            return OperationalAnswer(
+                handled=True,
+                answer="Non ho trovato dati reali sufficienti nelle sorgenti operative autorizzate per rispondere.",
+                route=OperationalRoute("communications_lookup", "communications_lookup", ("email_pec",), ""),
+                sources=[],
+                confidence=0.25,
+                coverage_gaps=["Nessuna PEC reale disponibile nella casella autorizzata."],
+                metadata={"operational_layer": True},
+            )
+
+    monkeypatch.setattr("lex.operational_knowledge.integration.OperationalKnowledgeService", _FakeOperationalKnowledgeService)
+
+    payload = build_operational_http_payload(
+        user=_User(_all_permissions()),
+        studio=SimpleNamespace(slug="tenant-a"),
+        data={"active_context": {"context_type": "global"}},
+        current_user_message="ultima PEC ricevuta",
+        resolved_effective_question="ultima PEC ricevuta",
+        studio_context={"focus_topic": "pec_firma", "request_profile": {"intent": "comunicazioni_lookup"}},
+    )
+
+    assert payload is not None
+    missing = payload["lex_unified_chat"]["source_verification"]["missing_information"]
+    assert any("Nessuna PEC reale" in item for item in missing)
+    assert any("Nessuna fonte interna verificata" in item for item in missing)
+    assert any(block["type"] == "warning" for block in payload["message_blocks"])
+
+
+def test_lex_unified_chat_timeline_returns_dates_and_sources(monkeypatch):
+    monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
+    from lex.operational_knowledge.integration import build_operational_http_payload
+    from lex.operational_knowledge.models import OperationalAnswer, OperationalRoute, OperationalSourceReference
+
+    class _FakeOperationalKnowledgeService:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def answer(self, **kwargs):
+            return OperationalAnswer(
+                handled=True,
+                answer="Timeline fascicolo costruita.",
+                route=OperationalRoute("build_case_timeline", "build_case_timeline", ("fascicoli", "documenti_fascicolo"), ""),
+                sources=[
+                    OperationalSourceReference(
+                        "documenti_fascicolo",
+                        "Documenti fascicolo",
+                        "documento",
+                        "documento",
+                        "doc-1",
+                        "ricorso.pdf",
+                        0.9,
+                        metadata={"action_url": "/fascicoli/fas-1/documenti/doc-1/editor", "record": {"id": "doc-1", "titolo": "ricorso.pdf", "data": "2026-05-10", "action_url": "/fascicoli/fas-1/documenti/doc-1/editor"}},
+                    )
+                ],
+                confidence=0.9,
+                metadata={
+                    "operational_layer": True,
+                    "studio_reasoner": {
+                        "fascicolo_timeline": [
+                            {
+                                "date": "2026-05-10",
+                                "type": "documento",
+                                "source_id": "documenti_fascicolo",
+                                "object_id": "doc-1",
+                                "label": "ricorso.pdf",
+                                "action_url": "/fascicoli/fas-1/documenti/doc-1/editor",
+                            }
+                        ]
+                    },
+                },
+            )
+
+    monkeypatch.setattr("lex.operational_knowledge.integration.OperationalKnowledgeService", _FakeOperationalKnowledgeService)
+
+    payload = build_operational_http_payload(
+        user=_User(_all_permissions()),
+        studio=SimpleNamespace(slug="tenant-a"),
+        data={"active_context": {"context_type": "case", "case_id": "fas-1"}},
+        current_user_message="costruisci timeline del fascicolo",
+        resolved_effective_question="costruisci timeline del fascicolo",
+        studio_context={"focus_topic": "fascicoli", "request_profile": {"intent": "domanda_generica"}},
+    )
+
+    assert payload is not None
+    assert payload["detected_intent"] == "build_case_timeline"
+    timeline_block = next(block for block in payload["message_blocks"] if block["type"] == "timeline")
+    assert timeline_block["items"][0]["date"] == "2026-05-10"
+    assert timeline_block["items"][0]["source_id"] == "documenti_fascicolo"
+
+
+def test_lex_unified_chat_payments_require_accounting_sources(monkeypatch):
+    monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
+    from lex.operational_knowledge.integration import build_operational_http_payload
+    from lex.operational_knowledge.models import OperationalAnswer, OperationalRoute, OperationalSourceReference
+
+    class _FakeOperationalKnowledgeService:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def answer(self, **kwargs):
+            with_payment = kwargs["metadata"].get("with_payment")
+            sources = []
+            if with_payment:
+                sources.append(
+                    OperationalSourceReference(
+                        "pagamenti",
+                        "Pagamenti",
+                        "pagamento",
+                        "pagamento",
+                        "pay-1",
+                        "Saldo parcella P-1",
+                        0.87,
+                        metadata={"action_url": "/incassi-pagamenti", "record": {"id": "pay-1", "descrizione": "Saldo parcella P-1", "importo": 500.0, "stato": "ATTESO", "action_url": "/incassi-pagamenti"}},
+                    )
+                )
+            return OperationalAnswer(
+                handled=True,
+                answer="Quadro pagamenti consultato." if with_payment else "Nessun dato contabile consultabile.",
+                route=OperationalRoute("billing_summary", "billing_summary", ("pagamenti",), ""),
+                sources=sources,
+                confidence=0.87 if with_payment else 0.3,
+                coverage_gaps=[] if with_payment else ["Nessuna fonte contabile autorizzata ha restituito dati."],
+                metadata={"operational_layer": True},
+            )
+
+    monkeypatch.setattr("lex.operational_knowledge.integration.OperationalKnowledgeService", _FakeOperationalKnowledgeService)
+
+    payload = build_operational_http_payload(
+        user=_User(_all_permissions()),
+        studio=SimpleNamespace(slug="tenant-a"),
+        data={"with_payment": True, "active_context": {"context_type": "global"}},
+        current_user_message="verifica pagamenti",
+        resolved_effective_question="verifica pagamenti",
+        studio_context={"focus_topic": "fatture", "request_profile": {"intent": "domanda_generica"}},
+    )
+    assert payload is not None
+    assert payload["detected_intent"] == "check_payments"
+    assert any(block["type"] == "payment_card" for block in payload["message_blocks"])
+
+    no_source_payload = build_operational_http_payload(
+        user=_User(_all_permissions()),
+        studio=SimpleNamespace(slug="tenant-a"),
+        data={"active_context": {"context_type": "global"}},
+        current_user_message="verifica pagamenti",
+        resolved_effective_question="verifica pagamenti",
+        studio_context={"focus_topic": "fatture", "request_profile": {"intent": "domanda_generica"}},
+    )
+    assert no_source_payload is not None
+    missing = no_source_payload["lex_unified_chat"]["source_verification"]["missing_information"]
+    assert any("fonte contabile" in item for item in missing)
+
+
+def test_lex_draft_request_is_routed_as_drafting_not_pec_lookup():
+    from lex.operational_knowledge.integration import _should_defer_to_public_legal_research
+    from lex.research.request_profile import classify_request
+
+    question = "scrivi risposta alla PEC di Rossi"
+    profile = classify_request(question)
+
+    assert profile.drafting_mode is True
+    assert _should_defer_to_public_legal_research(
+        question,
+        metadata={"request_profile": profile.to_dict()},
+        studio_context={"focus_topic": "pec_firma", "request_profile": profile.to_dict()},
+    ) is True
 
 
 def test_bounded_chat_payload_exposes_studio_reasoner_links_map_and_timeline(monkeypatch):

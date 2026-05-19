@@ -114,7 +114,7 @@ class OperationalResponseComposer:
             return self._client_lines(route, results, gaps)
         if route.intent == "soggetti_lookup":
             return self._soggetti_lines(results, gaps)
-        if route.intent in {"fascicolo_summary", "documenti_fascicolo"}:
+        if route.intent in {"fascicolo_summary", "documenti_fascicolo", "build_case_timeline"}:
             return self._fascicolo_lines(route, results, gaps)
         if route.intent in {"deadlines_overview", "agenda_overview"}:
             return self._calendar_lines(route, results, gaps)
@@ -304,6 +304,7 @@ class OperationalResponseComposer:
             "preventivi": "Preventivi",
             "conferimenti": "Conferimenti",
             "fatturazione": "Parcelle/fatture",
+            "pagamenti": "Pagamenti",
             "timesheet": "Attivita' timesheet",
             "tariffario": "Tariffario",
         }
@@ -462,6 +463,7 @@ class OperationalResponseComposer:
             "email_ordinaria": "Email ordinaria",
             "preventivi": "Preventivi",
             "conferimenti": "Conferimenti",
+            "pagamenti": "Pagamenti",
         }
         lines = ["Ho consultato il contesto operativo autorizzato dello studio."]
         found = False

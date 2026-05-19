@@ -78,6 +78,9 @@ class OperationalKnowledgeService:
         entity_query = route.entity_query or question
         fascicolo_id = str(metadata.get("fascicolo_id") or metadata.get("pratica_id") or "").strip()
         cliente_id = str(metadata.get("cliente_id") or metadata.get("client_id") or "").strip()
+        active_context = dict(metadata.get("active_context") or {}) if isinstance(metadata.get("active_context"), dict) else {}
+        context_type = str(active_context.get("context_type") or metadata.get("context_type") or "").strip().lower()
+        pec_id = str(active_context.get("pec_id") or metadata.get("pec_id") or metadata.get("email_id") or "").strip()
 
         if route.intent == "sources_overview":
             return [
@@ -96,6 +99,20 @@ class OperationalKnowledgeService:
 
         if route.intent == "fascicolo_summary":
             return self._fascicolo_route(context, entity_query, fascicolo_id=fascicolo_id)
+
+        if route.intent == "build_case_timeline":
+            target = fascicolo_id or self._first_fascicolo_id(entity_query, context)
+            if not target:
+                return [self.tools.search_fascicoli(entity_query, context, limit=5)]
+            return [
+                self.tools.get_fascicolo(target, context),
+                self.tools.get_documenti_fascicolo(target, context),
+                self.tools.get_scadenze_by_fascicolo(target, context),
+                self.tools.get_agenda_range(context, limit=30),
+                self.tools.list_pec_messages(context, query=entity_query, limit=self.settings.max_results),
+                self.tools.list_ordinary_email_messages(context, query=entity_query, limit=self.settings.max_results),
+                self.tools.get_parcelle_by_fascicolo(target, context),
+            ]
 
         if route.intent == "documenti_fascicolo":
             target = fascicolo_id or self._first_fascicolo_id(entity_query, context)
@@ -168,14 +185,24 @@ class OperationalKnowledgeService:
                 return [
                     self.tools.get_parcelle_by_fascicolo(fascicolo_id, context),
                     self.tools.get_attivita_by_fascicolo(fascicolo_id, context),
+                    self.tools.get_pagamenti_status(context, limit=self.settings.max_results),
                 ]
             return [
                 self.tools.search_preventivi(entity_query, context, limit=self.settings.max_results),
                 self.tools.search_conferimenti(entity_query, context, limit=self.settings.max_results),
+                self.tools.get_pagamenti_status(context, limit=self.settings.max_results),
             ]
 
         if route.intent == "communications_lookup":
-            return self._communications_route(context, route.entity_query, question, cliente_id=cliente_id, fascicolo_id=fascicolo_id)
+            return self._communications_route(
+                context,
+                route.entity_query,
+                question,
+                cliente_id=cliente_id,
+                fascicolo_id=fascicolo_id,
+                pec_id=pec_id,
+                context_type=context_type,
+            )
 
         if route.intent == "template_lookup":
             results = [
@@ -232,6 +259,7 @@ class OperationalKnowledgeService:
         results.append(self.tools.search_preventivi(cliente_id, context, limit=10))
         results.append(self.tools.search_conferimenti(cliente_id, context, limit=10))
         results.append(self.tools.get_parcelle_by_cliente(cliente_id, context))
+        results.append(self.tools.get_pagamenti_status(context, cliente_id=cliente_id, limit=10))
         if route.intent == "client_economic_summary":
             results.append(self.tools.get_attivita_by_cliente(cliente_id, context))
         return results
@@ -247,6 +275,7 @@ class OperationalKnowledgeService:
             self.tools.list_ordinary_email_messages(context, query=query, limit=5),
             self.tools.search_preventivi(query, context, limit=4),
             self.tools.search_conferimenti(query, context, limit=4),
+            self.tools.get_pagamenti_status(context, limit=4),
         ]
 
     def _fascicolo_route(self, context, entity_query: str, *, fascicolo_id: str = "") -> list[OperationalToolResult]:
@@ -283,11 +312,17 @@ class OperationalKnowledgeService:
         *,
         cliente_id: str = "",
         fascicolo_id: str = "",
+        pec_id: str = "",
+        context_type: str = "",
     ) -> list[OperationalToolResult]:
         lowered = question.lower()
         wants_pec = "pec" in lowered
         wants_ordinary = "posta ordinaria" in lowered or "email ordinaria" in lowered or "smtp" in lowered or "imap" in lowered
         wants_mailbox = wants_pec or wants_ordinary or "email" in lowered or "posta" in lowered
+        if pec_id and (wants_pec or context_type == "pec"):
+            return [self.tools.get_pec_message(pec_id, context), self.tools.list_pec_attachments(pec_id, context)]
+        if pec_id and (wants_ordinary or context_type == "email"):
+            return [self.tools.get_ordinary_email_message(pec_id, context), self.tools.list_ordinary_email_attachments(pec_id, context)]
         if fascicolo_id:
             results = [self.tools.get_fascicolo(fascicolo_id, context), self.tools.get_messaggi_by_fascicolo(fascicolo_id, context)]
             if wants_pec:

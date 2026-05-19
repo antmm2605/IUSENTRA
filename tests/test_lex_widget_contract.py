@@ -43,6 +43,7 @@ def test_widget_builds_single_chat_payload_contract():
         "context_label",
         "page_context",
         "page_path",
+        "active_context",
         "attachments",
         "mode",
         "page_section",
@@ -51,6 +52,7 @@ def test_widget_builds_single_chat_payload_contract():
     assert "messagesPayload.push({ role: 'user', content: currentText });" in payload_body
     assert "messagesPayload = messagesPayload.slice(-HISTORY_LIMIT);" in payload_body
     assert "state.attachments.slice()" in payload_body
+    assert "currentActiveContextPayload()" in widget_js
 
 
 def test_widget_payload_supersedes_removed_page_payload_without_losing_core_fields():
@@ -101,6 +103,22 @@ def test_legacy_lex_links_open_floating_widget_without_navigation():
     assert "url.searchParams.get('context')" in widget_js
     assert "event.preventDefault()" in widget_js
     assert "applyLexPageContext(detail, { open: true })" in widget_js
+    assert "lexCaseId" in widget_js
+    assert "lexPecId" in widget_js
+    assert "lexDocumentId" in widget_js
+
+
+def test_lex_unified_chat_renderer_and_public_api_are_registered():
+    widget_js = _widget_js()
+    widget_scss = _lex_widget_scss()
+
+    assert "function renderLexMessageRenderer(payload)" in widget_js
+    assert "data-lex-component=\"LexUnifiedChat\"" in widget_js
+    assert "window.IusentraLexUnifiedChat" in widget_js
+    assert "normalizeLexActiveContext" in widget_js
+    assert "pct-ai-card--pec-card" in widget_scss
+    assert "pct-ai-card-actions-grid" in widget_scss
+    assert "pct-ai-timeline" in widget_scss
 
 
 def test_floating_lex_icon_is_draggable_across_the_viewport():

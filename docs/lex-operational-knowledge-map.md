@@ -6,6 +6,10 @@ Questa mappa descrive le sorgenti operative reali che Lex AI puo' interrogare in
 
 Il layer operativo resta governato da feature flag, fail-closed in multi-studio e compatibile con Flask, App V2/React, JSON, SQLite e PostgreSQL dove gia' previsto. Dal 2026-05-15 e' attivo di default nel bounded workflow Lex, con opt-out esplicito per rollback.
 
+Aggiornamento 2026-05-19, Lex Unified Chat operativa 2.245.61: `LexUnifiedChat` diventa il contratto unico della chat professionale. Ogni sezione può passare `active_context` con tipo contesto, fascicolo, cliente, PEC, documento e scope permessi; il bridge normalizza questi dati con `LexContextProvider` prima di interrogare Operational Knowledge.
+
+Il payload risultante contiene `detected_intent`, `lex_structured_context`, `message_blocks`, `lex_actions` e `source_verification`. Il renderer mostra card PEC/email, allegati, fascicolo, cliente, documenti, scadenze, timeline, fatture/pagamenti e fonti interne. Le bozze non partono da sole: per "ultima PEC ricevuta" Lex consulta e cita la PEC; "Prepara bozza risposta" resta un'azione successiva.
+
 Aggiornamento 2026-05-19, Lex Studio Reasoner fase 3 2.245.60: il bridge HTTP bounded porta il reasoner fino alla chat Lex con campi top-level `studio_reasoner`, `entity_map`, `fascicolo_timeline`, `rag_governato`, `reasoner_mode` e `operational_links`. Le UI possono aprire oggetti interni autorizzati senza rileggere path filesystem o introdurre prompt grezzi.
 
 Aggiornamento 2026-05-19, Lex Studio Reasoner fase 2 2.245.59: i tool operativi arricchiscono le evidenze con `action_url` applicativi reali e il report `studio_reasoner` espone `entity_map` e `fascicolo_timeline`. PEC/email, allegati, fascicoli e documenti sono apribili dalla risposta quando esiste una route interna, senza path filesystem e dopo tenant/RBAC.

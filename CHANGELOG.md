@@ -7,6 +7,13 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.61 - 2026-05-19
+
+- Introdotta `LexUnifiedChat` come contratto unico della chat operativa: contesto attivo, intent, contesto strutturato, verifica fonti, blocchi renderer e azioni passano dal `Lex Studio Reasoner` senza pannelli separati per modulo.
+- Il widget Lex ora invia `active_context`, espone `IusentraLexUnifiedChat` e renderizza card PEC/email, fascicolo, cliente, documenti, allegati, scadenze, timeline, fonti interne e azioni apribili.
+- Rafforzato il comportamento "ultima PEC ricevuta": resta consultazione, mostra fonte interna e card apribili, propone la bozza solo come azione successiva e non genera automaticamente testi PEC.
+- Aggiunti test mirati su contesto globale, fascicolo, PEC selezionata, permessi, cliente ambiguo, fonte mancante, timeline, pagamenti/fatture e richiesta di bozza esplicita; preservati i check divisi per fasi senza aggregatore legacy.
+
 ## 2.245.60 - 2026-05-19
 
 - Collegato il `Lex Studio Reasoner` al payload chat bounded: le risposte operative espongono ora `studio_reasoner`, `entity_map`, `fascicolo_timeline`, `rag_governato` e `reasoner_mode` anche al bridge HTTP usato dalla chat Lex.

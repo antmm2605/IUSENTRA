@@ -10,10 +10,13 @@ In assenza di tenant (SUPERADMIN o modalità single-tenant), si usano
 i percorsi di default da current_app.config.
 """
 from __future__ import annotations
+from pathlib import Path
+
 from flask import current_app, g
 
 from pct.agenda import Agenda
 from pct.clienti import GestioneClienti
+from pct.email_client import GestioneEmailRicevute
 from pct.fascicoli import GestioneFascicoli
 from pct.scadenziario import GestioneScadenziario
 from pct.auth import GestioneUtenti
@@ -28,11 +31,13 @@ from pct.timesheet import GestioneTimesheet
 from pct.time_tracking import GestioneTimeTracking
 from pct.applicazioni_repository import get_runtime_applicazioni_repository
 from pct.fatturazione import GestioneFatturazione
+from pct.messaggi import ConfigMessaggistica, GestioneMessaggi
 from pct.pagamenti import GestionePagamenti
 from pct.preventivi import GestionePreventivi
 from pct.practice_engine import PracticeEngineRepository
 from pct.legal_update_pipeline import LegalUpdatePipeline, build_legal_update_pipeline
 from web.services.storage_runtime import get_request_storage_runtime, get_request_studio_db
+from web.services.tenant_paths import tenant_data_path
 
 
 # ---------------------------------------------------------------- helper percorsi tenant-aware
@@ -123,6 +128,31 @@ def get_fatturazione() -> GestioneFatturazione:
 
 def get_pagamenti() -> GestionePagamenti:
     return GestionePagamenti(db_dir=_cfg("PAGAMENTI_DIR"), studio_db=_studio_db())
+
+
+def get_messaggi() -> GestioneMessaggi:
+    default_path = "./messaggi/storico.json"
+    try:
+        default_path = str(Path(_cfg("CLIENTI_DB")).with_name("messaggi.json"))
+    except Exception:
+        pass
+    return GestioneMessaggi(
+        ConfigMessaggistica(studio_nome=studio_nome()),
+        db_path=tenant_data_path("MESSAGGI_DB", default_path, require_tenant=True),
+        studio_db=_studio_db(),
+    )
+
+
+def get_email_pec() -> GestioneEmailRicevute:
+    return GestioneEmailRicevute(
+        db_path=tenant_data_path("EMAIL_CASELLA_DB", "./email/casella.json", require_tenant=True)
+    )
+
+
+def get_email_ordinaria() -> GestioneEmailRicevute:
+    return GestioneEmailRicevute(
+        db_path=tenant_data_path("EMAIL_ORDINARIA_DB", "./email/ordinaria.json", require_tenant=True)
+    )
 
 
 def get_utenti() -> GestioneUtenti:

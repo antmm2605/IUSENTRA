@@ -24,6 +24,14 @@ Cassazione `QSP50194` è stata verificata come dettaglio diretto raggiungibile c
 
 EUR-Lex riconosce CELEX su fixture minima ma resta `RAG-only` finché non sono presenti tutte le chiavi strutturate. OpenGA resta `RAG-only` per dataset tabellari e record di stato; un eventuale PDF/documento concreto con TAR/CdS, numero e anno potrà entrare solo in un futuro pilot guarded.
 
+## Aggiornamento operativo 2.245.54 - 2026-05-19
+
+Collegato Lex al DB operativo interno tramite `StudioDatabaseSource`, che usa la Ricerca Studio già indicizzata e non prompt grezzi. La sorgente espone dati riservati dello studio solo come evidenze interne verificate, tenant-aware e con URL applicativi: clienti, soggetti, fascicoli, documenti, agenda, scadenze, comunicazioni, PEC, email, depositi, preventivi, fatture e pagamenti.
+
+Per evitare sovrapposizioni, la sorgente scarta i tipi legali già coperti dai percorsi pubblici/ufficiali: `legal_intelligence`, `legal_updates`, normativa, giurisprudenza, prassi, fonti e web ufficiale. In modalità `Web libero` il router non carica la sorgente studio e mantiene isolata la ricerca pubblica non salvata.
+
+Il reindex globale ora riceve anche `GestioneMessaggi`, `GestioneEmailRicevute` per PEC e `GestioneEmailRicevute` per posta ordinaria. Gli adapter indicizzano oggetto, mittente, destinatari, data, stato, metadati PCT e allegati, usando `MESSAGGI_DB`, `EMAIL_CASELLA_DB` ed `EMAIL_ORDINARIA_DB` tenant-aware.
+
 ## Aggiornamento operativo 2.245.49 - 2026-05-19
 
 Attivata la Fase 8 per lo scheduler progressivo degli aggiornamenti legali. Lo step 1 non avvia tutte le fonti: usa solo `cassazione_ultime_sent_ord_questioni`, `inps_circolari`, `inps_messaggi` e `agcom_provvedimenti`, con budget `2` fonti per ciclo, timeout `120` secondi per elemento, massimo `5` pubblicazioni guarded e massimo `5` schede Cassazione ultime per scansione.

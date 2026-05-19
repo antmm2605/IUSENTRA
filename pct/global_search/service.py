@@ -76,11 +76,15 @@ class GlobalSearchService:
         payload = self.search(context, query, limit=limit)
         return [
             {
+                "id": item["entity_id"],
+                "entity_id": item["entity_id"],
                 "fonte": "Ricerca Studio",
+                "source_module": item["source_module"],
                 "titolo": item["title"],
                 "tipo": item["entity_type"],
                 "url": item["source_url"],
                 "snippet": item["snippet"],
+                "score": item.get("score") or 0,
                 "affidabilita": "interna_verificata",
                 "data_acquisizione": item.get("date") or "",
                 "metadata": item.get("metadata") or {},
@@ -90,8 +94,12 @@ class GlobalSearchService:
 
 
 def search_for_lex(context: dict[str, Any], query: str, limit: int = 10) -> list[dict[str, Any]]:
-    search_index_path = context.get("search_index_path") or "./data/search/index.db"
-    repository = GlobalSearchRepository(default_global_search_db_path(search_index_path))
+    global_search_db_path = context.get("global_search_db_path")
+    if global_search_db_path:
+        repository = GlobalSearchRepository(global_search_db_path)
+    else:
+        search_index_path = context.get("search_index_path") or "./data/search/index.db"
+        repository = GlobalSearchRepository(default_global_search_db_path(search_index_path))
     try:
         return GlobalSearchService(repository).search_for_lex(context, query, limit)
     finally:

@@ -13,9 +13,12 @@ from pct.global_search.service import GlobalSearchService, default_global_search
 from web.helpers import (
     get_agenda,
     get_clienti,
+    get_email_ordinaria,
+    get_email_pec,
     get_fascicoli,
     get_fatturazione,
     get_legal_intelligence,
+    get_messaggi,
     get_pagamenti,
     get_preventivi,
     get_scadenziario,
@@ -70,6 +73,10 @@ def _context() -> dict[str, Any]:
         "fatturazione": None,
         "pagamenti": None,
         "legal_intelligence": None,
+        "messaggi": None,
+        "comunicazioni": None,
+        "email_pec": None,
+        "email_ordinaria": None,
     }
     factories = {
         "fascicoli": get_fascicoli,
@@ -81,12 +88,16 @@ def _context() -> dict[str, Any]:
         "fatturazione": get_fatturazione,
         "pagamenti": get_pagamenti,
         "legal_intelligence": get_legal_intelligence,
+        "messaggi": get_messaggi,
+        "email_pec": get_email_pec,
+        "email_ordinaria": get_email_ordinaria,
     }
     for key, factory in factories.items():
         try:
             ctx[key] = factory()
         except Exception as exc:
             current_app.logger.info("Ricerca Studio: modulo %s non disponibile: %s", key, exc)
+    ctx["comunicazioni"] = ctx.get("messaggi")
     return ctx
 
 

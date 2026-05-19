@@ -64,6 +64,39 @@ def _first(data: dict[str, Any], *keys: str) -> str:
     return ""
 
 
+def _attachment_names(items: Any) -> list[str]:
+    if not items:
+        return []
+    if isinstance(items, str):
+        text = items.strip()
+        return [text.replace("\\", "/").split("/")[-1]] if text else []
+    if isinstance(items, dict):
+        items = [items]
+    if not isinstance(items, list):
+        return []
+
+    names: list[str] = []
+    for item in items:
+        if isinstance(item, str):
+            name = item.replace("\\", "/").split("/")[-1]
+        elif isinstance(item, dict):
+            name = _first(
+                item,
+                "nome",
+                "nome_file",
+                "filename",
+                "name",
+                "percorso_rel",
+                "percorso",
+                "path",
+            ).replace("\\", "/").split("/")[-1]
+        else:
+            name = ""
+        if name and name not in names:
+            names.append(name)
+    return names
+
+
 class BaseSearchAdapter:
     entity_type = "record"
     source_module = "studio"
@@ -127,6 +160,8 @@ class BaseSearchAdapter:
             "fattura": "bi-receipt",
             "pagamento": "bi-credit-card",
             "comunicazione": "bi-envelope-paper",
+            "pec": "bi-envelope-at",
+            "email": "bi-envelope",
             "template_atto": "bi-file-earmark-richtext",
             "deposito": "bi-send-check",
             "legal_intelligence": "bi-diagram-3",
@@ -148,6 +183,8 @@ class BaseSearchAdapter:
             "fattura": "Fattura",
             "pagamento": "Pagamento",
             "comunicazione": "Comunicazione",
+            "pec": "PEC",
+            "email": "Email",
             "template_atto": "Template atto",
             "deposito": "Telematico",
             "legal_intelligence": "Intelligence",
@@ -156,7 +193,7 @@ class BaseSearchAdapter:
     @staticmethod
     def actions_for(source_url: str, entity_type: str) -> list[dict[str, str]]:
         actions = [{"label": "Apri", "url": source_url or "/", "kind": "open"}]
-        if entity_type in {"documento", "fascicolo", "deposito", "scadenza", "comunicazione"}:
+        if entity_type in {"documento", "fascicolo", "deposito", "scadenza", "comunicazione", "pec", "email"}:
             actions.append({"label": "Chiedi a Lex", "url": f"/assistente?context={entity_type}", "kind": "lex"})
         return actions
 
@@ -493,20 +530,106 @@ class ComunicazioniSearchAdapter(BaseSearchAdapter):
             data = as_dict(item)
             entity_id = _first(data, "id", "message_id")
             if entity_id:
+                attachment_names = _attachment_names(
+                    data.get("allegati") or data.get("attachments") or data.get("allegati_salvati")
+                )
+                canale = _first(data, "canale", "channel", "tipo", "origine")
+                combined = _join(
+                    canale,
+                    _first(data, "oggetto", "subject", "titolo"),
+                    _first(data, "mittente", "from", "mittente_nome"),
+                    _first(data, "destinatario", "to", "destinatari"),
+                )
+                is_pec = "pec" in combined.lower()
+                entity_type = "pec" if is_pec else "comunicazione"
                 docs.append(
                     self._doc(
                         context,
                         entity_id=entity_id,
                         title=_first(data, "oggetto", "subject", "titolo") or "Comunicazione",
-                        subtitle=_join(_first(data, "mittente", "from"), _first(data, "canale", "tipo")),
-                        body=_join(_first(data, "corpo", "body", "testo"), _first(data, "destinatario", "to"), _first(data, "note")),
+                        subtitle=_join(_first(data, "mittente", "from", "mittente_nome"), canale),
+                        body=_join(
+                            _first(data, "corpo", "body", "testo", "corpo_testo", "corpo_html"),
+                            _first(data, "destinatario", "to", "destinatari"),
+                            _first(data, "stato_pct"),
+                            _first(data, "note"),
+                            "Allegati: " + ", ".join(attachment_names) if attachment_names else "",
+                        ),
+                        keywords=_join(
+                            entity_id,
+                            canale,
+                            "pec" if is_pec else "",
+                            _first(data, "message_id", "uid_imap"),
+                            " ".join(attachment_names),
+                        ),
                         metadata={
-                            "date": italian_date(_first(data, "data", "created_at", "ricevuto_il")),
+                            "date": italian_date(_first(data, "data", "created_at", "ricevuto_il", "inviato_il")),
                             "non_letto": bool(data.get("non_letto") or data.get("unread")),
+                            "canale": canale,
+                            "allegati_count": len(attachment_names),
+                            "allegati": attachment_names[:12],
+                            "stato_pct": _first(data, "stato_pct"),
+                            "badges": (["PEC"] if is_pec else ["Comunicazione"]) + ([canale] if canale else []),
                         },
                         source_url=f"/messaggi?focus={entity_id}",
                         client_id=_first(data, "id_cliente", "cliente_id"),
                         fascicolo_id=_first(data, "id_fascicolo", "fascicolo_id"),
+                        entity_type=entity_type,
+                    )
+                )
+        return docs
+
+
+class EmailRicevuteSearchAdapter(BaseSearchAdapter):
+    entity_type = "email"
+    source_module = "email"
+
+    def collect(self, context: dict[str, Any]) -> list[GlobalSearchDocument]:
+        docs: list[GlobalSearchDocument] = []
+        for manager_key, source_label, is_pec in (
+            ("email_pec", "PEC ricevuta", True),
+            ("email_ordinaria", "Email ricevuta", False),
+        ):
+            manager = context.get(manager_key)
+            if manager is None:
+                continue
+            for item in _manager_items(manager, "tutte"):
+                data = as_dict(item)
+                entity_id = _first(data, "id", "message_id", "uid_imap")
+                if not entity_id:
+                    continue
+                attachment_names = _attachment_names(data.get("allegati"))
+                title = _first(data, "oggetto", "subject") or source_label
+                canale = "PEC" if is_pec else "EMAIL"
+                entity_type = "pec" if is_pec else "email"
+                docs.append(
+                    self._doc(
+                        context,
+                        entity_id=entity_id,
+                        title=title,
+                        subtitle=_join(
+                            source_label,
+                            _first(data, "mittente", "mittente_nome"),
+                            italian_date(_first(data, "data", "ricevuta_il")),
+                        ),
+                        body=_join(
+                            _first(data, "corpo_testo", "corpo_html"),
+                            _first(data, "destinatari"),
+                            _first(data, "stato_pct"),
+                            "Allegati: " + ", ".join(attachment_names) if attachment_names else "",
+                        ),
+                        keywords=_join(entity_id, canale, _first(data, "message_id", "uid_imap"), " ".join(attachment_names)),
+                        metadata={
+                            "date": italian_date(_first(data, "data", "ricevuta_il")),
+                            "cartella": _first(data, "cartella"),
+                            "stato": _first(data, "stato"),
+                            "stato_pct": _first(data, "stato_pct"),
+                            "allegati_count": len(attachment_names),
+                            "allegati": attachment_names[:12],
+                            "badges": ["PEC" if is_pec else "Email", _first(data, "cartella") or "INBOX"],
+                        },
+                        source_url=f"/email/messaggio/{entity_id}" if is_pec else f"/email-ordinaria/messaggio/{entity_id}",
+                        entity_type=entity_type,
                     )
                 )
         return docs
@@ -614,6 +737,7 @@ def default_adapters() -> list[BaseSearchAdapter]:
         FattureSearchAdapter(),
         PagamentiSearchAdapter(),
         ComunicazioniSearchAdapter(),
+        EmailRicevuteSearchAdapter(),
         TemplateAttiSearchAdapter(),
         DepositiSearchAdapter(),
         LegalIntelligenceSearchAdapter(),

@@ -6,6 +6,23 @@ Aggiornato: 2026-05-19, Fase 11.5 chiusura buchi residui fonti legali 2.245.53, 
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
+## Lex Studio Database 2.245.54 - 2026-05-19
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile lex\retrieval\sources\studio_database.py lex\retrieval\source_router.py pct\global_search\adapters.py pct\global_search\service.py web\helpers.py web\blueprints\global_search.py tests\test_lex_studio_database_source.py` | OK | Sintassi confermata dopo sorgente Lex su Ricerca Studio, helper PEC/email e adapter allegati. |
+| `python -m ruff check lex\retrieval\sources\studio_database.py lex\retrieval\source_router.py pct\global_search\adapters.py pct\global_search\service.py web\helpers.py web\blueprints\global_search.py tests\test_lex_studio_database_source.py` | OK | Ruff verde sul perimetro toccato. |
+| `python -m pytest tests\test_lex_studio_database_source.py -q --tb=short` | OK | 4/4 passati: router con `StudioDatabaseSource`, isolamento `Web libero`, adapter PEC/email e filtro fonti legali già governate. |
+| `python -m pytest tests\test_global_search.py tests\test_global_search_indexer.py tests\test_global_search_api.py -q --tb=short` | OK | 6/6 passati: Ricerca Studio, reindex, API e shell esistenti preservati. |
+| `python -m pytest lex\tests\test_official_web.py tests\test_lex_fascicolo_first_retrieval.py lex\tests\unit\test_retrieval_orchestrator.py::test_source_router_non_trascina_fonti_legali_su_preventivo_operativo lex\tests\unit\test_retrieval_orchestrator.py::test_source_router_include_update_intelligence_sql_su_ricerca_legale -q --tb=short` | OK | 17/17 passati: routing fonti ufficiali, web libero e workflow operativo/legale preservati. |
+| `python -m pytest tests\test_ci_coverage_config.py tests\test_ci_no_regression_contract.py -q --tb=short` | OK | 7/7 passati: check CI divisi per fasi, coverage 12/12 e nessun vecchio aggregatore `Coverage moduli critici` senza `parte`. |
+| `python -m compileall lex pct web` | OK | Compileall completo su Lex, dominio `pct` e web dopo il patch manuale. |
+| `python scripts\react-migration\generate_app_v2_test_docs.py`; `python scripts\react-migration\generate_app_v2_test_docs.py --check`; `python scripts\react-migration\generate_app_v2_page_registry.py --check` | OK | Inventario e piano test App V2 rigenerati per `tests/test_lex_studio_database_source.py`; registry App V2 allineato. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python scripts\smoke_app_v2_all.py --subset contracts`; `python -m pytest -q tests\test_openapi_contracts_phase6.py --tb=short` | OK | OpenAPI e contratti riallineati alla versione `2.245.54`; provider verification OK e smoke contratti offline con solo runtime live `SKIP` intenzionale. |
+| `python scripts\smoke_app_v2_all.py --subset inventory`; `python -m pytest -q tests\test_app_v2_page_registry.py tests\test_app_v2_test_plan_phase10.py tests\test_ci_cd_gates_phase11.py --tb=short` | OK | Smoke inventory App V2 PASS=3 e 13/13 test registry/piano/CI gates passati. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | Packaging sincronizzato e 9/9 test packaging/readiness passati dopo bump `2.245.54`. |
+| `python tools\check_repo_governance.py`; `python -m pytest tests\test_utf8_integrity.py -q --tb=short`; `python -m pct.cli utf8-integrity --check-only ... --json`; `git diff --check` | OK | Governance OK, UTF-8 4/4, scan mirato 8 file senza artefatti e whitespace senza errori; `git diff --check` mostra solo warning CRLF/LF su file runtime preesistenti e documenti rigenerati. |
+
 ## Fase 11.5 chiusura buchi residui fonti legali 2.245.53 - 2026-05-19
 
 | Comando / verifica | Esito | Nota |

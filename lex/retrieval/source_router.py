@@ -13,6 +13,7 @@ from .sources.official_web import OfficialWebSource
 from .sources.operational import OperationalSource
 from .sources.preventivi import PreventiviSource
 from .sources.scadenziario import ScadenziarioSource
+from .sources.studio_database import StudioDatabaseSource
 from .sources.telematico import TelematicoSource
 from .sources.template_atti import TemplateAttiSource
 
@@ -116,7 +117,7 @@ class SourceRouter:
         if _is_free_web_request(request):
             return [OfficialWebSource()]
 
-        local_sources = []
+        local_sources = [StudioDatabaseSource()]
         legal_sources = []
         workflow_sources = []
 

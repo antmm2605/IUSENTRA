@@ -7,6 +7,13 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.54 - 2026-05-19
+
+- Aggiunta la sorgente Lex `StudioDatabaseSource`, collegata alla Ricerca Studio tramite `search_for_lex()`: Lex può interrogare il DB operativo interno tenant-aware per clienti, soggetti, fascicoli, documenti, agenda, scadenze, comunicazioni, PEC, email, depositi, preventivi, fatture e pagamenti.
+- La sorgente scarta le fonti legali già governate (`legal_intelligence`, aggiornamenti legali, normativa, giurisprudenza, prassi e web ufficiale) e resta esclusa in modalità `Web libero`, che continua a usare solo la ricerca libera della singola richiesta.
+- La Ricerca Studio indicizza ora anche PEC/email ricevute e posta ordinaria, con oggetto, mittente, destinatari, data, stato, metadati PCT e allegati, usando i manager tenant-aware `EMAIL_CASELLA_DB`, `EMAIL_ORDINARIA_DB` e `MESSAGGI_DB`.
+- Conservati i check CI divisi per fasi: i test di regressione sui workflow confermano `Pytest core` shardato, `Coverage moduli critici parte */12`, Local Signer/PKCS#11 per parti e nessun ritorno del vecchio aggregatore coverage senza `parte`.
+
 ## 2.245.53 - 2026-05-19
 
 - Chiusa la Fase 11.5 degli aggiornamenti legali senza scheduler esteso, import massivo, Web libero automatico o pubblicazione incontrollata.

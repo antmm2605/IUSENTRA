@@ -27,6 +27,16 @@ Per Lex, `QSP50194` resta un caso pilota con diagnosi esplicita: il dettaglio di
 
 EUR-Lex può riconoscere CELEX ma resta RAG-only finché non sono presenti tutte le chiavi strutturate; OpenGA resta RAG-only per dataset tabellari, mentre eventuali PDF giurisprudenziali concreti potranno entrare solo da pilot guarded futuro.
 
+## Aggiornamento operativo 2.245.54 - 19 maggio 2026
+
+Lex ha ora una sorgente interna unica per il DB operativo dello studio: `StudioDatabaseSource`. La sorgente interroga `GlobalSearchService.search_for_lex()` e trasforma i risultati verificati della Ricerca Studio in evidenze `studio_db:*`, mantenendo tenant, identità record, URL applicativo, score e metadati.
+
+La sorgente è sempre disponibile nel router locale, ma non parte in modalità `Web libero`: quando l'avvocato abilita la ricerca libera, il router continua a restituire solo `OfficialWebSource` in modalità libera. Le fonti legali già governate sono escluse dall'adapter (`legal_intelligence`, aggiornamenti legali, normativa, giurisprudenza, prassi, official web), così il DB operativo non duplica né contamina il percorso fonti ufficiali.
+
+La Ricerca Studio indicizza anche comunicazioni, PEC, email ordinaria e allegati tramite `MESSAGGI_DB`, `EMAIL_CASELLA_DB` ed `EMAIL_ORDINARIA_DB`, usando helper tenant-aware e senza fallback globale in multi-studio. Questo abilita domande operative come ultima PEC, allegati ricevuti, dati cliente, scadenze e agenda senza passare da prompt grezzi.
+
+I controlli CI restano divisi per fasi: questa tranche ha rilanciato i test che proteggono `Pytest core` shardato, `Coverage moduli critici parte */12`, Local Signer/PKCS#11 a parti e Quality Overlay shardato, senza reintrodurre il vecchio aggregatore `Coverage moduli critici` privo di `parte`.
+
 ## Aggiornamento operativo 2.245.49 - 19 maggio 2026
 
 La Fase 8 restringe lo scheduler degli aggiornamenti legali al solo step 1 progressivo: `cassazione_ultime_sent_ord_questioni`, `inps_circolari`, `inps_messaggi` e `agcom_provvedimenti`. Le fonti fuori step, incluse ANAC e Garante, non devono diventare base certa della risposta Lex finché non passano un canary/report verde dedicato.

@@ -7,6 +7,12 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.58 - 2026-05-19
+
+- Avviata la tranche `Lex Studio Reasoner`: il layer Operational Knowledge costruisce un piano governato `llm_rag_governato`, verifica le sole fonti interne tenant-aware e allega il report `studio_reasoner` alle risposte Lex senza esporre ragionamenti grezzi.
+- Il verificatore interno esclude fonti legali/pubbliche (`fonti_ufficiali`, `legal_intelligence`, `update_intelligence`, `web_libero`) dal report studio e mantiene esplicito che non è stato reintrodotto alcun aggregatore legacy.
+- Aggiunti test reali su "ultima PEC ricevuta" e su esclusione delle fonti pubbliche dal verificatore studio; confermato lo shard completo `tests/test_lex_operational_knowledge.py`.
+
 ## 2.245.57 - 2026-05-19
 
 - Rafforzate le azioni documento di Lex: quando l'import nel fascicolo è disponibile la risposta generata mostra `Apri con editor` come azione primaria, elimina il pulsante Markdown e apre l'editor professionale anche per eventuali vecchie azioni Word già renderizzate.

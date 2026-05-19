@@ -7,6 +7,14 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.245.58 - 19 maggio 2026
+
+Prima fase della tranche `Lex Studio Reasoner`: il layer operativo costruisce ora un piano `llm_rag_governato` per ogni risposta gestita da Operational Knowledge. Il piano non è un prompt grezzo né un addestramento sui dati dello studio: descrive in modo verificabile classificazione, retrieval interno, verifica fonti e composizione della risposta.
+
+Il verificatore allega alla risposta il report `studio_reasoner`, con fonti interne verificate, fonti mancanti, lacune e policy RAG. Le fonti legali/pubbliche (`fonti_ufficiali`, `legal_intelligence`, `update_intelligence`, `web_libero`) sono escluse dal verificatore studio, così il contesto operativo non duplica né contamina il percorso delle fonti ufficiali.
+
+La memoria operativa resta quella richiesta: nessun aggregatore legacy è stato reintrodotto; i check continuano a essere shard mirati e divisi per fase/parte.
+
 ## Aggiornamento operativo 2.245.57 - 19 maggio 2026
 
 Le azioni sulle risposte documentali di Lex sono state ricondotte all'editor professionale: se la route di import nel fascicolo è disponibile, il widget mostra `Apri con editor` come azione primaria, non propone più il download Markdown e apre l'editor anche se l'utente clicca una vecchia azione Word già presente nella chat.

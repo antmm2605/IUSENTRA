@@ -10,6 +10,7 @@ from .audit import OperationalAuditRecorder
 from .models import OperationalAnswer, OperationalRoute, OperationalToolResult
 from .permission_guard import resolve_query_context
 from .query_router import OperationalQueryRouter
+from .reasoner import LexStudioReasoner
 from .response_composer import OperationalResponseComposer
 from .serializers import serialize_generic
 from .settings import OperationalKnowledgeSettings
@@ -24,12 +25,14 @@ class OperationalKnowledgeService:
         router: OperationalQueryRouter | None = None,
         tools: OperationalKnowledgeTools | None = None,
         composer: OperationalResponseComposer | None = None,
+        reasoner: LexStudioReasoner | None = None,
         audit: OperationalAuditRecorder | None = None,
     ) -> None:
         self.settings = settings or OperationalKnowledgeSettings.from_env()
         self.router = router or OperationalQueryRouter()
         self.tools = tools or OperationalKnowledgeTools()
         self.composer = composer or OperationalResponseComposer()
+        self.reasoner = reasoner or LexStudioReasoner(registry=self.tools.registry)
         self.audit = audit or OperationalAuditRecorder(settings=self.settings)
 
     def answer(
@@ -50,8 +53,11 @@ class OperationalKnowledgeService:
             return None
 
         context = resolve_query_context(user=user, studio=studio, tenant_id=tenant_id)
+        plan = self.reasoner.build_plan(question=question, route=route)
         if route.blocks_legal_action:
             answer = self.composer.compose(question=question, route=route, results=[], blocked_reason="legal_action_blocked")
+            report = self.reasoner.verify(plan=plan, results=[])
+            self.reasoner.apply(answer, report)
             answer.audit_event_id = self._audit(context, question, route, answer, outcome="blocked")
             return answer
 
@@ -62,6 +68,8 @@ class OperationalKnowledgeService:
             results=results,
             blocked_reason=_policy_blocked_reason(results),
         )
+        report = self.reasoner.verify(plan=plan, results=results)
+        self.reasoner.apply(answer, report)
         outcome = "ok" if any(result.ok for result in results) else "blocked"
         answer.audit_event_id = self._audit(context, question, route, answer, outcome=outcome)
         return answer

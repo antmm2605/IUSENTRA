@@ -6,6 +6,8 @@ Questa mappa descrive le sorgenti operative reali che Lex AI puo' interrogare in
 
 Il layer operativo resta governato da feature flag, fail-closed in multi-studio e compatibile con Flask, App V2/React, JSON, SQLite e PostgreSQL dove gia' previsto. Dal 2026-05-15 e' attivo di default nel bounded workflow Lex, con opt-out esplicito per rollback.
 
+Aggiornamento 2026-05-19, Lex Studio Reasoner fase 1 2.245.58: `OperationalKnowledgeService` costruisce un piano governato `llm_rag_governato` e un report `studio_reasoner` per le risposte operative. Il report verifica solo fonti interne tenant-aware, registra fonti mancanti e lacune, esclude fonti legali/pubbliche e dichiara `no_legacy_aggregator=true`. Questa è una memoria di lavoro verificabile per Lex, non un dump grezzo dei dati studio.
+
 Aggiornamento 2026-05-19, editor/dettatura/documenti caricati 2.245.57: le risposte documentali di Lex aprono l'editor professionale come azione primaria quando l'import nel fascicolo è disponibile; `Scarica Markdown` non è più proposto nel widget. La dettatura attende la prima trascrizione prima di avviare il timer di silenzio. I documenti caricati dall'avvocato entrano nel workflow `documento` quando la domanda chiede spiegazione, sintesi, analisi o punti importanti, mantenendo evidenze `user_attachment` citabili e tenant-aware.
 
 Aggiornamento 2026-05-19, Lex contesto studio 2.245.55: aggiunto il profilo `studio_context_lookup` per richieste generali sul contesto operativo dello studio. Il router operativo espone una vista interna su clienti, fascicoli, agenda, scadenze, PEC/email, preventivi e conferimenti, senza usare fonti legali pubbliche e senza addestramento grezzo sui dati. `comunicazioni_lookup` ha precedenza sul drafting, così "ultima PEC ricevuta" legge le caselle tenant-aware invece di produrre una bozza.
@@ -118,6 +120,7 @@ Il layer `lex/operational_knowledge/` e' il punto unico governato per:
 6. Response composer con fonti, limiti, confidence e coverage gaps.
 7. Audit degli accessi e dei blocchi.
 8. Feature flag default-on con rollback esplicito.
+9. `LexStudioReasoner` con piano `llm_rag_governato`, verifica fonti interne, lacune e policy RAG senza aggregatori legacy.
 
 Integrazioni runtime:
 

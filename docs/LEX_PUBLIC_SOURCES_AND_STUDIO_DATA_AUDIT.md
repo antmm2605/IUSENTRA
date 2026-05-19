@@ -2,6 +2,12 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.245.58 - 2026-05-19
+
+Avviata la tranche `Lex Studio Reasoner` con il nucleo planner/verificatore: le risposte operative allegano metadata `studio_reasoner` con piano `llm_rag_governato`, fonti interne verificate, lacune, fonti mancanti e policy RAG. Il verificatore studio esclude fonti pubbliche/legali già governate (`fonti_ufficiali`, `legal_intelligence`, `update_intelligence`, `web_libero`) e non reintroduce aggregatori legacy.
+
+Gate fase 1 confermati: `python -m pytest tests/test_lex_operational_knowledge.py -q --tb=short`, test mirati su "ultima PEC ricevuta", esclusione fonti pubbliche dal verificatore, `python -m compileall lex/operational_knowledge` e `python -m ruff check lex/operational_knowledge/reasoner.py lex/operational_knowledge/service.py tests/test_lex_operational_knowledge.py`.
+
 ## Aggiornamento operativo 2.245.57 - 2026-05-19
 
 Il flusso documento di Lex ora privilegia l'editor professionale rispetto agli export separati: le bozze o risposte generabili in documento mostrano `Apri con editor` quando l'import nel fascicolo è disponibile, senza pulsante Markdown. Per compatibilità, un eventuale click su un vecchio pulsante Word già renderizzato apre comunque l'editor se `editorImportUrl` è presente.

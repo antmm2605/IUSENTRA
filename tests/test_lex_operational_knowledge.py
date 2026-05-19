@@ -533,6 +533,65 @@ def test_latest_pec_question_returns_real_latest_message_details():
     assert "Non ho trovato dati reali sufficienti" not in answer.answer
 
 
+def test_lex_studio_reasoner_attaches_governed_rag_report_to_latest_pec():
+    service, user = _service(repositories=_base_repositories())
+
+    answer = service.answer(question="ultima PEC ricevuta", user=user, studio=SimpleNamespace(slug="tenant-a"))
+
+    assert answer is not None
+    report = answer.metadata["studio_reasoner"]
+    assert report["name"] == "Lex Studio Reasoner"
+    assert report["mode"] == "llm_rag_governato"
+    assert report["rag_policy"]["tenant_aware"] is True
+    assert report["rag_policy"]["no_legacy_aggregator"] is True
+    assert report["rag_policy"]["excludes_public_legal_sources"] is True
+    assert "email_pec" in report["verification"]["verified_internal_sources"]
+    assert "fonti_ufficiali" not in report["verification"]["verified_internal_sources"]
+    assert report["verification"]["evidence_sufficient"] is True
+    assert any(step["phase"] == "verifica" and step["verified"] for step in report["steps"])
+
+
+def test_lex_studio_reasoner_excludes_public_legal_sources_from_internal_verifier():
+    from lex.operational_knowledge.models import OperationalRoute, OperationalSourceReference, OperationalToolResult
+    from lex.operational_knowledge.reasoner import LexStudioReasoner
+
+    reasoner = LexStudioReasoner()
+    route = OperationalRoute(
+        "official_sources_lookup",
+        "official_sources_lookup",
+        ("fonti_ufficiali", "legal_intelligence", "clienti"),
+        "articolo 599-bis cpp",
+    )
+    plan = reasoner.build_plan(question="cerca articolo 599-bis cpp", route=route)
+    report = reasoner.verify(
+        plan=plan,
+        results=[
+            OperationalToolResult(
+                True,
+                "fonti_ufficiali",
+                data=[{"id": "src-1", "titolo": "Fonte pubblica"}],
+                sources=[
+                    OperationalSourceReference(
+                        source_id="fonti_ufficiali",
+                        source_name="Fonti ufficiali",
+                        source_type="fonte_ufficiale",
+                        object_type="fonte",
+                        object_id="src-1",
+                        title="Fonte pubblica",
+                        confidence=0.9,
+                        internal=False,
+                    )
+                ],
+            )
+        ],
+    )
+
+    assert plan.required_sources == ("clienti",)
+    assert report.verified_internal_sources == ()
+    assert report.excluded_sources == ("fonti_ufficiali",)
+    assert report.evidence_sufficient is False
+
+
 def test_ordinary_email_inventory_has_dedicated_source():
     service, user = _service(repositories=_base_repositories())
 

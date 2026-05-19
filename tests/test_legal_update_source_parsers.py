@@ -35,6 +35,17 @@ def _source(code: str) -> dict:
     return {str(row["code"]): dict(row) for row in DEFAULT_SOURCE_ROWS}[code]
 
 
+def test_parser_html_vuoto_resta_diagnostico_per_fonte_rag_only():
+    source = _source("eur_lex")
+
+    docs = fetch_source_documents(source, request_get=lambda url, **_kwargs: DummyResponse("", url=str(url)))
+
+    assert len(docs) == 1
+    assert docs[0]["source_url"] == source["base_url"]
+    assert docs[0]["title"] == "EUR-Lex"
+    assert docs[0]["publication_destination"] == "rag_only"
+
+
 def test_parser_html_listing_detail_estrae_testo_e_allegato_pdf():
     source = _source("corte_conti")
     listing = """

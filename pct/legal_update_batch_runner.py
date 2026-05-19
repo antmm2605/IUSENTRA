@@ -263,6 +263,8 @@ def run_legal_update_subprocess(
             command,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=max(1, int(timeout_seconds or 1)),
             env=os.environ.copy(),
         )

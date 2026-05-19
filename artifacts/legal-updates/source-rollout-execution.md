@@ -2,6 +2,20 @@
 
 Aggiornato il 19 maggio 2026. Questo file trasforma `source-rollout-plan.md` in backlog eseguibile con stato prima/dopo della tranche codice.
 
+## Aggiornamento Fase 9 - estensione a tutte le fonti verdi
+
+Aggiornato il 19 maggio 2026. La fase ha esteso il popolamento progressivo alle fonti verdi rimanenti, mantenendo budget basso/medio, `publish-mode guarded` per le sole fonti verdi, nessuna pubblicazione per RAG-only/archivi/codici e stop su errore reale. Il report operativo è `artifacts/legal-updates/phase9-green-2026-05-19/phase9-green-report.md`.
+
+| area | stato rilevato | azione eseguita | esito |
+|---|---|---|---|
+| Fonti verdi abilitate | lo step 1 era stabile ma limitato a quattro fonti | promosse in fase 9 `corte_conti`, `curia_cgue_rss`, `anac_documenti`, `garante_privacy` e `gazzetta_ufficiale`, preservando `cassazione_ultime_sent_ord_questioni`, `inps_circolari`, `inps_messaggi`, `agcom_provvedimenti` | 9 fonti verdi censite nello scheduler progressivo con budget 3 e timeout per fonte |
+| RAG-only | OpenGA, PST, Dati Normattiva, EUR-Lex e ISTAT non devono diventare news generiche | eseguiti canary no-publish con `limit 2` dove richiesto | 0 pubblicazioni da fonti tecniche o cataloghi; evidenze disponibili solo per RAG/diagnostica |
+| Osservazione | diverse fonti richieste non avevano canary verde dedicato | mantenute fuori run `cassazione_citazioni_verificate`, `corte_costituzionale`, `inps_sentenze`, `agenzia_entrate`, Ministero Lavoro, AGCM, Banca d'Italia, INAIL e MIMIT | nessuna fonte gialla/rossa/osservazione abilitata |
+| Lotto 4 EUR-Lex | la pagina vuota produceva `Document is empty` | fermato il lotto, corretto il parser HTML per `ParserError`, aggiunto test e rieseguito solo EUR-Lex | canary EUR-Lex RAG-only OK, 1 documento diagnostico, 0 pubblicazioni |
+| Superfici utente | Ricerca Legale e Lex devono usare evidenze vere, non cataloghi pubblicati come news | pubblicati 14 documenti guarded da fonti verdi; 17 PDF/OCR, 340 riferimenti e 740 domande nei report fonte | Ricerca Legale/Lex aggiornate; Archivio Giurisprudenza non riceve schede strutturate senza chiavi complete |
+
+Verifiche mirate già eseguite durante i lotti: parser/capability, publish context, allegati, Document Intelligence, corpus Lex, Ricerca Legale, Giurisprudenza, job queue, batch runner e scheduler registry. I gate finali della fase 9 sono registrati in `artifacts/react-migration/pytest-confirmed-ok.md`.
+
 ## Aggiornamento Fase 7 - backfill mirato PDF/OCR/riferimenti/domande
 
 Aggiornato il 19 maggio 2026. La fase è stata eseguita senza backup, senza Web libero, senza pubblicazione automatica e senza backfill globale non limitato. Il report operativo è `artifacts/legal-updates/phase7-backfill-2026-05-19/phase7-backfill-report.md`.

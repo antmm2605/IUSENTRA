@@ -14,10 +14,15 @@ def test_legal_update_scan_admin_usa_autofetch_governato(monkeypatch):
             assert enabled_only is False
             return [
                 {"code": "cassazione_ultime_sent_ord_questioni", "enabled": True},
+                {"code": "corte_conti", "enabled": True},
+                {"code": "curia_cgue_rss", "enabled": True},
                 {"code": "inps_circolari", "enabled": True},
                 {"code": "inps_messaggi", "enabled": True},
                 {"code": "agcom_provvedimenti", "enabled": True},
                 {"code": "anac_documenti", "enabled": True},
+                {"code": "garante_privacy", "enabled": True},
+                {"code": "gazzetta_ufficiale", "enabled": True},
+                {"code": "openga_sentenze", "enabled": True},
             ]
 
     fake_pipeline = SimpleNamespace(repository=_Repo())
@@ -37,13 +42,18 @@ def test_legal_update_scan_admin_usa_autofetch_governato(monkeypatch):
     assert result["schema"] == "iusentra.legal_update_autofetch.v1"
     assert captured["source_codes"] == [
         "cassazione_ultime_sent_ord_questioni",
+        "corte_conti",
+        "curia_cgue_rss",
         "inps_circolari",
         "inps_messaggi",
         "agcom_provvedimenti",
+        "anac_documenti",
+        "garante_privacy",
+        "gazzetta_ufficiale",
     ]
     assert captured["config"].item_timeout_seconds == 120
     assert captured["config"].publish_max_items == 5
-    assert captured["config"].source_budget == 2
+    assert captured["config"].source_budget == 3
 
 
 def test_legal_update_autopublish_admin_usa_job_per_elemento(monkeypatch):

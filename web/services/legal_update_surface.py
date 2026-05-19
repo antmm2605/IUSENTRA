@@ -804,11 +804,11 @@ def build_legal_source_catalog(
             {
                 "time": "23:10",
                 "title": "Preparazione",
-                "body": "La Gazzetta resta negli archivi ufficiali locali; nessuna fonte gialla entra nel ciclo progressivo.",
+                "body": "Fonti RAG-only e in osservazione restano fuori dalla pubblicazione automatica.",
             },
             {
                 "time": "23:15",
-                "title": "Step 1 progressivo",
+                "title": "Fonti verdi progressive",
                 "body": "Solo le fonti verdi lavorano a job separati con limite per elemento e pubblicazione guarded.",
             },
         ],

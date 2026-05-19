@@ -1,0 +1,99 @@
+{
+  "autopublished": {
+    "count": 0,
+    "items": []
+  },
+  "diagnostics_saved": true,
+  "direct_only": true,
+  "documents_found": 1,
+  "duration_seconds": 25.05,
+  "errors": [],
+  "items": [
+    {
+      "attachment_count": 0,
+      "attachments": [],
+      "destination": "RAG-only",
+      "destination_label": "Solo RAG",
+      "exclusion_reason": "",
+      "external_id": "d3a96bafa2edab481ba9c5665e4b6794b54bf581f57b13ea4dc44ceb15701b8b",
+      "normalized_document_id": 98,
+      "published_at": "",
+      "quality": {
+        "attachment_found": false,
+        "context_chars": 26,
+        "ocr_status": "non_richiesto",
+        "pdf_found": false,
+        "questions": 12,
+        "ready": true,
+        "references": 0,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare API Documentation - Apidog?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "technical_metadata",
+      "reference_count": 0,
+      "reference_labels": [],
+      "review_id": 98,
+      "source_url": "https://dati.normattiva.it/assets/come_fare_per/Normattiva%20OpenData.html",
+      "status": "analizzato",
+      "title": "API Documentation - Apidog",
+      "verification": {
+        "attachments": 0,
+        "attempted": 1,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "ok": true,
+        "reason": "Verifica pubblica completata con fonti coerenti.",
+        "saved": 1
+      }
+    }
+  ],
+  "limit": 2,
+  "max_seconds": 60,
+  "mode": "canary",
+  "no_publish": true,
+  "ok": true,
+  "processed": 1,
+  "publish_mode": "off",
+  "schema": "iusentra.legal_updates.canary.v1",
+  "skipped_unchanged": 0,
+  "source_code": "dati_normattiva",
+  "source_name": "Dati Normattiva",
+  "stopped_for_time_limit": false,
+  "verification_attachments_saved": 0,
+  "verification_evidence_saved": 1,
+  "web_verification_attempts": 1
+}

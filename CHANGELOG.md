@@ -7,6 +7,15 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.50 - 2026-05-19
+
+- Estesa la Fase 9 degli aggiornamenti legali a tutte le fonti verdi rimaste: Cassazione ultime, Corte dei conti, Curia CGUE, INPS circolari/messaggi, AGCOM, ANAC, Garante Privacy e Gazzetta Ufficiale.
+- Aggiunte le liste governate di fonti verdi abilitate, RAG-only, osservazione, archivi locali ed esclusioni dalla pubblicazione automatica nello scheduler progressivo e nella superficie admin.
+- Eseguiti quattro lotti con budget controllato: 1533 documenti letti, 33 processati, 21 invariati, 14 pubblicati guarded, 11 scartati dal guarded, 17 PDF/OCR, 340 riferimenti e 740 domande contestuali.
+- Mantenute fuori pubblicazione OpenGA, PST, Dati Normattiva, EUR-Lex, ISTAT, Normattiva/codici e tutte le fonti in osservazione; nessun catalogo tecnico è stato trasformato in news.
+- Corretto il parser HTML per gestire pagine vuote (`ParserError`) come diagnostica RAG-only, con test dedicato su EUR-Lex.
+- Forzata la decodifica UTF-8 nello stdout dei job aggiornamenti legali per evitare mojibake nei report macchina.
+
 ## 2.245.49 - 2026-05-19
 
 - Attivata la Fase 8 dello scheduler progressivo degli aggiornamenti legali: lo step 1 usa solo `cassazione_ultime_sent_ord_questioni`, `inps_circolari`, `inps_messaggi` e `agcom_provvedimenti`, lasciando fuori fonti gialle o tecniche.

@@ -1,0 +1,336 @@
+{
+  "autopublished": {
+    "count": 3,
+    "items": [
+      85,
+      86,
+      1
+    ],
+    "mode": "guarded",
+    "published_items": [
+      {
+        "destination": "news",
+        "id": 85,
+        "quality": {
+          "attachment_found": true,
+          "context_chars": 16426,
+          "ocr_status": "leggibile_con_note",
+          "pdf_found": true,
+          "questions": 16,
+          "ready": true,
+          "references": 14,
+          "status": "pronto_con_note",
+          "text_read": true,
+          "warnings": [
+            "OCR leggibile ma da controllare"
+          ]
+        },
+        "source_code": "cassazione_ultime_sent_ord_questioni",
+        "title": "Vai al documento Protezione internazionale - Domanda di asilo - Contenuto - Idoneità funzionale ad attivare il procedimento - Disciplina applicabile - Individuazione - Momento d..."
+      },
+      {
+        "destination": "news",
+        "id": 86,
+        "quality": {
+          "attachment_found": true,
+          "context_chars": 20021,
+          "ocr_status": "leggibile_con_note",
+          "pdf_found": true,
+          "questions": 16,
+          "ready": true,
+          "references": 10,
+          "status": "pronto_con_note",
+          "text_read": true,
+          "warnings": [
+            "OCR leggibile ma da controllare"
+          ]
+        },
+        "source_code": "cassazione_ultime_sent_ord_questioni",
+        "title": "Vai al documento Irregolarità nella procedura di smaltimento dei rifiuti ex artt. 101 e 190 d.lgs. n. 152 del 2006 - Violazione commessa da dipendente diverso da quello inizialm..."
+      },
+      {
+        "destination": "news",
+        "id": 1,
+        "quality": {
+          "attachment_found": true,
+          "context_chars": 71009,
+          "ocr_status": "leggibile_con_note",
+          "pdf_found": true,
+          "questions": 17,
+          "ready": true,
+          "references": 12,
+          "status": "pronto_con_note",
+          "text_read": true,
+          "warnings": [
+            "OCR leggibile ma da controllare",
+            "riferimenti R.G. discordanti"
+          ]
+        },
+        "source_code": "cassazione_ultime_sent_ord_questioni",
+        "title": "Vai al documento Sospensione del processo al di fuori dei casi tipici - Illegittimità - Impugnabilità con il regolamento di competenza - Mancata impugnazione - Conseguenze. del..."
+      }
+    ],
+    "skipped": [],
+    "stopped_for_time_limit": false,
+    "verification_attachments_saved": 3,
+    "verification_evidence_saved": 6,
+    "web_verification_attempts": 3
+  },
+  "diagnostics_saved": true,
+  "direct_only": true,
+  "documents_found": 3,
+  "duration_seconds": 18.38,
+  "errors": [],
+  "items": [
+    {
+      "attachment_count": 0,
+      "attachments": [],
+      "destination": "giurisprudenza",
+      "destination_label": "Giurisprudenza o RAG",
+      "exclusion_reason": "",
+      "external_id": "607312963dc2f2392beca94c1da37dc5bd2290232d00e10f141cdbee34dba812",
+      "guarded_publish": {
+        "destination": "news",
+        "published": true,
+        "review_id": 85
+      },
+      "normalized_document_id": 85,
+      "published_at": "",
+      "quality": {
+        "attachment_found": true,
+        "context_chars": 16426,
+        "ocr_status": "leggibile_con_note",
+        "pdf_found": true,
+        "questions": 16,
+        "ready": true,
+        "references": 14,
+        "status": "pronto_con_note",
+        "text_read": true,
+        "warnings": [
+          "OCR leggibile ma da controllare"
+        ]
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare Vai al documento Protezione internazionale - Domanda di asilo - Contenuto - Idoneità funzionale ad attivare il procedimento - Disciplina applicabile - Individuazione - Momento di presentazione della domanda - Disciplina più favorevole per il richiedente. del 19/05/26?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_case_law_rag",
+      "reference_count": 1,
+      "reference_labels": [
+        "contentId=SZC50596"
+      ],
+      "review_id": 85,
+      "source_url": "https://www.cortedicassazione.it/it/civile_dettaglio.page?contentId=SZC50596",
+      "status": "analizzato",
+      "title": "Vai al documento Protezione internazionale - Domanda di asilo - Contenuto - Idoneità funzionale ad attivare il procedimento - Disciplina applicabile - Individuazione - Momento d...",
+      "verification": {
+        "attachments": 1,
+        "attempted": 1,
+        "confirmations": 2,
+        "official_confirmations": 2,
+        "ok": true,
+        "reason": "Verifica pubblica completata con fonti coerenti.",
+        "saved": 2
+      }
+    },
+    {
+      "attachment_count": 0,
+      "attachments": [],
+      "destination": "giurisprudenza",
+      "destination_label": "Giurisprudenza o RAG",
+      "exclusion_reason": "",
+      "external_id": "ac1ceb2f211e687366b967fb22281d97f746f72ea22766f094973674ff719763",
+      "guarded_publish": {
+        "destination": "news",
+        "published": true,
+        "review_id": 86
+      },
+      "normalized_document_id": 86,
+      "published_at": "",
+      "quality": {
+        "attachment_found": true,
+        "context_chars": 20021,
+        "ocr_status": "leggibile_con_note",
+        "pdf_found": true,
+        "questions": 16,
+        "ready": true,
+        "references": 10,
+        "status": "pronto_con_note",
+        "text_read": true,
+        "warnings": [
+          "OCR leggibile ma da controllare"
+        ]
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare Vai al documento Irregolarità nella procedura di smaltimento dei rifiuti ex artt. 101 e 190 d.lgs. n. 152 del 2006 - Violazione commessa da dipendente diverso da quello inizialmente indicato come responsabile - Differente posizione rivestita nell’organigramma dell'Ente - Incidenza sul contenuto della contestazione - Questioni di massima di particolare importanza. del 19/05/26?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_case_law_rag",
+      "reference_count": 4,
+      "reference_labels": [
+        "artt. 101 e 190",
+        "d.lgs. n. 152",
+        "2006",
+        "contentId=SZC50600"
+      ],
+      "review_id": 86,
+      "source_url": "https://www.cortedicassazione.it/it/civile_dettaglio.page?contentId=SZC50600",
+      "status": "analizzato",
+      "title": "Vai al documento Irregolarità nella procedura di smaltimento dei rifiuti ex artt. 101 e 190 d.lgs. n. 152 del 2006 - Violazione commessa da dipendente diverso da quello inizialm...",
+      "verification": {
+        "attachments": 1,
+        "attempted": 1,
+        "confirmations": 2,
+        "official_confirmations": 2,
+        "ok": true,
+        "reason": "Verifica pubblica completata con fonti coerenti.",
+        "saved": 2
+      }
+    },
+    {
+      "attachment_count": 0,
+      "attachments": [],
+      "destination": "giurisprudenza",
+      "destination_label": "Giurisprudenza o RAG",
+      "exclusion_reason": "",
+      "external_id": "0808d0c640c4c0874259b668e8079528b83e252643572a031284aa6ef7b4bc4a",
+      "guarded_publish": {
+        "destination": "news",
+        "published": true,
+        "review_id": 1
+      },
+      "normalized_document_id": 1,
+      "published_at": "",
+      "quality": {
+        "attachment_found": true,
+        "context_chars": 71009,
+        "ocr_status": "leggibile_con_note",
+        "pdf_found": true,
+        "questions": 17,
+        "ready": true,
+        "references": 12,
+        "status": "pronto_con_note",
+        "text_read": true,
+        "warnings": [
+          "OCR leggibile ma da controllare",
+          "riferimenti R.G. discordanti"
+        ]
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare Vai al documento Sospensione del processo al di fuori dei casi tipici - Illegittimità - Impugnabilità con il regolamento di competenza - Mancata impugnazione - Conseguenze. del 15/05/26?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_case_law_rag",
+      "reference_count": 1,
+      "reference_labels": [
+        "contentId=SZC50542"
+      ],
+      "review_id": 1,
+      "source_url": "https://www.cortedicassazione.it/it/civile_dettaglio.page?contentId=SZC50542",
+      "status": "invariato",
+      "title": "Vai al documento Sospensione del processo al di fuori dei casi tipici - Illegittimità - Impugnabilità con il regolamento di competenza - Mancata impugnazione - Conseguenze. del..."
+    }
+  ],
+  "limit": 3,
+  "max_seconds": 120,
+  "mode": "canary",
+  "no_publish": false,
+  "ok": true,
+  "processed": 2,
+  "publish_mode": "guarded",
+  "schema": "iusentra.legal_updates.canary.v1",
+  "skipped_unchanged": 1,
+  "source_code": "cassazione_ultime_sent_ord_questioni",
+  "source_name": "Cassazione - ultime sentenze, ordinanze e questioni",
+  "stopped_for_time_limit": false,
+  "verification_attachments_saved": 2,
+  "verification_evidence_saved": 4,
+  "web_verification_attempts": 2
+}

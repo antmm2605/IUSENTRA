@@ -1,0 +1,301 @@
+{
+  "autopublished": {
+    "count": 2,
+    "items": [
+      51,
+      53
+    ],
+    "mode": "guarded",
+    "published_items": [
+      {
+        "destination": "news",
+        "id": 51,
+        "quality": {
+          "attachment_found": true,
+          "context_chars": 4014,
+          "ocr_status": "pulito",
+          "pdf_found": true,
+          "questions": 16,
+          "ready": true,
+          "references": 9,
+          "status": "pronto",
+          "text_read": true,
+          "warnings": []
+        },
+        "source_code": "inps_messaggi",
+        "title": "Messaggio numero 1618 del 14/05/2026"
+      },
+      {
+        "destination": "news",
+        "id": 53,
+        "quality": {
+          "attachment_found": true,
+          "context_chars": 15734,
+          "ocr_status": "pulito",
+          "pdf_found": true,
+          "questions": 16,
+          "ready": true,
+          "references": 8,
+          "status": "pronto",
+          "text_read": true,
+          "warnings": []
+        },
+        "source_code": "inps_messaggi",
+        "title": "Messaggio numero 1493 del 04/05/2026"
+      }
+    ],
+    "skipped": [
+      {
+        "id": 52,
+        "reason": "testo tecnico grezzo non pubblicabile in UI",
+        "title": "Messaggio numero 1511 del 05/05/2026"
+      }
+    ],
+    "stopped_for_time_limit": false,
+    "verification_attachments_saved": 3,
+    "verification_evidence_saved": 5,
+    "web_verification_attempts": 2
+  },
+  "diagnostics_saved": true,
+  "direct_only": true,
+  "documents_found": 9,
+  "duration_seconds": 8.27,
+  "errors": [],
+  "items": [
+    {
+      "attachment_count": 0,
+      "attachments": [],
+      "destination": "prassi",
+      "destination_label": "Prassi o notizia",
+      "exclusion_reason": "",
+      "external_id": "ff7fd07e00787312c957358c1f3152a8b98c17737c1fc1412cc896e66ed07bf2",
+      "guarded_publish": {
+        "destination": "news",
+        "published": true,
+        "review_id": 51
+      },
+      "normalized_document_id": 51,
+      "published_at": "2026-05-14",
+      "quality": {
+        "attachment_found": true,
+        "context_chars": 4014,
+        "ocr_status": "pulito",
+        "pdf_found": true,
+        "questions": 16,
+        "ready": true,
+        "references": 9,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare Messaggio numero 1618 del 14/05/2026?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_prassi_rag",
+      "reference_count": 6,
+      "reference_labels": [
+        "D.L. n. 137/2020",
+        "D.L. n. 73/2021",
+        "14/05/2026",
+        "2026",
+        "2020",
+        "2021"
+      ],
+      "review_id": 51,
+      "source_url": "https://www.inps.it/it/it/inps-comunica/atti/circolari-messaggi-e-normativa/dettaglio.circolari-e-messaggi.2026.05.messaggio-numero-1618-del-15-05-2026_15261.html",
+      "status": "invariato",
+      "title": "Messaggio numero 1618 del 14/05/2026"
+    },
+    {
+      "attachment_count": 0,
+      "attachments": [],
+      "destination": "prassi",
+      "destination_label": "Prassi o notizia",
+      "exclusion_reason": "",
+      "external_id": "9eabfaa97107063e6f569eaa9f679470b68373be4eed4f25c2ad1559ffdb91c8",
+      "guarded_publish": {
+        "published": false,
+        "reason": "testo tecnico grezzo non pubblicabile in UI",
+        "review_id": 52
+      },
+      "normalized_document_id": 52,
+      "published_at": "2026-05-05",
+      "quality": {
+        "attachment_found": false,
+        "context_chars": 3447,
+        "ocr_status": "non_richiesto",
+        "pdf_found": false,
+        "questions": 14,
+        "ready": true,
+        "references": 4,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare Messaggio numero 1511 del 05/05/2026?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_prassi_rag",
+      "reference_count": 2,
+      "reference_labels": [
+        "05/05/2026",
+        "2026"
+      ],
+      "review_id": 52,
+      "source_url": "https://www.inps.it/it/it/inps-comunica/atti/circolari-messaggi-e-normativa/dettaglio.circolari-e-messaggi.2026.05.messaggio-numero-1511-del-06-05-2026_15255.html",
+      "status": "invariato",
+      "title": "Messaggio numero 1511 del 05/05/2026"
+    },
+    {
+      "attachment_count": 0,
+      "attachments": [],
+      "destination": "prassi",
+      "destination_label": "Prassi o notizia",
+      "exclusion_reason": "",
+      "external_id": "8c56b2c4fc3ea003fa38345bca5b527b992b31d04297d55ac4293daa24be6731",
+      "guarded_publish": {
+        "destination": "news",
+        "published": true,
+        "review_id": 53
+      },
+      "normalized_document_id": 53,
+      "published_at": "2026-05-04",
+      "quality": {
+        "attachment_found": true,
+        "context_chars": 15734,
+        "ocr_status": "pulito",
+        "pdf_found": true,
+        "questions": 16,
+        "ready": true,
+        "references": 8,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare Messaggio numero 1493 del 04/05/2026?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_prassi_rag",
+      "reference_count": 9,
+      "reference_labels": [
+        "L. 27 dicembre 2006, n. 296",
+        "L. 30 dicembre 2025, n. 199",
+        "L. 30",
+        "04/05/2026",
+        "27 dicembre 2006",
+        "30 dicembre 2025",
+        "2026",
+        "2006"
+      ],
+      "review_id": 53,
+      "source_url": "https://www.inps.it/it/it/inps-comunica/atti/circolari-messaggi-e-normativa/dettaglio.circolari-e-messaggi.2026.05.messaggio-numero-1493-del-05-05-2026_15254.html",
+      "status": "invariato",
+      "title": "Messaggio numero 1493 del 04/05/2026"
+    }
+  ],
+  "limit": 3,
+  "max_seconds": 120,
+  "mode": "canary",
+  "no_publish": false,
+  "ok": true,
+  "processed": 0,
+  "publish_mode": "guarded",
+  "schema": "iusentra.legal_updates.canary.v1",
+  "skipped_unchanged": 3,
+  "source_code": "inps_messaggi",
+  "source_name": "INPS - messaggi",
+  "stopped_for_time_limit": false,
+  "verification_attachments_saved": 0,
+  "verification_evidence_saved": 0,
+  "web_verification_attempts": 0
+}

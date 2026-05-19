@@ -1,0 +1,278 @@
+{
+  "autopublished": {
+    "count": 0,
+    "items": [],
+    "mode": "guarded",
+    "published_items": [],
+    "skipped": [
+      {
+        "attachments_saved": 0,
+        "confirmations": 1,
+        "evidence_saved": 1,
+        "id": 34,
+        "reason": "Fonte ufficiale diretta acquisita, ma servono ulteriori conferme prima di trattare il riferimento come completato.",
+        "title": "Delibera n. 168 del 15 aprile 2026"
+      },
+      {
+        "attachments_saved": 0,
+        "confirmations": 1,
+        "evidence_saved": 1,
+        "id": 35,
+        "reason": "Fonte ufficiale diretta acquisita, ma servono ulteriori conferme prima di trattare il riferimento come completato.",
+        "title": "Parere di precontenzioso n. 161 del 6 maggio 2026"
+      },
+      {
+        "attachments_saved": 0,
+        "confirmations": 1,
+        "evidence_saved": 1,
+        "id": 50,
+        "reason": "Fonte ufficiale diretta acquisita, ma servono ulteriori conferme prima di trattare il riferimento come completato.",
+        "title": "Parere di precontenzioso n. 152 del 22 aprile 2026"
+      }
+    ],
+    "stopped_for_time_limit": false,
+    "verification_attachments_saved": 0,
+    "verification_evidence_saved": 3,
+    "web_verification_attempts": 3
+  },
+  "diagnostics_saved": true,
+  "direct_only": true,
+  "documents_found": 25,
+  "duration_seconds": 32.36,
+  "errors": [],
+  "items": [
+    {
+      "attachment_count": 0,
+      "attachments": [],
+      "destination": "prassi",
+      "destination_label": "Prassi o notizia",
+      "exclusion_reason": "",
+      "external_id": "c66bef427f898af6d5105d79ff7e24700e341eec3625da32c47d3be064f191df",
+      "guarded_publish": {
+        "published": false,
+        "reason": "Fonte ufficiale diretta acquisita, ma servono ulteriori conferme prima di trattare il riferimento come completato.",
+        "review_id": 34
+      },
+      "normalized_document_id": 34,
+      "published_at": "",
+      "quality": {
+        "attachment_found": false,
+        "context_chars": 1468,
+        "ocr_status": "non_richiesto",
+        "pdf_found": false,
+        "questions": 11,
+        "ready": true,
+        "references": 0,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare Delibera n. 168 del 15 aprile 2026?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_prassi_rag",
+      "reference_count": 5,
+      "reference_labels": [
+        "Delibera n. 168 del 15 aprile 2026",
+        "15 aprile 2026",
+        "12 mag 2026",
+        "2026",
+        "2025"
+      ],
+      "review_id": 34,
+      "source_url": "https://www.anticorruzione.it/-/delibera-n.-168-del-15-aprile-2026",
+      "status": "invariato",
+      "title": "Delibera n. 168 del 15 aprile 2026"
+    },
+    {
+      "attachment_count": 0,
+      "attachments": [],
+      "destination": "prassi",
+      "destination_label": "Prassi o notizia",
+      "exclusion_reason": "",
+      "external_id": "309afc532a02feeba016d07e33696fb19a52ae5114320d3d3c3d3a6f039bc93d",
+      "guarded_publish": {
+        "published": false,
+        "reason": "Fonte ufficiale diretta acquisita, ma servono ulteriori conferme prima di trattare il riferimento come completato.",
+        "review_id": 35
+      },
+      "normalized_document_id": 35,
+      "published_at": "",
+      "quality": {
+        "attachment_found": false,
+        "context_chars": 1165,
+        "ocr_status": "non_richiesto",
+        "pdf_found": false,
+        "questions": 13,
+        "ready": true,
+        "references": 2,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare Parere di precontenzioso n. 161 del 6 maggio 2026?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_prassi_rag",
+      "reference_count": 3,
+      "reference_labels": [
+        "6 maggio 2026",
+        "06 mag 2026",
+        "2026"
+      ],
+      "review_id": 35,
+      "source_url": "https://www.anticorruzione.it/-/parere-di-precontenzioso-n.-161-del-6-maggio-2026",
+      "status": "invariato",
+      "title": "Parere di precontenzioso n. 161 del 6 maggio 2026"
+    },
+    {
+      "attachment_count": 0,
+      "attachments": [],
+      "destination": "prassi",
+      "destination_label": "Prassi o notizia",
+      "exclusion_reason": "",
+      "external_id": "8c35eaa98477c24c548567ab6e3f7280daecf6e77df361261d7dcd7d57e44e1e",
+      "guarded_publish": {
+        "published": false,
+        "reason": "Fonte ufficiale diretta acquisita, ma servono ulteriori conferme prima di trattare il riferimento come completato.",
+        "review_id": 50
+      },
+      "normalized_document_id": 50,
+      "published_at": "",
+      "quality": {
+        "attachment_found": false,
+        "context_chars": 1229,
+        "ocr_status": "non_richiesto",
+        "pdf_found": false,
+        "questions": 13,
+        "ready": true,
+        "references": 4,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare Parere di precontenzioso n. 152 del 22 aprile 2026?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_prassi_rag",
+      "reference_count": 6,
+      "reference_labels": [
+        "art. 71",
+        "d.lgs. 36/2023",
+        "22 aprile 2026",
+        "22 apr 2026",
+        "2026",
+        "2023"
+      ],
+      "review_id": 50,
+      "source_url": "https://www.anticorruzione.it/-/parere-di-precontenzioso-n.-152-del-22-aprile-2026",
+      "status": "invariato",
+      "title": "Parere di precontenzioso n. 152 del 22 aprile 2026"
+    }
+  ],
+  "limit": 3,
+  "max_seconds": 120,
+  "mode": "canary",
+  "no_publish": false,
+  "ok": true,
+  "processed": 0,
+  "publish_mode": "guarded",
+  "schema": "iusentra.legal_updates.canary.v1",
+  "skipped_unchanged": 3,
+  "source_code": "anac_documenti",
+  "source_name": "ANAC - atti e documenti",
+  "stopped_for_time_limit": false,
+  "verification_attachments_saved": 0,
+  "verification_evidence_saved": 0,
+  "web_verification_attempts": 0
+}

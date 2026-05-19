@@ -1,0 +1,170 @@
+{
+  "autopublished": {
+    "count": 0,
+    "items": []
+  },
+  "diagnostics_saved": true,
+  "direct_only": true,
+  "documents_found": 30,
+  "duration_seconds": 35.37,
+  "errors": [],
+  "items": [
+    {
+      "attachment_count": 0,
+      "attachments": [],
+      "destination": "normativa",
+      "destination_label": "Normativa",
+      "exclusion_reason": "",
+      "external_id": "f0e44cfbddf0fed5194a26422add7d8af9581cb0924200ed5c539f4a20f484cd",
+      "normalized_document_id": 105,
+      "published_at": "",
+      "quality": {
+        "attachment_found": false,
+        "context_chars": 2852,
+        "ocr_status": "non_richiesto",
+        "pdf_found": false,
+        "questions": 13,
+        "ready": true,
+        "references": 11,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare Normattiva - Il portale della legge vigente?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_normative_rag",
+      "reference_count": 0,
+      "reference_labels": [],
+      "review_id": 105,
+      "source_url": "https://www.normattiva.it/",
+      "status": "analizzato",
+      "title": "Normattiva - Il portale della legge vigente",
+      "verification": {
+        "attachments": 0,
+        "attempted": 1,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "ok": true,
+        "reason": "Verifica pubblica completata con fonti coerenti.",
+        "saved": 1
+      }
+    },
+    {
+      "attachment_count": 0,
+      "attachments": [],
+      "destination": "normativa",
+      "destination_label": "Normativa",
+      "exclusion_reason": "",
+      "external_id": "686d8ac7d287539adfc8bb160b7acaf89707d5cc756e8577f17d3f8d39e3fc6f",
+      "normalized_document_id": 106,
+      "published_at": "",
+      "quality": {
+        "attachment_found": false,
+        "context_chars": 495,
+        "ocr_status": "non_richiesto",
+        "pdf_found": false,
+        "questions": 12,
+        "ready": true,
+        "references": 0,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare L'obiettivo?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_normative_rag",
+      "reference_count": 0,
+      "reference_labels": [],
+      "review_id": 106,
+      "source_url": "https://www.normattiva.it/staticPage/progettoObiettivo",
+      "status": "analizzato",
+      "title": "L'obiettivo",
+      "verification": {
+        "attachments": 0,
+        "attempted": 1,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "ok": true,
+        "reason": "Verifica pubblica completata con fonti coerenti.",
+        "saved": 1
+      }
+    }
+  ],
+  "limit": 2,
+  "max_seconds": 60,
+  "mode": "canary",
+  "no_publish": true,
+  "ok": true,
+  "processed": 2,
+  "publish_mode": "off",
+  "schema": "iusentra.legal_updates.canary.v1",
+  "skipped_unchanged": 0,
+  "source_code": "codice_procedura_penale",
+  "source_name": "Codice di procedura penale",
+  "stopped_for_time_limit": false,
+  "verification_attachments_saved": 0,
+  "verification_evidence_saved": 2,
+  "web_verification_attempts": 2
+}

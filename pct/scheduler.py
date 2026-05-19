@@ -511,7 +511,7 @@ def start_scheduler(app):
 
     @scheduler.scheduled_job(CronTrigger(hour=23, minute=15), id="legal_updates_batch")
     def _legal_updates_batch():
-        _run_legal_updates(list(LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES), "fase8_step1")
+        _run_legal_updates(list(LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES), "fase9_fonti_verdi")
 
     # ---- Sync tabelle normative giornaliero (ogni giorno alle 04:30) ----
     # Sincronizza tutte le tabelle (tassi, indici ISTAT, Cassa Forense, soglie appalti, ecc.)

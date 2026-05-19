@@ -154,24 +154,29 @@ iusentra aggiornamenti-legali --mirror-giurisprudenza-json
 Job pianificati:
 
 - Archivi Normattiva e Gazzetta: ore 23:00
-- Aggiornamenti legali step 1 progressivo: ore 23:15
+- Aggiornamenti legali fonti verdi progressive: ore 23:15
 - Agenti Lex operativi per inventario studio: ore 01:20
 
-Aggiornamento fase 8 del 19 maggio 2026: il vecchio batch completo non è più il percorso operativo. Lo scheduler degli aggiornamenti fonte lavora a budget basso e abilita solo le fonti verdi dello step 1:
+Aggiornamento fase 9 del 19 maggio 2026: il vecchio batch completo non è più il percorso operativo. Lo scheduler degli aggiornamenti fonte lavora a budget controllato e abilita solo fonti verdi o archivi/RAG no-publish governati:
 
 - `cassazione_ultime_sent_ord_questioni`;
+- `corte_conti`;
+- `curia_cgue_rss`;
 - `inps_circolari`;
 - `inps_messaggi`;
-- `agcom_provvedimenti`.
+- `agcom_provvedimenti`;
+- `anac_documenti`;
+- `garante_privacy`;
+- `gazzetta_ufficiale`.
 
-Budget iniziali governati:
+Budget governati:
 
-- `IUSENTRA_LEGAL_AUTOFETCH_SOURCE_BUDGET=2`;
+- `IUSENTRA_LEGAL_AUTOFETCH_SOURCE_BUDGET=3`;
 - `IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS=5`;
 - `IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS=120`;
 - `IUSENTRA_CASSAZIONE_LATEST_MAX_ITEMS=5`.
 
-La pubblicazione resta guarded: il job fonte acquisisce e registra l'esito, poi la coda pubblica al massimo cinque elementi idonei. ANAC e Garante restano in osservazione perché il guarded delle fasi 5-7 ha richiesto conferme ulteriori; Normattiva e Gazzetta restano presidiate dagli archivi ufficiali locali della fase 6, senza import massivo notturno.
+La pubblicazione resta guarded: il job fonte acquisisce e registra l'esito, poi la coda pubblica al massimo cinque elementi idonei. OpenGA, PST, Dati Normattiva, EUR-Lex e ISTAT restano RAG-only/no-publish; Normattiva e i codici fondamentali alimentano Ricerca Legale e Lex tramite archivi locali o canary diagnostici, non tramite batch fonte web massivo. Le fonti in osservazione restano escluse fino a canary/report verde dedicato.
 
 La fascia notturna evita carico operativo durante l'uso quotidiano e consente di pubblicare solo nuovi contenuti idonei prima dell'avvio della giornata di studio.
 

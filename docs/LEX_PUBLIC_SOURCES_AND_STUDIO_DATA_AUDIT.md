@@ -1023,3 +1023,9 @@ In `lex/retrieval/official_web.py`:
 | Confidence media senza testo integrale | Confidence cap in `exact_legal_reference_guard.py` | 5 |
 | Nessuna classificazione public/private scope | `source_scope_policy.py` | 2 |
 | Debug insufficiente | Aggiornamento `debug_payload_builder.py` | 12 |
+
+---
+
+## Aggiornamento Fase 9 fonti verdi - 19 maggio 2026
+
+Il popolamento fonti pubbliche è stato esteso solo al perimetro verde: Cassazione ultime, Corte dei conti, Curia CGUE, INPS circolari/messaggi, AGCOM, ANAC, Garante Privacy e Gazzetta Ufficiale. Le fonti in osservazione restano escluse; OpenGA, PST, Dati Normattiva, EUR-Lex e ISTAT sono RAG-only/no-publish; Normattiva e codici sono archivi locali. Esito operativo: 1533 documenti letti dal perimetro controllato, 33 processati, 14 pubblicati guarded, 11 scartati dal guarded, 17 PDF/OCR, 340 riferimenti e 740 domande contestuali nei report. Ricerca Legale e Lex leggono le evidenze, ma non pubblicano cataloghi tecnici come aggiornamenti giuridici.

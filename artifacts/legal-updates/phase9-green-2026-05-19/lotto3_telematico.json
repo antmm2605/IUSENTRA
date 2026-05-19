@@ -1,0 +1,28 @@
+{
+  "failed_sources": [],
+  "finished_at": "2026-05-19T14:07:21Z",
+  "lot": "lotto3_telematico",
+  "ok": true,
+  "schema": "iusentra.legal_updates.phase9.lot.v1",
+  "sources": [
+    {
+      "classification": "rag_only",
+      "documents_found": 1,
+      "duration_seconds": 0.48,
+      "errors": [],
+      "executed": true,
+      "limit": 2,
+      "ok": true,
+      "pdf_ocr_completed": 0,
+      "processed": 0,
+      "publication_policy": "no_publish",
+      "publish_mode": "off",
+      "published": 0,
+      "questions_completed": 13,
+      "reason": "Fonte tecnica PST: evidenza RAG telematica, non pubblicazione news.",
+      "references_completed": 0,
+      "skipped_unchanged": 1,
+      "source_code": "pst_giustizia_download"
+    }
+  ]
+}

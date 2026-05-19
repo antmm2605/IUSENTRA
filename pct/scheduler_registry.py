@@ -438,9 +438,9 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
         SchedulerTemplate("legal_monitor_pst", "Monitor PST", "Aggiornamenti legali", "Controlla aggiornamenti PST durante la giornata.", "cron", "6,12,18", "15", built_in=True),
         SchedulerTemplate(
             "legal_updates_batch",
-            "Aggiornamenti legali step 1",
+            "Aggiornamenti legali fonti verdi",
             "Aggiornamenti legali",
-            "Esegue solo le fonti verdi della fase 8 con budget basso e pubblicazione governata.",
+            "Esegue solo le fonti verdi della fase 9 con budget controllato e pubblicazione governata.",
             "cron",
             "23",
             "15",
@@ -512,7 +512,7 @@ def legal_source_scheduler_templates(config: dict[str, Any] | None = None) -> tu
                 },
                 criteria=(
                     "Esegue una sola fonte con timeout governato.",
-                    "Lo step 1 abilita solo le fonti verdi della fase 8.",
+                    "La fase 9 abilita solo fonti verdi o canali RAG governati.",
                     "Registra documenti trovati, lavorati e invariati.",
                     "Non accetta comandi liberi o sorgenti non censite.",
                 ),
@@ -671,7 +671,7 @@ class SchedulerRegistryRepository:
                 """
                 UPDATE scheduled_jobs
                 SET enabled=0,
-                    description='Disattivato dalla fase 8: la Gazzetta resta negli archivi ufficiali locali, fuori dallo scheduler progressivo.',
+                    description='Disattivato dalla fase 9: la Gazzetta resta negli archivi ufficiali locali, fuori dallo scheduler progressivo.',
                     updated_at=?,
                     updated_by='system'
                 WHERE job_id='legal_updates_gazzetta' AND built_in=1
@@ -1200,12 +1200,12 @@ def _run_legal_source_agent(app, args: dict[str, Any]) -> dict[str, Any]:
             reason = legal_update_progressive_exclusion_reason(source_code)
             return {
                 "ok": False,
-                "summary": f"{source.get('name')}: fonte non avviata nello step 1 progressivo.",
-                "self_check": "Da verificare: la fonte non è nel gruppo verde abilitato alla fase 8.",
+                "summary": f"{source.get('name')}: fonte non avviata nella fase 9 progressiva.",
+                "self_check": "Da verificare: la fonte non è nel gruppo verde abilitato alla fase 9.",
                 "supervisor_check": reason,
                 "criteria": [
                     "Fonte censita nel catalogo aggiornamenti legali.",
-                    "Scheduler progressivo limitato alle fonti verdi della fase 8.",
+                    "Scheduler progressivo limitato alle fonti verdi della fase 9.",
                     "Fonti fuori step bloccate fino a canary/report verde dedicato.",
                 ],
                 "details": [

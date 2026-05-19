@@ -57,13 +57,13 @@ def test_scheduler_registry_crea_agenti_fonte_legale_da_catalogo(tmp_path: Path)
     assert job["trigger_kind"] == "manual"
     assert job["args"]["kind"] == "legal_update_source_scan"
     assert job["args"]["source_code"] == "gazzetta_ufficiale"
-    assert job["enabled"] is False
+    assert job["enabled"] is True
     cassazione_step1 = repo.get_job("legal_source_cassazione_ultime_sent_ord_questioni")
     assert cassazione_step1 is not None
     assert cassazione_step1["enabled"] is True
     anac_job = repo.get_job("legal_source_anac_documenti")
     assert anac_job is not None
-    assert anac_job["enabled"] is False
+    assert anac_job["enabled"] is True
     ga_job = repo.get_job("legal_source_giustizia_amministrativa")
     assert ga_job is not None
     assert ga_job["enabled"] is False
@@ -90,15 +90,15 @@ def test_agente_fonte_fuori_step_progressivo_non_parte(tmp_path: Path):
         config = {"LEGAL_INTELLIGENCE_DB": str(tmp_path / "intelligence" / "motori.json")}
 
     result = run_delegated_agent_template(
-        "legal_source_scan__anac_documenti",
+        "legal_source_scan__inps_sentenze",
         App(),
-        {"source_code": "anac_documenti"},
+        {"source_code": "inps_sentenze"},
     )
 
     assert result["ok"] is False
-    assert "step 1 progressivo" in result["summary"]
+    assert "fase 9 progressiva" in result["summary"]
     assert result["details"][0]["status"] == "fuori_step_progressivo"
-    assert "conferme ulteriori" in result["details"][0]["reason"]
+    assert "osservazione" in result["details"][0]["reason"]
 
 
 def test_delegated_agent_autoverifica_percorso_mancante(tmp_path: Path):

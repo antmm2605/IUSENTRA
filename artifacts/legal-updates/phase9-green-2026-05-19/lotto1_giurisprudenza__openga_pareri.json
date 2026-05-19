@@ -1,0 +1,193 @@
+{
+  "autopublished": {
+    "count": 0,
+    "items": []
+  },
+  "diagnostics_saved": true,
+  "direct_only": true,
+  "documents_found": 24,
+  "duration_seconds": 11.07,
+  "errors": [],
+  "items": [
+    {
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "attachment_type": "",
+          "title": "CDS - Pareri - 2024",
+          "url": "https://openga.giustizia-amministrativa.it/dataset/35a6906c-241f-485f-80ef-522bd5e3770d/resource/a5c81332-821d-48b6-b003-bbd327090568/download/cds-pareri-2024.csv"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza se documentale, altrimenti solo RAG",
+      "exclusion_reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+      "external_id": "a213baba50d89e258edffd29f8c645ef0c4944d116eee8c7384d0130474c6e9d",
+      "normalized_document_id": 91,
+      "published_at": "",
+      "quality": {
+        "attachment_found": false,
+        "context_chars": 12000,
+        "ocr_status": "non_richiesto",
+        "pdf_found": false,
+        "questions": 14,
+        "ready": true,
+        "references": 4,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare CDS - Pareri - CDS - Pareri - 2024?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_open_data_rag",
+      "reference_count": 1,
+      "reference_labels": [
+        "2024"
+      ],
+      "review_id": 91,
+      "source_url": "https://openga.giustizia-amministrativa.it/dataset/35a6906c-241f-485f-80ef-522bd5e3770d/resource/a5c81332-821d-48b6-b003-bbd327090568/download/cds-pareri-2024.csv",
+      "status": "analizzato",
+      "title": "CDS - Pareri - CDS - Pareri - 2024",
+      "verification": {
+        "attachments": 0,
+        "attempted": 1,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "ok": true,
+        "reason": "Verifica pubblica completata con fonti coerenti.",
+        "saved": 1
+      }
+    },
+    {
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "attachment_type": "",
+          "title": "CDS - Pareri - 2024",
+          "url": "https://openga.giustizia-amministrativa.it/dataset/35a6906c-241f-485f-80ef-522bd5e3770d/resource/0d6464eb-14c7-4ffb-8af6-11b90833e6b3/download/cds-pareri-2024.json"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza se documentale, altrimenti solo RAG",
+      "exclusion_reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+      "external_id": "d38882e7af0cc8ed6e05fc10d49cf2aab6630aa5b8de0722c6ff84b30da947a5",
+      "normalized_document_id": 92,
+      "published_at": "",
+      "quality": {
+        "attachment_found": false,
+        "context_chars": 12000,
+        "ocr_status": "non_richiesto",
+        "pdf_found": false,
+        "questions": 14,
+        "ready": true,
+        "references": 3,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare CDS - Pareri - CDS - Pareri - 2024?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_open_data_rag",
+      "reference_count": 24,
+      "reference_labels": [
+        "ART. 117",
+        "D.M. 495",
+        "D.LGS. 12 LUGLIO 2010 N. 104",
+        "DECRETO 484605",
+        "DECRETO N. 826",
+        "DELIBERA N. 71",
+        "ORDINANZA N. 2037",
+        "DELIBERA 31"
+      ],
+      "review_id": 92,
+      "source_url": "https://openga.giustizia-amministrativa.it/dataset/35a6906c-241f-485f-80ef-522bd5e3770d/resource/0d6464eb-14c7-4ffb-8af6-11b90833e6b3/download/cds-pareri-2024.json",
+      "status": "analizzato",
+      "title": "CDS - Pareri - CDS - Pareri - 2024",
+      "verification": {
+        "attachments": 0,
+        "attempted": 1,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "ok": false,
+        "reason": "Fonte ufficiale diretta acquisita, ma servono ulteriori conferme prima di trattare il riferimento come completato.",
+        "saved": 1
+      }
+    }
+  ],
+  "limit": 2,
+  "max_seconds": 120,
+  "mode": "canary",
+  "no_publish": true,
+  "ok": true,
+  "processed": 2,
+  "publish_mode": "off",
+  "schema": "iusentra.legal_updates.canary.v1",
+  "skipped_unchanged": 0,
+  "source_code": "openga_pareri",
+  "source_name": "OpenGA - Pareri",
+  "stopped_for_time_limit": false,
+  "verification_attachments_saved": 0,
+  "verification_evidence_saved": 2,
+  "web_verification_attempts": 2
+}

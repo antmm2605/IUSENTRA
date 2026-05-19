@@ -1,10 +1,32 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-19, Fase 8 scheduler progressivo 2.245.49, Fase 7 backfill mirato PDF/OCR/riferimenti/domande 2.245.48, Fase 6 normativa e archivi base 2.245.47, Fase 5 fonti verdi Aggiornamenti legali 2.245.46, strumenti sicuri canary/backfill Aggiornamenti legali 2.245.42, capability registry/parser fixture Aggiornamenti legali 2.245.41, collegamento Lex/Ricerca Legale per Corte Costituzionale n. 50/2026, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
+Aggiornato: 2026-05-19, Fase 9 fonti verdi estese 2.245.50, Fase 8 scheduler progressivo 2.245.49, Fase 7 backfill mirato PDF/OCR/riferimenti/domande 2.245.48, Fase 6 normativa e archivi base 2.245.47, Fase 5 fonti verdi Aggiornamenti legali 2.245.46, strumenti sicuri canary/backfill Aggiornamenti legali 2.245.42, capability registry/parser fixture Aggiornamenti legali 2.245.41, collegamento Lex/Ricerca Legale per Corte Costituzionale n. 50/2026, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
+
+## Update Intelligence Fase 9 fonti verdi estese 2.245.50 - 2026-05-19
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\legal_update_autofetch.py pct\scheduler.py pct\scheduler_registry.py web\services\legal_update_surface.py pct\legal_update_batch_runner.py pct\legal_update_source_parsers.py` | OK | Sintassi confermata dopo estensione fonti verdi, UTF-8 esplicito nel batch runner e guardia `ParserError` HTML. |
+| `python -m pytest tests/test_legal_update_autofetch.py tests/test_legal_update_surface_jobs.py tests/test_scheduler_registry.py -q --tb=short` | OK | 15/15 passati: scheduler fase 9, budget 3, fonti verdi/RAG-only/osservazione e agenti fuori perimetro governati. |
+| `python -m pytest tests/test_legal_update_source_parsers.py tests/test_legal_update_web_verification_attachments.py -q --tb=short` | OK | 34/34 passati dopo lotto 1. |
+| `python -m pytest tests/test_lex_source_corpus_generator.py tests/test_react_legal_intelligence_search.py tests/test_giurisprudenza.py -q --tb=short` | OK | 48/48 passati: corpus Lex, Ricerca Legale e Archivio Giurisprudenza compatibili con il lotto giurisprudenza. |
+| `python -m pytest tests/test_legal_update_publish_context.py tests/test_legal_update_web_verification_attachments.py tests/test_document_intelligence_extraction.py -q --tb=short` | OK | 39/39 passati dopo lotto 2. |
+| `python -m pytest tests/test_legal_update_batch_runner.py -q --tb=short` | OK | 8/8 passati: stdout subprocess decodificato UTF-8 senza mojibake nei report. |
+| `python -m pytest tests/test_legal_update_source_capabilities.py tests/test_legal_update_safe_diagnostics.py tests/test_legal_update_job_queue.py -q --tb=short` | OK | 20/20 passati dopo lotto 3. |
+| `python -m pytest tests/test_legal_update_source_parsers.py -q --tb=short` | OK | 21/21 passati: EUR-Lex pagina vuota resta diagnostica RAG-only e non blocca il lotto. |
+| `python -m pytest tests/test_legal_update_source_parsers.py tests/test_legal_update_source_capabilities.py tests/test_legal_update_publish_context.py -q --tb=short` | OK | 44/44 passati dopo lotto 4. |
+| `python -m pytest tests/test_legal_updates_pipeline.py -q --tb=short` | OK | 41/41 passati come gate finale Fase 9. |
+| `python -m pytest tests/test_legal_update_publish_context.py tests/test_legal_update_web_verification_attachments.py tests/test_document_intelligence_extraction.py -q --tb=short` | OK | 39/39 passati come gate finale pubblicazione/allegati/intelligence. |
+| `python -m pytest tests/test_lex_source_corpus_generator.py tests/test_lex_operational_knowledge.py tests/test_react_legal_intelligence_search.py tests/test_giurisprudenza.py -q --tb=short` | OK | Blocco Lex/Ricerca Legale/Archivio Giurisprudenza passato come gate finale. |
+| `python -m pytest tests/test_legal_update_autofetch.py tests/test_legal_update_surface_jobs.py tests/test_legal_update_job_queue.py tests/test_legal_update_batch_runner.py -q --tb=short` | OK | 20/20 passati come gate finale scheduler/autofetch/job queue/batch. |
+| `python tools/check_repo_governance.py` | OK | Governance check OK, `web/app.py` resta a 40 righe e 0 route inline. |
+| `python -m pytest tests/test_utf8_integrity.py -q --tb=short` | OK | 4/4 passati. |
+| `git diff --check` | OK | Nessun errore whitespace; avviso CRLF/LF solo su file runtime preesistente non committato. |
+| `python -m pytest tests/test_scheduler_registry.py tests/test_legal_update_source_parsers.py -q --tb=short` | OK | 29/29 passati come micro-gate sui file toccati fuori dalla lista finale. |
 
 ## Update Intelligence Fase 8 scheduler progressivo 2.245.49 - 2026-05-19
 

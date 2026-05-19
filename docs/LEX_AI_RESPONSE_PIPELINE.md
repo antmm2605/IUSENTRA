@@ -702,3 +702,13 @@ Regola da riusare sugli altri documenti:
   sintesi, norme, eventuale web libero, limiti e test ripetibili;
 - solo dopo questa chiusura si estende la stessa logica al generatore corpus e
   agli altri documenti.
+
+## Aggiornamento Fase 9 fonti verdi - 19 maggio 2026
+
+La fase 9 estende il popolamento controllato solo alle fonti verdi e lascia fuori pubblicazione fonti RAG-only, archivi locali e fonti in osservazione. Per Lex questo significa:
+
+- i 14 nuovi contenuti pubblicati guarded entrano nel repository aggiornamenti legali e sono ricercabili come fonti ufficiali;
+- OpenGA, PST, Dati Normattiva, EUR-Lex e ISTAT restano evidenze RAG/no-publish, quindi non vanno presentate come news;
+- Normattiva e codici fondamentali alimentano risposte normative tramite archivi locali e riferimenti, non tramite import massivo web;
+- i report Fase 9 registrano 17 PDF/OCR completati, 340 riferimenti e 740 domande contestuali, da usare come contesto citabile quando la fonte è pertinente;
+- Archivio Giurisprudenza resta senza nuove schede strutturate finché una fonte giurisprudenziale non espone corte, numero e anno completi.

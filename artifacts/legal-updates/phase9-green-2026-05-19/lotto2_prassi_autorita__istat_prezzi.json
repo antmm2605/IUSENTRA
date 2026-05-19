@@ -1,0 +1,197 @@
+{
+  "autopublished": {
+    "count": 0,
+    "items": []
+  },
+  "diagnostics_saved": true,
+  "direct_only": true,
+  "documents_found": 10,
+  "duration_seconds": 6.18,
+  "errors": [],
+  "items": [
+    {
+      "attachment_count": 0,
+      "attachments": [],
+      "destination": "RAG-only",
+      "destination_label": "Prassi o solo RAG",
+      "exclusion_reason": "",
+      "external_id": "041b72b8979b2818b5585f46a684810733a968b31c3881e58cd75c209208b5dd",
+      "normalized_document_id": 93,
+      "published_at": "2026-05-18",
+      "quality": {
+        "attachment_found": false,
+        "context_chars": 112,
+        "ocr_status": "non_richiesto",
+        "pdf_found": false,
+        "questions": 11,
+        "ready": true,
+        "references": 0,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare #IstatNewsletter?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_data_rag",
+      "reference_count": 2,
+      "reference_labels": [
+        "19 del 2026",
+        "2026"
+      ],
+      "review_id": 93,
+      "source_url": "https://www.istat.it/newsletter/online-istatnewsletter-la-newsletter-dellistat/",
+      "status": "analizzato",
+      "title": "#IstatNewsletter",
+      "verification": {
+        "attachments": 0,
+        "attempted": 1,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "ok": true,
+        "reason": "Verifica pubblica completata con fonti coerenti.",
+        "saved": 1
+      }
+    },
+    {
+      "attachment_count": 4,
+      "attachments": [
+        {
+          "attachment_type": "pdf",
+          "title": "Testo integrale e nota metodologica",
+          "url": "https://www.istat.it/wp-content/uploads/2026/05/Commercio-con-lestero-e-prezzi-allimport_32026.pdf"
+        },
+        {
+          "attachment_type": "pdf",
+          "title": "Elenco tavole Geoateco",
+          "url": "https://www.istat.it/wp-content/uploads/2026/05/Elenco_tavole_Geoateco.pdf"
+        },
+        {
+          "attachment_type": "pdf",
+          "title": "Nota informativa - nuova base di calcolo",
+          "url": "https://www.istat.it/wp-content/uploads/2026/03/NotaInformativa_PREIMP_20-marzo_2026-1.pdf"
+        },
+        {
+          "attachment_type": "pdf",
+          "title": "Nota informativa - nuova metodologia di stima delle importazioni intra UE",
+          "url": "https://www.istat.it/wp-content/uploads/2026/03/NotaInformativa_Import_Intra_Ue_20_marzo_2026.pdf"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Prassi o solo RAG",
+      "exclusion_reason": "",
+      "external_id": "809b82bd540bf9b68f47fa280c2d131db09a10e2438f347688e55e34badf2030",
+      "normalized_document_id": 94,
+      "published_at": "2026-05-18",
+      "quality": {
+        "attachment_found": false,
+        "context_chars": 3714,
+        "ocr_status": "non_richiesto",
+        "pdf_found": false,
+        "questions": 12,
+        "ready": true,
+        "references": 0,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare Commercio con l’estero e prezzi all’import – Marzo 2026?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_data_rag",
+      "reference_count": 2,
+      "reference_labels": [
+        "2026",
+        "2025"
+      ],
+      "review_id": 94,
+      "source_url": "https://www.istat.it/comunicato-stampa/commercio-con-lestero-e-prezzi-allimport-marzo-2026/",
+      "status": "analizzato",
+      "title": "Commercio con l’estero e prezzi all’import – Marzo 2026",
+      "verification": {
+        "attachments": 0,
+        "attempted": 1,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "ok": true,
+        "reason": "Verifica pubblica completata con fonti coerenti.",
+        "saved": 1
+      }
+    }
+  ],
+  "limit": 2,
+  "max_seconds": 120,
+  "mode": "canary",
+  "no_publish": true,
+  "ok": true,
+  "processed": 2,
+  "publish_mode": "off",
+  "schema": "iusentra.legal_updates.canary.v1",
+  "skipped_unchanged": 0,
+  "source_code": "istat_prezzi",
+  "source_name": "ISTAT - prezzi e rivalutazioni",
+  "stopped_for_time_limit": false,
+  "verification_attachments_saved": 0,
+  "verification_evidence_saved": 2,
+  "web_verification_attempts": 2
+}

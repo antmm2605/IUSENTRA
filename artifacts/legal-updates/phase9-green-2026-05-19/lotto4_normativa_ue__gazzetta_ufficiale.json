@@ -1,0 +1,283 @@
+{
+  "autopublished": {
+    "count": 1,
+    "items": [
+      40
+    ],
+    "mode": "guarded",
+    "published_items": [
+      {
+        "destination": "news",
+        "id": 40,
+        "quality": {
+          "attachment_found": true,
+          "context_chars": 459549,
+          "ocr_status": "pulito",
+          "pdf_found": true,
+          "questions": 15,
+          "ready": true,
+          "references": 13,
+          "status": "pronto",
+          "text_read": true,
+          "warnings": []
+        },
+        "source_code": "gazzetta_ufficiale",
+        "title": "Gazzetta Ufficiale - Serie Generale n. 113 del 18/05/2026"
+      }
+    ],
+    "skipped": [],
+    "stopped_for_time_limit": true,
+    "verification_attachments_saved": 1,
+    "verification_evidence_saved": 2,
+    "web_verification_attempts": 1
+  },
+  "diagnostics_saved": true,
+  "direct_only": true,
+  "documents_found": 23,
+  "duration_seconds": 106.73,
+  "errors": [],
+  "items": [
+    {
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "attachment_type": "pdf",
+          "title": "Download PDF",
+          "url": "https://www.gazzettaufficiale.it/do/gazzetta/downloadPdf?dataPubblicazioneGazzetta=20260518&numeroGazzetta=113&tipoSerie=SG&tipoSupplemento=GU&numeroSupplemento=0&progressivo=0&estensione=pdf&edizione=0"
+        }
+      ],
+      "destination": "normativa",
+      "destination_label": "Normativa o notizia",
+      "exclusion_reason": "",
+      "external_id": "af40c755e4f12c3f6c097e2ba077b1df5b13432d75c7cac0542ab6019fa52e74",
+      "guarded_publish": {
+        "destination": "news",
+        "published": true,
+        "review_id": 40
+      },
+      "normalized_document_id": 40,
+      "published_at": "2026-05-18",
+      "quality": {
+        "attachment_found": true,
+        "context_chars": 459549,
+        "ocr_status": "pulito",
+        "pdf_found": true,
+        "questions": 15,
+        "ready": true,
+        "references": 13,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare Gazzetta Ufficiale - Serie Generale n. 113 del 18/05/2026?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_rag",
+      "reference_count": 2,
+      "reference_labels": [
+        "18/05/2026",
+        "2026"
+      ],
+      "review_id": 40,
+      "source_url": "https://www.gazzettaufficiale.it/gazzetta/serie_generale/caricaDettaglio?dataPubblicazioneGazzetta=2026-05-18&numeroGazzetta=113&elenco30giorni=true",
+      "status": "invariato",
+      "title": "Gazzetta Ufficiale - Serie Generale n. 113 del 18/05/2026"
+    },
+    {
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "attachment_type": "pdf",
+          "title": "Download PDF",
+          "url": "https://www.gazzettaufficiale.it/do/gazzetta/downloadPdf?dataPubblicazioneGazzetta=20260516&numeroGazzetta=112&tipoSerie=SG&tipoSupplemento=GU&numeroSupplemento=0&progressivo=0&estensione=pdf&edizione=0"
+        }
+      ],
+      "destination": "normativa",
+      "destination_label": "Normativa o notizia",
+      "exclusion_reason": "",
+      "external_id": "9530bb16769b44990693099eb7a3360b55ae6fa05f46df387dba9a135d27dcf6",
+      "normalized_document_id": 41,
+      "published_at": "2026-05-16",
+      "quality": {
+        "attachment_found": true,
+        "context_chars": 314180,
+        "ocr_status": "pulito",
+        "pdf_found": true,
+        "questions": 15,
+        "ready": true,
+        "references": 10,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare Gazzetta Ufficiale - Serie Generale n. 112 del 16/05/2026?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_rag",
+      "reference_count": 2,
+      "reference_labels": [
+        "16/05/2026",
+        "2026"
+      ],
+      "review_id": 41,
+      "source_url": "https://www.gazzettaufficiale.it/gazzetta/serie_generale/caricaDettaglio?dataPubblicazioneGazzetta=2026-05-16&numeroGazzetta=112&elenco30giorni=true",
+      "status": "invariato",
+      "title": "Gazzetta Ufficiale - Serie Generale n. 112 del 16/05/2026"
+    },
+    {
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "attachment_type": "pdf",
+          "title": "Download PDF",
+          "url": "https://www.gazzettaufficiale.it/do/gazzetta/downloadPdf?dataPubblicazioneGazzetta=20260515&numeroGazzetta=111&tipoSerie=SG&tipoSupplemento=SO&numeroSupplemento=19&progressivo=0&estensione=pdf&edizione=0"
+        }
+      ],
+      "destination": "normativa",
+      "destination_label": "Normativa o notizia",
+      "exclusion_reason": "",
+      "external_id": "d2a558ab08e693b3e12e03c13ddc1c76d0f31db2ef83319b5f099ca9c1e867c4",
+      "normalized_document_id": 95,
+      "published_at": "2026-05-15",
+      "quality": {
+        "attachment_found": true,
+        "context_chars": 2402654,
+        "ocr_status": "pulito",
+        "pdf_found": true,
+        "questions": 15,
+        "ready": true,
+        "references": 20,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare Gazzetta Ufficiale - Serie Generale n. 111 del 15/05/2026 (SO n. 19)?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_rag",
+      "reference_count": 2,
+      "reference_labels": [
+        "15/05/2026",
+        "2026"
+      ],
+      "review_id": 95,
+      "source_url": "https://www.gazzettaufficiale.it/gazzetta/serie_generale/caricaDettaglio?dataPubblicazioneGazzetta=2026-05-15&numeroGazzetta=111&elenco30giorni=true",
+      "status": "analizzato",
+      "title": "Gazzetta Ufficiale - Serie Generale n. 111 del 15/05/2026 (SO n. 19)",
+      "verification": {
+        "attachments": 1,
+        "attempted": 1,
+        "confirmations": 2,
+        "official_confirmations": 2,
+        "ok": true,
+        "reason": "Verifica pubblica completata con fonti coerenti.",
+        "saved": 2
+      }
+    }
+  ],
+  "limit": 3,
+  "max_seconds": 90,
+  "mode": "canary",
+  "no_publish": false,
+  "ok": true,
+  "processed": 1,
+  "publish_mode": "guarded",
+  "schema": "iusentra.legal_updates.canary.v1",
+  "skipped_unchanged": 2,
+  "source_code": "gazzetta_ufficiale",
+  "source_name": "Gazzetta Ufficiale",
+  "stopped_for_time_limit": false,
+  "verification_attachments_saved": 1,
+  "verification_evidence_saved": 2,
+  "web_verification_attempts": 1
+}

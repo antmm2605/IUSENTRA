@@ -1,0 +1,193 @@
+{
+  "autopublished": {
+    "count": 0,
+    "items": []
+  },
+  "diagnostics_saved": true,
+  "direct_only": true,
+  "documents_found": 370,
+  "duration_seconds": 20.95,
+  "errors": [],
+  "items": [
+    {
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "attachment_type": "",
+          "title": "CDS - Decreti - 2025",
+          "url": "https://openga.giustizia-amministrativa.it/dataset/44db5793-aeac-429c-9d43-8fb8d27badfa/resource/bb70457e-7455-4e6c-b15f-577695fd2cf8/download/cds-decreti-2025.csv"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza se documentale, altrimenti solo RAG",
+      "exclusion_reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+      "external_id": "ae72b2fa8f41b0da2a62eb52424fda2304782eeed2b0fd39bd8c0bf39edff48b",
+      "normalized_document_id": 89,
+      "published_at": "",
+      "quality": {
+        "attachment_found": false,
+        "context_chars": 12000,
+        "ocr_status": "non_richiesto",
+        "pdf_found": false,
+        "questions": 14,
+        "ready": true,
+        "references": 4,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare CDS - Decreti - CDS - Decreti - 2025?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_open_data_rag",
+      "reference_count": 1,
+      "reference_labels": [
+        "2025"
+      ],
+      "review_id": 89,
+      "source_url": "https://openga.giustizia-amministrativa.it/dataset/44db5793-aeac-429c-9d43-8fb8d27badfa/resource/bb70457e-7455-4e6c-b15f-577695fd2cf8/download/cds-decreti-2025.csv",
+      "status": "analizzato",
+      "title": "CDS - Decreti - CDS - Decreti - 2025",
+      "verification": {
+        "attachments": 0,
+        "attempted": 1,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "ok": true,
+        "reason": "Verifica pubblica completata con fonti coerenti.",
+        "saved": 1
+      }
+    },
+    {
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "attachment_type": "",
+          "title": "CDS - Decreti - 2025",
+          "url": "https://openga.giustizia-amministrativa.it/dataset/44db5793-aeac-429c-9d43-8fb8d27badfa/resource/e2d1ee76-df51-4a93-9e71-7546291c3201/download/cds-decreti-2025.json"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza se documentale, altrimenti solo RAG",
+      "exclusion_reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+      "external_id": "dd6ae7dbfdd0f16d52bd16cb1660fe1cc07a69c078ebb2c33741a00078695573",
+      "normalized_document_id": 90,
+      "published_at": "",
+      "quality": {
+        "attachment_found": false,
+        "context_chars": 12000,
+        "ocr_status": "non_richiesto",
+        "pdf_found": false,
+        "questions": 14,
+        "ready": true,
+        "references": 4,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare CDS - Decreti - CDS - Decreti - 2025?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_open_data_rag",
+      "reference_count": 22,
+      "reference_labels": [
+        "ART. 42BIS",
+        "ART. 41",
+        "ART. 42",
+        "DPR 327",
+        "CONSIGLIO DI STATO",
+        "TAR LAZIO",
+        "TAR PUGLIA",
+        "SENTENZA 12474"
+      ],
+      "review_id": 90,
+      "source_url": "https://openga.giustizia-amministrativa.it/dataset/44db5793-aeac-429c-9d43-8fb8d27badfa/resource/e2d1ee76-df51-4a93-9e71-7546291c3201/download/cds-decreti-2025.json",
+      "status": "analizzato",
+      "title": "CDS - Decreti - CDS - Decreti - 2025",
+      "verification": {
+        "attachments": 0,
+        "attempted": 1,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "ok": false,
+        "reason": "Fonte ufficiale diretta acquisita, ma servono ulteriori conferme prima di trattare il riferimento come completato.",
+        "saved": 1
+      }
+    }
+  ],
+  "limit": 2,
+  "max_seconds": 120,
+  "mode": "canary",
+  "no_publish": true,
+  "ok": true,
+  "processed": 2,
+  "publish_mode": "off",
+  "schema": "iusentra.legal_updates.canary.v1",
+  "skipped_unchanged": 0,
+  "source_code": "openga_decreti",
+  "source_name": "OpenGA - Decreti",
+  "stopped_for_time_limit": false,
+  "verification_attachments_saved": 0,
+  "verification_evidence_saved": 2,
+  "web_verification_attempts": 2
+}

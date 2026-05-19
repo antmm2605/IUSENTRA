@@ -1,0 +1,324 @@
+{
+  "autopublished": {
+    "count": 2,
+    "items": [
+      31,
+      32
+    ],
+    "mode": "guarded",
+    "published_items": [
+      {
+        "destination": "news",
+        "id": 31,
+        "quality": {
+          "attachment_found": true,
+          "context_chars": 10012,
+          "ocr_status": "pulito",
+          "pdf_found": true,
+          "questions": 16,
+          "ready": true,
+          "references": 20,
+          "status": "pronto",
+          "text_read": true,
+          "warnings": []
+        },
+        "source_code": "agcom_provvedimenti",
+        "title": "Delibera 28/26/CSP"
+      },
+      {
+        "destination": "news",
+        "id": 32,
+        "quality": {
+          "attachment_found": true,
+          "context_chars": 25836,
+          "ocr_status": "pulito",
+          "pdf_found": true,
+          "questions": 16,
+          "ready": true,
+          "references": 8,
+          "status": "pronto",
+          "text_read": true,
+          "warnings": []
+        },
+        "source_code": "agcom_provvedimenti",
+        "title": "Delibera 102/26/CONS"
+      }
+    ],
+    "skipped": [
+      {
+        "id": 33,
+        "reason": "duplicato già pubblicato",
+        "title": "Determina 9/26/DTC/CP"
+      }
+    ],
+    "stopped_for_time_limit": false,
+    "verification_attachments_saved": 3,
+    "verification_evidence_saved": 5,
+    "web_verification_attempts": 2
+  },
+  "diagnostics_saved": true,
+  "direct_only": true,
+  "documents_found": 30,
+  "duration_seconds": 10.51,
+  "errors": [],
+  "items": [
+    {
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "attachment_type": "pdf",
+          "title": "Documento Principale",
+          "url": "https://www.agcom.it/sites/default/files/provvedimenti/delibera/2026/DDA_14932_Delibera_Archiviazione_omissis.pdf"
+        }
+      ],
+      "destination": "prassi",
+      "destination_label": "Prassi, notizia o RAG",
+      "exclusion_reason": "",
+      "external_id": "e9f0f896e9100b2f6fd4e2b3e2b0ce0c9f3a1e6c1a57da126213cbede72cc7c0",
+      "guarded_publish": {
+        "destination": "news",
+        "published": true,
+        "review_id": 31
+      },
+      "normalized_document_id": 31,
+      "published_at": "2026-05-13",
+      "quality": {
+        "attachment_found": true,
+        "context_chars": 10012,
+        "ocr_status": "pulito",
+        "pdf_found": true,
+        "questions": 16,
+        "ready": true,
+        "references": 20,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare Delibera 28/26/CSP?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_prassi_rag",
+      "reference_count": 5,
+      "reference_labels": [
+        "Delibera 28/26",
+        "delibera n. 680/13",
+        "13/05/2026",
+        "29/04/2026",
+        "2026"
+      ],
+      "review_id": 31,
+      "source_url": "https://www.agcom.it/provvedimenti/delibera-28-26-csp",
+      "status": "invariato",
+      "title": "Delibera 28/26/CSP"
+    },
+    {
+      "attachment_count": 2,
+      "attachments": [
+        {
+          "attachment_type": "pdf",
+          "title": "Documento Principale",
+          "url": "https://www.agcom.it/sites/default/files/provvedimenti/delibera/2026/102_26_CONS.pdf"
+        },
+        {
+          "attachment_type": "pdf",
+          "title": "Allegato AProvvedimento recante le disposizioni attuative dell’articolo 33 del d. lgs. 8 novembre 2021, n. 208 relative alla lista degli eventi di particolare rilevanza per la società di cui è assicurata la diffusione su palinsesti in chiaro",
+          "url": "https://www.agcom.it/sites/default/files/media/allegato/2026/All.%20A%20del.%20n.%20102_26_CONS.pdf"
+        }
+      ],
+      "destination": "prassi",
+      "destination_label": "Prassi, notizia o RAG",
+      "exclusion_reason": "",
+      "external_id": "156b13ac66b58b9a3c09e06650e256aa22e9a1a905cfcb3e06b3dc322cc64d7c",
+      "guarded_publish": {
+        "destination": "news",
+        "published": true,
+        "review_id": 32
+      },
+      "normalized_document_id": 32,
+      "published_at": "2026-05-11",
+      "quality": {
+        "attachment_found": true,
+        "context_chars": 25836,
+        "ocr_status": "pulito",
+        "pdf_found": true,
+        "questions": 16,
+        "ready": true,
+        "references": 8,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare Delibera 102/26/CONS?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_prassi_rag",
+      "reference_count": 12,
+      "reference_labels": [
+        "d.lgs. 8 novembre 2021, n. 208",
+        "d. lgs. 8 novembre 2021, n. 208",
+        "Delibera 102/26",
+        "delibera n. 326/25",
+        "Delibera 131/12",
+        "11/05/2026",
+        "8 novembre 2021",
+        "29/04/2026"
+      ],
+      "review_id": 32,
+      "source_url": "https://www.agcom.it/provvedimenti/delibera-102-26-cons",
+      "status": "invariato",
+      "title": "Delibera 102/26/CONS"
+    },
+    {
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "attachment_type": "pdf",
+          "title": "Documento Principale",
+          "url": "https://www.agcom.it/sites/default/files/provvedimenti/determina/2026/Determina%209-26-dtc-cp.pdf"
+        }
+      ],
+      "destination": "prassi",
+      "destination_label": "Prassi, notizia o RAG",
+      "exclusion_reason": "",
+      "external_id": "337bbee0f9e0ad069ca2d4027a753c03a3b410ab888c5c88e20eb7433178863c",
+      "guarded_publish": {
+        "published": false,
+        "reason": "duplicato già pubblicato",
+        "review_id": 33
+      },
+      "normalized_document_id": 33,
+      "published_at": "2026-05-08",
+      "quality": {
+        "attachment_found": true,
+        "context_chars": 9273,
+        "ocr_status": "pulito",
+        "pdf_found": true,
+        "questions": 16,
+        "ready": true,
+        "references": 10,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare Determina 9/26/DTC/CP?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_prassi_rag",
+      "reference_count": 3,
+      "reference_labels": [
+        "08/05/2026",
+        "27/04/2026",
+        "2026"
+      ],
+      "review_id": 33,
+      "source_url": "https://www.agcom.it/provvedimenti/determina-9-26-dtc-cp",
+      "status": "invariato",
+      "title": "Determina 9/26/DTC/CP"
+    }
+  ],
+  "limit": 3,
+  "max_seconds": 120,
+  "mode": "canary",
+  "no_publish": false,
+  "ok": true,
+  "processed": 0,
+  "publish_mode": "guarded",
+  "schema": "iusentra.legal_updates.canary.v1",
+  "skipped_unchanged": 3,
+  "source_code": "agcom_provvedimenti",
+  "source_name": "AGCOM - atti e provvedimenti",
+  "stopped_for_time_limit": false,
+  "verification_attachments_saved": 0,
+  "verification_evidence_saved": 0,
+  "web_verification_attempts": 0
+}

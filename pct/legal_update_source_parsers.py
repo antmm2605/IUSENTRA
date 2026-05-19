@@ -10,6 +10,7 @@ from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 import xml.etree.ElementTree as ET
 
 from lxml import html as lxml_html
+from lxml.etree import ParserError
 
 from pct.legal_update_source_capabilities import (
     get_source_capability,
@@ -300,7 +301,7 @@ def _clean_feed_title(source: dict[str, Any], value: Any) -> str:
 def _extract_html_listing(source: dict[str, Any], base_url: str, content: str) -> list[dict[str, Any]]:
     try:
         tree = lxml_html.fromstring(content)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, ParserError):
         return []
     docs: list[dict[str, Any]] = []
     for node in tree.xpath("//article|//li|//div[contains(@class,'card')]|//div[contains(@class,'item')]"):
@@ -381,7 +382,7 @@ def _extract_html_listing(source: dict[str, Any], base_url: str, content: str) -
 def _extract_gazzetta_items(source: dict[str, Any], base_url: str, content: str) -> list[dict[str, Any]]:
     try:
         tree = lxml_html.fromstring(content)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, ParserError):
         return []
     rows_by_key: dict[str, dict[str, Any]] = {}
     for anchor in tree.xpath("//a[@href]"):
@@ -791,7 +792,7 @@ def _is_generic_link_title(value: Any) -> bool:
 def _detail_title_from_html(html_text: str) -> str:
     try:
         tree = lxml_html.fromstring(html_text)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, ParserError):
         return ""
     for selector in ("//main//h1", "//article//h1", "//h1", "//main//h2", "//article//h2", "//title"):
         values = [_clean_spaces(node.text_content()) for node in tree.xpath(selector)]
@@ -824,7 +825,7 @@ def _detail_title_from_attachments(payload: Any) -> str:
 def _text_from_html_content(content: str) -> str:
     try:
         tree = lxml_html.fromstring(content)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, ParserError):
         return _clean_spaces(content)
     for node in tree.xpath("//script|//style|//noscript|//nav|//header|//footer|//form"):
         try:
@@ -839,7 +840,7 @@ def _text_from_html_content(content: str) -> str:
 def _attachment_links(html_text: str, base_url: str) -> list[dict[str, str]]:
     try:
         tree = lxml_html.fromstring(html_text)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, ParserError):
         return []
     rows: list[dict[str, str]] = []
     seen: set[str] = set()
@@ -919,7 +920,7 @@ def _cassazione_latest_category_urls(base_url: str, content: str) -> list[str]:
 
     try:
         tree = lxml_html.fromstring(content)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, ParserError):
         tree = None
     if tree is not None:
         for anchor in tree.xpath("//a[@href]"):
@@ -932,7 +933,7 @@ def _cassazione_latest_category_urls(base_url: str, content: str) -> list[str]:
 def _cassazione_detail_rows_from_html(source: dict[str, Any], page_url: str, content: str) -> list[dict[str, Any]]:
     try:
         tree = lxml_html.fromstring(content)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, ParserError):
         return []
     rows_by_url: dict[str, dict[str, Any]] = {}
     for anchor in tree.xpath("//a[@href]"):

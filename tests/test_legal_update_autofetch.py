@@ -119,22 +119,30 @@ def test_scheduler_progressivo_step1_abilita_solo_fonti_verdi():
     payload = legal_update_progressive_scheduler_payload(
         [
             {"code": "cassazione_ultime_sent_ord_questioni", "name": "Cassazione", "enabled": True},
+            {"code": "corte_conti", "name": "Corte dei Conti", "enabled": True},
+            {"code": "curia_cgue_rss", "name": "Curia", "enabled": True},
             {"code": "inps_circolari", "name": "INPS circolari", "enabled": True},
             {"code": "inps_messaggi", "name": "INPS messaggi", "enabled": True},
             {"code": "agcom_provvedimenti", "name": "AGCOM", "enabled": True},
             {"code": "anac_documenti", "name": "ANAC", "enabled": True},
             {"code": "garante_privacy", "name": "Garante", "enabled": True},
+            {"code": "gazzetta_ufficiale", "name": "Gazzetta", "enabled": True},
+            {"code": "openga_sentenze", "name": "OpenGA sentenze", "enabled": True},
+            {"code": "corte_costituzionale", "name": "Corte costituzionale", "enabled": True},
         ]
     )
 
     assert payload["enabled_source_codes"] == list(LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES)
-    assert payload["source_budget"] == 2
+    assert payload["source_budget"] == 3
     assert payload["publish_max_items"] == 5
     assert payload["item_timeout_seconds"] == 120
     assert payload["cassazione_latest_max_items"] == 5
+    assert payload["source_classification"]["openga_sentenze"] == "rag_only"
+    assert payload["publication_policy"]["openga_sentenze"] == "no_publish"
+    assert payload["source_classification"]["corte_costituzionale"] == "osservazione"
     excluded = {row["source_code"]: row["reason"] for row in payload["excluded_sources"]}
-    assert "conferme ulteriori" in excluded["anac_documenti"]
-    assert "osservare" in excluded["garante_privacy"]
+    assert "RAG-only" in excluded["openga_sentenze"]
+    assert "osservazione" in excluded["corte_costituzionale"]
 
 
 def test_autofetch_tick_accoda_deduplica_esegue_e_aggiorna_monitor(tmp_path):

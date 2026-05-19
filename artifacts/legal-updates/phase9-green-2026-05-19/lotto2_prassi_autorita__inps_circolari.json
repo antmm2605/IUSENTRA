@@ -1,0 +1,315 @@
+{
+  "autopublished": {
+    "count": 3,
+    "items": [
+      4,
+      5,
+      6
+    ],
+    "mode": "guarded",
+    "published_items": [
+      {
+        "destination": "news",
+        "id": 4,
+        "quality": {
+          "attachment_found": true,
+          "context_chars": 70294,
+          "ocr_status": "leggibile_con_note",
+          "pdf_found": true,
+          "questions": 16,
+          "ready": true,
+          "references": 11,
+          "status": "pronto_con_note",
+          "text_read": true,
+          "warnings": [
+            "OCR leggibile ma da controllare"
+          ]
+        },
+        "source_code": "inps_circolari",
+        "title": "Circolare numero 55 del 14-05-2026"
+      },
+      {
+        "destination": "news",
+        "id": 5,
+        "quality": {
+          "attachment_found": true,
+          "context_chars": 52466,
+          "ocr_status": "pulito",
+          "pdf_found": true,
+          "questions": 16,
+          "ready": true,
+          "references": 8,
+          "status": "pronto",
+          "text_read": true,
+          "warnings": []
+        },
+        "source_code": "inps_circolari",
+        "title": "Circolare numero 56 del 14-05-2026"
+      },
+      {
+        "destination": "news",
+        "id": 6,
+        "quality": {
+          "attachment_found": true,
+          "context_chars": 68000,
+          "ocr_status": "leggibile_con_note",
+          "pdf_found": true,
+          "questions": 16,
+          "ready": true,
+          "references": 15,
+          "status": "pronto_con_note",
+          "text_read": true,
+          "warnings": [
+            "OCR leggibile ma da controllare"
+          ]
+        },
+        "source_code": "inps_circolari",
+        "title": "Circolare numero 57 del 14-05-2026"
+      }
+    ],
+    "skipped": [],
+    "stopped_for_time_limit": false,
+    "verification_attachments_saved": 3,
+    "verification_evidence_saved": 6,
+    "web_verification_attempts": 3
+  },
+  "diagnostics_saved": true,
+  "direct_only": true,
+  "documents_found": 50,
+  "duration_seconds": 46.33,
+  "errors": [],
+  "items": [
+    {
+      "attachment_count": 0,
+      "attachments": [],
+      "destination": "prassi",
+      "destination_label": "Prassi",
+      "exclusion_reason": "",
+      "external_id": "9e54893e30e8acf23b43088629bf61e432f0c912f4da8ed3d36914ffac055b24",
+      "guarded_publish": {
+        "destination": "news",
+        "published": true,
+        "review_id": 4
+      },
+      "normalized_document_id": 4,
+      "published_at": "",
+      "quality": {
+        "attachment_found": true,
+        "context_chars": 70294,
+        "ocr_status": "leggibile_con_note",
+        "pdf_found": true,
+        "questions": 16,
+        "ready": true,
+        "references": 11,
+        "status": "pronto_con_note",
+        "text_read": true,
+        "warnings": [
+          "OCR leggibile ma da controllare"
+        ]
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare Circolare numero 55 del 14-05-2026?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_prassi_rag",
+      "reference_count": 3,
+      "reference_labels": [
+        "D.L. 30 aprile 2026, n. 62",
+        "30 aprile 2026",
+        "2026"
+      ],
+      "review_id": 4,
+      "source_url": "https://www.inps.it/it/it/inps-comunica/atti/circolari-messaggi-e-normativa/dettaglio.circolari-e-messaggi.2026.05.circolare-numero-55-del-14-05-2026_15258.html",
+      "status": "invariato",
+      "title": "Circolare numero 55 del 14-05-2026"
+    },
+    {
+      "attachment_count": 0,
+      "attachments": [],
+      "destination": "prassi",
+      "destination_label": "Prassi",
+      "exclusion_reason": "",
+      "external_id": "eb69ce762d47237e43d170bece054ab1494e65afe1d48ed6b4115d396c24024d",
+      "guarded_publish": {
+        "destination": "news",
+        "published": true,
+        "review_id": 5
+      },
+      "normalized_document_id": 5,
+      "published_at": "",
+      "quality": {
+        "attachment_found": true,
+        "context_chars": 52466,
+        "ocr_status": "pulito",
+        "pdf_found": true,
+        "questions": 16,
+        "ready": true,
+        "references": 8,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare Circolare numero 56 del 14-05-2026?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_prassi_rag",
+      "reference_count": 3,
+      "reference_labels": [
+        "D.L. 30 aprile 2026, n. 62",
+        "30 aprile 2026",
+        "2026"
+      ],
+      "review_id": 5,
+      "source_url": "https://www.inps.it/it/it/inps-comunica/atti/circolari-messaggi-e-normativa/dettaglio.circolari-e-messaggi.2026.05.circolare-numero-56-del-14-05-2026_15259.html",
+      "status": "invariato",
+      "title": "Circolare numero 56 del 14-05-2026"
+    },
+    {
+      "attachment_count": 0,
+      "attachments": [],
+      "destination": "prassi",
+      "destination_label": "Prassi",
+      "exclusion_reason": "",
+      "external_id": "856f8bc3f473b92dec02dd41e55679b8462d796a6d1366ae572527f0d8bcca49",
+      "guarded_publish": {
+        "destination": "news",
+        "published": true,
+        "review_id": 6
+      },
+      "normalized_document_id": 6,
+      "published_at": "",
+      "quality": {
+        "attachment_found": true,
+        "context_chars": 68000,
+        "ocr_status": "leggibile_con_note",
+        "pdf_found": true,
+        "questions": 16,
+        "ready": true,
+        "references": 15,
+        "status": "pronto_con_note",
+        "text_read": true,
+        "warnings": [
+          "OCR leggibile ma da controllare"
+        ]
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare Circolare numero 57 del 14-05-2026?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_prassi_rag",
+      "reference_count": 3,
+      "reference_labels": [
+        "D.L. 30 aprile 2026, n. 62",
+        "30 aprile 2026",
+        "2026"
+      ],
+      "review_id": 6,
+      "source_url": "https://www.inps.it/it/it/inps-comunica/atti/circolari-messaggi-e-normativa/dettaglio.circolari-e-messaggi.2026.05.circolare-numero-57-del-14-05-2026_15260.html",
+      "status": "invariato",
+      "title": "Circolare numero 57 del 14-05-2026"
+    }
+  ],
+  "limit": 3,
+  "max_seconds": 120,
+  "mode": "canary",
+  "no_publish": false,
+  "ok": true,
+  "processed": 0,
+  "publish_mode": "guarded",
+  "schema": "iusentra.legal_updates.canary.v1",
+  "skipped_unchanged": 3,
+  "source_code": "inps_circolari",
+  "source_name": "INPS - circolari",
+  "stopped_for_time_limit": false,
+  "verification_attachments_saved": 0,
+  "verification_evidence_saved": 0,
+  "web_verification_attempts": 0
+}

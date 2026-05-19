@@ -25,24 +25,155 @@ from pct.legal_update_pipeline import LegalUpdatePipeline, build_legal_update_pi
 
 
 LEGAL_UPDATE_AUTOFETCH_SCHEMA = "iusentra.legal_update_autofetch.v1"
-LEGAL_UPDATE_PROGRESSIVE_STEP = "fase8_step1"
-LEGAL_UPDATE_PROGRESSIVE_SOURCE_BUDGET = 2
+LEGAL_UPDATE_PROGRESSIVE_STEP = "fase9_fonti_verdi"
+LEGAL_UPDATE_PROGRESSIVE_SOURCE_BUDGET = 3
 LEGAL_UPDATE_PROGRESSIVE_PUBLISH_MAX_ITEMS = 5
 LEGAL_UPDATE_PROGRESSIVE_ITEM_TIMEOUT_SECONDS = 120
 LEGAL_UPDATE_PROGRESSIVE_CASSAZIONE_MAX_ITEMS = 5
 LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES: tuple[str, ...] = (
     "cassazione_ultime_sent_ord_questioni",
+    "corte_conti",
+    "curia_cgue_rss",
     "inps_circolari",
     "inps_messaggi",
     "agcom_provvedimenti",
+    "anac_documenti",
+    "garante_privacy",
+    "gazzetta_ufficiale",
 )
+LEGAL_UPDATE_PROGRESSIVE_RAG_ONLY_SOURCE_CODES: tuple[str, ...] = (
+    "dati_normattiva",
+    "eur_lex",
+    "istat_prezzi",
+    "openga_sentenze",
+    "openga_ordinanze",
+    "openga_decreti",
+    "openga_pareri",
+    "pst_giustizia_download",
+)
+LEGAL_UPDATE_PROGRESSIVE_OBSERVATION_SOURCE_CODES: tuple[str, ...] = (
+    "cassazione_citazioni_verificate",
+    "corte_costituzionale",
+    "inps_sentenze",
+    "agenzia_entrate",
+    "ministero_lavoro",
+    "ministero_lavoro_interpelli",
+    "agcm_bollettino",
+    "banca_italia_normativa",
+    "inail_istruzioni_operative",
+    "mimit_incentivi",
+)
+LEGAL_UPDATE_PROGRESSIVE_ARCHIVE_SOURCE_CODES: tuple[str, ...] = (
+    "normattiva",
+    "codice_civile",
+    "codice_procedura_civile",
+    "codice_penale",
+    "codice_procedura_penale",
+    "codice_processo_amministrativo",
+    "codice_strada",
+)
+LEGAL_UPDATE_PROGRESSIVE_EXCLUDED_PUBLICATION_SOURCE_CODES: tuple[str, ...] = (
+    LEGAL_UPDATE_PROGRESSIVE_RAG_ONLY_SOURCE_CODES
+    + LEGAL_UPDATE_PROGRESSIVE_OBSERVATION_SOURCE_CODES
+    + LEGAL_UPDATE_PROGRESSIVE_ARCHIVE_SOURCE_CODES
+)
+LEGAL_UPDATE_PROGRESSIVE_LOTS: dict[str, tuple[str, ...]] = {
+    "giurisprudenza": (
+        "cassazione_ultime_sent_ord_questioni",
+        "cassazione_citazioni_verificate",
+        "corte_costituzionale",
+        "corte_conti",
+        "curia_cgue_rss",
+        "openga_sentenze",
+        "openga_ordinanze",
+        "openga_decreti",
+        "openga_pareri",
+    ),
+    "prassi_autorita": (
+        "inps_circolari",
+        "inps_messaggi",
+        "inps_sentenze",
+        "agenzia_entrate",
+        "ministero_lavoro",
+        "ministero_lavoro_interpelli",
+        "garante_privacy",
+        "anac_documenti",
+        "agcom_provvedimenti",
+        "agcm_bollettino",
+        "banca_italia_normativa",
+        "inail_istruzioni_operative",
+        "mimit_incentivi",
+        "istat_prezzi",
+    ),
+    "telematico": ("pst_giustizia_download",),
+    "normativa_ue": (
+        "gazzetta_ufficiale",
+        "normattiva",
+        "dati_normattiva",
+        "eur_lex",
+        "codice_civile",
+        "codice_procedura_civile",
+        "codice_penale",
+        "codice_procedura_penale",
+        "codice_processo_amministrativo",
+        "codice_strada",
+    ),
+}
+LEGAL_UPDATE_PROGRESSIVE_SOURCE_CLASSIFICATION: dict[str, str] = {
+    **{code: "verde_abilitata" for code in LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES},
+    **{code: "rag_only" for code in LEGAL_UPDATE_PROGRESSIVE_RAG_ONLY_SOURCE_CODES},
+    **{code: "osservazione" for code in LEGAL_UPDATE_PROGRESSIVE_OBSERVATION_SOURCE_CODES},
+    **{code: "archivio_locale" for code in LEGAL_UPDATE_PROGRESSIVE_ARCHIVE_SOURCE_CODES},
+}
+LEGAL_UPDATE_PROGRESSIVE_PUBLICATION_POLICY: dict[str, str] = {
+    **{code: "guarded" for code in LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES},
+    **{code: "no_publish" for code in LEGAL_UPDATE_PROGRESSIVE_RAG_ONLY_SOURCE_CODES},
+    **{code: "no_publish" for code in LEGAL_UPDATE_PROGRESSIVE_ARCHIVE_SOURCE_CODES},
+    **{code: "blocked" for code in LEGAL_UPDATE_PROGRESSIVE_OBSERVATION_SOURCE_CODES},
+}
+LEGAL_UPDATE_PROGRESSIVE_CLASSIFICATION_REASONS: dict[str, str] = {
+    "cassazione_ultime_sent_ord_questioni": "Fonte verde con schede Cassazione, PDF/OCR, riferimenti e domande gia' collaudati.",
+    "corte_conti": "Fonte verde dopo fix parser e download PDF ufficiali, con pubblicazione guarded.",
+    "curia_cgue_rss": "Fonte verde parziale: pubblica solo cause UE con riferimenti ritrovabili.",
+    "inps_circolari": "Fonte verde per prassi previdenziale con testo/PDF e riferimenti.",
+    "inps_messaggi": "Fonte verde parziale: solo messaggi operativi, scarti guarded sui testi tecnici.",
+    "agcom_provvedimenti": "Fonte verde con filtro su delibere/provvedimenti e allegati ufficiali.",
+    "anac_documenti": "Fonte verde dopo fix allegati fittizi; pubblicazione ancora guarded e sorvegliata.",
+    "garante_privacy": "Fonte verde dopo fix allegati normativi fittizi; pubblicazione guarded su testi docweb leggibili.",
+    "gazzetta_ufficiale": "Fonte verde dopo lettura PDF fascicolo; resta con limite basso e pubblicazione guarded.",
+    "dati_normattiva": "Catalogo tecnico Normattiva: evidenza RAG, non news.",
+    "eur_lex": "Fonte UE ufficiale: RAG-only finche' il parser CELEX dedicato non e' stabilizzato.",
+    "istat_prezzi": "Fonte dati per rivalutazioni e calcoli: RAG/calcoli, non news generica.",
+    "openga_sentenze": "OpenGA tabellare: RAG-only salvo risorsa documentale concreta.",
+    "openga_ordinanze": "OpenGA tabellare: RAG-only salvo risorsa documentale concreta.",
+    "openga_decreti": "OpenGA tabellare: RAG-only salvo risorsa documentale concreta.",
+    "openga_pareri": "OpenGA tabellare: RAG-only salvo risorsa documentale concreta.",
+    "pst_giustizia_download": "Fonte tecnica PST: evidenza RAG telematica, non pubblicazione news.",
+    "normattiva": "Archivio ufficiale locale: interrogazione RAG normativa, non batch fonte web.",
+    "codice_civile": "Codice governato da archivio Normattiva locale.",
+    "codice_procedura_civile": "Codice governato da archivio Normattiva locale.",
+    "codice_penale": "Codice governato da archivio Normattiva locale.",
+    "codice_procedura_penale": "Codice governato da archivio Normattiva locale.",
+    "codice_processo_amministrativo": "Codice governato da archivio Normattiva locale.",
+    "codice_strada": "Codice governato da archivio Normattiva locale.",
+    "cassazione_citazioni_verificate": "In osservazione: fonte derivata, non schedulata finche' il dettaglio citazione non ha canary verde dedicato.",
+    "corte_costituzionale": "In osservazione: la fonte diretta deve restituire schede pronuncia verificabili senza fallback.",
+    "inps_sentenze": "In osservazione: feed giurisprudenziale non ancora collaudato in publish guarded.",
+    "agenzia_entrate": "In osservazione: richiede canary dedicato su documenti prassi tributaria.",
+    "ministero_lavoro": "In osservazione: richiede filtro documentale stabile.",
+    "ministero_lavoro_interpelli": "In osservazione: richiede canary dedicato sugli interpelli con allegati.",
+    "agcm_bollettino": "In osservazione: richiede filtro stabile su bollettini e provvedimenti.",
+    "banca_italia_normativa": "In osservazione: richiede canary dedicato su provvedimenti vigilanza.",
+    "inail_istruzioni_operative": "In osservazione: fonte disabilitata finche' il canale non e' stabile.",
+    "mimit_incentivi": "In osservazione/RAG: pubblicare solo documenti operativi utili, non news generiche.",
+}
 LEGAL_UPDATE_PROGRESSIVE_EXCLUDED_SOURCE_REASONS: dict[str, str] = {
     "anac_documenti": (
-        "Esclusa dallo step 1: in fase 5 e nel canary alcune schede richiedono "
+        "Esclusa dalla fase 9 progressiva: in fase 5 e nel canary alcune schede richiedono "
         "conferme ulteriori prima della pubblicazione governata."
     ),
     "garante_privacy": (
-        "Esclusa dallo step 1: fonte utile ma ancora da osservare per allegati, "
+        "Esclusa dalla fase 9 progressiva: fonte utile ma ancora da osservare per allegati, "
         "riferimenti ritrovabili e qualità costante delle schede."
     ),
     "gazzetta_ufficiale": (
@@ -51,7 +182,7 @@ LEGAL_UPDATE_PROGRESSIVE_EXCLUDED_SOURCE_REASONS: dict[str, str] = {
     ),
     "normattiva": (
         "Gestita dagli archivi ufficiali locali della fase 6; nessun import "
-        "massivo notturno nello step 1."
+        "massivo notturno nella fase 9."
     ),
     "dati_normattiva": (
         "Canale tecnico Normattiva: resta fuori dal primo scheduler progressivo."
@@ -67,6 +198,13 @@ LEGAL_UPDATE_PROGRESSIVE_EXCLUDED_SOURCE_REASONS: dict[str, str] = {
     "pst_giustizia_download": (
         "Fonte tecnica: non pubblicabile come aggiornamento legale automatico."
     ),
+}
+LEGAL_UPDATE_PROGRESSIVE_EXCLUDED_SOURCE_REASONS = {
+    code: LEGAL_UPDATE_PROGRESSIVE_CLASSIFICATION_REASONS.get(
+        code,
+        "Non pubblicabile nella fase 9: serve canary verde dedicato o resta solo RAG.",
+    )
+    for code in LEGAL_UPDATE_PROGRESSIVE_EXCLUDED_PUBLICATION_SOURCE_CODES
 }
 
 LEGAL_SOURCE_QUALITY_QUESTIONS: tuple[str, ...] = (
@@ -85,6 +223,16 @@ LEGAL_SOURCE_QUALITY_QUESTIONS: tuple[str, ...] = (
 
 def is_legal_update_progressive_step1_source(source_code: Any) -> bool:
     return _source_code(source_code) in LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES
+
+
+def legal_update_progressive_source_classification(source_code: Any) -> str:
+    code = _source_code(source_code)
+    return LEGAL_UPDATE_PROGRESSIVE_SOURCE_CLASSIFICATION.get(code, "fuori_perimetro")
+
+
+def legal_update_progressive_publication_policy(source_code: Any) -> str:
+    code = _source_code(source_code)
+    return LEGAL_UPDATE_PROGRESSIVE_PUBLICATION_POLICY.get(code, "blocked")
 
 
 def legal_update_progressive_step1_source_codes(
@@ -109,7 +257,7 @@ def legal_update_progressive_exclusion_reason(source_code: Any) -> str:
         return ""
     return LEGAL_UPDATE_PROGRESSIVE_EXCLUDED_SOURCE_REASONS.get(
         code,
-        "Non incluso nello step 1 progressivo: resta fuori scheduler finché non passa un canary/report verde dedicato.",
+        "Non incluso nella fase 9 progressiva: resta fuori scheduler finché non passa un canary/report verde dedicato.",
     )
 
 
@@ -132,6 +280,14 @@ def legal_update_progressive_scheduler_payload(
     return {
         "step": LEGAL_UPDATE_PROGRESSIVE_STEP,
         "enabled_source_codes": list(enabled_codes),
+        "green_enabled_source_codes": list(LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES),
+        "rag_only_source_codes": list(LEGAL_UPDATE_PROGRESSIVE_RAG_ONLY_SOURCE_CODES),
+        "observation_source_codes": list(LEGAL_UPDATE_PROGRESSIVE_OBSERVATION_SOURCE_CODES),
+        "archive_source_codes": list(LEGAL_UPDATE_PROGRESSIVE_ARCHIVE_SOURCE_CODES),
+        "excluded_publication_source_codes": list(LEGAL_UPDATE_PROGRESSIVE_EXCLUDED_PUBLICATION_SOURCE_CODES),
+        "source_classification": dict(LEGAL_UPDATE_PROGRESSIVE_SOURCE_CLASSIFICATION),
+        "publication_policy": dict(LEGAL_UPDATE_PROGRESSIVE_PUBLICATION_POLICY),
+        "lot_source_codes": {key: list(value) for key, value in LEGAL_UPDATE_PROGRESSIVE_LOTS.items()},
         "excluded_sources": excluded,
         "source_budget": LEGAL_UPDATE_PROGRESSIVE_SOURCE_BUDGET,
         "publish_max_items": LEGAL_UPDATE_PROGRESSIVE_PUBLISH_MAX_ITEMS,

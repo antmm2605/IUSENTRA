@@ -2,6 +2,14 @@
 
 Aggiornato il 18 maggio 2026. Ricognizione svolta partendo da `/admin/aggiornamenti-legali/` e dai moduli `pct/legal_update_pipeline.py`, `pct/legal_update_repository.py`, `pct/legal_update_web_verification.py`, `pct/legal_update_autofetch.py`, `pct/legal_update_batch_runner.py`, `web/services/legal_update_surface.py`, `web/blueprints/legal_updates_admin.py`, Ricerca Legale React, Archivio Giurisprudenza e sorgenti Lex.
 
+## Aggiornamento Fase 9 - fonti verdi estese 19 maggio 2026
+
+La Fase 9 abilita nello scheduler progressivo solo le fonti verdi: `cassazione_ultime_sent_ord_questioni`, `corte_conti`, `curia_cgue_rss`, `inps_circolari`, `inps_messaggi`, `agcom_provvedimenti`, `anac_documenti`, `garante_privacy` e `gazzetta_ufficiale`. Il budget passa a 3 fonti per ciclo, resta il timeout per elemento e la pubblicazione automatica resta guarded.
+
+Restano RAG-only e non pubblicabili come news generiche: OpenGA documentale/tabellare, PST Giustizia download, Dati Normattiva, EUR-Lex finché il parser CELEX non è stabile e ISTAT prezzi/calcoli salvo documento operativo specifico. Normattiva e i codici fondamentali restano archivi locali o canary no-publish: alimentano Ricerca Legale/Lex, non batch fonte web massivo.
+
+Restano in osservazione e fuori pubblicazione: `cassazione_citazioni_verificate`, `corte_costituzionale`, `inps_sentenze`, `agenzia_entrate`, `ministero_lavoro`, `ministero_lavoro_interpelli`, `agcm_bollettino`, `banca_italia_normativa`, `inail_istruzioni_operative` e `mimit_incentivi`.
+
 ## Aggiornamento Fase 6 - normativa e archivi base 19 maggio 2026
 
 La Fase 6 non avvia import massivi: usa gli archivi Normattiva/Gazzetta già presenti, manifest e raw ZIP locali. Normattiva resta la fonte prioritaria per i codici; Gazzetta viene usata come pubblicazione ufficiale deduplicata per documento; Dati Normattiva rimane evidenza tecnica/RAG-only. EUR-Lex è fonte UE ufficiale ma, finché il parser CELEX dedicato non è stabile con fixture verdi, resta `RAG-only` e non produce pubblicazioni strutturate. Fonti secondarie come Studio Cataldi e Avvocato Andreani restano disabilitate e non ufficiali.

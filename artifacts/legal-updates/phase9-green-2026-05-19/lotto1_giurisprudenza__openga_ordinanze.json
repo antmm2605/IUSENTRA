@@ -1,0 +1,190 @@
+{
+  "autopublished": {
+    "count": 0,
+    "items": []
+  },
+  "diagnostics_saved": true,
+  "direct_only": true,
+  "documents_found": 372,
+  "duration_seconds": 24.43,
+  "errors": [],
+  "items": [
+    {
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "attachment_type": "",
+          "title": "CDS - Ordinanze - 2024",
+          "url": "https://openga.giustizia-amministrativa.it/dataset/5bc2801d-bb7b-4b53-918c-6ffa0ba95057/resource/e6268c03-6073-4161-97e9-50b770172e55/download/cds-ordinanze-2024.csv"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza se documentale, altrimenti solo RAG",
+      "exclusion_reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+      "external_id": "93166883d27b69556e1cdd629e2ea30524f0fbd68726af665037741a6c7d8fe7",
+      "normalized_document_id": 87,
+      "published_at": "",
+      "quality": {
+        "attachment_found": false,
+        "context_chars": 12000,
+        "ocr_status": "non_richiesto",
+        "pdf_found": false,
+        "questions": 14,
+        "ready": true,
+        "references": 2,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare CDS - Ordinanze - CDS - Ordinanze - 2024?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_open_data_rag",
+      "reference_count": 1,
+      "reference_labels": [
+        "2024"
+      ],
+      "review_id": 87,
+      "source_url": "https://openga.giustizia-amministrativa.it/dataset/5bc2801d-bb7b-4b53-918c-6ffa0ba95057/resource/e6268c03-6073-4161-97e9-50b770172e55/download/cds-ordinanze-2024.csv",
+      "status": "analizzato",
+      "title": "CDS - Ordinanze - CDS - Ordinanze - 2024",
+      "verification": {
+        "attachments": 0,
+        "attempted": 1,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "ok": true,
+        "reason": "Verifica pubblica completata con fonti coerenti.",
+        "saved": 1
+      }
+    },
+    {
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "attachment_type": "",
+          "title": "CDS - Ordinanze - 2024",
+          "url": "https://openga.giustizia-amministrativa.it/dataset/5bc2801d-bb7b-4b53-918c-6ffa0ba95057/resource/268e2ab1-0b84-4944-94c7-5d6a2cdc5a96/download/cds-ordinanze-2024.json"
+        }
+      ],
+      "destination": "RAG-only",
+      "destination_label": "Giurisprudenza se documentale, altrimenti solo RAG",
+      "exclusion_reason": "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG.",
+      "external_id": "3c113032fddf8d3263f426e386cac6e6be9ffcdc3e81d8abba8dde826626ea6e",
+      "normalized_document_id": 88,
+      "published_at": "",
+      "quality": {
+        "attachment_found": false,
+        "context_chars": 12000,
+        "ocr_status": "non_richiesto",
+        "pdf_found": false,
+        "questions": 14,
+        "ready": true,
+        "references": 1,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare CDS - Ordinanze - CDS - Ordinanze - 2024?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_open_data_rag",
+      "reference_count": 5,
+      "reference_labels": [
+        "L. N. 205",
+        "TAR PER",
+        "2024",
+        "2023",
+        "2017"
+      ],
+      "review_id": 88,
+      "source_url": "https://openga.giustizia-amministrativa.it/dataset/5bc2801d-bb7b-4b53-918c-6ffa0ba95057/resource/268e2ab1-0b84-4944-94c7-5d6a2cdc5a96/download/cds-ordinanze-2024.json",
+      "status": "analizzato",
+      "title": "CDS - Ordinanze - CDS - Ordinanze - 2024",
+      "verification": {
+        "attachments": 0,
+        "attempted": 1,
+        "confirmations": 1,
+        "official_confirmations": 1,
+        "ok": false,
+        "reason": "Fonte ufficiale diretta acquisita, ma servono ulteriori conferme prima di trattare il riferimento come completato.",
+        "saved": 1
+      }
+    }
+  ],
+  "limit": 2,
+  "max_seconds": 120,
+  "mode": "canary",
+  "no_publish": true,
+  "ok": true,
+  "processed": 2,
+  "publish_mode": "off",
+  "schema": "iusentra.legal_updates.canary.v1",
+  "skipped_unchanged": 0,
+  "source_code": "openga_ordinanze",
+  "source_name": "OpenGA - Ordinanze",
+  "stopped_for_time_limit": false,
+  "verification_attachments_saved": 0,
+  "verification_evidence_saved": 2,
+  "web_verification_attempts": 2
+}

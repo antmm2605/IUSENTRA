@@ -44,6 +44,8 @@ Aggiornamento 2026-05-19, Fase 7 backfill mirato 2.245.48: gli aggiornamenti leg
 
 Aggiornamento 2026-05-19, Fase 8 scheduler progressivo 2.245.49: lo scheduler automatico degli aggiornamenti legali abilita solo `cassazione_ultime_sent_ord_questioni`, `inps_circolari`, `inps_messaggi` e `agcom_provvedimenti`, con budget 2 fonti, timeout 120 secondi, massimo 5 pubblicazioni guarded e 5 schede Cassazione ultime. ANAC, Garante, fonti tecniche, RAG-only e archivi Normattiva/Gazzetta fuori dal batch fonte restano esclusi dallo step 1; Lex può usarli come certezza solo se arrivano da archivi ufficiali verificati o da evidenze già validate, altrimenti lo stato resta da verificare.
 
+Aggiornamento 2026-05-19, Fase 9 fonti verdi 2.245.50: Lex considera abilitate nel popolamento progressivo solo le fonti verdi `cassazione_ultime_sent_ord_questioni`, `corte_conti`, `curia_cgue_rss`, `inps_circolari`, `inps_messaggi`, `agcom_provvedimenti`, `anac_documenti`, `garante_privacy` e `gazzetta_ufficiale`. Le evidenze OpenGA, PST, Dati Normattiva, EUR-Lex e ISTAT restano RAG-only/no-publish; Normattiva e codici restano archivi locali. La fase ha pubblicato 14 documenti guarded e registrato 17 PDF/OCR, 340 riferimenti e 740 domande contestuali nei report fonte. Archivio Giurisprudenza non riceve schede strutturate senza chiavi complete.
+
 ## Regole di accesso
 
 - Tenant: ricavato dal contesto Flask (`g.tenant`, `g.tenant_context_slug`, `g.data_paths`) o da contesto applicativo esplicito nei test.

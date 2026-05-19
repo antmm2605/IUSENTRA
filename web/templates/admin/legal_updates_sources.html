@@ -20,7 +20,7 @@
     <div class="d-flex flex-wrap gap-2">
       <form method="post" action="{{ url_for('legal_updates_admin.execute_action', action='scan') }}">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-        <button class="btn btn-primary" type="submit"><i class="bi bi-broadcast-pin me-2"></i>Aggiorna fonti attive</button>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-broadcast-pin me-2"></i>Avvia step 1</button>
       </form>
       <a href="{{ url_for('legal_updates_admin.staging_page') }}" class="btn btn-outline-primary">Apri acquisizione</a>
       <a href="{{ url_for('legal_updates_admin.dashboard') }}" class="btn btn-outline-secondary">Torna alla dashboard</a>
@@ -77,8 +77,12 @@
             {% endfor %}
           </div>
           <div class="small text-muted mt-3">
+            Step 1: {{ catalog.progressive_scheduler.enabled_source_codes|join(', ') }}.
             Ogni elemento ha un limite di {{ catalog.runtime.item_timeout_seconds }} secondi; vengono pubblicati al massimo
-            {{ catalog.runtime.publish_max_items }} aggiornamenti idonei per ciclo.
+            {{ catalog.runtime.publish_max_items }} aggiornamenti idonei per ciclo, sempre in modalità guarded.
+          </div>
+          <div class="small text-muted mt-2">
+            Fonti fuori step: ANAC e Garante restano in osservazione; Normattiva e Gazzetta sono presidiate dagli archivi ufficiali locali.
           </div>
         </div>
       </div>

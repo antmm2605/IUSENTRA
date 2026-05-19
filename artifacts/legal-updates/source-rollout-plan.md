@@ -12,6 +12,10 @@ I codici `codice_civile`, `codice_procedura_civile`, `codice_penale`, `codice_pr
 
 La Fase 5 estende il pilot `guarded` senza trasformarlo in import massivo. Il gruppo pubblicato resta limitato alle fonti che hanno superato le guardie nel run diretto: `cassazione_ultime_sent_ord_questioni`, `inps_circolari`, `inps_messaggi`, `agcom_provvedimenti`, `corte_conti` e `curia_cgue_rss`. ANAC e Garante sono stati acquisiti ma non pubblicati perché il guarded richiede conferme ulteriori o riferimenti ritrovabili nella diagnosi. Corte costituzionale è stata esclusa dalla pubblicazione perché la fonte diretta non ha restituito schede pronuncia verificabili dopo il blocco del fallback su captcha/navigazione.
 
+## Aggiornamento Fase 8 - scheduler progressivo 19 maggio 2026
+
+Lo scheduler automatico non avvia il catalogo completo. Lo step 1 abilita solo `cassazione_ultime_sent_ord_questioni`, `inps_circolari`, `inps_messaggi` e `agcom_provvedimenti`, con budget `2`, timeout `120` secondi, massimo `5` pubblicazioni guarded e `IUSENTRA_CASSAZIONE_LATEST_MAX_ITEMS=5`. ANAC e Garante restano fuori step per conferme ulteriori; Normattiva e Gazzetta restano negli archivi ufficiali locali; OpenGA/PST e fonti tecniche non entrano in pubblicazione automatica.
+
 PST Giustizia download e OpenGA sentenze sono stati trattati secondo destinazione corretta: `RAG-only`, zero pubblicazioni news/prassi/giurisprudenza. Le altre fonti candidate ancora in osservazione (`cassazione_citazioni_verificate`, `inps_sentenze`, `agcm_bollettino`, `ministero_lavoro_interpelli`, `agenzia_entrate`, `openga_ordinanze`, `openga_decreti`, `openga_pareri`) restano fuori dalla pubblicazione fino a canary verde dedicato.
 
 Regola aggiunta al piano: le fonti giurisdizionali HTML non possono usare fallback generico quando la pagina restituisce homepage, captcha o link di servizio. Per Corte costituzionale sono valide solo schede `/scheda-pronuncia/<anno>/<numero>`; per Corte dei conti sono validi solo documenti sotto `/Home/Documenti/` con dettaglio sentenza/documento e PDF ufficiale leggibile o label PDF verificabile.

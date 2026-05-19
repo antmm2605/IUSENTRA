@@ -13,6 +13,14 @@ import time
 from typing import Any
 from uuid import uuid4
 
+from pct.legal_update_autofetch import (
+    LEGAL_UPDATE_PROGRESSIVE_ITEM_TIMEOUT_SECONDS,
+    LEGAL_UPDATE_PROGRESSIVE_PUBLISH_MAX_ITEMS,
+    LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES,
+    is_legal_update_progressive_step1_source,
+    legal_update_progressive_exclusion_reason,
+)
+
 
 ISO_FMT = "%Y-%m-%dT%H:%M:%SZ"
 DEFAULT_DB_NAME = "scheduler_registry.sqlite"
@@ -428,8 +436,16 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
         SchedulerTemplate("legal_official_archives_daily", "Archivi Normattiva e Gazzetta", "Aggiornamenti legali", "Aggiorna archivi ufficiali locali senza duplicare pacchetti invariati.", "cron", "23", "0", built_in=True),
         SchedulerTemplate("legal_monitor_daily", "Monitor legale giornaliero", "Aggiornamenti legali", "Presidia le fonti legali principali.", "cron", "5", "45", built_in=True),
         SchedulerTemplate("legal_monitor_pst", "Monitor PST", "Aggiornamenti legali", "Controlla aggiornamenti PST durante la giornata.", "cron", "6,12,18", "15", built_in=True),
-        SchedulerTemplate("legal_updates_gazzetta", "Gazzetta Ufficiale", "Aggiornamenti legali", "Importa e verifica la Gazzetta Ufficiale.", "cron", "23", "10", built_in=True),
-        SchedulerTemplate("legal_updates_batch", "Aggiornamenti legali completi", "Aggiornamenti legali", "Esegue il ciclo completo con timeout per fonte e verifiche web.", "cron", "23", "15", built_in=True),
+        SchedulerTemplate(
+            "legal_updates_batch",
+            "Aggiornamenti legali step 1",
+            "Aggiornamenti legali",
+            "Esegue solo le fonti verdi della fase 8 con budget basso e pubblicazione governata.",
+            "cron",
+            "23",
+            "15",
+            built_in=True,
+        ),
         SchedulerTemplate("sync_tabelle_normative_daily", "Tabelle normative", "Fonti e tabelle", "Aggiorna tassi, indici e tabelle normative.", "cron", "4", "30", built_in=True),
         SchedulerTemplate("calendar_sync_hourly", "Sincronizzazione calendari", "Agenda e scadenze", "Sincronizza calendari configurati ogni ora.", "cron", "", "12", built_in=True),
         SchedulerTemplate("calendar_sync_engine_polling", "Calendari collegati", "Agenda e scadenze", "Controlla calendari collegati.", "cron", "", "*/10", built_in=True),
@@ -484,7 +500,7 @@ def legal_source_scheduler_templates(config: dict[str, Any] | None = None) -> tu
                 trigger_kind="manual",
                 hour="",
                 minute="0",
-                enabled=bool(row.get("enabled", True)),
+                enabled=bool(row.get("enabled", True)) and is_legal_update_progressive_step1_source(code),
                 built_in=False,
                 editable=True,
                 args={
@@ -496,6 +512,7 @@ def legal_source_scheduler_templates(config: dict[str, Any] | None = None) -> tu
                 },
                 criteria=(
                     "Esegue una sola fonte con timeout governato.",
+                    "Lo step 1 abilita solo le fonti verdi della fase 8.",
                     "Registra documenti trovati, lavorati e invariati.",
                     "Non accetta comandi liberi o sorgenti non censite.",
                 ),
@@ -650,6 +667,17 @@ class SchedulerRegistryRepository:
                         now,
                     ),
                 )
+            conn.execute(
+                """
+                UPDATE scheduled_jobs
+                SET enabled=0,
+                    description='Disattivato dalla fase 8: la Gazzetta resta negli archivi ufficiali locali, fuori dallo scheduler progressivo.',
+                    updated_at=?,
+                    updated_by='system'
+                WHERE job_id='legal_updates_gazzetta' AND built_in=1
+                """,
+                (now,),
+            )
 
     def list_jobs(self, include_disabled: bool = True) -> list[dict[str, Any]]:
         sql = "SELECT * FROM scheduled_jobs"
@@ -1168,15 +1196,38 @@ def _run_legal_source_agent(app, args: dict[str, Any]) -> dict[str, Any]:
                     }
                 ],
             }
+        if not is_legal_update_progressive_step1_source(source_code):
+            reason = legal_update_progressive_exclusion_reason(source_code)
+            return {
+                "ok": False,
+                "summary": f"{source.get('name')}: fonte non avviata nello step 1 progressivo.",
+                "self_check": "Da verificare: la fonte non è nel gruppo verde abilitato alla fase 8.",
+                "supervisor_check": reason,
+                "criteria": [
+                    "Fonte censita nel catalogo aggiornamenti legali.",
+                    "Scheduler progressivo limitato alle fonti verdi della fase 8.",
+                    "Fonti fuori step bloccate fino a canary/report verde dedicato.",
+                ],
+                "details": [
+                    {
+                        "source_code": source_code,
+                        "source_name": source.get("name"),
+                        "status": "fuori_step_progressivo",
+                        "reason": reason,
+                    }
+                ],
+            }
         timeout_seconds = _coerce_int(
             cfg.get("LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS")
+            or os.getenv("LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS")
             or os.getenv("IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS"),
-            180,
+            LEGAL_UPDATE_PROGRESSIVE_ITEM_TIMEOUT_SECONDS,
         )
         publish_max_items = _coerce_int(
             cfg.get("LEGAL_UPDATES_PUBLISH_MAX_ITEMS")
+            or os.getenv("LEGAL_UPDATES_PUBLISH_MAX_ITEMS")
             or os.getenv("IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS"),
-            20,
+            LEGAL_UPDATE_PROGRESSIVE_PUBLISH_MAX_ITEMS,
         )
         report = run_legal_update_batch_with_timeouts(
             LegalUpdateJobConfig(

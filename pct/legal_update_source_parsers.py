@@ -960,7 +960,7 @@ def _cassazione_detail_rows_from_html(source: dict[str, Any], page_url: str, con
 
 def _extract_cassazione_latest(source: dict[str, Any], base_html: str, *, request_get: RequestGet) -> list[dict[str, Any]]:
     docs: list[dict[str, Any]] = []
-    max_items = _env_int("IUSENTRA_CASSAZIONE_LATEST_MAX_ITEMS", 20)
+    max_items = _env_int("IUSENTRA_CASSAZIONE_LATEST_MAX_ITEMS", 5)
     category_pages = [(source["base_url"], base_html)]
     for page_url in _cassazione_latest_category_urls(source["base_url"], base_html):
         try:

@@ -42,6 +42,8 @@ Aggiornamento 2026-05-19, Fase 6 normativa e archivi base 2.245.47: Lex deve int
 
 Aggiornamento 2026-05-19, Fase 7 backfill mirato 2.245.48: gli aggiornamenti legali possono essere completati con `legal-updates-backfill-diagnostics --missing` singolo o multiplo, sempre con limite e `--no-publish`. La fase reale ha confermato 0 PDF/OCR mancanti nel perimetro, 14 evidenze aggiornate con 20 riferimenti aggiunti e nessuna domanda contestuale mancante. Lex e Ricerca Legale devono considerare aggiornato il contesto delle evidenze modificate, ma non devono pubblicare, promuovere RAG-only o inventare sintesi in assenza di testo fonte.
 
+Aggiornamento 2026-05-19, Fase 8 scheduler progressivo 2.245.49: lo scheduler automatico degli aggiornamenti legali abilita solo `cassazione_ultime_sent_ord_questioni`, `inps_circolari`, `inps_messaggi` e `agcom_provvedimenti`, con budget 2 fonti, timeout 120 secondi, massimo 5 pubblicazioni guarded e 5 schede Cassazione ultime. ANAC, Garante, fonti tecniche, RAG-only e archivi Normattiva/Gazzetta fuori dal batch fonte restano esclusi dallo step 1; Lex può usarli come certezza solo se arrivano da archivi ufficiali verificati o da evidenze già validate, altrimenti lo stato resta da verificare.
+
 ## Regole di accesso
 
 - Tenant: ricavato dal contesto Flask (`g.tenant`, `g.tenant_context_slug`, `g.data_paths`) o da contesto applicativo esplicito nei test.

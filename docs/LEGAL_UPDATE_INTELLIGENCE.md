@@ -154,11 +154,26 @@ iusentra aggiornamenti-legali --mirror-giurisprudenza-json
 Job pianificati:
 
 - Archivi Normattiva e Gazzetta: ore 23:00
-- Gazzetta Ufficiale: ore 23:10
-- Batch principale di tutte le fonti con timeout per fonte/pubblicazione: ore 23:15
+- Aggiornamenti legali step 1 progressivo: ore 23:15
 - Agenti Lex operativi per inventario studio: ore 01:20
 
-La fascia notturna evita carico operativo durante l'uso quotidiano e consente di pubblicare automaticamente i nuovi contenuti idonei prima dell'avvio della giornata di studio.
+Aggiornamento fase 8 del 19 maggio 2026: il vecchio batch completo non è più il percorso operativo. Lo scheduler degli aggiornamenti fonte lavora a budget basso e abilita solo le fonti verdi dello step 1:
+
+- `cassazione_ultime_sent_ord_questioni`;
+- `inps_circolari`;
+- `inps_messaggi`;
+- `agcom_provvedimenti`.
+
+Budget iniziali governati:
+
+- `IUSENTRA_LEGAL_AUTOFETCH_SOURCE_BUDGET=2`;
+- `IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS=5`;
+- `IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS=120`;
+- `IUSENTRA_CASSAZIONE_LATEST_MAX_ITEMS=5`.
+
+La pubblicazione resta guarded: il job fonte acquisisce e registra l'esito, poi la coda pubblica al massimo cinque elementi idonei. ANAC e Garante restano in osservazione perché il guarded delle fasi 5-7 ha richiesto conferme ulteriori; Normattiva e Gazzetta restano presidiate dagli archivi ufficiali locali della fase 6, senza import massivo notturno.
+
+La fascia notturna evita carico operativo durante l'uso quotidiano e consente di pubblicare solo nuovi contenuti idonei prima dell'avvio della giornata di studio.
 
 La UI amministrativa dedicata e' in:
 

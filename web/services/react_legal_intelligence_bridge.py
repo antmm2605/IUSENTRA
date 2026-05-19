@@ -13,6 +13,9 @@ from pct.legal_relevance import is_low_value_public_legal_record
 from pct.legal_update_batch_runner import LegalUpdateJobConfig
 from pct.legal_update_autofetch import (
     LEGAL_SOURCE_QUALITY_QUESTIONS,
+    LEGAL_UPDATE_PROGRESSIVE_ITEM_TIMEOUT_SECONDS,
+    LEGAL_UPDATE_PROGRESSIVE_PUBLISH_MAX_ITEMS,
+    LEGAL_UPDATE_PROGRESSIVE_SOURCE_BUDGET,
     LegalAutoFetchConfig,
     build_legal_update_operational_monitor,
 )
@@ -1705,9 +1708,21 @@ def _source_items(snapshot: Mapping[str, Any], update_snapshot: Mapping[str, Any
 
 def _legal_autofetch_config(config: Mapping[str, Any] | None) -> LegalAutoFetchConfig:
     cfg_source = dict(config or {})
-    item_timeout_default = _positive_int(os.getenv("IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS"), 180)
-    source_budget_default = _positive_int(os.getenv("IUSENTRA_LEGAL_AUTOFETCH_SOURCE_BUDGET"), 8)
-    publish_default = _positive_int(os.getenv("IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS"), 80)
+    item_timeout_default = _positive_int(
+        os.getenv("LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS")
+        or os.getenv("IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS"),
+        LEGAL_UPDATE_PROGRESSIVE_ITEM_TIMEOUT_SECONDS,
+    )
+    source_budget_default = _positive_int(
+        os.getenv("LEGAL_AUTOFETCH_SOURCE_BUDGET")
+        or os.getenv("IUSENTRA_LEGAL_AUTOFETCH_SOURCE_BUDGET"),
+        LEGAL_UPDATE_PROGRESSIVE_SOURCE_BUDGET,
+    )
+    publish_default = _positive_int(
+        os.getenv("LEGAL_UPDATES_PUBLISH_MAX_ITEMS")
+        or os.getenv("IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS"),
+        LEGAL_UPDATE_PROGRESSIVE_PUBLISH_MAX_ITEMS,
+    )
     job_config = LegalUpdateJobConfig(
         intelligence_db=str(
             cfg_source.get("LEGAL_INTELLIGENCE_DB")

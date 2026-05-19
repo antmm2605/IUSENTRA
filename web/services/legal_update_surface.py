@@ -16,8 +16,13 @@ from pct.legal_update_batch_runner import (
     run_legal_update_publish_queue_with_timeouts,
 )
 from pct.legal_update_autofetch import (
+    LEGAL_UPDATE_PROGRESSIVE_ITEM_TIMEOUT_SECONDS,
+    LEGAL_UPDATE_PROGRESSIVE_PUBLISH_MAX_ITEMS,
+    LEGAL_UPDATE_PROGRESSIVE_SOURCE_BUDGET,
     LegalAutoFetchConfig,
     build_legal_update_operational_monitor,
+    legal_update_progressive_scheduler_payload,
+    legal_update_progressive_step1_source_codes,
     run_legal_update_autofetch_tick,
 )
 from pct.legal_update_pipeline import DEFAULT_SOURCE_ROWS, LegalUpdatePipeline, build_legal_update_pipeline
@@ -220,7 +225,11 @@ def _legal_update_job_config(cfg_source: dict[str, Any]) -> LegalUpdateJobConfig
 
 
 def _legal_updates_item_timeout(cfg_source: dict[str, Any]) -> int:
-    default = _parse_positive_int(os.getenv("IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS"), 180)
+    default = _parse_positive_int(
+        os.getenv("LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS")
+        or os.getenv("IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS"),
+        LEGAL_UPDATE_PROGRESSIVE_ITEM_TIMEOUT_SECONDS,
+    )
     return _parse_positive_int(
         cfg_source.get("LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS")
         or cfg_source.get("IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS"),
@@ -229,7 +238,11 @@ def _legal_updates_item_timeout(cfg_source: dict[str, Any]) -> int:
 
 
 def _legal_updates_publish_max_items(cfg_source: dict[str, Any]) -> int:
-    default = _parse_positive_int(os.getenv("IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS"), 80)
+    default = _parse_positive_int(
+        os.getenv("LEGAL_UPDATES_PUBLISH_MAX_ITEMS")
+        or os.getenv("IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS"),
+        LEGAL_UPDATE_PROGRESSIVE_PUBLISH_MAX_ITEMS,
+    )
     return _parse_positive_int(
         cfg_source.get("LEGAL_UPDATES_PUBLISH_MAX_ITEMS")
         or cfg_source.get("IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS"),
@@ -237,8 +250,15 @@ def _legal_updates_publish_max_items(cfg_source: dict[str, Any]) -> int:
     )
 
 
-def _legal_updates_source_budget(cfg_source: dict[str, Any], default: int = 8) -> int:
-    env_default = _parse_positive_int(os.getenv("IUSENTRA_LEGAL_AUTOFETCH_SOURCE_BUDGET"), default)
+def _legal_updates_source_budget(
+    cfg_source: dict[str, Any],
+    default: int = LEGAL_UPDATE_PROGRESSIVE_SOURCE_BUDGET,
+) -> int:
+    env_default = _parse_positive_int(
+        os.getenv("LEGAL_AUTOFETCH_SOURCE_BUDGET")
+        or os.getenv("IUSENTRA_LEGAL_AUTOFETCH_SOURCE_BUDGET"),
+        default,
+    )
     return _parse_positive_int(
         cfg_source.get("LEGAL_AUTOFETCH_SOURCE_BUDGET")
         or cfg_source.get("IUSENTRA_LEGAL_AUTOFETCH_SOURCE_BUDGET"),
@@ -783,13 +803,13 @@ def build_legal_source_catalog(
             },
             {
                 "time": "23:10",
-                "title": "Gazzetta Ufficiale",
-                "body": "Le nuove uscite vengono lette, deduplicate e inviate alla verifica pubblica.",
+                "title": "Preparazione",
+                "body": "La Gazzetta resta negli archivi ufficiali locali; nessuna fonte gialla entra nel ciclo progressivo.",
             },
             {
                 "time": "23:15",
-                "title": "Catalogo completo",
-                "body": "Tutte le fonti attive lavorano a job separati con limite per elemento e pubblicazione governata.",
+                "title": "Step 1 progressivo",
+                "body": "Solo le fonti verdi lavorano a job separati con limite per elemento e pubblicazione guarded.",
             },
         ],
         "policy": [
@@ -806,6 +826,7 @@ def build_legal_source_catalog(
                 os.getenv("IUSENTRA_LEGAL_VERIFICATION_READ_ATTACHMENTS", "1")
             ),
         },
+        "progressive_scheduler": legal_update_progressive_scheduler_payload(sources),
         "autofetch_monitor": build_legal_update_operational_monitor(
             _legal_autofetch_config(cfg_source),
             pipeline=runtime_pipeline,
@@ -905,6 +926,9 @@ def build_legal_update_surface(
     snapshot = pipeline.dashboard_snapshot()
     snapshot["official_archives"] = _official_archives_payload()
     snapshot["truth_metrics"] = _truth_metrics_from_snapshot(snapshot, pipeline)
+    snapshot["progressive_scheduler"] = legal_update_progressive_scheduler_payload(
+        pipeline.repository.list_sources(enabled_only=False)
+    )
     snapshot["runtime"] = {
         "db_path": pipeline.repository.db_path,
         "json_path": pipeline.repository.json_path,
@@ -941,11 +965,14 @@ def run_legal_update_action(
     pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
     if action == "scan":
         pipeline.repository.upsert_sources(list(DEFAULT_SOURCE_ROWS))
-        selected_sources = source_codes or [
-            str(row.get("code") or "")
-            for row in pipeline.repository.list_sources(enabled_only=True)
-            if str(row.get("code") or "")
-        ]
+        if source_codes:
+            selected_sources = [str(code or "").strip() for code in source_codes if str(code or "").strip()]
+        else:
+            selected_sources = list(
+                legal_update_progressive_step1_source_codes(
+                    pipeline.repository.list_sources(enabled_only=False)
+                )
+            )
         autofetch_config = _legal_autofetch_config(cfg_source)
         if source_codes:
             autofetch_config = replace(

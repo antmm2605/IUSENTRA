@@ -2,6 +2,12 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.245.49 - 2026-05-19
+
+Attivata la Fase 8 per lo scheduler progressivo degli aggiornamenti legali. Lo step 1 non avvia tutte le fonti: usa solo `cassazione_ultime_sent_ord_questioni`, `inps_circolari`, `inps_messaggi` e `agcom_provvedimenti`, con budget `2` fonti per ciclo, timeout `120` secondi per elemento, massimo `5` pubblicazioni guarded e massimo `5` schede Cassazione ultime per scansione.
+
+ANAC e Garante restano escluse dallo scheduler automatico perché nelle fasi precedenti hanno richiesto conferme ulteriori; Normattiva e Gazzetta restano archivi ufficiali locali e non vengono trattate come batch fonte nello step 1. Lex continua a usare come certe solo evidenze verificate o archivi ufficiali locali; fonti incomplete, RAG-only o fuori step restano marcate come da verificare e non diventano base certa della risposta.
+
 ## Aggiornamento operativo 2.245.48 - 2026-05-19
 
 Completata la Fase 7 con backfill diagnostico mirato su PDF/OCR/riferimenti/domande. La fase non ha eseguito backup, Web libero, pubblicazione automatica o import massivo: ogni comando ha usato `--limit`, `--max-seconds 120`, `--no-publish` e report JSON salvato in `artifacts/legal-updates/phase7-backfill-2026-05-19/`.

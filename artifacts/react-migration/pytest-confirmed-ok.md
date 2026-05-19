@@ -1,10 +1,21 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-19, Fase 7 backfill mirato PDF/OCR/riferimenti/domande 2.245.48, Fase 6 normativa e archivi base 2.245.47, Fase 5 fonti verdi Aggiornamenti legali 2.245.46, strumenti sicuri canary/backfill Aggiornamenti legali 2.245.42, capability registry/parser fixture Aggiornamenti legali 2.245.41, collegamento Lex/Ricerca Legale per Corte Costituzionale n. 50/2026, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
+Aggiornato: 2026-05-19, Fase 8 scheduler progressivo 2.245.49, Fase 7 backfill mirato PDF/OCR/riferimenti/domande 2.245.48, Fase 6 normativa e archivi base 2.245.47, Fase 5 fonti verdi Aggiornamenti legali 2.245.46, strumenti sicuri canary/backfill Aggiornamenti legali 2.245.42, capability registry/parser fixture Aggiornamenti legali 2.245.41, collegamento Lex/Ricerca Legale per Corte Costituzionale n. 50/2026, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
+
+## Update Intelligence Fase 8 scheduler progressivo 2.245.49 - 2026-05-19
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_legal_update_autofetch.py tests/test_legal_update_surface_jobs.py tests/test_scheduler_registry.py tests/test_scheduler_worker.py -q --tb=short` | OK | 17/17 passati: step 1 verde, budget 2/5/120, agenti fuori step disabilitati e job fonte stantii letti da verificare. |
+| `python -m pytest tests/test_legal_update_autofetch.py tests/test_legal_update_surface_jobs.py tests/test_legal_update_job_queue.py tests/test_legal_update_batch_runner.py -q --tb=short` | OK | 20/20 passati: source budget, timeout, publish max, coda job, recupero stale running ed errori interni non marcati completed. |
+| `python -m pytest tests/test_legal_updates_pipeline.py -q --tb=short` | OK | Primo tentativo terminato per timeout locale a 124s; rilancio mirato con timeout più ampio verde, 41/41 passati. |
+| `python tools/check_repo_governance.py`; `python -m pytest tests/test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | Governance OK, UTF-8 4/4 e whitespace senza errori; `git diff --check` segnala solo warning CRLF su dati runtime preesistenti e `docs/openapi.yaml`. |
+| `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py docs/openapi.yaml`; `python scripts/verify_openapi_provider.py`; `python -m pytest -q tests/test_openapi_contracts_phase6.py --tb=short` | OK | OpenAPI riallineato a `2.245.49`; provider verification OK, auth-error=196, success=27, backend-security=1 e contratti fase 6 5/5. |
+| `python tools/sync_packaging_files.py --check`; `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q --tb=short`; `python -m pytest tests/test_scheduler_registry.py tests/test_scheduler_worker.py tests/test_scheduler_admin.py -q --tb=short` | OK | Packaging sincronizzato, readiness 9/9 e console/registro scheduler 14/14 verdi. |
 
 ## Update Intelligence Fase 7 backfill mirato PDF/OCR/riferimenti/domande 2.245.48 - 2026-05-19
 

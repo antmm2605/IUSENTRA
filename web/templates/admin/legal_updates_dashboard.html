@@ -19,7 +19,7 @@
       <form method="post" action="{{ url_for('legal_updates_admin.execute_action', action='scan') }}">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
         <button class="btn btn-primary">
-          <i class="bi bi-search me-2"></i>Cerca e pubblica ora
+          <i class="bi bi-search me-2"></i>Avvia step 1
         </button>
       </form>
       <form method="post" action="{{ url_for('legal_updates_admin.execute_action', action='autopublish') }}">
@@ -257,11 +257,17 @@
         <div class="li-card__body">
           <div class="li-section-title mb-2"><i class="bi bi-moon-stars me-2 text-primary"></i>Ricerca notturna</div>
           <div class="small text-muted">
-            La scansione automatica completa resta nella fascia {{ payload.quality.auto_publish_window }} per non pesare sull'uso quotidiano dello studio.
+            Lo scheduler automatico lavora nella fascia {{ payload.quality.auto_publish_window }} e nello step 1 usa solo le fonti verdi già confermate.
           </div>
           <div class="li-soft-card mt-3">
-            <div class="small text-muted">Pubblicazione</div>
-            <div class="fw-semibold">Automatica per fonti ufficiali idonee</div>
+            <div class="small text-muted">Fonti step 1</div>
+            <div class="fw-semibold">{{ payload.progressive_scheduler.enabled_source_codes|join(', ') }}</div>
+          </div>
+          <div class="li-soft-card mt-2">
+            <div class="small text-muted">Budget e pubblicazione</div>
+            <div class="fw-semibold">
+              {{ payload.progressive_scheduler.source_budget }} fonti per ciclo, {{ payload.progressive_scheduler.publish_max_items }} pubblicazioni massime, modalità guarded
+            </div>
           </div>
         </div>
       </div>

@@ -17,6 +17,13 @@ from pathlib import Path
 import subprocess
 import sys
 
+from pct.legal_update_autofetch import (
+    LEGAL_UPDATE_PROGRESSIVE_CASSAZIONE_MAX_ITEMS,
+    LEGAL_UPDATE_PROGRESSIVE_ITEM_TIMEOUT_SECONDS,
+    LEGAL_UPDATE_PROGRESSIVE_PUBLISH_MAX_ITEMS,
+    LEGAL_UPDATE_PROGRESSIVE_SOURCE_BUDGET,
+    LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES,
+)
 from pct.runtime_env import is_managed_cloud_runtime
 
 logger = logging.getLogger("pct.scheduler")
@@ -278,18 +285,25 @@ def start_scheduler(app):
 
                 timeout_seconds = _parse_positive_int(
                     app.config.get("LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS")
+                    or os.getenv("LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS")
                     or os.getenv("IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS"),
-                    180,
+                    LEGAL_UPDATE_PROGRESSIVE_ITEM_TIMEOUT_SECONDS,
                 )
                 publish_max_items = _parse_positive_int(
                     app.config.get("LEGAL_UPDATES_PUBLISH_MAX_ITEMS")
+                    or os.getenv("LEGAL_UPDATES_PUBLISH_MAX_ITEMS")
                     or os.getenv("IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS"),
-                    80,
+                    LEGAL_UPDATE_PROGRESSIVE_PUBLISH_MAX_ITEMS,
                 )
                 source_budget = _parse_positive_int(
                     app.config.get("LEGAL_AUTOFETCH_SOURCE_BUDGET")
+                    or os.getenv("LEGAL_AUTOFETCH_SOURCE_BUDGET")
                     or os.getenv("IUSENTRA_LEGAL_AUTOFETCH_SOURCE_BUDGET"),
-                    min(max(1, len(source_ids or [])), 8),
+                    min(max(1, len(source_ids or [])), LEGAL_UPDATE_PROGRESSIVE_SOURCE_BUDGET),
+                )
+                os.environ.setdefault(
+                    "IUSENTRA_CASSAZIONE_LATEST_MAX_ITEMS",
+                    str(LEGAL_UPDATE_PROGRESSIVE_CASSAZIONE_MAX_ITEMS),
                 )
                 job_config = LegalUpdateJobConfig(
                     intelligence_db=str(
@@ -495,48 +509,9 @@ def start_scheduler(app):
     def _legal_monitor_pst():
         _run_legal_monitor(["pst_giustizia"], "pst")
 
-    @scheduler.scheduled_job(CronTrigger(hour=23, minute=10), id="legal_updates_gazzetta")
-    def _legal_updates_gazzetta():
-        _run_legal_updates(["gazzetta_ufficiale"], "gazzetta")
-
     @scheduler.scheduled_job(CronTrigger(hour=23, minute=15), id="legal_updates_batch")
     def _legal_updates_batch():
-        _run_legal_updates(
-            [
-                "gazzetta_ufficiale",
-                "normattiva",
-                "dati_normattiva",
-                "corte_costituzionale",
-                "cassazione_massimario",
-                "openga_giustizia_amministrativa",
-                "openga_calendario_udienze",
-                "openga_decreti",
-                "openga_ordinanze",
-                "openga_pareri",
-                "openga_provvedimenti_pubblicati",
-                "openga_ricorsi_definiti",
-                "openga_ricorsi_pendenti",
-                "openga_ricorsi_pervenuti",
-                "openga_sentenze",
-                "eur_lex",
-                "agenzia_entrate",
-                "ministero_lavoro",
-                "ministero_lavoro_interpelli",
-                "garante_privacy",
-                "anac_documenti",
-                "inps_circolari",
-                "inps_messaggi",
-                "inps_sentenze",
-                "curia_cgue_rss",
-                "istat_prezzi",
-                "mimit_incentivi",
-                "agcm_bollettino",
-                "agcom_provvedimenti",
-                "banca_italia_normativa",
-                "pst_giustizia_download",
-            ],
-            "batch",
-        )
+        _run_legal_updates(list(LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES), "fase8_step1")
 
     # ---- Sync tabelle normative giornaliero (ogni giorno alle 04:30) ----
     # Sincronizza tutte le tabelle (tassi, indici ISTAT, Cassa Forense, soglie appalti, ecc.)

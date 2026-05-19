@@ -7,6 +7,12 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.245.49 - 19 maggio 2026
+
+La Fase 8 restringe lo scheduler degli aggiornamenti legali al solo step 1 progressivo: `cassazione_ultime_sent_ord_questioni`, `inps_circolari`, `inps_messaggi` e `agcom_provvedimenti`. Le fonti fuori step, incluse ANAC e Garante, non devono diventare base certa della risposta Lex finché non passano un canary/report verde dedicato.
+
+Budget iniziali: 2 fonti per ciclo, timeout 120 secondi per elemento, massimo 5 pubblicazioni guarded per ciclo e massimo 5 schede Cassazione ultime. Lex continua a distinguere evidenze verificate, fonti incomplete e RAG-only: le incomplete restano da verificare e non vengono promosse a certezza nella risposta finale.
+
 ## Aggiornamento operativo 2.245.48 - 19 maggio 2026
 
 La Fase 7 ha eseguito solo backfill mirati, con limiti espliciti e `--no-publish`, sui documenti già acquisiti o pubblicati. Non è stato usato Web libero e non è stato avviato alcun import massivo.

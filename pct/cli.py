@@ -2693,7 +2693,7 @@ def cmd_demo_check(tenant_slug, registry):
 @click.option("--export-json/--no-export-json", default=False, show_default=True, help="Scrive un export JSON amministrativo dopo il ciclo")
 @click.option("--mirror-giurisprudenza-json/--no-mirror-giurisprudenza-json", default=False, show_default=True, help="Replica anche nel vecchio archivio giurisprudenza JSON")
 @click.option("--per-source-timeout", type=int, default=lambda: _env_int_option("IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS", 0), show_default="IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS o 0", help="Esegue ogni fonte in un job separato con timeout in secondi")
-@click.option("--publish-max-items", type=int, default=lambda: _env_int_option("IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS", 80), show_default="IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS o 80", help="Limite di pubblicazioni automatiche quando si usa il job con timeout")
+@click.option("--publish-max-items", type=int, default=lambda: _env_int_option("IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS", 5), show_default="IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS o 5", help="Limite di pubblicazioni automatiche quando si usa il job con timeout")
 def cmd_aggiornamenti_legali(intelligence_db, giurisprudenza_db, source_codes, no_auto_publish, publish_approved, cleanup_only, local_ai_url, local_ai_model, export_json, mirror_giurisprudenza_json, per_source_timeout, publish_max_items):
     """Esegue la pipeline del motore di aggiornamento normativo, giurisprudenziale e di prassi."""
     pipeline = build_legal_update_pipeline(

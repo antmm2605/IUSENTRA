@@ -25,6 +25,49 @@ from pct.legal_update_pipeline import LegalUpdatePipeline, build_legal_update_pi
 
 
 LEGAL_UPDATE_AUTOFETCH_SCHEMA = "iusentra.legal_update_autofetch.v1"
+LEGAL_UPDATE_PROGRESSIVE_STEP = "fase8_step1"
+LEGAL_UPDATE_PROGRESSIVE_SOURCE_BUDGET = 2
+LEGAL_UPDATE_PROGRESSIVE_PUBLISH_MAX_ITEMS = 5
+LEGAL_UPDATE_PROGRESSIVE_ITEM_TIMEOUT_SECONDS = 120
+LEGAL_UPDATE_PROGRESSIVE_CASSAZIONE_MAX_ITEMS = 5
+LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES: tuple[str, ...] = (
+    "cassazione_ultime_sent_ord_questioni",
+    "inps_circolari",
+    "inps_messaggi",
+    "agcom_provvedimenti",
+)
+LEGAL_UPDATE_PROGRESSIVE_EXCLUDED_SOURCE_REASONS: dict[str, str] = {
+    "anac_documenti": (
+        "Esclusa dallo step 1: in fase 5 e nel canary alcune schede richiedono "
+        "conferme ulteriori prima della pubblicazione governata."
+    ),
+    "garante_privacy": (
+        "Esclusa dallo step 1: fonte utile ma ancora da osservare per allegati, "
+        "riferimenti ritrovabili e qualità costante delle schede."
+    ),
+    "gazzetta_ufficiale": (
+        "Gestita dagli archivi ufficiali locali della fase 6; non entra nel "
+        "primo scheduler progressivo degli aggiornamenti fonte."
+    ),
+    "normattiva": (
+        "Gestita dagli archivi ufficiali locali della fase 6; nessun import "
+        "massivo notturno nello step 1."
+    ),
+    "dati_normattiva": (
+        "Canale tecnico Normattiva: resta fuori dal primo scheduler progressivo."
+    ),
+    "corte_costituzionale": (
+        "Esclusa finché la fonte diretta non restituisce schede pronuncia "
+        "verificabili senza fallback di navigazione."
+    ),
+    "openga_sentenze": (
+        "Open data tabellare: resta RAG-only o in osservazione finché non "
+        "vengono promossi solo documenti concreti."
+    ),
+    "pst_giustizia_download": (
+        "Fonte tecnica: non pubblicabile come aggiornamento legale automatico."
+    ),
+}
 
 LEGAL_SOURCE_QUALITY_QUESTIONS: tuple[str, ...] = (
     "La fonte risulta censita nel database?",
@@ -40,6 +83,64 @@ LEGAL_SOURCE_QUALITY_QUESTIONS: tuple[str, ...] = (
 )
 
 
+def is_legal_update_progressive_step1_source(source_code: Any) -> bool:
+    return _source_code(source_code) in LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES
+
+
+def legal_update_progressive_step1_source_codes(
+    sources: Sequence[Mapping[str, Any]] | None = None,
+) -> tuple[str, ...]:
+    if sources is None:
+        return LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES
+    by_code = {_source_code(source.get("code")): dict(source or {}) for source in sources}
+    selected: list[str] = []
+    for code in LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES:
+        source = by_code.get(code)
+        if source is None:
+            continue
+        if bool(source.get("enabled", True)):
+            selected.append(code)
+    return tuple(selected)
+
+
+def legal_update_progressive_exclusion_reason(source_code: Any) -> str:
+    code = _source_code(source_code)
+    if not code or code in LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES:
+        return ""
+    return LEGAL_UPDATE_PROGRESSIVE_EXCLUDED_SOURCE_REASONS.get(
+        code,
+        "Non incluso nello step 1 progressivo: resta fuori scheduler finché non passa un canary/report verde dedicato.",
+    )
+
+
+def legal_update_progressive_scheduler_payload(
+    sources: Sequence[Mapping[str, Any]] | None = None,
+) -> dict[str, Any]:
+    enabled_codes = legal_update_progressive_step1_source_codes(sources)
+    excluded: list[dict[str, str]] = []
+    for source in sources or ():
+        code = _source_code(source.get("code"))
+        reason = legal_update_progressive_exclusion_reason(code)
+        if reason:
+            excluded.append(
+                {
+                    "source_code": code,
+                    "source_name": str(source.get("name") or code),
+                    "reason": reason,
+                }
+            )
+    return {
+        "step": LEGAL_UPDATE_PROGRESSIVE_STEP,
+        "enabled_source_codes": list(enabled_codes),
+        "excluded_sources": excluded,
+        "source_budget": LEGAL_UPDATE_PROGRESSIVE_SOURCE_BUDGET,
+        "publish_max_items": LEGAL_UPDATE_PROGRESSIVE_PUBLISH_MAX_ITEMS,
+        "item_timeout_seconds": LEGAL_UPDATE_PROGRESSIVE_ITEM_TIMEOUT_SECONDS,
+        "cassazione_latest_max_items": LEGAL_UPDATE_PROGRESSIVE_CASSAZIONE_MAX_ITEMS,
+        "publication_mode": "guarded",
+    }
+
+
 @dataclass(frozen=True)
 class LegalAutoFetchConfig:
     intelligence_db: str
@@ -48,9 +149,9 @@ class LegalAutoFetchConfig:
     ai_model: str = "mistral"
     queue_db_path: str = ""
     cursor_path: str = ""
-    source_budget: int = 8
-    publish_max_items: int = 40
-    item_timeout_seconds: int = 180
+    source_budget: int = LEGAL_UPDATE_PROGRESSIVE_SOURCE_BUDGET
+    publish_max_items: int = LEGAL_UPDATE_PROGRESSIVE_PUBLISH_MAX_ITEMS
+    item_timeout_seconds: int = LEGAL_UPDATE_PROGRESSIVE_ITEM_TIMEOUT_SECONDS
     max_attempts: int = 3
     execute_due_sources: bool = True
     export_json_enabled: bool = False
@@ -63,9 +164,9 @@ class LegalAutoFetchConfig:
         *,
         queue_db_path: str = "",
         cursor_path: str = "",
-        source_budget: int = 8,
-        publish_max_items: int = 40,
-        item_timeout_seconds: int = 180,
+        source_budget: int = LEGAL_UPDATE_PROGRESSIVE_SOURCE_BUDGET,
+        publish_max_items: int = LEGAL_UPDATE_PROGRESSIVE_PUBLISH_MAX_ITEMS,
+        item_timeout_seconds: int = LEGAL_UPDATE_PROGRESSIVE_ITEM_TIMEOUT_SECONDS,
         max_attempts: int = 3,
         execute_due_sources: bool = True,
     ) -> "LegalAutoFetchConfig":
@@ -348,6 +449,7 @@ def build_legal_update_operational_monitor(
         mirror_giurisprudenza_json_enabled=config.mirror_giurisprudenza_json_enabled,
     )
     runtime_queue = queue or LegalUpdateJobQueue(_queue_path(config))
+    recovered_stale_jobs = runtime_queue.recover_stale_running()
     snapshot = runtime_pipeline.dashboard_snapshot()
     sources = runtime_pipeline.repository.list_sources(enabled_only=False)
     activity = runtime_pipeline.repository.source_activity_summary()
@@ -367,6 +469,7 @@ def build_legal_update_operational_monitor(
         "schema": LEGAL_UPDATE_AUTOFETCH_SCHEMA,
         "generated_at": _iso(datetime.now(tz=UTC)),
         "queue": queue_summary,
+        "recovered_stale_jobs": recovered_stale_jobs,
         "recent_jobs": jobs,
         "sources": source_rows,
         "sources_total": len(source_rows),

@@ -7,6 +7,14 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.49 - 2026-05-19
+
+- Attivata la Fase 8 dello scheduler progressivo degli aggiornamenti legali: lo step 1 usa solo `cassazione_ultime_sent_ord_questioni`, `inps_circolari`, `inps_messaggi` e `agcom_provvedimenti`, lasciando fuori fonti gialle o tecniche.
+- Abbassati i budget operativi iniziali: 2 fonti per ciclo, timeout 120 secondi per elemento, massimo 5 pubblicazioni guarded per ciclo e massimo 5 schede Cassazione ultime per scansione.
+- Rimosso il batch notturno completo dalle pianificazioni operative: Gazzetta e Normattiva restano presidiate dagli archivi ufficiali locali, mentre ANAC e Garante restano in osservazione fino a canary/report verde dedicato.
+- Aggiornate console admin e registro pianificazioni per mostrare lo step progressivo, disabilitare gli agenti fonte fuori step e leggere i job stantii come elementi da verificare.
+- Aggiunti test mirati per fonti abilitate/escluse, budget, timeout, publish max e blocco degli agenti fuori step senza reintrodurre aggregatori storici.
+
 ## 2.245.48 - 2026-05-19
 
 - Completata la Fase 7 di backfill mirato PDF/OCR/riferimenti/domande senza backup, senza Web libero, senza pubblicazione automatica e senza scansione globale non limitata.

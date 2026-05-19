@@ -428,6 +428,10 @@ def _agent_status_payload(run: dict[str, Any] | None, *, source_code: str) -> di
             "processed": 0,
             "skipped_unchanged": 0,
             "autopublished_count": 0,
+            "trigger_label": "",
+            "trigger_label_display": "",
+            "is_canary": False,
+            "last_canary_message": "",
         }
     original_status = str(run.get("status") or "").strip().lower()
     status = original_status
@@ -477,6 +481,10 @@ def _agent_status_payload(run: dict[str, Any] | None, *, source_code: str) -> di
         "processed": processed,
         "skipped_unchanged": skipped,
         "autopublished_count": published,
+        "trigger_label": str(run.get("trigger_label") or ""),
+        "trigger_label_display": _agent_trigger_label(run.get("trigger_label")),
+        "is_canary": str(run.get("trigger_label") or "").strip().lower() == "canary",
+        "last_canary_message": _agent_canary_message(payload_data),
     }
 
 
@@ -552,6 +560,32 @@ def _published_count_from_payload(value: Any) -> int:
     if isinstance(value, list):
         return sum(_published_count_from_payload(item) for item in value)
     return 0
+
+
+def _agent_trigger_label(value: Any) -> str:
+    raw = str(value or "").strip().lower()
+    labels = {
+        "canary": "canary sicuro",
+        "batch": "ciclo schedulato",
+        "manual": "azione manuale",
+        "autofetch": "acquisizione automatica",
+    }
+    return labels.get(raw, raw.replace("_", " ") if raw else "")
+
+
+def _agent_canary_message(payload_data: Any) -> str:
+    if not isinstance(payload_data, dict) or str(payload_data.get("mode") or "") != "canary":
+        return ""
+    parts = [
+        f"{_int_value(payload_data.get('documents_found'))} letti",
+        f"{_int_value(payload_data.get('processed'))} analizzati",
+        f"{_int_value(payload_data.get('verification_attachments_saved'))} allegati",
+    ]
+    if payload_data.get("stopped_for_time_limit"):
+        parts.append("fermato dal limite tempo")
+    if payload_data.get("no_publish"):
+        parts.append("nessuna pubblicazione")
+    return ", ".join(parts)
 
 
 def _format_source_agent_message(

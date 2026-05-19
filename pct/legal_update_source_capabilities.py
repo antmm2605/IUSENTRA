@@ -4,6 +4,10 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 
+def _normalize_source_token(value: Any) -> str:
+    return " ".join(str(value or "").strip().lower().split())
+
+
 @dataclass(frozen=True)
 class SourceCapability:
     source_code: str
@@ -21,7 +25,24 @@ class SourceCapability:
     exclusion_policy: str
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        payload = asdict(self)
+        payload.update(
+            {
+                "famiglia": _source_family(self.source_code),
+                "parser_strategy": self.item_strategy,
+                "pdf_allowed": bool(
+                    self.pdf_required
+                    or self.attachment_strategy not in {"none", "manual_free_web_only"}
+                ),
+                "references_enabled": self.reference_extraction_enabled,
+                "context_questions_enabled": self.context_question_enabled,
+                "destination": _canonical_destination(self.publication_destination),
+                "filtro_interesse_studio_legale": self.relevance_policy,
+                "regole_esclusione": self.exclusion_policy,
+                "note_diagnostiche": _diagnostic_notes(self),
+            }
+        )
+        return payload
 
 
 _DEFAULT = SourceCapability(
@@ -41,8 +62,61 @@ _DEFAULT = SourceCapability(
 )
 
 
+def _source_family(source_code: Any) -> str:
+    code = _normalize_source_token(source_code)
+    if code.startswith("cassazione_"):
+        return "cassazione"
+    if code.startswith("openga_"):
+        return "open_data_giustizia_amministrativa"
+    if code.startswith("codice_"):
+        return "codici_normattiva"
+    if code.startswith(("inps_", "inail_", "ministero_lavoro")):
+        return "lavoro_previdenza"
+    if code in {"agcom_provvedimenti", "agcm_bollettino", "anac_documenti", "garante_privacy", "banca_italia_normativa"}:
+        return "autorita_indipendenti"
+    if code in {"curia_cgue_rss", "eur_lex"}:
+        return "unione_europea"
+    if code in {"normattiva", "dati_normattiva", "gazzetta_ufficiale"}:
+        return "normativa"
+    if code in {"pst_giustizia_download"}:
+        return "telematico"
+    if code.startswith(("studiocataldi_", "avvocatoandreani_")):
+        return "fonti_secondarie"
+    return "istituzionale"
+
+
+def _canonical_destination(value: Any) -> str:
+    raw = _normalize_source_token(value)
+    if raw == "out_of_scope":
+        return "out_of_scope"
+    if raw in {"rag_only", "technical_metadata"} or "rag_only" in raw:
+        return "RAG-only"
+    if "osservazione" in raw:
+        return "osservazione"
+    if "giurisprudenza" in raw:
+        return "giurisprudenza"
+    if "normativa" in raw:
+        return "normativa"
+    if "prassi" in raw:
+        return "prassi"
+    if "news" in raw:
+        return "news"
+    return raw or "osservazione"
+
+
+def _diagnostic_notes(capability: SourceCapability) -> str:
+    notes = [
+        f"parser={capability.item_strategy}",
+        f"dettaglio={capability.detail_strategy}",
+        f"allegati={capability.attachment_strategy}",
+        "PDF obbligatorio" if capability.pdf_required else "PDF se presente",
+        "OCR consentito" if capability.ocr_allowed else "OCR non previsto",
+    ]
+    return "; ".join(notes)
+
+
 def _cap(source_code: str, **overrides: Any) -> SourceCapability:
-    data = _DEFAULT.to_dict()
+    data = asdict(_DEFAULT)
     data.update(overrides)
     data["source_code"] = source_code
     return SourceCapability(**data)
@@ -460,7 +534,7 @@ OPEN_DATA_CATALOG_MARKERS = (
 
 
 def normalize_source_code(value: Any) -> str:
-    return " ".join(str(value or "").strip().lower().split())
+    return _normalize_source_token(value)
 
 
 def get_source_capability(source_code: Any, *, category: Any = "") -> SourceCapability:

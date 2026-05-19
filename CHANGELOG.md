@@ -7,6 +7,14 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.42 - 2026-05-19
+
+- Aggiunti gli strumenti sicuri `python -m pct.cli legal-updates-canary` e `python -m pct.cli legal-updates-backfill-diagnostics` per provare una sola fonte o arricchire evidenze mirate con limiti obbligatori, budget tempo, `--no-publish`, `--direct-only`, diagnostica JSON e nessun import massivo.
+- Il canary registra, se richiesto, l'ultimo controllo fonte come run `canary`: documenti letti, analizzati, allegati/PDF, OCR/testo, riferimenti, domande, destinazione, motivi di scarto, qualità RAG ed errori sono disponibili in console admin senza codici grezzi.
+- Il backfill diagnostico ora distingue allegati, OCR, riferimenti e domande contestuali; per riferimenti/domande aggiorna le evidenze esistenti senza pubblicare e senza scansioni infinite.
+- Esteso il registry capability con i campi macchina richiesti per famiglia fonte, parser, dettaglio, allegati, PDF/OCR, riferimenti, domande, destinazione, filtro studio legale, regole di esclusione e note diagnostiche.
+- Create fixture offline per Cassazione, AGCOM, INPS, Curia, CKAN/OpenGA, ANAC, Garante, PST e PDF testuale/scansionato mock, così i parser e il canary sono verificabili senza rete live.
+
 ## 2.245.41 - 2026-05-19
 
 - Aggiunto il registro capability per fonte degli Aggiornamenti legali: ogni sorgente dichiara strategia elenco/dettaglio/allegati, PDF/OCR, riferimenti, domande, destinazione, RAG, giurisprudenza e filtri di esclusione.

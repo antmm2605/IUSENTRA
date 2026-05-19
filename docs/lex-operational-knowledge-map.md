@@ -30,6 +30,8 @@ Aggiornamento 2026-05-18, fonti aggiornamenti legali 2.245.40: `LegalUpdateRepos
 
 Aggiornamento 2026-05-19, fonti aggiornamenti legali 2.245.41: il registro capability fonte per fonte rende esplicito se una sorgente alimenta normativa, prassi, giurisprudenza, news, RAG-only o fuori perimetro. I parser deterministici per HTML, feed, CKAN/OpenGA, Cassazione e autorità indipendenti salvano testo dettaglio, allegati candidati, ragioni di scarto e destinazione; Lex usa questi segnali nel corpus ufficiale e nel ranking, mentre Web libero resta separato e manuale.
 
+Aggiornamento 2026-05-19, strumenti sicuri fonti 2.245.42: prima di qualsiasi popolamento esteso, una fonte passa da `legal-updates-canary` con limite obbligatorio, budget tempo, `--no-publish`, `--direct-only`, diagnostica salvabile e fixture offline. I backfill mirati separano allegati, OCR, riferimenti e domande contestuali, così Lex riceve testo pagina/PDF/OCR, riferimenti e domande senza import massivo live e senza promozione automatica nel corpus.
+
 ## Regole di accesso
 
 - Tenant: ricavato dal contesto Flask (`g.tenant`, `g.tenant_context_slug`, `g.data_paths`) o da contesto applicativo esplicito nei test.

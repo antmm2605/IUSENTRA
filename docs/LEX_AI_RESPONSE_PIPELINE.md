@@ -7,6 +7,20 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.245.42 - 19 maggio 2026
+
+La pipeline dispone ora di due strumenti sicuri prima del popolamento fonte per
+fonte: `legal-updates-canary` prova una sola fonte con `--limit` obbligatorio,
+budget tempo, `--direct-only`, `--no-publish` e diagnostica salvabile;
+`legal-updates-backfill-diagnostics` completa in modo mirato allegati, OCR,
+riferimenti o domande senza pubblicazione automatica.
+
+Le fixture offline coprono Cassazione indice/Civile/Penale/dettaglio/PDF,
+AGCOM dentro/fuori perimetro, feed INPS/Curia, CKAN OpenGA, ANAC, Garante,
+PST e PDF testuale/scansionato mock. Questo consente a Lex, Ricerca Legale e
+alla console admin di verificare parser, PDF/OCR, riferimenti e domande senza
+rete live e senza import massivo.
+
 ## Aggiornamento operativo 2.245.41 - 19 maggio 2026
 
 Gli Aggiornamenti legali hanno ora un registro capability per fonte. Lex non

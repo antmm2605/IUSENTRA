@@ -2,6 +2,20 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.245.42 - 2026-05-19
+
+Introdotti strumenti diagnostici sicuri per popolare le fonti una alla volta:
+`python -m pct.cli legal-updates-canary` legge una sola fonte con limite
+obbligatorio, budget tempo, `--direct-only`, `--no-publish`, diagnostica JSON
+e salvataggio opzionale dell'ultimo canary; `python -m pct.cli
+legal-updates-backfill-diagnostics` completa solo allegati, OCR, riferimenti o
+domande mancanti su fonte, review o query mirata.
+
+Le fixture offline in `tests/fixtures/legal_updates/` coprono le famiglie
+Cassazione, autorità indipendenti, feed, CKAN/OpenGA, PST e PDF/OCR mock. I
+test non dipendono dalla rete live e dimostrano che la diagnostica alimenta
+evidenze RAG/Lex senza pubblicazione automatica incontrollata.
+
 ## Aggiornamento operativo 2.245.41 - 2026-05-19
 
 Il piano fonte per fonte degli Aggiornamenti legali è stato trasformato in

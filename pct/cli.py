@@ -2750,6 +2750,116 @@ def cmd_aggiornamenti_legali(intelligence_db, giurisprudenza_db, source_codes, n
     ))
 
 
+@cli.command("legal-updates-canary")
+@click.option("--intelligence-db", default=lambda: os.getenv("PCT_LEGAL_INTELLIGENCE_DB", "./intelligence/motori.json"), show_default="PCT_LEGAL_INTELLIGENCE_DB o ./intelligence/motori.json", help="Anchor del motore legale")
+@click.option("--giurisprudenza-db", default=lambda: os.getenv("PCT_GIURISPRUDENZA_DB", "./intelligence/giurisprudenza.json"), show_default="PCT_GIURISPRUDENZA_DB o ./intelligence/giurisprudenza.json", help="Archivio giurisprudenza per eventuale mirror controllato")
+@click.option("--source", "source_code", required=True, help="Codice di una sola fonte da provare")
+@click.option("--limit", required=True, type=int, help="Limite obbligatorio di documenti da leggere")
+@click.option("--max-seconds", type=int, default=60, show_default=True, help="Budget massimo del canary")
+@click.option("--no-publish/--allow-publish", default=True, show_default=True, help="Mantiene disattivata la pubblicazione automatica")
+@click.option("--direct-only/--allow-web-search", default=True, show_default=True, help="Usa solo pagina fonte e allegati diretti")
+@click.option("--save-diagnostics", is_flag=True, default=False, help="Registra l'esito come ultimo canary della fonte")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Stampa output JSON")
+def cmd_legal_updates_canary(
+    intelligence_db,
+    giurisprudenza_db,
+    source_code,
+    limit,
+    max_seconds,
+    no_publish,
+    direct_only,
+    save_diagnostics,
+    as_json,
+):
+    """Prova sicura di una fonte legale, senza import massivo."""
+    from pct.legal_update_diagnostics import run_legal_updates_canary
+
+    try:
+        report = run_legal_updates_canary(
+            intelligence_db=intelligence_db,
+            giurisprudenza_db=giurisprudenza_db,
+            source_code=source_code,
+            limit=limit,
+            max_seconds=max_seconds,
+            no_publish=no_publish,
+            direct_only=direct_only,
+            save_diagnostics=save_diagnostics,
+        )
+    except Exception as exc:
+        if as_json:
+            click.echo(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False, indent=2))
+        raise click.ClickException(str(exc))
+    if as_json:
+        click.echo(json.dumps(report, ensure_ascii=False, indent=2))
+        return
+    click.echo(
+        "Canary aggiornamenti legali: "
+        f"{report['source_code']} - {report['processed']} analizzati su "
+        f"{report['documents_found']} letti, pubblicazione "
+        f"{'disattivata' if report['no_publish'] else 'consentita'}."
+    )
+    if report.get("errors"):
+        click.echo("Errori: " + "; ".join(report["errors"][:3]))
+
+
+@cli.command("legal-updates-backfill-diagnostics")
+@click.option("--intelligence-db", default=lambda: os.getenv("PCT_LEGAL_INTELLIGENCE_DB", "./intelligence/motori.json"), show_default="PCT_LEGAL_INTELLIGENCE_DB o ./intelligence/motori.json", help="Anchor del motore legale")
+@click.option("--giurisprudenza-db", default=lambda: os.getenv("PCT_GIURISPRUDENZA_DB", "./intelligence/giurisprudenza.json"), show_default="PCT_GIURISPRUDENZA_DB o ./intelligence/giurisprudenza.json", help="Archivio giurisprudenza per eventuale mirror controllato")
+@click.option("--source", "source_code", default="", help="Limita il backfill a una fonte")
+@click.option("--review-id", type=int, default=0, help="Limita il backfill a una review")
+@click.option("--query", default="", help="Filtro testuale mirato")
+@click.option("--missing", required=True, type=click.Choice(["attachments", "ocr", "references", "questions"]), help="Tipo di diagnosi mancante")
+@click.option("--limit", required=True, type=int, help="Limite obbligatorio di elementi")
+@click.option("--max-seconds", type=int, default=60, show_default=True, help="Budget massimo del backfill")
+@click.option("--include-closed", is_flag=True, default=False, help="Include elementi chiusi")
+@click.option("--include-open-data", is_flag=True, default=False, help="Include cataloghi OpenData")
+@click.option("--no-publish/--allow-publish", default=True, show_default=True, help="Mantiene disattivata la pubblicazione automatica")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Stampa output JSON")
+def cmd_legal_updates_backfill_diagnostics(
+    intelligence_db,
+    giurisprudenza_db,
+    source_code,
+    review_id,
+    query,
+    missing,
+    limit,
+    max_seconds,
+    include_closed,
+    include_open_data,
+    no_publish,
+    as_json,
+):
+    """Backfill diagnostico mirato per allegati, OCR, riferimenti o domande."""
+    from pct.legal_update_diagnostics import run_legal_updates_backfill_diagnostics
+
+    try:
+        report = run_legal_updates_backfill_diagnostics(
+            intelligence_db=intelligence_db,
+            giurisprudenza_db=giurisprudenza_db,
+            source_code=source_code,
+            review_id=review_id,
+            query=query,
+            missing=missing,
+            limit=limit,
+            max_seconds=max_seconds,
+            include_closed=include_closed,
+            include_open_data=include_open_data,
+            no_publish=no_publish,
+        )
+    except Exception as exc:
+        if as_json:
+            click.echo(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False, indent=2))
+        raise click.ClickException(str(exc))
+    if as_json:
+        click.echo(json.dumps(report, ensure_ascii=False, indent=2))
+        return
+    click.echo(
+        "Backfill diagnostico aggiornamenti legali: "
+        f"{missing}, {report.get('checked', 0)} controllati, "
+        f"{report.get('updated', report.get('verification_evidence_saved', 0))} aggiornati."
+    )
+
+
 @cli.command("ai-avanzata")
 @click.option("--json", "as_json", is_flag=True, default=False, help="Stampa il payload completo in JSON")
 @click.option("--fail-if-blocked", is_flag=True, default=False, help="Ritorna errore se una capacita' abilitata non e' pronta")

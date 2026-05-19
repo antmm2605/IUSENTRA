@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>CURIA - Comunicati</title>
+    <item>
+      <title>Sentenza della Corte di giustizia UE nella causa C-123/25</title>
+      <link>https://curia.europa.eu/juris/document/document.jsf?docid=123456</link>
+      <pubDate>Tue, 19 May 2026 09:30:00 GMT</pubDate>
+      <description>Rinvio pregiudiziale su Direttiva UE 2019/790 e tutela degli utenti.</description>
+    </item>
+  </channel>
+</rss>

@@ -36,6 +36,24 @@ def test_capability_registry_copre_fonti_catalogo_e_secondarie():
         assert capability.rag_destination
         assert capability.relevance_policy
         assert capability.exclusion_policy
+        payload = capability.to_dict()
+        assert payload["famiglia"]
+        assert payload["parser_strategy"] == capability.item_strategy
+        assert "pdf_allowed" in payload
+        assert payload["references_enabled"] == capability.reference_extraction_enabled
+        assert payload["context_questions_enabled"] == capability.context_question_enabled
+        assert payload["destination"] in {
+            "normativa",
+            "giurisprudenza",
+            "prassi",
+            "news",
+            "RAG-only",
+            "out_of_scope",
+            "osservazione",
+        }
+        assert payload["filtro_interesse_studio_legale"]
+        assert payload["regole_esclusione"]
+        assert payload["note_diagnostiche"]
 
 
 def test_capability_filtri_scartano_noise_e_tengono_contesto_legale():

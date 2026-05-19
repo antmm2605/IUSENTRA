@@ -1,0 +1,37 @@
+{
+  "success": true,
+  "result": {
+    "results": [
+      {
+        "id": "catalogo-statistico",
+        "name": "catalogo-statistico",
+        "title": "Dataset statistico ricorsi pendenti",
+        "notes": "Catalogo open data con conteggi per ufficio e anno, senza documento giuridico concreto.",
+        "metadata_modified": "2026-05-18T09:00:00",
+        "resources": [
+          {
+            "id": "csv-statistico",
+            "name": "Conteggi ricorsi pendenti",
+            "format": "CSV",
+            "url": "https://openga.example.test/dataset/ricorsi-pendenti.csv"
+          }
+        ]
+      },
+      {
+        "id": "sentenza-tar-roma-2026",
+        "name": "sentenza-tar-roma-2026",
+        "title": "Sentenza TAR Lazio n. 321/2026",
+        "notes": "Documento giuridico concreto su appalto, ricorso R.G. 1234/2026 e accesso agli atti.",
+        "metadata_modified": "2026-05-19T09:00:00",
+        "resources": [
+          {
+            "id": "pdf-sentenza",
+            "name": "PDF sentenza TAR Lazio n. 321/2026",
+            "format": "PDF",
+            "url": "https://openga.example.test/documenti/tar-lazio-321-2026.pdf"
+          }
+        ]
+      }
+    ]
+  }
+}

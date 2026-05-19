@@ -80,3 +80,11 @@ Aggiornato il 18 maggio 2026. Ricognizione svolta partendo da `/admin/aggiorname
 - Le fonti rimaste `in osservazione` hanno parser/detail adapter disponibile ma restano escluse dallo scheduler cieco quando il catalogo è tecnico, la fonte è disabilitata o servono chiavi documentali minime.
 - Le fonti OpenGA restano governate come dati/evidenza: non devono saturare la coda come news o giurisprudenza senza documento concreto.
 - Le fonti secondarie restano disabilitate e non entrano in corpus ufficiale; possono comparire solo nel Web libero esplicitamente richiesto dall'avvocato.
+
+## Aggiornamento Fase 1 strumenti sicuri - 19 maggio 2026
+
+- Aggiunto il canary governato `python -m pct.cli legal-updates-canary`: una sola fonte, `--limit` obbligatorio, `--max-seconds`, `--direct-only`, `--no-publish`, output JSON e salvataggio opzionale dell'ultimo canary nelle esecuzioni fonte.
+- Aggiunto il backfill diagnostico `python -m pct.cli legal-updates-backfill-diagnostics`: filtri per fonte, review, query, tipo mancante (`attachments`, `ocr`, `references`, `questions`), limiti, budget tempo, include/exclude closed/open data e nessuna pubblicazione automatica.
+- Il registry capability ora espone anche i campi macchina richiesti: famiglia, parser, dettaglio, allegati, PDF/OCR, riferimenti, domande, destinazione canonica, filtro interesse studio legale, regole di esclusione e note diagnostiche.
+- Le fixture offline in `tests/fixtures/legal_updates/` coprono Cassazione indice/Civile/Penale/dettaglio/PDF, AGCOM consultazione fuori perimetro e provvedimento utile, feed INPS/Curia, CKAN OpenGA, ANAC, Garante, PST e PDF testuale/scansionato mock.
+- La console fonti mostra l'origine dell'ultimo controllo e, quando il run è un canary, il riepilogo leggibile di documenti letti, analisi, allegati e pubblicazione disattivata.

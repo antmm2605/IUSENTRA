@@ -1,10 +1,25 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-19, capability registry/parser fixture Aggiornamenti legali 2.245.41, collegamento Lex/Ricerca Legale per Corte Costituzionale n. 50/2026, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
+Aggiornato: 2026-05-19, strumenti sicuri canary/backfill Aggiornamenti legali 2.245.42, capability registry/parser fixture Aggiornamenti legali 2.245.41, collegamento Lex/Ricerca Legale per Corte Costituzionale n. 50/2026, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
+
+## Update Intelligence strumenti sicuri canary/backfill 2.245.42 - 2026-05-19
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct/legal_update_pipeline.py pct/legal_update_repository.py web/blueprints/legal_updates_admin.py web/services/legal_update_surface.py pct/legal_update_diagnostics.py pct/legal_update_source_capabilities.py pct/cli.py` | OK | Sintassi confermata dopo canary/backfill sicuri, capability alias e ultimo canary visibile nella console fonti. |
+| `python -m pytest tests/test_legal_update_source_capabilities.py tests/test_legal_update_source_parsers.py tests/test_legal_update_safe_diagnostics.py -q --tb=short` | OK | 13/13 passati: registry completo, parser, fixture offline, canary con `--no-publish`, backfill riferimenti/domande e CLI JSON. |
+| `python -m pytest tests/test_legal_updates_pipeline.py -q --tb=short` | OK | 40/40 passati: pipeline storica preservata dopo parametro `direct_only` nel processing. |
+| `python -m pytest tests/test_legal_update_publish_context.py tests/test_legal_update_web_verification_attachments.py tests/test_document_intelligence_extraction.py -q --tb=short` | OK | 36/36 passati: PDF/OCR, allegati, hash, diagnosi e publish context invariati. |
+| `python -m pytest tests/test_lex_source_corpus_generator.py tests/test_react_legal_intelligence_search.py -q --tb=short` | OK | 24/24 passati: corpus Lex/RAG e Ricerca Legale leggono ancora allegati, riferimenti, domande e ranking PDF. |
+| `python scripts/react-migration/generate_api_contracts.py`; `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py docs/openapi.yaml`; `python scripts/verify_openapi_provider.py`; `python -m pytest tests/test_openapi_contracts_phase6.py -q --tb=short` | OK | OpenAPI allineato a `2.245.42`; provider verification e contratti fase 6 verdi. |
+| `python scripts/react-migration/generate_app_v2_test_docs.py`; `python scripts/react-migration/generate_app_v2_test_docs.py --check` | OK | Inventario e piano test App V2 aggiornati per `tests/test_legal_update_safe_diagnostics.py`. |
+| `python -m pct.cli legal-updates-canary --help`; `python -m pct.cli legal-updates-backfill-diagnostics --help` | OK | Le opzioni richieste sono esposte: fonte singola, limite obbligatorio, budget tempo, no-publish, direct-only, JSON, filtri review/query/open-data/closed. |
+| `python -m pytest tests/test_ci_coverage_config.py tests/test_ci_no_regression_contract.py -q --tb=short` | OK | 7/7 passati: resta vietato il vecchio aggregatore `CI / Coverage moduli critici` senza `parte`; confermate le 12 parti shardate come gate coverage. |
+| `python tools/check_repo_governance.py`; `python -m pytest tests/test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | Governance OK, UTF-8 4/4 e whitespace senza errori; `git diff --check` segnala solo warning CRLF su file runtime preesistenti fuori staging. |
 
 ## Update Intelligence capability/parser fixture 2.245.41 - 2026-05-19
 

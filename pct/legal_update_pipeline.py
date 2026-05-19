@@ -1565,7 +1565,13 @@ class LegalUpdatePipeline:
             },
         }
 
-    def process_document(self, source: dict[str, Any], raw_payload: dict[str, Any]) -> dict[str, Any]:
+    def process_document(
+        self,
+        source: dict[str, Any],
+        raw_payload: dict[str, Any],
+        *,
+        direct_only: bool = True,
+    ) -> dict[str, Any]:
         raw_saved = self.repository.save_raw_document(
             {
                 "source_id": source["id"],
@@ -1651,7 +1657,7 @@ class LegalUpdatePipeline:
                 "priority": decision["priority"],
             }
         )
-        verification_evidence = self._record_ingestion_verification_evidence(review, source)
+        verification_evidence = self._record_ingestion_verification_evidence(review, source, direct_only=direct_only)
         return {
             "raw": raw_saved,
             "normalized": normalized_saved,

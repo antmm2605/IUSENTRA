@@ -13,8 +13,8 @@
     <div>
       <h1 class="h3 mb-1">Gestore fonti</h1>
       <p class="text-muted mb-0">
-        Catalogo professionale delle fonti pubbliche: il ciclo giornaliero controlla prima cio' che abbiamo gia',
-        acquisisce solo novita' o variazioni e avvia la verifica web con allegati quando serve.
+        Catalogo professionale delle fonti pubbliche: il ciclo giornaliero controlla prima ciò che abbiamo già,
+        acquisisce solo novità o variazioni e avvia la verifica web con allegati quando serve.
       </p>
     </div>
     <div class="d-flex flex-wrap gap-2">
@@ -158,7 +158,7 @@
           <input class="form-control" name="parser_type" placeholder="html" value="html">
         </div>
         <div class="col-md-2">
-          <label class="form-label small text-muted">Affidabilita'</label>
+          <label class="form-label small text-muted">Affidabilità</label>
           <input class="form-control" name="trust_class" placeholder="B" value="B">
         </div>
         <div class="col-md-2">
@@ -240,6 +240,11 @@
                 <td>
                   <span class="badge text-bg-{{ source.agent.class }}">{{ source.agent.label }}</span>
                   <div class="small text-muted mt-1">{{ source.agent.message }}</div>
+                  {% if source.agent.is_canary %}
+                  <div class="small text-muted">Ultimo canary: {{ source.agent.last_canary_message }}</div>
+                  {% elif source.agent.trigger_label_display %}
+                  <div class="small text-muted">Origine controllo: {{ source.agent.trigger_label_display }}</div>
+                  {% endif %}
                   {% if source.agent.finished_at %}
                   <div class="small text-muted">{{ source.agent.finished_at }}{% if source.agent.duration_label %} - {{ source.agent.duration_label }}{% endif %}</div>
                   {% endif %}

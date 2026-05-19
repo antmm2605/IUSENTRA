@@ -69,6 +69,7 @@ La pagina Ricerca Legale usa gli archivi ufficiali locali tramite `search_normat
 | `python -m pytest tests/test_official_sources_retriever.py tests/test_legal_update_source_capabilities.py -q --tb=short` | OK | 9/9 passati. |
 | `python -m pytest tests/test_legal_updates_pipeline.py -q --tb=short` | OK | 41/41 passati. |
 | `python -m pytest tests/test_lex_source_corpus_generator.py tests/test_react_legal_intelligence_search.py -q --tb=short` | OK | 24/24 passati. |
+| `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py docs/openapi.yaml`; `python scripts/verify_openapi_provider.py`; `python scripts/smoke_app_v2_all.py --subset contracts`; `python -m pytest -q tests/test_openapi_contracts_phase6.py --tb=short` | OK | Contratto OpenAPI riallineato alla versione `2.245.47` dopo il primo push. |
 | `python tools/check_repo_governance.py` | OK | Governance check OK; `web/app.py` 40 righe, 0 route inline. |
 | `python -m pytest tests/test_utf8_integrity.py -q --tb=short` | OK | 4/4 passati. |
 | `git diff --check` | OK | Nessun errore whitespace; avviso CRLF/LF solo sui dati runtime preesistenti non toccati. |

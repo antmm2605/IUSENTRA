@@ -15,6 +15,7 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `python -m pytest tests/test_official_sources_retriever.py tests/test_legal_update_source_capabilities.py -q --tb=short` | OK | 9/9 passati: deduplica Gazzetta, Lex con contesto Normattiva, EUR-Lex RAG-only e fonti secondarie non ufficiali. |
 | `python -m pytest tests/test_legal_updates_pipeline.py -q --tb=short` | OK | 41/41 passati: pipeline aggiornamenti legali preservata. |
 | `python -m pytest tests/test_lex_source_corpus_generator.py tests/test_react_legal_intelligence_search.py -q --tb=short` | OK | 24/24 passati: corpus Lex e Ricerca Legale restano coerenti con archivi ufficiali. |
+| `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py docs/openapi.yaml`; `python scripts/verify_openapi_provider.py`; `python scripts/smoke_app_v2_all.py --subset contracts`; `python -m pytest -q tests/test_openapi_contracts_phase6.py --tb=short` | OK | Riallineato `docs/openapi.yaml` alla versione `2.245.47` dopo il primo push; il rosso CI era sul gate primario API, mentre gli aggregatori Pytest/Signer erano rossi solo perché gli shard reali erano saltati a valle. |
 | `python tools/check_repo_governance.py`; `python -m pytest tests/test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | Governance OK, UTF-8 4/4 e whitespace senza errori; `git diff --check` segnala solo warning CRLF su dati runtime preesistenti. |
 
 ## Update Intelligence Fase 5 fonti verdi 2.245.46 - 2026-05-19

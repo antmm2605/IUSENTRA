@@ -36,7 +36,7 @@ Health report iniziale:
 | 5. OpenGA documento concreto vs dataset | I cataloghi CKAN/tabellari possono sembrare giurisprudenza ma non sono documenti concreti. | Test esistenti su parser/capability/pipeline, report canary OpenGA | Canary no-publish su sentenze, ordinanze, decreti, pareri; confermati dataset RAG-only e PDF/documento concreto come candidato solo guarded futuro. | OpenGA canary summary; parser/capability/pipeline. | Chiuso come RAG-only per dataset; documento concreto non perso ma rinviato a pilot guarded. |
 | 6. CLI ciclo scheduler/autofetch controllato | Esisteva il motore autofetch ma mancava comando CLI esplicito per ciclo controllato. | `pct/legal_update_autofetch.py`, `pct/cli.py`, `tests/test_legal_update_autofetch.py` | Implementato `legal-updates-run-progressive` con `--guarded-only` obbligatorio, `--dry-run`, budget, timeout, publish max, solo fonti verdi. | Dry-run CLI, autofetch/job queue/batch runner shard. | Chiuso. |
 | 7. File runtime sporchi | Working tree aveva dati tenant/runtime e un workspace intelligence non tracciato. | `.gitignore`, report/documentazione | Preservati i dati tenant sporchi e non committati; aggiunta regola ignore mirata per `intelligence/workspace_intelligence.json`. | `git status --short`, governance, diff check. | Chiuso operativamente: runtime preservati, non committati. |
-| 8. Vercel failure | Status esterno `Vercel` in failure può essere confuso con CI reale; deploy reale è Hetzner. | `docs/ci-cd-gates.md`, report/documentazione | Verificato commit status GitHub: Vercel failure è status esterno. Verificato anche rosso reale precedente `Lint + syntax` da OpenAPI e rigenerati contratti. | `generate_api_contracts.py --check`, `validate_openapi.py`, `verify_openapi_provider.py`. | Chiuso come documentazione di processo: Vercel fuori gate IUSENTRA, ma non dichiarare “CI tutto verde” se resta failure esterno. |
+| 8. Vercel failure | Status esterno `Vercel` in failure può essere confuso con CI reale; deploy reale è Hetzner. | `docs/ci-cd-gates.md`, report/documentazione | Verificato commit status GitHub: Vercel failure è status esterno. Verificati anche rossi reali `Lint + syntax` da OpenAPI/test inventory e riallineati i generatori. | `generate_api_contracts.py --check`, `validate_openapi.py`, `verify_openapi_provider.py`, `generate_app_v2_test_docs.py --check`, smoke inventory. | Chiuso come documentazione di processo: Vercel fuori gate IUSENTRA, ma non dichiarare “CI tutto verde” se resta failure esterno. |
 
 ## Cassazione `QSP50194`
 
@@ -164,7 +164,9 @@ Vercel:
 - motivo provider: `Canceled from the Vercel Dashboard`;
 - non è gate di qualità IUSENTRA perché il deploy reale è Hetzner;
 - non dichiarare comunque “CI tutto verde” se resta quello status esterno;
-- il rosso GitHub Actions reale precedente era `Lint + syntax` per OpenAPI non allineato: contratti rigenerati e verificati.
+- il rosso GitHub Actions reale precedente era `Lint + syntax` per OpenAPI non allineato: contratti rigenerati e verificati;
+- il primo push Fase 11.5 (`c62ea56f1`) ha poi evidenziato `docs/test-inventory.md` non aggiornato nello step `App V2 registry and test plan gates`: il documento è stato rigenerato e i gate locali sono verdi;
+- gli aggregatori `Pytest core` e `Local Signer e PKCS#11` erano rossi solo per cascata da shard `Skipped` dopo il blocco primario; il vecchio aggregatore `Coverage moduli critici` senza `parte` non è stato reintrodotto.
 
 ## Verifiche eseguite
 
@@ -179,6 +181,10 @@ Vercel:
 | `python scripts/react-migration/generate_api_contracts.py --check` | OK |
 | `python scripts/validate_openapi.py` | OK |
 | `python scripts/verify_openapi_provider.py` | OK |
+| `python scripts/react-migration/generate_app_v2_test_docs.py --check` | OK |
+| `python scripts/react-migration/generate_app_v2_page_registry.py --check` | OK |
+| `python scripts/smoke_app_v2_all.py --subset inventory` | OK |
+| `python -m pytest -q tests/test_app_v2_page_registry.py tests/test_app_v2_test_plan_phase10.py tests/test_ci_cd_gates_phase11.py --tb=short` | OK, 13/13 |
 | `python tools/check_repo_governance.py` | OK |
 | `python -m pytest tests/test_utf8_integrity.py -q --tb=short` | OK, 4/4 |
 | `git diff --check` | OK, solo warning CRLF/LF |

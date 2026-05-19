@@ -1,10 +1,24 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-19, Fase 10 audit finale aggiornamenti legali 2.245.51, Fase 9 fonti verdi estese 2.245.50, Fase 8 scheduler progressivo 2.245.49, Fase 7 backfill mirato PDF/OCR/riferimenti/domande 2.245.48, Fase 6 normativa e archivi base 2.245.47, Fase 5 fonti verdi Aggiornamenti legali 2.245.46, strumenti sicuri canary/backfill Aggiornamenti legali 2.245.42, capability registry/parser fixture Aggiornamenti legali 2.245.41, collegamento Lex/Ricerca Legale per Corte Costituzionale n. 50/2026, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
+Aggiornato: 2026-05-19, Fase 11.5 chiusura buchi residui fonti legali 2.245.53, Fase 10 audit finale aggiornamenti legali 2.245.51, Fase 9 fonti verdi estese 2.245.50, Fase 8 scheduler progressivo 2.245.49, Fase 7 backfill mirato PDF/OCR/riferimenti/domande 2.245.48, Fase 6 normativa e archivi base 2.245.47, Fase 5 fonti verdi Aggiornamenti legali 2.245.46, strumenti sicuri canary/backfill Aggiornamenti legali 2.245.42, capability registry/parser fixture Aggiornamenti legali 2.245.41, collegamento Lex/Ricerca Legale per Corte Costituzionale n. 50/2026, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex dati studio, soggetti/parti, bozze, AI mobile produzione, Documenti AI p7m/txt/eml, backup Hetzner e Docker pnpm.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
+
+## Fase 11.5 chiusura buchi residui fonti legali 2.245.53 - 2026-05-19
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct/legal_update_pipeline.py pct/legal_update_repository.py pct/legal_update_autofetch.py pct/legal_update_health_report.py pct/cli.py web/services/legal_update_surface.py` | OK | Sintassi confermata per pipeline, repository, autofetch progressivo, health report, CLI e superficie admin. |
+| `python -m pytest tests/test_legal_update_source_capabilities.py tests/test_legal_update_source_parsers.py tests/test_legal_update_safe_diagnostics.py -q --tb=short` | OK | 38/38 passati: capability, parser CELEX/EUR-Lex, Cassazione QSP/c.p.p. e diagnostica sicura. |
+| `python -m pytest tests/test_legal_update_autofetch.py tests/test_legal_update_surface_jobs.py tests/test_legal_update_job_queue.py tests/test_legal_update_batch_runner.py -q --tb=short` | OK | 27/27 passati: comando progressivo, dry-run, budget, publish max, guarded-only, job queue e batch runner. |
+| `python -m pytest tests/test_legal_updates_pipeline.py -q --tb=short` | OK | 42/42 passati: pipeline aggiornamenti legali e pubblicazione guarded preservate. |
+| `python -m pytest tests/test_legal_update_publish_context.py tests/test_legal_update_web_verification_attachments.py tests/test_document_intelligence_extraction.py -q --tb=short` | OK | 39/39 passati: riferimenti, allegati/PDF/OCR e domande contestuali, inclusa domanda c.p.p. su PDF. |
+| `python -m pytest tests/test_lex_source_corpus_generator.py tests/test_lex_operational_knowledge.py tests/test_react_legal_intelligence_search.py tests/test_giurisprudenza.py -q --tb=short` | OK | 99/99 passati: Lex, Ricerca Legale e Archivio Giurisprudenza non promuovono lacune come complete. |
+| `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py`; `python scripts/verify_openapi_provider.py` | OK | Contratti API riallineati alla versione `2.245.53` dopo il primo push. |
+| `python scripts/react-migration/generate_app_v2_test_docs.py --check`; `python scripts/react-migration/generate_app_v2_page_registry.py --check`; `python scripts/smoke_app_v2_all.py --subset inventory`; `python -m pytest -q tests/test_app_v2_page_registry.py tests/test_app_v2_test_plan_phase10.py tests/test_ci_cd_gates_phase11.py --tb=short` | OK | Drift `docs/test-inventory.md` risolto dopo il push; gli aggregatori Pytest/Signer erano rossi solo per cascata dal gate primario saltato. |
+| `python tools/check_repo_governance.py`; `python -m pytest tests/test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | Governance, UTF-8 e whitespace verdi; resta solo warning CRLF su file runtime tenant preservato e non committato. |
 
 ## Update Intelligence Fase 10 audit finale 2.245.51 - 2026-05-19
 

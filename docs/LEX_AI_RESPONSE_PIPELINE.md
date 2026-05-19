@@ -7,6 +7,14 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.245.55 - 19 maggio 2026
+
+Lex non viene addestrata su prompt o dump grezzi dello studio: le domande sul contesto operativo passano da sorgenti interne governate. Il nuovo intento `studio_context_lookup` copre richieste esplicite come "usa tutto il contesto studio", "database studio" e "memoria studio", instradandole verso Operational Knowledge e `StudioDatabaseSource` senza attivare fonti legali pubbliche.
+
+La consultazione di comunicazioni è separata dalla redazione: "ultima PEC ricevuta" entra in `comunicazioni_lookup`, legge PEC/email tenant-aware e non produce più una bozza `BOZZA — PEC FORMALE`. Le bozze PEC restano drafting solo quando l'utente chiede davvero di scrivere o preparare una PEC formale.
+
+Il flag manuale `Web libero` ora genera un payload diretto: la ricerca è isolata dal contesto interno, i risultati sono marcati `web_libero`, `verified_reference=false`, non vengono salvati nel DB/corpus e non mostrano warning all'avvocato. I documenti caricati in chat entrano invece nel workflow `documento`, così Lex può analizzarli senza confonderli con ricerca legale o bozze.
+
 ## Aggiornamento operativo 2.245.51 - 19 maggio 2026
 
 La Fase 10 ha chiuso l'audit finale del sistema aggiornamenti legali senza import massivo. La policy progressiva classifica tutte le fonti censite in `DEFAULT_SOURCE_ROWS`: verdi con pubblicazione guarded, RAG-only/no-publish, osservazione/bloccate, archivi locali/no-publish o fuori perimetro solo per fonti secondarie non ufficiali.

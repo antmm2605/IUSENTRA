@@ -5,6 +5,7 @@ from typing import Literal
 IntentType = Literal[
     "ask_lex",
     "summarize_fascicolo",
+    "sintesi_documento",
     "prepare_udienza",
     "analyze_document",
     "explain_telematico_error",
@@ -25,6 +26,8 @@ IntentType = Literal[
     "evaluate_fatturazione",
     "resolve_operational_question",
     "cliente_anagrafica",
+    "comunicazioni_lookup",
+    "studio_context_lookup",
 ]
 
 RiskLevel = Literal["low", "medium", "high", "critical"]

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from lex.contracts import LexRequest, LexResponse
 from lex.context.builder import LexContextBuilder
 from lex.context.studio_context import build_studio_context
+from lex.contracts import LexRequest, LexResponse
 from lex.http_bounded_bridge import build_bounded_http_payload
 from lex.retrieval.source_router import SourceRouter
 from lex.retrieval.sources.official_web import OfficialWebSource
@@ -99,6 +99,18 @@ def test_governed_only_instrada_giurisprudenza_strict(monkeypatch):
 
 def test_opzione_web_libero_e_manuale_non_passa_da_job(monkeypatch):
     monkeypatch.setenv("LEX_GOVERNED_ONLY", "1")
+    monkeypatch.setattr(
+        "lex.retrieval.sources.official_web.search_free_public_web",
+        lambda query, **kwargs: [
+            {
+                "id": "free-1",
+                "title": "Risultato libero",
+                "url": "https://example.org/libero",
+                "domain": "example.org",
+                "excerpt": "Estratto pubblico non salvato.",
+            }
+        ],
+    )
     context = _base_context(
         sources=[{"title": "Fonte del contesto pagina", "excerpt": "Non deve entrare nel web libero."}],
         structured_context={"fascicolo": {"id": "fas-1"}},
@@ -118,15 +130,17 @@ def test_opzione_web_libero_e_manuale_non_passa_da_job(monkeypatch):
     )
 
     assert payload is not None
-    assert service.last_request is not None
-    assert service.last_request.metadata["free_web_enabled"] is True
-    assert service.last_request.metadata["force_free_web_search"] is True
-    assert service.last_request.metadata["public_web_forced"] is True
-    assert service.last_request.metadata["source_mode"] == "free_web"
-    assert service.last_request.metadata["studio_context_seed"]["sources"] == []
-    assert service.last_request.metadata["studio_context_seed"]["structured_context"] == {}
-    assert service.last_request.allow_external_research is True
-    assert service.last_request.require_official_sources is False
+    assert service.last_request is None
+    assert payload["workflow"] == "web_libero"
+    assert payload["source_mode"] == "free_web"
+    assert payload["web_execution_requested"] is True
+    assert payload["free_web_enabled"] is True
+    assert payload["force_free_web_search"] is True
+    assert payload["public_web_forced"] is True
+    assert payload["sources"][0]["source_type"] == "web_libero"
+    assert payload["sources"][0]["verified_reference"] is False
+    assert "Risultati pubblici trovati" in payload["answer"]
+    assert "Fonte del contesto pagina" not in payload["answer"]
     assert payload["warnings"] == []
     assert payload["next_actions"] == []
     assert payload["disable_exports"] is False

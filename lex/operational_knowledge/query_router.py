@@ -54,10 +54,13 @@ ENTITY_STOPWORDS = {
     "codice",
     "completo",
     "conferimento",
+    "contesto",
     "dai",
     "dammi",
     "dati",
+    "database",
     "da",
+    "db",
     "de",
     "del",
     "dell",
@@ -87,6 +90,7 @@ ENTITY_STOPWORDS = {
     "l'ultimo",
     "l'ultimi",
     "mancano",
+    "memoria",
     "messaggi",
     "mi",
     "mostra",
@@ -97,6 +101,8 @@ ENTITY_STOPWORDS = {
     "nello",
     "nei",
     "oggi",
+    "operativa",
+    "operativo",
     "ordinaria",
     "parte",
     "parti",
@@ -129,17 +135,20 @@ ENTITY_STOPWORDS = {
     "sono",
     "soggetto",
     "soggetti",
+    "studio",
     "trovami",
     "template",
     "modello",
     "modelli",
     "un",
     "una",
+    "usa",
     "ultima",
     "ultime",
     "ultimo",
     "ultimi",
     "urgenti",
+    "tutto",
     "assistito",
     "assistiti",
     "controparte",
@@ -176,6 +185,36 @@ class OperationalQueryRouter:
             )
 
         entity_query = self._entity_query(text)
+        if (
+            any(
+                token in text
+                for token in (
+                    "contesto studio",
+                    "database studio",
+                    "db studio",
+                    "ricerca studio",
+                    "memoria studio",
+                    "quadro studio",
+                    "situazione studio",
+                )
+            )
+            or ("tutto il contesto" in text and "studio" in text)
+        ):
+            return OperationalRoute(
+                "studio_context_overview",
+                "studio_context_overview",
+                (
+                    "clienti",
+                    "fascicoli",
+                    "scadenziario",
+                    "agenda",
+                    "email_pec",
+                    "email_ordinaria",
+                    "preventivi",
+                    "conferimenti",
+                ),
+                entity_query,
+            )
         if "quali fonti" in text or "fonti hai usato" in text or text in {"fonti", "mostra fonti"}:
             return OperationalRoute("sources_overview", "sources_overview", ("clienti", "fascicoli", "fonti_ufficiali"), entity_query)
 

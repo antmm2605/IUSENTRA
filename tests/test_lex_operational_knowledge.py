@@ -8,11 +8,11 @@ import pytest
 
 from lex.operational_knowledge.audit import OperationalAuditRecorder
 from lex.operational_knowledge.permission_guard import resolve_query_context
+from lex.operational_knowledge.query_router import OperationalQueryRouter
 from lex.operational_knowledge.service import OperationalKnowledgeService
 from lex.operational_knowledge.settings import OperationalKnowledgeSettings
 from lex.operational_knowledge.tools import OperationalKnowledgeTools
 from lex.tools.registry import LexToolRegistry
-
 
 QSP_ATTACHMENT_OCR_TEXT = (
     "CORTE SUPREMA DI CASSAZIONE QUINTA SEZIONE PENALE. Oggetto: ricorso n. 9966/2026 R.G. "
@@ -1186,6 +1186,17 @@ def test_tool_registry_exposes_operational_knowledge_tool_default_on(monkeypatch
     assert result["workflow"] == "operational_knowledge"
 
 
+def test_operational_router_contesto_studio_resta_su_sorgenti_interne():
+    route = OperationalQueryRouter().route("usa tutto il contesto studio")
+
+    assert route is not None
+    assert route.intent == "studio_context_overview"
+    assert "clienti" in route.source_ids
+    assert "fascicoli" in route.source_ids
+    assert "email_pec" in route.source_ids
+    assert "fonti_ufficiali" not in route.source_ids
+
+
 def test_tool_registry_can_disable_operational_knowledge(monkeypatch):
     monkeypatch.setenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", "0")
     registry = LexToolRegistry()
@@ -1283,6 +1294,110 @@ def test_http_bridge_routes_pec_lookup_to_operational_layer(monkeypatch):
     assert payload is not None
     assert payload["workflow"] == "operational_knowledge"
     assert payload["answer"] == "Ultima PEC trovata: Esito deposito."
+
+
+def test_http_bridge_routes_ultima_pec_ricevuta_to_operational_layer_without_draft(monkeypatch):
+    monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
+    from lex.http_bounded_bridge import build_bounded_http_payload
+    from lex.operational_knowledge.models import OperationalAnswer, OperationalRoute, OperationalSourceReference
+    from lex.research.request_profile import classify_request
+
+    class _FakeOperationalKnowledgeService:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def answer(self, **kwargs):
+            assert kwargs["metadata"]["request_profile"]["intent"] == "comunicazioni_lookup"
+            return OperationalAnswer(
+                handled=True,
+                answer="Ultima PEC ricevuta: Esito deposito del 19/05/2026, con 2 allegati.",
+                route=OperationalRoute("communications_lookup", "communications_lookup", ("email_pec",), ""),
+                sources=[
+                    OperationalSourceReference(
+                        source_id="email_pec",
+                        source_name="Email PEC",
+                        source_type="email_pec",
+                        object_type="email",
+                        object_id="pec-1",
+                        title="Esito deposito",
+                        confidence=0.86,
+                    )
+                ],
+                confidence=0.86,
+                metadata={"operational_layer": True},
+            )
+
+    monkeypatch.setattr("lex.operational_knowledge.integration.OperationalKnowledgeService", _FakeOperationalKnowledgeService)
+
+    question = "ultima pec ricevuta"
+    profile = classify_request(question)
+    payload = build_bounded_http_payload(
+        user=_User(_all_permissions()),
+        studio=SimpleNamespace(slug="tenant-a"),
+        data={"messages": []},
+        current_user_message=question,
+        resolved_effective_question=question,
+        studio_context={"focus_topic": "pec_firma", "request_profile": profile.to_dict()},
+        attachments=[],
+    )
+
+    assert profile.intent == "comunicazioni_lookup"
+    assert payload is not None
+    assert payload["workflow"] == "operational_knowledge"
+    assert "Ultima PEC ricevuta" in payload["answer"]
+    assert "BOZZA" not in payload["answer"]
+
+
+def test_http_bridge_routes_contesto_studio_to_governed_operational_layer(monkeypatch):
+    monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
+    from lex.http_bounded_bridge import build_bounded_http_payload
+    from lex.operational_knowledge.models import OperationalAnswer, OperationalRoute, OperationalSourceReference
+    from lex.research.request_profile import classify_request
+
+    class _FakeOperationalKnowledgeService:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def answer(self, **kwargs):
+            assert kwargs["metadata"]["request_profile"]["intent"] == "studio_context_lookup"
+            return OperationalAnswer(
+                handled=True,
+                answer="Ho consultato il contesto operativo autorizzato dello studio: clienti, fascicoli, scadenze e agenda.",
+                route=OperationalRoute("studio_context_overview", "studio_context_overview", ("clienti", "fascicoli", "agenda"), ""),
+                sources=[
+                    OperationalSourceReference(
+                        source_id="fascicoli",
+                        source_name="Fascicoli",
+                        source_type="studio",
+                        object_type="fascicolo",
+                        object_id="fas-1",
+                        title="Fascicolo Rossi",
+                        confidence=0.86,
+                    )
+                ],
+                confidence=0.86,
+                metadata={"operational_layer": True},
+            )
+
+    monkeypatch.setattr("lex.operational_knowledge.integration.OperationalKnowledgeService", _FakeOperationalKnowledgeService)
+
+    question = "usa tutto il contesto studio"
+    profile = classify_request(question)
+    payload = build_bounded_http_payload(
+        user=_User(_all_permissions()),
+        studio=SimpleNamespace(slug="tenant-a"),
+        data={"messages": []},
+        current_user_message=question,
+        resolved_effective_question=question,
+        studio_context={"focus_topic": "studio", "request_profile": profile.to_dict()},
+        attachments=[],
+    )
+
+    assert profile.intent == "studio_context_lookup"
+    assert payload is not None
+    assert payload["workflow"] == "operational_knowledge"
+    assert payload["external_sources_used"] is False
+    assert "contesto operativo autorizzato" in payload["answer"]
 
 
 def test_http_bridge_defers_specific_case_law_to_public_research(monkeypatch):

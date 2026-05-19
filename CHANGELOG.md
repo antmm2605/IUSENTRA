@@ -7,6 +7,14 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.55 - 2026-05-19
+
+- Rafforzato Lex sul contesto operativo dello studio senza addestramento grezzo: il nuovo intento `studio_context_lookup` instrada richieste come "usa tutto il contesto studio" verso Operational Knowledge e Ricerca Studio, mantenendo tenant, permessi e audit.
+- Separata la consultazione di PEC/email dalla redazione: "ultima PEC ricevuta" ora resta su `comunicazioni_lookup` e non attiva più la bozza `BOZZA — PEC FORMALE`.
+- Il Web libero manuale produce una risposta diretta e isolata, con risultati `web_libero`, `verified_reference=false`, nessun warning visibile e nessuna fusione con contesto interno o archivi legali.
+- I documenti caricati in chat Lex vengono instradati al workflow documento e le bozze generate mostrano un titolo cliccabile per aprire l'editor professionale quando l'import nel fascicolo è disponibile.
+- Aggiunti test mirati su contesto studio, PEC/email, Web libero, documenti caricati, drafting e renderer Lex; i check restano divisi per fase senza reintrodurre aggregatori legacy.
+
 ## 2.245.54 - 2026-05-19
 
 - Aggiunta la sorgente Lex `StudioDatabaseSource`, collegata alla Ricerca Studio tramite `search_for_lex()`: Lex può interrogare il DB operativo interno tenant-aware per clienti, soggetti, fascicoli, documenti, agenda, scadenze, comunicazioni, PEC, email, depositi, preventivi, fatture e pagamenti.

@@ -113,6 +113,12 @@
 
     var answer = String((options && options.answer) || '');
     var lines = answer.split(/\r?\n/);
+    for (var draftIndex = 0; draftIndex < lines.length; draftIndex += 1) {
+      var draftLine = sanitizeTitle(lines[draftIndex].replace(/^#{1,6}\s+/, ''));
+      if (/\bBOZZA\b\s*(?:[—–-]\s*)?(?:DIFFIDA|MESSA IN MORA|LETTERA|PEC|SOLLECITO|CONTESTAZIONE|ATTO)/i.test(draftLine)) {
+        return draftLine.slice(0, 96);
+      }
+    }
     for (var i = 0; i < lines.length; i += 1) {
       var line = sanitizeTitle(lines[i].replace(/^#{1,6}\s+/, ''));
       if (line && line !== 'Documento generato da Lex') {

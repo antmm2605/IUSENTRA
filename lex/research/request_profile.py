@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
 import re
+from dataclasses import asdict, dataclass
 from typing import Any
 
 from .source_policy import infer_area_with_confidence
@@ -162,6 +162,44 @@ _INTENT_CATALOG: tuple[dict[str, Any], ...] = (
         "source_mode": "balanced",
         "internal": True,
         "external": True,
+        "drafting": False,
+    },
+    {
+        "intent": "comunicazioni_lookup",
+        "label": "consultazione PEC, email e comunicazioni dello studio",
+        "patterns": (
+            r"\bultim[aoe]\b.*\b(?:pec|email|mail|messagg|comunicazion|posta)\b",
+            r"\b(?:pec|email|mail|messagg|comunicazion|posta)\b.*\bultim[aoe]\b",
+            r"\b(?:pec|email|mail|messagg|comunicazion|posta)\b.*\b(?:ricevut|inviat|arrivat|allegat|mittent|destinatar)\w*\b",
+            r"\b(?:mostra|cerca|trova|leggi|dimmi|qual[ei])\b.*\b(?:pec|email|mail|messagg|comunicazion|posta)\b",
+            r"\b(?:pec|email|mail|messagg|comunicazion|posta)\b.*\b(?:mostra|cerca|trova|leggi|dimmi|qual[ei])\b",
+            r"\ballegati?\s+(?:della|delle|alla|alle)?\s*(?:pec|email|mail)\b",
+            r"\b(?:ricevuta|ricevute)\s+(?:di\s+)?(?:accettazione|consegna)\s+pec\b",
+        ),
+        "schema": ("Messaggio", "Mittente e destinatari", "Data", "Allegati", "Prossima azione"),
+        "risk": "low",
+        "source_mode": "balanced",
+        "internal": True,
+        "external": False,
+        "drafting": False,
+    },
+    {
+        "intent": "studio_context_lookup",
+        "label": "consultazione del contesto operativo dello studio",
+        "patterns": (
+            r"\b(?:tutto\s+il\s+)?contesto\s+(?:dello\s+)?studio\b",
+            r"\b(?:database|db|ricerca)\s+(?:dello\s+)?studio\b",
+            r"\bmemoria\s+(?:operativa\s+)?(?:dello\s+)?studio\b",
+            r"\b(?:quadro|situazione)\s+(?:operativa\s+)?(?:dello\s+)?studio\b",
+            r"\bcosa\s+(?:sai|abbiamo|ho)\s+(?:nello|sullo|nel)\s+studio\b",
+            r"\bcerca\s+(?:nel|nello)\s+(?:database|db|contesto)\s+(?:dello\s+)?studio\b",
+            r"\busa\s+(?:tutto\s+)?(?:il\s+)?contesto\s+(?:interno\s+)?(?:dello\s+)?studio\b",
+        ),
+        "schema": ("Sintesi dati studio", "Aree consultate", "Risultati", "Limiti", "Prossima azione"),
+        "risk": "low",
+        "source_mode": "balanced",
+        "internal": True,
+        "external": False,
         "drafting": False,
     },
     {

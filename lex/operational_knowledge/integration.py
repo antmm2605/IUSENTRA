@@ -78,6 +78,11 @@ _STUDIO_DATA_TERMS = (
     "cliente",
     "clienti",
     "conferimento",
+    "contesto studio",
+    "database studio",
+    "db studio",
+    "deposit",
+    "document",
     "email",
     "fascicolo",
     "fascicoli",
@@ -85,13 +90,19 @@ _STUDIO_DATA_TERMS = (
     "messagg",
     "parcell",
     "pec",
+    "pratica",
+    "pratiche",
     "preventiv",
+    "ricerca studio",
     "scadenz",
     "soggett",
+    "udienz",
 )
 _STUDIO_DATA_INTENTS = {
     "cliente_anagrafica",
+    "comunicazioni_lookup",
     "domanda_generica",
+    "studio_context_lookup",
 }
 _STUDIO_DATA_FOCUS = {
     "agenda",
@@ -180,7 +191,8 @@ def _should_defer_to_public_legal_research(
     focus_topic = clean_spaces(metadata.get("focus_topic") or studio_context.get("focus_topic")).lower()
     source_mode = clean_spaces(metadata.get("source_mode") or request_profile.get("source_mode")).lower()
     has_studio_term = any(token in text for token in _STUDIO_DATA_TERMS)
-    if intent == "pec_comunicazioni" and has_studio_term and any(token in text for token in _COMMUNICATION_LOOKUP_TERMS):
+    has_communication_lookup = any(token in text for token in _COMMUNICATION_LOOKUP_TERMS)
+    if (intent in {"comunicazioni_lookup", "pec_comunicazioni", "bozza_lettera"} or has_studio_term) and has_communication_lookup:
         return False
     if intent in _DRAFTING_INTENTS or any(token in text for token in _DRAFTING_TERMS):
         return True

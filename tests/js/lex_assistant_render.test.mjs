@@ -122,6 +122,16 @@ assert.match(actionHtml, /data-generated-open-editor="true"/)
 assert.match(actionHtml, /Apri nell&#39;editor|Apri nell'editor/)
 assert.match(actionHtml, /data-generated-download="docx"/)
 
+const pecDraftAnswer = "Riferimento: PEC e firma digitale\nBOZZA \u2014 PEC FORMALE**********\nA: [nome@pec.destinatario.it]\nOggetto: [Oggetto della PEC]"
+const pecDraftTitle = docs.suggestGeneratedTitle({ answer: pecDraftAnswer })
+assert.equal(pecDraftTitle, 'BOZZA \u2014 PEC FORMALE')
+const pecActionHtml = docs.buildGeneratedDocumentActions({
+  answer: pecDraftAnswer,
+  editorImportUrl: '/api/v1/ui/fascicoli/FAS-1/editor-ai/importa-bozza',
+})
+assert.match(pecActionHtml, /BOZZA \u2014 PEC FORMALE/)
+assert.match(pecActionHtml, /data-generated-open-editor="true"/)
+
 let assignedEditorUrl = ''
 let postedImport = null
 context.location.assign = (value) => {
@@ -162,5 +172,13 @@ assert.match(thinkingHtml, /Sto pensando - 1 minuto e 10 secondi/)
 assert.match(thinkingHtml, /pct-ai-thinking-steps/)
 assert.match(thinkingHtml, /Recupero dati studio, cliente e fascicolo autorizzati/)
 assert.match(thinkingHtml, /Impagino la bozza con grassetto, elenchi e separatori leggibili/)
+
+const pecLookupThinkingHtml = hooks.buildThinkingBubbleHtml('ultima pec ricevuta', 2, 3_000)
+assert.doesNotMatch(pecLookupThinkingHtml, /Impagino la bozza/)
+assert.match(pecLookupThinkingHtml, /Cerco dati interni autorizzati e fonti utili/)
+
+const agendaLookupThinkingHtml = hooks.buildThinkingBubbleHtml('cosa ho in agenda oggi', 2, 3_000)
+assert.match(agendaLookupThinkingHtml, /Incrocio agenda, udienze e scadenze/)
+assert.doesNotMatch(agendaLookupThinkingHtml, /fonti ufficiali/)
 
 console.log('lex_assistant_render.test.mjs OK')

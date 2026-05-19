@@ -124,6 +124,8 @@ class OperationalResponseComposer:
             return self._legal_sources_lines(results, gaps, question=question)
         if route.intent == "communications_lookup":
             return self._communications_lines(results, gaps)
+        if route.intent == "studio_context_overview":
+            return self._studio_context_overview_lines(results, gaps)
         if route.intent == "sources_overview":
             return self._sources_overview(results, gaps)
         if route.intent == "template_lookup":
@@ -342,13 +344,6 @@ class OperationalResponseComposer:
                 or primary.get("fonte")
                 or primary.get("source_id")
             )
-            excerpt = clean_spaces(
-                primary.get("excerpt")
-                or primary.get("summary")
-                or primary.get("content")
-                or primary.get("text")
-                or primary.get("context")
-            )
             lines = [
                 "Ho trovato una fonte ufficiale collegata alla richiesta.",
             ]
@@ -451,6 +446,33 @@ class OperationalResponseComposer:
             lines.append("Sorgenti disponibili: " + ", ".join(sorted(set(used))) + ".")
         if gaps:
             lines.append("Sorgenti non disponibili o non autorizzate: " + "; ".join(gaps[:5]) + ".")
+        return lines
+
+    def _studio_context_overview_lines(self, results: list[OperationalToolResult], gaps: list[str]) -> list[str]:
+        labels = {
+            "clienti": "Clienti",
+            "fascicoli": "Fascicoli",
+            "agenda": "Agenda",
+            "scadenziario": "Scadenze",
+            "email_pec": "PEC",
+            "email_ordinaria": "Email ordinaria",
+            "preventivi": "Preventivi",
+            "conferimenti": "Conferimenti",
+        }
+        lines = ["Ho consultato il contesto operativo autorizzato dello studio."]
+        found = False
+        for source_id, label in labels.items():
+            rows = _data_for(results, source_id)
+            if not rows:
+                continue
+            found = True
+            lines.append(f"{label}: {len(rows)} elementi consultabili.")
+            lines.extend(f"- {_label(row)}" for row in rows[:2])
+        if not found:
+            lines.append("Non ho trovato elementi reali consultabili nelle sorgenti operative abilitate.")
+        if gaps:
+            lines.append("Limiti: " + "; ".join(gaps[:5]) + ".")
+        lines.append("Fonti interne: dati del tenant corrente con permessi applicati; fonti legali pubbliche escluse da questa consultazione.")
         return lines
 
     def _generic_lines(self, results: list[OperationalToolResult], gaps: list[str]) -> list[str]:

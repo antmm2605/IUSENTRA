@@ -12,15 +12,25 @@ from .retrieval.attachment_evidence import (
 )
 
 _BOUNDED_FOCUS_TOPICS = {
+    "agenda",
+    "clienti",
+    "documenti",
     "economico",
     "fatture",
+    "fascicoli",
     "pec_firma",
     "preventivi",
+    "scadenze",
+    "soggetti",
+    "studio",
     "telematico",
 }
 _REQUEST_PROFILE_INTENTS = {
+    "comunicazioni_lookup",
     "fatturazione_economica",
     "preventivo_guidato",
+    "sintesi_documento",
+    "studio_context_lookup",
     "tariffario_economico",
     "bozza_lettera",
     "bozza_atto",
@@ -74,6 +84,23 @@ _NORMATIVE_EXTERNAL_TOKENS = (
 _FALSE_VALUES = {"0", "false", "falso", "no", "off", "disabled", "disabilitato"}
 _TRUE_VALUES = {"1", "true", "vero", "yes", "si", "on", "enabled", "abilitato"}
 _FREE_WEB_MODES = {"free", "free_web", "web_libero", "web libero", "ricerca_libera", "ricerca libera", "libera"}
+_COMMUNICATION_LOOKUP_TERMS = (
+    "ultima pec",
+    "ultime pec",
+    "ultimo messaggio pec",
+    "messaggi pec",
+    "pec ricevut",
+    "pec inviat",
+    "ultima email",
+    "ultime email",
+    "email ricevut",
+    "email inviat",
+    "ultima posta",
+    "posta ordinaria",
+    "casella",
+    "allegati pec",
+    "allegati email",
+)
 
 
 def _clean_spaces(value: Any) -> str:
@@ -112,6 +139,25 @@ def _manual_free_web_enabled(data: dict[str, Any], studio_context: dict[str, Any
         _payload_flag((data or {}).get(key)) or _payload_flag(studio_context.get(key))
         for key in ("free_web_enabled", "free_web", "force_free_web_search", "manual_free_web_enabled")
     )
+
+
+def _is_communication_lookup(
+    question: str,
+    studio_context: dict[str, Any],
+    request_profile: dict[str, Any],
+) -> bool:
+    text = _clean_spaces(question).lower()
+    if not text:
+        return False
+    profile_intent = _clean_spaces(request_profile.get("intent")).lower()
+    focus_topic = _clean_spaces(studio_context.get("focus_topic")).lower()
+    if profile_intent == "comunicazioni_lookup":
+        return True
+    if any(token in text for token in _COMMUNICATION_LOOKUP_TERMS):
+        return True
+    if focus_topic == "pec_firma" and any(token in text for token in ("ricevut", "inviat", "allegat", "mittent", "destinatar", "casella")):
+        return True
+    return False
 
 
 def apply_manual_free_web_context(data: dict[str, Any], studio_context: dict[str, Any]) -> dict[str, Any]:
@@ -169,6 +215,13 @@ def _has_internal_context(studio_context: dict[str, Any]) -> bool:
 def _resolve_workflow_hint(studio_context: dict[str, Any], request_profile: dict[str, Any]) -> str:
     focus_topic = _clean_spaces(studio_context.get("focus_topic"))
     profile_intent = _clean_spaces(request_profile.get("intent"))
+    effective_question = _clean_spaces(studio_context.get("effective_question"))
+    if _is_communication_lookup(effective_question, studio_context, request_profile):
+        return "cabina"
+    if profile_intent == "studio_context_lookup":
+        return "cabina"
+    if profile_intent == "sintesi_documento":
+        return "documento"
     if profile_intent == "bozza_lettera":
         return "drafting_legal_letter"
     if profile_intent == "bozza_atto":
@@ -266,6 +319,10 @@ def _resolve_intent(question: str, studio_context: dict[str, Any], request_profi
     haystack = _clean_spaces(question).lower()
     focus_topic = _clean_spaces(studio_context.get("focus_topic"))
     profile_intent = _clean_spaces(request_profile.get("intent"))
+    if _is_communication_lookup(question, studio_context, request_profile):
+        return "resolve_operational_question"
+    if profile_intent == "studio_context_lookup":
+        return "resolve_operational_question"
     if profile_intent == "bozza_lettera":
         return "bozza_lettera"
     if profile_intent == "bozza_atto":
@@ -282,6 +339,8 @@ def _resolve_intent(question: str, studio_context: dict[str, Any], request_profi
         return "suggest_next_action"
     if profile_intent == "sintesi_fascicolo":
         return "summarize_fascicolo"
+    if profile_intent == "sintesi_documento":
+        return "analyze_document"
     if profile_intent == "checklist_operativa":
         return "suggest_next_action"
     if profile_intent == "preventivo_guidato" or "preventiv" in haystack:
@@ -506,6 +565,174 @@ def _attachment_needs_indexing_payload(
     return payload
 
 
+def _free_web_source_rows(items: list[Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for item in list(items or [])[:6]:
+        if isinstance(item, dict):
+            metadata = dict(item.get("metadata") or {})
+            url = _clean_spaces(item.get("url") or item.get("official_url") or metadata.get("url"))
+            title = _clean_spaces(item.get("title") or metadata.get("source_name") or metadata.get("domain"))
+            excerpt = _clean_spaces(item.get("content") or item.get("excerpt") or item.get("text") or metadata.get("excerpt"))
+            score = float(item.get("score") or item.get("trust_score") or 0.0)
+            source_id = _clean_spaces(item.get("source_id") or item.get("id"))
+        else:
+            metadata = dict(getattr(item, "metadata", {}) or {})
+            url = _clean_spaces(metadata.get("url") or getattr(item, "official_url", "") or "")
+            title = _clean_spaces(getattr(item, "title", "") or metadata.get("source_name") or metadata.get("domain"))
+            excerpt = _clean_spaces(getattr(item, "content", "") or metadata.get("excerpt") or "")
+            score = float(getattr(item, "score", 0.0) or 0.0)
+            source_id = _clean_spaces(getattr(item, "source_id", ""))
+        rows.append(
+            {
+                "id": source_id or url or title,
+                "title": title or "Risultato Web libero",
+                "excerpt": excerpt,
+                "url": url,
+                "authority": "Web libero",
+                "confidence": score,
+                "verified_reference": False,
+                "trust_class": "",
+                "source_type": "web_libero",
+                "source_access_status": "public",
+                "source_access_label": "Web libero",
+                "source_requires_credentials": False,
+                "source_restricted": False,
+                "source_supports_web_search": True,
+            }
+        )
+    return rows
+
+
+def _free_web_answer(question: str, rows: list[dict[str, Any]]) -> str:
+    clean_question = _clean_spaces(question)
+    if not rows:
+        return (
+            f"Ho eseguito la ricerca Web libero per: {clean_question}.\n\n"
+            "Non ho ottenuto risultati pubblici leggibili in questa sessione. "
+            "Puoi riprovare con parole chiave più specifiche oppure indicare un indirizzo web diretto da aprire."
+        )
+
+    lines = [
+        f"Ho eseguito la ricerca Web libero per: {clean_question}.",
+        "",
+        "Risultati pubblici trovati:",
+    ]
+    for index, row in enumerate(rows[:4], start=1):
+        title = _clean_spaces(row.get("title")) or "Risultato Web libero"
+        url = _clean_spaces(row.get("url"))
+        excerpt = _clean_spaces(row.get("excerpt"))
+        lines.append(f"{index}. [{title}]({url})" if url else f"{index}. {title}")
+        if excerpt:
+            lines.append(f"   {excerpt[:320]}")
+    return "\n".join(lines).strip()
+
+
+def _free_web_direct_payload(
+    *,
+    user: Any,
+    studio: Any,
+    metadata: dict[str, Any],
+    current_user_message: str,
+    resolved_effective_question: str,
+    studio_context: dict[str, Any],
+    request_profile: dict[str, Any],
+    workflow_hint: str,
+) -> dict[str, Any]:
+    try:
+        from lex.retrieval.sources.official_web import OfficialWebSource
+
+        search_request = LexRequest(
+            tenant_id=_tenant_id(studio, metadata),
+            user_id=_user_id(user),
+            session_id=_clean_spaces(metadata.get("session_id")) or "lex-http",
+            query=resolved_effective_question,
+            intent="research_sources",  # type: ignore[arg-type]
+            fascicolo_id=None,
+            document_id=None,
+            workflow_hint="fonti",
+            metadata=metadata,
+            allow_external_research=True,
+            require_citations=False,
+            require_official_sources=False,
+        )
+        evidence = OfficialWebSource().search([resolved_effective_question], search_request, {"workflow": workflow_hint or "fonti"})
+    except Exception:
+        evidence = []
+
+    sources = _free_web_source_rows(list(evidence or []))
+    citations = [
+        _clean_spaces(row.get("title"))
+        for row in sources
+        if _clean_spaces(row.get("title"))
+    ]
+    answer = _free_web_answer(resolved_effective_question, sources)
+    payload = direct_answer_payload(
+        current_user_message,
+        answer,
+        query_type="workflow_answer",
+        sources=sources,
+        citations=citations,
+        legal_reference_guard_active=False,
+    )
+    payload.update(
+        {
+            "question": current_user_message,
+            "effective_question": resolved_effective_question,
+            "answer": answer,
+            "warnings": [],
+            "next_actions": [],
+            "risk_level": "low",
+            "confidence": 0.0,
+            "confidence_label": "",
+            "confidence_reason": "",
+            "answer_mode": "grounded",
+            "reference_label": "",
+            "focus_label": "",
+            "focus_topic": "",
+            "web_fallback_used": False,
+            "web_execution_requested": True,
+            "fascicolo_first": False,
+            "external_sources_used": True,
+            "external_sources_reason": "",
+            "disable_exports": False,
+            "execution_policy": {
+                **dict(studio_context.get("execution_policy") or {}),
+                "mode": "web_libero",
+                "truth_strategy": "ricerca_web_libera",
+                "requires_verified_legal_reference": False,
+                "requires_verified_normative_freshness": False,
+                "requires_verified_pdf": False,
+                "allow_web_fallback": True,
+                "responsibility_scope": "controllo_avvocato",
+                "does_not_save_to_db": True,
+            },
+            "request_profile": request_profile,
+            "source_policy_summary": {},
+            "source_mode": "free_web",
+            "free_web_enabled": True,
+            "manual_free_web_enabled": True,
+            "force_free_web_search": True,
+            "public_web_forced": True,
+            "free_web_responsibility": "controllo_avvocato",
+            "free_web_saves_to_db": False,
+            "provider": "official_web",
+            "workflow": "web_libero",
+            "legal_basis": [],
+            "considered_sources": citations,
+            "compared_sources": [],
+            "missing_evidence": [] if sources else ["Nessun risultato pubblico leggibile restituito dal motore Web libero."],
+            "evidence_summary": {
+                "evidence_count": len(sources),
+                "web_libero": True,
+                "allowlist_used": False,
+                "saved_to_db": False,
+                "evidence_sufficient": bool(sources),
+            },
+        }
+    )
+    return payload
+
+
 def build_bounded_http_payload(
     *,
     user: Any,
@@ -518,6 +745,8 @@ def build_bounded_http_payload(
 ) -> dict[str, Any] | None:
     data = dict(data or {})
     studio_context = apply_manual_free_web_context(data, studio_context)
+    studio_context = dict(studio_context or {})
+    studio_context.setdefault("effective_question", resolved_effective_question)
     free_web_enabled = _manual_free_web_enabled(data, studio_context)
     if not _should_use_bounded_workflow(attachments=attachments, studio_context=studio_context):
         return None
@@ -581,6 +810,17 @@ def build_bounded_http_payload(
             },
         }
     )
+    if free_web_enabled:
+        return _free_web_direct_payload(
+            user=user,
+            studio=studio,
+            metadata=metadata,
+            current_user_message=current_user_message,
+            resolved_effective_question=resolved_effective_question,
+            studio_context=studio_context,
+            request_profile=request_profile,
+            workflow_hint=workflow_hint,
+        )
     if not list(attachments or []) and not free_web_enabled:
         try:
             from lex.operational_knowledge.integration import build_operational_http_payload

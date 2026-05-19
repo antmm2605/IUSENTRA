@@ -22,7 +22,6 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Tipi di scope
 # ---------------------------------------------------------------------------
@@ -271,7 +270,7 @@ def classify_source_scope(
             debug_log=debug,
         )
 
-    if workflow in ("studio_data_lookup", "cliente_anagrafica") or intent in ("cliente_anagrafica",):
+    if workflow in ("studio_data_lookup", "cliente_anagrafica") or intent in ("cliente_anagrafica", "studio_context_lookup"):
         entity = _extract_studio_entity_hint(text)
         return SourceScope(
             scope=SCOPE_STUDIO_INTERNAL,

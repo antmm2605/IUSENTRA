@@ -671,11 +671,13 @@
   function queryProfile(question) {
     var text = String(question || '').toLowerCase();
     var officialSource = /questione penale|questione civile|qsp|allegato ufficiale|ordinanza di rimessione|corte di cassazione|contentid=|r\.?\s*g\.?\s*(?:n\.?\s*)?\d{1,7}\/\d{4}/.test(text);
+    var communicationLookup = /(?:ultima|ultime|ultimo|ricevut|inviat|allegat|mittent|destinatar|casella|mostra|cerca|trova|leggi|quale|quali).*(?:pec|email|mail|messagg|posta)|(?:pec|email|mail|messagg|posta).*(?:ultima|ultime|ultimo|ricevut|inviat|allegat|mittent|destinatar|casella|mostra|cerca|trova|leggi|quale|quali)/.test(text);
+    var studioLookup = communicationLookup || /(?:mostra|cerca|trova|dammi|dimmi|quale|quali|cosa ho|situazione|quadro|contesto).*(?:studio|cliente|fascicol|pratica|agenda|scadenz|soggett|preventiv|fattur|pagament)|(?:studio|cliente|fascicol|pratica|agenda|scadenz|soggett|preventiv|fattur|pagament).*(?:mostra|cerca|trova|dammi|dimmi|quale|quali|cosa ho|situazione|quadro|contesto|oggi|settimana|urgenti)/.test(text);
     return {
-      liveWeb: officialSource || /ultima|ultime|oggi|aggiornat|recente|sentenza|cassazione|tar|consiglio di stato|norma|normativa|decreto/.test(text),
-      documents: !officialSource && /document|allegat|verbale|memoria|ricorso|atto|bozza/.test(text),
+      liveWeb: !studioLookup && (officialSource || /ultima|ultime|oggi|aggiornat|recente|sentenza|cassazione|tar|consiglio di stato|norma|normativa|decreto/.test(text)),
+      documents: !officialSource && !studioLookup && /document|allegat|verbale|memoria|ricorso|atto|bozza/.test(text),
       deadlines: /scadenz|termine|udienza|agenda|calendario/.test(text),
-      drafting: !officialSource && /scrivi|redigi|prepara|bozza|diffida|messa in mora|lettera|pec|sollecito|contestazione/.test(text),
+      drafting: !officialSource && !studioLookup && /scrivi|redigi|prepara|bozza|diffida|messa in mora|lettera|pec|sollecito|contestazione/.test(text),
     };
   }
 

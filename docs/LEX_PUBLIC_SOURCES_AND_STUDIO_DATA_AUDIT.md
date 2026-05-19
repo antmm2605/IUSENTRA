@@ -2,6 +2,14 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.245.55 - 2026-05-19
+
+Rafforzato l'aggancio tra Lex e tutto il contesto studio senza introdurre addestramento su dati grezzi. `studio_context_lookup` è il nuovo profilo per richieste generali sul DB operativo interno e resta tenant-aware, permission-aware e auditabile. Il routing continua a escludere fonti legali pubbliche già governate.
+
+`comunicazioni_lookup` ora ha precedenza sul drafting: domande come "ultima PEC ricevuta" leggono caselle PEC/email e allegati tramite Operational Knowledge e Ricerca Studio, senza generare bozze PEC. Le bozze formali restano cliccabili verso l'editor professionale quando la risposta contiene un titolo `BOZZA — ...` e l'import nel fascicolo è disponibile.
+
+La modalità `Web libero` manuale è stata isolata nel bridge HTTP: nessuna sorgente studio, nessun archivio legale interno, nessun salvataggio DB/corpus e nessun warning visibile; i risultati sono marcati tecnicamente `web_libero` e `verified_reference=false`.
+
 ## Aggiornamento operativo 2.245.51 - 2026-05-19
 
 Completato l'audit finale Fase 10 sugli aggiornamenti legali senza backup e senza import massivo. La classificazione macchina ora copre tutte le fonti `DEFAULT_SOURCE_ROWS`: fonti verdi abilitate, fonti RAG-only, fonti in osservazione, archivi locali e fonti secondarie fuori perimetro.

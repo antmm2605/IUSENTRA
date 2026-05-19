@@ -257,6 +257,10 @@ class LexRouter:
             return "deposito_telematico"
 
         # ---- Livello 6: PEC comunicazioni ----
+        if intent == "studio_context_lookup":
+            return "cabina"
+        if intent == "comunicazioni_lookup":
+            return "cabina"
         if intent == "pec_comunicazioni":
             return "drafting_legal_letter"
 

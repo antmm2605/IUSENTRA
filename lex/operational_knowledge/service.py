@@ -77,6 +77,9 @@ class OperationalKnowledgeService:
                 self.tools.get_legal_intelligence_items(entity_query or question, context, limit=3),
             ]
 
+        if route.intent == "studio_context_overview":
+            return self._studio_context_overview_route(context, entity_query or question)
+
         if route.intent in {"client_situation", "client_fascicoli", "client_economic_summary"}:
             return self._client_route(route, context, entity_query, cliente_id=cliente_id)
 
@@ -224,6 +227,19 @@ class OperationalKnowledgeService:
         if route.intent == "client_economic_summary":
             results.append(self.tools.get_attivita_by_cliente(cliente_id, context))
         return results
+
+    def _studio_context_overview_route(self, context, entity_query: str) -> list[OperationalToolResult]:
+        query = entity_query or ""
+        return [
+            self.tools.search_clienti(query, context, limit=4),
+            self.tools.search_fascicoli(query, context, limit=4),
+            self.tools.get_agenda_range(context, start=date.today(), end=date.today() + timedelta(days=14), limit=8),
+            self._all_scadenze(context),
+            self.tools.list_pec_messages(context, query=query, limit=5),
+            self.tools.list_ordinary_email_messages(context, query=query, limit=5),
+            self.tools.search_preventivi(query, context, limit=4),
+            self.tools.search_conferimenti(query, context, limit=4),
+        ]
 
     def _fascicolo_route(self, context, entity_query: str, *, fascicolo_id: str = "") -> list[OperationalToolResult]:
         target = fascicolo_id or self._first_fascicolo_id(entity_query, context)

@@ -2255,7 +2255,7 @@ class LegalUpdateRepository:
                        a.target_entity_id, a.extracted_entities_json, a.issuer AS analysis_issuer,
                        a.norm_type, a.norm_number, a.norm_year, a.decision_number, a.decision_year,
                        a.court_name, a.effective_date,
-                       n.title, n.body_short, n.body_text, n.document_date, n.issuer,
+                       n.title, n.body_short, n.body_text, n.document_date, n.issuer, n.attachments_json,
                        r.source_url, r.published_at, r.external_id,
                        s.name AS source_name, s.code AS source_code, s.category AS source_category,
                        s.trust_class, s.is_official,
@@ -2272,7 +2272,7 @@ class LegalUpdateRepository:
                 """,
                 (int(review_id),),
             ).fetchone()
-        return self._decode_row(row, json_fields=("proposal_payload_json", "extracted_entities_json"))
+        return self._decode_row(row, json_fields=("proposal_payload_json", "extracted_entities_json", "attachments_json"))
 
     def set_review_status(
         self,

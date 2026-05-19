@@ -553,6 +553,52 @@ def test_verifica_web_restituisce_conferma_allegato_ufficiale(monkeypatch):
     assert not any("evil.test" in url for url in requested)
 
 
+def test_verifica_web_legge_allegati_gia_normalizzati(monkeypatch):
+    source_url = "https://www.gazzettaufficiale.it/gazzetta/serie_generale/caricaDettaglio?numeroGazzetta=113"
+    attachment_url = "https://www.gazzettaufficiale.it/do/gazzetta/downloadPdf?estensione=pdf&numeroGazzetta=113"
+    pdf_bytes = b"%PDF-1.4\n% fascicolo ufficiale\n"
+    requested: list[str] = []
+
+    review = {
+        "proposed_action": "NEW_NORMATIVE",
+        "title": "Gazzetta Ufficiale - Serie Generale n. 113 del 18/05/2026",
+        "source_url": source_url,
+        "source_name": "Gazzetta Ufficiale",
+        "classification_type": "NORMATIVA_NUOVA",
+        "summary_short": "Fascicolo ufficiale della Serie Generale.",
+        "attachments_json": [{"title": "Download PDF", "url": attachment_url, "attachment_type": "pdf"}],
+    }
+    source = {
+        "name": "Gazzetta Ufficiale",
+        "code": "gazzetta_ufficiale",
+        "category": "normativa",
+        "trust_class": "A",
+        "is_official": True,
+    }
+
+    def fake_get(url: str, **kwargs: Any) -> DummyResponse:
+        requested.append(str(url))
+        if str(url) == attachment_url:
+            return DummyResponse(pdf_bytes, content_type="application/pdf")
+        return DummyResponse(b"<html><main>Pagina ufficiale senza link PDF ripetuto.</main></html>", content_type="text/html; charset=utf-8")
+
+    monkeypatch.setattr(verification.requests, "get", fake_get)
+    monkeypatch.setattr(
+        verification,
+        "_text_from_attachment",
+        lambda url, content, content_type: "Fascicolo ufficiale letto dal PDF della Gazzetta Ufficiale.",
+    )
+
+    report = verification.verify_legal_update_against_public_sources(review, source, limit=2, direct_only=True)
+
+    attachments = [row for row in report["confirmations"] if row.get("origin") == "allegato_fonte_ufficiale"]
+    assert report["ok"] is True
+    assert requested == [source_url, attachment_url]
+    assert attachments[0]["attachment_url"] == attachment_url
+    assert attachments[0]["attachment_type"] == "pdf"
+    assert attachments[0]["context_chars"] > 20
+
+
 def test_verifica_web_cerca_inps_con_titolo_minimo_e_piano_esteso(monkeypatch):
     review = {
         "proposed_action": "NEWS_ONLY",

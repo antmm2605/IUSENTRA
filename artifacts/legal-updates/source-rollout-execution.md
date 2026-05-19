@@ -37,6 +37,32 @@ Aggiornato il 19 maggio 2026. Questo file trasforma `source-rollout-plan.md` in 
 | `inail_istruzioni_operative` | fonte disabilitata nel catalogo: utile solo con backfill mirato finché non viene collaudata | in osservazione |
 | fonti secondarie Studio Cataldi/Avvocato Andreani | non ufficiali e non devono entrare nel corpus ufficiale | fuori perimetro, solo Web libero manuale |
 
+## Aggiornamento Fase 3 - fonti gialle post-canary
+
+Aggiornato il 19 maggio 2026 dopo i rerun mirati `--limit 2 --max-seconds 60 --no-publish --direct-only --save-diagnostics --json`. Nessun import massivo e nessuna pubblicazione automatica.
+
+| fonte | problema concreto | file modificati | test eseguiti | stato dopo |
+|---|---|---|---|---|
+| `gazzetta_ufficiale` | gli elementi invariati conservavano il link PDF parser ma non rinfrescavano evidenze/hash/testo allegato | `pct/legal_update_diagnostics.py`, `pct/legal_update_web_verification.py`, `pct/legal_update_repository.py` | `tests/test_legal_update_safe_diagnostics.py`, `tests/test_legal_update_web_verification_attachments.py` | verde: 2 PDF letti, `pdf_found=true`, `text_read=true` |
+| `anac_documenti` | il parser creava un falso allegato dal testo della card quando mancava un link PDF reale | `pct/legal_update_source_parsers.py` | `tests/test_legal_update_source_parsers.py` | verde: testo ufficiale pronto, allegati finti rimossi |
+| `garante_privacy` | il link al testo GDPR era trattato come allegato della newsletter/provvedimento | `pct/legal_update_source_parsers.py` | `tests/test_legal_update_source_parsers.py` | verde: testo docweb pronto, link normativi non marcati come allegati |
+| `pst_giustizia_download` | pagine tecniche generiche entravano come possibili news | `pct/legal_update_source_parsers.py` | `tests/test_legal_update_source_parsers.py` | RAG-only: fonte tecnica non pubblicabile |
+| `openga_sentenze` | CSV/JSON/ODS OpenGA con riferimenti interni potevano sembrare documenti giurisprudenziali concreti | `pct/legal_update_source_capabilities.py` | `tests/test_legal_update_source_capabilities.py` | RAG-only: dataset tabellari non pubblicabili, PDF documentali separati |
+
+### Verifiche Fase 3
+
+| comando | esito | nota |
+|---|---|---|
+| `python -m pytest tests/test_legal_update_source_parsers.py tests/test_legal_update_source_capabilities.py -q --tb=short` | OK | 21/21 passati: parser ANAC/Garante/PST, OpenGA RAG-only e registry capability. |
+| `python -m pytest tests/test_legal_update_safe_diagnostics.py -q --tb=short` | OK | 6/6 passati: canary invariato rinfresca PDF normalizzato senza pubblicare. |
+| `python -m pytest tests/test_legal_update_web_verification_attachments.py -q --tb=short` | OK | 13/13 passati: allegati normalizzati e PDF ufficiali letti. |
+| `python -m pytest tests/test_legal_updates_pipeline.py -q --tb=short` | OK | 41/41 passati. |
+| `python -m pytest tests/test_legal_update_publish_context.py tests/test_legal_update_web_verification_attachments.py -q --tb=short` | OK | 28/28 passati. |
+| `python -m pytest tests/test_lex_source_corpus_generator.py tests/test_react_legal_intelligence_search.py -q --tb=short` | OK | 24/24 passati. |
+| `python tools/check_repo_governance.py` | OK | Governance check OK. |
+| `python -m pytest tests/test_utf8_integrity.py -q --tb=short` | OK | 4/4 passati. |
+| `git diff --check` | OK | Nessun errore whitespace; Git segnala solo normalizzazione CRLF/LF su file JSON già toccati e dati runtime non committati. |
+
 ## Verifiche eseguite nella tranche
 
 | comando | esito | nota |

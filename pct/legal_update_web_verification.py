@@ -4,7 +4,7 @@ import hashlib
 import json
 import os
 import re
-from html import unescape
+from html import escape, unescape
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urljoin, urlparse
@@ -190,6 +190,45 @@ def _attachment_links(html_text: str, base_url: str) -> list[dict[str, str]]:
         if len(links) >= max_links:
             break
     return links
+
+
+def _review_attachment_links(review: dict[str, Any]) -> list[dict[str, str]]:
+    payload = review.get("attachments_json") if isinstance(review, dict) else []
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload or "[]")
+        except json.JSONDecodeError:
+            payload = []
+    if not isinstance(payload, list):
+        return []
+    links: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        url = _clean_spaces(item.get("url") or item.get("attachment_url"))
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        links.append(
+            {
+                "url": url,
+                "label": _clean_spaces(item.get("title") or item.get("label") or _filename_from_url(url) or "Allegato"),
+                "attachment_type": _clean_spaces(item.get("attachment_type")),
+            }
+        )
+    return links[: _env_int("IUSENTRA_LEGAL_VERIFICATION_ATTACHMENT_MAX_LINKS", 4)]
+
+
+def _review_attachment_html(review: dict[str, Any]) -> str:
+    links = _review_attachment_links(review)
+    if not links:
+        return ""
+    anchors = []
+    for item in links:
+        label = _clean_spaces(item.get("label") or item.get("attachment_type") or "Allegato")
+        anchors.append(f'<a href="{escape(item["url"], quote=True)}">{escape(label)}</a>')
+    return "<html><body>" + "".join(anchors) + "</body></html>"
 
 
 def _source_ids_for_review(review: dict[str, Any], source: dict[str, Any]) -> list[str]:
@@ -1143,6 +1182,17 @@ def verify_legal_update_against_public_sources(
             direct_context = ""
             direct_attachments = []
             warnings.append(f"Lettura diretta fonte ufficiale non completata: {_truncate(exc, 140)}")
+        normalized_attachment_html = _review_attachment_html(review)
+        if normalized_attachment_html:
+            try:
+                direct_attachments.extend(
+                    extract_official_attachment_confirmations(
+                        normalized_attachment_html,
+                        source_url or _clean_spaces(source.get("base_url") or source_url),
+                    )
+                )
+            except Exception as exc:
+                warnings.append(f"Lettura allegati normalizzati non completata: {_truncate(exc, 140)}")
         if direct_context:
             self_match["excerpt"] = _context_excerpt({"full_context": direct_context}, review, limit=420)
             self_match["content"] = _truncate(direct_context, 12000)

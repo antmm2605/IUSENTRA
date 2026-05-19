@@ -83,7 +83,19 @@ def run_legal_updates_canary(
             if existing and _clean(existing.get("content_hash")) == _clean(document.get("content_hash")):
                 skipped_unchanged += 1
                 item["status"] = "invariato"
-                item.update(_existing_review_context(pipeline.repository, existing))
+                existing_context = _existing_review_context(pipeline.repository, existing)
+                item.update(existing_context)
+                review_id = int(existing_context.get("review_id") or 0)
+                if review_id and _should_refresh_unchanged_evidence(source, document, existing_context):
+                    review = pipeline.repository.get_review_item(review_id) or {}
+                    evidence = pipeline._record_ingestion_verification_evidence(review, source, direct_only=direct_only)
+                    verification_attempts += int(evidence.get("attempted") or 0)
+                    verification_saved += int(evidence.get("saved") or 0)
+                    verification_attachments += int(evidence.get("attachments") or 0)
+                    item["verification"] = evidence
+                    item["quality"] = _quality_summary(
+                        pipeline.repository.web_evidence_quality_for_review(review_id, review=review)
+                    )
                 items.append(item)
                 continue
             processed = pipeline.process_document(source, document, direct_only=direct_only)
@@ -419,6 +431,36 @@ def _existing_review_context(repository: Any, raw_document: dict[str, Any]) -> d
         payload["review_id"] = review_id
         payload["quality"] = _quality_summary(repository.web_evidence_quality_for_review(review_id, review=review))
     return payload
+
+
+def _should_refresh_unchanged_evidence(
+    source: dict[str, Any],
+    document: dict[str, Any],
+    existing_context: dict[str, Any],
+) -> bool:
+    capability = get_source_capability(source.get("code"), category=source.get("category"))
+    if capability.publication_destination in {"rag_only", "out_of_scope"}:
+        return False
+    quality = existing_context.get("quality") if isinstance(existing_context, dict) else {}
+    if isinstance(quality, dict) and quality.get("pdf_found") and quality.get("text_read"):
+        return False
+    attachments = _attachments(document.get("attachments_json"))
+    return any(_looks_like_pdf_attachment(item) for item in attachments)
+
+
+def _looks_like_pdf_attachment(item: dict[str, Any]) -> bool:
+    url = _clean(item.get("url") or item.get("attachment_url")).lower()
+    attachment_type = _clean(item.get("attachment_type")).lower()
+    return bool(
+        url.startswith(("http://", "https://"))
+        and (
+            attachment_type == "pdf"
+            or ".pdf" in url
+            or "downloadpdf" in url
+            or "format=pdf" in url
+            or "estensione=pdf" in url
+        )
+    )
 
 
 def _select_evidence_rows(

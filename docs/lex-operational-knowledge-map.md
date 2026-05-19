@@ -32,6 +32,8 @@ Aggiornamento 2026-05-19, fonti aggiornamenti legali 2.245.41: il registro capab
 
 Aggiornamento 2026-05-19, strumenti sicuri fonti 2.245.42: prima di qualsiasi popolamento esteso, una fonte passa da `legal-updates-canary` con limite obbligatorio, budget tempo, `--no-publish`, `--direct-only`, diagnostica salvabile e fixture offline. I backfill mirati separano allegati, OCR, riferimenti e domande contestuali, così Lex riceve testo pagina/PDF/OCR, riferimenti e domande senza import massivo live e senza promozione automatica nel corpus.
 
+Aggiornamento 2026-05-19, correzione fonti gialle 2.245.44: la Fase 3 post-canary porta Gazzetta Ufficiale a verde leggendo i PDF già normalizzati anche sugli invariati; ANAC e Garante rimuovono allegati fittizi e restano verdi quando il testo ufficiale HTML è sufficiente; PST Giustizia download resta `RAG-only` tecnico non pubblicabile; OpenGA tabellare resta `RAG-only`, mentre eventuali PDF/documenti giurisprudenziali concreti vanno promossi solo con pilot separato.
+
 ## Regole di accesso
 
 - Tenant: ricavato dal contesto Flask (`g.tenant`, `g.tenant_context_slug`, `g.data_paths`) o da contesto applicativo esplicito nei test.

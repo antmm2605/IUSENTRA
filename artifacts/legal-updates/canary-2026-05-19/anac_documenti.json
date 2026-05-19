@@ -1,33 +1,68 @@
 {
-  "schema": "iusentra.legal_updates.canary.v1",
-  "ok": true,
-  "mode": "canary",
-  "source_code": "anac_documenti",
-  "source_name": "ANAC - atti e documenti",
-  "limit": 3,
-  "max_seconds": 90,
-  "no_publish": true,
-  "direct_only": true,
-  "documents_found": 25,
-  "processed": 1,
-  "skipped_unchanged": 2,
-  "web_verification_attempts": 1,
-  "verification_evidence_saved": 1,
-  "verification_attachments_saved": 0,
   "autopublished": {
     "count": 0,
     "items": []
   },
-  "stopped_for_time_limit": false,
-  "duration_seconds": 31.49,
+  "direct_only": true,
+  "documents_found": 25,
+  "duration_seconds": 30.31,
+  "errors": [],
   "items": [
     {
-      "external_id": "c66bef427f898af6d5105d79ff7e24700e341eec3625da32c47d3be064f191df",
-      "title": "Delibera n. 168 del 15 aprile 2026",
-      "source_url": "https://www.anticorruzione.it/-/delibera-n.-168-del-15-aprile-2026",
-      "published_at": "",
       "attachment_count": 0,
       "attachments": [],
+      "destination": "prassi",
+      "destination_label": "Prassi o notizia",
+      "exclusion_reason": "",
+      "external_id": "c66bef427f898af6d5105d79ff7e24700e341eec3625da32c47d3be064f191df",
+      "normalized_document_id": 34,
+      "published_at": "",
+      "quality": {
+        "attachment_found": false,
+        "context_chars": 1468,
+        "ocr_status": "non_richiesto",
+        "pdf_found": false,
+        "questions": 11,
+        "ready": true,
+        "references": 0,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
+      "question_count": 8,
+      "questions": [
+        {
+          "question": "Mi puoi sintetizzare Delibera n. 168 del 15 aprile 2026?",
+          "reason": "capire subito il contenuto operativo",
+          "source": "titolo",
+          "type": "sintesi"
+        },
+        {
+          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
+          "reason": "distinguere esito, stato e valore d'uso",
+          "source": "titolo fonte",
+          "type": "natura_atto"
+        },
+        {
+          "question": "Qual è l'oggetto della questione o della decisione?",
+          "reason": "identificare il tema utile per lo studio",
+          "source": "corpo",
+          "type": "oggetto"
+        },
+        {
+          "question": "Qual è lo stato del procedimento o dell'atto?",
+          "reason": "evitare di trattare una pendenza come decisione definitiva",
+          "source": "corpo",
+          "type": "stato"
+        },
+        {
+          "question": "Qual è il punto di diritto o il principio in discussione?",
+          "reason": "ricavare il principio operativo",
+          "source": "testo",
+          "type": "punto_diritto"
+        }
+      ],
+      "rag_destination": "official_prassi_rag",
       "reference_count": 5,
       "reference_labels": [
         "Delibera n. 168 del 15 aprile 2026",
@@ -36,216 +71,99 @@
         "2026",
         "2025"
       ],
+      "review_id": 34,
+      "source_url": "https://www.anticorruzione.it/-/delibera-n.-168-del-15-aprile-2026",
+      "status": "invariato",
+      "title": "Delibera n. 168 del 15 aprile 2026"
+    },
+    {
+      "attachment_count": 0,
+      "attachments": [],
+      "destination": "prassi",
+      "destination_label": "Prassi o notizia",
+      "exclusion_reason": "",
+      "external_id": "309afc532a02feeba016d07e33696fb19a52ae5114320d3d3c3d3a6f039bc93d",
+      "normalized_document_id": 35,
+      "published_at": "",
+      "quality": {
+        "attachment_found": false,
+        "context_chars": 1165,
+        "ocr_status": "non_richiesto",
+        "pdf_found": false,
+        "questions": 13,
+        "ready": true,
+        "references": 2,
+        "status": "pronto",
+        "text_read": true,
+        "warnings": []
+      },
       "question_count": 8,
       "questions": [
         {
-          "type": "sintesi",
-          "question": "Mi puoi sintetizzare Delibera n. 168 del 15 aprile 2026?",
+          "question": "Mi puoi sintetizzare Parere di precontenzioso n. 161 del 6 maggio 2026?",
           "reason": "capire subito il contenuto operativo",
-          "source": "titolo"
+          "source": "titolo",
+          "type": "sintesi"
         },
         {
-          "type": "natura_atto",
           "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
           "reason": "distinguere esito, stato e valore d'uso",
-          "source": "titolo fonte"
+          "source": "titolo fonte",
+          "type": "natura_atto"
         },
         {
-          "type": "oggetto",
           "question": "Qual è l'oggetto della questione o della decisione?",
           "reason": "identificare il tema utile per lo studio",
-          "source": "corpo"
+          "source": "corpo",
+          "type": "oggetto"
         },
         {
-          "type": "stato",
           "question": "Qual è lo stato del procedimento o dell'atto?",
           "reason": "evitare di trattare una pendenza come decisione definitiva",
-          "source": "corpo"
+          "source": "corpo",
+          "type": "stato"
         },
         {
-          "type": "punto_diritto",
           "question": "Qual è il punto di diritto o il principio in discussione?",
           "reason": "ricavare il principio operativo",
-          "source": "testo"
+          "source": "testo",
+          "type": "punto_diritto"
         }
       ],
-      "destination": "prassi",
-      "destination_label": "Prassi o notizia",
       "rag_destination": "official_prassi_rag",
-      "exclusion_reason": "",
-      "status": "invariato",
-      "normalized_document_id": 34,
-      "review_id": 34,
-      "quality": {
-        "status": "pronto",
-        "ready": true,
-        "attachment_found": false,
-        "pdf_found": false,
-        "text_read": true,
-        "context_chars": 1468,
-        "ocr_status": "non_richiesto",
-        "references": 0,
-        "questions": 11,
-        "warnings": []
-      }
-    },
-    {
-      "external_id": "309afc532a02feeba016d07e33696fb19a52ae5114320d3d3c3d3a6f039bc93d",
-      "title": "Parere di precontenzioso n. 161 del 6 maggio 2026",
-      "source_url": "https://www.anticorruzione.it/-/parere-di-precontenzioso-n.-161-del-6-maggio-2026",
-      "published_at": "",
-      "attachment_count": 1,
-      "attachments": [
-        {
-          "title": "06 mag 2026 pdf Parere di precontenzioso n. 161 del 6 maggio 2026 Oggetto: Istanza presentata dalla Società LeSS costruzioni innovative S.r.l. Unipersonale - Procedura aperta - Appalto Integrato per lavori di manutenzione straordinaria e riattazione dei locali di Via Mezzocannone 8 posti a ridosso della sala macchine del C.S.I. con accesso dal cortile delle mura greche CIG: B666FD373C - Importo euro: 1.674.102,57 ... Visualizza Parere di precontenzioso n. 161 del 6 maggio 2026 → Contratti pubblici Precontenzioso Pareri precontenzioso",
-          "url": "https://www.anticorruzione.it/it/consulta-i-documenti?delta=30&includeDocuments=true&isDocumentSearchPortlet=true",
-          "attachment_type": ""
-        }
-      ],
       "reference_count": 3,
       "reference_labels": [
         "6 maggio 2026",
         "06 mag 2026",
         "2026"
       ],
-      "question_count": 8,
-      "questions": [
-        {
-          "type": "sintesi",
-          "question": "Mi puoi sintetizzare Parere di precontenzioso n. 161 del 6 maggio 2026?",
-          "reason": "capire subito il contenuto operativo",
-          "source": "titolo"
-        },
-        {
-          "type": "natura_atto",
-          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
-          "reason": "distinguere esito, stato e valore d'uso",
-          "source": "titolo fonte"
-        },
-        {
-          "type": "oggetto",
-          "question": "Qual è l'oggetto della questione o della decisione?",
-          "reason": "identificare il tema utile per lo studio",
-          "source": "corpo"
-        },
-        {
-          "type": "stato",
-          "question": "Qual è lo stato del procedimento o dell'atto?",
-          "reason": "evitare di trattare una pendenza come decisione definitiva",
-          "source": "corpo"
-        },
-        {
-          "type": "punto_diritto",
-          "question": "Qual è il punto di diritto o il principio in discussione?",
-          "reason": "ricavare il principio operativo",
-          "source": "testo"
-        }
-      ],
-      "destination": "prassi",
-      "destination_label": "Prassi o notizia",
-      "rag_destination": "official_prassi_rag",
-      "exclusion_reason": "",
-      "status": "invariato",
-      "normalized_document_id": 35,
       "review_id": 35,
-      "quality": {
-        "status": "pronto",
-        "ready": true,
-        "attachment_found": false,
-        "pdf_found": false,
-        "text_read": true,
-        "context_chars": 1165,
-        "ocr_status": "non_richiesto",
-        "references": 2,
-        "questions": 13,
-        "warnings": []
-      }
-    },
-    {
-      "external_id": "8c35eaa98477c24c548567ab6e3f7280daecf6e77df361261d7dcd7d57e44e1e",
-      "title": "Parere di precontenzioso n. 152 del 22 aprile 2026",
-      "source_url": "https://www.anticorruzione.it/-/parere-di-precontenzioso-n.-152-del-22-aprile-2026",
-      "published_at": "",
-      "attachment_count": 1,
-      "attachments": [
-        {
-          "title": "22 apr 2026 pdf Parere di precontenzioso n. 152 del 22 aprile 2026 Istanza presentata dalla CROCE BIANCA S.r.l. - Procedura telematica, ai sensi dell'art. 71 del d.lgs. 36/2023 e s.m.i., per l'affidamento di durata annuale di un servizio di ambulanza in stazionamento fisso presso l'Ospedale CTO \"A. ALESINI\", per un importo a base d'asta annuale pari ad € 364.392,66 (IVA esclusa) eventualmente rinnovabile di un ult ... Visualizza Parere di precontenzioso n. 152 del 22 aprile 2026 → Anticorruzione, Trasparenza Precontenzioso Pareri precontenzioso",
-          "url": "https://www.anticorruzione.it/it/consulta-i-documenti?delta=30&includeDocuments=true&isDocumentSearchPortlet=true",
-          "attachment_type": ""
-        }
-      ],
-      "reference_count": 6,
-      "reference_labels": [
-        "art. 71",
-        "d.lgs. 36/2023",
-        "22 aprile 2026",
-        "22 apr 2026",
-        "2026",
-        "2023"
-      ],
-      "question_count": 8,
-      "questions": [
-        {
-          "type": "sintesi",
-          "question": "Mi puoi sintetizzare Parere di precontenzioso n. 152 del 22 aprile 2026?",
-          "reason": "capire subito il contenuto operativo",
-          "source": "titolo"
-        },
-        {
-          "type": "natura_atto",
-          "question": "È una sentenza definitiva, un'ordinanza, una questione pendente o un altro atto?",
-          "reason": "distinguere esito, stato e valore d'uso",
-          "source": "titolo fonte"
-        },
-        {
-          "type": "oggetto",
-          "question": "Qual è l'oggetto della questione o della decisione?",
-          "reason": "identificare il tema utile per lo studio",
-          "source": "corpo"
-        },
-        {
-          "type": "stato",
-          "question": "Qual è lo stato del procedimento o dell'atto?",
-          "reason": "evitare di trattare una pendenza come decisione definitiva",
-          "source": "corpo"
-        },
-        {
-          "type": "punto_diritto",
-          "question": "Qual è il punto di diritto o il principio in discussione?",
-          "reason": "ricavare il principio operativo",
-          "source": "testo"
-        }
-      ],
-      "destination": "prassi",
-      "destination_label": "Prassi o notizia",
-      "rag_destination": "official_prassi_rag",
-      "exclusion_reason": "",
+      "source_url": "https://www.anticorruzione.it/-/parere-di-precontenzioso-n.-161-del-6-maggio-2026",
       "status": "analizzato",
-      "review_id": 50,
-      "normalized_document_id": 50,
+      "title": "Parere di precontenzioso n. 161 del 6 maggio 2026",
       "verification": {
-        "attempted": 1,
-        "saved": 1,
         "attachments": 0,
-        "ok": false,
+        "attempted": 1,
         "confirmations": 1,
         "official_confirmations": 1,
-        "reason": "Fonte ufficiale diretta acquisita, ma servono ulteriori conferme prima di trattare il riferimento come completato."
-      },
-      "quality": {
-        "status": "pronto",
-        "ready": true,
-        "attachment_found": false,
-        "pdf_found": false,
-        "text_read": true,
-        "context_chars": 1229,
-        "ocr_status": "non_richiesto",
-        "references": 4,
-        "questions": 13,
-        "warnings": []
+        "ok": false,
+        "reason": "Fonte ufficiale diretta acquisita, ma servono ulteriori conferme prima di trattare il riferimento come completato.",
+        "saved": 1
       }
     }
   ],
-  "errors": [],
-  "diagnostics_saved": true
+  "limit": 2,
+  "max_seconds": 60,
+  "mode": "canary",
+  "no_publish": true,
+  "ok": true,
+  "processed": 1,
+  "schema": "iusentra.legal_updates.canary.v1",
+  "skipped_unchanged": 1,
+  "source_code": "anac_documenti",
+  "source_name": "ANAC - atti e documenti",
+  "stopped_for_time_limit": false,
+  "verification_attachments_saved": 0,
+  "verification_evidence_saved": 1,
+  "web_verification_attempts": 1
 }

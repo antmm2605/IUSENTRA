@@ -531,6 +531,13 @@ OPEN_DATA_CATALOG_MARKERS = (
     "catalogo open data",
     "metadati dataset",
 )
+OPEN_DATA_TECHNICAL_RESOURCE_EXTENSIONS = (
+    ".csv",
+    ".json",
+    ".ods",
+    ".xlsx",
+    ".zip",
+)
 
 
 def normalize_source_code(value: Any) -> str:
@@ -574,6 +581,14 @@ def looks_like_open_data_document(text: Any) -> bool:
     return any(marker in haystack for marker in DOCUMENT_MARKERS)
 
 
+def _looks_like_technical_open_data_resource(url: Any) -> bool:
+    normalized = _normalize_source_token(url)
+    if not normalized:
+        return False
+    path = normalized.split("?", 1)[0].split("#", 1)[0]
+    return any(path.endswith(extension) for extension in OPEN_DATA_TECHNICAL_RESOURCE_EXTENSIONS)
+
+
 def _has_positive_legal_context(text: str) -> bool:
     for marker in LEGAL_CONTEXT_MARKERS:
         start = 0
@@ -615,6 +630,8 @@ def source_exclusion_reason(
     source_type = normalize_source_code(source.get("source_type"))
     parser_type = normalize_source_code(source.get("parser_type"))
     if source_type == "open_data" or parser_type == "ckan_json" or code.startswith("openga_"):
+        if _looks_like_technical_open_data_resource(url):
+            return "Catalogo o dataset open data in formato tecnico/tabellare: conservato solo come evidenza RAG."
         if any(marker in text for marker in OPEN_DATA_CATALOG_MARKERS) and not has_structured_reference:
             return "Catalogo o dataset open data senza documento giuridico concreto: conservato solo come evidenza RAG."
     if (source_type == "open_data" or parser_type == "ckan_json" or code.startswith("openga_")) and not (

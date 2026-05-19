@@ -23,7 +23,7 @@ RequestGet = Callable[..., Any]
 HTML_DATE_RE = re.compile(r"\b([0-3]?\d/[01]?\d/[12]\d{3})\b")
 PAGER_FRAME_RE = re.compile(r'parametriUrl\("(?P<element>[^"]+)",\s*"(?P<page>[^"]+)"\)')
 ATTACHMENT_EXTENSIONS = (".pdf", ".xml", ".doc", ".docx", ".odt", ".rtf", ".txt", ".zip")
-ATTACHMENT_LABELS = ("pdf", "allegato", "scarica", "download", "testo", "documento ufficiale")
+ATTACHMENT_LABELS = ("pdf", "allegato", "scarica", "download", "documento ufficiale")
 CASSAZIONE_LATEST_SOURCE_CODE = "cassazione_ultime_sent_ord_questioni"
 GAZZETTA_SOURCE_CODE = "gazzetta_ufficiale"
 GAZZETTA_SERIE_GENERALE_URL = "https://www.gazzettaufficiale.it/30giorni/serie_generale"
@@ -639,6 +639,31 @@ def _source_specific_exclusion_reason(code: str, row: dict[str, Any]) -> str:
             return "Link Garante di navigazione, social o servizio: non è una newsletter/provvedimento."
         if not any(marker in blob for marker in ("newsletter", "provvedimento", "sanzion", "privacy", "garante")):
             return "Voce Garante senza contenuto privacy operativo."
+    if code == "pst_giustizia_download":
+        generic_pages = (
+            "download.page",
+            "documentation.page",
+            "schede_pratiche.page",
+            "area_riservata.page",
+        )
+        if any(url.endswith(marker) for marker in generic_pages):
+            return "Pagina PST di navigazione tecnica: resta fuori dalla pubblicazione e non è un documento scaricabile."
+        if not any(
+            marker in blob
+            for marker in (
+                "deposito",
+                "telematico",
+                "pct",
+                "specifiche",
+                "schema",
+                "manuale",
+                "redattore",
+                "pdf",
+                ".zip",
+                ".xml",
+            )
+        ):
+            return "Download PST non collegato a deposito, specifiche o manuali operativi."
     if code == "inps_messaggi":
         title_url = _clean_spaces(f"{row.get('title')} {row.get('source_url')}").lower()
         if "messaggio-numero" not in title_url and "messaggio numero" not in title_url:
@@ -762,19 +787,27 @@ def _attachment_links(html_text: str, base_url: str) -> list[dict[str, str]]:
 
 
 def _attachment_candidates(text: str, base_url: str) -> list[dict[str, str]]:
-    return _attachment_links(text if "<" in text else f"<a href='{base_url}'>{text}</a>", base_url)
+    if "<" not in str(text or ""):
+        return []
+    return _attachment_links(text, base_url)
 
 
 def _looks_like_attachment(url: str, label: str) -> bool:
     lower = f"{url} {label}".lower()
     path = urlsplit(url).path.lower()
+    query = urlsplit(url).query.lower()
     if "open data" in lower or "dati-e-bilanci/open-data" in lower:
         return False
-    return path.endswith(ATTACHMENT_EXTENSIONS) or any(marker in lower for marker in ATTACHMENT_LABELS)
+    if path.endswith(ATTACHMENT_EXTENSIONS) or "downloadpdf" in path or "format=pdf" in query or "estensione=pdf" in query:
+        return True
+    return any(marker in lower for marker in ATTACHMENT_LABELS)
 
 
 def _file_type_from_url(url: str) -> str:
     path = urlsplit(url).path.lower()
+    query = urlsplit(url).query.lower()
+    if "downloadpdf" in path or "format=pdf" in query or "estensione=pdf" in query:
+        return "pdf"
     for ext in ATTACHMENT_EXTENSIONS:
         if path.endswith(ext):
             return ext.lstrip(".")

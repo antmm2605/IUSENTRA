@@ -15,6 +15,17 @@ budget tempo, `--direct-only`, `--no-publish` e diagnostica salvabile;
 `legal-updates-backfill-diagnostics` completa in modo mirato allegati, OCR,
 riferimenti o domande senza pubblicazione automatica.
 
+## Aggiornamento operativo 2.245.44 - 19 maggio 2026
+
+La Fase 3 post-canary corregge solo le fonti risultate gialle nel report del 19
+maggio 2026. Gazzetta Ufficiale ora rilegge gli allegati normalizzati anche
+quando il documento è invariato, così il PDF del fascicolo entra nelle evidenze
+con hash/testo. ANAC e Garante non creano più allegati fittizi da testo o da
+link normativi generici. PST resta fonte tecnica `RAG-only`, non pubblicabile
+come news. OpenGA tabellare (`CSV`, `JSON`, `ODS`, `XLSX`, `ZIP`) resta
+`RAG-only`; solo risorse documentali concrete, come PDF giurisprudenziali,
+possono essere promosse in una tranche separata.
+
 Le fixture offline coprono Cassazione indice/Civile/Penale/dettaglio/PDF,
 AGCOM dentro/fuori perimetro, feed INPS/Curia, CKAN OpenGA, ANAC, Garante,
 PST e PDF testuale/scansionato mock. Questo consente a Lex, Ricerca Legale e

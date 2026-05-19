@@ -348,6 +348,7 @@ def test_parser_anac_prende_documenti_operativi_non_servizi():
     assert docs[0]["title"].startswith("Parere di precontenzioso")
     assert "Contattaci" not in docs[0]["title"]
     assert "art. 120 c.p.a." in docs[0]["raw_text"]
+    assert docs[0].get("attachments_json") in (None, [])
 
 
 def test_parser_garante_prende_newsletter_docweb_non_social():
@@ -379,6 +380,56 @@ def test_parser_garante_prende_newsletter_docweb_non_social():
     assert docs[0]["title"].startswith("NEWSLETTER del 15 aprile 2026")
     assert "linkedin" not in docs[0]["title"].lower()
     assert "Regolamento UE 2016/679" in docs[0]["raw_text"]
+
+
+def test_parser_garante_non_tratta_link_gdpr_come_allegato_documento():
+    source = _source("garante_privacy")
+    listing = """
+    <html><body>
+      <article>
+        <a href="/home/docweb/-/docweb-display/docweb/10239073">NEWSLETTER privacy</a>
+        <p>Privacy, sanzione e trattamento dati.</p>
+      </article>
+    </body></html>
+    """
+    detail = """
+    <html><body><main>
+      <p>Provvedimento del Garante privacy su sanzione e Regolamento UE 2016/679.</p>
+      <a href="/il-testo-del-regolamento">GDPR</a>
+    </main></body></html>
+    """
+
+    def fake_get(url, **_kwargs):
+        target = str(url)
+        if "docweb-display" in target:
+            return DummyResponse(detail, url=target)
+        return DummyResponse(listing, url=target)
+
+    docs = fetch_source_documents(source, request_get=fake_get)
+
+    assert len(docs) == 1
+    assert docs[0].get("attachments_json") in (None, [])
+
+
+def test_parser_pst_tiene_solo_download_tecnici_documentali():
+    source = _source("pst_giustizia_download")
+    listing = """
+    <html><body><main>
+      <article><a href="/PST/it/schede_pratiche.page">Schede pratiche</a></article>
+      <article><a href="/PST/it/documentation.page">Documentazione</a></article>
+      <article>
+        <a href="/PST/resources/cms/documents/specifiche_deposito_telematico_2026.pdf">Specifiche deposito telematico 2026</a>
+        <p>Download tecnico PST utile a deposito telematico, schemi e manuali operativi.</p>
+      </article>
+    </main></body></html>
+    """
+
+    docs = fetch_source_documents(source, request_get=lambda url, **_kwargs: DummyResponse(listing, url=str(url)))
+
+    assert len(docs) == 1
+    assert docs[0]["title"] == "Specifiche deposito telematico 2026"
+    assert docs[0]["source_url"].endswith("specifiche_deposito_telematico_2026.pdf")
+    assert docs[0]["publication_destination"] == "rag_only"
 
 
 def test_parser_decodifica_windows_1252_senza_caratteri_sostitutivi():

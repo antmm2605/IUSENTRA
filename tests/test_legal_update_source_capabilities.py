@@ -90,6 +90,30 @@ def test_capability_filtri_scartano_noise_e_tengono_contesto_legale():
     assert "Fonte secondaria" in source_exclusion_reason(secondary, title="Art. 2043 codice civile", body_text="")
 
 
+def test_capability_openga_resource_tabellari_restano_solo_rag():
+    openga = {"code": "openga_sentenze", "source_type": "open_data", "parser_type": "ckan_json", "category": "giurisprudenza"}
+
+    reason = source_exclusion_reason(
+        openga,
+        title="CDS - Sentenze - 2024",
+        body_text="Risorsa con riferimenti a Consiglio di Stato, TAR e sentenza n. 528.",
+        url="https://openga.giustizia-amministrativa.it/download/cds-sentenze-2024.json",
+        has_structured_reference=True,
+    )
+
+    assert "Catalogo o dataset open data" in reason
+    assert (
+        source_exclusion_reason(
+            openga,
+            title="Sentenza TAR Lazio n. 1234/2026",
+            body_text="Ricorso in materia di appalti e affidamento.",
+            url="https://openga.giustizia-amministrativa.it/sentenza-1234-2026.pdf",
+            has_structured_reference=True,
+        )
+        == ""
+    )
+
+
 def test_reference_extractor_espone_schema_dedicato_senza_link_inventati():
     refs = extract_references(
         (

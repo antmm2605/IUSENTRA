@@ -152,6 +152,119 @@ def test_canary_sicuro_limita_fonte_salva_diagnostica_e_non_pubblica(tmp_path, m
     assert latest["autopublished_count"] == 0
 
 
+def test_canary_invariato_rinfresca_allegato_pdf_normalizzato(tmp_path, monkeypatch):
+    intelligence_db = tmp_path / "intelligence" / "motori.json"
+    listing = """
+    <html><body>
+      <a href="/do/gazzetta/downloadPdf?dataPubblicazioneGazzetta=20260518&numeroGazzetta=113&tipoSerie=SG&tipoSupplemento=GU&numeroSupplemento=0&progressivo=0&estensione=pdf&edizione=0">Download PDF</a>
+    </body></html>
+    """
+    verify_calls = {"count": 0}
+
+    def fake_get(url, **_kwargs):
+        return DummyResponse(listing, url=str(url))
+
+    def fake_analyze(normalized, source_row, **_kwargs):
+        return {
+            "classification_type": "COMMENTO",
+            "confidence_score": 0.86,
+            "impact_level": "medio",
+            "summary_short": "Fascicolo ufficiale della Gazzetta Ufficiale.",
+            "summary_long": "Fascicolo ufficiale della Gazzetta Ufficiale.",
+            "what_changes": "Da leggere come aggiornamento normativo.",
+            "matter_slug": "normativa",
+        }
+
+    def fake_verify(review, source, **_kwargs):
+        verify_calls["count"] += 1
+        if verify_calls["count"] == 1:
+            return {
+                "ok": True,
+                "reason": "Pagina ufficiale letta.",
+                "confirmation_count": 1,
+                "official_confirmations": 1,
+                "confirmations": [
+                    {
+                        "origin": "fonte_acquisita",
+                        "source_name": source["name"],
+                        "title": review["title"],
+                        "url": review["source_url"],
+                        "official": True,
+                        "excerpt": "Pagina ufficiale.",
+                        "content": "Pagina ufficiale.",
+                        "context_chars": 17,
+                        "matched_terms": [],
+                    }
+                ],
+                "searched": {"web_results": 0, "direct_only": True},
+            }
+        return {
+            "ok": True,
+            "reason": "Pagina e PDF ufficiale letti.",
+            "confirmation_count": 2,
+            "official_confirmations": 2,
+            "confirmations": [
+                {
+                    "origin": "fonte_acquisita",
+                    "source_name": source["name"],
+                    "title": review["title"],
+                    "url": review["source_url"],
+                    "official": True,
+                    "excerpt": "Pagina ufficiale.",
+                    "content": "Pagina ufficiale.",
+                    "context_chars": 17,
+                    "matched_terms": [],
+                },
+                {
+                    "origin": "allegato_fonte_ufficiale",
+                    "source_name": source["name"],
+                    "title": "Download PDF",
+                    "source_url": review["source_url"],
+                    "attachment_url": review["attachments_json"][0]["url"],
+                    "attachment_type": "pdf",
+                    "sha256": "hash-gazzetta",
+                    "official": True,
+                    "excerpt": "PDF ufficiale della Gazzetta Ufficiale letto.",
+                    "content": "PDF ufficiale della Gazzetta Ufficiale letto.",
+                    "context_chars": 48,
+                    "matched_terms": [],
+                },
+            ],
+            "searched": {"web_results": 0, "direct_only": True},
+        }
+
+    monkeypatch.setattr("pct.legal_update_pipeline.analyze_document", fake_analyze)
+    monkeypatch.setattr("pct.legal_update_pipeline.verify_legal_update_against_public_sources", fake_verify)
+
+    first = run_legal_updates_canary(
+        intelligence_db=str(intelligence_db),
+        source_code="gazzetta_ufficiale",
+        limit=1,
+        max_seconds=20,
+        no_publish=True,
+        direct_only=True,
+        save_diagnostics=False,
+        request_get=fake_get,
+    )
+    second = run_legal_updates_canary(
+        intelligence_db=str(intelligence_db),
+        source_code="gazzetta_ufficiale",
+        limit=1,
+        max_seconds=20,
+        no_publish=True,
+        direct_only=True,
+        save_diagnostics=False,
+        request_get=fake_get,
+    )
+
+    assert first["processed"] == 1
+    assert second["skipped_unchanged"] == 1
+    assert second["web_verification_attempts"] == 1
+    assert second["verification_attachments_saved"] == 1
+    assert second["items"][0]["quality"]["pdf_found"] is True
+    assert second["items"][0]["quality"]["text_read"] is True
+
+
 def test_backfill_diagnostics_arricchisce_riferimenti_e_domande_senza_pubblicare(tmp_path):
     intelligence_db = tmp_path / "intelligence" / "motori.json"
     pipeline = build_legal_update_pipeline(str(intelligence_db))

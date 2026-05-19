@@ -2,6 +2,16 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.245.44 - 2026-05-19
+
+La Fase 3 post-canary ha corretto solo le fonti gialle del report precedente:
+Gazzetta Ufficiale, ANAC, Garante Privacy, PST Giustizia download e OpenGA
+sentenze. Gazzetta rilegge i PDF già normalizzati anche sugli elementi
+invariati; ANAC e Garante non producono più allegati fittizi da testo o link
+normativi generici; PST è classificata come fonte tecnica `RAG-only`; OpenGA
+tabellare è `RAG-only` e non entra in pubblicazione automatica. Nessun import
+massivo e nessuna pubblicazione sono stati eseguiti.
+
 ## Aggiornamento operativo 2.245.42 - 2026-05-19
 
 Introdotti strumenti diagnostici sicuri per popolare le fonti una alla volta:

@@ -7,6 +7,12 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.44 - 2026-05-19
+
+- Corretta la Fase 3 post-canary sulle sole fonti gialle: Gazzetta Ufficiale passa a verde leggendo i PDF già normalizzati anche sugli elementi invariati; ANAC e Garante non creano più allegati fittizi da testo o link normativi generici.
+- Classificate correttamente le fonti non pubblicabili: PST Giustizia download resta fonte tecnica `RAG-only`; OpenGA tabellare (`CSV`, `JSON`, `ODS`, `XLSX`, `ZIP`) resta `RAG-only` e non viene promossa come giurisprudenza senza un documento concreto.
+- Rieseguiti i canary mirati con `--limit 2`, `--max-seconds 60`, `--no-publish`, `--direct-only`, `--save-diagnostics` e JSON diagnostico aggiornato, senza import massivo e senza pubblicazione.
+
 ## 2.245.43 - 2026-05-19
 
 - Eseguita la tornata canary no-publish sulle dieci fonti richieste con `--limit 3`, `--max-seconds 90`, `--direct-only`, diagnostica salvata e report verde/giallo/rosso in `artifacts/legal-updates/canary-report-2026-05-19.md`.

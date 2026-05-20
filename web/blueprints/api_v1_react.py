@@ -4974,6 +4974,57 @@ def _react_template_compliance_payload(
         return result
 
     try:
+        from pct.template_normative_compliance import analyze_template_compliance
+
+        compliance = analyze_template_compliance(
+            model_code,
+            form_values,
+            studio_timbro_payload=form_values.get("_studio_timbro") if isinstance(form_values, dict) else None,
+        )
+        payload = compliance.to_dict()
+        return {
+            "available": True,
+            "state": compliance.overall_state,
+            "overallState": compliance.overall_state,
+            "ready": compliance.can_generate_final_draft,
+            "requiresReview": compliance.overall_state != "ok",
+            "canGenerateFinalDraft": compliance.can_generate_final_draft,
+            "canGenerateWorkingDraft": compliance.can_generate_working_draft,
+            "canOpenEditor": compliance.can_open_editor,
+            "processArea": compliance.area,
+            "profile": f"{compliance.rito} - {compliance.fase}".strip(" -"),
+            "rulesetVersion": compliance.ruleset_version,
+            "sourceLabel": "Fonti ufficiali applicabili",
+            "evidenceCount": len(compliance.source_pack),
+            "missingFields": [item.label for item in compliance.missing_fields],
+            "missingFieldRows": [item.to_dict() for item in compliance.missing_fields],
+            "missingDocuments": [item.to_dict() for item in compliance.missing_documents],
+            "blocking": [check.message for check in compliance.checks if check.state == "block"],
+            "recommended": [check.message for check in compliance.checks if check.state == "warning"],
+            "normativeReferences": [item.to_dict() for item in compliance.normative_references],
+            "sources": [item.to_dict() for item in compliance.source_pack],
+            "layoutProfile": payload.get("layout_compliance") or {},
+            "stampPolicy": payload.get("page_stamp_compliance") or {},
+            "reliabilityScore": payload.get("reliability_score") or {},
+            "nextActions": list(compliance.next_actions),
+            "reasonedExplanation": compliance.reasoned_compliance_explanation,
+            "procedibility": [],
+            "deadlines": [],
+            "cartabiaControls": [item.title for item in compliance.contextual_rules_applied],
+            "editorialControls": [check.title for check in compliance.checks],
+            "depositControls": [check.title for check in compliance.checks if "PCT" in compliance.channel],
+            "validationRules": [
+                str(rule.get("message") or rule.get("field") or "").strip()
+                for rule in validation_rules
+                if isinstance(rule, dict) and str(rule.get("message") or rule.get("field") or "").strip()
+            ],
+            "warnings": list(compliance.risk_flags),
+            "raw": payload,
+        }
+    except Exception:
+        current_app.logger.debug("Compliance contestuale React non disponibile per %s", model_code, exc_info=True)
+
+    try:
         from pct.template_atti_unified_catalog import get_unified_template_item
         from pct.template_cartabia_rules import ensure_cartabia_metadata, verifica_cartabia_template
 
@@ -5169,7 +5220,7 @@ def template_atti_compila_page(model_code: str):
                 "compliance": _react_template_compliance_payload(
                     model_code=model_code,
                     prefill_resolution=prefill_resolution,
-                    form_values=form_values,
+                    form_values=ctx.get("payload") if isinstance(ctx.get("payload"), dict) else form_values,
                     validation_rules=ctx.get("validation_rules") or [],
                 ),
                 "checks": {

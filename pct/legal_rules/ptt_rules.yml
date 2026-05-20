@@ -1,0 +1,25 @@
+{
+  "ruleset_version": "2026.05.20.1",
+  "rules": [
+    {
+      "id": "PTT_PROFILE_BASE",
+      "title": "Profilo atto tributario telematico",
+      "jurisdiction": "tributario",
+      "source_type": "tecnica",
+      "source_ids": ["ptt_regole_tecniche"],
+      "article": "processo tributario telematico",
+      "paragraph": "",
+      "applies_to": ["TRIB_*"],
+      "applies_when": {"area": "TRIBUTARIO"},
+      "check_type": "required_fields",
+      "severity": "warning",
+      "required_fields": [],
+      "required_documents": ["Atto tributario o sentenza impugnata"],
+      "required_sections": ["motivi", "richieste", "firma"],
+      "layout_requirements": ["tax_ptt_layout"],
+      "reason": "Gli atti tributari devono richiamare l'atto impugnato o la sentenza e distinguere motivi, valore e conclusioni.",
+      "suggested_action": "Collega l'atto tributario e verifica motivi e allegati prima della bozza finale.",
+      "source_priority": "primary"
+    }
+  ]
+}

@@ -2,6 +2,11 @@ export type FormSubmitResult = {
   ok: boolean
   message?: string
   redirect?: string
+  editor_url?: string
+  editorUrl?: string
+  requires_confirmation?: boolean
+  compliance_state?: string
+  created_as?: string
   id?: string
   whatsappLink?: string
 }
@@ -40,6 +45,8 @@ export async function submitFormJson(endpoint: string, formData: FormData): Prom
     ? payload.redirect
     : typeof payload.redirect_url === 'string'
       ? payload.redirect_url
+      : typeof payload.editor_url === 'string'
+        ? payload.editor_url
       : response.redirected
         ? response.url
         : ''
@@ -47,6 +54,11 @@ export async function submitFormJson(endpoint: string, formData: FormData): Prom
     ok: true,
     message: String(payload.message || 'Operazione completata.'),
     redirect,
+    editor_url: typeof payload.editor_url === 'string' ? payload.editor_url : '',
+    editorUrl: typeof payload.editor_url === 'string' ? payload.editor_url : '',
+    requires_confirmation: payload.requires_confirmation === true,
+    compliance_state: typeof payload.compliance_state === 'string' ? payload.compliance_state : '',
+    created_as: typeof payload.created_as === 'string' ? payload.created_as : '',
     id: typeof payload.id === 'string' ? payload.id : '',
     whatsappLink: typeof payload.whatsappLink === 'string' ? payload.whatsappLink : '',
   }

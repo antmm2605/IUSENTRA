@@ -1,5 +1,11 @@
 # Migrazione progressiva Flask + React
 
+## Template Atti compliance contestuale - 2026-05-20 - 2.245.65
+
+Il compilatore React mostra ora il controllo applicativo reale restituito dal backend: stato complessivo, affidabilità, layout profile, timbro studio ripetuto, riferimenti normativi motivati, fonti con stato di verifica, campi/documenti mancanti e azioni Lex. La UI non decide la compliance: invia `requested_draft` e `confirmed_warning`, poi naviga all'`editor_url` restituito dal backend.
+
+Il percorso utente è vincolato dal gate: `block` disabilita la creazione finale, `warning` richiede conferma visibile e apre solo la bozza di lavoro, `ok` apre l'editor professionale. Il timbro è governato dal profilo layout e viene ripetuto top-left su ogni pagina negli export supportati.
+
 ## Lex Template Atti in chat unica - 2026-05-20 - 2.245.64
 
 `FloatingLex` passa ora il contesto `template_act` quando viene aperto dal catalogo o dal compilatore atti, includendo `modelCode`, fascicolo e cliente se disponibili. Il widget unico renderizza card per template, cliente, fascicolo, parti, dati mancanti, fonti e azioni senza creare pannelli separati.

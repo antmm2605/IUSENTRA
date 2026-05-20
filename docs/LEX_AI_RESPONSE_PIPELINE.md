@@ -7,6 +7,14 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.245.65 - 20 maggio 2026
+
+Il workflow `atto_da_template` ora passa anche dal controllo normativo contestuale prima di creare documenti. La pipeline è: template reale, contesto fascicolo/cliente, profilo normativo, fonti censite e verificate, riferimenti applicabili con `reason_for_application`, layout profile, timbro studio su ogni pagina, gate generazione, audit e risposta Lex.
+
+Lex non inventa riferimenti e non genera atti liberi: se non trova un modello del catalogo, un contesto autorizzato o le fonti richieste, espone la lacuna. Se il controllo produce `block`, non viene creato nessun documento; se produce `warning`, la creazione richiede conferma e resta bozza di lavoro; se produce `ok`, la mutation apre l'editor professionale tramite `editor_url` restituito dal backend.
+
+Il controllo è registrato nell'audit Template Atti con versione ruleset, profilo layout, stato fonti, riferimenti normativi, mancanti bloccanti o di avviso, utente, tenant, fascicolo, cliente e documento prodotto.
+
 ## Aggiornamento operativo 2.245.64 - 20 maggio 2026
 
 Lex Template Atti passa dalla pipeline ordinaria, senza sistema parallelo: `LexRouter` riconosce lookup, precompilazione e creazione editor; `SourceRouter` carica `StudioDatabaseSource` e `TemplateAttiSource`; il provider deterministico chiama `pct.template_atti_lex_service`; `AnswerBuilder` restituisce una risposta con `message_blocks`, `lex_actions`, `source_rows` e metadata `template_act`.

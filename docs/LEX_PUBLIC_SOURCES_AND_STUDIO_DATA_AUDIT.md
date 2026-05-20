@@ -2,6 +2,12 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.245.65 - 2026-05-20
+
+Template Atti usa ora un registro locale di fonti normative verificate per i profili applicabili ai modelli, senza trasformare la chat in ricerca libera. Le fonti sono marcate con `verification_status`, URL ufficiale, data di verifica e tipo di presidio; i riferimenti mostrati a Lex e al compilatore includono sempre `reason_for_application`.
+
+La creazione documento resta interna allo studio: catalogo reale, dati cliente/fascicolo, documenti allegati e timbro studio arrivano dai servizi applicativi. Lex può proporre azioni solo se il gate backend lo consente. Il canale libero non viene usato per completare un atto e non promuove riferimenti non verificati nel documento.
+
 ## Aggiornamento operativo 2.245.64 - 2026-05-20
 
 Il nuovo workflow `atto_da_template` resta interno allo studio: nessuna fonte web viene usata per creare o completare atti. I template arrivano da `TemplateAttiSource` e dal catalogo reale `pct.compilatore_atti`; cliente, fascicolo, parti, documenti e contesto operativo arrivano da `StudioDatabaseSource`, contesto attivo Lex o repository runtime già autorizzati.

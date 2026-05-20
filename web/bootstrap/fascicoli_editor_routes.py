@@ -72,6 +72,19 @@ def register_fascicoli_editor_routes(
         except Exception as exc:
             app.logger.warning("Indicizzazione Lex editor non completata per %s/%s: %s", id_fasc, filename, exc)
 
+    def _current_studio_timbro():
+        try:
+            from pct.studio_timbro import build_studio_timbro
+
+            return build_studio_timbro(
+                db_path=_cfg_data_path("STUDIO_TIMBRO_DB"),
+                config_studio=getattr(g, "config_studio", None),
+                app_config=app.config,
+                postgres_dsn=str(app.config.get("POSTGRES_DSN", "") or ""),
+            )
+        except Exception:
+            return None
+
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/editor")
     def editor_documento(id_fasc, id_doc):
         from pct.editor import estensione_editabile
@@ -199,11 +212,12 @@ def register_fascicoli_editor_routes(
             nome = documento.nome
             ext = nome.rsplit(".", 1)[-1].lower() if "." in nome else ""
 
+            timbro = _current_studio_timbro()
             if ext == "docx":
-                contenuto_raw = html_to_docx(html, titolo=nome.rsplit(".", 1)[0])
+                contenuto_raw = html_to_docx(html, titolo=nome.rsplit(".", 1)[0], studio_timbro=timbro)
                 nome_salvato = nome
             elif ext == "pdf":
-                contenuto_raw = html_to_pdf(html, titolo=nome.rsplit(".", 1)[0])
+                contenuto_raw = html_to_pdf(html, titolo=nome.rsplit(".", 1)[0], studio_timbro=timbro)
                 nome_salvato = nome
             else:
                 contenuto_raw = html.encode("utf-8")
@@ -248,7 +262,7 @@ def register_fascicoli_editor_routes(
             fascicolo = get_fascicoli().get(id_fasc)
             documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
             titolo = documento.nome.rsplit(".", 1)[0] if documento else "documento"
-            pdf_bytes = html_to_pdf(html, titolo=titolo)
+            pdf_bytes = html_to_pdf(html, titolo=titolo, studio_timbro=_current_studio_timbro())
             audit("fascicoli.documento.editor_pdf", "fascicolo", id_fasc, dettagli=f"doc {id_doc}")
             return send_file(
                 io.BytesIO(pdf_bytes),
@@ -272,7 +286,7 @@ def register_fascicoli_editor_routes(
             fascicolo = get_fascicoli().get(id_fasc)
             documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
             titolo = documento.nome.rsplit(".", 1)[0] if documento else "documento"
-            docx_bytes = html_to_docx(html, titolo=titolo)
+            docx_bytes = html_to_docx(html, titolo=titolo, studio_timbro=_current_studio_timbro())
             audit("fascicoli.documento.editor_docx", "fascicolo", id_fasc, dettagli=f"doc {id_doc}")
             return send_file(
                 io.BytesIO(docx_bytes),

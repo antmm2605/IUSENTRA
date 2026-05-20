@@ -6,13 +6,17 @@ from pathlib import Path
 from lex.contracts import LexRequest
 
 
-def _template_atti_source_class():
+def _template_atti_source_module():
     path = Path(__file__).parents[2] / "retrieval" / "sources" / "template_atti.py"
     spec = importlib.util.spec_from_file_location("lex_template_atti_source_under_test", path)
     module = importlib.util.module_from_spec(spec)
     assert spec and spec.loader
     spec.loader.exec_module(module)
-    return module.TemplateAttiSource
+    return module
+
+
+def _template_atti_source_class():
+    return _template_atti_source_module().TemplateAttiSource
 
 
 def _request(query: str) -> LexRequest:
@@ -43,3 +47,12 @@ def test_template_atti_source_trova_diffida():
     assert items[0].metadata["model_code"] == "STR_DIFF_001"
     assert items[0].metadata["prefill_capable"] is True
     assert "required_fields" in items[0].metadata
+
+
+def test_template_atti_source_fallback_legge_catalogo_reale():
+    module = _template_atti_source_module()
+
+    matches = module._fallback_search_template_models("atto di citazione", limit=5)
+
+    assert matches
+    assert any(match.model_code == "CIV_CIT_001" for match in matches)

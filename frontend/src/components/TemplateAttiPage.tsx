@@ -153,7 +153,7 @@ function StudioStampPreview({ data }: { data: TemplateAttiPageData }) {
       <div>
         <p className="iu-template-eyebrow">Timbro studio</p>
         <h3>Intestazione applicata automaticamente</h3>
-        <p>Il modello usa i dati configurati dello studio e li inserisce prima del titolo dell'atto.</p>
+        <p>Il modello usa i dati configurati dello studio e li ripete in alto a sinistra su ogni pagina dell'atto.</p>
       </div>
     </section>
   )
@@ -421,22 +421,18 @@ function CompilerField({ field }: { field: TemplateCompilerField }) {
   )
 }
 
-function CompliancePanel({ data }: { data: TemplateCompilerData }) {
+function ComplianceStatusCard({ data }: { data: TemplateCompilerData }) {
   const compliance = data.compliance
-  const primaryControls = [
-    ...compliance.cartabiaControls.slice(0, 4),
-    ...compliance.depositControls.slice(0, 4),
-  ].filter(Boolean)
+  const state = compliance.overallState || compliance.state
+  const tone: 'success' | 'danger' | 'warning' = state === 'ok' ? 'success' : state === 'block' ? 'danger' : 'warning'
   return (
     <section className="iu-template-compiler-panel iu-template-compliance-panel">
       <header>
         <div>
           <p className="iu-template-eyebrow">Presidio normativo</p>
-          <h3>Cartabia, deposito e regole dell'atto</h3>
+          <h3>Regole applicabili all'atto</h3>
         </div>
-        <Badge tone={compliance.ready ? 'success' : 'warning'}>
-          {compliance.ready ? 'Controlli superati' : 'Dati atto da completare'}
-        </Badge>
+        <Badge tone={tone}>{state === 'ok' ? 'Pronto per editor' : state === 'block' ? 'Bloccato' : 'Conferma richiesta'}</Badge>
       </header>
       <dl className="iu-template-compliance-meta">
         <div>
@@ -445,7 +441,7 @@ function CompliancePanel({ data }: { data: TemplateCompilerData }) {
         </div>
         <div>
           <dt>Stato</dt>
-          <dd>{compliance.state ? cartabiaStateLabel(compliance.state) : 'Da verificare'}</dd>
+          <dd>{state ? cartabiaStateLabel(state) : 'Da verificare'}</dd>
         </div>
         <div>
           <dt>Fonti</dt>
@@ -456,35 +452,135 @@ function CompliancePanel({ data }: { data: TemplateCompilerData }) {
           <dd>{compliance.rulesetVersion || 'Versione non indicata'}</dd>
         </div>
       </dl>
-      {compliance.normativeReferences.length ? (
-        <div className="iu-template-compliance-list">
-          <strong>Riferimenti applicati</strong>
-          {compliance.normativeReferences.slice(0, 4).map((item) => <p key={item}>{item}</p>)}
-        </div>
-      ) : null}
-      {primaryControls.length ? (
-        <div className="iu-template-compiler-badges">
-          {primaryControls.map((item) => <Badge tone="info" key={item}>{item}</Badge>)}
-        </div>
-      ) : null}
+      {compliance.reasonedExplanation ? <p>{compliance.reasonedExplanation}</p> : null}
       {compliance.blocking.length ? (
         <div className="iu-template-compiler-checks iu-template-compiler-checks--block">
           {compliance.blocking.slice(0, 5).map((item) => <p key={item}>{item}</p>)}
         </div>
       ) : null}
-      {compliance.procedibility.length || compliance.deadlines.length ? (
-        <div className="iu-template-compliance-list">
-          <strong>Procedibilita e termini</strong>
-          {[...compliance.procedibility, ...compliance.deadlines].slice(0, 5).map((item) => <p key={item}>{item}</p>)}
-        </div>
-      ) : null}
-      {compliance.warnings.length ? (
-        <div className="iu-template-compliance-list">
-          <strong>Avvisi redazionali</strong>
-          {compliance.warnings.slice(0, 5).map((item) => <p key={item}>{item}</p>)}
+    </section>
+  )
+}
+
+function ReliabilityScoreCard({ data }: { data: TemplateCompilerData }) {
+  const score = data.compliance.reliabilityScore
+  return (
+    <section className="iu-template-compiler-panel">
+      <h3>Affidabilità</h3>
+      <div className="iu-template-compiler-badges">
+        <Badge tone={score.value >= 0.86 ? 'success' : score.value >= 0.65 ? 'warning' : 'danger'}>{Math.round(score.value * 100)}%</Badge>
+        {score.label ? <Badge tone="neutral">{score.label}</Badge> : null}
+      </div>
+      {[...score.factors, ...score.capsApplied].slice(0, 5).map((item) => <p key={item}>{item}</p>)}
+    </section>
+  )
+}
+
+function NormativeReferencesCard({ data }: { data: TemplateCompilerData }) {
+  const refs = data.compliance.normativeReferences
+  if (!refs.length) return null
+  return (
+    <section className="iu-template-compiler-panel">
+      <h3>Riferimenti applicabili</h3>
+      <div className="iu-template-compliance-list">
+        {refs.slice(0, 6).map((item) => (
+          <p key={item.id || `${item.title}-${item.article}`}>
+            <strong>{item.article || item.title}</strong>
+            {item.reasonForApplication ? `: ${item.reasonForApplication}` : ''}
+            {item.verificationStatus ? ` (${item.verificationStatus.replaceAll('_', ' ')})` : ''}
+          </p>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function LayoutProfileCard({ data }: { data: TemplateCompilerData }) {
+  const layout = data.compliance.layoutProfile
+  const title = String(layout.title || layout.layout_profile_id || layout.layoutProfileId || '')
+  if (!title) return null
+  return (
+    <section className="iu-template-compiler-panel">
+      <h3>Layout atto</h3>
+      <p>{title}</p>
+      <div className="iu-template-compiler-badges">
+        <Badge tone={layout.ok === false ? 'danger' : 'success'}>{layout.ok === false ? 'Da correggere' : 'Applicato'}</Badge>
+        {layout.text_align ? <Badge tone="neutral">{String(layout.text_align)}</Badge> : null}
+      </div>
+    </section>
+  )
+}
+
+function StudioStampCard({ data }: { data: TemplateCompilerData }) {
+  const stamp = data.compliance.stampPolicy
+  const policy = asPolicy(stamp.policy || stamp)
+  return (
+    <section className="iu-template-compiler-panel iu-template-compiler-stamp">
+      <h3>Timbro su ogni pagina</h3>
+      <div className="iu-template-compiler-badges">
+        <Badge tone={stamp.ok === false ? 'danger' : 'success'}>{stamp.ok === false ? 'Da correggere' : 'Alto a sinistra'}</Badge>
+        <Badge tone={policy.repeat ? 'success' : 'danger'}>{policy.repeat ? 'Ogni pagina' : 'Solo prima pagina'}</Badge>
+      </div>
+      {data.stamp.lines.length ? (
+        <div>
+          {data.stamp.lines.map((line, index) => (
+            <span key={`${line.text}-${index}`} className={line.bold ? 'iu-template-compiler-stamp__bold' : ''}>{line.text}</span>
+          ))}
         </div>
       ) : null}
     </section>
+  )
+}
+
+function asPolicy(input: unknown): { repeat: boolean } {
+  const item = input && typeof input === 'object' ? input as Record<string, unknown> : {}
+  return { repeat: item.repeat_on_each_page === true || item.repeatOnEachPage === true }
+}
+
+function MissingFieldsCard({ data }: { data: TemplateCompilerData }) {
+  if (!data.compliance.missingFields.length) return null
+  return (
+    <section className="iu-template-compiler-panel">
+      <h3>Dati da completare</h3>
+      <div className="iu-template-compiler-checks iu-template-compiler-checks--block">
+        {data.compliance.missingFields.slice(0, 8).map((item) => <p key={item}>{item}</p>)}
+      </div>
+    </section>
+  )
+}
+
+function MissingDocumentsCard({ data }: { data: TemplateCompilerData }) {
+  if (!data.compliance.missingDocuments.length) return null
+  return (
+    <section className="iu-template-compiler-panel">
+      <h3>Documenti da collegare</h3>
+      {data.compliance.missingDocuments.slice(0, 6).map((item) => <p key={String(item.title || item.label || '')}>{String(item.title || item.label || '')}</p>)}
+    </section>
+  )
+}
+
+function LexActionCard({ data }: { data: TemplateCompilerData }) {
+  if (!data.compliance.nextActions.length) return null
+  return (
+    <section className="iu-template-compiler-panel">
+      <h3>Azioni richieste</h3>
+      {data.compliance.nextActions.slice(0, 5).map((item) => <p key={item}>{item}</p>)}
+    </section>
+  )
+}
+
+function CompliancePanel({ data }: { data: TemplateCompilerData }) {
+  return (
+    <>
+      <ComplianceStatusCard data={data} />
+      <ReliabilityScoreCard data={data} />
+      <NormativeReferencesCard data={data} />
+      <LayoutProfileCard data={data} />
+      <StudioStampCard data={data} />
+      <MissingFieldsCard data={data} />
+      <MissingDocumentsCard data={data} />
+      <LexActionCard data={data} />
+    </>
   )
 }
 
@@ -588,15 +684,27 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
   }
 
   const submitCompiler = () => {
-    if (!data.selectors.selectedFascicoloId || submitting) return
+    const state = data.compliance.overallState || data.compliance.state
+    if (!data.selectors.selectedFascicoloId || submitting || state === 'block') return
+    const formData = collectControlData(compilerRef.current)
+    if (state === 'warning') {
+      const confirmed = window.confirm('I controlli richiedono una bozza di lavoro da revisionare. Vuoi confermare la creazione?')
+      if (!confirmed) return
+      formData.set('requested_draft', 'working_draft')
+      formData.set('confirmed_warning', '1')
+    } else {
+      formData.set('requested_draft', 'final_draft')
+      formData.delete('confirmed_warning')
+    }
     setSubmitting(true)
     setSubmitError('')
     setSubmitMessage('')
-    submitFormJson(data.formAction, collectControlData(compilerRef.current))
+    submitFormJson(data.formAction, formData)
       .then((result) => {
         setSubmitMessage(result.message || 'Bozza creata. Apertura del documento in corso.')
-        if (result.redirect) {
-          window.setTimeout(() => window.location.assign(result.redirect || data.catalogHref), 300)
+        const editorUrl = result.editor_url || result.redirect
+        if (editorUrl) {
+          window.setTimeout(() => window.location.assign(editorUrl), 300)
         }
       })
       .catch((error) => setSubmitError(error instanceof Error ? error.message : 'Non ho potuto creare la bozza. Controlla i campi richiesti.'))
@@ -691,6 +799,7 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
               <input type="hidden" name="_react_return" value="1" />
               <input type="hidden" name="id_cliente" value={data.selectors.selectedClienteId} />
               <input type="hidden" name="id_fascicolo" value={data.selectors.selectedFascicoloId} />
+              <input type="hidden" name="requested_draft" value={(data.compliance.overallState || data.compliance.state) === 'warning' ? 'working_draft' : 'final_draft'} />
               {Object.entries(data.hidden).map(([name, value]) => <input type="hidden" name={name} value={value} key={name} />)}
               <section>
                 <header>
@@ -715,9 +824,9 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
               {submitError ? <p className="iu-template-compiler-error" role="alert">{submitError}</p> : null}
               {submitMessage ? <p className="iu-template-compiler-note iu-template-compiler-note--found" role="status">{submitMessage}</p> : null}
               <footer className="iu-template-compiler-actions">
-                <Button type="button" tone="primary" disabled={!data.selectors.selectedFascicoloId || submitting} title={!data.selectors.selectedFascicoloId ? 'Seleziona prima una pratica collegata.' : undefined} onClick={submitCompiler}>
+                <Button type="button" tone="primary" disabled={!data.selectors.selectedFascicoloId || submitting || (data.compliance.overallState || data.compliance.state) === 'block'} title={!data.selectors.selectedFascicoloId ? 'Seleziona prima una pratica collegata.' : (data.compliance.overallState || data.compliance.state) === 'block' ? 'Completa i controlli bloccanti prima di creare la bozza.' : undefined} onClick={submitCompiler}>
                   <Save size={17} aria-hidden="true" />
-                  {submitting ? 'Creazione in corso...' : data.selectors.selectedFascicoloId ? data.submitLabel : 'Seleziona pratica collegata'}
+                  {submitting ? 'Creazione in corso...' : (data.compliance.overallState || data.compliance.state) === 'block' ? 'Completa i controlli' : data.selectors.selectedFascicoloId ? data.submitLabel : 'Seleziona pratica collegata'}
                 </Button>
                 <ButtonLink href={data.catalogHref} tone="neutral">Annulla</ButtonLink>
               </footer>

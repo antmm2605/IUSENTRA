@@ -6,6 +6,20 @@ Aggiornato: 2026-05-20, Lex Studio Reasoner linguaggio/date 99%, conversazionale
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
+## Template Atti compliance contestuale 2.245.65 - 2026-05-20
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m compileall pct\template_normative_compliance.py pct\legal_layout_profiles.py pct\legal_sources\web_verifier.py pct\studio_timbro.py pct\editor.py pct\template_atti_lex_service.py web\blueprints\template_atti.py web\blueprints\api_v1_react.py web\bootstrap\fascicoli_editor_routes.py lex\retrieval\sources\template_atti.py tests\test_template_normative_compliance.py tests\test_template_atti_generation_gate.py tests\test_template_atti_frontend_contract.py tests\test_template_atti_timbro.py lex\tests\unit\test_template_act_workflow.py lex\tests\unit\test_template_atti_source.py` | OK | Sintassi confermata con il runtime Python disponibile localmente sulla tranche Template Atti, compliance, timbro, backend, frontend contract e test aggiunti. |
+| Smoke Python mirato su compliance/gate/editor | OK | Verificati: citazione `ok`, decreto ingiuntivo `block` senza writer/editor, gate non disponibile fail-closed, comparsa `warning_requires_confirmation`, creazione ammessa con `editor_url` e audit. |
+| `python scripts\verify_legal_sources.py --offline --output-dir %TEMP%\iusentra_legal_sources_offline` | OK | Verifica offline del registro fonti senza scrivere artefatti runtime nel repository. |
+| `python scripts\verify_legal_sources.py --timeout-seconds 8 --output-dir %TEMP%\iusentra_legal_sources_live_24565_final` | OK | Verifica live verso fonti ufficiali con output temporaneo; tutte le fonti del registro risultano `verified_online`. |
+| `rg -n 'return \[\]' lex\retrieval\sources\template_atti.py` | OK | Nessun `return []` residuo in `TemplateAttiSource`; il fallback torna al catalogo modelli reale quando l'import diretto non è disponibile. |
+| Smoke diretto `_fallback_search_template_models('atto di citazione')` | OK | Il fallback della sorgente Lex legge il catalogo reale e restituisce `CIV_CIT_001` senza dipendere dal servizio principale. |
+| Ricerca mirata dei pattern UTF-8 vietati sui file nuovi/toccati della tranche | OK | Nessun mojibake o carattere sostitutivo nei file modificati dalla tranche. |
+| `python tools\sync_packaging_files.py --check`; `python tools\check_repo_governance.py` | OK | Packaging sincronizzato e governance repo verde dopo aver esposto Git nel `PATH` della sessione. |
+| `git diff --check` | OK | Nessun errore whitespace nel diff della tranche. |
+
 ## Lex Studio Reasoner conversazionale, web/RAG e linguaggio/date 99% 2.245.63 - 2026-05-20
 
 | Comando / verifica | Esito | Nota |

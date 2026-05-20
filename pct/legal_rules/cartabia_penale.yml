@@ -1,0 +1,45 @@
+{
+  "ruleset_version": "2026.05.20.1",
+  "rules": [
+    {
+      "id": "PEN_TEMPLATE_DIFESA_BASE",
+      "title": "Riferimento procedimento e assistito",
+      "jurisdiction": "penale",
+      "source_type": "normativa",
+      "source_ids": ["normattiva_d_lgs_150_2022", "normattiva_cpp"],
+      "article": "codice di procedura penale",
+      "paragraph": "",
+      "applies_to": ["PEN_*"],
+      "applies_when": {"area": "PENALE"},
+      "check_type": "required_fields",
+      "severity": "block",
+      "required_fields": ["criminal_proceeding_reference"],
+      "required_documents": [],
+      "required_sections": ["assistito", "procedimento", "richieste"],
+      "layout_requirements": ["criminal_pdp_layout"],
+      "reason": "Gli atti penali devono essere ancorati a procedimento, autorità e assistito per evitare bozze libere non riconducibili al fascicolo.",
+      "suggested_action": "Completa riferimento procedimento, assistito e autorità procedente.",
+      "source_priority": "primary"
+    },
+    {
+      "id": "PEN_NOM_001_NOMINA_FIRMA",
+      "title": "Nomina difensore sottoscritta dall'assistito",
+      "jurisdiction": "penale",
+      "source_type": "normativa",
+      "source_ids": ["normattiva_cpp"],
+      "article": "artt. 96 e seguenti c.p.p.",
+      "paragraph": "",
+      "applies_to": ["PEN_NOM_001"],
+      "applies_when": {"fase": "nomina"},
+      "check_type": "required_fields",
+      "severity": "block",
+      "required_fields": ["appointed_defender", "defender_pec", "assisted_person_signature"],
+      "required_documents": ["Nomina sottoscritta dall'assistito"],
+      "required_sections": ["assistito", "difensore", "firma"],
+      "layout_requirements": ["criminal_pdp_layout"],
+      "reason": "La nomina del difensore richiede identificazione dell'assistito, difensore nominato, domicilio e sottoscrizione.",
+      "suggested_action": "Completa difensore, PEC e sottoscrizione dell'assistito.",
+      "source_priority": "primary"
+    }
+  ]
+}

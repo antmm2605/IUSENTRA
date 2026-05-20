@@ -7,6 +7,13 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.65 - 2026-05-20
+
+- Introdotto il controllo applicativo reale Template Atti: profilo normativo da modello e contesto fascicolo, fonti verificate, riferimenti applicabili con motivazione, layout profile, timbro studio top-left su ogni pagina, gate generazione e audit strutturato.
+- Rafforzato il workflow Lex `atto_da_template`: `TemplateAttiSource` mantiene fallback al catalogo reale, Lex non inventa riferimenti e non crea atti liberi; la creazione passa solo dal gate Template Atti e restituisce `editor_url` quando ammessa.
+- Collegato il compilatore React al gate backend: lo stato `block` impedisce la bozza finale, lo stato `warning` richiede conferma e apre solo una bozza di lavoro, lo stato `ok` apre l'editor professionale tramite `editor_url`.
+- Aggiunti test mirati per citazione, comparsa, decreto ingiuntivo, diffida, penale, block, warning, editor e timbro ripetuto su ogni pagina.
+
 ## 2.245.64 - 2026-05-20
 
 - Collegato Lex al workflow reale Template Atti / Catalogo Atti / Compilatore Atti con `atto_da_template`: il router intercetta richieste di consultazione, precompilazione e creazione bozza, recupera modelli reali da `pct.compilatore_atti`, usa Ricerca Studio e contesto attivo per cliente/fascicolo/parti, valida i campi e non genera atti liberi inventati.

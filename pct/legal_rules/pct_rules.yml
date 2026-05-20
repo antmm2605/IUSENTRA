@@ -1,0 +1,25 @@
+{
+  "ruleset_version": "2026.05.20.1",
+  "rules": [
+    {
+      "id": "PCT_LAYOUT_STAMP_EACH_PAGE",
+      "title": "Timbro studio ripetuto su ogni pagina negli atti depositabili",
+      "jurisdiction": "civile",
+      "source_type": "tecnica",
+      "source_ids": ["pst_deposito_telematico"],
+      "article": "specifiche deposito telematico",
+      "paragraph": "",
+      "applies_to": ["CIV_*"],
+      "applies_when": {"channel": "PCT"},
+      "check_type": "layout_stamp",
+      "severity": "block",
+      "required_fields": [],
+      "required_documents": [],
+      "required_sections": [],
+      "layout_requirements": ["civil_pct_act_layout"],
+      "reason": "Il documento esportabile deve avere un layout controllato e timbro studio stabile in alto a sinistra su ogni pagina.",
+      "suggested_action": "Usa il layout PCT e il timbro ripetuto su ogni pagina.",
+      "source_priority": "primary"
+    }
+  ]
+}

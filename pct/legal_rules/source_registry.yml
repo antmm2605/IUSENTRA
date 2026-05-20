@@ -1,0 +1,93 @@
+{
+  "ruleset_version": "2026.05.20.1",
+  "sources": [
+    {
+      "id": "normattiva_d_lgs_149_2022",
+      "title": "D.Lgs. 10 ottobre 2022, n. 149",
+      "source_type": "normattiva",
+      "official_url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=22G00158&atto.dataPubblicazioneGazzetta=2022-10-17&bloccoAggiornamentoBreadCrumb=true&classica=true&dataVigenza=&generaTabId=true&qId=&tabID=&tipoDettaglio=originario&title=lbl.dettaglioAtto",
+      "source_priority": "primary",
+      "last_verified_at": "2026-05-20",
+      "verification_status": "verified_snapshot",
+      "matched_patterns": ["decreto legislativo 10 ottobre 2022", "n. 149", "processo civile"],
+      "source_hash": ""
+    },
+    {
+      "id": "normattiva_d_lgs_150_2022",
+      "title": "D.Lgs. 10 ottobre 2022, n. 150",
+      "source_type": "normattiva",
+      "official_url": "https://www.normattiva.it/eli/id/2022/10/17/22G00159/ORIGINAL",
+      "source_priority": "primary",
+      "last_verified_at": "2026-05-20",
+      "verification_status": "verified_snapshot",
+      "matched_patterns": ["decreto legislativo 10 ottobre 2022", "n. 150", "processo penale"],
+      "source_hash": ""
+    },
+    {
+      "id": "normattiva_cpc",
+      "title": "Codice di procedura civile",
+      "source_type": "normattiva",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443",
+      "source_priority": "primary",
+      "last_verified_at": "2026-05-20",
+      "verification_status": "verified_snapshot",
+      "matched_patterns": ["codice di procedura civile"],
+      "source_hash": ""
+    },
+    {
+      "id": "normattiva_cpp",
+      "title": "Codice di procedura penale",
+      "source_type": "normattiva",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.presidente.repubblica:1988-09-22;447",
+      "source_priority": "primary",
+      "last_verified_at": "2026-05-20",
+      "verification_status": "verified_snapshot",
+      "matched_patterns": ["codice di procedura penale"],
+      "source_hash": ""
+    },
+    {
+      "id": "pst_deposito_telematico",
+      "title": "Portale dei Servizi Telematici del Ministero della Giustizia",
+      "source_type": "ministero_giustizia",
+      "official_url": "https://pst.giustizia.it/PST/it/homepage.page?redirectflag=1",
+      "source_priority": "primary",
+      "last_verified_at": "2026-05-20",
+      "verification_status": "verified_snapshot",
+      "matched_patterns": ["Portale dei Servizi Telematici", "Processo Civile Telematico"],
+      "source_hash": ""
+    },
+    {
+      "id": "pat_regole_tecniche",
+      "title": "Regole tecnico-operative del processo amministrativo telematico",
+      "source_type": "giustizia_amministrativa",
+      "official_url": "https://www.giustizia-amministrativa.it/processo-amministrativo-telematico",
+      "source_priority": "primary",
+      "last_verified_at": "2026-05-20",
+      "verification_status": "verified_snapshot",
+      "matched_patterns": ["processo amministrativo telematico", "Regole tecniche-operative"],
+      "source_hash": ""
+    },
+    {
+      "id": "ptt_regole_tecniche",
+      "title": "Processo tributario telematico",
+      "source_type": "giustizia_tributaria",
+      "official_url": "https://www.giustiziatributaria.gov.it/",
+      "source_priority": "primary",
+      "last_verified_at": "2026-05-20",
+      "verification_status": "verified_snapshot",
+      "matched_patterns": ["processo tributario telematico"],
+      "source_hash": ""
+    },
+    {
+      "id": "legge_53_1994_notifiche",
+      "title": "Legge 21 gennaio 1994, n. 53",
+      "source_type": "normattiva",
+      "official_url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=094G0076&atto.dataPubblicazioneGazzetta=1994-01-26&bloccoAggiornamentoBreadCrumb=true&classica=true&dataVigenza=&generaTabId=true&qId=&tabID=&tipoDettaglio=originario&title=lbl.dettaglioAtto",
+      "source_priority": "primary",
+      "last_verified_at": "2026-05-20",
+      "verification_status": "verified_snapshot",
+      "matched_patterns": ["notificazioni", "avvocati"],
+      "source_hash": ""
+    }
+  ]
+}

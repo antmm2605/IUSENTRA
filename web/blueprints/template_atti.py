@@ -493,13 +493,41 @@ def _resolve_compiler_context(model_code: str):
 
 
 def _build_assistant_analysis(model_code: str, *, payload: dict, selected_cliente=None, selected_fascicolo=None):
-    return _get_assistente_redazionale().analyze(
+    result = _get_assistente_redazionale().analyze(
         model_code,
         payload,
         fascicolo=selected_fascicolo,
         cliente=selected_cliente,
         utente=g.get("utente_corrente"),
     ).to_dict()
+    try:
+        result["contextual_compliance"] = _build_contextual_compliance(
+            model_code,
+            payload=payload,
+            selected_cliente=selected_cliente,
+            selected_fascicolo=selected_fascicolo,
+        ).to_dict()
+    except Exception:
+        current_app.logger.debug("Compliance contestuale non disponibile per %s", model_code, exc_info=True)
+    return result
+
+
+def _build_contextual_compliance(model_code: str, *, payload: dict, selected_cliente=None, selected_fascicolo=None):
+    from pct.template_normative_compliance import analyze_template_compliance
+
+    documents = []
+    try:
+        documents = list(getattr(selected_fascicolo, "documenti", []) or [])
+    except Exception:
+        documents = []
+    return analyze_template_compliance(
+        model_code,
+        payload,
+        fascicolo=selected_fascicolo,
+        cliente=selected_cliente,
+        documents=documents,
+        studio_timbro_payload=payload.get("_studio_timbro") if isinstance(payload, dict) else None,
+    )
 
 
 def _audit_template_event(action: str, resource_type: str = "", resource_id: str = "", details: str = "") -> None:
@@ -531,6 +559,9 @@ def _importa_compilazione_editor_professionale(
     payload: dict,
     testo_generato: str,
     selected_fascicolo: Any,
+    compliance_result: Any = None,
+    requested_draft: str = "final_draft",
+    confirmed_warning: bool = False,
 ) -> dict[str, str] | None:
     id_fascicolo = str(getattr(selected_fascicolo, "id", "") or payload.get("case_id") or "").strip()
     if not id_fascicolo:
@@ -556,6 +587,11 @@ def _importa_compilazione_editor_professionale(
         encrypt_func=encrypt_doc,
         editor_html_builder=lambda text: sanitize_editor_html(_to_editor_html(text)),
         audit_callback=_audit_template_event,
+        compliance_result=compliance_result,
+        requested_draft=requested_draft,
+        confirmed_warning=confirmed_warning,
+        tenant_id=str(getattr(g, "tenant_id", "") or getattr(g, "studio_id", "") or ""),
+        cliente_id=str(payload.get("id_cliente") or ""),
     )
     if not created.ok:
         raise RuntimeError("; ".join(created.errors or [created.message or "Importazione editor non riuscita."]))
@@ -578,7 +614,14 @@ def _importa_compilazione_editor_professionale(
         if current_app.config.get("AUDIT_ENABLED") or str(os.getenv("AUDIT_ENABLED", "")).lower() in {"1", "true", "yes", "on"}:
             raise
         current_app.logger.debug("Audit probatorio ACT_GENERATED non attivo per %s", created.document_id, exc_info=True)
-    return {"document_id": created.document_id, "filename": created.filename, "open_url": created.open_url}
+    return {
+        "document_id": created.document_id,
+        "filename": created.filename,
+        "open_url": created.open_url,
+        "editor_url": created.editor_url or created.open_url,
+        "created_as": created.created_as,
+        "compliance_state": created.compliance_state,
+    }
 
 
 def _request_payload() -> dict:
@@ -986,6 +1029,18 @@ def template_compliance(codice: str):
     item = get_template_catalog_item(codice)
     if not item:
         return jsonify({"ok": False, "errore": "Template non trovato."}), 404
+    try:
+        from pct.template_normative_compliance import analyze_template_compliance
+
+        contextual = analyze_template_compliance(
+            item.get("link_compilatore_code") or item.get("codice") or codice,
+            {},
+            template_name=item.get("titolo") or codice,
+            studio_timbro_payload=_get_studio_timbro().to_payload(),
+            strict_payload=False,
+        ).to_dict()
+    except Exception:
+        contextual = {}
     return jsonify(
         {
             "ok": True,
@@ -996,6 +1051,7 @@ def template_compliance(codice: str):
             "ruleset_version": item["compliance_summary"]["ruleset_version"],
             "cartabia_ruleset_version": item.get("cartabia_ruleset_version"),
             "cartabia": item.get("cartabia_verifica"),
+            "contextual_compliance": contextual,
             "stato_conformita": item.get("stato_conformita"),
             "controlli": item["controlli_conformita_dettaglio"],
         }
@@ -1230,16 +1286,21 @@ def compila(model_code: str):
     if request.method == "POST":
         errors = validate_payload(model_code, payload)
         blockers = [issue for issue in assistant_analysis.get("issues", []) if issue.get("level") == "BLOCK"]
+        compliance_result = _build_contextual_compliance(
+            model_code,
+            payload=payload,
+            selected_cliente=selected_cliente,
+            selected_fascicolo=selected_fascicolo,
+        )
         if errors:
             flash("Completa i campi obbligatori evidenziati prima di generare l'atto.", "warning")
             if request.form.get("_react_return"):
-                return redirect(url_for(
-                    "template_atti.compila",
-                    model_code=model_code,
-                    id_cliente=id_cliente,
-                    id_fascicolo=id_fascicolo,
-                    intent="complete_missing",
-                ))
+                return jsonify({
+                    "ok": False,
+                    "message": "Completa i campi obbligatori evidenziati prima di generare l'atto.",
+                    "errors": errors,
+                    "compliance": compliance_result.to_dict(),
+                }), 400
             ctx = _contesto_compilatore(
                 model_code,
                 payload=payload,
@@ -1260,17 +1321,11 @@ def compila(model_code: str):
                 "warning",
             )
             if request.form.get("_react_return"):
-                return redirect(url_for(
-                    "template_atti.compila",
-                    model_code=model_code,
-                    id_cliente=id_cliente,
-                    id_fascicolo=id_fascicolo,
-                    intent="complete_missing",
-                    focus_field=first.get("field", ""),
-                    highlight_fields=first.get("field", ""),
-                    correction_title=first.get("title", ""),
-                    correction_help=first.get("suggested_action", ""),
-                ))
+                return jsonify({
+                    "ok": False,
+                    "message": f"Bozza bloccata: {first.get('title')}. {first.get('suggested_action', '')}".strip(),
+                    "compliance": compliance_result.to_dict(),
+                }), 400
             ctx = _contesto_compilatore(
                 model_code,
                 payload=payload,
@@ -1281,6 +1336,52 @@ def compila(model_code: str):
             )
             return render_template("template_atti/compilatore.html", **ctx)
 
+        requested_draft = request.form.get("requested_draft", "final_draft").strip() or "final_draft"
+        confirmed_warning = request.form.get("confirmed_warning") in {"1", "true", "on", "si"}
+        if compliance_result.overall_state == "block":
+            message = "La bozza finale è bloccata dai controlli applicabili."
+            flash(message, "warning")
+            if request.form.get("_react_return"):
+                return jsonify({
+                    "ok": False,
+                    "message": message,
+                    "created_as": "blocked",
+                    "compliance_state": "block",
+                    "compliance": compliance_result.to_dict(),
+                }), 400
+            ctx = _contesto_compilatore(
+                model_code,
+                payload=payload,
+                selected_cliente=selected_cliente,
+                selected_fascicolo=selected_fascicolo,
+                assistant_analysis={**assistant_analysis, "contextual_compliance": compliance_result.to_dict()},
+                correction_context=correction_context,
+            )
+            return render_template("template_atti/compilatore.html", **ctx)
+        if compliance_result.overall_state == "warning" and not confirmed_warning:
+            message = "I controlli richiedono conferma: posso creare solo una bozza di lavoro da revisionare."
+            flash(message, "warning")
+            if request.form.get("_react_return"):
+                return jsonify({
+                    "ok": False,
+                    "message": message,
+                    "requires_confirmation": True,
+                    "created_as": "warning_requires_confirmation",
+                    "compliance_state": "warning",
+                    "compliance": compliance_result.to_dict(),
+                }), 409
+            ctx = _contesto_compilatore(
+                model_code,
+                payload=payload,
+                selected_cliente=selected_cliente,
+                selected_fascicolo=selected_fascicolo,
+                assistant_analysis={**assistant_analysis, "contextual_compliance": compliance_result.to_dict()},
+                correction_context=correction_context,
+            )
+            return render_template("template_atti/compilatore.html", **ctx)
+        if compliance_result.overall_state == "warning":
+            requested_draft = "working_draft"
+
         testo_generato = render_compiled_act(model_code, payload)
         if selected_fascicolo:
             try:
@@ -1290,10 +1391,24 @@ def compila(model_code: str):
                     payload=payload,
                     testo_generato=testo_generato,
                     selected_fascicolo=selected_fascicolo,
+                    compliance_result=compliance_result,
+                    requested_draft=requested_draft,
+                    confirmed_warning=confirmed_warning,
                 )
                 if editor_import:
                     flash("Bozza importata nell'editor professionale. Puoi impaginarla e salvarla nel fascicolo.", "success")
-                    return redirect(editor_import["open_url"])
+                    if request.form.get("_react_return"):
+                        return jsonify({
+                            "ok": True,
+                            "message": "Bozza creata nell'editor professionale.",
+                            "document_id": editor_import["document_id"],
+                            "editor_url": editor_import["editor_url"],
+                            "redirect": editor_import["editor_url"],
+                            "created_as": editor_import.get("created_as") or requested_draft,
+                            "compliance_state": editor_import.get("compliance_state") or compliance_result.overall_state,
+                            "compliance": compliance_result.to_dict(),
+                        })
+                    return redirect(editor_import["editor_url"])
             except Exception as exc:
                 current_app.logger.exception("Import editor professionale non riuscito per %s: %s", model_code, exc)
                 flash("Bozza creata, ma l'importazione nell'editor professionale non e' riuscita. Resta disponibile l'anteprima.", "warning")
@@ -1593,9 +1708,17 @@ def _fallback_pdf_from_text(titolo: str, testo: str, config: dict, timbro=None) 
 
         PRIMARY = colors.HexColor("#1a3a5c")
         buf = io.BytesIO()
+        try:
+            from pct.legal_layout_profiles import make_pdf_stamp_callback, top_margin_with_stamp
+
+            stamp_callback = make_pdf_stamp_callback(timbro)
+            top_margin = top_margin_with_stamp({"margin_top_mm": 25}, timbro)
+        except Exception:
+            stamp_callback = None
+            top_margin = 25
         doc = SimpleDocTemplate(buf, pagesize=A4,
                                  leftMargin=25*mm, rightMargin=25*mm,
-                                 topMargin=25*mm, bottomMargin=25*mm)
+                                 topMargin=top_margin*mm, bottomMargin=25*mm)
         styles = getSampleStyleSheet()
         style_body = ParagraphStyle("body", parent=styles["Normal"],
                                     fontSize=10, leading=15,
@@ -1606,8 +1729,6 @@ def _fallback_pdf_from_text(titolo: str, testo: str, config: dict, timbro=None) 
                                      textColor=PRIMARY,
                                      alignment=TA_CENTER)
         story = []
-        if timbro is not None and hasattr(timbro, "to_pdf_flowable"):
-            story.extend(timbro.to_pdf_flowable(styles))
         story.append(Paragraph(titolo.upper(), style_title))
         story.append(Spacer(1, 6*mm))
         story.append(HRFlowable(width="100%", thickness=1.5, color=PRIMARY))
@@ -1625,7 +1746,10 @@ def _fallback_pdf_from_text(titolo: str, testo: str, config: dict, timbro=None) 
         story.append(Paragraph(studio_nome, ParagraphStyle(
             "footer", parent=style_body, fontSize=8,
             textColor=colors.HexColor("#6b7280"), alignment=TA_CENTER)))
-        doc.build(story)
+        if stamp_callback is not None:
+            doc.build(story, onFirstPage=stamp_callback, onLaterPages=stamp_callback)
+        else:
+            doc.build(story)
         buf.seek(0)
         return buf
     except ImportError:
@@ -1639,7 +1763,22 @@ def _genera_pdf(titolo: str, testo: str, config: dict, layout: dict | None = Non
     try:
         from pct.editor import html_to_pdf
 
-        pdf_bytes = html_to_pdf(html, titolo, layout=layout)
+        try:
+            from pct.template_normative_compliance import analyze_template_compliance
+
+            compliance = analyze_template_compliance(
+                str((layout or {}).get("model_code") or ""),
+                {},
+                studio_timbro_payload=timbro.to_payload() if hasattr(timbro, "to_payload") else None,
+                strict_payload=False,
+            )
+            layout_profile_id = (compliance.layout_compliance.layout_profile_id if compliance.layout_compliance else "")
+            from pct.legal_layout_profiles import get_layout_profile
+
+            layout_profile = get_layout_profile(layout_profile_id)
+        except Exception:
+            layout_profile = None
+        pdf_bytes = html_to_pdf(html, titolo, layout=layout, studio_timbro=timbro, layout_profile=layout_profile)
         buf = io.BytesIO(pdf_bytes)
         buf.seek(0)
         return buf

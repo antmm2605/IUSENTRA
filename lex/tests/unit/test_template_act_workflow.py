@@ -1,7 +1,12 @@
 from __future__ import annotations
 
 from lex.contracts import LexRequest
+from pct.studio_timbro import StudioTimbro
 from pct.template_atti_lex_service import create_editor_draft, run_template_act_workflow
+
+
+def _stamp_payload():
+    return StudioTimbro.from_payload({"studio_nome": "Studio Verdi", "professionista_nome": "Avv. Verdi"}).to_payload()
 
 
 def _base_context():
@@ -75,13 +80,24 @@ def test_template_workflow_segnala_dati_mancanti_senza_inventare():
 
 
 def test_template_workflow_non_crea_documento_senza_conferma():
+    metadata = {
+        "template_payload": {
+            "sender": "Mario Rossi",
+            "recipient": "Bianchi",
+            "breach_description": "Inadempimento contrattuale documentato.",
+            "specific_request": "Pagamento delle somme dovute.",
+            "deadline_assigned": "2026-05-30",
+            "final_warning": "In difetto si agirà senza ulteriore avviso.",
+            "_studio_timbro": _stamp_payload(),
+        }
+    }
     payload = run_template_act_workflow(
-        _request("crea atto di citazione per Mario Rossi contro Bianchi"),
+        _request("crea diffida per Mario Rossi contro Bianchi", metadata=metadata),
         _base_context(),
         {"items": []},
     )
 
-    create_actions = [action for action in payload["lex_actions"] if action["id"] == "create_editor_draft"]
+    create_actions = [action for action in payload["lex_actions"] if action["id"] in {"create_final_draft", "create_working_draft"}]
     assert create_actions
     assert create_actions[0]["requires_confirmation"] is True
     assert payload["created_document"] == {}
@@ -101,7 +117,18 @@ def test_create_editor_draft_crea_documento_quando_confermato_con_payload_valido
 
     result = create_editor_draft(
         "STR_DIFF_001",
-        {"case_id": "fas-rossi", "title": "Diffida"},
+        {
+            "case_id": "fas-rossi",
+            "title": "Diffida",
+            "sender": "Mario Rossi",
+            "recipient": "Bianchi",
+            "breach_description": "Inadempimento contrattuale documentato.",
+            "specific_request": "Pagamento delle somme dovute.",
+            "deadline_assigned": "2026-05-30",
+            "final_warning": "In difetto si agirà senza ulteriore avviso.",
+            "attachments_list": "Contratto e solleciti.",
+            "_studio_timbro": _stamp_payload(),
+        },
         "fas-rossi",
         "utente-1",
         rendered_text="Testo della diffida.",
@@ -135,6 +162,7 @@ def test_template_workflow_crea_documento_editor_quando_confermato():
             "breach_description": "Mancato pagamento nei termini concordati.",
             "specific_request": "Pagamento entro il termine assegnato.",
             "deadline_assigned": "2026-05-30",
+            "_studio_timbro": _stamp_payload(),
             "final_warning": "In difetto si procederà senza ulteriore avviso.",
         },
     }
@@ -149,6 +177,7 @@ def test_template_workflow_crea_documento_editor_quando_confermato():
 
     assert payload["explicit_create"] is True
     assert payload["created_document"]["document_id"] == "doc-editor-2"
+    assert payload["created_document"]["editor_url"].endswith("/editor")
     assert written["model_code"] == "STR_DIFF_001"
 
 

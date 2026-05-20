@@ -1,0 +1,25 @@
+{
+  "ruleset_version": "2026.05.20.1",
+  "rules": [
+    {
+      "id": "PEC_DIFFIDA_PROVA_TRASMISSIONE",
+      "title": "Prova di trasmissione per diffida stragiudiziale",
+      "jurisdiction": "stragiudiziale",
+      "source_type": "normativa",
+      "source_ids": ["legge_53_1994_notifiche"],
+      "article": "L. 53/1994 quando la notifica è effettuata dall'avvocato",
+      "paragraph": "",
+      "applies_to": ["STR_DIFF_001", "CIV_NOTIFBASE_001"],
+      "applies_when": {"channel": "PEC"},
+      "check_type": "context_warning",
+      "severity": "warning",
+      "required_fields": [],
+      "required_documents": ["Prova di invio o relata quando richiesta"],
+      "required_sections": ["avvertimento_finale"],
+      "layout_requirements": ["civil_extrajudicial_pec_layout"],
+      "reason": "Quando la diffida o la notifica passa da PEC, prova di invio e destinatario devono essere governati e auditabili.",
+      "suggested_action": "Verifica destinatario PEC, prova di trasmissione e allegati prima dell'invio.",
+      "source_priority": "primary"
+    }
+  ]
+}

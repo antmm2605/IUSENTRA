@@ -1,0 +1,25 @@
+{
+  "ruleset_version": "2026.05.20.1",
+  "rules": [
+    {
+      "id": "PAT_PROFILE_BASE",
+      "title": "Profilo atto amministrativo telematico",
+      "jurisdiction": "amministrativo",
+      "source_type": "tecnica",
+      "source_ids": ["pat_regole_tecniche"],
+      "article": "regole tecnico-operative PAT",
+      "paragraph": "",
+      "applies_to": ["AMM_*"],
+      "applies_when": {"area": "AMMINISTRATIVO"},
+      "check_type": "required_fields",
+      "severity": "warning",
+      "required_fields": [],
+      "required_documents": ["Provvedimento impugnato o atto richiamato"],
+      "required_sections": ["motivi", "richieste", "firma"],
+      "layout_requirements": ["administrative_pat_layout"],
+      "reason": "Gli atti amministrativi devono richiamare il provvedimento e i motivi con allegati verificabili.",
+      "suggested_action": "Collega provvedimento, allegati e motivi prima della bozza finale.",
+      "source_priority": "primary"
+    }
+  ]
+}

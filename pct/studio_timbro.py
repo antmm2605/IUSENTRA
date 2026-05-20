@@ -36,8 +36,8 @@ DEFAULT_LAYOUT: dict[str, Any] = {
 
 DEFAULT_FLAGS: dict[str, bool] = {
     "applica_a_tutti_i_modelli": True,
-    "applica_solo_prima_pagina": True,
-    "applica_tutte_le_pagine": False,
+    "applica_solo_prima_pagina": False,
+    "applica_tutte_le_pagine": True,
     "mostra_su_atti_interni": True,
     "mostra_su_stragiudiziali": True,
     "mostra_su_depositabili": True,
@@ -302,7 +302,35 @@ class StudioTimbro:
         )
 
     def to_docx_header(self) -> dict[str, Any]:
-        return {"position": "top_left", "alignment": "left", "lines": self.to_lines(), "scope": self.scope_payload()}
+        placement = self.to_stamp_placement()
+        return {
+            "position": "top_left",
+            "alignment": "left",
+            "repeat_on_each_page": True,
+            "align_within_box": placement["align_within_box"],
+            "lines": self.to_lines(),
+            "scope": self.scope_payload(),
+            "placement": placement,
+        }
+
+    def to_stamp_placement(self) -> dict[str, Any]:
+        payload = self.to_payload()
+        layout = payload.get("layout") if isinstance(payload.get("layout"), dict) else {}
+        line_count = max(1, len(self.to_lines()))
+        font_size = _as_int(_style_at(_as_list(layout.get("dimensione_per_riga")), 0, 11), 11, min_value=7, max_value=18)
+        box_height = max(18, int(line_count * font_size * float(layout.get("interlinea", 1.22)) * 0.36) + 6)
+        return {
+            "position": "top_left",
+            "repeat_on_each_page": True,
+            "align_within_box": "center",
+            "line_align": "left",
+            "margin_top_mm": int(payload.get("margine_top_mm") or layout.get("margine_alto_mm") or DEFAULT_LAYOUT["margine_alto_mm"]),
+            "margin_left_mm": int(payload.get("margine_left_mm") or layout.get("margine_sinistro_mm") or DEFAULT_LAYOUT["margine_sinistro_mm"]),
+            "box_width_mm": int(payload.get("larghezza_blocco_mm") or layout.get("larghezza_blocco_mm") or DEFAULT_LAYOUT["larghezza_blocco_mm"]),
+            "box_height_mm": box_height,
+            "bottom_gap_mm": int(payload.get("margine_bottom_after_timbro_mm") or layout.get("margine_basso_mm") or DEFAULT_LAYOUT["margine_basso_mm"]),
+            "avoid_overlap": True,
+        }
 
     def to_pdf_flowable(self, styles: Any = None) -> list[Any]:
         try:

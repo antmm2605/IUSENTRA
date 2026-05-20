@@ -16,7 +16,14 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     package_data={
-        "pct": ["data/*.json", "data/cataloghi/*.json", "sql/*.sql", "template_atti_catalogo_data/*.json"],
+        "pct": [
+            "data/*.json",
+            "data/cataloghi/*.json",
+            "sql/*.sql",
+            "template_atti_catalogo_data/*.json",
+            "legal_rules/*.yml",
+            "legal_rules/*.md",
+        ],
         "lex": [
             "research/source_policy/*.yaml",
             "legal_skills/seed_packs/*/*.json",

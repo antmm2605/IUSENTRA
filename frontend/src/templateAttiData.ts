@@ -71,6 +71,26 @@ export type TemplateCompilerNote = {
   text: string
 }
 
+export type TemplateNormativeReference = {
+  id: string
+  title: string
+  sourceId: string
+  sourceTitle: string
+  article: string
+  officialUrl: string
+  reasonForApplication: string
+  verificationStatus: string
+  confidence: number
+}
+
+export type TemplateNormativeSource = {
+  id: string
+  title: string
+  officialUrl: string
+  verificationStatus: string
+  lastVerifiedAt: string
+}
+
 export type TemplateCompilerField = {
   name: string
   label: string
@@ -118,10 +138,22 @@ export type TemplateCompilerData = {
     rulesetVersion: string
     sourceLabel: string
     evidenceCount: number
+    overallState: string
+    canGenerateFinalDraft: boolean
+    canGenerateWorkingDraft: boolean
+    canOpenEditor: boolean
+    reliabilityScore: { value: number; label: string; capsApplied: string[]; factors: string[] }
+    layoutProfile: Record<string, unknown>
+    stampPolicy: Record<string, unknown>
     missingFields: string[]
+    missingFieldRows: Array<Record<string, unknown>>
+    missingDocuments: Array<Record<string, unknown>>
     blocking: string[]
     recommended: string[]
-    normativeReferences: string[]
+    normativeReferences: TemplateNormativeReference[]
+    sources: TemplateNormativeSource[]
+    nextActions: string[]
+    reasonedExplanation: string
     procedibility: string[]
     deadlines: string[]
     cartabiaControls: string[]
@@ -185,10 +217,22 @@ export const emptyTemplateCompilerPage: TemplateCompilerData = {
     rulesetVersion: '',
     sourceLabel: '',
     evidenceCount: 0,
+    overallState: '',
+    canGenerateFinalDraft: false,
+    canGenerateWorkingDraft: false,
+    canOpenEditor: false,
+    reliabilityScore: { value: 0, label: '', capsApplied: [], factors: [] },
+    layoutProfile: {},
+    stampPolicy: {},
     missingFields: [],
+    missingFieldRows: [],
+    missingDocuments: [],
     blocking: [],
     recommended: [],
     normativeReferences: [],
+    sources: [],
+    nextActions: [],
+    reasonedExplanation: '',
     procedibility: [],
     deadlines: [],
     cartabiaControls: [],
@@ -376,6 +420,33 @@ function normaliseCompilerField(input: unknown): TemplateCompilerField {
   }
 }
 
+function normaliseNormativeReference(input: unknown): TemplateNormativeReference {
+  const item = asRecord(input)
+  const rawText = typeof input === 'string' ? input : ''
+  return {
+    id: text(item.id) || rawText,
+    title: text(item.title) || rawText,
+    sourceId: text(item.source_id) || text(item.sourceId),
+    sourceTitle: text(item.source_title) || text(item.sourceTitle),
+    article: text(item.article),
+    officialUrl: text(item.official_url) || text(item.officialUrl),
+    reasonForApplication: text(item.reason_for_application) || text(item.reasonForApplication),
+    verificationStatus: text(item.verification_status) || text(item.verificationStatus),
+    confidence: Number(item.confidence || 0),
+  }
+}
+
+function normaliseNormativeSource(input: unknown): TemplateNormativeSource {
+  const item = asRecord(input)
+  return {
+    id: text(item.id),
+    title: text(item.title),
+    officialUrl: text(item.official_url) || text(item.officialUrl),
+    verificationStatus: text(item.verification_status) || text(item.verificationStatus),
+    lastVerifiedAt: text(item.last_verified_at) || text(item.lastVerifiedAt),
+  }
+}
+
 function normaliseCompilerPage(input: unknown): TemplateCompilerData {
   const page = asRecord(input)
   const model = asRecord(page.model)
@@ -421,10 +492,27 @@ function normaliseCompilerPage(input: unknown): TemplateCompilerData {
       rulesetVersion: text(compliance.rulesetVersion),
       sourceLabel: text(compliance.sourceLabel),
       evidenceCount: Number(compliance.evidenceCount || 0),
+      overallState: text(compliance.overallState) || text(compliance.overall_state) || text(compliance.state),
+      canGenerateFinalDraft: compliance.canGenerateFinalDraft === true || compliance.can_generate_final_draft === true,
+      canGenerateWorkingDraft: compliance.canGenerateWorkingDraft === true || compliance.can_generate_working_draft === true,
+      canOpenEditor: compliance.canOpenEditor === true || compliance.can_open_editor === true,
+      reliabilityScore: {
+        value: Number(asRecord(compliance.reliabilityScore).value || asRecord(compliance.reliability_score).value || 0),
+        label: text(asRecord(compliance.reliabilityScore).label) || text(asRecord(compliance.reliability_score).label),
+        capsApplied: list(asRecord(compliance.reliabilityScore).capsApplied || asRecord(compliance.reliability_score).caps_applied).map((value) => text(value)).filter(Boolean),
+        factors: list(asRecord(compliance.reliabilityScore).factors || asRecord(compliance.reliability_score).factors).map((value) => text(value)).filter(Boolean),
+      },
+      layoutProfile: asRecord(compliance.layoutProfile) || asRecord(compliance.layout_profile),
+      stampPolicy: asRecord(compliance.stampPolicy) || asRecord(compliance.stamp_policy),
       missingFields: list(compliance.missingFields).map((value) => text(value)).filter(Boolean),
+      missingFieldRows: list(compliance.missingFieldRows).map((value) => asRecord(value)),
+      missingDocuments: list(compliance.missingDocuments).map((value) => asRecord(value)),
       blocking: list(compliance.blocking).map((value) => text(value)).filter(Boolean),
       recommended: list(compliance.recommended).map((value) => text(value)).filter(Boolean),
-      normativeReferences: list(compliance.normativeReferences).map((value) => text(value)).filter(Boolean),
+      normativeReferences: list(compliance.normativeReferences).map(normaliseNormativeReference).filter((value) => value.title || value.article),
+      sources: list(compliance.sources).map(normaliseNormativeSource).filter((value) => value.id || value.title),
+      nextActions: list(compliance.nextActions).map((value) => text(value)).filter(Boolean),
+      reasonedExplanation: text(compliance.reasonedExplanation),
       procedibility: list(compliance.procedibility).map((value) => text(value)).filter(Boolean),
       deadlines: list(compliance.deadlines).map((value) => text(value)).filter(Boolean),
       cartabiaControls: list(compliance.cartabiaControls).map((value) => text(value)).filter(Boolean),

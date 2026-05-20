@@ -174,6 +174,21 @@ def _model_source_urls(model_code: str) -> dict[str, str]:
     }
 
 
+def _studio_timbro_payload_from_config(config: dict[str, Any] | None) -> dict[str, Any]:
+    cfg = dict(config or {})
+    payload = {
+        "studio_nome": clean_spaces(cfg.get("STUDIO_NOME") or cfg.get("PCT_STUDIO_NOME")),
+        "professionista_nome": clean_spaces(cfg.get("STUDIO_AVVOCATO") or cfg.get("AVVOCATO_NOME")),
+        "pec": clean_spaces(cfg.get("PCT_STUDIO_PEC") or cfg.get("SMTP_FROM")),
+        "codice_fiscale": clean_spaces(cfg.get("STUDIO_CF")),
+        "partita_iva": clean_spaces(cfg.get("STUDIO_PIVA")),
+        "indirizzo_riga": clean_spaces(cfg.get("STUDIO_INDIRIZZO")),
+        "applica_tutte_le_pagine": True,
+        "applica_solo_prima_pagina": False,
+    }
+    return {key: value for key, value in payload.items() if value not in ("", None)}
+
+
 def template_metadata_for_model(model_code: str) -> dict[str, Any]:
     from pct.compilatore_atti import wizard_schema_modello
 
@@ -299,12 +314,23 @@ class CreatedDocumentResult:
     ok: bool
     document_id: str = ""
     open_url: str = ""
+    editor_url: str = ""
     filename: str = ""
     message: str = ""
     errors: list[str] = field(default_factory=list)
+    created_as: str = ""
+    compliance_state: str = ""
+    requires_confirmation: bool = False
+    compliance: dict[str, Any] = field(default_factory=dict)
+    audit: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        payload = asdict(self)
+        if not payload.get("editor_url") and payload.get("open_url"):
+            payload["editor_url"] = payload["open_url"]
+        if not payload.get("open_url") and payload.get("editor_url"):
+            payload["open_url"] = payload["editor_url"]
+        return payload
 
 
 _DIRECT_HINTS: tuple[tuple[tuple[str, ...], tuple[str, ...], float], ...] = (
@@ -583,15 +609,18 @@ def build_prefill(
     from pct.compilatore_atti import prefill_payload
 
     metadata = template_metadata_for_model(model_code)
+    studio_timbro_payload = _studio_timbro_payload_from_config(config)
     payload = prefill_payload(
         model_code,
         fascicolo=_as_object(fascicolo),
         cliente=_as_object(cliente),
         utente=_as_object(utente),
         config=dict(config or {}),
-        studio_timbro=None,
+        studio_timbro=studio_timbro_payload or None,
         parti=parti or [],
     )
+    if studio_timbro_payload and "_studio_timbro" not in payload:
+        payload["_studio_timbro"] = studio_timbro_payload
     required = list(metadata.get("required_fields") or [])
     missing: list[dict[str, Any]] = []
     filled: list[dict[str, Any]] = []
@@ -666,10 +695,71 @@ def create_editor_draft(
     editor_html_builder: Callable[[str], str] | None = None,
     audit_callback: Callable[[str, str, str, str], None] | None = None,
     document_writer: Callable[..., Any] | None = None,
+    compliance_result: Any = None,
+    requested_draft: str = "final_draft",
+    confirmed_warning: bool = False,
+    tenant_id: str = "",
+    cliente_id: str = "",
 ) -> CreatedDocumentResult:
     case_id = clean_spaces(fascicolo_id or (payload or {}).get("case_id"))
     if not case_id:
         return CreatedDocumentResult(ok=False, errors=["fascicolo mancante"], message="Seleziona prima il fascicolo.")
+    try:
+        from pct.template_normative_compliance import (
+            analyze_template_compliance,
+            build_template_generation_audit,
+            enforce_generation_gate,
+        )
+
+        compliance = compliance_result or analyze_template_compliance(
+            model_code,
+            payload=payload,
+            fascicolo={"id": case_id},
+            cliente={"id": cliente_id} if cliente_id else None,
+            studio_timbro_payload=(payload or {}).get("_studio_timbro") if isinstance(payload, dict) else None,
+        )
+        allowed, final_state, gate_message = enforce_generation_gate(
+            compliance,
+            requested_draft=requested_draft,
+            confirmed_warning=confirmed_warning,
+        )
+        audit_payload = build_template_generation_audit(
+            event_type="template_atti.generation_gate",
+            model_code=model_code,
+            compliance=compliance,
+            user_id=clean_spaces(user_id),
+            tenant_id=clean_spaces(tenant_id),
+            fascicolo_id=case_id,
+            cliente_id=clean_spaces(cliente_id or (payload or {}).get("id_cliente")),
+            final_state=final_state,
+        )
+        if not allowed:
+            return CreatedDocumentResult(
+                ok=False,
+                message=gate_message,
+                errors=[gate_message],
+                created_as=final_state,
+                compliance_state=getattr(compliance, "overall_state", ""),
+                requires_confirmation=final_state == "warning_requires_confirmation",
+                compliance=compliance.to_dict(),
+                audit=audit_payload,
+            )
+    except Exception as exc:
+        message = "Controllo normativo non disponibile: la bozza non viene creata."
+        return CreatedDocumentResult(
+            ok=False,
+            message=message,
+            errors=[message, clean_spaces(exc)],
+            created_as="blocked",
+            compliance_state="unavailable",
+            requires_confirmation=False,
+            audit={
+                "event_type": "template_atti.generation_gate",
+                "model_code": model_code,
+                "final_state": "blocked",
+                "gate_error": clean_spaces(exc),
+            },
+        )
     model = dict(model or {})
     if not model:
         try:
@@ -683,6 +773,11 @@ def create_editor_draft(
         if not rendered.ok:
             return CreatedDocumentResult(ok=False, errors=rendered.warnings, message="Non ho potuto renderizzare la bozza.")
         rendered_text = rendered.text
+    if final_state == "working_draft":
+        rendered_text = (
+            "DA REVISIONARE - bozza di lavoro generata con controlli normativi in stato di avviso.\n\n"
+            + rendered_text
+        )
     title = clean_spaces((payload or {}).get("title") or model.get("name") or model_code or "Atto")
     filename = _safe_editor_filename(title, model_code)
     if document_writer is not None:
@@ -699,13 +794,31 @@ def create_editor_draft(
             if isinstance(result, CreatedDocumentResult):
                 return result
             result_dict = dict(result or {})
+            editor_url = clean_spaces(result_dict.get("editor_url") or result_dict.get("open_url"))
+            if compliance is not None:
+                audit_payload = build_template_generation_audit(
+                    event_type="template_atti.document_created",
+                    model_code=model_code,
+                    compliance=compliance,
+                    user_id=clean_spaces(user_id),
+                    tenant_id=clean_spaces(tenant_id),
+                    fascicolo_id=case_id,
+                    cliente_id=clean_spaces(cliente_id or (payload or {}).get("id_cliente")),
+                    document_id=clean_spaces(result_dict.get("document_id")),
+                    final_state=final_state,
+                )
             return CreatedDocumentResult(
                 ok=bool(result_dict.get("ok", True)),
                 document_id=clean_spaces(result_dict.get("document_id")),
-                open_url=clean_spaces(result_dict.get("open_url")),
+                open_url=editor_url,
+                editor_url=editor_url,
                 filename=clean_spaces(result_dict.get("filename") or filename),
                 message=clean_spaces(result_dict.get("message")) or "Bozza creata nell'editor.",
                 errors=list(result_dict.get("errors") or []),
+                created_as=final_state,
+                compliance_state=getattr(compliance, "overall_state", "") if compliance is not None else "",
+                compliance=compliance.to_dict() if compliance is not None else {},
+                audit=audit_payload,
             )
         except Exception as exc:
             return CreatedDocumentResult(ok=False, errors=[str(exc)], message="Creazione bozza non riuscita.")
@@ -724,6 +837,24 @@ def create_editor_draft(
 
     editor_html = (editor_html_builder or _to_editor_html)(rendered_text)
     try:
+        from pct.legal_layout_profiles import css_for_stamp_repeated
+        from pct.studio_timbro import StudioTimbro
+
+        stamp_payload = (payload or {}).get("_studio_timbro") if isinstance(payload, dict) else None
+        stamp = StudioTimbro.from_payload(stamp_payload) if isinstance(stamp_payload, dict) else None
+        if stamp and stamp.enabled:
+            css = css_for_stamp_repeated(stamp)
+            print_css = (
+                "<style data-iusentra-studio-timbro=\"true\">"
+                f"{css}"
+                "@media print{.iusentra-studio-timbro{position:fixed;top:18mm;left:18mm;width:82mm;z-index:1;}}"
+                "</style>"
+            )
+            if "data-iusentra-studio-timbro=\"true\"" not in editor_html:
+                editor_html = print_css + editor_html
+    except Exception:
+        pass
+    try:
         documento = fascicoli_repo.aggiungi_documento(
             case_id,
             filename,
@@ -740,13 +871,25 @@ def create_editor_draft(
 
     document_id = clean_spaces(getattr(documento, "id", ""))
     open_url = f"/fascicoli/{case_id}/documenti/{document_id}/editor"
+    if compliance is not None:
+        audit_payload = build_template_generation_audit(
+            event_type="template_atti.document_created",
+            model_code=model_code,
+            compliance=compliance,
+            user_id=clean_spaces(user_id),
+            tenant_id=clean_spaces(tenant_id),
+            fascicolo_id=case_id,
+            cliente_id=clean_spaces(cliente_id or (payload or {}).get("id_cliente")),
+            document_id=document_id,
+            final_state=final_state,
+        )
     if audit_callback is not None:
         try:
             audit_callback(
                 "template_atti.compilazione.importa_editor",
                 "fascicolo",
                 case_id,
-                f"modello={model_code}; documento={document_id}",
+                f"modello={model_code}; documento={document_id}; stato={final_state}; audit={audit_payload}",
             )
         except Exception:
             pass
@@ -754,14 +897,19 @@ def create_editor_draft(
         ok=True,
         document_id=document_id,
         open_url=open_url,
+        editor_url=open_url,
         filename=clean_spaces(getattr(documento, "nome", "")) or filename,
         message="Bozza creata nell'editor professionale.",
+        created_as=final_state,
+        compliance_state=getattr(compliance, "overall_state", "") if compliance is not None else "",
+        compliance=compliance.to_dict() if compliance is not None else {},
+        audit=audit_payload,
     )
 
 
 def _is_explicit_editor_creation(query: str, metadata: dict[str, Any]) -> bool:
     text = normalize_text(query)
-    if metadata.get("confirmed_action") == "create_editor_draft" or metadata.get("confirm_create_editor_draft") is True:
+    if metadata.get("confirmed_action") in {"create_editor_draft", "create_final_draft", "create_working_draft"} or metadata.get("confirm_create_editor_draft") is True:
         return True
     return any(
         phrase in text
@@ -820,6 +968,7 @@ def build_template_actions(
     prefill: PrefillResult | None,
     created: CreatedDocumentResult | None = None,
     explicit_create: bool = False,
+    compliance: Any = None,
 ) -> list[dict[str, Any]]:
     metadata = dict(template.metadata or {})
     code = clean_spaces(template.model_code or metadata.get("model_code"))
@@ -852,20 +1001,36 @@ def build_template_actions(
         actions.append(_action("open_case", "Apri fascicolo", "open", href=f"/fascicoli/{act_context.fascicolo_id}"))
     if act_context.client_id:
         actions.append(_action("open_client", "Apri cliente", "open", href=f"/clienti/{act_context.client_id}"))
-    if code and act_context.fascicolo_id:
+    compliance_state = clean_spaces(getattr(compliance, "overall_state", "") if compliance is not None else "")
+    can_final = bool(compliance is not None and getattr(compliance, "can_generate_final_draft", False))
+    can_working = bool(compliance is not None and getattr(compliance, "can_generate_working_draft", False))
+    if code and act_context.fascicolo_id and can_working:
         actions.append(
             _action(
-                "create_editor_draft",
-                "Crea bozza nell'editor",
+                "create_working_draft" if compliance_state == "warning" else "create_final_draft",
+                "Crea bozza da revisionare" if compliance_state == "warning" else "Crea bozza finale nell'editor",
                 "mutation",
                 endpoint=f"/template-atti/compila/{code}",
                 method="POST",
-                requires_confirmation=not explicit_create,
-                payload=payload,
+                requires_confirmation=not explicit_create or compliance_state == "warning",
+                payload={
+                    **payload,
+                    "requested_draft": "working_draft" if compliance_state == "warning" else "final_draft",
+                    "confirmed_warning": "1" if explicit_create and compliance_state == "warning" else "",
+                },
             )
         )
-    if created and created.ok and created.open_url:
-        actions.append(_action("open_created_document", "Apri documento creato", "open", href=created.open_url))
+    if code and act_context.fascicolo_id and not can_final and compliance_state == "block":
+        actions.append(
+            _action(
+                "complete_blocking_checks",
+                "Completa controlli bloccanti",
+                "open",
+                href=(metadata.get("compile_url") or f"/template-atti/compila/{code}") + (suffix + ("&" if suffix else "?") + "intent=complete_missing"),
+            )
+        )
+    if created and created.ok and (created.editor_url or created.open_url):
+        actions.append(_action("open_created_document", "Apri documento creato", "open", href=created.editor_url or created.open_url))
     return actions
 
 
@@ -1018,6 +1183,7 @@ def run_template_act_workflow(request: Any, context: dict[str, Any], evidence: d
     prefill: PrefillResult | None = None
     validation: ValidationResult | None = None
     created: CreatedDocumentResult | None = None
+    compliance: Any = None
     if template.found and not lookup_only and not act_context.forbidden and not act_context.client_options and not act_context.case_options:
         prefill = build_prefill(template.model_code, act_context.fascicolo, act_context.cliente, act_context.utente, act_context.config, act_context.parti)
         manual_payload = metadata.get("template_payload") if isinstance(metadata.get("template_payload"), dict) else {}
@@ -1029,14 +1195,34 @@ def run_template_act_workflow(request: Any, context: dict[str, Any], evidence: d
                     refreshed_missing.append(row)
             prefill.missing_fields = refreshed_missing
         validation = validate_template_payload(template.model_code, prefill.payload)
+        try:
+            from pct.template_normative_compliance import analyze_template_compliance
+
+            compliance = analyze_template_compliance(
+                template.model_code,
+                prefill.payload,
+                template_name=template.name,
+                fascicolo=act_context.fascicolo,
+                cliente=act_context.cliente,
+                documents=act_context.documents,
+                studio_timbro_payload=prefill.payload.get("_studio_timbro") if isinstance(prefill.payload, dict) else None,
+            )
+        except Exception:
+            compliance = None
         if explicit_create and act_context.fascicolo_id and validation.ok:
             writer = context.get("template_act_document_writer")
+            requested_draft = "working_draft" if metadata.get("confirmed_warning") or metadata.get("confirm_create_working_draft") else "final_draft"
             created = create_editor_draft(
                 template.model_code,
                 prefill.payload,
                 act_context.fascicolo_id,
                 act_context.user_id,
                 document_writer=writer if callable(writer) else None,
+                compliance_result=compliance,
+                requested_draft=requested_draft,
+                confirmed_warning=bool(metadata.get("confirmed_warning") or metadata.get("confirm_create_working_draft")),
+                tenant_id=act_context.tenant_id,
+                cliente_id=act_context.client_id,
             )
     elif template.found:
         validation = ValidationResult(ok=False, errors={}, missing_fields=list(act_context.missing), warnings=[])
@@ -1046,6 +1232,7 @@ def run_template_act_workflow(request: Any, context: dict[str, Any], evidence: d
         prefill=prefill,
         created=created,
         explicit_create=explicit_create,
+        compliance=compliance,
     ) if template.found else []
     source_rows = _source_rows(template, act_context)
     blocks = build_template_message_blocks(
@@ -1090,6 +1277,8 @@ def run_template_act_workflow(request: Any, context: dict[str, Any], evidence: d
         filled_count = len(prefill.filled_fields if prefill else [])
         missing_labels = _field_names(prefill.missing_fields if prefill else [], limit=8)
         missing_labels.extend(act_context.missing)
+        compliance_state = clean_spaces(getattr(compliance, "overall_state", "") if compliance is not None else "")
+        reliability = getattr(getattr(compliance, "reliability_score", None), "value", 0.0) if compliance is not None else 0.0
         counterparty = clean_spaces(_value(act_context.fascicolo, "controparte"))
         lines = [
             f"Template individuato: {template.name} ({template.model_code}).",
@@ -1098,17 +1287,30 @@ def run_template_act_workflow(request: Any, context: dict[str, Any], evidence: d
             f"Controparte: {counterparty or 'da indicare'}.",
             f"Dati precompilati: {filled_count}.",
         ]
+        if compliance_state:
+            lines.append(f"Conformità: {compliance_state}, affidabilità {float(reliability or 0.0):.2f}.")
+        else:
+            lines.append("Conformità: controllo normativo non disponibile, nessuna creazione automatica ammessa.")
         if missing_labels:
             lines.append("Dati mancanti: " + ", ".join(missing_labels[:10]) + ".")
         else:
             lines.append("Controlli: i campi obbligatori risultano compilati.")
         if created and created.ok:
             lines.append("Bozza creata nell'editor professionale.")
+        elif created and not created.ok:
+            lines.append(created.message or "La creazione è stata fermata dal gate di conformità.")
+        elif compliance_state == "block":
+            lines.append("Nessuna bozza finale è stata creata: il gate bloccante richiede correzioni.")
+        elif compliance_state == "warning":
+            lines.append("Nessuna bozza è stata creata senza conferma della bozza di lavoro da revisionare.")
         else:
             lines.append("Nessuna bozza è stata creata senza conferma esplicita.")
-        lines.append("Fonti: catalogo atti IUSENTRA e dati interni dello studio.")
+        if compliance is not None and getattr(compliance, "normative_references", None):
+            refs = [ref.title for ref in compliance.normative_references[:3]]
+            lines.append("Riferimenti applicati: " + ", ".join(refs) + ".")
+        lines.append("Fonti: catalogo atti IUSENTRA, dati interni dello studio e fonti ufficiali verificate o marcate come da verificare.")
         answer = "\n".join(lines)
-        confidence = 0.78 if missing_labels else 0.88
+        confidence = float(reliability or (0.78 if missing_labels else 0.88))
         answer_mode = "grounded" if not missing_labels else "needs_review"
 
     return {
@@ -1117,6 +1319,7 @@ def run_template_act_workflow(request: Any, context: dict[str, Any], evidence: d
         "act_context": act_context.to_dict(),
         "prefill": prefill.to_dict() if prefill else {},
         "validation": validation.to_dict() if validation else {},
+        "compliance": compliance.to_dict() if compliance is not None else {},
         "created_document": created.to_dict() if created else {},
         "lex_actions": actions,
         "message_blocks": blocks,

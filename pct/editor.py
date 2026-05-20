@@ -24,7 +24,7 @@ import base64
 import io
 import re
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 # Estensioni supportate dall'editor
 ESTENSIONI_EDITABILI = {".docx", ".txt", ".html", ".htm", ".pdf"}
@@ -539,7 +539,7 @@ def documento_to_html(data: bytes, nome_file: str) -> tuple[str, list[str], dict
 
 # ─────────────────────────────────────────────── HTML → .docx
 
-def html_to_docx(html: str, titolo: str = "Documento") -> bytes:
+def html_to_docx(html: str, titolo: str = "Documento", studio_timbro: Any = None) -> bytes:
     """
     Converte HTML in formato .docx tramite python-docx.
 
@@ -571,6 +571,19 @@ def html_to_docx(html: str, titolo: str = "Documento") -> bytes:
         sec.bottom_margin = Inches(0.98)   # 2.5 cm
         sec.left_margin   = Inches(1.57)   # 4 cm
         sec.right_margin  = Inches(0.98)   # 2.5 cm
+        if studio_timbro is not None and getattr(studio_timbro, "enabled", False):
+            try:
+                header = sec.header
+                paragraph = header.paragraphs[0] if header.paragraphs else header.add_paragraph()
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                for line in studio_timbro.to_lines():
+                    run = paragraph.add_run(str(line.get("text") or ""))
+                    run.bold = bool(line.get("bold"))
+                    run.italic = bool(line.get("italic"))
+                    run.font.size = Pt(int(line.get("size") or 9))
+                    paragraph.add_run("\n")
+            except Exception:
+                pass
 
     # Stile default paragrafo
     style_normal = doc.styles["Normal"]
@@ -704,7 +717,13 @@ def html_to_docx(html: str, titolo: str = "Documento") -> bytes:
 # ─────────────────────────────────────────────── HTML → PDF
 # Usa reportlab (già in requirements) — nessuna dipendenza di sistema aggiuntiva
 
-def html_to_pdf(html: str, titolo: str = "Documento", layout: Optional[dict] = None) -> bytes:
+def html_to_pdf(
+    html: str,
+    titolo: str = "Documento",
+    layout: Optional[dict] = None,
+    studio_timbro: Any = None,
+    layout_profile: Any = None,
+) -> bytes:
     """
     Converte HTML in PDF tramite reportlab (già installato).
 
@@ -753,6 +772,14 @@ def html_to_pdf(html: str, titolo: str = "Documento", layout: Optional[dict] = N
             "paragraph_spacing_pt": 8,
         }
         font_meta = {"pdf_family": "times"}
+
+    try:
+        from pct.legal_layout_profiles import make_pdf_stamp_callback, top_margin_with_stamp
+
+        stamp_callback = make_pdf_stamp_callback(studio_timbro, layout_profile)
+        layout_cfg["margin_top_mm"] = top_margin_with_stamp(layout_cfg, studio_timbro)
+    except Exception:
+        stamp_callback = None
 
     pdf_family = (font_meta.get("pdf_family") or "times").lower()
     font_bundle = {
@@ -1014,7 +1041,10 @@ def html_to_pdf(html: str, titolo: str = "Documento", layout: Optional[dict] = N
         title=titolo,
         author="IUSENTRA",
     )
-    doc.build(story)
+    if stamp_callback is not None:
+        doc.build(story, onFirstPage=stamp_callback, onLaterPages=stamp_callback)
+    else:
+        doc.build(story)
     return buf.getvalue()
 
 
@@ -1023,4 +1053,3 @@ def html_to_pdf(html: str, titolo: str = "Documento", layout: Optional[dict] = N
 def _strip_tags(html: str) -> str:
     """Rimuove tutti i tag HTML restituendo solo il testo."""
     return re.sub(r"<[^>]+>", "", html or "")
-

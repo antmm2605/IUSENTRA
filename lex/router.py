@@ -58,6 +58,55 @@ class LexRouter:
         "lettera di sollecito",
         "atto di contestazione",
     )
+    _TEMPLATE_ACT_HINTS = (
+        "crea atto",
+        "prepara atto",
+        "compila atto",
+        "crea bozza atto",
+        "crea la bozza nell'editor",
+        "crea bozza nell'editor",
+        "usa template",
+        "dal catalogo atti",
+        "catalogo atti",
+        "template atti",
+        "template atto",
+        "atto da catalogo",
+        "atto di citazione",
+        "ricorso",
+        "comparsa",
+        "diffida",
+        "decreto ingiuntivo",
+        "procura alle liti",
+        "nomina difensore",
+        "separazione",
+    )
+    _TEMPLATE_CONTEXT_HINTS = (
+        "template",
+        "catalogo",
+        "compilatore",
+        "modello",
+        "atto",
+        "fascicolo",
+        "pratica",
+        "cliente",
+        "contro",
+        "parte",
+        "editor",
+    )
+    _COMMUNICATION_LOOKUP_HINTS = (
+        "ultima pec",
+        "ultime pec",
+        "ultimo messaggio pec",
+        "pec ricevut",
+        "pec inviat",
+        "ultima email",
+        "ultime email",
+        "email ricevut",
+        "email inviat",
+        "posta ordinaria",
+        "allegati pec",
+        "allegati email",
+    )
     _PEC_HINTS = (
         "pec legale",
         "pec formale",
@@ -239,6 +288,8 @@ class LexRouter:
             return "question_answering"
 
         # ---- Livello 3: redazione legale ----
+        if intent in {"template_act_lookup", "template_act_prefill", "template_act_create"}:
+            return "atto_da_template"
         if intent == "bozza_lettera":
             return "drafting_legal_letter"
         if intent == "bozza_atto":
@@ -314,6 +365,12 @@ class LexRouter:
         # P1: feedback
         if self._has_any(text, self._FEEDBACK_HINTS):
             return "lex_feedback_diagnostico"
+        # P2b: lookup comunicazioni; non va trattato come redazione.
+        if self._has_any(text, self._COMMUNICATION_LOOKUP_HINTS):
+            return "cabina"
+        # P3a: atti dal catalogo prima della redazione libera.
+        if self._looks_like_template_act(text, getattr(request, "metadata", {}) or {}):
+            return "atto_da_template"
         # P3: redazione
         if self._has_any(text, self._LETTERA_HINTS):
             return "drafting_legal_letter"
@@ -377,6 +434,31 @@ class LexRouter:
             if re.search(p, text):
                 return True
         return False
+
+    def _looks_like_template_act(self, text: str, metadata: dict | None = None) -> bool:
+        metadata = dict(metadata or {})
+        active = metadata.get("active_context") if isinstance(metadata.get("active_context"), dict) else {}
+        context_type = str(active.get("context_type") or active.get("contextType") or "").strip().lower()
+        if context_type == "template_act":
+            return True
+        if str(metadata.get("model_code") or active.get("model_code") or active.get("modelCode") or "").strip():
+            return True
+        if not self._has_any(text, self._TEMPLATE_ACT_HINTS):
+            return False
+        if "lettera generica" in text and not any(token in text for token in ("template", "catalogo", "diffida")):
+            return False
+        if any(
+            known in text
+            for known in (
+                "atto di citazione",
+                "decreto ingiuntivo",
+                "procura alle liti",
+                "nomina difensore",
+                "diffida",
+            )
+        ):
+            return True
+        return self._has_any(text, self._TEMPLATE_CONTEXT_HINTS)
 
     @staticmethod
     def _looks_like_giurisprudenza_specifica(text: str) -> bool:

@@ -21,6 +21,7 @@ import {
 } from '../templateAttiData'
 import { displaySourceLabel } from '../displayText'
 import { submitFormJson } from '../formSubmit'
+import { FloatingLex } from './FloatingLex'
 import './TemplateAttiPage.css'
 
 function isCatalogoRoute() {
@@ -623,6 +624,19 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
         </>
       }
     >
+      <FloatingLex
+        context="template-atti-compilatore"
+        contextType="template_act"
+        modelCode={data.model.code || modelCode}
+        caseId={data.selectors.selectedFascicoloId}
+        clientId={data.selectors.selectedClienteId}
+        activeContext={{
+          context_type: 'template_act',
+          model_code: data.model.code || modelCode,
+          case_id: data.selectors.selectedFascicoloId,
+          client_id: data.selectors.selectedClienteId,
+        }}
+      />
       <div className="iu-template-compiler-page">
         <section className="iu-template-compiler-hero iu-od-surface">
           <div>
@@ -800,6 +814,15 @@ function TemplateCatalogView() {
         </>
       }
     >
+      <FloatingLex
+        context={catalogo ? 'template-atti-catalogo' : 'template-atti'}
+        contextType="template_act"
+        modelCode={selectedRecord?.id}
+        activeContext={{
+          context_type: 'template_act',
+          model_code: selectedRecord?.id,
+        }}
+      />
       <div className="iu-template-page iu-od-stack">
         <ContractStrip data={data} />
         <WarningList data={data} />

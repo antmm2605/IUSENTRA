@@ -24,6 +24,24 @@ def test_router_resolves_atto_workflow():
     assert workflow == "atto"
 
 
+def test_router_resolves_template_act_workflow_from_query():
+    request = _request("ask_lex")
+    request.query = "crea atto di citazione per Rossi"
+
+    workflow = LexRouter().resolve_workflow(request)
+
+    assert workflow == "atto_da_template"
+
+
+def test_router_keeps_pec_lookup_out_of_drafting():
+    request = _request("ask_lex")
+    request.query = "ultima PEC ricevuta"
+
+    workflow = LexRouter().resolve_workflow(request)
+
+    assert workflow == "cabina"
+
+
 def test_router_defaults_to_chat():
     workflow = LexRouter().resolve_workflow(_request("ask_lex"))
     assert workflow == "question_answering"

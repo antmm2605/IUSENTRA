@@ -8,6 +8,23 @@ Il registry runtime `lex/tools/registry.py` espone anche il tool governato
 storici: li completa con un layer unico tenant-aware, RBAC-aware e auditabile
 per interrogare dati reali dello studio.
 
+## Aggiornamento 2.245.64 - Template Atti da Lex
+
+Il workflow `atto_da_template` non è redazione libera: è un percorso deterministico che usa il catalogo atti reale e il compilatore esistente. Lex può cercare modelli, precompilare un payload, validare i campi e proporre azioni, ma la scrittura nell'editor professionale resta una mutation confermata.
+
+Servizio applicativo: `pct.template_atti_lex_service`.
+
+Funzioni esposte:
+
+- `resolve_template_for_query(query, context)`;
+- `resolve_act_context(tenant_id, user_id, client_id, fascicolo_id, query)`;
+- `build_prefill(model_code, fascicolo, cliente, utente, config, parti)`;
+- `validate_template_payload(model_code, payload)`;
+- `render_template_act(model_code, payload)`;
+- `create_editor_draft(model_code, payload, fascicolo_id, user_id)`.
+
+Azioni strutturate ammesse: `open_template_catalog`, `open_template_compiler`, `complete_missing_fields`, `create_editor_draft`, `open_created_document`, `open_case`, `open_client`. `create_editor_draft` richiede conferma, salvo comando esplicito dell'avvocato.
+
 ## Aggiornamento 2.245.33 - Registro governato Lex
 
 La Fase 4 porta dentro Lex il pattern Tool Registry richiesto: non basta più

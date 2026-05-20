@@ -133,6 +133,8 @@ class SourceRouter:
             workflow_sources.extend([AgendaSource(), ScadenziarioSource()])
         elif workflow == "atto":
             workflow_sources.extend([TemplateAttiSource(), ComplianceSource()])
+        elif workflow == "atto_da_template":
+            workflow_sources.extend([TemplateAttiSource(), ComplianceSource()])
         elif workflow == "economico":
             workflow_sources.extend([PreventiviSource(), ApplicazioniSource()])
         elif workflow == "cabina":

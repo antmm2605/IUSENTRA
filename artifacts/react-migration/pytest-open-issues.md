@@ -360,6 +360,15 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | --- | --- | --- | --- | --- |
 | Matrice Lex template atti, redazione, editor, bozze e documenti prodotti | `tests/test_lex_atti_redazione_knowledge_matrix.py` con matrici email e agenda collegate | Nessuna issue aperta nuova | Il worker J ha aggiunto solo governance documentale e test read-only: sorgenti reali tenant-aware, campi ammessi/esclusi, Q&A candidate, permessi/privacy, azioni consentite e divieti su sovrascrittura, firma, deposito, PEC, export definitivo, fonti inventate e chain-of-thought. Nessun codice runtime, nessun training automatico e nessuna bozza salvata. | Prima dell'implementazione runtime del collector dataset/RAG aggiungere fixture tenant-aware con `TEMPLATE_ATTI_DB`, `REDACTION_ASSISTANT_DB`, `FASCICOLI_DB`, `FASCICOLI_DOCS`, caso senza tenant e verifica manifest senza segreti, path assoluti, prompt raw o file binari originali. |
 
+## Note Lex Template Atti runtime 2.245.64 - 2026-05-20
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Pytest ufficiali Lex Template Atti | `python -m pytest lex/tests/unit/test_template_atti_source.py lex/tests/unit/test_template_act_workflow.py lex/tests/unit/test_router.py -q --tb=short` | Nessuna issue aperta | 17/17 passati con runtime Python locale preparato per la sessione. | Stato spostato in `pytest-confirmed-ok.md`; da rilanciare solo se si toccano routing Lex, sorgente template o servizio riusabile. |
+| Frontend test/typecheck/build | `npm --prefix frontend run test`, `npm --prefix frontend run typecheck`, `npm --prefix frontend run build` | Nessuna issue aperta | Gate frontend ufficiali verdi con runtime Node temporaneo; gli asset generati dalla build sono stati ripuliti prima del commit perché ricostruibili. | Stato spostato in `pytest-confirmed-ok.md`; nessuna azione aperta. |
+| Integrità UTF-8 ufficiale | Servizio `utf8-integrity` sui file testuali toccati | Nessuna issue aperta | 7 file controllati, 0 artefatti, 0 errori, `no_backup_created=true`. | Stato spostato in `pytest-confirmed-ok.md`; nessun backup creato. |
+| Commit, push branch gemelli e deploy Hetzner | Processo `docs/COMMIT_PUSH_REQUIRED_GATES.md` | Non ancora eseguito in questa tranche locale | Le modifiche sono preparate e verificate localmente per sintassi/comportamento mirato, ma non sono ancora chiuse secondo AGENTS finché non passano gate completi, commit, push su `Codex/legal-electronic-filing-kIxcV` e `claude/legal-electronic-filing-kIxcV`, igiene repo e deploy Hetzner. | Completare la sequenza solo dopo i gate ufficiali in ambiente completo; non toccare `chore/monorepo-foundation`. |
+
 ## Note Ricerca Legale pratica e gate commit 2.245.29 - 2026-05-18
 
 | Area | Gate | Stato | Nota | Azione |

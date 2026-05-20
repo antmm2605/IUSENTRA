@@ -212,6 +212,34 @@ class LexResponse:
 
 
 def answer_contract_for(workflow: WorkflowType) -> AnswerContract:  # noqa: C901
+    if workflow == "atto_da_template":
+        return AnswerContract(
+            workflow=workflow,
+            sections=[
+                "template_individuato",
+                "contesto_pratica",
+                "dati_precompilati",
+                "dati_mancanti",
+                "controlli",
+                "fonti",
+                "azioni",
+            ],
+            require_citations=False,
+            require_official_sources=False,
+            allow_abstention=True,
+            provider_hint="deterministic",
+            target_latency_ms=1200,
+            metadata={
+                "italian_only": True,
+                "disclaimer_suppressed": True,
+                "deterministic": True,
+                "requires_internal_sources": True,
+                "studio_internal_only": True,
+                "web_forbidden": True,
+                "no_free_drafting": True,
+            },
+        )
+
     # ------------------------------------------------------------------ #
     # Redazione legale — lettere, diffide, PEC, atti processuali           #
     # ------------------------------------------------------------------ #

@@ -7,6 +7,13 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.64 - 2026-05-20
+
+- Collegato Lex al workflow reale Template Atti / Catalogo Atti / Compilatore Atti con `atto_da_template`: il router intercetta richieste di consultazione, precompilazione e creazione bozza, recupera modelli reali da `pct.compilatore_atti`, usa Ricerca Studio e contesto attivo per cliente/fascicolo/parti, valida i campi e non genera atti liberi inventati.
+- Aggiunto il servizio riusabile `pct.template_atti_lex_service` per risoluzione modello, contesto pratica, precompilazione, validazione, render e creazione documento editor; le route Template Atti continuano a usare il flusso esistente e riusano il servizio per l'import nell'editor professionale.
+- Estesa la chat unica Lex con metadata `template_act`, card renderizzabili e azioni strutturate `open_template_catalog`, `open_template_compiler`, `complete_missing_fields`, `create_editor_draft`, `open_created_document`, `open_case` e `open_client`; la creazione documento richiede conferma salvo richiesta esplicita dell'avvocato.
+- Aggiunti test mirati su sorgente Template Atti, routing, precompilazione, campi mancanti, conferma creazione, permessi e ambiguita' cliente.
+
 ## 2.245.63 - 2026-05-20
 
 - Rafforzato `Lex Studio Reasoner` come conversazione operativa tra colleghi: i follow-up brevi ricordano PEC/email, fascicolo, documento o cliente appena citati tramite link operativi verificati, non tramite prompt grezzo.

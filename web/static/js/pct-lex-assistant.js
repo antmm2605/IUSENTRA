@@ -664,8 +664,12 @@
     var icons = {
       warning: 'exclamation-triangle',
       source_card: 'journal-text',
+      template_act_card: 'file-earmark-text',
       case_card: 'folder2-open',
       client_card: 'person-vcard',
+      party_card: 'people',
+      missing_fields_card: 'exclamation-diamond',
+      lex_action_card: 'lightning-charge',
       pec_card: 'envelope-check',
       email_card: 'envelope',
       document_card: 'file-earmark-text',
@@ -715,19 +719,44 @@
     );
   }
 
+  function renderBlockItems(items) {
+    var rows = Array.isArray(items) ? items.filter(Boolean) : [];
+    if (!rows.length) {
+      return '';
+    }
+    return (
+      '<ul class="pct-ai-callout__list">' +
+        rows.map(function (item) { return '<li>' + escapeHtml(formatBlockValue(item)) + '</li>'; }).join('') +
+      '</ul>'
+    );
+  }
+
   function renderUnifiedAction(action) {
-    var label = String(action && action.label || action && action.key || '').trim();
+    var label = String(action && action.label || action && action.id || action && action.key || '').trim();
     if (!label) {
       return '';
     }
-    var icon = String(action && action.icon || 'arrow-up-right').trim();
-    var url = String(action && action.url || '').trim();
+    var kind = String(action && action.kind || '').trim();
+    var icon = String(action && action.icon || (kind === 'mutation' ? 'check2-square' : 'arrow-up-right')).trim();
+    var url = String(action && (action.url || action.href) || '').trim();
+    var endpoint = String(action && action.endpoint || '').trim();
+    var method = String(action && action.method || 'GET').trim().toUpperCase();
+    var requiresConfirmation = !!(action && action.requires_confirmation);
     var prompt = String(action && action.prompt || '').trim();
-    var inner = '<i class="bi bi-' + escapeHtml(icon) + '"></i><span>' + escapeHtml(label) + '</span>';
+    var confirmationLabel = requiresConfirmation ? '<small>Conferma richiesta</small>' : '';
+    var inner = '<i class="bi bi-' + escapeHtml(icon) + '"></i><span>' + escapeHtml(label) + '</span>' + confirmationLabel;
     if (url) {
       return '<a class="pct-ai-card-action" href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">' + inner + '</a>';
     }
-    return '<button type="button" class="pct-ai-card-action" data-lex-action="' + escapeHtml(prompt || label) + '">' + inner + '</button>';
+    var actionPrompt = prompt || (requiresConfirmation
+      ? 'Confermo: ' + label
+      : label);
+    return (
+      '<button type="button" class="pct-ai-card-action" data-lex-action="' + escapeHtml(actionPrompt) + '"' +
+      (endpoint ? ' data-lex-endpoint="' + escapeHtml(endpoint) + '"' : '') +
+      (method ? ' data-lex-method="' + escapeHtml(method) + '"' : '') +
+      '>' + inner + '</button>'
+    );
   }
 
   function renderCardBlock(block) {
@@ -746,6 +775,7 @@
           '</div>' +
         '</div>' +
         renderBlockFields(block && block.fields) +
+        renderBlockItems(block && block.items) +
         ((url || actions.length)
           ? '<div class="pct-ai-card__actions">' +
               (url ? renderUnifiedAction({ label: 'Apri', url: url, icon: 'box-arrow-up-right' }) : '') +
@@ -1954,6 +1984,9 @@
     if (haystack.indexOf('/email/messaggio/') >= 0 || haystack.indexOf('email-pec') >= 0 || haystack.indexOf('pec') >= 0) {
       return 'pec';
     }
+    if (haystack.indexOf('/template-atti') >= 0 || haystack.indexOf('template-atti') >= 0 || haystack.indexOf('template_act') >= 0) {
+      return 'template_act';
+    }
     if (haystack.indexOf('/email-ordinaria/messaggio/') >= 0 || haystack.indexOf('ordinaria') >= 0) {
       return 'email';
     }
@@ -1989,6 +2022,14 @@
       context.pec_id = decodeURIComponent(match[1]);
       context.context_type = 'pec';
     }
+    match = path.match(/\/template-atti\/compila\/([^/?#]+)/);
+    if (match && !context.model_code) {
+      context.model_code = decodeURIComponent(match[1]);
+      context.context_type = 'template_act';
+    }
+    if (path.indexOf('/template-atti') === 0) {
+      context.context_type = context.context_type || 'template_act';
+    }
     match = path.match(/\/documenti\/([^/?#]+)\/editor/);
     if (match && !context.document_id) {
       context.document_id = decodeURIComponent(match[1]);
@@ -2010,6 +2051,7 @@
       client_id: pickContextValue(raw.client_id, raw.clientId, config.clientId, config.lexClientId, config.clienteId),
       pec_id: pickContextValue(raw.pec_id, raw.pecId, config.pecId, config.lexPecId, config.emailId),
       document_id: pickContextValue(raw.document_id, raw.documentId, config.documentId, config.lexDocumentId),
+      model_code: pickContextValue(raw.model_code, raw.modelCode, config.modelCode, config.lexModelCode),
       linked_case_id: pickContextValue(raw.linked_case_id, raw.linkedCaseId, config.linkedCaseId, config.lexLinkedCaseId),
       linked_client_id: pickContextValue(raw.linked_client_id, raw.linkedClientId, config.linkedClientId, config.lexLinkedClientId),
       user_id: pickContextValue(raw.user_id, raw.userId, config.userId, config.lexUserId),

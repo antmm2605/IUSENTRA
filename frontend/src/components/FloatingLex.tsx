@@ -14,6 +14,7 @@ type FloatingLexProps = {
   clientId?: string
   pecId?: string
   documentId?: string
+  modelCode?: string
   linkedCaseId?: string
   linkedClientId?: string
   userId?: string
@@ -31,6 +32,8 @@ type LexActiveContext = {
   pecId?: string
   document_id?: string
   documentId?: string
+  model_code?: string
+  modelCode?: string
   linked_case_id?: string
   linkedCaseId?: string
   linked_client_id?: string
@@ -54,6 +57,7 @@ function publishLexContext(config: FloatingLexProps) {
     clientId: config.clientId,
     pecId: config.pecId,
     documentId: config.documentId,
+    modelCode: config.modelCode,
     linkedCaseId: config.linkedCaseId,
     linkedClientId: config.linkedClientId,
     userId: config.userId,
@@ -83,6 +87,7 @@ export function FloatingLex(config: FloatingLexProps = {}) {
     config.clientId,
     config.pecId,
     config.documentId,
+    config.modelCode,
     config.linkedCaseId,
     config.linkedClientId,
     config.userId,

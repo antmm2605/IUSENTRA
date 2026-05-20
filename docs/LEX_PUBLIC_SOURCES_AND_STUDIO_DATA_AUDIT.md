@@ -2,6 +2,12 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.245.64 - 2026-05-20
+
+Il nuovo workflow `atto_da_template` resta interno allo studio: nessuna fonte web viene usata per creare o completare atti. I template arrivano da `TemplateAttiSource` e dal catalogo reale `pct.compilatore_atti`; cliente, fascicolo, parti, documenti e contesto operativo arrivano da `StudioDatabaseSource`, contesto attivo Lex o repository runtime già autorizzati.
+
+La risposta espone fonti interne e campi mancanti invece di inventare dati personali, parti processuali, allegati o clausole. Se i permessi non includono lettura clienti/fascicoli, se il tenant o l'utente non sono risolti o se la ricerca produce più clienti/fascicoli compatibili, Lex si ferma e mostra opzioni o lacune. La creazione editor è una mutation confermata e auditabile tramite il flusso Template Atti esistente.
+
 ## Aggiornamento operativo 2.245.63 - 2026-05-20
 
 Audit conversazionale esteso su `Lex Studio Reasoner`: la chat non tratta più ogni messaggio come domanda isolata, ma mantiene il riferimento professionale appena citato quando l'avvocato prosegue il dialogo. I riferimenti ammessi sono solo oggetti con link operativo o identificativo interno già presenti nella risposta precedente: PEC/email, allegato, fascicolo, documento editor e cliente.

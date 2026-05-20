@@ -24,6 +24,9 @@ _BOUNDED_FOCUS_TOPICS = {
     "soggetti",
     "studio",
     "telematico",
+    "template_act",
+    "template_atti",
+    "template-atti",
 }
 _REQUEST_PROFILE_INTENTS = {
     "comunicazioni_lookup",
@@ -34,6 +37,9 @@ _REQUEST_PROFILE_INTENTS = {
     "tariffario_economico",
     "bozza_lettera",
     "bozza_atto",
+    "template_act_lookup",
+    "template_act_prefill",
+    "template_act_create",
 }
 _UNBOUNDED_PROFILE_INTENTS = {
     "checklist_operativa",
@@ -127,6 +133,35 @@ _ATTACHMENT_DOCUMENT_TERMS = (
     "lettura",
     "caricat",
 )
+_TEMPLATE_ACT_TERMS = (
+    "crea atto",
+    "prepara atto",
+    "compila atto",
+    "crea bozza atto",
+    "crea la bozza nell'editor",
+    "crea bozza nell'editor",
+    "usa template",
+    "dal catalogo atti",
+    "catalogo atti",
+    "template atti",
+    "atto da catalogo",
+    "atto di citazione",
+    "ricorso decreto ingiuntivo",
+    "opposizione a decreto ingiuntivo",
+    "decreto ingiuntivo",
+    "procura alle liti",
+    "nomina difensore",
+    "crea diffida",
+    "template diffida",
+)
+_TEMPLATE_ACT_LOOKUP_TERMS = (
+    "quali atti",
+    "mostrami template",
+    "mostra template",
+    "elenco template",
+    "posso creare",
+    "template per",
+)
 
 
 def _clean_spaces(value: Any) -> str:
@@ -184,6 +219,26 @@ def _is_communication_lookup(
     if focus_topic == "pec_firma" and any(token in text for token in ("ricevut", "inviat", "allegat", "mittent", "destinatar", "casella")):
         return True
     return False
+
+
+def _is_template_act_request(
+    question: str,
+    studio_context: dict[str, Any],
+    request_profile: dict[str, Any],
+) -> bool:
+    text = _clean_spaces(question).lower()
+    profile_intent = _clean_spaces(request_profile.get("intent")).lower()
+    focus_topic = _clean_spaces(studio_context.get("focus_topic")).lower()
+    active_context = studio_context.get("active_context") if isinstance(studio_context.get("active_context"), dict) else {}
+    if profile_intent in {"template_act_lookup", "template_act_prefill", "template_act_create"}:
+        return True
+    if focus_topic in {"template_act", "template_atti", "template-atti"}:
+        return True
+    if _clean_spaces(active_context.get("context_type") or active_context.get("contextType")).lower() == "template_act":
+        return True
+    if _clean_spaces(active_context.get("model_code") or active_context.get("modelCode")):
+        return True
+    return any(token in text for token in _TEMPLATE_ACT_TERMS)
 
 
 def _should_route_attachments_as_document_request(
@@ -263,6 +318,8 @@ def _resolve_workflow_hint(studio_context: dict[str, Any], request_profile: dict
     effective_question = _clean_spaces(studio_context.get("effective_question"))
     if _is_communication_lookup(effective_question, studio_context, request_profile):
         return "cabina"
+    if _is_template_act_request(effective_question, studio_context, request_profile):
+        return "atto_da_template"
     if profile_intent == "studio_context_lookup":
         return "cabina"
     if profile_intent == "sintesi_documento":
@@ -366,6 +423,12 @@ def _resolve_intent(question: str, studio_context: dict[str, Any], request_profi
     profile_intent = _clean_spaces(request_profile.get("intent"))
     if _is_communication_lookup(question, studio_context, request_profile):
         return "resolve_operational_question"
+    if _is_template_act_request(question, studio_context, request_profile):
+        if any(token in haystack for token in ("crea la bozza nell'editor", "crea bozza nell'editor", "crea ora la bozza")):
+            return "template_act_create"
+        if any(token in haystack for token in _TEMPLATE_ACT_LOOKUP_TERMS):
+            return "template_act_lookup"
+        return "template_act_prefill"
     if profile_intent == "studio_context_lookup":
         return "resolve_operational_question"
     if profile_intent == "bozza_lettera":
@@ -462,6 +525,25 @@ def _source_rows(response: LexResponse) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     seen: set[str] = set()
     workflow = _clean_spaces(response.metadata.get("workflow"))
+    for row in list(response.metadata.get("source_rows") or []):
+        if not isinstance(row, dict):
+            continue
+        key = f"{_clean_spaces(row.get('id'))}:{_clean_spaces(row.get('title'))}"
+        if key in seen:
+            continue
+        rows.append(
+            {
+                "id": _clean_spaces(row.get("id")),
+                "title": _clean_spaces(row.get("title")) or "Fonte",
+                "excerpt": _clean_spaces(row.get("excerpt")),
+                "url": _clean_spaces(row.get("url")),
+                "authority": _clean_spaces(row.get("authority")),
+                "confidence": float(row.get("confidence") or 0.0),
+                "verified_reference": bool(row.get("verified_reference")),
+                "trust_class": _clean_spaces(row.get("trust_class")),
+            }
+        )
+        seen.add(key)
     compared_index: dict[str, dict[str, Any]] = {}
     for item in list(response.compared_sources or []):
         title = _clean_spaces(item.get("title"))
@@ -890,7 +972,7 @@ def build_bounded_http_payload(
             request_profile=request_profile,
             workflow_hint=workflow_hint,
         )
-    if not list(attachments or []) and not free_web_enabled:
+    if not list(attachments or []) and not free_web_enabled and workflow_hint != "atto_da_template":
         try:
             from lex.operational_knowledge.integration import build_operational_http_payload
 
@@ -1015,6 +1097,10 @@ def build_bounded_http_payload(
             "followup_resolution": dict(payload.get("followup_resolution") or {}),
             "provider": _clean_spaces(response.metadata.get("provider")),
             "workflow": _clean_spaces(response.metadata.get("workflow")),
+            "lex_actions": list(response.metadata.get("lex_actions") or []),
+            "message_blocks": list(response.metadata.get("message_blocks") or []),
+            "lex_unified_chat": dict(response.metadata.get("lex_unified_chat") or {}),
+            "template_act": dict(response.metadata.get("template_act") or {}),
             "legal_basis": list(response.legal_basis or []),
             "considered_sources": list(response.considered_sources or []),
             "compared_sources": list(response.compared_sources or []),

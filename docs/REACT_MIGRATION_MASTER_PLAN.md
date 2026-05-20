@@ -1,5 +1,11 @@
 # Migrazione progressiva Flask + React
 
+## Lex Template Atti in chat unica - 2026-05-20 - 2.245.64
+
+`FloatingLex` passa ora il contesto `template_act` quando viene aperto dal catalogo o dal compilatore atti, includendo `modelCode`, fascicolo e cliente se disponibili. Il widget unico renderizza card per template, cliente, fascicolo, parti, dati mancanti, fonti e azioni senza creare pannelli separati.
+
+Il frontend non genera atti e non decide il modello: riceve da Lex `message_blocks`, `lex_actions` e `template_act`. Le azioni aprono catalogo, compilatore, fascicolo, cliente o documento creato; la mutation `create_editor_draft` richiede conferma nella chat salvo comando esplicito dell'avvocato.
+
 ## Update Intelligence fonti/PDF/OCR/Lex - 2026-05-18 - 2.245.40
 
 Ricerca Legale e la console aggiornamenti legali condividono ora lo stesso

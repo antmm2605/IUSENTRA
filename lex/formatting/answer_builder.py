@@ -26,6 +26,7 @@ class AnswerBuilder:
             "fascicolo",
             "udienza",
             "atto",
+            "atto_da_template",
             "documento",
             "question_answering",
             "economico",
@@ -135,7 +136,7 @@ class AnswerBuilder:
             next_actions.append("Verifica canale ed esito ufficiale prima di procedere")
         if workflow == "udienza":
             next_actions.append("Controlla documenti chiave e scadenze collegate")
-        if workflow == "atto":
+        if workflow in {"atto", "atto_da_template"}:
             next_actions.append("Verifica campi mancanti, allegati e conformita del modello")
         if workflow in {"economico", "cabina", "next_action"}:
             next_actions.append("Conferma i dati operativi nel modulo sorgente prima di eseguire l'azione")
@@ -164,6 +165,15 @@ class AnswerBuilder:
                 draft=draft,
                 verdict=verdict,
                 confidence=confidence,
+            )
+
+        if workflow == "atto_da_template":
+            return self._build_template_act_response(
+                request=request,
+                draft=draft,
+                verdict=verdict,
+                evidence=evidence,
+                confidence=max(confidence, 0.62),
             )
 
         if workflow in _DRAFTING_LETTER_WORKFLOWS:
@@ -555,6 +565,81 @@ class AnswerBuilder:
                 "studio_internal_only": True,
                 "external_sources_used": False,
                 **lookup_meta,
+            },
+        )
+
+    def _build_template_act_response(self, *, request, draft, verdict, evidence: dict[str, Any], confidence: float) -> WorkflowLexResponse:
+        draft_metadata = dict(getattr(draft, "metadata", {}) or {})
+        payload = dict(draft_metadata.get("template_act") or {})
+        answer = str(payload.get("answer") or getattr(draft, "text", "") or "").strip()
+        answer = rewrite_or_reject_non_italian_response(answer, {"workflow": "atto_da_template", "request": request})
+        _, answer = check_output_safety(
+            answer,
+            workflow="atto_da_template",
+            question=str(getattr(request, "query", "") or ""),
+        )
+        template = dict(payload.get("template") or {})
+        actions = [dict(item) for item in list(payload.get("lex_actions") or []) if isinstance(item, dict)]
+        source_rows = [dict(item) for item in list(payload.get("source_rows") or []) if isinstance(item, dict)]
+        message_blocks = [dict(item) for item in list(payload.get("message_blocks") or []) if isinstance(item, dict)]
+        missing_fields = self._unique_strings([str(item) for item in list(payload.get("missing_fields") or [])])
+        validation = dict(payload.get("validation") or {})
+        action_labels = self._unique_strings(
+            [
+                str(action.get("label") or action.get("id") or "")
+                for action in actions
+                if str(action.get("label") or action.get("id") or "").strip()
+            ]
+        )
+        action_warnings = []
+        if any(bool(action.get("requires_confirmation")) and action.get("id") == "create_editor_draft" for action in actions):
+            action_warnings.append("La bozza nell'editor richiede conferma esplicita.")
+        if validation.get("errors"):
+            action_warnings.append("Alcuni campi obbligatori sono da completare prima della bozza finale.")
+        requested_sources = [str(row.get("title") or row.get("id") or "").strip() for row in source_rows if str(row.get("title") or row.get("id") or "").strip()]
+        payload_confidence = payload.get("confidence")
+        if isinstance(payload_confidence, (int, float)):
+            confidence = float(payload_confidence)
+        confidence = max(0.0, min(0.99, round(confidence, 4)))
+        answer_mode = str(payload.get("answer_mode") or ("grounded" if payload.get("evidence_sufficient") else "needs_review"))
+        return WorkflowLexResponse(
+            answer=answer,
+            citations=list((evidence or {}).get("citations") or []),
+            warnings=self._unique_strings([*list(getattr(verdict, "warnings", []) or []), *action_warnings]),
+            next_actions=action_labels,
+            risk_level=str(getattr(verdict, "risk_level", "medium") or "medium"),
+            legal_basis=[],
+            considered_sources=requested_sources[:8],
+            compared_sources=[],
+            missing_evidence=missing_fields,
+            confidence=confidence,
+            answer_mode=answer_mode,
+            evidence_summary={
+                "evidence_count": len(list((evidence or {}).get("items") or [])),
+                "template_found": bool(template.get("found")),
+                "template_code": template.get("model_code") or "",
+                "missing_field_count": len(missing_fields),
+                "action_count": len(actions),
+                "evidence_sufficient": bool(payload.get("evidence_sufficient")),
+            },
+            metadata={
+                "workflow": "atto_da_template",
+                "provider": str(draft_metadata.get("provider") or "deterministic"),
+                "answer_mode": answer_mode,
+                "confidence": confidence,
+                "confidence_label": self._confidence_label(confidence),
+                "studio_internal_only": True,
+                "external_sources_used": False,
+                "template_act": payload,
+                "lex_actions": actions,
+                "message_blocks": message_blocks,
+                "source_rows": source_rows,
+                "lex_unified_chat": {
+                    "component": "LexUnifiedChat",
+                    "engine": "Lex Template Atti",
+                    "renderer_blocks": message_blocks,
+                    "actions": actions,
+                },
             },
         )
 

@@ -1262,6 +1262,21 @@ class DeterministicProvider(BaseProvider):
             text = _compliance_text(q, context, title, summary)
         elif workflow == "studio_data_lookup":
             text = _studio_data_lookup_text(q, context)
+        elif workflow == "atto_da_template":
+            try:
+                from pct.template_atti_lex_service import run_template_act_workflow
+
+                template_payload = run_template_act_workflow(request, context if isinstance(context, dict) else {}, evidence)
+                text = str(template_payload.get("answer") or "").strip()
+            except Exception:
+                template_payload = {
+                    "answer": (
+                        "Non posso completare l'atto da template con i dati disponibili. "
+                        "Non genero una bozza libera: apri il catalogo atti o indica fascicolo e modello."
+                    ),
+                    "workflow_error": True,
+                }
+                text = template_payload["answer"]
         elif workflow in {"drafting_legal_letter", "lettera", "bozza_lettera", "pec_comunicazioni"}:
             q_lower = q.lower()
             if "sollecito" in q_lower and "diffida" not in q_lower:
@@ -1290,5 +1305,6 @@ class DeterministicProvider(BaseProvider):
                 "workflow": workflow,
                 "evidence_count": len(items),
                 "mode": "fast-path",
+                **({"template_act": template_payload} if workflow == "atto_da_template" else {}),
             },
         )

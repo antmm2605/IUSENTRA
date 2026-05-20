@@ -7,6 +7,14 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.245.64 - 20 maggio 2026
+
+Lex Template Atti passa dalla pipeline ordinaria, senza sistema parallelo: `LexRouter` riconosce lookup, precompilazione e creazione editor; `SourceRouter` carica `StudioDatabaseSource` e `TemplateAttiSource`; il provider deterministico chiama `pct.template_atti_lex_service`; `AnswerBuilder` restituisce una risposta con `message_blocks`, `lex_actions`, `source_rows` e metadata `template_act`.
+
+La risposta deve seguire questo ordine professionale: modello individuato dal catalogo, contesto pratica, dati precompilati, dati mancanti, controlli, fonti e azioni. Se mancano modello, cliente, fascicolo o permessi, Lex si astiene e mostra lacune/opzioni; se ci sono più clienti o fascicoli compatibili, non sceglie al posto dell'avvocato. Una richiesta di consultazione come "quali atti posso creare per decreto ingiuntivo?" resta lookup e non crea bozze.
+
+La creazione documento nell'editor avviene solo con `create_editor_draft` confermato o con frase esplicita equivalente a "crea ora la bozza nell'editor". Il payload usa il compilatore reale (`prefill_payload`, `validate_payload`, `render_compiled_act`) e conserva fonti interne verificate: catalogo atti, cliente, fascicolo e parti dello studio.
+
 ## Aggiornamento operativo 2.245.63 - 20 maggio 2026
 
 Lex Studio Reasoner è stato esteso per lavorare come una conversazione tra colleghi. I follow-up brevi dell'avvocato, come "e gli allegati?", "preparami una risposta", "chi è la controparte?", "e le scadenze?" o "quali fascicoli ha?", vengono risolti sul riferimento operativo appena mostrato: PEC/email, fascicolo, documento o cliente. La memoria usa soltanto link e oggetti interni già verificati nella risposta precedente.

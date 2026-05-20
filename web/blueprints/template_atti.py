@@ -536,7 +536,7 @@ def _importa_compilazione_editor_professionale(
     if not id_fascicolo:
         return None
 
-    from pct.fascicoli import TipoDocumento
+    from pct.template_atti_lex_service import create_editor_draft
     from web.services.document_crypto import encrypt_doc
 
     try:
@@ -544,32 +544,25 @@ def _importa_compilazione_editor_professionale(
     except Exception:
         sanitize_editor_html = lambda value: value or "<p></p>"  # noqa: E731
 
-    title = _valore_form(payload.get("title") or model.get("name") or model_code or "Atto")
-    filename = _safe_editor_filename(title, model_code)
-    editor_html = sanitize_editor_html(_to_editor_html(testo_generato))
     utente = g.get("utente_corrente")
-    documento = get_fascicoli().aggiungi_documento(
+    created = create_editor_draft(
+        model_code,
+        payload,
         id_fascicolo,
-        filename,
-        TipoDocumento.ATTO_GIUDIZIARIO,
-        encrypt_doc(editor_html.encode("utf-8")),
-        note=f"Bozza creata da Template Atti: {title}",
-        tags=["template-atti", "bozza-editor", str(model_code or "").lower()],
-        caricato_da=getattr(utente, "username", "") if utente else "",
-        fonte_documento="TEMPLATE_ATTI_COMPILATORE",
-        nome_originale=filename,
+        getattr(utente, "username", "") if utente else "",
+        rendered_text=testo_generato,
+        model=model,
+        fascicoli_repo=get_fascicoli(),
+        encrypt_func=encrypt_doc,
+        editor_html_builder=lambda text: sanitize_editor_html(_to_editor_html(text)),
+        audit_callback=_audit_template_event,
     )
-    open_url = f"/fascicoli/{id_fascicolo}/documenti/{documento.id}/editor"
-    _audit_template_event(
-        "template_atti.compilazione.importa_editor",
-        "fascicolo",
-        id_fascicolo,
-        f"modello={model_code}; documento={documento.id}",
-    )
+    if not created.ok:
+        raise RuntimeError("; ".join(created.errors or [created.message or "Importazione editor non riuscita."]))
     try:
         from audit.integrations import emit_act_generated
 
-        percorso = get_fascicoli().percorso_documento(id_fascicolo, documento.id)
+        percorso = get_fascicoli().percorso_documento(id_fascicolo, created.document_id)
         emit_act_generated(
             fascicolo_id=id_fascicolo,
             atto_type=str(model.get("category") or model.get("name") or model_code or "ATTO"),
@@ -578,14 +571,14 @@ def _importa_compilazione_editor_professionale(
             editor_version="iusentra-editor",
             output_format="html",
             file_path=percorso,
-            storage_ref=f"dms://fascicoli/{id_fascicolo}/documenti/{documento.id}",
-            idempotency_key=f"ACT_GENERATED:{id_fascicolo}:{documento.id}",
+            storage_ref=f"dms://fascicoli/{id_fascicolo}/documenti/{created.document_id}",
+            idempotency_key=f"ACT_GENERATED:{id_fascicolo}:{created.document_id}",
         )
     except Exception:
         if current_app.config.get("AUDIT_ENABLED") or str(os.getenv("AUDIT_ENABLED", "")).lower() in {"1", "true", "yes", "on"}:
             raise
-        current_app.logger.debug("Audit probatorio ACT_GENERATED non attivo per %s", documento.id, exc_info=True)
-    return {"document_id": documento.id, "filename": documento.nome, "open_url": open_url}
+        current_app.logger.debug("Audit probatorio ACT_GENERATED non attivo per %s", created.document_id, exc_info=True)
+    return {"document_id": created.document_id, "filename": created.filename, "open_url": created.open_url}
 
 
 def _request_payload() -> dict:

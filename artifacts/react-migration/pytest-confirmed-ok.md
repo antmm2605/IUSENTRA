@@ -2750,4 +2750,4 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 
 | Comando / verifica | Esito | Nota |
 | --- | --- | --- |
-| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check` | OK | Eseguito con `PyYAML` temporaneo fuori repository perché il runtime Python embedded locale è isolato. `docs/openapi.yaml` è stato rigenerato sulle linee reali di `web/blueprints/api_v1_react.py` dopo il controllo Template Atti e il gate locale è verde. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml` | OK | Eseguiti con `PyYAML` temporaneo fuori repository perché il runtime Python embedded locale è isolato. `docs/openapi.yaml` è stato rigenerato sulle linee reali di `web/blueprints/api_v1_react.py` dopo il controllo Template Atti; gate di allineamento e validazione OpenAPI sono verdi. |

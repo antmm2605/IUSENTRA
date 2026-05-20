@@ -350,64 +350,133 @@ CREATE INDEX IF NOT EXISTS idx_pal_tenant ON procedure_audit_log (tenant_id);
 CREATE INDEX IF NOT EXISTS idx_pal_action ON procedure_audit_log (action);
 CREATE INDEX IF NOT EXISTS idx_pal_hash ON procedure_audit_log (event_hash);
 
-CREATE TRIGGER IF NOT EXISTS trg_pl_tdp_block_insert_office_accepted
-BEFORE INSERT ON telematic_deposit_packages
-WHEN NEW.deposit_status = 'OFFICE_ACCEPTED'
+DROP TRIGGER IF EXISTS trg_pl_signature_block_insert_verified;
+DROP TRIGGER IF EXISTS trg_pl_signature_block_update_verified_without_guard;
+DROP TRIGGER IF EXISTS trg_pl_tdp_block_insert_office_accepted;
+DROP TRIGGER IF EXISTS trg_pl_tdp_block_insert_office_rejected;
+DROP TRIGGER IF EXISTS trg_pl_tdp_block_insert_protected_status;
+DROP TRIGGER IF EXISTS trg_pl_tdp_block_update_office_accepted;
+DROP TRIGGER IF EXISTS trg_pl_tdp_block_update_office_rejected;
+DROP TRIGGER IF EXISTS trg_pl_tdp_block_update_protected_without_guard;
+DROP TRIGGER IF EXISTS trg_pl_notification_block_insert_proof_without_evidence;
+DROP TRIGGER IF EXISTS trg_pl_notification_block_insert_proof_status;
+DROP TRIGGER IF EXISTS trg_pl_notification_block_update_proof_without_evidence;
+DROP TRIGGER IF EXISTS trg_pl_notification_block_update_proof_without_guard;
+DROP TRIGGER IF EXISTS trg_pl_workflow_block_insert_firmato_without_verified_signature;
+DROP TRIGGER IF EXISTS trg_pl_workflow_block_update_firmato_without_verified_signature;
+DROP TRIGGER IF EXISTS trg_pl_workflow_block_insert_accepted_without_receipt;
+DROP TRIGGER IF EXISTS trg_pl_workflow_block_update_accepted_without_receipt;
+DROP TRIGGER IF EXISTS trg_pl_workflow_block_insert_notification_without_sent_event;
+DROP TRIGGER IF EXISTS trg_pl_workflow_block_update_notification_without_sent_event;
+DROP TRIGGER IF EXISTS trg_pl_workflow_block_insert_proof_without_evidence;
+DROP TRIGGER IF EXISTS trg_pl_workflow_block_update_proof_without_evidence;
+DROP TRIGGER IF EXISTS trg_pl_workflow_block_insert_close_with_pending_obligations;
+DROP TRIGGER IF EXISTS trg_pl_workflow_block_update_close_with_pending_obligations;
+DROP TRIGGER IF EXISTS trg_pl_workflow_block_insert_protected_status;
+DROP TRIGGER IF EXISTS trg_pl_workflow_block_update_protected_without_guard;
+
+CREATE TRIGGER IF NOT EXISTS trg_pl_signature_block_insert_verified
+BEFORE INSERT ON digital_signature_events
+WHEN NEW.verification_status = 'VERIFIED'
 BEGIN
-    SELECT RAISE(ABORT, 'OFFICE_ACCEPTED richiede ricevuta ACCETTAZIONE_DEPOSITO.');
+    SELECT RAISE(ABORT, 'VERIFIED richiede record_signature_result validato.');
 END;
 
-CREATE TRIGGER IF NOT EXISTS trg_pl_tdp_block_insert_office_rejected
-BEFORE INSERT ON telematic_deposit_packages
-WHEN NEW.deposit_status = 'OFFICE_REJECTED'
-BEGIN
-    SELECT RAISE(ABORT, 'OFFICE_REJECTED richiede ricevuta RIFIUTO_DEPOSITO o ERRORE_TECNICO.');
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_pl_tdp_block_update_office_accepted
-BEFORE UPDATE OF deposit_status ON telematic_deposit_packages
-WHEN NEW.deposit_status = 'OFFICE_ACCEPTED'
- AND NOT EXISTS (
-    SELECT 1 FROM telematic_deposit_receipts
-    WHERE deposit_package_id = NEW.id
-      AND receipt_type = 'ACCETTAZIONE_DEPOSITO'
- )
-BEGIN
-    SELECT RAISE(ABORT, 'OFFICE_ACCEPTED richiede ricevuta ACCETTAZIONE_DEPOSITO.');
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_pl_tdp_block_update_office_rejected
-BEFORE UPDATE OF deposit_status ON telematic_deposit_packages
-WHEN NEW.deposit_status = 'OFFICE_REJECTED'
- AND NOT EXISTS (
-    SELECT 1 FROM telematic_deposit_receipts
-    WHERE deposit_package_id = NEW.id
-      AND receipt_type IN ('RIFIUTO_DEPOSITO', 'ERRORE_TECNICO')
- )
-BEGIN
-    SELECT RAISE(ABORT, 'OFFICE_REJECTED richiede ricevuta RIFIUTO_DEPOSITO o ERRORE_TECNICO.');
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_pl_notification_block_insert_proof_without_evidence
-BEFORE INSERT ON notification_events
-WHEN NEW.status IN ('PROOF_ACQUIRED', 'PROOF_DEPOSIT_REQUIRED', 'PROOF_DEPOSITED')
+CREATE TRIGGER IF NOT EXISTS trg_pl_signature_block_update_verified_without_guard
+BEFORE UPDATE OF verification_status ON digital_signature_events
+WHEN NEW.verification_status = 'VERIFIED'
  AND (
-    NEW.proof_bundle_id IS NULL
-    OR NOT EXISTS (
-        SELECT 1 FROM evidence_documents
-        WHERE fascicolo_id = NEW.fascicolo_id
-          AND (document_id = NEW.proof_bundle_id OR CAST(id AS TEXT) = NEW.proof_bundle_id)
+    iusentra_validated_transition('digital_signature_events', NEW.id, NEW.verification_status) != 1
+    OR NEW.signer_detected IS NULL
+    OR NEW.hash_after IS NULL
+ )
+BEGIN
+    SELECT RAISE(ABORT, 'VERIFIED richiede record_signature_result validato e hash/firma verificati.');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_pl_tdp_block_insert_protected_status
+BEFORE INSERT ON telematic_deposit_packages
+WHEN NEW.deposit_status IN ('READY', 'OFFICE_ACCEPTED', 'OFFICE_REJECTED', 'TECHNICAL_ERROR')
+BEGIN
+    SELECT RAISE(ABORT, 'Stato deposito protetto richiede funzione validata.');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_pl_tdp_block_update_protected_without_guard
+BEFORE UPDATE OF deposit_status ON telematic_deposit_packages
+WHEN NEW.deposit_status IN ('READY', 'OFFICE_ACCEPTED', 'OFFICE_REJECTED', 'TECHNICAL_ERROR')
+ AND (
+    iusentra_validated_transition('telematic_deposit_packages', NEW.id, NEW.deposit_status) != 1
+    OR (
+        NEW.deposit_status = 'READY'
+        AND (
+            COALESCE(NEW.xsd_code, '') = ''
+            OR COALESCE(NEW.dati_atto_xml_id, '') = ''
+            OR COALESCE(NEW.envelope_file_id, '') = ''
+            OR NOT EXISTS (
+                SELECT 1 FROM legal_ministerial_xsd_objects
+                WHERE xsd_code = NEW.xsd_code
+                  AND active = 1
+            )
+            OR (
+                (
+                    substr(COALESCE(NEW.xsd_code, ''), 1, 3) IN ('010','011','012','014','015','017','019','020','030','050','051','052','053','055','059')
+                    OR EXISTS (
+                        SELECT 1 FROM digital_signature_events
+                        WHERE fascicolo_id = NEW.fascicolo_id
+                          AND required = 1
+                    )
+                )
+                AND NOT EXISTS (
+                    SELECT 1 FROM digital_signature_events
+                    WHERE fascicolo_id = NEW.fascicolo_id
+                      AND required = 1
+                      AND verification_status = 'VERIFIED'
+                )
+            )
+        )
+    )
+    OR (
+        NEW.deposit_status = 'OFFICE_ACCEPTED'
+        AND NOT EXISTS (
+            SELECT 1 FROM telematic_deposit_receipts
+            WHERE deposit_package_id = NEW.id
+              AND receipt_type = 'ACCETTAZIONE_DEPOSITO'
+        )
+    )
+    OR (
+        NEW.deposit_status = 'OFFICE_REJECTED'
+        AND NOT EXISTS (
+            SELECT 1 FROM telematic_deposit_receipts
+            WHERE deposit_package_id = NEW.id
+              AND receipt_type IN ('RIFIUTO_DEPOSITO', 'ERRORE_TECNICO')
+        )
+    )
+    OR (
+        NEW.deposit_status = 'TECHNICAL_ERROR'
+        AND NOT EXISTS (
+            SELECT 1 FROM telematic_deposit_receipts
+            WHERE deposit_package_id = NEW.id
+              AND receipt_type = 'ERRORE_TECNICO'
+        )
     )
  )
 BEGIN
-    SELECT RAISE(ABORT, 'Stato prova notifica richiede evidence_documents collegati.');
+    SELECT RAISE(ABORT, 'Stato deposito protetto richiede evidenza e funzione validata.');
 END;
 
-CREATE TRIGGER IF NOT EXISTS trg_pl_notification_block_update_proof_without_evidence
+CREATE TRIGGER IF NOT EXISTS trg_pl_notification_block_insert_proof_status
+BEFORE INSERT ON notification_events
+WHEN NEW.status IN ('PROOF_ACQUIRED', 'PROOF_DEPOSIT_REQUIRED', 'PROOF_DEPOSITED')
+BEGIN
+    SELECT RAISE(ABORT, 'Stato prova notifica richiede evidence vault validato.');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_pl_notification_block_update_proof_without_guard
 BEFORE UPDATE OF status, proof_bundle_id ON notification_events
 WHEN NEW.status IN ('PROOF_ACQUIRED', 'PROOF_DEPOSIT_REQUIRED', 'PROOF_DEPOSITED')
  AND (
-    NEW.proof_bundle_id IS NULL
+    iusentra_validated_transition('notification_events', NEW.id, NEW.status) != 1
+    OR NEW.proof_bundle_id IS NULL
     OR NOT EXISTS (
         SELECT 1 FROM evidence_documents
         WHERE fascicolo_id = NEW.fascicolo_id
@@ -415,149 +484,107 @@ WHEN NEW.status IN ('PROOF_ACQUIRED', 'PROOF_DEPOSIT_REQUIRED', 'PROOF_DEPOSITED
     )
  )
 BEGIN
-    SELECT RAISE(ABORT, 'Stato prova notifica richiede evidence_documents collegati.');
+    SELECT RAISE(ABORT, 'Stato prova notifica richiede evidence_documents collegati e funzione validata.');
 END;
 
-CREATE TRIGGER IF NOT EXISTS trg_pl_workflow_block_insert_firmato_without_verified_signature
+CREATE TRIGGER IF NOT EXISTS trg_pl_workflow_block_insert_protected_status
 BEFORE INSERT ON fascicolo_workflow_instances
-WHEN NEW.current_step_code = 'FIRMATO'
- AND (
-    substr(COALESCE(NEW.xsd_code, ''), 1, 3) IN ('010','011','012','014','015','017','019','020','030','050','051','052','053','055','059')
-    OR EXISTS (
-        SELECT 1 FROM digital_signature_events
-        WHERE fascicolo_id = NEW.fascicolo_id
-          AND required = 1
-    )
- )
- AND NOT EXISTS (
-    SELECT 1 FROM digital_signature_events
-    WHERE fascicolo_id = NEW.fascicolo_id
-      AND required = 1
-      AND verification_status = 'VERIFIED'
- )
+WHEN NEW.current_step_code IN (
+    'FIRMATO',
+    'DEPOSITO_ACCETTATO',
+    'DEPOSITO_RIFIUTATO',
+    'NOTIFICA_EFFETTUATA',
+    'PROVA_NOTIFICA_ACQUISITA',
+    'CHIUSA'
+)
+ OR NEW.status = 'COMPLETED'
 BEGIN
-    SELECT RAISE(ABORT, 'FIRMATO richiede firma digitale VERIFIED.');
+    SELECT RAISE(ABORT, 'Stato workflow finale richiede transition_workflow validato.');
 END;
 
-CREATE TRIGGER IF NOT EXISTS trg_pl_workflow_block_update_firmato_without_verified_signature
-BEFORE UPDATE OF current_step_code ON fascicolo_workflow_instances
-WHEN NEW.current_step_code = 'FIRMATO'
- AND (
-    substr(COALESCE(NEW.xsd_code, ''), 1, 3) IN ('010','011','012','014','015','017','019','020','030','050','051','052','053','055','059')
-    OR EXISTS (
-        SELECT 1 FROM digital_signature_events
-        WHERE fascicolo_id = NEW.fascicolo_id
-          AND required = 1
-    )
- )
- AND NOT EXISTS (
-    SELECT 1 FROM digital_signature_events
-    WHERE fascicolo_id = NEW.fascicolo_id
-      AND required = 1
-      AND verification_status = 'VERIFIED'
- )
-BEGIN
-    SELECT RAISE(ABORT, 'FIRMATO richiede firma digitale VERIFIED.');
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_pl_workflow_block_insert_accepted_without_receipt
-BEFORE INSERT ON fascicolo_workflow_instances
-WHEN NEW.current_step_code = 'DEPOSITO_ACCETTATO'
- AND NOT EXISTS (
-    SELECT 1
-    FROM telematic_deposit_packages p
-    JOIN telematic_deposit_receipts r ON r.deposit_package_id = p.id
-    WHERE p.fascicolo_id = NEW.fascicolo_id
-      AND r.receipt_type = 'ACCETTAZIONE_DEPOSITO'
- )
-BEGIN
-    SELECT RAISE(ABORT, 'DEPOSITO_ACCETTATO richiede ricevuta ACCETTAZIONE_DEPOSITO.');
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_pl_workflow_block_update_accepted_without_receipt
-BEFORE UPDATE OF current_step_code ON fascicolo_workflow_instances
-WHEN NEW.current_step_code = 'DEPOSITO_ACCETTATO'
- AND NOT EXISTS (
-    SELECT 1
-    FROM telematic_deposit_packages p
-    JOIN telematic_deposit_receipts r ON r.deposit_package_id = p.id
-    WHERE p.fascicolo_id = NEW.fascicolo_id
-      AND r.receipt_type = 'ACCETTAZIONE_DEPOSITO'
- )
-BEGIN
-    SELECT RAISE(ABORT, 'DEPOSITO_ACCETTATO richiede ricevuta ACCETTAZIONE_DEPOSITO.');
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_pl_workflow_block_insert_notification_without_sent_event
-BEFORE INSERT ON fascicolo_workflow_instances
-WHEN NEW.current_step_code = 'NOTIFICA_EFFETTUATA'
- AND NOT EXISTS (
-    SELECT 1 FROM notification_events
-    WHERE fascicolo_id = NEW.fascicolo_id
-      AND status IN ('SENT', 'DELIVERED', 'PROOF_ACQUIRED', 'PROOF_DEPOSIT_REQUIRED', 'PROOF_DEPOSITED')
- )
-BEGIN
-    SELECT RAISE(ABORT, 'NOTIFICA_EFFETTUATA richiede evento notifica SENT.');
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_pl_workflow_block_update_notification_without_sent_event
-BEFORE UPDATE OF current_step_code ON fascicolo_workflow_instances
-WHEN NEW.current_step_code = 'NOTIFICA_EFFETTUATA'
- AND NOT EXISTS (
-    SELECT 1 FROM notification_events
-    WHERE fascicolo_id = NEW.fascicolo_id
-      AND status IN ('SENT', 'DELIVERED', 'PROOF_ACQUIRED', 'PROOF_DEPOSIT_REQUIRED', 'PROOF_DEPOSITED')
- )
-BEGIN
-    SELECT RAISE(ABORT, 'NOTIFICA_EFFETTUATA richiede evento notifica SENT.');
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_pl_workflow_block_insert_proof_without_evidence
-BEFORE INSERT ON fascicolo_workflow_instances
-WHEN NEW.current_step_code = 'PROVA_NOTIFICA_ACQUISITA'
- AND NOT EXISTS (
-    SELECT 1 FROM evidence_documents
-    WHERE fascicolo_id = NEW.fascicolo_id
-      AND evidence_type IN ('NOTIFICATION_RECEIPT', 'PROOF_OF_DELIVERY')
- )
-BEGIN
-    SELECT RAISE(ABORT, 'PROVA_NOTIFICA_ACQUISITA richiede evidence_documents collegati.');
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_pl_workflow_block_update_proof_without_evidence
-BEFORE UPDATE OF current_step_code ON fascicolo_workflow_instances
-WHEN NEW.current_step_code = 'PROVA_NOTIFICA_ACQUISITA'
- AND NOT EXISTS (
-    SELECT 1 FROM evidence_documents
-    WHERE fascicolo_id = NEW.fascicolo_id
-      AND evidence_type IN ('NOTIFICATION_RECEIPT', 'PROOF_OF_DELIVERY')
- )
-BEGIN
-    SELECT RAISE(ABORT, 'PROVA_NOTIFICA_ACQUISITA richiede evidence_documents collegati.');
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_pl_workflow_block_insert_close_with_pending_obligations
-BEFORE INSERT ON fascicolo_workflow_instances
-WHEN (NEW.current_step_code = 'CHIUSA' OR NEW.status = 'COMPLETED')
- AND EXISTS (
-    SELECT 1 FROM post_acceptance_obligations
-    WHERE fascicolo_id = NEW.fascicolo_id
-      AND obligation_status = 'PENDING'
- )
-BEGIN
-    SELECT RAISE(ABORT, 'CHIUSA non possibile con obblighi pendenti.');
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_pl_workflow_block_update_close_with_pending_obligations
+CREATE TRIGGER IF NOT EXISTS trg_pl_workflow_block_update_protected_without_guard
 BEFORE UPDATE OF current_step_code, status ON fascicolo_workflow_instances
-WHEN (NEW.current_step_code = 'CHIUSA' OR NEW.status = 'COMPLETED')
- AND EXISTS (
-    SELECT 1 FROM post_acceptance_obligations
-    WHERE fascicolo_id = NEW.fascicolo_id
-      AND obligation_status = 'PENDING'
+WHEN (
+    NEW.current_step_code IN (
+        'FIRMATO',
+        'DEPOSITO_ACCETTATO',
+        'DEPOSITO_RIFIUTATO',
+        'NOTIFICA_EFFETTUATA',
+        'PROVA_NOTIFICA_ACQUISITA',
+        'CHIUSA'
+    )
+    OR NEW.status = 'COMPLETED'
+)
+ AND (
+    iusentra_validated_transition(
+        'fascicolo_workflow_instances',
+        NEW.id,
+        CASE WHEN NEW.current_step_code = 'CHIUSA' OR NEW.status = 'COMPLETED' THEN 'CHIUSA' ELSE NEW.current_step_code END
+    ) != 1
+    OR (
+        NEW.current_step_code = 'FIRMATO'
+        AND (
+            substr(COALESCE(NEW.xsd_code, ''), 1, 3) IN ('010','011','012','014','015','017','019','020','030','050','051','052','053','055','059')
+            OR EXISTS (
+                SELECT 1 FROM digital_signature_events
+                WHERE fascicolo_id = NEW.fascicolo_id
+                  AND required = 1
+            )
+        )
+        AND NOT EXISTS (
+            SELECT 1 FROM digital_signature_events
+            WHERE fascicolo_id = NEW.fascicolo_id
+              AND required = 1
+              AND verification_status = 'VERIFIED'
+        )
+    )
+    OR (
+        NEW.current_step_code = 'DEPOSITO_ACCETTATO'
+        AND NOT EXISTS (
+            SELECT 1
+            FROM telematic_deposit_packages p
+            JOIN telematic_deposit_receipts r ON r.deposit_package_id = p.id
+            WHERE p.fascicolo_id = NEW.fascicolo_id
+              AND r.receipt_type = 'ACCETTAZIONE_DEPOSITO'
+        )
+    )
+    OR (
+        NEW.current_step_code = 'DEPOSITO_RIFIUTATO'
+        AND NOT EXISTS (
+            SELECT 1
+            FROM telematic_deposit_packages p
+            JOIN telematic_deposit_receipts r ON r.deposit_package_id = p.id
+            WHERE p.fascicolo_id = NEW.fascicolo_id
+              AND r.receipt_type IN ('RIFIUTO_DEPOSITO', 'ERRORE_TECNICO')
+        )
+    )
+    OR (
+        NEW.current_step_code = 'NOTIFICA_EFFETTUATA'
+        AND NOT EXISTS (
+            SELECT 1 FROM notification_events
+            WHERE fascicolo_id = NEW.fascicolo_id
+              AND status IN ('SENT', 'DELIVERED', 'PROOF_ACQUIRED', 'PROOF_DEPOSIT_REQUIRED', 'PROOF_DEPOSITED')
+        )
+    )
+    OR (
+        NEW.current_step_code = 'PROVA_NOTIFICA_ACQUISITA'
+        AND NOT EXISTS (
+            SELECT 1 FROM evidence_documents
+            WHERE fascicolo_id = NEW.fascicolo_id
+              AND evidence_type IN ('NOTIFICATION_RECEIPT', 'PROOF_OF_DELIVERY')
+        )
+    )
+    OR (
+        (NEW.current_step_code = 'CHIUSA' OR NEW.status = 'COMPLETED')
+        AND EXISTS (
+            SELECT 1 FROM post_acceptance_obligations
+            WHERE fascicolo_id = NEW.fascicolo_id
+              AND obligation_status = 'PENDING'
+        )
+    )
  )
 BEGIN
-    SELECT RAISE(ABORT, 'CHIUSA non possibile con obblighi pendenti.');
+    SELECT RAISE(ABORT, 'Stato workflow finale richiede evidenza e transition_workflow validato.');
 END;
 
 COMMIT;

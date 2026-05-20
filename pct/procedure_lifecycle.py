@@ -179,6 +179,16 @@ def _has_office_acceptance(repo: ProcedureLifecycleRepository, fascicolo_id: str
     return False
 
 
+def _has_office_rejection(repo: ProcedureLifecycleRepository, fascicolo_id: str) -> bool:
+    with repo.connect() as conn:
+        packages = repo._fetch_all(conn, "SELECT * FROM telematic_deposit_packages WHERE fascicolo_id = ?", (fascicolo_id,))
+    for package in packages:
+        receipts = repo.list_deposit_receipts(int(package["id"]))
+        if any(row.get("receipt_type") in {"RIFIUTO_DEPOSITO", "ERRORE_TECNICO"} for row in receipts):
+            return True
+    return False
+
+
 def _has_notification_sent(repo: ProcedureLifecycleRepository, fascicolo_id: str) -> bool:
     with repo.connect() as conn:
         rows = repo._fetch_all(conn, "SELECT * FROM notification_events WHERE fascicolo_id = ?", (fascicolo_id,))
@@ -199,6 +209,8 @@ def _assert_severe_rules(repo: ProcedureLifecycleRepository, instance: dict[str,
         raise ValueError("FIRMATO richiede digital_signature_events con verifica VERIFIED quando la firma è richiesta.")
     if target_state == "DEPOSITO_ACCETTATO" and not _has_office_acceptance(repo, fascicolo_id):
         raise ValueError("DEPOSITO_ACCETTATO richiede ricevuta ACCETTAZIONE_DEPOSITO o equivalente validato.")
+    if target_state == "DEPOSITO_RIFIUTATO" and not _has_office_rejection(repo, fascicolo_id):
+        raise ValueError("DEPOSITO_RIFIUTATO richiede ricevuta RIFIUTO_DEPOSITO o ERRORE_TECNICO.")
     if target_state == "NOTIFICA_EFFETTUATA" and not _has_notification_sent(repo, fascicolo_id):
         raise ValueError("NOTIFICA_EFFETTUATA richiede evento notifica SENT.")
     if target_state == "PROVA_NOTIFICA_ACQUISITA" and not _has_notification_proof(repo, fascicolo_id):

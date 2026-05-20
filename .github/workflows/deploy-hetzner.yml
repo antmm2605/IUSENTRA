@@ -176,16 +176,40 @@ jobs:
           set -euo pipefail
           DOMAIN="${HETZNER_DOMAIN}"
           echo "Health endpoint:"
-          curl -fsS --max-time 15 "https://${DOMAIN}/api/pronto" | head -c 400 || true
+          ready=false
+          for attempt in $(seq 1 12); do
+            if curl -fsS --max-time 15 "https://${DOMAIN}/api/pronto" | head -c 400; then
+              ready=true
+              echo
+              echo "  /api/pronto -> OK (tentativo ${attempt}/12)"
+              break
+            fi
+            echo
+            echo "  /api/pronto non ancora pronto (tentativo ${attempt}/12)"
+            sleep 10
+          done
+          if [ "${ready}" != "true" ]; then
+            echo "::error::Health endpoint /api/pronto non risponde correttamente dopo i retry"
+            exit 1
+          fi
           echo
           echo "Rotte Ricerca legale (v2.240.0):"
+          check_public_route() {
+            local path="$1"
+            local status=""
+            for attempt in $(seq 1 12); do
+              status=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 -I "https://${DOMAIN}${path}" || true)
+              echo "  ${path} -> HTTP ${status} (tentativo ${attempt}/12)"
+              case "${status}" in
+                200|301|302|303|307|308) return 0 ;;
+              esac
+              sleep 10
+            done
+            echo "::error::Rotta ${path} non risponde correttamente dopo i retry (ultimo HTTP ${status})"
+            return 1
+          }
           for path in "/legal-intelligence/" "/legal-intelligence/ricerca" "/ricerca-legale"; do
-            status=$(curl -fsS -o /dev/null -w '%{http_code}' --max-time 15 -I "https://${DOMAIN}${path}" || echo "fail")
-            echo "  ${path} → HTTP ${status}"
-            case "${status}" in
-              200|301|302|303|307|308) ;;
-              *) echo "::error::Rotta ${path} non risponde correttamente (HTTP ${status})"; exit 1 ;;
-            esac
+            check_public_route "${path}"
           done
 
       - name: Summary deploy

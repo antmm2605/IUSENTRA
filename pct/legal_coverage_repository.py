@@ -19,6 +19,7 @@ except ImportError:
 
 from pct.legal_platform_seed import LEGAL_PLATFORM_SEED
 from pct.legal_coverage_review_audit import build_review_diff
+from pct.legal_coverage_sqlite_repository import assert_no_procedure_lifecycle_sql_bypass
 
 
 TAXONOMY_SCHEMA_SQL = Path(__file__).with_name("sql") / "20260417_legal_taxonomy_operational_tables.sql"
@@ -682,6 +683,7 @@ class PostgresCoverageRepository:
             )
 
     def apply_generated_sql(self, sql_payload: str) -> None:
+        assert_no_procedure_lifecycle_sql_bypass(sql_payload)
         with self.connect() as conn:
             self._execute(conn, sql_payload)
             conn.commit()

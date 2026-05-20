@@ -138,7 +138,11 @@ def mark_proof_deposit_required(repo: ProcedureLifecycleRepository, notification
     if notification.get("status") != NotificationStatus.PROOF_ACQUIRED.value:
         raise ValueError("Serve prima acquisire la prova notifica.")
     if proof_deposit_required(repo, notification_id):
-        repo.update_notification_event(notification_id, {"status": NotificationStatus.PROOF_DEPOSIT_REQUIRED.value})
+        repo.update_notification_event(
+            notification_id,
+            {"status": NotificationStatus.PROOF_DEPOSIT_REQUIRED.value},
+            source="notification_proof_validation",
+        )
 
 
 def mark_proof_deposited(repo: ProcedureLifecycleRepository, notification_id: int, deposit_evidence_id: int) -> None:
@@ -160,4 +164,5 @@ def mark_proof_deposited(repo: ProcedureLifecycleRepository, notification_id: in
             "status": NotificationStatus.PROOF_DEPOSITED.value,
             "proof_bundle_id": str(evidence.get("document_id") or deposit_evidence_id),
         },
+        source="notification_proof_validation",
     )

@@ -16,6 +16,22 @@ from pct.legal_coverage_review_audit import build_review_diff
 
 TAXONOMY_SCHEMA_SQL = Path(__file__).with_name("sql") / "20260417_legal_taxonomy_operational_tables.sql"
 COVERAGE_SCHEMA_SQL = Path(__file__).with_name("sql") / "20260417_legal_coverage_pipeline.sql"
+PROCEDURE_LIFECYCLE_SQL_BLOCKLIST = (
+    "PROCEDURE_STATE_TRANSITION_GUARD",
+    "FASCICOLO_WORKFLOW_INSTANCES",
+    "DIGITAL_SIGNATURE_EVENTS",
+    "TELEMATIC_DEPOSIT_PACKAGES",
+    "TELEMATIC_DEPOSIT_RECEIPTS",
+    "NOTIFICATION_EVENTS",
+    "POST_ACCEPTANCE_OBLIGATIONS",
+    "EVIDENCE_DOCUMENTS",
+)
+
+
+def assert_no_procedure_lifecycle_sql_bypass(sql_payload: str) -> None:
+    upper = str(sql_payload or "").upper()
+    if any(token in upper for token in PROCEDURE_LIFECYCLE_SQL_BLOCKLIST):
+        raise ValueError("publish SQL non può modificare stati o prove della pipeline procedurale: usare funzioni validate.")
 
 
 def derive_legal_coverage_sqlite_db_path(anchor_path: str) -> str:
@@ -653,6 +669,7 @@ class SQLiteCoverageRepository:
         return rows
 
     def apply_generated_sql(self, sql_payload: str) -> None:
+        assert_no_procedure_lifecycle_sql_bypass(sql_payload)
         with self.connect() as conn:
             conn.executescript(str(sql_payload or ""))
             conn.commit()

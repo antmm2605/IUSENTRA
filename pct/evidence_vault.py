@@ -84,6 +84,7 @@ def link_evidence_to_notification(
             "proof_bundle_id": str(evidence.get("document_id") or evidence_id),
             "status": "PROOF_ACQUIRED",
         },
+        source="notification_proof_validation",
     )
 
 

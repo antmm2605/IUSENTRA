@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 import re
 import sqlite3
+import threading
 from typing import Any, Iterator
 
 from pct.legal_coverage_sqlite_repository import CoverageSqliteConfig, SQLiteCoverageRepository
@@ -44,8 +45,10 @@ _SECRET_KEY_PARTS = ("pin", "password", "token", "cookie", "secret", "credential
 _PATH_KEY_PARTS = ("path", "storage_path", "filesystem", "directory")
 _PII_KEY_PARTS = ("tax_code", "codice_fiscale", "iban", "email", "phone", "telefono", "recipient_address")
 _OFFICIAL_DEPOSIT_RECEIPTS_BY_STATUS = {
+    "READY": set(),
     "OFFICE_ACCEPTED": {"ACCETTAZIONE_DEPOSITO"},
     "OFFICE_REJECTED": {"RIFIUTO_DEPOSITO", "ERRORE_TECNICO"},
+    "TECHNICAL_ERROR": {"ERRORE_TECNICO"},
 }
 _NOTIFICATION_PROOF_STATUSES = {"PROOF_ACQUIRED", "PROOF_DEPOSIT_REQUIRED", "PROOF_DEPOSITED"}
 _SIGNATURE_STATUSES = {
@@ -85,14 +88,35 @@ _PROTECTED_SIGNATURE_STATUSES = {"VERIFIED"}
 _PROTECTED_WORKFLOW_STATES = {
     "FIRMATO",
     "DEPOSITO_ACCETTATO",
+    "DEPOSITO_RIFIUTATO",
     "NOTIFICA_EFFETTUATA",
     "PROVA_NOTIFICA_ACQUISITA",
     "CHIUSA",
 }
+_TELEMATIC_SIGNATURE_PREFIXES = {
+    "010",
+    "011",
+    "012",
+    "014",
+    "015",
+    "017",
+    "019",
+    "020",
+    "030",
+    "050",
+    "051",
+    "052",
+    "053",
+    "055",
+    "059",
+}
 _VALIDATED_SIGNATURE_SOURCE = "signature_validation"
+_VALIDATED_DEPOSIT_READY_SOURCE = "deposit_ready_validation"
 _VALIDATED_DEPOSIT_SOURCE = "deposit_receipt_validation"
 _VALIDATED_NOTIFICATION_SOURCE = "notification_proof_validation"
 _VALIDATED_WORKFLOW_SOURCE = "workflow_transition_validation"
+_VALIDATED_TRANSITION_TOKENS: set[tuple[str, str, str, str]] = set()
+_VALIDATED_TRANSITION_LOCK = threading.Lock()
 
 
 def json_dumps(value: Any) -> str:
@@ -180,6 +204,34 @@ def _assert_allowed_status(value: Any, allowed: set[str], field_name: str) -> No
         raise ValueError(f"{field_name} non ammesso: {status}")
 
 
+def _transition_key(db_path: str | Path, entity_type: str, entity_id: Any, target_state: Any) -> tuple[str, str, str, str]:
+    return (
+        str(Path(str(db_path)).resolve()),
+        str(entity_type or ""),
+        str(entity_id or ""),
+        str(target_state or ""),
+    )
+
+
+def _allow_validated_transition(db_path: str | Path, entity_type: str, entity_id: Any, target_state: Any) -> None:
+    with _VALIDATED_TRANSITION_LOCK:
+        _VALIDATED_TRANSITION_TOKENS.add(_transition_key(db_path, entity_type, entity_id, target_state))
+
+
+def _consume_validated_transition(db_path: str | Path, entity_type: str, entity_id: Any, target_state: Any) -> int:
+    key = _transition_key(db_path, entity_type, entity_id, target_state)
+    with _VALIDATED_TRANSITION_LOCK:
+        if key in _VALIDATED_TRANSITION_TOKENS:
+            _VALIDATED_TRANSITION_TOKENS.remove(key)
+            return 1
+    return 0
+
+
+def _clear_validated_transition(db_path: str | Path, entity_type: str, entity_id: Any, target_state: Any) -> None:
+    with _VALIDATED_TRANSITION_LOCK:
+        _VALIDATED_TRANSITION_TOKENS.discard(_transition_key(db_path, entity_type, entity_id, target_state))
+
+
 def _assert_notification_proof_evidence(conn: sqlite3.Connection, fascicolo_id: str, proof_bundle_id: Any) -> None:
     proof_id = str(proof_bundle_id or "").strip()
     if not proof_id:
@@ -197,14 +249,116 @@ def _assert_notification_proof_evidence(conn: sqlite3.Connection, fascicolo_id: 
         raise ValueError("Gli stati prova notifica richiedono evidence_documents collegati.")
 
 
-def _insert_transition_guard(conn: sqlite3.Connection, entity_type: str, entity_id: Any, target_state: Any) -> None:
-    conn.execute(
-        """
-        INSERT INTO procedure_state_transition_guard (entity_type, entity_id, target_state)
-        VALUES (?, ?, ?)
-        """,
-        (entity_type, str(entity_id), str(target_state)),
-    )
+def _assert_deposit_ready_evidence(conn: sqlite3.Connection, package: dict[str, Any] | None) -> None:
+    if not package:
+        raise ValueError("Pacchetto deposito non trovato.")
+    xsd_code = str(package.get("xsd_code") or "").strip()
+    if not xsd_code:
+        raise ValueError("READY richiede xsd_code attivo nel catalogo ministeriale.")
+    row = conn.execute(
+        "SELECT id FROM legal_ministerial_xsd_objects WHERE xsd_code = ? AND active = 1 LIMIT 1",
+        (xsd_code,),
+    ).fetchone()
+    if row is None:
+        raise ValueError("READY richiede xsd_code attivo nel catalogo ministeriale.")
+    if not package.get("dati_atto_xml_id") or not package.get("envelope_file_id"):
+        raise ValueError("READY richiede DatiAtto.xml e busta/pacchetto deposito collegati.")
+    fascicolo_id = str(package.get("fascicolo_id") or "")
+    signatures = conn.execute(
+        "SELECT required, verification_status FROM digital_signature_events WHERE fascicolo_id = ?",
+        (fascicolo_id,),
+    ).fetchall()
+    signature_required = xsd_code[:3] in _TELEMATIC_SIGNATURE_PREFIXES or any(int(row["required"] or 0) == 1 for row in signatures)
+    signature_verified = any(int(row["required"] or 0) == 1 and row["verification_status"] == "VERIFIED" for row in signatures)
+    if signature_required and not signature_verified:
+        raise ValueError("READY richiede firme digitali richieste in stato VERIFIED.")
+
+
+def _workflow_guard_target(current_step_code: Any, status: Any) -> str:
+    step = str(current_step_code or "")
+    if step == "CHIUSA" or str(status or "") == "COMPLETED":
+        return "CHIUSA"
+    return step if step in _PROTECTED_WORKFLOW_STATES else ""
+
+
+def _assert_workflow_target_evidence(conn: sqlite3.Connection, instance: dict[str, Any] | None, target_state: str) -> None:
+    if not instance:
+        raise ValueError("Workflow non trovato.")
+    fascicolo_id = str(instance.get("fascicolo_id") or "")
+    xsd_code = str(instance.get("xsd_code") or "")
+    if target_state == "FIRMATO":
+        signatures = conn.execute(
+            "SELECT required, verification_status FROM digital_signature_events WHERE fascicolo_id = ?",
+            (fascicolo_id,),
+        ).fetchall()
+        signature_required = xsd_code[:3] in _TELEMATIC_SIGNATURE_PREFIXES or any(int(row["required"] or 0) == 1 for row in signatures)
+        signature_verified = any(int(row["required"] or 0) == 1 and row["verification_status"] == "VERIFIED" for row in signatures)
+        if signature_required and not signature_verified:
+            raise ValueError("FIRMATO richiede firma digitale VERIFIED.")
+    if target_state == "DEPOSITO_ACCETTATO":
+        row = conn.execute(
+            """
+            SELECT 1
+            FROM telematic_deposit_packages p
+            JOIN telematic_deposit_receipts r ON r.deposit_package_id = p.id
+            WHERE p.fascicolo_id = ?
+              AND r.receipt_type = 'ACCETTAZIONE_DEPOSITO'
+            LIMIT 1
+            """,
+            (fascicolo_id,),
+        ).fetchone()
+        if row is None:
+            raise ValueError("DEPOSITO_ACCETTATO richiede ricevuta ACCETTAZIONE_DEPOSITO.")
+    if target_state == "DEPOSITO_RIFIUTATO":
+        row = conn.execute(
+            """
+            SELECT 1
+            FROM telematic_deposit_packages p
+            JOIN telematic_deposit_receipts r ON r.deposit_package_id = p.id
+            WHERE p.fascicolo_id = ?
+              AND r.receipt_type IN ('RIFIUTO_DEPOSITO', 'ERRORE_TECNICO')
+            LIMIT 1
+            """,
+            (fascicolo_id,),
+        ).fetchone()
+        if row is None:
+            raise ValueError("DEPOSITO_RIFIUTATO richiede ricevuta RIFIUTO_DEPOSITO o ERRORE_TECNICO.")
+    if target_state == "NOTIFICA_EFFETTUATA":
+        row = conn.execute(
+            """
+            SELECT 1 FROM notification_events
+            WHERE fascicolo_id = ?
+              AND status IN ('SENT', 'DELIVERED', 'PROOF_ACQUIRED', 'PROOF_DEPOSIT_REQUIRED', 'PROOF_DEPOSITED')
+            LIMIT 1
+            """,
+            (fascicolo_id,),
+        ).fetchone()
+        if row is None:
+            raise ValueError("NOTIFICA_EFFETTUATA richiede evento notifica SENT.")
+    if target_state == "PROVA_NOTIFICA_ACQUISITA":
+        row = conn.execute(
+            """
+            SELECT 1 FROM evidence_documents
+            WHERE fascicolo_id = ?
+              AND evidence_type IN ('NOTIFICATION_RECEIPT', 'PROOF_OF_DELIVERY')
+            LIMIT 1
+            """,
+            (fascicolo_id,),
+        ).fetchone()
+        if row is None:
+            raise ValueError("PROVA_NOTIFICA_ACQUISITA richiede evidence_documents collegati.")
+    if target_state == "CHIUSA":
+        row = conn.execute(
+            """
+            SELECT 1 FROM post_acceptance_obligations
+            WHERE fascicolo_id = ?
+              AND obligation_status = 'PENDING'
+            LIMIT 1
+            """,
+            (fascicolo_id,),
+        ).fetchone()
+        if row is not None:
+            raise ValueError("CHIUSA non possibile con obblighi pendenti.")
 
 
 @dataclass(frozen=True)
@@ -224,6 +378,17 @@ class ProcedureLifecycleRepository:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect(str(self.db_path))
         conn.row_factory = sqlite3.Row
+        db_key = str(self.db_path)
+        conn.create_function(
+            "iusentra_validated_transition",
+            3,
+            lambda entity_type, entity_id, target_state: _consume_validated_transition(
+                db_key,
+                entity_type,
+                entity_id,
+                target_state,
+            ),
+        )
         try:
             conn.execute("PRAGMA foreign_keys = ON")
             yield conn
@@ -259,6 +424,33 @@ class ProcedureLifecycleRepository:
 
     def _fetch_all(self, conn: sqlite3.Connection, sql: str, params: tuple[Any, ...] = ()) -> list[dict[str, Any]]:
         return [row_to_dict(row) or {} for row in conn.execute(sql, params).fetchall()]
+
+    def _blocked_operation(
+        self,
+        conn: sqlite3.Connection,
+        *,
+        entity_type: str,
+        entity_id: str | int | None,
+        action: str,
+        reason: str,
+        before: dict[str, Any] | None = None,
+        attempted: dict[str, Any] | None = None,
+        actor: str = "",
+        source: str = "",
+    ) -> None:
+        self.audit_log(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            action=f"{action}_blocked",
+            before=before,
+            after={"blocked": True, "reason": reason, "attempted": attempted or {}},
+            actor=actor,
+            source=source or "procedure_lifecycle_guard",
+            notes=reason,
+            conn=conn,
+        )
+        conn.commit()
+        raise ValueError(reason)
 
     def table_exists(self, table_name: str) -> bool:
         with self.connect() as conn:
@@ -815,6 +1007,18 @@ class ProcedureLifecycleRepository:
     def create_workflow_instance(self, row: dict[str, Any], *, actor: str = "", source: str = "lifecycle") -> int:
         self.ensure_extended_schema()
         with self.connect() as conn:
+            protected_target = _workflow_guard_target(row.get("current_step_code"), row.get("status", "OPEN"))
+            if protected_target:
+                self._blocked_operation(
+                    conn,
+                    entity_type="fascicolo_workflow_instances",
+                    entity_id=str(row.get("fascicolo_id") or "new"),
+                    action="workflow_instance_create",
+                    reason="Gli stati workflow finali devono passare da transition_workflow validato.",
+                    attempted=row,
+                    actor=actor,
+                    source=source,
+                )
             cur = conn.execute(
                 """
                 INSERT INTO fascicolo_workflow_instances (
@@ -869,20 +1073,49 @@ class ProcedureLifecycleRepository:
     ) -> None:
         with self.connect() as conn:
             before = self.get_workflow_instance(instance_id, conn=conn)
-            if current_step_code in _PROTECTED_WORKFLOW_STATES:
+            protected_target = _workflow_guard_target(current_step_code, status)
+            if protected_target:
                 if source != _VALIDATED_WORKFLOW_SOURCE:
-                    raise ValueError("Stato workflow finale aggiornabile solo tramite transition_workflow validato.")
-                _insert_transition_guard(conn, "fascicolo_workflow_instances", instance_id, current_step_code)
-            conn.execute(
-                """
-                UPDATE fascicolo_workflow_instances
-                SET current_step_code = ?, status = ?,
-                    closed_at = CASE WHEN ? = 1 THEN CURRENT_TIMESTAMP ELSE closed_at END,
-                    notes = COALESCE(NULLIF(?, ''), notes)
-                WHERE id = ?
-                """,
-                (current_step_code, status, 1 if close else 0, notes, instance_id),
-            )
+                    self._blocked_operation(
+                        conn,
+                        entity_type="fascicolo_workflow_instances",
+                        entity_id=instance_id,
+                        action="workflow_transition",
+                        reason="Stato workflow finale aggiornabile solo tramite transition_workflow validato.",
+                        before=before,
+                        attempted={"current_step_code": current_step_code, "status": status, "close": close, "notes": notes},
+                        actor=actor,
+                        source=source,
+                    )
+                try:
+                    _assert_workflow_target_evidence(conn, before, protected_target)
+                except ValueError as exc:
+                    self._blocked_operation(
+                        conn,
+                        entity_type="fascicolo_workflow_instances",
+                        entity_id=instance_id,
+                        action="workflow_transition",
+                        reason=str(exc),
+                        before=before,
+                        attempted={"current_step_code": current_step_code, "status": status, "close": close, "notes": notes},
+                        actor=actor,
+                        source=source,
+                    )
+                _allow_validated_transition(self.db_path, "fascicolo_workflow_instances", instance_id, protected_target)
+            try:
+                conn.execute(
+                    """
+                    UPDATE fascicolo_workflow_instances
+                    SET current_step_code = ?, status = ?,
+                        closed_at = CASE WHEN ? = 1 THEN CURRENT_TIMESTAMP ELSE closed_at END,
+                        notes = COALESCE(NULLIF(?, ''), notes)
+                    WHERE id = ?
+                    """,
+                    (current_step_code, status, 1 if close else 0, notes, instance_id),
+                )
+            finally:
+                if protected_target:
+                    _clear_validated_transition(self.db_path, "fascicolo_workflow_instances", instance_id, protected_target)
             after = self.get_workflow_instance(instance_id, conn=conn)
             self.audit_log(
                 entity_type="fascicolo_workflow_instances",
@@ -935,9 +1168,18 @@ class ProcedureLifecycleRepository:
     def add_signature_event(self, row: dict[str, Any], *, actor: str = "", source: str = "signature") -> int:
         self.ensure_extended_schema()
         _assert_allowed_status(row.get("verification_status"), _SIGNATURE_STATUSES, "verification_status")
-        if row.get("verification_status") in _PROTECTED_SIGNATURE_STATUSES:
-            raise ValueError("VERIFIED deve passare da record_signature_result validato.")
         with self.connect() as conn:
+            if row.get("verification_status") in _PROTECTED_SIGNATURE_STATUSES:
+                self._blocked_operation(
+                    conn,
+                    entity_type="digital_signature_events",
+                    entity_id=str(row.get("document_id") or "new"),
+                    action="signature_event_create",
+                    reason="VERIFIED deve passare da record_signature_result validato.",
+                    attempted=row,
+                    actor=actor,
+                    source=source,
+                )
             cur = conn.execute(
                 """
                 INSERT INTO digital_signature_events (
@@ -1015,14 +1257,39 @@ class ProcedureLifecycleRepository:
         params.append(event_id)
         with self.connect() as conn:
             before = self._fetch_one(conn, "SELECT * FROM digital_signature_events WHERE id = ?", (event_id,))
-            if updates.get("verification_status") in _PROTECTED_SIGNATURE_STATUSES:
+            protected_target = str(updates.get("verification_status") or "") if updates.get("verification_status") in _PROTECTED_SIGNATURE_STATUSES else ""
+            if protected_target:
                 if source != _VALIDATED_SIGNATURE_SOURCE:
-                    raise ValueError("VERIFIED aggiornabile solo tramite record_signature_result validato.")
+                    self._blocked_operation(
+                        conn,
+                        entity_type="digital_signature_events",
+                        entity_id=event_id,
+                        action="signature_event_update",
+                        reason="VERIFIED aggiornabile solo tramite record_signature_result validato.",
+                        before=before,
+                        attempted=updates,
+                        actor=actor,
+                        source=source,
+                    )
                 candidate = {**(before or {}), **updates}
                 if not candidate.get("signer_detected") or not candidate.get("hash_after"):
-                    raise ValueError("VERIFIED richiede firmatario rilevato e hash del documento firmato.")
-                _insert_transition_guard(conn, "digital_signature_events", event_id, updates.get("verification_status"))
-            conn.execute(f"UPDATE digital_signature_events SET {', '.join(assignments)} WHERE id = ?", tuple(params))
+                    self._blocked_operation(
+                        conn,
+                        entity_type="digital_signature_events",
+                        entity_id=event_id,
+                        action="signature_event_update",
+                        reason="VERIFIED richiede firmatario rilevato e hash del documento firmato.",
+                        before=before,
+                        attempted=updates,
+                        actor=actor,
+                        source=source,
+                    )
+                _allow_validated_transition(self.db_path, "digital_signature_events", event_id, protected_target)
+            try:
+                conn.execute(f"UPDATE digital_signature_events SET {', '.join(assignments)} WHERE id = ?", tuple(params))
+            finally:
+                if protected_target:
+                    _clear_validated_transition(self.db_path, "digital_signature_events", event_id, protected_target)
             after = self._fetch_one(conn, "SELECT * FROM digital_signature_events WHERE id = ?", (event_id,))
             self.audit_log(
                 entity_type="digital_signature_events",
@@ -1040,9 +1307,18 @@ class ProcedureLifecycleRepository:
         self.ensure_extended_schema()
         deposit_status = row.get("deposit_status", "DRAFT")
         _assert_allowed_status(deposit_status, _DEPOSIT_STATUSES, "deposit_status")
-        if deposit_status in _OFFICIAL_DEPOSIT_RECEIPTS_BY_STATUS:
-            raise ValueError("Gli stati di accettazione o rifiuto ufficio richiedono ricevuta ufficiale collegata.")
         with self.connect() as conn:
+            if deposit_status in _OFFICIAL_DEPOSIT_RECEIPTS_BY_STATUS:
+                self._blocked_operation(
+                    conn,
+                    entity_type="telematic_deposit_packages",
+                    entity_id=str(row.get("fascicolo_id") or "new"),
+                    action="deposit_package_create",
+                    reason="Gli stati deposito protetti devono passare da funzioni validate.",
+                    attempted=row,
+                    actor=actor,
+                    source=source,
+                )
             cur = conn.execute(
                 """
                 INSERT INTO telematic_deposit_packages (
@@ -1117,18 +1393,70 @@ class ProcedureLifecycleRepository:
             before = self.get_deposit_package(package_id, conn=conn)
             official_status = updates.get("deposit_status")
             if official_status in _OFFICIAL_DEPOSIT_RECEIPTS_BY_STATUS:
-                if source != _VALIDATED_DEPOSIT_SOURCE:
-                    raise ValueError("Stato deposito ufficio aggiornabile solo da ricevute validate.")
-                receipts = self._fetch_all(
-                    conn,
-                    "SELECT receipt_type FROM telematic_deposit_receipts WHERE deposit_package_id = ?",
-                    (package_id,),
-                )
-                required_receipts = _OFFICIAL_DEPOSIT_RECEIPTS_BY_STATUS[str(official_status)]
-                if not any(row.get("receipt_type") in required_receipts for row in receipts):
-                    raise ValueError("Stato deposito ufficio non ammesso senza ricevuta ufficiale collegata.")
-                _insert_transition_guard(conn, "telematic_deposit_packages", package_id, official_status)
-            conn.execute(f"UPDATE telematic_deposit_packages SET {', '.join(assignments)} WHERE id = ?", tuple(params))
+                if official_status == "READY":
+                    if source != _VALIDATED_DEPOSIT_READY_SOURCE:
+                        self._blocked_operation(
+                            conn,
+                            entity_type="telematic_deposit_packages",
+                            entity_id=package_id,
+                            action="deposit_package_update",
+                            reason="READY aggiornabile solo da validate_package_ready.",
+                            before=before,
+                            attempted=updates,
+                            actor=actor,
+                            source=source,
+                        )
+                    try:
+                        _assert_deposit_ready_evidence(conn, {**(before or {}), **updates})
+                    except ValueError as exc:
+                        self._blocked_operation(
+                            conn,
+                            entity_type="telematic_deposit_packages",
+                            entity_id=package_id,
+                            action="deposit_package_update",
+                            reason=str(exc),
+                            before=before,
+                            attempted=updates,
+                            actor=actor,
+                            source=source,
+                        )
+                else:
+                    if source != _VALIDATED_DEPOSIT_SOURCE:
+                        self._blocked_operation(
+                            conn,
+                            entity_type="telematic_deposit_packages",
+                            entity_id=package_id,
+                            action="deposit_package_update",
+                            reason="Stato deposito ufficio aggiornabile solo da ricevute validate.",
+                            before=before,
+                            attempted=updates,
+                            actor=actor,
+                            source=source,
+                        )
+                    receipts = self._fetch_all(
+                        conn,
+                        "SELECT receipt_type FROM telematic_deposit_receipts WHERE deposit_package_id = ?",
+                        (package_id,),
+                    )
+                    required_receipts = _OFFICIAL_DEPOSIT_RECEIPTS_BY_STATUS[str(official_status)]
+                    if not any(row.get("receipt_type") in required_receipts for row in receipts):
+                        self._blocked_operation(
+                            conn,
+                            entity_type="telematic_deposit_packages",
+                            entity_id=package_id,
+                            action="deposit_package_update",
+                            reason="Stato deposito ufficio non ammesso senza ricevuta ufficiale collegata.",
+                            before=before,
+                            attempted=updates,
+                            actor=actor,
+                            source=source,
+                        )
+                _allow_validated_transition(self.db_path, "telematic_deposit_packages", package_id, str(official_status))
+            try:
+                conn.execute(f"UPDATE telematic_deposit_packages SET {', '.join(assignments)} WHERE id = ?", tuple(params))
+            finally:
+                if official_status in _OFFICIAL_DEPOSIT_RECEIPTS_BY_STATUS:
+                    _clear_validated_transition(self.db_path, "telematic_deposit_packages", package_id, str(official_status))
             after = self.get_deposit_package(package_id, conn=conn)
             self.audit_log(
                 entity_type="telematic_deposit_packages",
@@ -1281,7 +1609,16 @@ class ProcedureLifecycleRepository:
         _assert_allowed_status(notification_status, _NOTIFICATION_STATUSES, "status")
         with self.connect() as conn:
             if notification_status in _NOTIFICATION_PROOF_STATUSES:
-                _assert_notification_proof_evidence(conn, str(row["fascicolo_id"]), row.get("proof_bundle_id"))
+                self._blocked_operation(
+                    conn,
+                    entity_type="notification_events",
+                    entity_id=str(row.get("fascicolo_id") or "new"),
+                    action="notification_create",
+                    reason="Gli stati prova notifica devono passare da evidence vault validato.",
+                    attempted=row,
+                    actor=actor,
+                    source=source,
+                )
             cur = conn.execute(
                 """
                 INSERT INTO notification_events (
@@ -1360,16 +1697,45 @@ class ProcedureLifecycleRepository:
         with self.connect() as conn:
             before = self.get_notification_event(notification_id, conn=conn)
             target_status = updates.get("status")
+            if "proof_bundle_id" in updates and not target_status:
+                target_status = (before or {}).get("status")
             if target_status in _NOTIFICATION_PROOF_STATUSES:
                 if source != _VALIDATED_NOTIFICATION_SOURCE:
-                    raise ValueError("Stato prova notifica aggiornabile solo tramite evidence vault validato.")
-                _assert_notification_proof_evidence(
-                    conn,
-                    str((before or {}).get("fascicolo_id") or ""),
-                    updates.get("proof_bundle_id") or (before or {}).get("proof_bundle_id"),
-                )
-                _insert_transition_guard(conn, "notification_events", notification_id, target_status)
-            conn.execute(f"UPDATE notification_events SET {', '.join(assignments)} WHERE id = ?", tuple(params))
+                    self._blocked_operation(
+                        conn,
+                        entity_type="notification_events",
+                        entity_id=notification_id,
+                        action="notification_update",
+                        reason="Stato prova notifica aggiornabile solo tramite evidence vault validato.",
+                        before=before,
+                        attempted=updates,
+                        actor=actor,
+                        source=source,
+                    )
+                try:
+                    _assert_notification_proof_evidence(
+                        conn,
+                        str((before or {}).get("fascicolo_id") or ""),
+                        updates.get("proof_bundle_id") or (before or {}).get("proof_bundle_id"),
+                    )
+                except ValueError as exc:
+                    self._blocked_operation(
+                        conn,
+                        entity_type="notification_events",
+                        entity_id=notification_id,
+                        action="notification_update",
+                        reason=str(exc),
+                        before=before,
+                        attempted=updates,
+                        actor=actor,
+                        source=source,
+                    )
+                _allow_validated_transition(self.db_path, "notification_events", notification_id, str(target_status))
+            try:
+                conn.execute(f"UPDATE notification_events SET {', '.join(assignments)} WHERE id = ?", tuple(params))
+            finally:
+                if target_status in _NOTIFICATION_PROOF_STATUSES:
+                    _clear_validated_transition(self.db_path, "notification_events", notification_id, str(target_status))
             after = self.get_notification_event(notification_id, conn=conn)
             self.audit_log(
                 entity_type="notification_events",

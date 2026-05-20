@@ -129,6 +129,7 @@ def record_signature_result(
             "verified_at": datetime.now(UTC).isoformat(timespec="seconds") if validation["status"] == "VERIFIED" else None,
             "evidence_document_id": evidence_document_id or None,
         },
+        source="signature_validation",
     )
     return validation
 

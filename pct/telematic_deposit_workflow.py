@@ -118,7 +118,11 @@ def validate_package_ready(repo: ProcedureLifecycleRepository, package_id: int) 
         errors.append("Firma digitale richiesta ma non verificata.")
     ready = not errors
     if ready and package.get("deposit_status") == DepositStatus.DRAFT.value:
-        repo.update_deposit_package(package_id, {"deposit_status": DepositStatus.READY.value})
+        repo.update_deposit_package(
+            package_id,
+            {"deposit_status": DepositStatus.READY.value},
+            source="deposit_ready_validation",
+        )
     return {"ready": ready, "errors": errors}
 
 
@@ -203,5 +207,5 @@ def update_deposit_status_from_receipts(repo: ProcedureLifecycleRepository, pack
             {},
         )
         updates["rejection_reason"] = rejecting.get("notes")
-    repo.update_deposit_package(package_id, updates)
+    repo.update_deposit_package(package_id, updates, source="deposit_receipt_validation")
     return status

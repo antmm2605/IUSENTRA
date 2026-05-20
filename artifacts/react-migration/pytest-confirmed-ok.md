@@ -19,6 +19,7 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | Ricerca mirata dei pattern UTF-8 vietati sui file nuovi/toccati della tranche | OK | Nessun mojibake o carattere sostitutivo nei file modificati dalla tranche. |
 | `python tools\sync_packaging_files.py --check`; `python tools\check_repo_governance.py` | OK | Packaging sincronizzato e governance repo verde dopo aver esposto Git nel `PATH` della sessione. |
 | `git diff --check` | OK | Nessun errore whitespace nel diff della tranche. |
+| Hotfix OpenAPI CI | OK | Dopo il primo push il job `CI / Lint + syntax` ha segnalato `docs/openapi.yaml` ancora alla versione `2.245.64`; la versione del contratto è stata allineata a `2.245.65`. |
 
 ## Lex Studio Reasoner conversazionale, web/RAG e linguaggio/date 99% 2.245.63 - 2026-05-20
 

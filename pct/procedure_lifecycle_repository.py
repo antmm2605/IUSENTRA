@@ -7,13 +7,42 @@ from dataclasses import dataclass
 import hashlib
 import json
 from pathlib import Path
+import re
 import sqlite3
 from typing import Any, Iterator
 
 from pct.legal_coverage_sqlite_repository import CoverageSqliteConfig, SQLiteCoverageRepository
 
 
-EXTENDED_SCHEMA_SQL = Path(__file__).with_name("sql") / "20260520_procedure_lifecycle_knowledge_pipeline.sql"
+EXTENDED_SCHEMA_SQL = Path(__file__).with_name("sql") / "20260520_xsd_procedure_lifecycle_knowledge.sql"
+LEGACY_EXTENDED_SCHEMA_SQL = Path(__file__).with_name("sql") / "20260520_procedure_lifecycle_knowledge_pipeline.sql"
+
+TENANT_AWARE_TABLES: tuple[str, ...] = (
+    "legal_ministerial_xsd_objects",
+    "legal_procedure_xsd_map",
+    "legal_procedure_source_evidence",
+    "procedure_knowledge_cards",
+    "procedure_lifecycle_templates",
+    "procedure_lifecycle_steps",
+    "fascicolo_workflow_instances",
+    "fascicolo_workflow_events",
+    "digital_signature_events",
+    "telematic_deposit_packages",
+    "telematic_deposit_receipts",
+    "post_acceptance_obligations",
+    "notification_events",
+    "evidence_documents",
+    "procedure_audit_log",
+)
+
+_EMAIL_RE = re.compile(r"(?i)\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b")
+_CF_RE = re.compile(r"\b[A-Z]{6}[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{3}[A-Z]\b", re.IGNORECASE)
+_IBAN_RE = re.compile(r"\b[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}\b", re.IGNORECASE)
+_PHONE_RE = re.compile(r"(?<!\w)(?:\+39\s*)?(?:\d[\s./-]?){8,14}\d(?!\w)")
+_PATH_RE = re.compile(r"(?i)([a-z]:\\|/data/|/home/|/var/|\\\\)[^\s\"']+")
+_SECRET_KEY_PARTS = ("pin", "password", "token", "cookie", "secret", "credential", "otp")
+_PATH_KEY_PARTS = ("path", "storage_path", "filesystem", "directory")
+_PII_KEY_PARTS = ("tax_code", "codice_fiscale", "iban", "email", "phone", "telefono", "recipient_address")
 
 
 def json_dumps(value: Any) -> str:
@@ -51,6 +80,36 @@ def _stable_payload(value: dict[str, Any]) -> str:
 
 def stable_event_hash(payload: dict[str, Any]) -> str:
     return hashlib.sha256(_stable_payload(payload).encode("utf-8")).hexdigest()
+
+
+def _mask_text(value: str) -> str:
+    masked = _EMAIL_RE.sub("[email-masked]", value)
+    masked = _CF_RE.sub("[tax-code-masked]", masked)
+    masked = _IBAN_RE.sub("[iban-masked]", masked)
+    masked = _PHONE_RE.sub("[phone-masked]", masked)
+    masked = _PATH_RE.sub("[path-masked]", masked)
+    return masked
+
+
+def sanitize_audit_payload(value: Any, parent_key: str = "") -> Any:
+    """Rimuove dati sensibili prima di scrivere audit persistente."""
+
+    key = str(parent_key or "").lower()
+    if any(part in key for part in _SECRET_KEY_PARTS):
+        return "[secret-redacted]"
+    if any(part in key for part in _PATH_KEY_PARTS):
+        return "[path-redacted]" if value not in (None, "") else value
+    if isinstance(value, dict):
+        return {item_key: sanitize_audit_payload(item_value, str(item_key)) for item_key, item_value in value.items()}
+    if isinstance(value, list):
+        return [sanitize_audit_payload(item, parent_key) for item in value]
+    if isinstance(value, tuple):
+        return [sanitize_audit_payload(item, parent_key) for item in value]
+    if isinstance(value, str):
+        if any(part in key for part in _PII_KEY_PARTS):
+            return _mask_text(value)
+        return _mask_text(value)
+    return value
 
 
 def diff_dict(before: dict[str, Any] | None, after: dict[str, Any] | None) -> dict[str, Any]:
@@ -91,8 +150,26 @@ class ProcedureLifecycleRepository:
     def ensure_extended_schema(self) -> None:
         SQLiteCoverageRepository(self.config).ensure_schema()
         with self.connect() as conn:
-            conn.executescript(EXTENDED_SCHEMA_SQL.read_text(encoding="utf-8"))
+            schema_path = EXTENDED_SCHEMA_SQL if EXTENDED_SCHEMA_SQL.exists() else LEGACY_EXTENDED_SCHEMA_SQL
+            conn.executescript(schema_path.read_text(encoding="utf-8"))
+            self._ensure_tenant_columns(conn)
             conn.commit()
+
+    def _table_columns(self, conn: sqlite3.Connection, table_name: str) -> set[str]:
+        return {str(row["name"]) for row in conn.execute(f"PRAGMA table_info({table_name})").fetchall()}
+
+    def _ensure_tenant_columns(self, conn: sqlite3.Connection) -> None:
+        for table_name in TENANT_AWARE_TABLES:
+            if not self._fetch_one(
+                conn,
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+                (table_name,),
+            ):
+                continue
+            columns = self._table_columns(conn, table_name)
+            if "tenant_id" not in columns:
+                conn.execute(f"ALTER TABLE {table_name} ADD COLUMN tenant_id TEXT")
+            conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_tenant_id ON {table_name} (tenant_id)")
 
     def _fetch_one(self, conn: sqlite3.Connection, sql: str, params: tuple[Any, ...] = ()) -> dict[str, Any] | None:
         return row_to_dict(conn.execute(sql, params).fetchone())
@@ -123,36 +200,41 @@ class ProcedureLifecycleRepository:
         notes: str = "",
         conn: sqlite3.Connection | None = None,
     ) -> str:
-        diff_payload = diff if diff is not None else diff_dict(before, after)
+        safe_before = sanitize_audit_payload(before or {})
+        safe_after = sanitize_audit_payload(after or {})
+        safe_diff = sanitize_audit_payload(diff if diff is not None else diff_dict(before, after))
+        tenant_id = str((after or {}).get("tenant_id") or (before or {}).get("tenant_id") or "")
         hash_payload = {
             "entity_type": entity_type,
             "entity_id": str(entity_id or ""),
             "action": action,
             "actor": actor,
             "source": source,
-            "before": before or {},
-            "after": after or {},
-            "diff": diff_payload,
+            "before": safe_before,
+            "after": safe_after,
+            "diff": safe_diff,
             "notes": notes,
+            "tenant_id": tenant_id,
         }
         event_hash = stable_event_hash(hash_payload)
         params = (
+            tenant_id or None,
             entity_type,
             str(entity_id or ""),
             action,
             actor or None,
             source or None,
-            json_dumps(before or {}),
-            json_dumps(after or {}),
-            json_dumps(diff_payload),
+            json_dumps(safe_before),
+            json_dumps(safe_after),
+            json_dumps(safe_diff),
             event_hash,
             notes or None,
         )
         sql = """
             INSERT INTO procedure_audit_log (
-                entity_type, entity_id, action, actor, source,
+                tenant_id, entity_type, entity_id, action, actor, source,
                 before_json, after_json, diff_json, event_hash, notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         if conn is not None:
             conn.execute(sql, params)
@@ -192,11 +274,12 @@ class ProcedureLifecycleRepository:
             conn.execute(
                 """
                 INSERT INTO legal_ministerial_xsd_objects (
-                    xsd_code, xsd_label, xsd_area_code, xsd_area_label, xsd_family_code,
+                    tenant_id, xsd_code, xsd_label, xsd_area_code, xsd_area_label, xsd_family_code,
                     xsd_family_label, source_version, source_name, source_url, source_file,
                     active, last_verified_at, import_hash, notes, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 ON CONFLICT(xsd_code) DO UPDATE SET
+                    tenant_id = excluded.tenant_id,
                     xsd_label = excluded.xsd_label,
                     xsd_area_code = excluded.xsd_area_code,
                     xsd_area_label = excluded.xsd_area_label,
@@ -213,6 +296,7 @@ class ProcedureLifecycleRepository:
                     updated_at = CURRENT_TIMESTAMP
                 """,
                 (
+                    row.get("tenant_id"),
                     xsd_code,
                     row["xsd_label"],
                     row.get("xsd_area_code"),
@@ -231,7 +315,7 @@ class ProcedureLifecycleRepository:
             )
             after = self._fetch_one(conn, "SELECT * FROM legal_ministerial_xsd_objects WHERE xsd_code = ?", (xsd_code,))
             action = "xsd_import_update" if before else "xsd_import_create"
-            if before != after:
+            if before != after:  # pragma: no branch - l'upsert eseguito aggiorna sempre updated_at.
                 self.audit_log(
                     entity_type="legal_ministerial_xsd_objects",
                     entity_id=xsd_code,
@@ -269,11 +353,12 @@ class ProcedureLifecycleRepository:
             conn.execute(
                 """
                 INSERT INTO legal_procedure_xsd_map (
-                    xsd_code, procedure_code, channel_code, registry_code, workflow_code,
+                    tenant_id, xsd_code, procedure_code, channel_code, registry_code, workflow_code,
                     is_default, confidence_score, mapping_source, review_status,
                     reviewer, reviewed_at, notes, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 ON CONFLICT(xsd_code, procedure_code, channel_code) DO UPDATE SET
+                    tenant_id = excluded.tenant_id,
                     registry_code = excluded.registry_code,
                     workflow_code = excluded.workflow_code,
                     is_default = excluded.is_default,
@@ -286,6 +371,7 @@ class ProcedureLifecycleRepository:
                     updated_at = CURRENT_TIMESTAMP
                 """,
                 (
+                    row.get("tenant_id"),
                     row["xsd_code"],
                     row["procedure_code"],
                     row.get("channel_code"),
@@ -308,7 +394,7 @@ class ProcedureLifecycleRepository:
                 """,
                 key,
             )
-            if before != after:
+            if before != after:  # pragma: no branch - l'upsert eseguito aggiorna sempre updated_at.
                 self.audit_log(
                     entity_type="legal_procedure_xsd_map",
                     entity_id=(after or {}).get("id"),
@@ -341,14 +427,15 @@ class ProcedureLifecycleRepository:
             cur = conn.execute(
                 """
                 INSERT INTO legal_procedure_source_evidence (
-                    procedure_code, xsd_code, source_id, source_type, source_url,
+                    tenant_id, procedure_code, xsd_code, source_id, source_type, source_url,
                     source_title, source_author, source_date, last_checked_at,
                     evidence_kind, extracted_principle, original_quote_short,
                     copyright_policy, reliability_score, review_status, reviewer,
                     reviewed_at, notes, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 """,
                 (
+                    row.get("tenant_id"),
                     row["procedure_code"],
                     row.get("xsd_code"),
                     row.get("source_id"),
@@ -402,13 +489,14 @@ class ProcedureLifecycleRepository:
             cur = conn.execute(
                 """
                 INSERT INTO procedure_knowledge_cards (
-                    procedure_code, xsd_code, title, version, status, risk_level,
+                    tenant_id, procedure_code, xsd_code, title, version, status, risk_level,
                     requires_human_review, generated_from_sources_json, card_json,
                     summary_original, validation_report_json, reviewer, reviewed_at,
                     review_reason, published_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 """,
                 (
+                    row.get("tenant_id"),
                     row["procedure_code"],
                     row.get("xsd_code"),
                     row["title"],
@@ -522,11 +610,12 @@ class ProcedureLifecycleRepository:
             cur = conn.execute(
                 """
                 INSERT INTO procedure_lifecycle_templates (
-                    procedure_code, xsd_code, channel_code, registry_code, workflow_code,
+                    tenant_id, procedure_code, xsd_code, channel_code, registry_code, workflow_code,
                     name, version, active, requires_human_review, notes, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 """,
                 (
+                    row.get("tenant_id"),
                     row["procedure_code"],
                     row.get("xsd_code"),
                     row["channel_code"],
@@ -558,12 +647,13 @@ class ProcedureLifecycleRepository:
             cur = conn.execute(
                 """
                 INSERT INTO procedure_lifecycle_steps (
-                    template_id, step_code, step_name, step_type, sort_order,
+                    tenant_id, template_id, step_code, step_name, step_type, sort_order,
                     required, trigger_event, deadline_rule_json, validation_rule_json,
                     output_required_json, next_step_on_success, next_step_on_error,
                     human_review_required, notes, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 ON CONFLICT(template_id, step_code) DO UPDATE SET
+                    tenant_id = excluded.tenant_id,
                     step_name = excluded.step_name,
                     step_type = excluded.step_type,
                     sort_order = excluded.sort_order,
@@ -579,6 +669,7 @@ class ProcedureLifecycleRepository:
                     updated_at = CURRENT_TIMESTAMP
                 """,
                 (
+                    row.get("tenant_id"),
                     int(row["template_id"]),
                     row["step_code"],
                     row["step_name"],
@@ -644,11 +735,12 @@ class ProcedureLifecycleRepository:
             cur = conn.execute(
                 """
                 INSERT INTO fascicolo_workflow_instances (
-                    fascicolo_id, template_id, procedure_code, xsd_code,
+                    tenant_id, fascicolo_id, template_id, procedure_code, xsd_code,
                     current_step_code, status, assigned_lawyer_id, risk_level, notes
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    row.get("tenant_id"),
                     row["fascicolo_id"],
                     int(row["template_id"]),
                     row["procedure_code"],
@@ -722,11 +814,12 @@ class ProcedureLifecycleRepository:
             cur = conn.execute(
                 """
                 INSERT INTO fascicolo_workflow_events (
-                    workflow_instance_id, event_code, event_type, event_status,
+                    tenant_id, workflow_instance_id, event_code, event_type, event_status,
                     source, source_ref, event_payload_json, created_by, notes
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    row.get("tenant_id"),
                     int(row["workflow_instance_id"]),
                     row["event_code"],
                     row["event_type"],
@@ -758,13 +851,14 @@ class ProcedureLifecycleRepository:
             cur = conn.execute(
                 """
                 INSERT INTO digital_signature_events (
-                    fascicolo_id, document_id, required, signer_expected, signer_detected,
+                    tenant_id, fascicolo_id, document_id, required, signer_expected, signer_detected,
                     signer_tax_code, signature_format, certificate_serial, hash_before,
                     hash_after, verification_status, signed_at, verified_at,
                     evidence_document_id, notes
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    row.get("tenant_id"),
                     row["fascicolo_id"],
                     row["document_id"],
                     int(row.get("required", 1)),
@@ -849,13 +943,14 @@ class ProcedureLifecycleRepository:
             cur = conn.execute(
                 """
                 INSERT INTO telematic_deposit_packages (
-                    fascicolo_id, procedure_code, xsd_code, channel_code, office_code,
+                    tenant_id, fascicolo_id, procedure_code, xsd_code, channel_code, office_code,
                     registry_code, dati_atto_xml_id, envelope_file_id, deposit_status,
                     deposit_mode, package_hash, sent_at, accepted_at, rejected_at,
                     rejection_reason, notes, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 """,
                 (
+                    row.get("tenant_id"),
                     row["fascicolo_id"],
                     row["procedure_code"],
                     row.get("xsd_code"),
@@ -934,12 +1029,13 @@ class ProcedureLifecycleRepository:
             cur = conn.execute(
                 """
                 INSERT INTO telematic_deposit_receipts (
-                    deposit_package_id, receipt_type, receipt_status, pec_message_id,
+                    tenant_id, deposit_package_id, receipt_type, receipt_status, pec_message_id,
                     pec_subject, sender, recipient, received_at, event_time,
                     document_id, parsed_payload_json, notes
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    row.get("tenant_id"),
                     int(row["deposit_package_id"]),
                     row["receipt_type"],
                     row["receipt_status"],
@@ -985,12 +1081,13 @@ class ProcedureLifecycleRepository:
             cur = conn.execute(
                 """
                 INSERT INTO post_acceptance_obligations (
-                    fascicolo_id, procedure_code, xsd_code, trigger_event, obligation_type,
+                    tenant_id, fascicolo_id, procedure_code, xsd_code, trigger_event, obligation_type,
                     obligation_status, deadline_at, legal_basis, required_documents_json,
                     evidence_required_json, human_review_required, completed_at, notes
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    row.get("tenant_id"),
                     row["fascicolo_id"],
                     row["procedure_code"],
                     row.get("xsd_code"),
@@ -1063,13 +1160,14 @@ class ProcedureLifecycleRepository:
             cur = conn.execute(
                 """
                 INSERT INTO notification_events (
-                    fascicolo_id, obligation_id, notification_type, recipient_name,
+                    tenant_id, fascicolo_id, obligation_id, notification_type, recipient_name,
                     recipient_tax_code, recipient_address, recipient_address_source,
                     act_document_id, relata_document_id, sent_at, delivered_at,
                     status, proof_bundle_id, notes, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 """,
                 (
+                    row.get("tenant_id"),
                     row["fascicolo_id"],
                     row.get("obligation_id"),
                     row["notification_type"],
@@ -1154,12 +1252,13 @@ class ProcedureLifecycleRepository:
             cur = conn.execute(
                 """
                 INSERT INTO evidence_documents (
-                    fascicolo_id, evidence_type, document_id, source_event_id, hash,
+                    tenant_id, fascicolo_id, evidence_type, document_id, source_event_id, hash,
                     filename_original, storage_path, legal_relevance,
                     retention_policy, notes
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    row.get("tenant_id"),
                     row["fascicolo_id"],
                     row["evidence_type"],
                     row["document_id"],
@@ -1225,5 +1324,14 @@ class ProcedureLifecycleRepository:
                 (subbranch_code, gap_type, int(priority_score), json_dumps(gap_payload), status),
             )
             gap_id = int(cur.lastrowid)
+            after = self._fetch_one(conn, "SELECT * FROM coverage_gap_queue WHERE id = ?", (gap_id,))
+            self.audit_log(
+                entity_type="coverage_gap_queue",
+                entity_id=gap_id,
+                action="coverage_gap_create",
+                after=after,
+                source="coverage",
+                conn=conn,
+            )
             conn.commit()
         return gap_id

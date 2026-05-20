@@ -4,6 +4,8 @@ import pytest
 
 from pct.evidence_vault import add_evidence_document
 from pct.notification_workflow import (
+    NOTIFICATION_STATUSES,
+    NotificationStatus,
     acquire_notification_proof,
     attach_relata,
     create_notification_event,
@@ -19,6 +21,7 @@ from tests.procedure_pipeline_support import make_repo
 
 def test_notification_ready_sent_proof_e_deposito_prova(tmp_path):
     repo = make_repo(tmp_path)
+    assert NotificationStatus.PROOF_DEPOSITED.value in NOTIFICATION_STATUSES
     obligation_id = repo.add_obligation(
         {
             "fascicolo_id": "F1",

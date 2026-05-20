@@ -3,10 +3,31 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from enum import Enum
 from typing import Any
 
 from pct.procedure_lifecycle_repository import ProcedureLifecycleRepository
 
+
+class ProcedureGapType(str, Enum):
+    MISSING_XSD_OBJECT = "MISSING_XSD_OBJECT"
+    MISSING_XSD_MAPPING = "MISSING_XSD_MAPPING"
+    MISSING_SOURCE_EVIDENCE = "MISSING_SOURCE_EVIDENCE"
+    MISSING_KNOWLEDGE_CARD = "MISSING_KNOWLEDGE_CARD"
+    MISSING_LIFECYCLE = "MISSING_LIFECYCLE"
+    MISSING_SIGNATURE_RULES = "MISSING_SIGNATURE_RULES"
+    MISSING_DEPOSIT_RULES = "MISSING_DEPOSIT_RULES"
+    MISSING_RECEIPT_RULES = "MISSING_RECEIPT_RULES"
+    MISSING_ACCEPTANCE_RULES = "MISSING_ACCEPTANCE_RULES"
+    MISSING_POST_ACCEPTANCE_RULES = "MISSING_POST_ACCEPTANCE_RULES"
+    MISSING_NOTIFICATION_RULES = "MISSING_NOTIFICATION_RULES"
+    MISSING_RELATA_RULES = "MISSING_RELATA_RULES"
+    MISSING_PROOF_RULES = "MISSING_PROOF_RULES"
+    MISSING_EVIDENCE_RULES = "MISSING_EVIDENCE_RULES"
+    NEEDS_HUMAN_REVIEW = "NEEDS_HUMAN_REVIEW"
+
+
+PROCEDURE_GAP_TYPES: tuple[str, ...] = tuple(gap.value for gap in ProcedureGapType)
 
 EXTENDED_BLOCKS: tuple[str, ...] = (
     "xsd_object",
@@ -27,20 +48,21 @@ EXTENDED_BLOCKS: tuple[str, ...] = (
 )
 
 GAP_BY_BLOCK = {
-    "xsd_mapping": "MISSING_XSD_MAPPING",
-    "source_evidence": "MISSING_SOURCE_EVIDENCE",
-    "knowledge_card": "MISSING_KNOWLEDGE_CARD",
-    "lifecycle_template": "MISSING_LIFECYCLE",
-    "lifecycle_steps": "MISSING_LIFECYCLE",
-    "signature_rules": "MISSING_SIGNATURE_RULES",
-    "deposit_rules": "MISSING_DEPOSIT_RULES",
-    "receipt_rules": "MISSING_RECEIPT_RULES",
-    "acceptance_rules": "MISSING_RECEIPT_RULES",
-    "post_acceptance_rules": "MISSING_POST_ACCEPTANCE_RULES",
-    "notification_rules": "MISSING_NOTIFICATION_RULES",
-    "relata_rules": "MISSING_NOTIFICATION_RULES",
-    "proof_deposit_rules": "MISSING_EVIDENCE_RULES",
-    "evidence_rules": "MISSING_EVIDENCE_RULES",
+    "xsd_object": ProcedureGapType.MISSING_XSD_OBJECT.value,
+    "xsd_mapping": ProcedureGapType.MISSING_XSD_MAPPING.value,
+    "source_evidence": ProcedureGapType.MISSING_SOURCE_EVIDENCE.value,
+    "knowledge_card": ProcedureGapType.MISSING_KNOWLEDGE_CARD.value,
+    "lifecycle_template": ProcedureGapType.MISSING_LIFECYCLE.value,
+    "lifecycle_steps": ProcedureGapType.MISSING_LIFECYCLE.value,
+    "signature_rules": ProcedureGapType.MISSING_SIGNATURE_RULES.value,
+    "deposit_rules": ProcedureGapType.MISSING_DEPOSIT_RULES.value,
+    "receipt_rules": ProcedureGapType.MISSING_RECEIPT_RULES.value,
+    "acceptance_rules": ProcedureGapType.MISSING_ACCEPTANCE_RULES.value,
+    "post_acceptance_rules": ProcedureGapType.MISSING_POST_ACCEPTANCE_RULES.value,
+    "notification_rules": ProcedureGapType.MISSING_NOTIFICATION_RULES.value,
+    "relata_rules": ProcedureGapType.MISSING_RELATA_RULES.value,
+    "proof_deposit_rules": ProcedureGapType.MISSING_PROOF_RULES.value,
+    "evidence_rules": ProcedureGapType.MISSING_EVIDENCE_RULES.value,
 }
 
 
@@ -158,7 +180,7 @@ def enqueue_extended_gaps(repo: ProcedureLifecycleRepository, coverage: dict[str
     procedure_code = str(coverage.get("procedure_code") or "")
     xsd = repo.get_xsd_object(xsd_code) if xsd_code else None
     for block in missing_blocks:
-        gap_type = "NEEDS_HUMAN_REVIEW" if block == "human_review" else GAP_BY_BLOCK.get(block)
+        gap_type = ProcedureGapType.NEEDS_HUMAN_REVIEW.value if block == "human_review" else GAP_BY_BLOCK.get(block)
         if not gap_type:
             continue
         payload = {

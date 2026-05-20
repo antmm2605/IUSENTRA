@@ -1,6 +1,6 @@
 # CI/CD gates IUSENTRA
 
-Aggiornato: 2026-05-19, fase 11.5 fonti legali.
+Aggiornato: 2026-05-21, pipeline lifecycle procedurale.
 
 ## Obiettivo
 
@@ -50,6 +50,7 @@ ambiente esterno o credenziali smoke.
 - Frontend: `pnpm install --frozen-lockfile`, `pnpm --filter @iusentra/studio test`, `pnpm --filter @iusentra/studio typecheck`, `pnpm --filter @iusentra/studio build` o `build:vite`.
 - Feature flag/registry: `generate_app_v2_page_registry.py --check`, `generate_app_v2_test_docs.py --check`, `generate_app_v2_area_requirements.py --check`, `validate_ui_coverage.py`.
 - Coverage: `coverage-critical` shardata in 12 parti richieste; il vecchio report aggregato senza `parte` non deve tornare blocco PR.
+- Pipeline lifecycle procedurale: quando si toccano inventario XSD/PST, mapping, fonti, schede, workflow, firma, deposito, ricevute, notifiche o audit, eseguire lo shard mirato `tests/test_procedure_inventory_importer.py tests/test_procedure_xsd_mapper.py tests/test_procedure_source_research.py tests/test_procedure_knowledge_pipeline.py tests/test_procedure_lifecycle.py tests/test_digital_signature_workflow.py tests/test_telematic_deposit_workflow.py tests/test_post_acceptance_obligations.py tests/test_notification_workflow.py tests/test_evidence_vault.py tests/test_procedure_coverage_ext.py tests/test_procedure_lifecycle_repository.py tests/test_procedure_lifecycle_edges.py` e la coverage dedicata `config/coverage-procedure-lifecycle.ini`.
 - SAST/dependency: CodeQL, dependency review, `pip-audit`, `pnpm --filter @iusentra/studio audit --audit-level=critical`.
 
 ## Gate informativi, manuali e nightly

@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from pct.procedure_coverage_ext import compute_extended_coverage, enqueue_extended_gaps, list_procedure_inventory_coverage
+from pct.procedure_coverage_ext import (
+    PROCEDURE_GAP_TYPES,
+    ProcedureGapType,
+    compute_extended_coverage,
+    enqueue_extended_gaps,
+    list_procedure_inventory_coverage,
+)
 from tests.procedure_pipeline_support import make_repo, seed_inventory
 
 
@@ -17,6 +23,8 @@ def test_coverage_genera_gap_per_blocchi_mancanti(tmp_path):
     gaps = enqueue_extended_gaps(repo, coverage)
     gap_types = {gap["gap_type"] for gap in gaps}
     assert {"MISSING_SOURCE_EVIDENCE", "MISSING_KNOWLEDGE_CARD", "NEEDS_HUMAN_REVIEW"} <= gap_types
+    assert ProcedureGapType.MISSING_ACCEPTANCE_RULES.value in PROCEDURE_GAP_TYPES
+    assert repo.list_audit_log("coverage_gap_queue")
 
 
 def test_coverage_ready_solo_con_mapping_fonti_card_e_review(tmp_path):

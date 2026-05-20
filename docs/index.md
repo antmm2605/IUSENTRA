@@ -1,6 +1,6 @@
 # Indice documentazione IUSENTRA
 
-Aggiornato: 2026-05-14, fase 14 `fasereact`.
+Aggiornato: 2026-05-21, pipeline lifecycle procedurale.
 
 Questo indice e' il punto di ingresso operativo per sviluppatori, maintainer e release manager. I documenti generati devono essere aggiornati tramite gli script indicati, non a mano, salvo correzioni esplicitamente documentate.
 
@@ -40,6 +40,8 @@ Questo indice e' il punto di ingresso operativo per sviluppatori, maintainer e r
 | Storage | [STORAGE_MATRIX](STORAGE_MATRIX.md) | Matrice repository/path/tenant. |
 | Database e migrazioni | [database-and-migrations](database-and-migrations.md) | Stato SQLite/PostgreSQL, migrazioni e rollback dati. |
 | Notifiche e procedimenti telematici | [LEGAL_NOTIFICATIONS_AND_TELEMATIC_REGISTRY](LEGAL_NOTIFICATIONS_AND_TELEMATIC_REGISTRY.md) | L. 53/1994, relata, prova notifica, fail-closed e registry PCT/SIGP/UNEP/PAT/PTT/PDP. |
+| Procedure lifecycle knowledge pipeline | [procedure_lifecycle_knowledge_pipeline](procedure_lifecycle_knowledge_pipeline.md) | Inventario PST/XSD, mapping procedure, fonti, schede, lifecycle, firma, deposito, ricevute, notifica, prova, audit e gap queue. |
+| Audit repo lifecycle procedure | [procedure_lifecycle_repo_audit](procedure_lifecycle_repo_audit.md) | Inventario iniziale, moduli riusati, conflitti evitati, gap reali e piano definitivo della tranche. |
 
 ## Lex AI e fonti
 

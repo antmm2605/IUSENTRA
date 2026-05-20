@@ -6,11 +6,17 @@ from pct.digital_signature_workflow import create_signature_requirement, record_
 from pct.evidence_vault import add_evidence_document
 from pct.notification_workflow import create_notification_event, mark_notification_ready, record_notification_sent
 from pct.procedure_lifecycle import (
+    LIFECYCLE_STEP_TYPES,
+    LifecycleStepType,
+    WORKFLOW_STATES,
+    WorkflowState,
     build_lifecycle_steps_for_xsd,
     generate_lifecycle_templates_for_catalog,
     open_workflow_instance,
     transition_workflow,
 )
+from pct.procedure_lifecycle_templates import build_lifecycle_steps_for_xsd as facade_build_steps
+from pct.procedure_workflow_runtime import transition_workflow as facade_transition
 from pct.telematic_deposit_workflow import add_deposit_receipt, create_deposit_package
 from tests.procedure_pipeline_support import make_repo, seed_inventory
 
@@ -46,6 +52,10 @@ def test_lifecycle_template_per_famiglie_e_state_machine_severa(tmp_path):
     assert report.xsd_total == 6
     assert "PROOF_DEPOSIT" in build_lifecycle_steps_for_xsd("010001")
     assert "NOTIFICATION_DECISION" in build_lifecycle_steps_for_xsd("030001")
+    assert LifecycleStepType.PROOF_DEPOSIT.value in LIFECYCLE_STEP_TYPES
+    assert WorkflowState.CHIUSA.value in WORKFLOW_STATES
+    assert facade_build_steps("010001") == build_lifecycle_steps_for_xsd("010001")
+    assert facade_transition is transition_workflow
 
     instance_id = _instance(repo)
     _advance_to_signature(repo, instance_id)

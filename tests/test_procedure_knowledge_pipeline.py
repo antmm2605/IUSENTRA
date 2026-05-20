@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from pct.procedure_knowledge_pipeline import (
+    REQUIRED_CARD_SECTIONS,
     add_source_evidence,
     approve_knowledge_card,
     build_original_knowledge_card,
@@ -11,6 +12,8 @@ from pct.procedure_knowledge_pipeline import (
     submit_knowledge_card_for_review,
     validate_source_evidence,
 )
+from pct.procedure_knowledge_cards import build_original_knowledge_card as facade_build_card
+from pct.procedure_source_evidence import validate_source_evidence as facade_validate_source
 from tests.procedure_pipeline_support import make_repo
 
 
@@ -60,6 +63,16 @@ def test_source_evidence_policy_anti_copia_e_privacy(tmp_path):
         }
     )
     assert internal.privacy_review_required is True
+    iban = validate_source_evidence(
+        {
+            "procedure_code": "PROC",
+            "source_type": "internal",
+            "source_title": "checklist IT60X0542811101000000123456",
+            "evidence_kind": "checklist",
+        }
+    )
+    assert iban.privacy_review_required is True
+    assert facade_validate_source({"procedure_code": "PROC", "source_type": "official", "source_url": "https://pst.giustizia.it", "evidence_kind": "catalogo"}).warnings
 
 
 def test_knowledge_card_originale_review_e_publish_bloccanti(tmp_path):
@@ -79,6 +92,8 @@ def test_knowledge_card_originale_review_e_publish_bloccanti(tmp_path):
     card_json = build_original_knowledge_card("PROC", "010001", sources)
     assert "nota_originalita" in card_json
     assert "fonti_consultate" in card_json
+    assert {"condizioni_procedibilita", "deposito_prova", "review_avvocato"} <= set(REQUIRED_CARD_SECTIONS)
+    assert facade_build_card("PROC", "010001", sources)["review_avvocato"]["required"] is True
 
     card_id = save_knowledge_card(
         repo,

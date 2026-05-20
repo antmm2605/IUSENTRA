@@ -2,12 +2,25 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
+from enum import Enum
 from typing import Any
 
 from pct.procedure_lifecycle_repository import ProcedureLifecycleRepository
 
 
+class SignatureStatus(str, Enum):
+    NOT_REQUIRED = "NOT_REQUIRED"
+    REQUIRED_PENDING = "REQUIRED_PENDING"
+    SIGNED_UNVERIFIED = "SIGNED_UNVERIFIED"
+    VERIFIED = "VERIFIED"
+    INVALID = "INVALID"
+    MISMATCH_SIGNER = "MISMATCH_SIGNER"
+    EXPIRED_CERTIFICATE = "EXPIRED_CERTIFICATE"
+    ERROR = "ERROR"
+
+
+SIGNATURE_STATUSES: tuple[str, ...] = tuple(status.value for status in SignatureStatus)
 SIGNATURE_REQUIRED_ROLES = {"atto_principale", "ricorso", "procura", "dati_atto", "deposit_package"}
 TELEMATIC_CHANNEL_PREFIXES = {"010", "011", "012", "014", "015", "017", "019", "020", "030", "050", "051", "052", "053", "055", "059"}
 FORBIDDEN_SECRET_KEYS = {"pin", "password", "token", "secret", "credential", "credentials", "otp"}
@@ -56,19 +69,25 @@ def verify_signature_event_consistency(event: dict[str, Any]) -> dict[str, Any]:
     expected = str(event.get("signer_expected") or "").strip().lower()
     detected = str(event.get("signer_detected") or "").strip().lower()
     if int(event.get("required") or 0) == 0:
-        return {"status": "NOT_REQUIRED", "errors": [], "warnings": []}
+        return {"status": SignatureStatus.NOT_REQUIRED.value, "errors": [], "warnings": []}
     errors: list[str] = []
     warnings: list[str] = []
+    if event.get("certificate_expired"):
+        errors.append("Certificato scaduto.")
+        return {"status": SignatureStatus.EXPIRED_CERTIFICATE.value, "errors": errors, "warnings": warnings}
+    if event.get("signature_invalid"):
+        errors.append("Firma non valida.")
+        return {"status": SignatureStatus.INVALID.value, "errors": errors, "warnings": warnings}
     if not detected:
         errors.append("Firmatario rilevato mancante.")
     if expected and detected and expected != detected:
         errors.append("Firmatario rilevato non coerente con quello atteso.")
-        return {"status": "MISMATCH_SIGNER", "errors": errors, "warnings": warnings}
+        return {"status": SignatureStatus.MISMATCH_SIGNER.value, "errors": errors, "warnings": warnings}
     if not event.get("hash_after"):
         warnings.append("Hash del documento firmato non registrato.")
     if errors:
-        return {"status": "ERROR", "errors": errors, "warnings": warnings}
-    return {"status": "VERIFIED", "errors": [], "warnings": warnings}
+        return {"status": SignatureStatus.ERROR.value, "errors": errors, "warnings": warnings}
+    return {"status": SignatureStatus.VERIFIED.value, "errors": [], "warnings": warnings}
 
 
 def record_signature_result(
@@ -106,9 +125,36 @@ def record_signature_result(
             "certificate_serial": certificate_serial or None,
             "hash_after": hash_after,
             "verification_status": validation["status"],
-            "signed_at": datetime.utcnow().isoformat(timespec="seconds"),
-            "verified_at": datetime.utcnow().isoformat(timespec="seconds") if validation["status"] == "VERIFIED" else None,
+            "signed_at": datetime.now(UTC).isoformat(timespec="seconds"),
+            "verified_at": datetime.now(UTC).isoformat(timespec="seconds") if validation["status"] == "VERIFIED" else None,
             "evidence_document_id": evidence_document_id or None,
         },
     )
     return validation
+
+
+def assert_required_signatures_verified(
+    repo: ProcedureLifecycleRepository,
+    fascicolo_id: str,
+    *,
+    document_ids: tuple[str, ...] | list[str] | None = None,
+) -> None:
+    expected = set(document_ids or [])
+    events = repo.list_signature_events(fascicolo_id)
+    required_events = [
+        event
+        for event in events
+        if int(event.get("required") or 0) == 1 and (not expected or str(event.get("document_id") or "") in expected)
+    ]
+    if expected:
+        seen = {str(event.get("document_id") or "") for event in required_events}
+        missing = sorted(expected - seen)
+        if missing:
+            raise ValueError(f"Firma digitale richiesta ma non censita per documenti: {', '.join(missing)}")
+    not_verified = [
+        str(event.get("document_id") or event.get("id") or "")
+        for event in required_events
+        if event.get("verification_status") != SignatureStatus.VERIFIED.value
+    ]
+    if not_verified:
+        raise ValueError(f"Firma digitale richiesta ma non VERIFIED per documenti: {', '.join(not_verified)}")

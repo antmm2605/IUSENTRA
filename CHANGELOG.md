@@ -7,11 +7,17 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.246.1 - 2026-05-21
+
+- Rafforzata la pipeline Procedure Lifecycle Knowledge: audit repo iniziale obbligatorio, migration canonica `20260520_xsd_procedure_lifecycle_knowledge.sql`, colonne `tenant_id`, audit sanificato da PII/segreti/path, enum Python per stati lifecycle/firma/deposito/notifiche/obblighi/gap e façade senza logica parallela per i nomi applicativi richiesti.
+- Esteso l'importer PST/XSD con catalogo di default, report `artifacts/procedure-lifecycle/xsd_import_report.json` e CLI compatibile con i comandi `--dry-run`/`--apply` senza `--catalog`.
+- Aggiornati test mirati, coverage dedicata e documentazione per preservare mapping, fonti, schede originali, lifecycle, firma, deposito, ricevute, notifica, evidence, audit e gap queue senza aggirare Practice Engine, Local Signer o Lex Source Policy.
+
 ## 2.246.0 - 2026-05-20
 
 - Aggiunta la pipeline tecnica per inventario PST/XSD, mapping prudente verso procedure IUSENTRA, coverage estesa, gap queue, fonti multi-sorgente, schede conoscitive originali, lifecycle pratica, firma digitale governata, deposito telematico stub, obblighi post-accettazione, notifiche, evidenze e audit deterministico.
 - Aggiunto il layer di consultazione multi-fonte governata per pratica XSD selezionata: PST/XSD, specifiche PCT, Normattiva/Codice di procedura civile, deposito telematico e notifica PEC vengono registrati come evidenze sintetiche tracciate per monitorie, sfratti, cautelari, possessorie, contenzioso civile, famiglia, Giudice di pace, appello/TRAP, successioni, diritti reali, revocazione e lavoro/previdenza, restando in review avvocato.
-- Introdotta la migration SQLite `20260520_procedure_lifecycle_knowledge_pipeline.sql` con tabelle XSD, mapping, source evidence, knowledge card, template/step lifecycle, workflow fascicolo, firma, deposito/ricevute, obblighi, notifica, evidenze e audit procedurale.
+- Introdotta la migration SQLite canonica `20260520_xsd_procedure_lifecycle_knowledge.sql` con tabelle XSD, mapping, source evidence, knowledge card, template/step lifecycle, workflow fascicolo, firma, deposito/ricevute, obblighi, notifica, evidenze e audit procedurale.
 - Aggiunti test mirati e configurazione coverage dedicata per i nuovi moduli procedurali, senza modificare i gate coverage critici esistenti.
 
 ## 2.245.65 - 2026-05-20

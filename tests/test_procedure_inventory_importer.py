@@ -3,9 +3,26 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from pathlib import Path
 
-from pct.procedure_inventory_importer import import_xsd_objects, iter_xsd_objects, load_catalog
+from pct.procedure_inventory_importer import (
+    DEFAULT_CATALOG_PATH,
+    import_xsd_objects,
+    iter_xsd_objects,
+    load_catalog,
+    write_import_report,
+)
 from tests.procedure_pipeline_support import make_repo, write_catalog
+
+
+def _cli_command(*args: str) -> list[str]:
+    module_runner = (
+        "import sys; "
+        f"sys.path.insert(0, {str(Path.cwd())!r}); "
+        "from pct.procedure_inventory_importer import main; "
+        "raise SystemExit(main(sys.argv[1:]))"
+    )
+    return [sys.executable, "-c", module_runner, *args]
 
 
 def test_importer_importa_children_item_senza_children_ed_e_idempotente(tmp_path):
@@ -19,6 +36,8 @@ def test_importer_importa_children_item_senza_children_ed_e_idempotente(tmp_path
 
     dry = import_xsd_objects(repo, str(catalog_path), dry_run=True)
     assert dry.imported == 0
+    report_path = write_import_report(dry, tmp_path / "report.json")
+    assert json.loads(report_path.read_text(encoding="utf-8"))["dry_run"] is True
 
     applied = import_xsd_objects(repo, str(catalog_path), dry_run=False)
     assert applied.imported == applied.total_catalog_objects
@@ -41,35 +60,50 @@ def test_cli_importer_dry_run_e_apply_restituisce_json(tmp_path):
     catalog_path = write_catalog(tmp_path)
 
     dry = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "pct.procedure_inventory_importer",
+        _cli_command(
             "--db",
             str(db_path),
             "--catalog",
             str(catalog_path),
+            "--report",
+            str(tmp_path / "dry-report.json"),
             "--dry-run",
-        ],
+        ),
         check=True,
         capture_output=True,
         text=True,
     )
     assert json.loads(dry.stdout)["dry_run"] is True
+    assert (tmp_path / "dry-report.json").exists()
 
     applied = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "pct.procedure_inventory_importer",
+        _cli_command(
             "--db",
             str(db_path),
             "--catalog",
             str(catalog_path),
+            "--report",
+            str(tmp_path / "apply-report.json"),
             "--apply",
-        ],
+        ),
         check=True,
         capture_output=True,
         text=True,
     )
     assert json.loads(applied.stdout)["imported"] == 6
+    assert json.loads((tmp_path / "apply-report.json").read_text(encoding="utf-8"))["imported"] == 6
+
+    default_dry = subprocess.run(
+        _cli_command(
+            "--db",
+            str(tmp_path / "default-cli.db"),
+            "--report",
+            str(tmp_path / "default-report.json"),
+            "--dry-run",
+        ),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert json.loads(default_dry.stdout)["catalog_path"].endswith("pratiche_collegate_catalog.json")
+    assert DEFAULT_CATALOG_PATH.exists()

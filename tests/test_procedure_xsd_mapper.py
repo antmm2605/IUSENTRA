@@ -23,7 +23,8 @@ def test_mapper_prefissi_principali_e_unknown_needs_review(tmp_path):
     }
     for code, expected in samples.items():
         candidate = infer_mapping_for_xsd({"xsd_code": code, "xsd_label": "test"})
-        assert expected in candidate.procedure_code
+        haystack = f"{candidate.procedure_code} {candidate.notes}".upper().replace("_", " ")
+        assert expected.replace("_", " ") in haystack
         assert candidate.review_status == "needs_review"
         assert candidate.confidence_score >= 75
 

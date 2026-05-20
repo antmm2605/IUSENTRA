@@ -3,12 +3,21 @@ from __future__ import annotations
 import pytest
 
 from pct.evidence_vault import add_evidence_document
-from pct.post_acceptance_obligations import complete_obligation, evaluate_post_acceptance_obligations
+from pct.post_acceptance_obligations import (
+    OBLIGATION_STATUSES,
+    OBLIGATION_TYPES,
+    ObligationStatus,
+    ObligationType,
+    complete_obligation,
+    evaluate_post_acceptance_obligations,
+)
 from tests.procedure_pipeline_support import make_repo
 
 
 def test_obblighi_post_accettazione_per_prefissi_e_review(tmp_path):
     repo = make_repo(tmp_path)
+    assert ObligationType.NOTIFICA.value in OBLIGATION_TYPES
+    assert ObligationStatus.COMPLETED.value in OBLIGATION_STATUSES
 
     ids_010 = evaluate_post_acceptance_obligations(
         repo,

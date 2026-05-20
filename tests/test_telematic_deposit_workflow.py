@@ -4,6 +4,10 @@ import pytest
 
 from pct.digital_signature_workflow import create_signature_requirement, record_signature_result
 from pct.telematic_deposit_workflow import (
+    DEPOSIT_RECEIPT_TYPES,
+    DEPOSIT_STATUSES,
+    DepositReceiptType,
+    DepositStatus,
     add_deposit_receipt,
     assert_office_acceptance_evidence,
     create_deposit_package,
@@ -17,6 +21,8 @@ from tests.procedure_pipeline_support import make_repo, seed_inventory
 def test_deposito_blocca_xsd_inattivo_firme_mancanti_e_accettazione_senza_ricevuta(tmp_path):
     repo = make_repo(tmp_path)
     seed_inventory(repo, tmp_path)
+    assert DepositStatus.OFFICE_ACCEPTED.value in DEPOSIT_STATUSES
+    assert DepositReceiptType.ACCETTAZIONE_DEPOSITO.value in DEPOSIT_RECEIPT_TYPES
 
     with pytest.raises(ValueError):
         create_deposit_package(repo, fascicolo_id="F1", procedure_code="PROC", xsd_code="999999")

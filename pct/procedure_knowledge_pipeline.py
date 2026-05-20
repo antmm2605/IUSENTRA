@@ -34,6 +34,7 @@ REQUIRED_CARD_SECTIONS = (
     "documenti_necessari",
     "termini",
     "competenza",
+    "condizioni_procedibilita",
     "atto_da_redigere",
     "allegati",
     "firma_digitale",
@@ -44,15 +45,17 @@ REQUIRED_CARD_SECTIONS = (
     "notifiche",
     "relata",
     "prova_notifica",
+    "deposito_prova",
     "errori_ricorrenti",
     "rischi",
     "scelte_strategiche",
     "fonti_consultate",
     "data_verifica",
+    "review_avvocato",
 )
 
 PERSONAL_DATA_RE = re.compile(
-    r"(?i)([A-Z]{6}[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{3}[A-Z]|[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,})"
+    r"(?i)([A-Z]{6}[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{3}[A-Z]|[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}|[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}|\+?\d[\d\s./-]{8,}\d)"
 )
 
 
@@ -182,6 +185,7 @@ def build_original_knowledge_card(
         "documenti_necessari": ["Documenti della pratica da raccogliere e verificare prima del deposito o della notifica."],
         "termini": ["Termini da verificare sul caso concreto e sulle fonti ufficiali applicabili."],
         "competenza": ["Competenza da qualificare in base a ufficio, rito, valore e materia."],
+        "condizioni_procedibilita": ["Condizioni di procedibilità da verificare sulle fonti ufficiali e sul fascicolo concreto."],
         "atto_da_redigere": ["Atto principale da selezionare secondo procedura operativa e codice XSD."],
         "allegati": ["Allegati obbligatori e facoltativi da inventariare nel fascicolo."],
         "firma_digitale": ["La firma digitale non è automatica: serve richiesta, firma esterna e verifica registrata."],
@@ -192,11 +196,13 @@ def build_original_knowledge_card(
         "notifiche": ["Notifica da trattare come workflow separato con destinatario, indirizzo, relata e prove."],
         "relata": ["Relata da associare all'atto notificato e alle evidenze disponibili."],
         "prova_notifica": ["La prova di notifica va acquisita e conservata prima di marcare il workflow come provato."],
+        "deposito_prova": ["Il deposito della prova resta in review e richiede evidenza o ricevuta collegata quando previsto."],
         "errori_ricorrenti": ["Codice XSD non verificato, fonte non tracciata, ricevute mancanti, review non completata."],
         "rischi": ["Rischio operativo medio o alto se mancano fonti ufficiali, evidenze o review."],
         "scelte_strategiche": ["Scelte da documentare nella scheda pratica e validare con l'avvocato."],
         "fonti_consultate": consulted,
         "data_verifica": today,
+        "review_avvocato": {"required": True, "status": "needs_review"},
         "nota_originalita": base_note,
         "procedure_code": procedure_code,
         "xsd_code": xsd_code,

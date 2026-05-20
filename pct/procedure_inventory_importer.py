@@ -12,6 +12,9 @@ from typing import Any
 from pct.legal_coverage_sqlite_repository import CoverageSqliteConfig
 from pct.procedure_lifecycle_repository import ProcedureLifecycleRepository, json_dumps
 
+DEFAULT_CATALOG_PATH = Path("pct") / "data" / "pratiche_collegate_catalog.json"
+DEFAULT_REPORT_PATH = Path("artifacts") / "procedure-lifecycle" / "xsd_import_report.json"
+
 
 @dataclass(frozen=True)
 class ImportReport:
@@ -136,10 +139,29 @@ def import_xsd_objects(
     )
 
 
+def write_import_report(report: ImportReport, report_path: str | Path = DEFAULT_REPORT_PATH) -> Path:
+    path = Path(report_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(report.to_dict(), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return path
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Importa il catalogo PST/XSD nel registro ministeriale IUSENTRA.")
     parser.add_argument("--db", required=True, help="Percorso SQLite legal_coverage.db")
-    parser.add_argument("--catalog", required=True, help="Percorso pct/data/pratiche_collegate_catalog.json")
+    parser.add_argument(
+        "--catalog",
+        default=str(DEFAULT_CATALOG_PATH),
+        help="Percorso pct/data/pratiche_collegate_catalog.json",
+    )
+    parser.add_argument(
+        "--report",
+        default=str(DEFAULT_REPORT_PATH),
+        help="Percorso report JSON import XSD",
+    )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--dry-run", action="store_true", help="Analizza senza scrivere record")
     mode.add_argument("--apply", action="store_true", help="Applica l'import nel database")
@@ -151,9 +173,10 @@ def main(argv: list[str] | None = None) -> int:
     dry_run = not bool(args.apply)
     repo = ProcedureLifecycleRepository(CoverageSqliteConfig(str(args.db)))
     report = import_xsd_objects(repo, str(args.catalog), dry_run=dry_run)
+    write_import_report(report, args.report)
     print(json.dumps(report.to_dict(), ensure_ascii=False, indent=2, sort_keys=True))
     return 0
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover - coperto tramite main() nei test CLI.
     raise SystemExit(main())

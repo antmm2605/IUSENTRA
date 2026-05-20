@@ -2,11 +2,26 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
+from enum import Enum
 from typing import Any
 
 from pct.evidence_vault import link_evidence_to_notification
 from pct.procedure_lifecycle_repository import ProcedureLifecycleRepository
+
+
+class NotificationStatus(str, Enum):
+    DRAFT = "DRAFT"
+    READY = "READY"
+    SENT = "SENT"
+    DELIVERED = "DELIVERED"
+    FAILED = "FAILED"
+    PROOF_ACQUIRED = "PROOF_ACQUIRED"
+    PROOF_DEPOSIT_REQUIRED = "PROOF_DEPOSIT_REQUIRED"
+    PROOF_DEPOSITED = "PROOF_DEPOSITED"
+
+
+NOTIFICATION_STATUSES: tuple[str, ...] = tuple(status.value for status in NotificationStatus)
 
 
 class RealNotificationConnector:
@@ -39,7 +54,7 @@ def create_notification_event(
             "recipient_address_source": payload.get("recipient_address_source"),
             "act_document_id": act_document_id,
             "relata_document_id": payload.get("relata_document_id"),
-            "status": payload.get("status", "DRAFT"),
+            "status": payload.get("status", NotificationStatus.DRAFT.value),
             "notes": payload.get("notes"),
         }
     )
@@ -53,7 +68,7 @@ def mark_notification_ready(repo: ProcedureLifecycleRepository, notification_id:
         raise ValueError("Destinatario e indirizzo sono obbligatori per READY.")
     if not notification.get("recipient_address_source") and not reviewed:
         raise ValueError("Fonte indirizzo obbligatoria oppure review avvocato esplicita.")
-    repo.update_notification_event(notification_id, {"status": "READY"})
+    repo.update_notification_event(notification_id, {"status": NotificationStatus.READY.value})
 
 
 def attach_relata(repo: ProcedureLifecycleRepository, notification_id: int, relata_document_id: str) -> None:
@@ -70,12 +85,12 @@ def record_notification_sent(
     notification = repo.get_notification_event(notification_id)
     if not notification:
         raise ValueError("Notifica non trovata.")
-    if notification.get("status") != "READY":
+    if notification.get("status") != NotificationStatus.READY.value:
         raise ValueError("La notifica può essere inviata solo dopo READY.")
     result = (connector or StubNotificationConnector()).send(notification)
     repo.update_notification_event(
         notification_id,
-        {"status": "SENT", "sent_at": datetime.utcnow().isoformat(timespec="seconds")},
+        {"status": NotificationStatus.SENT.value, "sent_at": datetime.now(UTC).isoformat(timespec="seconds")},
     )
     return result
 
@@ -84,13 +99,13 @@ def record_notification_delivery(repo: ProcedureLifecycleRepository, notificatio
     notification = repo.get_notification_event(notification_id)
     if not notification:
         raise ValueError("Notifica non trovata.")
-    if notification.get("status") != "SENT":
+    if notification.get("status") != NotificationStatus.SENT.value:
         raise ValueError("La consegna può essere registrata solo dopo SENT.")
     repo.update_notification_event(
         notification_id,
         {
-            "status": "DELIVERED" if delivered else "FAILED",
-            "delivered_at": datetime.utcnow().isoformat(timespec="seconds") if delivered else None,
+            "status": NotificationStatus.DELIVERED.value if delivered else NotificationStatus.FAILED.value,
+            "delivered_at": datetime.now(UTC).isoformat(timespec="seconds") if delivered else None,
         },
     )
 
@@ -99,7 +114,7 @@ def acquire_notification_proof(repo: ProcedureLifecycleRepository, notification_
     notification = repo.get_notification_event(notification_id)
     if not notification:
         raise ValueError("Notifica non trovata.")
-    if notification.get("status") not in {"SENT", "DELIVERED"}:
+    if notification.get("status") not in {NotificationStatus.SENT.value, NotificationStatus.DELIVERED.value}:
         raise ValueError("La prova si acquisisce solo dopo invio o consegna.")
     link_evidence_to_notification(repo, notification_id=notification_id, evidence_id=evidence_id)
 
@@ -120,17 +135,20 @@ def mark_proof_deposit_required(repo: ProcedureLifecycleRepository, notification
     notification = repo.get_notification_event(notification_id)
     if not notification:
         raise ValueError("Notifica non trovata.")
-    if notification.get("status") != "PROOF_ACQUIRED":
+    if notification.get("status") != NotificationStatus.PROOF_ACQUIRED.value:
         raise ValueError("Serve prima acquisire la prova notifica.")
     if proof_deposit_required(repo, notification_id):
-        repo.update_notification_event(notification_id, {"status": "PROOF_DEPOSIT_REQUIRED"})
+        repo.update_notification_event(notification_id, {"status": NotificationStatus.PROOF_DEPOSIT_REQUIRED.value})
 
 
 def mark_proof_deposited(repo: ProcedureLifecycleRepository, notification_id: int, deposit_evidence_id: int) -> None:
     notification = repo.get_notification_event(notification_id)
     if not notification:
         raise ValueError("Notifica non trovata.")
-    if notification.get("status") not in {"PROOF_DEPOSIT_REQUIRED", "PROOF_ACQUIRED"}:
+    if notification.get("status") not in {
+        NotificationStatus.PROOF_DEPOSIT_REQUIRED.value,
+        NotificationStatus.PROOF_ACQUIRED.value,
+    }:
         raise ValueError("Stato notifica non compatibile con deposito prova.")
     with repo.connect() as conn:
         evidence = repo._fetch_one(conn, "SELECT * FROM evidence_documents WHERE id = ?", (deposit_evidence_id,))
@@ -139,7 +157,7 @@ def mark_proof_deposited(repo: ProcedureLifecycleRepository, notification_id: in
     repo.update_notification_event(
         notification_id,
         {
-            "status": "PROOF_DEPOSITED",
+            "status": NotificationStatus.PROOF_DEPOSITED.value,
             "proof_bundle_id": str(evidence.get("document_id") or deposit_evidence_id),
         },
     )

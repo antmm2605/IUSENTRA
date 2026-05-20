@@ -3,6 +3,9 @@ from __future__ import annotations
 import pytest
 
 from pct.digital_signature_workflow import (
+    SIGNATURE_STATUSES,
+    SignatureStatus,
+    assert_required_signatures_verified,
     create_signature_requirement,
     is_signature_required,
     record_signature_result,
@@ -37,6 +40,8 @@ def test_firma_richiesta_non_conserva_credenziali_e_verifica(tmp_path):
         signer_expected="Avv. Rossi",
     )
     assert repo.list_signature_events("F1")[0]["verification_status"] == "REQUIRED_PENDING"
+    with pytest.raises(ValueError):
+        assert_required_signatures_verified(repo, "F1", document_ids=("D1",))
 
     mismatch = record_signature_result(repo, event_id, signer_detected="Avv. Bianchi", hash_after="abc")
     assert mismatch["status"] == "MISMATCH_SIGNER"
@@ -52,6 +57,9 @@ def test_firma_richiesta_non_conserva_credenziali_e_verifica(tmp_path):
     )
     verified = record_signature_result(repo, event_id_2, signer_detected="Avv. Rossi", hash_after="def")
     assert verified["status"] == "VERIFIED"
+    assert_required_signatures_verified(repo, "F1", document_ids=("D2",))
 
     not_required = verify_signature_event_consistency({"required": 0})
     assert not_required["status"] == "NOT_REQUIRED"
+    assert SignatureStatus.VERIFIED.value in SIGNATURE_STATUSES
+    assert verify_signature_event_consistency({"required": 1, "certificate_expired": True})["status"] == "EXPIRED_CERTIFICATE"

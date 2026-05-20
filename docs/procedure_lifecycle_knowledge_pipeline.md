@@ -1,12 +1,12 @@
 # Pipeline inventario XSD, conoscenza procedurale e lifecycle pratica
 
-Aggiornato: 20 maggio 2026.
+Aggiornato: 21 maggio 2026.
 
 ## Scopo
 
 Questa infrastruttura collega il catalogo ministeriale PST/XSD agli oggetti operativi IUSENTRA e consente di governare copertura, fonti, schede conoscitive, workflow pratica, firma, deposito, ricevute, notifica, prova e audit.
 
-Non dichiara conformità legale finale delle singole procedure: la validazione giuridica resta in capo all'avvocato.
+Implementata infrastruttura tecnica e procedurale; la validazione giuridica delle singole procedure richiede controlli da più fonti da eseguire in modo professionale prima della pubblicazione operativa. Questa pipeline non dichiara conformità legale finale delle singole procedure: la validazione giuridica resta in capo all'avvocato.
 
 ## Architettura
 
@@ -15,17 +15,20 @@ Non dichiara conformità legale finale delle singole procedure: la validazione g
 - `pct/procedure_coverage_ext.py`: calcola blocchi estesi, READY solo con evidenze, lifecycle, fonti e review.
 - `pct/procedure_source_research.py`: costruisce piani multi-fonte governati per famiglia XSD e registra evidenze sintetiche tracciate.
 - `pct/procedure_knowledge_pipeline.py`: gestisce fonti multi-sorgente e schede originali IUSENTRA.
+- `pct/procedure_source_evidence.py` e `pct/procedure_knowledge_cards.py`: façade di compatibilità che espongono i nomi della pipeline senza duplicare la logica.
 - `pct/procedure_lifecycle.py`: template minimi per famiglie XSD e state machine della pratica.
+- `pct/procedure_lifecycle_templates.py` e `pct/procedure_workflow_runtime.py`: façade di compatibilità verso il generatore template e il runtime workflow esistenti.
 - `pct/digital_signature_workflow.py`: registra richiesta, esito e verifica firma; non firma automaticamente.
 - `pct/telematic_deposit_workflow.py`: gestisce pacchetto, stato deposito, ricevute e stub connettore.
 - `pct/post_acceptance_obligations.py`: genera obblighi successivi conservativi.
 - `pct/notification_workflow.py`: governa notifica, relata, prova e stub invio.
 - `pct/evidence_vault.py`: registra evidenze, hash e collegamenti.
 - `pct/procedure_lifecycle_repository.py`: repository SQLite e audit deterministico.
+- `docs/procedure_lifecycle_repo_audit.md`: audit repo iniziale obbligatorio della tranche, con conflitti e scelte di riuso.
 
 ## Tabelle Nuove
 
-La migration `pct/sql/20260520_procedure_lifecycle_knowledge_pipeline.sql` crea:
+La migration canonica `pct/sql/20260520_xsd_procedure_lifecycle_knowledge.sql` crea:
 
 - `legal_ministerial_xsd_objects`
 - `legal_procedure_xsd_map`
@@ -43,7 +46,9 @@ La migration `pct/sql/20260520_procedure_lifecycle_knowledge_pipeline.sql` crea:
 - `evidence_documents`
 - `procedure_audit_log`
 
-La migration è idempotente e compatibile SQLite.
+La migration è idempotente e compatibile SQLite. Il file storico `pct/sql/20260520_procedure_lifecycle_knowledge_pipeline.sql` resta solo per compatibilità documentale con la tranche precedente; il repository carica l'ID canonico richiesto e applica estensioni idempotenti anche su database già creati.
+
+Le tabelle includono `tenant_id` opzionale e indici dedicati per integrazione tenant-aware; le superfici HTTP operative continuano a dover passare dai gate RBAC/tenant esistenti prima di scrivere o leggere dati dello studio.
 
 ## Import XSD
 
@@ -64,6 +69,15 @@ Comandi:
 python -m pct.procedure_inventory_importer --db intelligence/legal_coverage.db --catalog pct/data/pratiche_collegate_catalog.json --dry-run
 python -m pct.procedure_inventory_importer --db intelligence/legal_coverage.db --catalog pct/data/pratiche_collegate_catalog.json --apply
 ```
+
+Il catalogo ha ora default `pct/data/pratiche_collegate_catalog.json`, quindi sono validi anche i comandi richiesti dalla tranche:
+
+```powershell
+python -m pct.procedure_inventory_importer --db intelligence/legal_coverage.db --dry-run
+python -m pct.procedure_inventory_importer --db intelligence/legal_coverage.db --apply
+```
+
+Ogni esecuzione CLI scrive `artifacts/procedure-lifecycle/xsd_import_report.json` con totale oggetti, creati, aggiornati, invariati, importati e mancanti. Il dry-run non scrive record nel database.
 
 ## Mapping XSD/Procedure
 
@@ -143,18 +157,20 @@ La notifica registra destinatario, fonte indirizzo, atto, relata, invio stub, co
 
 Ogni mutazione critica produce `procedure_audit_log` con entità, azione, attore, sorgente, JSON prima/dopo, diff e `event_hash` deterministico.
 
+Prima della persistenza l'audit maschera segreti, PIN, password, token, cookie, path locali, email, codici fiscali, IBAN e telefoni. L'hash evento è calcolato sul payload già sanificato, così il log resta deterministico senza conservare dati sensibili.
+
 ## Test e Coverage
 
 Test mirati:
 
 ```powershell
-python -m pytest tests/test_procedure_inventory_importer.py tests/test_procedure_xsd_mapper.py tests/test_procedure_coverage_ext.py tests/test_procedure_source_research.py tests/test_procedure_knowledge_pipeline.py tests/test_procedure_lifecycle.py tests/test_digital_signature_workflow.py tests/test_telematic_deposit_workflow.py tests/test_post_acceptance_obligations.py tests/test_notification_workflow.py tests/test_evidence_vault.py tests/test_procedure_lifecycle_repository.py
+python -m pytest tests/test_procedure_inventory_importer.py tests/test_procedure_xsd_mapper.py tests/test_procedure_coverage_ext.py tests/test_procedure_source_research.py tests/test_procedure_knowledge_pipeline.py tests/test_procedure_lifecycle.py tests/test_digital_signature_workflow.py tests/test_telematic_deposit_workflow.py tests/test_post_acceptance_obligations.py tests/test_notification_workflow.py tests/test_evidence_vault.py tests/test_procedure_lifecycle_repository.py tests/test_procedure_lifecycle_edges.py
 ```
 
 Coverage severa nuovi moduli:
 
 ```powershell
-python -m coverage run --rcfile=config/coverage-procedure-lifecycle.ini -m pytest tests/test_procedure_inventory_importer.py tests/test_procedure_xsd_mapper.py tests/test_procedure_coverage_ext.py tests/test_procedure_source_research.py tests/test_procedure_knowledge_pipeline.py tests/test_procedure_lifecycle.py tests/test_digital_signature_workflow.py tests/test_telematic_deposit_workflow.py tests/test_post_acceptance_obligations.py tests/test_notification_workflow.py tests/test_evidence_vault.py tests/test_procedure_lifecycle_repository.py
+python -m coverage run --rcfile=config/coverage-procedure-lifecycle.ini -m pytest tests/test_procedure_inventory_importer.py tests/test_procedure_xsd_mapper.py tests/test_procedure_coverage_ext.py tests/test_procedure_source_research.py tests/test_procedure_knowledge_pipeline.py tests/test_procedure_lifecycle.py tests/test_digital_signature_workflow.py tests/test_telematic_deposit_workflow.py tests/test_post_acceptance_obligations.py tests/test_notification_workflow.py tests/test_evidence_vault.py tests/test_procedure_lifecycle_repository.py tests/test_procedure_lifecycle_edges.py
 python -m coverage report --rcfile=config/coverage-procedure-lifecycle.ini --fail-under=100
 ```
 

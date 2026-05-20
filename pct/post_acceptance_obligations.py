@@ -2,11 +2,30 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
+from enum import Enum
 from typing import Any
 
 from pct.evidence_vault import assert_required_evidence
 from pct.procedure_lifecycle_repository import ProcedureLifecycleRepository
+
+
+class ObligationType(str, Enum):
+    NOTIFICA = "NOTIFICA"
+    RELATA = "RELATA"
+    PROOF_COLLECTION = "ALTRO"
+    DEPOSITO_PROVA_NOTIFICA = "DEPOSITO_PROVA_NOTIFICA"
+    MONITORAGGIO_PROVVEDIMENTO = "MONITORAGGIO_PROVVEDIMENTO"
+
+
+class ObligationStatus(str, Enum):
+    PENDING = "PENDING"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+
+
+OBLIGATION_TYPES: tuple[str, ...] = tuple(item.value for item in ObligationType)
+OBLIGATION_STATUSES: tuple[str, ...] = tuple(status.value for status in ObligationStatus)
 
 
 def _prefix(xsd_code: str | None) -> str:
@@ -42,33 +61,33 @@ def evaluate_post_acceptance_obligations(
     planned: list[dict[str, Any]]
     if prefix in {"010", "050"}:
         planned = [
-            _obligation("NOTIFICA", evidence_required=["NOTIFICATION_RECEIPT"], notes="Notifica decreto e ricorso da valutare dopo provvedimento."),
-            _obligation("RELATA", evidence_required=["NOTIFICATION_RELATA"], notes="Relata da associare alla notifica."),
-            _obligation("ALTRO", evidence_required=["PROOF_OF_DELIVERY"], notes="PROOF_COLLECTION: raccolta prova notifica obbligatoria in review."),
+            _obligation(ObligationType.NOTIFICA.value, evidence_required=["NOTIFICATION_RECEIPT"], notes="Notifica decreto e ricorso da valutare dopo provvedimento."),
+            _obligation(ObligationType.RELATA.value, evidence_required=["NOTIFICATION_RELATA"], notes="Relata da associare alla notifica."),
+            _obligation(ObligationType.PROOF_COLLECTION.value, evidence_required=["PROOF_OF_DELIVERY"], notes="PROOF_COLLECTION: raccolta prova notifica obbligatoria in review."),
         ]
         if proof_deposit_configured:
             planned.append(
-                _obligation("DEPOSITO_PROVA_NOTIFICA", evidence_required=["DEPOSIT_RECEIPT"], notes="Deposito prova notifica se previsto dal caso.")
+                _obligation(ObligationType.DEPOSITO_PROVA_NOTIFICA.value, evidence_required=["DEPOSIT_RECEIPT"], notes="Deposito prova notifica se previsto dal caso.")
             )
     elif prefix == "030":
         planned = [
-            _obligation("NOTIFICA", evidence_required=["NOTIFICATION_RECEIPT"], notes="Decisione notifica anticipata per sfratto/convalida."),
-            _obligation("RELATA", evidence_required=["NOTIFICATION_RELATA"], notes="Relata da predisporre e verificare."),
+            _obligation(ObligationType.NOTIFICA.value, evidence_required=["NOTIFICATION_RECEIPT"], notes="Decisione notifica anticipata per sfratto/convalida."),
+            _obligation(ObligationType.RELATA.value, evidence_required=["NOTIFICATION_RELATA"], notes="Relata da predisporre e verificare."),
         ]
     elif prefix in {"011", "012", "014", "015", "017", "019", "051", "052", "053", "055", "059"}:
         planned = [
-            _obligation("MONITORAGGIO_PROVVEDIMENTO", notes="Notifica o post-notifica condizionale: review obbligatoria."),
-            _obligation("NOTIFICA", evidence_required=["NOTIFICATION_RECEIPT"], notes="Obbligo condizionale da confermare."),
+            _obligation(ObligationType.MONITORAGGIO_PROVVEDIMENTO.value, notes="Notifica o post-notifica condizionale: review obbligatoria."),
+            _obligation(ObligationType.NOTIFICA.value, evidence_required=["NOTIFICATION_RECEIPT"], notes="Obbligo condizionale da confermare."),
         ]
     elif prefix == "020":
         planned = [
-            _obligation("MONITORAGGIO_PROVVEDIMENTO", notes="Udienza e notifica condizionali per possessoria."),
-            _obligation("NOTIFICA", evidence_required=["NOTIFICATION_RECEIPT"], notes="Obbligo condizionale da confermare."),
+            _obligation(ObligationType.MONITORAGGIO_PROVVEDIMENTO.value, notes="Udienza e notifica condizionali per possessoria."),
+            _obligation(ObligationType.NOTIFICA.value, evidence_required=["NOTIFICATION_RECEIPT"], notes="Obbligo condizionale da confermare."),
         ]
     else:
         planned = [
-            _obligation("MONITORAGGIO_PROVVEDIMENTO", notes="Caso non codificato: review post-accettazione obbligatoria."),
-            _obligation("ALTRO", notes="POST_ACCEPTANCE_REVIEW: valutazione avvocato richiesta prima di concludere il workflow."),
+            _obligation(ObligationType.MONITORAGGIO_PROVVEDIMENTO.value, notes="Caso non codificato: review post-accettazione obbligatoria."),
+            _obligation(ObligationType.PROOF_COLLECTION.value, notes="POST_ACCEPTANCE_REVIEW: valutazione avvocato richiesta prima di concludere il workflow."),
         ]
 
     ids: list[int] = []
@@ -105,7 +124,7 @@ def complete_obligation(repo: ProcedureLifecycleRepository, obligation_id: int) 
     repo.update_obligation(
         obligation_id,
         {
-            "obligation_status": "COMPLETED",
-            "completed_at": datetime.utcnow().isoformat(timespec="seconds"),
+            "obligation_status": ObligationStatus.COMPLETED.value,
+            "completed_at": datetime.now(UTC).isoformat(timespec="seconds"),
         },
     )

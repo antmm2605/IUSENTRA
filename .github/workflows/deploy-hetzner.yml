@@ -42,6 +42,7 @@ env:
   HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
   HETZNER_DOMAIN: ${{ vars.HETZNER_DOMAIN }}
   DEPLOY_BRANCH: ${{ inputs.branch_override || (github.event_name == 'push' && github.ref_name) || 'Codex/legal-electronic-filing-kIxcV' }}
+  NO_BACKUP_REQUESTED: ${{ inputs.skip_backup || contains(github.event.head_commit.message, '[no-backup]') }}
 
 jobs:
   deploy:
@@ -112,7 +113,7 @@ jobs:
           fi
 
       - name: Backup preventivo
-        if: ${{ steps.current.outputs.already_deployed != 'true' && !inputs.skip_backup }}
+        if: ${{ steps.current.outputs.already_deployed != 'true' && env.NO_BACKUP_REQUESTED != 'true' }}
         run: |
           set -euo pipefail
           ssh -i ~/.ssh/id_deploy \
@@ -130,6 +131,10 @@ jobs:
         if: ${{ steps.current.outputs.already_deployed != 'true' }}
         run: |
           set -euo pipefail
+          deploy_prefix=""
+          if [ "${NO_BACKUP_REQUESTED}" = "true" ]; then
+            deploy_prefix="IUSENTRA_SKIP_BACKUP_CRON=1 "
+          fi
           ssh -i ~/.ssh/id_deploy \
               -o BatchMode=yes \
               -o ConnectTimeout=15 \
@@ -138,7 +143,7 @@ jobs:
               -o StrictHostKeyChecking=yes \
               -o UserKnownHostsFile=~/.ssh/known_hosts \
               "${HETZNER_USER}@${HETZNER_HOST}" \
-              "cd /opt/iusentra/repo && BRANCH='${DEPLOY_BRANCH}' bash deploy/hetzner/deploy.sh"
+              "cd /opt/iusentra/repo && BRANCH='${DEPLOY_BRANCH}' ${deploy_prefix}bash deploy/hetzner/deploy.sh"
 
       - name: Recupera commit deployato
         id: state
@@ -189,8 +194,8 @@ jobs:
           backup_state="eseguito"
           if [ '${{ steps.current.outputs.already_deployed }}' = 'true' ]; then
             backup_state="SALTATO: commit gia deployato"
-          elif [ '${{ inputs.skip_backup }}' = 'true' ]; then
-            backup_state="SALTATO: input skip_backup"
+          elif [ "${NO_BACKUP_REQUESTED}" = 'true' ]; then
+            backup_state="SALTATO: richiesta no-backup"
           fi
           {
             echo "## Deploy Hetzner CPX42"

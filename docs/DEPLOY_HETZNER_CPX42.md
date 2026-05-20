@@ -279,6 +279,8 @@ La chiave privata vive ora solo nei GitHub Secrets, criptata a riposo.
 
 Da GitHub Actions, "Deploy Hetzner CPX42" → "Run workflow" con `skip_backup: true` per la prima prova (evita di sprecare uno slot backup mentre si testa SSH). Se i primi 3 step passano (verifica secrets, setup SSH, verifica raggiungibilita), tutto e' configurato.
 
+Per un push operativo in cui l'utente chiede esplicitamente di non creare backup, inserire `[no-backup]` nel messaggio del commit: il workflow salta il backup preventivo e passa `IUSENTRA_SKIP_BACKUP_CRON=1` allo script di deploy, senza toccare volumi o dati applicativi.
+
 ### Rotazione chiavi
 
 Ogni 12 mesi o dopo ogni cambio di personale con accesso ai repo, ripetere i passi 1-4 e rimuovere la vecchia chiave da `~/.ssh/authorized_keys` sul server.

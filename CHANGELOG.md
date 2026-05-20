@@ -7,6 +7,13 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.246.0 - 2026-05-20
+
+- Aggiunta la pipeline tecnica per inventario PST/XSD, mapping prudente verso procedure IUSENTRA, coverage estesa, gap queue, fonti multi-sorgente, schede conoscitive originali, lifecycle pratica, firma digitale governata, deposito telematico stub, obblighi post-accettazione, notifiche, evidenze e audit deterministico.
+- Aggiunto il layer di consultazione multi-fonte governata per pratica XSD selezionata: PST/XSD, specifiche PCT, Normattiva/Codice di procedura civile, deposito telematico e notifica PEC vengono registrati come evidenze sintetiche tracciate per monitorie, sfratti, cautelari, possessorie, contenzioso civile, famiglia, Giudice di pace, appello/TRAP, successioni, diritti reali, revocazione e lavoro/previdenza, restando in review avvocato.
+- Introdotta la migration SQLite `20260520_procedure_lifecycle_knowledge_pipeline.sql` con tabelle XSD, mapping, source evidence, knowledge card, template/step lifecycle, workflow fascicolo, firma, deposito/ricevute, obblighi, notifica, evidenze e audit procedurale.
+- Aggiunti test mirati e configurazione coverage dedicata per i nuovi moduli procedurali, senza modificare i gate coverage critici esistenti.
+
 ## 2.245.65 - 2026-05-20
 
 - Introdotto il controllo applicativo reale Template Atti: profilo normativo da modello e contesto fascicolo, fonti verificate, riferimenti applicabili con motivazione, layout profile, timbro studio top-left su ogni pagina, gate generazione e audit strutturato.

@@ -173,8 +173,6 @@ def _has_office_acceptance(repo: ProcedureLifecycleRepository, fascicolo_id: str
     with repo.connect() as conn:
         packages = repo._fetch_all(conn, "SELECT * FROM telematic_deposit_packages WHERE fascicolo_id = ?", (fascicolo_id,))
     for package in packages:
-        if package.get("deposit_status") == "OFFICE_ACCEPTED":
-            return True
         receipts = repo.list_deposit_receipts(int(package["id"]))
         if any(row.get("receipt_type") == "ACCETTAZIONE_DEPOSITO" for row in receipts):
             return True
@@ -253,6 +251,7 @@ def transition_workflow(
         status=_workflow_status_for_state(target_state),
         close=target_state == "CHIUSA",
         actor=actor,
+        source="workflow_transition_validation",
         notes=notes,
     )
     repo.add_workflow_event(

@@ -46,7 +46,7 @@ La migration canonica `pct/sql/20260520_xsd_procedure_lifecycle_knowledge.sql` c
 - `evidence_documents`
 - `procedure_audit_log`
 
-La migration è idempotente e compatibile SQLite. Il file storico `pct/sql/20260520_procedure_lifecycle_knowledge_pipeline.sql` resta solo per compatibilità documentale con la tranche precedente; il repository carica l'ID canonico richiesto e applica estensioni idempotenti anche su database già creati.
+La migration è idempotente e compatibile SQLite. Il file storico `pct/sql/20260520_procedure_lifecycle_knowledge_pipeline.sql` resta solo per compatibilità documentale con la tranche precedente; il repository carica l'ID canonico richiesto e applica estensioni idempotenti anche su database già creati. Il file canonico include anche trigger anti-bypass per impedire stati critici senza ricevute, firme verificate, evidenze notifica o obblighi completati.
 
 Le tabelle includono `tenant_id` opzionale e indici dedicati per integrazione tenant-aware; le superfici HTTP operative continuano a dover passare dai gate RBAC/tenant esistenti prima di scrivere o leggere dati dello studio.
 

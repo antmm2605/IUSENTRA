@@ -10,6 +10,7 @@
 ## 2.246.1 - 2026-05-21
 
 - Rafforzata la pipeline Procedure Lifecycle Knowledge: audit repo iniziale obbligatorio, migration canonica `20260520_xsd_procedure_lifecycle_knowledge.sql`, colonne `tenant_id`, audit sanificato da PII/segreti/path, enum Python per stati lifecycle/firma/deposito/notifiche/obblighi/gap e façade senza logica parallela per i nomi applicativi richiesti.
+- Aggiunti guardrail applicativi e trigger SQLite anti-bypass: stati deposito ufficio, prova notifica, firma verificata, accettazione deposito e chiusura workflow vengono bloccati anche se si tenta una modifica SQL diretta senza ricevute, evidenze o obblighi completati.
 - Esteso l'importer PST/XSD con catalogo di default, report `artifacts/procedure-lifecycle/xsd_import_report.json` e CLI compatibile con i comandi `--dry-run`/`--apply` senza `--catalog`.
 - Aggiornati test mirati, coverage dedicata e documentazione per preservare mapping, fonti, schede originali, lifecycle, firma, deposito, ricevute, notifica, evidence, audit e gap queue senza aggirare Practice Engine, Local Signer o Lex Source Policy.
 

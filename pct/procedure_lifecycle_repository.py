@@ -43,6 +43,56 @@ _PATH_RE = re.compile(r"(?i)([a-z]:\\|/data/|/home/|/var/|\\\\)[^\s\"']+")
 _SECRET_KEY_PARTS = ("pin", "password", "token", "cookie", "secret", "credential", "otp")
 _PATH_KEY_PARTS = ("path", "storage_path", "filesystem", "directory")
 _PII_KEY_PARTS = ("tax_code", "codice_fiscale", "iban", "email", "phone", "telefono", "recipient_address")
+_OFFICIAL_DEPOSIT_RECEIPTS_BY_STATUS = {
+    "OFFICE_ACCEPTED": {"ACCETTAZIONE_DEPOSITO"},
+    "OFFICE_REJECTED": {"RIFIUTO_DEPOSITO", "ERRORE_TECNICO"},
+}
+_NOTIFICATION_PROOF_STATUSES = {"PROOF_ACQUIRED", "PROOF_DEPOSIT_REQUIRED", "PROOF_DEPOSITED"}
+_SIGNATURE_STATUSES = {
+    "NOT_REQUIRED",
+    "REQUIRED_PENDING",
+    "SIGNED_UNVERIFIED",
+    "VERIFIED",
+    "INVALID",
+    "MISMATCH_SIGNER",
+    "EXPIRED_CERTIFICATE",
+    "ERROR",
+}
+_DEPOSIT_STATUSES = {
+    "DRAFT",
+    "READY",
+    "SENT",
+    "PEC_ACCEPTED",
+    "PEC_DELIVERED",
+    "CONTROLS_RECEIVED",
+    "OFFICE_ACCEPTED",
+    "OFFICE_REJECTED",
+    "TECHNICAL_ERROR",
+    "CANCELLED",
+}
+_NOTIFICATION_STATUSES = {
+    "DRAFT",
+    "READY",
+    "SENT",
+    "DELIVERED",
+    "FAILED",
+    "PROOF_ACQUIRED",
+    "PROOF_DEPOSIT_REQUIRED",
+    "PROOF_DEPOSITED",
+}
+_OBLIGATION_STATUSES = {"PENDING", "COMPLETED", "CANCELLED"}
+_PROTECTED_SIGNATURE_STATUSES = {"VERIFIED"}
+_PROTECTED_WORKFLOW_STATES = {
+    "FIRMATO",
+    "DEPOSITO_ACCETTATO",
+    "NOTIFICA_EFFETTUATA",
+    "PROVA_NOTIFICA_ACQUISITA",
+    "CHIUSA",
+}
+_VALIDATED_SIGNATURE_SOURCE = "signature_validation"
+_VALIDATED_DEPOSIT_SOURCE = "deposit_receipt_validation"
+_VALIDATED_NOTIFICATION_SOURCE = "notification_proof_validation"
+_VALIDATED_WORKFLOW_SOURCE = "workflow_transition_validation"
 
 
 def json_dumps(value: Any) -> str:
@@ -122,6 +172,39 @@ def diff_dict(before: dict[str, Any] | None, after: dict[str, Any] | None) -> di
         if previous.get(key) != current.get(key)
     }
     return {"changed": changed, "changed_fields": sorted(changed)}
+
+
+def _assert_allowed_status(value: Any, allowed: set[str], field_name: str) -> None:
+    status = str(value or "")
+    if status not in allowed:
+        raise ValueError(f"{field_name} non ammesso: {status}")
+
+
+def _assert_notification_proof_evidence(conn: sqlite3.Connection, fascicolo_id: str, proof_bundle_id: Any) -> None:
+    proof_id = str(proof_bundle_id or "").strip()
+    if not proof_id:
+        raise ValueError("Gli stati prova notifica richiedono evidence_documents collegati.")
+    row = conn.execute(
+        """
+        SELECT id FROM evidence_documents
+        WHERE fascicolo_id = ?
+          AND (document_id = ? OR CAST(id AS TEXT) = ?)
+        LIMIT 1
+        """,
+        (fascicolo_id, proof_id, proof_id),
+    ).fetchone()
+    if row is None:
+        raise ValueError("Gli stati prova notifica richiedono evidence_documents collegati.")
+
+
+def _insert_transition_guard(conn: sqlite3.Connection, entity_type: str, entity_id: Any, target_state: Any) -> None:
+    conn.execute(
+        """
+        INSERT INTO procedure_state_transition_guard (entity_type, entity_id, target_state)
+        VALUES (?, ?, ?)
+        """,
+        (entity_type, str(entity_id), str(target_state)),
+    )
 
 
 @dataclass(frozen=True)
@@ -315,7 +398,7 @@ class ProcedureLifecycleRepository:
             )
             after = self._fetch_one(conn, "SELECT * FROM legal_ministerial_xsd_objects WHERE xsd_code = ?", (xsd_code,))
             action = "xsd_import_update" if before else "xsd_import_create"
-            if before != after:  # pragma: no branch - l'upsert eseguito aggiorna sempre updated_at.
+            if before != after:
                 self.audit_log(
                     entity_type="legal_ministerial_xsd_objects",
                     entity_id=xsd_code,
@@ -394,7 +477,7 @@ class ProcedureLifecycleRepository:
                 """,
                 key,
             )
-            if before != after:  # pragma: no branch - l'upsert eseguito aggiorna sempre updated_at.
+            if before != after:
                 self.audit_log(
                     entity_type="legal_procedure_xsd_map",
                     entity_id=(after or {}).get("id"),
@@ -786,6 +869,10 @@ class ProcedureLifecycleRepository:
     ) -> None:
         with self.connect() as conn:
             before = self.get_workflow_instance(instance_id, conn=conn)
+            if current_step_code in _PROTECTED_WORKFLOW_STATES:
+                if source != _VALIDATED_WORKFLOW_SOURCE:
+                    raise ValueError("Stato workflow finale aggiornabile solo tramite transition_workflow validato.")
+                _insert_transition_guard(conn, "fascicolo_workflow_instances", instance_id, current_step_code)
             conn.execute(
                 """
                 UPDATE fascicolo_workflow_instances
@@ -847,6 +934,9 @@ class ProcedureLifecycleRepository:
 
     def add_signature_event(self, row: dict[str, Any], *, actor: str = "", source: str = "signature") -> int:
         self.ensure_extended_schema()
+        _assert_allowed_status(row.get("verification_status"), _SIGNATURE_STATUSES, "verification_status")
+        if row.get("verification_status") in _PROTECTED_SIGNATURE_STATUSES:
+            raise ValueError("VERIFIED deve passare da record_signature_result validato.")
         with self.connect() as conn:
             cur = conn.execute(
                 """
@@ -919,10 +1009,19 @@ class ProcedureLifecycleRepository:
         assignments = [f"{key} = ?" for key in updates if key in allowed]
         if not assignments:
             return
+        if "verification_status" in updates:
+            _assert_allowed_status(updates.get("verification_status"), _SIGNATURE_STATUSES, "verification_status")
         params = [updates[key] for key in updates if key in allowed]
         params.append(event_id)
         with self.connect() as conn:
             before = self._fetch_one(conn, "SELECT * FROM digital_signature_events WHERE id = ?", (event_id,))
+            if updates.get("verification_status") in _PROTECTED_SIGNATURE_STATUSES:
+                if source != _VALIDATED_SIGNATURE_SOURCE:
+                    raise ValueError("VERIFIED aggiornabile solo tramite record_signature_result validato.")
+                candidate = {**(before or {}), **updates}
+                if not candidate.get("signer_detected") or not candidate.get("hash_after"):
+                    raise ValueError("VERIFIED richiede firmatario rilevato e hash del documento firmato.")
+                _insert_transition_guard(conn, "digital_signature_events", event_id, updates.get("verification_status"))
             conn.execute(f"UPDATE digital_signature_events SET {', '.join(assignments)} WHERE id = ?", tuple(params))
             after = self._fetch_one(conn, "SELECT * FROM digital_signature_events WHERE id = ?", (event_id,))
             self.audit_log(
@@ -939,6 +1038,10 @@ class ProcedureLifecycleRepository:
 
     def create_deposit_package(self, row: dict[str, Any], *, actor: str = "", source: str = "deposit") -> int:
         self.ensure_extended_schema()
+        deposit_status = row.get("deposit_status", "DRAFT")
+        _assert_allowed_status(deposit_status, _DEPOSIT_STATUSES, "deposit_status")
+        if deposit_status in _OFFICIAL_DEPOSIT_RECEIPTS_BY_STATUS:
+            raise ValueError("Gli stati di accettazione o rifiuto ufficio richiedono ricevuta ufficiale collegata.")
         with self.connect() as conn:
             cur = conn.execute(
                 """
@@ -1006,10 +1109,25 @@ class ProcedureLifecycleRepository:
         keys = [key for key in updates if key in allowed]
         if not keys:
             return
+        if "deposit_status" in updates:
+            _assert_allowed_status(updates.get("deposit_status"), _DEPOSIT_STATUSES, "deposit_status")
         assignments = [f"{key} = ?" for key in keys] + ["updated_at = CURRENT_TIMESTAMP"]
         params = [updates[key] for key in keys] + [package_id]
         with self.connect() as conn:
             before = self.get_deposit_package(package_id, conn=conn)
+            official_status = updates.get("deposit_status")
+            if official_status in _OFFICIAL_DEPOSIT_RECEIPTS_BY_STATUS:
+                if source != _VALIDATED_DEPOSIT_SOURCE:
+                    raise ValueError("Stato deposito ufficio aggiornabile solo da ricevute validate.")
+                receipts = self._fetch_all(
+                    conn,
+                    "SELECT receipt_type FROM telematic_deposit_receipts WHERE deposit_package_id = ?",
+                    (package_id,),
+                )
+                required_receipts = _OFFICIAL_DEPOSIT_RECEIPTS_BY_STATUS[str(official_status)]
+                if not any(row.get("receipt_type") in required_receipts for row in receipts):
+                    raise ValueError("Stato deposito ufficio non ammesso senza ricevuta ufficiale collegata.")
+                _insert_transition_guard(conn, "telematic_deposit_packages", package_id, official_status)
             conn.execute(f"UPDATE telematic_deposit_packages SET {', '.join(assignments)} WHERE id = ?", tuple(params))
             after = self.get_deposit_package(package_id, conn=conn)
             self.audit_log(
@@ -1077,6 +1195,7 @@ class ProcedureLifecycleRepository:
 
     def add_obligation(self, row: dict[str, Any], *, actor: str = "", source: str = "post_acceptance") -> int:
         self.ensure_extended_schema()
+        _assert_allowed_status(row.get("obligation_status", "PENDING"), _OBLIGATION_STATUSES, "obligation_status")
         with self.connect() as conn:
             cur = conn.execute(
                 """
@@ -1136,6 +1255,8 @@ class ProcedureLifecycleRepository:
         keys = [key for key in updates if key in allowed]
         if not keys:
             return
+        if "obligation_status" in updates:
+            _assert_allowed_status(updates.get("obligation_status"), _OBLIGATION_STATUSES, "obligation_status")
         assignments = [f"{key} = ?" for key in keys]
         params = [updates[key] for key in keys] + [obligation_id]
         with self.connect() as conn:
@@ -1156,7 +1277,11 @@ class ProcedureLifecycleRepository:
 
     def create_notification_event(self, row: dict[str, Any], *, actor: str = "", source: str = "notification") -> int:
         self.ensure_extended_schema()
+        notification_status = row.get("status", "DRAFT")
+        _assert_allowed_status(notification_status, _NOTIFICATION_STATUSES, "status")
         with self.connect() as conn:
+            if notification_status in _NOTIFICATION_PROOF_STATUSES:
+                _assert_notification_proof_evidence(conn, str(row["fascicolo_id"]), row.get("proof_bundle_id"))
             cur = conn.execute(
                 """
                 INSERT INTO notification_events (
@@ -1228,10 +1353,22 @@ class ProcedureLifecycleRepository:
         keys = [key for key in updates if key in allowed]
         if not keys:
             return
+        if "status" in updates:
+            _assert_allowed_status(updates.get("status"), _NOTIFICATION_STATUSES, "status")
         assignments = [f"{key} = ?" for key in keys] + ["updated_at = CURRENT_TIMESTAMP"]
         params = [updates[key] for key in keys] + [notification_id]
         with self.connect() as conn:
             before = self.get_notification_event(notification_id, conn=conn)
+            target_status = updates.get("status")
+            if target_status in _NOTIFICATION_PROOF_STATUSES:
+                if source != _VALIDATED_NOTIFICATION_SOURCE:
+                    raise ValueError("Stato prova notifica aggiornabile solo tramite evidence vault validato.")
+                _assert_notification_proof_evidence(
+                    conn,
+                    str((before or {}).get("fascicolo_id") or ""),
+                    updates.get("proof_bundle_id") or (before or {}).get("proof_bundle_id"),
+                )
+                _insert_transition_guard(conn, "notification_events", notification_id, target_status)
             conn.execute(f"UPDATE notification_events SET {', '.join(assignments)} WHERE id = ?", tuple(params))
             after = self.get_notification_event(notification_id, conn=conn)
             self.audit_log(

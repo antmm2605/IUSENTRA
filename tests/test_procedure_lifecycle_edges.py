@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 import runpy
 import sys
 from unittest.mock import patch
@@ -8,6 +9,7 @@ from unittest.mock import patch
 import pytest
 
 from pct.digital_signature_workflow import (
+    SIGNATURE_STATUSES,
     assert_required_signatures_verified,
     create_signature_requirement,
     is_signature_required,
@@ -15,8 +17,9 @@ from pct.digital_signature_workflow import (
     verify_signature_event_consistency,
 )
 from pct.evidence_vault import add_evidence_document, link_evidence_to_deposit, link_evidence_to_notification
-from pct.legal_coverage_sqlite_repository import CoverageSqliteConfig
+from pct.legal_coverage_sqlite_repository import CoverageSqliteConfig, SQLiteCoverageRepository
 from pct.notification_workflow import (
+    NOTIFICATION_STATUSES,
     RealNotificationConnector,
     acquire_notification_proof,
     attach_relata,
@@ -28,8 +31,13 @@ from pct.notification_workflow import (
     record_notification_delivery,
     record_notification_sent,
 )
-from pct.post_acceptance_obligations import complete_obligation, evaluate_post_acceptance_obligations
-from pct.procedure_coverage_ext import compute_extended_coverage, enqueue_extended_gaps, list_procedure_inventory_coverage
+from pct.post_acceptance_obligations import OBLIGATION_STATUSES, complete_obligation, evaluate_post_acceptance_obligations
+from pct.procedure_coverage_ext import (
+    PROCEDURE_GAP_TYPES,
+    compute_extended_coverage,
+    enqueue_extended_gaps,
+    list_procedure_inventory_coverage,
+)
 from pct.procedure_inventory_importer import (
     compute_import_hash,
     iter_xsd_objects,
@@ -46,7 +54,7 @@ from pct.procedure_knowledge_pipeline import (
     submit_knowledge_card_for_review,
     validate_source_evidence,
 )
-from pct.procedure_lifecycle import LifecycleTemplateReport, transition_workflow
+from pct.procedure_lifecycle import WORKFLOW_STATES, LifecycleTemplateReport, transition_workflow
 from pct.procedure_lifecycle_repository import ProcedureLifecycleRepository, json_loads, row_to_dict
 from pct.procedure_source_research import (
     SourceReference,
@@ -58,10 +66,14 @@ from pct.procedure_source_research import (
 )
 from pct.procedure_xsd_mapper import infer_mapping_for_xsd, map_all_xsd_objects
 from pct.telematic_deposit_workflow import (
+    DEPOSIT_RECEIPT_TYPES,
+    DEPOSIT_STATUSES,
     RealDepositConnector,
     add_deposit_receipt,
+    assert_office_acceptance_evidence,
     create_deposit_package,
     mark_deposit_sent,
+    update_deposit_status_from_receipts,
     validate_package_ready,
 )
 from tests.procedure_pipeline_support import make_repo, seed_inventory, write_catalog
@@ -115,9 +127,12 @@ def test_importer_edge_paths_main_e_report(tmp_path, capsys):
         "--dry-run",
     ]
     try:
+        cached_module = sys.modules.pop("pct.procedure_inventory_importer", None)
         with pytest.raises(SystemExit) as exc:
             runpy.run_module("pct.procedure_inventory_importer", run_name="__main__")
     finally:
+        if cached_module is not None:
+            sys.modules["pct.procedure_inventory_importer"] = cached_module
         sys.argv = old_argv
     assert exc.value.code == 0
     assert json.loads(runpy_report_path.read_text(encoding="utf-8"))["dry_run"] is True
@@ -145,6 +160,10 @@ def test_mapper_placeholder_e_report_edges(tmp_path):
 
     unknown_empty = infer_mapping_for_xsd({"xsd_code": "", "xsd_label": ""})
     assert unknown_empty.confidence_score == 10
+    uncertain = infer_mapping_for_xsd({"xsd_code": "777001", "xsd_label": "Procedura non classificata"})
+    assert uncertain.review_status == "needs_review"
+    assert uncertain.confidence_score == 25
+    assert uncertain.procedure_code == "PROC_PCT_XSD_777_NEEDS_REVIEW"
 
     repo = make_repo(tmp_path)
     seed_inventory(repo, tmp_path)
@@ -204,6 +223,26 @@ def test_knowledge_pipeline_edge_validation_e_blocchi(tmp_path):
         }
     )
     assert professional_warning.warnings
+    professional_quote_error = validate_source_evidence(
+        {
+            "procedure_code": "PROC",
+            "source_type": "professional",
+            "source_title": "Commento",
+            "evidence_kind": "commento",
+            "extracted_principle": "Principio riformulato.",
+            "original_quote_short": "x" * 501,
+        }
+    )
+    assert "Per fonti professionali original_quote_short deve restare entro 500 caratteri." in professional_quote_error.errors
+    professional_principle_error = validate_source_evidence(
+        {
+            "procedure_code": "PROC",
+            "source_type": "professional",
+            "source_title": "Commento",
+            "evidence_kind": "commento",
+        }
+    )
+    assert "Per fonti professionali extracted_principle è obbligatorio." in professional_principle_error.errors
 
     quote_error = validate_source_evidence(
         {
@@ -226,6 +265,15 @@ def test_knowledge_pipeline_edge_validation_e_blocchi(tmp_path):
         }
     )
     assert internal_warning.warnings
+    internal_pii = validate_source_evidence(
+        {
+            "procedure_code": "PROC",
+            "source_type": "internal",
+            "source_title": "Mario RSSMRA80A01H501U mario.rossi@example.test IT60X0542811101000000123456",
+            "evidence_kind": "checklist",
+        }
+    )
+    assert internal_pii.privacy_review_required is True
     official_error = validate_source_evidence(
         {
             "procedure_code": "PROC",
@@ -344,16 +392,23 @@ def test_lifecycle_repository_e_state_machine_edges(tmp_path):
             "current_step_code": "ESITO_CONTROLLI_RICEVUTO",
         }
     )
-    repo.create_deposit_package(
-        {
-            "fascicolo_id": "FOFF",
-            "procedure_code": "PROC",
-            "xsd_code": "010001",
-            "channel_code": "PCT_CIVILE",
-            "deposit_status": "OFFICE_ACCEPTED",
-        }
+    with pytest.raises(ValueError):
+        repo.create_deposit_package(
+            {
+                "fascicolo_id": "FOFF",
+                "procedure_code": "PROC",
+                "xsd_code": "010001",
+                "channel_code": "PCT_CIVILE",
+                "deposit_status": "OFFICE_ACCEPTED",
+            }
+        )
+    raw_office_package = repo.create_deposit_package(
+        {"fascicolo_id": "FOFF", "procedure_code": "PROC", "xsd_code": "010001", "channel_code": "PCT_CIVILE"}
     )
-    transition_workflow(repo, office_id, "DEPOSITO_ACCETTATO")
+    with pytest.raises(ValueError):
+        repo.update_deposit_package(raw_office_package, {"deposit_status": "OFFICE_ACCEPTED"})
+    with pytest.raises(ValueError):
+        transition_workflow(repo, office_id, "DEPOSITO_ACCETTATO")
 
     receipt_id = repo.create_workflow_instance(
         {
@@ -387,6 +442,31 @@ def test_lifecycle_repository_e_state_machine_edges(tmp_path):
     repo.add_deposit_receipt({"deposit_package_id": reject_package_id, "receipt_type": "PEC_ACCETTAZIONE", "receipt_status": "RECEIVED"})
     with pytest.raises(ValueError):
         transition_workflow(repo, reject_id, "DEPOSITO_ACCETTATO")
+    with pytest.raises(ValueError):
+        repo.update_deposit_package(reject_package_id, {"deposit_status": "OFFICE_REJECTED"})
+
+    close_id = repo.create_workflow_instance(
+        {
+            "fascicolo_id": "FCLOSE",
+            "template_id": int(template["id"]),
+            "procedure_code": "PROC",
+            "xsd_code": "010001",
+            "current_step_code": "MONITORAGGIO_FASCICOLO",
+        }
+    )
+    obligation_id = repo.add_obligation(
+        {
+            "fascicolo_id": "FCLOSE",
+            "procedure_code": "PROC",
+            "xsd_code": "010001",
+            "trigger_event": "ACCETTAZIONE",
+            "obligation_type": "NOTIFICA",
+        }
+    )
+    with pytest.raises(ValueError):
+        transition_workflow(repo, close_id, "CHIUSA")
+    repo.update_obligation(obligation_id, {"obligation_status": "COMPLETED"})
+    transition_workflow(repo, close_id, "CHIUSA")
 
 
 def test_signature_deposit_notification_evidence_edges(tmp_path):
@@ -455,6 +535,10 @@ def test_signature_deposit_notification_evidence_edges(tmp_path):
         record_notification_delivery(repo, notification_id)
     with pytest.raises(ValueError):
         acquire_notification_proof(repo, notification_id, 999)
+    with pytest.raises(ValueError):
+        repo.update_notification_event(notification_id, {"status": "PROOF_ACQUIRED"})
+    with pytest.raises(ValueError):
+        repo.update_notification_event(notification_id, {"status": "PROOF_ACQUIRED", "proof_bundle_id": "fake"})
     assert proof_deposit_required(repo, notification_id) is False
     with pytest.raises(ValueError):
         attach_relata(repo, notification_id, "")
@@ -466,7 +550,31 @@ def test_signature_deposit_notification_evidence_edges(tmp_path):
         mark_proof_deposited(repo, 999, 1)
     with pytest.raises(ValueError):
         mark_proof_deposited(repo, notification_id, 1)
-    repo.update_notification_event(notification_id, {"status": "PROOF_ACQUIRED"})
+    ready_notification_id = create_notification_event(
+        repo,
+        fascicolo_id="FNOT",
+        notification_type="PEC",
+        act_document_id="atto",
+        recipient_name="Mario Rossi",
+        recipient_address="mario.rossi@example.test",
+        recipient_address_source="ReGIndE",
+    )
+    mark_notification_ready(repo, ready_notification_id)
+    record_notification_sent(repo, ready_notification_id)
+    with pytest.raises(ValueError):
+        acquire_notification_proof(repo, ready_notification_id, 999)
+    record_notification_delivery(repo, ready_notification_id)
+    proof_id = add_evidence_document(
+        repo,
+        fascicolo_id="FNOT",
+        evidence_type="PROOF_OF_DELIVERY",
+        document_id="proof",
+        hash="proof-hash",
+    )
+    acquire_notification_proof(repo, ready_notification_id, proof_id)
+    assert repo.get_notification_event(ready_notification_id)["status"] == "PROOF_ACQUIRED"
+
+    repo.update_notification_event(notification_id, {"status": "PROOF_ACQUIRED", "proof_bundle_id": "proof"})
     mark_proof_deposit_required(repo, notification_id)
     assert repo.get_notification_event(notification_id)["status"] == "PROOF_ACQUIRED"
     with pytest.raises(ValueError):
@@ -480,6 +588,33 @@ def test_signature_deposit_notification_evidence_edges(tmp_path):
         link_evidence_to_deposit(repo, package_id=999, evidence_id=evidence_id)
     with pytest.raises(ValueError):
         link_evidence_to_deposit(repo, package_id=package_id, evidence_id=999)
+
+    proof_obligation = repo.add_obligation(
+        {
+            "fascicolo_id": "FNOT",
+            "procedure_code": "PROC",
+            "xsd_code": "010001",
+            "trigger_event": "ACCETTAZIONE",
+            "obligation_type": "DEPOSITO_PROVA_NOTIFICA",
+        }
+    )
+    proof_notification = create_notification_event(
+        repo,
+        fascicolo_id="FNOT",
+        notification_type="PEC",
+        act_document_id="atto",
+        obligation_id=proof_obligation,
+        recipient_name="Mario Rossi",
+        recipient_address="mario.rossi@example.test",
+        recipient_address_source="ReGIndE",
+    )
+    mark_notification_ready(repo, proof_notification)
+    record_notification_sent(repo, proof_notification)
+    acquire_notification_proof(repo, proof_notification, proof_id)
+    mark_proof_deposit_required(repo, proof_notification)
+    assert repo.get_notification_event(proof_notification)["status"] == "PROOF_DEPOSIT_REQUIRED"
+    mark_proof_deposited(repo, proof_notification, evidence_id)
+    assert repo.get_notification_event(proof_notification)["status"] == "PROOF_DEPOSITED"
 
 
 def test_repository_helper_filters_e_noop_updates(tmp_path):
@@ -525,6 +660,7 @@ def test_repository_helper_filters_e_noop_updates(tmp_path):
         {"fascicolo_id": "F", "document_id": "D", "required": 0, "verification_status": "NOT_REQUIRED"}
     )
     repo.update_signature_event(sig_id, {"not_allowed": "x"})
+    repo.update_signature_event(sig_id, {"notes": "nota audit"})
     package_id = repo.create_deposit_package(
         {"fascicolo_id": "F", "procedure_code": "PROC", "xsd_code": "010001", "channel_code": "PCT_CIVILE"}
     )
@@ -533,10 +669,23 @@ def test_repository_helper_filters_e_noop_updates(tmp_path):
         {"fascicolo_id": "F", "procedure_code": "PROC", "xsd_code": "010001", "trigger_event": "T", "obligation_type": "NOTIFICA"}
     )
     repo.update_obligation(obligation_id, {"not_allowed": "x"})
+    repo.update_obligation(obligation_id, {"notes": "nota obbligo"})
     notification_id = repo.create_notification_event(
         {"fascicolo_id": "F", "notification_type": "PEC", "act_document_id": "atto"}
     )
     repo.update_notification_event(notification_id, {"not_allowed": "x"})
+    with pytest.raises(ValueError):
+        repo.update_notification_event(notification_id, {"status": "PROOF_ACQUIRED", "proof_bundle_id": "missing-proof"})
+    with pytest.raises(ValueError):
+        repo.create_notification_event(
+            {
+                "fascicolo_id": "F",
+                "notification_type": "PEC",
+                "act_document_id": "atto",
+                "status": "PROOF_ACQUIRED",
+                "proof_bundle_id": "missing-proof",
+            }
+        )
     assert repo.list_evidence_documents("F", source_event_id=999) == []
 
 
@@ -579,3 +728,319 @@ def test_post_acceptance_coverage_e_source_runtime_edges(tmp_path):
     with pytest.raises(ValueError):
         consult_sources_for_xsd(repo, "missing")
     assert seed_multi_source_evidence_for_inventory(repo, dry_run=True).xsd_total >= 1
+
+
+def test_enum_status_sconosciuti_gap_e_audit_azioni_critiche(tmp_path):
+    repo = make_repo(tmp_path)
+    seed_inventory(repo, tmp_path)
+    assert "VERIFIED" in SIGNATURE_STATUSES
+    assert "OFFICE_ACCEPTED" in DEPOSIT_STATUSES
+    assert "ACCETTAZIONE_DEPOSITO" in DEPOSIT_RECEIPT_TYPES
+    assert "PROOF_ACQUIRED" in NOTIFICATION_STATUSES
+    assert "PENDING" in OBLIGATION_STATUSES
+    assert "CHIUSA" in WORKFLOW_STATES
+    assert "MISSING_XSD_MAPPING" in PROCEDURE_GAP_TYPES
+    with pytest.raises(ValueError):
+        repo.add_signature_event({"fascicolo_id": "FERR", "document_id": "D", "verification_status": "SCONOSCIUTO"})
+    with pytest.raises(ValueError):
+        repo.create_deposit_package(
+            {
+                "fascicolo_id": "FERR",
+                "procedure_code": "PROC",
+                "xsd_code": "010001",
+                "channel_code": "PCT_CIVILE",
+                "deposit_status": "SCONOSCIUTO",
+            }
+        )
+    with pytest.raises(ValueError):
+        repo.add_obligation(
+            {
+                "fascicolo_id": "FERR",
+                "procedure_code": "PROC",
+                "xsd_code": "010001",
+                "trigger_event": "ERR",
+                "obligation_type": "NOTIFICA",
+                "obligation_status": "SCONOSCIUTO",
+            }
+        )
+    with pytest.raises(ValueError):
+        repo.create_notification_event(
+            {
+                "fascicolo_id": "FERR",
+                "notification_type": "PEC",
+                "act_document_id": "atto",
+                "status": "SCONOSCIUTO",
+            }
+        )
+
+    template = repo.list_lifecycle_templates(xsd_code="010001")[0]
+    workflow_id = repo.create_workflow_instance(
+        {
+            "fascicolo_id": "FAUDIT",
+            "template_id": int(template["id"]),
+            "procedure_code": "PROC",
+            "xsd_code": "010001",
+            "current_step_code": "PRATICA_APERTA",
+        }
+    )
+    transition_workflow(repo, workflow_id, "DOCUMENTI_RICHIESTI")
+    with pytest.raises(ValueError):
+        transition_workflow(repo, workflow_id, "STATO_SCONOSCIUTO")
+
+    signature_id = create_signature_requirement(
+        repo,
+        fascicolo_id="FAUDIT",
+        document_id="atto",
+        procedure_code="PROC",
+        xsd_code="010001",
+        document_role="atto_principale",
+        signer_expected="Avv. Rossi",
+    )
+    with pytest.raises(ValueError):
+        repo.update_signature_event(signature_id, {"verification_status": "SCONOSCIUTO"})
+    record_signature_result(repo, signature_id, signer_detected="Avv. Rossi", hash_after="hash-firma")
+
+    package_id = create_deposit_package(
+        repo,
+        fascicolo_id="FAUDIT",
+        procedure_code="PROC",
+        xsd_code="010001",
+        dati_atto_xml_id="dati-atto",
+        envelope_file_id="busta",
+    )
+    with pytest.raises(ValueError):
+        repo.update_deposit_package(package_id, {"deposit_status": "SCONOSCIUTO"})
+    assert validate_package_ready(repo, package_id)["ready"] is True
+    mark_deposit_sent(repo, package_id)
+    with pytest.raises(ValueError):
+        assert_office_acceptance_evidence(repo, package_id)
+    add_deposit_receipt(repo, package_id, "ACCETTAZIONE_DEPOSITO", document_id="ricevuta-accettazione")
+    assert update_deposit_status_from_receipts(repo, package_id) == "OFFICE_ACCEPTED"
+
+    obligation_id = repo.add_obligation(
+        {
+            "fascicolo_id": "FAUDIT",
+            "procedure_code": "PROC",
+            "xsd_code": "010001",
+            "trigger_event": "ACCETTAZIONE",
+            "obligation_type": "MONITORAGGIO_PROVVEDIMENTO",
+        }
+    )
+    with pytest.raises(ValueError):
+        repo.update_obligation(obligation_id, {"obligation_status": "SCONOSCIUTO"})
+    complete_obligation(repo, obligation_id)
+
+    notification_id = create_notification_event(
+        repo,
+        fascicolo_id="FAUDIT",
+        notification_type="PEC",
+        act_document_id="atto",
+        recipient_name="Mario Rossi",
+        recipient_address="mario.rossi@example.test",
+        recipient_address_source="ReGIndE",
+    )
+    mark_notification_ready(repo, notification_id)
+    record_notification_sent(repo, notification_id)
+    record_notification_delivery(repo, notification_id)
+    evidence_id = add_evidence_document(
+        repo,
+        fascicolo_id="FAUDIT",
+        evidence_type="PROOF_OF_DELIVERY",
+        document_id="prova-notifica",
+        hash="hash-prova",
+    )
+    acquire_notification_proof(repo, notification_id, evidence_id)
+    with pytest.raises(ValueError):
+        repo.update_notification_event(notification_id, {"status": "STATO_SCONOSCIUTO"})
+
+    source_id = add_source_evidence(
+        repo,
+        procedure_code="PROC_AUDIT",
+        xsd_code="010001",
+        source_type="official",
+        source_url="https://pst.giustizia.it/PST/it/download.page",
+        source_title="PST",
+        evidence_kind="catalogo_xsd",
+        last_checked_at="2026-05-21",
+        review_status="validated",
+    )
+    card_id = save_knowledge_card(
+        repo,
+        procedure_code="PROC_AUDIT",
+        xsd_code="010001",
+        title="Scheda audit",
+        sources=[{**repo.list_source_evidence("PROC_AUDIT", "010001")[0], "id": source_id}],
+    )
+    approve_knowledge_card(repo, card_id, "Avv. Rossi")
+    publish_knowledge_card(repo, card_id)
+
+    fallback_mapping = infer_mapping_for_xsd({"xsd_code": "888001", "xsd_label": "Procedura senza fonte configurata"})
+    assert fallback_mapping.review_status == "needs_review"
+    fallback_coverage = compute_extended_coverage(repo, fallback_mapping.procedure_code, "888001")
+    fallback_gaps = enqueue_extended_gaps(repo, fallback_coverage)
+    assert fallback_coverage["ready"] is False
+    assert fallback_gaps
+    assert {gap["gap_type"] for gap in fallback_gaps} >= {"MISSING_XSD_OBJECT", "NEEDS_HUMAN_REVIEW"}
+
+    actions = {row["action"] for row in repo.list_audit_log()}
+    expected_actions = {
+        "xsd_import_create",
+        "xsd_mapping_create",
+        "source_evidence_add",
+        "knowledge_card_create",
+        "knowledge_card_approved",
+        "knowledge_card_published",
+        "lifecycle_template_create",
+        "lifecycle_step_upsert",
+        "workflow_instance_create",
+        "workflow_transition",
+        "workflow_event_add",
+        "signature_event_create",
+        "signature_event_update",
+        "deposit_package_create",
+        "deposit_package_update",
+        "deposit_receipt_add",
+        "obligation_create",
+        "obligation_update",
+        "notification_create",
+        "notification_update",
+        "evidence_add",
+        "coverage_gap_create",
+    }
+    missing_audit = sorted(expected_actions - actions)
+    assert missing_audit == []
+
+
+def test_anti_bypass_sql_diretto_apply_generated_sql_e_fixture(tmp_path):
+    repo = make_repo(tmp_path)
+    seed_inventory(repo, tmp_path)
+    template = repo.list_lifecycle_templates(xsd_code="010001")[0]
+    workflow_id = repo.create_workflow_instance(
+        {
+            "fascicolo_id": "FBYPASS",
+            "template_id": int(template["id"]),
+            "procedure_code": "PROC",
+            "xsd_code": "010001",
+            "current_step_code": "ESITO_CONTROLLI_RICEVUTO",
+        }
+    )
+    package_id = repo.create_deposit_package(
+        {"fascicolo_id": "FBYPASS", "procedure_code": "PROC", "xsd_code": "010001", "channel_code": "PCT_CIVILE"}
+    )
+    notification_id = repo.create_notification_event(
+        {"fascicolo_id": "FBYPASS", "notification_type": "PEC", "act_document_id": "atto"}
+    )
+
+    with repo.connect() as conn:
+        with pytest.raises(Exception):
+            conn.execute(
+                "UPDATE telematic_deposit_packages SET deposit_status = 'OFFICE_ACCEPTED' WHERE id = ?",
+                (package_id,),
+            )
+        with pytest.raises(Exception):
+            conn.execute(
+                "UPDATE fascicolo_workflow_instances SET current_step_code = 'DEPOSITO_ACCETTATO' WHERE id = ?",
+                (workflow_id,),
+            )
+        with pytest.raises(Exception):
+            conn.execute(
+                "UPDATE notification_events SET status = 'PROOF_ACQUIRED', proof_bundle_id = 'fake' WHERE id = ?",
+                (notification_id,),
+            )
+        with pytest.raises(Exception):
+            conn.execute(
+                """
+                INSERT INTO notification_events (
+                    fascicolo_id, notification_type, act_document_id, status, proof_bundle_id
+                ) VALUES ('FBYPASS', 'PEC', 'atto', 'PROOF_ACQUIRED', 'fake')
+                """
+            )
+        with pytest.raises(Exception):
+            conn.execute(
+                """
+                INSERT INTO fascicolo_workflow_instances (
+                    fascicolo_id, template_id, procedure_code, xsd_code, current_step_code, status
+                ) VALUES ('FBYPASS', ?, 'PROC', '010001', 'FIRMATO', 'IN_PROGRESS')
+                """,
+                (int(template["id"]),),
+            )
+        with pytest.raises(Exception):
+            conn.execute(
+                """
+                INSERT INTO telematic_deposit_packages (
+                    fascicolo_id, procedure_code, xsd_code, channel_code, deposit_status
+                ) VALUES ('FBYPASS', 'PROC', '010001', 'PCT_CIVILE', 'OFFICE_ACCEPTED')
+                """
+            )
+
+    coverage_repo = SQLiteCoverageRepository(CoverageSqliteConfig(str(repo.db_path)))
+    with pytest.raises(Exception):
+        coverage_repo.apply_generated_sql(
+            f"UPDATE telematic_deposit_packages SET deposit_status = 'OFFICE_ACCEPTED' WHERE id = {package_id};"
+        )
+    with pytest.raises(Exception):
+        coverage_repo.apply_generated_sql(
+            f"UPDATE fascicolo_workflow_instances SET current_step_code = 'DEPOSITO_ACCETTATO' WHERE id = {workflow_id};"
+        )
+
+    sig_id = create_signature_requirement(
+        repo,
+        fascicolo_id="FBYPASS",
+        document_id="atto",
+        procedure_code="PROC",
+        xsd_code="010001",
+        document_role="atto_principale",
+        signer_expected="Avv. Rossi",
+    )
+    record_signature_result(repo, sig_id, signer_detected="Avv. Rossi", hash_after="hash")
+    repo.add_deposit_receipt({"deposit_package_id": package_id, "receipt_type": "ACCETTAZIONE_DEPOSITO", "receipt_status": "RECEIVED"})
+    proof_id = add_evidence_document(
+        repo,
+        fascicolo_id="FBYPASS",
+        evidence_type="PROOF_OF_DELIVERY",
+        document_id="proof-bypass",
+        hash="hash-proof",
+    )
+    with repo.connect() as conn:
+        conn.execute(
+            "UPDATE telematic_deposit_packages SET deposit_status = 'OFFICE_ACCEPTED' WHERE id = ?",
+            (package_id,),
+        )
+        conn.execute(
+            "UPDATE fascicolo_workflow_instances SET current_step_code = 'FIRMATO' WHERE id = ?",
+            (workflow_id,),
+        )
+        conn.execute(
+            "UPDATE fascicolo_workflow_instances SET current_step_code = 'DEPOSITO_ACCETTATO' WHERE id = ?",
+            (workflow_id,),
+        )
+        conn.execute(
+            "UPDATE notification_events SET status = 'PROOF_ACQUIRED', proof_bundle_id = ? WHERE id = ?",
+            ("proof-bypass", notification_id),
+        )
+        assert proof_id
+
+    fixture_source = (tmp_path / "catalog.json").read_text(encoding="utf-8")
+    assert "OFFICE_ACCEPTED" not in fixture_source
+    assert "PROOF_ACQUIRED" not in fixture_source
+    assert "DEPOSITO_ACCETTATO" not in fixture_source
+
+    endpoint_cli_violations: list[str] = []
+    guarded_terms = (
+        "telematic_deposit_packages",
+        "notification_events",
+        "fascicolo_workflow_instances",
+        "OFFICE_ACCEPTED",
+        "DEPOSITO_ACCETTATO",
+        "PROOF_ACQUIRED",
+        "CHIUSA",
+    )
+    for root in (Path("web"), Path("scripts")):
+        for path in root.rglob("*.py"):
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            if any(term in text for term in guarded_terms):
+                endpoint_cli_violations.append(str(path))
+    cli_text = Path("pct/cli.py").read_text(encoding="utf-8", errors="ignore")
+    if any(term in cli_text for term in guarded_terms):
+        endpoint_cli_violations.append("pct/cli.py")
+    assert endpoint_cli_violations == []

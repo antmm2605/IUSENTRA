@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import ipaddress
 import os
 import re
 import time
-import base64
 from collections.abc import Callable
 from typing import Any
 from urllib.parse import parse_qs, unquote, urljoin, urlparse

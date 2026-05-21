@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.248.8 - 2026-05-21
+
+- Reso canonico il contesto cliente/fascicolo nelle risposte JSON di Template Atti: gli endpoint restituiscono solo identificativi ricavati da entità realmente risolte lato repository, senza riflettere parametri di query non validati.
+- Mantenuti i gate CodeQL/CI sul perimetro Template Atti con validazione server-side, payload JSON sanificati e nessun fallback silenzioso.
+
 ## 2.248.7 - 2026-05-21
 
 - I codici Template Atti usati dalle API di prefill e verifica vengono ora canonicalizzati dal catalogo server-side: il parametro di rotta seleziona il modello, ma la risposta usa solo il codice reale del catalogo.

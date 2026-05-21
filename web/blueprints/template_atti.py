@@ -772,8 +772,8 @@ def _resolve_template_prefill_response(codice: str, payload: dict | None = None)
         "codice": _safe_identifier(item.get("codice") or safe_code) or "template",
         "titolo": item.get("titolo"),
         "context": {
-            "id_cliente": context["id_cliente"],
-            "id_fascicolo": context["id_fascicolo"],
+            "id_cliente": getattr(context["selected_cliente"], "id", "") if context.get("selected_cliente") else "",
+            "id_fascicolo": getattr(context["selected_fascicolo"], "id", "") if context.get("selected_fascicolo") else "",
         },
         "prefill": resolution,
     }, 200

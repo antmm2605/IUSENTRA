@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.248.6 - 2026-05-21
+
+- Resa esplicita nelle route Template Atti la validazione allowlist del codice modello prima di generare qualunque risposta JSON, così il controllo CodeQL vede il vincolo su lunghezza e caratteri ammessi.
+
 ## 2.248.5 - 2026-05-21
 
 - Chiuso il residuo XSS CodeQL su Template Atti: gli endpoint di prefill/verifica non riflettono più nel JSON i valori arbitrari inviati dall'utente, ma solo campi ammessi dal modello server-side e stati di validazione.

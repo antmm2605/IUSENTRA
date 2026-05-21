@@ -983,14 +983,20 @@ def template_inventory_data():
 @template_atti.route("/<codice>/prefill", methods=["GET"])
 @_richiedi_login
 def template_prefill_data(codice: str):
-    payload, status = _resolve_template_prefill_response(_safe_identifier(codice))
+    safe_code = str(codice or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_.:-]{1,120}", safe_code):
+        return jsonify({"ok": False, "errore": "Template non trovato."}), 404
+    payload, status = _resolve_template_prefill_response(safe_code)
     return jsonify(_json_safe_payload(payload)), status
 
 
 @template_atti.route("/<codice>/prefill/resolve", methods=["POST"])
 @_richiedi_login
 def template_prefill_resolve(codice: str):
-    payload, status = _resolve_template_prefill_response(_safe_identifier(codice), {})
+    safe_code = str(codice or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_.:-]{1,120}", safe_code):
+        return jsonify({"ok": False, "errore": "Template non trovato."}), 404
+    payload, status = _resolve_template_prefill_response(safe_code, {})
     return jsonify(_json_safe_payload(payload)), status
 
 
@@ -999,8 +1005,11 @@ def template_prefill_resolve(codice: str):
 def template_prefill_merge(codice: str):
     from pct.template_atti_prefill import merge_prefill_values
 
+    safe_code = str(codice or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_.:-]{1,120}", safe_code):
+        return jsonify({"ok": False, "errore": "Template non trovato."}), 404
     request_payload = _request_payload()
-    resolved_payload, status = _resolve_template_prefill_response(_safe_identifier(codice), {})
+    resolved_payload, status = _resolve_template_prefill_response(safe_code, {})
     if status != 200:
         return jsonify(_json_safe_payload(resolved_payload)), status
     user_values = request_payload.get("user_values") if isinstance(request_payload.get("user_values"), dict) else {}
@@ -1018,7 +1027,9 @@ def template_cartabia_compliance(codice: str):
     from pct.template_cartabia_rules import verifica_cartabia_template
     from pct.template_atti_unified_catalog import get_unified_template_item
 
-    safe_code = _safe_identifier(codice)
+    safe_code = str(codice or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_.:-]{1,120}", safe_code):
+        return jsonify({"ok": False, "errore": "Template non trovato."}), 404
     item = get_unified_template_item(safe_code) if safe_code else None
     if not item:
         return jsonify({"ok": False, "errore": "Template non trovato."}), 404
@@ -1031,7 +1042,9 @@ def template_verifica_cartabia(codice: str):
     from pct.template_cartabia_rules import verifica_cartabia_template
     from pct.template_atti_unified_catalog import get_unified_template_item
 
-    safe_code = _safe_identifier(codice)
+    safe_code = str(codice or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_.:-]{1,120}", safe_code):
+        return jsonify({"ok": False, "errore": "Template non trovato."}), 404
     item = get_unified_template_item(safe_code) if safe_code else None
     if not item:
         return jsonify({"ok": False, "errore": "Template non trovato."}), 404
@@ -1049,8 +1062,10 @@ def template_verifica_completa(codice: str):
     from pct.template_cartabia_rules import verifica_cartabia_template
     from pct.template_atti_unified_catalog import get_unified_template_item
 
+    safe_code = str(codice or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_.:-]{1,120}", safe_code):
+        return jsonify({"ok": False, "errore": "Template non trovato."}), 404
     request_payload = _request_payload()
-    safe_code = _safe_identifier(codice)
     item = get_unified_template_item(safe_code) if safe_code else None
     if not item:
         return jsonify({"ok": False, "errore": "Template non trovato."}), 404

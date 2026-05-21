@@ -317,7 +317,7 @@ MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "
 
 @api_v1_react.errorhandler(TenantDataPathError)
 def _tenant_data_path_error(error: TenantDataPathError):
-    return jsonify({"ok": False, "errore": str(error), "codice": "tenant_context_required"}), 409
+    return jsonify({"ok": False, "errore": "Contesto studio non disponibile.", "codice": "tenant_context_required"}), 409
 
 
 def _api_key_valida() -> bool:
@@ -2336,7 +2336,7 @@ def scadenziario_termini_calculate():
         return jsonify({"ok": True, "result": result})
     except Exception as exc:
         current_app.logger.exception("Calcolo termine processuale non riuscito: %s", exc)
-        return jsonify({"ok": False, "errore": str(exc)}), 400
+        return jsonify({"ok": False, "errore": "Calcolo termine non completato."}), 400
 
 
 @api_v1_react.post("/scadenziario/termini/explain")
@@ -2390,7 +2390,7 @@ def scadenziario_termini_override():
         return jsonify({"ok": True, "result": result})
     except Exception as exc:
         current_app.logger.exception("Override termine processuale non riuscito: %s", exc)
-        return jsonify({"ok": False, "errore": str(exc)}), 400
+        return jsonify({"ok": False, "errore": "Override termine non completato."}), 400
 
 
 @api_v1_react.post("/scadenziario/termini/crea-scadenza")
@@ -2444,7 +2444,7 @@ def scadenziario_termini_crea_scadenza():
         })
     except Exception as exc:
         current_app.logger.exception("Creazione scadenza da calcolo non riuscita: %s", exc)
-        return jsonify({"ok": False, "errore": str(exc)}), 400
+        return jsonify({"ok": False, "errore": "Scadenza processuale non creata."}), 400
 
 
 @api_v1_react.get("/wizard-pro")
@@ -2611,7 +2611,7 @@ def strumenti_legali_react_calcola(tool_id: str):
             "sources": list(result.get("sources") or []),
         })
     except ValueError as exc:
-        message = str(exc) or "Verifica i dati inseriti e riprova."
+        message = "Verifica i dati inseriti e riprova."
         return jsonify({
             "ok": False,
             "message": message,
@@ -2701,7 +2701,7 @@ def admin_database_react_payload():
         ))
     except Exception as exc:
         current_app.logger.exception("Bridge React database non disponibile: %s", exc)
-        return jsonify(build_react_admin_database_error_payload(str(exc))), 200
+        return jsonify(build_react_admin_database_error_payload("Database non disponibile dal runtime corrente.")), 200
 
 
 # IUSENTRA_REACT_FASCICOLI_ROUTES_START
@@ -3531,7 +3531,7 @@ def utenti_nuovo_crea():
             nome_completo=nome_completo,
         )
     except ValueError as exc:
-        message = str(exc)
+        message = "Utente non creato. Controlla i dati inseriti."
         field = "username" if "username" in message.lower() else "_form"
         return _json_validation_error(message, {field: message})
     except Exception as exc:
@@ -4119,7 +4119,7 @@ def sito_studio_redazione_ai_genera():
         result = generate_react_sito_studio_ai_article(payload or {})
     except Exception as exc:
         current_app.logger.exception("Errore generazione articolo Redazione AI React: %s", exc)
-        result = {"ok": False, "message": str(exc) or "Generazione bozza non riuscita."}
+        result = {"ok": False, "message": "Generazione bozza non riuscita."}
     return jsonify(result), 200 if result.get("ok") else 400
 
 

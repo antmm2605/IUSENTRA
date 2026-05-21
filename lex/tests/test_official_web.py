@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from urllib.parse import urlparse
+
 from lex.contracts import LexRequest
 from lex.retrieval.official_web import (
     resolve_official_source_ids_for_query,
@@ -14,6 +16,20 @@ class _FakeResponse:
     def __init__(self, body: str, status_code: int = 200) -> None:
         self.status_code = status_code
         self.text = body
+
+
+def _request_host(url: str) -> str:
+    return (urlparse(url).hostname or "").lower()
+
+
+def _host_matches(host: str, domain: str) -> bool:
+    host_labels = [part for part in host.split(".") if part]
+    domain_labels = [part for part in domain.lower().split(".") if part]
+    return bool(host_labels and domain_labels and len(host_labels) >= len(domain_labels) and host_labels[-len(domain_labels):] == domain_labels)
+
+
+def _called(calls: list[str], domain: str) -> bool:
+    return any(_host_matches(_request_host(call), domain) for call in calls)
 
 
 def test_search_recognized_official_web_filtra_domini_non_ufficiali():
@@ -93,9 +109,9 @@ def test_search_free_public_web_usa_fallback_pubblico_se_duckduckgo_blocca():
 
     def fake_get(url, **kwargs):
         calls.append(url)
-        if "duckduckgo" in url:
+        if _host_matches(_request_host(url), "duckduckgo.com"):
             return _FakeResponse(duckduckgo_challenge, status_code=202)
-        if "search.yahoo.com" in url:
+        if _host_matches(_request_host(url), "search.yahoo.com"):
             return _FakeResponse(yahoo_body)
         return _FakeResponse("<html><body></body></html>")
 
@@ -105,8 +121,8 @@ def test_search_free_public_web_usa_fallback_pubblico_se_duckduckgo_blocca():
         limit_results=3,
     )
 
-    assert any("duckduckgo" in call for call in calls)
-    assert any("search.yahoo.com" in call for call in calls)
+    assert _called(calls, "duckduckgo.com")
+    assert _called(calls, "search.yahoo.com")
     assert len(results) == 1
     assert results[0]["domain"] == "studiolegale-esempio.it"
     assert results[0]["search_engine"] == "yahoo"
@@ -130,9 +146,9 @@ def test_search_free_public_web_usa_google_pubblico_oltre_duckduckgo():
 
     def fake_get(url, **kwargs):
         calls.append(url)
-        if "duckduckgo" in url:
+        if _host_matches(_request_host(url), "duckduckgo.com"):
             return _FakeResponse("<html><body></body></html>", status_code=202)
-        if "google.com" in url:
+        if _host_matches(_request_host(url), "google.com"):
             return _FakeResponse(google_body)
         return _FakeResponse("<html><body></body></html>")
 
@@ -142,9 +158,9 @@ def test_search_free_public_web_usa_google_pubblico_oltre_duckduckgo():
         limit_results=2,
     )
 
-    assert any("duckduckgo" in call for call in calls)
-    assert any("google.com" in call for call in calls)
-    assert not any("search.yahoo.com" in call for call in calls)
+    assert _called(calls, "duckduckgo.com")
+    assert _called(calls, "google.com")
+    assert not _called(calls, "search.yahoo.com")
     assert len(results) == 1
     assert results[0]["search_engine"] == "google"
     assert results[0]["domain"] == "studiolegale-esempio.it"
@@ -171,7 +187,7 @@ def test_search_free_public_web_usa_ecosia_se_altri_motori_non_restituiscono_ris
 
     def fake_get(url, **kwargs):
         calls.append(url)
-        if "ecosia.org" in url:
+        if _host_matches(_request_host(url), "ecosia.org"):
             return _FakeResponse(ecosia_body)
         return _FakeResponse("<html><body></body></html>", status_code=202)
 
@@ -181,7 +197,7 @@ def test_search_free_public_web_usa_ecosia_se_altri_motori_non_restituiscono_ris
         limit_results=2,
     )
 
-    assert any("ecosia.org" in call for call in calls)
+    assert _called(calls, "ecosia.org")
     assert len(results) == 1
     assert results[0]["search_engine"] == "ecosia"
     assert results[0]["domain"] == "studioassociatoborselli.it"
@@ -274,7 +290,7 @@ def test_search_recognized_official_web_fallback_cassazione_lista_pubblica():
     """
 
     def fake_get(url, **kwargs):
-        if "duckduckgo" in url:
+        if _host_matches(_request_host(url), "duckduckgo.com"):
             return _FakeResponse(empty_search)
         if kwargs.get("params", {}).get("frame3_item") == 2:
             return _FakeResponse(cassazione_page)

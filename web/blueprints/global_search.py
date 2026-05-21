@@ -187,7 +187,7 @@ def api_search():
         return jsonify(payload)
     except Exception as exc:
         current_app.logger.exception("Errore Ricerca Studio API: %s", exc)
-        return jsonify({"ok": False, "error": str(exc), "results": []}), 200
+        return jsonify({"ok": False, "error": "Ricerca Studio non disponibile.", "results": []}), 200
     finally:
         service.repository.close()
 

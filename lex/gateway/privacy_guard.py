@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass
 
-EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,24}\b")
 CF_RE = re.compile(r"\b[A-Z]{6}[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{3}[A-Z]\b", re.I)
 PIVA_RE = re.compile(r"\b\d{11}\b")
 PHONE_RE = re.compile(r"(?:(?:\+39)?\s?)?(?:3\d{2}|0\d{1,4})[\s.-]?\d{5,8}")

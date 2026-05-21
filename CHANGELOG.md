@@ -7,6 +7,11 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.247.3 - 2026-05-21
+
+- Risolti gli alert CodeQL PR su template notifiche, template atti, URL, SQL dinamico, path, logging e risposte di errore: il rendering delle notifiche usa ora un parser token ristretto senza Jinja runtime, i nomi file sono sanitizzati, le query Lex sono parametriche a SQL fisso e i messaggi JSON non espongono eccezioni.
+- Protetti bootstrap admin e calendari esterni: la password temporanea non viene più salvata in chiaro, gli URL ICS/WebCal sono validati contro target locali/privati e i test URL usano parsing host/scheme invece di controlli substring.
+
 ## 2.247.2 - 2026-05-21
 
 - Rafforzata `Regia Agentica Studio`: la preview passa i permessi reali al `LexToolRegistry`, il registry normalizza i permessi storici `studio:*` sui permessi RBAC applicativi, le metriche sono calcolate dallo stato effettivo del run e i run salvano una sintesi operativa redatta.

@@ -16,11 +16,14 @@ from __future__ import annotations
 
 import json
 import hashlib
+import ipaddress
+import socket
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
+from urllib.parse import urljoin, urlparse
 
 import requests
 
@@ -29,6 +32,7 @@ from pct.ical_import import EventoImportato, parse_ics
 
 USER_AGENT = "IUSENTRA-Calendar-Sync/1.0 (+https://pst.giustizia.it)"
 MAX_ICS_BYTES = 5 * 1024 * 1024
+_REMOTE_CALENDAR_SCHEMES = {"http", "https"}
 
 
 def _now_iso(now: Optional[datetime] = None) -> str:
@@ -49,6 +53,40 @@ def _normalize_calendar_url(url: str) -> str:
     if value.lower().startswith("webcal://"):
         return "https://" + value[len("webcal://") :]
     return value
+
+
+def _host_is_public_calendar_target(host: str, *, resolve_dns: bool) -> bool:
+    value = (host or "").strip().lower().rstrip(".")
+    if not value or value in {"localhost", "localhost.localdomain"} or value.endswith(".local"):
+        return False
+    addresses: list[str] = []
+    try:
+        addresses.append(str(ipaddress.ip_address(value)))
+    except ValueError:
+        if not resolve_dns:
+            return True
+        try:
+            for family, _, _, _, sockaddr in socket.getaddrinfo(value, None):
+                if family in {socket.AF_INET, socket.AF_INET6} and sockaddr:
+                    addresses.append(str(sockaddr[0]))
+        except socket.gaierror:
+            return False
+    for address in addresses:
+        ip = ipaddress.ip_address(address)
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_unspecified or ip.is_reserved:
+            return False
+    return bool(addresses)
+
+
+def _validate_remote_calendar_url(url: str, *, resolve_dns: bool) -> str:
+    parsed = urlparse(url)
+    if parsed.scheme not in _REMOTE_CALENDAR_SCHEMES or not parsed.hostname:
+        raise ValueError("URL calendario non valido.")
+    if parsed.username or parsed.password:
+        raise ValueError("L'URL calendario non deve contenere credenziali.")
+    if not _host_is_public_calendar_target(parsed.hostname, resolve_dns=resolve_dns):
+        raise ValueError("URL calendario non ammesso.")
+    return parsed.geturl()
 
 
 def _content_hash(text: str) -> str:
@@ -181,19 +219,33 @@ class GestioneCalendarSync:
         *,
         request_get: Optional[Callable[..., Any]] = None,
     ) -> Dict[str, Any]:
-        url = _normalize_calendar_url(source_url)
+        url = _validate_remote_calendar_url(
+            _normalize_calendar_url(source_url),
+            resolve_dns=request_get is None,
+        )
         if not url:
             raise ValueError("URL calendario mancante.")
         fetch = request_get or requests.get
-        response = fetch(
-            url,
-            headers={
-                "User-Agent": USER_AGENT,
-                "Accept": "text/calendar,text/plain,application/octet-stream,*/*;q=0.5",
-            },
-            timeout=self.timeout,
-            allow_redirects=True,
-        )
+        response = None
+        for _ in range(4):
+            response = fetch(
+                url,
+                headers={
+                    "User-Agent": USER_AGENT,
+                    "Accept": "text/calendar,text/plain,application/octet-stream,*/*;q=0.5",
+                },
+                timeout=self.timeout,
+                allow_redirects=False,
+            )
+            status_code = int(getattr(response, "status_code", 0) or 0)
+            if status_code not in {301, 302, 303, 307, 308}:
+                break
+            location = str((getattr(response, "headers", {}) or {}).get("location", "") or "").strip()
+            if not location:
+                break
+            url = _validate_remote_calendar_url(urljoin(url, location), resolve_dns=request_get is None)
+        if response is None:
+            raise RuntimeError("Calendario remoto non raggiungibile.")
         status_code = int(getattr(response, "status_code", 0) or 0)
         if status_code >= 400:
             raise RuntimeError(f"HTTP {status_code}")

@@ -930,10 +930,8 @@ def start_scheduler(app):
                     snapshot = service.save_snapshot(target["snapshot_db"])
                     processed_targets += 1
                     logger.info(
-                        "[scheduler] Workspace intelligence %s: %d fascicoli attenzionati, %d scadenze urgenti",
+                        "[scheduler] Workspace intelligence %s: snapshot aggiornato con conteggi redatti",
                         target["label"],
-                        snapshot.get("overview", {}).get("summary", {}).get("fascicoli_attenzionati", 0),
-                        snapshot.get("overview", {}).get("summary", {}).get("scadenze_urgenti", 0),
                     )
                 if processed_targets:
                     logger.info("[scheduler] Workspace intelligence aggiornato per %d target", processed_targets)

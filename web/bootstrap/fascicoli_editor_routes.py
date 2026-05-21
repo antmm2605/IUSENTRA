@@ -126,7 +126,7 @@ def register_fascicoli_editor_routes(
             )
         except Exception as exc:
             app.logger.exception("Errore editor_documento: %s", exc)
-            flash(str(exc), "danger")
+            flash("Documento non aperto nell'editor.", "danger")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/converti-pdfa", methods=["POST"])
@@ -176,8 +176,8 @@ def register_fascicoli_editor_routes(
         except Exception as exc:
             app.logger.exception("Errore converti_documento_pdfa: %s", exc)
             if _wants_json_response():
-                return jsonify({"ok": False, "messaggio": str(exc)}), 500
-            flash(f"Errore durante la conversione: {exc}", "danger")
+                return jsonify({"ok": False, "messaggio": "Conversione PDF/A non completata."}), 500
+            flash("Errore durante la conversione.", "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
     @app.route("/api/editor/<id_fasc>/<id_doc>/html")
@@ -194,7 +194,7 @@ def register_fascicoli_editor_routes(
             return jsonify({"ok": True, "html": html, "avvisi": avvisi, "nome": documento.nome, "meta": meta})
         except Exception as exc:
             app.logger.exception("Errore api_editor_carica_html: %s", exc)
-            return jsonify({"ok": False, "html": f"<p>{exc}</p>", "avvisi": [str(exc)], "meta": {}})
+            return jsonify({"ok": False, "html": "<p>Documento non caricato.</p>", "avvisi": ["Documento non caricato."], "meta": {}})
 
     @app.route("/api/editor/<id_fasc>/<id_doc>/salva", methods=["POST"])
     def api_editor_salva(id_fasc, id_doc):
@@ -250,7 +250,7 @@ def register_fascicoli_editor_routes(
             return jsonify({"ok": True, "auto": auto})
         except Exception as exc:
             app.logger.exception("Errore api_editor_salva: %s", exc)
-            return jsonify({"ok": False, "errore": str(exc)})
+            return jsonify({"ok": False, "errore": "Documento non salvato."})
 
     @app.route("/api/editor/<id_fasc>/<id_doc>/pdf", methods=["POST"])
     def api_editor_pdf(id_fasc, id_doc):
@@ -271,10 +271,10 @@ def register_fascicoli_editor_routes(
                 download_name=titolo + ".pdf",
             )
         except ImportError as exc:
-            return jsonify({"errore": str(exc)}), 503
+            return jsonify({"errore": "Generazione PDF non disponibile."}), 503
         except Exception as exc:
             app.logger.exception("Errore api_editor_pdf: %s", exc)
-            return str(exc), 500
+            return "Generazione PDF non completata.", 500
 
     @app.route("/api/editor/<id_fasc>/<id_doc>/docx", methods=["POST"])
     def api_editor_docx(id_fasc, id_doc):
@@ -295,7 +295,7 @@ def register_fascicoli_editor_routes(
                 download_name=titolo + ".docx",
             )
         except ImportError as exc:
-            return jsonify({"errore": str(exc)}), 503
+            return jsonify({"errore": "Generazione DOCX non disponibile."}), 503
         except Exception as exc:
             app.logger.exception("Errore api_editor_docx: %s", exc)
-            return str(exc), 500
+            return "Generazione DOCX non completata.", 500

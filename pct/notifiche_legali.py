@@ -21,8 +21,6 @@ from pathlib import Path
 from typing import Any
 from xml.sax.saxutils import escape
 
-from jinja2 import ChainableUndefined, Environment
-
 
 LEGAL_NOTIFICATION_SUBJECT = "notificazione ai sensi della legge n. 53 del 1994"
 LEGAL_NOTIFICATION_OPERATION = "notifica_pec_l53"
@@ -91,13 +89,6 @@ ORIGINS_REQUIRING_ATTESTATION = {
     "scansione_analogico",
 }
 
-_TEMPLATE_ENV = Environment(
-    autoescape=False,
-    undefined=ChainableUndefined,
-    trim_blocks=True,
-    lstrip_blocks=True,
-)
-
 AVAILABLE_TEMPLATE_FIELDS: tuple[dict[str, str], ...] = (
     {"group": "Pratica", "label": "Codice pratica", "token": "{{ pratica.codice }}"},
     {"group": "Avvocato", "label": "Avvocato notificante", "token": "{{ avvocato.full_name }}"},
@@ -129,16 +120,13 @@ AVAILABLE_TEMPLATE_FIELDS: tuple[dict[str, str], ...] = (
     {"group": "Provvedimento", "label": "Data provvedimento", "token": "{{ provvedimento.data }}"},
 )
 
-_TEMPLATE_TOKEN_RE = re.compile(r"{{\s*([^{}]+?)\s*}}", re.DOTALL)
-_SIMPLE_JINJA_IF_RE = re.compile(r"{%\s*if\s+([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\s*%}")
-_BLOCK_SYNTAX_RE = re.compile(r"{[%#].*?[%#]}", re.DOTALL)
-_FORBIDDEN_TOKEN_CHARS_RE = re.compile(r"[\[\]()]")
 _OPERATIONAL_TEMPLATE_FIELDS = {
     "documenti_righe": "Elenco documenti",
     "documenti_righe_privacy": "Elenco documenti riservato",
     "attestazioni_testo": "Attestazioni automatiche",
     "blocco_procedimento": "Blocco procedimento",
 }
+_FORBIDDEN_TEMPLATE_TOKEN_CHARS = set("[]()")
 
 CLIENT_COMMUNICATION_FIELDS: tuple[dict[str, str], ...] = (
     {"label": "Cliente", "token": "{{ cliente.nome }}"},
@@ -325,8 +313,51 @@ def available_template_fields() -> list[dict[str, str]]:
 
 
 def _token_name(raw_token: str) -> str:
-    match = _TEMPLATE_TOKEN_RE.fullmatch(raw_token.strip())
-    return match.group(1).strip() if match else ""
+    raw = raw_token.strip()
+    if raw.startswith("{{") and raw.endswith("}}"):
+        return raw[2:-2].strip()
+    return ""
+
+
+def _iter_template_tokens(content: str):
+    index = 0
+    while index < len(content):
+        start = content.find("{{", index)
+        if start < 0:
+            break
+        end = content.find("}}", start + 2)
+        if end < 0:
+            break
+        yield content[start + 2:end].strip()
+        index = end + 2
+
+
+def _is_identifier_path(value: str) -> bool:
+    if not value or value.startswith(".") or value.endswith("."):
+        return False
+    parts = [part for part in value.split(".") if part]
+    return bool(parts) and all(part.replace("_", "a").isalnum() and not part[0].isdigit() for part in parts)
+
+
+def _token_has_forbidden_chars(token: str) -> bool:
+    return any(char in _FORBIDDEN_TEMPLATE_TOKEN_CHARS for char in token)
+
+
+def _iter_simple_if_tokens(content: str):
+    index = 0
+    while index < len(content):
+        start = content.find("{%", index)
+        if start < 0:
+            break
+        end = content.find("%}", start + 2)
+        if end < 0:
+            break
+        directive = content[start + 2:end].strip()
+        if directive.startswith("if "):
+            token = directive[3:].strip()
+            if _is_identifier_path(token):
+                yield token
+        index = end + 2
 
 
 def _allowed_custom_template_tokens() -> set[str]:
@@ -357,7 +388,7 @@ def validate_custom_template_body(body: Any) -> list[str]:
     if not content:
         blockers.append("Inserisci il testo del modello relata.")
         return blockers
-    if "{%" in content or "%}" in content or _BLOCK_SYNTAX_RE.search(content):
+    if "{%" in content or "%}" in content:
         blockers.append("I modelli personalizzati non possono contenere istruzioni Jinja.")
     if "{#" in content or "#}" in content:
         blockers.append("I modelli personalizzati non possono contenere commenti Jinja.")
@@ -365,12 +396,11 @@ def validate_custom_template_body(body: Any) -> list[str]:
         blockers.append("Controlla le parentesi dei campi automatici del modello.")
 
     allowed_tokens = _allowed_custom_template_tokens()
-    for match in _TEMPLATE_TOKEN_RE.finditer(content):
-        token = match.group(1).strip()
+    for token in _iter_template_tokens(content):
         if "|" in token:
             blockers.append(f"Il campo automatico {{{{ {token} }}}} contiene un filtro non consentito.")
             continue
-        if _FORBIDDEN_TOKEN_CHARS_RE.search(token):
+        if _token_has_forbidden_chars(token):
             blockers.append(f"Il campo automatico {{{{ {token} }}}} contiene una chiamata o un accesso non consentito.")
             continue
         if "__" in token or token.startswith(".") or ".__" in token:
@@ -719,7 +749,8 @@ def _field_label(template: dict[str, Any], path: str) -> str:
 def _render_lines(lines: list[str], context: dict[str, Any]) -> list[str]:
     rendered: list[str] = []
     for line in lines:
-        value = _TEMPLATE_ENV.from_string(line).render(**context).strip()
+        value, _ = _render_restricted_template_body(_render_supported_if_blocks(line, context), context)
+        value = value.strip()
         if value or line == "":
             rendered.append(value)
     return rendered
@@ -875,6 +906,43 @@ def _custom_render_context(context: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _template_lookup_value(context: dict[str, Any], token: str) -> Any:
+    render_context = _custom_render_context(context)
+    if token in _OPERATIONAL_TEMPLATE_FIELDS:
+        return context.get(token) if text(context.get(token)) else render_context.get(token)
+    return _context_lookup(context, token)
+
+
+def _render_supported_if_blocks(content: str, context: dict[str, Any]) -> str:
+    output: list[str] = []
+    index = 0
+    while index < len(content):
+        start = content.find("{%", index)
+        if start < 0:
+            output.append(content[index:])
+            break
+        directive_end = content.find("%}", start + 2)
+        if directive_end < 0:
+            output.append(content[index:])
+            break
+        directive = content[start + 2:directive_end].strip()
+        if not directive.startswith("if "):
+            output.append(content[index:start])
+            index = directive_end + 2
+            continue
+        endif_start = content.find("{% endif %}", directive_end + 2)
+        if endif_start < 0:
+            output.append(content[index:start])
+            index = directive_end + 2
+            continue
+        token = directive[3:].strip()
+        output.append(content[index:start])
+        if _is_identifier_path(token) and text(_template_lookup_value(context, token)):
+            output.append(content[directive_end + 2:endif_start])
+        index = endif_start + len("{% endif %}")
+    return "".join(output)
+
+
 def _render_restricted_template_body(
     body: str,
     context: dict[str, Any],
@@ -885,9 +953,10 @@ def _render_restricted_template_body(
     render_context = _custom_render_context(context)
     missing: list[str] = []
 
-    def replace(match: re.Match[str]) -> str:
-        token = match.group(1).strip()
-        value = render_context.get(token) if token in _OPERATIONAL_TEMPLATE_FIELDS else _context_lookup(context, token)
+    def resolve_token(token: str) -> str:
+        if _token_has_forbidden_chars(token) or "|" in token or "__" in token:
+            return ""
+        value = _template_lookup_value({**render_context, **context}, token)
         if not text(value):
             label = labels.get(token, token.replace(".", " ").replace("_", " "))
             if label not in missing:
@@ -895,7 +964,21 @@ def _render_restricted_template_body(
             return f"[dato mancante: {label}]" if placeholder_missing else ""
         return str(value)
 
-    return _TEMPLATE_TOKEN_RE.sub(replace, body).strip(), missing
+    output: list[str] = []
+    index = 0
+    while index < len(body):
+        start = body.find("{{", index)
+        if start < 0:
+            output.append(body[index:])
+            break
+        end = body.find("}}", start + 2)
+        if end < 0:
+            output.append(body[index:])
+            break
+        output.append(body[index:start])
+        output.append(resolve_token(body[start + 2:end].strip()))
+        index = end + 2
+    return "".join(output).strip(), missing
 
 
 def _assign_context_path(context: dict[str, Any], path: str, value: str) -> None:
@@ -912,12 +995,12 @@ def _assign_context_path(context: dict[str, Any], path: str, value: str) -> None
 
 
 def _standard_preview_tokens(body: str) -> set[str]:
-    tokens = {match.group(1).strip() for match in _TEMPLATE_TOKEN_RE.finditer(body)}
-    tokens.update(match.group(1).strip() for match in _SIMPLE_JINJA_IF_RE.finditer(body))
+    tokens = {token for token in _iter_template_tokens(body)}
+    tokens.update(_iter_simple_if_tokens(body))
     return {
         token
         for token in tokens
-        if token and "|" not in token and "__" not in token and not _FORBIDDEN_TOKEN_CHARS_RE.search(token)
+        if token and "|" not in token and "__" not in token and not _token_has_forbidden_chars(token)
     }
 
 
@@ -941,7 +1024,11 @@ def _render_standard_template_preview(
             preview_context[token] = placeholder
         else:
             _assign_context_path(preview_context, token, placeholder)
-    rendered = _TEMPLATE_ENV.from_string(body).render(**preview_context).strip()
+    rendered, _ = _render_restricted_template_body(
+        _render_supported_if_blocks(body, preview_context),
+        preview_context,
+        placeholder_missing=True,
+    )
     return rendered, missing
 
 
@@ -1385,15 +1472,24 @@ def _client_token_labels() -> dict[str, str]:
 def _render_client_template_text(template_text: str, context: dict[str, Any]) -> str:
     labels = _client_token_labels()
     allowed = set(labels)
+    output: list[str] = []
+    index = 0
 
-    def replace(match: re.Match[str]) -> str:
-        token = match.group(1).strip()
-        if token not in allowed or "|" in token or "__" in token or _FORBIDDEN_TOKEN_CHARS_RE.search(token):
-            return ""
-        value = _context_lookup(context, token)
-        return text(value)
-
-    return _TEMPLATE_TOKEN_RE.sub(replace, template_text).strip()
+    while index < len(template_text):
+        start = template_text.find("{{", index)
+        if start < 0:
+            output.append(template_text[index:])
+            break
+        end = template_text.find("}}", start + 2)
+        if end < 0:
+            output.append(template_text[index:])
+            break
+        output.append(template_text[index:start])
+        token = template_text[start + 2:end].strip()
+        if token in allowed and "|" not in token and "__" not in token and not _token_has_forbidden_chars(token):
+            output.append(text(_context_lookup(context, token)))
+        index = end + 2
+    return "".join(output).strip()
 
 
 def build_client_communication(payload: dict[str, Any]) -> LegalWorkflowResult:
@@ -1452,22 +1548,6 @@ def _hash_text(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
-def _hash_file_if_available(path_value: Any) -> str:
-    import hashlib
-
-    raw = text(path_value)
-    if not raw:
-        return ""
-    path = Path(raw)
-    if not path.exists() or not path.is_file():
-        return ""
-    digest = hashlib.sha256()
-    with path.open("rb") as fh:
-        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def _payload_hash(payload: dict[str, Any], *keys: str) -> str:
     for key in keys:
         value = text(payload.get(key))
@@ -1486,7 +1566,7 @@ def _evidence_item(
     generated: bool = False,
 ) -> dict[str, Any]:
     file_text = text(filename)
-    digest = text(sha256) or _hash_file_if_available(file_text)
+    digest = text(sha256)
     return {
         "kind": kind,
         "label": label,

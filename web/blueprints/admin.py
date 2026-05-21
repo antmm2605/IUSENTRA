@@ -597,9 +597,9 @@ def assistente_migrazione_esegui():
             "slug": selected_slug,
             "target": target,
             "generated_at": datetime.now().replace(microsecond=0).isoformat(),
-            "error_message": str(exc),
+            "error_message": "Migrazione non completata.",
         }
-        flash(f"Errore durante la migrazione completa: {exc}", "danger")
+        flash("Errore durante la migrazione completa.", "danger")
     return redirect(url_for("admin.assistente_migrazione", slug=selected_slug))
 
 
@@ -1191,7 +1191,7 @@ def testa_connessione_db(slug: str):
         current_app.logger.exception("Errore test connessione DB")
         return jsonify({
             "ok": False,
-            "errore": str(e),
+            "errore": "Test connessione non completato.",
         }), 500
 
 # ============================================================= API JSON

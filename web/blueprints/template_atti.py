@@ -11,11 +11,13 @@ import os
 import re
 from datetime import date
 from html import escape
+from html.parser import HTMLParser
 from types import SimpleNamespace
 from typing import Any
 
 from flask import (Blueprint, abort, current_app, flash, g, jsonify,
                    redirect, render_template, request, send_file, url_for)
+from werkzeug.utils import secure_filename
 
 from web.helpers import get_clienti, get_fascicoli, get_soggetti, get_utenti
 
@@ -629,6 +631,33 @@ def _request_payload() -> dict:
     return payload if isinstance(payload, dict) else {}
 
 
+def _safe_identifier(value: Any, *, max_length: int = 120) -> str:
+    raw = str(value or "").strip()
+    allowed = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.:-")
+    if not raw or len(raw) > max_length or any(char not in allowed for char in raw):
+        return ""
+    return raw
+
+
+def _safe_pdf_download_name(title: Any) -> str:
+    base = secure_filename(str(title or "").strip().lower().replace(" ", "_"))
+    if not base:
+        base = "atto"
+    if not base.endswith(".pdf"):
+        base = f"{base}.pdf"
+    return base
+
+
+def _json_safe_payload(value: Any) -> Any:
+    if isinstance(value, str):
+        return escape(value, quote=True)
+    if isinstance(value, list):
+        return [_json_safe_payload(item) for item in value]
+    if isinstance(value, dict):
+        return {str(key): _json_safe_payload(item) for key, item in value.items()}
+    return value
+
+
 def _resolve_template_context_payload(payload: dict | None = None) -> dict:
     payload = payload or {}
     id_cliente = (
@@ -662,15 +691,18 @@ def _resolve_template_prefill_response(codice: str, payload: dict | None = None)
     from pct.template_atti_unified_catalog import get_unified_template_item
 
     payload = payload or {}
-    item = get_unified_template_item(codice)
+    safe_code = _safe_identifier(codice)
+    if not safe_code:
+        return {"ok": False, "errore": "Template non trovato."}, 404
+    item = get_unified_template_item(safe_code)
     if not item:
-        return {"ok": False, "errore": "Template non trovato.", "codice": codice}, 404
+        return {"ok": False, "errore": "Template non trovato."}, 404
     context = _resolve_template_context_payload(payload)
     values = payload.get("values") if isinstance(payload.get("values"), dict) else {}
     dati = payload.get("dati") if isinstance(payload.get("dati"), dict) else {}
     legacy_payload = {**dati, **values}
     resolution = resolve_template_prefill(
-        model_code=item.get("link_compilatore_code") or item.get("codice") or codice,
+        model_code=item.get("link_compilatore_code") or item.get("codice") or safe_code,
         bindings=item.get("prefill_bindings") if isinstance(item.get("prefill_bindings"), dict) else None,
         required_fields=list(item.get("required_prefill_fields") or item.get("prefill_required_fields") or []),
         optional_fields=list(item.get("optional_prefill_fields") or []),
@@ -685,7 +717,7 @@ def _resolve_template_prefill_response(codice: str, payload: dict | None = None)
     )
     return {
         "ok": True,
-        "codice": item.get("codice") or codice,
+        "codice": _safe_identifier(item.get("codice") or safe_code) or "template",
         "titolo": item.get("titolo"),
         "context": {
             "id_cliente": context["id_cliente"],
@@ -925,14 +957,14 @@ def template_inventory_data():
 @_richiedi_login
 def template_prefill_data(codice: str):
     payload, status = _resolve_template_prefill_response(codice)
-    return jsonify(payload), status
+    return jsonify(_json_safe_payload(payload)), status
 
 
 @template_atti.route("/<codice>/prefill/resolve", methods=["POST"])
 @_richiedi_login
 def template_prefill_resolve(codice: str):
     payload, status = _resolve_template_prefill_response(codice, _request_payload())
-    return jsonify(payload), status
+    return jsonify(_json_safe_payload(payload)), status
 
 
 @template_atti.route("/<codice>/prefill/merge", methods=["POST"])
@@ -943,13 +975,13 @@ def template_prefill_merge(codice: str):
     request_payload = _request_payload()
     resolved_payload, status = _resolve_template_prefill_response(codice, request_payload)
     if status != 200:
-        return jsonify(resolved_payload), status
+        return jsonify(_json_safe_payload(resolved_payload)), status
     user_values = request_payload.get("user_values") if isinstance(request_payload.get("user_values"), dict) else {}
     if not user_values:
         user_values = request_payload.get("values") if isinstance(request_payload.get("values"), dict) else {}
     prefill = resolved_payload.get("prefill") or {}
     merge = merge_prefill_values(user_values, prefill.get("values"), prefill.get("fields"))
-    return jsonify({"ok": True, "codice": resolved_payload.get("codice"), "merge": merge, "prefill": prefill})
+    return jsonify(_json_safe_payload({"ok": True, "codice": resolved_payload.get("codice"), "merge": merge, "prefill": prefill}))
 
 
 @template_atti.route("/<codice>/cartabia-compliance", methods=["GET"])
@@ -958,10 +990,11 @@ def template_cartabia_compliance(codice: str):
     from pct.template_cartabia_rules import verifica_cartabia_template
     from pct.template_atti_unified_catalog import get_unified_template_item
 
-    item = get_unified_template_item(codice)
+    safe_code = _safe_identifier(codice)
+    item = get_unified_template_item(safe_code) if safe_code else None
     if not item:
-        return jsonify({"ok": False, "errore": "Template non trovato.", "codice": codice}), 404
-    return jsonify({"ok": True, "codice": item.get("codice") or codice, "cartabia": verifica_cartabia_template(item)})
+        return jsonify({"ok": False, "errore": "Template non trovato."}), 404
+    return jsonify({"ok": True, "codice": _safe_identifier(item.get("codice") or safe_code) or "template", "cartabia": verifica_cartabia_template(item)})
 
 
 @template_atti.route("/<codice>/verifica-cartabia", methods=["POST"])
@@ -971,14 +1004,15 @@ def template_verifica_cartabia(codice: str):
     from pct.template_atti_unified_catalog import get_unified_template_item
 
     request_payload = _request_payload()
-    item = get_unified_template_item(codice)
+    safe_code = _safe_identifier(codice)
+    item = get_unified_template_item(safe_code) if safe_code else None
     if not item:
-        return jsonify({"ok": False, "errore": "Template non trovato.", "codice": codice}), 404
-    prefill_payload, _ = _resolve_template_prefill_response(codice, request_payload)
+        return jsonify({"ok": False, "errore": "Template non trovato."}), 404
+    prefill_payload, _ = _resolve_template_prefill_response(safe_code, request_payload)
     prefill = prefill_payload.get("prefill") if prefill_payload.get("ok") else {}
     values = request_payload.get("values") if isinstance(request_payload.get("values"), dict) else {}
     result = verifica_cartabia_template(item, prefill_resolution=prefill, payload=values, strict_data_check=True)
-    return jsonify({"ok": result.get("ok", False), "codice": item.get("codice") or codice, "cartabia": result})
+    return jsonify({"ok": result.get("ok", False), "codice": _safe_identifier(item.get("codice") or safe_code) or "template", "cartabia": result})
 
 
 @template_atti.route("/<codice>/verifica-completa", methods=["POST"])
@@ -990,35 +1024,36 @@ def template_verifica_completa(codice: str):
     from pct.template_atti_unified_catalog import get_unified_template_item
 
     request_payload = _request_payload()
-    item = get_unified_template_item(codice)
+    safe_code = _safe_identifier(codice)
+    item = get_unified_template_item(safe_code) if safe_code else None
     if not item:
-        return jsonify({"ok": False, "errore": "Template non trovato.", "codice": codice}), 404
-    prefill_payload, status = _resolve_template_prefill_response(codice, request_payload)
+        return jsonify({"ok": False, "errore": "Template non trovato."}), 404
+    prefill_payload, status = _resolve_template_prefill_response(safe_code, request_payload)
     if status != 200:
-        return jsonify(prefill_payload), status
+        return jsonify(_json_safe_payload(prefill_payload)), status
     prefill = prefill_payload.get("prefill") or {}
     user_values = request_payload.get("values") if isinstance(request_payload.get("values"), dict) else {}
     merge = merge_prefill_values(user_values, prefill.get("values"), prefill.get("fields"))
     cartabia = verifica_cartabia_template(item, prefill_resolution=prefill, payload=merge.get("values"), strict_data_check=True)
     deposito = _verifica_deposito(
-        item.get("codice") or codice,
+        item.get("codice") or safe_code,
         {
             "dati": merge.get("values") or {},
             "allegati": request_payload.get("allegati") if isinstance(request_payload.get("allegati"), dict) else {},
         },
     )
     blocking = bool(cartabia.get("controlli_bloccanti") or deposito.get("dati_mancanti") or deposito.get("allegati_mancanti"))
-    return jsonify(
+    return jsonify(_json_safe_payload(
         {
             "ok": not blocking,
-            "codice": item.get("codice") or codice,
+            "codice": _safe_identifier(item.get("codice") or safe_code) or "template",
             "prefill": prefill,
             "merge": merge,
             "cartabia": cartabia,
             "deposito": deposito,
             "stato": "verificato" if not blocking else "richiede_revisione",
         }
-    )
+    ))
 
 
 @template_atti.route("/<codice>/compliance", methods=["GET"])
@@ -1463,7 +1498,7 @@ def salva_editor_layout():
         return jsonify({"ok": True, "layout": salvato}), 200
     except Exception as e:
         current_app.logger.exception("Errore salvataggio layout editor template atti: %s", e)
-        return jsonify({"ok": False, "errore": str(e)}), 200
+        return jsonify({"ok": False, "errore": "Layout non salvato. Riprova tra poco."}), 200
 
 
 @template_atti.route("/api/editor-layout/reset", methods=["POST"])
@@ -1474,7 +1509,7 @@ def reset_editor_layout():
         return jsonify({"ok": True, "layout": ripristinato}), 200
     except Exception as e:
         current_app.logger.exception("Errore reset layout editor template atti: %s", e)
-        return jsonify({"ok": False, "errore": str(e)}), 200
+        return jsonify({"ok": False, "errore": "Layout non ripristinato. Riprova tra poco."}), 200
 
 
 @template_atti.route("/api/scanner/windows-scan", methods=["POST"])
@@ -1487,7 +1522,7 @@ def scanner_windows_scan():
         return jsonify({"ok": True, "scan": scan}), 200
     except Exception as e:
         current_app.logger.exception("Errore scanner desktop template atti: %s", e)
-        return jsonify({"ok": False, "errore": str(e)}), 200
+        return jsonify({"ok": False, "errore": "Acquisizione da scanner non completata."}), 200
 
 
 # ================================================================ IMPORTA DOCUMENTO
@@ -1529,7 +1564,7 @@ def api_importa_documento():
 
     except Exception as e:
         current_app.logger.exception("Errore api_importa_documento: %s", e)
-        return jsonify({"errore": str(e)}), 200
+        return jsonify({"errore": "Importazione documento non completata."}), 200
 
 
 # ================================================================ PDF
@@ -1545,7 +1580,7 @@ def pdf(id_template: str):
     titolo = t.titolo
     layout = _parse_editor_layout(request.form.get("testo_generato__editor_layout"))
     buf = _genera_pdf(titolo, testo, current_app.config, layout=layout, timbro=_get_studio_timbro())
-    nome_file = titolo.lower().replace(" ", "_").replace("/", "-") + ".pdf"
+    nome_file = _safe_pdf_download_name(titolo)
     return send_file(buf, mimetype="application/pdf",
                      as_attachment=False, download_name=nome_file)
 
@@ -1561,7 +1596,7 @@ def compila_pdf(model_code: str):
     titolo = request.form.get("title", "") or model["name"]
     layout = _parse_editor_layout(request.form.get("testo_generato__editor_layout"))
     buf = _genera_pdf(titolo, testo, current_app.config, layout=layout, timbro=_get_studio_timbro())
-    nome_file = titolo.lower().replace(" ", "_").replace("/", "-") + ".pdf"
+    nome_file = _safe_pdf_download_name(titolo)
     return send_file(buf, mimetype="application/pdf",
                      as_attachment=False, download_name=nome_file)
 
@@ -1586,7 +1621,7 @@ def api_assistente_redazionale(model_code: str):
         return jsonify({"ok": True, "analysis": analysis}), 200
     except Exception as e:
         current_app.logger.exception("Errore api_assistente_redazionale: %s", e)
-        return jsonify({"ok": False, "errore": str(e)}), 200
+        return jsonify({"ok": False, "errore": "Analisi redazionale non completata."}), 200
 
 
 # ================================================================ helpers
@@ -1685,18 +1720,56 @@ def _is_upper_heading(line: str) -> bool:
     return stripped == stripped.upper()
 
 
+class _EditorTextParser(HTMLParser):
+    _BLOCK_TAGS = {"p", "div", "h1", "h2", "h3", "h4", "blockquote", "tr", "table", "ul", "ol"}
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+
+    def _append_break(self) -> None:
+        if self.parts and not self.parts[-1].endswith("\n"):
+            self.parts.append("\n")
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        tag = tag.lower()
+        if tag == "br":
+            self._append_break()
+        elif tag == "li":
+            self._append_break()
+            self.parts.append("- ")
+        elif tag in self._BLOCK_TAGS:
+            self._append_break()
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag.lower() in self._BLOCK_TAGS or tag.lower() == "li":
+            self._append_break()
+
+    def handle_data(self, data: str) -> None:
+        if data:
+            self.parts.append(data)
+
+    def get_text(self) -> str:
+        text = "".join(self.parts).replace("\r\n", "\n").replace("\r", "\n")
+        while "\n\n\n" in text:
+            text = text.replace("\n\n\n", "\n\n")
+        return text.strip()
+
+
+def _editor_html_to_text(value: str) -> str:
+    parser = _EditorTextParser()
+    parser.feed(value or "")
+    parser.close()
+    return parser.get_text()
+
+
 def _fallback_pdf_from_text(titolo: str, testo: str, config: dict, timbro=None) -> io.BytesIO:
     safe_text = testo or ""
     if timbro is not None and hasattr(timbro, "to_text"):
         timbro_text = timbro.to_text()
         if timbro_text and safe_text.strip().startswith(timbro_text.splitlines()[0]):
             safe_text = safe_text.strip()[len(timbro_text):].lstrip()
-    safe_text = re.sub(r"(?i)<br\s*/?>", "\n", safe_text)
-    safe_text = re.sub(r"(?i)</(p|div|h1|h2|h3|h4|blockquote)>", "\n", safe_text)
-    safe_text = re.sub(r"(?i)<li[^>]*>", "- ", safe_text)
-    safe_text = re.sub(r"(?i)</li>", "\n", safe_text)
-    safe_text = re.sub(r"<[^>]+>", "", safe_text)
-    safe_text = re.sub(r"\n{3,}", "\n\n", safe_text).strip()
+    safe_text = _editor_html_to_text(safe_text)
     try:
         from reportlab.lib.pagesizes import A4
         from reportlab.lib.units import mm

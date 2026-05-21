@@ -51,9 +51,9 @@ def _error_response(exc: Exception):
     if isinstance(exc, EditorAIPermissionDenied):
         return jsonify({"detail": "Operazione non autorizzata", "code": "permission_denied", "mock_fallback": False}), 403
     if isinstance(exc, EditorAINotFound):
-        return jsonify({"detail": str(exc) or "Atto o fascicolo non trovato", "code": "not_found", "mock_fallback": False}), 404
+        return jsonify({"detail": "Atto o fascicolo non trovato", "code": "not_found", "mock_fallback": False}), 404
     if isinstance(exc, EditorAIValidationError):
-        return jsonify({"detail": str(exc) or "Richiesta non valida", "code": "validation_error", "mock_fallback": False}), 400
+        return jsonify({"detail": "Richiesta non valida", "code": "validation_error", "mock_fallback": False}), 400
     current_app.logger.exception("Errore Editor AI: %s", exc)
     return jsonify(
         {

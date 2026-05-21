@@ -19,6 +19,18 @@ CONTAINER_OFFICIAL_JSONL = Path("/data/fonti_ufficiali/index/lex_sources_chunks.
 CONTAINER_NORMATTIVA_JSONL = Path("/data/normativa/index/normattiva_chunks.jsonl")
 DEFAULT_NORMATTIVA_RAW = Path("data/normativa/raw")
 CONTAINER_NORMATTIVA_RAW = Path("/data/normativa/raw")
+_COUNT_TABLES = {
+    "normative_documents": "normative_documents",
+    "normative_articles": "normative_articles",
+    "normative_chunks": "normative_chunks",
+    "official_documents": "official_documents",
+    "official_chunks": "official_chunks",
+    "official_sources": "official_sources",
+}
+_COUNT_WHERE = {
+    "": "",
+    "source_id = 'gazzetta_ufficiale'": " WHERE source_id = 'gazzetta_ufficiale'",
+}
 
 ARTICLE_QUERY_RE = re.compile(
     r"\b(?:art\.?|articolo)\s*(?P<number>\d{1,4})(?:[\s.-]+(?P<suffix>bis|ter|quater|quinquies|sexies|septies|octies|nonies|decies))?\b",
@@ -373,23 +385,19 @@ def _get_normattiva_chunk(chunk_id: int | str, path: Path) -> dict[str, Any] | N
 def _search_official_db(path: Path, query: str, materia: str | None, source: str | None, limit: int) -> list[dict[str, Any]]:
     if not path.exists():
         return []
-    clauses: list[str] = []
     params: list[Any] = []
     terms = _search_terms(query)
-    if terms:
-        term_clause, term_params = _like_terms_clause(("c.text", "c.title", "d.title", "d.original_url"), terms)
-        clauses.append(term_clause)
-        params.extend(term_params)
-    else:
-        q = f"%{query.strip()}%"
-        clauses.append("(c.text LIKE ? OR c.title LIKE ? OR d.title LIKE ?)")
-        params.extend([q, q, q])
-    if materia:
-        clauses.append("(c.materia = ? OR d.materia = ? OR d.topics_json LIKE ?)")
-        params.extend([materia, materia, f"%{materia}%"])
-    if source:
-        clauses.append("(c.source_id = ? OR d.source_id = ? OR d.source_name LIKE ?)")
-        params.extend([source, source, f"%{source}%"])
+    if not terms and query.strip():
+        terms = [query.strip().lower()]
+    fixed_terms = terms[:8]
+    for slot in range(8):
+        term = fixed_terms[slot] if slot < len(fixed_terms) else ""
+        pattern = f"%{term.lower()}%" if term else ""
+        params.extend([1 if term else 0, pattern, pattern, pattern, pattern])
+    materia_value = str(materia or "").strip()
+    source_value = str(source or "").strip()
+    params.extend([materia_value, materia_value, materia_value, f"%{materia_value}%"])
+    params.extend([source_value, source_value, source_value, f"%{source_value}%"])
     params.append(max(1, int(limit)))
 
     con = sqlite3.connect(path)
@@ -402,7 +410,17 @@ def _search_official_db(path: Path, query: str, materia: str | None, source: str
                    d.acquired_at, d.hash_sha256, d.source_name
             FROM official_chunks c
             JOIN official_documents d ON d.id = c.document_id
-            WHERE {' AND '.join(clauses)}
+            WHERE
+                (? = 0 OR LOWER(COALESCE(c.text, '')) LIKE ? OR LOWER(COALESCE(c.title, '')) LIKE ? OR LOWER(COALESCE(d.title, '')) LIKE ? OR LOWER(COALESCE(d.original_url, '')) LIKE ?)
+                AND (? = 0 OR LOWER(COALESCE(c.text, '')) LIKE ? OR LOWER(COALESCE(c.title, '')) LIKE ? OR LOWER(COALESCE(d.title, '')) LIKE ? OR LOWER(COALESCE(d.original_url, '')) LIKE ?)
+                AND (? = 0 OR LOWER(COALESCE(c.text, '')) LIKE ? OR LOWER(COALESCE(c.title, '')) LIKE ? OR LOWER(COALESCE(d.title, '')) LIKE ? OR LOWER(COALESCE(d.original_url, '')) LIKE ?)
+                AND (? = 0 OR LOWER(COALESCE(c.text, '')) LIKE ? OR LOWER(COALESCE(c.title, '')) LIKE ? OR LOWER(COALESCE(d.title, '')) LIKE ? OR LOWER(COALESCE(d.original_url, '')) LIKE ?)
+                AND (? = 0 OR LOWER(COALESCE(c.text, '')) LIKE ? OR LOWER(COALESCE(c.title, '')) LIKE ? OR LOWER(COALESCE(d.title, '')) LIKE ? OR LOWER(COALESCE(d.original_url, '')) LIKE ?)
+                AND (? = 0 OR LOWER(COALESCE(c.text, '')) LIKE ? OR LOWER(COALESCE(c.title, '')) LIKE ? OR LOWER(COALESCE(d.title, '')) LIKE ? OR LOWER(COALESCE(d.original_url, '')) LIKE ?)
+                AND (? = 0 OR LOWER(COALESCE(c.text, '')) LIKE ? OR LOWER(COALESCE(c.title, '')) LIKE ? OR LOWER(COALESCE(d.title, '')) LIKE ? OR LOWER(COALESCE(d.original_url, '')) LIKE ?)
+                AND (? = 0 OR LOWER(COALESCE(c.text, '')) LIKE ? OR LOWER(COALESCE(c.title, '')) LIKE ? OR LOWER(COALESCE(d.title, '')) LIKE ? OR LOWER(COALESCE(d.original_url, '')) LIKE ?)
+                AND (? = '' OR c.materia = ? OR d.materia = ? OR d.topics_json LIKE ?)
+                AND (? = '' OR c.source_id = ? OR d.source_id = ? OR d.source_name LIKE ?)
             ORDER BY d.published_at DESC, c.id ASC
             LIMIT ?
             """,
@@ -419,46 +437,30 @@ def _search_normattiva_db(path: Path, query: str, materia: str | None, vigenza: 
     code_key = _detect_code_target(query)
     article_ref = _extract_article_reference(query)
     terms = _search_terms(query, drop_code_terms=bool(code_key))
-    clauses: list[str] = []
     params: list[Any] = []
-    if terms:
-        term_clause, term_params = _like_terms_clause(
-            ("c.chunk_text", "d.titolo", "d.tipo_atto", "d.numero", "a.article_number", "a.article_title", "c.metadata_json"),
-            terms,
-        )
-        clauses.append(term_clause)
-        params.extend(term_params)
-    else:
-        q = f"%{query.strip()}%"
-        clauses.append("(c.chunk_text LIKE ? OR d.titolo LIKE ?)")
-        params.extend([q, q])
+    if not terms and query.strip():
+        terms = [query.strip().lower()]
+    fixed_terms = terms[:8]
+    for slot in range(8):
+        term = fixed_terms[slot] if slot < len(fixed_terms) else ""
+        pattern = f"%{term.lower()}%" if term else ""
+        params.extend([1 if term else 0, pattern, pattern, pattern, pattern, pattern, pattern, pattern])
     if code_key:
         target = CODE_TARGETS[code_key]
-        clauses.append("(d.numero = ? AND d.data_atto = ?)")
-        params.extend([target["numero"], target["data_atto"]])
-    if article_ref:
-        article_patterns = _article_like_patterns(article_ref)
-        clauses.append(
-            "("
-            + " OR ".join(
-                [
-                    "a.article_number LIKE ?",
-                    "a.article_title LIKE ?",
-                    "c.chunk_text LIKE ?",
-                    "c.metadata_json LIKE ?",
-                ]
-                * len(article_patterns)
-            )
-            + ")"
-        )
-        for pattern in article_patterns:
-            params.extend([pattern, pattern, pattern, pattern])
-    if materia:
-        clauses.append("(d.topics LIKE ? OR c.metadata_json LIKE ?)")
-        params.extend([f"%{materia}%", f"%{materia}%"])
-    if vigenza:
-        clauses.append("d.vigenza = ?")
-        params.append(vigenza.upper())
+        code_numero = target["numero"]
+        code_data = target["data_atto"]
+    else:
+        code_numero = ""
+        code_data = ""
+    params.extend([code_numero, code_numero, code_data])
+    article_patterns = _article_like_patterns(article_ref or "")[:4] if article_ref else []
+    for slot in range(4):
+        pattern = article_patterns[slot] if slot < len(article_patterns) else ""
+        params.extend([1 if pattern else 0, pattern, pattern, pattern, pattern])
+    materia_value = str(materia or "").strip()
+    vigenza_value = str(vigenza or "").strip().upper()
+    params.extend([materia_value, f"%{materia_value}%", f"%{materia_value}%"])
+    params.extend([vigenza_value, vigenza_value])
     params.append(max(1, int(limit)))
 
     con = sqlite3.connect(path)
@@ -472,7 +474,22 @@ def _search_normattiva_db(path: Path, query: str, materia: str | None, vigenza: 
             FROM normative_chunks c
             JOIN normative_documents d ON d.id = c.document_id
             LEFT JOIN normative_articles a ON a.id = c.article_id
-            WHERE {' AND '.join(clauses)}
+            WHERE
+                (? = 0 OR LOWER(COALESCE(c.chunk_text, '')) LIKE ? OR LOWER(COALESCE(d.titolo, '')) LIKE ? OR LOWER(COALESCE(d.tipo_atto, '')) LIKE ? OR LOWER(COALESCE(d.numero, '')) LIKE ? OR LOWER(COALESCE(a.article_number, '')) LIKE ? OR LOWER(COALESCE(a.article_title, '')) LIKE ? OR LOWER(COALESCE(c.metadata_json, '')) LIKE ?)
+                AND (? = 0 OR LOWER(COALESCE(c.chunk_text, '')) LIKE ? OR LOWER(COALESCE(d.titolo, '')) LIKE ? OR LOWER(COALESCE(d.tipo_atto, '')) LIKE ? OR LOWER(COALESCE(d.numero, '')) LIKE ? OR LOWER(COALESCE(a.article_number, '')) LIKE ? OR LOWER(COALESCE(a.article_title, '')) LIKE ? OR LOWER(COALESCE(c.metadata_json, '')) LIKE ?)
+                AND (? = 0 OR LOWER(COALESCE(c.chunk_text, '')) LIKE ? OR LOWER(COALESCE(d.titolo, '')) LIKE ? OR LOWER(COALESCE(d.tipo_atto, '')) LIKE ? OR LOWER(COALESCE(d.numero, '')) LIKE ? OR LOWER(COALESCE(a.article_number, '')) LIKE ? OR LOWER(COALESCE(a.article_title, '')) LIKE ? OR LOWER(COALESCE(c.metadata_json, '')) LIKE ?)
+                AND (? = 0 OR LOWER(COALESCE(c.chunk_text, '')) LIKE ? OR LOWER(COALESCE(d.titolo, '')) LIKE ? OR LOWER(COALESCE(d.tipo_atto, '')) LIKE ? OR LOWER(COALESCE(d.numero, '')) LIKE ? OR LOWER(COALESCE(a.article_number, '')) LIKE ? OR LOWER(COALESCE(a.article_title, '')) LIKE ? OR LOWER(COALESCE(c.metadata_json, '')) LIKE ?)
+                AND (? = 0 OR LOWER(COALESCE(c.chunk_text, '')) LIKE ? OR LOWER(COALESCE(d.titolo, '')) LIKE ? OR LOWER(COALESCE(d.tipo_atto, '')) LIKE ? OR LOWER(COALESCE(d.numero, '')) LIKE ? OR LOWER(COALESCE(a.article_number, '')) LIKE ? OR LOWER(COALESCE(a.article_title, '')) LIKE ? OR LOWER(COALESCE(c.metadata_json, '')) LIKE ?)
+                AND (? = 0 OR LOWER(COALESCE(c.chunk_text, '')) LIKE ? OR LOWER(COALESCE(d.titolo, '')) LIKE ? OR LOWER(COALESCE(d.tipo_atto, '')) LIKE ? OR LOWER(COALESCE(d.numero, '')) LIKE ? OR LOWER(COALESCE(a.article_number, '')) LIKE ? OR LOWER(COALESCE(a.article_title, '')) LIKE ? OR LOWER(COALESCE(c.metadata_json, '')) LIKE ?)
+                AND (? = 0 OR LOWER(COALESCE(c.chunk_text, '')) LIKE ? OR LOWER(COALESCE(d.titolo, '')) LIKE ? OR LOWER(COALESCE(d.tipo_atto, '')) LIKE ? OR LOWER(COALESCE(d.numero, '')) LIKE ? OR LOWER(COALESCE(a.article_number, '')) LIKE ? OR LOWER(COALESCE(a.article_title, '')) LIKE ? OR LOWER(COALESCE(c.metadata_json, '')) LIKE ?)
+                AND (? = 0 OR LOWER(COALESCE(c.chunk_text, '')) LIKE ? OR LOWER(COALESCE(d.titolo, '')) LIKE ? OR LOWER(COALESCE(d.tipo_atto, '')) LIKE ? OR LOWER(COALESCE(d.numero, '')) LIKE ? OR LOWER(COALESCE(a.article_number, '')) LIKE ? OR LOWER(COALESCE(a.article_title, '')) LIKE ? OR LOWER(COALESCE(c.metadata_json, '')) LIKE ?)
+                AND (? = '' OR (d.numero = ? AND d.data_atto = ?))
+                AND (? = 0 OR a.article_number LIKE ? OR a.article_title LIKE ? OR c.chunk_text LIKE ? OR c.metadata_json LIKE ?)
+                AND (? = 0 OR a.article_number LIKE ? OR a.article_title LIKE ? OR c.chunk_text LIKE ? OR c.metadata_json LIKE ?)
+                AND (? = 0 OR a.article_number LIKE ? OR a.article_title LIKE ? OR c.chunk_text LIKE ? OR c.metadata_json LIKE ?)
+                AND (? = 0 OR a.article_number LIKE ? OR a.article_title LIKE ? OR c.chunk_text LIKE ? OR c.metadata_json LIKE ?)
+                AND (? = '' OR d.topics LIKE ? OR c.metadata_json LIKE ?)
+                AND (? = '' OR d.vigenza = ?)
             ORDER BY d.data_atto DESC, c.id ASC
             LIMIT ?
             """,
@@ -536,9 +553,13 @@ def _sqlite_counts(path: Path, tables: dict[str, str], *, where: dict[str, str] 
     con = sqlite3.connect(path)
     try:
         for key, table in tables.items():
-            clause = f" WHERE {where[key]}" if where and where.get(key) else ""
+            table_name = _COUNT_TABLES.get(table)
+            if not table_name:
+                payload[key] = 0
+                continue
+            clause = _COUNT_WHERE.get(str((where or {}).get(key) or ""), "")
             try:
-                payload[key] = int(con.execute(f"SELECT COUNT(*) FROM {table}{clause}").fetchone()[0] or 0)
+                payload[key] = int(con.execute("SELECT COUNT(*) FROM " + table_name + clause).fetchone()[0] or 0)
             except sqlite3.Error:
                 payload[key] = 0
         return payload
@@ -641,18 +662,6 @@ def _normalize_search_text(value: str) -> str:
     text = text.replace("c.p.", "cp")
     text = re.sub(r"[-/.,;:()\\[\\]{}]+", " ", text)
     return " ".join(text.split())
-
-
-def _like_terms_clause(columns: tuple[str, ...], terms: list[str]) -> tuple[str, list[str]]:
-    clauses: list[str] = []
-    params: list[str] = []
-    for term in terms:
-        column_clauses = []
-        for column in columns:
-            column_clauses.append(f"LOWER(COALESCE({column}, '')) LIKE ?")
-            params.append(f"%{term.lower()}%")
-        clauses.append("(" + " OR ".join(column_clauses) + ")")
-    return " AND ".join(clauses), params
 
 
 def _detect_code_target(query: str) -> str | None:

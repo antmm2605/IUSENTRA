@@ -522,7 +522,7 @@ def api_review_queue():
         return jsonify({"ok": True, "items": pipeline.repository.list_review_queue(limit=100)})
     except Exception as exc:
         current_app.logger.exception("Errore api_review_queue: %s", exc)
-        return _json_error(str(exc))
+        return _json_error("Coda aggiornamenti non disponibile.")
 
 
 @legal_updates_admin.get("/api/review-queue/<int:review_id>")
@@ -536,7 +536,7 @@ def api_review_detail(review_id: int):
         return jsonify({"ok": True, "item": row})
     except Exception as exc:
         current_app.logger.exception("Errore api_review_detail: %s", exc)
-        return _json_error(str(exc))
+        return _json_error("Dettaglio revisione non disponibile.")
 
 
 @legal_updates_admin.post("/api/review-queue/<int:review_id>/approve")
@@ -554,7 +554,7 @@ def api_review_approve(review_id: int):
         return jsonify({"ok": True, "item": row})
     except Exception as exc:
         current_app.logger.exception("Errore api_review_approve: %s", exc)
-        return _json_error(str(exc))
+        return _json_error("Approvazione revisione non completata.")
 
 
 @legal_updates_admin.post("/api/review-queue/<int:review_id>/edit-and-approve")
@@ -574,7 +574,7 @@ def api_review_edit_and_approve(review_id: int):
         return jsonify({"ok": True, "item": item})
     except Exception as exc:
         current_app.logger.exception("Errore api_review_edit_and_approve: %s", exc)
-        return _json_error(str(exc))
+        return _json_error("Modifica revisione non completata.")
 
 
 @legal_updates_admin.post("/api/review-queue/<int:review_id>/reject")
@@ -592,7 +592,7 @@ def api_review_reject(review_id: int):
         return jsonify({"ok": True, "item": row})
     except Exception as exc:
         current_app.logger.exception("Errore api_review_reject: %s", exc)
-        return _json_error(str(exc))
+        return _json_error("Rifiuto revisione non completato.")
 
 
 @legal_updates_admin.post("/api/review-queue/<int:review_id>/publish")
@@ -609,7 +609,7 @@ def api_review_publish(review_id: int):
         return jsonify({"ok": True, "result": result})
     except Exception as exc:
         current_app.logger.exception("Errore api_review_publish: %s", exc)
-        return _json_error(str(exc))
+        return _json_error("Pubblicazione revisione non completata.")
 
 
 @legal_updates_admin.post("/api/backfill-web-evidence")
@@ -637,7 +637,7 @@ def api_backfill_web_evidence():
         return jsonify({"ok": True, "result": result})
     except Exception as exc:
         current_app.logger.exception("Errore api_backfill_web_evidence: %s", exc)
-        return _json_error(str(exc))
+        return _json_error("Backfill evidenze web non completato.")
 
 
 @legal_updates_admin.get("/api/sources")
@@ -648,7 +648,7 @@ def api_sources():
         return jsonify({"ok": True, "items": pipeline.list_sources(enabled_only=False)})
     except Exception as exc:
         current_app.logger.exception("Errore api_sources: %s", exc)
-        return _json_error(str(exc))
+        return _json_error("Catalogo fonti non disponibile.")
 
 
 @legal_updates_admin.post("/api/sources")
@@ -665,7 +665,7 @@ def api_create_source():
         return jsonify({"ok": True, "item": created})
     except Exception as exc:
         current_app.logger.exception("Errore api_create_source: %s", exc)
-        return _json_error(str(exc))
+        return _json_error("Fonte non creata.")
 
 
 @legal_updates_admin.put("/api/sources/<int:source_id>")
@@ -684,7 +684,7 @@ def api_update_source(source_id: int):
         return jsonify({"ok": True, "item": pipeline.repository.get_source_by_code(str(source_row["code"]))})
     except Exception as exc:
         current_app.logger.exception("Errore api_update_source: %s", exc)
-        return _json_error(str(exc))
+        return _json_error("Fonte non aggiornata.")
 
 
 @legal_updates_admin.post("/api/sources/<int:source_id>/fetch")
@@ -699,7 +699,7 @@ def api_fetch_source(source_id: int):
         return jsonify({"ok": True, "result": result})
     except Exception as exc:
         current_app.logger.exception("Errore api_fetch_source: %s", exc)
-        return _json_error(str(exc))
+        return _json_error("Recupero fonte non completato.")
 
 
 @legal_updates_admin.get("/api/raw-documents")
@@ -720,7 +720,7 @@ def api_raw_documents():
         )
     except Exception as exc:
         current_app.logger.exception("Errore api_raw_documents: %s", exc)
-        return _json_error(str(exc))
+        return _json_error("Documenti acquisiti non disponibili.")
 
 
 @legal_updates_admin.get("/api/raw-documents/<int:raw_document_id>")
@@ -734,7 +734,7 @@ def api_raw_document_detail(raw_document_id: int):
         return jsonify({"ok": True, "item": item})
     except Exception as exc:
         current_app.logger.exception("Errore api_raw_document_detail: %s", exc)
-        return _json_error(str(exc))
+        return _json_error("Dettaglio documento non disponibile.")
 
 
 @legal_updates_admin.post("/api/analyze/<int:raw_document_id>")
@@ -748,7 +748,7 @@ def api_analyze_raw_document(raw_document_id: int):
         return jsonify({"ok": True, "result": result})
     except Exception as exc:
         current_app.logger.exception("Errore api_analyze_raw_document: %s", exc)
-        return _json_error(str(exc))
+        return _json_error("Analisi documento non completata.")
 
 
 @legal_updates_admin.get("/api/analysis/<int:analysis_id>")
@@ -762,7 +762,7 @@ def api_analysis_detail(analysis_id: int):
         return jsonify({"ok": True, "item": item})
     except Exception as exc:
         current_app.logger.exception("Errore api_analysis_detail: %s", exc)
-        return _json_error(str(exc))
+        return _json_error("Dettaglio analisi non disponibile.")
 
 
 @legal_updates_admin.get("/api/normative")
@@ -773,7 +773,7 @@ def api_normative():
         return jsonify({"ok": True, "items": pipeline.repository.list_published_normative(limit=int(request.args.get("limit") or 100))})
     except Exception as exc:
         current_app.logger.exception("Errore api_normative: %s", exc)
-        return _json_error(str(exc))
+        return _json_error("Normativa non disponibile.")
 
 
 @legal_updates_admin.get("/api/normative/<int:normative_id>/versions")
@@ -784,7 +784,7 @@ def api_normative_versions(normative_id: int):
         return jsonify({"ok": True, "items": pipeline.repository.list_normative_versions(normative_id)})
     except Exception as exc:
         current_app.logger.exception("Errore api_normative_versions: %s", exc)
-        return _json_error(str(exc))
+        return _json_error("Versioni normative non disponibili.")
 
 
 @legal_updates_admin.get("/api/jurisprudence")
@@ -795,7 +795,7 @@ def api_jurisprudence():
         return jsonify({"ok": True, "items": pipeline.repository.list_published_jurisprudence(limit=int(request.args.get("limit") or 100))})
     except Exception as exc:
         current_app.logger.exception("Errore api_jurisprudence: %s", exc)
-        return _json_error(str(exc))
+        return _json_error("Giurisprudenza non disponibile.")
 
 
 @legal_updates_admin.get("/api/prassi")
@@ -806,7 +806,7 @@ def api_prassi():
         return jsonify({"ok": True, "items": pipeline.repository.list_published_prassi(limit=int(request.args.get("limit") or 100))})
     except Exception as exc:
         current_app.logger.exception("Errore api_prassi: %s", exc)
-        return _json_error(str(exc))
+        return _json_error("Prassi non disponibile.")
 
 
 @legal_updates_admin.get("/api/news")
@@ -817,7 +817,7 @@ def api_news():
         return jsonify({"ok": True, "items": pipeline.repository.list_news(limit=100, include_drafts=True)})
     except Exception as exc:
         current_app.logger.exception("Errore api_news admin: %s", exc)
-        return _json_error(str(exc))
+        return _json_error("News non disponibili.")
 
 
 @legal_updates_admin.get("/api/audit")
@@ -836,4 +836,4 @@ def api_audit():
         )
     except Exception as exc:
         current_app.logger.exception("Errore api_audit: %s", exc)
-        return _json_error(str(exc))
+        return _json_error("Registro attività non disponibile.")

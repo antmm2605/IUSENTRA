@@ -38,6 +38,14 @@ _LEGACY_FIRST_PREFIXES = (
     "/tribunali",
 )
 
+
+def _local_redirect_target(path: str, query: dict[str, str]) -> str:
+    clean_path = str(path or "/").replace("\r", "").replace("\n", "")
+    if not clean_path.startswith("/") or clean_path.startswith("//"):
+        clean_path = "/"
+    encoded = urlencode(query)
+    return f"{clean_path}?{encoded}" if encoded else clean_path
+
 _REACT_TELEMATICO_ACQUISITION_PATHS = {
     "/portali/pst/acquisizione",
     "/portali/pdp/acquisizione",
@@ -283,7 +291,7 @@ def render_react_shell_response(spa_path: str = "", *, bootstrap_texts: Iterable
     if _deve_mantenere_vista_classica():
         query = request.args.to_dict(flat=True)
         query["_legacy"] = "1"
-        return redirect(f"{request.path}?{urlencode(query)}", code=302)
+        return redirect(_local_redirect_target(request.path, query), code=302)
 
     response = make_response(render_template(
         "react_shell.html",

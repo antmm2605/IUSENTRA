@@ -53,7 +53,13 @@ def _repo() -> PecAuditRepository:
 
 
 def _json_error(exc: Exception, status: int = 400):
-    return jsonify({"ok": False, "errore": str(exc)}), status
+    if status == 403:
+        message = "Dati dello studio non disponibili per questa richiesta."
+    elif status == 404:
+        message = "Elemento PEC non trovato."
+    else:
+        message = "Operazione PEC non completata."
+    return jsonify({"ok": False, "errore": message}), status
 
 
 @pec_pipeline_api.get("/messages")

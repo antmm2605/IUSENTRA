@@ -93,7 +93,7 @@ def register_auth_management_routes(
                     ok = False
                     status_code = 400
                     category = "danger"
-                    message = str(e)
+                    message = "Profilo non aggiornato. Controlla i dati inseriti."
             elif azione == "password":
                 pwd_old = request.form.get("password_old", "")
                 pwd_new = request.form.get("password_new", "")
@@ -338,7 +338,7 @@ def register_auth_management_routes(
             return jsonify(_auth_manager().statistiche())
         except Exception as e:
             app.logger.exception("Errore api_utenti_statistiche: %s", e)
-            return jsonify({"errore": str(e)}), 200
+            return jsonify({"errore": "Statistiche utenti non disponibili."}), 200
 
     @app.route("/profili")
     def profili():

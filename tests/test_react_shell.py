@@ -1966,7 +1966,12 @@ def test_impostazioni_react_api_redige_segreti_e_salva_configurazioni(tmp_path: 
     assert "paypal-segreta" not in json.dumps(save_pagamenti.get_json(), ensure_ascii=False)
     assert link_notifica.status_code == 200
     assert link_notifica.get_json()["ok"] is True
-    assert "https://wa.me/" in link_notifica.get_json()["link"]
+    from urllib.parse import urlparse
+
+    link_whatsapp = urlparse(link_notifica.get_json()["link"])
+    assert link_whatsapp.scheme == "https"
+    assert link_whatsapp.netloc == "wa.me"
+    assert link_whatsapp.path == "/393331112233"
     saved = GestioneConfigStudio(str(config_path)).config
     assert saved.pec.indirizzo == "studio.nuovo@pec.example.it"
     assert saved.pec.password == "pec-super-segreta"
@@ -2847,7 +2852,12 @@ def test_react_messaggi_bridge_usa_repository_reali(tmp_path: Path):
     assert list_payload["summary"]["manualWhatsapp"] == 1
     assert list_payload["items"][0]["channel"] == "WHATSAPP"
     assert list_payload["items"][0]["clientLabel"] == "Moscato Marco"
-    assert list_payload["items"][0]["whatsappLink"].startswith("https://wa.me/")
+    from urllib.parse import urlparse
+
+    whatsapp_link = urlparse(list_payload["items"][0]["whatsappLink"])
+    assert whatsapp_link.scheme == "https"
+    assert whatsapp_link.netloc == "wa.me"
+    assert whatsapp_link.path == "/393331234567"
     assert new_payload["contracts"]["writes"] == "operational_routes"
     assert new_payload["query"]["channel"] == "WHATSAPP"
     assert new_payload["clientOptions"][0]["phone"] == "+393331234567"

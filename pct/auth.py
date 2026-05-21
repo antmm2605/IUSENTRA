@@ -31,6 +31,7 @@ from functools import wraps
 
 
 logger = logging.getLogger(__name__)
+_BOOTSTRAP_PASSWORD_PREFIX = "ENC:"
 
 
 # ------------------------------------------------------------------ TOTP (RFC 6238) — implementazione nativa
@@ -735,9 +736,11 @@ class GestioneUtenti:
         self._salva_bootstrap_admin_credentials(bootstrap_password)
 
     def _salva_bootstrap_admin_credentials(self, password: str) -> None:
+        encrypted_password = self._encrypt_bootstrap_admin_password(password)
         payload = {
             "username": "admin",
-            "password": password,
+            "password_encrypted": encrypted_password,
+            "password_present": bool(encrypted_password),
             "must_change_password": True,
             "creato_il": datetime.now().isoformat(),
         }
@@ -752,9 +755,46 @@ class GestioneUtenti:
         if not path.exists():
             return None
         try:
-            return json.loads(path.read_text(encoding="utf-8"))
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(payload, dict):
+                return None
+            password = str(payload.get("password") or "")
+            if not password and payload.get("password_encrypted"):
+                password = self._decrypt_bootstrap_admin_password(str(payload.get("password_encrypted") or ""))
+            return {
+                "username": payload.get("username") or "admin",
+                "password": password,
+                "must_change_password": bool(payload.get("must_change_password", True)),
+                "creato_il": payload.get("creato_il", ""),
+            }
         except Exception:
             return None
+
+    def _bootstrap_password_fernet(self):
+        try:
+            from cryptography.fernet import Fernet
+
+            key = _base64.urlsafe_b64encode(hashlib.sha256(str(self._secret or "").encode("utf-8")).digest())
+            return Fernet(key)
+        except Exception:
+            return None
+
+    def _encrypt_bootstrap_admin_password(self, password: str) -> str:
+        fernet = self._bootstrap_password_fernet()
+        if not password or fernet is None:
+            return ""
+        return _BOOTSTRAP_PASSWORD_PREFIX + fernet.encrypt(password.encode("utf-8")).decode("ascii")
+
+    def _decrypt_bootstrap_admin_password(self, value: str) -> str:
+        if not value.startswith(_BOOTSTRAP_PASSWORD_PREFIX):
+            return ""
+        fernet = self._bootstrap_password_fernet()
+        if fernet is None:
+            return ""
+        try:
+            return fernet.decrypt(value[len(_BOOTSTRAP_PASSWORD_PREFIX):].encode("ascii")).decode("utf-8")
+        except Exception:
+            return ""
 
     def clear_bootstrap_admin_credentials(self) -> None:
         path = self._bootstrap_admin_credentials_path
@@ -1325,4 +1365,3 @@ def ruolo_richiesto(*ruoli: RuoloUtente):
             return f(*args, **kwargs)
         return decorated
     return decorator
-

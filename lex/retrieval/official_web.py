@@ -97,6 +97,14 @@ def _normalize_domain(value: str) -> str:
     return host
 
 
+def _host_matches_domain(host: str, domain: str) -> bool:
+    host_labels = [part for part in _normalize_domain(host).split(".") if part]
+    domain_labels = [part for part in _normalize_domain(domain).split(".") if part]
+    if not host_labels or not domain_labels or len(host_labels) < len(domain_labels):
+        return False
+    return host_labels[-len(domain_labels):] == domain_labels
+
+
 def _extra_domains() -> list[str]:
     raw = os.getenv("PCT_LEX_OFFICIAL_EXTRA_DOMAINS", "")
     domains: list[str] = []
@@ -254,7 +262,8 @@ def _extract_result_url(raw_url: str) -> str:
         uddg = parse_qs(parsed.query).get("uddg", [])
         if uddg:
             return unquote(uddg[0])
-    if (not parsed.netloc or _normalize_domain(parsed.netloc).endswith("google.com")) and parsed.path in {
+    host = _normalize_domain(parsed.netloc)
+    if (not parsed.netloc or _host_matches_domain(host, "google.com")) and parsed.path in {
         "/url",
         "/interstitial",
     }:
@@ -262,8 +271,7 @@ def _extract_result_url(raw_url: str) -> str:
             target = parse_qs(parsed.query).get(key, [])
             if target:
                 return unquote(target[0])
-    host = _normalize_domain(parsed.netloc)
-    if host.endswith("bing.com") and parsed.path.startswith("/ck/"):
+    if _host_matches_domain(host, "bing.com") and parsed.path.startswith("/ck/"):
         encoded_url = parse_qs(parsed.query).get("u", [])
         if encoded_url:
             value = unquote(encoded_url[0])
@@ -282,9 +290,7 @@ def _extract_result_url(raw_url: str) -> str:
 def _is_allowed_result(url: str, allowed_domain: str) -> bool:
     host = _normalize_domain(urlparse(str(url or "").strip()).netloc)
     domain = _normalize_domain(allowed_domain)
-    if not host or not domain:
-        return False
-    return host == domain or host.endswith("." + domain)
+    return _host_matches_domain(host, domain)
 
 
 def _is_public_web_url(url: str) -> bool:

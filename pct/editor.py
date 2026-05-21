@@ -23,6 +23,7 @@ from __future__ import annotations
 import base64
 import io
 import re
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Optional
 
@@ -1050,6 +1051,22 @@ def html_to_pdf(
 
 # ─────────────────────────────────────────────── utility
 
+class _PlainTextHTMLParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+
+    def handle_data(self, data: str) -> None:
+        if data:
+            self.parts.append(data)
+
+    def get_text(self) -> str:
+        return "".join(self.parts)
+
+
 def _strip_tags(html: str) -> str:
     """Rimuove tutti i tag HTML restituendo solo il testo."""
-    return re.sub(r"<[^>]+>", "", html or "")
+    parser = _PlainTextHTMLParser()
+    parser.feed(html or "")
+    parser.close()
+    return parser.get_text()

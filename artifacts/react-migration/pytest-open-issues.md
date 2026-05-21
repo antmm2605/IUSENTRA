@@ -11,6 +11,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
 | CodeQL `Incomplete URL substring sanitization` su `tests/test_legal_update_source_capabilities.py` | Test capability, packaging/readiness, governance e diff check | Nessuna issue aperta nuova | Il pattern `row["source_url"].startswith("https://www.cortedicassazione.it")` è stato sostituito con confronto esatto sugli URL attesi di sorgente e allegato. Il comportamento dell'estrattore resta invariato: il test controlla ancora riferimenti, URL copiati dal chiamante, `official_url` vuoto, snippet e confidence. | Dopo il push verificare il job `CodeQL / Analyze (python)` sulla PR; se segnala altri test con controlli URL a prefisso, correggerli con confronto esatto o parsing URL host/scheme. |
+| CI primo push `959c46f62` | `CI / Lint + syntax`, step `API contract gates` | Risolto localmente e rilanciato con hotfix | Il bump `2.247.1` aveva lasciato `docs/openapi.yaml` alla versione `2.247.0`; gli aggregatori Pytest core e Local Signer erano rossi solo perché gli shard reali erano `Skipped` dopo il blocco primario. | Rigenerato `docs/openapi.yaml`; rilanciati verdi `generate_api_contracts.py --check`, validazione OpenAPI, provider verification, smoke contratti e `tests/test_openapi_contracts_phase6.py`. |
 
 ## Note Lex Workflow Agents / Regia Agentica Studio - 2026-05-21
 

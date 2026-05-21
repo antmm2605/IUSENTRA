@@ -61,6 +61,13 @@ WorkflowType = Literal[
     "drafting_legal_letter",
     "deposito_telematico",
     "lex_feedback_diagnostico",
+    "workflow_agent",
+    "triage_giornaliero",
+    "redazione_atto",
+    "billing_monthly",
+    "nuovo_incarico",
+    "predeposito",
+    "legal_research",
 ]
 
 ProviderType = Literal["ollama", "openai", "mock", "deterministic"]

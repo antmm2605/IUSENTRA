@@ -6,6 +6,12 @@ Aggiornato: 2026-05-21, PEC notifiche automatiche 2.246.4, hotfix PEC UI/Lex 2.2
 
 Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, controllare qui: si lavora solo sugli item aperti, poi si spostano nel report `pytest-confirmed-ok.md` quando il test o lo shard passa.
 
+## Note Lex Workflow Agents / Regia Agentica Studio - 2026-05-21
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Regia Agentica Studio | Test mirati backend, feature flag, security map, typecheck, build e test frontend | Nessuna issue aperta nuova | Implementati package `lex/agents`, API `/api/v1/ui/workflow-agents`, UI React, storage tenant-aware, approval queue e metriche 80%. Le scritture restano bloccate di default da `lex.workflowAgents.writeActions=false`. | Prima di abilitare scritture in produzione impostare esplicitamente il flag e verificare con utente RBAC reale; PEC, deposito, firma e cancellazioni restano vietati. |
+
 ## Note PEC notifiche automatiche 2.246.4 - 2026-05-21
 
 | Area | Gate | Stato | Nota | Azione |

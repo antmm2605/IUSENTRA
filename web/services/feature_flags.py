@@ -35,12 +35,15 @@ APP_V2_DEFAULT_OFF_FLAGS = frozenset(
         "lex.legalSkills.trustLayer",
         "lex.legalSkills.customSkills",
         "lex.legalSkills.scheduledAgents",
+        "lex.workflowAgents.writeActions",
+        "lex.workflowAgents.scheduledRuns",
     }
 )
 
 APP_V2_DEFAULT_ON_FLAGS = frozenset(
     {
         "lex.legalSkills.enabled",
+        "lex.workflowAgents.enabled",
         "routes.appV2.dashboard.home",
         "routes.appV2.dashboard.regia",
         "routes.appV2.search.global",
@@ -99,6 +102,8 @@ APP_V2_DEFAULT_ON_FLAGS = frozenset(
         "routes.appV2.legalSkills.profile",
         "routes.appV2.legalSkills.run",
         "routes.appV2.legalSkills.reviewQueue",
+        "routes.appV2.workflowAgents.home",
+        "routes.appV2.workflowAgents.reviewQueue",
     }
 )
 
@@ -173,10 +178,15 @@ FEATURE_FLAG_DEFINITIONS: tuple[FeatureFlagDefinition, ...] = (
     _flag("lex.legalSkills.trustLayer", "Controllo di fiducia per skill legali custom."),
     _flag("lex.legalSkills.customSkills", "Installazione skill Legal Skills custom."),
     _flag("lex.legalSkills.scheduledAgents", "Agenti Legal Skills schedulati read-only."),
+    _flag("lex.workflowAgents.enabled", "Regia Agentica Studio in preview read-only governata."),
+    _flag("lex.workflowAgents.writeActions", "Scritture agentiche approvabili dopo revisione umana."),
+    _flag("lex.workflowAgents.scheduledRuns", "Esecuzioni programmate degli agenti Lex."),
     _flag("routes.appV2.legalSkills.catalog", "Catalogo Legal Skills nella shell App V2."),
     _flag("routes.appV2.legalSkills.profile", "Profilo Legal Skills nella shell App V2."),
     _flag("routes.appV2.legalSkills.run", "Esecuzione Legal Skills nella shell App V2."),
     _flag("routes.appV2.legalSkills.reviewQueue", "Revisione risultati Legal Skills nella shell App V2."),
+    _flag("routes.appV2.workflowAgents.home", "Regia Agentica Studio nella shell App V2."),
+    _flag("routes.appV2.workflowAgents.reviewQueue", "Coda approvazioni agentiche nella shell App V2."),
     FeatureFlagDefinition(
         "routes.appV2.docsPanel",
         "IUSENTRA_FF_ROUTES_APPV2_DOCS_PANEL",
@@ -328,6 +338,11 @@ APP_V2_ROUTE_FLAGS: tuple[tuple[str, str], ...] = (
     ("/legal-skills/review", "routes.appV2.legalSkills.reviewQueue"),
     ("/legal-skills", "routes.appV2.legalSkills.catalog"),
     ("/app/legal-skills", "routes.appV2.legalSkills.catalog"),
+    ("/workflow-agents/runs/", "routes.appV2.workflowAgents.reviewQueue"),
+    ("/workflow-agents/approvals", "routes.appV2.workflowAgents.reviewQueue"),
+    ("/workflow-agents/metrics", "routes.appV2.workflowAgents.home"),
+    ("/workflow-agents", "routes.appV2.workflowAgents.home"),
+    ("/regia-agentica", "routes.appV2.workflowAgents.home"),
     ("/workspace-intelligente", "routes.appV2.dashboard.regia"),
     ("/regia-operativa", "routes.appV2.dashboard.regia"),
     ("/app", "routes.appV2.dashboard.home"),

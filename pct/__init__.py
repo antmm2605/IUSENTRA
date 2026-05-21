@@ -2,5 +2,5 @@
 PCT - Processo Civile Telematico
 Sistema per l'invio telematico negli studi legali italiani.
 """
-__version__ = "2.246.4"
+__version__ = "2.247.0"
 __author__ = "IUSENTRA"

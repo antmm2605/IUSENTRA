@@ -2458,3 +2458,10 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - Lex AI legge lo stesso archivio come fonte ufficiale di classe A tramite `lex_mediazione_registry_sources`, con citazioni interne complete e link ministeriale della sezione corretta.
 - Gli accessi ufficiali e la news PST restano schede di contesto e verifica, non sostituiscono piu' il contenuto importato.
 - Verifiche registrate: pytest mirati Legal Intelligence/Lex/Update Pipeline, typecheck frontend, build Vite, prova live del sync ministeriale con 3.035 record acquisiti su 305 pagine e browser verification locale su desktop/mobile.
+
+## Aggiornamento 2026-05-21: Regia Agentica Studio 2.247.0
+
+- Aggiunta la superficie React `/workflow-agents` con home, dettaglio percorso, coda approvazioni e metriche, servita dalla shell App V2 e governata dai flag `routes.appV2.workflowAgents.*`.
+- Le API `/api/v1/ui/workflow-agents` usano il bridge backend dedicato e il nuovo package `lex/agents`: preview read-only, proposte approvabili, approve/reject, metriche e storage tenant-aware.
+- Le scritture agentiche sono intenzionalmente spente di default da `lex.workflowAgents.writeActions=false`; il target 80% viene calcolato e salvato per run, non dichiarato a prescindere.
+- Verifiche registrate in `artifacts/react-migration/pytest-confirmed-ok.md`: sette pytest dedicati Lex Workflow Agents, shard feature/security/tenant, typecheck, build, test frontend, compileall e link documentali.

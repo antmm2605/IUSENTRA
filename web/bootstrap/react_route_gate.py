@@ -47,6 +47,7 @@ _REACT_PREFIXES = (
     "/privacy/registro",
     "/profili",
     "/redazione-atti",
+    "/regia-agentica",
     "/regia-operativa",
     "/registro-attivita",
     "/registro-gdpr",
@@ -69,6 +70,7 @@ _REACT_PREFIXES = (
     "/utenti",
     "/wizard-pro",
     "/workspace-intelligente",
+    "/workflow-agents",
 )
 
 _REACT_EXACT = {
@@ -102,6 +104,7 @@ _REACT_EXACT = {
     "/profilo",
     "/profili",
     "/redazione-atti",
+    "/regia-agentica",
     "/registro-attivita",
     "/ricerca-legale",
     "/ricerca-legale/mediazione",
@@ -119,6 +122,8 @@ _REACT_EXACT = {
     "/template-atti/catalogo",
     "/utenti",
     "/utenti/nuovo",
+    "/workflow-agents",
+    "/workflow-agents/approvals",
 }
 
 _EXCLUDED_PREFIXES = (

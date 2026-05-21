@@ -319,6 +319,27 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             _data_peer_path(app.config["CLIENTI_DB"], "intelligence/legal_skills", "scheduled.json"),
         ),
     )
+    app.config["WORKFLOW_AGENTS_RUNS_DB"] = cfg.get(
+        "WORKFLOW_AGENTS_RUNS_DB",
+        os.getenv(
+            "PCT_WORKFLOW_AGENTS_RUNS_DB",
+            _data_peer_path(app.config["CLIENTI_DB"], "intelligence/workflow_agents", "runs.json"),
+        ),
+    )
+    app.config["WORKFLOW_AGENTS_METRICS_DB"] = cfg.get(
+        "WORKFLOW_AGENTS_METRICS_DB",
+        os.getenv(
+            "PCT_WORKFLOW_AGENTS_METRICS_DB",
+            _data_peer_path(app.config["CLIENTI_DB"], "intelligence/workflow_agents", "metrics.json"),
+        ),
+    )
+    app.config["WORKFLOW_AGENTS_ACTIONS_DB"] = cfg.get(
+        "WORKFLOW_AGENTS_ACTIONS_DB",
+        os.getenv(
+            "PCT_WORKFLOW_AGENTS_ACTIONS_DB",
+            _data_peer_path(app.config["CLIENTI_DB"], "intelligence/workflow_agents", "actions.json"),
+        ),
+    )
     app.config["NORMATIVE_TABLES_DB"] = cfg.get(
         "NORMATIVE_TABLES_DB",
         os.getenv(

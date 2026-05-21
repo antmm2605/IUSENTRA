@@ -6,6 +6,25 @@ Aggiornato: 2026-05-21, PEC notifiche automatiche 2.246.4, hotfix PEC UI/Lex 2.2
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
+## Lex Workflow Agents / Regia Agentica Studio - 2026-05-21
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests/test_lex_workflow_agents_models.py` | OK | 1/1: modelli serializzabili e redazione di tenant, email, codice fiscale e path. |
+| `python -m pytest -q tests/test_lex_workflow_agents_planner.py` | OK | 2/2: planner vincolato a ricette reali e blocco workflow non registrati. |
+| `python -m pytest -q tests/test_lex_workflow_agents_executor.py` | OK | 3/3: preview read-only, coda approvazioni, RBAC e scrittura solo approvata. |
+| `python -m pytest -q tests/test_lex_workflow_agents_policies.py` | OK | 3/3: parametri client vietati, divieto PEC/deposito/firma/destructive e approval obbligatoria. |
+| `python -m pytest -q tests/test_lex_workflow_agents_api.py` | OK | 3/3: feature flag preview, blocco scritture flag-off e backend security su `tenant_id`. |
+| `python -m pytest -q tests/test_lex_workflow_agents_metrics.py` | OK | 2/2: formula 80% reale, caso positivo e caso sotto soglia. |
+| `python -m pytest -q tests/test_lex_workflow_agents_security.py` | OK | 2/2: registry mutante bloccato senza `allow_writes`/permessi e output pubblico redatto. |
+| `python -m pytest -q tests/test_lex_workflow_agents_models.py tests/test_lex_workflow_agents_planner.py tests/test_lex_workflow_agents_executor.py tests/test_lex_workflow_agents_policies.py tests/test_lex_workflow_agents_api.py tests/test_lex_workflow_agents_metrics.py tests/test_lex_workflow_agents_security.py --tb=short` | OK | 16/16: rerun aggregato mirato dopo fix import lazy `lex.agents` e bump `2.247.0`. |
+| `python -m pytest -q tests/test_lex_tool_registry_governance.py --tb=short` | OK | 4/4: registry Lex importabile senza ciclo e governance strumenti preservata. |
+| `python -m pytest -q tests/test_feature_flags.py tests/test_backend_security_phase5.py tests/test_tenant_isolation_runtime.py --tb=short` | OK | 23/23 dopo rigenerazione `docs/backend-endpoint-security-map.md` per i nuovi endpoint. |
+| `python scripts/react-migration/generate_api_contracts.py`; `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py docs/openapi.yaml`; `python scripts/verify_openapi_provider.py`; `python -m pytest -q tests/test_openapi_contracts_phase6.py --tb=short` | OK | Contratti API generati per `/api/v1/ui/workflow-agents`, OpenAPI valido, provider verification OK (`auth-error=203`, `success=27`, `backend-security=1`) e fase 6 5/5. |
+| `python tools/sync_packaging_files.py --check`; `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | Packaging e release readiness 9/9 confermati dopo bump `2.247.0`. |
+| `npm --prefix frontend run typecheck`; `npm --prefix frontend run build`; `npm --prefix frontend run test` | OK | TypeScript, build Vite e gate React/App V2/Legal Skills/UI coverage verdi; chunk agentici generati. |
+| `python -m compileall lex\agents lex\tools\workflow_agent_tools.py web\services\react_workflow_agents_bridge.py`; `python scripts\validate_docs_links.py`; `python -m pct.cli utf8-integrity --check-only --root docs\LEX_WORKFLOW_AGENTS.md --root docs\index.md --root README.md --root CHANGELOG.md --root artifacts\react-migration\pytest-confirmed-ok.md --root artifacts\react-migration\pytest-open-issues.md --root docs\REACT_MIGRATION_MASTER_PLAN.md --json` | OK | Sintassi backend, link documentali e UTF-8 mirato confermati senza creare backup. |
+
 ## PEC notifiche automatiche 2.246.4 - 2026-05-21
 
 | Comando / verifica | Esito | Nota |

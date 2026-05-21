@@ -7,6 +7,10 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.247.0 - 2026-05-21
+
+- Aggiunto il layer `Lex Workflow Agents` / `Regia Agentica Studio`: package `lex/agents`, sei ricette operative governate, API `/api/v1/ui/workflow-agents`, UI React App V2, tool mutanti controllati, feature flag, audit redatto, storage tenant-aware e metriche reali per misurare il target di riduzione tempo all'80%.
+
 ## 2.246.4 - 2026-05-21
 
 - Rafforzata la matrice PEC per notifiche e depositi: il controllo automatico distingue PCT, Giudice di Pace, notifiche ex L. 53/1994, UNEP, PAT, PTT, penale SNT/PDP, ricevute PEC, firme e domicilio digitale, mostrando esito operativo non bloccante e riferimenti normativi.

@@ -250,6 +250,17 @@ from web.services.react_legal_intelligence_bridge import (
     build_react_legal_intelligence_error_payload,
     build_react_legal_intelligence_payload,
 )
+from web.services.react_workflow_agents_bridge import (
+    WORKFLOW_AGENT_PERMISSIONS,
+    approve_workflow_agent_run,
+    build_workflow_agents_payload,
+    get_workflow_agent_run,
+    list_workflow_agent_approvals,
+    preview_workflow_agent,
+    reject_workflow_agent_run,
+    workflow_agent_error_payload,
+    workflow_agent_metrics_payload,
+)
 from web.services.react_incassi_pagamenti_bridge import (
     build_or_get_react_payment_link,
     build_react_incassi_pagamenti_error_payload,
@@ -271,7 +282,7 @@ from web.services.react_wizard_pro_bridge import (
     build_react_wizard_pro_step_payload,
 )
 from web.services.studio_site_runtime import site_admin_identity_or_403
-from web.services.feature_flags import feature_flags_payload
+from web.services.feature_flags import feature_disabled_response, feature_flags_payload, is_feature_enabled
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
 from web.services.tenant_api_auth import api_key_valid_for_request
 from web.services.backend_security import (
@@ -392,6 +403,23 @@ def _puo_scrivere_utenti() -> bool:
 def _session_user_can(permission: str) -> bool:
     utente = g.get("utente_corrente")
     return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)(permission))
+
+
+def _workflow_agent_user_permissions() -> list[str]:
+    if _api_key_valida():
+        return list(WORKFLOW_AGENT_PERMISSIONS)
+    return [permission for permission in WORKFLOW_AGENT_PERMISSIONS if _session_user_can(permission)]
+
+
+def _workflow_agent_can_any(*permissions: str) -> bool:
+    if _api_key_valida():
+        return True
+    granted = set(_workflow_agent_user_permissions())
+    return any(permission in granted for permission in permissions)
+
+
+def _workflow_agent_forbidden():
+    return jsonify({"ok": False, "code": "forbidden", "message": "Permesso non sufficiente per la Regia Agentica Studio."}), 403
 
 
 def _puo_leggere_backup() -> bool:
@@ -1429,6 +1457,126 @@ def bootstrap():
 @_richiedi_auth
 def feature_flags():
     return jsonify(feature_flags_payload(current_app.config))
+
+
+@api_v1_react.get("/workflow-agents")
+@_richiedi_auth
+def workflow_agents_home():
+    if not _workflow_agent_can_any("ai.usa", "legal_skills.leggi", "legal_skills.esegui"):
+        return _workflow_agent_forbidden()
+    try:
+        return jsonify(build_workflow_agents_payload())
+    except Exception as exc:
+        payload, status = workflow_agent_error_payload(exc)
+        return jsonify(payload), status
+
+
+@api_v1_react.post("/workflow-agents/preview")
+@_richiedi_auth
+def workflow_agents_preview():
+    if not is_feature_enabled("lex.workflowAgents.enabled", current_app.config):
+        return feature_disabled_response("lex.workflowAgents.enabled")
+    if not _workflow_agent_can_any("ai.usa", "legal_skills.esegui"):
+        return _workflow_agent_forbidden()
+    payload, error = _request_json_object()
+    if error:
+        return error
+    try:
+        return jsonify(
+            preview_workflow_agent(
+                payload or {},
+                actor=_actor_label(),
+                user_permissions=_workflow_agent_user_permissions(),
+            )
+        )
+    except Exception as exc:
+        body, status = workflow_agent_error_payload(exc)
+        return jsonify(body), status
+
+
+@api_v1_react.get("/workflow-agents/runs/<run_id>")
+@_richiedi_auth
+def workflow_agents_run_detail(run_id: str):
+    if not is_feature_enabled("lex.workflowAgents.enabled", current_app.config):
+        return feature_disabled_response("lex.workflowAgents.enabled")
+    if not _workflow_agent_can_any("ai.usa", "legal_skills.leggi", "legal_skills.esegui"):
+        return _workflow_agent_forbidden()
+    try:
+        return jsonify(get_workflow_agent_run(run_id))
+    except Exception as exc:
+        body, status = workflow_agent_error_payload(exc)
+        return jsonify(body), status
+
+
+@api_v1_react.get("/workflow-agents/approvals")
+@_richiedi_auth
+def workflow_agents_approvals():
+    if not is_feature_enabled("lex.workflowAgents.enabled", current_app.config):
+        return feature_disabled_response("lex.workflowAgents.enabled")
+    if not _workflow_agent_can_any("legal_skills.approva"):
+        return _workflow_agent_forbidden()
+    try:
+        return jsonify(list_workflow_agent_approvals())
+    except Exception as exc:
+        body, status = workflow_agent_error_payload(exc)
+        return jsonify(body), status
+
+
+@api_v1_react.post("/workflow-agents/runs/<run_id>/approve")
+@_richiedi_auth
+def workflow_agents_approve(run_id: str):
+    if not is_feature_enabled("lex.workflowAgents.enabled", current_app.config):
+        return feature_disabled_response("lex.workflowAgents.enabled")
+    if not is_feature_enabled("lex.workflowAgents.writeActions", current_app.config):
+        return feature_disabled_response("lex.workflowAgents.writeActions")
+    if not _workflow_agent_can_any("legal_skills.approva"):
+        return _workflow_agent_forbidden()
+    payload, error = _request_json_object()
+    if error:
+        return error
+    try:
+        return jsonify(
+            approve_workflow_agent_run(
+                payload or {},
+                run_id=run_id,
+                actor=_actor_label(),
+                user_permissions=_workflow_agent_user_permissions(),
+            )
+        )
+    except Exception as exc:
+        body, status = workflow_agent_error_payload(exc)
+        return jsonify(body), status
+
+
+@api_v1_react.post("/workflow-agents/runs/<run_id>/reject")
+@_richiedi_auth
+def workflow_agents_reject(run_id: str):
+    if not is_feature_enabled("lex.workflowAgents.enabled", current_app.config):
+        return feature_disabled_response("lex.workflowAgents.enabled")
+    if not _workflow_agent_can_any("legal_skills.approva"):
+        return _workflow_agent_forbidden()
+    payload, error = _request_json_object()
+    if error:
+        return error
+    try:
+        return jsonify(reject_workflow_agent_run(payload or {}, run_id=run_id, actor=_actor_label()))
+    except Exception as exc:
+        body, status = workflow_agent_error_payload(exc)
+        return jsonify(body), status
+
+
+@api_v1_react.get("/workflow-agents/metrics")
+@_richiedi_auth
+def workflow_agents_metrics():
+    if not is_feature_enabled("lex.workflowAgents.enabled", current_app.config):
+        return feature_disabled_response("lex.workflowAgents.enabled")
+    if not _workflow_agent_can_any("ai.usa", "legal_skills.leggi", "legal_skills.esegui"):
+        return _workflow_agent_forbidden()
+    try:
+        return jsonify(workflow_agent_metrics_payload())
+    except Exception as exc:
+        body, status = workflow_agent_error_payload(exc)
+        return jsonify(body), status
 
 
 @api_v1_react.get("/global-search")

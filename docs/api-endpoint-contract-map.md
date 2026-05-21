@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 196.
-- Endpoint P0/P1 contrattualizzati: 181.
+- Endpoint React API contrattualizzati: 203.
+- Endpoint P0/P1 contrattualizzati: 188.
 - Endpoint con provider verification 200 rappresentativa: 28.
-- Endpoint con provider verification auth-error: 196.
+- Endpoint con provider verification auth-error: 203.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
 
 | Area | Endpoint | Metodo | Pagina | Priorita | OpenAPI | Provider Test | RBAC | Flag | Tenant | Stato |
@@ -212,6 +212,13 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | API React operativa | `/api/v1/ui/wizard-pro` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/wizard-pro/session/{id_sessione}/completo` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/wizard-pro/session/{id_sessione}/step/{n}` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Regia Agentica Studio | `/api/v1/ui/workflow-agents` | `GET` | Regia Agentica Studio | P1 | complete | auth-error | `ai.usa/legal_skills.leggi + permessi azione` | `n/a` | current_tenant | complete-auth-error |
+| Regia Agentica Studio | `/api/v1/ui/workflow-agents/approvals` | `GET` | Regia Agentica Studio | P1 | complete | auth-error | `ai.usa/legal_skills.leggi + permessi azione` | `n/a` | current_tenant | complete-auth-error |
+| Regia Agentica Studio | `/api/v1/ui/workflow-agents/metrics` | `GET` | Regia Agentica Studio | P1 | complete | auth-error | `ai.usa/legal_skills.leggi + permessi azione` | `n/a` | current_tenant | complete-auth-error |
+| Regia Agentica Studio | `/api/v1/ui/workflow-agents/preview` | `POST` | Regia Agentica Studio | P1 | complete | auth-error | `ai.usa/legal_skills.leggi + permessi azione` | `n/a` | current_tenant | complete-auth-error |
+| Regia Agentica Studio | `/api/v1/ui/workflow-agents/runs/{run_id}` | `GET` | Regia Agentica Studio | P1 | complete | auth-error | `ai.usa/legal_skills.leggi + permessi azione` | `n/a` | current_tenant | complete-auth-error |
+| Regia Agentica Studio | `/api/v1/ui/workflow-agents/runs/{run_id}/approve` | `POST` | Regia Agentica Studio | P1 | complete | auth-error | `ai.usa/legal_skills.leggi + permessi azione` | `n/a` | current_tenant | complete-auth-error |
+| Regia Agentica Studio | `/api/v1/ui/workflow-agents/runs/{run_id}/reject` | `POST` | Regia Agentica Studio | P1 | complete | auth-error | `ai.usa/legal_skills.leggi + permessi azione` | `n/a` | current_tenant | complete-auth-error |
 
 ## Note provider verification
 

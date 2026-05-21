@@ -54,6 +54,7 @@ Questo indice e' il punto di ingresso operativo per sviluppatori, maintainer e r
 | Registro tool Lex | [LEX_TOOL_REGISTRY](LEX_TOOL_REGISTRY.md) | Tool Lex disponibili e regole operative per dati strutturati e fonti. |
 | Policy sorgenti Lex | [LEX_SOURCE_POLICY_SYSTEM](LEX_SOURCE_POLICY_SYSTEM.md) | Ranking sorgenti, modalita' strict/balanced/broad e grounding. |
 | Legal Skills Engine | [LEGAL_SKILLS_ENGINE](LEGAL_SKILLS_ENGINE.md) | Skill pack legali read-only, profilo studio, guardrail, API e UI React. |
+| Lex Workflow Agents | [LEX_WORKFLOW_AGENTS](LEX_WORKFLOW_AGENTS.md) | Regia agentica governata, approval queue, metriche 80%, API e UI React. |
 
 ## Test, CI e release
 

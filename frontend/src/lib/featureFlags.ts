@@ -62,10 +62,15 @@ export type FeatureFlagKey =
   | 'lex.legalSkills.trustLayer'
   | 'lex.legalSkills.customSkills'
   | 'lex.legalSkills.scheduledAgents'
+  | 'lex.workflowAgents.enabled'
+  | 'lex.workflowAgents.writeActions'
+  | 'lex.workflowAgents.scheduledRuns'
   | 'routes.appV2.legalSkills.catalog'
   | 'routes.appV2.legalSkills.profile'
   | 'routes.appV2.legalSkills.run'
   | 'routes.appV2.legalSkills.reviewQueue'
+  | 'routes.appV2.workflowAgents.home'
+  | 'routes.appV2.workflowAgents.reviewQueue'
   | 'routes.appV2.docsPanel'
   | 'routes.appV2.commsDeposits'
   | 'routes.appV2.uploadClassification'
@@ -158,6 +163,8 @@ const appV2RouteFlagRules: Array<[RegExp, FeatureFlagKey]> = [
   [/^\/legal-skills\/(?:run|packs\/[^/]+\/skills\/[^/]+\/run)(?:\/|$)/, 'routes.appV2.legalSkills.run'],
     [/^\/legal-skills\/(?:runs|review|review-queue)(?:\/|$)/, 'routes.appV2.legalSkills.reviewQueue'],
   [/^\/legal-skills(?:\/|$)/, 'routes.appV2.legalSkills.catalog'],
+  [/^\/workflow-agents\/(?:runs|approvals)(?:\/|$)/, 'routes.appV2.workflowAgents.reviewQueue'],
+  [/^\/(?:workflow-agents|regia-agentica)(?:\/|$)/, 'routes.appV2.workflowAgents.home'],
   [/^\/(?:workspace-intelligente|regia-operativa|app\/regia)(?:\/|$)/, 'routes.appV2.dashboard.regia'],
   [/^\/app\/fascicoli(?:\/|$)/, 'routes.appV2.cases.list'],
   [/^\/app\/anagrafiche(?:\/|$)/, 'routes.appV2.clients.list'],

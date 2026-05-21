@@ -30,6 +30,17 @@ from .preventivi_tool import PreventiviTool
 from .scadenziario_tool import ScadenziarioTool
 from .telematico_tool import TelematicoTool
 from .template_atti_tool import TemplateAttiTool
+from .workflow_agent_tools import (
+    CreateClientDraftTool,
+    CreateDeadlineTool,
+    CreateDocumentDraftTool,
+    CreateFascicoloDraftTool,
+    CreateInvoiceDraftTool,
+    CreatePecDraftTool,
+    CreateTaskTool,
+    CreateTimesheetEntryTool,
+    UpdateChecklistTool,
+)
 
 
 LEX_TOOL_REGISTRY_SCHEMA = "iusentra.lex_tool_registry.v1"
@@ -221,6 +232,78 @@ def _build_descriptors() -> dict[str, LexToolDescriptor]:
             mutates_state=True,
             description="Prepara esportazione del documento editor nel formato richiesto.",
         ),
+        _descriptor(
+            "create_task",
+            category="workflow_agents",
+            access_level="write",
+            permissions=("agenda.scrivi",),
+            mutates_state=True,
+            description="Crea o registra un'attivita' operativa approvata dalla regia agentica.",
+        ),
+        _descriptor(
+            "create_deadline",
+            category="workflow_agents",
+            access_level="write",
+            permissions=("scadenziario.scrivi",),
+            mutates_state=True,
+            description="Crea una scadenza o un promemoria approvato dalla regia agentica.",
+        ),
+        _descriptor(
+            "create_document_draft",
+            category="workflow_agents",
+            access_level="write",
+            permissions=("ai.usa", "fascicoli.scrivi"),
+            mutates_state=True,
+            description="Crea una bozza documento governata dopo approvazione.",
+        ),
+        _descriptor(
+            "create_timesheet_entry",
+            category="workflow_agents",
+            access_level="write",
+            permissions=("agenda.scrivi",),
+            mutates_state=True,
+            description="Crea una voce timesheet approvata.",
+        ),
+        _descriptor(
+            "create_invoice_draft",
+            category="workflow_agents",
+            access_level="write",
+            permissions=("fatturazione.scrivi",),
+            mutates_state=True,
+            description="Crea una parcella in bozza, mai definitiva.",
+        ),
+        _descriptor(
+            "create_client_draft",
+            category="workflow_agents",
+            access_level="write",
+            permissions=("clienti.scrivi",),
+            mutates_state=True,
+            description="Crea o recupera un cliente potenziale approvato.",
+        ),
+        _descriptor(
+            "create_fascicolo_draft",
+            category="workflow_agents",
+            access_level="write",
+            permissions=("fascicoli.scrivi",),
+            mutates_state=True,
+            description="Crea un fascicolo iniziale dopo approvazione e controllo.",
+        ),
+        _descriptor(
+            "create_pec_draft",
+            category="workflow_agents",
+            access_level="write",
+            permissions=("messaggi.scrivi",),
+            mutates_state=True,
+            description="Crea una bozza PEC senza invio automatico.",
+        ),
+        _descriptor(
+            "update_checklist",
+            category="workflow_agents",
+            access_level="write",
+            permissions=("telematico.valida",),
+            mutates_state=True,
+            description="Registra aggiornamenti checklist approvati.",
+        ),
     ]
     return {row.tool_name: row for row in rows}
 
@@ -249,6 +332,15 @@ class LexToolRegistry:
             "read_editor_document": ReadEditorDocumentTool(),
             "propose_editor_edits": ProposeEditorEditsTool(),
             "export_editor_document": ExportEditorDocumentTool(),
+            "create_task": CreateTaskTool(),
+            "create_deadline": CreateDeadlineTool(),
+            "create_document_draft": CreateDocumentDraftTool(),
+            "create_timesheet_entry": CreateTimesheetEntryTool(),
+            "create_invoice_draft": CreateInvoiceDraftTool(),
+            "create_client_draft": CreateClientDraftTool(),
+            "create_fascicolo_draft": CreateFascicoloDraftTool(),
+            "create_pec_draft": CreatePecDraftTool(),
+            "update_checklist": UpdateChecklistTool(),
         }
         self.descriptors = _build_descriptors()
         missing_descriptors = sorted(set(self.tools) - set(self.descriptors))
@@ -306,7 +398,7 @@ class LexToolRegistry:
 
         requested_permissions = set(descriptor.permissions)
         granted_permissions = set(str(item).strip() for item in user_permissions or () if str(item).strip())
-        if granted_permissions and not requested_permissions.issubset(granted_permissions):
+        if user_permissions is not None and not requested_permissions.issubset(granted_permissions):
             return {
                 "schema": LEX_TOOL_REGISTRY_SCHEMA,
                 "allowed": False,

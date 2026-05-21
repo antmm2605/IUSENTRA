@@ -459,10 +459,15 @@ Storybook è presente come infrastruttura frontend, ma non è dichiarato copertu
 | lex.legalSkills.trustLayer | IUSENTRA_FF_LEX_LEGALSKILLS_TRUSTLAYER | Controllo di fiducia per skill legali custom. | off |
 | lex.legalSkills.customSkills | IUSENTRA_FF_LEX_LEGALSKILLS_CUSTOMSKILLS | Installazione skill Legal Skills custom. | off |
 | lex.legalSkills.scheduledAgents | IUSENTRA_FF_LEX_LEGALSKILLS_SCHEDULEDAGENTS | Agenti Legal Skills schedulati read-only. | off |
+| lex.workflowAgents.enabled | IUSENTRA_FF_LEX_WORKFLOWAGENTS_ENABLED | Regia Agentica Studio in preview read-only governata. | on |
+| lex.workflowAgents.writeActions | IUSENTRA_FF_LEX_WORKFLOWAGENTS_WRITEACTIONS | Scritture agentiche approvabili dopo revisione umana. | off |
+| lex.workflowAgents.scheduledRuns | IUSENTRA_FF_LEX_WORKFLOWAGENTS_SCHEDULEDRUNS | Esecuzioni programmate degli agenti Lex. | off |
 | routes.appV2.legalSkills.catalog | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_CATALOG | Catalogo Legal Skills nella shell App V2. | on |
 | routes.appV2.legalSkills.profile | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_PROFILE | Profilo Legal Skills nella shell App V2. | on |
 | routes.appV2.legalSkills.run | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_RUN | Esecuzione Legal Skills nella shell App V2. | on |
 | routes.appV2.legalSkills.reviewQueue | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_REVIEWQUEUE | Revisione risultati Legal Skills nella shell App V2. | on |
+| routes.appV2.workflowAgents.home | IUSENTRA_FF_ROUTES_APPV2_WORKFLOWAGENTS_HOME | Regia Agentica Studio nella shell App V2. | on |
+| routes.appV2.workflowAgents.reviewQueue | IUSENTRA_FF_ROUTES_APPV2_WORKFLOWAGENTS_REVIEWQUEUE | Coda approvazioni agentiche nella shell App V2. | on |
 | routes.appV2.docsPanel | IUSENTRA_FF_ROUTES_APPV2_DOCS_PANEL | Alias compatibilita fase 1 per routes.appV2.documents.list. | off |
 | routes.appV2.commsDeposits | IUSENTRA_FF_ROUTES_APPV2_COMMS_DEPOSITS | Alias compatibilita fase 1 per routes.appV2.comms.deposits. | off |
 | routes.appV2.uploadClassification | IUSENTRA_FF_ROUTES_APPV2_UPLOAD_CLASSIFICATION | Alias compatibilita fase 1 per routes.appV2.documents.uploadClassification. | off |

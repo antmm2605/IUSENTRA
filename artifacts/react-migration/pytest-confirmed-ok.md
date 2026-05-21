@@ -6,6 +6,13 @@ Aggiornato: 2026-05-21, CodeQL context canonico 2.248.8, CodeQL follow-up defini
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
+## Memoria anti-recidiva CI/Deploy/CodeQL - 2026-05-22
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `gh api repos/<repo>/commits/<sha>/check-runs` sullo SHA `13807ace5e690d403599a10e47027b7367f64405` | OK | Verificati `158/158` check-run completati con successo: `CodeQL`, `CodeQL / Analyze (python)`, `Lint + syntax`, deploy Hetzner, Quality Overlay, smoke, E2E, Coverage, Pytest core e Local Signer. Regola permanente: non dichiarare mai chiuso un lavoro guardando solo il deploy verde. |
+| Hetzner CPX42 sullo SHA `13807ace5e690d403599a10e47027b7367f64405` | OK | Server sul commit pushato, app/scheduler/OCR/Redis/Ollama healthy, `/api/pronto` pubblico `versione=2.248.8`, cache Docker prunata. |
+
 ## CodeQL context canonico 2.248.8 - 2026-05-21
 
 | Comando / verifica | Esito | Nota |

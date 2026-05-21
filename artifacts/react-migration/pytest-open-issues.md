@@ -6,11 +6,17 @@ Aggiornato: 2026-05-21, CodeQL context canonico 2.248.8, CodeQL follow-up defini
 
 Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, controllare qui: si lavora solo sugli item aperti, poi si spostano nel report `pytest-confirmed-ok.md` quando il test o lo shard passa.
 
+## Memoria anti-recidiva CI/Deploy/CodeQL - 2026-05-22
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Prossimi commit/push | Deploy Hetzner, CodeQL, lint, shard reali | Regola permanente | L'utente ha segnalato come importantissimo che non ricapiti la situazione "Deploy su Hetzner CPX42 verde" ma CodeQL/lint/shard ancora rossi o in coda. Il deploy non è più una condizione sufficiente di chiusura. | Per ogni SHA nuovo attendere tutti i check-run `completed`, verificare zero failure, controllare esplicitamente `CodeQL`/code scanning e solo dopo verificare Hetzner (`commit`, container healthy, `/api/pronto`, prune Docker). |
+
 ## Note CodeQL context canonico 2.248.8 - 2026-05-21
 
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
-| Code scanning results / CodeQL su `87be3f852` | CodeQL diff PR | Corretto localmente, in attesa del nuovo push | Il check separato `CodeQL` restava rosso su quattro flussi XSS Template Atti: oltre al codice template canonico, la risposta di prefill esponeva ancora `id_cliente` e `id_fascicolo` letti da query string quando non risolti lato repository. Ora il JSON restituisce quegli ID solo se derivano da cliente/fascicolo realmente selezionati. | Verificare il check nuovo sullo SHA `2.248.8`; se resta rosso, leggere solo le annotazioni del nuovo check-run. |
+| Code scanning results / CodeQL su `87be3f852` | CodeQL diff PR | Risolto e verificato | Il check separato `CodeQL` restava rosso su quattro flussi XSS Template Atti: oltre al codice template canonico, la risposta di prefill esponeva ancora `id_cliente` e `id_fascicolo` letti da query string quando non risolti lato repository. Ora il JSON restituisce quegli ID solo se derivano da cliente/fascicolo realmente selezionati. | Sullo SHA `13807ace5` i check-run GitHub sono `158/158` success, incluso CodeQL separato; mantenere questa verifica obbligatoria su ogni prossimo push. |
 
 ## Note CodeQL follow-up definitivo 2.248.7 - 2026-05-21
 

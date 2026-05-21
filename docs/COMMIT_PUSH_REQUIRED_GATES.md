@@ -1,6 +1,6 @@
 # Processo obbligatorio commit e push
 
-Aggiornato: 18 maggio 2026.
+Aggiornato: 22 maggio 2026.
 
 Questa è la checklist operativa da usare ogni volta che Codex prepara un commit, un push o una consegna sui branch `Codex/legal-electronic-filing-kIxcV` e `claude/legal-electronic-filing-kIxcV`.
 
@@ -15,6 +15,37 @@ Prima di dichiarare concluso un lavoro:
 5. controllare i gate GitHub del push e, quando esiste una PR, anche della PR;
 6. registrare esiti verdi e problemi nei report di stato;
 7. fare deploy Hetzner quando richiesto dal flusso corrente e verificare `/api/pronto`.
+
+### Regola anti-recidiva CI/Deploy/CodeQL
+
+Segnalazione utente del 22 maggio 2026: non deve più ricapitare la situazione in cui il deploy Hetzner risulta verde ma la consegna resta instabile per CodeQL, lint o shard reali ancora rossi, saltati o in coda.
+
+Quindi, dopo ogni push, la consegna è vietata finché non sono vere tutte queste condizioni:
+
+- lo SHA corrente è identico su `Codex/legal-electronic-filing-kIxcV`, `claude/legal-electronic-filing-kIxcV` e remoti;
+- tutti i check-run GitHub dello SHA corrente sono `completed`;
+- non esistono check-run con `conclusion` diversa da `success` o da uno `skipped` esplicitamente non richiesto;
+- `CodeQL / Analyze (python)` e il check separato `CodeQL` / `Code scanning results / CodeQL` sono verificati sullo SHA corrente;
+- `Lint + syntax` è verde prima di interpretare aggregatori Pytest, Signer o Coverage;
+- gli shard reali Pytest, Coverage 12/12 e Local Signer/PKCS#11 sono letti direttamente, non dedotti dagli aggregatori;
+- il deploy Hetzner è verificato dopo il push con commit server, container healthy, `https://app.iusentra.it/api/pronto` e pulizia cache Docker.
+
+Comando minimo per non confondere run vecchi e run nuovi:
+
+```powershell
+$sha = git rev-parse HEAD
+$repo = gh repo view --json nameWithOwner -q .nameWithOwner
+$runs = @()
+foreach ($p in 1..4) {
+  $page = gh api "repos/$repo/commits/$sha/check-runs?per_page=100&page=$p" | ConvertFrom-Json
+  $runs += $page.check_runs
+}
+$runs | Group-Object status,conclusion
+$runs | Where-Object { $_.conclusion -and $_.conclusion -ne 'success' -and $_.conclusion -ne 'skipped' } |
+  Select-Object name,status,conclusion,details_url
+```
+
+Se CodeQL resta rosso, non usare annotazioni di commit precedenti: aprire solo le annotazioni del check-run CodeQL dello SHA corrente e correggere quel flusso prima di qualunque dichiarazione finale.
 
 Gli aggregatori non sono diagnosi primaria. Se un aggregatore è rosso o `Skipped`, guardare prima `Lint + syntax`, `Governance repo`, smoke upstream e lo shard reale Pytest, Coverage o Signer.
 

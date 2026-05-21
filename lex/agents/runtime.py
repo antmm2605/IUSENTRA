@@ -7,13 +7,14 @@ from typing import Any, Iterable
 from .approvals import mark_rejected
 from .audit import record_agent_audit
 from .executor import WorkflowAgentExecutor
-from .metrics import calculate_agent_metric
+from .metrics import calculate_run_metric
 from .models import AgentApproval, AgentRun, utc_now_iso
 from .planner import AgentPlanRequest, WorkflowAgentPlanner
-from .policies import WorkflowAgentPolicyError, assert_tenant_context, validate_client_payload
+from .policies import WorkflowAgentPolicyError, assert_permissions, assert_tenant_context, validate_client_payload
 from .registry import WorkflowRecipeRegistry
 from .serialization import public_dict
 from .storage import WorkflowAgentStorage
+from .synthesis import build_run_result
 
 
 class WorkflowAgentRuntime:
@@ -101,6 +102,7 @@ class WorkflowAgentRuntime:
     ) -> AgentRun:
         assert_tenant_context(tenant_scope)
         validate_client_payload(payload)
+        assert_permissions(("legal_skills.approva",), user_permissions)
         run = self.storage.get_run(run_id)
         approval = AgentApproval(
             run_id=run.id,
@@ -134,18 +136,10 @@ class WorkflowAgentRuntime:
                 mark_rejected(proposal, actor=actor, reason=reason)
         rejected = sum(1 for proposal in run.proposals if proposal.status == "rejected")
         accepted = sum(1 for proposal in run.proposals if proposal.status == "executed")
-        run.metrics = calculate_agent_metric(
-            workflow_code=run.workflow_code,
-            run_id=run.id,
-            baseline_minutes=run.plan.baseline_minutes,
-            preview_minutes=sum(step.preview_minutes for step in run.plan.steps),
-            review_minutes=run.plan.expected_review_minutes,
-            correction_minutes=run.plan.expected_correction_minutes,
-            accepted_actions=accepted,
-            rejected_actions=rejected,
-        )
+        run.metrics = calculate_run_metric(run, accepted_actions=accepted, rejected_actions=rejected)
         run.status = "cancelled" if rejected and not accepted else run.status
         run.completed_at = utc_now_iso()
+        run.result_json = build_run_result(run)
         run.audit_hash = record_agent_audit("workflow.rejected", actor=actor, run_id=run.id, details={"reason": reason, "rejected": list(rejected_ids)})
         self.storage.save_run(run)
         if run.metrics:
@@ -188,4 +182,3 @@ class WorkflowAgentRuntime:
             "rejected_actions": sum(item.rejected_actions for item in metrics),
             "top_workflows": sorted(top, key=lambda row: row["average_saving_percentage"], reverse=True),
         }
-

@@ -58,6 +58,56 @@ def test_api_preview_salva_run_con_proposte_e_blocca_approve_se_scritture_spente
     assert approve.get_json()["code"] == "feature_disabled"
 
 
+def test_api_approve_con_flag_write_esegue_solo_step_approvati(tmp_path):
+    app = _app(tmp_path, enabled=True, write_actions=True)
+    headers = {"X-API-Key": "workflow-agents-test-key"}
+
+    with app.test_client() as client:
+        preview = client.post(
+            "/api/v1/ui/workflow-agents/preview",
+            json={"workflow_code": "triage_giornaliero"},
+            headers=headers,
+        )
+        assert preview.status_code == 200
+        run = preview.get_json()["run"]
+        approved_step = run["proposals"][0]["step_id"]
+
+        approve = client.post(
+            f"/api/v1/ui/workflow-agents/runs/{run['id']}/approve",
+            json={"approved_step_ids": [approved_step]},
+            headers=headers,
+        )
+
+    assert approve.status_code == 200
+    updated = approve.get_json()["run"]
+    executed = [proposal for proposal in updated["proposals"] if proposal["status"] == "executed"]
+    pending = [proposal for proposal in updated["proposals"] if proposal["status"] == "pending"]
+    assert [proposal["step_id"] for proposal in executed] == [approved_step]
+    assert pending
+    assert updated["metrics"]["accepted_actions"] == 1
+
+
+def test_api_approve_senza_step_blocca_scrittura(tmp_path):
+    app = _app(tmp_path, enabled=True, write_actions=True)
+    headers = {"X-API-Key": "workflow-agents-test-key"}
+
+    with app.test_client() as client:
+        preview = client.post(
+            "/api/v1/ui/workflow-agents/preview",
+            json={"workflow_code": "triage_giornaliero"},
+            headers=headers,
+        )
+        run = preview.get_json()["run"]
+        approve = client.post(
+            f"/api/v1/ui/workflow-agents/runs/{run['id']}/approve",
+            json={"approved_step_ids": []},
+            headers=headers,
+        )
+
+    assert approve.status_code == 403
+    assert approve.get_json()["code"] == "approval_required"
+
+
 def test_api_backend_security_blocca_tenant_id_client(tmp_path):
     app = _app(tmp_path, enabled=True)
     headers = {"X-API-Key": "workflow-agents-test-key"}
@@ -71,4 +121,3 @@ def test_api_backend_security_blocca_tenant_id_client(tmp_path):
 
     assert response.status_code == 400
     assert response.get_json()["code"] == "backend_security_control_param"
-

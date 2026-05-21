@@ -82,6 +82,14 @@ saving_percentage = ((baseline_minutes - review_minutes - correction_minutes) / 
 
 `target_80_met` è vero solo quando la percentuale è almeno `80`. I test coprono sia il caso `100, 15, 5 => 80%` sia `100, 30, 10 => 60%`.
 
+Il calcolo applicativo non usa un valore fisso: `calculate_run_metric()` ricava `baseline_minutes` dagli step del piano, `preview_minutes` dalle letture realmente completate e aggiunge penalità di correzione quando step o proposte vengono bloccati/rifiutati. Il risultato viene salvato nel run e nelle metriche tenant-aware, con `accepted_actions` e `rejected_actions`.
+
+## Integrazione LexToolRegistry
+
+La preview e l'approvazione passano sempre dal `LexToolRegistry`. I permessi storici del registry (`studio:*`, `legal:sources:read`) sono normalizzati sui permessi RBAC reali dell'applicazione (`fascicoli.leggi`, `agenda.scrivi`, `ai.usa`, `telematico.valida` e simili), così il registry resta compatibile con Lex senza bypassare i controlli App V2.
+
+Il run produce anche `result_json`, una sintesi deterministica costruita dagli output dei tool: letture eseguite, proposte approvabili, priorità operative, warning e blocchi. Non contiene testo libero inventato e viene redatta prima dell'esposizione API.
+
 ## Cosa l'agente non può fare
 
 - inviare PEC;
@@ -103,4 +111,3 @@ python -m pytest -q tests/test_lex_workflow_agents_api.py
 python -m pytest -q tests/test_lex_workflow_agents_metrics.py
 python -m pytest -q tests/test_lex_workflow_agents_security.py
 ```
-

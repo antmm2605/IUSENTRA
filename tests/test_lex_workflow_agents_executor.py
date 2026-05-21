@@ -51,9 +51,24 @@ def test_preview_esegue_solo_letture_e_mette_scritture_in_approvazione():
     )
 
     assert [call[0] for call in registry.calls] == ["fascicolo"]
+    assert registry.calls[0][1]["user_permissions"] == ["fascicoli.leggi", "agenda.scrivi"]
     assert run.status == "needs_approval"
     assert run.proposals
     assert run.plan.steps[1].status == "needs_approval"
+
+
+def test_preview_blocca_lettura_senza_permesso_rbac():
+    registry = FakeRegistry()
+    run = WorkflowAgentExecutor(registry).preview(
+        _run(),
+        tenant_scope="studio-a",
+        user_permissions=["agenda.scrivi"],
+    )
+
+    assert registry.calls == []
+    assert run.plan.steps[0].status == "blocked"
+    assert run.status == "needs_approval"
+    assert run.evidence_json["read"]["code"] == "insufficient_permissions"
 
 
 def test_approve_blocca_permessi_mancanti():
@@ -90,4 +105,3 @@ def test_approve_con_permesso_esegue_tool_mutante():
     assert updated.status == "executed"
     assert registry.calls[-1][0] == "create_task"
     assert updated.metrics and updated.metrics.target_80_met is True
-

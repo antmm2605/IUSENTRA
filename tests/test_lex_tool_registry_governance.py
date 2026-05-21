@@ -61,9 +61,9 @@ def test_tool_registry_segnala_permessi_insufficienti_quando_presenti():
 
     result = registry.validate_tool_call(
         "read_fascicolo_document",
-        user_permissions=["studio:fascicoli:read"],
+        user_permissions=["agenda.leggi"],
     )
 
     assert result["allowed"] is False
     assert result["reason"] == "permessi_insufficienti"
-    assert result["missing_permissions"] == ["studio:documenti:read"]
+    assert "fascicoli.leggi" in result["missing_permissions"]

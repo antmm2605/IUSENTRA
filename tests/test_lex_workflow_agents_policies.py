@@ -1,7 +1,7 @@
 import pytest
 
 from lex.agents.models import AgentStep
-from lex.agents.policies import WorkflowAgentPolicyError, assert_step_executable, validate_client_payload
+from lex.agents.policies import WorkflowAgentPolicyError, assert_step_executable, required_permissions_for_tool, validate_client_payload
 
 
 def test_payload_client_non_puo_indicare_tenant_o_path():
@@ -56,3 +56,8 @@ def test_policy_blocca_scrittura_senza_approvazione():
 
     assert exc.value.code == "approval_required"
 
+
+def test_policy_mappa_permessi_reali_per_letture_e_scritture_agentiche():
+    assert required_permissions_for_tool("list_fascicolo_documents") == ("fascicoli.leggi",)
+    assert required_permissions_for_tool("collect_fascicolo_context") == ("fascicoli.leggi", "ai.usa")
+    assert required_permissions_for_tool("create_invoice_draft", mutates_state=True) == ("fatturazione.scrivi",)

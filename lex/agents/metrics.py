@@ -42,3 +42,45 @@ def calculate_agent_metric(
         rejected_actions=int(rejected_actions or 0),
     )
 
+
+def calculate_run_metric(
+    run,
+    *,
+    accepted_actions: int = 0,
+    rejected_actions: int = 0,
+) -> AgentMetric:
+    """Calcola il KPI dal piano e dallo stato effettivo del run."""
+    steps = list(getattr(getattr(run, "plan", None), "steps", []) or [])
+    baseline = sum(float(getattr(step, "baseline_minutes", 0.0) or 0.0) for step in steps)
+    if baseline <= 0:
+        baseline = float(getattr(getattr(run, "plan", None), "baseline_minutes", 0.0) or 0.0)
+
+    preview = sum(
+        float(getattr(step, "preview_minutes", 0.0) or 0.0)
+        for step in steps
+        if not bool(getattr(step, "mutates_state", False)) and getattr(step, "status", "") == "done"
+    )
+    review_from_steps = sum(
+        float(getattr(step, "review_minutes", 0.0) or 0.0)
+        for step in steps
+        if bool(getattr(step, "mutates_state", False))
+    )
+    correction_from_steps = sum(
+        float(getattr(step, "correction_minutes", 0.0) or 0.0)
+        for step in steps
+        if getattr(step, "status", "") in {"blocked", "failed"}
+    )
+    plan = getattr(run, "plan", None)
+    review = max(float(getattr(plan, "expected_review_minutes", 0.0) or 0.0), review_from_steps)
+    correction = float(getattr(plan, "expected_correction_minutes", 0.0) or 0.0) + correction_from_steps
+    correction += max(int(rejected_actions or 0), 0) * 2.0
+    return calculate_agent_metric(
+        workflow_code=str(getattr(run, "workflow_code", "") or ""),
+        run_id=str(getattr(run, "id", "") or ""),
+        baseline_minutes=baseline,
+        preview_minutes=preview,
+        review_minutes=review,
+        correction_minutes=correction,
+        accepted_actions=accepted_actions,
+        rejected_actions=rejected_actions,
+    )

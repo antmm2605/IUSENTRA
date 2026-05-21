@@ -7,10 +7,22 @@ from typing import Any, Iterable
 from lex.tools.registry import LexToolRegistry
 
 from .audit import record_agent_audit
-from .metrics import calculate_agent_metric
+from .metrics import calculate_run_metric
 from .models import AgentApproval, AgentProposal, AgentRun, AgentStep, utc_now_iso
 from .policies import WorkflowAgentPolicyError, assert_step_executable
 from .serialization import redact_value
+from .synthesis import build_run_result
+
+
+def _registry_block_payload(result: Any) -> dict[str, Any] | None:
+    if not isinstance(result, dict) or result.get("allowed") is not False:
+        return None
+    return {
+        "blocked": True,
+        "code": str(result.get("reason") or "strumento_bloccato"),
+        "message": "Strumento Lex bloccato dalle policy o dai permessi.",
+        "missing_permissions": list(result.get("missing_permissions") or []),
+    }
 
 
 class WorkflowAgentExecutor:
@@ -61,9 +73,15 @@ class WorkflowAgentExecutor:
                 result = self.tool_registry.run_tool(
                     step.tool_name,
                     allow_writes=False,
-                    user_permissions=None,
+                    user_permissions=user_permissions,
                     **step.input_json,
                 )
+                blocked = _registry_block_payload(result)
+                if blocked is not None:
+                    step.status = "blocked"
+                    step.error_message = blocked["message"]
+                    evidence[step.step_key] = blocked
+                    continue
                 step.output_json = redact_value(result) if isinstance(result, dict) else {"result": redact_value(result)}
                 step.status = "done"
                 evidence[step.step_key] = step.output_json
@@ -79,14 +97,8 @@ class WorkflowAgentExecutor:
         run.proposals = proposals
         run.status = "needs_approval" if proposals else "executed"
         run.completed_at = utc_now_iso() if not proposals else ""
-        run.metrics = calculate_agent_metric(
-            workflow_code=run.workflow_code,
-            run_id=run.id,
-            baseline_minutes=run.plan.baseline_minutes,
-            preview_minutes=sum(step.preview_minutes for step in run.plan.steps),
-            review_minutes=run.plan.expected_review_minutes,
-            correction_minutes=run.plan.expected_correction_minutes,
-        )
+        run.result_json = build_run_result(run)
+        run.metrics = calculate_run_metric(run)
         run.audit_hash = record_agent_audit("workflow.preview", actor=run.created_by, run_id=run.id, details=run.to_dict())
         return run
 
@@ -147,15 +159,7 @@ class WorkflowAgentExecutor:
         rejected = sum(1 for proposal in run.proposals if proposal.status == "rejected")
         run.status = "executed" if accepted else "needs_approval"
         run.completed_at = utc_now_iso() if accepted else run.completed_at
-        run.metrics = calculate_agent_metric(
-            workflow_code=run.workflow_code,
-            run_id=run.id,
-            baseline_minutes=run.plan.baseline_minutes,
-            preview_minutes=sum(step.preview_minutes for step in run.plan.steps),
-            review_minutes=run.plan.expected_review_minutes,
-            correction_minutes=run.plan.expected_correction_minutes,
-            accepted_actions=accepted,
-            rejected_actions=rejected,
-        )
+        run.result_json = build_run_result(run)
+        run.metrics = calculate_run_metric(run, accepted_actions=accepted, rejected_actions=rejected)
         run.audit_hash = record_agent_audit("workflow.approval", actor=approval.approved_by, run_id=run.id, details=run.to_dict())
         return run

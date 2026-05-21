@@ -2465,3 +2465,10 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - Le API `/api/v1/ui/workflow-agents` usano il bridge backend dedicato e il nuovo package `lex/agents`: preview read-only, proposte approvabili, approve/reject, metriche e storage tenant-aware.
 - Le scritture agentiche sono intenzionalmente spente di default da `lex.workflowAgents.writeActions=false`; il target 80% viene calcolato e salvato per run, non dichiarato a prescindere.
 - Verifiche registrate in `artifacts/react-migration/pytest-confirmed-ok.md`: sette pytest dedicati Lex Workflow Agents, shard feature/security/tenant, typecheck, build, test frontend, compileall e link documentali.
+
+## Aggiornamento 2026-05-21: Regia Agentica Studio hardening 2.247.2
+
+- La preview agentica non bypassa piu' il registry: i permessi reali App V2 vengono passati al `LexToolRegistry`, che normalizza i permessi storici `studio:*` senza indebolire RBAC.
+- Ogni run salva una sintesi `result_json` derivata da tool, proposte, warning e blocchi, redatta prima dell'esposizione API.
+- Le metriche 80% usano lo stato effettivo del run: baseline degli step, letture completate, review, correzioni, blocchi e rifiuti.
+- I test dedicati sono stati estesi a 29 casi mirati: sei ricette operative, preview read-only, approve con permessi, blocco senza step approvato, feature flag, tenant isolation, PII redaction e divieti PEC/deposito/firma.

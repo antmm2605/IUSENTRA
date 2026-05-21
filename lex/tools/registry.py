@@ -47,6 +47,35 @@ LEX_TOOL_REGISTRY_SCHEMA = "iusentra.lex_tool_registry.v1"
 
 _FREE_WEB_MODES = frozenset({"web_libero", "web libero", "free_web", "ricerca_web_libera", "ricerca web libera"})
 
+_PERMISSION_ALIASES: dict[str, tuple[str, ...]] = {
+    "studio:fascicoli:read": ("fascicoli.leggi",),
+    "studio:documenti:read": ("fascicoli.leggi",),
+    "studio:telematico:read": ("telematico.leggi",),
+    "studio:agenda:read": ("agenda.leggi",),
+    "studio:scadenze:read": ("scadenziario.leggi",),
+    "legal:sources:read": ("ai.usa",),
+    "studio:knowledge:read": ("ai.usa",),
+    "studio:template:read": ("ai.usa",),
+    "studio:economico:read": ("fatturazione.leggi",),
+    "studio:compliance:read": ("ai.usa",),
+    "studio:atti:read": ("ai.usa", "fascicoli.leggi"),
+    "studio:atti:write": ("ai.usa", "fascicoli.scrivi"),
+    "studio:atti:export": ("ai.usa", "fascicoli.scrivi"),
+}
+
+
+def _expand_permissions(permissions: Iterable[str] | None) -> set[str]:
+    expanded = {str(item).strip() for item in permissions or () if str(item).strip()}
+    changed = True
+    while changed:
+        changed = False
+        for canonical, aliases in _PERMISSION_ALIASES.items():
+            family = {canonical, *aliases}
+            if expanded.intersection(family) and not family.issubset(expanded):
+                expanded.update(family)
+                changed = True
+    return expanded
+
 
 @dataclass(frozen=True)
 class LexToolDescriptor:
@@ -396,8 +425,8 @@ class LexToolRegistry:
                 "descriptor": descriptor.to_dict(),
             }
 
-        requested_permissions = set(descriptor.permissions)
-        granted_permissions = set(str(item).strip() for item in user_permissions or () if str(item).strip())
+        requested_permissions = _expand_permissions(descriptor.permissions)
+        granted_permissions = _expand_permissions(user_permissions)
         if user_permissions is not None and not requested_permissions.issubset(granted_permissions):
             return {
                 "schema": LEX_TOOL_REGISTRY_SCHEMA,

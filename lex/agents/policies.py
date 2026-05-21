@@ -34,17 +34,23 @@ FORBIDDEN_ACTION_WORDS = re.compile(r"(invia.*pec|deposit|firma|cancell|elimina|
 
 READ_PERMISSION_MAP = {
     "fascicolo": ("fascicoli.leggi",),
+    "documento": ("fascicoli.leggi",),
+    "list_fascicolo_documents": ("fascicoli.leggi",),
+    "read_fascicolo_document": ("fascicoli.leggi",),
+    "find_in_fascicolo_document": ("fascicoli.leggi",),
     "agenda": ("agenda.leggi",),
     "scadenziario": ("scadenziario.leggi",),
     "telematico": ("telematico.leggi",),
     "giurisprudenza": ("ai.usa",),
     "legal_intelligence": ("ai.usa",),
     "operational_knowledge": ("ai.usa",),
+    "compliance": ("ai.usa",),
     "template_atti": ("ai.usa",),
     "preventivi": ("fatturazione.leggi",),
     "list_template_atti": ("ai.usa",),
     "read_template_atto": ("ai.usa",),
     "collect_fascicolo_context": ("fascicoli.leggi", "ai.usa"),
+    "read_editor_document": ("fascicoli.leggi", "ai.usa"),
 }
 
 WRITE_PERMISSION_MAP = {

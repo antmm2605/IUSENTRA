@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING, Any
 
-from .metrics import calculate_agent_metric
+from .metrics import calculate_agent_metric, calculate_run_metric
 from .models import AgentApproval, AgentMetric, AgentPlan, AgentProposal, AgentRun, AgentStep
 
 if TYPE_CHECKING:
@@ -44,4 +44,5 @@ __all__ = [
     "WorkflowAgentRuntime",
     "WorkflowRecipeRegistry",
     "calculate_agent_metric",
+    "calculate_run_metric",
 ]

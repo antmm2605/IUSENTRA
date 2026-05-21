@@ -7,6 +7,11 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.247.2 - 2026-05-21
+
+- Rafforzata `Regia Agentica Studio`: la preview passa i permessi reali al `LexToolRegistry`, il registry normalizza i permessi storici `studio:*` sui permessi RBAC applicativi, le metriche sono calcolate dallo stato effettivo del run e i run salvano una sintesi operativa redatta.
+- Estesi i test `Lex Workflow Agents` a 25 casi mirati, coprendo sei ricette operative, approvazione con scritture abilitate, blocco scritture senza step approvato, RBAC sulle letture, tenant isolation, azioni vietate e KPI sotto/sopra soglia 80%.
+
 ## 2.247.1 - 2026-05-21
 
 - Corretto il test dell'estrattore riferimenti legali per verificare gli URL Cassazione con confronto esatto, evitando il pattern `startswith` segnalato da CodeQL come sanitizzazione URL incompleta.

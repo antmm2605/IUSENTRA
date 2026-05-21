@@ -44,6 +44,32 @@ class CreateTaskTool:
 
     def run(self, **kwargs: Any) -> dict[str, Any]:
         payload = _safe_payload(kwargs)
+        fascicolo_id = str(payload.get("fascicolo_id") or payload.get("id_fascicolo") or "").strip()
+        titolo = str(payload.get("titolo") or payload.get("title") or "").strip()
+        if fascicolo_id and titolo:
+            try:
+                from pct.fascicoli import TipoAttivita
+                from web.helpers import get_fascicoli
+
+                attivita = get_fascicoli().aggiungi_attivita(
+                    fascicolo_id,
+                    TipoAttivita.ALTRO,
+                    str(payload.get("data") or date.today().isoformat()),
+                    titolo,
+                    note=str(payload.get("descrizione") or payload.get("note") or "Attività approvata dalla Regia Agentica Studio."),
+                )
+                result = {
+                    "ok": True,
+                    "id": attivita.id,
+                    "fascicolo_id": fascicolo_id,
+                    "titolo": attivita.titolo,
+                    "data": attivita.data,
+                    "stato": "registrata",
+                }
+                record_agent_audit("workflow.tool.create_task", actor=_actor(), details=result)
+                return result
+            except Exception as exc:
+                payload["errore_repository"] = str(exc)
         return _stored_action("task", payload, message="Attività operativa registrata nella coda agentica approvata.")
 
 
@@ -234,4 +260,3 @@ class UpdateChecklistTool:
     def run(self, **kwargs: Any) -> dict[str, Any]:
         payload = _safe_payload(kwargs)
         return _stored_action("checklist_update", payload, message="Aggiornamento checklist registrato dopo approvazione.")
-

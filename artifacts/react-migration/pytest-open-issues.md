@@ -6,6 +6,12 @@ Aggiornato: 2026-05-21, hotfix PEC UI/Lex 2.246.3, PEC audit-grade e notifiche g
 
 Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, controllare qui: si lavora solo sugli item aperti, poi si spostano nel report `pytest-confirmed-ok.md` quando il test o lo shard passa.
 
+## Note hotfix PEC UI/Lex 2.246.3 - 2026-05-21
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| CI contratti API dopo push `35912c76f` | `CI / Lint + syntax / API contract gates` | Risolto | Il primo push ha segnalato `docs/openapi.yaml non allineato`; rigenerato OpenAPI e rilanciati i gate contratti in locale, registrati in `pytest-confirmed-ok.md`. I job Pytest core e Local Signer erano aggregatori rossi perché gli shard erano stati saltati dopo quel fail iniziale. | Per modifiche API future rilanciare sempre `generate_api_contracts.py --check`, validazione OpenAPI, provider, smoke contratti e fase 6 prima del push. |
+
 ## Note PEC audit-grade e notifiche giudiziarie 2.246.2 - 2026-05-21
 
 | Area | Gate | Stato | Nota | Azione |

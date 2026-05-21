@@ -17,6 +17,7 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `python -m pct.cli utf8-integrity --check-only ... --json` | OK | Scan mirato terminato con `ok=true`; in più `rg` sui file toccati non rileva mojibake. |
 | `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short`; `python -m pytest -q tests\test_utf8_integrity.py --tb=short` | OK | Packaging/versione `2.246.3` sincronizzati; release readiness 9/9 e UTF-8 4/4 verdi. |
 | Browser reale locale su `http://127.0.0.1:8092/email/` con PEC storica Giudice di Pace sintetica isolata | OK | UI React visibile con `MIME originale da acquisire`, pulsante `Esegui controllo audit-grade`, quick actions operative/disabilitate quando manca il MIME, chip confidence `Mittente/Invio/Consegna/Ricevuta/Protocollo/Contesto` e tooltip motivazionale; nessuna bozza Lex in pagina. |
+| `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python scripts\smoke_app_v2_all.py --subset contracts`; `python -m pytest -q tests\test_openapi_contracts_phase6.py --tb=short` | OK | Contratti API/OpenAPI riallineati dopo il primo push CI rosso su `docs/openapi.yaml`; smoke contratti PASS=2, SKIP=1 offline previsto, fase 6 5/5 verde. |
 
 ## PEC audit-grade e notifiche giudiziarie 2.246.2 - 2026-05-21
 

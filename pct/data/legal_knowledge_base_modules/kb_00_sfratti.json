@@ -1,0 +1,479 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "version": "1.0.0",
+  "ultimo_aggiornamento": "2026-05-21",
+  "note_versione": "Allineato alle modifiche del D.Lgs. 149/2022 (Riforma Cartabia) sull'art. 657 c.p.c. e alla prassi PCT 2025-2026",
+  "macro_area": {
+    "codice": "PCS",
+    "label": "Procedimenti per convalida di sfratto e fase esecutiva",
+    "rito_base": "Procedimento speciale sommario ex artt. 657-669 c.p.c.",
+    "rito_eventuale_conversione": "Rito locatizio ex art. 447-bis c.p.c.",
+    "competenza": "Tribunale del luogo in cui è situato l'immobile (art. 21 c.p.c. e art. 661 c.p.c.)",
+    "foro_inderogabile": false,
+    "obbligo_mediazione": {
+      "obbligatoria": true,
+      "fonte": "art. 5, comma 1-bis, D.Lgs. 28/2010",
+      "fase_attivazione": "Dopo opposizione e mutamento del rito ex art. 667 c.p.c. — NON propedeutica all'intimazione di sfratto",
+      "note": "La mediazione NON è condizione di procedibilità dell'intimazione, ma diventa obbligatoria nella fase di merito ordinario successiva all'opposizione"
+    },
+    "negoziazione_assistita": {
+      "obbligatoria": false,
+      "facoltativa": true
+    }
+  },
+  "codici_materia": [
+    {
+      "codice": "030001",
+      "denominazione": "Intimazione di licenza o di sfratto per finita locazione (art. 657 c.p.c.) - uso abitativo",
+      "categoria": "Procedimenti speciali sommari",
+      "sottocategoria": "Procedimento per convalida di sfratto",
+      "registro_sicid": "Contenzioso Civile",
+      "uffici_destinatari": ["SICID", "CASSAZIONE", "UNEP"],
+      "normativa": {
+        "riferimenti_primari": [
+          {"fonte": "c.p.c.", "articolo": "657", "descrizione": "Intimazione di licenza e sfratto per finita locazione"},
+          {"fonte": "c.p.c.", "articolo": "660", "descrizione": "Forma dell'intimazione"},
+          {"fonte": "c.p.c.", "articolo": "661", "descrizione": "Competenza"},
+          {"fonte": "c.p.c.", "articolo": "663", "descrizione": "Mancata comparizione o non opposizione dell'intimato"},
+          {"fonte": "c.p.c.", "articolo": "665", "descrizione": "Opposizione dell'intimato e ordinanza provvisoria di rilascio"},
+          {"fonte": "c.p.c.", "articolo": "667", "descrizione": "Mutamento del rito"}
+        ],
+        "riferimenti_secondari": [
+          {"fonte": "L. 392/1978", "articolo": "vari", "descrizione": "Disciplina locazioni urbane (canone equo, durata)"},
+          {"fonte": "L. 431/1998", "articolo": "2-3", "descrizione": "Locazioni a uso abitativo - durate 4+4 / 3+2"},
+          {"fonte": "c.c.", "articolo": "1591", "descrizione": "Indennità per ritardata restituzione della cosa locata"},
+          {"fonte": "c.p.c.", "articolo": "447-bis", "descrizione": "Rito locatizio in caso di opposizione e mutamento del rito"}
+        ],
+        "novita_rilevanti": [
+          {
+            "anno": 2022,
+            "fonte": "D.Lgs. 149/2022 (Riforma Cartabia)",
+            "descrizione": "Estensione del procedimento ex art. 657 c.p.c. al comodatario di beni immobili e all'affittuario di azienda (art. 3, c. 46, lett. a)"
+          }
+        ]
+      },
+      "presupposti_sostanziali": [
+        "Esistenza di un contratto di locazione valido (scritto, registrato per importi > €25,82 ex L. 392/78 e per locazioni > 30 gg)",
+        "Scadenza del contratto (naturale o per disdetta)",
+        "Per locazioni abitative L. 431/98: disdetta inviata con preavviso di almeno 6 mesi a mezzo raccomandata A/R o PEC (12 mesi per contratti 4+4 nel primo periodo, salvo cause di diniego rinnovo ex art. 3 L. 431/98)",
+        "Prova della ricezione della disdetta da parte del conduttore"
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verifica registrazione del contratto",
+          "obbligatorio": true,
+          "sanzione_omissione": "Nullità del contratto ex art. 1, c. 346, L. 311/2004 - inammissibilità dello sfratto"
+        },
+        {
+          "step": 2,
+          "azione": "Invio disdetta con prova ricezione",
+          "obbligatorio": true,
+          "modalita": ["Raccomandata A/R", "PEC", "Notifica UNEP"]
+        },
+        {
+          "step": 3,
+          "azione": "Acquisizione procura alle liti",
+          "obbligatorio": true,
+          "formato": "Documento informatico sottoscritto digitalmente o autenticata in calce/margine all'atto"
+        },
+        {
+          "step": 4,
+          "azione": "Visura catastale dell'immobile",
+          "obbligatorio": false,
+          "consigliato": true
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "intimazione_licenza_sfratto_finita_locazione",
+        "denominazione": "Intimazione di licenza/sfratto per finita locazione e contestuale citazione per la convalida",
+        "schema_xsd_ministeriale": "AttoProcedimentoSpecialeConvalida.xsd",
+        "struttura_obbligatoria": [
+          {"sezione": "Intestazione", "contenuto": "Tribunale competente, sezione"},
+          {"sezione": "Parti", "contenuto": "Generalità complete intimante e intimato (codice fiscale, residenza/sede, PEC)"},
+          {"sezione": "Procura", "contenuto": "Riferimento alla procura alle liti e nomina difensore"},
+          {"sezione": "Premesse_fatto", "contenuto": "Descrizione contratto, immobile, registrazione, disdetta"},
+          {"sezione": "Intimazione_rilascio", "contenuto": "Intimazione formale a rilasciare l'immobile entro data fissata"},
+          {"sezione": "Citazione_convalida", "contenuto": "Citazione all'udienza con indicazione data/ora/sezione"},
+          {"sezione": "Avvertimenti", "contenuto": "Avvertimenti ex artt. 660, 663, 665 c.p.c."},
+          {"sezione": "Conclusioni", "contenuto": "Richieste al Giudice"},
+          {"sezione": "Indicazione_valore", "contenuto": "Ai fini del contributo unificato"},
+          {"sezione": "Allegati", "contenuto": "Elenco numerato"}
+        ],
+        "campi_obbligatori": [
+          {"id": "tribunale", "label": "Tribunale", "type": "select_tribunali", "required": true},
+          {"id": "intimante_dati", "label": "Dati intimante (locatore)", "type": "object_persona", "required": true},
+          {"id": "intimato_dati", "label": "Dati intimato (conduttore)", "type": "object_persona", "required": true},
+          {"id": "difensore", "label": "Difensore", "type": "object_avvocato", "required": true},
+          {"id": "immobile", "label": "Descrizione immobile", "type": "object_immobile", "required": true, "sub_fields": ["indirizzo", "comune", "dati_catastali", "destinazione_uso"]},
+          {"id": "contratto_data", "label": "Data contratto di locazione", "type": "date", "required": true},
+          {"id": "contratto_registrazione", "label": "Estremi registrazione", "type": "string", "required": true, "placeholder": "N. ___ del ___ presso Agenzia Entrate di ___"},
+          {"id": "canone_mensile", "label": "Canone mensile pattuito", "type": "currency", "required": true},
+          {"id": "data_scadenza_contratto", "label": "Data scadenza contratto", "type": "date", "required": true},
+          {"id": "data_disdetta", "label": "Data invio disdetta", "type": "date", "required": true},
+          {"id": "modalita_disdetta", "label": "Modalità invio disdetta", "type": "select", "required": true, "options": ["raccomandata_ar", "pec", "ufficiale_giudiziario"]},
+          {"id": "data_ricezione_disdetta", "label": "Data ricezione disdetta", "type": "date", "required": true},
+          {"id": "data_rilascio_intimato", "label": "Data fissata per rilascio", "type": "date", "required": true},
+          {"id": "udienza_data", "label": "Data udienza di convalida", "type": "datetime", "required": true},
+          {"id": "indennita_occupazione", "label": "Indennità di occupazione richiesta (€/mese)", "type": "currency", "required": false},
+          {"id": "valore_causa", "label": "Valore della causa", "type": "currency", "required": true, "formula": "canone_mensile * 12 (valore annuo per CU)"}
+        ],
+        "avvertimenti_obbligatori": [
+          "Avvertimento ex art. 660 c.p.c. (forma intimazione)",
+          "Avvertimento che in mancanza di comparizione o opposizione il Giudice convaliderà lo sfratto (art. 663 c.p.c.)",
+          "Avvertimento che in caso di opposizione si procederà ai sensi dell'art. 665 c.p.c.",
+          "Avvertimento sulla possibilità di richiedere il patrocinio a spese dello Stato (D.P.R. 115/2002)",
+          "Avvertimento sui termini per costituirsi"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "contratto_locazione", "label": "Copia del contratto di locazione con timbro di registrazione", "required": true},
+        {"id": "disdetta", "label": "Copia disdetta con prova di ricezione (ricevuta A/R o PEC con ricevute)", "required": true},
+        {"id": "procura", "label": "Procura alle liti", "required": true},
+        {"id": "visura_catastale", "label": "Visura catastale dell'immobile", "required": false},
+        {"id": "documento_identita", "label": "Copia documento identità del locatore", "required": false}
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": {
+          "scaglione": "in base al valore della causa (canone annuo)",
+          "esenzione": false,
+          "modalita_pagamento": ["F23/F24", "Marca CU telematica via PagoPA"]
+        },
+        "marca_bollo": {"importo_euro": 27.0, "fonte": "art. 30 DPR 115/2002"},
+        "anticipazione_forfetaria": {"importo_euro": 27.0, "fonte": "art. 30 DPR 115/2002"},
+        "deposito_telematico": {
+          "obbligatorio": true,
+          "fonte": "art. 196-quater disp. att. c.p.c.",
+          "modalita": "Busta telematica PCT con atto principale in PDF/A nativo digitale firmato CAdES o PAdES",
+          "schema_busta": "Atto_Principale + DatiAtto.xml (schema ministeriale) + AllegatiInformatici"
+        }
+      },
+      "esiti_processuali_attesi": [
+        {"esito": "Convalida sfratto", "condizione": "Mancata comparizione o non opposizione", "norma": "art. 663 c.p.c.", "effetto": "Ordinanza di convalida — titolo esecutivo per il rilascio"},
+        {"esito": "Ordinanza provvisoria di rilascio", "condizione": "Opposizione non fondata su prova scritta", "norma": "art. 665 c.p.c.", "effetto": "Titolo esecutivo provvisorio"},
+        {"esito": "Mutamento del rito", "condizione": "Opposizione fondata", "norma": "art. 667 c.p.c.", "effetto": "Trasformazione in giudizio ordinario rito locatizio art. 447-bis c.p.c."}
+      ],
+      "termini_processuali": [
+        {"termine": "Notifica intimazione", "durata_giorni": 20, "decorrenza": "Prima dell'udienza di comparizione", "tipo": "libero"},
+        {"termine": "Costituzione intimante", "durata_giorni": 5, "decorrenza": "Prima dell'udienza", "tipo": "libero"}
+      ]
+    },
+    {
+      "codice": "030002",
+      "denominazione": "Intimazione di licenza o di sfratto per finita locazione (art. 657 c.p.c.) - uso diverso",
+      "eredita_da": "030001",
+      "differenze_rispetto_a_padre": {
+        "presupposti_sostanziali_aggiuntivi": [
+          "Disdetta con preavviso di almeno 12 mesi (18 mesi per attività alberghiere) ex artt. 27-29 L. 392/1978",
+          "Eventuale indennità per perdita avviamento ex art. 34 L. 392/1978 per immobili ad uso commerciale con contatto diretto con il pubblico"
+        ],
+        "campi_obbligatori_aggiuntivi": [
+          {"id": "destinazione_uso_specifica", "label": "Destinazione d'uso specifica (commerciale, industriale, artigianale, professionale, alberghiero)", "type": "select", "required": true},
+          {"id": "indennita_avviamento_dovuta", "label": "Indennità di avviamento dovuta?", "type": "boolean", "required": true},
+          {"id": "indennita_avviamento_importo", "label": "Importo indennità (= 18 mensilità canone, 21 per alberghiere)", "type": "currency", "required": false, "depends_on": "indennita_avviamento_dovuta=true"}
+        ],
+        "normativa_aggiuntiva": [
+          {"fonte": "L. 392/1978", "articolo": "27-29", "descrizione": "Durata locazioni uso diverso"},
+          {"fonte": "L. 392/1978", "articolo": "34", "descrizione": "Indennità per perdita avviamento"},
+          {"fonte": "L. 392/1978", "articolo": "35", "descrizione": "Esclusioni indennità avviamento"}
+        ],
+        "avvertenze_redazionali": [
+          "Verificare se sussiste il diritto all'indennità di avviamento: l'esecuzione del rilascio è subordinata all'effettivo pagamento dell'indennità (art. 34, c. 2, L. 392/78)",
+          "Per cessazione anticipata da parte del locatore (diniego rinnovo prima scadenza) servono motivi tassativi ex art. 29 L. 392/78"
+        ]
+      }
+    },
+    {
+      "codice": "030011",
+      "denominazione": "Intimazione di sfratto per morosità (art. 658 c.p.c.) - uso abitativo",
+      "categoria": "Procedimenti speciali sommari",
+      "sottocategoria": "Procedimento per convalida di sfratto",
+      "registro_sicid": "Contenzioso Civile",
+      "uffici_destinatari": ["SICID", "CASSAZIONE", "UNEP"],
+      "normativa": {
+        "riferimenti_primari": [
+          {"fonte": "c.p.c.", "articolo": "658", "descrizione": "Intimazione di sfratto per morosità"},
+          {"fonte": "c.p.c.", "articolo": "660", "descrizione": "Forma dell'intimazione"},
+          {"fonte": "c.p.c.", "articolo": "663", "descrizione": "Convalida"},
+          {"fonte": "c.p.c.", "articolo": "664", "descrizione": "Decreto di ingiunzione per canoni scaduti"},
+          {"fonte": "c.p.c.", "articolo": "665", "descrizione": "Ordinanza provvisoria di rilascio"},
+          {"fonte": "c.p.c.", "articolo": "666", "descrizione": "Provvedimenti del giudice in caso di opposizione"}
+        ],
+        "riferimenti_secondari": [
+          {"fonte": "L. 392/1978", "articolo": "5", "descrizione": "Inadempimento del conduttore — morosità rilevante (canone scaduto + 20 giorni, oneri accessori > 2 mensilità)"},
+          {"fonte": "L. 392/1978", "articolo": "55", "descrizione": "Termine di grazia per sanare la morosità (max 90 giorni, prorogabili fino a 120 in casi gravi)"},
+          {"fonte": "c.c.", "articolo": "1455", "descrizione": "Importanza dell'inadempimento"},
+          {"fonte": "c.c.", "articolo": "1591", "descrizione": "Indennità ritardata restituzione"}
+        ]
+      },
+      "presupposti_sostanziali": [
+        "Contratto di locazione valido e registrato",
+        "Morosità del conduttore: mancato pagamento del canone decorsi 20 giorni dalla scadenza pattuita (art. 5 L. 392/78)",
+        "Per oneri accessori: importo non pagato superiore a 2 mensilità del canone",
+        "Possibilità (facoltativa ma consigliata) di sollecito/diffida preventiva"
+      ],
+      "adempimenti_propedeutici": [
+        {"step": 1, "azione": "Calcolo morosità aggiornato (canoni scaduti + oneri + interessi)", "obbligatorio": true},
+        {"step": 2, "azione": "Predisposizione estratto contabile dettagliato", "obbligatorio": true},
+        {"step": 3, "azione": "Verifica registrazione contratto", "obbligatorio": true},
+        {"step": 4, "azione": "Acquisizione procura alle liti", "obbligatorio": true},
+        {"step": 5, "azione": "Eventuale diffida ad adempiere", "obbligatorio": false, "consigliato": true}
+      ],
+      "atto_principale": {
+        "tipo_atto": "intimazione_sfratto_morosita",
+        "denominazione": "Intimazione di sfratto per morosità con contestuale citazione per la convalida e domanda di ingiunzione per canoni scaduti",
+        "schema_xsd_ministeriale": "AttoProcedimentoSpecialeConvalida.xsd",
+        "struttura_obbligatoria": [
+          {"sezione": "Intestazione"},
+          {"sezione": "Parti"},
+          {"sezione": "Procura"},
+          {"sezione": "Premesse_fatto"},
+          {"sezione": "Quantificazione_morosita", "contenuto": "Tabella dettagliata canoni scaduti, oneri, interessi"},
+          {"sezione": "Intimazione_rilascio"},
+          {"sezione": "Domanda_ingiunzione_art_664", "contenuto": "Richiesta decreto ingiuntivo per canoni scaduti"},
+          {"sezione": "Citazione_convalida"},
+          {"sezione": "Avvertimenti", "contenuto": "Incluso avvertimento ex art. 55 L. 392/78 su termine di grazia"},
+          {"sezione": "Conclusioni"},
+          {"sezione": "Valore_causa"},
+          {"sezione": "Allegati"}
+        ],
+        "campi_obbligatori": [
+          {"id": "tribunale", "label": "Tribunale", "type": "select_tribunali", "required": true},
+          {"id": "intimante_dati", "label": "Dati intimante", "type": "object_persona", "required": true},
+          {"id": "intimato_dati", "label": "Dati intimato", "type": "object_persona", "required": true},
+          {"id": "difensore", "label": "Difensore", "type": "object_avvocato", "required": true},
+          {"id": "immobile", "label": "Immobile", "type": "object_immobile", "required": true},
+          {"id": "contratto_data", "label": "Data contratto", "type": "date", "required": true},
+          {"id": "contratto_registrazione", "label": "Estremi registrazione", "type": "string", "required": true},
+          {"id": "canone_mensile", "label": "Canone mensile", "type": "currency", "required": true},
+          {"id": "tabella_morosita", "label": "Dettaglio canoni scaduti", "type": "table", "required": true, "columns": ["mese", "importo_canone", "oneri_accessori", "totale", "data_scadenza"]},
+          {"id": "totale_morosita", "label": "Totale morosità", "type": "currency", "required": true},
+          {"id": "interessi_richiesti", "label": "Interessi richiesti", "type": "select", "required": true, "options": ["legali", "moratori", "convenzionali"]},
+          {"id": "indennita_occupazione", "label": "Indennità occupazione (€/mese)", "type": "currency", "required": false},
+          {"id": "richiesta_decreto_ingiuntivo", "label": "Richiesta DI ex art. 664 c.p.c.", "type": "boolean", "default": true},
+          {"id": "udienza_data", "label": "Data udienza", "type": "datetime", "required": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "Avvertimento ex art. 663 c.p.c. sulla convalida in caso di non comparizione/non opposizione",
+          "Avvertimento ex art. 665 c.p.c. sull'ordinanza provvisoria di rilascio",
+          "Avvertimento ex art. 55 L. 392/1978 sulla possibilità di sanare la morosità con pagamento integrale (canoni + oneri + interessi + spese) all'udienza o entro il termine di grazia (max 90 gg, prorogabili a 120 per gravi motivi)",
+          "Avvertimento sulla richiesta di patrocinio a spese dello Stato"
+        ]
+      },
+      "atti_collegati_eventuali": [
+        {"tipo": "decreto_ingiuntivo_canoni", "trigger": "Richiesta DI ex art. 664 c.p.c. contestuale", "automatico": true},
+        {"tipo": "precetto_per_canoni", "trigger": "Dopo convalida e mancato pagamento", "automatico": false},
+        {"tipo": "atto_precetto_rilascio", "trigger": "Dopo convalida sfratto per esecuzione", "automatico": false}
+      ],
+      "allegati_obbligatori": [
+        {"id": "contratto_locazione", "label": "Contratto registrato", "required": true},
+        {"id": "estratto_conto_morosita", "label": "Estratto contabile morosità", "required": true},
+        {"id": "diffide_solleciti", "label": "Copia diffide/PEC di sollecito", "required": false},
+        {"id": "procura", "label": "Procura alle liti", "required": true}
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": {"scaglione": "In base al valore (morosità + canone annuo)"},
+        "marca_bollo": {"importo_euro": 27.0},
+        "deposito_telematico": {"obbligatorio": true}
+      },
+      "esiti_processuali_attesi": [
+        {"esito": "Convalida sfratto + DI per canoni", "norma": "artt. 663-664 c.p.c."},
+        {"esito": "Termine di grazia ex art. 55 L. 392/78", "effetto": "Sospensione fino a 90 gg per sanatoria"},
+        {"esito": "Ordinanza provvisoria rilascio", "norma": "art. 665 c.p.c."},
+        {"esito": "Mutamento rito ex art. 667", "norma": "Opposizione fondata"}
+      ]
+    },
+    {
+      "codice": "030012",
+      "denominazione": "Intimazione di licenza o di sfratto per morosità (art. 658 c.p.c.) - uso diverso",
+      "eredita_da": "030011",
+      "differenze_rispetto_a_padre": {
+        "presupposti_aggiuntivi": [
+          "Per locazioni uso diverso: morosità grave ex art. 5 L. 392/78 NON si applica direttamente (criterio della gravità ex art. 1455 c.c.)",
+          "Valutare l'importanza dell'inadempimento ex art. 1455 c.c. — Cass. orientamento: rilevante anche una sola mensilità per uso diverso se prevista clausola risolutiva espressa"
+        ],
+        "termine_grazia": {
+          "applicabile": false,
+          "note": "Il termine di grazia ex art. 55 L. 392/78 NON si applica alle locazioni uso diverso (Cass. SS.UU. 272/2014)"
+        },
+        "campi_aggiuntivi": [
+          {"id": "destinazione_uso_specifica", "label": "Destinazione d'uso", "type": "select", "required": true},
+          {"id": "clausola_risolutiva_espressa", "label": "Clausola risolutiva espressa?", "type": "boolean", "required": true}
+        ],
+        "avvertenze_redazionali": [
+          "NON inserire avvertimento ex art. 55 L. 392/78 (non applicabile)",
+          "Valutare richiesta di risoluzione contrattuale ex art. 1456 c.c. in presenza di CRE"
+        ]
+      }
+    },
+    {
+      "codice": "030021",
+      "denominazione": "Intimazione di licenza o di sfratto per cessazione del rapporto di locazione d'opera (art. 659 c.p.c.)",
+      "categoria": "Procedimenti speciali sommari",
+      "sottocategoria": "Procedimento per convalida di sfratto",
+      "registro_sicid": "Contenzioso Civile",
+      "uffici_destinatari": ["SICID", "CASSAZIONE", "UNEP"],
+      "normativa": {
+        "riferimenti_primari": [
+          {"fonte": "c.p.c.", "articolo": "659", "descrizione": "Intimazione di licenza o sfratto al lavoratore quando l'occupazione dell'immobile dipende da un rapporto di lavoro"},
+          {"fonte": "c.p.c.", "articolo": "657-668", "descrizione": "Disciplina applicabile in quanto compatibile"}
+        ],
+        "riferimenti_secondari": [
+          {"fonte": "c.c.", "articolo": "2118-2119", "descrizione": "Cessazione del rapporto di lavoro"},
+          {"fonte": "Statuto dei Lavoratori L. 300/1970", "articolo": "vari", "descrizione": "Tutele in materia di alloggio del lavoratore"}
+        ]
+      },
+      "presupposti_sostanziali": [
+        "Esistenza di rapporto di lavoro che giustifica l'occupazione dell'immobile (es. portierato, custode, lavoratore agricolo con alloggio annesso)",
+        "Cessazione del rapporto di lavoro (licenziamento, dimissioni, scadenza termine, pensionamento)",
+        "Connessione funzionale tra rapporto di lavoro e occupazione immobile"
+      ],
+      "atto_principale": {
+        "tipo_atto": "intimazione_sfratto_cessazione_lavoro",
+        "campi_obbligatori_specifici": [
+          {"id": "tipo_rapporto_lavoro", "label": "Tipo rapporto di lavoro (portiere, custode, mezzadro, ecc.)", "type": "string", "required": true},
+          {"id": "data_inizio_rapporto", "label": "Data inizio rapporto", "type": "date", "required": true},
+          {"id": "data_cessazione_rapporto", "label": "Data cessazione rapporto", "type": "date", "required": true},
+          {"id": "causa_cessazione", "label": "Causa cessazione", "type": "select", "required": true, "options": ["licenziamento", "dimissioni", "scadenza_termine", "pensionamento", "altro"]},
+          {"id": "alloggio_in_uso", "label": "Descrizione alloggio concesso", "type": "object_immobile", "required": true}
+        ]
+      },
+      "avvertenze_redazionali": [
+        "Verificare l'eventuale pendenza di controversie sul licenziamento (sospensione consigliata)",
+        "L'art. 659 si applica anche a rapporti atipici purché ci sia nesso funzionale tra lavoro e alloggio"
+      ]
+    },
+    {
+      "codice": "144201",
+      "denominazione": "Opposizione al decreto di graduazione dello sfratto ex art. 6, L. n. 431/1998",
+      "categoria": "Contenzioso civile",
+      "sottocategoria": "Locazione e comodato di immobile urbano - affitto di azienda",
+      "registro_sicid": "Contenzioso Civile",
+      "uffici_destinatari": ["SICID", "CASSAZIONE", "UNEP"],
+      "normativa": {
+        "riferimenti_primari": [
+          {"fonte": "L. 431/1998", "articolo": "6", "descrizione": "Graduazione dell'esecuzione degli sfratti in casi di particolare disagio"},
+          {"fonte": "c.p.c.", "articolo": "617", "descrizione": "Opposizione agli atti esecutivi (applicabile analogicamente)"},
+          {"fonte": "c.p.c.", "articolo": "447-bis", "descrizione": "Rito locatizio"}
+        ]
+      },
+      "presupposti_sostanziali": [
+        "Esistenza di un decreto di graduazione emesso dal Prefetto che fissa la data di esecuzione dello sfratto",
+        "Sussistenza di interesse a opporsi (locatore che ritiene la graduazione lesiva del suo diritto al rilascio)",
+        "Termine perentorio per l'opposizione (verificare fonte regolamentare locale)"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_opposizione_decreto_graduazione",
+        "denominazione": "Ricorso in opposizione al decreto di graduazione dello sfratto",
+        "campi_obbligatori_specifici": [
+          {"id": "decreto_graduazione_estremi", "label": "Estremi decreto graduazione (autorità, n., data)", "type": "string", "required": true},
+          {"id": "data_notifica_decreto", "label": "Data notifica decreto", "type": "date", "required": true},
+          {"id": "motivi_opposizione", "label": "Motivi di opposizione", "type": "textarea", "required": true},
+          {"id": "richiesta_sospensione", "label": "Richiesta sospensione esecuzione?", "type": "boolean", "default": false},
+          {"id": "titolo_esecutivo_rilascio", "label": "Estremi titolo esecutivo per rilascio (ordinanza convalida)", "type": "string", "required": true}
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "decreto_graduazione", "label": "Copia decreto graduazione", "required": true},
+        {"id": "titolo_esecutivo", "label": "Copia titolo esecutivo (ordinanza convalida)", "required": true},
+        {"id": "procura", "label": "Procura alle liti", "required": true}
+      ]
+    },
+    {
+      "codice": "511010",
+      "denominazione": "Istanza di rifissazione dello sfratto ex art. 6, L. n. 431/1998",
+      "categoria": "Esecuzioni mobiliari / obblighi",
+      "sottocategoria": "Esecuzione per consegna o rilascio",
+      "registro_sicid": "Volontaria Giurisdizione / Esecuzioni",
+      "uffici_destinatari": ["SICID", "CASSAZIONE", "UNEP"],
+      "normativa": {
+        "riferimenti_primari": [
+          {"fonte": "L. 431/1998", "articolo": "6", "descrizione": "Differimento esecuzione sfratto - casi di particolare disagio"},
+          {"fonte": "c.p.c.", "articolo": "608", "descrizione": "Esecuzione per consegna o rilascio"},
+          {"fonte": "c.p.c.", "articolo": "624", "descrizione": "Sospensione su istanza di parte"}
+        ]
+      },
+      "presupposti_sostanziali": [
+        "Esistenza titolo esecutivo per rilascio (ordinanza convalida sfratto già emessa)",
+        "Pendenza esecuzione presso UNEP",
+        "Sussistenza di causa di particolare disagio del conduttore (uno dei requisiti L. 431/98 art. 6): famiglie con > 5 figli, anziani > 65 anni, disoccupati, cassaintegrati, malati gravi, portatori di handicap, attesa alloggio popolare assegnato"
+      ],
+      "atto_principale": {
+        "tipo_atto": "istanza_rifissazione_sfratto",
+        "denominazione": "Istanza di rifissazione dello sfratto ex art. 6 L. 431/1998",
+        "deposito": "Cancelleria esecuzioni del Tribunale",
+        "campi_obbligatori_specifici": [
+          {"id": "titolo_esecutivo", "label": "Estremi ordinanza di convalida", "type": "string", "required": true},
+          {"id": "data_attuale_rilascio", "label": "Data attuale fissata per rilascio", "type": "date", "required": true},
+          {"id": "nuova_data_richiesta", "label": "Nuova data richiesta", "type": "date", "required": true},
+          {"id": "causa_disagio", "label": "Causa di disagio invocata", "type": "select", "required": true, "options": ["famiglia_oltre_5_figli", "anziani_over_65", "disoccupazione", "cassa_integrazione", "mobilita", "malattia_terminale", "handicap", "attesa_alloggio_pubblico", "altro"]},
+          {"id": "documentazione_disagio", "label": "Documentazione comprovante", "type": "file_multi", "required": true},
+          {"id": "periodo_proroga", "label": "Periodo proroga richiesto (mesi)", "type": "integer", "required": true, "max": 18, "validation_note": "Max 6 mesi ordinari, fino a 18 per casi di particolare disagio"}
+        ]
+      },
+      "avvertenze_redazionali": [
+        "La proroga ordinaria non può superare i 6 mesi; arriva a 18 mesi nei casi di particolare disagio elencati dalla legge",
+        "Allegare documentazione probatoria (certificati medici, ISEE, stato famiglia, assegnazione ERP, ecc.)"
+      ]
+    },
+    {
+      "codice": "511011",
+      "denominazione": "Istanza di decadenza da sospensione dello sfratto ex art. 6, L. n. 431/1998",
+      "categoria": "Esecuzioni mobiliari / obblighi",
+      "sottocategoria": "Esecuzione per consegna o rilascio",
+      "registro_sicid": "Volontaria Giurisdizione / Esecuzioni",
+      "uffici_destinatari": ["SICID", "CASSAZIONE", "UNEP"],
+      "normativa": {
+        "riferimenti_primari": [
+          {"fonte": "L. 431/1998", "articolo": "6", "descrizione": "Cause di decadenza dalla sospensione/proroga"}
+        ]
+      },
+      "presupposti_sostanziali": [
+        "Esistenza di precedente provvedimento di rifissazione/proroga sfratto",
+        "Sopravvenienza di causa di decadenza: cessazione delle condizioni di disagio, mancato pagamento del canone/indennità di occupazione durante la proroga, comportamento abusivo del conduttore"
+      ],
+      "atto_principale": {
+        "tipo_atto": "istanza_decadenza_sospensione",
+        "denominazione": "Istanza di decadenza dalla sospensione dello sfratto",
+        "campi_obbligatori_specifici": [
+          {"id": "provvedimento_rifissazione", "label": "Estremi provvedimento di rifissazione", "type": "string", "required": true},
+          {"id": "causa_decadenza", "label": "Causa di decadenza invocata", "type": "select", "required": true, "options": ["mancato_pagamento_indennita", "cessazione_disagio", "comportamento_abusivo", "altro"]},
+          {"id": "prova_decadenza", "label": "Documentazione probatoria", "type": "file_multi", "required": true},
+          {"id": "richiesta_immediata_esecuzione", "label": "Richiesta immediata ripresa esecuzione", "type": "boolean", "default": true}
+        ]
+      }
+    },
+    {
+      "codice": "511100",
+      "denominazione": "Deposito verbale adempimenti dell'Uff. Giudiziario in materia di sfratto o rilascio di immobile o di terreno, di riconsegna di cose mobili e reintegra nel possesso",
+      "categoria": "Esecuzioni mobiliari / obblighi",
+      "sottocategoria": "Esecuzione per consegna o rilascio",
+      "registro_sicid": "Esecuzioni",
+      "uffici_destinatari": ["SICID", "CASSAZIONE", "UNEP"],
+      "tipo_pratica": "deposito_documentale",
+      "natura": "Atto di mero deposito da parte dell'avvocato del verbale UNEP redatto dall'ufficiale giudiziario",
+      "normativa": {
+        "riferimenti_primari": [
+          {"fonte": "c.p.c.", "articolo": "608", "descrizione": "Esecuzione per consegna o rilascio"},
+          {"fonte": "c.p.c.", "articolo": "609", "descrizione": "Cose mobili nell'immobile rilasciato"},
+          {"fonte": "c.p.c.", "articolo": "611", "descrizione": "Misure di coercizione indiretta"}
+        ]
+      },
+      "atto_principale": {
+        "tipo_atto": "deposito_verbale_unep",
+        "denominazione": "Deposito verbale UNEP",
+        "campi_obbligatori_specifici": [
+          {"id": "verbale_unep_data", "label": "Data verbale UNEP", "type": "date", "required": true},
+          {"id": "verbale_unep_numero", "label": "Numero verbale UNEP", "type": "string", "required": true},
+          {"id": "esito_accesso", "label": "Esito accesso", "type": "select", "required": true, "options": ["rilascio_avvenuto", "rinvio", "immissione_in_possesso", "rifiuto_accesso", "altro"]},
+          {"id": "presenza_terzi", "label": "Presenza terzi/cose mobili", "type": "boolean"},
+          {"id": "richieste_al_giudice", "label": "Eventuali richieste al giudice esecuzione", "type": "textarea"}
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "verbale_unep", "label": "Verbale UNEP originale", "required": true},
+        {"id": "titolo_esecutivo", "label": "Titolo esecutivo per rilascio", "required": true}
+      ]
+    }
+  ]
+}

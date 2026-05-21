@@ -1,0 +1,351 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "03_PERSONE_FAMIGLIA_MINORI",
+  "denominazione": "Persone, famiglia e minori - contenzioso",
+  "registro": "SICID",
+  "note_aggiornamento": "Riforma Cartabia (D.Lgs. 149/2022) - rito unificato per le persone e le famiglie ex artt. 473-bis e ss. c.p.c. in vigore dal 28/2/2023",
+  "codici_materia": [
+    {
+      "codice": "110001",
+      "denominazione": "Interdizione (COLLEGIO)",
+      "categoria": "Misure di protezione",
+      "rito": "Camera di consiglio (collegiale)",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "414-432", "descrizione": "Interdizione e inabilitazione"},
+        {"fonte": "c.p.c.", "articolo": "712-720", "descrizione": "Procedimento"}
+      ],
+      "presupposti_sostanziali": [
+        "Infermità mentale abituale tale da rendere il soggetto incapace di provvedere ai propri interessi",
+        "Maggiore età (o ultimo anno minore età)"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_interdizione",
+        "campi_chiave": [
+          {"id": "interdicendo", "label": "Dati interdicendo", "type": "object_persona", "required": true},
+          {"id": "ricorrente", "label": "Ricorrente legittimato", "type": "object_persona", "required": true},
+          {"id": "legittimazione_attiva", "label": "Titolo legittimazione (coniuge, parente, PM, ecc.)", "type": "select", "required": true},
+          {"id": "infermità_descrizione", "label": "Descrizione infermità", "type": "textarea", "required": true},
+          {"id": "documentazione_medica", "label": "Documentazione medica", "type": "file_multi", "required": true},
+          {"id": "richiesta_amm_provvisorio", "label": "Richiesta nomina tutore provvisorio", "type": "boolean"}
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "certificati_medici", "label": "Certificati medici dettagliati", "required": true},
+        {"id": "stato_famiglia", "label": "Stato di famiglia", "required": true},
+        {"id": "estratto_nascita", "label": "Estratto di nascita interdicendo", "required": true}
+      ]
+    },
+    {
+      "codice": "110002",
+      "denominazione": "Inabilitazione (COLLEGIO)",
+      "eredita_da": "110001",
+      "differenze_rispetto_a_padre": {
+        "presupposti_specifici": [
+          "Infermità mentale non grave",
+          "Prodighi, persone che fanno abuso di alcool/stupefacenti",
+          "Sordi, ciechi dalla nascita o dalla prima infanzia (se non ricevuto educazione sufficiente)"
+        ]
+      }
+    },
+    {
+      "codice": "110011",
+      "denominazione": "Diritti della personalità (anche della persona giuridica)",
+      "categoria": "Diritti della personalità",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "6-10", "descrizione": "Diritti della personalità"},
+        {"fonte": "Costituzione", "articolo": "2", "descrizione": "Diritti inviolabili"}
+      ],
+      "tipologie": ["identità personale", "diritto al nome", "immagine", "onore e reputazione", "riservatezza"]
+    },
+    {
+      "codice": "110021",
+      "denominazione": "Diritti di elettorato attivo e passivo",
+      "normativa": [
+        {"fonte": "D.P.R. 223/1967", "descrizione": "Approvazione testo unico delle leggi per la disciplina dell'elettorato attivo"}
+      ]
+    },
+    {
+      "codice": "110022",
+      "denominazione": "Diritti della cittadinanza",
+      "normativa": [
+        {"fonte": "L. 91/1992", "descrizione": "Nuove norme sulla cittadinanza"}
+      ]
+    },
+    {
+      "codice": "110031",
+      "denominazione": "Diritti relativi al trattamento dei dati personali",
+      "normativa": [
+        {"fonte": "Reg. UE 2016/679 (GDPR)", "descrizione": "Regolamento generale protezione dati"},
+        {"fonte": "D.Lgs. 196/2003 (Codice Privacy)", "descrizione": "Modificato da D.Lgs. 101/2018"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_tutela_dati_personali",
+        "campi_chiave": [
+          {"id": "diritto_violato", "label": "Diritto GDPR violato", "type": "select", "required": true, "options": ["accesso_art_15", "rettifica_art_16", "cancellazione_art_17", "limitazione_art_18", "portabilita_art_20", "opposizione_art_21"]},
+          {"id": "titolare_trattamento", "label": "Titolare trattamento convenuto", "type": "object_persona", "required": true},
+          {"id": "violazione_descrizione", "label": "Descrizione violazione", "type": "textarea", "required": true},
+          {"id": "danno_richiesto", "label": "Risarcimento danno richiesto", "type": "currency"}
+        ]
+      }
+    },
+    {
+      "codice": "110999",
+      "denominazione": "Altri istituti relativi allo stato della persona e ai diritti della personalità",
+      "note": "Spesso utilizzato per protezione internazionale e immigrazione"
+    },
+    {
+      "codice": "111001",
+      "denominazione": "Separazione consensuale",
+      "categoria": "Separazione coniugale",
+      "rito": "Rito unificato persone e famiglia ex art. 473-bis c.p.c. (post-Cartabia) o procedimento camerale concordato",
+      "competenza": "Tribunale ordinario (sezione famiglia)",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "150-158", "descrizione": "Separazione personale"},
+        {"fonte": "c.p.c.", "articolo": "473-bis.51", "descrizione": "Procedimento per separazione consensuale (post-Cartabia)"}
+      ],
+      "alternativa": "Negoziazione assistita ex art. 6 D.L. 132/2014 o accordo davanti all'ufficiale stato civile (senza figli minori/incapaci/portatori handicap grave)",
+      "atto_principale": {
+        "tipo_atto": "ricorso_separazione_consensuale",
+        "campi_chiave": [
+          {"id": "coniugi", "label": "Dati coniugi", "type": "array_persone", "required": true},
+          {"id": "matrimonio", "label": "Estremi matrimonio", "type": "object", "required": true},
+          {"id": "figli", "label": "Figli (minori, maggiorenni non autosufficienti)", "type": "array_persone"},
+          {"id": "accordo_separazione", "label": "Contenuto accordo (mantenimento, casa coniugale, affido)", "type": "textarea", "required": true},
+          {"id": "assegno_mantenimento_coniuge", "label": "Assegno mantenimento coniuge", "type": "currency"},
+          {"id": "assegno_mantenimento_figli", "label": "Assegno mantenimento figli", "type": "currency"},
+          {"id": "casa_coniugale", "label": "Assegnazione casa coniugale", "type": "string"},
+          {"id": "regime_visite", "label": "Regime di visita figli", "type": "textarea"}
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "estratto_matrimonio", "label": "Estratto atto matrimonio", "required": true},
+        {"id": "estratti_nascita_figli", "label": "Estratti nascita figli", "required": false},
+        {"id": "stato_famiglia", "label": "Stato di famiglia", "required": true},
+        {"id": "dichiarazioni_redditi", "label": "Dichiarazioni redditi ultimi 3 anni", "required": true},
+        {"id": "modulo_iscrizione_ruolo", "label": "Modulo iscrizione a ruolo", "required": true}
+      ]
+    },
+    {
+      "codice": "111002",
+      "denominazione": "Separazione giudiziale",
+      "categoria": "Separazione coniugale contenziosa",
+      "rito": "Rito unificato persone e famiglia ex artt. 473-bis e ss. c.p.c.",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "150-158", "descrizione": "Separazione personale"},
+        {"fonte": "c.c.", "articolo": "151", "descrizione": "Separazione giudiziale e addebito"},
+        {"fonte": "c.p.c.", "articolo": "473-bis.12", "descrizione": "Ricorso introduttivo rito unificato"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_separazione_giudiziale",
+        "schema_xsd_ministeriale": "AttoFamiglia.xsd",
+        "campi_chiave": [
+          {"id": "ricorrente", "label": "Coniuge ricorrente", "type": "object_persona", "required": true},
+          {"id": "resistente", "label": "Coniuge resistente", "type": "object_persona", "required": true},
+          {"id": "matrimonio", "label": "Estremi matrimonio (data, luogo, comune)", "type": "object", "required": true},
+          {"id": "domanda_addebito", "label": "Domanda di addebito", "type": "boolean"},
+          {"id": "motivi_addebito", "label": "Motivi addebito (violazione doveri matrimoniali)", "type": "textarea"},
+          {"id": "figli_minori", "label": "Figli minori/maggiorenni non autosuff.", "type": "array_persone"},
+          {"id": "domande_economiche", "label": "Domande economiche (mantenimento, casa)", "type": "textarea"},
+          {"id": "piano_genitoriale", "label": "Piano genitoriale ex art. 473-bis.12 c.p.c.", "type": "object", "required": true},
+          {"id": "dichiarazione_redditi_indicatore", "label": "Indicatore situazione economica e patrimoniale (DICAP)", "type": "object", "required": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "Avvertimento ex art. 473-bis.14 c.p.c. su comparizione personale parti",
+          "Indicazione termine costituzione resistente almeno 30 gg prima udienza ex art. 473-bis.16",
+          "Avvertimento patrocinio a spese dello Stato"
+        ],
+        "novita_cartabia": [
+          "Obbligo piano genitoriale (art. 473-bis.12 c. 3)",
+          "Domanda di divorzio contestuale possibile (art. 473-bis.49)",
+          "Allegazione documentazione reddituale e patrimoniale obbligatoria (art. 473-bis.12 c. 5)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "estratto_matrimonio", "label": "Estratto matrimonio", "required": true},
+        {"id": "estratti_nascita_figli", "label": "Estratti nascita figli", "required": true},
+        {"id": "stato_famiglia", "label": "Stato di famiglia", "required": true},
+        {"id": "redditi_3_anni", "label": "Dichiarazioni redditi ultimi 3 anni", "required": true},
+        {"id": "estratti_conto", "label": "Estratti conto correnti ultimi 3 anni", "required": true},
+        {"id": "documenti_patrimoniali", "label": "Documenti patrimoniali (immobili, partecipazioni)", "required": true},
+        {"id": "piano_genitoriale_doc", "label": "Piano genitoriale formalizzato", "required": true}
+      ]
+    },
+    {
+      "codice": "111011",
+      "denominazione": "Divorzio congiunto - Cessazione effetti civili",
+      "categoria": "Divorzio congiunto",
+      "rito": "Rito unificato post-Cartabia",
+      "normativa": [
+        {"fonte": "L. 898/1970", "articolo": "vari", "descrizione": "Disciplina del divorzio"},
+        {"fonte": "c.p.c.", "articolo": "473-bis.51", "descrizione": "Procedimento concordato"}
+      ],
+      "presupposti": [
+        "Separazione legalmente protratta per 6 mesi (consensuale) o 12 mesi (giudiziale) ex art. 3 L. 898/70 come modif. L. 55/2015",
+        "Matrimonio concordatario (cessazione effetti civili)"
+      ]
+    },
+    {
+      "codice": "111012",
+      "denominazione": "Divorzio contenzioso - Cessazione effetti civili",
+      "eredita_da": "111002",
+      "differenze_rispetto_a_padre": {
+        "rito": "Rito unificato post-Cartabia con possibilità di cumulo con separazione (art. 473-bis.49)",
+        "normativa_principale": [{"fonte": "L. 898/1970", "articolo": "1-5", "descrizione": "Divorzio"}],
+        "presupposti_specifici": ["Matrimonio concordatario", "Cause ex art. 3 L. 898/70"]
+      }
+    },
+    {
+      "codice": "111021",
+      "denominazione": "Divorzio congiunto - Scioglimento matrimonio",
+      "eredita_da": "111011",
+      "differenze_rispetto_a_padre": {
+        "presupposti_specifici": ["Matrimonio civile (scioglimento)"]
+      }
+    },
+    {
+      "codice": "111022",
+      "denominazione": "Divorzio contenzioso - Scioglimento matrimonio",
+      "eredita_da": "111012",
+      "differenze_rispetto_a_padre": {
+        "presupposti_specifici": ["Matrimonio civile (scioglimento)"]
+      }
+    },
+    {
+      "codice": "111101",
+      "denominazione": "Filiazione legittima",
+      "categoria": "Stato filiazione",
+      "note_riforma": "Riforma filiazione L. 219/2012 e D.Lgs. 154/2013: unificato status di figlio",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "231-249", "descrizione": "Filiazione"}
+      ]
+    },
+    {
+      "codice": "111102",
+      "denominazione": "Filiazione naturale",
+      "categoria": "Stato filiazione (post-riforma: unificata)",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "250-279", "descrizione": "Filiazione fuori dal matrimonio"}
+      ]
+    },
+    {
+      "codice": "111103",
+      "denominazione": "Dichiarazione giudiziale di paternità/maternità naturale di persona maggiorenne - merito",
+      "rito": "Rito ordinario o rito unificato",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "269-279", "descrizione": "Dichiarazione giudiziale di paternità e maternità"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_dichiarazione_giudiziale_paternita",
+        "campi_chiave": [
+          {"id": "ricorrente_figlio", "label": "Ricorrente (figlio)", "type": "object_persona", "required": true},
+          {"id": "presunto_genitore", "label": "Presunto genitore convenuto", "type": "object_persona", "required": true},
+          {"id": "elementi_prova", "label": "Elementi di prova (testimoni, scritti, comportamenti, DNA)", "type": "textarea", "required": true},
+          {"id": "richiesta_ctu_dna", "label": "Richiesta CTU genetica", "type": "boolean", "default": true},
+          {"id": "domande_economiche", "label": "Domande economiche conseguenziali (mantenimento, alimenti)", "type": "textarea"}
+        ]
+      }
+    },
+    {
+      "codice": "111201",
+      "denominazione": "Matrimonio (promessa di matrimonio, opposizione al matrimonio)",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "79-81", "descrizione": "Promessa di matrimonio"},
+        {"fonte": "c.c.", "articolo": "102-104", "descrizione": "Opposizioni al matrimonio"}
+      ]
+    },
+    {
+      "codice": "111211",
+      "denominazione": "Regime patrimoniale della famiglia ex artt. 159 e ss. c.c.",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "159-219", "descrizione": "Regime patrimoniale (comunione, separazione, fondo patrimoniale)"}
+      ]
+    },
+    {
+      "codice": "111212",
+      "denominazione": "Regime patrimoniale della famiglia di fatto",
+      "normativa": [
+        {"fonte": "L. 76/2016 (Cirinnà)", "descrizione": "Unioni civili e convivenze di fatto"}
+      ]
+    },
+    {
+      "codice": "111301",
+      "denominazione": "Alimenti",
+      "categoria": "Obbligazione alimentare",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "433-448", "descrizione": "Degli alimenti"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_alimenti",
+        "campi_chiave": [
+          {"id": "alimentando", "label": "Alimentando", "type": "object_persona", "required": true},
+          {"id": "obbligato", "label": "Obbligato (ordine ex art. 433 c.c.)", "type": "object_persona", "required": true},
+          {"id": "stato_bisogno", "label": "Esposizione stato di bisogno", "type": "textarea", "required": true},
+          {"id": "capacita_economica_obbligato", "label": "Capacità economica obbligato", "type": "textarea", "required": true},
+          {"id": "importo_richiesto", "label": "Importo alimenti mensili", "type": "currency", "required": true}
+        ]
+      }
+    },
+    {
+      "codice": "111401",
+      "denominazione": "Mutamento di sesso",
+      "normativa": [
+        {"fonte": "L. 164/1982", "descrizione": "Norme in materia di rettificazione di attribuzione di sesso"},
+        {"fonte": "D.Lgs. 150/2011", "articolo": "31", "descrizione": "Controversie in materia di rettificazione di attribuzione di sesso"}
+      ]
+    },
+    {
+      "codice": "111501",
+      "denominazione": "Esecutorietà sentenza Sacra Rota nullità di matrimonio (L. 121/85)",
+      "categoria": "Sentenze ecclesiastiche",
+      "normativa": [
+        {"fonte": "L. 121/1985", "articolo": "8", "descrizione": "Esecutorietà sentenze ecclesiastiche di nullità matrimoniale"}
+      ]
+    },
+    {
+      "codice": "111502",
+      "denominazione": "Accertamento dei requisiti sentenza straniera di divorzio (art. 67 L. 218/95)",
+      "normativa": [
+        {"fonte": "L. 218/1995", "articolo": "64-67", "descrizione": "Riconoscimento sentenze straniere"}
+      ]
+    },
+    {
+      "codice": "111999",
+      "denominazione": "Altri istituti di diritto di famiglia",
+      "note": "Codice residuale"
+    },
+    {
+      "codice": "112001",
+      "denominazione": "Interdizione di minori",
+      "categoria": "Misure protezione minori",
+      "competenza": "Tribunale per i minorenni"
+    },
+    {
+      "codice": "112002",
+      "denominazione": "Inabilitazione di minori",
+      "competenza": "Tribunale per i minorenni"
+    },
+    {
+      "codice": "112102",
+      "denominazione": "Riconoscimento di figlio naturale (art. 250 c.c.)",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "250", "descrizione": "Riconoscimento"}
+      ]
+    },
+    {
+      "codice": "112103",
+      "denominazione": "Dichiarazione giudiziale di paternità/maternità naturale di minorenne - merito (art. 269 c.p.c.)",
+      "eredita_da": "111103",
+      "differenze_rispetto_a_padre": {
+        "competenza": "Tribunale per i minorenni o, post-Cartabia, Tribunale ordinario sezione famiglia",
+        "presupposti_specifici": ["Figlio minorenne", "Coinvolgimento curatore speciale del minore ex art. 78 c.p.c."]
+      }
+    },
+    {
+      "codice": "112202",
+      "denominazione": "Disconoscimento di figlio naturale (artt. 233, 244, 250 c.c.)",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "243-bis - 248", "descrizione": "Impugnazione del riconoscimento e disconoscimento"}
+      ]
+    }
+  ]
+}

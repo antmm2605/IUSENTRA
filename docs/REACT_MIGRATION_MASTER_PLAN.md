@@ -1,5 +1,11 @@
 # Migrazione progressiva Flask + React
 
+## Guida Pratica fascicolo e codici PST/XSD - 2026-05-22 - 2.248.9
+
+Il dettaglio fascicolo React espone ora la Guida Pratica collegata al codice oggetto PST/XSD del fascicolo. La scheda mostra checklist, normativa, atto da redigere, campi, allegati, adempimenti e stato del codice deposito con linguaggio operativo per l'avvocato, senza esporre sigle tecniche interne o flussi separati.
+
+Il knowledge base resta separato dal codice applicativo in `pct/data/legal_knowledge_base.full.json` e nei moduli `pct/data/legal_knowledge_base_modules/`. Il validatore forte `scripts/validate_guida_pratica.py --require-official-curated --fail-on-generated` conferma 1.018 codici ufficiali curati, zero codici ufficiali senza guida e coerenza completa tra catalogo ministeriale e stato depositabile.
+
 ## Template Atti compliance contestuale - 2026-05-20 - 2.245.65
 
 Il compilatore React mostra ora il controllo applicativo reale restituito dal backend: stato complessivo, affidabilità, layout profile, timbro studio ripetuto, riferimenti normativi motivati, fonti con stato di verifica, campi/documenti mancanti e azioni Lex. La UI non decide la compliance: invia `requested_draft` e `confirmed_warning`, poi naviga all'`editor_url` restituito dal backend.

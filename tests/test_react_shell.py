@@ -36,8 +36,10 @@ def test_react_blueprints_registered(tmp_path: Path):
 
     assert "react_shell" in app.blueprints
     assert "api_v1_react" in app.blueprints
+    assert "api_v1_guida_pratica" in app.blueprints
     assert any(entry.name == "react_shell" for entry in BLUEPRINT_REGISTRY)
     assert any(entry.name == "api_v1_react" for entry in BLUEPRINT_REGISTRY)
+    assert any(entry.name == "api_v1_guida_pratica" for entry in BLUEPRINT_REGISTRY)
 
 
 def test_react_shell_primo_blocco_richiede_login(tmp_path: Path):

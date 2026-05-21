@@ -1,0 +1,131 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "07_DIRITTO_AGRARIO",
+  "denominazione": "Diritto agrario",
+  "registro": "SICID",
+  "competenza_prevalente": "Sezione specializzata agraria del Tribunale (art. 9 L. 29/1990)",
+  "rito_prevalente": "Rito del lavoro (richiamato dalla L. 29/1990 per le controversie agrarie)",
+  "codici_materia": [
+    {
+      "codice": "310001",
+      "denominazione": "Procedimento cautelare ante causam in materia agraria",
+      "categoria": "Procedimenti cautelari agrari",
+      "competenza": "Sezione specializzata agraria",
+      "rito": "Procedimento cautelare uniforme ex artt. 669-bis e ss. c.p.c.",
+      "normativa": [
+        {"fonte": "L. 29/1990", "articolo": "9", "descrizione": "Sezioni specializzate agrarie"},
+        {"fonte": "c.p.c.", "articolo": "669-bis - 669-terdecies", "descrizione": "Procedimento cautelare uniforme"}
+      ]
+    },
+    {
+      "codice": "320001",
+      "denominazione": "Azione di condanna al rilascio del fondo per scadenza del contratto",
+      "categoria": "Affitto di fondi rustici - rilascio per finita locazione",
+      "competenza": "Sezione specializzata agraria",
+      "rito": "Rito del lavoro ex L. 29/1990 (artt. 46-47 L. 203/1982)",
+      "normativa": [
+        {"fonte": "L. 203/1982", "articolo": "1-58", "descrizione": "Norme sui contratti agrari"},
+        {"fonte": "L. 203/1982", "articolo": "46", "descrizione": "Tentativo obbligatorio di conciliazione"},
+        {"fonte": "L. 29/1990", "articolo": "9", "descrizione": "Sezioni specializzate agrarie"},
+        {"fonte": "c.c.", "articolo": "1628-1654", "descrizione": "Affitto"}
+      ],
+      "presupposti_sostanziali": [
+        "Esistenza di contratto agrario (affitto, mezzadria, colonia parziaria, soccida)",
+        "Scadenza naturale del contratto (durata minima 15 anni - art. 1 L. 203/1982)",
+        "Disdetta tempestiva (12 mesi prima della scadenza ex art. 4 L. 203/82) o caso di mancato rinnovo"
+      ],
+      "obbligo_conciliazione_ispettorato": {
+        "obbligatoria": true,
+        "fonte": "art. 46 L. 203/1982",
+        "ente": "Ispettorato Provinciale Agricoltura presso le organizzazioni professionali agricole",
+        "termine": "60 gg per la convocazione",
+        "natura": "condizione di procedibilità"
+      },
+      "atto_principale": {
+        "tipo_atto": "ricorso_rilascio_fondo_rustico",
+        "denominazione": "Ricorso per condanna al rilascio di fondo rustico per scadenza contratto",
+        "schema_xsd_ministeriale": "AttoAgrario.xsd",
+        "campi_chiave": [
+          {"id": "concedente", "label": "Concedente (locatore)", "type": "object_persona", "required": true},
+          {"id": "affittuario", "label": "Affittuario / coltivatore", "type": "object_persona", "required": true},
+          {"id": "fondo_rustico", "label": "Fondo rustico (dati catastali, ettari, ubicazione, colture)", "type": "object_immobile_rustico", "required": true},
+          {"id": "contratto_estremi", "label": "Estremi contratto agrario", "type": "object", "required": true},
+          {"id": "tipo_contratto", "label": "Tipo contratto", "type": "select", "required": true, "options": ["affitto_coltivatore_diretto", "affitto_imprenditore_agricolo", "mezzadria", "colonia_parziaria", "soccida", "altro_contratto_associativo"]},
+          {"id": "data_disdetta", "label": "Data disdetta", "type": "date", "required": true},
+          {"id": "data_scadenza_contratto", "label": "Data scadenza contratto", "type": "date", "required": true},
+          {"id": "verbale_conciliazione", "label": "Verbale negativo conciliazione presso Ispettorato Agricoltura", "type": "object", "required": true},
+          {"id": "indennita_miglioramenti", "label": "Indennità per miglioramenti (artt. 16-20 L. 203/82)", "type": "currency"}
+        ],
+        "avvertimenti_obbligatori": [
+          "Allegazione verbale conciliazione obbligatoria ex art. 46 L. 203/1982",
+          "Avvertenza diritto a indennità miglioramenti se eseguiti",
+          "Indicazione termine costituzione resistente"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "contratto_agrario", "label": "Contratto agrario", "required": true},
+        {"id": "disdetta", "label": "Disdetta notificata", "required": true},
+        {"id": "verbale_conciliazione_ispettorato", "label": "Verbale conciliazione presso Ispettorato Agricoltura", "required": true},
+        {"id": "visure_catastali_fondo", "label": "Visure catastali del fondo", "required": true},
+        {"id": "documentazione_miglioramenti", "label": "Documentazione miglioramenti (se richiesta indennità)", "required": false}
+      ],
+      "termini_processuali": [
+        {"termine": "Disdetta", "giorni": 365, "decorrenza": "prima della scadenza", "natura": "decadenziale", "norma": "art. 4 L. 203/1982"},
+        {"termine": "Convocazione conciliazione Ispettorato", "giorni": 60, "decorrenza": "richiesta", "natura": "ordinatorio", "norma": "art. 46 L. 203/1982"}
+      ]
+    },
+    {
+      "codice": "320002",
+      "denominazione": "Azione di condanna al rilascio del fondo per altri motivi",
+      "eredita_da": "320001",
+      "differenze_rispetto_a_padre": {
+        "presupposti_specifici": [
+          "Risoluzione per inadempimento (mancato pagamento canone, cattiva coltivazione, mutamento ordinamento produttivo non autorizzato)",
+          "Recesso per gravi motivi del concedente (art. 5 L. 203/1982)",
+          "Cessazione per altre cause (morte, perdita qualifica)"
+        ],
+        "campi_aggiuntivi": [
+          {"id": "motivo_rilascio", "label": "Motivo rilascio", "type": "select", "required": true, "options": ["inadempimento_canone", "cattiva_coltivazione", "mutamento_ordinamento", "recesso_gravi_motivi", "perdita_qualifica_coltivatore", "morte_affittuario", "altro"]},
+          {"id": "descrizione_inadempimento", "label": "Descrizione inadempimento", "type": "textarea"},
+          {"id": "diffida_ad_adempiere", "label": "Diffida ad adempiere notificata (data)", "type": "date"}
+        ]
+      }
+    },
+    {
+      "codice": "320003",
+      "denominazione": "Azione di condanna al pagamento di somme dovute per legge o per contratto",
+      "categoria": "Affitto di fondi rustici - pagamento canoni e somme",
+      "eredita_da": "320001",
+      "differenze_rispetto_a_padre": {
+        "atto_principale_specifico": {
+          "tipo_atto": "ricorso_pagamento_canone_agrario",
+          "campi_chiave": [
+            {"id": "tipo_somma", "label": "Tipo somma richiesta", "type": "select", "required": true, "options": ["canone_arretrato", "indennita_miglioramenti", "risarcimento_danni_fondo", "restituzione_anticipi", "rivalutazione_canone", "altre_somme_contrattuali"]},
+            {"id": "importo_dovuto", "label": "Importo dovuto", "type": "currency", "required": true},
+            {"id": "periodo_riferimento", "label": "Periodo di riferimento", "type": "string", "required": true},
+            {"id": "interessi_decorrenza", "label": "Interessi (decorrenza)", "type": "date"}
+          ]
+        }
+      }
+    },
+    {
+      "codice": "320999",
+      "denominazione": "Altri istituti di diritto agrario",
+      "categoria": "Diritto agrario - residuale",
+      "competenza": "Sezione specializzata agraria",
+      "casistica": [
+        "Conversione di contratti associativi in affitto (art. 25 L. 203/82)",
+        "Esercizio del diritto di prelazione e riscatto del coltivatore diretto (L. 590/1965, L. 817/1971)",
+        "Determinazione giudiziale del canone (art. 9 L. 203/82)",
+        "Controversie su soccida (artt. 2170-2187 c.c.)",
+        "Subentro nel contratto in caso di morte (art. 49 L. 203/82)"
+      ],
+      "normativa": [
+        {"fonte": "L. 590/1965", "descrizione": "Diritto di prelazione del coltivatore diretto"},
+        {"fonte": "L. 817/1971", "descrizione": "Sviluppo della proprietà coltivatrice e prelazione del confinante"},
+        {"fonte": "c.c.", "articolo": "2170-2187", "descrizione": "Soccida"},
+        {"fonte": "L. 203/1982", "articolo": "vari", "descrizione": "Norme sui contratti agrari"}
+      ]
+    }
+  ]
+}

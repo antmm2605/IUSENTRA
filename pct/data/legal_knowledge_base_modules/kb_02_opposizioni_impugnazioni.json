@@ -1,0 +1,418 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "02_OPPOSIZIONI_IMPUGNAZIONI_LODI",
+  "denominazione": "Opposizioni esecutive, impugnazioni straordinarie e arbitrato",
+  "registro": "SICID",
+  "codici_materia": [
+    {
+      "codice": "100001",
+      "denominazione": "Opposizione a precetto (art. 615, c. 1, c.p.c.)",
+      "categoria": "Opposizioni all'esecuzione",
+      "rito": "Rito ordinario di cognizione (con eventuali profili cautelari)",
+      "competenza": "Giudice competente per valore e materia (art. 27 c.p.c.)",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "615 c. 1", "descrizione": "Opposizione a precetto pre-esecuzione"},
+        {"fonte": "c.p.c.", "articolo": "480", "descrizione": "Forma del precetto"},
+        {"fonte": "c.p.c.", "articolo": "624", "descrizione": "Sospensione dell'esecuzione"}
+      ],
+      "presupposti_sostanziali": [
+        "Notifica di un precetto",
+        "Contestazione del diritto della parte istante a procedere ad esecuzione forzata (inesistenza/estinzione del credito, mancanza titolo esecutivo)",
+        "Pendenza prima dell'inizio dell'esecuzione"
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_opposizione_precetto",
+        "denominazione": "Atto di citazione in opposizione a precetto",
+        "campi_chiave": [
+          {"id": "precetto_estremi", "label": "Estremi precetto opposto", "type": "object", "required": true},
+          {"id": "titolo_esecutivo", "label": "Titolo esecutivo posto a base", "type": "string", "required": true},
+          {"id": "motivi_opposizione", "label": "Motivi di opposizione", "type": "select_multi", "required": true, "options": ["inesistenza_credito", "estinzione_credito", "prescrizione", "compensazione", "carenza_titolo_esecutivo", "altro"]},
+          {"id": "richiesta_sospensione", "label": "Richiesta sospensione efficacia precetto", "type": "boolean"},
+          {"id": "creditore_opposto", "label": "Creditore opposto", "type": "object_persona", "required": true}
+        ],
+        "avvertimenti_obbligatori": ["Indicazione termini di costituzione e comparizione ordinaria"]
+      },
+      "allegati_obbligatori": [
+        {"id": "precetto_originale", "label": "Copia precetto opposto", "required": true},
+        {"id": "titolo_esecutivo", "label": "Copia titolo esecutivo", "required": true},
+        {"id": "documenti_prove_opposizione", "label": "Documenti probatori a sostegno", "required": true}
+      ]
+    },
+    {
+      "codice": "100011",
+      "denominazione": "Opposizione all'esecuzione (art. 615, c. 2, c.p.c.) - mobiliare",
+      "eredita_da": "100001",
+      "differenze_rispetto_a_padre": {
+        "normativa_principale": [
+          {"fonte": "c.p.c.", "articolo": "615 c. 2", "descrizione": "Opposizione all'esecuzione dopo inizio espropriazione"},
+          {"fonte": "c.p.c.", "articolo": "616", "descrizione": "Provvedimenti del giudice"}
+        ],
+        "competenza": "Giudice dell'esecuzione (fase introduttiva con ricorso); per il merito si applicano competenze ordinarie",
+        "atto_principale_specifico": {
+          "tipo_atto": "ricorso_opposizione_esecuzione_mobiliare",
+          "denominazione": "Ricorso al giudice dell'esecuzione ex art. 615 c. 2 c.p.c."
+        },
+        "campi_aggiuntivi": [
+          {"id": "esecuzione_in_corso", "label": "Estremi procedura esecutiva", "type": "object", "required": true},
+          {"id": "beni_pignorati", "label": "Beni pignorati oggetto", "type": "array", "required": true}
+        ]
+      }
+    },
+    {
+      "codice": "100012",
+      "denominazione": "Opposizione all'esecuzione (art. 615, c. 2, c.p.c.) - immobiliare",
+      "eredita_da": "100011",
+      "differenze_rispetto_a_padre": {
+        "competenza": "Giudice dell'esecuzione immobiliare",
+        "campi_aggiuntivi": [
+          {"id": "immobile_pignorato", "label": "Immobile pignorato (dati catastali)", "type": "object_immobile", "required": true},
+          {"id": "nota_trascrizione", "label": "Nota trascrizione pignoramento", "type": "string"}
+        ]
+      }
+    },
+    {
+      "codice": "100019",
+      "denominazione": "Opposizione all'esecuzione mob. e immob. riassunta davanti al Giudice di Pace",
+      "eredita_da": "100011",
+      "differenze_rispetto_a_padre": {
+        "competenza": "Giudice di Pace per riassunzione del merito",
+        "note": "Si applica quando il G.E. dichiara la competenza del GdP per valore"
+      }
+    },
+    {
+      "codice": "100021",
+      "denominazione": "Opposizione agli atti esecutivi (art. 617 c.p.c.) - mobiliare",
+      "categoria": "Opposizioni esecutive",
+      "rito": "Opposizione ex art. 617 c.p.c. - termine perentorio breve",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "617", "descrizione": "Opposizione agli atti esecutivi"},
+        {"fonte": "c.p.c.", "articolo": "618", "descrizione": "Provvedimenti del giudice"}
+      ],
+      "presupposti_sostanziali": [
+        "Vizio formale di un atto esecutivo",
+        "Vizio del precetto o della notificazione del titolo esecutivo",
+        "Termine: 20 gg dal compimento dell'atto o dalla legale conoscenza"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_opposizione_atti_esecutivi",
+        "denominazione": "Ricorso ex art. 617 c.p.c. per opposizione agli atti esecutivi",
+        "campi_chiave": [
+          {"id": "atto_opposto", "label": "Atto esecutivo opposto", "type": "object", "required": true},
+          {"id": "data_atto", "label": "Data dell'atto", "type": "date", "required": true},
+          {"id": "data_conoscenza", "label": "Data legale conoscenza", "type": "date", "required": true},
+          {"id": "vizi_dedotti", "label": "Vizi formali dedotti", "type": "textarea", "required": true}
+        ],
+        "avvertimenti_obbligatori": ["Termine perentorio 20 gg ex art. 617 c.p.c."]
+      },
+      "termini_processuali": [
+        {"termine": "Proposizione opposizione", "giorni": 20, "decorrenza": "compimento atto/legale conoscenza", "natura": "perentorio"}
+      ]
+    },
+    {
+      "codice": "100022",
+      "denominazione": "Opposizione agli atti esecutivi (art. 617 c.p.c.) - immobiliare",
+      "eredita_da": "100021",
+      "differenze_rispetto_a_padre": {
+        "competenza": "G.E. immobiliare"
+      }
+    },
+    {
+      "codice": "100031",
+      "denominazione": "Opposizione del terzo (art. 619 c.p.c.) - mobiliare",
+      "categoria": "Opposizioni di terzo all'esecuzione",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "619", "descrizione": "Opposizione di terzo"}
+      ],
+      "presupposti_sostanziali": [
+        "Terzo che vanta diritto di proprietà o altro diritto reale sui beni pignorati",
+        "Necessità di dimostrare il diritto con atti di data certa anteriore al pignoramento"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_opposizione_terzo",
+        "denominazione": "Ricorso ex art. 619 c.p.c.",
+        "campi_chiave": [
+          {"id": "diritto_terzo", "label": "Diritto del terzo (proprietà/usufrutto/altro)", "type": "select", "required": true},
+          {"id": "titolo_terzo", "label": "Titolo del diritto (con data certa anteriore)", "type": "object", "required": true},
+          {"id": "beni_oggetto", "label": "Beni pignorati oggetto opposizione", "type": "array", "required": true}
+        ]
+      }
+    },
+    {
+      "codice": "100032",
+      "denominazione": "Opposizione del terzo (art. 619 c.p.c.) - immobiliare",
+      "eredita_da": "100031"
+    },
+    {
+      "codice": "100039",
+      "denominazione": "Opposizione del terzo all'esecuzione mob. e immob. davanti al Giudice di Pace",
+      "eredita_da": "100031",
+      "differenze_rispetto_a_padre": {"competenza": "Giudice di Pace"}
+    },
+    {
+      "codice": "100041",
+      "denominazione": "Accertamento dell'obbligo del terzo ex art. 548 c.p.c.",
+      "categoria": "Pignoramento presso terzi - accertamento",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "548", "descrizione": "Mancata dichiarazione del terzo"},
+        {"fonte": "c.p.c.", "articolo": "549", "descrizione": "Contestazione della dichiarazione del terzo"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_accertamento_obbligo_terzo",
+        "campi_chiave": [
+          {"id": "pignoramento_terzi_estremi", "label": "Estremi pignoramento presso terzi", "type": "object", "required": true},
+          {"id": "terzo_pignorato", "label": "Terzo pignorato", "type": "object_persona", "required": true},
+          {"id": "obbligo_da_accertare", "label": "Obbligo del terzo da accertare", "type": "textarea", "required": true}
+        ]
+      }
+    },
+    {
+      "codice": "101001",
+      "denominazione": "Querela di falso",
+      "categoria": "Impugnazioni straordinarie",
+      "rito": "Procedimento ex artt. 221-227 c.p.c.",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "221-227", "descrizione": "Querela di falso"},
+        {"fonte": "c.c.", "articolo": "2700", "descrizione": "Efficacia probatoria dell'atto pubblico"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_querela_falso",
+        "campi_chiave": [
+          {"id": "documento_impugnato", "label": "Documento di cui si denuncia la falsità", "type": "object", "required": true},
+          {"id": "tipo_falsita", "label": "Tipo di falsità", "type": "select", "required": true, "options": ["materiale", "ideologica"]},
+          {"id": "elementi_falsita", "label": "Elementi della falsità", "type": "textarea", "required": true},
+          {"id": "prove_offerte", "label": "Prove offerte", "type": "textarea", "required": true}
+        ],
+        "avvertimenti_obbligatori": ["Necessità procura speciale (ad litem non sufficiente)"]
+      },
+      "allegati_obbligatori": [
+        {"id": "procura_speciale", "label": "Procura speciale (anche notarile)", "required": true},
+        {"id": "documento_originale", "label": "Documento impugnato in originale", "required": true}
+      ]
+    },
+    {
+      "codice": "101002",
+      "denominazione": "Revocazione della sentenza ex artt. 395 e ss. c.p.c.",
+      "categoria": "Impugnazioni straordinarie",
+      "rito": "Procedimento ordinario davanti al giudice che ha emesso la sentenza",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "395", "descrizione": "Casi di revocazione"},
+        {"fonte": "c.p.c.", "articolo": "396-403", "descrizione": "Procedimento"}
+      ],
+      "presupposti_sostanziali": [
+        "Sussistenza di uno dei motivi tassativi ex art. 395 c.p.c.: dolo della parte, prove false, documenti decisivi sopravvenuti, errore di fatto risultante dagli atti, dolo del giudice, contrasto con precedente giudicato"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_revocazione",
+        "campi_chiave": [
+          {"id": "sentenza_revocanda", "label": "Sentenza da revocare", "type": "object", "required": true},
+          {"id": "motivo_revocazione", "label": "Motivo ex art. 395", "type": "select", "required": true, "options": ["dolo_parte_n1", "prove_false_n2", "documenti_sopravvenuti_n3", "errore_fatto_n4", "dolo_giudice_n5", "contrasto_giudicato_n6"]},
+          {"id": "data_scoperta", "label": "Data scoperta motivo (per revocazione straordinaria)", "type": "date"},
+          {"id": "esposizione_motivo", "label": "Esposizione del motivo", "type": "textarea", "required": true}
+        ]
+      },
+      "termini_processuali": [
+        {"termine": "Revocazione ordinaria (motivi n. 4, 5)", "giorni": 30, "decorrenza": "notificazione/comunicazione sentenza", "natura": "perentorio"},
+        {"termine": "Revocazione straordinaria (motivi n. 1, 2, 3, 6)", "giorni": 30, "decorrenza": "scoperta motivo", "natura": "perentorio"}
+      ]
+    },
+    {
+      "codice": "101003",
+      "denominazione": "Opposizione di terzo ex artt. 404 e ss. c.p.c.",
+      "categoria": "Impugnazioni straordinarie",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "404", "descrizione": "Opposizione di terzo - casi"},
+        {"fonte": "c.p.c.", "articolo": "405-408", "descrizione": "Procedimento"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_opposizione_terzo_404",
+        "campi_chiave": [
+          {"id": "sentenza_opposta", "label": "Sentenza pregiudizievole", "type": "object", "required": true},
+          {"id": "diritto_terzo", "label": "Diritto del terzo pregiudicato", "type": "textarea", "required": true},
+          {"id": "tipo_opposizione", "label": "Tipo opposizione", "type": "select", "options": ["ordinaria_art_404_c1", "revocatoria_art_404_c2"]}
+        ]
+      }
+    },
+    {
+      "codice": "101011",
+      "denominazione": "Rogatorie civili",
+      "categoria": "Cooperazione giudiziaria",
+      "normativa": [
+        {"fonte": "L. 218/1995", "articolo": "vari", "descrizione": "Diritto internazionale privato"},
+        {"fonte": "Reg. UE 1206/2001 e succ. 2020/1783", "descrizione": "Assunzione prove transfrontaliere"}
+      ]
+    },
+    {
+      "codice": "101012",
+      "denominazione": "Prova delegata",
+      "normativa": [{"fonte": "c.p.c.", "articolo": "203", "descrizione": "Assunzione prova fuori della circoscrizione"}]
+    },
+    {
+      "codice": "102001",
+      "denominazione": "Azione surrogatoria ex art. 2900 c.c.",
+      "categoria": "Azioni a tutela del credito",
+      "rito": "Rito ordinario",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2900", "descrizione": "Azione surrogatoria"}
+      ],
+      "presupposti_sostanziali": [
+        "Credito certo del surrogante",
+        "Inerzia del debitore",
+        "Pregiudizio alle ragioni del creditore",
+        "Natura non strettamente personale del diritto da esercitare"
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_surrogatoria",
+        "campi_chiave": [
+          {"id": "credito_surrogante", "label": "Credito del surrogante", "type": "object", "required": true},
+          {"id": "debitore_inerte", "label": "Debitore inerte", "type": "object_persona", "required": true},
+          {"id": "diritto_surrogato", "label": "Diritto del debitore esercitato in surroga", "type": "textarea", "required": true},
+          {"id": "terzo_debitor_debitoris", "label": "Terzo debitor debitoris (convenuto)", "type": "object_persona", "required": true}
+        ]
+      }
+    },
+    {
+      "codice": "102002",
+      "denominazione": "Azione revocatoria ordinaria ex art. 2901 c.c.",
+      "categoria": "Azioni a tutela del credito",
+      "rito": "Rito ordinario",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2901-2904", "descrizione": "Azione revocatoria ordinaria"}
+      ],
+      "presupposti_sostanziali": [
+        "Eventus damni: pregiudizio alle ragioni del creditore",
+        "Scientia damni del debitore (e per atti a titolo oneroso, anche del terzo)",
+        "Consilium fraudis se l'atto è anteriore al sorgere del credito"
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_revocatoria",
+        "campi_chiave": [
+          {"id": "credito_revocante", "label": "Credito del revocante", "type": "object", "required": true},
+          {"id": "atto_da_revocare", "label": "Atto dispositivo da revocare", "type": "object", "required": true},
+          {"id": "data_atto", "label": "Data atto dispositivo", "type": "date", "required": true},
+          {"id": "natura_atto", "label": "Natura atto (gratuito/oneroso)", "type": "select", "required": true},
+          {"id": "terzo_acquirente", "label": "Terzo acquirente", "type": "object_persona", "required": true},
+          {"id": "eventus_damni", "label": "Esposizione eventus damni", "type": "textarea", "required": true},
+          {"id": "scientia_damni", "label": "Esposizione scientia damni", "type": "textarea", "required": true}
+        ],
+        "avvertimenti_obbligatori": ["Termine prescrizionale 5 anni ex art. 2903 c.c."]
+      },
+      "termini_processuali": [
+        {"termine": "Prescrizione", "giorni": 1825, "decorrenza": "compimento atto", "natura": "prescrizione", "norma": "art. 2903 c.c."}
+      ]
+    },
+    {
+      "codice": "102011",
+      "denominazione": "Privilegio",
+      "categoria": "Tutela del credito",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2745-2783-ter", "descrizione": "Disciplina dei privilegi"}
+      ]
+    },
+    {
+      "codice": "103001",
+      "denominazione": "Questioni di diritto della navigazione (esclusi i contratti di trasporto)",
+      "categoria": "Diritto della navigazione",
+      "normativa": [
+        {"fonte": "Codice della Navigazione", "articolo": "vari", "descrizione": "R.D. 327/1942"}
+      ]
+    },
+    {
+      "codice": "104001",
+      "denominazione": "Controversie di competenza del Tribunale Regionale delle Acque Pubbliche",
+      "categoria": "Tribunali specializzati",
+      "normativa": [
+        {"fonte": "R.D. 1775/1933", "descrizione": "Testo Unico sulle acque pubbliche"}
+      ]
+    },
+    {
+      "codice": "105001",
+      "denominazione": "Usi civici",
+      "categoria": "Diritti collettivi",
+      "normativa": [
+        {"fonte": "L. 1766/1927", "descrizione": "Riordinamento usi civici"},
+        {"fonte": "L. 168/2017", "descrizione": "Norme in materia di domini collettivi"}
+      ]
+    },
+    {
+      "codice": "106001",
+      "denominazione": "Opposizione alla esecutorietà dei lodi arbitrali stranieri (art. 840 c.p.c.)",
+      "categoria": "Arbitrato internazionale",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "839-840", "descrizione": "Riconoscimento ed esecuzione dei lodi stranieri"},
+        {"fonte": "Convenzione di New York 1958", "descrizione": "Riconoscimento e esecuzione delle sentenze arbitrali straniere"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "opposizione_lodo_straniero",
+        "campi_chiave": [
+          {"id": "lodo_estremi", "label": "Estremi lodo straniero", "type": "object", "required": true},
+          {"id": "decreto_riconoscimento", "label": "Decreto di riconoscimento", "type": "string", "required": true},
+          {"id": "motivi_opposizione", "label": "Motivi opposizione ex art. V Conv. NY", "type": "select_multi"}
+        ]
+      }
+    },
+    {
+      "codice": "106002",
+      "denominazione": "Impugnazione di lodi nazionali (art. 828 c.p.c.)",
+      "categoria": "Arbitrato",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "828", "descrizione": "Impugnazione per nullità"},
+        {"fonte": "c.p.c.", "articolo": "829", "descrizione": "Casi di nullità"}
+      ],
+      "competenza": "Corte di Appello del luogo in cui è la sede dell'arbitrato",
+      "atto_principale": {
+        "tipo_atto": "atto_impugnazione_lodo",
+        "campi_chiave": [
+          {"id": "lodo_estremi", "label": "Estremi lodo arbitrale", "type": "object", "required": true},
+          {"id": "data_notifica_lodo", "label": "Data notifica lodo", "type": "date", "required": true},
+          {"id": "motivi_nullita", "label": "Motivi di nullità ex art. 829", "type": "select_multi", "required": true},
+          {"id": "compromesso_arbitrale", "label": "Compromesso/clausola compromissoria", "type": "object", "required": true}
+        ]
+      },
+      "termini_processuali": [
+        {"termine": "Impugnazione", "giorni": 90, "decorrenza": "notifica lodo", "natura": "perentorio"}
+      ]
+    },
+    {
+      "codice": "106003",
+      "denominazione": "Espropriazione (per pubblica utilità)",
+      "categoria": "Espropriazione",
+      "normativa": [
+        {"fonte": "D.P.R. 327/2001", "descrizione": "Testo Unico Espropriazioni"}
+      ]
+    },
+    {
+      "codice": "106004",
+      "denominazione": "Azione di nullità e risarcimento in materia di tutela della concorrenza e del mercato",
+      "categoria": "Antitrust - private enforcement",
+      "competenza": "Sezione specializzata in materia di impresa",
+      "normativa": [
+        {"fonte": "L. 287/1990", "articolo": "33", "descrizione": "Competenza"},
+        {"fonte": "D.Lgs. 3/2017", "descrizione": "Attuazione direttiva 2014/104/UE (private antitrust enforcement)"}
+      ]
+    },
+    {
+      "codice": "106005",
+      "denominazione": "Opposizione avverso il decreto di esecutività sentenze in materia civile e commerciale",
+      "normativa": [
+        {"fonte": "Reg. UE 1215/2012 (Bruxelles I-bis)", "descrizione": "Competenza giurisdizionale e riconoscimento decisioni"}
+      ]
+    },
+    {
+      "codice": "106502",
+      "denominazione": "Accertamento requisiti sentenze straniere in materia diversa da quella matrimoniale",
+      "normativa": [
+        {"fonte": "L. 218/1995", "articolo": "64-67", "descrizione": "Riconoscimento ed esecuzione di sentenze e atti stranieri"}
+      ]
+    },
+    {
+      "codice": "108001",
+      "denominazione": "Istanza di conciliazione",
+      "note": "Codice utilizzato per conciliazioni stragiudiziali depositate"
+    },
+    {
+      "codice": "109999",
+      "denominazione": "Altri istituti e leggi speciali",
+      "note": "Codice residuale - spesso usato impropriamente, verificare correttezza"
+    }
+  ]
+}

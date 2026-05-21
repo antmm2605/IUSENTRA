@@ -1,0 +1,315 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "06_SOCIETARIO_INDUSTRIALE_FALLIMENTARE",
+  "denominazione": "Diritto societario, industriale e procedure concorsuali - contenzioso",
+  "registro": "SICID",
+  "competenza_prevalente": "Sezione specializzata in materia di impresa",
+  "note_aggiornamento": "Codice della Crisi d'Impresa (D.Lgs. 14/2019, in vigore dal 15/7/2022) ha sostituito gran parte della Legge Fallimentare",
+  "codici_materia": [
+    {
+      "codice": "150001",
+      "denominazione": "Associazione - Comitato",
+      "categoria": "Persone giuridiche",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "14-42", "descrizione": "Associazioni, fondazioni e altre istituzioni di carattere privato"}
+      ]
+    },
+    {"codice": "150002", "denominazione": "Associazione in partecipazione", "normativa": [{"fonte": "c.c.", "articolo": "2549-2554", "descrizione": "Associazione in partecipazione"}]},
+    {"codice": "150003", "denominazione": "Consorzio", "normativa": [{"fonte": "c.c.", "articolo": "2602-2620", "descrizione": "Consorzi"}]},
+    {"codice": "150004", "denominazione": "Fondazione", "normativa": [{"fonte": "c.c.", "articolo": "14-35", "descrizione": "Fondazioni"}]},
+    {"codice": "150999", "denominazione": "Altri istituti relativi alle persone giuridiche", "note": "Codice residuale"},
+    {
+      "codice": "151110",
+      "denominazione": "Cause di responsabilità contro gli organi amministrativi e di controllo",
+      "categoria": "Responsabilità organi sociali",
+      "competenza": "Sezione specializzata in materia di impresa",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2392-2395", "descrizione": "Responsabilità amministratori S.p.A."},
+        {"fonte": "c.c.", "articolo": "2407", "descrizione": "Responsabilità sindaci"},
+        {"fonte": "c.c.", "articolo": "2476", "descrizione": "Responsabilità amministratori S.r.l."}
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_responsabilita_amministratori",
+        "campi_chiave": [
+          {"id": "societa", "label": "Società", "type": "object_persona_giuridica", "required": true},
+          {"id": "amministratori_convenuti", "label": "Amministratori/sindaci convenuti", "type": "array_persone", "required": true},
+          {"id": "tipo_azione", "label": "Tipo azione", "type": "select", "required": true, "options": ["azione_sociale_2393", "azione_minoranza_2393_bis", "azione_individuale_socio_terzo_2395", "azione_creditori_2394"]},
+          {"id": "atti_gestionali_contestati", "label": "Atti gestionali contestati", "type": "textarea", "required": true},
+          {"id": "danno_societario", "label": "Danno societario", "type": "currency", "required": true},
+          {"id": "delibera_assemblea_autorizzazione", "label": "Delibera assembleare di esercizio azione (per 2393)", "type": "string"}
+        ]
+      }
+    },
+    {"codice": "151111", "denominazione": "Cause di responsabilità proposte dalla L.C.A. in società fiduciarie e revisione"},
+    {
+      "codice": "151112",
+      "denominazione": "Impugnazione delle deliberazioni dell'assemblea e del CdA",
+      "categoria": "Impugnazione delibere",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2377-2379-ter", "descrizione": "Annullabilità e nullità delibere assembleari S.p.A."},
+        {"fonte": "c.c.", "articolo": "2479-ter", "descrizione": "Invalidità delibere S.r.l."},
+        {"fonte": "c.c.", "articolo": "2388", "descrizione": "Invalidità delibere CdA"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_impugnazione_delibera_sociale",
+        "campi_chiave": [
+          {"id": "societa", "label": "Società", "type": "object_persona_giuridica", "required": true},
+          {"id": "delibera", "label": "Delibera impugnata (data, ordine giorno, contenuto)", "type": "object", "required": true},
+          {"id": "vizio_dedotto", "label": "Vizio dedotto", "type": "select", "required": true, "options": ["annullabilita_violazione_legge_statuto", "nullita_oggetto_impossibile_illecito", "nullita_mancata_convocazione", "nullita_mancanza_verbale", "abuso_maggioranza"]},
+          {"id": "legittimazione", "label": "Legittimazione (socio assente, dissenziente, astenuto)", "type": "select", "required": true},
+          {"id": "richiesta_sospensione", "label": "Richiesta sospensione cautelare esecuzione delibera", "type": "boolean"}
+        ],
+        "avvertimenti_obbligatori": ["Termine 90 gg per impugnazione ex art. 2377 c.c. (annullabilità)"]
+      },
+      "termini_processuali": [
+        {"termine": "Impugnazione annullabilità", "giorni": 90, "decorrenza": "data delibera o iscrizione registro imprese", "natura": "decadenziale", "norma": "art. 2377 c. 6"},
+        {"termine": "Nullità", "giorni": 1095, "decorrenza": "iscrizione/trascrizione", "natura": "decadenziale", "norma": "art. 2379 c. 1"}
+      ]
+    },
+    {"codice": "151120", "denominazione": "Rapporti sociali e cessione di partecipazione nelle società di fatto e di persone"},
+    {"codice": "151121", "denominazione": "Cause in materia di trasferimento di partecipazioni sociali"},
+    {"codice": "151122", "denominazione": "Cause in materia di patti parasociali", "normativa": [{"fonte": "c.c.", "articolo": "2341-bis - 2341-ter", "descrizione": "Patti parasociali"}]},
+    {"codice": "151123", "denominazione": "Cause in materia di offerte pubbliche etc.", "normativa": [{"fonte": "D.Lgs. 58/1998 (TUF)", "articolo": "101-bis - 112", "descrizione": "OPA"}]},
+    {"codice": "151130", "denominazione": "Opposizione dei creditori alla fusione delle società (art. 2503 c.c.)", "normativa": [{"fonte": "c.c.", "articolo": "2503", "descrizione": "Opposizione dei creditori"}]},
+    {"codice": "151999", "denominazione": "Altri istituti di diritto societario"},
+    {"codice": "152110", "denominazione": "Cause di responsabilità vs organi amministrativi post DL 5/2003 (VECCHIO RITO)", "note": "Vecchio rito societario abrogato"},
+    {"codice": "152112", "denominazione": "Impugnazione delibere post DL 5/2003 (VECCHIO RITO)", "note": "Vecchio rito societario abrogato"},
+    {"codice": "152999", "denominazione": "Altri istituti societari non soggetti al DL 5/2003", "note": "Vecchio rito societario abrogato"},
+    {"codice": "153110", "denominazione": "Cause di responsabilità contro organi amministrativi e controllo - liquidatori", "eredita_da": "151110"},
+    {"codice": "153112", "denominazione": "Impugnazione deliberazioni assemblea e CdA - società cooperative", "eredita_da": "151112"},
+    {"codice": "153120", "denominazione": "Cause in materia di rapporti societari"},
+    {"codice": "153121", "denominazione": "Cause in materia di trasferimento partecipazioni sociali"},
+    {"codice": "153122", "denominazione": "Cause in materia di patti parasociali"},
+    {"codice": "153123", "denominazione": "Cause in materia di offerte pubbliche di acquisto"},
+    {"codice": "153999", "denominazione": "Altri istituti di diritto societario soggetti al DL 5/2003"},
+    {"codice": "154112", "denominazione": "Pagamento somma o consegna cosa mobile in impugnazione delibere"},
+    {"codice": "154120", "denominazione": "Pagamento somma o consegna cosa mobile in cause impugnazione delibere assemblea/CdA cooperative"},
+    {"codice": "154121", "denominazione": "Pagamento somma o consegna cosa mobile in materia rapporti societari"},
+    {"codice": "154122", "denominazione": "Pagamento somma o consegna cosa mobile in materia trasferimento partecipazioni"},
+    {"codice": "154123", "denominazione": "Pagamento somma o consegna cosa mobile in materia patti parasociali"},
+    {"codice": "154999", "denominazione": "Pagamento somma o consegna cosa mobile in materia OPA"},
+    {
+      "codice": "170001",
+      "denominazione": "Pagamento somma o consegna cosa mobile in materia diritto societario soggette DL 5/2003",
+      "categoria": "Societario residuale"
+    },
+    {
+      "codice": "170002",
+      "denominazione": "Brevetto di invenzione industriale",
+      "categoria": "Diritto industriale",
+      "competenza": "Sezione specializzata in materia di impresa",
+      "normativa": [
+        {"fonte": "D.Lgs. 30/2005 (CPI)", "articolo": "45-81", "descrizione": "Brevetti per invenzioni industriali"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_brevetto",
+        "campi_chiave": [
+          {"id": "tipo_azione", "label": "Tipo azione", "type": "select", "required": true, "options": ["accertamento_contraffazione", "nullita_brevetto", "rivendicazione_titolarita", "risarcimento_danni"]},
+          {"id": "brevetto_estremi", "label": "Brevetto (numero, data deposito/concessione)", "type": "object", "required": true},
+          {"id": "atti_contraffazione", "label": "Atti di contraffazione", "type": "textarea"},
+          {"id": "richiesta_inibitoria", "label": "Inibitoria definitiva", "type": "boolean"},
+          {"id": "richiesta_distruzione", "label": "Distruzione prodotti contraffatti", "type": "boolean"}
+        ]
+      }
+    },
+    {"codice": "170003", "denominazione": "Brevetto di modello di utilità", "eredita_da": "170002"},
+    {
+      "codice": "170004",
+      "denominazione": "Marchio",
+      "categoria": "Diritto industriale - marchi",
+      "competenza": "Sezione specializzata in materia di impresa",
+      "normativa": [
+        {"fonte": "D.Lgs. 30/2005 (CPI)", "articolo": "7-28", "descrizione": "Marchi"},
+        {"fonte": "Reg. UE 2017/1001", "descrizione": "Marchio dell'Unione Europea"}
+      ]
+    },
+    {"codice": "170009", "denominazione": "Brevetto (invenzione e modello) - Marchio: altre ipotesi", "eredita_da": "170002"},
+    {
+      "codice": "170011",
+      "denominazione": "Concorrenza sleale",
+      "categoria": "Concorrenza sleale",
+      "competenza": "Sezione specializzata in materia di impresa (se interferente con diritti IP) o Tribunale ordinario",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2598-2601", "descrizione": "Concorrenza sleale"}
+      ],
+      "tipologie": [
+        "Confusoria (art. 2598 n. 1)",
+        "Denigratoria/appropriazione pregi (n. 2)",
+        "Contraria a correttezza professionale (n. 3)"
+      ]
+    },
+    {"codice": "170013", "denominazione": "Concorrenza sleale interferente", "eredita_da": "170011"},
+    {"codice": "170014", "denominazione": "Marchi di fatto", "normativa": [{"fonte": "c.c.", "articolo": "2571", "descrizione": "Marchio di fatto"}]},
+    {"codice": "170015", "denominazione": "Nome a dominio", "normativa": [{"fonte": "D.Lgs. 30/2005", "articolo": "22", "descrizione": "Unitarietà dei segni distintivi - nomi a dominio"}]},
+    {
+      "codice": "170021",
+      "denominazione": "Diritto di autore",
+      "categoria": "Diritto d'autore",
+      "competenza": "Sezione specializzata in materia di impresa",
+      "normativa": [
+        {"fonte": "L. 633/1941", "descrizione": "Protezione del diritto d'autore"}
+      ]
+    },
+    {"codice": "170031", "denominazione": "Ditta - Insegna - Denominazione sociale - Ragione sociale", "normativa": [{"fonte": "c.c.", "articolo": "2563-2574", "descrizione": "Segni distintivi"}]},
+    {"codice": "170041", "denominazione": "Antitrust afferente diritti di proprietà industriale", "competenza": "Sezione specializzata in materia di impresa"},
+    {"codice": "170042", "denominazione": "Antitrust", "normativa": [{"fonte": "L. 287/1990", "descrizione": "Tutela concorrenza e mercato"}]},
+    {"codice": "170999", "denominazione": "Altri istituti di diritto industriale"},
+    {
+      "codice": "171001",
+      "denominazione": "Opposizione alla sentenza dichiarativa di fallimento (art. 18 L.F.)",
+      "categoria": "Procedura concorsuale - opposizione apertura",
+      "note_riforma": "Sostituito dal Codice della Crisi d'Impresa (D.Lgs. 14/2019) - oggi: reclamo contro sentenza di apertura della liquidazione giudiziale ex art. 51 CCII",
+      "normativa": [
+        {"fonte": "D.Lgs. 14/2019 (CCII)", "articolo": "51", "descrizione": "Reclamo contro sentenza apertura liquidazione giudiziale"},
+        {"fonte": "R.D. 267/1942 (L.F.)", "articolo": "18", "descrizione": "Opposizione sentenza fallimento (per procedure ante 15/7/2022)"}
+      ],
+      "competenza": "Corte di Appello",
+      "atto_principale": {
+        "tipo_atto": "reclamo_sentenza_apertura_liquidazione",
+        "campi_chiave": [
+          {"id": "sentenza_apertura", "label": "Sentenza apertura", "type": "object", "required": true},
+          {"id": "data_pubblicazione", "label": "Data pubblicazione sentenza", "type": "date", "required": true},
+          {"id": "motivi_reclamo", "label": "Motivi", "type": "textarea", "required": true},
+          {"id": "richiesta_sospensione_ese", "label": "Richiesta sospensione esecuzione", "type": "boolean"}
+        ],
+        "avvertimenti_obbligatori": ["Termine 30 gg dalla notifica ex art. 51 CCII"]
+      },
+      "termini_processuali": [
+        {"termine": "Reclamo", "giorni": 30, "decorrenza": "notificazione sentenza", "natura": "perentorio"}
+      ]
+    },
+    {"codice": "171002", "denominazione": "Opposizione all'accertamento dello stato di insolvenza"},
+    {"codice": "171101", "denominazione": "Azione di inefficacia ex art. 44 L.F.", "note": "Oggi art. 144 CCII"},
+    {"codice": "171102", "denominazione": "Azione di inefficacia ex art. 64 L.F.", "note": "Oggi art. 163 CCII"},
+    {"codice": "171103", "denominazione": "Azione ex artt. 72 e ss. L.F.", "note": "Rapporti pendenti - oggi artt. 172 e ss. CCII"},
+    {"codice": "171104", "denominazione": "Azione di inefficacia ex art. 167 L.F."},
+    {
+      "codice": "171105",
+      "denominazione": "Azione revocatoria fallimentare (artt. 67 e ss. L.F.)",
+      "categoria": "Revocatoria fallimentare",
+      "note_riforma": "Oggi disciplinata dagli artt. 165-170 CCII (azione revocatoria nella liquidazione giudiziale)",
+      "normativa": [
+        {"fonte": "D.Lgs. 14/2019 (CCII)", "articolo": "165-170", "descrizione": "Azioni revocatorie"},
+        {"fonte": "R.D. 267/1942 (L.F.)", "articolo": "67", "descrizione": "Atti revocabili (per procedure ante 15/7/2022)"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_revocatoria_fallimentare",
+        "campi_chiave": [
+          {"id": "curatore_attore", "label": "Curatore", "type": "object_persona", "required": true},
+          {"id": "atti_revocandi", "label": "Atti revocandi", "type": "array", "required": true},
+          {"id": "periodo_sospetto", "label": "Periodo sospetto (6 mesi/1 anno/2 anni)", "type": "select", "required": true},
+          {"id": "scientia_decoctionis", "label": "Esposizione scientia decoctionis", "type": "textarea"}
+        ]
+      }
+    },
+    {
+      "codice": "171201",
+      "denominazione": "Opposizione allo stato passivo (art. 98 L.F.)",
+      "categoria": "Stato passivo",
+      "note_riforma": "Oggi art. 206 CCII",
+      "normativa": [
+        {"fonte": "D.Lgs. 14/2019 (CCII)", "articolo": "206", "descrizione": "Impugnazione e opposizione stato passivo"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_opposizione_stato_passivo",
+        "campi_chiave": [
+          {"id": "procedura", "label": "Procedura concorsuale", "type": "object", "required": true},
+          {"id": "data_esecutivita_passivo", "label": "Data esecutività stato passivo", "type": "date", "required": true},
+          {"id": "credito_oggetto", "label": "Credito oggetto opposizione", "type": "object", "required": true},
+          {"id": "motivi", "label": "Motivi opposizione", "type": "textarea", "required": true}
+        ],
+        "avvertimenti_obbligatori": ["Termine 30 gg dalla comunicazione esecutività stato passivo"]
+      },
+      "termini_processuali": [
+        {"termine": "Opposizione", "giorni": 30, "decorrenza": "comunicazione esecutività stato passivo", "natura": "perentorio"}
+      ]
+    },
+    {"codice": "171202", "denominazione": "Impugnazione dei crediti ammessi (art. 100 L.F.)", "eredita_da": "171201"},
+    {
+      "codice": "171203",
+      "denominazione": "Insinuazione tardiva di credito (art. 101 L.F.)",
+      "categoria": "Domanda tardiva al passivo",
+      "note_riforma": "Oggi art. 208 CCII",
+      "normativa": [
+        {"fonte": "D.Lgs. 14/2019 (CCII)", "articolo": "208", "descrizione": "Domande tardive"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_insinuazione_tardiva",
+        "campi_chiave": [
+          {"id": "procedura", "label": "Procedura concorsuale", "type": "object", "required": true},
+          {"id": "credito", "label": "Credito da insinuare", "type": "object", "required": true},
+          {"id": "motivo_tardivita", "label": "Motivo della tardività (non imputabile)", "type": "textarea"}
+        ]
+      }
+    },
+    {"codice": "171204", "denominazione": "Istanza di revocazione contro crediti ammessi (art. 102 L.F.)", "note": "Oggi art. 207 CCII"},
+    {"codice": "171205", "denominazione": "Domande di rivendicazione, restituzione e separazione di cose mobili (art. 103 L.F.)", "note": "Oggi parte degli artt. 201-208 CCII"},
+    {"codice": "171301", "denominazione": "Contestazione avverso il rendiconto del curatore (art. 116 L.F.)", "note": "Oggi art. 231 CCII"},
+    {"codice": "171311", "denominazione": "Cause di omologazione di concordato fallimentare (artt. 124 e ss. L.F.)", "note": "Oggi artt. 240-246 CCII"},
+    {"codice": "171321", "denominazione": "Cause di omologazione di concordato preventivo (art. 160 e ss. L.F.)", "note": "Oggi artt. 84-120 CCII"},
+    {"codice": "171999", "denominazione": "Altri istituti di diritto fallimentare", "note": "Oggi: altri istituti del Codice della Crisi d'Impresa"},
+    {"codice": "172001", "denominazione": "Brevetto/Marchio (vecchio codice)", "note": "Codice da verificare - usato pre-istituzione sezione impresa"},
+    {"codice": "172011", "denominazione": "Concorrenza sleale (vecchio codice)"},
+    {"codice": "172012", "denominazione": "Concorrenza sleale interferente - marchio di fatto - nome a dominio (vecchio codice)"},
+    {"codice": "172021", "denominazione": "Diritto di autore (vecchio codice)"},
+    {"codice": "172031", "denominazione": "Ditta - Insegna - Denominazione sociale (vecchio codice)"},
+    {"codice": "172999", "denominazione": "Altri istituti di diritto industriale (vecchio codice)"},
+    {"codice": "173001", "denominazione": "Brevetto/Marchio (codice variante)"},
+    {"codice": "173011", "denominazione": "Concorrenza sleale (codice variante)"},
+    {"codice": "173012", "denominazione": "Concorrenza sleale interferente - marchio di fatto - nome a dominio (codice variante)"},
+    {"codice": "173021", "denominazione": "Diritto di autore (codice variante)"},
+    {"codice": "173031", "denominazione": "Ditta - Insegna - Denominazione sociale (codice variante)"},
+    {"codice": "173999", "denominazione": "Altri istituti di diritto industriale (codice variante)"},
+    {
+      "codice": "180001",
+      "denominazione": "Opposizione all'ordinanza-ingiunzione ex artt. 22 e ss. L. 689/1981 (escluso lavoro)",
+      "categoria": "Opposizioni a sanzioni amministrative",
+      "rito": "Rito del lavoro (per richiamo D.Lgs. 150/2011 art. 6)",
+      "competenza": "Tribunale o Giudice di Pace per materia",
+      "normativa": [
+        {"fonte": "L. 689/1981", "articolo": "22-23", "descrizione": "Opposizione all'ordinanza-ingiunzione"},
+        {"fonte": "D.Lgs. 150/2011", "articolo": "6", "descrizione": "Controversie in materia di opposizione a ordinanza-ingiunzione"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_opposizione_ordinanza_ingiunzione",
+        "campi_chiave": [
+          {"id": "ordinanza_ingiunzione", "label": "Estremi ordinanza-ingiunzione", "type": "object", "required": true},
+          {"id": "autorita_emittente", "label": "Autorità emittente", "type": "string", "required": true},
+          {"id": "data_notificazione", "label": "Data notificazione", "type": "date", "required": true},
+          {"id": "motivi_opposizione", "label": "Motivi opposizione", "type": "textarea", "required": true},
+          {"id": "importo_sanzione", "label": "Importo sanzione", "type": "currency", "required": true},
+          {"id": "richiesta_sospensione", "label": "Richiesta sospensione provvisoria esecuzione", "type": "boolean"}
+        ],
+        "avvertimenti_obbligatori": ["Termine 30 gg dalla notificazione (60 gg per residenti all'estero) ex art. 6 c. 6 D.Lgs. 150/2011"]
+      },
+      "termini_processuali": [
+        {"termine": "Opposizione", "giorni": 30, "decorrenza": "notificazione ordinanza", "natura": "perentorio"}
+      ]
+    },
+    {"codice": "180002", "denominazione": "Opposizione ord. ingiunzione ex art. 22 L. 689/1981 (esclusi assegni e lavoro)", "eredita_da": "180001"},
+    {
+      "codice": "180011",
+      "denominazione": "Risarcimento danni da occupazione illegittima ed accessione invertita",
+      "categoria": "Risarcimento P.A.",
+      "normativa": [
+        {"fonte": "D.P.R. 327/2001", "descrizione": "Testo Unico Espropriazione"},
+        {"fonte": "L. 2359/1865", "descrizione": "Espropriazioni storiche"}
+      ]
+    },
+    {"codice": "180021", "denominazione": "Contenzioso di diritto tributario e doganale", "note": "Competenza Corti di Giustizia Tributaria (post D.Lgs. 156/2015 e L. 130/2022)"},
+    {"codice": "180031", "denominazione": "Contenzioso di diritto valutario"},
+    {"codice": "180041", "denominazione": "Contenzioso relativo a beni demaniali"},
+    {
+      "codice": "180051",
+      "denominazione": "Risarcimento danni da provvedimento illegittimo della P.A.",
+      "categoria": "Responsabilità P.A.",
+      "normativa": [
+        {"fonte": "L. 241/1990", "descrizione": "Procedimento amministrativo"},
+        {"fonte": "c.c.", "articolo": "2043", "descrizione": "Risarcimento per fatto illecito"}
+      ]
+    },
+    {"codice": "180099", "denominazione": "Opposizione ord. ingiunzione L. 689/81 (residuali)", "eredita_da": "180001"},
+    {"codice": "180999", "denominazione": "Altre controversie di diritto amministrativo"},
+    {"codice": "201002", "denominazione": "Revocazione della sentenza ex artt. 395 e ss. c.p.c. (codice variante)", "eredita_da": "101002"}
+  ]
+}

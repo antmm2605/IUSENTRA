@@ -1,0 +1,450 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "01_PROCEDIMENTI_SPECIALI_ANTE_CAUSAM",
+  "denominazione": "Procedimenti speciali ante causam e cautelari",
+  "registro": "SICID",
+  "rito_base": "Procedimenti speciali ex Libro IV c.p.c.",
+  "codici_materia": [
+    {
+      "codice": "010001",
+      "denominazione": "Procedimento di ingiunzione ante causam",
+      "categoria": "Procedimenti speciali sommari",
+      "sottocategoria": "Procedimento di ingiunzione",
+      "rito": "Procedimento monitorio ex artt. 633-656 c.p.c.",
+      "competenza": "Giudice competente per la causa nel merito (art. 637 c.p.c.)",
+      "uffici_destinatari": ["SICID", "CASSAZIONE", "UNEP"],
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "633", "descrizione": "Casi nei quali si può domandare l'ingiunzione"},
+        {"fonte": "c.p.c.", "articolo": "634", "descrizione": "Prova scritta del credito"},
+        {"fonte": "c.p.c.", "articolo": "635", "descrizione": "Prove speciali per il credito risultante da scritture contabili"},
+        {"fonte": "c.p.c.", "articolo": "636", "descrizione": "Onorari professionali e rimborsi"},
+        {"fonte": "c.p.c.", "articolo": "638", "descrizione": "Forma della domanda"},
+        {"fonte": "c.p.c.", "articolo": "641", "descrizione": "Accoglimento della domanda - decreto"},
+        {"fonte": "c.p.c.", "articolo": "642", "descrizione": "Esecuzione provvisoria"},
+        {"fonte": "c.p.c.", "articolo": "643", "descrizione": "Notificazione del decreto"},
+        {"fonte": "c.p.c.", "articolo": "644", "descrizione": "Inefficacia del decreto per omessa notificazione"},
+        {"fonte": "c.p.c.", "articolo": "645", "descrizione": "Opposizione"}
+      ],
+      "presupposti_sostanziali": [
+        "Credito certo, liquido ed esigibile di somma di denaro o di consegna di cosa fungibile o di cosa mobile determinata",
+        "Prova scritta del credito (art. 634 c.p.c.)",
+        "Per professionisti: parcella vistata dal proprio ordine (art. 636 c.p.c.)"
+      ],
+      "obbligo_mediazione": {"obbligatoria": false, "fase": "eventuale opposizione su materie ex art. 5 D.Lgs. 28/2010"},
+      "atto_principale": {
+        "tipo_atto": "ricorso_decreto_ingiuntivo",
+        "denominazione": "Ricorso per decreto ingiuntivo",
+        "schema_xsd_ministeriale": "AttoMonitorio.xsd",
+        "campi_chiave": [
+          {"id": "tribunale", "label": "Tribunale competente", "type": "select", "required": true},
+          {"id": "ricorrente", "label": "Dati ricorrente (creditore)", "type": "object_persona", "required": true},
+          {"id": "ingiungendo", "label": "Dati ingiungendo (debitore)", "type": "object_persona", "required": true},
+          {"id": "difensore", "label": "Difensore con procura", "type": "object_avvocato", "required": true},
+          {"id": "importo_capitale", "label": "Capitale richiesto", "type": "currency", "required": true},
+          {"id": "interessi", "label": "Interessi (decorrenza, tipo)", "type": "object_interessi", "required": true},
+          {"id": "causale_credito", "label": "Causale del credito", "type": "textarea", "required": true},
+          {"id": "prova_scritta", "label": "Prova scritta indicata", "type": "select", "required": true, "options": ["fattura", "estratto_scritture_contabili", "scrittura_privata", "atto_pubblico", "parcella_vistata", "altro"]},
+          {"id": "esecuzione_provvisoria", "label": "Richiesta esecuzione provvisoria ex art. 642 c.p.c.", "type": "boolean", "default": false},
+          {"id": "spese_competenze", "label": "Spese, competenze e onorari richiesti", "type": "currency", "required": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "Indicazione termine 40 giorni per opposizione (art. 641 c.p.c.)",
+          "Avvertimento ex art. 645 c.p.c. sull'opposizione",
+          "Indicazione che in mancanza il decreto diventa esecutivo ex art. 647 c.p.c."
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "prova_scritta_credito", "label": "Documenti probatori del credito", "required": true},
+        {"id": "procura", "label": "Procura alle liti", "required": true},
+        {"id": "estratto_scritture_contabili", "label": "Estratto autentico scritture contabili (se applicabile)", "required": false},
+        {"id": "vidima_ordine_professionale", "label": "Vidima dell'ordine professionale (per parcelle)", "required": false}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Ridotto alla metà ex art. 13 c. 3 DPR 115/2002",
+        "marca_bollo": 27.0,
+        "deposito_telematico": "Obbligatorio ex art. 196-quater disp. att. c.p.c."
+      },
+      "atti_collegati": [
+        {"tipo": "atto_precetto", "trigger": "Notifica decreto esecutivo + 10gg", "automatico": false},
+        {"tipo": "comparsa_costituzione_opposizione", "trigger": "Opposizione ex art. 645 c.p.c.", "automatico": false}
+      ],
+      "termini_processuali": [
+        {"termine": "Notifica decreto al debitore", "giorni": 60, "decorrenza": "deposito decreto", "natura": "perentorio", "norma": "art. 644 c.p.c."},
+        {"termine": "Opposizione", "giorni": 40, "decorrenza": "notifica decreto", "natura": "perentorio", "norma": "art. 641 c.p.c."}
+      ]
+    },
+    {
+      "codice": "010002",
+      "denominazione": "Procedimento di ingiunzione ante causam (intermediazione finanziaria, bancaria e creditizia)",
+      "eredita_da": "010001",
+      "differenze_rispetto_a_padre": {
+        "normativa_aggiuntiva": [
+          {"fonte": "D.Lgs. 385/1993 (TUB)", "articolo": "vari", "descrizione": "Testo Unico Bancario"},
+          {"fonte": "D.Lgs. 58/1998 (TUF)", "articolo": "vari", "descrizione": "Testo Unico Finanza"}
+        ],
+        "competenza_specializzata": "Sezione specializzata in materia di impresa per controversie societarie/finanziarie",
+        "avvertenze": ["Verificare clausole di mediazione obbligatoria per contratti bancari ex art. 128-bis TUB", "Per saldo conto corrente: necessario estratto conto autentico ex art. 50 TUB come prova scritta privilegiata"]
+      }
+    },
+    {
+      "codice": "011001",
+      "denominazione": "Sequestro conservativo ex art. 671 c.p.c.",
+      "categoria": "Procedimenti cautelari",
+      "rito": "Procedimento cautelare uniforme ex artt. 669-bis e ss. c.p.c.",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "671", "descrizione": "Sequestro conservativo"},
+        {"fonte": "c.p.c.", "articolo": "669-bis - 669-terdecies", "descrizione": "Procedimento cautelare uniforme"},
+        {"fonte": "c.c.", "articolo": "2905-2906", "descrizione": "Effetti del sequestro conservativo"}
+      ],
+      "presupposti_sostanziali": [
+        "Fumus boni iuris: probabile esistenza del credito",
+        "Periculum in mora: fondato timore di perdere le garanzie del credito"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_sequestro_conservativo",
+        "denominazione": "Ricorso per sequestro conservativo ante causam",
+        "campi_chiave": [
+          {"id": "credito_da_garantire", "label": "Credito da garantire (importo e titolo)", "type": "object_credito", "required": true},
+          {"id": "fumus", "label": "Esposizione fumus boni iuris", "type": "textarea", "required": true},
+          {"id": "periculum", "label": "Esposizione periculum in mora", "type": "textarea", "required": true},
+          {"id": "beni_da_sequestrare", "label": "Beni da sequestrare (identificazione specifica)", "type": "array", "required": true},
+          {"id": "valore_beni", "label": "Valore stimato beni", "type": "currency", "required": true},
+          {"id": "richiesta_inaudita_altera_parte", "label": "Richiesta inaudita altera parte ex art. 669-sexies c.p.c.", "type": "boolean"},
+          {"id": "cauzione_offerta", "label": "Cauzione offerta", "type": "currency", "required": false}
+        ],
+        "avvertimenti_obbligatori": [
+          "Indicazione termine perentorio 60 gg per inizio causa merito ex art. 669-octies c.p.c.",
+          "Avvertimento conseguenze ex art. 669-novies in caso di omessa instaurazione del merito"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "documenti_credito", "label": "Documentazione probatoria del credito", "required": true},
+        {"id": "prova_periculum", "label": "Documenti a prova del periculum", "required": true},
+        {"id": "visure_beni", "label": "Visure beni da sequestrare (catastali, PRA, ecc.)", "required": false}
+      ],
+      "termini_processuali": [
+        {"termine": "Instaurazione causa di merito post-sequestro", "giorni": 60, "decorrenza": "esecuzione sequestro", "natura": "perentorio", "norma": "art. 669-octies c.p.c."}
+      ]
+    },
+    {
+      "codice": "011002",
+      "denominazione": "Sequestro giudiziario ex art. 670 c.p.c.",
+      "eredita_da": "011001",
+      "differenze_rispetto_a_padre": {
+        "normativa_principale": [{"fonte": "c.p.c.", "articolo": "670", "descrizione": "Sequestro giudiziario di beni e prove"}],
+        "presupposti_specifici": [
+          "Controversia sulla proprietà o sul possesso (n. 1)",
+          "Necessità di custodia o gestione temporanea (n. 1)",
+          "Per documenti/prove: opportunità di sequestro per integrità (n. 2)"
+        ],
+        "tipologie": [
+          "Sequestro di beni di cui è controversa proprietà/possesso",
+          "Sequestro di libri, registri, documenti, modelli, campioni"
+        ]
+      }
+    },
+    {
+      "codice": "011003",
+      "denominazione": "Sequestro liberatorio ex art. 687 c.p.c.",
+      "eredita_da": "011001",
+      "differenze_rispetto_a_padre": {
+        "normativa_principale": [{"fonte": "c.p.c.", "articolo": "687", "descrizione": "Sequestro liberatorio"}],
+        "presupposti_specifici": ["Debitore che ha offerto cose mobili in pagamento e creditore le rifiuta", "Disputa su quantità o qualità delle cose"]
+      }
+    },
+    {
+      "codice": "011011",
+      "denominazione": "Sequestro da norme speciali (L. 633/1941 diritto d'autore, R.D. 1127/1939 invenzioni, R.D. 929/1942 marchi)",
+      "eredita_da": "011001",
+      "differenze_rispetto_a_padre": {
+        "normativa_aggiuntiva": [
+          {"fonte": "L. 633/1941", "articolo": "161", "descrizione": "Sequestro per violazione diritto d'autore"},
+          {"fonte": "D.Lgs. 30/2005 (CPI)", "articolo": "129", "descrizione": "Misure cautelari proprietà industriale"}
+        ],
+        "competenza": "Sezione specializzata in materia di impresa"
+      }
+    },
+    {
+      "codice": "012001",
+      "denominazione": "Prova testimoniale e/o Accertamento tecnico preventivo (ATP)",
+      "categoria": "Istruzione preventiva",
+      "rito": "Procedimento di istruzione preventiva ex artt. 692-699 c.p.c.",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "692", "descrizione": "Casi di assunzione preventiva di testimoni"},
+        {"fonte": "c.p.c.", "articolo": "696", "descrizione": "Accertamento tecnico e ispezione giudiziale"},
+        {"fonte": "c.p.c.", "articolo": "696-bis", "descrizione": "Consulenza tecnica preventiva ai fini della composizione della lite"},
+        {"fonte": "c.p.c.", "articolo": "698", "descrizione": "Efficacia degli atti di istruzione preventiva"}
+      ],
+      "presupposti_sostanziali": [
+        "Per ATP: urgenza di verificare prima del giudizio stato di luoghi/qualità/condizioni cose",
+        "Per CTU preventiva ex 696-bis: possibilità di composizione della lite",
+        "Periculum in mora (per ATP ex 696)"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_atp",
+        "denominazione": "Ricorso per accertamento tecnico preventivo / consulenza tecnica preventiva",
+        "campi_chiave": [
+          {"id": "tipo_istruzione", "label": "Tipo istruzione preventiva", "type": "select", "required": true, "options": ["atp_art_696", "ctu_preventiva_art_696_bis", "prova_testimoniale_art_692", "ispezione_art_696"]},
+          {"id": "oggetto_accertamento", "label": "Oggetto dell'accertamento", "type": "textarea", "required": true},
+          {"id": "quesiti_ctu", "label": "Quesiti da sottoporre al CTU", "type": "array", "required": true},
+          {"id": "periculum", "label": "Esposizione periculum in mora", "type": "textarea", "required": true},
+          {"id": "controparte_dati", "label": "Dati controparte", "type": "object_persona", "required": true},
+          {"id": "luogo_accertamento", "label": "Luogo dell'accertamento", "type": "string", "required": true}
+        ],
+        "avvertimenti_obbligatori": ["Indicazione che la CTU ex 696-bis ha funzione conciliativa"]
+      },
+      "allegati_obbligatori": [
+        {"id": "documenti_prova_diritto", "label": "Documenti relativi al diritto fatto valere", "required": true},
+        {"id": "foto_documentazione", "label": "Documentazione fotografica dei luoghi (se applicabile)", "required": false}
+      ]
+    },
+    {
+      "codice": "012011",
+      "denominazione": "Ispezione preventiva",
+      "eredita_da": "012001",
+      "differenze_rispetto_a_padre": {
+        "normativa_principale": [{"fonte": "c.p.c.", "articolo": "696", "descrizione": "Ispezione giudiziale preventiva"}]
+      }
+    },
+    {
+      "codice": "012021",
+      "denominazione": "Descrizione (art. 161 L. 633/1941, artt. 81-82 R.D. 1127/1939, artt. 61-62 R.D. 929/1942)",
+      "categoria": "Misure cautelari proprietà intellettuale",
+      "competenza": "Sezione specializzata in materia di impresa",
+      "normativa": [
+        {"fonte": "L. 633/1941", "articolo": "161", "descrizione": "Descrizione per violazione diritto d'autore"},
+        {"fonte": "D.Lgs. 30/2005 (CPI)", "articolo": "128-129", "descrizione": "Descrizione e sequestro"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_descrizione",
+        "denominazione": "Ricorso per descrizione ex art. 129 CPI / 161 LDA",
+        "campi_chiave": [
+          {"id": "titolo_proprieta", "label": "Titolo di proprietà intellettuale (brevetto, marchio, opera)", "type": "object", "required": true},
+          {"id": "oggetto_descrizione", "label": "Oggetto della descrizione", "type": "textarea", "required": true},
+          {"id": "luogo_esecuzione", "label": "Luogo esecuzione", "type": "string", "required": true},
+          {"id": "richiesta_inaudita", "label": "Richiesta inaudita altera parte", "type": "boolean", "default": true}
+        ]
+      }
+    },
+    {
+      "codice": "013001",
+      "denominazione": "Inibitoria (art. 63 R.D. 929/1942 marchi, art. 83 R.D. 1127/1939 brevetti, L. 52/1996)",
+      "categoria": "Misure cautelari proprietà intellettuale",
+      "competenza": "Sezione specializzata in materia di impresa",
+      "normativa": [
+        {"fonte": "D.Lgs. 30/2005 (CPI)", "articolo": "131", "descrizione": "Inibitoria"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_inibitoria_cautelare",
+        "denominazione": "Ricorso per inibitoria cautelare in materia di proprietà industriale",
+        "campi_chiave": [
+          {"id": "diritto_violato", "label": "Diritto di privativa violato", "type": "object", "required": true},
+          {"id": "atti_contraffazione", "label": "Descrizione atti di contraffazione/concorrenza sleale", "type": "textarea", "required": true},
+          {"id": "richiesta_penale", "label": "Richiesta penalità ex art. 131 c. 2 CPI", "type": "boolean"},
+          {"id": "importo_penalita", "label": "Importo penalità per ogni violazione", "type": "currency"}
+        ]
+      }
+    },
+    {
+      "codice": "014001",
+      "denominazione": "Istanza sospensione dell'esecuzione ex art. 373 c.p.c.",
+      "categoria": "Procedimenti cautelari di legittimità",
+      "rito": "Istanza incidentale al giudice della causa",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "373", "descrizione": "Sospensione dell'esecuzione della sentenza impugnata per cassazione"}
+      ],
+      "presupposti_sostanziali": [
+        "Pendenza di ricorso per cassazione",
+        "Grave e irreparabile danno dall'esecuzione"
+      ],
+      "atto_principale": {
+        "tipo_atto": "istanza_sospensione_373",
+        "campi_chiave": [
+          {"id": "sentenza_impugnata", "label": "Estremi sentenza impugnata", "type": "string", "required": true},
+          {"id": "ricorso_cassazione", "label": "Estremi ricorso Cassazione", "type": "string", "required": true},
+          {"id": "danno_grave_irreparabile", "label": "Esposizione del danno", "type": "textarea", "required": true}
+        ]
+      }
+    },
+    {
+      "codice": "014002",
+      "denominazione": "Provvedimenti cautelari in materia di tutela della concorrenza e del mercato",
+      "categoria": "Misure cautelari antitrust",
+      "competenza": "Sezione specializzata in materia di impresa",
+      "normativa": [
+        {"fonte": "L. 287/1990", "articolo": "33", "descrizione": "Competenza per cause antitrust"},
+        {"fonte": "c.p.c.", "articolo": "700", "descrizione": "Provvedimenti d'urgenza"}
+      ]
+    },
+    {
+      "codice": "014100",
+      "denominazione": "Reclamo alla Corte di Appello avverso Procedimenti Cautelari",
+      "categoria": "Impugnazioni cautelari",
+      "rito": "Reclamo cautelare ex art. 669-terdecies c.p.c.",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "669-terdecies", "descrizione": "Reclamo contro provvedimenti cautelari"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "reclamo_cautelare",
+        "campi_chiave": [
+          {"id": "provvedimento_reclamato", "label": "Provvedimento cautelare reclamato", "type": "string", "required": true},
+          {"id": "data_notificazione_provvedimento", "label": "Data comunicazione provvedimento", "type": "date", "required": true},
+          {"id": "motivi_reclamo", "label": "Motivi di reclamo", "type": "textarea", "required": true},
+          {"id": "richiesta_sospensione", "label": "Richiesta sospensione esecuzione provvedimento", "type": "boolean"}
+        ],
+        "avvertimenti_obbligatori": ["Termine perentorio 15 gg dalla comunicazione/notificazione del provvedimento"]
+      },
+      "termini_processuali": [
+        {"termine": "Proposizione reclamo", "giorni": 15, "decorrenza": "comunicazione/notificazione provvedimento", "natura": "perentorio"}
+      ]
+    },
+    {
+      "codice": "015001",
+      "denominazione": "Denuncia di nuova opera o di danno temuto (art. 688 c.p.c.)",
+      "categoria": "Procedimenti cautelari possessori",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "688-691", "descrizione": "Denuncia di nuova opera e danno temuto"},
+        {"fonte": "c.c.", "articolo": "1171-1172", "descrizione": "Denuncia"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_denuncia_nuova_opera",
+        "campi_chiave": [
+          {"id": "nuova_opera", "label": "Descrizione nuova opera/danno temuto", "type": "textarea", "required": true},
+          {"id": "luogo_opera", "label": "Ubicazione opera", "type": "string", "required": true},
+          {"id": "data_inizio_opera", "label": "Data inizio opera (deve essere < 1 anno)", "type": "date", "required": true},
+          {"id": "richiesta_misure", "label": "Misure cautelari richieste", "type": "select", "options": ["divieto_continuazione", "modifica_opera", "rimozione", "cauzione"]}
+        ],
+        "avvertimenti_obbligatori": ["Termine annuale dalla scoperta del danno o inizio opera (art. 1171-1172 c.c.)"]
+      }
+    },
+    {
+      "codice": "015011",
+      "denominazione": "Provvedimenti d'urgenza ex art. 700 c.p.c.",
+      "categoria": "Procedimenti cautelari atipici",
+      "rito": "Procedimento cautelare uniforme",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "700", "descrizione": "Condizioni per la concessione dei provvedimenti d'urgenza"},
+        {"fonte": "c.p.c.", "articolo": "669-bis e ss.", "descrizione": "Procedimento cautelare uniforme"}
+      ],
+      "presupposti_sostanziali": [
+        "Fumus boni iuris",
+        "Periculum in mora: pregiudizio imminente e irreparabile durante il tempo del giudizio ordinario",
+        "Residualità: assenza di altri strumenti cautelari tipici"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_art_700",
+        "denominazione": "Ricorso per provvedimento d'urgenza ex art. 700 c.p.c.",
+        "campi_chiave": [
+          {"id": "diritto_da_tutelare", "label": "Diritto da tutelare", "type": "textarea", "required": true},
+          {"id": "fumus", "label": "Esposizione fumus boni iuris", "type": "textarea", "required": true},
+          {"id": "periculum_imminente", "label": "Periculum: pregiudizio imminente e irreparabile", "type": "textarea", "required": true},
+          {"id": "misura_richiesta", "label": "Misura cautelare richiesta", "type": "textarea", "required": true},
+          {"id": "residualita", "label": "Motivazione residualità (mancanza altri mezzi)", "type": "textarea", "required": true},
+          {"id": "richiesta_inaudita", "label": "Richiesta inaudita altera parte", "type": "boolean"}
+        ],
+        "avvertimenti_obbligatori": [
+          "Esposizione specifica del periculum in mora (irreparabilità del pregiudizio)",
+          "Motivazione sulla residualità (presupposto giurisprudenziale)"
+        ]
+      },
+      "termini_processuali": [
+        {"termine": "Instaurazione merito (se ante causam, per misure conservative)", "giorni": 60, "decorrenza": "esecuzione misura", "natura": "perentorio", "norma": "art. 669-octies c.p.c."}
+      ]
+    },
+    {
+      "codice": "016001",
+      "denominazione": "Mantenimento figli naturali o legittimi (istanza ex art. 148 c.c.)",
+      "categoria": "Procedimenti speciali in materia di famiglia",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "148", "descrizione": "Concorso negli oneri di mantenimento dei figli"},
+        {"fonte": "c.c.", "articolo": "316-bis", "descrizione": "Concorso al mantenimento"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_mantenimento_figli",
+        "campi_chiave": [
+          {"id": "minori", "label": "Dati minori da mantenere", "type": "array_persone", "required": true},
+          {"id": "obbligato_inadempiente", "label": "Genitore obbligato inadempiente", "type": "object_persona", "required": true},
+          {"id": "importo_mensile_richiesto", "label": "Importo mensile richiesto", "type": "currency", "required": true},
+          {"id": "redditi_obbligato", "label": "Documentazione redditi obbligato", "type": "file_multi"}
+        ]
+      }
+    },
+    {
+      "codice": "016011",
+      "denominazione": "Assegno provvisorio per alimenti (art. 446 c.c.)",
+      "categoria": "Procedimenti speciali in materia di alimenti",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "443-448", "descrizione": "Obbligazione alimentare"},
+        {"fonte": "c.c.", "articolo": "446", "descrizione": "Assegnazione provvisoria"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_alimenti_provvisori",
+        "campi_chiave": [
+          {"id": "stato_bisogno", "label": "Stato di bisogno dell'alimentando", "type": "textarea", "required": true},
+          {"id": "obbligato", "label": "Obbligato (ordine ex art. 433 c.c.)", "type": "object_persona", "required": true},
+          {"id": "importo_alimenti", "label": "Importo alimenti richiesti", "type": "currency", "required": true},
+          {"id": "decorrenza", "label": "Decorrenza domanda", "type": "date", "required": true}
+        ]
+      }
+    },
+    {
+      "codice": "019999",
+      "denominazione": "Altri procedimenti cautelari",
+      "categoria": "Procedimenti cautelari residuali",
+      "note": "Codice generico - verificare normativa applicabile in base alla specifica fattispecie"
+    },
+    {
+      "codice": "020001",
+      "denominazione": "Azione di reintegrazione nel possesso (artt. 703 c.p.c., 1168-1169 c.c.)",
+      "categoria": "Azioni possessorie",
+      "rito": "Procedimento possessorio ex art. 703 c.p.c. + eventuale fase di merito ex 447-bis",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "703", "descrizione": "Domanda di tutela del possesso"},
+        {"fonte": "c.c.", "articolo": "1168", "descrizione": "Azione di reintegrazione (spoglio)"},
+        {"fonte": "c.c.", "articolo": "1169", "descrizione": "Spoglio clandestino"}
+      ],
+      "presupposti_sostanziali": [
+        "Possesso (anche detenzione qualificata) sul bene",
+        "Spoglio violento o clandestino",
+        "Termine annuale dallo spoglio (o dalla scoperta se clandestino)"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_reintegrazione_possesso",
+        "denominazione": "Ricorso ex art. 703 c.p.c. per reintegrazione nel possesso",
+        "campi_chiave": [
+          {"id": "bene_oggetto", "label": "Bene oggetto del possesso", "type": "object", "required": true},
+          {"id": "titolo_possesso", "label": "Titolo/natura del possesso", "type": "textarea", "required": true},
+          {"id": "data_spoglio", "label": "Data dello spoglio", "type": "date", "required": true},
+          {"id": "tipo_spoglio", "label": "Tipo spoglio", "type": "select", "required": true, "options": ["violento", "clandestino"]},
+          {"id": "autore_spoglio", "label": "Autore dello spoglio", "type": "object_persona", "required": true},
+          {"id": "descrizione_fatti", "label": "Descrizione fatti dello spoglio", "type": "textarea", "required": true},
+          {"id": "misure_cautelari_richieste", "label": "Misure cautelari/provvisorie richieste", "type": "textarea"}
+        ],
+        "avvertimenti_obbligatori": ["Verifica termine annuale (decadenziale) ex art. 1168 c.c."]
+      },
+      "allegati_obbligatori": [
+        {"id": "prova_possesso", "label": "Prove del possesso (foto, testimoni, contratti, utenze)", "required": true},
+        {"id": "denuncia_querela", "label": "Eventuale denuncia/querela penale", "required": false}
+      ]
+    },
+    {
+      "codice": "020011",
+      "denominazione": "Azione di manutenzione nel possesso (artt. 703 c.p.c. e 1170 c.c.)",
+      "eredita_da": "020001",
+      "differenze_rispetto_a_padre": {
+        "normativa_principale": [
+          {"fonte": "c.c.", "articolo": "1170", "descrizione": "Azione di manutenzione"}
+        ],
+        "presupposti_specifici": [
+          "Possesso continuativo da oltre un anno (per immobili e diritti reali su immobili)",
+          "Possesso non acquistato in modo violento o clandestino",
+          "Molestia o turbativa nel possesso"
+        ],
+        "campi_aggiuntivi": [
+          {"id": "durata_possesso", "label": "Durata possesso (almeno 1 anno)", "type": "duration", "required": true},
+          {"id": "molestia", "label": "Descrizione molestia/turbativa", "type": "textarea", "required": true}
+        ]
+      }
+    }
+  ]
+}

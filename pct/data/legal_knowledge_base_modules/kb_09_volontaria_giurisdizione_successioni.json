@@ -1,0 +1,157 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "09_VOLONTARIA_GIURISDIZIONE_SUCCESSIONI",
+  "denominazione": "Volontaria giurisdizione - successioni",
+  "registro": "SIVG",
+  "rito_prevalente": "Procedimento in camera di consiglio",
+  "competenza_prevalente": "Tribunale del luogo di apertura della successione (art. 22 c.p.c.) - per molti procedimenti: Cancelleria/Notaio (autorità non giudiziarie)",
+  "codici_materia": [
+    {
+      "codice": "420300",
+      "denominazione": "Accettazione eredità con beneficio di inventario (art. 484 c.c.)",
+      "categoria": "Accettazione eredità",
+      "rito": "Atto ricevuto dal cancelliere o dal notaio",
+      "competenza": "Cancelleria Tribunale circoscrizione di apertura successione, o notaio",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "470-490", "descrizione": "Accettazione eredità"},
+        {"fonte": "c.c.", "articolo": "484-511", "descrizione": "Beneficio d'inventario"},
+        {"fonte": "c.c.", "articolo": "489", "descrizione": "Beneficio per minori e incapaci"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "dichiarazione_accettazione_beneficio_inventario",
+        "denominazione": "Dichiarazione di accettazione con beneficio d'inventario",
+        "campi_chiave": [
+          {"id": "de_cuius", "label": "De cuius", "type": "object_persona", "required": true},
+          {"id": "data_apertura_successione", "label": "Data apertura successione", "type": "date", "required": true},
+          {"id": "luogo_ultimo_domicilio", "label": "Ultimo domicilio de cuius", "type": "string", "required": true},
+          {"id": "erede_accettante", "label": "Erede accettante", "type": "object_persona", "required": true},
+          {"id": "titolo_chiamata", "label": "Titolo chiamata all'eredità (legge/testamento)", "type": "select", "required": true},
+          {"id": "qualita_speciale", "label": "Qualità speciale (minore, incapace, ente)", "type": "select", "options": ["nessuna", "minore", "interdetto", "inabilitato", "ente_morale"]},
+          {"id": "termine_inventario", "label": "Termine per redazione inventario", "type": "string", "required": true}
+        ]
+      },
+      "termini_processuali": [
+        {"termine": "Accettazione (in genere)", "giorni": 3650, "decorrenza": "apertura successione", "natura": "prescrizionale", "norma": "art. 480 c.c."},
+        {"termine": "Inventario dopo accettazione (chiamato non possessore)", "giorni": 90, "decorrenza": "accettazione", "natura": "decadenziale", "norma": "art. 487 c.c."},
+        {"termine": "Inventario per chiamato nel possesso", "giorni": 90, "decorrenza": "apertura successione", "natura": "decadenziale", "norma": "art. 485 c.c."}
+      ]
+    },
+    {
+      "codice": "420301",
+      "denominazione": "Nomina del curatore dell'eredità rilasciata ex art. 508 c.c.",
+      "categoria": "Eredità con beneficio - curatore",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "508", "descrizione": "Rilascio beni"}
+      ]
+    },
+    {
+      "codice": "420302",
+      "denominazione": "Nomina del curatore dell'eredità giacente (art. 528 c.c.)",
+      "categoria": "Eredità giacente",
+      "competenza": "Tribunale del luogo apertura successione",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "528-532", "descrizione": "Eredità giacente"},
+        {"fonte": "c.p.c.", "articolo": "781-783", "descrizione": "Procedimento"}
+      ],
+      "presupposti_sostanziali": [
+        "Chiamato non in possesso dei beni e che non ha ancora accettato",
+        "Necessità di amministrazione del patrimonio ereditario"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_nomina_curatore_eredita_giacente",
+        "campi_chiave": [
+          {"id": "de_cuius", "label": "De cuius", "type": "object_persona", "required": true},
+          {"id": "data_apertura_successione", "label": "Data apertura successione", "type": "date", "required": true},
+          {"id": "chiamati_eredita", "label": "Chiamati all'eredità (noti)", "type": "array_persone"},
+          {"id": "beni_ereditari", "label": "Beni ereditari da amministrare", "type": "array", "required": true},
+          {"id": "ricorrente", "label": "Ricorrente (creditore, chiamato, PM)", "type": "object_persona", "required": true},
+          {"id": "candidato_curatore", "label": "Candidato curatore proposto", "type": "object_persona"}
+        ]
+      }
+    },
+    {
+      "codice": "420303",
+      "denominazione": "Autorizzazione al curatore eredità giacente per atti eccedenti l'ordinaria amministrazione",
+      "categoria": "Eredità giacente - autorizzazioni",
+      "normativa": [{"fonte": "c.c.", "articolo": "530-531", "descrizione": "Poteri e doveri del curatore"}]
+    },
+    {"codice": "420304", "denominazione": "Accettazione Esecutore Testamentario", "normativa": [{"fonte": "c.c.", "articolo": "700-712", "descrizione": "Esecutori testamentari"}]},
+    {"codice": "420305", "denominazione": "Rinuncia Esecutore Testamentario"},
+    {
+      "codice": "420310",
+      "denominazione": "Proroga per la redazione dell'inventario eredità accettata con beneficio",
+      "normativa": [{"fonte": "c.c.", "articolo": "488", "descrizione": "Proroga termine inventario"}]
+    },
+    {
+      "codice": "420311",
+      "denominazione": "Autorizzazione all'alienazione di beni di eredità accettata con beneficio",
+      "categoria": "Beneficio inventario - autorizzazioni",
+      "normativa": [{"fonte": "c.c.", "articolo": "493", "descrizione": "Alienazione di beni ereditari"}]
+    },
+    {
+      "codice": "420320",
+      "denominazione": "Vendita di beni ereditari - beni mobili",
+      "categoria": "Vendita beni ereditari",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "748", "descrizione": "Vendita di beni ereditari"}
+      ]
+    },
+    {
+      "codice": "420321",
+      "denominazione": "Vendita di beni ereditari - beni immobili (COLLEGIO)",
+      "categoria": "Vendita beni ereditari immobili",
+      "rito": "Camera di consiglio collegiale",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "748", "descrizione": "Vendita beni ereditari"}
+      ]
+    },
+    {"codice": "420325", "denominazione": "Vendita beni ereditari mobili ante accettazione (art. 460 c.c.)"},
+    {"codice": "420326", "denominazione": "Vendita beni ereditari immobili ante accettazione (art. 460 c.c.)"},
+    {
+      "codice": "420330",
+      "denominazione": "Fissazione termini in materia successoria (art. 749 c.p.c., 481 e 496 c.c.)",
+      "categoria": "Termini in materia successoria",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "481", "descrizione": "Fissazione di termine per l'accettazione (actio interrogatoria)"},
+        {"fonte": "c.c.", "articolo": "496", "descrizione": "Termine per la deliberazione"},
+        {"fonte": "c.p.c.", "articolo": "749", "descrizione": "Procedimento"}
+      ]
+    },
+    {
+      "codice": "420331",
+      "denominazione": "Apposizione e rimozione sigilli in materia successoria (artt. 752-762 e ss. c.p.c.)",
+      "normativa": [{"fonte": "c.p.c.", "articolo": "752-768", "descrizione": "Apposizione e rimozione sigilli"}]
+    },
+    {"codice": "420332", "denominazione": "Nomina dell'ufficiale che procede all'inventario ex art. 769 c.p.c."},
+    {
+      "codice": "420340",
+      "denominazione": "Rinunzia all'eredità (art. 519 c.c.)",
+      "categoria": "Rinuncia eredità",
+      "rito": "Atto ricevuto dal cancelliere o dal notaio",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "519-527", "descrizione": "Rinuncia eredità"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "dichiarazione_rinuncia_eredita",
+        "campi_chiave": [
+          {"id": "de_cuius", "label": "De cuius", "type": "object_persona", "required": true},
+          {"id": "rinunciante", "label": "Rinunciante", "type": "object_persona", "required": true},
+          {"id": "titolo_chiamata", "label": "Titolo chiamata", "type": "select", "required": true, "options": ["legge", "testamento", "rappresentazione", "trasmissione"]},
+          {"id": "quota_rinunciata", "label": "Quota oggetto della rinuncia", "type": "string"}
+        ]
+      }
+    },
+    {
+      "codice": "420999",
+      "denominazione": "Altri istituti di V.G. e procedimenti camerali in materia di successioni",
+      "categoria": "Successioni VG - residuale",
+      "casistica": [
+        "Pubblicazione testamento olografo (art. 620 c.c.)",
+        "Apertura testamento segreto (art. 621 c.c.)",
+        "Autorizzazioni varie su patrimonio ereditario",
+        "Petizione di eredità",
+        "Sostituzione di erede"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "10_VOLONTARIA_GIURISDIZIONE_SOCIETARIA",
+  "denominazione": "Volontaria giurisdizione - diritto societario",
+  "registro": "SIVG",
+  "competenza_prevalente": "Sezione specializzata in materia di impresa",
+  "rito_prevalente": "Procedimento camerale ex artt. 737 e ss. c.p.c.",
+  "codici_materia": [
+    {"codice": "451301", "denominazione": "Decreto di omologa degli atti di società di capitali", "note": "Codice abrogato (omologa giudiziale soppressa dal D.Lgs. 6/2003)"},
+    {
+      "codice": "451310",
+      "denominazione": "Nomina di liquidatore (artt. 2275, 2450 c.c.)",
+      "categoria": "Liquidazione società",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2275", "descrizione": "Nomina liquidatori società di persone"},
+        {"fonte": "c.c.", "articolo": "2487", "descrizione": "Nomina e revoca liquidatori società di capitali"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_nomina_liquidatore",
+        "campi_chiave": [
+          {"id": "societa", "label": "Società", "type": "object_persona_giuridica", "required": true},
+          {"id": "ricorrente", "label": "Ricorrente (socio, amministratore, sindaco)", "type": "object_persona", "required": true},
+          {"id": "causa_scioglimento", "label": "Causa di scioglimento", "type": "select", "required": true},
+          {"id": "candidato_liquidatore", "label": "Candidato liquidatore proposto", "type": "object_persona"},
+          {"id": "compenso_proposto", "label": "Compenso liquidatore proposto", "type": "currency"}
+        ]
+      }
+    },
+    {
+      "codice": "451311",
+      "denominazione": "Convocazione di assemblea ex art. 2367 c.c.",
+      "categoria": "Convocazione assemblea",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2367", "descrizione": "Convocazione su richiesta di soci"},
+        {"fonte": "c.c.", "articolo": "2479", "descrizione": "Richiesta convocazione assemblea S.r.l."}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_convocazione_assemblea",
+        "campi_chiave": [
+          {"id": "societa", "label": "Società", "type": "object_persona_giuridica", "required": true},
+          {"id": "soci_richiedenti", "label": "Soci richiedenti (1/10 capitale S.p.A., 1/3 S.r.l.)", "type": "array_persone", "required": true},
+          {"id": "ordine_del_giorno", "label": "Ordine del giorno proposto", "type": "textarea", "required": true},
+          {"id": "richiesta_organi_sociali", "label": "Precedente richiesta agli amministratori", "type": "object", "required": true},
+          {"id": "inerzia_organi", "label": "Inerzia degli organi (data)", "type": "date", "required": true}
+        ]
+      }
+    },
+    {
+      "codice": "451312",
+      "denominazione": "Nomina di esperto (artt. 2343, 2440, 2498, 2501-quinquies, 2504-novies c.c.)",
+      "categoria": "Nomina esperto",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2343", "descrizione": "Stima dei conferimenti di beni in natura/crediti"},
+        {"fonte": "c.c.", "articolo": "2501-sexies", "descrizione": "Esperto per la fusione"},
+        {"fonte": "c.c.", "articolo": "2437-ter", "descrizione": "Determinazione valore recesso"}
+      ]
+    },
+    {
+      "codice": "451313",
+      "denominazione": "Denunzia ex art. 2409 c.c. (COLLEGIO)",
+      "categoria": "Denuncia gravi irregolarità",
+      "rito": "Camera di consiglio collegiale",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2409", "descrizione": "Denunzia al tribunale per gravi irregolarità"}
+      ],
+      "presupposti_sostanziali": [
+        "Sospetto fondato di gravi irregolarità nella gestione",
+        "Possibilità di danno alla società o alle controllate",
+        "Legittimazione: soci 1/10 capitale (S.p.A.), 1/20 (società quotate), sindaci, PM (società di interesse pubblico)"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_denuncia_2409",
+        "campi_chiave": [
+          {"id": "societa_denunciata", "label": "Società denunciata", "type": "object_persona_giuridica", "required": true},
+          {"id": "amministratori_denunciati", "label": "Amministratori denunciati", "type": "array_persone", "required": true},
+          {"id": "soci_denuncianti", "label": "Soci denuncianti (con quota capitale)", "type": "array_persone", "required": true},
+          {"id": "gravi_irregolarita", "label": "Gravi irregolarità lamentate", "type": "textarea", "required": true},
+          {"id": "danno_potenziale", "label": "Esposizione potenziale danno", "type": "textarea", "required": true},
+          {"id": "misure_richieste", "label": "Misure richieste", "type": "select_multi", "options": ["ispezione_giudiziale", "revoca_amministratori", "nomina_amministratore_giudiziario", "convocazione_assemblea"]}
+        ]
+      }
+    },
+    {"codice": "451314", "denominazione": "Nomina del rappresentante comune degli obbligazionisti e dei possessori delle azioni di risparmio", "normativa": [{"fonte": "c.c.", "articolo": "2417", "descrizione": "Rappresentante comune obbligazionisti"}]},
+    {"codice": "451320", "denominazione": "Riduzione del capitale per perdite (art. 2446 c.c.) (COLLEGIO)", "normativa": [{"fonte": "c.c.", "articolo": "2446-2447", "descrizione": "Riduzione del capitale per perdite"}]},
+    {
+      "codice": "451330",
+      "denominazione": "Ricorso al Giudice del Registro",
+      "categoria": "Registro imprese - reclami",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2189", "descrizione": "Procedimento di iscrizione"},
+        {"fonte": "D.P.R. 581/1995", "descrizione": "Regolamento di attuazione del registro delle imprese"}
+      ]
+    },
+    {"codice": "451999", "denominazione": "Altri istituti di V.G. e procedimenti camerali in materia di diritto societario", "note": "Codice residuale societario VG"},
+    {"codice": "452330", "denominazione": "Ricorso al giudice del Registro in materia non soggetta al d.l.vo n. 5/2003", "eredita_da": "451330"},
+    {"codice": "453301", "denominazione": "Decreto di omologa degli atti di società di capitali (art. 2436 c.c.)", "note": "Procedura speciale per atti che richiedono omologa"},
+    {"codice": "453312", "denominazione": "Nomina di esperto (artt. 2343, 2343-bis, 2437-ter, 2501-sexies, 2545-undecies c.c.)", "eredita_da": "451312"},
+    {"codice": "453314", "denominazione": "Nomina rappresentante comune obbligazionisti (art. 2417 c.c.) unilaterale", "eredita_da": "451314"},
+    {"codice": "453315", "denominazione": "Nomina rappresentante comune comproprietari (artt. 2347, 2468, 2417 c.c.)"},
+    {"codice": "453330", "denominazione": "Ricorso al giudice del Registro in materia soggetta al d.l.vo n. 5/2003", "eredita_da": "451330"},
+    {"codice": "453410", "denominazione": "Nomina e revoca di liquidatore (artt. 2275, 2487 c.c.) plurilaterali", "eredita_da": "451310"},
+    {"codice": "453411", "denominazione": "Convocazione di assemblea (art. 2367 c.c.) plurilaterali", "eredita_da": "451311"},
+    {"codice": "453413", "denominazione": "Denunzia al tribunale (art. 2409, 2545-quinquiesdecies c.c.) plurilaterali", "eredita_da": "451313"},
+    {"codice": "453420", "denominazione": "Riduzione del capitale per perdite (artt. 2446, 2482-bis c.c.) plurilaterali", "eredita_da": "451320"},
+    {"codice": "453421", "denominazione": "Approvazione della revoca dei sindaci (art. 2400 c.c.) plurilaterali", "normativa": [{"fonte": "c.c.", "articolo": "2400", "descrizione": "Nomina e revoca dei sindaci"}]},
+    {"codice": "453422", "denominazione": "Opposizione dei creditori (artt. 2437-quater, 2445, 2482, 2447-quater, 2487-ter, 2500-novies, 2503 c.c.)", "categoria": "Opposizione creditori"},
+    {"codice": "453423", "denominazione": "Decreto di accertamento dello scioglimento della società (art. 2485 c.c.)", "normativa": [{"fonte": "c.c.", "articolo": "2485", "descrizione": "Accertamento delle cause di scioglimento"}]},
+    {"codice": "453424", "denominazione": "Decreto di cancellazione della società dal registro delle imprese (art. 223-quater c.c.)"},
+    {"codice": "453999", "denominazione": "Altre materie soggette al procedimento camerale ex artt. 28 e ss. DL 5/2003", "note": "Codice residuale"}
+  ]
+}

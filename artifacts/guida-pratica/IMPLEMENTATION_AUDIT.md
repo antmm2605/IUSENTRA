@@ -1,0 +1,41 @@
+# Audit implementazione Guida Pratica - 2026-05-22
+
+## Esito
+
+- Catalogo ufficiale PST/XSD mantenuto come fonte di deposito: 1.018 record.
+- Guide ufficiali curate: 1.018 su 1.018.
+- Codici ufficiali senza guida curata: 0.
+- Incoerenze tra catalogo ufficiale e stato depositabile: 0.
+- Alias/schede interne non depositabili: 30, mantenute come guida interna e bloccate per la generazione deposito.
+
+## File audit
+
+- `artifacts/guida-pratica/guida-pratica-audit.json`
+- `artifacts/guida-pratica/codici-ufficiali-senza-guida-curata.csv`
+- `artifacts/guida-pratica/guida-pratica-coverage.csv`
+- `artifacts/guida-pratica/browser-guida-pratica-report.json`
+- `artifacts/guida-pratica/utf8-integrity-report.json`
+- `artifacts/guida-pratica/utf8-integrity-large-report.json`
+
+## Verifiche eseguite
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python scripts\validate_codici_oggetto_pst.py --min-records 1000` | OK | 1.018 record, duplicati 0, invalidi 0, descrizioni mancanti 0. |
+| `python scripts\verify_pst_xsd_catalog.py` | OK | Catalogo PST/XSD ufficiale integro: 1.018 record validi. |
+| `python scripts\validate_guida_pratica.py --require-official-curated --fail-on-generated ...` | OK | 1.018 codici ufficiali curati, 0 senza guida, coerenza deposito OK. |
+| `python -m pytest tests\test_guida_pratica_service.py tests\test_guida_pratica_api.py tests\test_import_pst_xsd_codici_oggetto.py tests\test_pst_xsd_catalog_importer.py tests\test_codici_oggetto_pst_catalog.py tests\test_react_shell.py::test_react_blueprints_registered -q --tb=short` | OK | 23 test passati. |
+| `python -m ruff check ...` | OK | Ruff verde sul perimetro guida, catalogo, API e test. |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript senza errori. |
+| `pnpm --filter @iusentra/studio build` | OK | Build Vite completata. |
+| Browser desktop/tablet/mobile su fascicolo con codice `010001` | OK | Guida visibile, badge `Codice PST verificato`, badge `Guida curata`, nessun overflow orizzontale, nessun errore console, nessun testo tecnico vietato. |
+| `python -m pct.cli utf8-integrity ...` | OK | UTF-8 valido sui file guida e UI; i due JSON grandi verificati con soglia 12 MB. |
+| `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python -m pytest tests\test_openapi_contracts_phase6.py -q --tb=short` | OK | Contratti API riallineati, OpenAPI valido, provider verification OK e test OpenAPI 5/5. |
+| `python -m pytest tests\test_procedure_inventory_importer.py tests\test_procedure_xsd_mapper.py tests\test_procedure_source_research.py tests\test_procedure_knowledge_pipeline.py tests\test_procedure_lifecycle.py tests\test_digital_signature_workflow.py tests\test_telematic_deposit_workflow.py tests\test_post_acceptance_obligations.py tests\test_notification_workflow.py tests\test_evidence_vault.py tests\test_procedure_coverage_ext.py tests\test_procedure_lifecycle_repository.py tests\test_procedure_lifecycle_edges.py -q --tb=short` | OK | 33/33 passati sul perimetro deposito, XSD, firma, notifiche e lifecycle procedura. |
+| Docker locale no-cache + container audit | OK | `docker compose build --no-cache app scheduler-worker ocr-worker` completato; container app/OCR/scheduler healthy; `/api/pronto` espone `2.248.9`; validatore Guida Pratica nel container OK con 1.018/1.018 ufficiali curati. |
+| `python scripts\smoke_app_v2_all.py --subset contracts`; `python scripts\smoke_app_v2_all.py --subset inventory` | OK | Smoke contratti offline PASS=2/SKIP live runtime previsto; inventory PASS=3. |
+| `python tools\check_repo_governance.py`; `python scripts\validate_docs_links.py ...`; `python scripts\validate_docs_commands.py`; packaging/readiness/UTF-8 | OK | Governance repo OK, link e comandi documentali validi, packaging sincronizzato, 13 test readiness/UTF-8 passati e scan UTF-8 mirato OK. |
+
+## Lista codici ufficiali senza guida curata
+
+Nessuno. Il CSV `artifacts/guida-pratica/codici-ufficiali-senza-guida-curata.csv` contiene solo l'intestazione.

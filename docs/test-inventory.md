@@ -6,19 +6,19 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 383.
+- File pytest censiti: 387.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
 | Tipo test | Conteggio |
 | --- | --- |
 | API contract | 65 |
-| Backend | 40 |
+| Backend | 41 |
 | E2E | 6 |
 | Frontend static gate | 1 |
-| Frontend/UI | 110 |
+| Frontend/UI | 112 |
 | RBAC | 39 |
-| Security | 32 |
+| Security | 33 |
 | Smoke CLI | 6 |
 | Tenant isolation | 91 |
 
@@ -32,10 +32,10 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 44 |
 | 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 14 |
 | 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 38 |
-| 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 27 |
+| 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 28 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 133 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 60 |
+| 09-misc | Test non classificati dalle fasi principali | 63 |
 
 ## Suite CI aggiuntive
 
@@ -294,6 +294,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Frontend React | Frontend static gate | frontend/package.json | contratti React, App V2 frontend, UI coverage fase 9, typecheck e build | nessun Vitest/Jest/RTL coverage; nessun VRT attivo | censito |
 | Frontend React | Frontend/UI | tests/test_assistente_language_guidance.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Frontend React | Frontend/UI | tests/test_circuit_breaker.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Frontend React | Frontend/UI | tests/test_guida_pratica_api.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Frontend React | Frontend/UI | tests/test_impostazioni_ai_locale_react.py | feature flag, file | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Frontend React | Frontend/UI | tests/test_impostazioni_pec_local_signer_react.py | feature flag | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Frontend React | Frontend/UI | tests/test_lex_tokenjuice.py | contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
@@ -304,6 +305,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Frontend React | RBAC | tests/test_react_shell.py | 401 anonimo, 403/RBAC, feature flag, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Security | tests/test_build_dist.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Security | tests/test_document_intelligence_hidden_ui.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Frontend React | Security | tests/test_guida_pratica_service.py | 401 anonimo, feature flag, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Tenant isolation | tests/test_portali_payload_import_ui.py | tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Tenant isolation | tests/test_react_legal_intelligence_search.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Tenant isolation | tests/test_studio_site_builder_api.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -419,9 +421,11 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Smoke | Smoke CLI | scripts/smoke_app_v2_workflows.py | readiness, route, workflow o sicurezza runtime | autenticazione completa solo con env smoke dedicate | censito |
 | Smoke | Smoke CLI | scripts/smoke_backend_security.py | readiness, route, workflow o sicurezza runtime | autenticazione completa solo con env smoke dedicate | censito |
 | Smoke | Smoke CLI | scripts/smoke_lib.py | readiness, route, workflow o sicurezza runtime | autenticazione completa solo con env smoke dedicate | censito |
+| Telematico | Backend | tests/test_import_pst_xsd_codici_oggetto.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | Backend | tests/test_pst_services.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | Frontend/UI | tests/test_codici_oggetto_pst_catalog.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | Frontend/UI | tests/test_conformita_pst.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Telematico | Frontend/UI | tests/test_pst_xsd_catalog_importer.py | contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | Frontend/UI | tests/test_regia_deposito_receipts.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | Frontend/UI | tests/test_simulazione_deposito.py | contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | Frontend/UI | tests/test_telematico_repository.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |

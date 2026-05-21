@@ -1,0 +1,681 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "13_LAVORO_PREVIDENZA_ASSISTENZA_ALIAS_LOGICI_LEGACY",
+  "denominazione": "Lavoro, previdenza e assistenza obbligatorie - alias logici mantenuti per retrocompatibilità fascicoli",
+  "registro": "SILP (Sezione Lavoro) / SICID-Lavoro",
+  "competenza_prevalente": "Tribunale in funzione di giudice del lavoro - sezione lavoro (artt. 409 e ss. c.p.c.)",
+  "rito_prevalente": "Rito del lavoro ex artt. 409-447 c.p.c.",
+  "nota_completezza": "La tabella ministeriale dei codici oggetto SILP non è inclusa nella documentazione della Corte d'Appello di Bologna utilizzata come fonte. La classificazione seguente riflette le categorie consolidate della prassi giuslavoristica italiana. Per la codifica ministeriale esatta consultare il manuale operativo SILP-PCT del Ministero della Giustizia",
+  "codici_materia": [
+    {
+      "codice_logico": "LAV_LIC_001",
+      "denominazione": "Impugnazione di licenziamento individuale (art. 18 St.Lav. / Jobs Act)",
+      "categoria": "Licenziamenti individuali",
+      "rito": "Rito ordinario del lavoro (per assunti post 7/3/2015 - tutele crescenti) o rito Fornero (L. 92/2012, fase sommaria + opposizione, per assunti ante 7/3/2015)",
+      "normativa": [
+        {
+          "fonte": "L. 604/1966",
+          "descrizione": "Disciplina dei licenziamenti individuali"
+        },
+        {
+          "fonte": "L. 300/1970 (Statuto Lavoratori)",
+          "articolo": "18",
+          "descrizione": "Reintegrazione (per assunti ante 7/3/2015)"
+        },
+        {
+          "fonte": "D.Lgs. 23/2015",
+          "descrizione": "Contratto a tutele crescenti (per assunti dal 7/3/2015)"
+        },
+        {
+          "fonte": "L. 92/2012 (Riforma Fornero)",
+          "articolo": "1 c. 47-69",
+          "descrizione": "Rito speciale (vigente per cause su licenziamenti ex art. 18 St.Lav.)"
+        },
+        {
+          "fonte": "Corte Cost. 194/2018",
+          "descrizione": "Incostituzionalità criterio rigido indennità tutele crescenti"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "Notifica licenziamento al lavoratore",
+        "Impugnazione stragiudiziale entro 60 gg dalla comunicazione ex art. 6 L. 604/1966",
+        "Deposito ricorso giudiziale entro 180 gg dall'impugnazione stragiudiziale"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_impugnazione_licenziamento",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per impugnazione licenziamento",
+        "schema_xsd_ministeriale": "AttoLavoro.xsd",
+        "campi_chiave": [
+          {
+            "id": "lavoratore",
+            "label": "Lavoratore ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_lavoro",
+            "label": "Datore di lavoro convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "data_assunzione",
+            "label": "Data assunzione",
+            "type": "date",
+            "required": true
+          },
+          {
+            "id": "qualifica_mansioni",
+            "label": "Qualifica e mansioni",
+            "type": "object",
+            "required": true
+          },
+          {
+            "id": "ccnl_applicato",
+            "label": "CCNL applicato",
+            "type": "string",
+            "required": true
+          },
+          {
+            "id": "data_licenziamento",
+            "label": "Data licenziamento",
+            "type": "date",
+            "required": true
+          },
+          {
+            "id": "motivo_licenziamento",
+            "label": "Motivo licenziamento",
+            "type": "select",
+            "required": true,
+            "options": [
+              "giusta_causa",
+              "giustificato_motivo_soggettivo",
+              "giustificato_motivo_oggettivo",
+              "discriminatorio",
+              "ritorsivo",
+              "altro"
+            ]
+          },
+          {
+            "id": "vizi_dedotti",
+            "label": "Vizi dedotti",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "insussistenza_fatto",
+              "fatto_di_minor_gravita",
+              "vizio_formale_procedimento",
+              "difetto_motivazione",
+              "discriminazione",
+              "ritorsivita",
+              "violazione_repechage",
+              "violazione_criteri_scelta"
+            ]
+          },
+          {
+            "id": "data_impugnazione_stragiudiziale",
+            "label": "Data impugnazione stragiudiziale",
+            "type": "date",
+            "required": true
+          },
+          {
+            "id": "tipo_tutela_richiesta",
+            "label": "Tutela richiesta",
+            "type": "select",
+            "required": true,
+            "options": [
+              "reintegratoria_piena",
+              "reintegratoria_attenuata",
+              "indennitaria_forte",
+              "indennitaria_attenuata"
+            ]
+          },
+          {
+            "id": "retribuzione_mensile",
+            "label": "Ultima retribuzione mensile",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "dimensionale_datore",
+            "label": "Dimensionale datore (sopra/sotto 15 dipendenti)",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "regime_applicabile",
+            "label": "Regime applicabile",
+            "type": "select",
+            "required": true,
+            "options": [
+              "art_18_st_lav_pre_legge_fornero",
+              "art_18_post_legge_92_2012",
+              "dlgs_23_2015_tutele_crescenti",
+              "piccole_imprese_l_604_1966"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Verifica termine 60 gg per impugnazione stragiudiziale + 180 gg per deposito ricorso",
+          "Indicazione data assunzione ai fini regime applicabile"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "lettera_licenziamento",
+          "label": "Lettera di licenziamento",
+          "required": true
+        },
+        {
+          "id": "impugnazione_stragiudiziale",
+          "label": "Impugnazione stragiudiziale (con prova spedizione)",
+          "required": true
+        },
+        {
+          "id": "contratto_lavoro",
+          "label": "Contratto di lavoro",
+          "required": true
+        },
+        {
+          "id": "buste_paga_ultimo_anno",
+          "label": "Buste paga ultimo anno",
+          "required": true
+        },
+        {
+          "id": "ccnl",
+          "label": "CCNL applicato",
+          "required": false
+        },
+        {
+          "id": "comunicazioni_disciplinari",
+          "label": "Eventuali comunicazioni disciplinari precedenti",
+          "required": false
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Impugnazione stragiudiziale",
+          "giorni": 60,
+          "decorrenza": "comunicazione licenziamento",
+          "natura": "decadenziale",
+          "norma": "art. 6 L. 604/1966"
+        },
+        {
+          "termine": "Deposito ricorso giudiziale",
+          "giorni": 180,
+          "decorrenza": "impugnazione stragiudiziale",
+          "natura": "decadenziale",
+          "norma": "art. 6 c. 2 L. 604/1966"
+        }
+      ]
+    },
+    {
+      "codice_logico": "LAV_DIFF_001",
+      "denominazione": "Differenze retributive e rivendicazione crediti di lavoro",
+      "categoria": "Crediti di lavoro",
+      "rito": "Rito del lavoro",
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2099-2129",
+          "descrizione": "Lavoro nell'impresa"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2103",
+          "descrizione": "Prestazione del lavoro - mansioni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2120",
+          "descrizione": "TFR"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2948 n. 4",
+          "descrizione": "Prescrizione quinquennale crediti retributivi"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_differenze_retributive",
+        "campi_chiave": [
+          {
+            "id": "lavoratore",
+            "label": "Lavoratore ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_lavoro",
+            "label": "Datore convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "periodo_lavoro",
+            "label": "Periodo lavorativo di riferimento",
+            "type": "object",
+            "required": true
+          },
+          {
+            "id": "voci_richieste",
+            "label": "Voci richieste",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "paga_base",
+              "scatti_anzianita",
+              "indennita_funzione",
+              "lavoro_straordinario",
+              "lavoro_notturno",
+              "lavoro_festivo",
+              "tredicesima",
+              "quattordicesima",
+              "ferie_non_godute",
+              "tfr",
+              "indennita_sostitutiva_preavviso"
+            ]
+          },
+          {
+            "id": "qualifica_richiesta",
+            "label": "Qualifica/livello rivendicato (se superiore inquadramento)",
+            "type": "string"
+          },
+          {
+            "id": "calcolo_dettagliato",
+            "label": "Conteggio dettagliato differenze",
+            "type": "object_complesso",
+            "required": true
+          },
+          {
+            "id": "importo_totale_richiesto",
+            "label": "Importo totale richiesto",
+            "type": "currency",
+            "required": true
+          }
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "buste_paga_periodo",
+          "label": "Buste paga del periodo",
+          "required": true
+        },
+        {
+          "id": "contratto_lavoro",
+          "label": "Contratto di lavoro",
+          "required": true
+        },
+        {
+          "id": "ccnl_di_riferimento",
+          "label": "CCNL di riferimento",
+          "required": true
+        },
+        {
+          "id": "conteggio_dettagliato",
+          "label": "Conteggio dettagliato a sostegno",
+          "required": true
+        }
+      ]
+    },
+    {
+      "codice_logico": "LAV_INFORTUNI_001",
+      "denominazione": "Infortuni sul lavoro e malattie professionali - prestazioni INAIL",
+      "categoria": "Previdenza INAIL",
+      "rito": "Rito del lavoro previdenziale",
+      "normativa": [
+        {
+          "fonte": "D.P.R. 1124/1965",
+          "descrizione": "Testo Unico Infortuni sul Lavoro"
+        },
+        {
+          "fonte": "D.Lgs. 38/2000",
+          "descrizione": "Disposizioni in materia di assicurazione contro infortuni e malattie professionali"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "Provvedimento INAIL contestato (rigetto, riconoscimento parziale, sospensione)",
+        "Esperimento ricorso amministrativo preventivo (condizione di procedibilità per alcune materie)",
+        "Termine triennale prescrizione (art. 112 D.P.R. 1124/1965)"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_inail",
+        "campi_chiave": [
+          {
+            "id": "lavoratore_infortunato",
+            "label": "Lavoratore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_lavoro",
+            "label": "Datore di lavoro",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "tipo_prestazione",
+            "label": "Tipo prestazione contestata",
+            "type": "select",
+            "required": true,
+            "options": [
+              "indennita_temporanea",
+              "rendita_inabilita_permanente",
+              "danno_biologico",
+              "rendita_superstiti",
+              "indennita_funebre",
+              "rivalsa_inail"
+            ]
+          },
+          {
+            "id": "data_infortunio",
+            "label": "Data infortunio/manifestazione malattia",
+            "type": "date",
+            "required": true
+          },
+          {
+            "id": "grado_invalidita",
+            "label": "Grado invalidità riconosciuto/rivendicato",
+            "type": "percentage"
+          },
+          {
+            "id": "provvedimento_inail",
+            "label": "Provvedimento INAIL contestato",
+            "type": "object",
+            "required": true
+          }
+        ]
+      }
+    },
+    {
+      "codice_logico": "LAV_PREVID_001",
+      "denominazione": "Prestazioni INPS - pensioni e indennità (previdenza obbligatoria)",
+      "categoria": "Previdenza INPS",
+      "rito": "Rito del lavoro previdenziale",
+      "normativa": [
+        {
+          "fonte": "L. 153/1969",
+          "descrizione": "Riordinamento pensioni"
+        },
+        {
+          "fonte": "L. 335/1995 (Riforma Dini)",
+          "descrizione": "Riforma pensioni"
+        },
+        {
+          "fonte": "L. 214/2011 (Riforma Fornero)",
+          "descrizione": "Pensioni"
+        }
+      ],
+      "tipologie_principali": [
+        "Pensione di vecchiaia",
+        "Pensione anticipata",
+        "Pensione di inabilità (L. 222/1984)",
+        "Assegno ordinario di invalidità (L. 222/1984)",
+        "Pensione ai superstiti",
+        "Pensione sociale / Assegno sociale",
+        "Indennità di disoccupazione (NASpI)",
+        "Indennità di malattia / maternità",
+        "Cassa integrazione guadagni"
+      ]
+    },
+    {
+      "codice_logico": "LAV_INVCIV_001",
+      "denominazione": "Invalidità civile, cecità, sordità - prestazioni assistenziali (L. 118/1971, L. 18/1980)",
+      "categoria": "Assistenza obbligatoria",
+      "rito": "Rito del lavoro previdenziale con ATPO obbligatorio ex art. 445-bis c.p.c.",
+      "normativa": [
+        {
+          "fonte": "L. 118/1971",
+          "descrizione": "Invalidi civili"
+        },
+        {
+          "fonte": "L. 18/1980",
+          "descrizione": "Indennità di accompagnamento"
+        },
+        {
+          "fonte": "L. 104/1992",
+          "descrizione": "Handicap"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "445-bis",
+          "descrizione": "Accertamento tecnico preventivo obbligatorio (ATPO) materia previdenziale"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_atpo_invalidita_civile",
+        "campi_chiave": [
+          {
+            "id": "ricorrente",
+            "label": "Ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_prestazione",
+            "label": "Prestazione richiesta",
+            "type": "select",
+            "required": true,
+            "options": [
+              "pensione_invalidita_civile",
+              "assegno_mensile",
+              "indennita_accompagnamento",
+              "indennita_frequenza_minori",
+              "pensione_ciechi",
+              "pensione_sordi",
+              "indennita_comunicazione",
+              "L_104_handicap_grave"
+            ]
+          },
+          {
+            "id": "verbale_commissione_medica",
+            "label": "Verbale commissione medica INPS",
+            "type": "object",
+            "required": true
+          },
+          {
+            "id": "patologie_invalidanti",
+            "label": "Patologie invalidanti",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "richiesta_ctu",
+            "label": "Richiesta CTU medico-legale",
+            "type": "boolean",
+            "default": true
+          }
+        ]
+      },
+      "termini_processuali": [
+        {
+          "termine": "Ricorso giudiziale",
+          "giorni": 180,
+          "decorrenza": "comunicazione provvedimento INPS",
+          "natura": "decadenziale",
+          "norma": "art. 42 L. 326/2003"
+        }
+      ]
+    },
+    {
+      "codice_logico": "LAV_QUALIFICA_001",
+      "denominazione": "Accertamento natura del rapporto di lavoro / rivendicazione qualifica",
+      "categoria": "Qualificazione rapporto lavoro",
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2094",
+          "descrizione": "Lavoratore subordinato"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "2",
+          "descrizione": "Collaborazioni etero-organizzate"
+        }
+      ]
+    },
+    {
+      "codice_logico": "LAV_MOBBING_001",
+      "denominazione": "Mobbing, straining, demansionamento e danni da illegittima condotta del datore",
+      "categoria": "Tutela personalità del lavoratore",
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2087",
+          "descrizione": "Tutela delle condizioni di lavoro"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2103",
+          "descrizione": "Mansioni"
+        }
+      ]
+    },
+    {
+      "codice_logico": "LAV_TRASF_AZIENDA",
+      "denominazione": "Trasferimento d'azienda (art. 2112 c.c.)",
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2112",
+          "descrizione": "Mantenimento diritti lavoratori in caso di trasferimento d'azienda"
+        }
+      ]
+    },
+    {
+      "codice_logico": "LAV_LIC_COLLETTIVO",
+      "denominazione": "Licenziamenti collettivi (L. 223/1991)",
+      "categoria": "Licenziamenti collettivi",
+      "normativa": [
+        {
+          "fonte": "L. 223/1991",
+          "articolo": "4-5-24",
+          "descrizione": "Procedura mobilità e licenziamenti collettivi"
+        }
+      ]
+    },
+    {
+      "codice_logico": "LAV_CONTRATTI_FLESSIBILI",
+      "denominazione": "Contratti a termine, somministrazione, apprendistato (D.Lgs. 81/2015)",
+      "categoria": "Contratti flessibili",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "descrizione": "Disciplina organica contratti di lavoro"
+        },
+        {
+          "fonte": "D.Lgs. 87/2018 (Decreto Dignità)",
+          "descrizione": "Modifiche al contratto a termine"
+        }
+      ]
+    },
+    {
+      "codice_logico": "LAV_PUBBLICO_IMPIEGO",
+      "denominazione": "Pubblico impiego privatizzato (controversie ex art. 63 D.Lgs. 165/2001)",
+      "categoria": "Pubblico impiego",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 165/2001",
+          "articolo": "63",
+          "descrizione": "Controversie relative ai rapporti di lavoro alle dipendenze delle PA"
+        }
+      ],
+      "competenza": "Tribunale del lavoro - solo per pubblico impiego contrattualizzato (esclusi magistrati, militari, prefetti, diplomatici, ecc.)"
+    },
+    {
+      "codice_logico": "LAV_REPRESSIONE_DISCRIM",
+      "denominazione": "Repressione condotte discriminatorie (D.Lgs. 198/2006, D.Lgs. 215/2003)",
+      "categoria": "Antidiscriminazione",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 198/2006 (Codice Pari Opportunità)",
+          "descrizione": "Discriminazione di genere"
+        },
+        {
+          "fonte": "D.Lgs. 215/2003",
+          "descrizione": "Discriminazioni razziali ed etniche"
+        },
+        {
+          "fonte": "D.Lgs. 216/2003",
+          "descrizione": "Discriminazioni in materia di occupazione e condizioni di lavoro"
+        },
+        {
+          "fonte": "L. 67/2006",
+          "descrizione": "Tutela giudiziaria delle persone con disabilità"
+        }
+      ]
+    },
+    {
+      "codice_logico": "LAV_SCIOPERO_ART28",
+      "denominazione": "Repressione condotta antisindacale (art. 28 L. 300/1970)",
+      "categoria": "Diritto sindacale",
+      "rito": "Procedimento speciale ex art. 28 L. 300/1970 (cautelare ante causam)",
+      "normativa": [
+        {
+          "fonte": "L. 300/1970 (Statuto Lavoratori)",
+          "articolo": "28",
+          "descrizione": "Repressione della condotta antisindacale"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_art_28_statuto_lavoratori",
+        "campi_chiave": [
+          {
+            "id": "sindacato_ricorrente",
+            "label": "Sindacato/RSA ricorrente (livello nazionale)",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "datore_lavoro",
+            "label": "Datore di lavoro",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "condotta_antisindacale",
+            "label": "Condotta antisindacale",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "richieste",
+            "label": "Richieste (cessazione condotta, rimozione effetti)",
+            "type": "textarea",
+            "required": true
+          }
+        ]
+      },
+      "termini_processuali": [
+        {
+          "termine": "Opposizione al decreto",
+          "giorni": 15,
+          "decorrenza": "comunicazione decreto",
+          "natura": "perentorio"
+        }
+      ]
+    },
+    {
+      "codice_logico": "LAV_TENTATIVO_CONCILIAZIONE",
+      "denominazione": "Tentativo facoltativo/obbligatorio di conciliazione e procedura ITL",
+      "categoria": "Procedure stragiudiziali",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 124/2004",
+          "descrizione": "Conciliazione monocratica ITL"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "410-411",
+          "descrizione": "Tentativo facoltativo di conciliazione"
+        },
+        {
+          "fonte": "L. 183/2010 (Collegato Lavoro)",
+          "descrizione": "Modifiche alla conciliazione"
+        }
+      ],
+      "note": "Per il pubblico impiego permane in alcune ipotesi l'obbligo di tentativo (art. 65 D.Lgs. 165/2001)"
+    }
+  ],
+  "nota_retrocompatibilita": "Modulo mantenuto per non rompere fascicoli/pratiche già aperti con codici logici prima del mapping ministeriale puntuale. Non sostituisce il codice ministeriale ufficiale in deposito."
+}

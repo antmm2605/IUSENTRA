@@ -1,0 +1,1623 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI",
+  "denominazione": "I 9 codici materia più frequenti per uno studio legale generalista - struttura iper-dettagliata",
+  "registri": ["SICID", "SIECIC", "SIVG"],
+  "data_generazione": "2026-05-21",
+  "scopo": "Knowledge base con livello di dettaglio operativo massimo, pronta per generazione automatica di atti, wizard guidati e validazione real-time. Stessa struttura usata per i 9 codici sfratti (legal_knowledge_base.json)",
+  "criterio_selezione": "Top 9 codici per frequenza di iscrizione a ruolo in uno studio legale italiano generalista, sulla base dei flussi statistici PCT del Ministero della Giustizia e dell'esperienza pratica forense",
+  "codici_materia": [
+    {
+      "codice": "010001",
+      "denominazione": "Procedimento di ingiunzione ante causam",
+      "categoria": "Procedimenti speciali sommari",
+      "sottocategoria": "Procedimento di ingiunzione (rito monitorio)",
+      "rito": "Procedimento monitorio ex artt. 633-656 c.p.c.",
+      "competenza": "Giudice competente per la causa nel merito secondo le regole ordinarie - Tribunale o Giudice di Pace in base al valore (art. 637 c.p.c.); Sezione Specializzata in materia di Impresa per controversie societarie/industriali; foro speciale dell'art. 33 D.Lgs. 206/2005 per consumatore",
+      "uffici_destinatari": ["SICID", "UNEP"],
+      "registro_sgr": "Registro generale degli affari civili contenziosi - sotto-registro speciali",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "633", "descrizione": "Casi nei quali si può domandare l'ingiunzione"},
+        {"fonte": "c.p.c.", "articolo": "634", "descrizione": "Prova scritta del credito"},
+        {"fonte": "c.p.c.", "articolo": "635", "descrizione": "Prove speciali per il credito risultante da scritture contabili"},
+        {"fonte": "c.p.c.", "articolo": "636", "descrizione": "Onorari professionali e rimborsi - parcella vistata dall'ordine"},
+        {"fonte": "c.p.c.", "articolo": "637", "descrizione": "Giudice competente"},
+        {"fonte": "c.p.c.", "articolo": "638", "descrizione": "Forma della domanda"},
+        {"fonte": "c.p.c.", "articolo": "639", "descrizione": "Pluralità di intimati"},
+        {"fonte": "c.p.c.", "articolo": "640", "descrizione": "Rigetto della domanda"},
+        {"fonte": "c.p.c.", "articolo": "641", "descrizione": "Accoglimento della domanda - decreto"},
+        {"fonte": "c.p.c.", "articolo": "642", "descrizione": "Esecuzione provvisoria"},
+        {"fonte": "c.p.c.", "articolo": "643", "descrizione": "Notificazione del decreto"},
+        {"fonte": "c.p.c.", "articolo": "644", "descrizione": "Inefficacia del decreto per omessa notificazione"},
+        {"fonte": "c.p.c.", "articolo": "645", "descrizione": "Opposizione"},
+        {"fonte": "c.p.c.", "articolo": "646", "descrizione": "Procedimento di opposizione"},
+        {"fonte": "c.p.c.", "articolo": "647", "descrizione": "Esecutorietà per mancata opposizione o mancata attività dell'opponente"},
+        {"fonte": "c.p.c.", "articolo": "648", "descrizione": "Esecuzione provvisoria in pendenza di opposizione"},
+        {"fonte": "c.p.c.", "articolo": "649", "descrizione": "Sospensione dell'esecuzione provvisoria"},
+        {"fonte": "c.p.c.", "articolo": "654", "descrizione": "Apposizione della formula esecutiva"},
+        {"fonte": "DPR 115/2002 (TU spese giustizia)", "articolo": "13", "descrizione": "Contributo unificato ridotto alla metà per il monitorio"},
+        {"fonte": "disp.att. c.p.c.", "articolo": "196-quater", "descrizione": "Deposito telematico obbligatorio degli atti"}
+      ],
+      "presupposti_sostanziali": [
+        "Esistenza di un credito CERTO (non controverso nell'an), LIQUIDO (determinato nel quantum), ESIGIBILE (scaduto e non sottoposto a condizione)",
+        "Oggetto: somma di denaro determinata, OPPURE quantità determinata di cose fungibili, OPPURE consegna di cosa mobile determinata",
+        "Prova scritta del credito ex art. 634 c.p.c.: polizze e promesse unilaterali per scrittura privata; cambiali, assegni; estratti autentici delle scritture contabili dell'impresa o del professionista (art. 634 c. 2); titoli di credito; atti pubblici; scritture private",
+        "Per crediti relativi a somministrazioni, forniture o prestazioni di servizi: estratto autentico delle scritture contabili ex art. 634 c. 2 (libro giornale, libro inventari)",
+        "Per onorari di avvocati/professionisti: parcella vistata dal proprio ordine professionale ex art. 636 c.p.c. (per avvocati: dopo D.M. 55/2014 sui parametri, riferimento al D.M. 147/2022)",
+        "Legittimazione attiva del creditore, anche cessionario (con prova della cessione)",
+        "Identificazione precisa del debitore (CF/P.IVA verificati)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria_fase_monitoria": false,
+        "obbligatoria_fase_opposizione": true,
+        "fonte": "art. 5-bis D.Lgs. 28/2010 (post-Cartabia: l'onere è in capo all'opposto, sotto sanzione di improcedibilità)",
+        "materie_interessate": "Solo se il credito attiene a materie ex art. 5 c. 1-bis D.Lgs. 28/2010 (condominio, diritti reali, divisione, successioni, locazione, comodato, affitto azienda, responsabilità medica/sanitaria, contratti bancari/assicurativi/finanziari)",
+        "novita_cartabia_2023": "La mediazione obbligatoria si introduce dopo l'opposizione e dopo la decisione sulle istanze ex artt. 648/649 c.p.c. (Cass. SU 19596/2020 superata dalla riforma)"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Verifica e raccolta documentazione probatoria del credito (fatture, contratti, scritture contabili, parcelle, ricognizioni)",
+          "documenti_da_acquisire": ["Fatture/contratti/titoli del credito", "Scritture contabili autenticate (se imprenditore)", "Visura camerale debitore", "Estratto conto/saldoconto", "Eventuale parcella vistata ordine professionale"]
+        },
+        {
+          "step": 2,
+          "descrizione": "Verifica esistenza/persistenza del debitore (visure CCIAA per persone giuridiche; certificato residenza/stato famiglia per persone fisiche)",
+          "rischio": "Procedimento contro soggetto cessato/deceduto è inammissibile"
+        },
+        {
+          "step": 3,
+          "descrizione": "Calcolo capitale + interessi (commerciali/legali) + spese di intervento stragiudiziale + competenze",
+          "norme_riferimento": "D.Lgs. 231/2002 (interessi moratori transazioni commerciali); art. 1284 c.c. (interesse legale); D.M. 147/2022 (parametri forensi)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Predisposizione e invio messa in mora con sollecito di pagamento (raccomandata o PEC) - non obbligatoria ma utile per interrompere prescrizione e dimostrare scientia debitoria"
+        },
+        {
+          "step": 5,
+          "descrizione": "Valutazione richiesta di provvisoria esecutorietà ex art. 642 c.p.c. (titoli, fatture accettate, scritture private autenticate)",
+          "norme_riferimento": "art. 642 c. 1: credito fondato su cambiale, assegno, certificato di liquidazione di borsa, atto pubblico, scrittura privata autenticata; art. 642 c. 2: pericolo grave nel ritardo OR documentazione sottoscritta dal debitore comprovante diritto fatto valere"
+        },
+        {
+          "step": 6,
+          "descrizione": "Verifica obbligo deposito telematico (art. 196-quater disp.att. c.p.c.) e pagamento contributo unificato + marca bollo + diritti forfettari"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_decreto_ingiuntivo",
+        "denominazione": "Ricorso per decreto ingiuntivo ex art. 633 e ss. c.p.c.",
+        "schema_xsd_ministeriale": "AttoMonitorio.xsd",
+        "campi_chiave": [
+          {"id": "tribunale", "label": "Tribunale competente", "type": "select", "required": true, "options_source": "elenco_uffici_giudiziari"},
+          {"id": "ricorrente", "label": "Dati ricorrente (creditore)", "type": "object_persona", "required": true, "sub_fields": [
+            {"id": "tipo_persona", "type": "select", "options": ["fisica", "giuridica"]},
+            {"id": "cognome_nome_o_denominazione", "type": "string"},
+            {"id": "codice_fiscale", "type": "string", "validation": "CF_o_PIVA_italiani"},
+            {"id": "indirizzo", "type": "address"},
+            {"id": "pec", "type": "email"},
+            {"id": "rappresentante_legale", "type": "object_persona", "visible_if": "tipo_persona=giuridica"}
+          ]},
+          {"id": "ingiungendo", "label": "Dati ingiungendo (debitore)", "type": "object_persona", "required": true, "sub_fields": "(stessa struttura di ricorrente)"},
+          {"id": "altri_debitori", "label": "Altri debitori (solidali)", "type": "array_persone", "required": false},
+          {"id": "difensore", "label": "Difensore con procura", "type": "object_avvocato", "required": true, "sub_fields": [
+            {"id": "cognome_nome", "type": "string"},
+            {"id": "codice_fiscale", "type": "string"},
+            {"id": "ordine_iscrizione", "type": "string"},
+            {"id": "pec_difensore", "type": "email"},
+            {"id": "domicilio_eletto", "type": "address"}
+          ]},
+          {"id": "importo_capitale", "label": "Capitale richiesto (Euro)", "type": "currency", "required": true, "validation": "min:0.01"},
+          {"id": "interessi", "label": "Interessi", "type": "object_interessi", "required": true, "sub_fields": [
+            {"id": "tipo_interessi", "type": "select", "required": true, "options": ["legali_art_1284_cc", "moratori_commerciali_dlgs_231_2002", "convenzionali", "pattuiti_contratto"]},
+            {"id": "tasso_pattuito", "type": "percentage", "visible_if": "tipo_interessi=convenzionali"},
+            {"id": "data_decorrenza", "type": "date", "required": true},
+            {"id": "calcolo_fino_al_deposito", "type": "currency"}
+          ]},
+          {"id": "causale_credito", "label": "Causale del credito (descrizione fatti costitutivi)", "type": "textarea", "required": true, "min_length": 50},
+          {"id": "natura_credito", "label": "Natura del credito", "type": "select", "required": true, "options": ["somministrazione", "fornitura_beni", "prestazione_servizi", "prestazione_professionale", "mutuo", "saldo_conto_corrente", "titolo_credito", "fatture_commerciali", "altro"]},
+          {"id": "prova_scritta_tipo", "label": "Prova scritta indicata", "type": "select", "required": true, "options": ["fattura_accettata", "estratto_scritture_contabili", "scrittura_privata", "scrittura_privata_autenticata", "atto_pubblico", "parcella_vistata_ordine", "cambiale_assegno", "titoli_credito", "altro"]},
+          {"id": "documenti_a_prova", "label": "Documenti probatori allegati (riferimento allegati)", "type": "array_documenti", "required": true},
+          {"id": "esecuzione_provvisoria", "label": "Richiesta esecuzione provvisoria ex art. 642 c.p.c.", "type": "boolean", "default": false},
+          {"id": "tipo_provvisoria", "label": "Tipo provvisoria richiesta", "type": "select", "visible_if": "esecuzione_provvisoria=true", "options": ["art_642_c1_titoli_qualificati", "art_642_c2_pericolo_ritardo", "art_642_c2_documenti_sottoscritti_debitore"]},
+          {"id": "motivazione_provvisoria", "label": "Motivazione della richiesta di provvisoria", "type": "textarea", "visible_if": "esecuzione_provvisoria=true", "required_if": "esecuzione_provvisoria=true"},
+          {"id": "spese_competenze", "label": "Spese, competenze e onorari richiesti", "type": "currency", "required": true},
+          {"id": "calcolo_parametri_forensi", "label": "Calcolo competenze secondo parametri D.M. 147/2022", "type": "object_calcolo_dm147"},
+          {"id": "valore_della_causa", "label": "Valore della causa (per CU e parametri)", "type": "currency", "required": true},
+          {"id": "scaglione_valore", "label": "Scaglione di valore per parametri forensi", "type": "select", "options": ["fino_a_1100", "da_1100_a_5200", "da_5200_a_26000", "da_26000_a_52000", "da_52000_a_260000", "da_260000_a_520000", "oltre_520000"]}
+        ],
+        "avvertimenti_obbligatori": [
+          "Indicazione termine 40 giorni per opposizione (art. 641 c.p.c.) - 50 gg se ingiungendo all'estero",
+          "Avvertimento ex art. 645 c.p.c.: in mancanza di opposizione il decreto diventerà esecutivo ex art. 647 c.p.c.",
+          "Indicazione che, fino all'opposizione, il decreto è titolo per iscrizione ipoteca giudiziale ex art. 655 c.p.c. (solo se munito di esecutorietà)",
+          "Avvertimento sull'obbligo del difensore di indicare PEC e codice fiscale ex art. 125 c.p.c."
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "prova_scritta_credito", "label": "Documenti probatori del credito (fatture, contratti, scritture, titoli)", "required": true, "formato": ["pdf", "pdf/a"]},
+        {"id": "procura", "label": "Procura alle liti", "required": true, "modalita": "in calce all'atto, su foglio separato congiunto, o procura speciale"},
+        {"id": "estratto_scritture_contabili", "label": "Estratto autentico scritture contabili (per imprese)", "required": false, "richiesto_se": "natura_credito IN (somministrazione, fornitura_beni, prestazione_servizi)"},
+        {"id": "vidima_ordine_professionale", "label": "Vidima dell'ordine professionale sulla parcella", "required": false, "richiesto_se": "natura_credito=prestazione_professionale"},
+        {"id": "visura_camerale_debitore", "label": "Visura camerale aggiornata (se debitore impresa)", "required": false, "consigliato": true},
+        {"id": "ricevute_notifiche_pec", "label": "Eventuale corrispondenza/messa in mora", "required": false},
+        {"id": "nota_iscrizione_ruolo", "label": "Nota di iscrizione a ruolo", "required": true, "generata_automaticamente": true}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": {
+          "regola": "Ridotto alla metà ex art. 13 c. 3 DPR 115/2002 rispetto al rito ordinario",
+          "scaglioni_2026": [
+            {"valore": "fino_a_1100", "cu": 21.50},
+            {"valore": "da_1100_a_5200", "cu": 49.00},
+            {"valore": "da_5200_a_26000", "cu": 118.50},
+            {"valore": "da_26000_a_52000", "cu": 259.00},
+            {"valore": "da_52000_a_260000", "cu": 379.00},
+            {"valore": "da_260000_a_520000", "cu": 607.00},
+            {"valore": "oltre_520000", "cu": 843.00}
+          ],
+          "nota": "Verificare aggiornamento scaglioni alla data del deposito"
+        },
+        "marca_bollo_forfettaria": 27.00,
+        "diritti_di_copia_e_certificazione": "Variabili - consultare DPR 115/2002 allegato",
+        "anticipazioni_pct": "Bollo telematico tramite F23/MAV/PagoPA",
+        "deposito_telematico": "Obbligatorio ex art. 196-quater disp.att. c.p.c. via PCT (Portale dei Servizi Telematici / SLpct / Consolle Avvocato)"
+      },
+      "atti_collegati": [
+        {"tipo": "atto_precetto", "trigger": "Decreto esecutivo (per mancata opposizione, per provvisoria, per esecutorietà concessa)", "termine": "Notificare il decreto + precetto", "automatico": false, "codice_correlato": "atto preparatorio esecuzione"},
+        {"tipo": "comparsa_costituzione_e_risposta_in_opposizione", "trigger": "Opposizione ex art. 645 c.p.c. da parte dell'ingiunto", "automatico": false},
+        {"tipo": "istanza_provvisoria_esecutorietà_ex_648", "trigger": "In pendenza opposizione, se ingiunto non eccepisce gravi motivi", "automatico": false},
+        {"tipo": "istanza_sospensione_esecutorietà_ex_649", "trigger": "Dall'opponente in caso di gravi motivi", "automatico": false},
+        {"tipo": "istanza_apposizione_formula_esecutiva_ex_654", "trigger": "Decreto esecutivo per maturata definitività", "automatico": false},
+        {"tipo": "atto_pignoramento", "trigger": "Decorso termine precetto (min 10 gg)", "codice_correlato": "510001/510002/610001"}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "decreto_accolto", "descrizione": "Il giudice emette decreto ingiuntivo (con o senza provvisoria esecutorietà)", "frequenza": "alta"},
+        {"esito": "decreto_accolto_parzialmente", "descrizione": "Il giudice accoglie solo per parte del credito", "frequenza": "media"},
+        {"esito": "rigetto_ex_640", "descrizione": "Rigetto per insufficienza prova scritta - non preclude azione ordinaria", "frequenza": "bassa"},
+        {"esito": "opposizione_proposta", "descrizione": "L'ingiunto propone opposizione: si apre giudizio ordinario di cognizione", "frequenza": "media"},
+        {"esito": "definitività_per_mancata_opposizione", "descrizione": "Decorsi 40 gg senza opposizione: decreto definitivo (art. 647 c.p.c.)", "frequenza": "alta"}
+      ],
+      "termini_processuali": [
+        {"termine": "Decisione sul ricorso", "giorni": 30, "decorrenza": "deposito ricorso", "natura": "ordinatorio", "norma": "art. 641 c. 1 c.p.c."},
+        {"termine": "Notifica decreto al debitore", "giorni": 60, "decorrenza": "deposito decreto", "natura": "perentorio (pena inefficacia)", "norma": "art. 644 c.p.c."},
+        {"termine": "Termine ingiungendo all'estero", "giorni": 90, "decorrenza": "deposito decreto", "natura": "perentorio", "norma": "art. 644 c.p.c."},
+        {"termine": "Opposizione (ingiunto in Italia)", "giorni": 40, "decorrenza": "notifica decreto", "natura": "perentorio", "norma": "art. 641 c.p.c."},
+        {"termine": "Opposizione (ingiunto all'estero)", "giorni": 50, "decorrenza": "notifica decreto", "natura": "perentorio", "norma": "art. 641 c.p.c."},
+        {"termine": "Apposizione formula esecutiva (per mancata opposizione)", "giorni": 0, "decorrenza": "su istanza dopo scadenza termine opposizione", "natura": "decadenziale", "norma": "art. 647 c.p.c."},
+        {"termine": "Decadenza ricorso decreto non notificato", "giorni": 60, "decorrenza": "deposito decreto", "natura": "decadenziale", "norma": "art. 644 c.p.c."}
+      ],
+      "controlli_qualita_input": [
+        "Verifica CF/PIVA del debitore con anagrafe tributaria",
+        "Verifica esistenza/non cessazione debitore (visura CCIAA per imprese; certificato anagrafico per persone fisiche)",
+        "Verifica competenza territoriale e per valore",
+        "Verifica scadenza titolo (prescrizione)",
+        "Verifica autenticazione/vidimazione documentazione probatoria"
+      ]
+    },
+    {
+      "codice": "100001",
+      "denominazione": "Opposizione a precetto (art. 615 c. 1 c.p.c.)",
+      "categoria": "Opposizioni all'esecuzione",
+      "sottocategoria": "Opposizione pre-esecutiva (contestazione del diritto a procedere)",
+      "rito": "Rito ordinario di cognizione (anche con profili cautelari per sospensione efficacia precetto)",
+      "competenza": "Giudice competente per valore e materia secondo le regole ordinarie (art. 27 c.p.c.) - solo per opposizione ex art. 615 c. 1 (ante esecuzione); diversa la competenza per opposizione c. 2 (G.E.)",
+      "uffici_destinatari": ["SICID"],
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "615 c. 1", "descrizione": "Opposizione a precetto prima dell'inizio dell'esecuzione"},
+        {"fonte": "c.p.c.", "articolo": "479", "descrizione": "Notificazione del titolo esecutivo e del precetto"},
+        {"fonte": "c.p.c.", "articolo": "480", "descrizione": "Forma del precetto"},
+        {"fonte": "c.p.c.", "articolo": "481", "descrizione": "Cessazione di efficacia del precetto"},
+        {"fonte": "c.p.c.", "articolo": "27", "descrizione": "Competenza territoriale per esecuzione forzata"},
+        {"fonte": "c.p.c.", "articolo": "624", "descrizione": "Sospensione dell'esecuzione (anche in via cautelare/ante causam)"},
+        {"fonte": "c.p.c.", "articolo": "189 disp.att. c.p.c.", "descrizione": "Cessazione del precetto"}
+      ],
+      "presupposti_sostanziali": [
+        "Notifica di un titolo esecutivo + atto di precetto",
+        "Contestazione del DIRITTO della parte istante a procedere ad esecuzione forzata (an executionis), non dei vizi formali del precetto (per i quali → art. 617)",
+        "Motivi tipici: inesistenza/estinzione del credito; prescrizione del titolo; intervenuta compensazione; carenza/inefficacia titolo esecutivo; pagamento effettuato; rinuncia del creditore; cessione del credito non efficacemente notificata; intervenuto concordato preventivo",
+        "Proposizione PRIMA dell'inizio dell'esecuzione (con il pignoramento)",
+        "Termine: non perentorio rigido, ma diventa inammissibile dopo l'inizio dell'esecuzione (passaggio sotto art. 615 c. 2)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": "Solo se il rapporto sostanziale rientra nelle materie ex art. 5 c. 1-bis D.Lgs. 28/2010 (es. contratti bancari, condominio)",
+        "valutazione_caso_per_caso": true
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Analisi del titolo esecutivo e del precetto notificati (verifica vizi sostanziali vs formali)",
+          "documenti_da_acquisire": ["Copia titolo esecutivo notificato", "Copia precetto con relata di notifica"]
+        },
+        {
+          "step": 2,
+          "descrizione": "Verifica della causa effettiva dell'opposizione (estinzione/inesistenza credito vs vizio formale)",
+          "rischio": "Se vizio formale → art. 617 c.p.c. (termine perentorio 20 gg)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Calcolo termini residui prima dell'esecuzione (precetto valido 90 gg ex art. 481 c.p.c.)"
+        },
+        {
+          "step": 4,
+          "descrizione": "Raccolta prove dell'estinzione/inesistenza del credito (ricevute pagamento, accordi transattivi, prescrizione)"
+        },
+        {
+          "step": 5,
+          "descrizione": "Valutazione opportunità ricorso ex art. 624 c.p.c. per sospensione efficacia esecutiva del titolo/precetto (cautelare)"
+        },
+        {
+          "step": 6,
+          "descrizione": "Valutazione strategica: opporre, transigere, o pagare riservandosi azione ripetitoria"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_opposizione_precetto",
+        "denominazione": "Atto di citazione in opposizione a precetto ex art. 615 c. 1 c.p.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {"id": "tribunale", "label": "Tribunale competente (per valore e materia ex art. 27 c.p.c.)", "type": "select", "required": true},
+          {"id": "opponente", "label": "Opponente (debitore precettato)", "type": "object_persona", "required": true},
+          {"id": "creditore_opposto", "label": "Creditore opposto", "type": "object_persona", "required": true},
+          {"id": "difensore", "label": "Difensore opponente con procura", "type": "object_avvocato", "required": true},
+          {"id": "precetto_estremi", "label": "Estremi precetto opposto", "type": "object", "required": true, "sub_fields": [
+            {"id": "data_notifica_precetto", "type": "date"},
+            {"id": "ufficiale_notificante", "type": "string"},
+            {"id": "importo_precettato", "type": "currency"},
+            {"id": "termine_pagamento_intimato", "type": "integer"}
+          ]},
+          {"id": "titolo_esecutivo", "label": "Titolo esecutivo posto a base del precetto", "type": "object", "required": true, "sub_fields": [
+            {"id": "tipo_titolo", "type": "select", "options": ["sentenza", "decreto_ingiuntivo", "atto_pubblico_notarile", "scrittura_privata_autenticata", "titolo_credito_cambiale_assegno", "verbale_conciliazione", "altro"]},
+            {"id": "estremi_titolo", "type": "string"},
+            {"id": "autorita_emittente", "type": "string"},
+            {"id": "data_titolo", "type": "date"}
+          ]},
+          {"id": "motivi_opposizione", "label": "Motivi di opposizione (categoria)", "type": "select_multi", "required": true, "options": ["inesistenza_originaria_credito", "estinzione_pagamento", "estinzione_compensazione", "estinzione_novazione_transazione", "estinzione_remissione", "prescrizione", "carenza_titolo_esecutivo", "perdita_efficacia_titolo", "inopponibilita_cessione_credito", "concordato_preventivo_omologato", "fatto_impeditivo_diverso", "altro"]},
+          {"id": "esposizione_fatti", "label": "Esposizione fatti e motivi dettagliata", "type": "textarea", "required": true, "min_length": 200},
+          {"id": "richiesta_sospensione_ex_615", "label": "Richiesta sospensione efficacia esecutiva del precetto", "type": "boolean", "default": true},
+          {"id": "richiesta_inibitoria_ex_624", "label": "Richiesta inibitoria/sospensione esecuzione (se già iniziata)", "type": "boolean", "default": false},
+          {"id": "conclusioni", "label": "Conclusioni", "type": "textarea", "required": true},
+          {"id": "udienza_comparizione", "label": "Data prima udienza di comparizione", "type": "date", "required": true, "validation": "rispetto_termine_a_comparire_min_90_gg"}
+        ],
+        "avvertimenti_obbligatori": [
+          "Indicazione termini di costituzione e comparizione ordinaria (90 gg liberi prima dell'udienza, 150 gg se convenuto all'estero)",
+          "Avvertimento ex art. 163 n. 7 c.p.c.: costituzione 20 gg prima dell'udienza pena decadenze",
+          "Avvertimento mediazione obbligatoria se materia rientrante",
+          "Indicazione facoltà di mediazione facoltativa"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "precetto_originale", "label": "Copia precetto opposto con relata di notifica", "required": true},
+        {"id": "titolo_esecutivo", "label": "Copia titolo esecutivo notificato", "required": true},
+        {"id": "documenti_prove_opposizione", "label": "Documenti probatori a sostegno (ricevute pagamento, accordi transattivi, prove prescrizione)", "required": true},
+        {"id": "procura_alle_liti", "label": "Procura alle liti", "required": true},
+        {"id": "nota_iscrizione_ruolo", "label": "Nota iscrizione a ruolo", "required": true},
+        {"id": "ricevute_contributo_unificato", "label": "Ricevute pagamento CU e marca bollo", "required": true}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore del credito precettato (NON ridotto, è giudizio ordinario)",
+        "marca_bollo_forfettaria": 27.00,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {"tipo": "istanza_cautelare_sospensione_efficacia_titolo", "trigger": "Pericolo di esecuzione imminente", "automatico": false},
+        {"tipo": "comparsa_costituzione_e_risposta_creditore_opposto", "trigger": "Costituzione del creditore opposto", "automatico": false},
+        {"tipo": "ricorso_art_624_g_e", "trigger": "Se nel frattempo è iniziata l'esecuzione: passaggio a opposizione 615 c. 2", "codice_correlato": "100011/100012"}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "accoglimento_opposizione", "descrizione": "Accertamento dell'inesistenza/estinzione del diritto a procedere ad esecuzione; condanna del creditore alle spese"},
+        {"esito": "rigetto_opposizione", "descrizione": "Il creditore può procedere; opponente condannato alle spese; eventuali sanzioni ex art. 96 c.p.c."},
+        {"esito": "transazione", "descrizione": "Accordo tra le parti durante il giudizio"},
+        {"esito": "cessazione_materia_contendere", "descrizione": "Pagamento intervenuto in corso di causa o rinuncia del creditore"}
+      ],
+      "termini_processuali": [
+        {"termine": "Validità del precetto", "giorni": 90, "decorrenza": "notifica precetto", "natura": "decadenziale", "norma": "art. 481 c.p.c.", "nota": "Decorso il termine senza pignoramento, il precetto perde efficacia"},
+        {"termine": "Inizio esecuzione (dopo il quale opposizione diventa ex 615 c. 2)", "giorni": 0, "decorrenza": "pignoramento", "natura": "preclusivo", "norma": "art. 615 c. 2 c.p.c."},
+        {"termine": "Termine a comparire ordinario", "giorni": 90, "decorrenza": "notifica citazione", "natura": "minimo legale", "norma": "art. 163-bis c.p.c."},
+        {"termine": "Costituzione attore", "giorni": 10, "decorrenza": "notifica citazione", "natura": "perentorio", "norma": "art. 165 c.p.c."}
+      ]
+    },
+    {
+      "codice": "111002",
+      "denominazione": "Separazione giudiziale",
+      "categoria": "Separazione coniugale contenziosa",
+      "sottocategoria": "Separazione personale dei coniugi - rito unificato persone e famiglia (post-Cartabia)",
+      "rito": "Rito unificato persone e famiglia ex artt. 473-bis e ss. c.p.c. (in vigore dal 28/2/2023)",
+      "competenza": "Tribunale ordinario - sezione famiglia (Tribunale per le persone, per i minorenni e per le famiglie quando istituito ai sensi del D.Lgs. 149/2022, sostanzialmente operativo dal 17/10/2024)",
+      "competenza_territoriale": "Tribunale dell'ultima residenza comune dei coniugi, o residenza/domicilio del convenuto; per cause sui figli: residenza abituale del minore (art. 473-bis.11 c.p.c.)",
+      "uffici_destinatari": ["SICID"],
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "150-158", "descrizione": "Separazione personale dei coniugi"},
+        {"fonte": "c.c.", "articolo": "151", "descrizione": "Separazione giudiziale e addebito"},
+        {"fonte": "c.c.", "articolo": "155-155-sexies", "descrizione": "Provvedimenti riguardo ai figli (oggi 337-bis e ss.)"},
+        {"fonte": "c.c.", "articolo": "337-bis - 337-octies", "descrizione": "Esercizio della responsabilità genitoriale a seguito di separazione, scioglimento, cessazione effetti civili, annullamento del matrimonio, ovvero all'esito di procedimenti relativi ai figli nati fuori dal matrimonio"},
+        {"fonte": "c.p.c.", "articolo": "473-bis", "descrizione": "Disposizioni generali del rito unificato persone e famiglia"},
+        {"fonte": "c.p.c.", "articolo": "473-bis.11", "descrizione": "Competenza"},
+        {"fonte": "c.p.c.", "articolo": "473-bis.12", "descrizione": "Forma della domanda e piano genitoriale"},
+        {"fonte": "c.p.c.", "articolo": "473-bis.13", "descrizione": "Documenti da allegare"},
+        {"fonte": "c.p.c.", "articolo": "473-bis.14", "descrizione": "Comparizione personale delle parti"},
+        {"fonte": "c.p.c.", "articolo": "473-bis.15", "descrizione": "Provvedimenti indifferibili"},
+        {"fonte": "c.p.c.", "articolo": "473-bis.16", "descrizione": "Costituzione del convenuto"},
+        {"fonte": "c.p.c.", "articolo": "473-bis.21", "descrizione": "Comparizione personale e prima udienza"},
+        {"fonte": "c.p.c.", "articolo": "473-bis.22", "descrizione": "Ascolto del minore"},
+        {"fonte": "c.p.c.", "articolo": "473-bis.49", "descrizione": "Cumulo separazione/divorzio (domanda congiunta)"},
+        {"fonte": "D.Lgs. 149/2022", "descrizione": "Riforma Cartabia"}
+      ],
+      "presupposti_sostanziali": [
+        "Sussistenza del vincolo matrimoniale (anche unione civile ex L. 76/2016 - per la cessazione)",
+        "Fatti tali da rendere intollerabile la prosecuzione della convivenza o da arrecare grave pregiudizio all'educazione della prole (art. 151 c.c.)",
+        "Per addebito: comportamento di un coniuge in violazione dei doveri matrimoniali (art. 143 c.c.) con nesso causale rispetto alla crisi del rapporto",
+        "Volontà di non riconciliazione (anche se manifestata da uno solo dei coniugi)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "alternativa_facoltativa": "Negoziazione assistita familiare ex art. 6 D.L. 132/2014 (per separazione consensuale o domanda congiunta - non per separazione giudiziale contenziosa)",
+        "mediazione_familiare_facoltativa": "Possibile, ma non obbligatoria; consigliata in caso di conflitti su figli"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Colloquio approfondito con il cliente per ricostruire la storia coniugale e identificare violazioni doveri matrimoniali (per addebito)",
+          "documenti_da_acquisire": ["Atto matrimonio (estratto integrale)", "Stato di famiglia", "Estratti di nascita dei figli"]
+        },
+        {
+          "step": 2,
+          "descrizione": "Raccolta documentazione economica completa di entrambi i coniugi (obbligo ex art. 473-bis.12 c. 5)",
+          "documenti_obbligatori": ["Dichiarazioni dei redditi ultimi 3 anni (730/Unico/CU)", "Estratti conto correnti ultimi 3 anni di tutti i conti", "Documentazione patrimoniale: visure immobiliari, PRA, partecipazioni societarie, investimenti finanziari, polizze vita", "Buste paga ultimi 12 mesi", "Eventuali contratti di mutuo, finanziamenti, leasing"]
+        },
+        {
+          "step": 3,
+          "descrizione": "Predisposizione PIANO GENITORIALE OBBLIGATORIO ex art. 473-bis.12 c. 3 c.p.c.",
+          "contenuto_piano": ["Attività scolastiche, extra-scolastiche e di studio", "Attività sportive, ludiche, ricreative", "Frequentazioni abituali", "Vacanze e periodi di villeggiatura", "Cure mediche", "Gestione delle ricorrenze familiari e festività"]
+        },
+        {
+          "step": 4,
+          "descrizione": "Valutazione domanda di addebito (rischio: senza prove robuste, soccombenza su questo capo)"
+        },
+        {
+          "step": 5,
+          "descrizione": "Quantificazione assegno di mantenimento per coniuge e per figli (parametri Cassazione: tenore di vita matrimoniale per assegno coniuge non addebitato; principio della indipendenza economica per assegno divorzile post Cass. SU 18287/2018)"
+        },
+        {
+          "step": 6,
+          "descrizione": "Valutazione assegnazione casa coniugale (collegata al collocamento prevalente dei figli minori/maggiorenni non autosufficienti)"
+        },
+        {
+          "step": 7,
+          "descrizione": "Tentativo di trasformare in separazione consensuale o ricorso congiunto ex art. 473-bis.51, anche con cumulo divorzio ex 473-bis.49"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_separazione_giudiziale",
+        "denominazione": "Ricorso per separazione giudiziale ex artt. 473-bis e ss. c.p.c.",
+        "schema_xsd_ministeriale": "AttoFamiglia.xsd",
+        "campi_chiave": [
+          {"id": "tribunale", "label": "Tribunale competente", "type": "select", "required": true},
+          {"id": "ricorrente", "label": "Coniuge ricorrente", "type": "object_persona", "required": true, "sub_fields": [
+            {"id": "cognome_nome", "type": "string"},
+            {"id": "codice_fiscale", "type": "string"},
+            {"id": "data_luogo_nascita", "type": "object"},
+            {"id": "residenza", "type": "address"},
+            {"id": "professione", "type": "string"},
+            {"id": "reddito_annuo", "type": "currency"}
+          ]},
+          {"id": "resistente", "label": "Coniuge resistente", "type": "object_persona", "required": true, "sub_fields": "(stessa struttura del ricorrente)"},
+          {"id": "matrimonio", "label": "Estremi matrimonio", "type": "object", "required": true, "sub_fields": [
+            {"id": "data_matrimonio", "type": "date"},
+            {"id": "luogo_comune", "type": "string"},
+            {"id": "tipo_matrimonio", "type": "select", "options": ["civile", "concordatario", "religioso_culto_acattolico_trascritto"]},
+            {"id": "regime_patrimoniale", "type": "select", "options": ["comunione_legale", "separazione_beni", "fondo_patrimoniale", "comunione_convenzionale"]}
+          ]},
+          {"id": "convivenza_cessata", "label": "Data effettiva cessazione convivenza", "type": "date", "required": true},
+          {"id": "figli", "label": "Figli", "type": "array_persone", "sub_fields": [
+            {"id": "cognome_nome", "type": "string"},
+            {"id": "data_nascita", "type": "date"},
+            {"id": "codice_fiscale", "type": "string"},
+            {"id": "stato_studi_lavoro", "type": "string"},
+            {"id": "autosufficienza_economica", "type": "boolean"},
+            {"id": "eventuali_disabilita", "type": "string"}
+          ]},
+          {"id": "domanda_addebito", "label": "Domanda di addebito", "type": "boolean", "default": false},
+          {"id": "motivi_addebito", "label": "Motivi di addebito (violazione doveri matrimoniali)", "type": "textarea", "visible_if": "domanda_addebito=true", "required_if": "domanda_addebito=true", "min_length": 300},
+          {"id": "prove_addebito", "label": "Prove (testi, documenti, registrazioni, ecc.)", "type": "textarea", "visible_if": "domanda_addebito=true"},
+          {"id": "domande_economiche", "label": "Domande economiche", "type": "object", "required": true, "sub_fields": [
+            {"id": "assegno_mantenimento_coniuge", "type": "currency", "label": "Assegno mensile mantenimento per il coniuge"},
+            {"id": "assegno_mantenimento_figli", "type": "array", "label": "Assegno per ciascun figlio", "sub_fields": [
+              {"id": "id_figlio", "type": "string"},
+              {"id": "importo_mensile", "type": "currency"},
+              {"id": "rivalutazione_istat", "type": "boolean", "default": true}
+            ]},
+            {"id": "spese_straordinarie", "type": "object", "label": "Spese straordinarie (criterio ripartizione)", "sub_fields": [
+              {"id": "quota_ricorrente", "type": "percentage"},
+              {"id": "quota_resistente", "type": "percentage"},
+              {"id": "tipologie_richiedono_accordo", "type": "array"}
+            ]},
+            {"id": "assegnazione_casa_coniugale", "type": "object", "label": "Casa coniugale", "sub_fields": [
+              {"id": "richiesta_assegnazione", "type": "boolean"},
+              {"id": "indirizzo_immobile", "type": "address"},
+              {"id": "titolo_godimento", "type": "select", "options": ["proprieta_comune", "proprieta_un_coniuge", "comodato_familiare_un_coniuge", "locazione"]}
+            ]}
+          ]},
+          {"id": "piano_genitoriale", "label": "Piano genitoriale ex art. 473-bis.12 c. 3 c.p.c. (OBBLIGATORIO)", "type": "object_complesso", "required": true, "sub_fields": [
+            {"id": "attivita_scolastiche_studio", "type": "textarea", "required": true},
+            {"id": "attivita_extra_scolastiche", "type": "textarea", "required": true},
+            {"id": "attivita_sportive_ricreative", "type": "textarea", "required": true},
+            {"id": "frequentazioni_abituali", "type": "textarea", "required": true},
+            {"id": "vacanze_villeggiatura", "type": "textarea", "required": true},
+            {"id": "cure_mediche", "type": "textarea", "required": true},
+            {"id": "festivita_e_ricorrenze", "type": "textarea", "required": true}
+          ]},
+          {"id": "regime_visite_frequentazione", "label": "Regime di frequentazione/visite del genitore non collocatario", "type": "textarea", "required": true},
+          {"id": "affidamento_proposto", "label": "Tipo di affidamento proposto", "type": "select", "required": true, "options": ["condiviso_paritetico", "condiviso_collocazione_prevalente_ricorrente", "condiviso_collocazione_prevalente_resistente", "esclusivo_ricorrente_motivato", "esclusivo_resistente_motivato"]},
+          {"id": "indicatore_situazione_economica_patrimoniale", "label": "Indicatore situazione economica e patrimoniale (DICAP - documento riepilogativo)", "type": "object_dicap", "required": true},
+          {"id": "domande_aggiuntive", "label": "Eventuali altre domande (es. richiesta sequestro beni ex 156 c.c., ordine di pagamento diretto al terzo ex 156 c. 6 c.c.)", "type": "textarea"},
+          {"id": "richiesta_provvedimenti_urgenti_473_bis_15", "label": "Richiesta provvedimenti indifferibili ante udienza", "type": "boolean", "default": false}
+        ],
+        "avvertimenti_obbligatori": [
+          "Avvertimento ex art. 473-bis.14 c.p.c. sulla comparizione personale obbligatoria delle parti alla prima udienza",
+          "Indicazione termine costituzione resistente almeno 30 gg prima udienza ex art. 473-bis.16 c.p.c., con avvertimento decadenze (eccezioni rito/processuali, domanda riconvenzionale, chiamata terzo, indicazione testi)",
+          "Avvertimento sull'obbligo di produzione documentazione reddituale e patrimoniale ex art. 473-bis.12 c. 5 (pena valutazione ai sensi art. 116 c.p.c.)",
+          "Avvertimento sull'ammissibilità domanda di divorzio congiunta ex art. 473-bis.49 (cumulo)",
+          "Indicazione possibilità ammissione patrocinio a spese dello Stato"
+        ],
+        "novita_cartabia_da_applicare": [
+          "Obbligo piano genitoriale (art. 473-bis.12 c. 3)",
+          "Domanda di divorzio contestuale possibile (art. 473-bis.49)",
+          "Allegazione documentazione reddituale e patrimoniale completa obbligatoria (art. 473-bis.12 c. 5)",
+          "Ascolto obbligatorio del minore >12 anni o anche infradodicenne se capace di discernimento (art. 473-bis.4 e 473-bis.5)",
+          "Procedura unificata anche per coppie non sposate con figli"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "estratto_matrimonio", "label": "Estratto per riassunto dell'atto di matrimonio (in originale o copia conforme)", "required": true},
+        {"id": "stato_famiglia_storico", "label": "Stato di famiglia storico", "required": true},
+        {"id": "estratti_nascita_figli", "label": "Estratti di nascita di tutti i figli (minori e maggiorenni)", "required": true},
+        {"id": "redditi_3_anni_ricorrente", "label": "Dichiarazioni redditi ultimi 3 anni del ricorrente (730/Unico/CUD)", "required": true},
+        {"id": "redditi_3_anni_resistente", "label": "Dichiarazioni redditi ultimi 3 anni del resistente (se disponibili)", "required": false, "consigliato_se_disponibile": true},
+        {"id": "estratti_conto_3_anni", "label": "Estratti conto di tutti i conti correnti ultimi 3 anni", "required": true},
+        {"id": "documenti_patrimoniali", "label": "Documenti patrimoniali completi (visure immobiliari, PRA, visure CCIAA partecipazioni, dossier titoli, polizze)", "required": true},
+        {"id": "buste_paga_ultimi_12_mesi", "label": "Buste paga ultimi 12 mesi (entrambi i coniugi se disponibili)", "required": true},
+        {"id": "piano_genitoriale_doc", "label": "Piano genitoriale formalizzato (può essere integrato nell'atto)", "required": true},
+        {"id": "documentazione_spese_figli", "label": "Documentazione spese ordinarie e straordinarie dei figli (scuola, sport, sanitarie)", "required": false, "consigliato": true},
+        {"id": "documentazione_addebito", "label": "Documenti a sostegno della domanda di addebito (se proposta)", "required_if": "domanda_addebito=true"},
+        {"id": "procura_alle_liti", "label": "Procura alle liti", "required": true},
+        {"id": "modulo_iscrizione_ruolo_completo", "label": "Modulo iscrizione a ruolo con anonimizzazione dati sensibili dei minori", "required": true}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": {
+          "regola": "Esenzione per separazione/divorzio sui rapporti tra coniugi ex art. 19 L. 74/1987 e art. 10 D.Lgs. 23/2011",
+          "esenzione": true
+        },
+        "marca_bollo_forfettaria": 27.00,
+        "deposito_telematico": "Obbligatorio - particolare attenzione all'anonimizzazione dati sensibili minori"
+      },
+      "atti_collegati": [
+        {"tipo": "memoria_integrativa_473_bis_17", "trigger": "Eventuale memoria del ricorrente in risposta alla comparsa resistente", "termine": "20 gg prima udienza"},
+        {"tipo": "ricorso_provvedimenti_urgenti_473_bis_15", "trigger": "Pericolo grave e irreparabile (es. allontanamento minore, sottrazione fondi)", "automatico": false},
+        {"tipo": "ricorso_modifica_condizioni_473_bis_29", "trigger": "Sopravvenienze post-separazione", "codice_correlato": "411601"},
+        {"tipo": "ricorso_divorzio_473_bis_49", "trigger": "Decorsi 6 mesi (consensuale) o 12 mesi (giudiziale) dalla separazione", "codice_correlato": "111012/111022"},
+        {"tipo": "azione_revocatoria_2901", "trigger": "Atti dispositivi del coniuge in frode dei diritti dell'altro", "codice_correlato": "102002"},
+        {"tipo": "sequestro_beni_coniuge_156_c_c", "trigger": "Inadempimento obbligo mantenimento", "codice_correlato": "411660"}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "sentenza_separazione_con_addebito", "descrizione": "Pronuncia di separazione con addebito a un coniuge - perdita diritto al mantenimento e perdita diritti successori"},
+        {"esito": "sentenza_separazione_senza_addebito", "descrizione": "Pronuncia di separazione - assegno di mantenimento al coniuge economicamente più debole"},
+        {"esito": "rigetto_addebito_pronuncia_separazione", "descrizione": "Separazione pronunciata ma addebito rigettato per insufficienza prove"},
+        {"esito": "conciliazione_o_riconciliazione", "descrizione": "Estinzione del procedimento per riconciliazione delle parti (art. 154 c.c.)"},
+        {"esito": "trasformazione_in_consensuale_473_bis_51", "descrizione": "Accordo intervenuto in corso di causa: pronuncia di separazione consensuale"},
+        {"esito": "cumulo_divorzio_473_bis_49", "descrizione": "Cumulo con domanda di divorzio congiunta"}
+      ],
+      "termini_processuali": [
+        {"termine": "Costituzione resistente", "giorni": 30, "decorrenza": "prima udienza", "natura": "perentorio (pena decadenze)", "norma": "art. 473-bis.16 c.p.c."},
+        {"termine": "Memoria integrativa ricorrente", "giorni": 20, "decorrenza": "prima udienza", "natura": "perentorio", "norma": "art. 473-bis.17 c.p.c."},
+        {"termine": "Memoria di replica resistente", "giorni": 10, "decorrenza": "prima udienza", "natura": "perentorio", "norma": "art. 473-bis.17 c.p.c."},
+        {"termine": "Successive memorie istruttorie", "giorni": "fissati dal giudice", "decorrenza": "udienza", "natura": "perentorio", "norma": "art. 473-bis.19 c.p.c."},
+        {"termine": "Ricorso per separazione di nuovo", "giorni": "nessuno", "natura": "imprescrittibile", "nota": "L'azione di separazione è imprescrittibile finché perdura il vincolo"},
+        {"termine": "Reclamo provvedimenti indifferibili", "giorni": 30, "decorrenza": "comunicazione/notifica", "natura": "perentorio", "norma": "art. 473-bis.24 c.p.c."}
+      ]
+    },
+    {
+      "codice": "130051",
+      "denominazione": "Comunione e Condominio - impugnazione di delibera assembleare e spese condominiali",
+      "categoria": "Condominio - contenzioso",
+      "sottocategoria": "Impugnazione delibere assembleari, recupero spese condominiali, responsabilità amministratore",
+      "rito": "Rito ordinario di cognizione (o sommario di cognizione ex art. 281-decies c.p.c. se valore o materia lo consente)",
+      "competenza": "Tribunale per valore > 5.000 € o per causa di impugnazione delibera (sempre Tribunale); Giudice di Pace per cause di valore ≤ 5.000 € su rimborso/quantum spese ordinarie (art. 7 c.p.c.)",
+      "competenza_territoriale": "Tribunale del luogo in cui è ubicato l'immobile (art. 21 c.p.c. - foro esclusivo)",
+      "uffici_destinatari": ["SICID"],
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1117-1139", "descrizione": "Del condominio negli edifici"},
+        {"fonte": "c.c.", "articolo": "1137", "descrizione": "Impugnazione delle deliberazioni dell'assemblea"},
+        {"fonte": "c.c.", "articolo": "1129", "descrizione": "Nomina, revoca e obblighi dell'amministratore"},
+        {"fonte": "c.c.", "articolo": "1130", "descrizione": "Attribuzioni dell'amministratore"},
+        {"fonte": "c.c.", "articolo": "1130-bis", "descrizione": "Rendiconto condominiale"},
+        {"fonte": "c.c.", "articolo": "1135", "descrizione": "Attribuzioni dell'assemblea dei condomini"},
+        {"fonte": "c.c.", "articolo": "1136", "descrizione": "Costituzione dell'assemblea e validità delle deliberazioni - quorum"},
+        {"fonte": "c.c.", "articolo": "1138", "descrizione": "Regolamento di condominio"},
+        {"fonte": "c.c.", "articolo": "63 disp.att.", "descrizione": "Decreto ingiuntivo immediatamente esecutivo per riscossione contributi"},
+        {"fonte": "c.c.", "articolo": "66 disp.att.", "descrizione": "Convocazione assemblea"},
+        {"fonte": "c.c.", "articolo": "67 disp.att.", "descrizione": "Intervento all'assemblea (delega scritta, limiti)"},
+        {"fonte": "c.c.", "articolo": "68 disp.att.", "descrizione": "Tabelle millesimali"},
+        {"fonte": "c.c.", "articolo": "69 disp.att.", "descrizione": "Modificazione delle tabelle millesimali"},
+        {"fonte": "L. 220/2012", "descrizione": "Riforma del condominio - entrata in vigore 18/6/2013"},
+        {"fonte": "D.M. 140/2014", "descrizione": "Requisiti formazione amministratori condominio"}
+      ],
+      "presupposti_sostanziali_impugnazione_delibera": [
+        "Esistenza di una deliberazione assembleare condominiale",
+        "Legittimazione attiva: condomino assente, dissenziente o astenuto (art. 1137 c. 2 c.c.)",
+        "Causa di invalidità: ANNULLABILITÀ (vizi convocazione, vizi procedimentali, violazione legge/regolamento, abuso di maggioranza, mancato rispetto quorum) OR NULLITÀ (impossibilità/illiceità oggetto, mancata convocazione, mancanza verbale, lesione diritti individuali su parti comuni o uso esclusivo)",
+        "Per ANNULLABILITÀ: rispetto termine 30 gg ex art. 1137 c. 2 (perentorio)",
+        "Per NULLITÀ: imprescrittibile (rilevabile anche d'ufficio)"
+      ],
+      "presupposti_sostanziali_recupero_spese": [
+        "Approvazione delibera di ripartizione spese o piano di riparto",
+        "Mancato pagamento da parte del condomino moroso",
+        "Per decreto ingiuntivo immediatamente esecutivo ex art. 63 disp.att.: delibera assembleare di approvazione del rendiconto/piano di riparto"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "CONDOMINIO (tutte le controversie)",
+        "natura": "condizione di procedibilità",
+        "luogo_mediazione": "Organismo di mediazione del luogo del giudice territorialmente competente",
+        "eccezioni": "Decreto ingiuntivo per spese condominiali ex art. 63 disp.att. c.c. (non richiede mediazione in fase monitoria; richiesta solo in fase di eventuale opposizione)"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione documentazione condominiale completa",
+          "documenti_da_acquisire": ["Verbale assemblea impugnata", "Convocazione assemblea con o.d.g.", "Lettere/PEC di convocazione", "Regolamento di condominio", "Tabelle millesimali", "Rendiconto consuntivo e preventivo", "Eventuale piano di riparto"]
+        },
+        {
+          "step": 2,
+          "descrizione": "Verifica legittimazione attiva (qualifica di assente/dissenziente/astenuto)",
+          "rischio": "Il condomino consenziente non può impugnare la delibera (annullabilità)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Verifica rispetto termine 30 gg ex art. 1137 c. 2 per annullabilità",
+          "decorrenza_assenti": "Comunicazione del verbale (raccomandata/PEC)",
+          "decorrenza_dissenzienti_astenuti": "Data dell'assemblea"
+        },
+        {
+          "step": 4,
+          "descrizione": "Calcolo quorum costitutivi e deliberativi (artt. 1136 c.c. + art. 1117-ter, 1117-quater, ecc. per casi speciali)"
+        },
+        {
+          "step": 5,
+          "descrizione": "ATTIVAZIONE MEDIAZIONE OBBLIGATORIA presso organismo accreditato (condizione di procedibilità)",
+          "termine_attivazione": "Prima del deposito ricorso/citazione",
+          "documenti_da_predisporre": ["Istanza di mediazione", "Indicazione parti", "Documenti a sostegno"]
+        },
+        {
+          "step": 6,
+          "descrizione": "Per recupero spese: verifica se procedere con decreto ingiuntivo ex art. 63 disp.att. (più rapido) o con causa ordinaria"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_o_ricorso_condominio",
+        "denominazione": "Atto di citazione/ricorso in materia condominiale",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "tipologie_atto": [
+          {"tipo": "atto_citazione_impugnazione_delibera", "forma": "Atto di citazione", "norma": "art. 163 c.p.c."},
+          {"tipo": "ricorso_decreto_ingiuntivo_63_disp_att", "forma": "Ricorso monitorio", "norma": "art. 63 disp.att. c.c. (immediatamente esecutivo)"},
+          {"tipo": "ricorso_revoca_amministratore", "forma": "Ricorso", "norma": "art. 1129 c. 11-13 c.c."}
+        ],
+        "campi_chiave": [
+          {"id": "tribunale", "label": "Tribunale del luogo dell'immobile (art. 21 c.p.c.)", "type": "select", "required": true},
+          {"id": "tipo_controversia", "label": "Tipo controversia", "type": "select", "required": true, "options": ["impugnazione_delibera_annullabilita", "impugnazione_delibera_nullita", "recupero_spese_decreto_ingiuntivo", "recupero_spese_giudizio_ordinario", "responsabilita_amministratore", "revoca_amministratore_giudiziale", "tabelle_millesimali_modifica", "lesione_diritti_individuali_su_parti_comuni"]},
+          {"id": "condominio_attore_o_convenuto", "label": "Condominio è attore o convenuto", "type": "select", "required": true, "options": ["attore", "convenuto"]},
+          {"id": "condomino_attore", "label": "Condomino attore (per impugnazioni)", "type": "object_persona", "required_if": "tipo_controversia LIKE 'impugnazione%'"},
+          {"id": "qualifica_assemblea", "label": "Qualifica del condomino in assemblea", "type": "select", "required_if": "tipo_controversia=impugnazione_delibera_annullabilita", "options": ["assente_non_convocato", "assente_convocato", "dissenziente", "astenuto"]},
+          {"id": "condominio_dati", "label": "Condominio (denominazione, indirizzo, CF)", "type": "object", "required": true, "sub_fields": [
+            {"id": "denominazione", "type": "string"},
+            {"id": "indirizzo_completo", "type": "address"},
+            {"id": "codice_fiscale_condominio", "type": "string"},
+            {"id": "numero_unita_immobiliari", "type": "integer"},
+            {"id": "totale_millesimi", "type": "integer", "default": 1000}
+          ]},
+          {"id": "amministratore", "label": "Amministratore del condominio", "type": "object_persona", "required": true, "sub_fields": [
+            {"id": "cognome_nome_o_denominazione", "type": "string"},
+            {"id": "codice_fiscale", "type": "string"},
+            {"id": "pec", "type": "email"},
+            {"id": "data_nomina", "type": "date"},
+            {"id": "scadenza_mandato", "type": "date"}
+          ]},
+          {"id": "delibera_estremi", "label": "Estremi delibera impugnata", "type": "object", "required_if": "tipo_controversia LIKE 'impugnazione%'", "sub_fields": [
+            {"id": "data_assemblea", "type": "date"},
+            {"id": "tipo_assemblea", "type": "select", "options": ["ordinaria", "straordinaria"]},
+            {"id": "convocazione_prima", "type": "boolean"},
+            {"id": "ordine_del_giorno", "type": "textarea"},
+            {"id": "punto_o_d_g_impugnato", "type": "string"},
+            {"id": "delibera_oggetto", "type": "textarea"},
+            {"id": "voti_favorevoli_millesimi", "type": "integer"},
+            {"id": "voti_contrari_millesimi", "type": "integer"},
+            {"id": "voti_astenuti_millesimi", "type": "integer"},
+            {"id": "data_comunicazione_verbale_se_assente", "type": "date"}
+          ]},
+          {"id": "vizi_dedotti", "label": "Vizi della delibera dedotti", "type": "select_multi", "required_if": "tipo_controversia LIKE 'impugnazione%'", "options": ["nullita_oggetto_impossibile", "nullita_oggetto_illecito", "nullita_lesione_diritti_individuali", "nullita_lesione_diritti_su_parti_comuni", "nullita_mancata_convocazione", "nullita_mancanza_verbale", "annullabilita_convocazione_irregolare", "annullabilita_quorum_costitutivo_irregolare", "annullabilita_quorum_deliberativo_irregolare", "annullabilita_violazione_legge", "annullabilita_violazione_regolamento", "abuso_maggioranza"]},
+          {"id": "esposizione_vizi", "label": "Esposizione dettagliata vizi", "type": "textarea", "required": true, "min_length": 200},
+          {"id": "importo_spese_contestate", "label": "Importo spese contestate (Euro)", "type": "currency", "required_if": "tipo_controversia=recupero_spese_giudizio_ordinario"},
+          {"id": "condomini_morosi", "label": "Condomini morosi", "type": "array_persone", "required_if": "tipo_controversia LIKE 'recupero_spese%'", "sub_fields": [
+            {"id": "cognome_nome", "type": "string"},
+            {"id": "unita_immobiliare", "type": "string"},
+            {"id": "millesimi_di_proprieta", "type": "integer"},
+            {"id": "importo_dovuto", "type": "currency"},
+            {"id": "periodo_morosita", "type": "string"}
+          ]},
+          {"id": "richiesta_provvedimento_urgente", "label": "Richiesta provvedimento d'urgenza (es. sospensione esecuzione delibera)", "type": "boolean"},
+          {"id": "udienza_comparizione", "label": "Data prima udienza di comparizione", "type": "date", "required_if": "tipo_atto=atto_citazione"}
+        ],
+        "avvertimenti_obbligatori": [
+          "Indicazione termine 30 gg per impugnazione delibera annullabile ex art. 1137 c. 2 c.c. (decorrente da: comunicazione verbale per assenti; data assemblea per dissenzienti/astenuti)",
+          "Mediazione obbligatoria preventiva ex art. 5 c. 1-bis D.Lgs. 28/2010 - condizione di procedibilità",
+          "Indicazione che la delibera può essere sospesa dal giudice in via cautelare/sommaria (art. 1137 c. 3 c.c.)",
+          "Foro esclusivo del luogo dell'immobile (art. 21 c.p.c.)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "verbale_assemblea_impugnato", "label": "Verbale assemblea impugnata (o ultime delibere oggetto di causa)", "required": true},
+        {"id": "convocazione_assemblea", "label": "Convocazione assemblea con o.d.g. completo", "required": true},
+        {"id": "raccomandate_pec_convocazione", "label": "Avvisi di ricevimento raccomandate/PEC convocazione", "required": true},
+        {"id": "regolamento_condominio", "label": "Regolamento di condominio (contrattuale o assembleare)", "required": false, "consigliato": true},
+        {"id": "tabelle_millesimali", "label": "Tabelle millesimali (generali e/o speciali)", "required": true},
+        {"id": "rendiconto_e_piano_riparto", "label": "Rendiconto e piano di riparto (per cause su spese)", "required_if": "tipo_controversia LIKE 'recupero_spese%'"},
+        {"id": "verbale_mediazione_negativa", "label": "Verbale mediazione obbligatoria conclusasi negativamente", "required": true, "eccezione": "Non richiesto per decreto ingiuntivo monitorio ex art. 63 disp.att."},
+        {"id": "atto_nomina_amministratore", "label": "Atto di nomina amministratore (verbale assemblea)", "required": true},
+        {"id": "procura_alle_liti", "label": "Procura alle liti", "required": true}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore (per impugnazione delibera: valore della delibera o della spesa contestata)",
+        "marca_bollo_forfettaria": 27.00,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {"tipo": "istanza_sospensione_delibera_1137_c_3", "trigger": "Pericolo di pregiudizio dall'esecuzione delibera", "automatico": false},
+        {"tipo": "decreto_ingiuntivo_63_disp_att", "trigger": "Recupero spese condominiali deliberate non pagate", "automatico": false, "specialita": "Immediatamente esecutivo - non richiede provvisoria"},
+        {"tipo": "ricorso_revoca_amministratore", "trigger": "Gravi irregolarità ex art. 1129 c. 11-13 c.c.", "automatico": false, "codice_correlato": "400272"},
+        {"tipo": "ricorso_nomina_amministratore_giudiziale", "trigger": "Mancata nomina assembleare", "codice_correlato": "400271"}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "annullamento_delibera", "descrizione": "Delibera annullata - effetti ex nunc, salvi i diritti dei terzi in buona fede"},
+        {"esito": "dichiarazione_nullita_delibera", "descrizione": "Delibera nulla - effetti ex tunc"},
+        {"esito": "rigetto_impugnazione", "descrizione": "Delibera confermata valida"},
+        {"esito": "decreto_ingiuntivo_per_spese", "descrizione": "Ingiunzione per spese condominiali (immediatamente esecutiva)"},
+        {"esito": "revoca_amministratore", "descrizione": "Revoca giudiziale dell'amministratore per gravi irregolarità"},
+        {"esito": "conciliazione_in_mediazione", "descrizione": "Accordo in mediazione (omologato)"}
+      ],
+      "termini_processuali": [
+        {"termine": "Impugnazione delibera annullabile", "giorni": 30, "decorrenza": "comunicazione verbale (assenti) OR data assemblea (dissenzienti/astenuti)", "natura": "decadenziale", "norma": "art. 1137 c. 2 c.c."},
+        {"termine": "Impugnazione delibera nulla", "giorni": "nessuno", "natura": "imprescrittibile/rilevabile d'ufficio", "norma": "art. 1421 c.c."},
+        {"termine": "Mediazione obbligatoria - durata massima procedimento", "giorni": 90, "decorrenza": "deposito istanza", "natura": "termine ordinatorio max", "norma": "art. 6 D.Lgs. 28/2010"},
+        {"termine": "Opposizione decreto ingiuntivo per spese condominiali", "giorni": 40, "decorrenza": "notifica decreto", "natura": "perentorio", "norma": "art. 641 c.p.c."}
+      ]
+    },
+    {
+      "codice": "144021",
+      "denominazione": "Risoluzione del contratto di locazione per inadempimento - uso abitativo",
+      "categoria": "Locazioni - merito",
+      "sottocategoria": "Risoluzione per inadempimento (morosità, danni all'immobile, mutamento di destinazione)",
+      "rito": "Rito locatizio ex art. 447-bis c.p.c. (rito del lavoro adattato alle locazioni)",
+      "competenza": "Tribunale del luogo in cui è situato l'immobile (art. 21 c.p.c. - foro esclusivo)",
+      "uffici_destinatari": ["SICID"],
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1571-1614", "descrizione": "Della locazione"},
+        {"fonte": "c.c.", "articolo": "1453-1458", "descrizione": "Risoluzione del contratto per inadempimento"},
+        {"fonte": "c.c.", "articolo": "1455", "descrizione": "Importanza dell'inadempimento"},
+        {"fonte": "c.c.", "articolo": "1458", "descrizione": "Effetti della risoluzione"},
+        {"fonte": "c.c.", "articolo": "1591", "descrizione": "Danni per ritardata restituzione"},
+        {"fonte": "L. 392/1978", "articolo": "5", "descrizione": "Inadempimento del conduttore (gravità morosità: mancato pagamento canone + 20 gg, OR oneri accessori per importo superiore a 2 mensilità)"},
+        {"fonte": "L. 392/1978", "articolo": "55", "descrizione": "Termine di grazia per sanatoria morosità (in udienza)"},
+        {"fonte": "L. 431/1998", "descrizione": "Disciplina delle locazioni e del rilascio degli immobili adibiti ad uso abitativo"},
+        {"fonte": "c.p.c.", "articolo": "447-bis", "descrizione": "Rito locatizio (rinvio al rito del lavoro)"},
+        {"fonte": "c.p.c.", "articolo": "658", "descrizione": "Intimazione di sfratto per morosità - procedura alternativa specifica"}
+      ],
+      "presupposti_sostanziali": [
+        "Esistenza di un contratto di locazione abitativo valido (anche verbale, ma con onere probatorio rilevante)",
+        "Inadempimento grave del conduttore (art. 1455 c.c.): per morosità, art. 5 L. 392/78 stabilisce SOGLIE LEGALI: mancato pagamento del canone decorsi 20 gg dalla scadenza pattuita, OPPURE mancato pagamento di oneri accessori per importo superiore a 2 mensilità",
+        "Altre ipotesi di inadempimento: gravi danni all'immobile, mutamento di destinazione non autorizzato, sublocazione vietata, conduzione antieconomica",
+        "Diffida ad adempiere (non sempre obbligatoria - dipende da clausole contrattuali)"
+      ],
+      "alternativa_processuale_sfratto": "Per la sola morosità, è disponibile la procedura speciale di sfratto ex art. 658 c.p.c. (più rapida) - codici 030011/030012",
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "LOCAZIONE (tutte le controversie)",
+        "natura": "condizione di procedibilità"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione contratto di locazione e relativa registrazione",
+          "documenti_da_acquisire": ["Contratto di locazione (originale o copia)", "Ricevuta registrazione Agenzia Entrate", "Comunicazioni cedolare secca (se applicata)", "Visura catastale immobile"]
+        },
+        {
+          "step": 2,
+          "descrizione": "Quantificazione esatta morosità o danni",
+          "calcolo": "Canone non pagato + oneri accessori non pagati + interessi legali + rivalutazione ISTAT (se prevista) + spese stragiudiziali"
+        },
+        {
+          "step": 3,
+          "descrizione": "Notifica diffida ad adempiere o messa in mora (consigliata, anche se non sempre obbligatoria)",
+          "termine_diffida": "Almeno 15 gg ex art. 1454 c.c."
+        },
+        {
+          "step": 4,
+          "descrizione": "Valutazione strategica: procedura ordinaria di risoluzione (più garanzie ma più lenta) vs procedura speciale di sfratto per morosità ex art. 658 c.p.c. (più rapida, codice 030011)",
+          "criterio": "Sfratto per morosità: solo per morosità del canone, immediato. Risoluzione ordinaria: per inadempimenti diversi (danni, mutamento destinazione, ecc.) o domande risarcitorie complesse"
+        },
+        {
+          "step": 5,
+          "descrizione": "ATTIVAZIONE MEDIAZIONE OBBLIGATORIA (condizione di procedibilità)",
+          "luogo": "Organismo di mediazione del luogo del giudice competente",
+          "termine_massimo": "90 gg dalla domanda"
+        },
+        {
+          "step": 6,
+          "descrizione": "Predisposizione domande accessorie: pagamento canoni scaduti, futuri fino al rilascio, indennità di occupazione ex art. 1591 c.c., risarcimento danni"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_risoluzione_locazione_uso_abitativo",
+        "denominazione": "Ricorso ex art. 447-bis c.p.c. per risoluzione contratto locazione per inadempimento + rilascio + condanna al pagamento canoni e oneri",
+        "schema_xsd_ministeriale": "AttoLocazione.xsd",
+        "campi_chiave": [
+          {"id": "tribunale", "label": "Tribunale del luogo immobile", "type": "select", "required": true},
+          {"id": "locatore", "label": "Locatore ricorrente", "type": "object_persona", "required": true},
+          {"id": "conduttore", "label": "Conduttore resistente", "type": "object_persona", "required": true},
+          {"id": "garanti_fideiussori", "label": "Eventuali garanti/fideiussori (litisconsorti)", "type": "array_persone"},
+          {"id": "contratto_locazione", "label": "Estremi contratto di locazione", "type": "object", "required": true, "sub_fields": [
+            {"id": "data_contratto", "type": "date"},
+            {"id": "data_decorrenza", "type": "date"},
+            {"id": "data_scadenza", "type": "date"},
+            {"id": "durata_in_anni", "type": "integer"},
+            {"id": "tipo_contratto", "type": "select", "options": ["libero_4_4", "concordato_3_2", "transitorio", "studenti", "uso_foresteria"]},
+            {"id": "canone_mensile", "type": "currency"},
+            {"id": "data_registrazione", "type": "date"},
+            {"id": "ufficio_registrazione", "type": "string"},
+            {"id": "cedolare_secca", "type": "boolean"}
+          ]},
+          {"id": "immobile_locato", "label": "Immobile locato", "type": "object_immobile", "required": true, "sub_fields": [
+            {"id": "indirizzo_completo", "type": "address"},
+            {"id": "dati_catastali", "type": "object"},
+            {"id": "vani_e_superficie", "type": "object"},
+            {"id": "destinazione_d_uso", "type": "string"}
+          ]},
+          {"id": "tipo_inadempimento", "label": "Tipo inadempimento", "type": "select_multi", "required": true, "options": ["morosita_canoni", "morosita_oneri_accessori", "danni_immobile", "mutamento_destinazione_uso", "sublocazione_vietata", "ospitalita_non_autorizzata_continuativa", "violazione_clausole_specifiche_contratto", "altro"]},
+          {"id": "calcolo_morosita", "label": "Dettaglio calcolo morosità", "type": "object_complesso", "required_if": "tipo_inadempimento contiene morosita%", "sub_fields": [
+            {"id": "canoni_scaduti_non_pagati", "type": "array", "sub_fields": [
+              {"id": "mese_riferimento", "type": "date"},
+              {"id": "importo_dovuto", "type": "currency"},
+              {"id": "importo_pagato", "type": "currency"},
+              {"id": "residuo", "type": "currency"}
+            ]},
+            {"id": "totale_morosita_canoni", "type": "currency"},
+            {"id": "oneri_accessori_non_pagati", "type": "currency"},
+            {"id": "interessi_legali_calcolati", "type": "currency"},
+            {"id": "totale_complessivo", "type": "currency"}
+          ]},
+          {"id": "diffida_inviata", "label": "Diffida ad adempiere inviata", "type": "boolean"},
+          {"id": "data_diffida", "label": "Data invio diffida", "type": "date", "visible_if": "diffida_inviata=true"},
+          {"id": "esito_diffida", "label": "Esito diffida", "type": "select", "visible_if": "diffida_inviata=true", "options": ["nessuna_risposta", "risposta_non_adempimento", "pagamento_parziale", "altra"]},
+          {"id": "descrizione_inadempimento_non_morosita", "label": "Descrizione inadempimento (per casi diversi da morosità)", "type": "textarea", "required_if": "tipo_inadempimento contiene danni|mutamento|sublocazione"},
+          {"id": "domande", "label": "Domande", "type": "select_multi", "required": true, "options": ["risoluzione_contratto_per_inadempimento", "rilascio_immobile", "condanna_pagamento_canoni_scaduti", "condanna_pagamento_canoni_maturandi_fino_a_rilascio", "indennita_occupazione_1591_cc", "risarcimento_danni_immobile", "ritenzione_deposito_cauzionale", "spese_di_lite"]},
+          {"id": "indennita_occupazione_richiesta", "label": "Indennità mensile per occupazione post-risoluzione (art. 1591 c.c.)", "type": "currency"},
+          {"id": "deposito_cauzionale", "label": "Deposito cauzionale versato dal conduttore", "type": "currency"},
+          {"id": "ritenzione_cauzione_richiesta", "label": "Richiesta ritenzione cauzione a copertura danni/canoni", "type": "boolean"},
+          {"id": "udienza_comparizione", "label": "Data prima udienza", "type": "date", "required": true, "validation": "rispetto_termine_a_comparire"}
+        ],
+        "avvertimenti_obbligatori": [
+          "Indicazione termine costituzione resistente almeno 10 gg prima udienza ex art. 416 c.p.c. (richiamato da 447-bis)",
+          "Mediazione obbligatoria preventiva ex art. 5 c. 1-bis D.Lgs. 28/2010 - condizione di procedibilità",
+          "Avvertimento sulla possibilità di sanatoria della morosità in udienza ex art. 55 L. 392/78 (solo per uso abitativo)",
+          "Avvertimento decadenze ex art. 416 c.p.c.: domande riconvenzionali, eccezioni, indicazione testi e documenti"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "contratto_locazione_registrato", "label": "Contratto di locazione con prova della registrazione", "required": true},
+        {"id": "visura_catastale", "label": "Visura catastale immobile", "required": true},
+        {"id": "titolo_proprieta_o_disponibilita_locatore", "label": "Titolo di proprietà o di disponibilità del locatore", "required": true},
+        {"id": "ricevute_pagamento_canoni_anteriori", "label": "Eventuali ricevute pagamento canoni precedenti (per dimostrare adempimento parziale)", "required": false},
+        {"id": "diffida_e_relata", "label": "Diffida ad adempiere e relata di notifica", "required_if": "diffida_inviata=true"},
+        {"id": "documentazione_danni", "label": "Documentazione fotografica/perizie sui danni all'immobile", "required_if": "tipo_inadempimento contiene danni_immobile"},
+        {"id": "verbale_mediazione_negativa", "label": "Verbale mediazione obbligatoria conclusasi negativamente", "required": true},
+        {"id": "calcolo_dettagliato_morosita", "label": "Conteggio dettagliato della morosità", "required_if": "tipo_inadempimento contiene morosita%"},
+        {"id": "procura_alle_liti", "label": "Procura alle liti", "required": true}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore (canoni scaduti + indennità maturande fino a rilascio + danni)",
+        "marca_bollo_forfettaria": 27.00,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {"tipo": "istanza_sanatoria_55_L_392", "trigger": "Conduttore in prima udienza chiede termine per sanare", "termine_grazia": "90 gg max + ulteriori 120 in casi gravi", "automatico": false},
+        {"tipo": "ordinanza_rilascio_anticipato_667_cpc", "trigger": "Richiesta tutela anticipata locatore", "automatico": false},
+        {"tipo": "preavviso_rilascio_608_cpc", "trigger": "Sentenza di rilascio passata in giudicato/esecutiva", "automatico": false, "codice_correlato": "511012"},
+        {"tipo": "esecuzione_per_rilascio", "trigger": "Mancata esecuzione spontanea sentenza", "codice_correlato": "511012"}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "risoluzione_contratto_e_rilascio", "descrizione": "Pronuncia di risoluzione + ordine di rilascio + condanna al pagamento canoni e oneri"},
+        {"esito": "sanatoria_in_udienza_55_L_392", "descrizione": "Conduttore sana la morosità in udienza con termine di grazia (specifico per uso abitativo - 1 sola volta nel quadriennio salvo casi eccezionali)"},
+        {"esito": "rigetto_inadempimento_non_grave", "descrizione": "Rigetto perché inadempimento non superiore alle soglie ex art. 5 L. 392/78"},
+        {"esito": "conciliazione_in_mediazione_o_in_corso_di_causa", "descrizione": "Accordo sulle modalità di restituzione/pagamento"},
+        {"esito": "transazione_con_rilascio_dilazionato", "descrizione": "Conduttore si impegna a rilasciare entro termine in cambio di rinuncia parziale del locatore"}
+      ],
+      "termini_processuali": [
+        {"termine": "Costituzione resistente", "giorni": 10, "decorrenza": "prima dell'udienza", "natura": "perentorio (decadenze)", "norma": "art. 416 c.p.c. richiamato da 447-bis"},
+        {"termine": "Mediazione obbligatoria", "giorni": 90, "decorrenza": "deposito istanza", "natura": "max procedimento", "norma": "art. 6 D.Lgs. 28/2010"},
+        {"termine": "Diffida ad adempiere", "giorni": 15, "decorrenza": "notifica diffida", "natura": "minimo legale", "norma": "art. 1454 c.c."},
+        {"termine": "Soglie morosità ex art. 5 L. 392/78", "giorni": 20, "decorrenza": "scadenza canone pattuita", "natura": "decorrenza grave inadempimento"},
+        {"termine": "Termine di grazia max", "giorni": 90, "natura": "facoltà del giudice", "norma": "art. 55 L. 392/78", "prorogabile": "ulteriori 120 gg in casi gravi documentati"}
+      ]
+    },
+    {
+      "codice": "220100",
+      "denominazione": "Licenziamento individuale per giustificato motivo soggettivo",
+      "categoria": "Lavoro - licenziamenti individuali",
+      "sottocategoria": "Impugnazione licenziamento disciplinare per giustificato motivo soggettivo (g.m.s.)",
+      "rito": "Rito ordinario del lavoro ex artt. 409 e ss. c.p.c. (per assunti dal 7/3/2015 - tutele crescenti) OR Rito Fornero ex L. 92/2012 c. 47-69 (per assunti ante 7/3/2015 con tutela ex art. 18 St.Lav.)",
+      "competenza": "Tribunale del lavoro - giudice del lavoro - foro: luogo della sede di lavoro (art. 413 c.p.c.)",
+      "uffici_destinatari": ["SICID-Lavoro / SILP"],
+      "normativa": [
+        {"fonte": "L. 604/1966", "descrizione": "Disciplina dei licenziamenti individuali"},
+        {"fonte": "L. 604/1966", "articolo": "3", "descrizione": "Giustificato motivo - notevole inadempimento degli obblighi contrattuali"},
+        {"fonte": "L. 604/1966", "articolo": "6", "descrizione": "Termini di impugnazione: 60 gg stragiudiziale + 180 gg deposito ricorso"},
+        {"fonte": "L. 300/1970 (Statuto Lavoratori)", "articolo": "7", "descrizione": "Sanzioni disciplinari - garanzia procedimentale (contestazione, audizione, motivazione)"},
+        {"fonte": "L. 300/1970", "articolo": "18", "descrizione": "Reintegrazione (per assunti ante 7/3/2015 - oltre 15 dipendenti)"},
+        {"fonte": "L. 92/2012 (Fornero)", "articolo": "1 c. 42", "descrizione": "Modifica art. 18: tutela reintegratoria piena/attenuata, indennitaria forte/attenuata"},
+        {"fonte": "L. 92/2012", "articolo": "1 c. 47-69", "descrizione": "Rito speciale per licenziamenti ex art. 18 St.Lav."},
+        {"fonte": "D.Lgs. 23/2015", "descrizione": "Contratto a tutele crescenti (per assunti dal 7/3/2015)"},
+        {"fonte": "D.Lgs. 23/2015", "articolo": "3", "descrizione": "Licenziamento disciplinare - tutela reintegratoria (solo insussistenza materiale fatto)"},
+        {"fonte": "D.Lgs. 23/2015", "articolo": "4", "descrizione": "Vizi formali e procedurali - indennità ridotta"},
+        {"fonte": "Corte Cost. 194/2018", "descrizione": "Incostituzionalità criterio rigido indennità tutele crescenti (oggi: discrezionalità giudice da 6 a 36 mensilità)"},
+        {"fonte": "Corte Cost. 59/2021", "descrizione": "Incostituzionalità sanzione indennitaria automatica per gmo manifestamente insussistente"},
+        {"fonte": "Corte Cost. 22/2024", "descrizione": "Ulteriori interventi su regime tutele crescenti"},
+        {"fonte": "c.c.", "articolo": "2106", "descrizione": "Sanzioni disciplinari - proporzionalità"}
+      ],
+      "presupposti_sostanziali_giustificato_motivo_soggettivo": [
+        "NOTEVOLE INADEMPIMENTO degli obblighi contrattuali del lavoratore (art. 3 L. 604/66)",
+        "Inadempimento non così grave da costituire giusta causa (cioè non tale da escludere la possibilità di prosecuzione anche provvisoria del rapporto)",
+        "Rispetto principio proporzionalità ex art. 2106 c.c. (sanzione proporzionata alla gravità del fatto)",
+        "Rispetto procedura disciplinare ex art. 7 St. Lav. (contestazione scritta, termine difesa, audizione, motivazione)",
+        "Tempestività della contestazione",
+        "Tempestività del licenziamento (dopo le difese)"
+      ],
+      "vizi_dedotti_dal_lavoratore_tipici": [
+        "INSUSSISTENZA DEL FATTO MATERIALE contestato (→ tutela reintegratoria piena/attenuata)",
+        "Fatto di lieve entità punibile solo con sanzione conservativa secondo il CCNL (→ tutela reintegratoria attenuata)",
+        "Violazione del principio di proporzionalità",
+        "Vizi della contestazione disciplinare (genericità, tardività, immutabilità della contestazione)",
+        "Vizio formale del procedimento disciplinare (mancata audizione, mancata motivazione)",
+        "Difetto di tempestività",
+        "Licenziamento ritorsivo o discriminatorio (→ tutela reintegratoria piena anche per tutele crescenti)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "alternativa_facoltativa": "Tentativo facoltativo di conciliazione ITL ex art. 410 c.p.c.; tentativo obbligatorio per pubblico impiego ex art. 65 D.Lgs. 165/2001"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "IMPUGNAZIONE STRAGIUDIZIALE TEMPESTIVA del licenziamento (CONDIZIONE DI EFFICACIA dell'impugnazione)",
+          "termine": "60 GIORNI dalla comunicazione del licenziamento (o dalla comunicazione dei motivi se non contestuali)",
+          "modalita": "Atto scritto - anche extragiudiziale - idoneo a rendere nota la volontà di impugnare. PEC consigliata o raccomandata A/R",
+          "norma": "art. 6 L. 604/1966",
+          "rischio": "Mancata o tardiva impugnazione = decadenza"
+        },
+        {
+          "step": 2,
+          "descrizione": "Acquisizione documentazione del rapporto di lavoro",
+          "documenti_da_acquisire": ["Lettera di assunzione o contratto", "Lettera di contestazione disciplinare", "Giustificazioni rese dal lavoratore", "Lettera di licenziamento con motivazione", "Buste paga ultimo anno", "CUD / CU degli ultimi anni", "CCNL applicato (estratto codice disciplinare)"]
+        },
+        {
+          "step": 3,
+          "descrizione": "VERIFICA REGIME APPLICABILE in base alla DATA DI ASSUNZIONE",
+          "criterio": "Ante 7/3/2015 (oltre 15 dip): art. 18 St.Lav. modificato L. 92/2012 - rito Fornero - tutela graduata reintegratoria/indennitaria. Dal 7/3/2015: D.Lgs. 23/2015 (tutele crescenti) - rito ordinario lavoro - tutela prevalentemente indennitaria. Sotto 15 dip: L. 604/66 (tutela indennitaria 2.5-6 mensilità) o tutele crescenti ridotte"
+        },
+        {
+          "step": 4,
+          "descrizione": "Analisi gravità fatto contestato + proporzionalità + rispetto procedura disciplinare",
+          "controllo": "Verifica CCNL applicato per scala graduata sanzioni"
+        },
+        {
+          "step": 5,
+          "descrizione": "Calcolo termine 180 gg per DEPOSITO RICORSO o richiesta tentativo conciliazione",
+          "norma": "art. 6 c. 2 L. 604/1966"
+        },
+        {
+          "step": 6,
+          "descrizione": "Quantificazione domande economiche: retribuzioni globali di fatto + contributi previdenziali + danno non patrimoniale (se ritorsivo) + spese di lite"
+        },
+        {
+          "step": 7,
+          "descrizione": "Valutazione strategica: ricorso art. 700 c.p.c. per reintegra anticipata (cautelare) se danni gravi e irreparabili",
+          "codice_cautelare_correlato": "211010"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_impugnazione_licenziamento_gms",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per impugnazione licenziamento per giustificato motivo soggettivo",
+        "schema_xsd_ministeriale": "AttoLavoro.xsd",
+        "campi_chiave": [
+          {"id": "tribunale", "label": "Tribunale del lavoro (foro luogo sede di lavoro)", "type": "select", "required": true},
+          {"id": "lavoratore", "label": "Lavoratore ricorrente", "type": "object_persona", "required": true, "sub_fields": [
+            {"id": "cognome_nome", "type": "string"},
+            {"id": "codice_fiscale", "type": "string"},
+            {"id": "data_nascita", "type": "date"},
+            {"id": "residenza", "type": "address"}
+          ]},
+          {"id": "datore_lavoro", "label": "Datore di lavoro convenuto", "type": "object_persona_giuridica", "required": true, "sub_fields": [
+            {"id": "denominazione", "type": "string"},
+            {"id": "codice_fiscale_partita_iva", "type": "string"},
+            {"id": "sede_legale", "type": "address"},
+            {"id": "sede_lavoro_lavoratore", "type": "address"},
+            {"id": "rappresentante_legale", "type": "string"}
+          ]},
+          {"id": "data_assunzione", "label": "Data assunzione (CRITICA - determina regime applicabile)", "type": "date", "required": true},
+          {"id": "regime_applicabile", "label": "Regime applicabile (calcolato automaticamente da data assunzione + dimensionale)", "type": "select", "required": true, "options": ["art_18_pre_legge_fornero_2012", "art_18_post_legge_92_2012", "dlgs_23_2015_tutele_crescenti", "L_604_1966_piccole_imprese"]},
+          {"id": "qualifica", "label": "Qualifica/livello inquadramento", "type": "string", "required": true},
+          {"id": "mansioni_svolte", "label": "Mansioni effettivamente svolte", "type": "textarea", "required": true},
+          {"id": "ccnl_applicato", "label": "CCNL applicato", "type": "string", "required": true},
+          {"id": "dimensionale_datore", "label": "Dimensionale datore (numero dipendenti)", "type": "select", "required": true, "options": ["fino_a_15_dipendenti", "oltre_15_dipendenti_in_unita_produttiva", "oltre_60_dipendenti_complessivi"]},
+          {"id": "data_licenziamento", "label": "Data lettera licenziamento", "type": "date", "required": true},
+          {"id": "data_ricezione_licenziamento", "label": "Data ricezione lettera licenziamento", "type": "date", "required": true},
+          {"id": "data_impugnazione_stragiudiziale", "label": "Data impugnazione stragiudiziale (CRITICO - max 60 gg)", "type": "date", "required": true, "validation": "entro_60_gg_da_data_ricezione_licenziamento"},
+          {"id": "data_deposito_ricorso_max", "label": "Data limite deposito ricorso (180 gg da impugnazione stragiudiziale)", "type": "date", "calculated": true},
+          {"id": "lettera_contestazione_disciplinare", "label": "Lettera contestazione disciplinare", "type": "object", "required": true, "sub_fields": [
+            {"id": "data_contestazione", "type": "date"},
+            {"id": "data_ricezione_contestazione", "type": "date"},
+            {"id": "fatti_contestati", "type": "textarea"},
+            {"id": "termine_difese_assegnato", "type": "integer"}
+          ]},
+          {"id": "giustificazioni_rese", "label": "Giustificazioni rese dal lavoratore", "type": "object", "sub_fields": [
+            {"id": "modalita", "type": "select", "options": ["scritte", "audizione_personale", "non_rese"]},
+            {"id": "data", "type": "date"},
+            {"id": "contenuto_sintesi", "type": "textarea"}
+          ]},
+          {"id": "lettera_licenziamento", "label": "Lettera di licenziamento", "type": "object", "required": true, "sub_fields": [
+            {"id": "motivazione", "type": "textarea"},
+            {"id": "preavviso_dato", "type": "boolean"},
+            {"id": "indennita_sostitutiva_preavviso", "type": "currency"}
+          ]},
+          {"id": "vizi_dedotti", "label": "Vizi dedotti", "type": "select_multi", "required": true, "options": ["insussistenza_fatto_materiale", "fatto_di_minor_gravita_punibile_solo_con_sanzione_conservativa_secondo_ccnl", "violazione_principio_proporzionalita_art_2106", "vizi_contestazione_genericita", "vizi_contestazione_tardivita", "vizi_contestazione_immutabilita", "vizio_formale_procedura_art_7_st_lav_mancata_audizione", "vizio_formale_procedura_art_7_st_lav_mancata_motivazione", "tardivita_licenziamento_dopo_difese", "discriminazione", "ritorsivita"]},
+          {"id": "esposizione_vizi", "label": "Esposizione dettagliata dei vizi", "type": "textarea", "required": true, "min_length": 500},
+          {"id": "tutela_richiesta_principale", "label": "Tutela principale richiesta", "type": "select", "required": true, "options": ["reintegratoria_piena_art_18_c_1", "reintegratoria_attenuata_art_18_c_4", "indennitaria_forte_art_18_c_5_da_12_a_24_mensilita", "indennitaria_attenuata_art_18_c_6_da_6_a_12_mensilita", "reintegratoria_tutele_crescenti_art_3_c_2", "indennitaria_tutele_crescenti_art_3_c_1_da_6_a_36_mensilita_dopo_corte_cost", "indennitaria_vizi_formali_art_4_dlgs_23_15"]},
+          {"id": "tutela_richiesta_subordinata", "label": "Tutela subordinata", "type": "select"},
+          {"id": "retribuzione_globale_di_fatto", "label": "Ultima retribuzione globale di fatto (RGF mensile)", "type": "currency", "required": true},
+          {"id": "domande_aggiuntive", "label": "Domande aggiuntive", "type": "select_multi", "options": ["accertamento_nullita_licenziamento", "annullamento_licenziamento", "reintegra_nel_posto_di_lavoro", "condanna_pagamento_retribuzioni_dalla_data_licenziamento_alla_reintegra", "versamento_contributi_previdenziali", "risarcimento_danno_non_patrimoniale", "indennita_sostitutiva_della_reintegra_art_18_c_3", "spese_di_lite"]},
+          {"id": "danno_non_patrimoniale_richiesto", "label": "Quantificazione danno non patrimoniale (se ritorsivo/discriminatorio)", "type": "currency"},
+          {"id": "richiesta_provvedimento_urgente_700", "label": "Richiesta provvedimento d'urgenza ex art. 700 c.p.c. per reintegra anticipata", "type": "boolean", "default": false}
+        ],
+        "avvertimenti_obbligatori": [
+          "VERIFICA TERMINE IMPUGNAZIONE STRAGIUDIZIALE 60 GG ex art. 6 L. 604/1966 (decadenziale)",
+          "VERIFICA TERMINE DEPOSITO RICORSO 180 GG ex art. 6 c. 2 L. 604/1966 (decadenziale)",
+          "Indicazione data assunzione ai fini del REGIME APPLICABILE (art. 18 vs D.Lgs. 23/2015)",
+          "Indicazione dimensionale datore (sopra/sotto 15 dipendenti) per individuazione tutela",
+          "Avvertimento decadenze rito del lavoro: indicazione testi, documenti, eccezioni"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "lettera_licenziamento_originale", "label": "Lettera di licenziamento (originale o copia)", "required": true},
+        {"id": "ricevuta_consegna_licenziamento", "label": "Prova della data di ricezione (PEC, raccomandata A/R, consegna a mani)", "required": true},
+        {"id": "lettera_contestazione_disciplinare", "label": "Lettera di contestazione disciplinare", "required": true},
+        {"id": "giustificazioni_lavoratore", "label": "Giustificazioni scritte rese dal lavoratore", "required": false, "rilevante": true},
+        {"id": "verbale_audizione_disciplinare", "label": "Verbale audizione disciplinare (se avvenuta)", "required": false, "rilevante": true},
+        {"id": "impugnazione_stragiudiziale_con_prova_invio", "label": "Impugnazione stragiudiziale del licenziamento con PROVA dell'invio entro 60 gg (PEC ricevuta consegna/accettazione, ricevuta raccomandata A/R)", "required": true, "critico": true},
+        {"id": "contratto_di_lavoro", "label": "Contratto individuale di lavoro / lettera di assunzione", "required": true},
+        {"id": "buste_paga_ultimi_12_mesi", "label": "Buste paga ultimi 12 mesi (per calcolo RGF)", "required": true},
+        {"id": "cud_ultimi_3_anni", "label": "CUD/CU ultimi 3 anni", "required": true},
+        {"id": "ccnl_applicato_estratto", "label": "Estratto CCNL applicato (codice disciplinare e regime sanzionatorio)", "required": true},
+        {"id": "comunicazioni_disciplinari_precedenti", "label": "Eventuali precedenti contestazioni/sanzioni disciplinari (per recidiva)", "required": false},
+        {"id": "documenti_dimensionale_datore", "label": "Documenti/dichiarazioni sul dimensionale datore (visure CCIAA, organico)", "required": true, "consigliato": true},
+        {"id": "procura_alle_liti", "label": "Procura alle liti", "required": true}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per controversie individuali di lavoro per reddito sotto 3x soglia patrocinio a spese dello Stato (art. 9 L. 533/1973 + DPR 115/2002)",
+        "marca_bollo_forfettaria": 27.00,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {"tipo": "ricorso_cautelare_art_700_per_reintegra", "trigger": "Pericolo grave e irreparabile per il lavoratore", "automatico": false, "codice_correlato": "211010"},
+        {"tipo": "memoria_difensiva_datore", "trigger": "Costituzione datore", "termine": "10 gg prima udienza"},
+        {"tipo": "appello_sezione_lavoro_corte_appello", "trigger": "Sentenza primo grado", "termine": "30 gg dalla notifica o 6 mesi dalla pubblicazione"},
+        {"tipo": "ricorso_cassazione", "trigger": "Sentenza Corte Appello", "termine": "60 gg dalla notifica o 6 mesi dalla pubblicazione"}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "reintegra_piena_art_18_c_1", "descrizione": "Riconosciuta insussistenza del fatto + risarcimento integrale (mensilità dalla data licenziamento alla reintegra, no detrazione aliunde perceptum) + versamento contributi previdenziali"},
+        {"esito": "reintegra_attenuata_art_18_c_4", "descrizione": "Reintegra + indennità risarcitoria max 12 mensilità con detrazione aliunde perceptum/percipiendum"},
+        {"esito": "tutela_indennitaria_forte_art_18_c_5", "descrizione": "Solo indennità da 12 a 24 mensilità (no reintegra)"},
+        {"esito": "tutela_indennitaria_attenuata_art_18_c_6", "descrizione": "Indennità da 6 a 12 mensilità (vizi formali/procedurali)"},
+        {"esito": "tutele_crescenti_indennita_da_6_a_36_mensilita", "descrizione": "Per assunti dal 7/3/2015: indennità calcolata discrezionalmente (post Corte Cost. 194/2018)"},
+        {"esito": "tutele_crescenti_reintegra_art_3_c_2", "descrizione": "Solo per insussistenza materiale fatto (residuale)"},
+        {"esito": "rigetto_impugnazione", "descrizione": "Licenziamento confermato legittimo"},
+        {"esito": "transazione", "descrizione": "Accordo in corso di causa con buonuscita"}
+      ],
+      "termini_processuali": [
+        {"termine": "IMPUGNAZIONE STRAGIUDIZIALE", "giorni": 60, "decorrenza": "comunicazione licenziamento", "natura": "DECADENZIALE", "norma": "art. 6 L. 604/1966", "criticita": "MASSIMA - decadenza preclude azione"},
+        {"termine": "DEPOSITO RICORSO GIUDIZIALE", "giorni": 180, "decorrenza": "impugnazione stragiudiziale", "natura": "DECADENZIALE", "norma": "art. 6 c. 2 L. 604/1966", "criticita": "MASSIMA - decadenza preclude azione"},
+        {"termine": "Costituzione datore di lavoro", "giorni": 10, "decorrenza": "prima dell'udienza", "natura": "perentorio (decadenze)", "norma": "art. 416 c.p.c."},
+        {"termine": "Appello sentenza primo grado", "giorni": 30, "decorrenza": "notifica sentenza", "natura": "perentorio", "norma": "art. 434 c.p.c."},
+        {"termine": "Appello senza notifica (termine lungo)", "giorni": 180, "decorrenza": "pubblicazione sentenza", "natura": "perentorio", "norma": "art. 327 c.p.c."},
+        {"termine": "Ricorso per cassazione", "giorni": 60, "decorrenza": "notifica sentenza appello", "natura": "perentorio", "norma": "art. 325 c.p.c."}
+      ]
+    },
+    {
+      "codice": "145002",
+      "denominazione": "Risarcimento del danno - lesione personale (responsabilità extracontrattuale)",
+      "categoria": "Responsabilità civile - danni alla persona",
+      "sottocategoria": "Lesione personale da fatto illecito (sinistri stradali, infortuni, ecc.)",
+      "rito": "Rito ordinario di cognizione (o rito sommario ex art. 281-decies se valore consente); Procedura indennizzo diretto per sinistri stradali ex D.Lgs. 209/2005 (CdA)",
+      "competenza": "Tribunale per valore >5.000 €; Giudice di Pace per valore ≤5.000 € (danni a cose €25.000); foro del luogo dove è sorta o deve eseguirsi l'obbligazione, residenza convenuto (art. 18, 19, 20 c.p.c.)",
+      "uffici_destinatari": ["SICID"],
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2043", "descrizione": "Risarcimento per fatto illecito"},
+        {"fonte": "c.c.", "articolo": "2054", "descrizione": "Circolazione di veicoli - responsabilità conducente, proprietario, comproprietario"},
+        {"fonte": "c.c.", "articolo": "2056", "descrizione": "Valutazione dei danni"},
+        {"fonte": "c.c.", "articolo": "2059", "descrizione": "Danni non patrimoniali"},
+        {"fonte": "c.c.", "articolo": "1223", "descrizione": "Risarcimento del danno - danno emergente e lucro cessante"},
+        {"fonte": "c.c.", "articolo": "1226", "descrizione": "Valutazione equitativa del danno"},
+        {"fonte": "c.c.", "articolo": "2947", "descrizione": "Prescrizione - 5 anni fatto illecito, 2 anni per RC auto"},
+        {"fonte": "D.Lgs. 209/2005 (CAP - Codice delle Assicurazioni Private)", "descrizione": "Disciplina assicurazioni RC auto"},
+        {"fonte": "D.Lgs. 209/2005", "articolo": "138", "descrizione": "Danni biologici di lieve entità - tabelle ministeriali"},
+        {"fonte": "D.Lgs. 209/2005", "articolo": "139", "descrizione": "Danni biologici per lesioni di non lieve entità (micro-permanenti fino a 9% IP)"},
+        {"fonte": "D.Lgs. 209/2005", "articolo": "145", "descrizione": "Proponibilità dell'azione di risarcimento - richiesta stragiudiziale obbligatoria"},
+        {"fonte": "D.Lgs. 209/2005", "articolo": "148", "descrizione": "Procedura di indennizzo diretto"},
+        {"fonte": "D.Lgs. 209/2005", "articolo": "149-150", "descrizione": "Indennizzo diretto"},
+        {"fonte": "Cass. SU 26972/2008 (San Martino)", "descrizione": "Categoria unitaria del danno non patrimoniale"},
+        {"fonte": "Cass. SU 6651/2024", "descrizione": "Conferma applicabilità tabelle Milano (rinominate tabelle giurisprudenziali) per macro-permanenti"},
+        {"fonte": "Tabelle Tribunale Milano (ultima ed. 2024)", "descrizione": "Tabelle per liquidazione danno biologico e morale - punto di riferimento nazionale per macro-permanenti (IP > 9%)"},
+        {"fonte": "Tabelle Tribunale Roma", "descrizione": "Tabelle alternative usate in alcuni distretti"}
+      ],
+      "presupposti_sostanziali": [
+        "FATTO ILLECITO (azione od omissione) del danneggiante",
+        "ELEMENTO SOGGETTIVO: dolo o colpa (presunti in alcuni casi: art. 2050, 2051, 2052, 2054 c.c.)",
+        "DANNO ingiusto al danneggiato (lesione di interesse giuridicamente protetto)",
+        "NESSO DI CAUSALITÀ tra fatto e danno",
+        "LEGITTIMAZIONE attiva: danneggiato diretto (iure proprio) + parenti/conviventi per danno riflesso",
+        "Per RC auto: notifica RICHIESTA STRAGIUDIZIALE RACCOMANDATA AR alla compagnia assicuratrice del responsabile (e per indennizzo diretto, alla propria compagnia) - CONDIZIONE DI PROPONIBILITÀ"
+      ],
+      "obbligo_negoziazione_assistita": {
+        "obbligatoria": true,
+        "fonte": "art. 3 c. 1 D.L. 132/2014 (per cause da circolazione veicoli/natanti) e per crediti fino a 50.000 €",
+        "esenzioni": "Cause su danni con sinistri sotto disciplina indennizzo diretto: la procedura ex art. 145 CAP costituisce la condizione di proponibilità (non richiesta ulteriore negoziazione assistita)"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione documentazione del sinistro / fatto illecito",
+          "documenti_da_acquisire": ["CID / CAI / constatazione amichevole", "Verbale autorità (Polizia, Carabinieri, Polizia Locale)", "Eventuali fotografie del sinistro/luoghi", "Eventuali testimoni e loro generalità", "Cartelle cliniche / certificati pronto soccorso", "Visite specialistiche, esami diagnostici, terapie"]
+        },
+        {
+          "step": 2,
+          "descrizione": "Acquisizione documentazione medica completa per valutazione lesioni",
+          "documentazione_medica": ["Pronto soccorso", "Ricoveri ospedalieri", "Visite specialistiche", "Esami strumentali (RX, TAC, RM, ecografia, EMG)", "Cicli di terapia (fisioterapia, riabilitazione)", "Diari di terapia"]
+        },
+        {
+          "step": 3,
+          "descrizione": "Identificazione del responsabile (anche presunto) e della compagnia assicuratrice",
+          "verifiche": ["Visura PRA (per veicoli)", "Verifica copertura RCA (Italian)" , "Verifica Fondo Vittime Strada per non identificati o non assicurati"]
+        },
+        {
+          "step": 4,
+          "descrizione": "Quantificazione dei danni",
+          "voci_danno": [
+            "DANNO PATRIMONIALE EMERGENTE: spese mediche sostenute e future, perdita beni",
+            "DANNO PATRIMONIALE LUCRO CESSANTE: mancato guadagno, riduzione capacità lavorativa",
+            "DANNO NON PATRIMONIALE BIOLOGICO: invalidità permanente (IP%) + invalidità temporanea totale (ITT giorni) + invalidità temporanea parziale (ITP giorni 75%/50%/25%)",
+            "DANNO MORALE/DA SOFFERENZA: voce autonoma post Cass. SU 6651/2024",
+            "DANNO ESISTENZIALE/RELAZIONALE: ricondotto al danno biologico nelle tabelle Milano",
+            "DANNO PARENTALE (per familiari in caso di lesione grave): tabella Milano 2024 dedicata"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "RICHIESTA STRAGIUDIZIALE ex art. 145 CAP (per sinistri stradali - CONDIZIONE DI PROPONIBILITÀ)",
+          "modalita": "Raccomandata A/R o PEC alla compagnia assicuratrice del responsabile",
+          "termine_compagnia_risposta": "60 gg per danni materiali, 90 gg per danni a persona (art. 148 CAP)",
+          "contenuto": "Generalità danneggiato, descrizione sinistro, documentazione medica, quantificazione richiesta",
+          "norma": "art. 145 D.Lgs. 209/2005"
+        },
+        {
+          "step": 6,
+          "descrizione": "Indennizzo diretto: se sinistro tra 2 veicoli con identificazione, soli danni a cose, lesioni IP ≤9%, lesioni al solo conducente → richiesta alla PROPRIA compagnia ex art. 149 CAP"
+        },
+        {
+          "step": 7,
+          "descrizione": "Negoziazione assistita ex D.L. 132/2014 se non rientra in indennizzo diretto (condizione di procedibilità per crediti fino a 50.000 €)"
+        },
+        {
+          "step": 8,
+          "descrizione": "Valutazione opportunità di Accertamento Tecnico Preventivo (ATP) ex art. 696 c.p.c. per quantificare danno biologico"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_risarcimento_danni_lesione_personale",
+        "denominazione": "Atto di citazione per risarcimento del danno - lesione personale",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {"id": "tribunale", "label": "Tribunale competente (per valore)", "type": "select", "required": true},
+          {"id": "danneggiato", "label": "Danneggiato (attore)", "type": "object_persona", "required": true, "sub_fields": [
+            {"id": "cognome_nome", "type": "string"},
+            {"id": "codice_fiscale", "type": "string"},
+            {"id": "data_nascita", "type": "date"},
+            {"id": "residenza", "type": "address"},
+            {"id": "professione_e_reddito", "type": "object"}
+          ]},
+          {"id": "responsabile_civile", "label": "Responsabile civile (convenuto)", "type": "object_persona", "required": true},
+          {"id": "proprietario_veicolo", "label": "Proprietario veicolo (per RC auto - litisconsorte necessario ex art. 2054 c. 3)", "type": "object_persona", "required_if": "tipo_sinistro=RC_auto"},
+          {"id": "compagnia_assicuratrice", "label": "Compagnia assicuratrice (litisconsorte necessario per RC auto)", "type": "object_persona_giuridica", "required_if": "tipo_sinistro=RC_auto", "sub_fields": [
+            {"id": "denominazione", "type": "string"},
+            {"id": "numero_polizza", "type": "string"},
+            {"id": "agenzia", "type": "string"}
+          ]},
+          {"id": "tipo_sinistro", "label": "Tipo di sinistro/fatto illecito", "type": "select", "required": true, "options": ["RC_auto_circolazione_veicolo", "incidente_pedonale", "incidente_ciclista", "infortunio_sul_lavoro", "responsabilita_struttura_sanitaria_L_24_2017", "responsabilita_da_cose_in_custodia_2051", "responsabilita_da_animali_2052", "responsabilita_per_attivita_pericolose_2050", "responsabilita_del_produttore", "altro"]},
+          {"id": "fatto_illecito", "label": "Descrizione fatto illecito", "type": "object", "required": true, "sub_fields": [
+            {"id": "data_fatto", "type": "date"},
+            {"id": "ora", "type": "time"},
+            {"id": "luogo", "type": "address"},
+            {"id": "dinamica", "type": "textarea", "min_length": 200},
+            {"id": "veicoli_coinvolti", "type": "array"},
+            {"id": "autorita_intervenuta", "type": "string"},
+            {"id": "verbale_estremi", "type": "string"}
+          ]},
+          {"id": "lesioni_riportate", "label": "Lesioni riportate", "type": "object_complesso", "required": true, "sub_fields": [
+            {"id": "diagnosi_iniziale_ps", "type": "textarea"},
+            {"id": "diagnosi_definitiva", "type": "textarea"},
+            {"id": "tipo_lesione", "type": "select", "options": ["lesioni_lieve_entita_micro_permanente_fino_9_IP", "lesioni_non_lieve_entita_macro_permanente_oltre_9_IP", "morte"]},
+            {"id": "invalidita_temporanea_totale_giorni", "type": "integer"},
+            {"id": "invalidita_temporanea_parziale_giorni_75", "type": "integer"},
+            {"id": "invalidita_temporanea_parziale_giorni_50", "type": "integer"},
+            {"id": "invalidita_temporanea_parziale_giorni_25", "type": "integer"},
+            {"id": "invalidita_permanente_percentuale", "type": "percentage"},
+            {"id": "eta_danneggiato_alla_data_sinistro", "type": "integer"}
+          ]},
+          {"id": "richiesta_stragiudiziale_inviata", "label": "Richiesta stragiudiziale ex art. 145 CAP inviata", "type": "object", "required_if": "tipo_sinistro=RC_auto", "sub_fields": [
+            {"id": "data_invio", "type": "date"},
+            {"id": "modalita", "type": "select", "options": ["raccomandata_AR", "PEC"]},
+            {"id": "ricevuta", "type": "string"},
+            {"id": "data_risposta_compagnia", "type": "date"},
+            {"id": "offerta_compagnia", "type": "currency"}
+          ]},
+          {"id": "voci_danno_richieste", "label": "Voci di danno richieste", "type": "object_complesso", "required": true, "sub_fields": [
+            {"id": "danno_patrimoniale_emergente", "type": "object", "sub_fields": [
+              {"id": "spese_mediche_sostenute", "type": "currency"},
+              {"id": "spese_mediche_future", "type": "currency"},
+              {"id": "danni_a_cose", "type": "currency"}
+            ]},
+            {"id": "danno_patrimoniale_lucro_cessante", "type": "object", "sub_fields": [
+              {"id": "mancato_guadagno_assenza_lavoro", "type": "currency"},
+              {"id": "riduzione_capacita_lavorativa_specifica", "type": "currency"}
+            ]},
+            {"id": "danno_non_patrimoniale_biologico_permanente", "type": "currency", "calcolato_su_tabelle": true},
+            {"id": "danno_non_patrimoniale_biologico_temporaneo", "type": "currency", "calcolato_su_tabelle": true},
+            {"id": "danno_morale_da_sofferenza", "type": "currency"},
+            {"id": "personalizzazione_danno_biologico", "type": "currency", "max": "30% del danno biologico standard"},
+            {"id": "spese_accessorie", "type": "currency"},
+            {"id": "totale_richiesto", "type": "currency"}
+          ]},
+          {"id": "tabelle_riferimento", "label": "Tabelle di riferimento applicate", "type": "select", "required": true, "options": ["tabelle_milano_2024", "tabelle_roma_2023", "tabelle_ministeriali_micro_permanenti_138_139_CAP"]},
+          {"id": "richiesta_ctu_medico_legale", "label": "Richiesta CTU medico-legale", "type": "boolean", "default": true},
+          {"id": "udienza_comparizione", "label": "Data prima udienza", "type": "date", "required": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "PER RC AUTO: avvertimento sulla CONDIZIONE DI PROPONIBILITÀ ex art. 145 CAP (richiesta stragiudiziale con 60/90 gg di attesa)",
+          "Prescrizione 2 anni per RC auto (art. 2947 c. 2 c.c.), 5 anni per altri fatti illeciti (art. 2947 c. 1)",
+          "Avvertimento sull'obbligo del proprietario di costituirsi come litisconsorte ex art. 2054 c. 3 c.c.",
+          "Indicazione termine costituzione convenuto 70 gg prima udienza (art. 166 c.p.c.)",
+          "Avvertimento negoziazione assistita obbligatoria ex D.L. 132/2014 (se applicabile)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "documentazione_sinistro", "label": "Documentazione del sinistro (CID, verbale, fotografie)", "required": true},
+        {"id": "documentazione_medica_completa", "label": "Documentazione medica completa (PS, ricoveri, visite, esami, terapie)", "required": true},
+        {"id": "fatture_spese_mediche", "label": "Fatture spese mediche sostenute", "required": true},
+        {"id": "richiesta_stragiudiziale_145_cap", "label": "Richiesta stragiudiziale ex art. 145 CAP con ricevuta di consegna", "required_if": "tipo_sinistro=RC_auto", "critico": true},
+        {"id": "verbale_negoziazione_assistita_negativa", "label": "Verbale negoziazione assistita conclusa negativamente (se applicabile)", "required_if": "negoziazione_assistita_obbligatoria=true"},
+        {"id": "documentazione_reddituale_per_lucro_cessante", "label": "Buste paga / dichiarazione redditi per quantificazione lucro cessante", "required_if": "voce_danno_richiesta contiene lucro_cessante"},
+        {"id": "perizia_medico_legale_di_parte", "label": "Perizia medico-legale di parte", "required": false, "consigliato": true},
+        {"id": "visura_PRA_veicolo_responsabile", "label": "Visura PRA del veicolo responsabile", "required_if": "tipo_sinistro=RC_auto"},
+        {"id": "procura_alle_liti", "label": "Procura alle liti", "required": true}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore della causa (totale danni richiesti)",
+        "marca_bollo_forfettaria": 27.00,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {"tipo": "ricorso_atp_696_cpc", "trigger": "Necessità di quantificare danno biologico prima del giudizio", "automatico": false, "codice_correlato": "012001"},
+        {"tipo": "memoria_costituzione_compagnia", "trigger": "Costituzione compagnia assicuratrice", "automatico": false},
+        {"tipo": "chiamata_in_garanzia_terzo_responsabile", "trigger": "Compagnia chiama in causa altro responsabile o assicuratore", "automatico": false},
+        {"tipo": "ctu_medico_legale", "trigger": "Disposta dal giudice", "automatico": false},
+        {"tipo": "atto_precetto_post_sentenza", "trigger": "Sentenza esecutiva non spontaneamente eseguita", "automatico": false}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "accoglimento_pieno_domanda", "descrizione": "Condanna del responsabile/compagnia al pagamento del danno richiesto + interessi + spese"},
+        {"esito": "accoglimento_parziale", "descrizione": "Riconoscimento responsabilità con quantificazione inferiore"},
+        {"esito": "compenso_colpa_concorrente", "descrizione": "Riduzione del risarcimento per concorso di colpa del danneggiato (art. 1227 c.c.)"},
+        {"esito": "rigetto_domanda", "descrizione": "Non riconosciuta responsabilità o non provato il nesso causale"},
+        {"esito": "transazione", "descrizione": "Accordo transattivo con la compagnia"}
+      ],
+      "termini_processuali": [
+        {"termine": "PRESCRIZIONE RC AUTO", "giorni": 730, "decorrenza": "data sinistro", "natura": "prescrizione (interrompibile)", "norma": "art. 2947 c. 2 c.c.", "criticita": "MASSIMA"},
+        {"termine": "PRESCRIZIONE FATTO ILLECITO ORDINARIA", "giorni": 1825, "decorrenza": "data fatto", "natura": "prescrizione (interrompibile)", "norma": "art. 2947 c. 1 c.c."},
+        {"termine": "RICHIESTA STRAGIUDIZIALE ex art. 145 CAP - attesa risposta compagnia per danni a persona", "giorni": 90, "decorrenza": "invio richiesta", "natura": "condizione di proponibilità", "norma": "art. 148 c. 2 D.Lgs. 209/2005"},
+        {"termine": "RICHIESTA STRAGIUDIZIALE ex art. 145 CAP - attesa risposta compagnia per danni a cose", "giorni": 60, "decorrenza": "invio richiesta", "natura": "condizione di proponibilità", "norma": "art. 148 c. 1 D.Lgs. 209/2005"},
+        {"termine": "Costituzione convenuto", "giorni": 70, "decorrenza": "prima dell'udienza", "natura": "perentorio (decadenze)", "norma": "art. 166 c.p.c."},
+        {"termine": "Termine a comparire", "giorni": 120, "decorrenza": "notifica citazione (post-Cartabia)", "natura": "minimo legale", "norma": "art. 163-bis c.p.c."}
+      ]
+    },
+    {
+      "codice": "510002",
+      "denominazione": "Espropriazione mobiliare presso terzi (post L. 80/2005)",
+      "categoria": "Esecuzione forzata - presso terzi",
+      "sottocategoria": "Pignoramento di crediti del debitore verso terzi (stipendio, pensione, conto corrente, crediti commerciali)",
+      "rito": "Esecuzione forzata presso terzi ex artt. 543-554 c.p.c.",
+      "competenza": "Giudice dell'esecuzione del Tribunale del luogo di residenza/domicilio/sede del DEBITORE ESECUTATO (art. 26-bis c.p.c., post Cartabia)",
+      "uffici_destinatari": ["SIECIC", "UNEP"],
+      "registro_sgr": "SIECIC - Esecuzioni Mobiliari",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "543", "descrizione": "Forma del pignoramento presso terzi"},
+        {"fonte": "c.p.c.", "articolo": "544", "descrizione": "Effetti del pignoramento"},
+        {"fonte": "c.p.c.", "articolo": "545", "descrizione": "Crediti impignorabili e limiti di pignorabilità"},
+        {"fonte": "c.p.c.", "articolo": "546", "descrizione": "Obblighi del terzo"},
+        {"fonte": "c.p.c.", "articolo": "547", "descrizione": "Dichiarazione del terzo - modalità e termine"},
+        {"fonte": "c.p.c.", "articolo": "548", "descrizione": "Mancata dichiarazione del terzo - accertamento dell'obbligo"},
+        {"fonte": "c.p.c.", "articolo": "549", "descrizione": "Contestazione della dichiarazione del terzo"},
+        {"fonte": "c.p.c.", "articolo": "550", "descrizione": "Pignoramento di crediti del debitore presso terzo distante"},
+        {"fonte": "c.p.c.", "articolo": "553", "descrizione": "Assegnazione del credito"},
+        {"fonte": "c.p.c.", "articolo": "26-bis", "descrizione": "Foro per l'espropriazione presso terzi (residenza/domicilio/sede del debitore esecutato)"},
+        {"fonte": "c.p.c.", "articolo": "474", "descrizione": "Titolo esecutivo"},
+        {"fonte": "c.p.c.", "articolo": "479", "descrizione": "Notificazione del titolo esecutivo e del precetto"},
+        {"fonte": "c.p.c.", "articolo": "481", "descrizione": "Cessazione efficacia del precetto - 90 giorni"},
+        {"fonte": "c.p.c.", "articolo": "492-bis", "descrizione": "Ricerca telematica beni del debitore"},
+        {"fonte": "DPR 180/1950", "descrizione": "Cessione del quinto dello stipendio - limiti specifici per dipendenti pubblici"},
+        {"fonte": "D.Lgs. 14/2019 (CCII)", "descrizione": "Possibile interferenza con procedure concorsuali"}
+      ],
+      "presupposti_sostanziali": [
+        "Titolo esecutivo (sentenza, decreto ingiuntivo esecutivo, atto pubblico notarile, scrittura privata autenticata, ecc.)",
+        "Notifica titolo esecutivo + precetto al debitore esecutato",
+        "Decorso termine minimo 10 gg dal precetto (salvo riduzione/dispensa ex art. 482 c.p.c.)",
+        "Validità precetto: max 90 gg dalla notifica",
+        "Esistenza di un CREDITO del debitore esecutato verso TERZI (stipendio, pensione, conto bancario, crediti commerciali, canoni di locazione, ecc.)",
+        "Identificazione precisa del terzo pignorato (denominazione, sede, CF/PIVA, agenzia bancaria specifica)",
+        "Rispetto LIMITI DI PIGNORABILITÀ ex art. 545 c.p.c."
+      ],
+      "limiti_pignorabilita_ex_art_545": {
+        "stipendi": {
+          "limite_generale": "1/5 (un quinto) dello stipendio netto",
+          "deroghe": "Per crediti alimentari: nella misura determinata dal giudice. Per multipli pignoramenti: max 1/2"
+        },
+        "pensioni": {
+          "limite_generale": "Pignorabile solo la quota eccedente il minimo vitale (1.000 € mensili ex L. 134/2012 + adeguamenti), nei limiti di 1/5 della quota eccedente",
+          "norma": "art. 545 c. 7-8 c.p.c."
+        },
+        "conto_corrente": {
+          "limite_indennita_INPS": "Indennità di disoccupazione, malattia, ecc.: impignorabili per la parte che non eccede tre volte l'assegno sociale",
+          "saldo_conto_corrente": "Pignorabile per la parte che eccede triplo assegno sociale all'ultimo accredito ex art. 545 c. 8 c.p.c."
+        },
+        "altri_impignorabili": [
+          "Crediti aventi carattere alimentare (art. 545 c. 1)",
+          "Sussidi di grazia, sussidi dovuti per maternità, malattie, funerali (art. 545 c. 2)",
+          "Crediti per ragioni di servizio sotto i 3 mesi (art. 545 c. 3)"
+        ]
+      },
+      "obbligo_mediazione": {"obbligatoria": false},
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione titolo esecutivo + verifica esecutività",
+          "documenti_da_verificare": ["Sentenza con formula esecutiva (ex art. 475 c.p.c. solo se necessaria)", "Decreto ingiuntivo esecutivo", "Atto pubblico/scrittura privata autenticata"]
+        },
+        {
+          "step": 2,
+          "descrizione": "Notifica titolo esecutivo + precetto al debitore esecutato (se non già notificati)",
+          "termine": "Min 10 gg / Max 90 gg per pignoramento"
+        },
+        {
+          "step": 3,
+          "descrizione": "RICERCA dei crediti del debitore verso terzi",
+          "modalita": [
+            "Accesso telematico banche dati ex art. 492-bis c.p.c. (Agenzia Entrate, INPS, PRA, anagrafe rapporti finanziari, ecc.)",
+            "Informazioni dal cliente",
+            "Visure CCIAA (per imprese)",
+            "Comune di residenza, datore di lavoro"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "Identificazione esatta del terzo pignorato",
+          "requisiti": ["Denominazione completa", "Sede legale", "CF/PIVA", "PEC", "Per banche: specifica agenzia/filiale"]
+        },
+        {
+          "step": 5,
+          "descrizione": "Calcolo importo da pignorare (capitale + interessi maturati e maturandi + spese)",
+          "limiti": "Verificare LIMITI EX ART. 545 c.p.c. (stipendi 1/5, pensioni quota eccedente minimo vitale, ecc.)"
+        },
+        {
+          "step": 6,
+          "descrizione": "Predisposizione atto di pignoramento e fissazione UDIENZA di comparizione del terzo per dichiarazione",
+          "termine_min": "10 gg liberi tra notifica e dichiarazione del terzo, 30 gg di norma per fissare l'udienza"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_pignoramento_presso_terzi",
+        "denominazione": "Atto di pignoramento presso terzi ex artt. 543 e ss. c.p.c.",
+        "schema_xsd_ministeriale": "AttoEsecuzionePressoTerzi.xsd",
+        "campi_chiave": [
+          {"id": "tribunale_competente", "label": "Tribunale del luogo di residenza/sede del DEBITORE ESECUTATO (art. 26-bis c.p.c.)", "type": "select", "required": true},
+          {"id": "creditore_procedente", "label": "Creditore procedente", "type": "object_persona", "required": true},
+          {"id": "debitore_esecutato", "label": "Debitore esecutato", "type": "object_persona", "required": true},
+          {"id": "terzo_pignorato", "label": "Terzo pignorato", "type": "object_persona_giuridica", "required": true, "sub_fields": [
+            {"id": "denominazione", "type": "string"},
+            {"id": "tipo_terzo", "type": "select", "options": ["banca", "datore_di_lavoro_privato", "datore_di_lavoro_PA", "INPS_pensione", "INAIL", "fornitore_creditore", "agenzia_riscossione", "altro"]},
+            {"id": "sede_legale", "type": "address"},
+            {"id": "codice_fiscale_o_partita_iva", "type": "string"},
+            {"id": "pec", "type": "email"},
+            {"id": "agenzia_filiale", "type": "string", "visible_if": "tipo_terzo=banca", "obbligatorio_per_banche": true}
+          ]},
+          {"id": "tipo_credito_pignorato", "label": "Tipo di credito pignorato", "type": "select", "required": true, "options": ["stipendio_settore_privato", "stipendio_settore_pubblico", "pensione_inps", "pensione_categoria", "saldo_conto_corrente_bancario", "deposito_titoli", "credito_da_fornitura", "credito_commerciale", "canoni_locazione", "tfr", "indennita_vacanze_non_godute", "altri_crediti"]},
+          {"id": "titolo_esecutivo", "label": "Titolo esecutivo", "type": "object", "required": true, "sub_fields": [
+            {"id": "tipo_titolo", "type": "select"},
+            {"id": "estremi", "type": "string"},
+            {"id": "data_titolo", "type": "date"},
+            {"id": "autorita_emittente", "type": "string"}
+          ]},
+          {"id": "precetto_estremi", "label": "Estremi precetto notificato", "type": "object", "required": true, "sub_fields": [
+            {"id": "data_notifica_precetto", "type": "date"},
+            {"id": "ufficiale_notificante", "type": "string"},
+            {"id": "importo_intimato", "type": "currency"}
+          ]},
+          {"id": "importo_da_pignorare", "label": "Importo complessivo da pignorare", "type": "object", "required": true, "sub_fields": [
+            {"id": "capitale", "type": "currency"},
+            {"id": "interessi_maturati", "type": "currency"},
+            {"id": "interessi_maturandi", "type": "string"},
+            {"id": "spese_legali_precetto", "type": "currency"},
+            {"id": "spese_pignoramento", "type": "currency"},
+            {"id": "totale_pignorando", "type": "currency"}
+          ]},
+          {"id": "limiti_pignorabilita_applicati", "label": "Limiti di pignorabilità ex art. 545 c.p.c.", "type": "object", "required": true, "sub_fields": [
+            {"id": "applicabilita_quinto_stipendio", "type": "boolean"},
+            {"id": "quota_pignorabile", "type": "string"},
+            {"id": "esclusione_minimo_vitale_pensione", "type": "boolean"}
+          ]},
+          {"id": "udienza_dichiarazione_terzo", "label": "Data udienza per dichiarazione del terzo / comparizione delle parti", "type": "date", "required": true, "validation": "almeno_10_giorni_dalla_notifica_al_terzo"},
+          {"id": "richiesta_assegnazione_diretta_art_553", "label": "Richiesta assegnazione diretta del credito al creditore procedente (art. 553 c.p.c.)", "type": "boolean", "default": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "INGIUNZIONE AL TERZO ex art. 547 c.p.c.: il terzo deve comunicare al creditore procedente, entro 10 gg dalla notifica, mediante raccomandata o PEC, di cui credito è debitore del debitore esecutato (somme dovute, scadenze, eventuali contestazioni)",
+          "AVVERTIMENTO AL TERZO ex art. 546 c.p.c.: divieto di disporre delle somme dovute pena nullità degli atti dispositivi nei confronti del creditore procedente",
+          "AVVERTIMENTO AL DEBITORE ESECUTATO ex art. 543 c. 2 n. 4 c.p.c.: facoltà di indicare al G.E. altri beni più facilmente liquidabili",
+          "LIMITI DI PIGNORABILITÀ ex art. 545 c.p.c. devono essere espressamente indicati (per stipendi 1/5, pensioni quota eccedente minimo vitale, ecc.)",
+          "Avvertimento sulla facoltà di CONVERSIONE DEL PIGNORAMENTO ex art. 495 c.p.c.",
+          "Avvertimento sull'iscrizione a ruolo entro 30 gg dalla notifica all'ultimo destinatario ex art. 543 c. 5 c.p.c."
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "titolo_esecutivo_copia_conforme", "label": "Titolo esecutivo in copia conforme (con formula esecutiva se necessaria)", "required": true},
+        {"id": "precetto_notificato_relata", "label": "Precetto notificato con relata", "required": true},
+        {"id": "procura_alle_liti", "label": "Procura alle liti", "required": true},
+        {"id": "nota_iscrizione_ruolo_esecuzione", "label": "Nota iscrizione a ruolo dell'esecuzione (entro 30 gg dalla notifica al terzo)", "required": true, "critico": true}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": {
+          "regola": "Determinato in base al valore del credito da soddisfare",
+          "scaglioni_per_esecuzione": "Stessi scaglioni del rito ordinario, NON ridotti"
+        },
+        "marca_bollo_forfettaria": 27.00,
+        "deposito_telematico": "Obbligatorio per le iscrizioni a ruolo delle esecuzioni"
+      },
+      "atti_collegati": [
+        {"tipo": "atto_iscrizione_ruolo_esecuzione", "trigger": "Notifica completata", "termine": "30 gg dalla consegna ultimi destinatari", "automatico": false},
+        {"tipo": "ordinanza_assegnazione_credito", "trigger": "G.E. accerta la dichiarazione del terzo positiva", "norma": "art. 553 c.p.c."},
+        {"tipo": "ricorso_accertamento_obbligo_terzo", "trigger": "Mancata dichiarazione del terzo (ex art. 548 c.p.c.)", "codice_correlato": "100041"},
+        {"tipo": "ricorso_contestazione_dichiarazione_terzo", "trigger": "Dichiarazione del terzo contestata", "norma": "art. 549 c.p.c."},
+        {"tipo": "istanza_conversione_pignoramento_ex_495", "trigger": "Debitore offre somma alternativa", "automatico": false},
+        {"tipo": "istanza_assegnazione_o_pagamento_diretto", "trigger": "Dichiarazione positiva del terzo", "automatico": false}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "dichiarazione_positiva_terzo_e_assegnazione", "descrizione": "Il terzo dichiara di essere debitore. G.E. assegna il credito al creditore procedente (per stipendio: assegnazione progressiva mensile fino a estinzione)"},
+        {"esito": "dichiarazione_negativa_terzo", "descrizione": "Il terzo dichiara di non essere debitore. Pignoramento inefficace"},
+        {"esito": "mancata_dichiarazione_terzo", "descrizione": "Il terzo non risponde: necessario ricorso per accertamento ex art. 548"},
+        {"esito": "conversione_pignoramento", "descrizione": "Debitore offre somma alternativa ex art. 495 c.p.c. (min 1/6 del credito + spese, dilazionabile in 48 rate)"},
+        {"esito": "pagamento_spontaneo_debitore", "descrizione": "Debitore paga per evitare pignoramento - estinzione esecuzione"},
+        {"esito": "incapienza_terzo_o_credito_inesistente", "descrizione": "Il credito non è sufficiente / non esiste / è impignorabile"}
+      ],
+      "termini_processuali": [
+        {"termine": "Validità del precetto", "giorni": 90, "decorrenza": "notifica precetto", "natura": "decadenziale", "norma": "art. 481 c.p.c."},
+        {"termine": "DICHIARAZIONE DEL TERZO ex art. 547", "giorni": 10, "decorrenza": "notifica atto pignoramento", "natura": "perentorio", "norma": "art. 547 c.p.c.", "criticita": "MASSIMA"},
+        {"termine": "Iscrizione a ruolo dell'esecuzione", "giorni": 30, "decorrenza": "consegna ai destinatari (creditore - debitore - terzo)", "natura": "DECADENZIALE", "norma": "art. 543 c. 5 c.p.c.", "criticita": "MASSIMA - decadenza preclude esecuzione"},
+        {"termine": "Termine min tra notifica al terzo e udienza", "giorni": 10, "natura": "minimo legale", "norma": "art. 543 c. 2 n. 3 c.p.c."},
+        {"termine": "Decadenza precetto per inerzia", "giorni": 90, "decorrenza": "notifica precetto", "natura": "decadenziale", "norma": "art. 481 c.p.c."},
+        {"termine": "Prescrizione titolo esecutivo (actio iudicati)", "giorni": 3650, "decorrenza": "passaggio in giudicato sentenza", "natura": "prescrizione", "norma": "art. 2953 c.c."}
+      ]
+    },
+    {
+      "codice": "413061",
+      "denominazione": "Apertura amministrazione di sostegno",
+      "categoria": "Volontaria giurisdizione - misure di protezione",
+      "sottocategoria": "Nomina amministratore di sostegno per persona incapace di provvedere ai propri interessi",
+      "rito": "Procedimento camerale ex artt. 720-bis e 712-bis c.p.c. - rito camerale specifico per AdS",
+      "competenza": "GIUDICE TUTELARE del Tribunale del luogo di residenza/domicilio del beneficiario (art. 404 c.c.)",
+      "uffici_destinatari": ["SIVG"],
+      "registro_sgr": "Registro Volontaria Giurisdizione - Giudice Tutelare",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "404", "descrizione": "Amministratore di sostegno - presupposti"},
+        {"fonte": "c.c.", "articolo": "405", "descrizione": "Decreto di nomina dell'amministratore di sostegno - contenuto"},
+        {"fonte": "c.c.", "articolo": "406", "descrizione": "Soggetti legittimati a presentare il ricorso"},
+        {"fonte": "c.c.", "articolo": "407", "descrizione": "Procedimento - AUDIZIONE PERSONALE OBBLIGATORIA del beneficiario"},
+        {"fonte": "c.c.", "articolo": "408", "descrizione": "Scelta dell'amministratore di sostegno - designazione anticipata"},
+        {"fonte": "c.c.", "articolo": "409", "descrizione": "Effetti dell'amministrazione di sostegno - capacità residua del beneficiario"},
+        {"fonte": "c.c.", "articolo": "410", "descrizione": "Doveri dell'amministratore di sostegno"},
+        {"fonte": "c.c.", "articolo": "411", "descrizione": "Norme applicabili all'amministrazione di sostegno (rinvio alle norme su tutela e curatela)"},
+        {"fonte": "c.c.", "articolo": "412", "descrizione": "Atti compiuti in violazione di legge o senza autorizzazione - annullabilità"},
+        {"fonte": "c.c.", "articolo": "413", "descrizione": "Revoca dell'amministrazione di sostegno"},
+        {"fonte": "L. 6/2004", "descrizione": "Istituzione dell'amministrazione di sostegno"},
+        {"fonte": "c.p.c.", "articolo": "712-bis", "descrizione": "Disposizioni generali sul procedimento per interdizione e inabilitazione (richiamato per AdS)"},
+        {"fonte": "c.p.c.", "articolo": "720-bis", "descrizione": "Norme applicabili ai procedimenti in materia di amministrazione di sostegno"}
+      ],
+      "presupposti_sostanziali": [
+        "BENEFICIARIO: persona che, per effetto di un'INFERMITÀ o di una MENOMAZIONE FISICA O PSICHICA, si trova nell'IMPOSSIBILITÀ, anche parziale o temporanea, DI PROVVEDERE AI PROPRI INTERESSI",
+        "Differenze rispetto a interdizione/inabilitazione: minore invasività - mantiene capacità residua del beneficiario - misura modulabile sui bisogni specifici",
+        "Casistica tipica: anziani non autosufficienti, persone con disabilità cognitiva o psichica, persone in coma, soggetti con dipendenze, persone con malattia degenerativa (Alzheimer, sclerosi multipla, ecc.)"
+      ],
+      "legittimati_attivi": [
+        "Lo stesso beneficiario (anche se minore, interdetto o inabilitato - per richiesta di AdS in vista di propria futura incapacità)",
+        "Il coniuge",
+        "La persona stabilmente convivente",
+        "I parenti entro il 4° grado",
+        "Gli affini entro il 2° grado",
+        "Il tutore o curatore",
+        "Il pubblico ministero",
+        "I responsabili dei servizi sanitari e sociali direttamente impegnati nella cura e assistenza della persona (art. 406 c.c.)"
+      ],
+      "obbligo_mediazione": {"obbligatoria": false},
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "COLLOQUIO con i familiari/persone vicine al beneficiario per ricostruire la situazione",
+          "informazioni_da_raccogliere": ["Stato di salute attuale", "Patologie e diagnosi", "Capacità residue (cognitive, decisionali, di gestione)", "Situazione familiare e supporti disponibili", "Situazione economica e patrimoniale", "Tipologie di atti da compiere (gestione conto, riscossione pensione, vendita immobile, sottoscrizione contratti, cure mediche, ecc.)"]
+        },
+        {
+          "step": 2,
+          "descrizione": "RACCOLTA DOCUMENTAZIONE SANITARIA DETTAGLIATA (essenziale per il GT)",
+          "documenti": ["Certificato medico di base / specialistico con DIAGNOSI DETTAGLIATA e PROGNOSI", "Cartelle cliniche di ricoveri", "Relazioni di psichiatra, neurologo, geriatra", "Eventuali piani di assistenza (PAI) dei servizi sociali", "Verbali commissione invalidità INPS / L. 104/1992"]
+        },
+        {
+          "step": 3,
+          "descrizione": "Identificazione candidato amministratore di sostegno",
+          "criterio_scelta_art_408_cc": "Designazione anticipata (atto pubblico/scrittura privata autenticata); poi: coniuge convivente, persona stabilmente convivente, padre/madre/figli, fratello/sorella, parente entro 4° grado, e in ultima istanza una persona estranea (avvocato, commercialista, assistente sociale)",
+          "incompatibilita": "Soggetti in conflitto di interessi (es. creditori del beneficiario), persone con cattiva reputazione"
+        },
+        {
+          "step": 4,
+          "descrizione": "INVENTARIO PATRIMONIALE E REDDITUALE del beneficiario",
+          "voci_da_inventariare": ["Conti correnti, depositi, titoli (estratti conto, dossier titoli)", "Immobili (visure, atti di provenienza)", "Beni mobili registrati (autoveicoli, natanti)", "Quote/partecipazioni societarie", "Pensioni, rendite, redditi", "Debiti, mutui, finanziamenti", "Polizze assicurative", "Beni di valore (gioielli, opere d'arte)"]
+        },
+        {
+          "step": 5,
+          "descrizione": "Predisposizione PROGETTO DI AMMINISTRAZIONE - elenco specifico atti che AdS dovrà compiere in nome del beneficiario vs atti per cui è solo necessaria l'assistenza dell'AdS",
+          "atti_in_rappresentanza_tipici": ["Riscossione pensione/rendite", "Gestione conto corrente", "Pagamento utenze e spese ordinarie", "Sottoscrizione contratti di prestazione di servizi", "Rapporti con pubbliche amministrazioni"],
+          "atti_assistiti_tipici": ["Vendita/acquisto immobili", "Donazioni", "Accettazione/rinuncia eredità", "Sottoscrizione contratti di investimento", "Costituzione di società"]
+        },
+        {
+          "step": 6,
+          "descrizione": "Eventuale richiesta provvedimenti urgenti ex art. 405 c. 4 c.c. (in pendenza del procedimento)",
+          "esempi": "Nomina AdS provvisorio per atti urgenti (es. consenso a intervento chirurgico urgente)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_amministrazione_sostegno",
+        "denominazione": "Ricorso per nomina di amministratore di sostegno ex artt. 404 e ss. c.c.",
+        "schema_xsd_ministeriale": "AttoVolontariaGiurisdizione.xsd",
+        "campi_chiave": [
+          {"id": "tribunale", "label": "Tribunale del luogo di residenza/domicilio del beneficiario - Giudice Tutelare", "type": "select", "required": true},
+          {"id": "beneficiario", "label": "Beneficiario", "type": "object_persona", "required": true, "sub_fields": [
+            {"id": "cognome_nome", "type": "string"},
+            {"id": "codice_fiscale", "type": "string"},
+            {"id": "data_luogo_nascita", "type": "object"},
+            {"id": "residenza_anagrafica", "type": "address"},
+            {"id": "domicilio_di_fatto", "type": "address", "rilevante_se_diverso_da_residenza": true},
+            {"id": "stato_civile", "type": "select"},
+            {"id": "professione", "type": "string"},
+            {"id": "carta_identita_estremi", "type": "string"}
+          ]},
+          {"id": "ricorrente", "label": "Ricorrente legittimato ex art. 406 c.c.", "type": "object_persona", "required": true, "sub_fields": [
+            {"id": "cognome_nome", "type": "string"},
+            {"id": "codice_fiscale", "type": "string"},
+            {"id": "rapporto_con_beneficiario", "type": "select", "required": true, "options": ["beneficiario_stesso", "coniuge", "persona_stabilmente_convivente", "figlio", "padre_o_madre", "fratello_o_sorella", "parente_entro_4_grado", "affine_entro_2_grado", "tutore_o_curatore", "pubblico_ministero", "responsabile_servizi_sanitari_sociali"]},
+            {"id": "residenza", "type": "address"}
+          ]},
+          {"id": "difensore", "label": "Difensore (FACOLTATIVO - patrocinio non obbligatorio per AdS)", "type": "object_avvocato", "required": false},
+          {"id": "infermita_descrizione", "label": "Descrizione dettagliata infermità/menomazione fisica/psichica", "type": "textarea", "required": true, "min_length": 300},
+          {"id": "diagnosi_medica", "label": "Diagnosi medica precisa", "type": "string", "required": true},
+          {"id": "impossibilita_provvedere_interessi", "label": "Descrizione dell'impossibilità (totale o parziale) di provvedere ai propri interessi", "type": "textarea", "required": true, "min_length": 200},
+          {"id": "amministratore_proposto", "label": "Amministratore di sostegno proposto", "type": "object_persona", "required": false, "sub_fields": [
+            {"id": "cognome_nome", "type": "string"},
+            {"id": "codice_fiscale", "type": "string"},
+            {"id": "rapporto_con_beneficiario", "type": "string"},
+            {"id": "residenza", "type": "address"},
+            {"id": "professione", "type": "string"},
+            {"id": "consenso_assunzione_incarico", "type": "boolean", "required": true}
+          ]},
+          {"id": "designazione_anticipata_art_408", "label": "Designazione anticipata del beneficiario stesso ex art. 408 c.c.", "type": "object", "sub_fields": [
+            {"id": "presente", "type": "boolean"},
+            {"id": "estremi_atto_designazione", "type": "string"},
+            {"id": "data_designazione", "type": "date"}
+          ]},
+          {"id": "atti_che_ads_deve_compiere_in_nome_beneficiario", "label": "Atti che l'AdS dovrà compiere in nome e per conto del beneficiario (RAPPRESENTANZA)", "type": "textarea", "required": true, "min_length": 200},
+          {"id": "atti_per_cui_necessaria_assistenza_ads", "label": "Atti per i quali è necessaria l'assistenza dell'AdS (ASSISTENZA)", "type": "textarea"},
+          {"id": "atti_che_il_beneficiario_puo_compiere_autonomamente", "label": "Atti che il beneficiario può continuare a compiere autonomamente (capacità residua)", "type": "textarea"},
+          {"id": "indicazione_familiari", "label": "Indicazione coniuge, persona convivente, parenti entro 4° grado e affini entro 2° grado (per audizione/audizione informativa)", "type": "array_persone", "required": true, "sub_fields": [
+            {"id": "cognome_nome", "type": "string"},
+            {"id": "rapporto_di_parentela", "type": "string"},
+            {"id": "residenza", "type": "address"},
+            {"id": "consenso_alla_nomina_di", "type": "select", "options": ["se_stesso", "altro_familiare", "professionista_esterno", "non_si_oppone"]}
+          ]},
+          {"id": "patrimonio_beneficiario", "label": "Patrimonio del beneficiario (descrizione sintetica - dettagli in allegato inventario)", "type": "textarea", "required": true},
+          {"id": "redditi_beneficiario", "label": "Redditi del beneficiario (mensili/annuali)", "type": "object", "required": true, "sub_fields": [
+            {"id": "pensione_mensile", "type": "currency"},
+            {"id": "altri_redditi", "type": "currency"},
+            {"id": "totale_annuale", "type": "currency"}
+          ]},
+          {"id": "spese_assistenza_correnti", "label": "Spese di assistenza correnti (RSA, badante, terapie)", "type": "currency"},
+          {"id": "necessita_provvedimenti_urgenti", "label": "Necessità provvedimenti urgenti ex art. 405 c. 4 c.c.", "type": "object", "sub_fields": [
+            {"id": "richiesta", "type": "boolean"},
+            {"id": "tipo_provvedimento_urgente", "type": "textarea"},
+            {"id": "motivazione_urgenza", "type": "textarea"}
+          ]}
+        ],
+        "avvertimenti_obbligatori": [
+          "AUDIZIONE PERSONALE OBBLIGATORIA del beneficiario ex art. 407 c. 2 c.c. - il GT deve sentire personalmente il beneficiario, recandosi anche dove questi si trova (domicilio, struttura, ospedale)",
+          "Audizione dei prossimi congiunti per audizione informativa",
+          "Indicazione necessità RENDICONTO PERIODICO al GT (annuale di norma) ex art. 410 c. 1 c.c.",
+          "Avvertimento sull'obbligo dell'AdS di richiedere autorizzazione del GT per gli atti di straordinaria amministrazione",
+          "Indicazione che il decreto di nomina è reclamabile in Corte d'Appello (sezione persone-famiglia) ex art. 720-bis c.p.c."
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "certificazione_medica_dettagliata", "label": "Certificazione medica dettagliata con DIAGNOSI e PROGNOSI specifiche sulla capacità di provvedere ai propri interessi (essenziale)", "required": true, "critico": true},
+        {"id": "documentazione_sanitaria_completa", "label": "Documentazione sanitaria completa (cartelle cliniche, relazioni specialisti)", "required": false, "consigliato": true},
+        {"id": "documento_identita_beneficiario", "label": "Documento di identità e codice fiscale del beneficiario", "required": true},
+        {"id": "documento_identita_ricorrente", "label": "Documento di identità del ricorrente", "required": true},
+        {"id": "documento_identita_ads_proposto", "label": "Documento di identità e CF dell'AdS proposto + consenso scritto all'assunzione dell'incarico", "required": false, "consigliato_se_propone_ads": true},
+        {"id": "stato_di_famiglia_e_residenza", "label": "Certificato di stato di famiglia e residenza del beneficiario", "required": true},
+        {"id": "documentazione_patrimoniale", "label": "Documentazione patrimoniale (visure immobiliari/PRA, estratti conto, dossier titoli, polizze)", "required": true},
+        {"id": "documentazione_reddituale", "label": "Documentazione reddituale (cedolini pensione, CU, 730/Unico)", "required": true},
+        {"id": "verbale_invalidita_o_104", "label": "Eventuali verbali commissione invalidità o L. 104/1992", "required": false},
+        {"id": "designazione_anticipata", "label": "Designazione anticipata ex art. 408 c.c. (se presente)", "required": false},
+        {"id": "atti_compromettenti_in_corso", "label": "Eventuali documenti su atti compromettenti in corso (contratti, finanziamenti)", "required": false},
+        {"id": "procura_alle_liti", "label": "Procura alle liti (se difensore costituito)", "required": false}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": {
+          "regola": "Esente da contributo unificato (procedimento di volontaria giurisdizione di matrice protettiva)",
+          "esenzione": true,
+          "norma": "art. 10 DPR 115/2002"
+        },
+        "marca_bollo_forfettaria": 27.00,
+        "deposito_telematico": "Obbligatorio dal 28/2/2023 anche per VG ex art. 196-quater disp.att. c.p.c."
+      },
+      "atti_collegati": [
+        {"tipo": "decreto_provvisorio_405_c4", "trigger": "Richiesta provvedimenti urgenti", "automatico": false},
+        {"tipo": "decreto_apertura_amministrazione_sostegno", "trigger": "Esito procedimento", "automatico": false},
+        {"tipo": "verbale_giuramento_ads", "trigger": "Accettazione incarico", "automatico": false},
+        {"tipo": "istanza_autorizzazione_atti_straordinari", "trigger": "Atti che richiedono autorizzazione GT (vendite immobili, accettazione/rinuncia eredità, donazioni, ecc.)", "automatico": false, "norma": "artt. 374, 375 c.c. richiamati"},
+        {"tipo": "rendiconto_annuale_ads", "trigger": "Scadenza annuale dalla nomina", "automatico": false, "norma": "art. 410 c.c."},
+        {"tipo": "istanza_modifica_decreto_nomina", "trigger": "Mutamento condizioni del beneficiario", "automatico": false},
+        {"tipo": "istanza_revoca_ads_413", "trigger": "Cessate cause / Sostituzione AdS", "automatico": false, "norma": "art. 413 c.c."},
+        {"tipo": "reclamo_corte_appello_720_bis", "trigger": "Decreto del GT", "termine": "10 gg dalla comunicazione/notifica"}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "decreto_apertura_ads", "descrizione": "Apertura AdS con specifica indicazione: durata (a tempo determinato o indeterminato), AdS nominato, atti in rappresentanza, atti assistiti, capacità residua del beneficiario"},
+        {"esito": "rigetto_perche_non_necessaria", "descrizione": "Il GT ritiene che la situazione non giustifichi l'AdS (può comunque suggerire altre misure)"},
+        {"esito": "rigetto_e_apertura_interdizione_inabilitazione", "descrizione": "Il GT ritiene necessario procedimento più invasivo (interdizione - inabilitazione)"},
+        {"esito": "decreto_provvisorio_urgente", "descrizione": "Decreto provvisorio per atti urgenti in pendenza del procedimento"}
+      ],
+      "termini_processuali": [
+        {"termine": "Termine GT per decisione", "giorni": 60, "decorrenza": "deposito ricorso", "natura": "ordinatorio", "norma": "art. 405 c. 1 c.c."},
+        {"termine": "Reclamo in Corte d'Appello", "giorni": 10, "decorrenza": "comunicazione/notifica decreto", "natura": "perentorio", "norma": "art. 720-bis c.p.c."},
+        {"termine": "Rendiconto annuale AdS", "giorni": 365, "decorrenza": "data nomina e successivi anni", "natura": "ordinatorio", "norma": "art. 410 c.c."},
+        {"termine": "Termine accettazione incarico AdS", "giorni": "ragionevole - di norma 10-15 gg dalla notifica del decreto di nomina", "natura": "ordinatorio"},
+        {"termine": "Audizione personale del beneficiario", "giorni": "fissata dal GT generalmente entro 30-60 gg", "natura": "obbligatoria", "norma": "art. 407 c. 2 c.c."}
+      ]
+    }
+  ]
+}

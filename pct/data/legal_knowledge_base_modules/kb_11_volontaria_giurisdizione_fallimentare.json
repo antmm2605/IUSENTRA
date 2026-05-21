@@ -1,0 +1,154 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "11_VOLONTARIA_GIURISDIZIONE_FALLIMENTARE",
+  "denominazione": "Volontaria giurisdizione - procedure concorsuali",
+  "registro": "SIVG (con interazione SIECIC per fase liquidatoria)",
+  "competenza_prevalente": "Tribunale ordinario - sezione specializzata in materia di impresa (per società di grandi dimensioni)",
+  "rito_prevalente": "Procedimento ex artt. 40-53 CCII (per apertura liquidazione giudiziale) - procedimento unitario di accesso agli strumenti di regolazione della crisi e dell'insolvenza",
+  "note_aggiornamento": "Tutto il regime in vigore dal 15/7/2022 con il D.Lgs. 14/2019 (Codice della Crisi d'Impresa e dell'Insolvenza - CCII) come modificato dal D.Lgs. 83/2022, dal D.Lgs. 136/2024 (correttivo-ter) e dalle successive integrazioni",
+  "codici_materia": [
+    {
+      "codice": "471401",
+      "denominazione": "Istanza e ricorso per la dichiarazione di fallimento e relativo reclamo",
+      "categoria": "Apertura liquidazione giudiziale (ex fallimento)",
+      "note_riforma": "Oggi: ricorso per apertura della liquidazione giudiziale ex artt. 40-49 CCII",
+      "competenza": "Tribunale del luogo in cui il debitore ha il centro degli interessi principali (COMI)",
+      "normativa": [
+        {"fonte": "D.Lgs. 14/2019 (CCII)", "articolo": "40-49", "descrizione": "Procedimento unitario per accesso alla liquidazione giudiziale"},
+        {"fonte": "D.Lgs. 14/2019 (CCII)", "articolo": "121-122", "descrizione": "Presupposti soggettivi e oggettivi"}
+      ],
+      "presupposti_sostanziali": [
+        "Stato di insolvenza del debitore (art. 2 c. 1 lett. b CCII)",
+        "Qualità di imprenditore commerciale non agricolo (escluso piccolo imprenditore sotto soglie art. 2 c. 1 lett. d)",
+        "Legittimazione attiva: debitore stesso, creditori, PM, autorità amministrative (per liquidazione coatta amministrativa)"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_apertura_liquidazione_giudiziale",
+        "denominazione": "Ricorso per apertura della liquidazione giudiziale ex art. 40 CCII",
+        "schema_xsd_ministeriale": "AttoConcorsuale.xsd",
+        "campi_chiave": [
+          {"id": "debitore", "label": "Debitore (impresa)", "type": "object_persona_giuridica", "required": true},
+          {"id": "tipo_debitore", "label": "Tipo debitore", "type": "select", "required": true, "options": ["impresa_individuale", "snc", "sas", "srl", "spa", "sapa", "cooperativa", "consorzio"]},
+          {"id": "ricorrente", "label": "Ricorrente", "type": "select", "required": true, "options": ["debitore_proprio_istanza", "creditore", "pubblico_ministero", "autorita_amministrativa"]},
+          {"id": "creditore_dati", "label": "Dati creditore istante (se applicabile)", "type": "object_persona"},
+          {"id": "credito_istante", "label": "Credito del ricorrente (titolo, importo, scadenza)", "type": "object"},
+          {"id": "stato_insolvenza", "label": "Esposizione stato di insolvenza", "type": "textarea", "required": true},
+          {"id": "indici_insolvenza", "label": "Indici di insolvenza", "type": "select_multi", "options": ["inadempimenti_reiterati", "protesti", "esecuzioni_infruttuose", "fughe", "trafugamenti_attivo", "cessazione_attivita", "ritardi_pagamenti_dipendenti", "ritardi_pagamenti_erario"]},
+          {"id": "scaduti_debiti", "label": "Debiti scaduti e non pagati", "type": "currency"},
+          {"id": "esposizione_complessiva", "label": "Esposizione complessiva", "type": "currency"},
+          {"id": "soglie_art_2_ccii", "label": "Superamento soglie art. 2 c. 1 lett. d CCII", "type": "boolean", "required": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "Indicazione legittimazione e prova del credito (per istanza di creditore)",
+          "Verifica soglie di non fallibilità (attivo €300.000, ricavi €200.000, debiti €500.000 per tre esercizi)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "visura_camerale", "label": "Visura camerale aggiornata del debitore", "required": true},
+        {"id": "bilanci_3_esercizi", "label": "Bilanci ultimi 3 esercizi del debitore", "required": true},
+        {"id": "documentazione_credito", "label": "Documentazione probatoria del credito (se istanza creditore)", "required": true},
+        {"id": "decreti_ingiuntivi_titoli", "label": "Decreti ingiuntivi, sentenze, titoli esecutivi", "required": false},
+        {"id": "protesti", "label": "Eventuali protesti", "required": false}
+      ]
+    },
+    {
+      "codice": "471402",
+      "denominazione": "Istanza per estensione di fallimento (art. 147 R.D. 267/1942)",
+      "categoria": "Estensione liquidazione giudiziale ai soci illimitatamente responsabili",
+      "note_riforma": "Oggi art. 256 CCII",
+      "normativa": [
+        {"fonte": "D.Lgs. 14/2019 (CCII)", "articolo": "256", "descrizione": "Apertura della procedura nei confronti del socio illimitatamente responsabile"}
+      ]
+    },
+    {
+      "codice": "471403",
+      "denominazione": "Accertamento dello stato di insolvenza nella Liquidazione coatta amministrativa",
+      "categoria": "Liquidazione coatta amministrativa",
+      "note_riforma": "Oggi artt. 293-316 CCII",
+      "normativa": [
+        {"fonte": "D.Lgs. 14/2019 (CCII)", "articolo": "293-316", "descrizione": "Liquidazione coatta amministrativa"}
+      ]
+    },
+    {"codice": "471410", "denominazione": "Istanza di ammissione alla procedura di Amministrazione controllata", "note": "Procedura abrogata dal D.Lgs. 5/2006"},
+    {
+      "codice": "471411",
+      "denominazione": "Istanza di ammissione alla procedura di Concordato preventivo",
+      "categoria": "Concordato preventivo",
+      "note_riforma": "Oggi disciplinato dagli artt. 84-120 CCII",
+      "normativa": [
+        {"fonte": "D.Lgs. 14/2019 (CCII)", "articolo": "84-120", "descrizione": "Concordato preventivo (in continuità e liquidatorio)"},
+        {"fonte": "D.Lgs. 14/2019 (CCII)", "articolo": "40-53", "descrizione": "Procedimento unitario di accesso"}
+      ],
+      "presupposti_sostanziali": [
+        "Stato di crisi o insolvenza",
+        "Presentazione di un piano e di una proposta ai creditori",
+        "Per il concordato in continuità: prosecuzione dell'attività di impresa con possibile aumento del valore aziendale",
+        "Per il concordato liquidatorio: apporto risorse esterne pari ad almeno il 10% e soddisfacimento chirografari almeno al 20% (art. 84 c. 4 CCII)"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_concordato_preventivo",
+        "denominazione": "Ricorso per ammissione al concordato preventivo",
+        "campi_chiave": [
+          {"id": "debitore", "label": "Debitore", "type": "object_persona_giuridica", "required": true},
+          {"id": "tipo_concordato", "label": "Tipo concordato", "type": "select", "required": true, "options": ["continuita_aziendale", "liquidatorio", "misto", "concordato_semplificato_liquidazione"]},
+          {"id": "stato_proposto", "label": "Stato dichiarato (crisi/insolvenza)", "type": "select", "required": true},
+          {"id": "piano_concordatario", "label": "Piano di concordato", "type": "object_complesso", "required": true},
+          {"id": "proposta_creditori", "label": "Proposta ai creditori", "type": "textarea", "required": true},
+          {"id": "classi_creditori", "label": "Suddivisione in classi", "type": "array"},
+          {"id": "soddisfacimento_chirografari", "label": "% soddisfacimento chirografari", "type": "percentage"},
+          {"id": "attestatore_indipendente", "label": "Attestatore indipendente nominato", "type": "object_persona", "required": true},
+          {"id": "richiesta_misure_protettive", "label": "Richiesta misure protettive e cautelari ex art. 54-55 CCII", "type": "boolean"}
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "piano_concordato", "label": "Piano di concordato", "required": true},
+        {"id": "relazione_attestatore", "label": "Relazione dell'attestatore (art. 87 c. 3 CCII)", "required": true},
+        {"id": "elenco_creditori", "label": "Elenco nominativo creditori con indicazione crediti e cause prelazione (art. 39 CCII)", "required": true},
+        {"id": "stato_analitico_attivita_passivita", "label": "Stato analitico ed estimativo delle attività e passività", "required": true},
+        {"id": "bilanci_3_esercizi", "label": "Bilanci ultimi 3 esercizi e situazione patrimoniale aggiornata", "required": true},
+        {"id": "elenco_titolari_diritti_reali", "label": "Elenco titolari diritti reali/personali su beni di terzi in possesso del debitore", "required": true}
+      ]
+    },
+    {
+      "codice": "471420",
+      "denominazione": "Conversione da fallimento in liquidazione coatta amministrativa (COLLEGIO)",
+      "note_riforma": "Oggi: conversione fra procedure concorsuali ex CCII"
+    },
+    {"codice": "471421", "denominazione": "Conversione da fallimento in amministrazione straordinaria (COLLEGIO)", "normativa": [{"fonte": "D.Lgs. 270/1999", "descrizione": "Amministrazione straordinaria grandi imprese in stato di insolvenza"}]},
+    {"codice": "471422", "denominazione": "Conversione da amministrazione straordinaria in fallimento (COLLEGIO)"},
+    {
+      "codice": "471430",
+      "denominazione": "Procedimento di riabilitazione civile del fallito (artt. 142 e ss. R.D. 267/1942)",
+      "note": "Istituto abrogato dalla riforma; oggi: esdebitazione ex artt. 278-283 CCII",
+      "normativa": [
+        {"fonte": "D.Lgs. 14/2019 (CCII)", "articolo": "278-283", "descrizione": "Esdebitazione"}
+      ]
+    },
+    {
+      "codice": "471440",
+      "denominazione": "Reclamo avverso la chiusura del fallimento (artt. 118 e 119 L.F.)",
+      "note_riforma": "Oggi artt. 233-235 CCII",
+      "normativa": [
+        {"fonte": "D.Lgs. 14/2019 (CCII)", "articolo": "233", "descrizione": "Casi di chiusura"},
+        {"fonte": "D.Lgs. 14/2019 (CCII)", "articolo": "234", "descrizione": "Decreto di chiusura"}
+      ]
+    },
+    {
+      "codice": "471999",
+      "denominazione": "Altri istituti di V.G. e procedimenti camerali in materia di fallimento",
+      "categoria": "Procedure concorsuali - residuale",
+      "casistica_attuale_ccii": [
+        "Composizione negoziata della crisi (artt. 12-25-undecies CCII)",
+        "Piani attestati di risanamento (art. 56 CCII)",
+        "Accordi di ristrutturazione dei debiti (artt. 57-64 CCII)",
+        "Convenzione di moratoria (art. 62 CCII)",
+        "Piano di ristrutturazione soggetto ad omologazione - PRO (artt. 64-bis - 64-quater CCII)",
+        "Procedure familiari (art. 66 CCII)",
+        "Liquidazione controllata del sovraindebitato (artt. 268-277 CCII)",
+        "Concordato minore (artt. 74-83 CCII)",
+        "Ristrutturazione dei debiti del consumatore (artt. 67-73 CCII)"
+      ]
+    },
+    {"codice": "490999", "denominazione": "Altri procedimenti camerali", "note": "Codice residuale generico"}
+  ]
+}

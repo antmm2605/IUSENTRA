@@ -1,0 +1,692 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "12_ESECUZIONI_FORZATE_ALIAS_LOGICI_LEGACY",
+  "denominazione": "Esecuzioni forzate - mobiliari, immobiliari, presso terzi, consegna e rilascio, esecuzioni in forma specifica - alias logici mantenuti per retrocompatibilità fascicoli",
+  "registro": "SIECIC (Sistema Informatico Esecuzioni Civili Individuali e Concorsuali)",
+  "competenza_prevalente": "Giudice dell'esecuzione del Tribunale del luogo (per le esecuzioni mobiliari: luogo dove le cose si trovano; immobiliari: luogo dell'immobile; presso terzi: residenza del debitore esecutato)",
+  "note_aggiornamento": "Riforma Cartabia (D.Lgs. 149/2022) ha modificato significativamente la disciplina delle esecuzioni: nuove regole su iscrizione a ruolo, termini, vendite delegate, conversione",
+  "nota_completezza": "I codici materia dello SIECIC non sono pubblicati nella tabella ministeriale della Corte d'Appello di Bologna utilizzata come fonte principale. La codifica seguente riporta le tipologie di procedimenti esecutivi consolidate nella prassi del PCT. Per la codifica numerica ministeriale precisa fare riferimento al manuale operativo SIECIC (Direzione Generale Sistemi Informativi Automatizzati del Ministero della Giustizia)",
+  "codici_materia": [
+    {
+      "codice_logico": "ESEC_MOB_001",
+      "denominazione": "Pignoramento mobiliare presso il debitore",
+      "categoria": "Esecuzione mobiliare",
+      "rito": "Esecuzione forzata mobiliare ex artt. 513-542 c.p.c.",
+      "uffici_destinatari": [
+        "SIECIC",
+        "UNEP"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "513-542",
+          "descrizione": "Espropriazione mobiliare presso il debitore"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "474",
+          "descrizione": "Titolo esecutivo"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "479",
+          "descrizione": "Notificazione del titolo esecutivo e del precetto"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "480",
+          "descrizione": "Forma del precetto"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "Titolo esecutivo (sentenza, decreto ingiuntivo esecutivo, atto pubblico, ecc.)",
+        "Notifica titolo esecutivo + precetto (precetto: termine almeno 10 gg, max 90 gg per l'esecuzione)",
+        "Decorso termine minimo 10 gg dal precetto"
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_pignoramento_mobiliare",
+        "denominazione": "Atto di pignoramento mobiliare presso il debitore",
+        "schema_xsd_ministeriale": "AttoEsecuzioneMobiliare.xsd",
+        "campi_chiave": [
+          {
+            "id": "creditore_procedente",
+            "label": "Creditore procedente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "debitore_esecutato",
+            "label": "Debitore esecutato",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "titolo_esecutivo",
+            "label": "Titolo esecutivo",
+            "type": "object",
+            "required": true
+          },
+          {
+            "id": "precetto_estremi",
+            "label": "Estremi precetto notificato",
+            "type": "object",
+            "required": true
+          },
+          {
+            "id": "data_notifica_precetto",
+            "label": "Data notifica precetto",
+            "type": "date",
+            "required": true
+          },
+          {
+            "id": "importo_capitale",
+            "label": "Capitale precettato",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "interessi",
+            "label": "Interessi maturati e maturandi",
+            "type": "currency"
+          },
+          {
+            "id": "spese_competenze",
+            "label": "Spese e competenze",
+            "type": "currency"
+          },
+          {
+            "id": "ufficiale_giudiziario",
+            "label": "UNEP destinatario",
+            "type": "object",
+            "required": true
+          },
+          {
+            "id": "luogo_pignoramento",
+            "label": "Luogo del pignoramento",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Ingiunzione ex art. 492 c.p.c.",
+          "Avvertimento ex art. 492 c. 4 c.c. (dichiarazione di residenza/elezione domicilio)",
+          "Avvertimento facoltà conversione pignoramento ex art. 495 c.p.c."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "titolo_esecutivo",
+          "label": "Titolo esecutivo in copia autentica",
+          "required": true
+        },
+        {
+          "id": "precetto_notificato",
+          "label": "Precetto notificato con relata",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        },
+        {
+          "id": "nota_iscrizione_ruolo",
+          "label": "Nota iscrizione a ruolo ex art. 159-ter disp.att. c.p.c.",
+          "required": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Iscrizione a ruolo del pignoramento",
+          "giorni": 15,
+          "decorrenza": "consegna verbale al creditore dall'UNEP",
+          "natura": "decadenziale",
+          "norma": "art. 518 c. 6 c.p.c."
+        },
+        {
+          "termine": "Validità del precetto",
+          "giorni": 90,
+          "decorrenza": "notifica precetto",
+          "natura": "decadenziale",
+          "norma": "art. 481 c.p.c."
+        },
+        {
+          "termine": "Istanza di vendita",
+          "giorni": 45,
+          "decorrenza": "pignoramento",
+          "natura": "perentorio",
+          "norma": "art. 497 c.p.c."
+        }
+      ]
+    },
+    {
+      "codice_logico": "ESEC_TERZI_001",
+      "denominazione": "Pignoramento presso terzi",
+      "categoria": "Esecuzione mobiliare presso terzi",
+      "rito": "Esecuzione presso terzi ex artt. 543-554 c.p.c.",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "543-554",
+          "descrizione": "Espropriazione presso terzi"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "543",
+          "descrizione": "Forma del pignoramento"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "547",
+          "descrizione": "Dichiarazione del terzo"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_pignoramento_presso_terzi",
+        "denominazione": "Atto di pignoramento presso terzi",
+        "campi_chiave": [
+          {
+            "id": "creditore",
+            "label": "Creditore procedente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "debitore_esecutato",
+            "label": "Debitore esecutato",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "terzo_pignorato",
+            "label": "Terzo pignorato (banca, datore di lavoro, ecc.)",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "tipo_credito_pignorato",
+            "label": "Tipo credito/somma da pignorare",
+            "type": "select",
+            "required": true,
+            "options": [
+              "stipendio",
+              "pensione",
+              "conto_corrente",
+              "credito_da_fornitura",
+              "tfr",
+              "indennita",
+              "altri_crediti"
+            ]
+          },
+          {
+            "id": "titolo_esecutivo",
+            "label": "Titolo esecutivo",
+            "type": "object",
+            "required": true
+          },
+          {
+            "id": "importo_pignorato",
+            "label": "Importo da pignorare",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "udienza_dichiarazione_terzo",
+            "label": "Udienza fissata per dichiarazione del terzo",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Ingiunzione al terzo di rendere dichiarazione ex art. 547 c.p.c. (entro 10 gg dalla notifica via PEC, raccomandata o telematica)",
+          "Avvertimento al debitore ex art. 543 c. 2 n. 4 c.p.c.",
+          "Limiti pignorabilità ex art. 545 c.p.c. (per stipendi/pensioni)"
+        ]
+      },
+      "termini_processuali": [
+        {
+          "termine": "Dichiarazione del terzo",
+          "giorni": 10,
+          "decorrenza": "notifica atto pignoramento",
+          "natura": "perentorio",
+          "norma": "art. 543 c. 4 c.p.c."
+        },
+        {
+          "termine": "Iscrizione ruolo dopo notifica al terzo",
+          "giorni": 30,
+          "decorrenza": "consegna ai destinatari della copia notificata",
+          "natura": "decadenziale",
+          "norma": "art. 543 c. 5 c.p.c."
+        }
+      ]
+    },
+    {
+      "codice_logico": "ESEC_IMM_001",
+      "denominazione": "Pignoramento immobiliare",
+      "categoria": "Esecuzione immobiliare",
+      "rito": "Espropriazione immobiliare ex artt. 555-598 c.p.c.",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "555-598",
+          "descrizione": "Espropriazione immobiliare"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "555",
+          "descrizione": "Forma del pignoramento"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "557",
+          "descrizione": "Trascrizione del pignoramento"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "567",
+          "descrizione": "Istanza di vendita"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "569",
+          "descrizione": "Udienza di comparizione delle parti"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "591-bis",
+          "descrizione": "Vendita delegata al professionista"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_pignoramento_immobiliare",
+        "denominazione": "Atto di pignoramento immobiliare",
+        "campi_chiave": [
+          {
+            "id": "creditore",
+            "label": "Creditore procedente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "debitore_esecutato",
+            "label": "Debitore esecutato",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "immobile_pignorato",
+            "label": "Immobile (dati catastali completi, descrizione, ubicazione)",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "titolo_esecutivo",
+            "label": "Titolo esecutivo",
+            "type": "object",
+            "required": true
+          },
+          {
+            "id": "precetto_estremi",
+            "label": "Estremi precetto",
+            "type": "object",
+            "required": true
+          },
+          {
+            "id": "importo_complessivo",
+            "label": "Importo complessivo precettato",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "nota_trascrizione",
+            "label": "Nota trascrizione presso Conservatoria",
+            "type": "object",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Ingiunzione ex art. 492 c.p.c.",
+          "Avvertimento conservazione bene fino alla vendita"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "titolo_esecutivo",
+          "label": "Titolo esecutivo",
+          "required": true
+        },
+        {
+          "id": "precetto_notificato",
+          "label": "Precetto notificato",
+          "required": true
+        },
+        {
+          "id": "nota_trascrizione_pignoramento",
+          "label": "Nota trascrizione pignoramento",
+          "required": true
+        },
+        {
+          "id": "documentazione_ipotecaria_catastale",
+          "label": "Documentazione ipotecaria/catastale ex art. 567 c.p.c. (entro 60 gg da istanza vendita)",
+          "required": true
+        },
+        {
+          "id": "ape",
+          "label": "Attestato Prestazione Energetica (APE)",
+          "required": true
+        },
+        {
+          "id": "certificazione_urbanistica",
+          "label": "Certificato destinazione urbanistica (terreni)",
+          "required": false
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Trascrizione del pignoramento",
+          "giorni": 15,
+          "decorrenza": "consegna ai destinatari",
+          "natura": "perentorio",
+          "norma": "art. 555 c. 3 c.p.c."
+        },
+        {
+          "termine": "Iscrizione a ruolo",
+          "giorni": 15,
+          "decorrenza": "restituzione titolo esecutivo trascritto",
+          "natura": "decadenziale",
+          "norma": "art. 557 c.p.c."
+        },
+        {
+          "termine": "Istanza di vendita",
+          "giorni": 45,
+          "decorrenza": "trascrizione pignoramento",
+          "natura": "perentorio (con possibilità sospensione)",
+          "norma": "art. 497 c.p.c."
+        },
+        {
+          "termine": "Documentazione ipocatastale",
+          "giorni": 60,
+          "decorrenza": "istanza vendita",
+          "natura": "perentorio",
+          "norma": "art. 567 c. 2 c.p.c."
+        }
+      ]
+    },
+    {
+      "codice_logico": "ESEC_AUTO_492BIS",
+      "denominazione": "Ricerca telematica beni - pignoramento via UNEP (art. 492-bis c.p.c.)",
+      "categoria": "Ricerca telematica beni del debitore",
+      "rito": "Procedura amministrativa-esecutiva ex art. 492-bis c.p.c.",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "492-bis",
+          "descrizione": "Ricerca con modalità telematiche dei beni da pignorare"
+        },
+        {
+          "fonte": "disp.att. c.p.c.",
+          "articolo": "155-quater - 155-sexies",
+          "descrizione": "Modalità telematiche di accesso alle banche dati"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "istanza_ricerca_telematica_beni",
+        "campi_chiave": [
+          {
+            "id": "creditore_procedente",
+            "label": "Creditore procedente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "debitore",
+            "label": "Debitore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "titolo_esecutivo",
+            "label": "Titolo esecutivo",
+            "type": "object",
+            "required": true
+          },
+          {
+            "id": "precetto",
+            "label": "Precetto notificato",
+            "type": "object",
+            "required": true
+          },
+          {
+            "id": "tipo_ricerca",
+            "label": "Tipo ricerca",
+            "type": "select_multi",
+            "options": [
+              "anagrafe_tributaria",
+              "agenzia_entrate_riscossione",
+              "PRA",
+              "INPS",
+              "INAIL",
+              "registro_imprese",
+              "altre_banche_dati"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "codice_logico": "ESEC_CONSEGNA_001",
+      "denominazione": "Esecuzione per consegna o rilascio (art. 605-611 c.p.c.)",
+      "categoria": "Esecuzione in forma specifica - obblighi di consegna/rilascio",
+      "rito": "Procedura ex artt. 605-611 c.p.c.",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "605-611",
+          "descrizione": "Esecuzione per consegna o rilascio"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "preavviso_rilascio",
+        "denominazione": "Preavviso di rilascio ex art. 608 c.p.c.",
+        "campi_chiave": [
+          {
+            "id": "creditore",
+            "label": "Creditore procedente (locatore/proprietario)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "debitore",
+            "label": "Debitore (conduttore/detentore)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "immobile_da_rilasciare",
+            "label": "Immobile da rilasciare",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "titolo_esecutivo",
+            "label": "Titolo esecutivo (ordinanza di convalida, sentenza)",
+            "type": "object",
+            "required": true
+          },
+          {
+            "id": "data_accesso_unep",
+            "label": "Data accesso UNEP per rilascio",
+            "type": "date",
+            "required": true
+          },
+          {
+            "id": "ora_accesso",
+            "label": "Ora accesso",
+            "type": "time",
+            "required": true
+          }
+        ]
+      },
+      "termini_processuali": [
+        {
+          "termine": "Preavviso rilascio",
+          "giorni": 10,
+          "decorrenza": "notifica preavviso",
+          "natura": "minimo legale",
+          "norma": "art. 608 c. 1 c.p.c."
+        }
+      ]
+    },
+    {
+      "codice_logico": "ESEC_OBBLIGHI_001",
+      "denominazione": "Esecuzione forzata degli obblighi di fare e di non fare (art. 612-614 c.p.c.)",
+      "categoria": "Esecuzione in forma specifica - obblighi fare/non fare",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "612-614",
+          "descrizione": "Esecuzione forzata degli obblighi di fare e di non fare"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "614-bis",
+          "descrizione": "Misure di coercizione indiretta"
+        }
+      ]
+    },
+    {
+      "codice_logico": "ESEC_DISTRIBUZIONE",
+      "denominazione": "Distribuzione del ricavato e progetto di distribuzione",
+      "categoria": "Distribuzione e graduazione",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "510-512",
+          "descrizione": "Distribuzione mobiliare"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "596-598",
+          "descrizione": "Distribuzione immobiliare"
+        }
+      ]
+    },
+    {
+      "codice_logico": "ESEC_CONVERSIONE_495",
+      "denominazione": "Conversione del pignoramento (art. 495 c.p.c.)",
+      "categoria": "Istanze del debitore esecutato",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "495",
+          "descrizione": "Conversione del pignoramento"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "istanza_conversione_pignoramento",
+        "campi_chiave": [
+          {
+            "id": "debitore",
+            "label": "Debitore istante",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "procedura_esecutiva",
+            "label": "Estremi procedura esecutiva",
+            "type": "object",
+            "required": true
+          },
+          {
+            "id": "somma_offerta",
+            "label": "Somma offerta (almeno 1/6 del credito)",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "rate_richieste",
+            "label": "Numero rate richieste (max 48)",
+            "type": "integer"
+          }
+        ]
+      }
+    },
+    {
+      "codice_logico": "ESEC_RIDUZIONE_496",
+      "denominazione": "Riduzione del pignoramento (art. 496 c.p.c.)",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "496",
+          "descrizione": "Riduzione del pignoramento"
+        }
+      ]
+    },
+    {
+      "codice_logico": "ESEC_SOSPENSIONE_624",
+      "denominazione": "Sospensione dell'esecuzione (art. 624 c.p.c.)",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "623-628",
+          "descrizione": "Sospensione dell'esecuzione"
+        }
+      ]
+    },
+    {
+      "codice_logico": "ESEC_ESTINZIONE_629",
+      "denominazione": "Estinzione del processo esecutivo (artt. 629-632 c.p.c.)",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "629-632",
+          "descrizione": "Estinzione del processo"
+        }
+      ]
+    },
+    {
+      "codice_logico": "ESEC_INTERVENTO_499",
+      "denominazione": "Intervento dei creditori (artt. 498-500, 525-526, 564, 566 c.p.c.)",
+      "categoria": "Intervento nell'esecuzione",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "498-500",
+          "descrizione": "Intervento dei creditori (norme generali)"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "525-526",
+          "descrizione": "Intervento mobiliare"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "564-566",
+          "descrizione": "Intervento immobiliare"
+        }
+      ]
+    },
+    {
+      "codice_logico": "ESEC_AVVISO_ASTE_VENDITA",
+      "denominazione": "Avviso di vendita / pubblicità della vendita esecutiva",
+      "categoria": "Pubblicità delle vendite",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "490",
+          "descrizione": "Forme della pubblicità"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "569",
+          "descrizione": "Pubblicazione vendita immobiliare"
+        },
+        {
+          "fonte": "Portale Vendite Pubbliche",
+          "descrizione": "PVP - art. 161-quater disp.att. c.p.c."
+        }
+      ]
+    }
+  ],
+  "nota_retrocompatibilita": "Modulo mantenuto per non rompere fascicoli/pratiche già aperti con codici logici prima del mapping ministeriale puntuale. Non sostituisce il codice ministeriale ufficiale in deposito."
+}

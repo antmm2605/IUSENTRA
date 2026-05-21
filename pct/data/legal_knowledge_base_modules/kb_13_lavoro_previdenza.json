@@ -1,0 +1,702 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "13_LAVORO_PREVIDENZA_ASSISTENZA",
+  "denominazione": "Controversie in materia di lavoro, previdenza e assistenza obbligatorie",
+  "registro": "SILP (Sezione Lavoro) / SICID-Lavoro - Ruolo 2",
+  "fonte_codici": "Tabella ministeriale codici oggetto SICID/SILP PNRR e nota iscrizione a ruolo Tribunale di Belluno",
+  "competenza_prevalente": "Tribunale in funzione di giudice del lavoro (artt. 409 e ss. c.p.c., art. 444 c.p.c. per previdenza)",
+  "rito_prevalente": "Rito del lavoro ex artt. 409-447-bis c.p.c.",
+  "codifica_ministeriale_struttura": {
+    "ruolo": "2 - Controversie in materia di lavoro, previdenza, assistenza obbligatorie",
+    "materie": {
+      "01": "Altri istituti e leggi speciali (cpc) → 201xxx",
+      "10": "Procedimenti speciali → 210xxx",
+      "11": "Procedimenti cautelari ante causam → 211xxx",
+      "20": "Lavoro dipendente da privato → 220xxx",
+      "21": "Pubblico impiego con pregiudiziale CCNL → 221xxx",
+      "22": "Pubblico impiego → 222xxx",
+      "23": "Lavoro parasubordinato → 223xxx",
+      "30": "Previdenza obbligatoria → 230xxx",
+      "31": "Assistenza obbligatoria → 231xxx",
+      "32": "Opposizione ordinanza-ingiunzione L. 689/81 in materia di lavoro → 232xxx"
+    }
+  },
+  "codici_materia": [
+    {
+      "codice": "201002",
+      "denominazione": "Revocazione della sentenza ex artt. 395 e ss. c.p.c. (in materia di lavoro)",
+      "categoria": "Impugnazioni straordinarie - lavoro",
+      "rinvio": "Per dettagli vedi kb_02_opposizioni_impugnazioni.json codice 101002 (la disciplina è identica, declinata al rito del lavoro)"
+    },
+    {
+      "codice": "210001",
+      "denominazione": "Ingiunzione ante causam - lavoro",
+      "categoria": "Procedimenti monitori lavoro",
+      "rito": "Procedimento monitorio adattato al lavoro",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "633-656", "descrizione": "Procedimento di ingiunzione"},
+        {"fonte": "c.p.c.", "articolo": "409 ss.", "descrizione": "Rito del lavoro"}
+      ]
+    },
+    {"codice": "210002", "denominazione": "Ingiunzione ante causam - previdenza obbligatoria", "eredita_da": "210001"},
+    {"codice": "210003", "denominazione": "Ingiunzione ante causam - assistenza obbligatoria", "eredita_da": "210001"},
+    {
+      "codice": "210010",
+      "denominazione": "Procedimento ex art. 28 Statuto dei lavoratori - fase sommaria",
+      "categoria": "Repressione condotta antisindacale",
+      "rito": "Procedimento speciale ex art. 28 L. 300/1970 (cautelare ante causam)",
+      "normativa": [
+        {"fonte": "L. 300/1970 (Statuto Lavoratori)", "articolo": "28", "descrizione": "Repressione condotta antisindacale"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_art_28_statuto_lavoratori_sommario",
+        "campi_chiave": [
+          {"id": "sindacato_ricorrente", "label": "Sindacato/RSA ricorrente (legittimato a livello nazionale)", "type": "object_persona_giuridica", "required": true},
+          {"id": "datore_lavoro", "label": "Datore di lavoro", "type": "object_persona_giuridica", "required": true},
+          {"id": "condotta_antisindacale", "label": "Descrizione condotta antisindacale", "type": "textarea", "required": true},
+          {"id": "richieste", "label": "Richieste (cessazione condotta, rimozione effetti)", "type": "textarea", "required": true}
+        ]
+      }
+    },
+    {
+      "codice": "210011",
+      "denominazione": "Procedimento ex art. 28 Statuto dei lavoratori - fase di opposizione",
+      "eredita_da": "210010",
+      "differenze_rispetto_a_padre": {
+        "rito": "Opposizione al decreto della fase sommaria",
+        "termine": "15 gg dalla comunicazione del decreto"
+      },
+      "termini_processuali": [
+        {"termine": "Opposizione al decreto", "giorni": 15, "decorrenza": "comunicazione decreto", "natura": "perentorio", "norma": "art. 28 c. 4 L. 300/1970"}
+      ]
+    },
+    {
+      "codice": "210012",
+      "denominazione": "Procedimento ex art. 18 c. 7 Statuto lavoratori (licenziamento dirigenza sindacale)",
+      "categoria": "Procedimenti speciali licenziamento",
+      "normativa": [{"fonte": "L. 300/1970", "articolo": "18 c. 7", "descrizione": "Reintegrazione dirigenti RSA licenziati"}]
+    },
+    {
+      "codice": "210013",
+      "denominazione": "Procedimento ex art. 15 L. 903/1977 (parità uomo-donna)",
+      "categoria": "Antidiscriminazione di genere",
+      "normativa": [
+        {"fonte": "L. 903/1977", "articolo": "15", "descrizione": "Azione contro discriminazioni di genere - oggi confluita nel D.Lgs. 198/2006"},
+        {"fonte": "D.Lgs. 198/2006 (Codice Pari Opportunità)", "descrizione": "Discriminazione di genere"}
+      ]
+    },
+    {
+      "codice": "210014",
+      "denominazione": "Accertamento Tecnico Preventivo ex art. 445-bis c.p.c. (ATPO previdenziale)",
+      "categoria": "ATP previdenziale obbligatorio",
+      "rito": "Procedimento ex art. 445-bis c.p.c. (condizione di procedibilità per cause su invalidità civile e prestazioni assistenziali)",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "445-bis", "descrizione": "Accertamento tecnico preventivo obbligatorio in materia previdenziale e assistenziale"}
+      ],
+      "presupposti_sostanziali": [
+        "Controversia su prestazioni previdenziali/assistenziali per invalidità civile, cecità, sordità, handicap (L. 104), accompagnamento",
+        "Provvedimento amministrativo INPS contestato",
+        "Esperimento obbligatorio dell'ATPO come condizione di procedibilità"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_atpo_art_445_bis",
+        "denominazione": "Ricorso per accertamento tecnico preventivo ex art. 445-bis c.p.c.",
+        "campi_chiave": [
+          {"id": "ricorrente", "label": "Ricorrente", "type": "object_persona", "required": true},
+          {"id": "ente_convenuto", "label": "Ente previdenziale (INPS, INAIL)", "type": "object_persona_giuridica", "required": true},
+          {"id": "tipo_prestazione", "label": "Prestazione richiesta", "type": "select", "required": true, "options": ["pensione_invalidita_civile", "assegno_mensile_invalidi", "indennita_accompagnamento", "indennita_frequenza_minori", "pensione_ciechi", "pensione_sordi", "indennita_comunicazione", "L_104_handicap_grave"]},
+          {"id": "verbale_commissione_medica", "label": "Verbale commissione medica ASL/INPS", "type": "object", "required": true},
+          {"id": "patologie", "label": "Patologie invalidanti", "type": "textarea", "required": true},
+          {"id": "quesiti_ctu", "label": "Quesiti per il CTU medico-legale", "type": "array"}
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "verbale_commissione_medica", "label": "Verbale commissione medica ASL/INPS", "required": true},
+        {"id": "domanda_amministrativa", "label": "Copia domanda amministrativa presentata", "required": true},
+        {"id": "documentazione_sanitaria", "label": "Documentazione sanitaria completa", "required": true}
+      ]
+    },
+    {
+      "codice": "210015",
+      "denominazione": "Ricorso art. 1 c. 47 e seguenti L. 92/2012 (rito Fornero - fase sommaria)",
+      "categoria": "Rito Fornero - impugnazione licenziamento ex art. 18 Stat. Lav.",
+      "rito": "Rito speciale L. 92/2012 (vigente per assunti ante 7/3/2015 con tutela ex art. 18 St.Lav.)",
+      "normativa": [
+        {"fonte": "L. 92/2012 (Riforma Fornero)", "articolo": "1 c. 47-69", "descrizione": "Rito speciale licenziamenti"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_rito_fornero_fase_sommaria",
+        "campi_chiave": [
+          {"id": "lavoratore", "label": "Lavoratore ricorrente", "type": "object_persona", "required": true},
+          {"id": "datore_lavoro", "label": "Datore di lavoro", "type": "object_persona_giuridica", "required": true},
+          {"id": "data_assunzione", "label": "Data assunzione (deve essere ante 7/3/2015 per art. 18 St.Lav.)", "type": "date", "required": true},
+          {"id": "data_licenziamento", "label": "Data licenziamento", "type": "date", "required": true},
+          {"id": "data_impugnazione_stragiudiziale", "label": "Data impugnazione stragiudiziale", "type": "date", "required": true},
+          {"id": "dimensionale_oltre_15", "label": "Datore con più di 15 dipendenti", "type": "boolean", "required": true},
+          {"id": "vizi_dedotti", "label": "Vizi dedotti", "type": "select_multi", "required": true},
+          {"id": "tutela_richiesta", "label": "Tutela richiesta (reintegratoria piena/attenuata/indennitaria)", "type": "select", "required": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "Termine impugnazione stragiudiziale 60 gg + deposito ricorso 180 gg ex art. 6 L. 604/1966"
+        ]
+      }
+    },
+    {
+      "codice": "210016",
+      "denominazione": "Opposizione L. 92/2012 (Rito Fornero - fase di opposizione)",
+      "eredita_da": "210015",
+      "differenze_rispetto_a_padre": {
+        "rito": "Fase di opposizione all'ordinanza della fase sommaria",
+        "termine": "30 gg dalla comunicazione/notifica ordinanza"
+      },
+      "termini_processuali": [
+        {"termine": "Opposizione", "giorni": 30, "decorrenza": "comunicazione/notifica ordinanza", "natura": "perentorio"}
+      ]
+    },
+    {
+      "codice": "210017",
+      "denominazione": "Reclamo ex art. 1 c. 58 L. 92/2012",
+      "categoria": "Rito Fornero - reclamo in Corte d'Appello",
+      "competenza": "Corte d'Appello sezione lavoro",
+      "normativa": [
+        {"fonte": "L. 92/2012", "articolo": "1 c. 58-60", "descrizione": "Reclamo in Corte d'Appello"}
+      ]
+    },
+    {
+      "codice": "210999",
+      "denominazione": "Altre ipotesi (procedimenti speciali lavoro)",
+      "categoria": "Procedimenti speciali lavoro - residuale"
+    },
+    {
+      "codice": "211001",
+      "denominazione": "Sequestro conservativo (in materia di lavoro)",
+      "categoria": "Cautelari lavoro - sequestro",
+      "rito": "Procedimento cautelare uniforme ex artt. 669-bis e ss. c.p.c. adattato al rito del lavoro",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "671", "descrizione": "Sequestro conservativo"},
+        {"fonte": "c.p.c.", "articolo": "669-bis - 669-terdecies", "descrizione": "Procedimento cautelare"}
+      ]
+    },
+    {"codice": "211002", "denominazione": "Sequestro giudiziario ex art. 670 c.p.c. (in materia di lavoro)", "eredita_da": "211001"},
+    {
+      "codice": "211010",
+      "denominazione": "Provvedimento d'urgenza ex art. 700 c.p.c. - per licenziamento",
+      "categoria": "Cautelari lavoro - art. 700",
+      "rito": "Procedimento cautelare uniforme",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "700", "descrizione": "Condizioni per la concessione dei provvedimenti d'urgenza"}
+      ],
+      "presupposti_sostanziali": [
+        "Fumus boni iuris (illegittimità licenziamento)",
+        "Periculum in mora (pregiudizio imminente e irreparabile)",
+        "Residualità (assenza di altri strumenti cautelari tipici)"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_art_700_licenziamento",
+        "campi_chiave": [
+          {"id": "lavoratore", "label": "Lavoratore ricorrente", "type": "object_persona", "required": true},
+          {"id": "datore_lavoro", "label": "Datore di lavoro", "type": "object_persona_giuridica", "required": true},
+          {"id": "licenziamento", "label": "Estremi licenziamento", "type": "object", "required": true},
+          {"id": "fumus", "label": "Esposizione fumus boni iuris", "type": "textarea", "required": true},
+          {"id": "periculum", "label": "Esposizione periculum in mora", "type": "textarea", "required": true},
+          {"id": "misura_richiesta", "label": "Misura richiesta (reintegra immediata, retribuzioni)", "type": "textarea", "required": true}
+        ]
+      }
+    },
+    {"codice": "211011", "denominazione": "Provvedimento d'urgenza ex art. 700 c.p.c. - per dequalificazione/demansionamento", "eredita_da": "211010"},
+    {"codice": "211012", "denominazione": "Provvedimento d'urgenza ex art. 700 c.p.c. - per altre ragioni", "eredita_da": "211010"},
+    {"codice": "211999", "denominazione": "Altre ipotesi cautelari lavoro", "categoria": "Cautelari lavoro residuali"},
+    {
+      "codice": "220001",
+      "denominazione": "Qualificazione del rapporto di lavoro (dipendente privato)",
+      "categoria": "Lavoro dipendente privato - qualificazione",
+      "rito": "Rito del lavoro",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2094", "descrizione": "Lavoratore subordinato"},
+        {"fonte": "c.c.", "articolo": "2222", "descrizione": "Lavoro autonomo"},
+        {"fonte": "D.Lgs. 81/2015", "articolo": "2", "descrizione": "Collaborazioni etero-organizzate (riders, ecc.)"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_qualificazione_rapporto",
+        "campi_chiave": [
+          {"id": "lavoratore", "label": "Lavoratore ricorrente", "type": "object_persona", "required": true},
+          {"id": "datore_lavoro", "label": "Datore di lavoro convenuto", "type": "object_persona_giuridica", "required": true},
+          {"id": "qualifica_formale", "label": "Qualifica formale attribuita (autonomo, collaboratore, ecc.)", "type": "string", "required": true},
+          {"id": "qualifica_rivendicata", "label": "Qualifica rivendicata", "type": "select", "required": true, "options": ["subordinato", "collaborazione_etero_organizzata", "altro"]},
+          {"id": "indici_subordinazione", "label": "Indici di subordinazione invocati", "type": "textarea", "required": true},
+          {"id": "domande_consequenziali", "label": "Domande consequenziali (differenze retributive, contributi, TFR)", "type": "textarea"}
+        ]
+      }
+    },
+    {"codice": "220002", "denominazione": "Appalto di manodopera (illecito)", "categoria": "Esternalizzazioni illecite", "normativa": [{"fonte": "D.Lgs. 276/2003", "articolo": "29", "descrizione": "Appalto e somministrazione di lavoro"}]},
+    {"codice": "220003", "denominazione": "Lavoro interinale / somministrazione", "normativa": [{"fonte": "D.Lgs. 81/2015", "articolo": "30-40", "descrizione": "Somministrazione di lavoro"}]},
+    {"codice": "220004", "denominazione": "Avviamento obbligatorio (collocamento mirato)", "normativa": [{"fonte": "L. 68/1999", "descrizione": "Norme per il diritto al lavoro dei disabili"}]},
+    {
+      "codice": "220010",
+      "denominazione": "Contratto a termine e di formazione e lavoro",
+      "categoria": "Contratti flessibili",
+      "normativa": [
+        {"fonte": "D.Lgs. 81/2015", "articolo": "19-29", "descrizione": "Contratto a termine"},
+        {"fonte": "D.Lgs. 87/2018 (Decreto Dignità)", "descrizione": "Modifiche al contratto a termine - causali"},
+        {"fonte": "D.L. 48/2023 (Decreto Lavoro)", "descrizione": "Causali contratto a termine - modifiche"}
+      ]
+    },
+    {"codice": "220011", "denominazione": "Apprendistato", "normativa": [{"fonte": "D.Lgs. 81/2015", "articolo": "41-47", "descrizione": "Apprendistato"}]},
+    {"codice": "220012", "denominazione": "Patto di prova", "normativa": [{"fonte": "c.c.", "articolo": "2096", "descrizione": "Assunzione in prova"}]},
+    {"codice": "220020", "denominazione": "Categoria e qualifica (inquadramento)", "categoria": "Inquadramento professionale"},
+    {
+      "codice": "220021",
+      "denominazione": "Mansione e jus variandi (demansionamento)",
+      "categoria": "Tutela professionalità - art. 2103 c.c.",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2103", "descrizione": "Prestazione del lavoro - mansioni (modificato da D.Lgs. 81/2015)"}
+      ]
+    },
+    {"codice": "220030", "denominazione": "Trasferimento del lavoratore (art. 2103 c. 8 c.c.)", "normativa": [{"fonte": "c.c.", "articolo": "2103 c. 8", "descrizione": "Trasferimento per comprovate ragioni tecniche, organizzative e produttive"}]},
+    {
+      "codice": "220031",
+      "denominazione": "Trasferimento di azienda (art. 2112 c.c.)",
+      "categoria": "Trasferimento d'azienda",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2112", "descrizione": "Mantenimento diritti lavoratori in caso di trasferimento d'azienda"}
+      ]
+    },
+    {"codice": "220040", "denominazione": "Sanzione disciplinare conservativa (impugnazione)", "normativa": [{"fonte": "L. 300/1970", "articolo": "7", "descrizione": "Sanzioni disciplinari"}]},
+    {
+      "codice": "220050",
+      "denominazione": "Retribuzione (differenze retributive)",
+      "categoria": "Crediti di lavoro",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2099", "descrizione": "Retribuzione"},
+        {"fonte": "Cost.", "articolo": "36", "descrizione": "Retribuzione sufficiente e proporzionata"},
+        {"fonte": "c.c.", "articolo": "2948 n. 4", "descrizione": "Prescrizione quinquennale crediti retributivi"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_differenze_retributive",
+        "campi_chiave": [
+          {"id": "lavoratore", "label": "Lavoratore ricorrente", "type": "object_persona", "required": true},
+          {"id": "datore_lavoro", "label": "Datore convenuto", "type": "object_persona_giuridica", "required": true},
+          {"id": "periodo_lavoro", "label": "Periodo lavorativo", "type": "object", "required": true},
+          {"id": "voci_richieste", "label": "Voci richieste", "type": "select_multi", "required": true, "options": ["paga_base", "scatti_anzianita", "indennita_funzione", "straordinario", "notturno", "festivo", "tredicesima", "quattordicesima", "ferie_non_godute", "tfr", "indennita_sostitutiva_preavviso"]},
+          {"id": "conteggio_dettagliato", "label": "Conteggio dettagliato differenze", "type": "object_complesso", "required": true},
+          {"id": "importo_totale", "label": "Importo totale richiesto", "type": "currency", "required": true}
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "buste_paga", "label": "Buste paga periodo", "required": true},
+        {"id": "contratto", "label": "Contratto di lavoro", "required": true},
+        {"id": "ccnl", "label": "CCNL applicabile", "required": true},
+        {"id": "conteggio_analitico", "label": "Conteggio analitico differenze", "required": true}
+      ]
+    },
+    {"codice": "220060", "denominazione": "Sospensione con intervento della Cassa Integrazione Guadagni", "normativa": [{"fonte": "D.Lgs. 148/2015", "descrizione": "Disciplina ammortizzatori sociali in costanza di rapporto di lavoro"}]},
+    {
+      "codice": "220070",
+      "denominazione": "Risarcimento danni da infortunio sul lavoro",
+      "categoria": "Risarcimento danni - infortuni",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2087", "descrizione": "Tutela delle condizioni di lavoro"},
+        {"fonte": "D.Lgs. 81/2008", "descrizione": "Testo Unico sicurezza sul lavoro"}
+      ]
+    },
+    {
+      "codice": "220071",
+      "denominazione": "Risarcimento danni da dequalificazione/demansionamento",
+      "categoria": "Risarcimento danni - mobbing/straining",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2087", "descrizione": "Tutela delle condizioni di lavoro"},
+        {"fonte": "c.c.", "articolo": "2103", "descrizione": "Mansioni"}
+      ]
+    },
+    {"codice": "220072", "denominazione": "Risarcimento danni: altre ipotesi (mobbing, straining, danno biologico)", "eredita_da": "220070"},
+    {
+      "codice": "220100",
+      "denominazione": "Licenziamento individuale per giustificato motivo soggettivo",
+      "categoria": "Licenziamenti individuali",
+      "rito": "Rito ordinario del lavoro (post 7/3/2015 - tutele crescenti) o rito Fornero (per assunti ante)",
+      "normativa": [
+        {"fonte": "L. 604/1966", "descrizione": "Disciplina licenziamenti individuali"},
+        {"fonte": "L. 300/1970", "articolo": "18", "descrizione": "Reintegrazione (per assunti ante 7/3/2015)"},
+        {"fonte": "D.Lgs. 23/2015", "descrizione": "Contratto a tutele crescenti (per assunti dal 7/3/2015)"}
+      ],
+      "presupposti_sostanziali": [
+        "Notifica licenziamento al lavoratore",
+        "Impugnazione stragiudiziale entro 60 gg ex art. 6 L. 604/1966",
+        "Deposito ricorso entro 180 gg dall'impugnazione stragiudiziale"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_impugnazione_licenziamento_gms",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per impugnazione licenziamento per giustificato motivo soggettivo",
+        "schema_xsd_ministeriale": "AttoLavoro.xsd",
+        "campi_chiave": [
+          {"id": "lavoratore", "label": "Lavoratore ricorrente", "type": "object_persona", "required": true},
+          {"id": "datore_lavoro", "label": "Datore convenuto", "type": "object_persona_giuridica", "required": true},
+          {"id": "data_assunzione", "label": "Data assunzione (determina regime applicabile)", "type": "date", "required": true},
+          {"id": "qualifica_mansioni", "label": "Qualifica e mansioni", "type": "object", "required": true},
+          {"id": "ccnl_applicato", "label": "CCNL applicato", "type": "string", "required": true},
+          {"id": "lettera_licenziamento", "label": "Lettera licenziamento (data, motivazione)", "type": "object", "required": true},
+          {"id": "fatti_contestati", "label": "Fatti contestati dal datore", "type": "textarea", "required": true},
+          {"id": "vizi_dedotti", "label": "Vizi", "type": "select_multi", "required": true, "options": ["insussistenza_fatto_materiale", "fatto_di_minor_gravita_punibile_solo_con_sanzione_conservativa", "violazione_termini_disciplinari", "difetto_motivazione", "tardivita_contestazione", "violazione_principio_immutabilita_contestazione", "violazione_diritti_difesa"]},
+          {"id": "data_impugnazione_stragiudiziale", "label": "Data impugnazione stragiudiziale", "type": "date", "required": true},
+          {"id": "tutela_richiesta", "label": "Tutela richiesta", "type": "select", "required": true, "options": ["reintegratoria_piena", "reintegratoria_attenuata", "indennitaria_forte_24_36", "indennitaria_attenuata_6_12"]},
+          {"id": "retribuzione_mensile", "label": "Ultima retribuzione mensile", "type": "currency", "required": true},
+          {"id": "regime_applicabile", "label": "Regime applicabile", "type": "select", "required": true, "options": ["art_18_pre_legge_fornero", "art_18_post_legge_92_2012", "dlgs_23_2015_tutele_crescenti", "piccole_imprese_l_604"]}
+        ],
+        "avvertimenti_obbligatori": [
+          "Termine impugnazione stragiudiziale 60 gg + deposito ricorso 180 gg ex art. 6 L. 604/1966"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "lettera_licenziamento", "label": "Lettera di licenziamento", "required": true},
+        {"id": "lettera_contestazione_disciplinare", "label": "Lettera di contestazione disciplinare", "required": true},
+        {"id": "giustificazioni_lavoratore", "label": "Giustificazioni rese dal lavoratore", "required": false},
+        {"id": "impugnazione_stragiudiziale", "label": "Impugnazione stragiudiziale (con prova spedizione)", "required": true},
+        {"id": "contratto_lavoro", "label": "Contratto di lavoro", "required": true},
+        {"id": "buste_paga", "label": "Buste paga ultimo anno", "required": true},
+        {"id": "ccnl", "label": "CCNL applicato", "required": false}
+      ],
+      "termini_processuali": [
+        {"termine": "Impugnazione stragiudiziale", "giorni": 60, "decorrenza": "comunicazione licenziamento", "natura": "decadenziale", "norma": "art. 6 L. 604/1966"},
+        {"termine": "Deposito ricorso giudiziale", "giorni": 180, "decorrenza": "impugnazione stragiudiziale", "natura": "decadenziale", "norma": "art. 6 c. 2 L. 604/1966"}
+      ]
+    },
+    {
+      "codice": "220101",
+      "denominazione": "Licenziamento individuale per giustificato motivo oggettivo",
+      "eredita_da": "220100",
+      "differenze_rispetto_a_padre": {
+        "presupposti_specifici": [
+          "Motivazione economica/organizzativa/produttiva",
+          "Procedura preventiva ITL (per piccole imprese L. 92/2012 art. 7 - oggi superata)",
+          "Obbligo repechage (verifica impossibilità ricollocazione)"
+        ],
+        "vizi_tipici": [
+          "Insussistenza ragioni economiche",
+          "Violazione obbligo repechage",
+          "Discriminatorietà mascherata da motivo oggettivo",
+          "Violazione criteri di scelta (in licenziamenti per riduzione personale)"
+        ]
+      }
+    },
+    {
+      "codice": "220102",
+      "denominazione": "Licenziamento individuale per giusta causa",
+      "eredita_da": "220100",
+      "differenze_rispetto_a_padre": {
+        "normativa_principale": [{"fonte": "c.c.", "articolo": "2119", "descrizione": "Giusta causa di recesso"}],
+        "presupposti_specifici": [
+          "Inadempimento grave del lavoratore tale da non consentire prosecuzione neanche provvisoria del rapporto",
+          "Licenziamento senza preavviso",
+          "Onere probatorio rigoroso per il datore"
+        ]
+      }
+    },
+    {
+      "codice": "220103",
+      "denominazione": "Licenziamento individuale del dirigente",
+      "eredita_da": "220100",
+      "differenze_rispetto_a_padre": {
+        "regime_speciale": "Disciplina contrattuale collettiva specifica (CCNL Dirigenti); regime di tutela ridotto - indennità supplementare",
+        "tutela": "Generalmente indennitaria, non reintegratoria (salvo licenziamento discriminatorio/ritorsivo)"
+      }
+    },
+    {
+      "codice": "220110",
+      "denominazione": "Licenziamento collettivo e mobilità",
+      "categoria": "Licenziamenti collettivi",
+      "normativa": [
+        {"fonte": "L. 223/1991", "articolo": "4-5", "descrizione": "Procedura di licenziamento collettivo"},
+        {"fonte": "L. 223/1991", "articolo": "24", "descrizione": "Limiti e condizioni"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_licenziamento_collettivo",
+        "campi_chiave": [
+          {"id": "lavoratore", "label": "Lavoratore licenziato", "type": "object_persona", "required": true},
+          {"id": "datore_lavoro", "label": "Datore convenuto", "type": "object_persona_giuridica", "required": true},
+          {"id": "procedura_223_91", "label": "Estremi procedura L. 223/1991", "type": "object", "required": true},
+          {"id": "vizi_dedotti", "label": "Vizi", "type": "select_multi", "required": true, "options": ["mancata_apertura_procedura_sindacale", "carenza_comunicazione_iniziale_art_4_c_3", "violazione_criteri_scelta_art_5", "violazione_diritti_informazione_sindacale", "mancanza_presupposti_riduzione_personale"]}
+        ]
+      }
+    },
+    {"codice": "220120", "denominazione": "Dimissioni (impugnazione)", "normativa": [{"fonte": "L. 92/2012", "articolo": "1 c. 35-42", "descrizione": "Modalità dimissioni telematiche"}]},
+    {"codice": "220999", "denominazione": "Altre ipotesi (lavoro dipendente privato)", "note": "Codice residuale"},
+    {
+      "codice": "221001",
+      "denominazione": "Pubblico impiego con pregiudiziale - qualificazione",
+      "categoria": "Pubblico impiego con pregiudiziale CCNL/contratti collettivi",
+      "rito": "Rito del lavoro con specifica disciplina ex art. 64 D.Lgs. 165/2001 (rinvio pregiudiziale in Cassazione su efficacia/interpretazione contratti collettivi)",
+      "normativa": [
+        {"fonte": "D.Lgs. 165/2001", "articolo": "63-65", "descrizione": "Controversie sui rapporti di lavoro alle dipendenze delle PA"},
+        {"fonte": "D.Lgs. 165/2001", "articolo": "64", "descrizione": "Accertamento pregiudiziale sull'efficacia, validità ed interpretazione dei contratti collettivi"}
+      ]
+    },
+    {"codice": "221002", "denominazione": "Pubblico impiego pregiudiziale - appalto di manodopera", "eredita_da": "221001"},
+    {"codice": "221003", "denominazione": "Pubblico impiego pregiudiziale - lavoro interinale", "eredita_da": "221001"},
+    {"codice": "221004", "denominazione": "Pubblico impiego pregiudiziale - avviamento obbligatorio", "eredita_da": "221001"},
+    {"codice": "221010", "denominazione": "Pubblico impiego pregiudiziale - contratto a termine e formazione lavoro", "eredita_da": "221001"},
+    {"codice": "221011", "denominazione": "Pubblico impiego pregiudiziale - apprendistato", "eredita_da": "221001"},
+    {"codice": "221012", "denominazione": "Pubblico impiego pregiudiziale - patto di prova", "eredita_da": "221001"},
+    {"codice": "221020", "denominazione": "Pubblico impiego pregiudiziale - categoria e qualifica", "eredita_da": "221001"},
+    {"codice": "221021", "denominazione": "Pubblico impiego pregiudiziale - mansione e jus variandi", "eredita_da": "221001"},
+    {"codice": "221030", "denominazione": "Pubblico impiego pregiudiziale - trasferimento lavoratore", "eredita_da": "221001"},
+    {"codice": "221031", "denominazione": "Pubblico impiego pregiudiziale - trasferimento azienda", "eredita_da": "221001"},
+    {"codice": "221040", "denominazione": "Pubblico impiego pregiudiziale - sanzione disciplinare conservativa", "eredita_da": "221001"},
+    {"codice": "221050", "denominazione": "Pubblico impiego pregiudiziale - retribuzione", "eredita_da": "221001"},
+    {"codice": "221060", "denominazione": "Pubblico impiego pregiudiziale - sospensione con CIG", "eredita_da": "221001"},
+    {"codice": "221070", "denominazione": "Pubblico impiego pregiudiziale - risarcimento danni da infortunio", "eredita_da": "221001"},
+    {"codice": "221071", "denominazione": "Pubblico impiego pregiudiziale - risarcimento danni da dequalificazione", "eredita_da": "221001"},
+    {"codice": "221072", "denominazione": "Pubblico impiego pregiudiziale - risarcimento danni altre ipotesi", "eredita_da": "221001"},
+    {"codice": "221099", "denominazione": "Pubblico impiego pregiudiziale - altre ipotesi", "eredita_da": "221001"},
+    {"codice": "221100", "denominazione": "Pubblico impiego pregiudiziale - licenziamento giustificato motivo soggettivo", "eredita_da": "220100"},
+    {"codice": "221101", "denominazione": "Pubblico impiego pregiudiziale - licenziamento giustificato motivo oggettivo", "eredita_da": "220101"},
+    {"codice": "221102", "denominazione": "Pubblico impiego pregiudiziale - licenziamento giusta causa", "eredita_da": "220102"},
+    {"codice": "221103", "denominazione": "Pubblico impiego pregiudiziale - licenziamento dirigente", "eredita_da": "220103"},
+    {"codice": "221110", "denominazione": "Pubblico impiego pregiudiziale - licenziamento collettivo e mobilità", "eredita_da": "220110"},
+    {"codice": "221120", "denominazione": "Pubblico impiego pregiudiziale - dimissioni", "eredita_da": "220120"},
+    {"codice": "221999", "denominazione": "Pubblico impiego pregiudiziale - altre ipotesi", "note": "Residuale"},
+    {
+      "codice": "222001",
+      "denominazione": "Pubblico impiego - qualificazione",
+      "categoria": "Pubblico impiego contrattualizzato",
+      "rito": "Rito del lavoro ex art. 63 D.Lgs. 165/2001",
+      "competenza": "Tribunale del lavoro - giudice del lavoro (esclusi rapporti rimasti in regime pubblicistico: magistrati, militari, prefetti, diplomatici)",
+      "normativa": [
+        {"fonte": "D.Lgs. 165/2001 (TUPI)", "articolo": "63", "descrizione": "Controversie rapporti di lavoro alle dipendenze delle PA"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_pubblico_impiego",
+        "campi_chiave": [
+          {"id": "dipendente", "label": "Dipendente pubblico", "type": "object_persona", "required": true},
+          {"id": "amministrazione", "label": "Amministrazione pubblica convenuta", "type": "object_persona_giuridica", "required": true},
+          {"id": "qualifica_attribuita", "label": "Qualifica attribuita", "type": "string", "required": true},
+          {"id": "qualifica_rivendicata", "label": "Qualifica/inquadramento rivendicato", "type": "string", "required": true},
+          {"id": "ccnl_settore", "label": "CCNL di settore (Funzioni Centrali, Sanità, EELL, Istruzione, ecc.)", "type": "select", "required": true}
+        ]
+      }
+    },
+    {"codice": "222002", "denominazione": "Pubblico impiego - appalto di manodopera", "eredita_da": "222001"},
+    {"codice": "222003", "denominazione": "Pubblico impiego - lavoro interinale", "eredita_da": "222001"},
+    {"codice": "222004", "denominazione": "Pubblico impiego - avviamento obbligatorio", "eredita_da": "222001"},
+    {"codice": "222010", "denominazione": "Pubblico impiego - contratto a termine e formazione lavoro", "eredita_da": "222001"},
+    {"codice": "222011", "denominazione": "Pubblico impiego - apprendistato", "eredita_da": "222001"},
+    {"codice": "222012", "denominazione": "Pubblico impiego - patto di prova", "eredita_da": "222001"},
+    {"codice": "222020", "denominazione": "Pubblico impiego - categoria e qualifica", "eredita_da": "222001"},
+    {"codice": "222021", "denominazione": "Pubblico impiego - mansione e jus variandi", "eredita_da": "222001"},
+    {"codice": "222030", "denominazione": "Pubblico impiego - trasferimento lavoratore", "eredita_da": "222001"},
+    {"codice": "222031", "denominazione": "Pubblico impiego - trasferimento azienda", "eredita_da": "222001"},
+    {"codice": "222040", "denominazione": "Pubblico impiego - sanzione disciplinare conservativa", "eredita_da": "222001"},
+    {"codice": "222050", "denominazione": "Pubblico impiego - retribuzione", "eredita_da": "222001"},
+    {"codice": "222060", "denominazione": "Pubblico impiego - sospensione con CIG", "eredita_da": "222001"},
+    {"codice": "222070", "denominazione": "Pubblico impiego - risarcimento danni da infortunio", "eredita_da": "222001"},
+    {"codice": "222071", "denominazione": "Pubblico impiego - risarcimento danni da dequalificazione", "eredita_da": "222001"},
+    {"codice": "222072", "denominazione": "Pubblico impiego - risarcimento danni altre ipotesi", "eredita_da": "222001"},
+    {"codice": "222099", "denominazione": "Pubblico impiego - altre ipotesi", "eredita_da": "222001"},
+    {"codice": "222100", "denominazione": "Pubblico impiego - licenziamento giustificato motivo soggettivo", "eredita_da": "220100"},
+    {"codice": "222101", "denominazione": "Pubblico impiego - licenziamento giustificato motivo oggettivo", "eredita_da": "220101"},
+    {"codice": "222102", "denominazione": "Pubblico impiego - licenziamento giusta causa", "eredita_da": "220102"},
+    {"codice": "222103", "denominazione": "Pubblico impiego - licenziamento dirigente", "eredita_da": "220103"},
+    {"codice": "222110", "denominazione": "Pubblico impiego - licenziamento collettivo e mobilità", "eredita_da": "220110"},
+    {"codice": "222120", "denominazione": "Pubblico impiego - dimissioni", "eredita_da": "220120"},
+    {"codice": "222999", "denominazione": "Pubblico impiego - altre ipotesi", "note": "Residuale"},
+    {
+      "codice": "223001",
+      "denominazione": "Rapporto di agenzia e altri rapporti di collaborazione ex art. 409 n. 3 c.p.c.",
+      "categoria": "Lavoro parasubordinato",
+      "rito": "Rito del lavoro",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "409 n. 3", "descrizione": "Rapporti di agenzia, rappresentanza commerciale e altri rapporti di collaborazione coordinata e continuativa"},
+        {"fonte": "c.c.", "articolo": "1742-1753", "descrizione": "Agenzia"},
+        {"fonte": "D.Lgs. 81/2015", "articolo": "2 c. 1", "descrizione": "Collaborazioni etero-organizzate"}
+      ]
+    },
+    {"codice": "223999", "denominazione": "Altre controversie in materia di lavoro parasubordinato", "note": "Residuale parasubordinato"},
+    {
+      "codice": "230001",
+      "denominazione": "Previdenza obbligatoria - prestazione: malattia",
+      "categoria": "Prestazioni previdenziali INPS - malattia",
+      "rito": "Rito del lavoro previdenziale ex art. 442 c.p.c.",
+      "competenza": "Tribunale del lavoro - art. 444 c.p.c. (giudice del luogo dove ha sede l'ufficio dell'ente)",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "442-447", "descrizione": "Controversie in materia di previdenza e assistenza obbligatorie"},
+        {"fonte": "D.Lgs. 38/2000", "descrizione": "Disposizioni in materia di assicurazione obbligatoria"},
+        {"fonte": "R.D.L. 636/1939", "descrizione": "Modificazioni alle disposizioni sulle assicurazioni sociali obbligatorie"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_previdenza_indennita_malattia",
+        "campi_chiave": [
+          {"id": "ricorrente", "label": "Lavoratore ricorrente", "type": "object_persona", "required": true},
+          {"id": "inps_convenuto", "label": "INPS - sede competente", "type": "object_persona_giuridica", "required": true},
+          {"id": "datore_lavoro", "label": "Datore di lavoro (litisconsorte necessario per cause su contribuzione)", "type": "object_persona_giuridica"},
+          {"id": "periodo_malattia", "label": "Periodo malattia", "type": "object", "required": true},
+          {"id": "provvedimento_inps", "label": "Provvedimento INPS impugnato", "type": "object", "required": true},
+          {"id": "domanda_amministrativa_data", "label": "Data domanda amministrativa", "type": "date", "required": true}
+        ]
+      },
+      "termini_processuali": [
+        {"termine": "Ricorso giudiziale", "giorni": 90, "decorrenza": "comunicazione decisione ricorso amministrativo", "natura": "decadenziale", "norma": "art. 47 D.P.R. 639/1970 e successive modifiche"}
+      ]
+    },
+    {
+      "codice": "230002",
+      "denominazione": "Previdenza obbligatoria - prestazione: pensione/assegno di invalidità (INPS, INPDAI, ENPALS, ecc.)",
+      "categoria": "Pensioni previdenziali",
+      "rito": "Rito del lavoro previdenziale",
+      "normativa": [
+        {"fonte": "L. 222/1984", "descrizione": "Assegno ordinario di invalidità e pensione di inabilità"},
+        {"fonte": "L. 335/1995 (Riforma Dini)", "descrizione": "Riforma pensioni"},
+        {"fonte": "L. 214/2011 (Riforma Fornero)", "descrizione": "Pensioni"}
+      ],
+      "tipologie_principali": [
+        "Pensione di vecchiaia",
+        "Pensione anticipata (ex pensione di anzianità)",
+        "Pensione di inabilità (L. 222/1984)",
+        "Assegno ordinario di invalidità (L. 222/1984) - reversibile in pensione di vecchiaia",
+        "Pensione ai superstiti (reversibilità, indiretta)",
+        "Quota 100/102/103 e altre forme di pensionamento anticipato",
+        "Opzione donna",
+        "APE Sociale"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_pensione",
+        "campi_chiave": [
+          {"id": "ricorrente", "label": "Ricorrente", "type": "object_persona", "required": true},
+          {"id": "ente_previdenziale", "label": "Ente previdenziale (INPS, ex INPDAP, casse professionali)", "type": "object_persona_giuridica", "required": true},
+          {"id": "tipo_pensione", "label": "Tipo prestazione richiesta", "type": "select", "required": true},
+          {"id": "contributi_versati", "label": "Contributi versati / anni di servizio", "type": "object", "required": true},
+          {"id": "domanda_amministrativa", "label": "Domanda amministrativa presentata", "type": "object", "required": true},
+          {"id": "provvedimento_impugnato", "label": "Provvedimento amministrativo impugnato", "type": "object", "required": true}
+        ]
+      }
+    },
+    {
+      "codice": "230003",
+      "denominazione": "Previdenza obbligatoria - prestazione: indennità/rendita vitalizia INAIL o equivalente",
+      "categoria": "Prestazioni INAIL",
+      "rito": "Rito del lavoro previdenziale",
+      "normativa": [
+        {"fonte": "D.P.R. 1124/1965 (T.U. Infortuni)", "descrizione": "Testo Unico delle disposizioni per l'assicurazione obbligatoria contro gli infortuni sul lavoro e le malattie professionali"},
+        {"fonte": "D.Lgs. 38/2000", "descrizione": "Riordino dell'INAIL - danno biologico"}
+      ],
+      "tipologie_principali": [
+        "Indennità per inabilità temporanea assoluta",
+        "Rendita per inabilità permanente",
+        "Danno biologico (D.Lgs. 38/2000)",
+        "Rendita ai superstiti",
+        "Indennità funebre",
+        "Rivalsa INAIL contro terzi responsabili"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_inail",
+        "campi_chiave": [
+          {"id": "lavoratore_infortunato", "label": "Lavoratore", "type": "object_persona", "required": true},
+          {"id": "inail_convenuto", "label": "INAIL - sede competente", "type": "object_persona_giuridica", "required": true},
+          {"id": "data_infortunio_manifestazione", "label": "Data infortunio o manifestazione malattia professionale", "type": "date", "required": true},
+          {"id": "tipo_prestazione", "label": "Prestazione contestata", "type": "select", "required": true},
+          {"id": "grado_invalidita_rivendicato", "label": "Grado invalidità rivendicato (%)", "type": "percentage"},
+          {"id": "provvedimento_inail", "label": "Provvedimento INAIL contestato", "type": "object", "required": true}
+        ]
+      },
+      "termini_processuali": [
+        {"termine": "Prescrizione", "giorni": 1095, "decorrenza": "giorno consolidamento postumi/manifestazione malattia", "natura": "prescrizione triennale", "norma": "art. 112 D.P.R. 1124/1965"}
+      ]
+    },
+    {
+      "codice": "230010",
+      "denominazione": "Obbligo contributivo del datore di lavoro",
+      "categoria": "Contributi previdenziali",
+      "normativa": [
+        {"fonte": "L. 388/2000", "descrizione": "Disciplina contribuzione"},
+        {"fonte": "D.Lgs. 46/1999", "descrizione": "Riscossione contributi previdenziali"}
+      ],
+      "tipologie": [
+        "Azione INPS per recupero contributi omessi",
+        "Opposizione del datore a cartelle/avvisi",
+        "Sgravi contributivi contestati",
+        "Sanzioni civili contributive"
+      ]
+    },
+    {"codice": "230020", "denominazione": "Ripetizione di indebito previdenziale", "categoria": "Indebito previdenziale", "normativa": [{"fonte": "L. 412/1991", "articolo": "13", "descrizione": "Indebito pensionistico"}]},
+    {"codice": "230999", "denominazione": "Altre controversie in materia di previdenza obbligatoria", "note": "Residuale previdenza"},
+    {
+      "codice": "231001",
+      "denominazione": "Assistenza obbligatoria - assegno/pensione (invalidità civile)",
+      "categoria": "Prestazioni assistenziali per invalidità civile",
+      "rito": "Rito del lavoro previdenziale con ATPO obbligatorio ex art. 445-bis c.p.c.",
+      "normativa": [
+        {"fonte": "L. 118/1971", "descrizione": "Conversione D.L. 5/1971 - Invalidi civili"},
+        {"fonte": "L. 18/1980", "descrizione": "Indennità di accompagnamento per gli invalidi civili"},
+        {"fonte": "L. 508/1988", "descrizione": "Indennità per ciechi assoluti"},
+        {"fonte": "L. 138/2001", "descrizione": "Classificazione e quantificazione minorazioni visive"},
+        {"fonte": "L. 381/1970", "descrizione": "Provvidenze a favore dei sordi"},
+        {"fonte": "L. 104/1992", "descrizione": "Legge quadro handicap"}
+      ],
+      "obbligo_atpo": {
+        "obbligatorio": true,
+        "fonte": "art. 445-bis c.p.c.",
+        "natura": "condizione di procedibilità",
+        "codice_atpo_correlato": "210014"
+      },
+      "atto_principale": {
+        "tipo_atto": "ricorso_invalidita_civile",
+        "denominazione": "Ricorso introduttivo del giudizio di merito post-ATPO ex art. 445-bis c.p.c.",
+        "campi_chiave": [
+          {"id": "ricorrente", "label": "Ricorrente", "type": "object_persona", "required": true},
+          {"id": "inps_convenuto", "label": "INPS - sede competente", "type": "object_persona_giuridica", "required": true},
+          {"id": "tipo_prestazione", "label": "Prestazione richiesta", "type": "select", "required": true, "options": ["pensione_invalidita_civile_100", "assegno_mensile_invalidi_74_99", "indennita_accompagnamento", "indennita_frequenza_minori", "pensione_ciechi_assoluti", "pensione_ciechi_civili_ventesimisti", "indennita_speciale_ciechi_ventesimisti", "pensione_sordi", "indennita_comunicazione_sordi"]},
+          {"id": "verbale_atpo", "label": "Verbale di ATPO ex art. 445-bis", "type": "object", "required": true},
+          {"id": "ctu_atpo_esiti", "label": "Esiti CTU dell'ATPO", "type": "textarea"},
+          {"id": "contestazione_atpo", "label": "Contestazione dichiarata sui risultati ATPO", "type": "textarea", "required": true}
+        ]
+      },
+      "termini_processuali": [
+        {"termine": "Introduzione giudizio merito post-ATPO", "giorni": 30, "decorrenza": "scadenza termine per contestare CTU dell'ATPO", "natura": "decadenziale", "norma": "art. 445-bis c. 6 c.p.c."}
+      ]
+    },
+    {
+      "codice": "231002",
+      "denominazione": "Assistenza obbligatoria - indennità di accompagnamento",
+      "eredita_da": "231001",
+      "differenze_rispetto_a_padre": {
+        "normativa_principale": [
+          {"fonte": "L. 18/1980", "articolo": "1", "descrizione": "Indennità di accompagnamento"}
+        ],
+        "presupposti_specifici": [
+          "Invalidità totale al 100%",
+          "Impossibilità di deambulare senza l'aiuto permanente di un accompagnatore OR",
+          "Impossibilità di compiere gli atti quotidiani della vita senza assistenza"
+        ]
+      }
+    },
+    {"codice": "231999", "denominazione": "Altre controversie in materia di assistenza obbligatoria", "note": "Residuale assistenza"},
+    {
+      "codice": "232100",
+      "denominazione": "Opposizione all'ordinanza-ingiunzione ex artt. 22 e ss. L. 689/1981 in materia di lavoro e previdenza/assistenza obbligatorie",
+      "categoria": "Opposizioni sanzioni amministrative lavoro/previdenza",
+      "rito": "Rito del lavoro (D.Lgs. 150/2011)",
+      "normativa": [
+        {"fonte": "L. 689/1981", "articolo": "22-23", "descrizione": "Opposizione all'ordinanza-ingiunzione"},
+        {"fonte": "D.Lgs. 150/2011", "articolo": "6 c. 4", "descrizione": "Rito speciale - rinvio al rito del lavoro per opposizioni in materia di lavoro/previdenza"}
+      ],
+      "tipologie": [
+        "Opposizione a verbale INPS per omissione contributiva",
+        "Opposizione a sanzioni amministrative ITL (Ispettorato Lavoro)",
+        "Opposizione a sanzioni INAIL"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_opposizione_ordinanza_ingiunzione_lavoro",
+        "campi_chiave": [
+          {"id": "ricorrente_opponente", "label": "Opponente (lavoratore/datore)", "type": "object_persona", "required": true},
+          {"id": "ente_emittente", "label": "Ente emittente (INPS, INAIL, ITL)", "type": "object_persona_giuridica", "required": true},
+          {"id": "ordinanza_estremi", "label": "Estremi ordinanza-ingiunzione", "type": "object", "required": true},
+          {"id": "data_notificazione", "label": "Data notificazione", "type": "date", "required": true},
+          {"id": "motivi_opposizione", "label": "Motivi opposizione", "type": "textarea", "required": true},
+          {"id": "importo_sanzione", "label": "Importo sanzione", "type": "currency", "required": true}
+        ],
+        "avvertimenti_obbligatori": ["Termine 30 gg dalla notificazione ex art. 6 c. 6 D.Lgs. 150/2011"]
+      },
+      "termini_processuali": [
+        {"termine": "Opposizione", "giorni": 30, "decorrenza": "notificazione ordinanza", "natura": "perentorio"}
+      ]
+    }
+  ]
+}

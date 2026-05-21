@@ -7,6 +7,12 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.248.9 - 22 maggio 2026
+
+La Guida Pratica dei codici PST/XSD diventa una sorgente strutturata separata dal codice applicativo: `pct/data/legal_knowledge_base.full.json` e i moduli `pct/data/legal_knowledge_base_modules/`. Quando Lex o una UI di fascicolo ragionano sul codice oggetto, devono distinguere il codice ufficiale depositabile dagli alias interni.
+
+Il validatore obbligatorio `scripts/validate_guida_pratica.py --require-official-curated --fail-on-generated` conferma 1.018 codici ufficiali con guida curata, zero mancanti e zero incoerenze deposito. Le schede interne non presenti nel catalogo ministeriale restano utili come guida operativa, ma non devono essere proposte come codice definitivo di deposito.
+
 ## Aggiornamento operativo 2.246.4 - 21 maggio 2026
 
 Le domande sugli allegati di una PEC, incluse formulazioni come `Quale atto risulta notificato, depositato o comunicato negli allegati?`, sono consultazioni operative su comunicazioni dello studio. Il router deve usare `communications_lookup` con `email_pec`, `pec_audit`, `email_ordinaria` e `messaggi`; è vietato deviare sul catalogo Template Atti o su ricerca legale pubblica quando l'oggetto della domanda è cosa risulta dai messaggi e dagli allegati ricevuti.

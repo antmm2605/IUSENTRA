@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.9 - 2026-05-22
+
+- Applicata la Guida Pratica completa come knowledge base separato dal codice, con moduli JSON dedicati e completamento curato dei codici ufficiali PST/XSD mancanti.
+- Agganciata la Guida Pratica al dettaglio fascicolo React: checklist, normativa, atto, allegati, adempimenti e stato del codice deposito sono visibili accanto alla pratica senza flussi invasivi.
+- Rafforzati validatore e audit: 1.018 record ufficiali PST/XSD, 1.018 guide ufficiali curate, zero codici ufficiali senza guida, zero incoerenze tra guida e depositabilità.
+
 ## 2.248.8 - 2026-05-21
 
 - Reso canonico il contesto cliente/fascicolo nelle risposte JSON di Template Atti: gli endpoint restituiscono solo identificativi ricavati da entità realmente risolte lato repository, senza riflettere parametri di query non validati.

@@ -1,0 +1,66 @@
+{
+  "ok": true,
+  "fascicoloId": "3AD21EE8",
+  "results": [
+    {
+      "viewport": {
+        "name": "desktop",
+        "width": 1366,
+        "height": 900
+      },
+      "ok": true,
+      "consoleErrors": [],
+      "info": {
+        "guideVisible": true,
+        "guideWidth": 1082,
+        "overflowX": false,
+        "containsCodiceVerificato": true,
+        "containsCurata": true,
+        "containsChecklist": true,
+        "technicalTerms": [],
+        "guideText": "Guida pratica\nProcedimento di ingiunzione ante causam\n\nCodice 010001\n\nCodice PST verificato\nGuida curata\nChecklist\nNormativa\nAtto\nAdempimenti\nCodice presente nel catalogo ufficiale PST/XSD caricato: utilizzabile nei controlli di deposito.\n7%\n3/44 requisiti\nPrima cosa da fare\n\nVerifica codice materia, rito, parti, competenza e documenti fondativi.\n\nCampi mancanti\nDati ricorrente (creditore)\nDati ingiungendo (debitore)\nDifensore con procura\nCapitale richiesto\nInteressi (decorrenza, tipo)\nCausale del credito\nProva scritta indicata\nRichiesta esecuzione provvisoria ex art. 642 c.p.c.\nSpese, competenze e onorari richiesti\nDati ricorrente (creditore)\nDati ingiungendo (debitore)\nDifensore con procura\nCapitale richiesto (Euro)\nInteressi\nCausale del credito (descrizione fatti costitutivi)\nNatura del credito\nProva scritta indicata\nDocumenti probatori allegati (riferimento allegati)\nTipo provvisoria richiesta\nMotivazione della richiesta di provvisoria\nCalcolo competenze secondo parametri D.M. 147/2022\nValore della causa (per CU e parametri)\nScaglione di valore per parametri forensi\nAllegati mancanti\nDocumenti probatori del credito\nProcura alle liti\nDocumenti probatori del credito (fatture, contratti, scritture, titoli)\nProcura alle liti\nNota di iscrizione a ruolo\nAvvertimenti di rito\nIndicazione termine 40 giorni per opposizione (art. 641 c.p.c.)\nAvvertimento ex art. 645 c.p.c. sull'opposi"
+      },
+      "screenshotPath": "artifacts\\guida-pratica\\browser-guida-pratica-desktop.png"
+    },
+    {
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1180
+      },
+      "ok": true,
+      "consoleErrors": [],
+      "info": {
+        "guideVisible": true,
+        "guideWidth": 788,
+        "overflowX": false,
+        "containsCodiceVerificato": true,
+        "containsCurata": true,
+        "containsChecklist": true,
+        "technicalTerms": [],
+        "guideText": "Guida pratica\nProcedimento di ingiunzione ante causam\n\nCodice 010001\n\nCodice PST verificato\nGuida curata\nChecklist\nNormativa\nAtto\nAdempimenti\nCodice presente nel catalogo ufficiale PST/XSD caricato: utilizzabile nei controlli di deposito.\n7%\n3/44 requisiti\nPrima cosa da fare\n\nVerifica codice materia, rito, parti, competenza e documenti fondativi.\n\nCampi mancanti\nDati ricorrente (creditore)\nDati ingiungendo (debitore)\nDifensore con procura\nCapitale richiesto\nInteressi (decorrenza, tipo)\nCausale del credito\nProva scritta indicata\nRichiesta esecuzione provvisoria ex art. 642 c.p.c.\nSpese, competenze e onorari richiesti\nDati ricorrente (creditore)\nDati ingiungendo (debitore)\nDifensore con procura\nCapitale richiesto (Euro)\nInteressi\nCausale del credito (descrizione fatti costitutivi)\nNatura del credito\nProva scritta indicata\nDocumenti probatori allegati (riferimento allegati)\nTipo provvisoria richiesta\nMotivazione della richiesta di provvisoria\nCalcolo competenze secondo parametri D.M. 147/2022\nValore della causa (per CU e parametri)\nScaglione di valore per parametri forensi\nAllegati mancanti\nDocumenti probatori del credito\nProcura alle liti\nDocumenti probatori del credito (fatture, contratti, scritture, titoli)\nProcura alle liti\nNota di iscrizione a ruolo\nAvvertimenti di rito\nIndicazione termine 40 giorni per opposizione (art. 641 c.p.c.)\nAvvertimento ex art. 645 c.p.c. sull'opposi"
+      },
+      "screenshotPath": "artifacts\\guida-pratica\\browser-guida-pratica-tablet.png"
+    },
+    {
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "ok": true,
+      "consoleErrors": [],
+      "info": {
+        "guideVisible": true,
+        "guideWidth": 370,
+        "overflowX": false,
+        "containsCodiceVerificato": true,
+        "containsCurata": true,
+        "containsChecklist": true,
+        "technicalTerms": [],
+        "guideText": "Guida pratica\nProcedimento di ingiunzione ante causam\n\nCodice 010001\n\nCodice PST verificato\nGuida curata\nChecklist\nNormativa\nAtto\nAdempimenti\nCodice presente nel catalogo ufficiale PST/XSD caricato: utilizzabile nei controlli di deposito.\n7%\n3/44 requisiti\nPrima cosa da fare\n\nVerifica codice materia, rito, parti, competenza e documenti fondativi.\n\nCampi mancanti\nDati ricorrente (creditore)\nDati ingiungendo (debitore)\nDifensore con procura\nCapitale richiesto\nInteressi (decorrenza, tipo)\nCausale del credito\nProva scritta indicata\nRichiesta esecuzione provvisoria ex art. 642 c.p.c.\nSpese, competenze e onorari richiesti\nDati ricorrente (creditore)\nDati ingiungendo (debitore)\nDifensore con procura\nCapitale richiesto (Euro)\nInteressi\nCausale del credito (descrizione fatti costitutivi)\nNatura del credito\nProva scritta indicata\nDocumenti probatori allegati (riferimento allegati)\nTipo provvisoria richiesta\nMotivazione della richiesta di provvisoria\nCalcolo competenze secondo parametri D.M. 147/2022\nValore della causa (per CU e parametri)\nScaglione di valore per parametri forensi\nAllegati mancanti\nDocumenti probatori del credito\nProcura alle liti\nDocumenti probatori del credito (fatture, contratti, scritture, titoli)\nProcura alle liti\nNota di iscrizione a ruolo\nAvvertimenti di rito\nIndicazione termine 40 giorni per opposizione (art. 641 c.p.c.)\nAvvertimento ex art. 645 c.p.c. sull'opposi"
+      },
+      "screenshotPath": "artifacts\\guida-pratica\\browser-guida-pratica-mobile.png"
+    }
+  ]
+}

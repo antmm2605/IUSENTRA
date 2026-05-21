@@ -1,0 +1,259 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "name": "IUSENTRA Legal Knowledge Base",
+  "version": "2.0.0",
+  "description": "Knowledge base completa dei codici materia ministeriali del PCT (registri SICID, SIVG, SIECIC, SILP) per la suite IUSENTRA - tutti i codici con codifica ministeriale ufficiale",
+  "fonti_primarie": [
+    "Tabella ministeriale codici oggetto civili - Corte d'Appello di Bologna",
+    "Elenco codici oggetto SICID per aggregati PNRR - Ministero della Giustizia DGSIA",
+    "Elenco codici oggetto SIECIC per aggregati PNRR - Ministero della Giustizia DGSIA",
+    "Nota iscrizione a ruolo Tribunale di Belluno (codici SILP)"
+  ],
+  "data_generazione": "2026-05-21",
+  "normativa_riferimento_principale": [
+    "Riforma Cartabia D.Lgs. 149/2022 (in vigore dal 28/2/2023) - rito unificato persone/famiglia art. 473-bis c.p.c.",
+    "Codice della Crisi d'Impresa D.Lgs. 14/2019 (in vigore dal 15/7/2022, correttivo-ter D.Lgs. 136/2024)",
+    "D.Lgs. 150/2011 (riti speciali)",
+    "D.Lgs. 28/2010 (mediazione obbligatoria)",
+    "L. 24/2017 Gelli-Bianco (responsabilità sanitaria - ATP conciliativo)",
+    "D.L. 132/2014 (negoziazione assistita)",
+    "L. 80/2005 (riforma esecuzioni)",
+    "L. 92/2012 Fornero (rito speciale licenziamenti)",
+    "D.Lgs. 23/2015 (contratto a tutele crescenti)"
+  ],
+  "macro_aree": [
+    {
+      "id": "00_SFRATTI",
+      "file": "legal_knowledge_base.json",
+      "denominazione": "Sfratti e procedimenti speciali di rilascio (030xxx + connessi)",
+      "registro": "SICID",
+      "n_codici": 9,
+      "completezza": "struttura iper-dettagliata (1° esempio del progetto)",
+      "note": "Codici 030001, 030002, 030011, 030012, 030021, 144201, 511010, 511011, 511100"
+    },
+    {
+      "id": "01_PROCEDIMENTI_SPECIALI_ANTE_CAUSAM",
+      "file": "kb_01_procedimenti_speciali_cautelari.json",
+      "denominazione": "Procedimenti speciali ante causam e cautelari",
+      "registro": "SICID",
+      "fascia_codici": "010xxx-020xxx",
+      "n_codici": 20,
+      "completezza": "media-alta",
+      "vedere_anche": "kb_15 per estensione 010003-010029 (DI ante causam per materia) e 017001-017999 (cautelari sez. impresa)"
+    },
+    {
+      "id": "02_OPPOSIZIONI_IMPUGNAZIONI_LODI",
+      "file": "kb_02_opposizioni_impugnazioni.json",
+      "denominazione": "Opposizioni esecutive, impugnazioni straordinarie e arbitrato",
+      "registro": "SICID",
+      "fascia_codici": "100xxx-109xxx",
+      "n_codici": 29,
+      "completezza": "media",
+      "vedere_anche": "kb_15 per codici TSAP 118001-118099"
+    },
+    {
+      "id": "03_PERSONE_FAMIGLIA_MINORI",
+      "file": "kb_03_persone_famiglia_minori.json",
+      "denominazione": "Persone, famiglia e minori - contenzioso",
+      "registro": "SICID",
+      "fascia_codici": "110xxx-112xxx",
+      "n_codici": 29,
+      "completezza": "media-alta",
+      "note": "Aggiornato a riforma Cartabia rito unificato 473-bis c.p.c.",
+      "vedere_anche": "kb_15 per codici immigrazione/protezione internazionale 110023-110041"
+    },
+    {
+      "id": "04_SUCCESSIONI_DIRITTI_REALI_CONDOMINIO",
+      "file": "kb_04_successioni_diritti_reali.json",
+      "denominazione": "Successioni, diritti reali, possesso, condominio",
+      "registro": "SICID",
+      "fascia_codici": "120xxx-139xxx",
+      "n_codici": 21,
+      "completezza": "media-alta",
+      "note": "Mediazione obbligatoria evidenziata per successioni/divisioni/condominio/usucapione"
+    },
+    {
+      "id": "05_CONTRATTI_RESPONSABILITA_LOCAZIONI",
+      "file": "kb_05_contratti_responsabilita_locazioni.json",
+      "denominazione": "Contratti, responsabilità extracontrattuale e locazioni - contenzioso ordinario",
+      "registro": "SICID",
+      "fascia_codici": "140xxx-146xxx",
+      "n_codici": 68,
+      "completezza": "media",
+      "note": "Include estensione Cartabia art. 657 c.p.c. a comodato immobiliare e affitto azienda"
+    },
+    {
+      "id": "06_SOCIETARIO_INDUSTRIALE_FALLIMENTARE",
+      "file": "kb_06_societario_industriale_fallimentare.json",
+      "denominazione": "Diritto societario, industriale e procedure concorsuali - contenzioso",
+      "registro": "SICID",
+      "fascia_codici": "150xxx-180xxx",
+      "n_codici": 82,
+      "completezza": "media",
+      "note": "Tutti i codici fallimentari mappati al CCII (D.Lgs. 14/2019)"
+    },
+    {
+      "id": "07_DIRITTO_AGRARIO",
+      "file": "kb_07_diritto_agrario.json",
+      "denominazione": "Diritto agrario",
+      "registro": "SICID",
+      "fascia_codici": "310xxx-320xxx",
+      "n_codici": 5,
+      "completezza": "media-alta",
+      "note": "Conciliazione obbligatoria presso Ispettorato Agricoltura ex art. 46 L. 203/82"
+    },
+    {
+      "id": "08_VOLONTARIA_GIURISDIZIONE_FAMIGLIA_PERSONE_MINORI",
+      "file": "kb_08_volontaria_giurisdizione_famiglia.json",
+      "denominazione": "Volontaria giurisdizione - famiglia, persone, minori, tutele",
+      "registro": "SIVG",
+      "fascia_codici": "400xxx-413xxx",
+      "n_codici": 104,
+      "completezza": "media",
+      "note": "Include amministrazione di sostegno, tutele, ordini protezione abusi familiari"
+    },
+    {
+      "id": "09_VOLONTARIA_GIURISDIZIONE_SUCCESSIONI",
+      "file": "kb_09_volontaria_giurisdizione_successioni.json",
+      "denominazione": "Volontaria giurisdizione - successioni",
+      "registro": "SIVG",
+      "fascia_codici": "420xxx",
+      "n_codici": 17,
+      "completezza": "media-alta"
+    },
+    {
+      "id": "10_VOLONTARIA_GIURISDIZIONE_SOCIETARIA",
+      "file": "kb_10_volontaria_giurisdizione_societaria.json",
+      "denominazione": "Volontaria giurisdizione - diritto societario",
+      "registro": "SIVG",
+      "fascia_codici": "451xxx-453xxx",
+      "n_codici": 24,
+      "completezza": "media",
+      "vedere_anche": "kb_15 per codici 454001-454002 (registro imprese), 455001-455999 (società persone), 481310-481999 (sez. impresa VG)"
+    },
+    {
+      "id": "11_VOLONTARIA_GIURISDIZIONE_FALLIMENTARE",
+      "file": "kb_11_volontaria_giurisdizione_fallimentare.json",
+      "denominazione": "Volontaria giurisdizione - procedure concorsuali",
+      "registro": "SIVG",
+      "fascia_codici": "471xxx-490xxx",
+      "n_codici": 12,
+      "completezza": "media-alta",
+      "note": "Allineato CCII: apertura liquidazione giudiziale, concordato preventivo, composizione negoziata"
+    },
+    {
+      "id": "12_ESECUZIONI_FORZATE",
+      "file": "kb_12_esecuzioni_forzate.json",
+      "denominazione": "Esecuzioni forzate - mobiliari, immobiliari, esattoriali, consegna/rilascio, obblighi fare/non fare",
+      "registro": "SIECIC",
+      "fascia_codici": "471xxx, 510xxx-512xxx, 520xxx, 610xxx, 620xxx (codifica ministeriale ufficiale SIECIC)",
+      "n_codici": 17,
+      "completezza": "media-alta",
+      "note": "Codici ministeriali SIECIC ufficiali (post-L. 80/2005 e pre-L. 80/2005). Include esecuzioni esattoriali D.P.R. 602/1973"
+    },
+    {
+      "id": "13_LAVORO_PREVIDENZA_ASSISTENZA",
+      "file": "kb_13_lavoro_previdenza.json",
+      "denominazione": "Lavoro, previdenza e assistenza obbligatorie",
+      "registro": "SILP / SICID-Lavoro - Ruolo 2",
+      "fascia_codici": "201xxx, 210xxx-211xxx, 220xxx-223xxx, 230xxx-231xxx, 232xxx (codifica ministeriale ufficiale)",
+      "n_codici": 105,
+      "completezza": "media-alta",
+      "note": "Codici ministeriali SILP ufficiali. Include rito Fornero, ATPO art. 445-bis, art. 28 St.Lav., pubblico impiego con/senza pregiudiziale"
+    },
+    {
+      "id": "14_SEZIONE_SPECIALIZZATA_IMPRESA",
+      "file": "kb_14_sezione_specializzata_impresa.json",
+      "denominazione": "Sezione Specializzata in materia di Impresa - controversie societarie, industriali, antitrust, azione di classe",
+      "registro": "SICID",
+      "fascia_codici": "181xxx",
+      "n_codici": 41,
+      "completezza": "media-alta",
+      "note": "Istituita con D.L. 1/2012 (L. 27/2012). Include azione di classe ex artt. 840-bis c.p.c., antitrust private enforcement D.Lgs. 3/2017, marchio/brevetto UE"
+    },
+    {
+      "id": "15_ADDENDUM_CODICI_AGGIUNTIVI",
+      "file": "kb_15_addendum_codici_aggiuntivi.json",
+      "denominazione": "Addendum - codici aggiuntivi (immigrazione moderna, TSAP, autorizzazioni processuali, registro imprese VG, sez. impresa VG)",
+      "registro": "Multi (SICID, SIVG)",
+      "n_sezioni": 5,
+      "n_codici_aggiuntivi_circa": 60,
+      "note": "Integra le macro-aree principali con codici emersi dall'aggiornamento tabella ministeriale 2023-2024"
+    }
+  ],
+  "totale_codici_mappati_circa": 633,
+  "schema_codice_materia": {
+    "campi_base": [
+      "codice (string) - codice ministeriale 6 cifre (formato XXXXXX o XXXXXX_O per pre-L.80)",
+      "denominazione (string) - denominazione ufficiale ministeriale",
+      "categoria (string) - macro-categoria di classificazione",
+      "rito (string) - rito processuale applicabile",
+      "competenza (string) - ufficio giudiziario competente",
+      "normativa (array) - {fonte, articolo, descrizione}",
+      "presupposti_sostanziali (array) - condizioni sostanziali",
+      "obbligo_mediazione (object) - {obbligatoria, materia, fonte}",
+      "atto_principale (object) - {tipo_atto, denominazione, schema_xsd_ministeriale, campi_chiave[], avvertimenti_obbligatori[]}",
+      "allegati_obbligatori (array) - documenti da allegare",
+      "adempimenti_fiscali (object) - contributo unificato, marche da bollo",
+      "atti_collegati (array) - atti successivi tipici",
+      "termini_processuali (array) - {termine, giorni, decorrenza, natura, norma}"
+    ],
+    "pattern_ereditarieta": {
+      "campo": "eredita_da",
+      "descrizione": "Riferimento al codice padre da cui ereditare la struttura base",
+      "campo_override": "differenze_rispetto_a_padre",
+      "utilita": "Evita duplicazione tra codici fratelli (es. uso abitativo/uso diverso, mobiliare/immobiliare)"
+    },
+    "pattern_rinvio_dettagli": {
+      "campo": "rinvio_dettagli",
+      "descrizione": "Puntatore ad altro codice già documentato altrove con la struttura completa",
+      "utilita": "Evita duplicazione informazioni quando lo stesso istituto compare in più macro-aree (es. azione revocatoria 102002 vs 181037)"
+    }
+  },
+  "integrazione_software_iusentra": {
+    "import_db": "Script Python ETL per popolamento tabella practice_guidance + tabelle correlate normative, allegati, avvertimenti, termini. Eseguire risoluzione `eredita_da` e `rinvio_dettagli` in fase di import per materializzare la struttura completa di ogni codice",
+    "indici_db_suggeriti": [
+      "codice (UNIQUE) - chiave primaria",
+      "categoria - indice per filtro categoria",
+      "rito - indice per tipologia di rito",
+      "competenza - indice per ufficio competente",
+      "registro - SICID/SIVG/SIECIC/SILP",
+      "obbligo_mediazione (boolean) - per pre-screening"
+    ],
+    "endpoint_rest": [
+      "GET /api/guida/:codice → ritorna oggetto completo (con risoluzione ereditarietà e rinvii)",
+      "GET /api/guida/:codice/checklist → checklist operativa parsata",
+      "GET /api/guida/:codice/template → bozza atto pre-compilato",
+      "GET /api/guida/categorie → lista macro-categorie navigabili",
+      "GET /api/guida/cerca?q=... → ricerca full-text su denominazione/normativa",
+      "POST /api/guida/:codice/validate → valida payload contro campi obbligatori"
+    ],
+    "componenti_frontend": [
+      "NuovoAttoWizard - selezione codice materia con autocomplete categoria/parola chiave + form dinamico generato da campi_chiave",
+      "GuidaContestuale - sidebar tabbed (Checklist | Normativa | Struttura atto | Adempimenti fiscali | Termini)",
+      "ChecklistView - tracking real-time stato compilazione campi obbligatori",
+      "NormativaDrawer - drawer di consultazione norme citate con link a brocardi.it/normattiva",
+      "TerminiCalculator - calcolatore di termini processuali con decorrenza/sospensione feriale"
+    ]
+  },
+  "limitazioni_e_note": [
+    "Codici 110011 (diritti personalità) e 111999 (residuale famiglia) sono storicamente usati impropriamente - applicare controllo qualità in input",
+    "Codici vecchio rito societario (152xxx, 153xxx, 154xxx) sono residuali dopo abrogazione D.Lgs. 5/2003 ma ancora presenti in tabella ministeriale",
+    "Riforma Cartabia: rito unificato persone/famiglia 473-bis c.p.c. ha modificato significativamente i procedimenti 111xxx, 112xxx, 411xxx, 412xxx",
+    "Codice Crisi: tutti i codici 171xxx e 471xxx vanno letti con la normativa CCII (D.Lgs. 14/2019) dal 15/7/2022, anche se mantengono numerazione storica",
+    "Codici SIECIC pre-L.80/2005 hanno suffisso `_O` (es. 510001_O) e si applicano solo a procedure ante 1/3/2006",
+    "Per uso produttivo: implementare controllo che il codice ministeriale selezionato esista nella tabella aggiornata del PST (https://pst.giustizia.it) - alcuni codici sono stati migrati (es. famiglia da contenzioso a VG nel gennaio 2024)",
+    "Le sentenze sulla protezione internazionale e immigrazione (110032-110041) appartengono alle Sezioni Specializzate in materia di Immigrazione istituite con D.L. 13/2017"
+  ],
+  "prossimi_passi_progetto_iusentra": [
+    "1. Caricamento dei JSON nel DB IUSENTRA tramite script di import (con risoluzione ereditarietà/rinvii)",
+    "2. Definizione schema PostgreSQL: tabelle practice_guidance, normative_references, mandatory_warnings, required_attachments, processual_terms, key_fields",
+    "3. Implementazione endpoint REST /api/guida/:codice con risoluzione ereditarietà server-side",
+    "4. Sviluppo componente React NuovoAttoWizard con dropdown codici materia categorizzati e ricerca full-text",
+    "5. Sviluppo GuidaContestuale (sidebar) con 5 tab (Checklist/Normativa/Struttura/Adempimenti/Termini)",
+    "6. Implementazione validatore real-time campi obbligatori",
+    "7. Calcolatore termini processuali con sospensione feriale automatica (art. 1 L. 742/1969)",
+    "8. Test su famiglie di codici critici: sfratti, decreti ingiuntivi, separazioni, esecuzioni, licenziamenti, condominio",
+    "9. Integrazione con XSD ministeriali per generazione busta telematica deposito atto"
+  ]
+}

@@ -1,0 +1,583 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "05_CONTRATTI_RESPONSABILITA_LOCAZIONI",
+  "denominazione": "Contratti, responsabilità extracontrattuale e locazioni - contenzioso ordinario",
+  "registro": "SICID",
+  "codici_materia": [
+    {
+      "codice": "140001",
+      "denominazione": "Cessione dei crediti",
+      "categoria": "Contratti tipici",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1260-1267", "descrizione": "Cessione del credito"}
+      ]
+    },
+    {
+      "codice": "140002",
+      "denominazione": "Arbitraggio - Perizia contrattuale",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1349", "descrizione": "Determinazione dell'oggetto"}
+      ]
+    },
+    {
+      "codice": "140011",
+      "denominazione": "Vendita di cose immobili",
+      "categoria": "Contratti tipici - compravendita immobiliare",
+      "rito": "Rito ordinario",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1470-1547", "descrizione": "Vendita"},
+        {"fonte": "c.c.", "articolo": "1350", "descrizione": "Forma scritta ad substantiam per immobili"},
+        {"fonte": "c.c.", "articolo": "2932", "descrizione": "Esecuzione specifica obbligo contrarre"}
+      ],
+      "azioni_tipiche": [
+        "Esecuzione in forma specifica ex art. 2932 c.c. (preliminare)",
+        "Risoluzione per inadempimento",
+        "Azione di garanzia per vizi (artt. 1490 e ss.)",
+        "Azione redibitoria/quanti minoris",
+        "Garanzia per evizione",
+        "Rescissione per lesione"
+      ],
+      "obbligo_mediazione": {"obbligatoria": false, "note": "Per contratti finanziari/bancari/assicurativi sì"},
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_vendita_immobiliare",
+        "campi_chiave": [
+          {"id": "tipo_azione", "label": "Tipo azione", "type": "select", "required": true, "options": ["esecuzione_specifica_2932", "risoluzione_inadempimento", "vizi_1490", "evizione", "rescissione_lesione", "annullamento"]},
+          {"id": "preliminare_o_definitivo", "label": "Preliminare o definitivo", "type": "select", "required": true, "options": ["preliminare", "definitivo"]},
+          {"id": "contratto_data", "label": "Data contratto", "type": "date", "required": true},
+          {"id": "immobile", "label": "Immobile oggetto", "type": "object_immobile", "required": true},
+          {"id": "prezzo", "label": "Prezzo pattuito", "type": "currency", "required": true},
+          {"id": "venditore", "label": "Venditore", "type": "object_persona", "required": true},
+          {"id": "compratore", "label": "Compratore", "type": "object_persona", "required": true},
+          {"id": "domanda_trascrizione_2652", "label": "Domanda di trascrizione ex art. 2652 n.2 c.c.", "type": "boolean"}
+        ]
+      }
+    },
+    {
+      "codice": "140012",
+      "denominazione": "Vendita di cose mobili",
+      "categoria": "Contratti tipici - compravendita mobiliare",
+      "competenza": "Tribunale o Giudice di Pace per valore",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1470-1547", "descrizione": "Vendita"},
+        {"fonte": "D.Lgs. 206/2005 (Codice del Consumo)", "descrizione": "Vendita di beni di consumo"}
+      ]
+    },
+    {
+      "codice": "140021",
+      "denominazione": "Appalto di opere pubbliche",
+      "categoria": "Contratti pubblici",
+      "competenza": "Tribunale ordinario (per giudizi civili post-contratto, fase di esecuzione)",
+      "normativa": [
+        {"fonte": "D.Lgs. 36/2023", "descrizione": "Nuovo Codice dei contratti pubblici"},
+        {"fonte": "c.c.", "articolo": "1655-1677", "descrizione": "Appalto"}
+      ]
+    },
+    {
+      "codice": "140022",
+      "denominazione": "Appalto: altre ipotesi (artt. 1655 e ss. c.c., azione ex 1669 c.c.)",
+      "categoria": "Contratti tipici - appalto privato",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1655-1677", "descrizione": "Appalto"},
+        {"fonte": "c.c.", "articolo": "1667", "descrizione": "Garanzia per difformità e vizi dell'opera"},
+        {"fonte": "c.c.", "articolo": "1669", "descrizione": "Rovina e difetti di cose immobili"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_appalto",
+        "campi_chiave": [
+          {"id": "tipo_azione", "label": "Tipo azione", "type": "select", "required": true, "options": ["garanzia_difformita_1667", "rovina_difetti_1669", "risoluzione_inadempimento", "pagamento_corrispettivo", "recesso_unilaterale_1671"]},
+          {"id": "contratto_appalto", "label": "Estremi contratto d'appalto", "type": "object", "required": true},
+          {"id": "opera_oggetto", "label": "Opera oggetto", "type": "textarea", "required": true},
+          {"id": "vizi_dedotti", "label": "Vizi/difformità dedotti", "type": "textarea"},
+          {"id": "data_denuncia_vizi", "label": "Data denuncia vizi (60 gg dalla scoperta ex art. 1667 c. 2)", "type": "date"},
+          {"id": "termine_decennale_1669", "label": "Termine decennale rovina/difetti gravi", "type": "boolean"}
+        ],
+        "avvertimenti_obbligatori": ["Termini decadenziali: 60 gg denuncia + 2 anni azione (1667), 1 anno denuncia + 1 anno azione (1669 dalla scoperta entro 10 anni)"]
+      }
+    },
+    {
+      "codice": "140031",
+      "denominazione": "Somministrazione",
+      "normativa": [{"fonte": "c.c.", "articolo": "1559-1570", "descrizione": "Somministrazione"}]
+    },
+    {
+      "codice": "140032",
+      "denominazione": "Locazione di beni mobili",
+      "normativa": [{"fonte": "c.c.", "articolo": "1571-1614", "descrizione": "Locazione"}]
+    },
+    {
+      "codice": "140033",
+      "denominazione": "Spedizione - Trasporto (nazionale, internazionale, terrestre, aereo, marittimo)",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1678-1702", "descrizione": "Trasporto"},
+        {"fonte": "c.c.", "articolo": "1737-1741", "descrizione": "Spedizione"},
+        {"fonte": "CMR (Conv. Ginevra 1956)", "descrizione": "Trasporto internazionale di merci su strada"}
+      ]
+    },
+    {
+      "codice": "140034",
+      "denominazione": "Mandato",
+      "normativa": [{"fonte": "c.c.", "articolo": "1703-1730", "descrizione": "Mandato"}]
+    },
+    {
+      "codice": "140035",
+      "denominazione": "Agenzia",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1742-1753", "descrizione": "Agenzia"},
+        {"fonte": "AEC (Accordi economici collettivi)", "descrizione": "AEC settore agenti"}
+      ]
+    },
+    {
+      "codice": "140036",
+      "denominazione": "Mediazione",
+      "normativa": [{"fonte": "c.c.", "articolo": "1754-1765", "descrizione": "Mediazione"}]
+    },
+    {
+      "codice": "140037",
+      "denominazione": "Deposito",
+      "normativa": [{"fonte": "c.c.", "articolo": "1766-1797", "descrizione": "Deposito"}]
+    },
+    {
+      "codice": "140038",
+      "denominazione": "Mutuo",
+      "categoria": "Contratti tipici - mutuo",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1813-1822", "descrizione": "Mutuo"},
+        {"fonte": "D.Lgs. 385/1993 (TUB)", "articolo": "117-120-quater", "descrizione": "Trasparenza bancaria"},
+        {"fonte": "L. 108/1996", "descrizione": "Anti-usura"}
+      ],
+      "azioni_tipiche": [
+        "Risoluzione per inadempimento",
+        "Nullità per violazione TUB (forma scritta, tasso indeterminato)",
+        "Anatocismo (art. 1283 c.c., 120 TUB)",
+        "Usura sopravvenuta o originaria"
+      ]
+    },
+    {
+      "codice": "140039",
+      "denominazione": "Transazione",
+      "normativa": [{"fonte": "c.c.", "articolo": "1965-1976", "descrizione": "Transazione"}]
+    },
+    {
+      "codice": "140041",
+      "denominazione": "Bancari (deposito bancario, cassetta di sicurezza, apertura di credito bancario)",
+      "categoria": "Contratti bancari",
+      "competenza": "Sezione specializzata in materia di impresa per controversie societarie/finanziarie - altrimenti Tribunale ordinario",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1834-1860", "descrizione": "Contratti bancari"},
+        {"fonte": "D.Lgs. 385/1993 (TUB)", "descrizione": "Testo Unico Bancario"}
+      ],
+      "obbligo_mediazione": {"obbligatoria": true, "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010", "materia": "contratti bancari e finanziari"},
+      "azioni_tipiche": [
+        "Anatocismo e ricalcolo saldo conto corrente",
+        "Usura",
+        "Commissione massimo scoperto",
+        "Nullità clausole derivati",
+        "Nullità per difetto forma scritta"
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_bancario",
+        "campi_chiave": [
+          {"id": "banca", "label": "Banca convenuta", "type": "object_persona_giuridica", "required": true},
+          {"id": "rapporto_bancario", "label": "Rapporto bancario (conto/mutuo/apertura credito)", "type": "object", "required": true},
+          {"id": "domande_proposte", "label": "Domande proposte", "type": "select_multi", "required": true, "options": ["accertamento_nullita_clausole", "ripetizione_indebito", "risarcimento_danni", "ricalcolo_saldo", "anatocismo", "usura"]},
+          {"id": "ctu_contabile_richiesta", "label": "Richiesta CTU contabile bancaria", "type": "boolean", "default": true}
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "contratto_bancario", "label": "Contratto bancario", "required": true},
+        {"id": "estratti_conto_completi", "label": "Estratti conto periodo contestato", "required": true},
+        {"id": "verbale_mediazione", "label": "Verbale mediazione negativa", "required": true}
+      ]
+    },
+    {
+      "codice": "140051",
+      "denominazione": "Assicurazione contro i danni",
+      "categoria": "Contratti tipici - assicurazione danni",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1882-1932", "descrizione": "Assicurazione"},
+        {"fonte": "D.Lgs. 209/2005 (CAP)", "descrizione": "Codice delle Assicurazioni Private"}
+      ],
+      "obbligo_mediazione": {"obbligatoria": true, "materia": "contratti assicurativi"}
+    },
+    {
+      "codice": "140052",
+      "denominazione": "Assicurazione sulla vita",
+      "eredita_da": "140051",
+      "differenze_rispetto_a_padre": {
+        "normativa_principale": [{"fonte": "c.c.", "articolo": "1919-1927", "descrizione": "Assicurazione sulla vita"}]
+      }
+    },
+    {
+      "codice": "140061",
+      "denominazione": "Fideiussione - Polizza fideiussoria",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1936-1957", "descrizione": "Fideiussione"}
+      ]
+    },
+    {
+      "codice": "140101",
+      "denominazione": "Promessa di pagamento - Ricognizione di debito",
+      "normativa": [{"fonte": "c.c.", "articolo": "1988", "descrizione": "Promessa di pagamento e ricognizione di debito"}]
+    },
+    {
+      "codice": "140102",
+      "denominazione": "Titoli di credito",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1992-2027", "descrizione": "Titoli di credito"},
+        {"fonte": "R.D. 1669/1933", "descrizione": "Legge cambiaria"},
+        {"fonte": "R.D. 1736/1933", "descrizione": "Legge assegni"}
+      ]
+    },
+    {
+      "codice": "140111",
+      "denominazione": "Indebito soggettivo - Indebito oggettivo",
+      "normativa": [{"fonte": "c.c.", "articolo": "2033-2040", "descrizione": "Pagamento dell'indebito"}]
+    },
+    {
+      "codice": "140112",
+      "denominazione": "Arricchimento senza causa",
+      "normativa": [{"fonte": "c.c.", "articolo": "2041-2042", "descrizione": "Arricchimento senza causa"}]
+    },
+    {
+      "codice": "140999",
+      "denominazione": "Altri contratti tipici e obbligazioni",
+      "note": "Codice residuale"
+    },
+    {
+      "codice": "141001",
+      "denominazione": "Donazione",
+      "normativa": [{"fonte": "c.c.", "articolo": "769-809", "descrizione": "Donazione"}]
+    },
+    {
+      "codice": "142001",
+      "denominazione": "Prestazione d'opera intellettuale",
+      "normativa": [{"fonte": "c.c.", "articolo": "2229-2238", "descrizione": "Professioni intellettuali"}]
+    },
+    {
+      "codice": "142002",
+      "denominazione": "Responsabilità professionale",
+      "categoria": "Responsabilità professionale",
+      "rito": "Rito ordinario",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1176 c. 2", "descrizione": "Diligenza qualificata"},
+        {"fonte": "c.c.", "articolo": "2236", "descrizione": "Responsabilità del prestatore d'opera"},
+        {"fonte": "L. 24/2017 (Gelli-Bianco)", "descrizione": "Responsabilità sanitaria"}
+      ],
+      "obbligo_mediazione": {"obbligatoria": true, "materia": "responsabilità medica e sanitaria"},
+      "obbligo_atp_conciliativo": {"obbligatorio_alternativo_a_mediazione": true, "fonte": "art. 8 L. 24/2017", "materia": "responsabilità sanitaria"},
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_responsabilita_professionale",
+        "campi_chiave": [
+          {"id": "professionista", "label": "Professionista convenuto", "type": "object_persona", "required": true},
+          {"id": "tipo_professione", "label": "Professione", "type": "select", "required": true, "options": ["medico", "avvocato", "notaio", "commercialista", "ingegnere", "architetto", "consulente_lavoro", "altro"]},
+          {"id": "struttura_sanitaria", "label": "Struttura sanitaria (per resp. medica)", "type": "object_persona_giuridica"},
+          {"id": "fatto_dannoso", "label": "Descrizione fatto dannoso", "type": "textarea", "required": true},
+          {"id": "nesso_causalita", "label": "Esposizione nesso di causalità", "type": "textarea", "required": true},
+          {"id": "danno_richiesto", "label": "Danno richiesto (patrimoniale e non)", "type": "currency", "required": true},
+          {"id": "polizza_assicurativa_chiamata", "label": "Chiamata in causa assicurazione", "type": "boolean"}
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "documentazione_professionale", "label": "Documentazione (cartella clinica, atti, pareri)", "required": true},
+        {"id": "verbale_atp_conciliativo", "label": "Verbale ATP conciliativo ex L. 24/2017 (per resp. sanitaria)", "required": false},
+        {"id": "verbale_mediazione", "label": "Verbale mediazione negativa", "required": true}
+      ]
+    },
+    {
+      "codice": "142999",
+      "denominazione": "Altri contratti d'opera",
+      "note": "Codice residuale"
+    },
+    {
+      "codice": "143101",
+      "denominazione": "Cessione di azienda",
+      "normativa": [{"fonte": "c.c.", "articolo": "2555-2562", "descrizione": "Azienda"}]
+    },
+    {
+      "codice": "143102",
+      "denominazione": "Concessione di vendita",
+      "note": "Contratto atipico"
+    },
+    {
+      "codice": "143103",
+      "denominazione": "Distribuzione",
+      "note": "Contratto atipico"
+    },
+    {
+      "codice": "143104",
+      "denominazione": "Licenza d'uso",
+      "categoria": "Contratti atipici - proprietà intellettuale"
+    },
+    {
+      "codice": "143105",
+      "denominazione": "Noleggio",
+      "note": "Contratto atipico"
+    },
+    {
+      "codice": "143106",
+      "denominazione": "Subfornitura",
+      "normativa": [{"fonte": "L. 192/1998", "descrizione": "Disciplina della subfornitura nelle attività produttive"}]
+    },
+    {
+      "codice": "143111",
+      "denominazione": "Factoring",
+      "normativa": [{"fonte": "L. 52/1991", "descrizione": "Disciplina della cessione dei crediti d'impresa"}]
+    },
+    {
+      "codice": "143112",
+      "denominazione": "Franchising",
+      "normativa": [{"fonte": "L. 129/2004", "descrizione": "Norme per la disciplina dell'affiliazione commerciale"}]
+    },
+    {
+      "codice": "143121",
+      "denominazione": "Leasing",
+      "normativa": [
+        {"fonte": "L. 124/2017", "articolo": "1 c. 136-140", "descrizione": "Locazione finanziaria"},
+        {"fonte": "c.c.", "articolo": "1526", "descrizione": "Risoluzione del contratto - per leasing impropriamente traslativo"}
+      ]
+    },
+    {
+      "codice": "143131",
+      "denominazione": "Intermediazione finanziaria (SIM) - Contratti di Borsa",
+      "competenza": "Sezione specializzata in materia di impresa",
+      "normativa": [
+        {"fonte": "D.Lgs. 58/1998 (TUF)", "descrizione": "Testo Unico Finanza"},
+        {"fonte": "Reg. CONSOB 20307/2018", "descrizione": "Regolamento Intermediari"}
+      ],
+      "obbligo_mediazione": {"obbligatoria": true, "materia": "contratti finanziari"}
+    },
+    {
+      "codice": "143999",
+      "denominazione": "Altri contratti atipici",
+      "note": "Codice residuale"
+    },
+    {
+      "codice": "144001",
+      "denominazione": "Cessazione del contratto di locazione alla scadenza, uso abitativo",
+      "categoria": "Locazioni - merito",
+      "rito": "Rito locatizio ex art. 447-bis c.p.c.",
+      "competenza": "Tribunale del luogo dell'immobile",
+      "normativa": [
+        {"fonte": "L. 431/1998", "articolo": "2-3", "descrizione": "Durata e disdetta"},
+        {"fonte": "L. 392/1978", "descrizione": "Equo canone (residuale)"},
+        {"fonte": "c.p.c.", "articolo": "447-bis", "descrizione": "Rito locatizio"}
+      ],
+      "obbligo_mediazione": {"obbligatoria": true, "materia": "locazione"}
+    },
+    {
+      "codice": "144002",
+      "denominazione": "Cessazione del contratto di locazione alla scadenza, uso diverso",
+      "eredita_da": "144001",
+      "differenze_rispetto_a_padre": {
+        "normativa_principale": [{"fonte": "L. 392/1978", "articolo": "27-29", "descrizione": "Locazioni uso diverso"}]
+      }
+    },
+    {
+      "codice": "144011",
+      "denominazione": "Recesso dal contratto del Conduttore uso abitativo",
+      "normativa": [{"fonte": "L. 431/1998", "articolo": "3 c. 6", "descrizione": "Recesso del conduttore per gravi motivi"}]
+    },
+    {
+      "codice": "144012",
+      "denominazione": "Recesso dal contratto del Conduttore uso diverso",
+      "normativa": [{"fonte": "L. 392/1978", "articolo": "27 c. 8", "descrizione": "Recesso conduttore per gravi motivi"}]
+    },
+    {
+      "codice": "144021",
+      "denominazione": "Risoluzione del contratto di locazione per inadempimento uso abitativo",
+      "categoria": "Locazioni - risoluzione",
+      "rito": "Rito locatizio",
+      "normativa": [
+        {"fonte": "L. 392/1978", "articolo": "5", "descrizione": "Inadempimento del conduttore"},
+        {"fonte": "c.c.", "articolo": "1453-1458", "descrizione": "Risoluzione per inadempimento"}
+      ]
+    },
+    {
+      "codice": "144022",
+      "denominazione": "Risoluzione del contratto di locazione per inadempimento uso diverso",
+      "eredita_da": "144021"
+    },
+    {
+      "codice": "144031",
+      "denominazione": "Cause relative alla validità o efficacia del contratto o di singole clausole",
+      "categoria": "Locazioni - validità contratto"
+    },
+    {
+      "codice": "144032",
+      "denominazione": "Pagamento del corrispettivo - Indennità di avviamento - Ripetizione di indebito",
+      "normativa": [
+        {"fonte": "L. 392/1978", "articolo": "34", "descrizione": "Indennità avviamento commerciale"}
+      ]
+    },
+    {
+      "codice": "144033",
+      "denominazione": "Diritto di prelazione - diritto di riscatto del conduttore (L. 392/1978 e 431/1998)",
+      "normativa": [
+        {"fonte": "L. 392/1978", "articolo": "38-40", "descrizione": "Prelazione conduttore (uso diverso)"},
+        {"fonte": "L. 431/1998", "articolo": "3 c. 5", "descrizione": "Prelazione abitativo"}
+      ]
+    },
+    {
+      "codice": "144101",
+      "denominazione": "Affitto di azienda",
+      "categoria": "Affitto azienda",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2562", "descrizione": "Affitto dell'azienda"},
+        {"fonte": "c.c.", "articolo": "2557-2561", "descrizione": "Disciplina richiamata"}
+      ],
+      "note_riforma_cartabia": "Estensione art. 657 c.p.c. anche all'affittuario d'azienda (D.Lgs. 149/2022) - SOLO per finita locazione, non per morosità"
+    },
+    {
+      "codice": "144301",
+      "denominazione": "Comodato di immobile urbano",
+      "categoria": "Comodato",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1803-1812", "descrizione": "Comodato"}
+      ],
+      "note_riforma_cartabia": "Estensione art. 657 c.p.c. anche al comodatario di beni immobili (D.Lgs. 149/2022)"
+    },
+    {
+      "codice": "144401",
+      "denominazione": "Occupazione senza titolo di immobile",
+      "categoria": "Tutela proprietà - occupazione abusiva",
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_occupazione_senza_titolo",
+        "campi_chiave": [
+          {"id": "proprietario", "label": "Proprietario", "type": "object_persona", "required": true},
+          {"id": "occupante", "label": "Occupante senza titolo", "type": "object_persona", "required": true},
+          {"id": "immobile", "label": "Immobile occupato", "type": "object_immobile", "required": true},
+          {"id": "data_inizio_occupazione", "label": "Data inizio occupazione", "type": "date"},
+          {"id": "indennita_occupazione", "label": "Indennità occupazione richiesta ex art. 1591 c.c. applicato analogicamente", "type": "currency"},
+          {"id": "risarcimento_danni", "label": "Risarcimento danni", "type": "currency"}
+        ]
+      }
+    },
+    {
+      "codice": "144999",
+      "denominazione": "Altri istituti del diritto delle locazioni",
+      "note": "Codice residuale locazioni"
+    },
+    {
+      "codice": "145001",
+      "denominazione": "Solo danni a cose - responsabilità extracontrattuale",
+      "categoria": "Responsabilità civile",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2043", "descrizione": "Risarcimento per fatto illecito"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_risarcimento_danni",
+        "campi_chiave": [
+          {"id": "fatto_illecito", "label": "Descrizione fatto illecito", "type": "textarea", "required": true},
+          {"id": "data_fatto", "label": "Data fatto", "type": "date", "required": true},
+          {"id": "responsabile", "label": "Responsabile convenuto", "type": "object_persona", "required": true},
+          {"id": "cose_danneggiate", "label": "Cose danneggiate", "type": "array", "required": true},
+          {"id": "quantum_danno", "label": "Quantum danno", "type": "currency", "required": true},
+          {"id": "documentazione_danno", "label": "Documentazione danno", "type": "file_multi", "required": true}
+        ],
+        "avvertimenti_obbligatori": ["Prescrizione 5 anni ex art. 2947 c. 1 c.c."]
+      }
+    },
+    {
+      "codice": "145002",
+      "denominazione": "Lesione personale - responsabilità extracontrattuale",
+      "eredita_da": "145001",
+      "differenze_rispetto_a_padre": {
+        "campi_aggiuntivi": [
+          {"id": "tipo_lesione", "label": "Tipo lesione", "type": "select", "options": ["micropermanente", "macropermanente", "temporanea_inabilita"]},
+          {"id": "invalidita_permanente", "label": "Invalidità permanente (%)", "type": "integer"},
+          {"id": "giorni_inabilita_temporanea", "label": "Giorni inabilità temporanea", "type": "integer"},
+          {"id": "tabelle_riferimento", "label": "Tabelle di riferimento (Milano, Roma)", "type": "select"},
+          {"id": "documentazione_medica", "label": "Documentazione medica", "type": "file_multi", "required": true},
+          {"id": "ctu_medico_legale", "label": "Richiesta CTU medico-legale", "type": "boolean", "default": true}
+        ]
+      }
+    },
+    {
+      "codice": "145003",
+      "denominazione": "Morte - responsabilità extracontrattuale",
+      "eredita_da": "145001",
+      "differenze_rispetto_a_padre": {
+        "campi_aggiuntivi": [
+          {"id": "vittima_deceduta", "label": "Vittima deceduta", "type": "object_persona", "required": true},
+          {"id": "eredi_attori", "label": "Eredi iure proprio e iure hereditatis", "type": "array_persone", "required": true},
+          {"id": "danno_iure_proprio", "label": "Danno iure proprio (parenti)", "type": "currency"},
+          {"id": "danno_iure_hereditatis", "label": "Danno iure hereditatis (vittima)", "type": "currency"}
+        ]
+      }
+    },
+    {
+      "codice": "145009",
+      "denominazione": "Azioni di competenza del Giudice di Pace",
+      "note": "Azioni di responsabilità per valore o materia di competenza GdP"
+    },
+    {
+      "codice": "145011",
+      "denominazione": "Responsabilità dei genitori, dei tutori e dei maestri (art. 2048 c.c.)",
+      "normativa": [{"fonte": "c.c.", "articolo": "2048", "descrizione": "Responsabilità dei genitori, tutori, precettori"}]
+    },
+    {
+      "codice": "145012",
+      "denominazione": "Responsabilità per l'esercizio di attività pericolose (art. 2050 c.c.)",
+      "normativa": [{"fonte": "c.c.", "articolo": "2050", "descrizione": "Attività pericolose"}]
+    },
+    {
+      "codice": "145013",
+      "denominazione": "Responsabilità ex artt. 2049 - 2051 - 2052 c.c.",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2049", "descrizione": "Responsabilità padroni e committenti"},
+        {"fonte": "c.c.", "articolo": "2051", "descrizione": "Danno cagionato da cose in custodia"},
+        {"fonte": "c.c.", "articolo": "2052", "descrizione": "Danno cagionato da animali"}
+      ]
+    },
+    {
+      "codice": "145014",
+      "denominazione": "Rovina di edificio (art. 2053 c.c.)",
+      "normativa": [{"fonte": "c.c.", "articolo": "2053", "descrizione": "Rovina di edificio"}]
+    },
+    {
+      "codice": "145021",
+      "denominazione": "Responsabilità del produttore",
+      "normativa": [
+        {"fonte": "D.Lgs. 206/2005", "articolo": "114-127", "descrizione": "Responsabilità per danno da prodotti difettosi"}
+      ]
+    },
+    {
+      "codice": "145111",
+      "denominazione": "Responsabilità civile dei magistrati (L. 117/1988)",
+      "normativa": [
+        {"fonte": "L. 117/1988", "descrizione": "Risarcimento dei danni cagionati nell'esercizio delle funzioni giudiziarie"},
+        {"fonte": "L. 18/2015", "descrizione": "Modifiche L. 117/1988"}
+      ]
+    },
+    {
+      "codice": "145999",
+      "denominazione": "Altre ipotesi di responsabilità extracontrattuale",
+      "note": "Codice residuale"
+    },
+    {
+      "codice": "146041",
+      "denominazione": "Contratti bancari cui non si applica il DL 5/2003",
+      "note": "Vecchio rito societario abrogato"
+    },
+    {
+      "codice": "146231",
+      "denominazione": "Intermediazione mobiliare cui si applica il DL 5/2003",
+      "note": "Vecchio rito societario abrogato"
+    },
+    {
+      "codice": "146232",
+      "denominazione": "Credito per le opere pubbliche",
+      "note": "Vecchio rito societario abrogato"
+    },
+    {
+      "codice": "146239",
+      "denominazione": "Altri contratti bancari e controversie",
+      "note": "Vecchio rito societario abrogato"
+    },
+    {
+      "codice": "146331",
+      "denominazione": "Pagamento di somma di danaro o consegna di cosa mobile",
+      "note": "Vecchio rito societario abrogato"
+    }
+  ]
+}

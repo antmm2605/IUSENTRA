@@ -1,0 +1,377 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "12_ESECUZIONI_FORZATE",
+  "denominazione": "Esecuzioni forzate - mobiliari, immobiliari, esattoriali, consegna e rilascio, obblighi di fare/non fare",
+  "registro": "SIECIC (Sistema Informativo Esecuzioni Civili Individuali e Concorsuali)",
+  "fonte_codici": "Tabella ministeriale codici oggetto SIECIC PNRR (Ministero della Giustizia - DGSIA)",
+  "competenza_prevalente": "Giudice dell'esecuzione del Tribunale del luogo (mobiliari: luogo cose; immobiliari: luogo immobile; presso terzi: residenza debitore esecutato)",
+  "note_aggiornamento": "Riforma Cartabia (D.Lgs. 149/2022) ha modificato significativamente la disciplina delle esecuzioni: iscrizione a ruolo telematica, termini, vendite delegate, conversione. La sigla 'post L.80' nei codici si riferisce alla L. 80/2005 di riforma esecuzioni; '_O' indica procedure pre-L.80",
+  "codici_materia": [
+    {
+      "codice": "471400",
+      "denominazione": "Procedure Concorsuali / Istanze di fallimento",
+      "categoria": "Procedure concorsuali (registro SIECIC area concorsuale)",
+      "rito": "Procedimento unitario per accesso strumenti regolazione crisi e insolvenza (artt. 40-53 CCII)",
+      "note_riforma": "Oggi: liquidazione giudiziale e altri strumenti del Codice della Crisi (D.Lgs. 14/2019, vigente dal 15/7/2022)",
+      "rinvio": "Per dettagli completi vedi kb_11_volontaria_giurisdizione_fallimentare.json codice 471401"
+    },
+    {
+      "codice": "510001",
+      "denominazione": "Espropriazione mobiliare presso il debitore (post L. 80/2005)",
+      "categoria": "Esecuzione mobiliare",
+      "rito": "Esecuzione forzata mobiliare ex artt. 513-542 c.p.c. (testo riformato L. 80/2005, L. 52/2006, Cartabia 2022)",
+      "uffici_destinatari": ["SIECIC", "UNEP"],
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "513-542", "descrizione": "Espropriazione mobiliare presso il debitore"},
+        {"fonte": "c.p.c.", "articolo": "474", "descrizione": "Titolo esecutivo"},
+        {"fonte": "c.p.c.", "articolo": "479", "descrizione": "Notificazione titolo esecutivo e precetto"},
+        {"fonte": "c.p.c.", "articolo": "480", "descrizione": "Forma del precetto"},
+        {"fonte": "c.p.c.", "articolo": "492", "descrizione": "Forma del pignoramento"},
+        {"fonte": "c.p.c.", "articolo": "518", "descrizione": "Iscrizione a ruolo - termini"}
+      ],
+      "presupposti_sostanziali": [
+        "Titolo esecutivo (sentenza, decreto ingiuntivo esecutivo, atto pubblico, scrittura privata autenticata, ecc.)",
+        "Notifica titolo esecutivo + precetto",
+        "Decorso termine minimo 10 gg dal precetto",
+        "Validità precetto: max 90 gg dalla notifica"
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_pignoramento_mobiliare_presso_debitore",
+        "denominazione": "Atto di pignoramento mobiliare presso il debitore",
+        "schema_xsd_ministeriale": "AttoEsecuzioneMobiliare.xsd",
+        "campi_chiave": [
+          {"id": "creditore_procedente", "label": "Creditore procedente", "type": "object_persona", "required": true},
+          {"id": "debitore_esecutato", "label": "Debitore esecutato", "type": "object_persona", "required": true},
+          {"id": "titolo_esecutivo", "label": "Titolo esecutivo", "type": "object", "required": true},
+          {"id": "precetto_estremi", "label": "Estremi precetto notificato", "type": "object", "required": true},
+          {"id": "data_notifica_precetto", "label": "Data notifica precetto", "type": "date", "required": true},
+          {"id": "importo_capitale", "label": "Capitale precettato", "type": "currency", "required": true},
+          {"id": "interessi", "label": "Interessi maturati e maturandi", "type": "currency"},
+          {"id": "spese_competenze", "label": "Spese e competenze", "type": "currency"},
+          {"id": "ufficiale_giudiziario_unep", "label": "UNEP destinatario", "type": "object", "required": true},
+          {"id": "luogo_pignoramento", "label": "Luogo del pignoramento", "type": "string", "required": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "Ingiunzione ex art. 492 c.p.c.",
+          "Avvertimento ex art. 492 c. 4 c.p.c. (dichiarazione residenza/elezione domicilio)",
+          "Avvertimento facoltà conversione pignoramento ex art. 495 c.p.c.",
+          "Avvertimento istanza assegnazione/vendita entro 45 gg"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "titolo_esecutivo", "label": "Titolo esecutivo in copia conforme", "required": true},
+        {"id": "precetto_notificato", "label": "Precetto notificato con relata", "required": true},
+        {"id": "procura_alle_liti", "label": "Procura alle liti", "required": true},
+        {"id": "nota_iscrizione_ruolo", "label": "Nota iscrizione a ruolo ex art. 159-ter disp.att. c.p.c.", "required": true}
+      ],
+      "termini_processuali": [
+        {"termine": "Iscrizione a ruolo del pignoramento", "giorni": 15, "decorrenza": "consegna verbale al creditore dall'UNEP", "natura": "decadenziale", "norma": "art. 518 c. 6 c.p.c."},
+        {"termine": "Validità del precetto", "giorni": 90, "decorrenza": "notifica precetto", "natura": "decadenziale", "norma": "art. 481 c.p.c."},
+        {"termine": "Istanza di vendita o assegnazione", "giorni": 45, "decorrenza": "pignoramento", "natura": "perentorio", "norma": "art. 497 c.p.c."}
+      ]
+    },
+    {
+      "codice": "510001_O",
+      "denominazione": "Espropriazione mobiliare presso il debitore (pre L. 80/2005)",
+      "eredita_da": "510001",
+      "differenze_rispetto_a_padre": {
+        "ambito_applicazione": "Procedure introdotte prima del 1/3/2006 (entrata in vigore L. 80/2005)",
+        "normativa_residuale": "Disciplina previgente del c.p.c. - ormai marginale"
+      }
+    },
+    {
+      "codice": "510002",
+      "denominazione": "Espropriazione mobiliare presso terzi (post L. 80/2005)",
+      "categoria": "Esecuzione presso terzi",
+      "rito": "Espropriazione presso terzi ex artt. 543-554 c.p.c.",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "543", "descrizione": "Forma del pignoramento"},
+        {"fonte": "c.p.c.", "articolo": "545", "descrizione": "Limiti di pignorabilità (stipendi, pensioni)"},
+        {"fonte": "c.p.c.", "articolo": "547", "descrizione": "Dichiarazione del terzo"},
+        {"fonte": "c.p.c.", "articolo": "548", "descrizione": "Mancata dichiarazione del terzo"},
+        {"fonte": "c.p.c.", "articolo": "549", "descrizione": "Contestazione della dichiarazione del terzo"},
+        {"fonte": "c.p.c.", "articolo": "553", "descrizione": "Assegnazione"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_pignoramento_presso_terzi",
+        "denominazione": "Atto di pignoramento presso terzi",
+        "campi_chiave": [
+          {"id": "creditore", "label": "Creditore procedente", "type": "object_persona", "required": true},
+          {"id": "debitore_esecutato", "label": "Debitore esecutato", "type": "object_persona", "required": true},
+          {"id": "terzo_pignorato", "label": "Terzo pignorato (banca, datore di lavoro, ente)", "type": "object_persona_giuridica", "required": true},
+          {"id": "tipo_credito_pignorato", "label": "Tipo credito/somma da pignorare", "type": "select", "required": true, "options": ["stipendio", "pensione", "conto_corrente", "credito_da_fornitura", "tfr", "indennita", "altri_crediti"]},
+          {"id": "titolo_esecutivo", "label": "Titolo esecutivo", "type": "object", "required": true},
+          {"id": "importo_pignorato", "label": "Importo da pignorare", "type": "currency", "required": true},
+          {"id": "udienza_dichiarazione_terzo", "label": "Udienza fissata per dichiarazione del terzo", "type": "date", "required": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "Ingiunzione al terzo di rendere dichiarazione ex art. 547 c.p.c. (entro 10 gg)",
+          "Avvertimento al debitore ex art. 543 c. 2 n. 4 c.p.c.",
+          "Limiti pignorabilità ex art. 545 c.p.c. (stipendi: 1/5 ordinario; pensioni: minimo vitale escluso)"
+        ]
+      },
+      "termini_processuali": [
+        {"termine": "Dichiarazione del terzo", "giorni": 10, "decorrenza": "notifica atto pignoramento", "natura": "perentorio", "norma": "art. 543 c. 4 c.p.c."},
+        {"termine": "Iscrizione ruolo dopo notifica al terzo", "giorni": 30, "decorrenza": "consegna ai destinatari", "natura": "decadenziale", "norma": "art. 543 c. 5 c.p.c."}
+      ]
+    },
+    {
+      "codice": "510002_O",
+      "denominazione": "Espropriazione mobiliare presso terzi (pre L. 80/2005)",
+      "eredita_da": "510002",
+      "differenze_rispetto_a_padre": {"ambito_applicazione": "Procedure ante 1/3/2006"}
+    },
+    {
+      "codice": "510011",
+      "denominazione": "Conversione del sequestro in pignoramento (mobiliare)",
+      "categoria": "Conversione sequestro-pignoramento",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "686", "descrizione": "Conversione del sequestro conservativo in pignoramento"}
+      ],
+      "presupposti_sostanziali": [
+        "Sequestro conservativo eseguito",
+        "Sentenza di condanna del giudizio di merito (anche non definitiva)",
+        "Domanda del creditore"
+      ],
+      "atto_principale": {
+        "tipo_atto": "istanza_conversione_sequestro_pignoramento",
+        "campi_chiave": [
+          {"id": "sequestro_estremi", "label": "Estremi sequestro conservativo", "type": "object", "required": true},
+          {"id": "sentenza_titolo", "label": "Sentenza/titolo esecutivo", "type": "object", "required": true},
+          {"id": "beni_oggetto", "label": "Beni oggetto del sequestro/pignoramento", "type": "array", "required": true}
+        ]
+      }
+    },
+    {
+      "codice": "511010",
+      "denominazione": "Istanza di rifissazione dello sfratto ex art. 6 L. 431/1998",
+      "categoria": "Sfratto - istanza fase esecutiva",
+      "rinvio": "Per dettagli completi vedi legal_knowledge_base.json codice 511010"
+    },
+    {
+      "codice": "511011",
+      "denominazione": "Istanza di decadenza dalla sospensione dello sfratto ex art. 6 L. 431/1998",
+      "categoria": "Sfratto - istanza decadenza sospensione",
+      "rinvio": "Per dettagli completi vedi legal_knowledge_base.json codice 511011"
+    },
+    {
+      "codice": "511012",
+      "denominazione": "Esecuzione ex artt. 605-611 c.p.c. (consegna o rilascio)",
+      "categoria": "Esecuzione in forma specifica - obblighi di consegna/rilascio",
+      "rito": "Procedura ex artt. 605-611 c.p.c.",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "605-611", "descrizione": "Esecuzione per consegna o rilascio"},
+        {"fonte": "c.p.c.", "articolo": "608", "descrizione": "Modo dell'esecuzione - preavviso"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "preavviso_rilascio_o_consegna",
+        "denominazione": "Preavviso di rilascio o consegna ex art. 608 c.p.c.",
+        "campi_chiave": [
+          {"id": "creditore", "label": "Creditore procedente", "type": "object_persona", "required": true},
+          {"id": "debitore", "label": "Debitore (detentore/possessore)", "type": "object_persona", "required": true},
+          {"id": "bene_da_rilasciare_consegnare", "label": "Bene oggetto (immobile/cosa mobile)", "type": "object", "required": true},
+          {"id": "titolo_esecutivo", "label": "Titolo esecutivo (ordinanza convalida sfratto, sentenza, decreto ingiuntivo, ecc.)", "type": "object", "required": true},
+          {"id": "data_accesso_unep", "label": "Data accesso UNEP", "type": "date", "required": true},
+          {"id": "ora_accesso", "label": "Ora accesso", "type": "time", "required": true}
+        ],
+        "avvertimenti_obbligatori": ["Preavviso almeno 10 gg ex art. 608 c. 1 c.p.c."]
+      },
+      "termini_processuali": [
+        {"termine": "Preavviso", "giorni": 10, "decorrenza": "notifica preavviso", "natura": "minimo legale", "norma": "art. 608 c.p.c."}
+      ]
+    },
+    {
+      "codice": "511999",
+      "denominazione": "Altre ipotesi (esecuzioni mobiliari)",
+      "categoria": "Esecuzione mobiliare - residuale",
+      "casistica": [
+        "Istanze al G.E. su procedure mobiliari residuali",
+        "Distribuzioni residuali",
+        "Procedimenti di chiusura anticipata",
+        "Riassegnazioni"
+      ]
+    },
+    {
+      "codice": "512020",
+      "denominazione": "Esecuzione forzata di obblighi di fare e di non fare",
+      "categoria": "Esecuzione in forma specifica - obblighi fare/non fare",
+      "rito": "Esecuzione ex artt. 612-614 c.p.c.",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "612-614", "descrizione": "Esecuzione forzata degli obblighi di fare e di non fare"},
+        {"fonte": "c.p.c.", "articolo": "614-bis", "descrizione": "Misure di coercizione indiretta (astreintes)"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_esecuzione_obblighi_fare_non_fare",
+        "campi_chiave": [
+          {"id": "creditore", "label": "Creditore procedente", "type": "object_persona", "required": true},
+          {"id": "debitore", "label": "Debitore obbligato", "type": "object_persona", "required": true},
+          {"id": "obbligo_inadempiuto", "label": "Obbligo di fare/non fare inadempiuto", "type": "textarea", "required": true},
+          {"id": "titolo_esecutivo", "label": "Titolo esecutivo", "type": "object", "required": true},
+          {"id": "modalita_attuazione", "label": "Modalità di attuazione proposta", "type": "textarea", "required": true},
+          {"id": "richiesta_astreintes", "label": "Richiesta penalità ex art. 614-bis c.p.c.", "type": "boolean"}
+        ]
+      }
+    },
+    {
+      "codice": "520005",
+      "denominazione": "Esecuzione esattoriale mobiliare",
+      "categoria": "Riscossione coattiva mobiliare",
+      "rito": "D.P.R. 602/1973 (riscossione esattoriale)",
+      "normativa": [
+        {"fonte": "D.P.R. 602/1973", "articolo": "62-85", "descrizione": "Espropriazione mobiliare presso il debitore - riscossione esattoriale"},
+        {"fonte": "D.Lgs. 46/1999", "descrizione": "Riordino della disciplina della riscossione"}
+      ],
+      "note": "Procedura speciale gestita da Agenzia delle Entrate-Riscossione. Le opposizioni seguono regole specifiche (art. 57 D.P.R. 602/73)"
+    },
+    {
+      "codice": "520006",
+      "denominazione": "Esecuzione esattoriale mobiliare presso terzi",
+      "eredita_da": "520005",
+      "differenze_rispetto_a_padre": {
+        "normativa_principale": [{"fonte": "D.P.R. 602/1973", "articolo": "72-bis - 72-ter", "descrizione": "Pignoramento presso terzi esattoriale (ad esempio art. 72-bis: pignoramento stipendi/pensioni)"}],
+        "particolarita": "Procedura amministrativa diretta (notifica al terzo senza ricorso al giudice; il terzo è tenuto al versamento diretto all'agente della riscossione)"
+      }
+    },
+    {
+      "codice": "610001",
+      "denominazione": "Espropriazione immobiliare (post L. 80/2005)",
+      "categoria": "Esecuzione immobiliare",
+      "rito": "Espropriazione immobiliare ex artt. 555-598 c.p.c.",
+      "uffici_destinatari": ["SIECIC", "UNEP", "CONSERVATORIA"],
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "555-598", "descrizione": "Espropriazione immobiliare"},
+        {"fonte": "c.p.c.", "articolo": "555", "descrizione": "Forma del pignoramento"},
+        {"fonte": "c.p.c.", "articolo": "557", "descrizione": "Trascrizione del pignoramento"},
+        {"fonte": "c.p.c.", "articolo": "567", "descrizione": "Istanza di vendita - documentazione ipocatastale"},
+        {"fonte": "c.p.c.", "articolo": "569", "descrizione": "Udienza di comparizione delle parti"},
+        {"fonte": "c.p.c.", "articolo": "591-bis", "descrizione": "Vendita delegata al professionista"},
+        {"fonte": "disp.att. c.p.c.", "articolo": "173-bis", "descrizione": "Compiti del custode"},
+        {"fonte": "disp.att. c.p.c.", "articolo": "161-quater", "descrizione": "Portale Vendite Pubbliche (PVP)"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_pignoramento_immobiliare",
+        "denominazione": "Atto di pignoramento immobiliare",
+        "schema_xsd_ministeriale": "AttoEsecuzioneImmobiliare.xsd",
+        "campi_chiave": [
+          {"id": "creditore", "label": "Creditore procedente", "type": "object_persona", "required": true},
+          {"id": "debitore_esecutato", "label": "Debitore esecutato", "type": "object_persona", "required": true},
+          {"id": "immobile_pignorato", "label": "Immobile (dati catastali completi, descrizione, ubicazione, confini)", "type": "object_immobile", "required": true},
+          {"id": "quota_pignorata", "label": "Quota pignorata (es. 1/1 o frazione)", "type": "string", "required": true},
+          {"id": "titolo_esecutivo", "label": "Titolo esecutivo", "type": "object", "required": true},
+          {"id": "precetto_estremi", "label": "Estremi precetto", "type": "object", "required": true},
+          {"id": "importo_complessivo", "label": "Importo complessivo precettato", "type": "currency", "required": true},
+          {"id": "nota_trascrizione_estremi", "label": "Estremi nota trascrizione presso Conservatoria", "type": "object", "required": true},
+          {"id": "data_trascrizione", "label": "Data trascrizione pignoramento", "type": "date", "required": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "Ingiunzione ex art. 492 c.p.c.",
+          "Avvertimento conservazione bene fino alla vendita",
+          "Avvertimento ex art. 559 c.p.c. (custodia)",
+          "Avvertimento facoltà conversione ex art. 495 c.p.c."
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "titolo_esecutivo", "label": "Titolo esecutivo in copia conforme", "required": true},
+        {"id": "precetto_notificato", "label": "Precetto notificato con relata", "required": true},
+        {"id": "nota_trascrizione_pignoramento", "label": "Nota trascrizione pignoramento presso Conservatoria", "required": true},
+        {"id": "estratto_catastale", "label": "Estratto catastale aggiornato", "required": true},
+        {"id": "documentazione_ipocatastale_art_567", "label": "Documentazione ipotecaria e catastale ex art. 567 c.p.c. (entro 60 gg da istanza vendita): atto di provenienza ventennale + ispezione ipotecaria ventennale + visure aggiornate + certificato destinazione urbanistica + APE", "required": true}
+      ],
+      "termini_processuali": [
+        {"termine": "Trascrizione del pignoramento", "giorni": 15, "decorrenza": "consegna ai destinatari", "natura": "perentorio", "norma": "art. 555 c. 3 c.p.c."},
+        {"termine": "Iscrizione a ruolo", "giorni": 15, "decorrenza": "restituzione titolo esecutivo trascritto al creditore", "natura": "decadenziale", "norma": "art. 557 c.p.c."},
+        {"termine": "Istanza di vendita", "giorni": 45, "decorrenza": "trascrizione pignoramento", "natura": "perentorio (con possibilità sospensione)", "norma": "art. 497 c.p.c."},
+        {"termine": "Documentazione ipocatastale ex art. 567", "giorni": 60, "decorrenza": "istanza vendita", "natura": "perentorio (prorogabile 120 gg)", "norma": "art. 567 c. 2 c.p.c."}
+      ]
+    },
+    {
+      "codice": "610001_O",
+      "denominazione": "Espropriazione immobiliare (pre L. 80/2005)",
+      "eredita_da": "610001",
+      "differenze_rispetto_a_padre": {"ambito_applicazione": "Procedure ante 1/3/2006 (ormai residuali)"}
+    },
+    {
+      "codice": "610011",
+      "denominazione": "Conversione del sequestro in pignoramento (immobiliare)",
+      "categoria": "Conversione sequestro-pignoramento immobiliare",
+      "eredita_da": "510011",
+      "differenze_rispetto_a_padre": {
+        "campi_aggiuntivi": [
+          {"id": "immobile_sequestrato", "label": "Immobile oggetto sequestro", "type": "object_immobile", "required": true},
+          {"id": "trascrizione_sequestro", "label": "Estremi trascrizione sequestro", "type": "object", "required": true}
+        ]
+      }
+    },
+    {
+      "codice": "620001",
+      "denominazione": "Esecuzione esattoriale immobiliare",
+      "categoria": "Riscossione coattiva immobiliare",
+      "rito": "D.P.R. 602/1973 (riscossione esattoriale) - artt. 76-86",
+      "normativa": [
+        {"fonte": "D.P.R. 602/1973", "articolo": "76", "descrizione": "Espropriazione immobiliare - limiti (impignorabilità prima casa per debiti tributari)"},
+        {"fonte": "D.P.R. 602/1973", "articolo": "77", "descrizione": "Iscrizione ipoteca"},
+        {"fonte": "D.P.R. 602/1973", "articolo": "78-86", "descrizione": "Procedura espropriativa esattoriale"}
+      ],
+      "note_importante": "Art. 76 D.P.R. 602/73: impignorabilità immobile adibito ad abitazione principale del debitore se unico immobile di proprietà e non di lusso, per debiti tributari verso Agenzia Entrate-Riscossione"
+    }
+  ],
+  "atti_collegati_al_giudice_esecuzione": {
+    "descrizione": "Procedimenti accessori e incidentali nelle esecuzioni - non hanno autonomo codice oggetto SIECIC ma sono atti del processo esecutivo principale",
+    "tipologie": [
+      {
+        "atto": "Istanza di assegnazione",
+        "norma": "art. 525, 553 c.p.c.",
+        "descrizione": "Richiesta del creditore di assegnazione del bene/credito in pagamento"
+      },
+      {
+        "atto": "Istanza di vendita",
+        "norma": "art. 497, 503 c.p.c.",
+        "descrizione": "Richiesta vendita forzata"
+      },
+      {
+        "atto": "Istanza di conversione ex art. 495 c.p.c.",
+        "norma": "art. 495 c.p.c.",
+        "descrizione": "Sostituzione bene pignorato con somma di denaro (min 1/6 del credito, pagabile in max 48 rate)"
+      },
+      {
+        "atto": "Istanza di riduzione del pignoramento",
+        "norma": "art. 496 c.p.c."
+      },
+      {
+        "atto": "Istanza di sospensione",
+        "norma": "art. 624, 624-bis c.p.c.",
+        "descrizione": "Sospensione del processo esecutivo (anche con accordo creditore/debitore ex 624-bis)"
+      },
+      {
+        "atto": "Intervento di creditori",
+        "norma": "artt. 498-500, 525-526, 564-566 c.p.c."
+      },
+      {
+        "atto": "Progetto di distribuzione e contestazioni",
+        "norma": "artt. 510-512, 596-598 c.p.c."
+      },
+      {
+        "atto": "Istanza di ricerca telematica beni",
+        "norma": "art. 492-bis c.p.c.",
+        "codice_corte_appello_correlato": "401003",
+        "descrizione": "Ricerca con modalità telematiche dei beni da pignorare (accesso UNEP a anagrafe tributaria, Agenzia Entrate, PRA, INPS, ecc.)"
+      },
+      {
+        "atto": "Avviso di vendita e pubblicità",
+        "norma": "art. 490 c.p.c., 161-quater disp.att. c.p.c.",
+        "piattaforma": "Portale Vendite Pubbliche (PVP)"
+      },
+      {
+        "atto": "Decreto di trasferimento",
+        "norma": "art. 586 c.p.c.",
+        "descrizione": "Trasferimento del bene immobile all'aggiudicatario - titolo per la trascrizione"
+      },
+      {
+        "atto": "Reclamo al collegio ex art. 591-ter c.p.c.",
+        "norma": "art. 591-ter c.p.c.",
+        "descrizione": "Reclamo contro atti del professionista delegato alla vendita"
+      }
+    ]
+  },
+  "note_opposizioni_esecutive": "Le opposizioni esecutive (art. 615, 617, 619 c.p.c.) hanno codici SICID dedicati nella macro-area 02: vedi kb_02_opposizioni_impugnazioni.json codici 100001, 100011, 100012, 100019, 100021, 100022, 100031, 100032, 100039, 100041"
+}

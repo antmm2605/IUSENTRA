@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from functools import lru_cache
 import json
+from json import JSONDecodeError
 from pathlib import Path
+import re
 from typing import Any
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
@@ -25,8 +27,13 @@ def load_pratiche_collegate_catalog() -> dict[str, Any]:
 
 @lru_cache(maxsize=1)
 def load_codici_oggetto_pst_catalog() -> dict[str, Any]:
+    if not CODICI_OGGETTO_PST_PATH.exists() or CODICI_OGGETTO_PST_PATH.stat().st_size == 0:
+        return {}
     with CODICI_OGGETTO_PST_PATH.open("r", encoding="utf-8") as handle:
-        payload = json.load(handle)
+        try:
+            payload = json.load(handle)
+        except JSONDecodeError:
+            return {}
     return payload if isinstance(payload, dict) else {}
 
 
@@ -124,7 +131,12 @@ def codice_oggetto_pst_entry(codice: Any) -> dict[str, str] | None:
 
 def looks_like_codice_oggetto_pst(value: Any) -> bool:
     testo = _text(value)
-    return testo.isdigit() and 3 <= len(testo) <= 8
+    if testo.isdigit() and 3 <= len(testo) <= 8:
+        return True
+    # I codici ufficiali alfanumerici del catalogo PST/XSD sono compatti
+    # (es. B02001, C01002). Gli alias interni con underscore non sono
+    # codici di deposito e devono restare fuori da questa euristica.
+    return bool(re.fullmatch(r"[A-Z]\d{5}", testo.upper()))
 
 
 def resolve_codice_oggetto_pst_payload(*candidates: Any) -> dict[str, str]:

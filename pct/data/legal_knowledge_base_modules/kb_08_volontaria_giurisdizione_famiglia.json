@@ -1,0 +1,384 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "08_VOLONTARIA_GIURISDIZIONE_FAMIGLIA_PERSONE_MINORI",
+  "denominazione": "Volontaria giurisdizione - famiglia, persone, minori, tutele",
+  "registro": "SIVG (Volontaria Giurisdizione)",
+  "rito_prevalente": "Procedimento in camera di consiglio ex artt. 737-742-bis c.p.c.",
+  "note_aggiornamento": "Riforma Cartabia (D.Lgs. 149/2022): rito unificato per persone, minorenni e famiglie ex art. 473-bis c.p.c.; istituzione del Tribunale per le persone, per i minorenni e per le famiglie (operativo dal 17/10/2024)",
+  "codici_materia": [
+    {"codice": "400000", "denominazione": "Iscrizione Registro Stampa", "categoria": "Registri pubblici", "normativa": [{"fonte": "L. 47/1948", "descrizione": "Disposizioni sulla stampa"}]},
+    {"codice": "400100", "denominazione": "Reclamo avverso decreto inammissibilità responsabilità civile magistrati", "note": "Codice non più valido (art. 5 L. 117/1988 abrogato)"},
+    {
+      "codice": "400201",
+      "denominazione": "Ricorso contro il decreto di espulsione (art. 13 D.Lgs. 286/98)",
+      "categoria": "Immigrazione",
+      "normativa": [
+        {"fonte": "D.Lgs. 286/1998", "articolo": "13", "descrizione": "Espulsione amministrativa"}
+      ]
+    },
+    {"codice": "400202", "denominazione": "Procedimento di convalida (art. 14 D.Lgs. 286/98)", "categoria": "Immigrazione - convalida trattenimento"},
+    {"codice": "400203", "denominazione": "Ricongiungimento familiare (art. 30)", "note": "Codice non più valido (materia migrata al contenzioso da ott. 2011)"},
+    {"codice": "400204", "denominazione": "Atti discriminatori (artt. 43-44 D.Lgs. 286/98)", "note": "Codice non più valido (materia migrata al contenzioso)"},
+    {"codice": "400205", "denominazione": "Convalida del Provvedimento del questore di accompagnamento alla frontiera (art. 13 c. 5-bis)"},
+    {"codice": "400206", "denominazione": "Convalida Provvedimento questore accompagnamento frontiera e trattenimento (art. 13 c. 5-bis e art. 14 c. 4)"},
+    {
+      "codice": "400209",
+      "denominazione": "Altri procedimenti in materia di espulsione immigrati",
+      "categoria": "Immigrazione - residuale"
+    },
+    {"codice": "400210", "denominazione": "Ricorso per la liquidazione degli onorari e dei diritti dell'avvocato (L. 794/42)", "note": "Materia oggi passata al contenzioso (D.Lgs. 150/2011 art. 14)"},
+    {"codice": "400211", "denominazione": "Ricorso avverso decreto di liquidazione compensi agli ausiliari del magistrato", "note": "Codice non più valido"},
+    {"codice": "400212", "denominazione": "Iscrizione Albo consulenti"},
+    {
+      "codice": "400220",
+      "denominazione": "Dichiarazione di assenza o di morte presunta (COLLEGIO)",
+      "categoria": "Stato delle persone",
+      "rito": "Camera di consiglio collegiale",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "48-58", "descrizione": "Assenza"},
+        {"fonte": "c.c.", "articolo": "58-73", "descrizione": "Morte presunta"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_assenza_morte_presunta",
+        "campi_chiave": [
+          {"id": "scomparso", "label": "Dati scomparso", "type": "object_persona", "required": true},
+          {"id": "data_ultime_notizie", "label": "Data ultime notizie", "type": "date", "required": true},
+          {"id": "tipo_dichiarazione", "label": "Tipo dichiarazione richiesta", "type": "select", "required": true, "options": ["assenza_2_anni", "morte_presunta_10_anni", "morte_presunta_circostanze_speciali"]},
+          {"id": "legittimazione_attiva", "label": "Legittimazione attiva", "type": "select", "required": true, "options": ["coniuge", "discendente", "ascendente", "presunto_erede", "pubblico_ministero"]}
+        ]
+      }
+    },
+    {"codice": "400230", "denominazione": "Autorizzazione del Tribunale ex art. 375 e 397 c.c. (COLLEGIO)", "normativa": [{"fonte": "c.c.", "articolo": "375", "descrizione": "Autorizzazione del tribunale per atti del tutore"}]},
+    {
+      "codice": "400240",
+      "denominazione": "Stato civile (rettifica del nome e altri atti dello Stato civile)",
+      "categoria": "Stato civile",
+      "normativa": [
+        {"fonte": "D.P.R. 396/2000", "articolo": "95-100", "descrizione": "Rettificazione atti dello stato civile"},
+        {"fonte": "c.c.", "articolo": "454", "descrizione": "Rettificazione"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_rettifica_stato_civile",
+        "campi_chiave": [
+          {"id": "atto_da_rettificare", "label": "Atto da rettificare", "type": "object", "required": true},
+          {"id": "tipo_rettifica", "label": "Tipo rettifica", "type": "select", "required": true, "options": ["nome", "cognome", "data_nascita", "luogo_nascita", "genitori", "altro"]},
+          {"id": "motivazione", "label": "Motivazione rettifica", "type": "textarea", "required": true}
+        ]
+      }
+    },
+    {
+      "codice": "400250",
+      "denominazione": "Procedimento ammissione patrocinio a spese dello Stato (civile) - art. 126 D.P.R. 115/2002",
+      "categoria": "Patrocinio a spese dello Stato",
+      "normativa": [
+        {"fonte": "D.P.R. 115/2002", "articolo": "74-141", "descrizione": "Patrocinio a spese dello Stato"}
+      ]
+    },
+    {"codice": "400251", "denominazione": "Procedimento ammissione patrocinio a spese dello Stato (penale) - art. 99 D.P.R. 115/2002"},
+    {"codice": "400260", "denominazione": "Ammortamento titoli", "normativa": [{"fonte": "c.c.", "articolo": "2016", "descrizione": "Ammortamento titoli all'ordine"}]},
+    {
+      "codice": "400270",
+      "denominazione": "Nomina di amministratore della comunione (art. 1105 c.c.) (COLLEGIO)",
+      "normativa": [{"fonte": "c.c.", "articolo": "1105", "descrizione": "Amministrazione della comunione"}]
+    },
+    {
+      "codice": "400271",
+      "denominazione": "Nomina di amministratore di condominio (art. 1129 c.c.)",
+      "categoria": "Condominio - nomina amministratore",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1129", "descrizione": "Nomina, revoca e obblighi dell'amministratore"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_nomina_amministratore_condominio",
+        "campi_chiave": [
+          {"id": "condominio", "label": "Condominio", "type": "object", "required": true},
+          {"id": "ricorrente", "label": "Condomino ricorrente", "type": "object_persona", "required": true},
+          {"id": "presupposto", "label": "Presupposto (mancata nomina assembleare, assemblea non convocata)", "type": "select", "required": true},
+          {"id": "candidato_amministratore", "label": "Candidato amministratore proposto", "type": "object_persona"}
+        ]
+      }
+    },
+    {
+      "codice": "400272",
+      "denominazione": "Revoca di amministratore di comunione o condominio (artt. 1105, 1129 c. 3 c.c.)",
+      "categoria": "Condominio - revoca amministratore",
+      "normativa": [{"fonte": "c.c.", "articolo": "1129 c. 11-13", "descrizione": "Revoca giudiziale"}]
+    },
+    {"codice": "400280", "denominazione": "Nomina degli arbitri (art. 810 c.p.c.)", "normativa": [{"fonte": "c.p.c.", "articolo": "810", "descrizione": "Nomina arbitri"}]},
+    {"codice": "400281", "denominazione": "Liquidazione delle spese e dell'onorario dell'arbitro (art. 814 c.p.c.)"},
+    {"codice": "400282", "denominazione": "Dichiarazione di esecutività del lodo arbitrale (art. 825 c.p.c.)"},
+    {"codice": "400290", "denominazione": "Svincolo indennità L. 686/1926 e L. 2359/1865", "note": "Codice non più valido (articoli abrogati)"},
+    {"codice": "400300", "denominazione": "Ricevimento e verbalizzazione di dichiarazione giurata"},
+    {"codice": "400310", "denominazione": "Apertura forzata di cassetta di sicurezza (art. 1841 c.c.)"},
+    {"codice": "400320", "denominazione": "Ricorso avverso provvedimenti C.R.A. (art. 7 L. 443/85)"},
+    {"codice": "400330", "denominazione": "N.O. trapianto tra viventi (art. 2 L. 458/1967)", "normativa": [{"fonte": "L. 458/1967", "articolo": "2", "descrizione": "Trapianto rene tra viventi"}]},
+    {
+      "codice": "400400",
+      "denominazione": "Procedimento disciplinare contro notaio (COLLEGIO)",
+      "categoria": "Notai - disciplina",
+      "normativa": [
+        {"fonte": "L. 89/1913", "articolo": "vari", "descrizione": "Ordinamento del notariato"},
+        {"fonte": "D.Lgs. 249/2006", "descrizione": "Disciplina sanzionatoria notai"}
+      ]
+    },
+    {"codice": "400401", "denominazione": "Idoneità cauzione notarile (art. 22 L. 89/1913)"},
+    {"codice": "400402", "denominazione": "Nomina interprete per sordomuti (artt. 56-57 L. 89/1913)"},
+    {
+      "codice": "400410",
+      "denominazione": "Procedimenti relativi agli ordini professionali (iscrizione, elezione, impugnazione)",
+      "categoria": "Ordini professionali"
+    },
+    {
+      "codice": "400510",
+      "denominazione": "Cancellazione di nome dall'elenco dei protesti (art. 12 L. 349/1973)",
+      "categoria": "Protesti",
+      "normativa": [
+        {"fonte": "L. 349/1973", "articolo": "12", "descrizione": "Cancellazione dai pubblici registri"}
+      ]
+    },
+    {"codice": "400511", "denominazione": "Disposizioni in materia di riabilitazione civile del debitore protestato"},
+    {
+      "codice": "400610",
+      "denominazione": "Reclamo avverso il rifiuto del conservatore di procedere alla cancellazione ipotecaria",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2884", "descrizione": "Procedimento di cancellazione"},
+        {"fonte": "c.c.", "articolo": "2888", "descrizione": "Rifiuto del conservatore"}
+      ]
+    },
+    {"codice": "400710", "denominazione": "Impugnazione ex lege sulla privacy (L. 675/1996)", "note": "Materia oggi: art. 152 D.Lgs. 196/2003 + art. 10 D.Lgs. 150/2011 - migrata al contenzioso"},
+    {"codice": "400711", "denominazione": "Opposizione al provvedimento del Garante per la privacy"},
+    {"codice": "400801", "denominazione": "Titolo legale per successioni aperte in Italia (depositi Cassa Dep./Prest.)"},
+    {"codice": "400802", "denominazione": "Richiesta doc. per successione aperta in Italia in titoli del debito pubblico"},
+    {"codice": "400999", "denominazione": "Altri istituti camerali e di volontaria giurisdizione", "note": "Codice residuale"},
+    {"codice": "401001", "denominazione": "Notificazione per i pubblici proclami (art. 150 c.p.c.)", "normativa": [{"fonte": "c.p.c.", "articolo": "150", "descrizione": "Notificazione per pubblici proclami"}]},
+    {"codice": "401002", "denominazione": "Rilascio seconda copia esecutiva (art. 476 c.p.c.)", "normativa": [{"fonte": "c.p.c.", "articolo": "476", "descrizione": "Seconda copia esecutiva"}]},
+    {"codice": "406001", "denominazione": "Attuazione sentenze/provv. stranieri, autorizz. assunzioni rogatorie (artt. 67-69 L. 218/95)", "categoria": "Cooperazione giudiziaria internazionale"},
+    {"codice": "406100", "denominazione": "Iscrizione albo liquidatori di avaria"},
+    {"codice": "406200", "denominazione": "Sanzioni amministrative comminate dalla Banca d'Italia (art. 145 D.Lgs. 385/93)", "normativa": [{"fonte": "D.Lgs. 385/1993 (TUB)", "articolo": "145", "descrizione": "Procedura sanzionatoria"}]},
+    {"codice": "406210", "denominazione": "Sanzioni amministrative comminate dalla Consob (D.Lgs. 58/98)", "normativa": [{"fonte": "D.Lgs. 58/1998 (TUF)", "articolo": "195", "descrizione": "Procedura sanzionatoria"}]},
+    {"codice": "406220", "denominazione": "Azioni di nullità, risarcimento danno e provv. urgenza legge antitrust"},
+    {
+      "codice": "406300",
+      "denominazione": "Dichiarazione di esecutività decisioni straniere in materia civile e commerciale (Reg. CE 44/01, oggi Reg. UE 1215/2012)",
+      "categoria": "Esecuzione decisioni straniere",
+      "normativa": [
+        {"fonte": "Reg. UE 1215/2012 (Bruxelles I-bis)", "descrizione": "Competenza giurisdizionale e riconoscimento decisioni"}
+      ]
+    },
+    {"codice": "406301", "denominazione": "Esecutorietà lodo arbitrale straniero (Provv. Presidenziale)"},
+    {"codice": "406302", "denominazione": "Trasmissione in forma autentica sentenze in forza della convenzione con RSM"},
+    {"codice": "406303", "denominazione": "Dichiar. esecutività decisioni in materia matrim. e di potestà (Reg. CE 1347/2000, oggi Reg. UE 2019/1111 Bruxelles II-ter)"},
+    {
+      "codice": "406401",
+      "denominazione": "Equa riparazione per violazione del termine ragionevole del processo (L. 89/2001)",
+      "categoria": "Legge Pinto - equa riparazione",
+      "competenza": "Corte d'Appello",
+      "normativa": [
+        {"fonte": "L. 89/2001", "descrizione": "Legge Pinto - equa riparazione"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_equa_riparazione_legge_pinto",
+        "campi_chiave": [
+          {"id": "processo_irragionevole", "label": "Processo irragionevole (estremi)", "type": "object", "required": true},
+          {"id": "durata_processo", "label": "Durata processo (anni)", "type": "string", "required": true},
+          {"id": "termine_ragionevole_superato", "label": "Termine ragionevole superato (3 anni primo grado, 2 anni appello, 1 anno cassazione)", "type": "string"},
+          {"id": "indennizzo_richiesto", "label": "Indennizzo richiesto", "type": "currency", "required": true},
+          {"id": "rimedio_preventivo", "label": "Rimedio preventivo esperito (per processi post 31/10/2016)", "type": "boolean"}
+        ]
+      },
+      "termini_processuali": [
+        {"termine": "Ricorso", "giorni": 180, "decorrenza": "definitivita decisione conclusiva", "natura": "decadenziale", "norma": "art. 4 L. 89/2001"}
+      ]
+    },
+    {"codice": "406801", "denominazione": "Titolo legale per successioni aperte in Italia (depositi Cassa Dep./Prest.)"},
+    {"codice": "406802", "denominazione": "Richiesta doc. per la successione aperta all'estero (titoli debito pubblico)"},
+    {"codice": "406999", "denominazione": "Altri istituti di competenza della Corte di Appello in 1° grado"},
+    {
+      "codice": "411001",
+      "denominazione": "Misure di protezione contro gli abusi familiari (art. 342-bis c.c. e D.L. 154/2001)",
+      "categoria": "Tutela vittime violenza domestica",
+      "rito": "Procedimento ex artt. 736-bis c.p.c. (rito camera consiglio speciale) - post-Cartabia rito unificato",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "342-bis - 342-ter", "descrizione": "Ordini di protezione contro abusi familiari"},
+        {"fonte": "c.p.c.", "articolo": "736-bis", "descrizione": "Procedimento (pre-Cartabia)"},
+        {"fonte": "c.p.c.", "articolo": "473-bis.69 - 473-bis.71", "descrizione": "Procedimento post-Cartabia"},
+        {"fonte": "L. 154/2001", "descrizione": "Misure contro la violenza nelle relazioni familiari"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_ordine_protezione_abusi_familiari",
+        "campi_chiave": [
+          {"id": "ricorrente_vittima", "label": "Vittima ricorrente", "type": "object_persona", "required": true},
+          {"id": "autore_abusi", "label": "Autore degli abusi (familiare/convivente)", "type": "object_persona", "required": true},
+          {"id": "rapporto_familiare", "label": "Rapporto familiare/convivenza", "type": "select", "required": true},
+          {"id": "fatti_abuso", "label": "Descrizione fatti di abuso", "type": "textarea", "required": true},
+          {"id": "misure_richieste", "label": "Misure richieste", "type": "select_multi", "required": true, "options": ["allontanamento_casa_familiare", "divieto_avvicinamento", "divieto_frequentazione_luoghi", "pagamento_assegno_mantenimento", "intervento_servizi_sociali"]},
+          {"id": "minori_coinvolti", "label": "Minori presenti nel nucleo familiare", "type": "array_persone"},
+          {"id": "richiesta_inaudita", "label": "Richiesta inaudita altera parte (urgenza)", "type": "boolean", "default": true}
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "denunce_querele", "label": "Denunce/querele penali presentate", "required": false},
+        {"id": "certificati_medici", "label": "Certificati medici da lesioni", "required": false},
+        {"id": "relazioni_servizi_sociali", "label": "Relazioni servizi sociali", "required": false}
+      ]
+    },
+    {"codice": "411510", "denominazione": "Esecutorietà sentenza Sacra Rota nullità di matrimonio - domanda congiunta"},
+    {
+      "codice": "411601",
+      "denominazione": "Modifica delle condizioni di separazione",
+      "categoria": "Modifica provvedimenti separazione/divorzio",
+      "rito": "Rito camerale ex art. 710 c.p.c. (pre-Cartabia) - oggi rito unificato art. 473-bis.29 c.p.c.",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "710", "descrizione": "Modifica condizioni separazione (testo previgente Cartabia)"},
+        {"fonte": "c.p.c.", "articolo": "473-bis.29", "descrizione": "Procedimento di modifica (post-Cartabia)"}
+      ],
+      "presupposti_sostanziali": [
+        "Sopravvenienza di fatti nuovi rispetto alla sentenza/decreto di separazione",
+        "Modifica circostanze economiche, di salute o relative ai figli"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_modifica_separazione",
+        "campi_chiave": [
+          {"id": "provvedimento_originario", "label": "Provvedimento da modificare", "type": "object", "required": true},
+          {"id": "richieste_modifica", "label": "Richieste di modifica (assegno, affidamento, casa, regime visite)", "type": "textarea", "required": true},
+          {"id": "fatti_sopravvenuti", "label": "Fatti sopravvenuti giustificativi", "type": "textarea", "required": true},
+          {"id": "documentazione_economica", "label": "Nuova documentazione economica", "type": "file_multi", "required": true}
+        ]
+      }
+    },
+    {
+      "codice": "411602",
+      "denominazione": "Modifica delle condizioni di divorzio",
+      "eredita_da": "411601",
+      "differenze_rispetto_a_padre": {
+        "normativa_principale": [
+          {"fonte": "L. 898/1970", "articolo": "9", "descrizione": "Revisione condizioni divorzio"},
+          {"fonte": "c.p.c.", "articolo": "473-bis.29", "descrizione": "Procedimento unificato post-Cartabia"}
+        ]
+      }
+    },
+    {
+      "codice": "411610",
+      "denominazione": "Attribuzione di quota di pensione e di indennità di fine rapporto lavorativo",
+      "normativa": [
+        {"fonte": "L. 898/1970", "articolo": "9 c. 3 e 12-bis", "descrizione": "Pensione di reversibilità e quota TFR del coniuge divorziato"}
+      ]
+    },
+    {"codice": "411620", "denominazione": "Adozione di maggiorenni", "normativa": [{"fonte": "c.c.", "articolo": "291-314", "descrizione": "Adozione di persone maggiori di età"}]},
+    {"codice": "411630", "denominazione": "Dichiarazione giudiziale di paternità e maternità naturale - ammissibilità", "normativa": [{"fonte": "c.c.", "articolo": "274", "descrizione": "Procedimento di ammissibilità (abrogato da L. 219/2012)"}]},
+    {
+      "codice": "411640",
+      "denominazione": "Fondo patrimoniale (artt. 167 e ss. c.c.)",
+      "normativa": [{"fonte": "c.c.", "articolo": "167-171", "descrizione": "Fondo patrimoniale"}]
+    },
+    {"codice": "411650", "denominazione": "Matrimonio (pubblicazioni matrimoniali ex artt. 93 e ss. c.c., nulla osta)", "normativa": [{"fonte": "c.c.", "articolo": "93-101", "descrizione": "Pubblicazioni matrimoniali"}]},
+    {"codice": "411660", "denominazione": "Sequestro dei beni del coniuge separato (art. 156 c.c.)", "normativa": [{"fonte": "c.c.", "articolo": "156", "descrizione": "Effetti separazione - sequestro"}]},
+    {"codice": "411999", "denominazione": "Altri istituti di V.G. e procedimenti camerali in materia di famiglia", "note": "Codice residuale famiglia VG"},
+    {
+      "codice": "412301",
+      "denominazione": "Procedimenti per la dichiarazione di adottabilità (artt. 8, 9, 11, 12 L. 184/83)",
+      "categoria": "Adozione - dichiarazione adottabilità",
+      "competenza": "Tribunale per i minorenni (oggi Tribunale persone, minorenni, famiglie)",
+      "normativa": [
+        {"fonte": "L. 184/1983", "articolo": "8-21", "descrizione": "Dichiarazione di adottabilità"}
+      ]
+    },
+    {"codice": "412302", "denominazione": "Dichiarazione di disponibilità all'adozione (art. 22 L. 184/83)"},
+    {"codice": "412303", "denominazione": "Impugnazione decreto affidamento preadottivo (art. 24 L. 184/83)"},
+    {"codice": "412304", "denominazione": "Opposizioni a dichiarazioni di adottabilità (art. 17 L. 184/83)"},
+    {"codice": "412305", "denominazione": "Adozione in casi particolari - vincolo parentela (art. 44 lett. a L. 184/83)"},
+    {"codice": "412306", "denominazione": "Adozione in casi particolari - figlio adottivo del coniuge (art. 44 lett. b L. 184/83)"},
+    {"codice": "412307", "denominazione": "Adozione in casi particolari - impossibilità affidamento preadottivo (art. 44 lett. c L. 184/83)"},
+    {"codice": "412308", "denominazione": "Idoneità all'adozione di minori stranieri (art. 30 L. 184/83)"},
+    {"codice": "412309", "denominazione": "Dichiarazione di efficacia di provvedimenti stranieri in materia di adozione"},
+    {
+      "codice": "412400",
+      "denominazione": "Affidamento minori",
+      "categoria": "Affidamento minori",
+      "rito": "Rito unificato persone e famiglia post-Cartabia",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "337-bis - 337-octies", "descrizione": "Esercizio responsabilità genitoriale a seguito separazione, divorzio, cessazione convivenza"},
+        {"fonte": "c.p.c.", "articolo": "473-bis", "descrizione": "Rito unificato"}
+      ]
+    },
+    {"codice": "412401", "denominazione": "Regolamentazione della potestà fra genitori (art. 317-bis c.c.)", "note": "Oggi: responsabilità genitoriale"},
+    {"codice": "412420", "denominazione": "Regolamentazione visite", "categoria": "Affidamento minori - regime visita"},
+    {"codice": "412501", "denominazione": "Ammissione al matrimonio del minore (art. 84 c.c.)"},
+    {"codice": "412502", "denominazione": "Assunzione del cognome del genitore da parte del figlio naturale minorenne"},
+    {"codice": "412503", "denominazione": "Procedimenti per ammissibilità azione dichiarazione giudiziale paternità", "note": "Codice non più valido (L. 219/2012)"},
+    {"codice": "412504", "denominazione": "Autorizzazione all'impugnazione di riconoscimento di paternità/maternità minori"},
+    {"codice": "412505", "denominazione": "Misure amministrative applicate ai minori (R.D.L. 1404/1934, art. 25)"},
+    {"codice": "412506", "denominazione": "Costituzione di usufrutto", "note": "In ambito minori"},
+    {"codice": "412999", "denominazione": "Altri procedimenti in materia di minori"},
+    {
+      "codice": "413001",
+      "denominazione": "Rappresentanza ed atti di amministrazione straordinaria di beni di figli minori",
+      "categoria": "Giudice tutelare - minori",
+      "competenza": "Giudice tutelare",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "320", "descrizione": "Rappresentanza ed amministrazione"},
+        {"fonte": "c.c.", "articolo": "321", "descrizione": "Nomina di un curatore speciale"}
+      ]
+    },
+    {"codice": "413002", "denominazione": "Nomina di curatore speciale (artt. 320 ult. comma e 321 c.c., art. 45 disp. att. c.c.)", "competenza": "Giudice tutelare"},
+    {"codice": "413003", "denominazione": "Vigilanza del giudice tutelare sull'osservanza delle condizioni della potestà (art. 337 c.c.)"},
+    {"codice": "413010", "denominazione": "Apertura della tutela (art. 343 c.c.)", "competenza": "Giudice tutelare", "normativa": [{"fonte": "c.c.", "articolo": "343-389", "descrizione": "Tutela dei minori"}]},
+    {"codice": "413011", "denominazione": "Provvedimenti urgenti prima dell'assunzione delle funzioni del tutore o protutore"},
+    {"codice": "413012", "denominazione": "Nomina del cancelliere o del notaio per la formazione dell'inventario (art. 363 c.c.)"},
+    {"codice": "413013", "denominazione": "Provvedimenti circa l'educazione e l'amministrazione di beni del minore (art. 371 c.c.)"},
+    {
+      "codice": "413014",
+      "denominazione": "Autorizzazioni del giudice tutelare ex artt. 372, 373, 374 c.c.",
+      "categoria": "Autorizzazioni atti del tutore",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "372-376", "descrizione": "Autorizzazioni del giudice tutelare"}
+      ]
+    },
+    {"codice": "413015", "denominazione": "Autorizzazioni e pareri del giudice tutelare su atti del curatore dell'emancipato"},
+    {"codice": "413016", "denominazione": "Rifiuto del consenso da parte del curatore ex art. 395 c.c."},
+    {"codice": "413017", "denominazione": "Apertura della Curatela", "competenza": "Giudice tutelare"},
+    {"codice": "413018", "denominazione": "Apertura della Vigilanza sui Minori"},
+    {"codice": "413020", "denominazione": "Interruzione volontaria di gravidanza di minore (art. 12 L. 194/1978)"},
+    {"codice": "413030", "denominazione": "Affido familiare consensuale (art. 4 L. 184/1983)"},
+    {"codice": "413040", "denominazione": "Autorizzazione al rilascio di documento valido per l'espatrio (art. 3 lett. A-B)"},
+    {"codice": "413050", "denominazione": "Trattamento Sanitario Obbligatorio ed amministrazione provvisoria (L. 833/1978)"},
+    {
+      "codice": "413061",
+      "denominazione": "Apertura amministrazione di sostegno (artt. 404 e ss. c.c.)",
+      "categoria": "Amministrazione di sostegno",
+      "competenza": "Giudice tutelare",
+      "rito": "Procedimento camerale ex artt. 720-bis e 712-bis c.p.c.",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "404-413", "descrizione": "Amministrazione di sostegno"},
+        {"fonte": "L. 6/2004", "descrizione": "Istituzione dell'amministrazione di sostegno"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_amministrazione_sostegno",
+        "denominazione": "Ricorso per nomina amministratore di sostegno",
+        "campi_chiave": [
+          {"id": "beneficiario", "label": "Beneficiario (dati anagrafici)", "type": "object_persona", "required": true},
+          {"id": "ricorrente", "label": "Ricorrente legittimato (lo stesso beneficiario, coniuge, parente entro il 4° grado, affine entro il 2°, convivente, tutore, curatore, PM, responsabile servizi sociali)", "type": "object_persona", "required": true},
+          {"id": "infermita_descrizione", "label": "Descrizione infermità/menomazione fisica o psichica", "type": "textarea", "required": true},
+          {"id": "documentazione_sanitaria", "label": "Documentazione sanitaria", "type": "file_multi", "required": true},
+          {"id": "amministratore_proposto", "label": "Amministratore di sostegno proposto", "type": "object_persona", "required": false},
+          {"id": "atti_da_compiere", "label": "Atti che l'AdS dovrà compiere in nome del beneficiario", "type": "textarea", "required": true},
+          {"id": "atti_assistenza", "label": "Atti per cui è necessaria assistenza dell'AdS", "type": "textarea"},
+          {"id": "indicazione_familiari", "label": "Indicazione coniuge, persona convivente, parenti entro il 4° grado e affini entro il 2°", "type": "array_persone", "required": true},
+          {"id": "patrimonio_beneficiario", "label": "Patrimonio del beneficiario (mobile e immobile)", "type": "textarea", "required": true},
+          {"id": "redditi_beneficiario", "label": "Redditi del beneficiario", "type": "currency"}
+        ],
+        "avvertimenti_obbligatori": [
+          "Audizione personale del beneficiario obbligatoria (art. 407 c.c.)",
+          "Indicazione necessità rendiconto periodico al GT"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "certificazione_medica_dettagliata", "label": "Certificazione medica dettagliata su infermità", "required": true},
+        {"id": "documenti_anagrafici_beneficiario", "label": "Carta identità, codice fiscale beneficiario", "required": true},
+        {"id": "stato_famiglia", "label": "Stato di famiglia", "required": true},
+        {"id": "documentazione_patrimoniale", "label": "Documentazione patrimoniale e reddituale", "required": true}
+      ]
+    },
+    {"codice": "413999", "denominazione": "Altri istituti di competenza del giudice tutelare", "note": "Codice residuale GT"}
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "checked_files": 2,
+  "error_files": 0,
+  "files": [],
+  "files_with_artifacts": 0,
+  "finished_at": "2026-05-21T22:59:28Z",
+  "no_backup_created": true,
+  "ok": true,
+  "repair_enabled": true,
+  "repaired_files": 0,
+  "roots": [
+    "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base.full.json",
+    "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_99_completamento_codici_ufficiali.json"
+  ],
+  "schema_version": "iusentra.utf8_integrity.v1",
+  "skipped_large_files": 0,
+  "started_at": "2026-05-21T22:59:03Z",
+  "unresolved_replacement_files": 0
+}

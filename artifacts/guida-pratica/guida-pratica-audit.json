@@ -1,0 +1,204 @@
+{
+  "ok": true,
+  "coverage": {
+    "curata": 1048
+  },
+  "catalog_size": 1048,
+  "official_catalog_size": 1018,
+  "missing_required": [],
+  "official_coverage": {
+    "total_official_codes": 1018,
+    "official_codes_curated": 1018,
+    "official_codes_without_curated_guidance": 0,
+    "official_without_curated_guidance_details": [],
+    "official_missing_from_service": []
+  },
+  "deposit_code_coherence": {
+    "ok": true,
+    "incoherent": [],
+    "aliases_or_internal_count": 30,
+    "aliases_or_internal": [
+      {
+        "codice": "510001_O",
+        "denominazione": "Espropriazione mobiliare presso il debitore (pre L. 80/2005)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "510002_O",
+        "denominazione": "Espropriazione mobiliare presso terzi (pre L. 80/2005)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "610001_O",
+        "denominazione": "Espropriazione immobiliare (pre L. 80/2005)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_AUTO_492BIS",
+        "denominazione": "Ricerca telematica beni - pignoramento via UNEP (art. 492-bis c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_AVVISO_ASTE_VENDITA",
+        "denominazione": "Avviso di vendita / pubblicità della vendita esecutiva",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_CONSEGNA_001",
+        "denominazione": "Esecuzione per consegna o rilascio (art. 605-611 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_CONVERSIONE_495",
+        "denominazione": "Conversione del pignoramento (art. 495 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_DISTRIBUZIONE",
+        "denominazione": "Distribuzione del ricavato e progetto di distribuzione",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_ESTINZIONE_629",
+        "denominazione": "Estinzione del processo esecutivo (artt. 629-632 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_IMM_001",
+        "denominazione": "Pignoramento immobiliare",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_INTERVENTO_499",
+        "denominazione": "Intervento dei creditori (artt. 498-500, 525-526, 564, 566 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_MOB_001",
+        "denominazione": "Pignoramento mobiliare presso il debitore",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_OBBLIGHI_001",
+        "denominazione": "Esecuzione forzata degli obblighi di fare e di non fare (art. 612-614 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_RIDUZIONE_496",
+        "denominazione": "Riduzione del pignoramento (art. 496 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_SOSPENSIONE_624",
+        "denominazione": "Sospensione dell'esecuzione (art. 624 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "ESEC_TERZI_001",
+        "denominazione": "Pignoramento presso terzi",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_CONTRATTI_FLESSIBILI",
+        "denominazione": "Contratti a termine, somministrazione, apprendistato (D.Lgs. 81/2015)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_DIFF_001",
+        "denominazione": "Differenze retributive e rivendicazione crediti di lavoro",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_INFORTUNI_001",
+        "denominazione": "Infortuni sul lavoro e malattie professionali - prestazioni INAIL",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_INVCIV_001",
+        "denominazione": "Invalidità civile, cecità, sordità - prestazioni assistenziali (L. 118/1971, L. 18/1980)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_LIC_001",
+        "denominazione": "Impugnazione di licenziamento individuale (art. 18 St.Lav. / Jobs Act)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_LIC_COLLETTIVO",
+        "denominazione": "Licenziamenti collettivi (L. 223/1991)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_MOBBING_001",
+        "denominazione": "Mobbing, straining, demansionamento e danni da illegittima condotta del datore",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_PREVID_001",
+        "denominazione": "Prestazioni INPS - pensioni e indennità (previdenza obbligatoria)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_PUBBLICO_IMPIEGO",
+        "denominazione": "Pubblico impiego privatizzato (controversie ex art. 63 D.Lgs. 165/2001)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_QUALIFICA_001",
+        "denominazione": "Accertamento natura del rapporto di lavoro / rivendicazione qualifica",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_REPRESSIONE_DISCRIM",
+        "denominazione": "Repressione condotte discriminatorie (D.Lgs. 198/2006, D.Lgs. 215/2003)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_SCIOPERO_ART28",
+        "denominazione": "Repressione condotta antisindacale (art. 28 L. 300/1970)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_TENTATIVO_CONCILIAZIONE",
+        "denominazione": "Tentativo facoltativo/obbligatorio di conciliazione e procedura ITL",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "LAV_TRASF_AZIENDA",
+        "denominazione": "Trasferimento d'azienda (art. 2112 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      }
+    ]
+  },
+  "partial_count": 0
+}

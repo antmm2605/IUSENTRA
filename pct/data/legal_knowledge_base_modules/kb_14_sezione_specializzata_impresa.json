@@ -1,0 +1,252 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "14_SEZIONE_SPECIALIZZATA_IMPRESA",
+  "denominazione": "Sezione Specializzata in materia di Impresa - controversie societarie, industriali, antitrust, azioni di classe",
+  "registro": "SICID",
+  "fonte_codici": "Tabella ministeriale codici oggetto SICID PNRR (codici 181xxx)",
+  "competenza_prevalente": "Tribunale e Corte d'Appello - Sezione specializzata in materia di Impresa (istituita con D.L. 1/2012 conv. L. 27/2012)",
+  "rito_prevalente": "Rito ordinario di cognizione, con specifiche regole processuali per alcune azioni (classe, antitrust)",
+  "normativa_istitutiva": [
+    {"fonte": "D.L. 1/2012 (conv. L. 27/2012)", "articolo": "2", "descrizione": "Istituzione del Tribunale delle Imprese"},
+    {"fonte": "D.Lgs. 168/2003", "descrizione": "Sezioni specializzate in materia di proprietà industriale e intellettuale - oggi sezioni impresa"}
+  ],
+  "competenza_materiale": [
+    "Diritto societario (S.p.A., S.r.l., cooperative, ecc.)",
+    "Proprietà industriale (brevetti, marchi, modelli, design)",
+    "Diritto d'autore (per profili connessi a impresa)",
+    "Antitrust nazionale (L. 287/1990) e UE",
+    "Azioni di classe (art. 840-bis e ss. c.p.c.)",
+    "Concorrenza sleale interferente con diritti IP",
+    "Appalti pubblici sopra soglia comunitaria",
+    "Contratti di pubblicità",
+    "Operazioni di concentrazione societaria"
+  ],
+  "codici_materia": [
+    {
+      "codice": "181003",
+      "denominazione": "Cause di responsabilità contro gli organi amministrativi e di controllo - Sez. Spec. Impresa",
+      "categoria": "Responsabilità organi sociali (sez. impresa)",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2392-2395", "descrizione": "Responsabilità amministratori S.p.A."},
+        {"fonte": "c.c.", "articolo": "2407", "descrizione": "Responsabilità sindaci"},
+        {"fonte": "c.c.", "articolo": "2476", "descrizione": "Responsabilità amministratori S.r.l."}
+      ],
+      "rinvio_dettagli": "Vedi kb_06_societario_industriale_fallimentare.json codice 151110 (struttura completa)"
+    },
+    {
+      "codice": "181004",
+      "denominazione": "Impugnazione delle deliberazioni dell'assemblea e del CdA - Sez. Spec. Impresa",
+      "categoria": "Impugnazione delibere (sez. impresa)",
+      "rinvio_dettagli": "Vedi kb_06 codice 151112"
+    },
+    {
+      "codice": "181005",
+      "denominazione": "Cause in materia di rapporti societari - Sez. Spec. Impresa",
+      "categoria": "Rapporti societari"
+    },
+    {
+      "codice": "181006",
+      "denominazione": "Brevetto di invenzione (sez. impresa)",
+      "categoria": "Brevetti - merito",
+      "normativa": [
+        {"fonte": "D.Lgs. 30/2005 (CPI)", "articolo": "45-81", "descrizione": "Brevetti per invenzioni industriali"}
+      ],
+      "rinvio_dettagli": "Vedi kb_06 codice 170002"
+    },
+    {"codice": "181007", "denominazione": "Brevetto di modello di utilità (sez. impresa)", "eredita_da": "181006"},
+    {
+      "codice": "181008",
+      "denominazione": "Marchio (sez. impresa)",
+      "normativa": [{"fonte": "D.Lgs. 30/2005 (CPI)", "articolo": "7-28", "descrizione": "Marchi"}]
+    },
+    {"codice": "181009", "denominazione": "Concorrenza sleale interferente (sez. impresa)", "rinvio_dettagli": "Vedi kb_06 codice 170011"},
+    {"codice": "181010", "denominazione": "Marchi di fatto (sez. impresa)", "normativa": [{"fonte": "c.c.", "articolo": "2571", "descrizione": "Marchio di fatto"}]},
+    {"codice": "181011", "denominazione": "Nome a dominio (sez. impresa)", "normativa": [{"fonte": "D.Lgs. 30/2005", "articolo": "22", "descrizione": "Unitarietà segni distintivi"}]},
+    {
+      "codice": "181012",
+      "denominazione": "Diritto di autore e diritti connessi (sez. impresa)",
+      "normativa": [
+        {"fonte": "L. 633/1941", "descrizione": "Protezione del diritto d'autore"},
+        {"fonte": "D.Lgs. 177/2005 (TUSMAR)", "descrizione": "Testo Unico della radiotelevisione"}
+      ]
+    },
+    {"codice": "181013", "denominazione": "Ditta - Insegna - Denominazione sociale - Ragione sociale (sez. impresa)", "normativa": [{"fonte": "c.c.", "articolo": "2563-2574", "descrizione": "Segni distintivi"}]},
+    {
+      "codice": "181014",
+      "denominazione": "Disegni e modelli comunitari registrati",
+      "categoria": "Design - protezione UE",
+      "normativa": [
+        {"fonte": "Reg. CE 6/2002", "descrizione": "Disegni e modelli comunitari"},
+        {"fonte": "D.Lgs. 30/2005 (CPI)", "articolo": "31-44", "descrizione": "Modelli e disegni nazionali"}
+      ]
+    },
+    {"codice": "181015", "denominazione": "Disegni e modelli comunitari non registrati", "eredita_da": "181014"},
+    {"codice": "181016", "denominazione": "Disegni e modelli nazionali", "eredita_da": "181014"},
+    {
+      "codice": "181017",
+      "denominazione": "Controversie in materia di proprietà industriale per violazione della normativa antitrust nazionale",
+      "categoria": "Antitrust IP - nazionale",
+      "normativa": [
+        {"fonte": "L. 287/1990", "descrizione": "Tutela concorrenza e mercato"},
+        {"fonte": "D.Lgs. 30/2005 (CPI)", "descrizione": "Codice Proprietà Industriale"}
+      ]
+    },
+    {
+      "codice": "181018",
+      "denominazione": "Controversie in materia di proprietà industriale per violazione antitrust UE",
+      "eredita_da": "181017",
+      "differenze_rispetto_a_padre": {
+        "normativa_principale": [
+          {"fonte": "TFUE", "articolo": "101-102", "descrizione": "Concorrenza UE"},
+          {"fonte": "Reg. UE 1/2003", "descrizione": "Applicazione regole concorrenza UE"}
+        ]
+      }
+    },
+    {
+      "codice": "181019",
+      "denominazione": "Controversie in materia di operazioni di concentrazione societarie",
+      "categoria": "Concentrazioni",
+      "normativa": [
+        {"fonte": "L. 287/1990", "articolo": "16-19", "descrizione": "Operazioni di concentrazione"}
+      ]
+    },
+    {
+      "codice": "181020",
+      "denominazione": "Intese e abuso di posizione dominante per violazione antitrust nazionale",
+      "categoria": "Antitrust - private enforcement",
+      "rito": "Rito ordinario con regole speciali D.Lgs. 3/2017",
+      "normativa": [
+        {"fonte": "L. 287/1990", "articolo": "2", "descrizione": "Intese restrittive"},
+        {"fonte": "L. 287/1990", "articolo": "3", "descrizione": "Abuso posizione dominante"},
+        {"fonte": "D.Lgs. 3/2017", "descrizione": "Attuazione direttiva 2014/104/UE (private antitrust enforcement)"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_antitrust",
+        "campi_chiave": [
+          {"id": "attore", "label": "Attore (consumatore/impresa danneggiata)", "type": "object_persona", "required": true},
+          {"id": "convenuto", "label": "Convenuto (impresa)", "type": "object_persona_giuridica", "required": true},
+          {"id": "tipo_violazione", "label": "Tipo violazione", "type": "select", "required": true, "options": ["cartello", "abuso_posizione_dominante", "intesa_verticale", "intesa_orizzontale"]},
+          {"id": "provvedimento_agcm", "label": "Provvedimento AGCM (se follow-on)", "type": "object"},
+          {"id": "danno_richiesto", "label": "Danno richiesto", "type": "currency", "required": true},
+          {"id": "passing_on", "label": "Eccezione passing-on", "type": "boolean"}
+        ]
+      }
+    },
+    {"codice": "181021", "denominazione": "Intese e abuso di posizione dominante per violazione antitrust UE", "eredita_da": "181020"},
+    {
+      "codice": "181022",
+      "denominazione": "Marchio Europeo",
+      "categoria": "Marchio UE",
+      "normativa": [{"fonte": "Reg. UE 2017/1001", "descrizione": "Marchio dell'Unione Europea (EUIPO)"}]
+    },
+    {
+      "codice": "181023",
+      "denominazione": "Brevetto Europeo",
+      "categoria": "Brevetto EPC/UE",
+      "normativa": [
+        {"fonte": "Convenzione Brevetto Europeo (CBE)", "descrizione": "Monaco 1973"},
+        {"fonte": "Reg. UE 1257/2012", "descrizione": "Brevetto europeo con effetto unitario"}
+      ]
+    },
+    {"codice": "181024", "denominazione": "Marchio collettivo (art. 11 c.p.i.)", "normativa": [{"fonte": "D.Lgs. 30/2005", "articolo": "11", "descrizione": "Marchio collettivo"}]},
+    {"codice": "181025", "denominazione": "Tutela indicazioni geografiche (art. 29 c.p.i.)", "normativa": [{"fonte": "D.Lgs. 30/2005", "articolo": "29-30", "descrizione": "Indicazioni geografiche"}]},
+    {
+      "codice": "181026",
+      "denominazione": "Tutela segreti commerciali (art. 98 c.p.i.)",
+      "normativa": [
+        {"fonte": "D.Lgs. 30/2005 (CPI)", "articolo": "98-99", "descrizione": "Informazioni segrete"},
+        {"fonte": "D.Lgs. 63/2018", "descrizione": "Attuazione direttiva UE 2016/943 sui segreti commerciali"}
+      ]
+    },
+    {"codice": "181027", "denominazione": "Tutela delle informazioni segrete - Know how (art. 99 c.p.i.)", "eredita_da": "181026"},
+    {
+      "codice": "181028",
+      "denominazione": "Appalti pubblici sopra soglia di rilevanza comunitaria",
+      "categoria": "Appalti pubblici",
+      "competenza_attribuita": "Sez. spec. impresa per controversie civili relative ad appalti pubblici sopra soglia",
+      "normativa": [
+        {"fonte": "D.Lgs. 36/2023", "descrizione": "Nuovo Codice dei contratti pubblici"}
+      ],
+      "note": "Per controversie su gara/aggiudicazione: TAR (giurisdizione amministrativa); per profili civilistici e responsabilità: sez. impresa"
+    },
+    {"codice": "181029", "denominazione": "Trasferimento di partecipazioni sociali - Sez. Spec. Impresa", "rinvio_dettagli": "Vedi kb_06 codice 151121"},
+    {"codice": "181030", "denominazione": "Patti parasociali - Sez. Spec. Impresa", "rinvio_dettagli": "Vedi kb_06 codice 151122"},
+    {"codice": "181031", "denominazione": "Offerte pubbliche di acquisto/scambio/vendita - Sez. Spec. Impresa", "normativa": [{"fonte": "D.Lgs. 58/1998 (TUF)", "articolo": "101-bis - 112", "descrizione": "Disciplina OPA"}]},
+    {"codice": "181032", "denominazione": "Revocazione ex art. 395 c.p.c. - Sez. Spec. Impresa", "rinvio_dettagli": "Vedi kb_02 codice 101002"},
+    {"codice": "181033", "denominazione": "Opposizione di terzo ex artt. 404 c.p.c. - Sez. Spec. Impresa", "rinvio_dettagli": "Vedi kb_02 codice 101003"},
+    {
+      "codice": "181034",
+      "denominazione": "Controversie in materia di indennità di espropriazione dei diritti di proprietà industriale",
+      "normativa": [
+        {"fonte": "D.Lgs. 30/2005 (CPI)", "articolo": "143", "descrizione": "Espropriazione di brevetti per pubblica utilità"}
+      ]
+    },
+    {
+      "codice": "181035",
+      "denominazione": "Controversie contro i provvedimenti del Consiglio dell'ordine di cui al capo VI D.Lgs. 30/2005",
+      "categoria": "Ordine consulenti brevettuali",
+      "normativa": [{"fonte": "D.Lgs. 30/2005", "articolo": "201-220", "descrizione": "Ordine dei consulenti in proprietà industriale"}]
+    },
+    {
+      "codice": "181036",
+      "denominazione": "Cause in materia di rapporti tra società (artt. 2359 c. 1 n. 3, 2497-septies, 2545-septies c.c.)",
+      "categoria": "Controllo e direzione società",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2359", "descrizione": "Società controllate e collegate"},
+        {"fonte": "c.c.", "articolo": "2497", "descrizione": "Direzione e coordinamento di società"},
+        {"fonte": "c.c.", "articolo": "2497-septies", "descrizione": "Coordinamento fra società"}
+      ]
+    },
+    {
+      "codice": "181037",
+      "denominazione": "Azione revocatoria (art. 2901 c.c.) - Sez. Spec. Impresa",
+      "rinvio_dettagli": "Vedi kb_02 codice 102002 (struttura completa)",
+      "specificita": "Quando l'azione revocatoria attiene a rapporti di competenza della sezione impresa (ad es. tra società del gruppo)"
+    },
+    {
+      "codice": "181040",
+      "denominazione": "Azione di classe (art. 840-bis e ss. c.p.c.)",
+      "categoria": "Azione di classe",
+      "rito": "Procedimento speciale ex artt. 840-bis - 840-sexies-decies c.p.c. (rito sommario di cognizione adattato)",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "840-bis - 840-sexies-decies", "descrizione": "Azione di classe (introdotta da L. 31/2019)"},
+        {"fonte": "L. 31/2019", "descrizione": "Disposizioni in materia di azione di classe"}
+      ],
+      "presupposti_sostanziali": [
+        "Diritti individuali omogenei",
+        "Condotta lesiva plurioffensiva",
+        "Legittimazione ad agire: persona fisica, ente esponenziale (organizzazione/associazione di consumatori)"
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_azione_classe",
+        "campi_chiave": [
+          {"id": "ricorrente", "label": "Promotore/i (persona fisica o ente esponenziale)", "type": "object", "required": true},
+          {"id": "convenuto", "label": "Convenuto (impresa/PA/gestore servizi pubblici)", "type": "object_persona_giuridica", "required": true},
+          {"id": "diritti_omogenei", "label": "Diritti individuali omogenei coinvolti", "type": "textarea", "required": true},
+          {"id": "condotta_lesiva", "label": "Condotta lesiva contestata", "type": "textarea", "required": true},
+          {"id": "definizione_classe", "label": "Definizione della classe", "type": "textarea", "required": true},
+          {"id": "richieste", "label": "Richieste (accertamento responsabilità, condanna risarcimento, restituzione)", "type": "textarea", "required": true}
+        ],
+        "fasi": [
+          "Fase di ammissibilità (manifesta infondatezza, conflitti interessi, omogeneità)",
+          "Fase di merito + adesioni",
+          "Sentenza con condanna e definizione modalità adesione tardiva",
+          "Procedimento di adesione e liquidazione individuale"
+        ]
+      }
+    },
+    {"codice": "181041", "denominazione": "Reclamo avverso ordinanza su ammissibilità azione collettiva", "eredita_da": "181040"},
+    {
+      "codice": "181042",
+      "denominazione": "Azione inibitoria collettiva",
+      "categoria": "Azione inibitoria collettiva",
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "840-sexiesdecies", "descrizione": "Azione inibitoria collettiva"},
+        {"fonte": "D.Lgs. 206/2005 (Codice Consumo)", "articolo": "139-140", "descrizione": "Tutela collettiva consumatori"}
+      ]
+    },
+    {"codice": "181044", "denominazione": "Impugnazione ex art. 840-undecies c.p.c.", "categoria": "Impugnazione sentenza azione di classe", "eredita_da": "181040"},
+    {"codice": "181099", "denominazione": "Altre controversie sez. impresa in materia di proprietà industriale e diritto d'autore", "note": "Residuale IP"},
+    {"codice": "181999", "denominazione": "Altre controversie sez. impresa in materia societaria", "note": "Residuale societario"}
+  ]
+}

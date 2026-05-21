@@ -1,0 +1,252 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "15_ADDENDUM_CODICI_AGGIUNTIVI",
+  "denominazione": "Addendum - codici aggiuntivi emersi dalla tabella ministeriale aggiornata",
+  "fonte": "Tabella ministeriale codici oggetto SICID PNRR 2023-2024",
+  "scopo": "Integrare i file delle macro-aree principali con codici introdotti/aggiornati dopo la riforma del registro famiglia (gennaio 2024) e codici minori specifici (immigrazione, TSAP, autorizzazioni processuali, registro imprese VG)",
+  "sezioni": [
+    {
+      "sezione": "Stato della persona e diritti della personalità - codici aggiuntivi",
+      "macro_area_riferimento": "03_PERSONE_FAMIGLIA_MINORI",
+      "codici_materia": [
+        {
+          "codice": "110000",
+          "denominazione": "Altre ipotesi di cui al c. 3 art. 3 L. 46/2017",
+          "normativa": [{"fonte": "L. 46/2017", "articolo": "3", "descrizione": "Misure urgenti per accelerazione procedimenti immigrazione e protezione internazionale"}]
+        },
+        {
+          "codice": "110023",
+          "denominazione": "Riconoscimento dello stato di apolidia",
+          "categoria": "Apolidia",
+          "normativa": [
+            {"fonte": "Conv. New York 1954", "descrizione": "Status apolidi"},
+            {"fonte": "L. 91/1992", "articolo": "16", "descrizione": "Cittadinanza italiana"}
+          ]
+        },
+        {
+          "codice": "110032",
+          "denominazione": "Impugnazione ex art. 35 D.Lgs. 25/2008 (protezione internazionale)",
+          "categoria": "Protezione internazionale",
+          "competenza": "Sezione specializzata in materia di immigrazione, protezione internazionale e libera circolazione cittadini UE",
+          "normativa": [
+            {"fonte": "D.Lgs. 25/2008", "articolo": "35", "descrizione": "Ricorso giurisdizionale contro provvedimenti della Commissione Territoriale"},
+            {"fonte": "D.L. 13/2017 (conv. L. 46/2017)", "descrizione": "Istituzione sezioni specializzate immigrazione"}
+          ],
+          "atto_principale": {
+            "tipo_atto": "ricorso_protezione_internazionale",
+            "campi_chiave": [
+              {"id": "richiedente", "label": "Richiedente protezione", "type": "object_persona", "required": true},
+              {"id": "provvedimento_commissione", "label": "Provvedimento Commissione Territoriale", "type": "object", "required": true},
+              {"id": "data_notificazione", "label": "Data notificazione provvedimento", "type": "date", "required": true},
+              {"id": "tipo_protezione_richiesta", "label": "Tipo protezione", "type": "select", "options": ["status_rifugiato", "protezione_sussidiaria", "protezione_speciale"]},
+              {"id": "motivi_persecuzione", "label": "Motivi persecuzione", "type": "textarea", "required": true}
+            ]
+          },
+          "termini_processuali": [
+            {"termine": "Ricorso", "giorni": 30, "decorrenza": "notificazione provvedimento", "natura": "perentorio", "norma": "art. 35-bis c. 2 D.Lgs. 25/2008"}
+          ]
+        },
+        {
+          "codice": "110033",
+          "denominazione": "Riconoscimento diritto di soggiorno cittadini UE (art. 8 D.Lgs. 30/2007)",
+          "normativa": [{"fonte": "D.Lgs. 30/2007", "descrizione": "Libera circolazione cittadini UE"}]
+        },
+        {
+          "codice": "110034",
+          "denominazione": "Impugnazione provvedimento di allontanamento ex artt. 20-21 D.Lgs. 30/2007",
+          "eredita_da": "110033"
+        },
+        {
+          "codice": "110035",
+          "denominazione": "Impugnazioni Unità Dublino (Reg. UE 604/2013)",
+          "normativa": [{"fonte": "Reg. UE 604/2013", "descrizione": "Dublino III - determinazione Stato membro competente per esame domanda protezione internazionale"}]
+        },
+        {
+          "codice": "110036",
+          "denominazione": "Convalida del provvedimento di trattenimento o proroga del trattenimento",
+          "categoria": "Trattenimento immigrazione",
+          "normativa": [
+            {"fonte": "D.Lgs. 286/1998", "articolo": "14", "descrizione": "Esecuzione dell'espulsione"},
+            {"fonte": "D.Lgs. 25/2008", "articolo": "6", "descrizione": "Trattenimento richiedenti protezione"}
+          ]
+        },
+        {
+          "codice": "110037",
+          "denominazione": "Ricongiungimento familiare (art. 30 D.Lgs. 286/1998)",
+          "categoria": "Immigrazione - ricongiungimento",
+          "normativa": [{"fonte": "D.Lgs. 286/1998", "articolo": "29-30", "descrizione": "Diritto al ricongiungimento familiare"}],
+          "note": "Sostituisce il vecchio codice 400203 (oggi non più valido in VG, materia migrata al contenzioso)"
+        },
+        {
+          "codice": "110038",
+          "denominazione": "Impugnazione avverso diniego/revoca di rilascio/rinnovo permesso di soggiorno",
+          "categoria": "Permesso di soggiorno"
+        },
+        {
+          "codice": "110039",
+          "denominazione": "Impugnazione diniego visto per motivi di ricongiungimento da parte dell'autorità consolare",
+          "eredita_da": "110037"
+        },
+        {
+          "codice": "110040",
+          "denominazione": "Impugnazione diniego protezione umanitaria da parte del Questore",
+          "categoria": "Protezione umanitaria (poi protezione speciale)"
+        },
+        {
+          "codice": "110041",
+          "denominazione": "Convalida del provvedimento del questore di accompagnamento immediato alla frontiera",
+          "categoria": "Accompagnamento alla frontiera",
+          "normativa": [{"fonte": "D.Lgs. 286/1998", "articolo": "13 c. 5-bis", "descrizione": "Accompagnamento immediato alla frontiera"}]
+        }
+      ]
+    },
+    {
+      "sezione": "Tribunale Superiore Acque Pubbliche (TSAP) - codici aggiuntivi",
+      "macro_area_riferimento": "02_OPPOSIZIONI_IMPUGNAZIONI_LODI",
+      "codici_materia": [
+        {
+          "codice": "118001",
+          "denominazione": "Controversie di competenza del TSAP ex art. 142 R.D. 1775/1933",
+          "categoria": "Acque pubbliche",
+          "competenza": "Tribunale Superiore delle Acque Pubbliche",
+          "normativa": [{"fonte": "R.D. 1775/1933", "articolo": "142-143", "descrizione": "Testo Unico acque pubbliche - competenza TSAP"}]
+        },
+        {"codice": "118002", "denominazione": "Controversie di competenza del TSAP ex art. 143 R.D. 1775/1933", "eredita_da": "118001"},
+        {"codice": "118003", "denominazione": "Revocazione ex art. 199 R.D. 1775/1933", "eredita_da": "118001"},
+        {"codice": "118004", "denominazione": "Rettificazione sentenza ex art. 204 R.D. 1775/1933", "eredita_da": "118001"},
+        {"codice": "118099", "denominazione": "Altre controversie di competenza del TSAP", "note": "Residuale TSAP"}
+      ]
+    },
+    {
+      "sezione": "Procedimenti speciali sommari ampliati - decreto ingiuntivo per materia",
+      "macro_area_riferimento": "01_PROCEDIMENTI_SPECIALI_ANTE_CAUSAM",
+      "nota": "La tabella ministeriale prevede sotto-codici 010001-010029 e 010999 per il decreto ingiuntivo ante causam suddivisi per materia. I principali sono:",
+      "codici_materia": [
+        {"codice": "010003", "denominazione": "DI ante causam (vendita)", "eredita_da": "010001"},
+        {"codice": "010004", "denominazione": "DI ante causam (diritti reali e condominio)", "eredita_da": "010001"},
+        {"codice": "010005", "denominazione": "DI ante causam (intermediazione finanziaria)", "eredita_da": "010001"},
+        {"codice": "010006", "denominazione": "DI ante causam (rapporti bancari)", "eredita_da": "010001"},
+        {"codice": "010007", "denominazione": "DI ante causam (titoli di credito)", "eredita_da": "010001"},
+        {"codice": "010008", "denominazione": "DI ante causam (contratti di borsa)", "eredita_da": "010001"},
+        {"codice": "010009", "denominazione": "DI ante causam (assicurazione)", "eredita_da": "010001"},
+        {"codice": "010010", "denominazione": "DI ante causam (fideiussione e altre garanzie)", "eredita_da": "010001"},
+        {"codice": "010011", "denominazione": "DI ante causam (somministrazione)", "eredita_da": "010001"},
+        {"codice": "010012", "denominazione": "DI ante causam (rapporti con società finanziarie)", "eredita_da": "010001"},
+        {"codice": "010013", "denominazione": "DI ante causam (factoring)", "eredita_da": "010001"},
+        {"codice": "010014", "denominazione": "DI ante causam (leasing)", "eredita_da": "010001"},
+        {"codice": "010015", "denominazione": "DI ante causam (altri contratti tipici)", "eredita_da": "010001"},
+        {"codice": "010016", "denominazione": "DI ante causam (diritto societario non sez. impresa)", "eredita_da": "010001"},
+        {"codice": "010017", "denominazione": "DI ante causam (diritto tributario e doganale)", "eredita_da": "010001"},
+        {"codice": "010018", "denominazione": "DI ante causam (diritto amministrativo)", "eredita_da": "010001"},
+        {"codice": "010019", "denominazione": "DI ante causam (in materia concorsuale)", "eredita_da": "010001"},
+        {"codice": "010020", "denominazione": "DI ante causam (associazioni, comitati, consorzi e fondazioni)", "eredita_da": "010001"},
+        {"codice": "010021", "denominazione": "DI ante causam (locazione di immobili)", "eredita_da": "010001"},
+        {"codice": "010022", "denominazione": "DI ante causam (affitto di azienda)", "eredita_da": "010001"},
+        {"codice": "010023", "denominazione": "DI ante causam (prestazione d'opera intellettuale)", "eredita_da": "010001"},
+        {"codice": "010024", "denominazione": "DI ante causam (altri contratti d'opera)", "eredita_da": "010001"},
+        {"codice": "010025", "denominazione": "DI ante causam (appalto privato)", "eredita_da": "010001"},
+        {"codice": "010026", "denominazione": "DI ante causam (appalto opere pubbliche sottosoglia UE)", "eredita_da": "010001"},
+        {"codice": "010027", "denominazione": "DI ante causam (altri rapporti con la PA)", "eredita_da": "010001"},
+        {"codice": "010028", "denominazione": "DI ante causam - Sez. Spec. Impresa", "eredita_da": "010001", "competenza": "Sezione specializzata in materia di impresa"},
+        {"codice": "010029", "denominazione": "DI ante causam (rapporti familiari)", "eredita_da": "010001"},
+        {"codice": "010999", "denominazione": "DI ante causam (altre ipotesi)", "eredita_da": "010001"}
+      ]
+    },
+    {
+      "sezione": "Procedimenti cautelari ante causam davanti alla Sez. Spec. Impresa",
+      "macro_area_riferimento": "01_PROCEDIMENTI_SPECIALI_ANTE_CAUSAM",
+      "competenza": "Sezione specializzata in materia di impresa",
+      "codici_materia": [
+        {"codice": "017001", "denominazione": "Sequestro conservativo ex art. 671 c.p.c. - Sez. Spec. Impresa", "eredita_da": "011001"},
+        {"codice": "017002", "denominazione": "Sequestro giudiziario ex art. 670 c.p.c. - Sez. Spec. Impresa", "eredita_da": "011002"},
+        {"codice": "017003", "denominazione": "Sequestro liberatorio ex art. 687 c.p.c. - Sez. Spec. Impresa", "eredita_da": "011003"},
+        {"codice": "017004", "denominazione": "Provvedimenti cautelari tutela concorrenza e mercato - Sez. Spec. Impresa", "eredita_da": "014002"},
+        {"codice": "017005", "denominazione": "Provvedimenti d'urgenza ex art. 700 c.p.c. - Sez. Spec. Impresa", "eredita_da": "015011"},
+        {"codice": "017006", "denominazione": "Inibitoria (art. 131 c.p.i.)", "eredita_da": "013001"},
+        {"codice": "017007", "denominazione": "Sequestro (art. 129 c.p.i.)", "categoria": "Sequestro IP", "normativa": [{"fonte": "D.Lgs. 30/2005 (CPI)", "articolo": "129", "descrizione": "Descrizione e sequestro"}]},
+        {"codice": "017008", "denominazione": "Descrizione (art. 129 c.p.i.)", "eredita_da": "017007"},
+        {"codice": "017009", "denominazione": "Inibitoria (art. 156 L. 633/1941 - Legge Autore)", "normativa": [{"fonte": "L. 633/1941", "articolo": "156", "descrizione": "Inibitoria diritto d'autore"}]},
+        {"codice": "017010", "denominazione": "Sequestro (art. 161 L. 633/1941 - Legge Autore)", "eredita_da": "017009"},
+        {"codice": "017011", "denominazione": "Descrizione (art. 161 L. 633/1941 - Legge Autore)", "eredita_da": "017009"},
+        {"codice": "017012", "denominazione": "Consulenza tecnica preventiva (art. 128 c.p.i.)", "normativa": [{"fonte": "D.Lgs. 30/2005", "articolo": "128", "descrizione": "Descrizione e sequestro"}]},
+        {"codice": "017013", "denominazione": "ATP/prova testimoniale (art. 696 c.p.c.) - Sez. Spec. Imprese", "eredita_da": "012001"},
+        {"codice": "017014", "denominazione": "CTU preventiva conciliativa (art. 696-bis) - Sez. Spec. Impresa", "eredita_da": "012001"},
+        {"codice": "017999", "denominazione": "Altri procedimenti cautelari - Sez. Spec. Impresa", "note": "Residuale cautelare impresa"}
+      ]
+    },
+    {
+      "sezione": "Volontaria giurisdizione - codici aggiuntivi (registro imprese, sez. impresa, famiglia)",
+      "macro_area_riferimento": "08_VOLONTARIA_GIURISDIZIONE_FAMIGLIA_PERSONE_MINORI - 10_VOLONTARIA_GIURISDIZIONE_SOCIETARIA",
+      "codici_materia": [
+        {
+          "codice": "401003",
+          "denominazione": "Ricerca con modalità telematiche dei beni da pignorare (art. 492-bis c.p.c.)",
+          "categoria": "Autorizzazione processuale - ricerca beni",
+          "rinvio_dettagli": "Vedi kb_12_esecuzioni_forzate.json (atti collegati al GE)",
+          "normativa": [{"fonte": "c.p.c.", "articolo": "492-bis", "descrizione": "Ricerca telematica beni"}]
+        },
+        {
+          "codice": "400902",
+          "denominazione": "Opposizione ex art. 5-ter L. 89/2001 (rimedi preventivi equa riparazione)",
+          "categoria": "Legge Pinto - opposizioni",
+          "normativa": [{"fonte": "L. 89/2001", "articolo": "5-ter", "descrizione": "Opposizione decreto di rigetto / liquidazione equa riparazione"}]
+        },
+        {
+          "codice": "406402",
+          "denominazione": "Equa riparazione termine ragionevole processo - nuovo rito",
+          "eredita_da": "406401",
+          "differenze_rispetto_a_padre": {
+            "rito_aggiornato": "Procedimento sommario di cognizione post-riforma 2012 (L. 134/2012)"
+          }
+        },
+        {
+          "codice": "411670",
+          "denominazione": "Fondo di solidarietà a tutela del coniuge in stato di bisogno",
+          "categoria": "Famiglia - misure di sostegno",
+          "normativa": [{"fonte": "L. 4/2018", "articolo": "1 c. 414-415", "descrizione": "Fondo solidarietà coniuge in stato di bisogno"}]
+        },
+        {
+          "codice": "454001",
+          "denominazione": "Ricorso al giudice del Registro ex artt. 2190 e 2191 c.c.",
+          "categoria": "Registro Imprese - reclami specifici",
+          "competenza": "Giudice del Registro presso il Tribunale (sez. impresa per società)",
+          "normativa": [
+            {"fonte": "c.c.", "articolo": "2190", "descrizione": "Cancellazione d'ufficio di un'iscrizione errata"},
+            {"fonte": "c.c.", "articolo": "2191", "descrizione": "Iscrizione d'ufficio"}
+          ]
+        },
+        {
+          "codice": "454002",
+          "denominazione": "Ricorso al giudice del Registro ex art. 2189 c.c.",
+          "categoria": "Registro Imprese - rifiuto iscrizione",
+          "normativa": [{"fonte": "c.c.", "articolo": "2189", "descrizione": "Procedimento di iscrizione"}]
+        },
+        {
+          "codice": "455001",
+          "denominazione": "Nomina di liquidatore (artt. 2309 e 2315 c.c.) - società di persone",
+          "categoria": "Liquidazione società di persone",
+          "normativa": [
+            {"fonte": "c.c.", "articolo": "2309", "descrizione": "Nomina dei liquidatori società in nome collettivo"},
+            {"fonte": "c.c.", "articolo": "2315", "descrizione": "Rinvio alle norme s.n.c. per la s.a.s."}
+          ]
+        },
+        {"codice": "455999", "denominazione": "Altre materie soggette al procedimento camerale - società di persone", "note": "Residuale VG società di persone"},
+        {
+          "codice": "481310",
+          "denominazione": "Nomina di liquidatore - Sez. Spec. Impresa",
+          "categoria": "Liquidazione società di capitali (sez. impresa)",
+          "rinvio_dettagli": "Vedi kb_10_volontaria_giurisdizione_societaria.json codice 451310"
+        },
+        {"codice": "481311", "denominazione": "Convocazione di assemblea ex art. 2367 c.c. - Sez. Spec. Impresa", "rinvio_dettagli": "Vedi kb_10 codice 451311"},
+        {"codice": "481312", "denominazione": "Nomina di esperto (artt. 2343, 2440, 2498, 2501-quinquies, 2504-novies c.c.) - Sez. Spec. Impresa", "rinvio_dettagli": "Vedi kb_10 codice 451312"},
+        {"codice": "481313", "denominazione": "Denunzia ex art. 2409 c.c. - Sez. Spec. Impresa", "rinvio_dettagli": "Vedi kb_10 codice 451313"},
+        {"codice": "481314", "denominazione": "Nomina rappresentante comune obbligazionisti - Sez. Spec. Impresa", "rinvio_dettagli": "Vedi kb_10 codice 451314"},
+        {"codice": "481320", "denominazione": "Riduzione del capitale per perdite (art. 2446 c.c.) - Sez. Spec. Impresa", "rinvio_dettagli": "Vedi kb_10 codice 451320"},
+        {"codice": "481421", "denominazione": "Approvazione della revoca dei sindaci (art. 2400 c.c.) - Sez. Spec. Impresa", "rinvio_dettagli": "Vedi kb_10 codice 453421"},
+        {"codice": "481422", "denominazione": "Procedure ex artt. 2437-quater, 2445, 2482, 2447-quater, 2487-ter, 2500-novies, 2503 c.c. - Sez. Spec. Impresa", "rinvio_dettagli": "Vedi kb_10 codice 453422"},
+        {"codice": "481423", "denominazione": "Decreto di accertamento dello scioglimento della società (art. 2485 c.c.) - Sez. Spec. Impresa", "rinvio_dettagli": "Vedi kb_10 codice 453423"},
+        {"codice": "481999", "denominazione": "Altre materie soggette al procedimento camerale - Sez. Spec. Impresa", "note": "Residuale VG sez. impresa"}
+      ]
+    }
+  ]
+}

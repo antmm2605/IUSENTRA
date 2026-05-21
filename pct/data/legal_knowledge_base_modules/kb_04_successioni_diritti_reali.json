@@ -1,0 +1,293 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "04_SUCCESSIONI_DIRITTI_REALI_CONDOMINIO",
+  "denominazione": "Successioni, diritti reali, possesso, condominio",
+  "registro": "SICID",
+  "codici_materia": [
+    {
+      "codice": "120001",
+      "denominazione": "Cause di impugnazione dei testamenti e di riduzione per lesione di legittima",
+      "categoria": "Successioni - contenzioso",
+      "rito": "Rito ordinario di cognizione",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "536-564", "descrizione": "Successione necessaria e azione di riduzione"},
+        {"fonte": "c.c.", "articolo": "590-624", "descrizione": "Successione testamentaria - nullità e annullabilità"},
+        {"fonte": "c.c.", "articolo": "624", "descrizione": "Violenza, dolo, errore"}
+      ],
+      "obbligo_mediazione": {"obbligatoria": true, "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010", "materia": "successioni ereditarie"},
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_riduzione_impugnazione",
+        "campi_chiave": [
+          {"id": "de_cuius", "label": "Dati de cuius", "type": "object_persona", "required": true},
+          {"id": "data_apertura_successione", "label": "Data apertura successione", "type": "date", "required": true},
+          {"id": "testamento_impugnato", "label": "Testamento impugnato (estremi)", "type": "object", "required": false},
+          {"id": "tipo_domanda", "label": "Tipo domanda", "type": "select", "required": true, "options": ["impugnazione_nullita", "annullamento", "riduzione_legittima", "petitio_hereditatis"]},
+          {"id": "quota_lesa", "label": "Quota legittima lesa (per riduzione)", "type": "string"},
+          {"id": "eredi_convenuti", "label": "Eredi/beneficiari convenuti", "type": "array_persone", "required": true},
+          {"id": "stima_asse_ereditario", "label": "Stima asse ereditario", "type": "currency"},
+          {"id": "donazioni_da_collazione", "label": "Donazioni soggette a collazione/imputazione", "type": "array"}
+        ],
+        "avvertimenti_obbligatori": [
+          "Termine prescrizionale 10 anni per riduzione ex art. 564 c.c.",
+          "Indicazione mediazione obbligatoria"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "certificato_morte", "label": "Certificato di morte de cuius", "required": true},
+        {"id": "testamento", "label": "Copia testamento pubblicato", "required": false},
+        {"id": "dichiarazione_successione", "label": "Dichiarazione di successione", "required": true},
+        {"id": "verbale_mediazione", "label": "Verbale negativo di mediazione", "required": true}
+      ]
+    },
+    {
+      "codice": "120011",
+      "denominazione": "Divisione di beni caduti in successione",
+      "categoria": "Successioni - divisione ereditaria",
+      "rito": "Rito ordinario - giudizio di divisione ex artt. 784 e ss. c.p.c.",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "713-768", "descrizione": "Divisione"},
+        {"fonte": "c.p.c.", "articolo": "784-791-ter", "descrizione": "Procedimento di divisione"}
+      ],
+      "obbligo_mediazione": {"obbligatoria": true, "materia": "divisione e successioni"},
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_divisione_ereditaria",
+        "campi_chiave": [
+          {"id": "de_cuius", "label": "De cuius", "type": "object_persona", "required": true},
+          {"id": "coeredi", "label": "Coeredi (parti)", "type": "array_persone", "required": true},
+          {"id": "beni_da_dividere", "label": "Beni caduti in successione", "type": "array", "required": true},
+          {"id": "quote_eredi", "label": "Quote eredi", "type": "array", "required": true},
+          {"id": "richiesta_ctu_stima", "label": "Richiesta CTU per stima e formazione lotti", "type": "boolean", "default": true},
+          {"id": "domande_collazione", "label": "Domande di collazione", "type": "textarea"}
+        ]
+      }
+    },
+    {
+      "codice": "129999",
+      "denominazione": "Altri istituti relativi alle successioni",
+      "note": "Codice residuale per materia successoria - verificare correttezza"
+    },
+    {
+      "codice": "130001",
+      "denominazione": "Proprietà",
+      "categoria": "Diritti reali - proprietà",
+      "rito": "Rito ordinario",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "832-951", "descrizione": "Della proprietà"}
+      ],
+      "azioni_tipiche": [
+        "Azione di rivendicazione (art. 948 c.c.)",
+        "Azione negatoria (art. 949 c.c.)",
+        "Azione di regolamento di confini (art. 950 c.c.)",
+        "Apposizione termini (art. 951 c.c.)"
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_proprieta",
+        "campi_chiave": [
+          {"id": "azione_proposta", "label": "Tipo azione", "type": "select", "required": true, "options": ["rivendicazione", "negatoria", "regolamento_confini", "apposizione_termini"]},
+          {"id": "bene_oggetto", "label": "Bene oggetto", "type": "object_immobile", "required": true},
+          {"id": "titolo_proprieta", "label": "Titolo proprietà attore", "type": "object", "required": true},
+          {"id": "convenuto_possessore", "label": "Convenuto (possessore/detentore)", "type": "object_persona", "required": true}
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "titolo_acquisto", "label": "Titolo di acquisto", "required": true},
+        {"id": "visura_catastale", "label": "Visura catastale", "required": true},
+        {"id": "ispezione_ipotecaria", "label": "Ispezione ipotecaria ventennale", "required": false}
+      ]
+    },
+    {
+      "codice": "130011",
+      "denominazione": "Superficie",
+      "normativa": [{"fonte": "c.c.", "articolo": "952-956", "descrizione": "Superficie"}]
+    },
+    {
+      "codice": "130021",
+      "denominazione": "Enfiteusi",
+      "normativa": [{"fonte": "c.c.", "articolo": "957-977", "descrizione": "Enfiteusi"}]
+    },
+    {
+      "codice": "130031",
+      "denominazione": "Usufrutto",
+      "normativa": [{"fonte": "c.c.", "articolo": "978-1020", "descrizione": "Usufrutto"}]
+    },
+    {
+      "codice": "130032",
+      "denominazione": "Abitazione - Uso",
+      "normativa": [{"fonte": "c.c.", "articolo": "1021-1026", "descrizione": "Uso e abitazione"}]
+    },
+    {
+      "codice": "130041",
+      "denominazione": "Servitù",
+      "categoria": "Diritti reali di godimento",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1027-1099", "descrizione": "Servitù prediali"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_servitu",
+        "campi_chiave": [
+          {"id": "tipo_servitu", "label": "Tipo servitù", "type": "select", "required": true, "options": ["coattiva", "volontaria", "apparente_non_apparente", "continua_discontinua"]},
+          {"id": "fondo_dominante", "label": "Fondo dominante", "type": "object_immobile", "required": true},
+          {"id": "fondo_servente", "label": "Fondo servente", "type": "object_immobile", "required": true},
+          {"id": "azione_proposta", "label": "Azione proposta", "type": "select", "options": ["costituzione_coattiva", "accertamento", "modifica", "estinzione", "tutela"]},
+          {"id": "modo_acquisto", "label": "Modo di acquisto invocato", "type": "select", "options": ["titolo", "usucapione", "destinazione_padre_famiglia", "coattiva"]}
+        ]
+      }
+    },
+    {
+      "codice": "130051",
+      "denominazione": "Comunione e Condominio, impugnazione di delibera assembleare - spese condominiali",
+      "categoria": "Condominio",
+      "rito": "Rito ordinario",
+      "competenza": "Tribunale o Giudice di Pace per valore",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1117-1139", "descrizione": "Condominio negli edifici"},
+        {"fonte": "c.c.", "articolo": "1137", "descrizione": "Impugnazione delibere assembleari"},
+        {"fonte": "L. 220/2012", "descrizione": "Riforma del condominio"}
+      ],
+      "obbligo_mediazione": {"obbligatoria": true, "materia": "condominio"},
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_condominio",
+        "campi_chiave": [
+          {"id": "tipo_controversia", "label": "Tipo controversia", "type": "select", "required": true, "options": ["impugnazione_delibera", "recupero_spese", "annullamento_delibera", "nullita_delibera", "responsabilita_amministratore"]},
+          {"id": "condominio_dati", "label": "Condominio (denominazione, indirizzo, CF)", "type": "object", "required": true},
+          {"id": "amministratore", "label": "Amministratore", "type": "object_persona", "required": true},
+          {"id": "delibera_estremi", "label": "Estremi delibera impugnata", "type": "object"},
+          {"id": "vizi_dedotti", "label": "Vizi della delibera", "type": "select_multi", "options": ["nullita", "annullabilita", "convocazione_irregolare", "maggioranza_irregolare", "violazione_legge", "violazione_regolamento"]},
+          {"id": "importo_spese", "label": "Importo spese contestate", "type": "currency"}
+        ],
+        "avvertimenti_obbligatori": [
+          "Termine 30 gg per impugnazione delibera ex art. 1137 c. 2 c.c. (per annullabilità)",
+          "Mediazione obbligatoria preventiva"
+        ]
+      },
+      "termini_processuali": [
+        {"termine": "Impugnazione delibera annullabile", "giorni": 30, "decorrenza": "comunicazione delibera (assenti) o approvazione (dissenzienti)", "natura": "decadenziale"}
+      ]
+    },
+    {
+      "codice": "130052",
+      "denominazione": "Tabelle millesimali",
+      "categoria": "Condominio",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "68 disp.att.", "descrizione": "Tabelle millesimali"},
+        {"fonte": "c.c.", "articolo": "69 disp.att.", "descrizione": "Modificazione tabelle"}
+      ]
+    },
+    {
+      "codice": "130099",
+      "denominazione": "Altri rapporti condominiali",
+      "note": "Codice residuale condominiale"
+    },
+    {
+      "codice": "130111",
+      "denominazione": "Apposizione di termini",
+      "normativa": [{"fonte": "c.c.", "articolo": "951", "descrizione": "Apposizione di termini"}]
+    },
+    {
+      "codice": "130121",
+      "denominazione": "Controversia in materia di immissioni",
+      "categoria": "Immissioni e rapporti di vicinato",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "844", "descrizione": "Immissioni"}
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_immissioni",
+        "campi_chiave": [
+          {"id": "tipo_immissione", "label": "Tipo immissione (rumori, fumi, vibrazioni, odori)", "type": "select", "required": true},
+          {"id": "fondo_attore", "label": "Fondo dell'attore", "type": "object_immobile", "required": true},
+          {"id": "fondo_convenuto", "label": "Fondo del convenuto (fonte immissioni)", "type": "object_immobile", "required": true},
+          {"id": "intollerabilita", "label": "Esposizione intollerabilità immissioni", "type": "textarea", "required": true},
+          {"id": "richiesta_inibitoria", "label": "Richiesta inibitoria", "type": "boolean"},
+          {"id": "richiesta_risarcimento", "label": "Richiesta risarcimento danni", "type": "currency"}
+        ]
+      }
+    },
+    {
+      "codice": "130131",
+      "denominazione": "Osservanza distanze riguardo alberi/siepi",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "892-899", "descrizione": "Distanze per piantagioni"}
+      ]
+    },
+    {
+      "codice": "131001",
+      "denominazione": "Diritti ed obblighi del possessore non riconducibili alle azioni di reintegrazione/manutenzione",
+      "categoria": "Possesso - controversie residuali",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1140-1170", "descrizione": "Possesso"}
+      ]
+    },
+    {
+      "codice": "131002",
+      "denominazione": "Usucapione (art. 1159 c.c. - usucapione decennale)",
+      "categoria": "Usucapione",
+      "rito": "Rito ordinario",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1158", "descrizione": "Usucapione ventennale (beni immobili)"},
+        {"fonte": "c.c.", "articolo": "1159", "descrizione": "Usucapione decennale per acquisto in buona fede"},
+        {"fonte": "c.c.", "articolo": "1160", "descrizione": "Usucapione speciale per piccola proprietà rurale"},
+        {"fonte": "c.c.", "articolo": "1161", "descrizione": "Usucapione di beni mobili"}
+      ],
+      "obbligo_mediazione": {"obbligatoria": true, "materia": "diritti reali"},
+      "presupposti_sostanziali": [
+        "Possesso continuato, pacifico, pubblico, non interrotto",
+        "Durata: 20 anni (art. 1158) o 10 anni con titolo idoneo e buona fede (art. 1159)"
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_usucapione",
+        "campi_chiave": [
+          {"id": "bene_usucapito", "label": "Bene oggetto usucapione", "type": "object_immobile", "required": true},
+          {"id": "data_inizio_possesso", "label": "Data inizio possesso", "type": "date", "required": true},
+          {"id": "tipo_usucapione", "label": "Tipo usucapione", "type": "select", "required": true, "options": ["ordinaria_20_anni", "abbreviata_10_anni", "speciale_piccola_proprieta_rurale"]},
+          {"id": "buona_fede_titolo", "label": "Buona fede + titolo (per abbreviata)", "type": "boolean"},
+          {"id": "proprietario_iscritto", "label": "Proprietario iscritto convenuto", "type": "object_persona", "required": true},
+          {"id": "atti_possesso", "label": "Atti di possesso compiuti", "type": "textarea", "required": true},
+          {"id": "testi_indicati", "label": "Testimoni indicati", "type": "array_persone"}
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "visura_catastale_storica", "label": "Visura catastale storica", "required": true},
+        {"id": "ispezione_ipotecaria_ventennale", "label": "Ispezione ipotecaria ventennale", "required": true},
+        {"id": "atti_possesso_doc", "label": "Documenti attestanti atti di possesso (utenze, manutenzioni, foto)", "required": true},
+        {"id": "verbale_mediazione", "label": "Verbale mediazione negativa", "required": true}
+      ]
+    },
+    {
+      "codice": "131003",
+      "denominazione": "Usucapione (art. 1159-bis c.c. - usucapione speciale)",
+      "eredita_da": "131002",
+      "differenze_rispetto_a_padre": {
+        "normativa_principale": [{"fonte": "c.c.", "articolo": "1159-bis", "descrizione": "Usucapione speciale piccola proprietà rurale - 15 anni"}],
+        "presupposti_specifici": [
+          "Fondo rustico in comuni montani",
+          "Possesso continuato 15 anni",
+          "Valore non superiore a limiti L. 346/1976"
+        ]
+      }
+    },
+    {
+      "codice": "131011",
+      "denominazione": "Divisione di beni non caduti in successione",
+      "categoria": "Divisione - comunione ordinaria",
+      "rito": "Rito ordinario - giudizio di divisione",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1100-1116", "descrizione": "Comunione"},
+        {"fonte": "c.p.c.", "articolo": "784-791-ter", "descrizione": "Procedimento di divisione"}
+      ]
+    },
+    {
+      "codice": "132001",
+      "denominazione": "Pegno - Ipoteca - Trascrizione e pubblicità di beni immobili e mobili",
+      "categoria": "Garanzie reali e pubblicità",
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2643-2696", "descrizione": "Trascrizione"},
+        {"fonte": "c.c.", "articolo": "2784-2899", "descrizione": "Pegno e ipoteca"}
+      ]
+    },
+    {
+      "codice": "139999",
+      "denominazione": "Altri istituti in materia di diritti reali, possesso e trascrizioni",
+      "note": "Codice residuale"
+    }
+  ]
+}

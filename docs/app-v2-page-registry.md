@@ -12,7 +12,7 @@ Questo registro è generato da `scripts/react-migration/generate_app_v2_page_reg
 - Route legacy operative: 18.
 - Route App V2 dichiarate in frontend: 14.
 - Alias legacy verso App V2 in frontend: 32.
-- Route Flask GET candidate rilevate fuori manifest: 243.
+- Route Flask GET candidate rilevate fuori manifest: 246.
 
 ### Distribuzione rischio
 
@@ -714,6 +714,7 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /fascicoli/{id_fasc}/documenti/{id_doc}/firma | GET,POST | web/bootstrap/fascicoli_signature_routes.py | non rilevato |
 | /fascicoli/{id_fasc}/documenti/{id_doc}/scarica | GET | web/bootstrap/fascicoli_document_routes.py | non rilevato |
 | /fascicoli/{id_fasc}/documenti/{id_doc}/visualizza | GET | web/bootstrap/fascicoli_document_routes.py | non rilevato |
+| /fascicoli/{id_fasc}/guida-pratica | GET | web/blueprints/api_v1_guida_pratica.py | non rilevato |
 | /fascicoli/{id_fasc}/modifica | GET,POST | web/bootstrap/fascicoli_management_routes.py | fascicoli/copertina.html, fascicoli/form.html, fascicoli/quadro.html |
 | /fascicoli/{id_fasc}/pdf | GET | web/bootstrap/export_routes.py | non rilevato |
 | /fascicoli/{id_fasc}/penale/pdp | GET | web/bootstrap/fascicoli_pdp_routes.py | fascicoli/pdp_penale.html |
@@ -722,6 +723,8 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /fascicoli/{id_fasc}/wizard/{id_template}/completa | GET | web/bootstrap/checklist_routes.py | checklist/dettaglio.html, checklist/lista.html, fascicoli/wizard_atto.html, fascicoli/wizard_completa.html |
 | /fascicoli/{id_fasc}/wizard/{id_template}/step/{int:n} | GET,POST | web/bootstrap/checklist_routes.py | checklist/dettaglio.html, checklist/lista.html, fascicoli/wizard_atto.html, fascicoli/wizard_completa.html |
 | /favicon.ico | GET | web/bootstrap/pwa_routes.py | offline.html |
+| /guida-pratica/catalogo | GET | web/blueprints/api_v1_guida_pratica.py | non rilevato |
+| /guida-pratica/{codice} | GET | web/blueprints/api_v1_guida_pratica.py | non rilevato |
 | /health/dependencies | GET | web/bootstrap/health_routes.py | non rilevato |
 | /health/live | GET | web/bootstrap/health_routes.py | non rilevato |
 | /health/ready | GET | web/bootstrap/health_routes.py | non rilevato |
@@ -754,9 +757,6 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /polisWeb/local-signer/download/visible-signature | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
 | /polisWeb/local-signer/installa-windows | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
 | /polisWeb/local-signer/setup/linux | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
-| /polisWeb/local-signer/setup/macos | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
-| /polisWeb/local-signer/setup/windows | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
-| /polisWeb/local-signer/setup/windows-exe | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
 
 ## Regola operativa fase 4
 

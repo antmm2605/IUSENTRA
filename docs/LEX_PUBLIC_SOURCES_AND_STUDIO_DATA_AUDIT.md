@@ -2,6 +2,12 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.248.9 - 2026-05-22
+
+La Guida Pratica PST/XSD è una knowledge base interna separata dal codice e non una fonte pubblica esterna. Le schede ufficiali sono collegate al catalogo ministeriale caricato nel prodotto e devono essere trattate come supporto operativo al fascicolo; gli alias interni non depositabili non vanno mai trasformati in codice oggetto di deposito.
+
+Audit completato: 1.018 codici ufficiali PST/XSD, 1.018 guide curate ufficiali, zero codici ufficiali senza guida, zero incoerenze tra catalogo ministeriale e stato depositabile. I report sono in `artifacts/guida-pratica/`.
+
 ## Aggiornamento operativo 2.246.4 - 2026-05-21
 
 Le casistiche PEC/notifiche/depositi restano nel dominio dati studio e audit interno. Le fonti normative ufficiali servono a governare la matrice del comportamento software, ma la risposta su cosa risulta da una PEC deve citare prima messaggi, MIME, allegati, ricevute, firme, OCR e validation report disponibili per il tenant.

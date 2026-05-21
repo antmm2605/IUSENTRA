@@ -1,0 +1,45 @@
+{
+  "versione": "2026-05-21.pst-xsd-sources",
+  "fonte": {
+    "tipo": "PST_DOWNLOAD_PAGE",
+    "nome": "Portale dei Servizi Telematici del Ministero della Giustizia - Download",
+    "url": "https://pst.giustizia.it/PST/it/download.page"
+  },
+  "sources": [
+    {
+      "id": "sici_20260126",
+      "label": "Nuovi XSD SICI - 26/01/2026",
+      "kind": "SICI",
+      "page_url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3277",
+      "download_url": "https://pst.giustizia.it/PST/resources/cms/documents/XSD_SICI_20260116.zip"
+    },
+    {
+      "id": "sigp_20241129",
+      "label": "Nuovi XSD SIGP - 29/11/2024",
+      "kind": "SIGP",
+      "page_url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3199",
+      "download_url": "https://pst.giustizia.it/PST/resources/cms/documents/XSD_SIGP_20241128.zip"
+    },
+    {
+      "id": "cassazione_20260302",
+      "label": "XSD Corte Suprema di Cassazione - aggiornamento 02/03/2026",
+      "kind": "CASSAZIONE",
+      "page_url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC4671",
+      "download_url": "https://pst.giustizia.it/PST/resources/cms/documents/XSD_Cassazione_20260227.zip"
+    },
+    {
+      "id": "unep_20241118",
+      "label": "XSD UNEP - 06/11/2024",
+      "kind": "UNEP",
+      "page_url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3136",
+      "download_url": "https://pst.giustizia.it/PST/resources/cms/documents/XSD_PLO118_FASE2_per_SW_House_20241106.zip"
+    },
+    {
+      "id": "codici_oggetto_migrazione_20240122",
+      "label": "Codici oggetto migrazione - comunicato news 23/01/2024",
+      "kind": "SICI_XLSX",
+      "page_url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3277",
+      "download_url": "https://pst.giustizia.it/PST/resources/cms/documents/Codici_oggetto_migrazione_PerStampa_20240122.xlsx"
+    }
+  ]
+}

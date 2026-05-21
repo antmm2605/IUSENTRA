@@ -133,14 +133,16 @@ def test_capability_openga_resource_tabellari_restano_solo_rag():
 
 
 def test_reference_extractor_espone_schema_dedicato_senza_link_inventati():
+    expected_source_url = "https://www.cortedicassazione.it/it/penale_dettaglio.page?contentId=SZP1"
+    expected_attachment_url = "https://www.cortedicassazione.it/doc.pdf"
     refs = extract_references(
         (
             "Sentenza Cassazione n. 11417 del 27/04/2026: richiamati art. 606 c.p.p., "
             "art. 2946 c.c., D.Lgs. 150/2022, Regolamento UE 2016/679, "
             "CELEX:32024R1689 e R.G. 9926/2026."
         ),
-        source_url="https://www.cortedicassazione.it/it/penale_dettaglio.page?contentId=SZP1",
-        attachment_url="https://www.cortedicassazione.it/doc.pdf",
+        source_url=expected_source_url,
+        attachment_url=expected_attachment_url,
     )
 
     assert any(row["reference_type"] == "article" and "art. 606 c.p.p." in row["normalized_text"] for row in refs)
@@ -148,8 +150,8 @@ def test_reference_extractor_espone_schema_dedicato_senza_link_inventati():
     assert any(row["reference_type"] == "eu_act" for row in refs)
     assert any(row["reference_type"] == "celex" and row["normalized_text"] == "CELEX:32024R1689" for row in refs)
     assert any(row["reference_type"] == "rg" and "9926/2026" in row["normalized_text"] for row in refs)
-    assert all(row["source_url"].startswith("https://www.cortedicassazione.it") for row in refs)
-    assert all(row["attachment_url"].endswith("doc.pdf") for row in refs)
+    assert {row["source_url"] for row in refs} == {expected_source_url}
+    assert {row["attachment_url"] for row in refs} == {expected_attachment_url}
     assert all(row["official_url"] == "" for row in refs)
     assert all(row["raw_text"] and row["snippet"] and row["confidence"] > 0 for row in refs)
 

@@ -17,6 +17,7 @@ from typing import Any
 
 from flask import (Blueprint, abort, current_app, flash, g, jsonify,
                    redirect, render_template, request, send_file, url_for)
+from markupsafe import escape as markupsafe_escape
 from werkzeug.utils import secure_filename
 
 from web.helpers import get_clienti, get_fascicoli, get_soggetti, get_utenti
@@ -650,7 +651,7 @@ def _safe_pdf_download_name(title: Any) -> str:
 
 def _json_safe_payload(value: Any) -> Any:
     if isinstance(value, str):
-        return escape(value, quote=True)
+        return str(markupsafe_escape(value))
     if isinstance(value, list):
         return [_json_safe_payload(item) for item in value]
     if isinstance(value, dict):
@@ -659,7 +660,6 @@ def _json_safe_payload(value: Any) -> Any:
 
 
 def _json_response_safe(payload: Any, status: int = 200):
-    # codeql[py/reflective-xss] stringhe gia escapate ricorsivamente per risposte JSON.
     response = jsonify(_json_safe_payload(payload))
     return response, status
 
@@ -1049,17 +1049,15 @@ def template_verifica_completa(codice: str):
         },
     )
     blocking = bool(cartabia.get("controlli_bloccanti") or deposito.get("dati_mancanti") or deposito.get("allegati_mancanti"))
-    return jsonify(_json_safe_payload(
-        {
-            "ok": not blocking,
-            "codice": _safe_identifier(item.get("codice") or safe_code) or "template",
-            "prefill": prefill,
-            "merge": merge,
-            "cartabia": cartabia,
-            "deposito": deposito,
-            "stato": "verificato" if not blocking else "richiede_revisione",
-        }
-    ))
+    return _json_response_safe({
+        "ok": not blocking,
+        "codice": _safe_identifier(item.get("codice") or safe_code) or "template",
+        "prefill": prefill,
+        "merge": merge,
+        "cartabia": cartabia,
+        "deposito": deposito,
+        "stato": "verificato" if not blocking else "richiede_revisione",
+    })
 
 
 @template_atti.route("/<codice>/compliance", methods=["GET"])

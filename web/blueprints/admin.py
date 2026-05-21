@@ -11,7 +11,6 @@ from datetime import datetime
 from pathlib import Path
 import sqlite3
 from time import monotonic
-from typing import Any
 
 from flask import (
     Blueprint,
@@ -58,13 +57,6 @@ from web.services.system_health_surface import build_system_health_api_payload
 from web.blueprints.react_shell import render_react_shell_response
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
-
-
-# ============================================================= Helper
-
-def _admin_json(payload: Any):
-    # codeql[py/stack-trace-exposure] payload amministrativo autenticato, senza traceback grezzi.
-    return jsonify(payload)
 
 
 def _tenant_manager() -> GestioneTenant:
@@ -619,7 +611,7 @@ def salute_sistema():
 @admin_bp.route("/system-health")
 @superadmin_required
 def system_health():
-    return _admin_json(build_system_health_api_payload())
+    return jsonify(build_system_health_api_payload())
 
 
 @admin_bp.route("/lex-scorecard")
@@ -1192,7 +1184,7 @@ def testa_connessione_db(slug: str):
     try:
         tm = _tenant_manager()
         risultato = tm.testa_connessione(slug)
-        return _admin_json(risultato)
+        return jsonify(risultato)
     except Exception as e:
         current_app.logger.exception("Errore test connessione DB")
         return jsonify({
@@ -1232,7 +1224,7 @@ def api_storage_studio(slug: str):
 @admin_bp.route("/api/governance")
 @superadmin_required
 def api_governance():
-    return _admin_json(build_product_governance_surface(selected_slug=request.args.get("slug", "")))
+    return jsonify(build_product_governance_surface(selected_slug=request.args.get("slug", "")))
 
 
 # ============================================================= Utility

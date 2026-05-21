@@ -1554,9 +1554,7 @@ class GestioneDatabase:
         RisultatoMigrazione con conteggio record migrati e lista errori.
         """
         t0 = time.monotonic()
-        # codeql[py/path-injection] destinazione amministrativa interna gia autorizzata dal tenant/admin.
         percorso_db = str(Path(percorso_db).resolve())
-        # codeql[py/path-injection] crea solo la cartella del DB risolto sopra.
         Path(percorso_db).parent.mkdir(parents=True, exist_ok=True)
 
         conn = sqlite3.connect(percorso_db)

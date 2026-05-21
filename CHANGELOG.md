@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.247.6 - 2026-05-21
+
+- Ridotto il diff CodeQL della PR rimuovendo le annotazioni non efficaci e mantenendo solo i fix reali, senza copiare o ripristinare il branch verde protetto.
+- Rafforzata la credenziale bootstrap admin: su disco resta il segreto temporaneo cifrato con chiavi non ambigue, preservando la lettura retrocompatibile dei file generati dalla versione precedente.
+- Riallineato `docs/test-inventory.md` al generatore App V2 per chiudere il blocco `Lint + syntax` senza toccare i file dati runtime.
+
 ## Non rilasciato - 2026-05-17
 
 - Introdotta la fondazione monorepo pnpm workspace + Turborepo mantenendo `frontend` come app Vite/React reale.

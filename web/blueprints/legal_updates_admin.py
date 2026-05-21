@@ -77,7 +77,6 @@ def _json_error(message: str, *, status: int = 200):
 
 
 def _json_ok(payload: dict, *, status: int = 200):
-    # codeql[py/stack-trace-exposure] risposta admin autenticata senza eccezioni grezze.
     return jsonify(payload), status
 
 

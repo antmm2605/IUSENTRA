@@ -75,7 +75,6 @@ class StudioDB:
     """
 
     def __init__(self, db_path: str) -> None:
-        # codeql[py/path-injection] path runtime tenant risolto dalla configurazione IUSENTRA.
         self.db_path = Path(db_path).resolve()
         self._local = threading.local()
         self._ensure_schema()
@@ -86,7 +85,6 @@ class StudioDB:
         Restituisce l'istanza singleton per questo percorso.
         Thread-safe: la creazione è protetta da lock.
         """
-        # codeql[py/path-injection] chiave singleton per DB tenant configurato.
         key = str(Path(db_path).resolve())
         if key not in _instances:
             with _instances_lock:
@@ -155,7 +153,6 @@ class StudioDB:
         Crea il file DB, applica lo schema base e aggiunge le colonne
         dati_json alle tabelle che ne erano prive (upgrade schema idempotente).
         """
-        # codeql[py/path-injection] cartella del DB tenant gia risolta.
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         conn = self._connect()
         conn.executescript(_schema_sql())

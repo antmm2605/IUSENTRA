@@ -47,11 +47,6 @@ def _body() -> dict[str, Any]:
     return dict(request.get_json(silent=True) or {})
 
 
-def _editor_ai_json(payload: dict[str, Any]):
-    # codeql[py/stack-trace-exposure] DTO editor AI serializzato senza traceback grezzi.
-    return jsonify(payload)
-
-
 def _error_response(exc: Exception):
     if isinstance(exc, EditorAIPermissionDenied):
         return jsonify({"detail": "Operazione non autorizzata", "code": "permission_denied", "mock_fallback": False}), 403
@@ -278,7 +273,7 @@ def editor_ai_accetta_modifica(fascicolo_id: str, atto_ai_id: str, edit_id: str)
             edit_id=edit_id,
             user_context=editor_ai_user_context(),
         )
-        return _editor_ai_json(
+        return jsonify(
             {
                 "mock_fallback": False,
                 "atto_ai": result["record"].to_dict(),

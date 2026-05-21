@@ -3391,7 +3391,6 @@ def dashboard_sync_mailboxes():
     try:
         result = sync_mailboxes_for_current_context(force=force)
         result["ok"] = bool(result.get("ok", True))
-        # codeql[py/stack-trace-exposure] report operativo filtrato dal runtime mailbox.
         return jsonify(result)
     finally:
         clear_dashboard_payload_cache()
@@ -3611,7 +3610,6 @@ def utenti_aggiorna_stato(id_utente: str):
             payload=payload or {},
             ip=request.remote_addr or "",
         )
-        # codeql[py/stack-trace-exposure] DTO utenti validato dal bridge React.
         return jsonify(result), _utenti_result_status(result)
     except Exception as exc:
         current_app.logger.exception("Errore modifica stato utente React JSON: %s", exc)
@@ -3638,7 +3636,6 @@ def utenti_aggiorna_ruolo(id_utente: str):
             payload=payload or {},
             ip=request.remote_addr or "",
         )
-        # codeql[py/stack-trace-exposure] DTO utenti validato dal bridge React.
         return jsonify(result), _utenti_result_status(result)
     except Exception as exc:
         current_app.logger.exception("Errore modifica ruolo utente React JSON: %s", exc)
@@ -3665,7 +3662,6 @@ def utenti_reset_password(id_utente: str):
             payload=payload or {},
             ip=request.remote_addr or "",
         )
-        # codeql[py/stack-trace-exposure] DTO utenti validato dal bridge React.
         return jsonify(result), _utenti_result_status(result)
     except Exception as exc:
         current_app.logger.exception("Errore reset credenziale utente React JSON: %s", exc)
@@ -3692,7 +3688,6 @@ def utenti_aggiorna_profilo(id_utente: str):
             payload=payload or {},
             ip=request.remote_addr or "",
         )
-        # codeql[py/stack-trace-exposure] DTO utenti validato dal bridge React.
         return jsonify(result), _utenti_result_status(result)
     except Exception as exc:
         current_app.logger.exception("Errore modifica profilo utente React JSON: %s", exc)
@@ -3814,7 +3809,6 @@ def backup_crea():
             payload=payload or {},
             ip=request.remote_addr or "",
         )
-        # codeql[py/stack-trace-exposure] esito backup normalizzato dal servizio React.
         return jsonify(result), _backup_result_status(result)
     except Exception as exc:
         current_app.logger.exception("Errore creazione backup React JSON: %s", exc)
@@ -3893,7 +3887,6 @@ def sito_studio_builder_template():
     if error_response is not None:
         return error_response
     result = apply_react_builder_template(payload or {})
-    # codeql[py/stack-trace-exposure] risposta sito studio normalizzata dal servizio React.
     return jsonify(result), 200 if result.get("ok") else 400
 
 
@@ -3911,7 +3904,6 @@ def sito_studio_builder_design():
     except Exception as exc:
         current_app.logger.exception("Errore salvataggio design Builder React: %s", exc)
         result = {"ok": False, "message": "Salvataggio parametri grafici non riuscito."}
-    # codeql[py/stack-trace-exposure] risposta prenotazione normalizzata dal servizio React.
     return jsonify(result), 200 if result.get("ok") else 400
 
 
@@ -4202,7 +4194,6 @@ def sito_studio_contatto_collega(id_contatto: str):
     if error_response is not None:
         return error_response
     result = link_react_sito_contatto(id_contatto, payload or {}, get_clienti=get_clienti)
-    # codeql[py/stack-trace-exposure] risposta sito studio normalizzata dal servizio React.
     return jsonify(result), 200 if result.get("ok") else 400
 
 
@@ -4216,7 +4207,6 @@ def sito_studio_prenotazione_stato(id_prenotazione: str):
     if error_response is not None:
         return error_response
     result = update_react_sito_booking_status(id_prenotazione, payload or {})
-    # codeql[py/stack-trace-exposure] risposta prenotazione normalizzata dal servizio React.
     return jsonify(result), 200 if result.get("ok") else 400
 
 
@@ -4280,7 +4270,6 @@ def impostazioni_page_test(test_id: str):
         return error_response
     result = run_react_impostazioni_test(test_id, payload or {})
     status_code = 200 if result.get("ok") or result.get("local_signer_required") else 400
-    # codeql[py/stack-trace-exposure] test impostazioni restituisce solo esito applicativo normalizzato.
     return jsonify(result), status_code
 
 
@@ -4320,7 +4309,6 @@ def impostazioni_page_ai_lex_dataset_review_update(qa_id: str):
         note=str(payload.get("note") or ""),
         reviewer_id=_current_user_id(),
     )
-    # codeql[py/stack-trace-exposure] revisione dataset Lex normalizzata dal servizio impostazioni.
     return jsonify(result), 200 if result.get("ok") else 400
 
 
@@ -4331,7 +4319,6 @@ def impostazioni_page_ai_bootstrap():
     if error_response is not None:
         return error_response
     result = bootstrap_react_impostazioni_ai(force=bool((payload or {}).get("force")))
-    # codeql[py/stack-trace-exposure] bootstrap AI locale normalizzato dal servizio impostazioni.
     return jsonify(result), 200 if result.get("ok") else 400
 
 
@@ -4342,7 +4329,6 @@ def impostazioni_notifiche_link():
     if error_response is not None:
         return error_response
     result = prepare_notifica_link(payload or {})
-    # codeql[py/stack-trace-exposure] link notifiche normalizzato dal servizio impostazioni.
     return jsonify(result), 200 if result.get("ok") else 400
 
 
@@ -4353,7 +4339,6 @@ def impostazioni_notifiche_invia():
     if error_response is not None:
         return error_response
     result = send_notifica(payload or {})
-    # codeql[py/stack-trace-exposure] invio notifiche normalizzato dal servizio impostazioni.
     return jsonify(result), 200 if result.get("ok") else 400
 
 
@@ -4361,7 +4346,6 @@ def impostazioni_notifiche_invia():
 @_richiedi_auth
 def impostazioni_notifiche_promemoria_domani():
     result = send_promemoria_domani()
-    # codeql[py/stack-trace-exposure] promemoria normalizzato dal servizio notifiche.
     return jsonify(result), 200 if result.get("ok") else 400
 
 
@@ -4378,7 +4362,6 @@ def impostazioni_calendari_crea_profilo():
     except Exception as exc:
         current_app.logger.exception("Errore creazione profilo calendario React: %s", exc)
         result = {"ok": False, "message": "Calendario non aggiunto.", "errors": {"_form": "Operazione non completata."}}
-    # codeql[py/stack-trace-exposure] profilo calendario normalizzato dal servizio impostazioni.
     return jsonify(result), 200 if result.get("ok") else 400
 
 
@@ -4388,7 +4371,6 @@ def impostazioni_calendari_sincronizza(profile_id: str):
     if not _puo_configurare_impostazioni():
         return jsonify({"ok": False, "message": "Permesso impostazioni richiesto.", "errors": {"permission": "Permesso insufficiente."}}), 403
     result = sync_calendar_profile(profile_id=profile_id, get_calendar_sync=get_calendar_sync, get_agenda=get_agenda)
-    # codeql[py/stack-trace-exposure] sync calendario normalizzato dal servizio impostazioni.
     return jsonify(result), 200 if result.get("ok") else 400
 
 
@@ -4672,7 +4654,6 @@ def fatturazione_nuova_crea():
             config=current_app.config,
             ip_address=request.remote_addr or "",
         )
-        # codeql[py/stack-trace-exposure] DTO parcella validato dal servizio React.
         return jsonify(result), status
     except Exception as exc:
         current_app.logger.exception("Errore creazione parcella React JSON: %s", exc)
@@ -4708,7 +4689,6 @@ def fatturazione_detail_page(id_documento: str):
         get_fascicoli=get_fascicoli,
         id_documento=id_documento,
     )
-    # codeql[py/stack-trace-exposure] calcolo compensi normalizzato dal servizio React.
     return jsonify(result), status
 
 
@@ -4734,7 +4714,6 @@ def fatturazione_aggiorna_stato(id_documento: str):
         payload=payload,
         ip_address=request.remote_addr or "",
     )
-    # codeql[py/stack-trace-exposure] calcolo compensi normalizzato dal servizio React.
     return jsonify(result), status
 
 
@@ -4944,7 +4923,6 @@ def tariffario_page():
     if not _puo_leggere_fatturazione():
         return jsonify(build_react_tariffario_error_payload("Permesso fatturazione.leggi richiesto.")), 403
     try:
-        # codeql[py/stack-trace-exposure] payload tariffario costruito dal servizio React senza eccezioni grezze.
         return jsonify(
             build_react_tariffario_payload(
                 get_normative_tables=get_normative_tables,
@@ -4983,7 +4961,6 @@ def tariffario_calcola_page():
         return error_response
     try:
         result, status = calculate_react_tariffario(get_normative_tables=get_normative_tables, payload=payload)
-        # codeql[py/stack-trace-exposure] calcolo tariffario normalizzato dal servizio React.
         return jsonify(result), status
     except Exception as exc:
         current_app.logger.exception("Errore calcolo Tariffario React bridge: %s", exc)
@@ -5567,7 +5544,6 @@ def _legal_intelligence_ui_payload(page: str, legacy_contract: str):
             )
         ), 403
     try:
-        # codeql[py/stack-trace-exposure] payload Legal Intelligence costruito dal servizio React senza eccezioni grezze.
         return jsonify(
             build_react_legal_intelligence_payload(
                 get_legal_intelligence=get_legal_intelligence,
@@ -5718,7 +5694,6 @@ def preventivi_nuovo_crea():
         payload=payload,
         ip_address=request.remote_addr or "",
     )
-    # codeql[py/stack-trace-exposure] creazione preventivo normalizzata dal servizio React.
     return jsonify(result), status
 
 
@@ -5751,7 +5726,6 @@ def preventivi_conferimento_nuovo_crea():
         payload=payload,
         ip_address=request.remote_addr or "",
     )
-    # codeql[py/stack-trace-exposure] creazione conferimento normalizzata dal servizio React.
     return jsonify(result), status
 
 

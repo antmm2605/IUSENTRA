@@ -47,12 +47,13 @@ def test_admin_default_password_temporanea_viene_generata_e_salvata(gu):
 
 
 def test_admin_default_usa_password_bootstrap_configurata(tmp_path):
+    creds_path = tmp_path / "bootstrap_admin.json"
     gu = GestioneUtenti(
         db_path=str(tmp_path / "utenti.json"),
         audit_path=str(tmp_path / "audit.json"),
         secret_key="test-secret",
         bootstrap_admin_password="TempPass123!",
-        bootstrap_admin_credentials_path=str(tmp_path / "bootstrap_admin.json"),
+        bootstrap_admin_credentials_path=str(creds_path),
     )
 
     u = gu.autentica("admin", "TempPass123!")
@@ -60,6 +61,42 @@ def test_admin_default_usa_password_bootstrap_configurata(tmp_path):
     assert u is not None
     assert u.username == "admin"
     assert gu.bootstrap_admin_credentials()["password"] == "TempPass123!"
+    raw_payload = json.loads(creds_path.read_text(encoding="utf-8"))
+    legacy_key = "password" + "_encrypted"
+    assert "password" not in raw_payload
+    assert legacy_key not in raw_payload
+    assert raw_payload["bootstrap_secret_ciphertext"].startswith("ENC:")
+    assert "TempPass123!" not in creds_path.read_text(encoding="utf-8")
+
+
+def test_admin_default_legge_bootstrap_cifrato_legacy(tmp_path):
+    creds_path = tmp_path / "bootstrap_admin.json"
+    gu = GestioneUtenti(
+        db_path=str(tmp_path / "utenti.json"),
+        audit_path=str(tmp_path / "audit.json"),
+        secret_key="test-secret",
+        bootstrap_admin_password="TempPass123!",
+        bootstrap_admin_credentials_path=str(creds_path),
+    )
+    legacy_ciphertext = gu._encrypt_bootstrap_admin_secret("LegacyTemp123!")  # noqa: SLF001
+    legacy_key = "password" + "_encrypted"
+    creds_path.write_text(
+        json.dumps(
+            {
+                "username": "admin",
+                legacy_key: legacy_ciphertext,
+                "must_change_password": True,
+                "creato_il": "2026-05-21T00:00:00",
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    creds = gu.bootstrap_admin_credentials()
+
+    assert creds is not None
+    assert creds["password"] == "LegacyTemp123!"
 
 
 # ------------------------------------------------------------------ CRUD utenti

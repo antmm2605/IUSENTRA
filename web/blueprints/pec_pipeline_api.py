@@ -63,7 +63,6 @@ def _json_error(exc: Exception, status: int = 400):
 
 
 def _json_success(payload: dict, status: int = 200):
-    # codeql[py/stack-trace-exposure] payload operativo PEC filtrato dai repository applicativi.
     return jsonify(payload), status
 
 

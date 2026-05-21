@@ -7,6 +7,10 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.247.4 - 2026-05-21
+
+- Sistemato il follow-up CI del security sweep CodeQL: rimosso il prefisso `f` residuo dalle query SQL statiche Lex, mantenendo il commit marcato `[no-backup]` per impedire backup preventivi automatici in deploy.
+
 ## 2.247.3 - 2026-05-21
 
 - Risolti gli alert CodeQL PR su template notifiche, template atti, URL, SQL dinamico, path, logging e risposte di errore: il rendering delle notifiche usa ora un parser token ristretto senza Jinja runtime, i nomi file sono sanitizzati, le query Lex sono parametriche a SQL fisso e i messaggi JSON non espongono eccezioni.

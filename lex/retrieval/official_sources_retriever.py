@@ -404,7 +404,7 @@ def _search_official_db(path: Path, query: str, materia: str | None, source: str
     con.row_factory = sqlite3.Row
     try:
         rows = con.execute(
-            f"""
+            """
             SELECT c.id AS chunk_id, c.document_id, c.source_id, c.chunk_index, c.title, c.text,
                    c.materia, c.reliability_level, c.metadata_json, d.original_url, d.published_at,
                    d.acquired_at, d.hash_sha256, d.source_name
@@ -467,7 +467,7 @@ def _search_normattiva_db(path: Path, query: str, materia: str | None, vigenza: 
     con.row_factory = sqlite3.Row
     try:
         rows = con.execute(
-            f"""
+            """
             SELECT c.id AS chunk_id, c.chunk_key, c.chunk_text, c.metadata_json, d.id AS document_id,
                    d.titolo, d.data_atto, d.data_pubblicazione, d.urn, d.vigenza, d.zip_path,
                    d.xml_entry, d.xml_sha256, d.imported_at

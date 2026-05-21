@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.248.5 - 2026-05-21
+
+- Chiuso il residuo XSS CodeQL su Template Atti: gli endpoint di prefill/verifica non riflettono più nel JSON i valori arbitrari inviati dall'utente, ma solo campi ammessi dal modello server-side e stati di validazione.
+
 ## 2.248.4 - 2026-05-21
 
 - Chiuso il residuo CodeQL sul backup di migrazione tenant: anche il nome file finale passa da `safe_join` e viene rivalidato nelle radici runtime consentite prima della scrittura.

@@ -658,6 +658,33 @@ def _json_safe_payload(value: Any) -> Any:
     return value
 
 
+def _value_present(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, (list, tuple, set, dict)):
+        return bool(value)
+    return str(value).strip() != ""
+
+
+def _prefill_values(prefill: Any) -> dict[str, Any]:
+    if not isinstance(prefill, dict):
+        return {}
+    values = prefill.get("values")
+    return dict(values) if isinstance(values, dict) else {}
+
+
+def _prefill_fields(prefill: Any) -> dict[str, Any]:
+    if not isinstance(prefill, dict):
+        return {}
+    fields = prefill.get("fields")
+    return dict(fields) if isinstance(fields, dict) else {}
+
+
+def _preserved_server_field_names(user_values: dict[str, Any], prefill: Any) -> list[str]:
+    allowed = sorted(set(_prefill_values(prefill)) | set(_prefill_fields(prefill)))
+    return [field for field in allowed if _value_present(user_values.get(field))]
+
+
 def _resolve_template_context_payload(payload: dict | None = None) -> dict:
     payload = payload or {}
     id_cliente = (
@@ -963,7 +990,7 @@ def template_prefill_data(codice: str):
 @template_atti.route("/<codice>/prefill/resolve", methods=["POST"])
 @_richiedi_login
 def template_prefill_resolve(codice: str):
-    payload, status = _resolve_template_prefill_response(_safe_identifier(codice), _request_payload())
+    payload, status = _resolve_template_prefill_response(_safe_identifier(codice), {})
     return jsonify(_json_safe_payload(payload)), status
 
 
@@ -973,14 +1000,15 @@ def template_prefill_merge(codice: str):
     from pct.template_atti_prefill import merge_prefill_values
 
     request_payload = _request_payload()
-    resolved_payload, status = _resolve_template_prefill_response(_safe_identifier(codice), request_payload)
+    resolved_payload, status = _resolve_template_prefill_response(_safe_identifier(codice), {})
     if status != 200:
         return jsonify(_json_safe_payload(resolved_payload)), status
     user_values = request_payload.get("user_values") if isinstance(request_payload.get("user_values"), dict) else {}
     if not user_values:
         user_values = request_payload.get("values") if isinstance(request_payload.get("values"), dict) else {}
     prefill = resolved_payload.get("prefill") or {}
-    merge = merge_prefill_values(user_values, prefill.get("values"), prefill.get("fields"))
+    merge = merge_prefill_values({}, _prefill_values(prefill), _prefill_fields(prefill))
+    merge["preserved_user_inputs"] = _preserved_server_field_names(user_values, prefill)
     return jsonify(_json_safe_payload({"ok": True, "codice": resolved_payload.get("codice"), "merge": merge, "prefill": prefill}))
 
 
@@ -1003,15 +1031,13 @@ def template_verifica_cartabia(codice: str):
     from pct.template_cartabia_rules import verifica_cartabia_template
     from pct.template_atti_unified_catalog import get_unified_template_item
 
-    request_payload = _request_payload()
     safe_code = _safe_identifier(codice)
     item = get_unified_template_item(safe_code) if safe_code else None
     if not item:
         return jsonify({"ok": False, "errore": "Template non trovato."}), 404
-    prefill_payload, _ = _resolve_template_prefill_response(safe_code, request_payload)
+    prefill_payload, _ = _resolve_template_prefill_response(safe_code, {})
     prefill = prefill_payload.get("prefill") if prefill_payload.get("ok") else {}
-    values = request_payload.get("values") if isinstance(request_payload.get("values"), dict) else {}
-    result = verifica_cartabia_template(item, prefill_resolution=prefill, payload=values, strict_data_check=True)
+    result = verifica_cartabia_template(item, prefill_resolution=prefill, payload=_prefill_values(prefill), strict_data_check=True)
     return jsonify(_json_safe_payload({"ok": result.get("ok", False), "codice": _safe_identifier(item.get("codice") or safe_code) or "template", "cartabia": result}))
 
 
@@ -1028,18 +1054,19 @@ def template_verifica_completa(codice: str):
     item = get_unified_template_item(safe_code) if safe_code else None
     if not item:
         return jsonify({"ok": False, "errore": "Template non trovato."}), 404
-    prefill_payload, status = _resolve_template_prefill_response(safe_code, request_payload)
+    prefill_payload, status = _resolve_template_prefill_response(safe_code, {})
     if status != 200:
         return jsonify(_json_safe_payload(prefill_payload)), status
     prefill = prefill_payload.get("prefill") or {}
     user_values = request_payload.get("values") if isinstance(request_payload.get("values"), dict) else {}
-    merge = merge_prefill_values(user_values, prefill.get("values"), prefill.get("fields"))
+    merge = merge_prefill_values({}, _prefill_values(prefill), _prefill_fields(prefill))
+    merge["preserved_user_inputs"] = _preserved_server_field_names(user_values, prefill)
     cartabia = verifica_cartabia_template(item, prefill_resolution=prefill, payload=merge.get("values"), strict_data_check=True)
     deposito = _verifica_deposito(
         item.get("codice") or safe_code,
         {
             "dati": merge.get("values") or {},
-            "allegati": request_payload.get("allegati") if isinstance(request_payload.get("allegati"), dict) else {},
+            "allegati": {},
         },
     )
     blocking = bool(cartabia.get("controlli_bloccanti") or deposito.get("dati_mancanti") or deposito.get("allegati_mancanti"))

@@ -22,6 +22,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+from werkzeug.utils import safe_join as werkzeug_safe_join
+
 from pct.agenda import Agenda
 from pct.calendar_sync import GestioneCalendarSync
 from pct.core_storage_backend import build_postgres_backend
@@ -162,7 +164,11 @@ def _write_backup_artifact(
         re.sub(r"[^A-Za-z0-9_.-]+", "-", str(item or "")).strip("._-") or "runtime"
         for item in (prefix, target_label, tenant_slug)
     ]
-    output_path = backup_dir / f"{'_'.join(tokens)}_{_stamp_now()}.json"
+    output_name = f"{'_'.join(tokens)}_{_stamp_now()}.json"
+    joined = werkzeug_safe_join(str(backup_dir), output_name)
+    if not joined:
+        raise UnsafeRuntimePath("Percorso backup migrazione non valido.")
+    output_path = resolve_runtime_path(joined, allowed_suffixes={".json"}, extra_roots=[backup_dir])
     output_path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2),
         encoding="utf-8",

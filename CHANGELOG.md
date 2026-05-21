@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.248.4 - 2026-05-21
+
+- Chiuso il residuo CodeQL sul backup di migrazione tenant: anche il nome file finale passa da `safe_join` e viene rivalidato nelle radici runtime consentite prima della scrittura.
+- Convertite le risposte JSON operative di Template Atti a `jsonify` diretto su payload sanificato, evitando il sink generico che CodeQL trattava come possibile risposta HTML riflessa.
+
 ## 2.248.3 - 2026-05-21
 
 - Chiuso il follow-up CodeQL residuo: il bootstrap admin non scrive più segreti temporanei su disco, i percorsi SQLite/runtime usano una radice validata con join sicuro anche su Windows e il login non riflette più destinazioni esterne.

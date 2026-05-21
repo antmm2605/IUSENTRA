@@ -658,10 +658,6 @@ def _json_safe_payload(value: Any) -> Any:
     return value
 
 
-def _json_response_safe(payload: Any, status: int = 200):
-    return jsonify(_json_safe_payload(payload)), status
-
-
 def _resolve_template_context_payload(payload: dict | None = None) -> dict:
     payload = payload or {}
     id_cliente = (
@@ -961,14 +957,14 @@ def template_inventory_data():
 @_richiedi_login
 def template_prefill_data(codice: str):
     payload, status = _resolve_template_prefill_response(_safe_identifier(codice))
-    return _json_response_safe(payload, status)
+    return jsonify(_json_safe_payload(payload)), status
 
 
 @template_atti.route("/<codice>/prefill/resolve", methods=["POST"])
 @_richiedi_login
 def template_prefill_resolve(codice: str):
     payload, status = _resolve_template_prefill_response(_safe_identifier(codice), _request_payload())
-    return _json_response_safe(payload, status)
+    return jsonify(_json_safe_payload(payload)), status
 
 
 @template_atti.route("/<codice>/prefill/merge", methods=["POST"])
@@ -979,13 +975,13 @@ def template_prefill_merge(codice: str):
     request_payload = _request_payload()
     resolved_payload, status = _resolve_template_prefill_response(_safe_identifier(codice), request_payload)
     if status != 200:
-        return _json_response_safe(resolved_payload, status)
+        return jsonify(_json_safe_payload(resolved_payload)), status
     user_values = request_payload.get("user_values") if isinstance(request_payload.get("user_values"), dict) else {}
     if not user_values:
         user_values = request_payload.get("values") if isinstance(request_payload.get("values"), dict) else {}
     prefill = resolved_payload.get("prefill") or {}
     merge = merge_prefill_values(user_values, prefill.get("values"), prefill.get("fields"))
-    return _json_response_safe({"ok": True, "codice": resolved_payload.get("codice"), "merge": merge, "prefill": prefill})
+    return jsonify(_json_safe_payload({"ok": True, "codice": resolved_payload.get("codice"), "merge": merge, "prefill": prefill}))
 
 
 @template_atti.route("/<codice>/cartabia-compliance", methods=["GET"])
@@ -997,8 +993,8 @@ def template_cartabia_compliance(codice: str):
     safe_code = _safe_identifier(codice)
     item = get_unified_template_item(safe_code) if safe_code else None
     if not item:
-        return _json_response_safe({"ok": False, "errore": "Template non trovato."}, 404)
-    return _json_response_safe({"ok": True, "codice": _safe_identifier(item.get("codice") or safe_code) or "template", "cartabia": verifica_cartabia_template(item)})
+        return jsonify({"ok": False, "errore": "Template non trovato."}), 404
+    return jsonify(_json_safe_payload({"ok": True, "codice": _safe_identifier(item.get("codice") or safe_code) or "template", "cartabia": verifica_cartabia_template(item)}))
 
 
 @template_atti.route("/<codice>/verifica-cartabia", methods=["POST"])
@@ -1011,12 +1007,12 @@ def template_verifica_cartabia(codice: str):
     safe_code = _safe_identifier(codice)
     item = get_unified_template_item(safe_code) if safe_code else None
     if not item:
-        return _json_response_safe({"ok": False, "errore": "Template non trovato."}, 404)
+        return jsonify({"ok": False, "errore": "Template non trovato."}), 404
     prefill_payload, _ = _resolve_template_prefill_response(safe_code, request_payload)
     prefill = prefill_payload.get("prefill") if prefill_payload.get("ok") else {}
     values = request_payload.get("values") if isinstance(request_payload.get("values"), dict) else {}
     result = verifica_cartabia_template(item, prefill_resolution=prefill, payload=values, strict_data_check=True)
-    return _json_response_safe({"ok": result.get("ok", False), "codice": _safe_identifier(item.get("codice") or safe_code) or "template", "cartabia": result})
+    return jsonify(_json_safe_payload({"ok": result.get("ok", False), "codice": _safe_identifier(item.get("codice") or safe_code) or "template", "cartabia": result}))
 
 
 @template_atti.route("/<codice>/verifica-completa", methods=["POST"])
@@ -1031,10 +1027,10 @@ def template_verifica_completa(codice: str):
     safe_code = _safe_identifier(codice)
     item = get_unified_template_item(safe_code) if safe_code else None
     if not item:
-        return _json_response_safe({"ok": False, "errore": "Template non trovato."}, 404)
+        return jsonify({"ok": False, "errore": "Template non trovato."}), 404
     prefill_payload, status = _resolve_template_prefill_response(safe_code, request_payload)
     if status != 200:
-        return _json_response_safe(prefill_payload, status)
+        return jsonify(_json_safe_payload(prefill_payload)), status
     prefill = prefill_payload.get("prefill") or {}
     user_values = request_payload.get("values") if isinstance(request_payload.get("values"), dict) else {}
     merge = merge_prefill_values(user_values, prefill.get("values"), prefill.get("fields"))
@@ -1047,7 +1043,7 @@ def template_verifica_completa(codice: str):
         },
     )
     blocking = bool(cartabia.get("controlli_bloccanti") or deposito.get("dati_mancanti") or deposito.get("allegati_mancanti"))
-    return _json_response_safe({
+    return jsonify(_json_safe_payload({
         "ok": not blocking,
         "codice": _safe_identifier(item.get("codice") or safe_code) or "template",
         "prefill": prefill,
@@ -1055,7 +1051,7 @@ def template_verifica_completa(codice: str):
         "cartabia": cartabia,
         "deposito": deposito,
         "stato": "verificato" if not blocking else "richiede_revisione",
-    })
+    }))
 
 
 @template_atti.route("/<codice>/compliance", methods=["GET"])

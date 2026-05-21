@@ -106,6 +106,16 @@ _COMMUNICATION_LOOKUP_TERMS = (
     "casella",
     "allegati pec",
     "allegati email",
+    "pec di deposito",
+    "deposito pec",
+    "pec deposito",
+    "controllo pec",
+    "controllare pec",
+    "pec da controllare",
+    "verifica pec",
+    "verificare pec",
+    "audit pec",
+    "mime pec",
 )
 _ATTACHMENT_DOCUMENT_INTENTS = {"sintesi_documento", "spiegazione_cliente"}
 _ATTACHMENT_EXCLUDED_INTENTS = {
@@ -216,7 +226,43 @@ def _is_communication_lookup(
         return True
     if any(token in text for token in _COMMUNICATION_LOOKUP_TERMS):
         return True
-    if focus_topic == "pec_firma" and any(token in text for token in ("ricevut", "inviat", "allegat", "mittent", "destinatar", "casella")):
+    if "pec" in text and any(
+        token in text
+        for token in (
+            "deposit",
+            "controll",
+            "verific",
+            "presidi",
+            "audit",
+            "mime",
+            "firma",
+            "firme",
+            "notific",
+            "cancelleria",
+            "giudice di pace",
+            "d.l. 179",
+        )
+    ):
+        return True
+    if focus_topic == "pec_firma" and any(
+        token in text
+        for token in (
+            "ricevut",
+            "inviat",
+            "allegat",
+            "mittent",
+            "destinatar",
+            "casella",
+            "deposit",
+            "controll",
+            "verific",
+            "presidi",
+            "audit",
+            "mime",
+            "notific",
+            "cancelleria",
+        )
+    ):
         return True
     return False
 

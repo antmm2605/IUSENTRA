@@ -13,6 +13,13 @@ from typing import Any
 from urllib.parse import quote
 
 from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
+from pct.pec_pipeline import (
+    AttachmentPayload,
+    build_validation_report,
+    classify_attachment,
+    detect_pec_legal_context,
+    field_result,
+)
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
 
@@ -42,9 +49,11 @@ def _pec_quality_label(value: str) -> tuple[str, str]:
     if raw == "verde":
         return "Qualità verde", "success"
     if raw == "giallo":
-        return "Qualità gialla", "warning"
+        return "Qualità da presidiare", "warning"
     if raw == "rosso":
-        return "Qualità rossa", "danger"
+        return "Qualità critica", "danger"
+    if raw in {"da_controllare", "provvisorio", "provisional"}:
+        return "Controllo da completare", "warning"
     return "Da controllare", "neutral"
 
 
@@ -128,6 +137,9 @@ def _pec_audit_payload(summary: dict[str, Any] | None) -> dict[str, Any] | None:
     link = summary.get("fascicolo_link") if isinstance(summary.get("fascicolo_link"), dict) else {}
     fields = summary.get("fields") if isinstance(summary.get("fields"), dict) else {}
     attachments = summary.get("attachments") if isinstance(summary.get("attachments"), list) else []
+    provisional = bool(summary.get("provisional"))
+    source_email_id = _safe_text(summary.get("source_email_id"))
+    run_audit_href = "/api/pec/fetch?limit=50" if provisional else ""
     return {
         "id": pec_id,
         "qualityStatus": str(summary.get("quality_status") or ""),
@@ -138,7 +150,7 @@ def _pec_audit_payload(summary: dict[str, Any] | None) -> dict[str, Any] | None:
         "signatureTone": signature_tone,
         "linkedFascicoloId": str(summary.get("linked_fascicolo_id") or ""),
         "linkedFascicoloScore": float(summary.get("linked_fascicolo_score") or 0),
-        "mimeHref": f"/api/pec/messages/{quote(pec_id, safe='')}/mime" if pec_id else "",
+        "mimeHref": "" if provisional else f"/api/pec/messages/{quote(pec_id, safe='')}/mime" if pec_id else "",
         "validationIssues": list(report.get("issues") or []),
         "validationSeverity": str(report.get("severity") or ""),
         "eventType": str(report.get("event_type") or ""),
@@ -161,11 +173,216 @@ def _pec_audit_payload(summary: dict[str, Any] | None) -> dict[str, Any] | None:
             if isinstance(item, dict)
         ],
         "quickActions": {
-            "saveMatter": f"/api/pec/messages/{quote(pec_id, safe='')}/salva-fascicolo" if pec_id else "",
-            "requestMissingAttachment": f"/api/pec/messages/{quote(pec_id, safe='')}/richiedi-allegato-mancante" if pec_id else "",
-            "scheduleDeadline": f"/api/pec/messages/{quote(pec_id, safe='')}/schedula-scadenza" if pec_id else "",
-            "openMime": f"/api/pec/messages/{quote(pec_id, safe='')}/mime" if pec_id else "",
+            "saveMatter": "" if provisional else f"/api/pec/messages/{quote(pec_id, safe='')}/salva-fascicolo" if pec_id else "",
+            "requestMissingAttachment": "" if provisional else f"/api/pec/messages/{quote(pec_id, safe='')}/richiedi-allegato-mancante" if pec_id else "",
+            "scheduleDeadline": "" if provisional else f"/api/pec/messages/{quote(pec_id, safe='')}/schedula-scadenza" if pec_id else "",
+            "openMime": "" if provisional else f"/api/pec/messages/{quote(pec_id, safe='')}/mime" if pec_id else "",
+            "runAudit": run_audit_href,
         },
+        "persisted": not provisional,
+        "storageLabel": "MIME originale da acquisire" if provisional else "MIME originale conservato",
+        "storageTone": "warning" if provisional else "success",
+        "sourceEmailId": source_email_id,
+    }
+
+
+def _address_value(value: Any) -> dict[str, str]:
+    raw = _safe_text(value)
+    if "@" in raw and "<" in raw and ">" in raw:
+        name = raw.split("<", 1)[0].strip().strip('"')
+        email = raw.split("<", 1)[1].split(">", 1)[0].strip().lower()
+        return {"name": name, "email": email}
+    return {"name": "", "email": raw.lower() if "@" in raw else raw}
+
+
+def _receipt_type_from_legacy_email(email_obj: Any, context_text: str) -> str:
+    haystack = context_text.lower()
+    pct = str(getattr(email_obj, "stato_pct", "") or "").upper()
+    if "accettazione deposito" in haystack or pct == "ACCETTATO_PEC":
+        return "accettazione_deposito"
+    if "avvenuta consegna" in haystack or "ricevuta di consegna" in haystack or pct == "CONSEGNATO":
+        return "avvenuta_consegna"
+    if "esito controlli" in haystack or "controlli automatici" in haystack or "CONTROLLI" in pct:
+        return "esito_controlli_deposito"
+    if "rifiuto" in haystack or "RIFIUT" in pct:
+        return "rifiuto_deposito"
+    if "consegna" in haystack:
+        return "consegna"
+    if "accettazione" in haystack:
+        return "accettazione"
+    return ""
+
+
+def _first_protocol_candidate(text: str) -> str:
+    import re
+
+    patterns = (
+        r"\bR\.?\s*G\.?\s*(?:n\.?\s*)?(\d{1,7}\s*/\s*\d{4})\b",
+        r"\bRG\s+(\d{1,7}\s*/\s*\d{4})\b",
+        r"\bprotocollo\s+([A-Z0-9./-]{4,})\b",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, text, flags=re.I)
+        if match:
+            return _safe_text(match.group(1)).replace(" ", "")
+    return ""
+
+
+def _legacy_attachment_audit_rows(email_obj: Any, context_text: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for index, info in enumerate(list(getattr(email_obj, "allegati", []) or [])):
+        if not isinstance(info, dict):
+            continue
+        name = _safe_text(info.get("nome") or info.get("nome_file") or f"allegato-{index + 1}")
+        mime = _safe_text(info.get("mime") or info.get("content_type") or "application/octet-stream")
+        size = int(info.get("size") or info.get("dimensione") or 0)
+        classification, score, reason = classify_attachment(
+            AttachmentPayload(index=index, filename=name, content_type=mime, data=b""),
+            context_text,
+        )
+        if score < 0.7 and classification not in {"daticert", "eml"}:
+            classification = "da confermare"
+        rows.append(
+            {
+                "index": index,
+                "filename": name,
+                "classification": classification,
+                "classification_score": round(score, 3),
+                "classification_reason": reason,
+                "ocr_coverage": 0.0,
+                "signature_status": "non_verificata",
+                "size_bytes": size,
+                "content_type": mime,
+            }
+        )
+    return rows
+
+
+def _provisional_pec_audit_summary(email_obj: Any, *, include_telematic: bool = True) -> dict[str, Any] | None:
+    """Costruisce il presidio UI per PEC storiche non ancora migrate in pec_audit.sqlite."""
+
+    if not include_telematic:
+        return None
+    subject = _safe_text(getattr(email_obj, "oggetto", ""))
+    body = _safe_text(getattr(email_obj, "corpo_testo", "") or getattr(email_obj, "corpo_html", ""))
+    sender = _safe_text(getattr(email_obj, "mittente", "") or getattr(email_obj, "mittente_nome", ""))
+    recipients = _safe_text(getattr(email_obj, "destinatari", ""))
+    context_text = " ".join(
+        item
+        for item in (
+            subject,
+            body,
+            sender,
+            recipients,
+            _safe_text(getattr(email_obj, "stato_pct", "")),
+            " ".join(_safe_text(item.get("nome") or item.get("nome_file")) for item in list(getattr(email_obj, "allegati", []) or []) if isinstance(item, dict)),
+        )
+        if item
+    )
+    semantic_context = detect_pec_legal_context(context_text)
+    is_certified = bool(
+        str(getattr(email_obj, "message_id", "") or "").strip()
+        or "postacert" in context_text.lower()
+        or "daticert" in context_text.lower()
+        or "posta certificata" in subject.lower()
+        or bool(getattr(email_obj, "e_pst", False))
+    )
+    has_telematic_signal = bool(semantic_context or getattr(email_obj, "e_pst", False) or "deposito" in context_text.lower() or "notific" in context_text.lower())
+    if not (is_certified or has_telematic_signal):
+        return None
+    attachments = _legacy_attachment_audit_rows(email_obj, context_text)
+    protocol = _first_protocol_candidate(context_text)
+    receipt_type = _receipt_type_from_legacy_email(email_obj, context_text)
+    sent_date = str(getattr(email_obj, "data", "") or getattr(email_obj, "timestamp", "") or getattr(email_obj, "ricevuta_il", "") or "")
+    fields = {
+        "mittente": field_result(
+            _address_value(sender),
+            0.72 if sender else 0.18,
+            "Letto dallo storico della casella PEC; confermare sul MIME originale quando il controllo audit-grade viene eseguito.",
+            ["email:mittente"] if sender else [],
+        ),
+        "data_invio": field_result(
+            sent_date,
+            0.68 if sent_date else 0.18,
+            "Data disponibile nella scheda email; da confermare con header e dati di certificazione.",
+            ["email:data"] if sent_date else [],
+        ),
+        "data_consegna": field_result(
+            "",
+            0.18,
+            "Dato non confermato: serve il MIME originale o il daticert.xml.",
+            [],
+        ),
+        "tipo_ricevuta": field_result(
+            receipt_type,
+            0.62 if receipt_type else 0.2,
+            "Tipo ricevuta dedotto da oggetto, corpo o stato PCT storico.",
+            ["email:oggetto", "email:stato_pct"] if receipt_type else [],
+        ),
+        "protocollo": field_result(
+            protocol,
+            0.7 if protocol else 0.2,
+            "Protocollo/RG cercato nel testo visibile della PEC.",
+            ["pattern:RG/protocollo"] if protocol else [],
+        ),
+        "pec_certificata": field_result(
+            is_certified,
+            0.76 if is_certified else 0.25,
+            "Indicatori PEC/PST presenti nella scheda messaggio.",
+            ["message-id", "posta-certificata", "pst"] if is_certified else [],
+        ),
+        "contesto_legale": field_result(
+            semantic_context,
+            float(semantic_context.get("confidence") or 0.0) if semantic_context else 0.28,
+            "Contesto processuale riconosciuto sul testo visibile della PEC." if semantic_context else "Contesto processuale non forte sul testo visibile.",
+            semantic_context.get("features") or [] if semantic_context else [],
+        ),
+    }
+    parsed = {
+        "headers": {
+            "message_id": str(getattr(email_obj, "message_id", "") or ""),
+            "subject": subject,
+            "from": [_address_value(sender)] if sender else [],
+            "to": [_address_value(recipients)] if recipients else [],
+            "date": sent_date,
+        },
+        "fields": fields,
+        "semantic_context": semantic_context,
+        "body": {"text": body},
+    }
+    report = build_validation_report(parsed, attachments)
+    report.setdefault("issues", [])
+    report["issues"] = [
+        {
+            "code": "audit_storage_pending",
+            "severity": "warning",
+            "blocking": False,
+            "title": "Conservazione audit-grade da eseguire",
+            "detail": "La PEC è visibile nello storico email, ma il MIME originale non risulta ancora nella cassaforte PEC audit-grade. Usa il controllo per acquisire il MIME originale da IMAP.",
+        },
+        *list(report.get("issues") or []),
+    ]
+    report["severity"] = "warning" if report.get("severity") in {"", "ok"} else report.get("severity")
+    quality_status = "giallo" if has_telematic_signal else "da_controllare"
+    signature_status = "non_applicabile"
+    if any(str(item.get("filename") or "").lower().endswith((".p7m", ".pdf")) for item in attachments):
+        signature_status = "non_verificata"
+    return {
+        "id": f"email:{getattr(email_obj, 'id', '')}",
+        "message_id_header": str(getattr(email_obj, "message_id", "") or ""),
+        "quality_status": quality_status,
+        "signature_status": signature_status,
+        "linked_fascicolo_id": "",
+        "linked_fascicolo_score": 0,
+        "received_at": sent_date,
+        "metadata": {"headers": {"subject": subject, "from": sender, "to": recipients}},
+        "fields": fields,
+        "body_text": body,
+        "validation_report": report,
+        "fascicolo_link": {},
+        "attachments": attachments,
+        "provisional": True,
+        "source_email_id": str(getattr(email_obj, "id", "") or ""),
     }
 
 
@@ -385,9 +602,15 @@ def _email_row(
         "markUnreadHref": f"{base}/{encoded_id}/segna-non-letta",
         "tone": _tone(email_obj, include_telematic=include_telematic),
     }
-    audit_payload = _pec_audit_payload(pec_audit)
+    audit_payload = _pec_audit_payload(pec_audit) or _pec_audit_payload(
+        _provisional_pec_audit_summary(email_obj, include_telematic=include_telematic)
+    )
     if audit_payload:
         row["pecAudit"] = audit_payload
+        if audit_payload.get("eventType"):
+            row["isPst"] = True
+        if audit_payload.get("qualityTone") in {"warning", "danger"}:
+            row["tone"] = audit_payload.get("qualityTone")
     return row
 
 
@@ -462,6 +685,7 @@ def build_react_email_detail_payload(
         str(getattr(email_obj, "message_id", "") or "").strip(),
         {},
     )
+    effective_audit = audit_summary or _provisional_pec_audit_summary(email_obj, include_telematic=include_telematic) or {}
     sender = _safe_text(getattr(email_obj, "mittente", ""))
     subject = _safe_text(getattr(email_obj, "oggetto", ""))
     return {
@@ -473,12 +697,12 @@ def build_react_email_detail_payload(
             base_path=base_path,
             compose_path=compose_path,
             include_telematic=include_telematic,
-            pec_audit=audit_summary,
+            pec_audit=effective_audit,
         ),
         "bodyText": str(getattr(email_obj, "corpo_testo", "") or ""),
         "bodyHtml": str(getattr(email_obj, "corpo_html", "") or ""),
         "attachments": _attachment_rows(email_obj, base_path=base_path, gestore=gestore),
-        "pecAudit": _pec_audit_payload(audit_summary),
+        "pecAudit": _pec_audit_payload(effective_audit),
         "actions": {
             "inbox": f"{('/' + str(base_path or '/email').strip('/')).rstrip('/')}/",
             "reply": f"{('/' + str(compose_path or '/email/scrivi').strip('/'))}?a={quote(sender, safe='')}&oggetto={quote('Re: ' + subject, safe='')}",
@@ -530,7 +754,15 @@ def build_react_email_payload(
     )
     all_emails = list(gestore._carica().values())  # noqa: SLF001 - bridge read-only su repository operativa
     stats = gestore.statistiche()
-    audit_summaries = _pec_audit_summaries(db_path, all_emails, tenant_id=tenant_id, include_telematic=include_telematic)
+    persisted_audit_summaries = _pec_audit_summaries(db_path, all_emails, tenant_id=tenant_id, include_telematic=include_telematic)
+    audit_summaries = dict(persisted_audit_summaries)
+    for email_obj in all_emails:
+        header = str(getattr(email_obj, "message_id", "") or "").strip()
+        if header and header in audit_summaries:
+            continue
+        provisional = _provisional_pec_audit_summary(email_obj, include_telematic=include_telematic)
+        if provisional:
+            audit_summaries[header or str(getattr(email_obj, "id", "") or "")] = provisional
     email_headers = {str(getattr(email_obj, "message_id", "") or "").strip() for email_obj in all_emails if str(getattr(email_obj, "message_id", "") or "").strip()}
     audit_only_summaries = [
         item
@@ -543,7 +775,8 @@ def build_react_email_payload(
             base_path=base,
             compose_path=compose_path,
             include_telematic=include_telematic,
-            pec_audit=audit_summaries.get(str(getattr(email_obj, "message_id", "") or "").strip()),
+            pec_audit=audit_summaries.get(str(getattr(email_obj, "message_id", "") or "").strip())
+            or audit_summaries.get(str(getattr(email_obj, "id", "") or "").strip()),
         )
         for email_obj in emails
     ]
@@ -569,12 +802,20 @@ def build_react_email_payload(
     audit_only_attachments = sum(len(list(item.get("attachments") or [])) for item in audit_only_summaries)
     attachments_total = sum(len(list(getattr(email_obj, "allegati", []) or [])) for email_obj in all_emails) + audit_only_attachments
     auto_linked = sum(1 for email_obj in all_emails if include_telematic and bool(getattr(email_obj, "auto_registrata", False)))
-    audit_warning_total = sum(1 for item in [*audit_summaries.values(), *audit_only_summaries] if str(item.get("quality_status") or "") in {"giallo", "rosso"})
+    audit_warning_total = sum(1 for item in [*audit_summaries.values(), *audit_only_summaries] if str(item.get("quality_status") or "") in {"giallo", "rosso", "da_controllare"})
     warning_total = audit_warning_total + sum(
         1
         for email_obj in all_emails
         if include_telematic and any(marker in str(getattr(email_obj, "stato_pct", "") or "").upper() for marker in ("RIFIUT", "ERRORE", "WARN"))
     )
+    pst_total = 0
+    if include_telematic:
+        pst_total = len(audit_only_summaries)
+        for email_obj in all_emails:
+            header = str(getattr(email_obj, "message_id", "") or "").strip()
+            email_id = str(getattr(email_obj, "id", "") or "").strip()
+            if getattr(email_obj, "e_pst", False) or audit_summaries.get(header) or audit_summaries.get(email_id):
+                pst_total += 1
 
     return {
         "source": "repository_reali",
@@ -587,7 +828,7 @@ def build_react_email_payload(
             "unread": stats.get("non_lette", 0),
             "sent": stats.get("inviati", 0),
             "trash": stats.get("cestino", 0),
-            "pst": (int(stats.get("pst", 0) or 0) + len(audit_only_summaries)) if include_telematic else 0,
+            "pst": pst_total,
             "attachments": attachments_total,
             "autoLinked": auto_linked,
             "warnings": warning_total,

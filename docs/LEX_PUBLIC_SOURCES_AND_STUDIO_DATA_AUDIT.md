@@ -2,6 +2,12 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.246.3 - 2026-05-21
+
+Le domande su PEC di deposito, controlli, MIME, firma, notifica o cancelleria restano nel perimetro dati studio. Lex consulta casella PEC e `pec_audit`; non attiva una bozza e non devia su fonti pubbliche quando l'utente chiede quali PEC controllare.
+
+Per lo storico PEC non ancora acquisito in storage audit-grade, il bridge applicativo espone un controllo provvisorio con confidence e motivazione, ma marca esplicitamente la lacuna probatoria. La fonte interna è utile per presidio operativo immediato; il completamento corretto resta l'acquisizione IMAP del MIME originale.
+
 ## Aggiornamento operativo 2.245.65 - 2026-05-20
 
 Template Atti usa ora un registro locale di fonti normative verificate per i profili applicabili ai modelli, senza trasformare la chat in ricerca libera. Le fonti sono marcate con `verification_status`, URL ufficiale, data di verifica e tipo di presidio; i riferimenti mostrati a Lex e al compilatore includono sempre `reason_for_application`.

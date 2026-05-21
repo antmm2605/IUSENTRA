@@ -7,6 +7,13 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.246.3 - 2026-05-21
+
+- Corretto il bridge PEC React: le PEC storiche presenti nella casella, ma non ancora acquisite nella cassaforte audit-grade, mostrano comunque presidio provvisorio in UI con badge qualità/firme/evento, confidence per campo, anomalie, riferimenti normativi, domande operative e avviso esplicito “MIME originale da acquisire”.
+- Aggiunta nella scheda PEC l’azione “Esegui controllo audit-grade” verso `/api/pec/fetch`, mentre le quick action che richiedono il MIME originale restano disabilitate finché l’acquisizione IMAP probatoria non è completata.
+- Corretto Lex: domande come “Che PEC di deposito devo controllare?” vengono trattate come consultazione operativa su PEC/deposito/audit, non come richiesta di bozza PEC.
+- Estesa la risposta operativa Lex per riportare controlli PEC audit, fase del deposito, prossimi esiti attesi, anomalie e domande guida quando il perimetro riguarda deposito, notifica, firme, MIME o cancelleria.
+
 ## 2.246.2 - 2026-05-21
 
 - Introdotta la pipeline PEC audit-grade end-to-end: MIME originale immutabile, parsed JSON versionato con SHA-256, audit log append-only, migrazioni SQLite/PostgreSQL, retention review, ingest IMAP idempotente e dedup su `Message-ID` più hash MIME.

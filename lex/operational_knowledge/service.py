@@ -680,6 +680,8 @@ def _should_ignore_mailbox_text_filter(question: str, entity_query: str, *, has_
         return True
     if any(token in text for token in ("ultim", "ricevut", "inviat", "risposta", "rispondi", "scrivi", "redigi", "prepara", "bozza")):
         return True
+    if "pec" in text and any(token in text for token in ("deposit", "controll", "verific", "presidi", "audit", "mime", "notific", "cancelleria")):
+        return True
     return query in {"pec", "email", "posta", "messaggio", "messaggi"}
 
 
@@ -697,6 +699,7 @@ def _wants_pec_audit(question: str) -> bool:
             "mancant",
             "mime",
             "audit",
+            "deposito",
             "fascicolo",
             "collega",
             "qualita",

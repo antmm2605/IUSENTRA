@@ -325,6 +325,7 @@ class OperationalResponseComposer:
     def _communications_lines(self, results: list[OperationalToolResult], gaps: list[str]) -> list[str]:
         clienti = _data_for(results, "clienti")
         fascicoli = _data_for(results, "fascicoli")
+        audit_rows = _sort_communications(_data_for(results, "pec_audit"))
         pec_rows = _sort_communications(_data_for(results, "email_pec"))
         ordinary_rows = _sort_communications(_data_for(results, "email_ordinaria"))
         messages = _sort_communications(_data_for(results, "messaggi"))
@@ -333,9 +334,14 @@ class OperationalResponseComposer:
             lines.append(f"Fascicolo di contesto: {_row_link(fascicoli[0]) or _label(fascicoli[0])}.")
         if clienti:
             lines.append(f"Cliente di contesto: {_row_link(clienti[0]) or _label(clienti[0])}.")
+        if audit_rows:
+            lines.append(f"PEC da controllare: {len(audit_rows)} presidio automatico disponibile.")
+            for row in audit_rows[:4]:
+                lines.extend(_pec_audit_control_lines(row))
         if pec_rows:
             latest = pec_rows[0]
-            lines.append(f"Ultima PEC trovata: {_label(latest)}.")
+            prefix = "PEC di deposito/notifica collegata" if audit_rows else "Ultima PEC trovata"
+            lines.append(f"{prefix}: {_label(latest)}.")
             details = _communication_details(latest, include_folder=True)
             if details:
                 lines.extend(details)
@@ -1632,6 +1638,39 @@ def _markdown_link(url: str, *, label: str = "") -> str:
         return ""
     href = clean.replace("_", "%5F")
     return f"[{label or clean}]({href})"
+
+
+def _pec_audit_control_lines(row: dict[str, Any]) -> list[str]:
+    title = _row_link(row, label=_label(row)) or _label(row)
+    event = clean_spaces(row.get("event_type")).replace("_", " ")
+    quality = clean_spaces(row.get("quality_label") or row.get("quality_status"))
+    signature = clean_spaces(row.get("signature_label") or row.get("signature_status"))
+    severity = clean_spaces(row.get("validation_severity"))
+    try:
+        issues_count = int(row.get("issues_count") or 0)
+    except Exception:
+        issues_count = 0
+    pieces = [piece for piece in (event, quality, signature, f"{issues_count} anomalie" if issues_count else "", f"severità {severity}" if severity else "") if piece]
+    lines = [f"- {title}: {'; '.join(pieces) if pieces else 'controllo PEC da presidiare'}."]
+    lifecycle = row.get("deposit_lifecycle") if isinstance(row.get("deposit_lifecycle"), dict) else {}
+    stage = lifecycle.get("current_stage") if isinstance(lifecycle.get("current_stage"), dict) else {}
+    if stage:
+        label = clean_spaces(stage.get("label"))
+        if label:
+            lines.append(f"  Fase deposito: {label}.")
+    communication = clean_spaces(lifecycle.get("communication"))
+    if communication:
+        lines.append(f"  Cosa aspettarsi: {communication}")
+    issues = [dict(item) for item in list(row.get("issues") or []) if isinstance(item, dict)]
+    for issue in issues[:2]:
+        issue_title = clean_spaces(issue.get("title"))
+        issue_detail = clean_spaces(issue.get("detail"))
+        if issue_title:
+            lines.append(f"  Da controllare: {issue_title}{(' - ' + issue_detail) if issue_detail else ''}.")
+    questions = [clean_spaces(item) for item in list(row.get("agent_questions") or []) if clean_spaces(item)]
+    for question in questions[:2]:
+        lines.append(f"  Domanda guida: {question}")
+    return lines
 
 
 def _communication_details(row: dict[str, Any], *, include_folder: bool = False) -> list[str]:

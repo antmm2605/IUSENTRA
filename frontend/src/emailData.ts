@@ -58,7 +58,12 @@ export type PecAuditSummary = {
     requestMissingAttachment: string
     scheduleDeadline: string
     openMime: string
+    runAudit: string
   }
+  persisted: boolean
+  storageLabel: string
+  storageTone: Tone
+  sourceEmailId: string
 }
 
 export type EmailPecRow = {
@@ -361,7 +366,12 @@ function auditFromPayload(value: unknown): PecAuditSummary | undefined {
       requestMissingAttachment: text(quickActions.requestMissingAttachment ?? quickActions.request_missing_attachment),
       scheduleDeadline: text(quickActions.scheduleDeadline ?? quickActions.schedule_deadline),
       openMime: text(quickActions.openMime ?? quickActions.open_mime),
+      runAudit: text(quickActions.runAudit ?? quickActions.run_audit),
     },
+    persisted: item.persisted !== false,
+    storageLabel: text(item.storageLabel ?? item.storage_label, item.persisted === false ? 'MIME originale da acquisire' : 'MIME originale conservato'),
+    storageTone: normaliseAuditTone(item.storageTone ?? item.storage_tone, item.persisted === false ? 'warning' : 'success'),
+    sourceEmailId: text(item.sourceEmailId ?? item.source_email_id),
   }
 }
 

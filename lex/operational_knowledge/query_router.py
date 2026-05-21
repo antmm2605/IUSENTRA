@@ -55,6 +55,8 @@ ENTITY_STOPWORDS = {
     "completo",
     "conferimento",
     "contesto",
+    "controllare",
+    "controlli",
     "dai",
     "dammi",
     "dati",
@@ -70,6 +72,7 @@ ENTITY_STOPWORDS = {
     "dello",
     "dei",
     "di",
+    "deposito",
     "documenti",
     "domani",
     "dimmi",
@@ -162,6 +165,8 @@ ENTITY_STOPWORDS = {
     "un",
     "una",
     "usa",
+    "verifica",
+    "verificare",
     "ultima",
     "ultime",
     "ultimo",
@@ -266,6 +271,23 @@ class OperationalQueryRouter:
             sources = ["clienti", "fascicoli", "messaggi"]
             if "pec" in text:
                 sources.append("email_pec")
+                if any(
+                    token in text
+                    for token in (
+                        "deposit",
+                        "controll",
+                        "valid",
+                        "firma",
+                        "firme",
+                        "audit",
+                        "mime",
+                        "notific",
+                        "cancelleria",
+                        "giudice di pace",
+                        "d.l. 179",
+                    )
+                ):
+                    sources.append("pec_audit")
             if "posta ordinaria" in text or "email ordinaria" in text or "smtp" in text or "imap" in text:
                 sources.append("email_ordinaria")
             if ("email" in text or "posta" in text) and not {"email_pec", "email_ordinaria"}.intersection(sources):

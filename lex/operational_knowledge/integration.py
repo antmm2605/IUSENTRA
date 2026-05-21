@@ -72,6 +72,16 @@ _COMMUNICATION_LOOKUP_TERMS = (
     "posta ordinaria",
     "casella",
     "allegati pec",
+    "pec di deposito",
+    "deposito pec",
+    "pec deposito",
+    "controllo pec",
+    "controllare pec",
+    "pec da controllare",
+    "verifica pec",
+    "verificare pec",
+    "audit pec",
+    "mime pec",
 )
 _STUDIO_DATA_TERMS = (
     "agenda",
@@ -196,7 +206,26 @@ def _should_defer_to_public_legal_research(
     has_studio_term = any(token in text for token in _STUDIO_DATA_TERMS)
     has_communication_lookup = any(token in text for token in _COMMUNICATION_LOOKUP_TERMS)
     has_communication_source = any(token in text for token in ("pec", "email", "posta", "messaggio"))
+    has_pec_control_lookup = "pec" in text and any(
+        token in text
+        for token in (
+            "deposit",
+            "controll",
+            "verific",
+            "presidi",
+            "audit",
+            "mime",
+            "firma",
+            "firme",
+            "notific",
+            "cancelleria",
+            "giudice di pace",
+            "d.l. 179",
+        )
+    )
     has_communication_draft = has_communication_source and any(token in text for token in _DRAFTING_TERMS + ("risposta", "rispondi"))
+    if has_pec_control_lookup:
+        return False
     if has_communication_draft:
         return False
     if (intent in {"comunicazioni_lookup", "pec_comunicazioni", "bozza_lettera"} or has_studio_term) and has_communication_lookup:

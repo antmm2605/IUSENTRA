@@ -7,6 +7,7 @@ from flask import Flask, g
 
 from lex.operational_knowledge.permission_guard import resolve_query_context
 from lex.operational_knowledge.tools import OperationalKnowledgeTools
+from pct.email_client import EmailRicevuta, GestioneEmailRicevute, StatoEmail
 from pct.pec_pipeline import (
     PecAuditRepository,
     detect_pec_legal_context,
@@ -203,3 +204,52 @@ def test_react_email_bridge_lists_audit_only_pec_messages(tmp_path):
     assert notice["pecAudit"]["quickActions"]["openMime"].endswith("/mime")
     deposit = next(item for item in payload["items"] if item["pecAudit"]["eventType"] == "pct_deposito")
     assert deposit["pecAudit"]["depositLifecycle"]["current_stage"]["id"] in {"accettazione_pec", "consegna_pec"}
+
+
+def test_react_email_bridge_exposes_provisional_audit_for_legacy_pec(tmp_path):
+    from web.services.react_email_bridge import build_react_email_detail_payload, build_react_email_payload
+
+    email_db = tmp_path / "email" / "casella.json"
+    gestore = GestioneEmailRicevute(str(email_db))
+    gestore.aggiungi(
+        EmailRicevuta(
+            id="MAIL-GDP-1",
+            cartella="INBOX",
+            stato=StatoEmail.NON_LETTA,
+            mittente="Per conto di: gdp.palmi@civile.ptel.giustiziacert.it",
+            destinatari="roberto.montagnese@coapalmi.legalmail.it",
+            oggetto="POSTA CERTIFICATA: GIUDICE DI PACE Notificazione ai sensi del D.L. 179/2012",
+            data="2026-05-14T10:47:11",
+            corpo_testo=(
+                "Messaggio di posta certificata. GIUDICE DI PACE Notificazione ai sensi del D.L. 179/2012. "
+                "L'allegato daticert.xml contiene informazioni di servizio sulla trasmissione."
+            ),
+            allegati=[
+                {"nome": "postacert.eml", "mime": "message/rfc822", "size": 170100},
+                {"nome": "daticert.xml", "mime": "application/xml", "size": 928},
+                {"nome": "atto.pdf", "mime": "application/pdf", "size": 42000},
+            ],
+            message_id="FC338A4C.025A7971.25AB1E0C.FABBBFE3.posta-certificata@legalmail.it",
+            origine="IMAP",
+        )
+    )
+
+    payload = build_react_email_payload(db_path=str(email_db), tenant_id="default")
+    row = payload["items"][0]
+    audit = row["pecAudit"]
+
+    assert payload["summary"]["pst"] == 1
+    assert row["isPst"] is True
+    assert audit["persisted"] is False
+    assert audit["storageLabel"] == "MIME originale da acquisire"
+    assert audit["quickActions"]["runAudit"] == "/api/pec/fetch?limit=50"
+    assert audit["quickActions"]["openMime"] == ""
+    assert audit["eventType"] == "notifica_giudice_pace"
+    assert audit["confidence"]["contesto_legale"]["confidence"] >= 0.7
+    assert any("Giudice di Pace" in item["label"] or "D.L. 179" in item["label"] for item in audit["normativeReferences"])
+    assert any(issue["code"] == "audit_storage_pending" for issue in audit["validationIssues"])
+
+    detail = build_react_email_detail_payload(db_path=str(email_db), id_email="MAIL-GDP-1", tenant_id="default")
+    assert detail is not None
+    assert detail["pecAudit"]["persisted"] is False
+    assert detail["pecAudit"]["quickActions"]["runAudit"] == "/api/pec/fetch?limit=50"

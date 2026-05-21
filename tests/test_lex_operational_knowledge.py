@@ -2516,6 +2516,82 @@ def test_http_bridge_routes_ultima_pec_ricevuta_to_operational_layer_without_dra
     assert "BOZZA" not in payload["answer"]
 
 
+def test_pec_deposito_control_question_is_lookup_not_draft():
+    from lex.operational_knowledge.integration import _should_defer_to_public_legal_research
+    from lex.operational_knowledge.query_router import OperationalQueryRouter
+    from lex.research.request_profile import classify_request
+
+    question = "Che PEC di deposito devo controllare?"
+    profile = classify_request(question)
+    route = OperationalQueryRouter().route(question, metadata={"focus_topic": "pec_firma"})
+
+    assert profile.intent == "comunicazioni_lookup"
+    assert profile.drafting_mode is False
+    assert route is not None
+    assert route.intent == "communications_lookup"
+    assert "email_pec" in route.source_ids
+    assert "pec_audit" in route.source_ids
+    assert _should_defer_to_public_legal_research(
+        question,
+        metadata={"focus_topic": "pec_firma", "request_profile": profile.to_dict()},
+        studio_context={"focus_topic": "pec_firma", "request_profile": profile.to_dict()},
+    ) is False
+
+
+def test_http_bridge_routes_pec_deposito_control_to_operational_layer_without_draft(monkeypatch):
+    monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
+    from lex.http_bounded_bridge import build_bounded_http_payload
+    from lex.operational_knowledge.models import OperationalAnswer, OperationalRoute, OperationalSourceReference
+    from lex.research.request_profile import classify_request
+
+    class _FakeOperationalKnowledgeService:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def answer(self, **kwargs):
+            assert kwargs["metadata"]["request_profile"]["intent"] == "comunicazioni_lookup"
+            return OperationalAnswer(
+                handled=True,
+                answer=(
+                    "PEC da controllare: Esito deposito del 19 maggio 2026. "
+                    "Verifica accettazione, consegna, esito controlli e accettazione finale; nessuna bozza da preparare."
+                ),
+                route=OperationalRoute("communications_lookup", "communications_lookup", ("email_pec", "pec_audit"), ""),
+                sources=[
+                    OperationalSourceReference(
+                        source_id="pec_audit",
+                        source_name="Controlli automatici PEC",
+                        source_type="pec_audit",
+                        object_type="pec",
+                        object_id="pec-1",
+                        title="Esito deposito",
+                        confidence=0.9,
+                    )
+                ],
+                confidence=0.9,
+                metadata={"operational_layer": True},
+            )
+
+    monkeypatch.setattr("lex.operational_knowledge.integration.OperationalKnowledgeService", _FakeOperationalKnowledgeService)
+
+    question = "Che PEC di deposito devo controllare?"
+    profile = classify_request(question)
+    payload = build_bounded_http_payload(
+        user=_User(_all_permissions()),
+        studio=SimpleNamespace(slug="tenant-a"),
+        data={"messages": []},
+        current_user_message=question,
+        resolved_effective_question=question,
+        studio_context={"focus_topic": "pec_firma", "request_profile": profile.to_dict()},
+        attachments=[],
+    )
+
+    assert payload is not None
+    assert payload["workflow"] == "operational_knowledge"
+    assert "PEC da controllare" in payload["answer"]
+    assert "BOZZA" not in payload["answer"]
+
+
 def test_http_bridge_routes_contesto_studio_to_governed_operational_layer(monkeypatch):
     monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
     from lex.http_bounded_bridge import build_bounded_http_payload

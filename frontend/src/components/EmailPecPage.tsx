@@ -313,6 +313,7 @@ function PecAuditBadges({ audit }: { audit?: PecAuditSummary }) {
     <>
       <Badge tone={audit.qualityTone}>{audit.qualityLabel}</Badge>
       <Badge tone={audit.signatureTone}>{audit.signatureLabel}</Badge>
+      {audit.persisted === false ? <Badge tone={audit.storageTone}>{audit.storageLabel}</Badge> : null}
       {audit.eventType ? <Badge tone="info">{auditEventLabel(audit.eventType)}</Badge> : null}
     </>
   )
@@ -347,6 +348,19 @@ function PecAuditPanel({
   const issues = audit.validationIssues.slice(0, 4)
   const questions = audit.agentQuestions.slice(0, 5)
   const references = audit.normativeReferences.slice(0, 5)
+  const unavailableTitle = 'Disponibile dopo l\'acquisizione del MIME originale'
+  const actionButton = (url: string, label: string, icon: ReactNode) => (
+    <button
+      type="button"
+      disabled={!url}
+      title={url ? label : unavailableTitle}
+      onClick={() => {
+        if (url) onAction(url, label)
+      }}
+    >
+      {icon} {label}
+    </button>
+  )
   return (
     <TooltipProvider delayDuration={120}>
       <div className="iu-pec-audit-panel" aria-label="Controllo automatico PEC">
@@ -354,6 +368,7 @@ function PecAuditPanel({
           <div>
             <span>Controllo automatico PEC</span>
             <strong>{audit.eventType ? auditEventLabel(audit.eventType) : audit.qualityLabel}</strong>
+            <small>{audit.storageLabel}</small>
           </div>
           <div className="iu-pec-audit-badges">
             <PecAuditBadges audit={audit} />
@@ -408,9 +423,14 @@ function PecAuditPanel({
           </article>
         </div>
         <footer>
-          <button type="button" onClick={() => onAction(audit.quickActions.saveMatter, 'Salva nel fascicolo')}><FileCheck2 size={15} /> Salva nel fascicolo</button>
-          <button type="button" onClick={() => onAction(audit.quickActions.requestMissingAttachment, 'Richiedi allegato mancante')}><Paperclip size={15} /> Richiedi allegato mancante</button>
-          <button type="button" onClick={() => onAction(audit.quickActions.scheduleDeadline, 'Schedula scadenza')}><Clock3 size={15} /> Schedula scadenza</button>
+          {audit.quickActions.runAudit ? (
+            <button type="button" onClick={() => onAction(audit.quickActions.runAudit, 'Esegui controllo audit-grade')}>
+              <ShieldCheck size={15} /> Esegui controllo audit-grade
+            </button>
+          ) : null}
+          {actionButton(audit.quickActions.saveMatter, 'Salva nel fascicolo', <FileCheck2 size={15} />)}
+          {actionButton(audit.quickActions.requestMissingAttachment, 'Richiedi allegato mancante', <Paperclip size={15} />)}
+          {actionButton(audit.quickActions.scheduleDeadline, 'Schedula scadenza', <Clock3 size={15} />)}
           {audit.quickActions.openMime ? <a href={audit.quickActions.openMime} target="_blank" rel="noreferrer"><Download size={15} /> Apri MIME</a> : null}
         </footer>
       </div>
@@ -801,6 +821,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [detail, setDetail] = useState<EmailDetailData | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [detailReloadKey, setDetailReloadKey] = useState(0)
   const [statusLine, setStatusLine] = useState('')
   const [bulkWorking, setBulkWorking] = useState(false)
 
@@ -880,7 +901,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
         if (active) setDetailLoading(false)
       })
     return () => { active = false }
-  }, [mode, selectedId])
+  }, [mode, selectedId, detailReloadKey])
 
   const runAction = (url: string, label: string) => {
     setStatusLine(`${label} in corso...`)
@@ -888,6 +909,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
       .then((message) => {
         setStatusLine(message)
         load()
+        setDetailReloadKey((value) => value + 1)
       })
       .catch((error) => setStatusLine(error instanceof Error ? error.message : `${label}: errore operativo`))
   }

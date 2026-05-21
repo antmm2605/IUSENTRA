@@ -7,6 +7,14 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.246.3 - 21 maggio 2026
+
+La domanda `Che PEC di deposito devo controllare?` è un caso di consultazione operativa, non di redazione. Il profilo richiesta, il bounded bridge e il router operativo devono instradarla verso `communications_lookup` con sorgenti `email_pec` e `pec_audit`; è vietato produrre una bozza PEC quando l'avvocato sta chiedendo quali messaggi verificare.
+
+Quando la PEC è presente nello storico email ma non ancora nella cassaforte PEC audit-grade, Lex deve usare il presidio provvisorio esposto dal bridge React: contesto semantico, confidence, anomalie, allegati, riferimenti normativi e domanda guida. Deve però dichiarare la lacuna “MIME originale da acquisire” e proporre l'acquisizione IMAP audit-grade, senza fingere che il MIME sia già conservato.
+
+Per PEC di deposito o notifica la risposta deve riportare almeno: messaggio da presidiare, fase o evento riconosciuto, qualità/firme, anomalie principali, cosa aspettarsi dopo il deposito e domande operative. La bozza o l'invio restano fuori perimetro finché l'avvocato non li chiede esplicitamente.
+
 ## Aggiornamento operativo 2.246.2 - 21 maggio 2026
 
 Lex conosce la sorgente interna `pec_audit`, alimentata dalla pipeline PEC audit-grade. Quando l'avvocato chiede validità, firme, allegati mancanti, MIME, fascicolo, notifica, cancelleria, Giudice di Pace, L. 53/1994, PAT, PTT, SNT, PDP, termini o scadenze, la risposta deve recuperare il controllo strutturato e non limitarsi alla vecchia scheda email.

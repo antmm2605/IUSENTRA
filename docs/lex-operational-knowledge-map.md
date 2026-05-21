@@ -1,5 +1,7 @@
 # Lex AI Operational Knowledge Map
 
+Aggiornamento 2026-05-21, hotfix PEC UI/Lex 2.246.3: le PEC storiche della casella che non hanno ancora una riga persistita in `pec_audit.sqlite` ricevono un presidio provvisorio in `web.services.react_email_bridge`, marcato come `MIME originale da acquisire`. Lex deve considerare domande come `Che PEC di deposito devo controllare?` consultazioni operative su `email_pec` + `pec_audit`, non richieste di bozza. La risposta deve elencare PEC da controllare, fase deposito/notifica, anomalie, domande guida e prossima acquisizione audit-grade.
+
 Aggiornamento 2026-05-21, PEC audit-grade e notifiche giudiziarie 2.246.2: Lex conosce la sorgente `pec_audit` e gli strumenti `list_pec_audit_messages`, `get_pec_audit_message` e `get_pec_audit_for_email`. Per PEC con segnali PCT, L. 53/1994, Giudice di Pace, UNEP, PAT, PTT, SNT, PDP, pubblici elenchi, ricevute PEC o firme digitali l'agente deve leggere il controllo automatico, esporre confidence e motivazioni, distinguere MIME originale, dato estratto, inferenza normativa e lacuna, poi preparare domande e azioni proposte senza inviare, depositare, salvare o schedulare nulla senza conferma esplicita dell'avvocato. Dopo un deposito PCT deve conoscere la sequenza attesa: accettazione PEC, avvenuta consegna, esito controlli deposito e accettazione/rifiuto deposito.
 
 ## Scopo

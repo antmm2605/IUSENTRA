@@ -1,0 +1,164 @@
+-- IUSENTRA PEC audit-grade pipeline - PostgreSQL
+-- Versione: 2026-05-21.pec-audit-pipeline.v1
+
+CREATE TABLE IF NOT EXISTS pec_schema_migrations (
+    version text PRIMARY KEY,
+    applied_at timestamptz NOT NULL,
+    sha256 text NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pec_retention_policies (
+    id text PRIMARY KEY,
+    name text NOT NULL,
+    original_mime_days integer NOT NULL,
+    parsed_json_days integer NOT NULL,
+    legal_hold boolean NOT NULL DEFAULT true,
+    action text NOT NULL DEFAULT 'review',
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pec_messages (
+    id text PRIMARY KEY,
+    tenant_id text NOT NULL,
+    account_email text NOT NULL,
+    folder text NOT NULL,
+    imap_uid text NOT NULL DEFAULT '',
+    message_id_header text NOT NULL DEFAULT '',
+    mime_sha256 text NOT NULL,
+    mime_size integer NOT NULL,
+    original_mime bytea NOT NULL,
+    received_at timestamptz NOT NULL,
+    ingested_at timestamptz NOT NULL,
+    status text NOT NULL DEFAULT 'ingested',
+    quality_status text NOT NULL DEFAULT 'da_controllare',
+    signature_status text NOT NULL DEFAULT 'non_verificata',
+    linked_fascicolo_id text NOT NULL DEFAULT '',
+    linked_fascicolo_score double precision NOT NULL DEFAULT 0,
+    retention_policy_id text NOT NULL DEFAULT 'pec_audit_default',
+    retention_until date,
+    metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+    UNIQUE (tenant_id, account_email, message_id_header, mime_sha256),
+    UNIQUE (tenant_id, mime_sha256)
+);
+
+CREATE TABLE IF NOT EXISTS pec_parsed_versions (
+    id text PRIMARY KEY,
+    message_id text NOT NULL REFERENCES pec_messages(id),
+    version integer NOT NULL,
+    parser_version text NOT NULL,
+    parsed_json jsonb NOT NULL,
+    parsed_sha256 text NOT NULL,
+    created_at timestamptz NOT NULL,
+    created_by text NOT NULL DEFAULT 'pec-pipeline',
+    UNIQUE (message_id, version)
+);
+
+CREATE TABLE IF NOT EXISTS pec_attachments (
+    id text PRIMARY KEY,
+    message_id text NOT NULL REFERENCES pec_messages(id),
+    parsed_version_id text NOT NULL REFERENCES pec_parsed_versions(id),
+    attachment_index integer NOT NULL,
+    filename text NOT NULL,
+    content_type text NOT NULL,
+    size_bytes integer NOT NULL,
+    sha256 text NOT NULL,
+    classification text NOT NULL,
+    classification_score double precision NOT NULL,
+    classification_reason text NOT NULL,
+    ocr_text text NOT NULL DEFAULT '',
+    ocr_coverage double precision NOT NULL DEFAULT 0,
+    signature_status text NOT NULL DEFAULT 'non_verificata',
+    signature_details_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+    metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at timestamptz NOT NULL,
+    UNIQUE (message_id, parsed_version_id, attachment_index)
+);
+
+CREATE TABLE IF NOT EXISTS pec_validation_reports (
+    id text PRIMARY KEY,
+    message_id text NOT NULL REFERENCES pec_messages(id),
+    parsed_version_id text NOT NULL REFERENCES pec_parsed_versions(id),
+    event_type text NOT NULL,
+    report_json jsonb NOT NULL,
+    report_sha256 text NOT NULL,
+    severity text NOT NULL,
+    created_at timestamptz NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pec_fascicolo_links (
+    id text PRIMARY KEY,
+    message_id text NOT NULL REFERENCES pec_messages(id),
+    parsed_version_id text NOT NULL REFERENCES pec_parsed_versions(id),
+    fascicolo_id text NOT NULL DEFAULT '',
+    score double precision NOT NULL,
+    status text NOT NULL,
+    seeds_json jsonb NOT NULL,
+    candidates_json jsonb NOT NULL,
+    created_at timestamptz NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pec_jobs (
+    id text PRIMARY KEY,
+    tenant_id text NOT NULL,
+    message_id text NOT NULL DEFAULT '',
+    job_type text NOT NULL,
+    status text NOT NULL DEFAULT 'queued',
+    priority integer NOT NULL DEFAULT 50,
+    attempts integer NOT NULL DEFAULT 0,
+    max_attempts integer NOT NULL DEFAULT 3,
+    available_at timestamptz NOT NULL,
+    started_at timestamptz,
+    finished_at timestamptz,
+    error text NOT NULL DEFAULT '',
+    payload_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    UNIQUE (tenant_id, message_id, job_type, status)
+);
+
+CREATE TABLE IF NOT EXISTS pec_digest_runs (
+    id text PRIMARY KEY,
+    tenant_id text NOT NULL,
+    digest_date date NOT NULL,
+    run_at timestamptz NOT NULL,
+    digest_json jsonb NOT NULL,
+    digest_sha256 text NOT NULL,
+    status text NOT NULL,
+    UNIQUE (tenant_id, digest_date)
+);
+
+CREATE TABLE IF NOT EXISTS pec_audit_log (
+    id text PRIMARY KEY,
+    tenant_id text NOT NULL,
+    occurred_at timestamptz NOT NULL,
+    actor text NOT NULL,
+    action text NOT NULL,
+    resource_type text NOT NULL,
+    resource_id text NOT NULL,
+    payload_json jsonb NOT NULL,
+    prev_hash text NOT NULL,
+    entry_hash text NOT NULL
+);
+
+CREATE OR REPLACE FUNCTION pec_audit_log_append_only()
+RETURNS trigger AS $$
+BEGIN
+    RAISE EXCEPTION 'pec_audit_log is append-only';
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS pec_audit_log_no_update ON pec_audit_log;
+CREATE TRIGGER pec_audit_log_no_update
+BEFORE UPDATE ON pec_audit_log
+FOR EACH ROW EXECUTE FUNCTION pec_audit_log_append_only();
+
+DROP TRIGGER IF EXISTS pec_audit_log_no_delete ON pec_audit_log;
+CREATE TRIGGER pec_audit_log_no_delete
+BEFORE DELETE ON pec_audit_log
+FOR EACH ROW EXECUTE FUNCTION pec_audit_log_append_only();
+
+CREATE INDEX IF NOT EXISTS idx_pec_messages_received ON pec_messages(tenant_id, received_at DESC);
+CREATE INDEX IF NOT EXISTS idx_pec_messages_quality ON pec_messages(tenant_id, quality_status);
+CREATE INDEX IF NOT EXISTS idx_pec_jobs_due ON pec_jobs(status, available_at, priority);
+CREATE INDEX IF NOT EXISTS idx_pec_audit_resource ON pec_audit_log(resource_type, resource_id);

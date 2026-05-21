@@ -8,6 +8,14 @@ In ambiente multi-tenant non esiste accesso a dati operativi senza contesto stud
 
 Sono dati tenant-sensitive clienti, fascicoli, documenti, archivio, agenda, scadenziario, messaggi, PEC, email ordinaria, fatturazione, preventivi, privacy, audit, utenti tenant, backup, ricerca, template, intelligence e telematico.
 
+## PEC audit-grade
+
+La pipeline PEC audit-grade usa esclusivamente path risolti nel tenant corrente. In multi-tenant il database `pec_audit.sqlite`, i riferimenti a `EMAIL_CASELLA_DB`, `FASCICOLI_DB`, `FASCICOLI_DOCS` e `SCADENZIARIO_DB` devono passare da `tenant_data_path(..., require_tenant=True)`.
+
+Le API `/api/pec/*` non accettano override di tenant dal payload, non espongono credenziali IMAP, non restituiscono path assoluti e non serializzano il MIME originale nel JSON. Il MIME originale è scaricabile solo da endpoint autenticato dedicato; ogni fetch, parsing, validazione, quick action e digest produce evento in `pec_audit_log` append-only con hash-chain.
+
+Lex accede alla sorgente `pec_audit` solo con `messaggi.leggi`, vede il controllo strutturato e deve distinguere dato certo, confidence e decisione dell'avvocato. Non può inviare, depositare o schedulare senza azione esplicita.
+
 ## API key
 
 In single-tenant resta compatibile `PCT_API_KEY`, esposta internamente come `API_KEY`.

@@ -7,6 +7,15 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.246.2 - 2026-05-21
+
+- Introdotta la pipeline PEC audit-grade end-to-end: MIME originale immutabile, parsed JSON versionato con SHA-256, audit log append-only, migrazioni SQLite/PostgreSQL, retention review, ingest IMAP idempotente e dedup su `Message-ID` più hash MIME.
+- Aggiunti parser PEC, classificazione allegati, OCR opportunistico, verifica CAdES/PAdES, validation matrix non bloccante, riconciliazione fascicolo e digest giornaliero alle 08:00 Europe/Rome con dataset sintetico di 5 PEC.
+- Estesa la lettura semantica delle notifiche giudiziarie: PCT, deposito telematico, L. 53/1994, Giudice di Pace/D.L. 179/2012, UNEP, PAT, PTT, SNT, PDP, domicilio digitale, ricevute PEC e firme, con confidence, motivazioni, domande operative e riferimenti normativi.
+- Aggiunto il presidio post-deposito PCT: sequenza attesa accettazione PEC, avvenuta consegna, esito controlli deposito e accettazione/rifiuto deposito, con fase riconosciuta, prossime PEC attese e comunicazione operativa all'avvocato.
+- Esposte API REST `/api/pec/*`, worker asincroni fetch/parse/classify/ocr/signcheck/validate/link/digest, bridge React per lista/dettaglio PEC con badge qualità/firme, pannello a tre colonne, tooltip confidence e quick actions operative.
+- Integrato Lex con la sorgente `pec_audit`, così l'agente può rispondere su controlli, anomalie, allegati, firme, contesto normativo e azioni da preparare senza eseguire invii, depositi, salvataggi o scadenze senza conferma dell'avvocato.
+
 ## 2.246.1 - 2026-05-21
 
 - Rafforzata la pipeline Procedure Lifecycle Knowledge: audit repo iniziale obbligatorio, migration canonica `20260520_xsd_procedure_lifecycle_knowledge.sql`, colonne `tenant_id`, audit sanificato da PII/segreti/path, enum Python per stati lifecycle/firma/deposito/notifiche/obblighi/gap e façade senza logica parallela per i nomi applicativi richiesti.

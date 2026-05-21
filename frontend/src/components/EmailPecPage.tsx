@@ -27,6 +27,7 @@ import {
 import { Badge, Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
 import { JsonPostForm } from './JsonPostForm'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import {
   emptyEmailOrdinariaPage,
   emptyEmailPecPage,
@@ -41,6 +42,8 @@ import {
   type EmailPecPageData,
   type EmailPecRow,
   type EmailStatus,
+  type PecAuditField,
+  type PecAuditSummary,
 } from '../emailData'
 import './EmailPecPage.css'
 
@@ -253,6 +256,168 @@ function sortRows(rows: EmailPecRow[], sort: SortKey): EmailPecRow[] {
   return copy.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''))
 }
 
+function auditEventLabel(value: string): string {
+  const labels: Record<string, string> = {
+    pct_deposito: 'Deposito PCT',
+    comunicazione_cancelleria: 'Cancelleria',
+    notifica_l53: 'Notifica L. 53',
+    notifica_giudice_pace: 'Giudice di Pace',
+    notifica_unep: 'UNEP',
+    pat_notifica_o_deposito: 'PAT',
+    ptt_notifica_o_deposito: 'PTT',
+    penale_snt: 'SNT penale',
+    penale_deposito_portale: 'Portale penale',
+    ricevuta_pec: 'Ricevuta PEC',
+  }
+  return labels[value] || value.replace(/_/g, ' ')
+}
+
+function fieldConfidence(audit: PecAuditSummary | undefined, key: string): PecAuditField | undefined {
+  return audit?.confidence?.[key]
+}
+
+function confidencePercent(value: number): string {
+  return `${Math.round(Math.max(0, Math.min(1, value || 0)) * 100)}%`
+}
+
+function fieldDisplayValue(field?: PecAuditField): string {
+  if (!field) return 'Dato non disponibile'
+  if (field.value && typeof field.value === 'object' && !Array.isArray(field.value)) {
+    const recordValue = field.value as Record<string, unknown>
+    return text(recordValue.email) || text(recordValue.name) || 'Valore strutturato'
+  }
+  if (typeof field.value === 'boolean') return field.value ? 'Sì' : 'No'
+  return text(field.value) || 'Dato non disponibile'
+}
+
+function ConfidenceChip({ label, field }: { label: string; field?: PecAuditField }) {
+  const confidence = field?.confidence ?? 0
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className={`iu-pec-confidence ${confidence >= 0.85 ? 'is-high' : confidence >= 0.6 ? 'is-mid' : 'is-low'}`}>
+          <b>{label}</b>
+          <strong>{confidencePercent(confidence)}</strong>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        <span>{fieldDisplayValue(field)}. {field?.motivation || 'Confidenza non calcolata.'}</span>
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+function PecAuditBadges({ audit }: { audit?: PecAuditSummary }) {
+  if (!audit) return null
+  return (
+    <>
+      <Badge tone={audit.qualityTone}>{audit.qualityLabel}</Badge>
+      <Badge tone={audit.signatureTone}>{audit.signatureLabel}</Badge>
+      {audit.eventType ? <Badge tone="info">{auditEventLabel(audit.eventType)}</Badge> : null}
+    </>
+  )
+}
+
+function PecDepositLifecycle({ audit }: { audit?: PecAuditSummary }) {
+  const lifecycle = record(audit?.depositLifecycle)
+  const stage = record(lifecycle.current_stage)
+  if (!Object.keys(lifecycle).length) return null
+  const expectedNext = Array.isArray(lifecycle.expected_next) ? lifecycle.expected_next.map(record) : []
+  const communication = text(lifecycle.communication)
+  return (
+    <div className="iu-pec-deposit-flow">
+      <span>Deposito telematico</span>
+      <strong>{text(stage.label) || 'Fase da ricondurre'}</strong>
+      {expectedNext.length ? (
+        <p>Da attendere o verificare: {expectedNext.map((item) => text(item.label)).filter(Boolean).join(', ')}.</p>
+      ) : null}
+      {communication ? <p>{communication}</p> : null}
+    </div>
+  )
+}
+
+function PecAuditPanel({
+  audit,
+  onAction,
+}: {
+  audit?: PecAuditSummary
+  onAction: (url: string, label: string) => void
+}) {
+  if (!audit) return null
+  const issues = audit.validationIssues.slice(0, 4)
+  const questions = audit.agentQuestions.slice(0, 5)
+  const references = audit.normativeReferences.slice(0, 5)
+  return (
+    <TooltipProvider delayDuration={120}>
+      <div className="iu-pec-audit-panel" aria-label="Controllo automatico PEC">
+        <header>
+          <div>
+            <span>Controllo automatico PEC</span>
+            <strong>{audit.eventType ? auditEventLabel(audit.eventType) : audit.qualityLabel}</strong>
+          </div>
+          <div className="iu-pec-audit-badges">
+            <PecAuditBadges audit={audit} />
+          </div>
+        </header>
+        <div className="iu-pec-audit-grid">
+          <article>
+            <h3>Campi estratti</h3>
+            <div className="iu-pec-confidence-grid">
+              <ConfidenceChip label="Mittente" field={fieldConfidence(audit, 'mittente')} />
+              <ConfidenceChip label="Invio" field={fieldConfidence(audit, 'data_invio')} />
+              <ConfidenceChip label="Consegna" field={fieldConfidence(audit, 'data_consegna')} />
+              <ConfidenceChip label="Ricevuta" field={fieldConfidence(audit, 'tipo_ricevuta')} />
+              <ConfidenceChip label="Protocollo" field={fieldConfidence(audit, 'protocollo')} />
+              <ConfidenceChip label="Contesto" field={fieldConfidence(audit, 'contesto_legale')} />
+            </div>
+            <small>Le percentuali indicano la qualità dell'estrazione automatica, non una decisione legale conclusiva.</small>
+          </article>
+          <article>
+            <h3>Anomalie e allegati</h3>
+            <PecDepositLifecycle audit={audit} />
+            {issues.length ? (
+              <ul>
+                {issues.map((issue) => (
+                  <li key={`${issue.code}-${issue.title}`}>
+                    <AlertTriangle size={14} />
+                    <span><b>{issue.title}</b>{issue.detail ? ` - ${issue.detail}` : ''}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : <p>Nessuna anomalia segnalata dalla matrice automatica.</p>}
+            {audit.attachments.length ? (
+              <div className="iu-pec-attachment-strip">
+                {audit.attachments.slice(0, 4).map((attachment) => (
+                  <span key={`${attachment.name}-${attachment.classification}`}>
+                    {attachment.name} · {attachment.classification || 'da confermare'}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </article>
+          <article>
+            <h3>Domande operative</h3>
+            <ol>
+              {questions.map((question) => <li key={question}>{question}</li>)}
+            </ol>
+            {references.length ? (
+              <div className="iu-pec-norms">
+                {references.map((reference) => <span key={reference.label}>{reference.label}</span>)}
+              </div>
+            ) : null}
+          </article>
+        </div>
+        <footer>
+          <button type="button" onClick={() => onAction(audit.quickActions.saveMatter, 'Salva nel fascicolo')}><FileCheck2 size={15} /> Salva nel fascicolo</button>
+          <button type="button" onClick={() => onAction(audit.quickActions.requestMissingAttachment, 'Richiedi allegato mancante')}><Paperclip size={15} /> Richiedi allegato mancante</button>
+          <button type="button" onClick={() => onAction(audit.quickActions.scheduleDeadline, 'Schedula scadenza')}><Clock3 size={15} /> Schedula scadenza</button>
+          {audit.quickActions.openMime ? <a href={audit.quickActions.openMime} target="_blank" rel="noreferrer"><Download size={15} /> Apri MIME</a> : null}
+        </footer>
+      </div>
+    </TooltipProvider>
+  )
+}
+
 async function postMailAction(url: string, label: string): Promise<string> {
   if (!url) throw new Error(`${label}: percorso operativo non configurato`)
   const response = await fetch(url, {
@@ -325,7 +490,7 @@ function EmailListRow({
   return (
     <button className={`iu-mail-row ${selected ? 'is-selected' : ''} ${item.unread ? 'is-unread' : ''}`} type="button" onClick={onSelect}>
       <span className="iu-mail-row__check" onClick={(event) => event.stopPropagation()}>
-        <input type="checkbox" checked={checked} onChange={onToggleChecked} aria-label={`Seleziona ${item.subject || person}`} />
+        <input type="checkbox" checked={checked} disabled={item.auditOnly} onChange={onToggleChecked} aria-label={`Seleziona ${item.subject || person}`} />
       </span>
       <span className="iu-mail-avatar">{initials(person, fallbackInitials)}</span>
       <span className="iu-mail-main">
@@ -336,8 +501,9 @@ function EmailListRow({
         <span className="iu-mail-subject">{item.subject || '(nessun oggetto)'}</span>
         <span className="iu-mail-preview">{item.preview || 'Nessuna anteprima disponibile.'}</span>
         <span className="iu-mail-tags">
-          {includeTelematic && item.isPst ? <Badge tone="primary"><ShieldCheck size={12} /> PST</Badge> : null}
+          {item.auditOnly ? <Badge tone="info"><ShieldCheck size={12} /> Audit PEC</Badge> : includeTelematic && item.isPst ? <Badge tone="primary"><ShieldCheck size={12} /> PST</Badge> : null}
           {includeTelematic && item.pctStatus ? <Badge tone={item.pctStatus.includes('RIFIUT') || item.pctStatus.includes('ERRORE') ? 'danger' : 'warning'}>{item.pctStatus}</Badge> : null}
+          {includeTelematic ? <PecAuditBadges audit={item.pecAudit} /> : null}
           {item.attachmentCount ? <em><Paperclip size={12} /> {item.attachmentCount}</em> : null}
         </span>
       </span>
@@ -430,6 +596,7 @@ function EmailPreview({
         <div className="iu-mail-preview-status">
           {item.unread ? <Badge tone="primary">Non letta</Badge> : <Badge tone="success">Letta</Badge>}
           {copy.includeTelematic && item.isPst ? <Badge tone="primary"><ShieldCheck size={12} /> PST</Badge> : null}
+          {copy.includeTelematic ? <PecAuditBadges audit={detail?.pecAudit ?? item.pecAudit} /> : null}
         </div>
       </header>
       <div className="iu-mail-meta">
@@ -447,6 +614,7 @@ function EmailPreview({
           </div>
         </div>
       ) : null}
+      {copy.includeTelematic ? <PecAuditPanel audit={detail?.pecAudit ?? item.pecAudit} onAction={onAction} /> : null}
       <p className="iu-mail-body-preview">{item.preview || 'Nessuna anteprima testuale disponibile. Apri la vista completa per leggere HTML e allegati.'}</p>
       <footer>
         <Button variant="primary" href={item.detailHref}><Eye size={15} /> Apri</Button>
@@ -466,6 +634,7 @@ function EmailPreview({
 function PecInspector({ data, rows }: { data: EmailPecPageData; rows: EmailPecRow[] }) {
   const pstWaiting = rows.filter((item) => item.isPst && !item.pctStatus).slice(0, 4)
   const pctAlerts = rows.filter((item) => item.pctStatus && (item.pctStatus.includes('RIFIUT') || item.pctStatus.includes('ERRORE') || item.pctStatus.includes('WARN'))).slice(0, 4)
+  const auditAlerts = rows.filter((item) => item.pecAudit && item.pecAudit.qualityTone !== 'success').slice(0, 4)
   return (
     <aside className="iu-mail-inspector">
       <Panel title="Cabina PEC" subtitle="Controlli utili per studio legale" icon={<ShieldCheck size={17} />}>
@@ -481,6 +650,19 @@ function PecInspector({ data, rows }: { data: EmailPecPageData; rows: EmailPecRo
             <small>Esiti o comunicazioni già registrati nei fascicoli.</small>
           </article>
         </div>
+      </Panel>
+      <Panel title="Controlli automatici" icon={<FileCheck2 size={17} />} count={auditAlerts.length}>
+        {auditAlerts.length ? (
+          <div className="iu-mail-alerts">
+            {auditAlerts.map((item) => (
+              <a href={item.detailHref} key={`audit-${item.id}`}>
+                <PecAuditBadges audit={item.pecAudit} />
+                <strong>{item.subject}</strong>
+                <span>{item.pecAudit?.eventType ? auditEventLabel(item.pecAudit.eventType) : rowPerson(item)}</span>
+              </a>
+            ))}
+          </div>
+        ) : <p className="iu-empty">Nessuna anomalia audit-grade nella vista corrente.</p>}
       </Panel>
       <Panel title="Esiti da presidiare" icon={<AlertTriangle size={17} />} count={pctAlerts.length}>
         {pctAlerts.length ? (
@@ -650,7 +832,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
 
   const visible = useMemo(() => sortRows(data.items.filter((item) => isInsideQuery(item, query)), sort), [data.items, query, sort])
   const selected = detail?.item && detail.item.id === selectedId ? detail.item : visible.find((item) => item.id === selectedId) || visible[0]
-  const visibleIds = useMemo(() => visible.map((item) => item.id), [visible])
+  const visibleIds = useMemo(() => visible.filter((item) => !item.auditOnly).map((item) => item.id), [visible])
   const selectedVisibleCount = useMemo(() => visibleIds.filter((id) => selectedIds.has(id)).length, [selectedIds, visibleIds])
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id))
   const bulkActionKind = folder === 'CESTINO' ? 'delete' : 'trash'

@@ -335,9 +335,13 @@ class OperationalKnowledgeService:
         wants_pec = "pec" in lowered
         wants_ordinary = "posta ordinaria" in lowered or "email ordinaria" in lowered or "smtp" in lowered or "imap" in lowered
         wants_mailbox = wants_pec or wants_ordinary or "email" in lowered or "posta" in lowered
+        wants_audit = _wants_pec_audit(question)
         mail_query = "" if _should_ignore_mailbox_text_filter(question, entity_query, has_scope=bool(cliente_id or fascicolo_id or pec_id)) else entity_query
         if pec_id and (wants_pec or context_type == "pec"):
-            return [self.tools.get_pec_message(pec_id, context), self.tools.list_pec_attachments(pec_id, context)]
+            results = [self.tools.get_pec_message(pec_id, context), self.tools.list_pec_attachments(pec_id, context)]
+            if wants_audit:
+                results.append(self.tools.get_pec_audit_for_email(pec_id, context))
+            return results
         if pec_id and (wants_ordinary or context_type == "email"):
             return [self.tools.get_ordinary_email_message(pec_id, context), self.tools.list_ordinary_email_attachments(pec_id, context)]
         if fascicolo_id:
@@ -352,6 +356,8 @@ class OperationalKnowledgeService:
                         fascicolo_id=fascicolo_id,
                     )
                 )
+                if wants_audit:
+                    results.append(self.tools.list_pec_audit_messages(context, query=mail_query, limit=self.settings.max_results))
             if wants_ordinary:
                 results.append(
                     _scope_communication_result(
@@ -372,6 +378,8 @@ class OperationalKnowledgeService:
                         cliente_id=cliente_id,
                     )
                 )
+                if wants_audit:
+                    results.append(self.tools.list_pec_audit_messages(context, query=mail_query, limit=self.settings.max_results))
             if wants_ordinary:
                 results.append(
                     _scope_communication_result(
@@ -384,6 +392,8 @@ class OperationalKnowledgeService:
             results: list[OperationalToolResult] = []
             if wants_pec or not wants_ordinary:
                 results.append(self.tools.list_pec_messages(context, query=mail_query, limit=self.settings.max_results))
+                if wants_audit:
+                    results.append(self.tools.list_pec_audit_messages(context, query=mail_query, limit=self.settings.max_results))
             if wants_ordinary or not wants_pec:
                 results.append(self.tools.list_ordinary_email_messages(context, query=mail_query, limit=self.settings.max_results))
             return results
@@ -400,6 +410,8 @@ class OperationalKnowledgeService:
                             fascicolo_id=target,
                         )
                     )
+                    if wants_audit:
+                        results.append(self.tools.list_pec_audit_messages(context, query=mail_query, limit=self.settings.max_results))
                 if wants_ordinary:
                     results.append(
                         _scope_communication_result(
@@ -420,6 +432,8 @@ class OperationalKnowledgeService:
                         cliente_id=target,
                     )
                 )
+                if wants_audit:
+                    results.append(self.tools.list_pec_audit_messages(context, query=mail_query, limit=self.settings.max_results))
             if wants_ordinary:
                 results.append(
                     _scope_communication_result(
@@ -667,6 +681,43 @@ def _should_ignore_mailbox_text_filter(question: str, entity_query: str, *, has_
     if any(token in text for token in ("ultim", "ricevut", "inviat", "risposta", "rispondi", "scrivi", "redigi", "prepara", "bozza")):
         return True
     return query in {"pec", "email", "posta", "messaggio", "messaggi"}
+
+
+def _wants_pec_audit(question: str) -> bool:
+    text = clean_spaces(question).lower()
+    return any(
+        token in text
+        for token in (
+            "controll",
+            "valid",
+            "firma",
+            "firme",
+            "confidence",
+            "confidenza",
+            "mancant",
+            "mime",
+            "audit",
+            "fascicolo",
+            "collega",
+            "qualita",
+            "qualità",
+            "semaforo",
+            "notifica",
+            "notificazione",
+            "cancelleria",
+            "giudice di pace",
+            "d.l. 179",
+            "legge 53",
+            "l. 53",
+            "snt",
+            "pat",
+            "ptt",
+            "sigit",
+            "siga",
+            "termine",
+            "scadenza",
+        )
+    )
 
 
 def _scope_communication_result(

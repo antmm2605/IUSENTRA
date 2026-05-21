@@ -707,6 +707,10 @@ def _tenant_cfg_value(key: str, default: str = "") -> str:
     return tenant_data_path(key, default, require_tenant=True)
 
 
+def _tenant_runtime_label() -> str:
+    return str(g.get("tenant_slug", "") or g.get("auth_tenant_slug", "") or "default")
+
+
 def _safe(label: str, func: Callable[[], Any], fallback: Any) -> Any:
     try:
         return func()
@@ -1633,6 +1637,7 @@ def email_react_list():
         origine=request.args.get("origine", "").strip().upper(),
         data_da=request.args.get("data_da", "").strip(),
         data_a=request.args.get("data_a", "").strip(),
+        tenant_id=_tenant_runtime_label(),
     ))
     response.headers["Cache-Control"] = "no-store, max-age=0"
     return response
@@ -1648,6 +1653,7 @@ def email_react_detail(id_email: str):
         compose_path="/email/scrivi",
         settings_path="/impostazioni?tab=pec",
         include_telematic=True,
+        tenant_id=_tenant_runtime_label(),
     )
     if payload is None:
         return jsonify({"errore": "Messaggio non trovato."}), 404

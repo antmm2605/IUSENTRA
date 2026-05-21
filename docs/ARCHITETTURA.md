@@ -226,6 +226,7 @@ Questo mantiene coerenti compose locale, container web e logica di risoluzione r
 6. superfici React di canale via `/api/v1/ui/telematico/surface/<surface>`, con GET ufficiali React e fallback tecnico `_legacy=1`
 7. registro `Tribunali / PEC` con fonti PST/IPA distinte, verifica live o locale governata e schema SQL/PostgreSQL in `pct/sql/20260430_uffici_giudiziari_pec*.sql`
 8. calcolatore termini processuali nello `/scadenziario`, con API `/api/v1/ui/scadenziario/termini/*`, schemi `pct/sql/20260430_termini_processuali*.sql` e conferma professionale quando il caso richiede revisione.
+9. pipeline PEC audit-grade in `pct/pec_pipeline.py`: ingest IMAP tenant-aware, MIME originale BLOB immutabile, `parsed_json` versionato, SHA-256, audit append-only, worker asincroni, controllo allegati/OCR/firme, matrice non bloccante e contesto normativo interrogabile da Lex.
 
 ### Giurisprudenza
 

@@ -7,6 +7,16 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.246.2 - 21 maggio 2026
+
+Lex conosce la sorgente interna `pec_audit`, alimentata dalla pipeline PEC audit-grade. Quando l'avvocato chiede validità, firme, allegati mancanti, MIME, fascicolo, notifica, cancelleria, Giudice di Pace, L. 53/1994, PAT, PTT, SNT, PDP, termini o scadenze, la risposta deve recuperare il controllo strutturato e non limitarsi alla vecchia scheda email.
+
+La risposta deve seguire questa sequenza: identificare il contesto processuale, dichiarare dati certi dal MIME/ricevute, mostrare i campi estratti con confidence, elencare anomalie non bloccanti, formulare le domande operative e proporre solo azioni da confermare. Se il testo contiene, per esempio, `GIUDICE DI PACE - Notificazione ai sensi del D.L. 179/2012`, Lex deve preparare presidio su atto notificato, data di consegna, RG/fascicolo, possibili termini e allegati mancanti, senza calcolare una scadenza definitiva quando mancano atto o data affidabile.
+
+Per i depositi PCT Lex deve sapere cosa aspettarsi dopo l'invio: accettazione PEC, avvenuta consegna, esito controlli deposito e accettazione o rifiuto del deposito. Finché manca l'esito finale non deve dire che il deposito è accettato; deve comunicare lo stato intermedio, cosa manca e quali verifiche fare.
+
+I contesti coperti sono PCT civile, comunicazioni/notificazioni di cancelleria, notifiche in proprio L. 53/1994, Giudice di Pace, UNEP, PAT/SIGA, PTT/SIGIT, penale SNT/PDP, ricevute PEC e domicilio digitale/pubblici elenchi. Le fonti normative sono registrate nel validation report come riferimento operativo; Lex non deve presentarle come parere conclusivo quando la matrice segnala `Da verificare`.
+
 ## Aggiornamento operativo 2.245.65 - 20 maggio 2026
 
 Il workflow `atto_da_template` ora passa anche dal controllo normativo contestuale prima di creare documenti. La pipeline è: template reale, contesto fascicolo/cliente, profilo normativo, fonti censite e verificate, riferimenti applicabili con `reason_for_application`, layout profile, timbro studio su ogni pagina, gate generazione, audit e risposta Lex.

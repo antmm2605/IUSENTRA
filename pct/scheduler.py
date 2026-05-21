@@ -834,6 +834,51 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error("[scheduler] Mailbox sync fallita: %s", e)
 
+    @scheduler.scheduled_job(CronTrigger(minute="*/5"), id="pec_audit_pipeline_workers")
+    def _pec_audit_pipeline_workers():
+        with app.app_context():
+            try:
+                from web.services.pec_pipeline_runtime import run_workers_for_paths
+
+                processed_targets = 0
+                processed_jobs = 0
+                for label, paths in _mailbox_sync_targets():
+                    report = run_workers_for_paths(paths, tenant_label=label, limit=200)
+                    processed_targets += 1
+                    processed_jobs += int(report.get("processed") or 0)
+                    if report.get("processed") or report.get("failed"):
+                        logger.info(
+                            "[scheduler] Pipeline PEC %s: %d job completati, %d errori",
+                            label,
+                            report.get("processed", 0),
+                            report.get("failed", 0),
+                        )
+                if processed_targets:
+                    logger.info("[scheduler] Pipeline PEC controllata per %d target; job=%d", processed_targets, processed_jobs)
+            except Exception as e:
+                logger.error("[scheduler] Pipeline PEC fallita: %s", e)
+
+    @scheduler.scheduled_job(CronTrigger(hour=8, minute=0, timezone="Europe/Rome"), id="pec_audit_digest_daily")
+    def _pec_audit_digest_daily():
+        with app.app_context():
+            try:
+                from web.services.pec_pipeline_runtime import build_digest_for_paths
+
+                processed_targets = 0
+                for label, paths in _mailbox_sync_targets():
+                    digest = build_digest_for_paths(paths, tenant_label=label)
+                    processed_targets += 1
+                    logger.info(
+                        "[scheduler] Digest PEC %s: %d nuovi, %d anomalie",
+                        label,
+                        digest.get("new_messages", 0),
+                        len(digest.get("anomalies") or []),
+                    )
+                if processed_targets:
+                    logger.info("[scheduler] Digest PEC creato per %d target", processed_targets)
+            except Exception as e:
+                logger.error("[scheduler] Digest PEC fallito: %s", e)
+
     @scheduler.scheduled_job(CronTrigger(minute="*/20"), id="workspace_intelligence_snapshot")
     def _workspace_intelligence_snapshot():
         with app.app_context():

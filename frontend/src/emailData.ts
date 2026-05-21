@@ -3,6 +3,64 @@ import type { Tone } from './data'
 export type EmailFolder = 'INBOX' | 'INVIATI' | 'CESTINO'
 export type EmailStatus = 'tutti' | 'NON_LETTA' | 'LETTA' | 'CESTINO'
 
+export type PecAuditIssue = {
+  code: string
+  severity: string
+  title: string
+  detail: string
+  blocking: boolean
+}
+
+export type PecAuditAttachment = {
+  name: string
+  classification: string
+  classificationScore: number
+  ocrCoverage: number
+  signatureStatus: string
+}
+
+export type PecAuditReference = {
+  label: string
+  reason: string
+}
+
+export type PecAuditField = {
+  value: unknown
+  confidence: number
+  motivation: string
+  features: string[]
+}
+
+export type PecAuditSummary = {
+  id: string
+  qualityStatus: string
+  qualityLabel: string
+  qualityTone: Tone
+  signatureStatus: string
+  signatureLabel: string
+  signatureTone: Tone
+  linkedFascicoloId: string
+  linkedFascicoloScore: number
+  mimeHref: string
+  validationIssues: PecAuditIssue[]
+  validationSeverity: string
+  eventType: string
+  depositLifecycle: Record<string, unknown>
+  semanticContext: Record<string, unknown>
+  normativeReferences: PecAuditReference[]
+  agentQuestions: string[]
+  recommendedActions: string[]
+  confidence: Record<string, PecAuditField>
+  candidates: Array<Record<string, unknown>>
+  attachments: PecAuditAttachment[]
+  quickActions: {
+    saveMatter: string
+    requestMissingAttachment: string
+    scheduleDeadline: string
+    openMime: string
+  }
+}
+
 export type EmailPecRow = {
   id: string
   folder: EmailFolder
@@ -27,6 +85,8 @@ export type EmailPecRow = {
   markReadHref: string
   markUnreadHref: string
   tone: Tone
+  auditOnly: boolean
+  pecAudit?: PecAuditSummary
 }
 
 export type EmailPecSummary = {
@@ -85,6 +145,7 @@ export type EmailDetailData = {
   bodyText: string
   bodyHtml: string
   attachments: EmailAttachment[]
+  pecAudit?: PecAuditSummary
   actions: {
     inbox: string
     reply: string
@@ -217,6 +278,93 @@ function normaliseTone(value: unknown, item?: Record<string, unknown>): Tone {
   return 'neutral'
 }
 
+function normaliseAuditTone(value: unknown, fallback: Tone = 'neutral'): Tone {
+  const raw = text(value).toLowerCase()
+  if (['danger', 'warning', 'primary', 'success', 'info', 'purple', 'orange', 'neutral'].includes(raw)) return raw as Tone
+  return fallback
+}
+
+function stringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.map((item) => text(item)).filter(Boolean) : []
+}
+
+function issueFromPayload(value: unknown): PecAuditIssue {
+  const item = isRecord(value) ? value : {}
+  return {
+    code: text(item.code),
+    severity: text(item.severity),
+    title: text(item.title),
+    detail: text(item.detail),
+    blocking: bool(item.blocking),
+  }
+}
+
+function referenceFromPayload(value: unknown): PecAuditReference {
+  const item = isRecord(value) ? value : {}
+  return { label: text(item.label), reason: text(item.reason) }
+}
+
+function auditFieldFromPayload(value: unknown): PecAuditField {
+  const item = isRecord(value) ? value : {}
+  return {
+    value: item.value,
+    confidence: number(item.confidence),
+    motivation: text(item.motivation),
+    features: stringList(item.features),
+  }
+}
+
+function auditFromPayload(value: unknown): PecAuditSummary | undefined {
+  const item = isRecord(value) ? value : {}
+  const id = text(item.id)
+  if (!id) return undefined
+  const rawConfidence = isRecord(item.confidence) ? item.confidence : {}
+  const confidence = Object.fromEntries(Object.entries(rawConfidence).map(([key, field]) => [key, auditFieldFromPayload(field)]))
+  const quickActions = isRecord(item.quickActions) ? item.quickActions : {}
+  const semanticContext = item.semanticContext ?? item.semantic_context
+  const depositLifecycle = item.depositLifecycle ?? item.deposit_lifecycle
+  return {
+    id,
+    qualityStatus: text(item.qualityStatus ?? item.quality_status),
+    qualityLabel: text(item.qualityLabel ?? item.quality_label, 'Controllo non disponibile'),
+    qualityTone: normaliseAuditTone(item.qualityTone ?? item.quality_tone),
+    signatureStatus: text(item.signatureStatus ?? item.signature_status),
+    signatureLabel: text(item.signatureLabel ?? item.signature_label, 'Firme non controllate'),
+    signatureTone: normaliseAuditTone(item.signatureTone ?? item.signature_tone),
+    linkedFascicoloId: text(item.linkedFascicoloId ?? item.linked_fascicolo_id),
+    linkedFascicoloScore: number(item.linkedFascicoloScore ?? item.linked_fascicolo_score),
+    mimeHref: text(item.mimeHref ?? item.mime_href),
+    validationIssues: Array.isArray(item.validationIssues) ? item.validationIssues.map(issueFromPayload) : [],
+    validationSeverity: text(item.validationSeverity ?? item.validation_severity),
+    eventType: text(item.eventType ?? item.event_type),
+    depositLifecycle: isRecord(depositLifecycle) ? depositLifecycle : {},
+    semanticContext: isRecord(semanticContext) ? semanticContext : {},
+    normativeReferences: Array.isArray(item.normativeReferences) ? item.normativeReferences.map(referenceFromPayload).filter((ref) => ref.label) : [],
+    agentQuestions: stringList(item.agentQuestions ?? item.agent_questions),
+    recommendedActions: stringList(item.recommendedActions ?? item.recommended_actions),
+    confidence,
+    candidates: Array.isArray(item.candidates) ? item.candidates.filter(isRecord) : [],
+    attachments: Array.isArray(item.attachments)
+      ? item.attachments.map((raw) => {
+        const attachment = isRecord(raw) ? raw : {}
+        return {
+          name: text(attachment.name),
+          classification: text(attachment.classification),
+          classificationScore: number(attachment.classificationScore ?? attachment.classification_score),
+          ocrCoverage: number(attachment.ocrCoverage ?? attachment.ocr_coverage),
+          signatureStatus: text(attachment.signatureStatus ?? attachment.signature_status),
+        }
+      }).filter((attachment) => attachment.name)
+      : [],
+    quickActions: {
+      saveMatter: text(quickActions.saveMatter ?? quickActions.save_matter),
+      requestMissingAttachment: text(quickActions.requestMissingAttachment ?? quickActions.request_missing_attachment),
+      scheduleDeadline: text(quickActions.scheduleDeadline ?? quickActions.schedule_deadline),
+      openMime: text(quickActions.openMime ?? quickActions.open_mime),
+    },
+  }
+}
+
 function rowFromPayload(value: unknown, index: number, fallbackBasePath = '/email'): EmailPecRow {
   const item = isRecord(value) ? value : {}
   const id = text(item.id, `email-${index}`)
@@ -224,6 +372,10 @@ function rowFromPayload(value: unknown, index: number, fallbackBasePath = '/emai
   const isPst = bool(item.isPst ?? item.is_pst ?? item.e_pst)
   const pctStatus = text(item.pctStatus ?? item.pct_status ?? item.stato_pct)
   const unread = bool(item.unread ?? item.non_letta) || text(item.status ?? item.stato) === 'NON_LETTA'
+  const pecAudit = auditFromPayload(item.pecAudit ?? item.pec_audit)
+  const tone = pecAudit?.qualityTone === 'danger' || pecAudit?.qualityTone === 'warning'
+    ? pecAudit.qualityTone
+    : normaliseTone(item.tone, item)
   return {
     id,
     folder,
@@ -250,7 +402,9 @@ function rowFromPayload(value: unknown, index: number, fallbackBasePath = '/emai
     deleteHref: text(item.deleteHref ?? item.delete_href, `${fallbackBasePath}/${encodeURIComponent(id)}/elimina`),
     markReadHref: text(item.markReadHref ?? item.mark_read_href, `${fallbackBasePath}/${encodeURIComponent(id)}/segna-letta`),
     markUnreadHref: text(item.markUnreadHref ?? item.mark_unread_href, `${fallbackBasePath}/${encodeURIComponent(id)}/segna-non-letta`),
-    tone: normaliseTone(item.tone, item),
+    tone,
+    auditOnly: bool(item.auditOnly ?? item.audit_only),
+    pecAudit,
   }
 }
 
@@ -357,6 +511,7 @@ function normaliseDetailPayload(payload: unknown, fallbackBasePath: string): Ema
     bodyText: text(payload.bodyText ?? payload.body_text),
     bodyHtml: text(payload.bodyHtml ?? payload.body_html),
     attachments: (Array.isArray(payload.attachments) ? payload.attachments : []).map(attachmentFromPayload),
+    pecAudit: auditFromPayload(payload.pecAudit ?? payload.pec_audit ?? (isRecord(rawItem) ? rawItem.pecAudit ?? rawItem.pec_audit : undefined)),
     actions: {
       inbox: text(actions.inbox, `${fallbackBasePath}/`),
       reply: text(actions.reply, `${fallbackBasePath}/scrivi`),
@@ -376,6 +531,122 @@ async function fetchEmailDetail(endpoint: string, fallbackBasePath: string): Pro
     return normaliseDetailPayload(await response.json(), fallbackBasePath)
   } catch {
     return emptyDetailFor(fallbackBasePath)
+  }
+}
+
+function auditDetailFromPayload(payload: unknown): EmailDetailData {
+  const root = isRecord(payload) && isRecord(payload.data) ? payload.data : {}
+  const message = isRecord(root.message) ? root.message : {}
+  const parsed = isRecord(root.parsed) ? root.parsed : {}
+  const metadata = isRecord(message.metadata) ? message.metadata : {}
+  const headers = isRecord(metadata.headers) ? metadata.headers : {}
+  const report = isRecord(root.validation_report) ? root.validation_report : {}
+  const link = isRecord(root.fascicolo_link) ? root.fascicolo_link : {}
+  const pecId = text(message.id)
+  const encoded = encodeURIComponent(pecId)
+  const attachments = Array.isArray(root.attachments) ? root.attachments : []
+  const qualityStatus = text(message.quality_status)
+  const signatureStatus = text(message.signature_status)
+  const audit = auditFromPayload({
+    id: pecId,
+    qualityStatus,
+    qualityLabel: qualityStatus === 'verde' ? 'Qualità verde' : qualityStatus === 'giallo' ? 'Qualità gialla' : qualityStatus === 'rosso' ? 'Qualità rossa' : 'Da controllare',
+    qualityTone: qualityStatus === 'rosso' ? 'danger' : qualityStatus === 'giallo' ? 'warning' : qualityStatus === 'verde' ? 'success' : 'neutral',
+    signatureStatus,
+    signatureLabel: signatureStatus === 'valida' ? 'Firme valide' : ['non_valida', 'errore', 'scaduta'].includes(signatureStatus) ? 'Firme da verificare' : 'Firme non verificate',
+    signatureTone: ['non_valida', 'errore', 'scaduta'].includes(signatureStatus) ? 'danger' : signatureStatus === 'valida' ? 'success' : 'neutral',
+    linkedFascicoloId: message.linked_fascicolo_id,
+    linkedFascicoloScore: message.linked_fascicolo_score,
+    mimeHref: `/api/pec/messages/${encoded}/mime`,
+    validationIssues: report.issues,
+    validationSeverity: report.severity,
+    eventType: report.event_type,
+    depositLifecycle: report.deposit_lifecycle,
+    semanticContext: report.semantic_context,
+    normativeReferences: report.normative_references,
+    agentQuestions: report.agent_questions,
+    recommendedActions: report.recommended_actions,
+    confidence: isRecord(parsed.fields) ? parsed.fields : {},
+    candidates: link.candidates,
+    attachments: attachments.map((raw) => {
+      const item = isRecord(raw) ? raw : {}
+      return {
+        name: item.filename,
+        classification: item.classification,
+        classificationScore: item.classification_score,
+        ocrCoverage: item.ocr_coverage,
+        signatureStatus: item.signature_status,
+      }
+    }),
+    quickActions: {
+      saveMatter: `/api/pec/messages/${encoded}/salva-fascicolo`,
+      requestMissingAttachment: `/api/pec/messages/${encoded}/richiedi-allegato-mancante`,
+      scheduleDeadline: `/api/pec/messages/${encoded}/schedula-scadenza`,
+      openMime: `/api/pec/messages/${encoded}/mime`,
+    },
+  })
+  const row = rowFromPayload({
+    id: `pec-audit:${pecId}`,
+    folder: 'INBOX',
+    status: 'LETTA',
+    sender: headers.from,
+    senderName: headers.from,
+    recipients: headers.to,
+    subject: headers.subject,
+    preview: parsed.body_text,
+    timestamp: message.received_at,
+    timeLabel: '',
+    unread: false,
+    isPst: true,
+    pctStatus: report.event_type,
+    attachmentCount: attachments.length,
+    origin: 'controllo PEC audit-grade',
+    detailHref: `/api/pec/messages/${encoded}/mime`,
+    operationalHref: `/email/?pec_audit=${encoded}`,
+    auditOnly: true,
+    pecAudit: audit,
+  }, 0, '/email')
+  return {
+    source: 'pec_audit',
+    generatedAt: text(root.generated_at),
+    item: row,
+    bodyText: text(parsed.body_text),
+    bodyHtml: '',
+    attachments: attachments.map((raw, index) => {
+      const item = isRecord(raw) ? raw : {}
+      return {
+        index,
+        name: text(item.filename, `allegato-${index + 1}`),
+        mime: text(item.mime_type),
+        sizeLabel: '',
+        viewHref: '',
+        previewHref: '',
+        downloadHref: '',
+        available: false,
+        statusLabel: 'Allegato conservato nel controllo audit-grade.',
+      }
+    }),
+    pecAudit: audit,
+    actions: {
+      inbox: '/email/',
+      reply: '/email/scrivi',
+      settings: '/impostazioni?tab=pec',
+    },
+  }
+}
+
+async function fetchPecAuditDetail(id: string): Promise<EmailDetailData> {
+  const pecId = id.replace(/^pec-audit:/, '')
+  try {
+    const response = await fetch(`/api/pec/messages/${encodeURIComponent(pecId)}?_ts=${Date.now()}`, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    })
+    if (!response.ok) return emptyDetailFor('/email')
+    return auditDetailFromPayload(await response.json())
+  } catch {
+    return emptyDetailFor('/email')
   }
 }
 
@@ -417,6 +688,7 @@ export async function getEmailOrdinariaPage(params: EmailPecParams = {}): Promis
 }
 
 export async function getEmailPecDetail(id: string): Promise<EmailDetailData> {
+  if (id.startsWith('pec-audit:')) return fetchPecAuditDetail(id)
   return fetchEmailDetail(`/api/v1/ui/email/messaggio/${encodeURIComponent(id)}`, '/email')
 }
 

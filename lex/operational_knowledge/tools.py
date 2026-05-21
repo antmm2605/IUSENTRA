@@ -470,6 +470,66 @@ class OperationalKnowledgeTools:
     def list_pec_attachments(self, email_id: str, context: OperationalQueryContext) -> OperationalToolResult:
         return self._list_email_attachments("email_pec", email_id, context)
 
+    def list_pec_audit_messages(self, context: OperationalQueryContext, *, query: str = "", limit: int = 20) -> OperationalToolResult:
+        decision = self._decision("pec_audit", context)
+        if not decision.allowed:
+            return self._blocked("pec_audit", decision)
+        repo = self._pec_audit_repository()
+        if repo is None:
+            return self._unavailable("pec_audit", "Controlli automatici PEC non ancora disponibili.")
+        try:
+            rows = [_serialize_pec_audit_detail(row) for row in repo.list_messages(limit=limit, q=query)]
+        except Exception as exc:
+            return self._unavailable("pec_audit", f"Controlli PEC non interrogabili: {exc}")
+        result = self._plain_result("pec_audit", context, rows, "pec_audit")
+        result.permission = decision
+        if not rows:
+            result.coverage_gaps.append("Nessun controllo PEC audit-grade disponibile.")
+        return result
+
+    def get_pec_audit_message(self, message_id: str, context: OperationalQueryContext) -> OperationalToolResult:
+        decision = self._decision("pec_audit", context)
+        if not decision.allowed:
+            return self._blocked("pec_audit", decision)
+        repo = self._pec_audit_repository()
+        if repo is None:
+            return self._unavailable("pec_audit", "Controlli automatici PEC non ancora disponibili.")
+        try:
+            row = _serialize_pec_audit_detail(repo.get_message_detail(message_id), include_fields=True)
+        except Exception as exc:
+            return self._unavailable("pec_audit", f"Controllo PEC non disponibile: {exc}")
+        result = self._plain_result("pec_audit", context, [row], "pec_audit")
+        result.permission = decision
+        return result
+
+    def get_pec_audit_for_email(self, email_id: str, context: OperationalQueryContext) -> OperationalToolResult:
+        decision = self._decision("pec_audit", context)
+        if not decision.allowed:
+            return self._blocked("pec_audit", decision)
+        repo = self._pec_audit_repository()
+        if repo is None:
+            return self._unavailable("pec_audit", "Controlli automatici PEC non ancora disponibili.")
+        manager = self._safe_manager("email_pec", lambda: self._email_manager("email_pec"))
+        if manager is None:
+            return self._unavailable("pec_audit", "Casella PEC non disponibile per collegare il controllo.")
+        try:
+            email_row = getattr(manager, "get", lambda _id: None)(email_id)
+            message_id_header = clean_spaces(getattr(email_row, "message_id", "") if email_row is not None else "")
+            detail = repo.find_by_header_message_id(message_id_header) if message_id_header else None
+        except Exception as exc:
+            return self._unavailable("pec_audit", f"Controllo PEC non collegabile: {exc}")
+        if not detail:
+            return OperationalToolResult(
+                False,
+                "pec_audit",
+                coverage_gaps=["La PEC esiste in casella, ma non ha ancora un controllo audit-grade collegato."],
+                permission=decision,
+            )
+        row = _serialize_pec_audit_detail(detail, include_fields=True)
+        result = self._plain_result("pec_audit", context, [row], "pec_audit")
+        result.permission = decision
+        return result
+
     def list_ordinary_email_messages(
         self,
         context: OperationalQueryContext,
@@ -723,6 +783,33 @@ class OperationalKnowledgeTools:
         key = "EMAIL_CASELLA_DB" if source_id == "email_pec" else "EMAIL_ORDINARIA_DB"
         db_path = tenant_data_path(key, current_app.config.get(key, ""), require_tenant=True)
         return GestioneEmailRicevute(db_path=db_path)
+
+    def _pec_audit_repository(self) -> Any | None:
+        if "pec_audit" in self.repositories:
+            return self.repositories["pec_audit"]
+        try:
+            from pathlib import Path
+
+            from flask import current_app, g
+
+            from pct.pec_pipeline import PecAuditRepository
+            from web.services.tenant_paths import tenant_data_path
+
+            email_db = Path(tenant_data_path("EMAIL_CASELLA_DB", current_app.config.get("EMAIL_CASELLA_DB", ""), require_tenant=True))
+            data_paths = getattr(g, "data_paths", {}) or {}
+            db_path = Path(str(data_paths.get("PEC_AUDIT_DB") or email_db.parent / "pec_audit.sqlite"))
+            if not db_path.exists():
+                return None
+            tenant_id = clean_spaces(getattr(g, "tenant_slug", "") or getattr(g, "auth_tenant_slug", "")) or "default"
+            return PecAuditRepository(
+                db_path,
+                tenant_id=tenant_id,
+                fascicoli_db_path=tenant_data_path("FASCICOLI_DB", current_app.config.get("FASCICOLI_DB", ""), require_tenant=True),
+                fascicoli_docs_path=tenant_data_path("FASCICOLI_DOCS", current_app.config.get("FASCICOLI_DOCS", ""), require_tenant=True),
+                scadenziario_db_path=tenant_data_path("SCADENZIARIO_DB", current_app.config.get("SCADENZIARIO_DB", ""), require_tenant=True),
+            )
+        except Exception:
+            return None
 
     def _list_email_messages(
         self,
@@ -1020,6 +1107,10 @@ def _with_action_links(source_id: str, object_type: str, row: dict[str, Any]) ->
     action_url = clean_spaces(row.get("action_url")) or _action_url(source_id, object_type, row)
     if action_url:
         row["action_url"] = action_url
+    if source_id == "pec_audit":
+        message_id = clean_spaces(row.get("id"))
+        if message_id:
+            row.setdefault("mime_url", f"/api/pec/messages/{message_id}/mime")
     if source_id in {"email_pec", "email_ordinaria"}:
         message_url = _action_url(source_id, "email", row)
         if message_url:
@@ -1060,6 +1151,8 @@ def _action_url(source_id: str, object_type: str, row: dict[str, Any]) -> str:
         return f"/email/messaggio/{object_id}"
     if source_id == "email_ordinaria":
         return f"/email-ordinaria/messaggio/{object_id}"
+    if source_id == "pec_audit":
+        return f"/email/?pec_audit={object_id}"
     if source_id == "agenda":
         return "/agenda"
     if source_id == "scadenziario":
@@ -1106,11 +1199,133 @@ def _card_record(row: dict[str, Any]) -> dict[str, Any]:
         "valuta",
         "descrizione",
         "action_url",
+        "mime_url",
+        "quality_status",
+        "quality_label",
+        "signature_status",
+        "signature_label",
+        "validation_severity",
+        "event_type",
+        "linked_fascicolo_id",
+        "linked_fascicolo_score",
+        "issues_count",
+        "normative_references",
+        "agent_questions",
+        "recommended_actions",
     )
     payload = {key: row.get(key) for key in allowed if key in row and row.get(key) not in ("", None, [], {})}
     if "allegati" in payload and isinstance(payload["allegati"], list):
         payload["allegati"] = [dict(item) for item in payload["allegati"][:12] if isinstance(item, dict)]
     return payload
+
+
+def _field_payload(raw: dict[str, Any], key: str) -> dict[str, Any]:
+    fields = raw.get("fields") if isinstance(raw.get("fields"), dict) else {}
+    value = fields.get(key)
+    return dict(value) if isinstance(value, dict) else {}
+
+
+def _field_value(raw: dict[str, Any], key: str) -> Any:
+    payload = _field_payload(raw, key)
+    return payload.get("value") if payload else ""
+
+
+def _serialize_pec_audit_detail(raw: dict[str, Any], *, include_fields: bool = False) -> dict[str, Any]:
+    if not isinstance(raw, dict):
+        return {}
+    message = dict(raw.get("message") or raw)
+    metadata = message.get("metadata") if isinstance(message.get("metadata"), dict) else {}
+    headers = metadata.get("headers") if isinstance(metadata.get("headers"), dict) else {}
+    parsed = raw.get("parsed") if isinstance(raw.get("parsed"), dict) else {}
+    parsed_headers = parsed.get("headers") if isinstance(parsed.get("headers"), dict) else {}
+    report = raw.get("validation_report") if isinstance(raw.get("validation_report"), dict) else message.get("validation_report")
+    report = dict(report) if isinstance(report, dict) else {}
+    link = raw.get("fascicolo_link") if isinstance(raw.get("fascicolo_link"), dict) else message.get("fascicolo_link")
+    link = dict(link) if isinstance(link, dict) else {}
+    attachments = raw.get("attachments") if isinstance(raw.get("attachments"), list) else message.get("attachments")
+    attachments = [dict(item) for item in list(attachments or []) if isinstance(item, dict)]
+    fields = parsed.get("fields") if isinstance(parsed.get("fields"), dict) else raw.get("fields")
+    fields = dict(fields) if isinstance(fields, dict) else {}
+    semantic_context = report.get("semantic_context") if isinstance(report.get("semantic_context"), dict) else parsed.get("semantic_context")
+    semantic_context = dict(semantic_context) if isinstance(semantic_context, dict) else {}
+    issues = [dict(item) for item in list(report.get("issues") or []) if isinstance(item, dict)]
+    subject = clean_spaces(headers.get("subject") or parsed_headers.get("subject") or message.get("subject") or "")
+    sender_payload = _field_value({"fields": fields}, "mittente")
+    sender = ""
+    if isinstance(sender_payload, dict):
+        sender = clean_spaces(sender_payload.get("email") or sender_payload.get("name"))
+    elif sender_payload:
+        sender = clean_spaces(sender_payload)
+    if not sender:
+        sender = clean_spaces(message.get("sender") or "")
+    data = clean_spaces(_field_value({"fields": fields}, "data_consegna") or _field_value({"fields": fields}, "data_invio") or message.get("received_at"))
+    quality_status = clean_spaces(message.get("quality_status"))
+    signature_status = clean_spaces(message.get("signature_status"))
+    row = {
+        "id": clean_spaces(message.get("id")),
+        "titolo": subject or "Controllo PEC",
+        "oggetto": subject,
+        "mittente": sender,
+        "data": data,
+        "quality_status": quality_status,
+        "quality_label": _pec_quality_label(quality_status),
+        "signature_status": signature_status,
+        "signature_label": _pec_signature_label(signature_status),
+        "validation_severity": clean_spaces(report.get("severity")),
+        "event_type": clean_spaces(report.get("event_type")),
+        "linked_fascicolo_id": clean_spaces(message.get("linked_fascicolo_id") or link.get("fascicolo_id")),
+        "linked_fascicolo_score": message.get("linked_fascicolo_score") or link.get("score") or 0,
+        "issues_count": len(issues),
+        "issues": issues[:12],
+        "allegati": attachments[:12],
+        "deposit_lifecycle": report.get("deposit_lifecycle") if isinstance(report.get("deposit_lifecycle"), dict) else {},
+        "normative_references": report.get("normative_references") or semantic_context.get("normative_references") or [],
+        "agent_questions": report.get("agent_questions") or semantic_context.get("agent_questions") or [],
+        "recommended_actions": report.get("recommended_actions") or semantic_context.get("recommended_actions") or [],
+    }
+    if include_fields:
+        row["confidence"] = {
+            key: {
+                "value": payload.get("value"),
+                "confidence": payload.get("confidence"),
+                "motivation": payload.get("motivation"),
+                "features": payload.get("features") or [],
+            }
+            for key, payload in fields.items()
+            if isinstance(payload, dict)
+        }
+        row["candidates"] = list(link.get("candidates") or [])
+        row["agent_policy"] = semantic_context.get("agent_policy") or {
+            "stance": "presidio_non_bloccante",
+            "must_do": [
+                "segnalare anomalie e confidence",
+                "preparare prossime azioni da confermare",
+                "non sostituire la decisione dell'avvocato",
+            ],
+        }
+    return {key: value for key, value in row.items() if value not in ("", None, [], {})}
+
+
+def _pec_quality_label(value: str) -> str:
+    raw = clean_spaces(value).lower()
+    if raw == "verde":
+        return "Qualita' verde"
+    if raw == "giallo":
+        return "Qualita' da presidiare"
+    if raw == "rosso":
+        return "Qualita' critica"
+    return "Qualita' non disponibile"
+
+
+def _pec_signature_label(value: str) -> str:
+    raw = clean_spaces(value).lower()
+    if raw == "valida":
+        return "Firme valide"
+    if raw == "assente":
+        return "Firme assenti"
+    if raw in {"non_valida", "errore", "scaduta"}:
+        return "Firme da verificare"
+    return "Firme non controllate"
 
 
 def _email_attachment_objects(source_id: str, rows: list[dict[str, Any]]) -> list[OperationalObjectReference]:

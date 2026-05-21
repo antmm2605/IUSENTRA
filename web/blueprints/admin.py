@@ -52,7 +52,7 @@ from web.services.migration_assistant import (
 )
 from web.services.observability_runtime import build_observability_payload
 from web.services.product_governance_surface import build_product_governance_surface
-from web.services.security_redaction import redact_exception_details
+from web.services.security_redaction import redacted_json_response
 from web.services.studio_installation_status import build_studio_installation_status
 from web.services.system_health_surface import build_system_health_surface
 from web.services.system_health_surface import build_system_health_api_payload
@@ -611,7 +611,7 @@ def salute_sistema():
 @admin_bp.route("/system-health")
 @superadmin_required
 def system_health():
-    return jsonify(redact_exception_details(build_system_health_api_payload()))
+    return redacted_json_response(build_system_health_api_payload())
 
 
 @admin_bp.route("/lex-scorecard")
@@ -1185,7 +1185,7 @@ def testa_connessione_db(slug: str):
     try:
         tm = _tenant_manager()
         risultato = tm.testa_connessione(slug)
-        return jsonify(redact_exception_details(risultato))
+        return redacted_json_response(risultato)
     except Exception:
         current_app.logger.exception("Errore test connessione DB")
         return jsonify({
@@ -1225,7 +1225,7 @@ def api_storage_studio(slug: str):
 @admin_bp.route("/api/governance")
 @superadmin_required
 def api_governance():
-    return jsonify(redact_exception_details(build_product_governance_surface(selected_slug=request.args.get("slug", ""))))
+    return redacted_json_response(build_product_governance_surface(selected_slug=request.args.get("slug", "")))
 
 
 # ============================================================= Utility

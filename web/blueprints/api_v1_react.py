@@ -80,7 +80,7 @@ from web.services.react_dashboard_cache import (
     clear_dashboard_payload_cache,
     get_dashboard_payload_cached,
 )
-from web.services.security_redaction import redact_exception_details
+from web.services.security_redaction import redacted_json_response
 from web.services.react_document_editor_bridge import build_react_document_editor_payload
 from web.services.react_email_bridge import build_react_email_detail_payload, build_react_email_payload
 from web.services.react_fascicoli_bridge import (
@@ -638,7 +638,7 @@ def _json_validation_error(message: str, errors: dict[str, str], *, status: int 
 
 
 def _jsonify_redacted(payload: Any):
-    return jsonify(redact_exception_details(payload))
+    return redacted_json_response(payload)
 
 
 def _request_json_object() -> tuple[dict[str, Any] | None, Any | None]:
@@ -4928,11 +4928,11 @@ def tariffario_page():
     if not _puo_leggere_fatturazione():
         return jsonify(build_react_tariffario_error_payload("Permesso fatturazione.leggi richiesto.")), 403
     try:
-        return jsonify(
-            redact_exception_details(build_react_tariffario_payload(
+        return redacted_json_response(
+            build_react_tariffario_payload(
                 get_normative_tables=get_normative_tables,
                 query=dict(request.args),
-            ))
+            )
         )
     except Exception as exc:
         current_app.logger.exception("Errore Tariffario React bridge: %s", exc)
@@ -5549,8 +5549,8 @@ def _legal_intelligence_ui_payload(page: str, legacy_contract: str):
             )
         ), 403
     try:
-        return jsonify(
-            redact_exception_details(build_react_legal_intelligence_payload(
+        return redacted_json_response(
+            build_react_legal_intelligence_payload(
                 get_legal_intelligence=get_legal_intelligence,
                 get_legal_update_pipeline=get_legal_update_pipeline,
                 get_fascicoli=get_fascicoli,
@@ -5560,7 +5560,7 @@ def _legal_intelligence_ui_payload(page: str, legacy_contract: str):
                 page=page,
                 query=dict(request.args),
                 config=dict(current_app.config),
-            ))
+            )
         )
     except Exception as exc:
         current_app.logger.exception("Errore Legal Intelligence React bridge: %s", exc)

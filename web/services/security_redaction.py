@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
+
+from flask import current_app
 
 
 _TECHNICAL_MARKERS = (
@@ -60,3 +63,10 @@ def redact_exception_details(value: Any) -> Any:
                 cleaned[key_text] = redact_exception_details(item)
         return cleaned
     return value
+
+
+def redacted_json_response(payload: Any, status: int = 200):
+    """Risposta JSON con payload sanificato prima della serializzazione."""
+
+    body = json.dumps(redact_exception_details(payload), ensure_ascii=False, default=str)
+    return current_app.response_class(body, status=status, mimetype="application/json")

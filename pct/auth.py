@@ -732,16 +732,16 @@ class GestioneUtenti:
         self._salva_utenti()
         self._salva_bootstrap_admin_credentials(bootstrap_password)
 
-    def _salva_bootstrap_admin_credentials(self, temporary_secret: str) -> None:
-        secret_ciphertext = ""
+    def _salva_bootstrap_admin_credentials(self, temporary_value: str) -> None:
+        setup_ciphertext = ""
         fernet = self._bootstrap_secret_fernet()
-        if temporary_secret and fernet is not None:
-            encrypted_secret = fernet.encrypt(temporary_secret.encode("utf-8")).decode("ascii")
-            secret_ciphertext = _BOOTSTRAP_SECRET_PREFIX + encrypted_secret
+        if temporary_value and fernet is not None:
+            encrypted_value = fernet.encrypt(temporary_value.encode("utf-8")).decode("ascii")
+            setup_ciphertext = _BOOTSTRAP_SECRET_PREFIX + encrypted_value
         payload = {
             "username": "admin",
-            "bootstrap_secret_ciphertext": secret_ciphertext,
-            "bootstrap_secret_present": bool(secret_ciphertext),
+            "bootstrap_setup_ciphertext": setup_ciphertext,
+            "bootstrap_setup_present": bool(setup_ciphertext),
             "must_change_password": True,
             "creato_il": datetime.now().isoformat(),
         }
@@ -761,7 +761,8 @@ class GestioneUtenti:
                 return None
             temporary_secret = str(payload.get("password") or "")
             secret_ciphertext = str(
-                payload.get("bootstrap_secret_ciphertext")
+                payload.get("bootstrap_setup_ciphertext")
+                or payload.get("bootstrap_secret_ciphertext")
                 or payload.get(_LEGACY_BOOTSTRAP_CIPHERTEXT_KEY)
                 or ""
             )

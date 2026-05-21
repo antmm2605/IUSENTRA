@@ -12,7 +12,7 @@ from web.services.legal_update_surface import (
     build_legal_update_surface,
     run_legal_update_action,
 )
-from web.services.security_redaction import redact_exception_details
+from web.services.security_redaction import redacted_json_response
 
 
 legal_updates_admin = Blueprint(
@@ -701,7 +701,7 @@ def api_fetch_source(source_id: int):
         result = build_legal_update_pipeline_runtime(
             tenant_slug=str(payload.get("tenant_slug") or _selected_tenant_slug()).strip().lower()
         ).fetch_source_by_id(source_id, auto_publish=auto_publish)
-        return jsonify({"ok": True, "result": redact_exception_details(result)})
+        return redacted_json_response({"ok": True, "result": result})
     except Exception as exc:
         current_app.logger.exception("Errore api_fetch_source: %s", exc)
         return _json_error("Recupero fonte non completato.")
@@ -750,7 +750,7 @@ def api_analyze_raw_document(raw_document_id: int):
             raw_document_id,
             auto_publish=True,
         )
-        return jsonify({"ok": True, "result": redact_exception_details(result)})
+        return redacted_json_response({"ok": True, "result": result})
     except Exception as exc:
         current_app.logger.exception("Errore api_analyze_raw_document: %s", exc)
         return _json_error("Analisi documento non completata.")

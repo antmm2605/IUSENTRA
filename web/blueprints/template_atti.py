@@ -660,7 +660,11 @@ def _json_safe_payload(value: Any) -> Any:
 
 
 def _json_response_safe(payload: Any, status: int = 200):
-    response = jsonify(_json_safe_payload(payload))
+    response = current_app.response_class(
+        json.dumps(_json_safe_payload(payload), ensure_ascii=False),
+        status=status,
+        mimetype="application/json",
+    )
     return response, status
 
 
@@ -962,15 +966,15 @@ def template_inventory_data():
 @template_atti.route("/<codice>/prefill", methods=["GET"])
 @_richiedi_login
 def template_prefill_data(codice: str):
-    payload, status = _resolve_template_prefill_response(codice)
-    return jsonify(_json_safe_payload(payload)), status
+    payload, status = _resolve_template_prefill_response(_safe_identifier(codice))
+    return _json_response_safe(payload, status)
 
 
 @template_atti.route("/<codice>/prefill/resolve", methods=["POST"])
 @_richiedi_login
 def template_prefill_resolve(codice: str):
-    payload, status = _resolve_template_prefill_response(codice, _request_payload())
-    return jsonify(_json_safe_payload(payload)), status
+    payload, status = _resolve_template_prefill_response(_safe_identifier(codice), _request_payload())
+    return _json_response_safe(payload, status)
 
 
 @template_atti.route("/<codice>/prefill/merge", methods=["POST"])
@@ -979,9 +983,9 @@ def template_prefill_merge(codice: str):
     from pct.template_atti_prefill import merge_prefill_values
 
     request_payload = _request_payload()
-    resolved_payload, status = _resolve_template_prefill_response(codice, request_payload)
+    resolved_payload, status = _resolve_template_prefill_response(_safe_identifier(codice), request_payload)
     if status != 200:
-        return jsonify(_json_safe_payload(resolved_payload)), status
+        return _json_response_safe(resolved_payload, status)
     user_values = request_payload.get("user_values") if isinstance(request_payload.get("user_values"), dict) else {}
     if not user_values:
         user_values = request_payload.get("values") if isinstance(request_payload.get("values"), dict) else {}
@@ -1036,7 +1040,7 @@ def template_verifica_completa(codice: str):
         return jsonify({"ok": False, "errore": "Template non trovato."}), 404
     prefill_payload, status = _resolve_template_prefill_response(safe_code, request_payload)
     if status != 200:
-        return jsonify(_json_safe_payload(prefill_payload)), status
+        return _json_response_safe(prefill_payload, status)
     prefill = prefill_payload.get("prefill") or {}
     user_values = request_payload.get("values") if isinstance(request_payload.get("values"), dict) else {}
     merge = merge_prefill_values(user_values, prefill.get("values"), prefill.get("fields"))

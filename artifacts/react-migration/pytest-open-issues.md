@@ -6,6 +6,12 @@ Aggiornato: 2026-05-21, CodeQL PR diff cleanup 2.247.6, CodeQL PR annotations cl
 
 Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, controllare qui: si lavora solo sugli item aperti, poi si spostano nel report `pytest-confirmed-ok.md` quando il test o lo shard passa.
 
+## Note hotfix CodeQL follow-up 2.248.2 - 2026-05-21
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Code scanning results / CodeQL su `8cfa6ef91` | CodeQL diff PR | Risolto localmente, in attesa di nuovo push | Il workflow CodeQL era verde, ma il check code scanning separato vedeva 7 high e 13 medium su path, bootstrap admin, XSS JSON e stack trace. Corretti i flussi senza affidarsi a soppressioni. | Dopo push verificare `Code scanning results / CodeQL`; se resta rosso, leggere le annotazioni del nuovo check, non quelle del commit precedente. |
+
 ## Note hotfix CI/CodeQL/PWA 2.248.1 - 2026-05-21
 
 | Area | Gate | Stato | Nota | Azione |

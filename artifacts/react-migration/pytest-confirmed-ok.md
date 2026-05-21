@@ -6,6 +6,14 @@ Aggiornato: 2026-05-21, CodeQL PR diff cleanup 2.247.6, CodeQL PR annotations cl
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
+## Hotfix CodeQL follow-up 2.248.2 - 2026-05-21
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m ruff check pct/auth.py pct/path_security.py pct/storage_migration_full.py web/services/security_redaction.py web/blueprints/template_atti.py web/services/auth_runtime.py web/blueprints/api_v1_react.py web/blueprints/admin.py web/blueprints/pec_pipeline_api.py web/blueprints/legal_documents_api.py web/bootstrap/fascicoli_editor_routes.py web/blueprints/legal_updates_admin.py web/blueprints/api_v1_editor_ai.py tests/test_auth.py`; `python -m compileall -q pct web tests/test_auth.py` | OK | Lint e compilazione mirata verdi dopo il follow-up CodeQL su risposte JSON, path e bootstrap admin. |
+| `python -m pytest -q tests/test_auth.py::test_admin_default_password_temporanea_viene_generata_e_salvata tests/test_auth.py::test_admin_default_usa_password_bootstrap_configurata tests/test_auth.py::test_admin_default_legge_bootstrap_cifrato_legacy tests/test_web_bootstrap.py::test_create_app_applies_runtime_overrides_and_registers_blueprints tests/test_legal_document_ingestion.py --tb=short` | OK | 20/20: bootstrap admin cifrato/legacy, app bootstrap e Legal Document Understanding invariati. |
+| `python -m pytest -q tests/test_backend_security_phase5.py tests/test_tenant_isolation_runtime.py tests/test_openapi_contracts_phase6.py --tb=short` | OK | 21/21: sicurezza backend, tenant isolation e OpenAPI fase 6 verdi sul perimetro corretto. |
+
 ## Hotfix CI/CodeQL/PWA 2.248.1 - 2026-05-21
 
 | Comando / verifica | Esito | Nota |

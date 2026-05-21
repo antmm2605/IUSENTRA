@@ -35,17 +35,15 @@ def _feature_required(flag_key: str) -> bool:
     return is_feature_enabled(flag_key, current_app.config)
 
 
-def _json_error(exc: Exception, status: int = 400):
-    if status == 404 or isinstance(exc, KeyError):
+def _json_error(status: int = 400, *, not_found: bool = False, ingestion_error: bool = False):
+    if status == 404 or not_found:
         message = "Documento non trovato."
         status = 404
     elif status == 403:
         message = "Dati dello studio non disponibili per questa richiesta."
-    elif isinstance(exc, LegalDocumentIngestionError):
-        current_app.logger.info("Legal Document Understanding non completato", exc_info=True)
+    elif ingestion_error:
         message = "Documento non acquisito."
     else:
-        current_app.logger.info("Legal Document Understanding non completato", exc_info=True)
         message = "Operazione documentale non completata."
     return jsonify({"ok": False, "errore": message}), status
 
@@ -93,7 +91,7 @@ def documents_upload():
             )
             return jsonify({"ok": True, "data": [result], "count": 1}), 201
         except Exception as exc:
-            return _json_error(exc)
+            return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
     if not uploaded:
         return jsonify({"ok": False, "errore": "Selezionare almeno un file."}), 400
     results = []
@@ -131,7 +129,7 @@ def pec_process_legal_documents(pec_id: str):
         )
         return jsonify({"ok": True, "data": result})
     except Exception as exc:
-        return _json_error(exc)
+        return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
 
 
 @legal_documents_api.post("/documents/<document_id>/ocr")
@@ -143,7 +141,7 @@ def document_ocr(document_id: str):
         data = _service().run_ocr(legal_document_tenant_id(), document_id, actor=legal_document_actor())
         return jsonify({"ok": True, "data": data})
     except Exception as exc:
-        return _json_error(exc)
+        return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
 
 
 @legal_documents_api.post("/documents/<document_id>/classify")
@@ -155,7 +153,7 @@ def document_classify(document_id: str):
         data = _service().classify_document(legal_document_tenant_id(), document_id, actor=legal_document_actor())
         return jsonify({"ok": True, "data": data})
     except Exception as exc:
-        return _json_error(exc)
+        return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
 
 
 @legal_documents_api.post("/documents/<document_id>/validate")
@@ -167,7 +165,7 @@ def document_validate(document_id: str):
         data = _service().validate_document(legal_document_tenant_id(), document_id, actor=legal_document_actor())
         return jsonify({"ok": True, "data": data})
     except Exception as exc:
-        return _json_error(exc)
+        return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
 
 
 @legal_documents_api.post("/documents/<document_id>/match-case")
@@ -179,7 +177,7 @@ def document_match_case(document_id: str):
         data = _service().match_case(legal_document_tenant_id(), document_id, actor=legal_document_actor())
         return jsonify({"ok": True, "data": data})
     except Exception as exc:
-        return _json_error(exc)
+        return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
 
 
 @legal_documents_api.post("/documents/<document_id>/review")
@@ -192,7 +190,7 @@ def document_review(document_id: str):
         data = _service().review_document(legal_document_tenant_id(), document_id, payload, actor=legal_document_actor())
         return jsonify({"ok": True, "data": data})
     except Exception as exc:
-        return _json_error(exc)
+        return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
 
 
 @legal_documents_api.post("/documents/<document_id>/events/approve")
@@ -206,7 +204,7 @@ def document_events_approve(document_id: str):
         data = _repo().approve_events(legal_document_tenant_id(), document_id, ids, actor=legal_document_actor())
         return jsonify({"ok": True, "data": data})
     except Exception as exc:
-        return _json_error(exc)
+        return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
 
 
 @legal_documents_api.post("/documents/<document_id>/lex-index")
@@ -218,7 +216,7 @@ def document_lex_index(document_id: str):
         data = _service().request_lex_index(legal_document_tenant_id(), document_id, actor=legal_document_actor())
         return jsonify({"ok": True, "data": data})
     except Exception as exc:
-        return _json_error(exc)
+        return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
 
 
 @legal_documents_api.get("/documents/<document_id>/evidence")
@@ -229,7 +227,7 @@ def document_evidence(document_id: str):
     try:
         return jsonify({"ok": True, "data": _repo().evidence_payload(legal_document_tenant_id(), document_id)})
     except Exception as exc:
-        return _json_error(exc)
+        return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
 
 
 @legal_documents_api.get("/documents/<document_id>/archive-tree")
@@ -240,7 +238,7 @@ def document_archive_tree(document_id: str):
     try:
         return jsonify({"ok": True, "data": _repo().archive_tree(legal_document_tenant_id(), document_id)})
     except Exception as exc:
-        return _json_error(exc)
+        return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
 
 
 @legal_documents_api.get("/documents/<document_id>/ocr-overlay")
@@ -251,7 +249,7 @@ def document_ocr_overlay(document_id: str):
     try:
         return jsonify({"ok": True, "data": _repo().get_ocr_overlay(legal_document_tenant_id(), document_id)})
     except Exception as exc:
-        return _json_error(exc)
+        return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
 
 
 @legal_documents_api.post("/documents/<document_id>/proof-bundle")
@@ -263,7 +261,7 @@ def document_proof_bundle(document_id: str):
         data = _repo().create_proof_bundle(legal_document_tenant_id(), document_id, actor=legal_document_actor())
         return jsonify({"ok": True, "data": data}), 201
     except Exception as exc:
-        return _json_error(exc)
+        return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
 
 
 @legal_documents_api.get("/documents/<document_id>/proof-bundle/<bundle_id>")
@@ -287,4 +285,4 @@ def document_proof_bundle_download(document_id: str, bundle_id: str):
         response.headers["Cache-Control"] = "no-store, max-age=0"
         return response
     except Exception as exc:
-        return _json_error(exc)
+        return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))

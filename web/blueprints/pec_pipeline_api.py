@@ -9,7 +9,7 @@ from typing import Any, Callable
 from flask import Blueprint, Response, g, jsonify, request
 
 from pct.pec_pipeline import PecAuditRepository, ingest_synthetic_dataset
-from web.services.security_redaction import redact_exception_details
+from web.services.security_redaction import redacted_json_response
 from web.services.tenant_api_auth import api_key_valid_for_request
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
 
@@ -53,7 +53,7 @@ def _repo() -> PecAuditRepository:
     )
 
 
-def _json_error(exc: Exception, status: int = 400):
+def _json_error(status: int = 400):
     if status == 403:
         message = "Dati dello studio non disponibili per questa richiesta."
     elif status == 404:
@@ -64,7 +64,7 @@ def _json_error(exc: Exception, status: int = 400):
 
 
 def _json_success(payload: dict, status: int = 200):
-    return jsonify(redact_exception_details(payload)), status
+    return redacted_json_response(payload, status)
 
 
 @pec_pipeline_api.get("/messages")
@@ -78,8 +78,8 @@ def pec_messages():
             q=request.args.get("q", "").strip(),
         )
         return jsonify({"ok": True, "data": rows, "count": len(rows)})
-    except TenantDataPathError as exc:
-        return _json_error(exc, 403)
+    except TenantDataPathError:
+        return _json_error(403)
 
 
 @pec_pipeline_api.get("/messages/<message_id>")
@@ -87,10 +87,10 @@ def pec_messages():
 def pec_message_detail(message_id: str):
     try:
         return jsonify({"ok": True, "data": _repo().get_message_detail(message_id)})
-    except KeyError as exc:
-        return _json_error(exc, 404)
-    except TenantDataPathError as exc:
-        return _json_error(exc, 403)
+    except KeyError:
+        return _json_error(404)
+    except TenantDataPathError:
+        return _json_error(403)
 
 
 @pec_pipeline_api.get("/messages/<message_id>/mime")
@@ -98,8 +98,8 @@ def pec_message_detail(message_id: str):
 def pec_message_mime(message_id: str):
     try:
         raw, row = _repo().original_mime(message_id)
-    except KeyError as exc:
-        return _json_error(exc, 404)
+    except KeyError:
+        return _json_error(404)
     response = Response(raw, mimetype="message/rfc822")
     safe_name = f"{message_id}.eml"
     response.headers["Content-Disposition"] = f'inline; filename="{safe_name}"'
@@ -132,8 +132,8 @@ def pec_fetch():
         )
         worker = _repo().run_pending_jobs(limit=200, actor=_actor())
         return _json_success({"ok": True, "fetch": report, "workers": worker})
-    except TenantDataPathError as exc:
-        return _json_error(exc, 403)
+    except TenantDataPathError:
+        return _json_error(403)
 
 
 @pec_pipeline_api.post("/workers/run")
@@ -142,8 +142,8 @@ def pec_workers_run():
     try:
         report = _repo().run_pending_jobs(limit=int(request.args.get("limit", "200") or 200), actor=_actor())
         return _json_success({"ok": True, "report": report})
-    except TenantDataPathError as exc:
-        return _json_error(exc, 403)
+    except TenantDataPathError:
+        return _json_error(403)
 
 
 @pec_pipeline_api.get("/digest")
@@ -151,8 +151,8 @@ def pec_workers_run():
 def pec_digest_get():
     try:
         return jsonify({"ok": True, "data": _repo().latest_digest()})
-    except TenantDataPathError as exc:
-        return _json_error(exc, 403)
+    except TenantDataPathError:
+        return _json_error(403)
 
 
 @pec_pipeline_api.post("/digest/run")
@@ -161,8 +161,8 @@ def pec_digest_run():
     try:
         digest = _repo().build_daily_digest(digest_date=request.args.get("date") or None, actor=_actor())
         return jsonify({"ok": True, "data": digest})
-    except TenantDataPathError as exc:
-        return _json_error(exc, 403)
+    except TenantDataPathError:
+        return _json_error(403)
 
 
 @pec_pipeline_api.post("/messages/<message_id>/salva-fascicolo")
@@ -172,10 +172,10 @@ def pec_save_to_fascicolo(message_id: str):
     try:
         result = _repo().save_to_fascicolo(message_id, fascicolo_id=str(payload.get("fascicolo_id") or ""), actor=_actor())
         return _json_success(result, 200 if result.get("ok") else 409)
-    except KeyError as exc:
-        return _json_error(exc, 404)
-    except TenantDataPathError as exc:
-        return _json_error(exc, 403)
+    except KeyError:
+        return _json_error(404)
+    except TenantDataPathError:
+        return _json_error(403)
 
 
 @pec_pipeline_api.post("/messages/<message_id>/richiedi-allegato-mancante")
@@ -183,10 +183,10 @@ def pec_save_to_fascicolo(message_id: str):
 def pec_request_missing_attachment(message_id: str):
     try:
         return jsonify(_repo().request_missing_attachment(message_id, actor=_actor()))
-    except KeyError as exc:
-        return _json_error(exc, 404)
-    except TenantDataPathError as exc:
-        return _json_error(exc, 403)
+    except KeyError:
+        return _json_error(404)
+    except TenantDataPathError:
+        return _json_error(403)
 
 
 @pec_pipeline_api.post("/messages/<message_id>/schedula-scadenza")
@@ -196,10 +196,10 @@ def pec_schedule_deadline(message_id: str):
     try:
         result = _repo().schedule_deadline(message_id, actor=_actor(), due_date=str(payload.get("data_scadenza") or ""))
         return _json_success(result, 200 if result.get("ok") else 409)
-    except KeyError as exc:
-        return _json_error(exc, 404)
-    except TenantDataPathError as exc:
-        return _json_error(exc, 403)
+    except KeyError:
+        return _json_error(404)
+    except TenantDataPathError:
+        return _json_error(403)
 
 
 @pec_pipeline_api.post("/demo/ingest")
@@ -207,5 +207,5 @@ def pec_schedule_deadline(message_id: str):
 def pec_demo_ingest():
     try:
         return _json_success({"ok": True, "data": ingest_synthetic_dataset(_repo(), run_workers=True)})
-    except TenantDataPathError as exc:
-        return _json_error(exc, 403)
+    except TenantDataPathError:
+        return _json_error(403)

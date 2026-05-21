@@ -23,7 +23,7 @@ from web.services.editor_ai_runtime import (
     editor_ai_tenant_id,
     editor_ai_user_context,
 )
-from web.services.security_redaction import redact_exception_details
+from web.services.security_redaction import redacted_json_response
 from web.services.tenant_api_auth import api_key_valid_for_request
 
 
@@ -274,14 +274,14 @@ def editor_ai_accetta_modifica(fascicolo_id: str, atto_ai_id: str, edit_id: str)
             edit_id=edit_id,
             user_context=editor_ai_user_context(),
         )
-        return jsonify(
-            redact_exception_details({
+        return redacted_json_response(
+            {
                 "mock_fallback": False,
                 "atto_ai": result["record"].to_dict(),
                 "version": _version_payload(result["version"]),
                 "proposal": _proposal_payload(result["proposal"]),
                 "warnings": result["warnings"],
-            })
+            }
         )
     except Exception as exc:
         return _error_response(exc)

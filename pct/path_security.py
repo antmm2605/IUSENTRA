@@ -58,7 +58,8 @@ def resolve_runtime_path(
     raw = os.fspath(value or "").strip()
     if not raw or "\x00" in raw:
         raise UnsafeRuntimePath("Percorso runtime non valido.")
-    candidate = Path(raw).expanduser().resolve()
+    expanded = os.path.expanduser(raw)
+    candidate = Path(os.path.abspath(expanded))
     if allowed_suffixes is not None and candidate.suffix.lower() not in allowed_suffixes:
         raise UnsafeRuntimePath("Estensione del percorso runtime non consentita.")
     for root in _candidate_roots(extra_roots):

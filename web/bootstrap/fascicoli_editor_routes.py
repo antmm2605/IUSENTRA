@@ -9,7 +9,7 @@ from typing import Any
 
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
 
-from web.services.security_redaction import redact_exception_details
+from web.services.security_redaction import redacted_json_response
 
 
 def _wants_json_response() -> bool:
@@ -193,7 +193,7 @@ def register_fascicoli_editor_routes(
             documento = next(doc for doc in fascicolo.documenti if doc.id == id_doc)
             raw = decrypt_doc(percorso.read_bytes())
             html, avvisi, meta = documento_to_html(raw, documento.nome)
-            return jsonify(redact_exception_details({"ok": True, "html": html, "avvisi": avvisi, "nome": documento.nome, "meta": meta}))
+            return redacted_json_response({"ok": True, "html": html, "avvisi": avvisi, "nome": documento.nome, "meta": meta})
         except Exception as exc:
             app.logger.exception("Errore api_editor_carica_html: %s", exc)
             return jsonify({"ok": False, "html": "<p>Documento non caricato.</p>", "avvisi": ["Documento non caricato."], "meta": {}})

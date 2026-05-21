@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import json
+import re
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -152,9 +153,16 @@ def _write_backup_artifact(
     target_label: str,
     payload: dict[str, Any],
 ) -> str:
-    backup_dir = Path(paths.get("BACKUP_DIR", "./backup"))
+    try:
+        backup_dir = resolve_runtime_path(paths.get("BACKUP_DIR", "./backup"))
+    except UnsafeRuntimePath:
+        backup_dir = resolve_runtime_path("./backup")
     backup_dir.mkdir(parents=True, exist_ok=True)
-    output_path = backup_dir / f"{prefix}_{target_label}_{tenant_slug}_{_stamp_now()}.json"
+    tokens = [
+        re.sub(r"[^A-Za-z0-9_.-]+", "-", str(item or "")).strip("._-") or "runtime"
+        for item in (prefix, target_label, tenant_slug)
+    ]
+    output_path = backup_dir / f"{'_'.join(tokens)}_{_stamp_now()}.json"
     output_path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2),
         encoding="utf-8",

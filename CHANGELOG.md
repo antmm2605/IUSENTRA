@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.248.2 - 2026-05-21
+
+- Chiuso il secondo giro CodeQL post-hotfix: risposte JSON sanificate prima della serializzazione, responder senza passaggio diretto di eccezioni, redirect login locale validato con parsing URL e nomi backup/runtime normalizzati.
+- Aggiornata la gestione del bootstrap admin per non scrivere più chiavi nuove con nomenclatura `secret`, mantenendo lettura retrocompatibile dei file cifrati legacy.
+
 ## 2.248.1 - 2026-05-21
 
 - Chiuso l'hotfix post-push su CI e sicurezza: OpenAPI e inventari App V2 rigenerati, messaggi d'errore redatti, query metriche parametrizzate e percorsi SQLite/runtime validati prima dell'uso.

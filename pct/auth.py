@@ -720,6 +720,7 @@ class GestioneUtenti:
             bootstrap_password = "admin"
         if not bootstrap_password:
             bootstrap_password = secrets.token_urlsafe(18)
+        self._bootstrap_admin_runtime_value = bootstrap_password
         admin = Utente(
             username="admin",
             email="admin@studio.local",
@@ -733,15 +734,9 @@ class GestioneUtenti:
         self._salva_bootstrap_admin_credentials(bootstrap_password)
 
     def _salva_bootstrap_admin_credentials(self, temporary_value: str) -> None:
-        setup_ciphertext = ""
-        fernet = self._bootstrap_secret_fernet()
-        if temporary_value and fernet is not None:
-            encrypted_value = fernet.encrypt(temporary_value.encode("utf-8")).decode("ascii")
-            setup_ciphertext = _BOOTSTRAP_SECRET_PREFIX + encrypted_value
         payload = {
             "username": "admin",
-            "bootstrap_setup_ciphertext": setup_ciphertext,
-            "bootstrap_setup_present": bool(setup_ciphertext),
+            "bootstrap_setup_present": bool(temporary_value),
             "must_change_password": True,
             "creato_il": datetime.now().isoformat(),
         }
@@ -768,6 +763,8 @@ class GestioneUtenti:
             )
             if not temporary_secret and secret_ciphertext:
                 temporary_secret = self._decrypt_bootstrap_admin_secret(secret_ciphertext)
+            if not temporary_secret:
+                temporary_secret = str(getattr(self, "_bootstrap_admin_runtime_value", "") or "")
             return {
                 "username": payload.get("username") or "admin",
                 "password": temporary_secret,

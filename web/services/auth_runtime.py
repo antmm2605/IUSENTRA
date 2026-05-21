@@ -6,7 +6,6 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 import sqlite3
-from urllib.parse import urlsplit
 
 from flask import Flask, flash, g, redirect, render_template, request, session, url_for
 
@@ -617,16 +616,7 @@ def register_auth_runtime(
                         "warning",
                     )
                     return redirect(url_for("profilo", password_obbligatoria=1))
-                next_url = request.args.get("next")
-                if next_url:
-                    parsed_next = urlsplit(next_url)
-                    if (
-                        parsed_next.scheme
-                        or parsed_next.netloc
-                        or not next_url.startswith("/")
-                        or next_url.startswith("//")
-                    ):
-                        next_url = ""
+                next_url = ""
                 if not next_url:
                     next_url = (
                         url_for("admin.dashboard")

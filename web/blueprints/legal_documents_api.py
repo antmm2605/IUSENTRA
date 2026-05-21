@@ -15,10 +15,122 @@ from web.services.legal_document_ingestion_runtime import (
     legal_document_actor,
     legal_document_tenant_id,
 )
+from web.services.security_redaction import redacted_json_response
 from web.services.tenant_api_auth import api_key_valid_for_request
 
 
 legal_documents_api = Blueprint("legal_documents_api", __name__, url_prefix="/api")
+
+
+_PUBLIC_DOCUMENT_FIELDS = (
+    "id",
+    "tenant_id",
+    "fascicolo_id",
+    "parent_document_id",
+    "root_document_id",
+    "source_type",
+    "source_message_id",
+    "original_filename",
+    "normalized_filename",
+    "mime_type",
+    "extension",
+    "sha256",
+    "file_size",
+    "status",
+    "security_status",
+    "processing_status",
+    "root_pec_id",
+    "extraction_path_virtuale",
+    "extraction_depth",
+    "created_at",
+    "updated_at",
+    "created_by",
+    "reviewed_by",
+    "reviewed_at",
+)
+
+_PUBLIC_CLASSIFICATION_FIELDS = (
+    "document_type",
+    "legal_area",
+    "macro_area",
+    "rito",
+    "fase",
+    "procedimento",
+    "portale_probabile",
+    "confidence",
+    "status",
+)
+
+_PUBLIC_VALIDATION_FIELDS = ("result", "status", "valid", "missing_critical_fields", "summary")
+_PUBLIC_CASE_MATCH_FIELDS = ("matched_case_id", "confidence", "matched_signals", "conflicts", "status")
+_PUBLIC_LEX_FIELDS = ("status", "job_id", "chunks", "warnings")
+
+
+def _pick_public(row: Any, fields: tuple[str, ...]) -> dict[str, Any]:
+    if not isinstance(row, dict):
+        return {}
+    return {field: row.get(field) for field in fields if field in row}
+
+
+def _public_document(row: Any) -> dict[str, Any] | None:
+    payload = _pick_public(row, _PUBLIC_DOCUMENT_FIELDS)
+    return payload or None
+
+
+def _public_blocked(row: Any) -> dict[str, Any]:
+    if not isinstance(row, dict):
+        return {"status": "blocked", "reason": "Elemento bloccato."}
+    return {
+        "filename": row.get("filename") or row.get("name") or row.get("original_filename") or "",
+        "extraction_path_virtuale": row.get("extraction_path_virtuale") or row.get("path") or "",
+        "security_status": row.get("security_status") or "blocked",
+        "reason": row.get("reason") or row.get("blocked_reason") or "Elemento bloccato.",
+        "size": row.get("size") or row.get("file_size") or 0,
+    }
+
+
+def _public_processed(row: Any) -> dict[str, Any]:
+    if not isinstance(row, dict):
+        return {}
+    events = row.get("events") if isinstance(row.get("events"), list) else []
+    entities = row.get("entities") if isinstance(row.get("entities"), list) else []
+    return {
+        "document": _public_document(row.get("document")),
+        "classification": _pick_public(row.get("classification"), _PUBLIC_CLASSIFICATION_FIELDS),
+        "validation": _pick_public(row.get("validation"), _PUBLIC_VALIDATION_FIELDS),
+        "case_match": _pick_public(row.get("case_match"), _PUBLIC_CASE_MATCH_FIELDS),
+        "lex": _pick_public(row.get("lex"), _PUBLIC_LEX_FIELDS),
+        "events_count": len(events),
+        "entities_count": len(entities),
+    }
+
+
+def _public_ingestion_result(result: Any) -> dict[str, Any]:
+    if not isinstance(result, dict):
+        return {}
+    children = [
+        {
+            "document": _public_document((item.get("document") if isinstance(item, dict) else None)),
+            "metadata": _pick_public((item.get("metadata") if isinstance(item, dict) else {}), ("original_filename", "mime_type", "extension", "sha256", "size", "security_status", "processing_status", "extraction_path_virtuale", "extraction_depth")),
+        }
+        for item in list(result.get("children") or [])
+        if isinstance(item, dict)
+    ]
+    return {
+        "document": _public_document(result.get("document")),
+        "children": children,
+        "blocked": [_public_blocked(item) for item in list(result.get("blocked") or [])],
+        "processed": [_public_processed(item) for item in list(result.get("processed") or [])],
+    }
+
+
+def _public_pec_result(result: Any) -> dict[str, Any]:
+    if not isinstance(result, dict):
+        return {}
+    return {
+        "document": _public_document(result.get("document")),
+        "attachments": [_public_ingestion_result(item) for item in list(result.get("attachments") or [])],
+    }
 
 
 def _richiedi_auth(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -89,7 +201,7 @@ def documents_upload():
                 fascicolo_id=fascicolo_id,
                 actor=actor,
             )
-            return jsonify({"ok": True, "data": [result], "count": 1}), 201
+            return redacted_json_response({"ok": True, "data": [_public_ingestion_result(result)], "count": 1}, 201)
         except Exception as exc:
             return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
     if not uploaded:
@@ -98,16 +210,18 @@ def documents_upload():
     for item in uploaded:
         content = item.read()
         results.append(
-            service.ingest_bytes(
-                tenant_id=tenant_id,
-                filename=item.filename or "documento.bin",
-                content=content,
-                source_type="upload manuale",
-                fascicolo_id=fascicolo_id,
-                actor=actor,
+            _public_ingestion_result(
+                service.ingest_bytes(
+                    tenant_id=tenant_id,
+                    filename=item.filename or "documento.bin",
+                    content=content,
+                    source_type="upload manuale",
+                    fascicolo_id=fascicolo_id,
+                    actor=actor,
+                )
             )
         )
-    return jsonify({"ok": True, "data": results, "count": len(results)}), 201
+    return redacted_json_response({"ok": True, "data": results, "count": len(results)}, 201)
 
 
 @legal_documents_api.post("/pec/<pec_id>/process")
@@ -127,7 +241,7 @@ def pec_process_legal_documents(pec_id: str):
             actor=legal_document_actor(),
             fascicolo_id=str(payload.get("fascicolo_id") or ""),
         )
-        return jsonify({"ok": True, "data": result})
+        return redacted_json_response({"ok": True, "data": _public_pec_result(result)})
     except Exception as exc:
         return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
 

@@ -17,7 +17,6 @@ from typing import Any
 
 from flask import (Blueprint, abort, current_app, flash, g, jsonify,
                    redirect, render_template, request, send_file, url_for)
-from markupsafe import escape as markupsafe_escape
 from werkzeug.utils import secure_filename
 
 from web.helpers import get_clienti, get_fascicoli, get_soggetti, get_utenti
@@ -651,7 +650,7 @@ def _safe_pdf_download_name(title: Any) -> str:
 
 def _json_safe_payload(value: Any) -> Any:
     if isinstance(value, str):
-        return str(markupsafe_escape(value))
+        return escape(value, quote=True)
     if isinstance(value, list):
         return [_json_safe_payload(item) for item in value]
     if isinstance(value, dict):
@@ -660,12 +659,7 @@ def _json_safe_payload(value: Any) -> Any:
 
 
 def _json_response_safe(payload: Any, status: int = 200):
-    response = current_app.response_class(
-        json.dumps(_json_safe_payload(payload), ensure_ascii=False),
-        status=status,
-        mimetype="application/json",
-    )
-    return response, status
+    return jsonify(_json_safe_payload(payload)), status
 
 
 def _resolve_template_context_payload(payload: dict | None = None) -> dict:
@@ -1003,7 +997,7 @@ def template_cartabia_compliance(codice: str):
     safe_code = _safe_identifier(codice)
     item = get_unified_template_item(safe_code) if safe_code else None
     if not item:
-        return jsonify({"ok": False, "errore": "Template non trovato."}), 404
+        return _json_response_safe({"ok": False, "errore": "Template non trovato."}, 404)
     return _json_response_safe({"ok": True, "codice": _safe_identifier(item.get("codice") or safe_code) or "template", "cartabia": verifica_cartabia_template(item)})
 
 
@@ -1017,7 +1011,7 @@ def template_verifica_cartabia(codice: str):
     safe_code = _safe_identifier(codice)
     item = get_unified_template_item(safe_code) if safe_code else None
     if not item:
-        return jsonify({"ok": False, "errore": "Template non trovato."}), 404
+        return _json_response_safe({"ok": False, "errore": "Template non trovato."}, 404)
     prefill_payload, _ = _resolve_template_prefill_response(safe_code, request_payload)
     prefill = prefill_payload.get("prefill") if prefill_payload.get("ok") else {}
     values = request_payload.get("values") if isinstance(request_payload.get("values"), dict) else {}
@@ -1037,7 +1031,7 @@ def template_verifica_completa(codice: str):
     safe_code = _safe_identifier(codice)
     item = get_unified_template_item(safe_code) if safe_code else None
     if not item:
-        return jsonify({"ok": False, "errore": "Template non trovato."}), 404
+        return _json_response_safe({"ok": False, "errore": "Template non trovato."}, 404)
     prefill_payload, status = _resolve_template_prefill_response(safe_code, request_payload)
     if status != 200:
         return _json_response_safe(prefill_payload, status)

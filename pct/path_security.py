@@ -7,6 +7,8 @@ import tempfile
 from pathlib import Path
 from typing import Iterable
 
+from werkzeug.utils import safe_join as werkzeug_safe_join
+
 
 class UnsafeRuntimePath(ValueError):
     """Percorso fuori dalle radici runtime consentite."""
@@ -42,7 +44,7 @@ def _candidate_roots(extra_roots: Iterable[str | Path] = ()) -> list[Path]:
 
 def _under_root(path: Path, root: Path) -> bool:
     try:
-        return os.path.commonpath([str(path), str(root)]) == str(root)
+        return os.path.normcase(os.path.commonpath([str(path), str(root)])) == os.path.normcase(str(root))
     except ValueError:
         return False
 
@@ -58,12 +60,19 @@ def resolve_runtime_path(
     raw = os.fspath(value or "").strip()
     if not raw or "\x00" in raw:
         raise UnsafeRuntimePath("Percorso runtime non valido.")
-    expanded = os.path.expanduser(raw)
-    candidate = Path(os.path.abspath(expanded))
-    if allowed_suffixes is not None and candidate.suffix.lower() not in allowed_suffixes:
-        raise UnsafeRuntimePath("Estensione del percorso runtime non consentita.")
+    candidate_text = os.path.abspath(os.path.expanduser(raw))
     for root in _candidate_roots(extra_roots):
-        if _under_root(candidate, root):
+        if _under_root(Path(candidate_text), root):
+            rel = os.path.relpath(candidate_text, str(root))
+            rel = rel.replace(os.sep, "/")
+            if os.altsep:
+                rel = rel.replace(os.altsep, "/")
+            joined = werkzeug_safe_join(str(root), rel)
+            if not joined:
+                continue
+            candidate = Path(joined)
+            if allowed_suffixes is not None and candidate.suffix.lower() not in allowed_suffixes:
+                raise UnsafeRuntimePath("Estensione del percorso runtime non consentita.")
             return candidate
     raise UnsafeRuntimePath("Percorso runtime fuori dalle radici consentite.")
 

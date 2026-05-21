@@ -65,7 +65,8 @@ def test_admin_default_usa_password_bootstrap_configurata(tmp_path):
     legacy_key = "password" + "_encrypted"
     assert "password" not in raw_payload
     assert legacy_key not in raw_payload
-    assert raw_payload["bootstrap_setup_ciphertext"].startswith("ENC:")
+    assert raw_payload["bootstrap_setup_present"] is True
+    assert "bootstrap_setup_ciphertext" not in raw_payload
     assert "TempPass123!" not in creds_path.read_text(encoding="utf-8")
 
 

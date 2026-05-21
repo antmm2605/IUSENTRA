@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.3 - 2026-05-21
+
+- Chiuso il follow-up CodeQL residuo: il bootstrap admin non scrive più segreti temporanei su disco, i percorsi SQLite/runtime usano una radice validata con join sicuro anche su Windows e il login non riflette più destinazioni esterne.
+- Ridotta l'esposizione API del Legal Document Understanding: gli upload e il processing PEC restituiscono riepiloghi pubblici senza stack trace, dettagli OCR grezzi o errori tecnici, mantenendo l'albero PEC/ZIP interrogabile dagli endpoint dedicati.
+- Normalizzate le risposte JSON di Template Atti tramite `jsonify` su payload sanificati, così i dati inseriti dall'utente non vengono riflessi in risposte costruite manualmente.
+
 ## 2.248.2 - 2026-05-21
 
 - Chiuso il secondo giro CodeQL post-hotfix: risposte JSON sanificate prima della serializzazione, responder senza passaggio diretto di eccezioni, redirect login locale validato con parsing URL e nomi backup/runtime normalizzati.

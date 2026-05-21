@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.248.7 - 2026-05-21
+
+- I codici Template Atti usati dalle API di prefill e verifica vengono ora canonicalizzati dal catalogo server-side: il parametro di rotta seleziona il modello, ma la risposta usa solo il codice reale del catalogo.
+
 ## 2.248.6 - 2026-05-21
 
 - Resa esplicita nelle route Template Atti la validazione allowlist del codice modello prima di generare qualunque risposta JSON, così il controllo CodeQL vede il vincolo su lunghezza e caratteri ammessi.

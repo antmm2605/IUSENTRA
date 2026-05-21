@@ -4,7 +4,7 @@ Aggiornato: 21 maggio 2026.
 
 ## Scopo
 
-La pipeline PEC affianca la casella PEC storica e crea un controllo automatico end-to-end su messaggi, allegati, firme, validazione e collegamento al fascicolo. Il controllo è professionale ma non bloccante: IUSENTRA conserva, segnala e prepara le azioni; la decisione resta all'avvocato.
+La pipeline PEC affianca la casella PEC storica e crea un controllo automatico end-to-end su messaggi, allegati, firme, validazione e collegamento al fascicolo. Il controllo è professionale ma non bloccante: IUSENTRA conserva, segnala, registra presidi operativi automatici e prepara le azioni; la decisione dispositiva resta all'avvocato.
 
 ## Comportamento atteso
 
@@ -15,9 +15,11 @@ Per ogni PEC acquisita il software:
 - registra ogni evento in `pec_audit_log` append-only con hash-chain;
 - deduplica su `Message-ID` e hash MIME;
 - esegue worker asincroni `parse`, `classify`, `ocr`, `signcheck`, `validate`, `link`, `digest`;
-- produce un `validation_report` strutturato, non bloccante, con anomalie, basi normative, domande operative e azioni suggerite;
+- produce un `validation_report` strutturato, non bloccante, con anomalie, basi normative, domande operative, azioni suggerite e `deadline_proposal`;
 - propone il collegamento al fascicolo con matching multi-seme su RG, parti, ufficio e parole chiave;
 - genera digest giornaliero alle 08:00 Europe/Rome.
+
+`deadline_proposal.auto_create=true` crea o espone una scadenza di presidio operativo nello scadenziario. Non è un termine legale conclusivo: serve a non lasciare senza controllo notifiche, depositi in stato intermedio, firme non verificate, allegati mancanti o acquisizioni MIME da completare.
 
 ## Deposito telematico: cosa aspettarsi dopo l'invio
 
@@ -30,7 +32,7 @@ Quando l'avvocato effettua un deposito PCT, IUSENTRA non deve limitarsi a dire "
 | 3 | Esito controlli deposito | legge esito dei controlli automatici su messaggio/busta, warning, errore fatale o atto non conforme |
 | 4 | Accettazione o rifiuto deposito | distingue accettazione automatica/manuale, intervento cancelleria e rifiuto; solo qui il deposito può essere comunicato come accettato, dopo controllo del fascicolo |
 
-Il `validation_report.deposit_lifecycle` espone fase riconosciuta, prossime PEC attese, controlli da eseguire e frase operativa per l'avvocato. Se manca l'esito finale, il sistema segnala `pct_deposit_followup_expected` e suggerisce follow-up; se emerge rifiuto o errore critico segnala `pct_deposit_critical_outcome`.
+Il `validation_report.deposit_lifecycle` espone fase riconosciuta, prossime PEC attese, controlli da eseguire e frase operativa per l'avvocato. Se manca l'esito finale, il sistema segnala `pct_deposit_followup_expected` e registra una scadenza operativa automatica; se emerge rifiuto o errore critico segnala `pct_deposit_critical_outcome`.
 
 ## Lettura semantica e contesti normativi
 
@@ -52,6 +54,17 @@ La funzione `detect_pec_legal_context()` riconosce i principali contesti PEC pro
 
 Il parser serializza ogni campo con `value`, `confidence`, `motivation` e `features`. Per esempio una PEC con oggetto `GIUDICE DI PACE - Notificazione ai sensi del D.L. 179/2012` produce evento `notifica_giudice_pace`, warning non bloccante `legal_notice_review_required` e domande operative su atto notificato, data di consegna, RG/fascicolo e termini.
 
+## Fonti verificate per la matrice notifiche
+
+Il comportamento software è stato ricondotto a fonti ufficiali o tecniche primarie:
+
+- Normattiva: D.L. 179/2012, L. 53/1994, D.P.R. 68/2005, D.Lgs. 82/2005 e D.P.C.M. 40/2016;
+- AgID: regole tecniche PEC e articolo 48 CAD sulla posta elettronica certificata;
+- Ministero della Giustizia/PST: specifiche tecniche D.M. 44/2011 2024 e circolare 19 settembre 2024 sull'accettazione automatica dei depositi;
+- specifiche interne repository in `docs/specs/ministero/` per PCT/PST/PAT/PTT/SIGP, ricevute, buste e flussi telematici.
+
+Se un caso non è normativamente certo o dipende da prassi locale, la pipeline deve generare warning e presidio configurabile, non un blocco arbitrario.
+
 ## Specializzazione agente Lex
 
 Lex è informato tramite `pec_audit` in `lex/operational_knowledge/source_registry.py`, agente `pec_audit_controlli` e tool:
@@ -65,8 +78,9 @@ Quando interrogato su validità, firme, allegati mancanti, MIME, notifica, cance
 - leggere la PEC e il controllo audit-grade se presenti;
 - distinguere dato certo, dato estratto con confidenza, inferenza normativa e punto da verificare;
 - indicare le domande operative prima di proporre azioni;
-- proporre salvataggio fascicolo, richiesta allegato mancante o scadenza solo come azione da confermare;
-- non inviare, depositare, rispondere o schedulare senza azione esplicita dell'avvocato.
+- leggere `deadline_proposal` e distinguere scadenza operativa automatica da termine legale conclusivo;
+- rispondere alle domande sugli allegati PEC/email leggendo comunicazioni e audit, non il catalogo template atti;
+- non inviare, depositare, rispondere o assumere termini legali conclusivi senza validazione dell'avvocato.
 
 ## API
 

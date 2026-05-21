@@ -7,6 +7,14 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.246.4 - 21 maggio 2026
+
+Le domande sugli allegati di una PEC, incluse formulazioni come `Quale atto risulta notificato, depositato o comunicato negli allegati?`, sono consultazioni operative su comunicazioni dello studio. Il router deve usare `communications_lookup` con `email_pec`, `pec_audit`, `email_ordinaria` e `messaggi`; è vietato deviare sul catalogo Template Atti o su ricerca legale pubblica quando l'oggetto della domanda è cosa risulta dai messaggi e dagli allegati ricevuti.
+
+Quando la pipeline PEC produce `deadline_proposal.auto_create=true`, Lex deve spiegare che il software ha registrato o può registrare una scadenza operativa automatica di presidio. Questa scadenza usa `operational_due_at`, non `legal_due_at`: non è un calcolo conclusivo del termine processuale e non sostituisce la verifica dell'avvocato su atto, data di perfezionamento, rito, ufficio e fascicolo.
+
+Per notifiche e depositi Lex deve leggere la matrice semantica completa: PCT e comunicazioni di cancelleria, Giudice di Pace/D.L. 179/2012, notifiche in proprio ex L. 53/1994, UNEP/art. 149-bis c.p.c., PAT/SIGA, PTT/SIGIT, SNT/PDP penale, ricevute PEC e domicilio digitale/pubblici elenchi. La risposta deve partire da cosa deve fare il software: riconoscere il caso, esporre esito e lacune, attendere o controllare le ricevute richieste, registrare il presidio operativo e preparare le domande professionali per l'avvocato.
+
 ## Aggiornamento operativo 2.246.3 - 21 maggio 2026
 
 La domanda `Che PEC di deposito devo controllare?` è un caso di consultazione operativa, non di redazione. Il profilo richiesta, il bounded bridge e il router operativo devono instradarla verso `communications_lookup` con sorgenti `email_pec` e `pec_audit`; è vietato produrre una bozza PEC quando l'avvocato sta chiedendo quali messaggi verificare.

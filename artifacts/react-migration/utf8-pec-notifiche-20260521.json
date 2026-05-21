@@ -1,0 +1,18 @@
+{
+  "checked_files": 1,
+  "error_files": 0,
+  "files": [],
+  "files_with_artifacts": 0,
+  "finished_at": "2026-05-21T13:07:41Z",
+  "no_backup_created": true,
+  "ok": true,
+  "repair_enabled": false,
+  "repaired_files": 0,
+  "roots": [
+    "D:\\legale\\IUSENTRA\\artifacts\\react-migration\\pytest-confirmed-ok.md"
+  ],
+  "schema_version": "iusentra.utf8_integrity.v1",
+  "skipped_large_files": 0,
+  "started_at": "2026-05-21T13:07:40Z",
+  "unresolved_replacement_files": 0
+}

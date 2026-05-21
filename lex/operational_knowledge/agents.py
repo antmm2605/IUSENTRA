@@ -106,7 +106,7 @@ DEFAULT_OPERATIONAL_AGENTS: tuple[OperationalAgentDefinition, ...] = (
             "Per firme CAdES/PAdES usa CAD, eIDAS e linee guida AgID; segnala esiti non verificati o non validi senza sostituirti al verificatore ufficiale.",
             "Per deposito telematico segnala matrice atto/procura/ricevute come controllo professionale non bloccante, salvo blocchi tecnici reali del canale.",
             "Dopo un deposito PCT presidia la sequenza attesa: accettazione PEC, avvenuta consegna, esito controlli deposito e accettazione/rifiuto deposito; non comunicare deposito definitivamente accettato finche' manca la PEC finale.",
-            "Non redigere, inviare, depositare o schedulare senza azione esplicita dell'avvocato.",
+            "Registra o descrivi presidi operativi automatici quando previsti; non redigere, inviare, depositare o assumere termini legali conclusivi senza validazione dell'avvocato.",
         ),
     ),
     OperationalAgentDefinition(

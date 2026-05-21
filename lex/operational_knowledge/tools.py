@@ -1279,6 +1279,7 @@ def _serialize_pec_audit_detail(raw: dict[str, Any], *, include_fields: bool = F
         "issues": issues[:12],
         "allegati": attachments[:12],
         "deposit_lifecycle": report.get("deposit_lifecycle") if isinstance(report.get("deposit_lifecycle"), dict) else {},
+        "deadline_proposal": report.get("deadline_proposal") if isinstance(report.get("deadline_proposal"), dict) else {},
         "normative_references": report.get("normative_references") or semantic_context.get("normative_references") or [],
         "agent_questions": report.get("agent_questions") or semantic_context.get("agent_questions") or [],
         "recommended_actions": report.get("recommended_actions") or semantic_context.get("recommended_actions") or [],

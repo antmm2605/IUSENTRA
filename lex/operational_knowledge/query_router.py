@@ -140,6 +140,8 @@ ENTITY_STOPWORDS = {
     "rispondi",
     "rispondere",
     "risposta",
+    "risulta",
+    "risultano",
     "collegata",
     "collegate",
     "collegati",
@@ -157,6 +159,23 @@ ENTITY_STOPWORDS = {
     "soggetti",
     "scrivi",
     "studio",
+    "notificato",
+    "notificata",
+    "notificati",
+    "notificate",
+    "depositato",
+    "depositata",
+    "depositati",
+    "depositate",
+    "comunicato",
+    "comunicata",
+    "comunicati",
+    "comunicate",
+    "allegato",
+    "allegati",
+    "allegata",
+    "allegate",
+    "negli",
     "trovami",
     "trova",
     "template",
@@ -264,6 +283,14 @@ class OperationalQueryRouter:
                     "fatturazione",
                     "pagamenti",
                 ),
+                entity_query,
+            )
+
+        if _looks_like_communication_attachment_question(text):
+            return OperationalRoute(
+                "communications_lookup",
+                "communications_lookup",
+                ("email_pec", "pec_audit", "email_ordinaria", "messaggi"),
                 entity_query,
             )
 
@@ -403,3 +430,13 @@ def _looks_like_communication_draft(text: str) -> bool:
     if not any(token in text for token in ("pec", "email", "posta", "messaggio")):
         return False
     return any(token in text for token in ("scrivi", "redigi", "prepara", "bozza", "risposta", "rispondi"))
+
+
+def _looks_like_communication_attachment_question(text: str) -> bool:
+    if not text:
+        return False
+    has_attachment = "allegat" in text
+    has_act = any(token in text for token in ("atto", "atti", "notificat", "depositat", "comunicat"))
+    has_mailbox = any(token in text for token in ("pec", "email", "mail", "messagg", "comunicazion"))
+    has_question = any(token in text for token in ("quale", "quali", "che", "risulta", "risultano", "leggi", "dimmi"))
+    return has_attachment and has_act and (has_mailbox or has_question)

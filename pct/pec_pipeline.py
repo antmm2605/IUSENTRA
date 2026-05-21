@@ -759,7 +759,7 @@ def detect_pec_legal_context(text: str) -> dict[str, Any]:
         "Aprire atto e ricevute prima di assumere una scadenza.",
         "Verificare provenienza, pubblico elenco o ufficio mittente quando rilevante.",
         "Proporre collegamento al fascicolo tramite RG, parti, ufficio e parole chiave.",
-        "Preparare scadenza o richiesta di integrazione solo come proposta da confermare.",
+        "Registrare automaticamente il presidio operativo e preparare eventuale richiesta di integrazione da validare prima dell'invio.",
     ]
     all_features = _dedupe_texts(feature for match in matches for feature in list(match.get("features") or []))
     return {
@@ -777,7 +777,7 @@ def detect_pec_legal_context(text: str) -> dict[str, Any]:
             "must_do": [
                 "distinguere dato certo da MIME/ricevute, dato estratto con confidence e inferenza normativa",
                 "segnalare il possibile termine senza calcolarlo come definitivo se mancano atto, data o base giuridica certa",
-                "preparare azioni operative ma non inviare, depositare o schedulare senza azione esplicita dell'avvocato",
+                "registrare automaticamente presidi e scadenze operative; non inviare, depositare o assumere termini legali conclusivi senza validazione dell'avvocato",
                 "citare il contesto normativo come riferimento operativo, non come parere conclusivo",
             ],
         },
@@ -1206,6 +1206,121 @@ def build_pct_deposit_lifecycle(parsed: dict[str, Any], attachments: list[dict[s
     }
 
 
+def _field_date_value(parsed: dict[str, Any], *keys: str) -> str:
+    fields = parsed.get("fields") if isinstance(parsed.get("fields"), dict) else {}
+    for key in keys:
+        payload = fields.get(key) if isinstance(fields.get(key), dict) else {}
+        value = parsedate_iso(payload.get("value"))
+        if value:
+            return value
+    headers = parsed.get("headers") if isinstance(parsed.get("headers"), dict) else {}
+    return parsedate_iso(headers.get("date"))
+
+
+def _date_only(value: str) -> date | None:
+    parsed = parsedate_iso(value)
+    if not parsed:
+        return None
+    try:
+        return datetime.fromisoformat(parsed.replace("Z", "+00:00")).date()
+    except ValueError:
+        return None
+
+
+def _operational_due_date(source_date: date | None, *, lead_days: int) -> str:
+    base = source_date or date.today()
+    candidate = base + timedelta(days=max(0, lead_days))
+    today = date.today()
+    if candidate < today:
+        return today.isoformat()
+    return candidate.isoformat()
+
+
+def build_deadline_proposal(
+    parsed: dict[str, Any],
+    *,
+    event_type: str,
+    issues: list[dict[str, Any]],
+    deposit_lifecycle: dict[str, Any],
+) -> dict[str, Any]:
+    """Produce una scadenza operativa automatica, distinta dal calcolo legale conclusivo."""
+
+    issue_codes = {str(item.get("code") or "") for item in issues}
+    source_date_iso = _field_date_value(parsed, "data_consegna", "data_invio")
+    source_date = _date_only(source_date_iso)
+    subject = clean_text(((parsed.get("headers") or {}).get("subject") or "PEC"), 90)
+    notice_events = {
+        "notifica_giudice_pace",
+        "notifica_telematica",
+        "notifica_l53",
+        "notifica_unep",
+        "pat_notifica_o_deposito",
+        "ptt_notifica_o_deposito",
+        "penale_snt",
+        "penale_deposito_portale",
+    }
+    critical = any(str(item.get("severity") or "") == "danger" for item in issues)
+    if critical:
+        return {
+            "status": "ready",
+            "auto_create": True,
+            "title": f"Presidio urgente PEC: {subject}",
+            "due_date": _operational_due_date(source_date, lead_days=0),
+            "source_event_at": source_date_iso,
+            "source_event_type": event_type,
+            "priority": "alta",
+            "legal_deadline": False,
+            "reason": "Esito PEC critico: il software registra un presidio operativo immediato e segnala verifica dell'avvocato.",
+        }
+    if event_type == "pct_deposito" and "pct_deposit_followup_expected" in issue_codes:
+        return {
+            "status": "ready",
+            "auto_create": True,
+            "title": f"Verifica sequenza deposito PEC: {subject}",
+            "due_date": _operational_due_date(source_date, lead_days=1),
+            "source_event_at": source_date_iso,
+            "source_event_type": event_type,
+            "priority": "media",
+            "legal_deadline": False,
+            "reason": "Deposito telematico in fase intermedia: il software registra un presidio per attendere o cercare la PEC finale di accettazione/rifiuto.",
+        }
+    if event_type in notice_events:
+        return {
+            "status": "ready",
+            "auto_create": True,
+            "title": f"Valuta termini da notifica PEC: {subject}",
+            "due_date": _operational_due_date(source_date, lead_days=1),
+            "source_event_at": source_date_iso,
+            "source_event_type": event_type,
+            "priority": "alta",
+            "legal_deadline": False,
+            "reason": "Notifica giudiziaria rilevata: il software registra automaticamente il presidio operativo per identificare atto, fascicolo e termini applicabili.",
+        }
+    if issues:
+        return {
+            "status": "ready",
+            "auto_create": True,
+            "title": f"Presidio anomalie PEC: {subject}",
+            "due_date": _operational_due_date(source_date, lead_days=2),
+            "source_event_at": source_date_iso,
+            "source_event_type": event_type,
+            "priority": "media",
+            "legal_deadline": False,
+            "reason": "Sono presenti anomalie non bloccanti: il software registra un promemoria operativo per chiuderle.",
+        }
+    return {
+        "status": "not_needed",
+        "auto_create": False,
+        "title": "",
+        "due_date": "",
+        "source_event_at": source_date_iso,
+        "source_event_type": event_type,
+        "priority": "normale",
+        "legal_deadline": False,
+        "reason": "Nessuna scadenza operativa automatica richiesta dalla matrice PEC.",
+    }
+
+
 def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, Any]]) -> dict[str, Any]:
     classes = [str(item.get("classification") or "") for item in attachments]
     event_type = event_type_from_parsed(parsed, classes)
@@ -1328,7 +1443,7 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
                     "severity": "warning",
                     "blocking": False,
                     "title": "Data di consegna da verificare",
-                    "detail": "Per eventuali termini serve controllare ricevuta e metadati PEC prima di schedulare.",
+                    "detail": "Per eventuali termini serve controllare ricevuta e metadati PEC; il software registra solo un presidio operativo automatico.",
                 }
             )
     for item in attachments:
@@ -1357,6 +1472,12 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
         severity = "warning"
     if any(item["severity"] == "danger" for item in issues):
         severity = "danger"
+    deadline_proposal = build_deadline_proposal(
+        parsed,
+        event_type=event_type,
+        issues=issues,
+        deposit_lifecycle=deposit_lifecycle,
+    )
     return {
         "event_type": event_type,
         "required": required,
@@ -1380,15 +1501,21 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
         "recommended_actions": [
             *(semantic_context.get("recommended_actions") or []),
             *(
+                [deadline_proposal.get("reason")]
+                if deadline_proposal.get("auto_create") and deadline_proposal.get("reason")
+                else []
+            ),
+            *(
                 [
                     "Mostrare la fase attuale del deposito e le PEC ancora attese.",
                     "Preparare comunicazione all'avvocato con esito, anomalie e prossimi controlli.",
-                    "Schedulare follow-up se manca l'esito finale di accettazione o rifiuto deposito.",
+                    "Registrare automaticamente il follow-up se manca l'esito finale di accettazione o rifiuto deposito.",
                 ]
                 if deposit_lifecycle
                 else []
             ),
         ],
+        "deadline_proposal": deadline_proposal,
         "blocking": False,
         "severity": severity,
         "generated_at": iso_now(),
@@ -1967,7 +2094,23 @@ class PecAuditRepository:
                 (fascicolo_id, score, "linked" if fascicolo_id else "link_candidates", message_id),
             )
             self.append_audit(conn, action="pec.fascicolo.reconciled", resource_type="pec_message", resource_id=message_id, payload={"status": status, "score": score, "candidates": candidates}, actor=actor)
-        return {"message_id": message_id, "status": status, "fascicolo_id": fascicolo_id, "score": score, "candidates": candidates, "seeds": seeds}
+        auto_deadline: dict[str, Any] = {}
+        try:
+            report = self.get_message_detail(message_id).get("validation_report") or {}
+            proposal = report.get("deadline_proposal") if isinstance(report.get("deadline_proposal"), dict) else {}
+            if proposal.get("auto_create"):
+                auto_deadline = self.schedule_deadline(message_id, actor=actor)
+        except Exception as exc:
+            auto_deadline = {"ok": False, "message": f"Scadenza automatica non registrata: {exc}"}
+        return {
+            "message_id": message_id,
+            "status": status,
+            "fascicolo_id": fascicolo_id,
+            "score": score,
+            "candidates": candidates,
+            "seeds": seeds,
+            "auto_deadline": auto_deadline,
+        }
 
     def run_pending_jobs(self, *, limit: int = 100, actor: str = "pec-worker") -> dict[str, Any]:
         processed = 0
@@ -2313,26 +2456,50 @@ class PecAuditRepository:
         detail = self.get_message_detail(message_id)
         message = detail.get("message") or {}
         parsed = detail.get("parsed") or {}
-        target_date = due_date or (date.today() + timedelta(days=7)).isoformat()
-        title = clean_text((parsed.get("headers") or {}).get("subject") or "Verifica PEC", 120)
+        report = detail.get("validation_report") if isinstance(detail.get("validation_report"), dict) else {}
+        proposal = report.get("deadline_proposal") if isinstance(report.get("deadline_proposal"), dict) else {}
+        target_date = due_date or clean_text(proposal.get("due_date"))
+        if not target_date:
+            return {"ok": False, "message": "Nessuna scadenza automatica calcolabile per questa PEC.", "proposal": proposal}
+        title = clean_text(proposal.get("title") or (parsed.get("headers") or {}).get("subject") or "Verifica PEC", 120)
+        marker = f"PEC_AUDIT:{message_id}"
         try:
             from pct.scadenziario import GestioneScadenziario, TipoTermine
 
             manager = GestioneScadenziario(db_path=str(self.scadenziario_db_path))
+            for existing in manager.tutte(solo_aperte=False):
+                if marker in str(getattr(existing, "note", "") or ""):
+                    return {
+                        "ok": True,
+                        "message": "Scadenza automatica già presente nello scadenziario.",
+                        "deadline_id": getattr(existing, "id", ""),
+                        "due_date": getattr(existing, "data_scadenza", target_date),
+                        "already_exists": True,
+                        "proposal": proposal,
+                    }
             scadenza = manager.nuova(
-                titolo=f"Controllo PEC: {title}",
+                titolo=title,
                 tipo=TipoTermine.ADEMPIMENTO,
                 data_scadenza=target_date,
                 id_fascicolo=str(message.get("linked_fascicolo_id") or ""),
-                descrizione="Scadenza generata dalla pipeline PEC audit-grade.",
-                note=f"PEC audit id: {message_id}",
+                descrizione=clean_text(proposal.get("reason")) or "Scadenza generata automaticamente dalla pipeline PEC audit-grade.",
+                note=(
+                    f"{marker}\n"
+                    f"Tipo evento: {proposal.get('source_event_type') or report.get('event_type') or '-'}\n"
+                    f"Decorrenza letta: {proposal.get('source_event_at') or '-'}\n"
+                    "Termine legale conclusivo: no, presidio operativo automatico da verificare professionalmente."
+                ),
                 id_utente_responsabile=actor,
+                source_event_type=str(proposal.get("source_event_type") or report.get("event_type") or ""),
+                source_event_at=str(proposal.get("source_event_at") or ""),
+                operational_due_at=target_date,
+                deadline_profile_code="PEC_AUTO_PRESIDIO",
             )
         except Exception as exc:
             return {"ok": False, "message": f"Scadenza non creata: {exc}"}
         with self.connect() as conn:
-            self.append_audit(conn, action="pec.deadline.scheduled", resource_type="pec_message", resource_id=message_id, payload={"deadline_id": getattr(scadenza, "id", ""), "due_date": target_date}, actor=actor)
-        return {"ok": True, "message": "Scadenza creata nello scadenziario.", "deadline_id": getattr(scadenza, "id", ""), "due_date": target_date}
+            self.append_audit(conn, action="pec.deadline.scheduled", resource_type="pec_message", resource_id=message_id, payload={"deadline_id": getattr(scadenza, "id", ""), "due_date": target_date, "proposal": proposal}, actor=actor)
+        return {"ok": True, "message": "Scadenza automatica creata nello scadenziario.", "deadline_id": getattr(scadenza, "id", ""), "due_date": target_date, "proposal": proposal}
 
 
 def synthetic_pec_messages() -> list[tuple[str, bytes]]:

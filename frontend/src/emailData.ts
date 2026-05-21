@@ -50,6 +50,7 @@ export type PecAuditSummary = {
   normativeReferences: PecAuditReference[]
   agentQuestions: string[]
   recommendedActions: string[]
+  deadlineProposal: Record<string, unknown>
   confidence: Record<string, PecAuditField>
   candidates: Array<Record<string, unknown>>
   attachments: PecAuditAttachment[]
@@ -347,6 +348,7 @@ function auditFromPayload(value: unknown): PecAuditSummary | undefined {
     normativeReferences: Array.isArray(item.normativeReferences) ? item.normativeReferences.map(referenceFromPayload).filter((ref) => ref.label) : [],
     agentQuestions: stringList(item.agentQuestions ?? item.agent_questions),
     recommendedActions: stringList(item.recommendedActions ?? item.recommended_actions),
+    deadlineProposal: isRecord(item.deadlineProposal ?? item.deadline_proposal) ? { ...((item.deadlineProposal ?? item.deadline_proposal) as Record<string, unknown>) } : {},
     confidence,
     candidates: Array.isArray(item.candidates) ? item.candidates.filter(isRecord) : [],
     attachments: Array.isArray(item.attachments)
@@ -369,7 +371,7 @@ function auditFromPayload(value: unknown): PecAuditSummary | undefined {
       runAudit: text(quickActions.runAudit ?? quickActions.run_audit),
     },
     persisted: item.persisted !== false,
-    storageLabel: text(item.storageLabel ?? item.storage_label, item.persisted === false ? 'MIME originale da acquisire' : 'MIME originale conservato'),
+    storageLabel: text(item.storageLabel ?? item.storage_label, item.persisted === false ? 'MIME da acquisire automaticamente' : 'MIME originale conservato'),
     storageTone: normaliseAuditTone(item.storageTone ?? item.storage_tone, item.persisted === false ? 'warning' : 'success'),
     sourceEmailId: text(item.sourceEmailId ?? item.source_email_id),
   }
@@ -560,7 +562,7 @@ function auditDetailFromPayload(payload: unknown): EmailDetailData {
   const audit = auditFromPayload({
     id: pecId,
     qualityStatus,
-    qualityLabel: qualityStatus === 'verde' ? 'Qualità verde' : qualityStatus === 'giallo' ? 'Qualità gialla' : qualityStatus === 'rosso' ? 'Qualità rossa' : 'Da controllare',
+    qualityLabel: qualityStatus === 'verde' ? 'Qualità verde' : qualityStatus === 'giallo' ? 'Qualità da presidiare' : qualityStatus === 'rosso' ? 'Qualità critica' : 'Presidio richiesto',
     qualityTone: qualityStatus === 'rosso' ? 'danger' : qualityStatus === 'giallo' ? 'warning' : qualityStatus === 'verde' ? 'success' : 'neutral',
     signatureStatus,
     signatureLabel: signatureStatus === 'valida' ? 'Firme valide' : ['non_valida', 'errore', 'scaduta'].includes(signatureStatus) ? 'Firme da verificare' : 'Firme non verificate',
@@ -576,6 +578,7 @@ function auditDetailFromPayload(payload: unknown): EmailDetailData {
     normativeReferences: report.normative_references,
     agentQuestions: report.agent_questions,
     recommendedActions: report.recommended_actions,
+    deadlineProposal: report.deadline_proposal,
     confidence: isRecord(parsed.fields) ? parsed.fields : {},
     candidates: link.candidates,
     attachments: attachments.map((raw) => {
@@ -591,7 +594,7 @@ function auditDetailFromPayload(payload: unknown): EmailDetailData {
     quickActions: {
       saveMatter: `/api/pec/messages/${encoded}/salva-fascicolo`,
       requestMissingAttachment: `/api/pec/messages/${encoded}/richiedi-allegato-mancante`,
-      scheduleDeadline: `/api/pec/messages/${encoded}/schedula-scadenza`,
+      scheduleDeadline: isRecord(report.deadline_proposal) && report.deadline_proposal.auto_create ? `/api/pec/messages/${encoded}/schedula-scadenza` : '',
       openMime: `/api/pec/messages/${encoded}/mime`,
     },
   })

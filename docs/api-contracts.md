@@ -30,7 +30,7 @@ Contratti principali:
 - `POST /api/pec/fetch`: ingest IMAP idempotente con dedup `Message-ID` + hash MIME e avvio worker.
 - `POST /api/pec/workers/run`: esecuzione controllata dei job `parse/classify/ocr/signcheck/validate/link/digest`.
 - `GET /api/pec/digest` e `POST /api/pec/digest/run`: digest giornaliero con nuovi messaggi, fascicoli toccati, anomalie e link diretti.
-- `POST /api/pec/messages/{message_id}/salva-fascicolo`, `/richiedi-allegato-mancante`, `/schedula-scadenza`: quick actions auditabili e non automatiche.
+- `POST /api/pec/messages/{message_id}/salva-fascicolo`, `/richiedi-allegato-mancante`, `/schedula-scadenza`: azioni auditabili. La scadenza è automatica quando `deadline_proposal.auto_create=true` e resta un presidio operativo, non un termine legale conclusivo.
 - `POST /api/pec/demo/ingest`: dataset sintetico pubblico per demo locale, senza dati di studio.
 
 Le risposte non includono credenziali IMAP, UID tecnici non necessari, path filesystem o contenuto MIME nel JSON. Il MIME si apre solo dall'endpoint dedicato e ogni azione scrive `pec_audit_log`.

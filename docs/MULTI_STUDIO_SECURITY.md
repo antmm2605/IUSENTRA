@@ -14,7 +14,7 @@ La pipeline PEC audit-grade usa esclusivamente path risolti nel tenant corrente.
 
 Le API `/api/pec/*` non accettano override di tenant dal payload, non espongono credenziali IMAP, non restituiscono path assoluti e non serializzano il MIME originale nel JSON. Il MIME originale è scaricabile solo da endpoint autenticato dedicato; ogni fetch, parsing, validazione, quick action e digest produce evento in `pec_audit_log` append-only con hash-chain.
 
-Lex accede alla sorgente `pec_audit` solo con `messaggi.leggi`, vede il controllo strutturato e deve distinguere dato certo, confidence e decisione dell'avvocato. Non può inviare, depositare o schedulare senza azione esplicita.
+Lex accede alla sorgente `pec_audit` solo con `messaggi.leggi`, vede il controllo strutturato e deve distinguere dato certo, confidence, scadenza operativa automatica e decisione dell'avvocato. Non può inviare, depositare o assumere termini legali conclusivi senza validazione dell'avvocato.
 
 ## API key
 

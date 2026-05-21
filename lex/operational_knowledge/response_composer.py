@@ -159,7 +159,7 @@ class OperationalResponseComposer:
         if route.intent == "draft_communication":
             return self._communication_draft_lines(results, gaps)
         if route.intent == "communications_lookup":
-            return self._communications_lines(results, gaps)
+            return self._communications_lines(results, gaps, question=question)
         if route.intent == "studio_context_overview":
             return self._studio_context_overview_lines(results, gaps)
         if route.intent == "sources_overview":
@@ -322,13 +322,15 @@ class OperationalResponseComposer:
         lines.append("Fonti interne: agenda e scadenziario del tenant corrente.")
         return lines
 
-    def _communications_lines(self, results: list[OperationalToolResult], gaps: list[str]) -> list[str]:
+    def _communications_lines(self, results: list[OperationalToolResult], gaps: list[str], *, question: str = "") -> list[str]:
         clienti = _data_for(results, "clienti")
         fascicoli = _data_for(results, "fascicoli")
         audit_rows = _sort_communications(_data_for(results, "pec_audit"))
         pec_rows = _sort_communications(_data_for(results, "email_pec"))
         ordinary_rows = _sort_communications(_data_for(results, "email_ordinaria"))
         messages = _sort_communications(_data_for(results, "messaggi"))
+        if _looks_like_communication_attachment_question(question):
+            return _communication_attachment_act_lines(audit_rows, pec_rows, ordinary_rows, messages, gaps)
         lines: list[str] = []
         if fascicoli:
             lines.append(f"Fascicolo di contesto: {_row_link(fascicoli[0]) or _label(fascicoli[0])}.")
@@ -1265,7 +1267,7 @@ def _safe_ocr_excerpt(value: Any) -> str:
         "pervenutoil",
         " al medesimo d ",
         " mesi o",
-        "�",
+        "\ufffd",
     )
     if any(marker in lowered for marker in noisy_markers):
         return ""
@@ -1640,6 +1642,116 @@ def _markdown_link(url: str, *, label: str = "") -> str:
     return f"[{label or clean}]({href})"
 
 
+def _communication_attachment_act_lines(
+    audit_rows: list[dict[str, Any]],
+    pec_rows: list[dict[str, Any]],
+    ordinary_rows: list[dict[str, Any]],
+    messages: list[dict[str, Any]],
+    gaps: list[str],
+) -> list[str]:
+    lines: list[str] = ["Atto risultante dagli allegati."]
+    source = audit_rows[0] if audit_rows else (pec_rows[0] if pec_rows else (ordinary_rows[0] if ordinary_rows else {}))
+    if not source:
+        lines.append("Non ho trovato PEC o email reali con allegati consultabili nelle sorgenti autorizzate.")
+        if messages:
+            lines.append(f"Ho trovato solo messaggi interni collegati: {len(messages)}.")
+        if gaps:
+            lines.append("Limiti: " + "; ".join(gaps[:3]) + ".")
+        return lines
+
+    subject = _label(source)
+    if subject:
+        lines.append(f"Comunicazione di riferimento: {subject}.")
+    if link := _row_link(source, label="Apri comunicazione"):
+        lines.append(f"Collegamento: {link}.")
+    event = clean_spaces(source.get("event_type")).replace("_", " ")
+    if event:
+        lines.append(f"Contesto riconosciuto: {event}.")
+
+    attachments = _normalised_attachment_rows(source)
+    act_like = [item for item in attachments if _attachment_is_act_like(item)]
+    receipt_like = [item for item in attachments if _attachment_is_receipt_like(item)]
+    if act_like:
+        lines.append("Atto/allegato principale individuato:")
+        lines.extend(f"- {_attachment_label(item)}" for item in act_like[:5])
+    else:
+        lines.append("Non emerge con certezza un atto principale dagli allegati disponibili.")
+    if receipt_like:
+        lines.append("Ricevute o dati di certificazione presenti:")
+        lines.extend(f"- {_attachment_label(item)}" for item in receipt_like[:5])
+
+    issues = [dict(item) for item in list(source.get("issues") or []) if isinstance(item, dict)]
+    if issues:
+        lines.append("Presidio automatico:")
+        for issue in issues[:3]:
+            title = clean_spaces(issue.get("title"))
+            detail = clean_spaces(issue.get("detail"))
+            if title:
+                lines.append(f"- {title}{(': ' + detail) if detail else ''}.")
+    questions = [clean_spaces(item) for item in list(source.get("agent_questions") or []) if clean_spaces(item)]
+    if questions:
+        lines.append("Domande che il software porta all'avvocato:")
+        lines.extend(f"- {item}" for item in questions[:3])
+    if gaps:
+        lines.append("Limiti: " + "; ".join(gaps[:3]) + ".")
+    lines.append("Fonti interne: PEC/email e controllo audit del tenant corrente con permessi applicati.")
+    return lines
+
+
+def _normalised_attachment_rows(row: dict[str, Any]) -> list[dict[str, Any]]:
+    attachments = []
+    for item in list(row.get("allegati") or row.get("attachments") or []):
+        if isinstance(item, dict):
+            attachments.append(dict(item))
+    return attachments
+
+
+def _attachment_is_act_like(item: dict[str, Any]) -> bool:
+    classification = clean_spaces(item.get("classification") or item.get("classe") or item.get("tipo")).lower()
+    name = clean_spaces(item.get("filename") or item.get("nome") or item.get("name")).lower()
+    return classification in {"atto", "procura", "istruttorio"} or any(
+        token in name for token in ("atto", "ricorso", "citazione", "decreto", "sentenza", "verbale", "memoria", "istanza", "procura")
+    )
+
+
+def _attachment_is_receipt_like(item: dict[str, Any]) -> bool:
+    classification = clean_spaces(item.get("classification") or item.get("classe") or item.get("tipo")).lower()
+    name = clean_spaces(item.get("filename") or item.get("nome") or item.get("name")).lower()
+    return classification in {"ricevute", "daticert", "eml", "tecnico"} or any(
+        token in name for token in ("daticert", "postacert", "ricevuta", "accettazione", "consegna", "esito", "eml", "xml")
+    )
+
+
+def _attachment_label(item: dict[str, Any]) -> str:
+    name = clean_spaces(item.get("filename") or item.get("nome") or item.get("name")) or "allegato senza nome"
+    classification = clean_spaces(item.get("classification") or item.get("classe") or item.get("tipo"))
+    confidence = item.get("confidence")
+    pieces = [name]
+    if classification:
+        pieces.append(classification)
+    try:
+        value = float(confidence)
+        pieces.append(f"confidence {value:.0%}")
+    except Exception:
+        pass
+    url = clean_spaces(item.get("view_url") or item.get("action_url") or item.get("url"))
+    label = " - ".join(pieces)
+    if url:
+        return _markdown_link(url, label=label)
+    return label
+
+
+def _looks_like_communication_attachment_question(question: str) -> bool:
+    text = clean_spaces(question).lower()
+    if not text:
+        return False
+    has_attachment = "allegat" in text
+    has_act = any(token in text for token in ("atto", "atti", "notificat", "depositat", "comunicat"))
+    has_mailbox = any(token in text for token in ("pec", "email", "mail", "messagg", "comunicazion"))
+    has_question = any(token in text for token in ("quale", "quali", "che", "risulta", "risultano", "leggi", "dimmi"))
+    return has_attachment and has_act and (has_mailbox or has_question)
+
+
 def _pec_audit_control_lines(row: dict[str, Any]) -> list[str]:
     title = _row_link(row, label=_label(row)) or _label(row)
     event = clean_spaces(row.get("event_type")).replace("_", " ")
@@ -1661,6 +1773,11 @@ def _pec_audit_control_lines(row: dict[str, Any]) -> list[str]:
     communication = clean_spaces(lifecycle.get("communication"))
     if communication:
         lines.append(f"  Cosa aspettarsi: {communication}")
+    deadline = row.get("deadline_proposal") if isinstance(row.get("deadline_proposal"), dict) else {}
+    if deadline.get("auto_create"):
+        due = _format_italian_date(deadline.get("due_date")) or clean_spaces(deadline.get("due_date"))
+        reason = clean_spaces(deadline.get("reason"))
+        lines.append(f"  Scadenza operativa automatica: {due or 'data da calcolare'}{(' - ' + reason) if reason else ''}.")
     issues = [dict(item) for item in list(row.get("issues") or []) if isinstance(item, dict)]
     for issue in issues[:2]:
         issue_title = clean_spaces(issue.get("title"))

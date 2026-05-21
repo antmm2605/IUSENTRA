@@ -76,6 +76,7 @@ def test_semantic_context_matrix_covers_main_legal_pec_domains():
         assert context["normative_references"]
         assert context["agent_questions"]
         assert context["agent_policy"]["stance"] == "presidio_non_bloccante"
+        assert any("scadenze operative" in item for item in context["agent_policy"]["must_do"])
 
     assert detect_pec_legal_context("Comunicazione compatibile con documenti tardivi generici") == {}
 
@@ -92,6 +93,8 @@ def test_giudice_di_pace_notice_generates_non_blocking_validation_and_agent_ques
     assert any(issue["code"] == "legal_notice_review_required" for issue in report["issues"])
     assert any("D.L. 179/2012" in ref["label"] for ref in report["normative_references"])
     assert any("termini" in question.lower() for question in report["agent_questions"])
+    assert report["deadline_proposal"]["auto_create"] is True
+    assert report["deadline_proposal"]["source_event_type"] == "notifica_giudice_pace"
 
 
 def test_pct_deposit_lifecycle_explains_expected_pec_sequence(tmp_path):
@@ -113,6 +116,8 @@ def test_pct_deposit_lifecycle_explains_expected_pec_sequence(tmp_path):
     assert any(issue["code"] == "pct_deposit_followup_expected" for issue in report["issues"])
     assert any("quattro PEC" in question for question in report["agent_questions"])
     assert "stato intermedio" in lifecycle["communication"]
+    assert report["deadline_proposal"]["auto_create"] is True
+    assert report["deadline_proposal"]["source_event_type"] == "pct_deposito"
 
 
 def test_lex_operational_tools_expose_pec_audit_control_context(tmp_path):
@@ -181,6 +186,25 @@ def test_pec_api_demo_digest_mime_and_quick_action(tmp_path, monkeypatch):
     assert request_missing.status_code == 200
     assert request_missing.get_json()["ok"] is True
 
+    schedule = client.post(f"/api/pec/messages/{notice_id}/schedula-scadenza")
+    assert schedule.status_code == 200
+    schedule_payload = schedule.get_json()
+    assert schedule_payload["ok"] is True
+    assert schedule_payload["due_date"]
+    from pct.scadenziario import GestioneScadenziario
+
+    scadenze = GestioneScadenziario(str(paths["SCADENZIARIO_DB"])).tutte(solo_aperte=False)
+    marker = f"PEC_AUDIT:{notice_id}"
+    notice_deadlines = [item for item in scadenze if marker in item.note]
+    assert len(notice_deadlines) == 1
+    assert notice_deadlines[0].deadline_profile_code == "PEC_AUTO_PRESIDIO"
+    assert notice_deadlines[0].operational_due_at.startswith(schedule_payload["due_date"][:10])
+    assert notice_deadlines[0].legal_due_at == ""
+
+    schedule_again = client.post(f"/api/pec/messages/{notice_id}/schedula-scadenza")
+    assert schedule_again.status_code == 200
+    assert schedule_again.get_json()["already_exists"] is True
+
     digest = client.get("/api/pec/digest")
     assert digest.status_code == 200
     assert digest.get_json()["data"]["new_messages"] == 5
@@ -241,7 +265,7 @@ def test_react_email_bridge_exposes_provisional_audit_for_legacy_pec(tmp_path):
     assert payload["summary"]["pst"] == 1
     assert row["isPst"] is True
     assert audit["persisted"] is False
-    assert audit["storageLabel"] == "MIME originale da acquisire"
+    assert audit["storageLabel"] == "MIME da acquisire automaticamente"
     assert audit["quickActions"]["runAudit"] == "/api/pec/fetch?limit=50"
     assert audit["quickActions"]["openMime"] == ""
     assert audit["eventType"] == "notifica_giudice_pace"

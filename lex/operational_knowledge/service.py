@@ -332,10 +332,11 @@ class OperationalKnowledgeService:
         context_type: str = "",
     ) -> list[OperationalToolResult]:
         lowered = question.lower()
-        wants_pec = "pec" in lowered
+        attachment_act_lookup = _looks_like_communication_attachment_question(question)
+        wants_pec = "pec" in lowered or attachment_act_lookup
         wants_ordinary = "posta ordinaria" in lowered or "email ordinaria" in lowered or "smtp" in lowered or "imap" in lowered
-        wants_mailbox = wants_pec or wants_ordinary or "email" in lowered or "posta" in lowered
-        wants_audit = _wants_pec_audit(question)
+        wants_mailbox = attachment_act_lookup or wants_pec or wants_ordinary or "email" in lowered or "posta" in lowered
+        wants_audit = attachment_act_lookup or _wants_pec_audit(question)
         mail_query = "" if _should_ignore_mailbox_text_filter(question, entity_query, has_scope=bool(cliente_id or fascicolo_id or pec_id)) else entity_query
         if pec_id and (wants_pec or context_type == "pec"):
             results = [self.tools.get_pec_message(pec_id, context), self.tools.list_pec_attachments(pec_id, context)]
@@ -680,6 +681,8 @@ def _should_ignore_mailbox_text_filter(question: str, entity_query: str, *, has_
         return True
     if any(token in text for token in ("ultim", "ricevut", "inviat", "risposta", "rispondi", "scrivi", "redigi", "prepara", "bozza")):
         return True
+    if _looks_like_communication_attachment_question(question):
+        return True
     if "pec" in text and any(token in text for token in ("deposit", "controll", "verific", "presidi", "audit", "mime", "notific", "cancelleria")):
         return True
     return query in {"pec", "email", "posta", "messaggio", "messaggi"}
@@ -721,6 +724,17 @@ def _wants_pec_audit(question: str) -> bool:
             "scadenza",
         )
     )
+
+
+def _looks_like_communication_attachment_question(question: str) -> bool:
+    text = clean_spaces(question).lower()
+    if not text:
+        return False
+    has_attachment = "allegat" in text
+    has_act = any(token in text for token in ("atto", "atti", "notificat", "depositat", "comunicat"))
+    has_mailbox = any(token in text for token in ("pec", "email", "mail", "messagg", "comunicazion"))
+    has_question = any(token in text for token in ("quale", "quali", "che", "risulta", "risultano", "leggi", "dimmi"))
+    return has_attachment and has_act and (has_mailbox or has_question)
 
 
 def _scope_communication_result(

@@ -319,6 +319,48 @@ function PecAuditBadges({ audit }: { audit?: PecAuditSummary }) {
   )
 }
 
+function auditOutcomeText(audit?: PecAuditSummary): string {
+  if (!audit) return ''
+  if (audit.persisted === false) {
+    return 'Esito provvisorio: il software ha controllato i dati visibili, ma deve acquisire il MIME originale per chiudere conservazione, firme, OCR e hash audit-grade.'
+  }
+  if (audit.qualityTone === 'danger') return 'Esito critico: sono presenti anomalie da presidiare prima di archiviare o collegare la PEC.'
+  if (audit.qualityTone === 'warning') return 'Esito da presidiare: il controllo automatico ha trovato elementi da verificare con azione operativa.'
+  return 'Esito positivo: il controllo automatico non segnala anomalie bloccanti nella matrice configurata.'
+}
+
+function auditSuggestedAction(audit?: PecAuditSummary): string {
+  if (!audit) return ''
+  const recommended = audit.recommendedActions.find(Boolean)
+  if (recommended) return recommended
+  const firstIssue = audit.validationIssues.find((item) => item.detail || item.title)
+  if (firstIssue) return firstIssue.detail || firstIssue.title
+  if (audit.persisted === false) return 'Esegui controllo audit-grade: acquisizione MIME da IMAP, verifica allegati/firme e aggiornamento esito.'
+  if (audit.eventType === 'pct_deposito') return 'Verifica sequenza deposito: accettazione, consegna, esito controlli e accettazione finale.'
+  if (audit.eventType) return 'Collega la comunicazione al fascicolo e presidia i termini indicati dalla PEC.'
+  return 'Nessuna azione urgente rilevata; conserva la PEC nel fascicolo corretto se pertinente.'
+}
+
+function formatPecAuditDate(value: string): string {
+  const raw = value.slice(0, 10)
+  if (!raw) return ''
+  try {
+    return new Date(`${raw}T12:00:00`).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })
+  } catch {
+    return raw
+  }
+}
+
+function auditDeadlineStatus(audit?: PecAuditSummary): string {
+  const proposal = record(audit?.deadlineProposal)
+  const autoCreate = proposal.auto_create === true || proposal.autoCreate === true
+  const dueDate = text(proposal.due_date ?? proposal.dueDate)
+  if (!autoCreate && !dueDate) return ''
+  const dueLabel = formatPecAuditDate(dueDate) || dueDate
+  if (dueLabel) return `Scadenza automatica di presidio: ${dueLabel}.`
+  return 'Scadenza automatica di presidio prevista dal controllo PEC.'
+}
+
 function PecDepositLifecycle({ audit }: { audit?: PecAuditSummary }) {
   const lifecycle = record(audit?.depositLifecycle)
   const stage = record(lifecycle.current_stage)
@@ -337,7 +379,7 @@ function PecDepositLifecycle({ audit }: { audit?: PecAuditSummary }) {
   )
 }
 
-function PecAuditPanel({
+function PecAuditInlineNotice({
   audit,
   onAction,
 }: {
@@ -345,6 +387,8 @@ function PecAuditPanel({
   onAction: (url: string, label: string) => void
 }) {
   if (!audit) return null
+  const question = audit.agentQuestions[0]
+  const deadlineStatus = auditDeadlineStatus(audit)
   const issues = audit.validationIssues.slice(0, 4)
   const questions = audit.agentQuestions.slice(0, 5)
   const references = audit.normativeReferences.slice(0, 5)
@@ -368,7 +412,8 @@ function PecAuditPanel({
           <div>
             <span>Controllo automatico PEC</span>
             <strong>{audit.eventType ? auditEventLabel(audit.eventType) : audit.qualityLabel}</strong>
-            <small>{audit.storageLabel}</small>
+            <small>{auditOutcomeText(audit)} Azione suggerita: {auditSuggestedAction(audit)}{question ? ` Domanda guida: ${question}` : ''}</small>
+            {deadlineStatus ? <p className="iu-pec-deadline-status"><Clock3 size={14} /> {deadlineStatus}</p> : null}
           </div>
           <div className="iu-pec-audit-badges">
             <PecAuditBadges audit={audit} />
@@ -430,11 +475,106 @@ function PecAuditPanel({
           ) : null}
           {actionButton(audit.quickActions.saveMatter, 'Salva nel fascicolo', <FileCheck2 size={15} />)}
           {actionButton(audit.quickActions.requestMissingAttachment, 'Richiedi allegato mancante', <Paperclip size={15} />)}
-          {actionButton(audit.quickActions.scheduleDeadline, 'Schedula scadenza', <Clock3 size={15} />)}
+          {actionButton(audit.quickActions.scheduleDeadline, 'Scadenza automatica', <Clock3 size={15} />)}
           {audit.quickActions.openMime ? <a href={audit.quickActions.openMime} target="_blank" rel="noreferrer"><Download size={15} /> Apri MIME</a> : null}
         </footer>
       </div>
     </TooltipProvider>
+  )
+}
+
+function PecAuditSidebarPanel({
+  audit,
+  item,
+  onAction,
+}: {
+  audit?: PecAuditSummary
+  item?: EmailPecRow
+  onAction: (url: string, label: string) => void
+}) {
+  if (!audit) return null
+  const issues = audit.validationIssues.slice(0, 3)
+  const questions = audit.agentQuestions.slice(0, 3)
+  const references = audit.normativeReferences.slice(0, 4)
+  const deadlineStatus = auditDeadlineStatus(audit)
+  const unavailableTitle = 'Disponibile dopo l\'acquisizione del MIME originale'
+  const actionButton = (url: string, label: string, icon: ReactNode) => (
+    <button
+      type="button"
+      disabled={!url}
+      title={url ? label : unavailableTitle}
+      onClick={() => {
+        if (url) onAction(url, label)
+      }}
+    >
+      {icon} {label}
+    </button>
+  )
+  return (
+    <Panel title="PEC selezionata" subtitle={item?.subject || 'Presidio automatico'} icon={<ShieldCheck size={17} />} count={audit.validationIssues.length}>
+      <TooltipProvider delayDuration={120}>
+        <div className="iu-pec-sidebar-card">
+          <div className="iu-pec-sidebar-head">
+            <strong>{audit.eventType ? auditEventLabel(audit.eventType) : audit.qualityLabel}</strong>
+            <div className="iu-pec-audit-badges">
+              <PecAuditBadges audit={audit} />
+            </div>
+          </div>
+          <PecDepositLifecycle audit={audit} />
+          <div className="iu-pec-sidebar-confidence" aria-label="Confidence campi PEC">
+            <ConfidenceChip label="Mittente" field={fieldConfidence(audit, 'mittente')} />
+            <ConfidenceChip label="Invio" field={fieldConfidence(audit, 'data_invio')} />
+            <ConfidenceChip label="Consegna" field={fieldConfidence(audit, 'data_consegna')} />
+            <ConfidenceChip label="Ricevuta" field={fieldConfidence(audit, 'tipo_ricevuta')} />
+            <ConfidenceChip label="Protocollo" field={fieldConfidence(audit, 'protocollo')} />
+            <ConfidenceChip label="Contesto" field={fieldConfidence(audit, 'contesto_legale')} />
+          </div>
+          <small>Le percentuali indicano la qualità dell'estrazione automatica, non una decisione legale conclusiva.</small>
+          <p className="iu-pec-sidebar-outcome">{auditOutcomeText(audit)} <b>Azione suggerita:</b> {auditSuggestedAction(audit)}</p>
+          {deadlineStatus ? <p className="iu-pec-deadline-status"><Clock3 size={14} /> {deadlineStatus}</p> : null}
+          {issues.length ? (
+            <ul className="iu-pec-sidebar-list">
+              {issues.map((issue) => (
+                <li key={`${issue.code}-${issue.title}`}>
+                  <AlertTriangle size={14} />
+                  <span><b>{issue.title}</b>{issue.detail ? ` - ${issue.detail}` : ''}</span>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="iu-empty">Nessuna anomalia segnalata dalla matrice automatica.</p>}
+          {questions.length ? (
+            <ol className="iu-pec-sidebar-questions">
+              {questions.map((item) => <li key={item}>{item}</li>)}
+            </ol>
+          ) : null}
+          {audit.attachments.length ? (
+            <div className="iu-pec-attachment-strip">
+              {audit.attachments.slice(0, 4).map((attachment) => (
+                <span key={`${attachment.name}-${attachment.classification}`}>
+                  {attachment.name} · {attachment.classification || 'da confermare'}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          {references.length ? (
+            <div className="iu-pec-norms">
+              {references.map((reference) => <span key={reference.label}>{reference.label}</span>)}
+            </div>
+          ) : null}
+          <div className="iu-pec-sidebar-actions">
+            {audit.quickActions.runAudit ? (
+              <button type="button" onClick={() => onAction(audit.quickActions.runAudit, 'Esegui controllo audit-grade')}>
+                <ShieldCheck size={15} /> Esegui controllo
+              </button>
+            ) : null}
+            {actionButton(audit.quickActions.saveMatter, 'Salva nel fascicolo', <FileCheck2 size={15} />)}
+            {actionButton(audit.quickActions.requestMissingAttachment, 'Richiedi allegato mancante', <Paperclip size={15} />)}
+            {actionButton(audit.quickActions.scheduleDeadline, 'Scadenza automatica', <Clock3 size={15} />)}
+            {audit.quickActions.openMime ? <a href={audit.quickActions.openMime} target="_blank" rel="noreferrer"><Download size={15} /> Apri MIME</a> : null}
+          </div>
+        </div>
+      </TooltipProvider>
+    </Panel>
   )
 }
 
@@ -473,6 +613,26 @@ function routeEmailId(mode: MailboxMode): string {
   const segment = mode === 'ordinaria' ? 'email-ordinaria' : 'email'
   const match = window.location.pathname.match(new RegExp(`^/(?:app-v2/)?${segment}/messaggio/([^/]+)`, 'i'))
   return match ? decodeURIComponent(match[1]) : ''
+}
+
+function mailboxBasePath(mode: MailboxMode): string {
+  const prefix = window.location.pathname.startsWith('/app-v2/') ? '/app-v2' : ''
+  return `${prefix}/${mode === 'ordinaria' ? 'email-ordinaria' : 'email'}`
+}
+
+function currentEmailSelectionId(mode: MailboxMode): string {
+  const routed = routeEmailId(mode)
+  if (routed) return routed
+  return new URLSearchParams(window.location.search).get('id') || ''
+}
+
+function writeMailboxSelection(mode: MailboxMode, folder: EmailFolder, id: string): void {
+  const params = new URLSearchParams(window.location.search)
+  params.set('cartella', folder)
+  if (id) params.set('id', id)
+  else params.delete('id')
+  const query = params.toString()
+  window.history.replaceState(null, '', `${mailboxBasePath(mode)}/${query ? `?${query}` : ''}`)
 }
 
 function FolderTabs({ data, folder, onChange, ariaLabel }: { data: EmailPecPageData; folder: EmailFolder; onChange: (folder: EmailFolder) => void; ariaLabel: string }) {
@@ -634,8 +794,8 @@ function EmailPreview({
           </div>
         </div>
       ) : null}
-      {copy.includeTelematic ? <PecAuditPanel audit={detail?.pecAudit ?? item.pecAudit} onAction={onAction} /> : null}
       <p className="iu-mail-body-preview">{item.preview || 'Nessuna anteprima testuale disponibile. Apri la vista completa per leggere HTML e allegati.'}</p>
+      {copy.includeTelematic ? <PecAuditInlineNotice audit={detail?.pecAudit ?? item.pecAudit} onAction={onAction} /> : null}
       <footer>
         <Button variant="primary" href={item.detailHref}><Eye size={15} /> Apri</Button>
         {item.folder !== 'CESTINO' ? <Button href={item.replyHref}><Reply size={15} /> Rispondi</Button> : null}
@@ -651,7 +811,19 @@ function EmailPreview({
   )
 }
 
-function PecInspector({ data, rows }: { data: EmailPecPageData; rows: EmailPecRow[] }) {
+function PecInspector({
+  data,
+  rows,
+  selectedItem,
+  selectedAudit,
+  onAction,
+}: {
+  data: EmailPecPageData
+  rows: EmailPecRow[]
+  selectedItem?: EmailPecRow
+  selectedAudit?: PecAuditSummary
+  onAction: (url: string, label: string) => void
+}) {
   const pstWaiting = rows.filter((item) => item.isPst && !item.pctStatus).slice(0, 4)
   const pctAlerts = rows.filter((item) => item.pctStatus && (item.pctStatus.includes('RIFIUT') || item.pctStatus.includes('ERRORE') || item.pctStatus.includes('WARN'))).slice(0, 4)
   const auditAlerts = rows.filter((item) => item.pecAudit && item.pecAudit.qualityTone !== 'success').slice(0, 4)
@@ -675,7 +847,7 @@ function PecInspector({ data, rows }: { data: EmailPecPageData; rows: EmailPecRo
         {auditAlerts.length ? (
           <div className="iu-mail-alerts">
             {auditAlerts.map((item) => (
-              <a href={item.detailHref} key={`audit-${item.id}`}>
+              <a href={item.operationalHref || item.detailHref} key={`audit-${item.id}`}>
                 <PecAuditBadges audit={item.pecAudit} />
                 <strong>{item.subject}</strong>
                 <span>{item.pecAudit?.eventType ? auditEventLabel(item.pecAudit.eventType) : rowPerson(item)}</span>
@@ -684,11 +856,12 @@ function PecInspector({ data, rows }: { data: EmailPecPageData; rows: EmailPecRo
           </div>
         ) : <p className="iu-empty">Nessuna anomalia audit-grade nella vista corrente.</p>}
       </Panel>
+      <PecAuditSidebarPanel audit={selectedAudit} item={selectedItem} onAction={onAction} />
       <Panel title="Esiti da presidiare" icon={<AlertTriangle size={17} />} count={pctAlerts.length}>
         {pctAlerts.length ? (
           <div className="iu-mail-alerts">
             {pctAlerts.map((item) => (
-              <a href={item.detailHref} key={item.id}>
+              <a href={item.operationalHref || item.detailHref} key={item.id}>
                 <Badge tone="danger">{item.pctStatus}</Badge>
                 <strong>{item.subject}</strong>
                 <span>{rowPerson(item)}</span>
@@ -701,7 +874,7 @@ function PecInspector({ data, rows }: { data: EmailPecPageData; rows: EmailPecRo
         {pstWaiting.length ? (
           <div className="iu-mail-alerts">
             {pstWaiting.map((item) => (
-              <a href={item.detailHref} key={item.id}>
+              <a href={item.operationalHref || item.detailHref} key={item.id}>
                 <Badge tone="warning">da collegare</Badge>
                 <strong>{item.subject}</strong>
                 <span>{item.timeLabel}</span>
@@ -778,6 +951,35 @@ function OrdinaryInspector({ data, rows }: { data: EmailPecPageData; rows: Email
   )
 }
 
+function PecAutomaticNotice({
+  rows,
+  summary,
+  onSelect,
+}: {
+  rows: EmailPecRow[]
+  summary: EmailPecPageData['summary']
+  onSelect: (id: string) => void
+}) {
+  const warnings = rows.filter((item) => {
+    const auditWarning = item.pecAudit && item.pecAudit.qualityTone !== 'success'
+    const pctWarning = item.pctStatus && (item.pctStatus.includes('RIFIUT') || item.pctStatus.includes('ERRORE') || item.pctStatus.includes('WARN'))
+    return auditWarning || pctWarning
+  })
+  const first = warnings[0]
+  const count = Math.max(Number(summary.warnings || 0), warnings.length)
+  if (!count || !first) return null
+  return (
+    <section className="iu-mail-auto-notice" aria-label="Avviso automatico PEC">
+      <AlertTriangle size={17} />
+      <div>
+        <strong>Avviso automatico PEC</strong>
+        <span>{count} comunicazioni richiedono presidio: controlla qualità di acquisizione, firme, allegati o esiti telematici prima di archiviare.</span>
+      </div>
+      <button type="button" onClick={() => onSelect(first.id)}>Apri presidio</button>
+    </section>
+  )
+}
+
 function MailboxStats({ data, mode }: { data: EmailPecPageData; mode: MailboxMode }) {
   if (mode === 'ordinaria') {
     return (
@@ -817,7 +1019,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
   const [onlyAttachments, setOnlyAttachments] = useState(false)
   const [pctStatus, setPctStatus] = useState('')
   const [advancedOpen, setAdvancedOpen] = useState(false)
-  const [selectedId, setSelectedId] = useState(routeEmailId(mode))
+  const [selectedId, setSelectedId] = useState(currentEmailSelectionId(mode))
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [detail, setDetail] = useState<EmailDetailData | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
@@ -858,6 +1060,18 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id))
   const bulkActionKind = folder === 'CESTINO' ? 'delete' : 'trash'
   const bulkActionLabel = folder === 'CESTINO' ? 'Elimina selezione' : 'Sposta nel cestino'
+  const selectedAudit = detail?.pecAudit ?? selected?.pecAudit
+
+  const selectMessage = (id: string) => {
+    setSelectedId(id)
+    writeMailboxSelection(mode, folder, id)
+  }
+
+  const changeFolder = (nextFolder: EmailFolder) => {
+    setFolder(nextFolder)
+    setSelectedId('')
+    writeMailboxSelection(mode, nextFolder, '')
+  }
 
   useEffect(() => {
     setSelectedIds((current) => {
@@ -872,7 +1086,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
   }, [data.items])
 
   useEffect(() => {
-    const routeId = routeEmailId(mode)
+    const routeId = currentEmailSelectionId(mode)
     if (routeId) {
       if (selectedId !== routeId) setSelectedId(routeId)
       return
@@ -885,7 +1099,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
   }, [mode, selectedId, visible])
 
   useEffect(() => {
-    const id = selectedId || routeEmailId(mode)
+    const id = selectedId || currentEmailSelectionId(mode)
     if (!id) {
       setDetail(null)
       return
@@ -983,7 +1197,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
       <MailboxStats data={data} mode={mode} />
 
       <section className="iu-mail-toolbar" aria-label={copy.filtersAria}>
-        <FolderTabs data={data} folder={folder} onChange={setFolder} ariaLabel={copy.folderAria} />
+        <FolderTabs data={data} folder={folder} onChange={changeFolder} ariaLabel={copy.folderAria} />
         <label className="iu-mail-search"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') load() }} placeholder="Cerca mittente, destinatario, oggetto, riferimento..." /></label>
         <button className="iu-mail-filter-btn" type="button" onClick={() => setAdvancedOpen((value) => !value)} aria-expanded={advancedOpen}><SlidersHorizontal size={16} /> Filtri</button>
         <button className="iu-mail-icon-btn" type="button" onClick={load} aria-label="Aggiorna vista"><RefreshCw size={17} /></button>
@@ -1006,6 +1220,8 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
         {selectedVisibleCount ? <small>{selectedVisibleCount} messaggi selezionati nella vista corrente.</small> : null}
         {statusLine ? <small className="iu-mail-operation-status">{statusLine}</small> : null}
       </section>
+
+      {copy.includeTelematic ? <PecAutomaticNotice rows={visible} summary={data.summary} onSelect={selectMessage} /> : null}
 
       <section className="iu-mail-layout">
         <div className="iu-mail-list-card">
@@ -1036,7 +1252,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
                 item={item}
                 selected={selected?.id === item.id}
                 checked={selectedIds.has(item.id)}
-                onSelect={() => setSelectedId(item.id)}
+                onSelect={() => selectMessage(item.id)}
                 onToggleChecked={() => toggleSelection(item.id)}
                 includeTelematic={copy.includeTelematic}
                 fallbackInitials={mode === 'pec' ? 'PEC' : 'EM'}
@@ -1053,7 +1269,9 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
           </div>
         </div>
         <EmailPreview item={selected} detail={detail} detailLoading={detailLoading} onAction={runAction} copy={copy} />
-        {mode === 'pec' ? <PecInspector data={data} rows={visible} /> : <OrdinaryInspector data={data} rows={visible} />}
+        {mode === 'pec'
+          ? <PecInspector data={data} rows={visible} selectedItem={selected} selectedAudit={selectedAudit} onAction={runAction} />
+          : <OrdinaryInspector data={data} rows={visible} />}
       </section>
 
       <section className="iu-mail-lower-grid">

@@ -116,6 +116,10 @@ _COMMUNICATION_LOOKUP_TERMS = (
     "verificare pec",
     "audit pec",
     "mime pec",
+    "atto notificato",
+    "atto depositato",
+    "atto comunicato",
+    "negli allegati",
 )
 _ATTACHMENT_DOCUMENT_INTENTS = {"sintesi_documento", "spiegazione_cliente"}
 _ATTACHMENT_EXCLUDED_INTENTS = {
@@ -224,6 +228,8 @@ def _is_communication_lookup(
     focus_topic = _clean_spaces(studio_context.get("focus_topic")).lower()
     if profile_intent == "comunicazioni_lookup":
         return True
+    if _looks_like_communication_attachment_question(text):
+        return True
     if any(token in text for token in _COMMUNICATION_LOOKUP_TERMS):
         return True
     if "pec" in text and any(
@@ -265,6 +271,16 @@ def _is_communication_lookup(
     ):
         return True
     return False
+
+
+def _looks_like_communication_attachment_question(text: str) -> bool:
+    if not text:
+        return False
+    has_attachment = "allegat" in text
+    has_act = any(token in text for token in ("atto", "atti", "notificat", "depositat", "comunicat"))
+    has_mailbox = any(token in text for token in ("pec", "email", "mail", "messagg", "comunicazion"))
+    has_question = any(token in text for token in ("quale", "quali", "che", "risulta", "risultano", "leggi", "dimmi"))
+    return has_attachment and has_act and (has_mailbox or has_question)
 
 
 def _is_template_act_request(
@@ -426,6 +442,9 @@ def _external_sources_reason(
     focus_topic = _clean_spaces(studio_context.get("focus_topic")).lower()
     text = _clean_spaces(question).lower()
     explicit_web = bool(studio_context.get("web_execution_requested") or studio_context.get("web_fallback_used"))
+
+    if _looks_like_communication_attachment_question(text):
+        return None
 
     if source_mode in _FREE_WEB_MODES or _payload_flag(studio_context.get("free_web_enabled")):
         return "Ricerca web libera attivata manualmente dall'utente."

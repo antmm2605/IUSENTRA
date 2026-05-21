@@ -82,6 +82,10 @@ _COMMUNICATION_LOOKUP_TERMS = (
     "verificare pec",
     "audit pec",
     "mime pec",
+    "atto notificato",
+    "atto depositato",
+    "atto comunicato",
+    "negli allegati",
 )
 _STUDIO_DATA_TERMS = (
     "agenda",
@@ -203,6 +207,8 @@ def _should_defer_to_public_legal_research(
     intent = clean_spaces(request_profile.get("intent")).lower()
     focus_topic = clean_spaces(metadata.get("focus_topic") or studio_context.get("focus_topic")).lower()
     source_mode = clean_spaces(metadata.get("source_mode") or request_profile.get("source_mode")).lower()
+    if _looks_like_communication_attachment_question(text):
+        return False
     has_studio_term = any(token in text for token in _STUDIO_DATA_TERMS)
     has_communication_lookup = any(token in text for token in _COMMUNICATION_LOOKUP_TERMS)
     has_communication_source = any(token in text for token in ("pec", "email", "posta", "messaggio"))
@@ -246,6 +252,16 @@ def _should_defer_to_public_legal_research(
         return True
     has_public_term = any(token in text for token in _PUBLIC_LEGAL_TERMS)
     return has_public_term and not has_studio_term
+
+
+def _looks_like_communication_attachment_question(text: str) -> bool:
+    if not text:
+        return False
+    has_attachment = "allegat" in text
+    has_act = any(token in text for token in ("atto", "atti", "notificat", "depositat", "comunicat"))
+    has_mailbox = any(token in text for token in ("pec", "email", "mail", "messagg", "comunicazion"))
+    has_question = any(token in text for token in ("quale", "quali", "che", "risulta", "risultano", "leggi", "dimmi"))
+    return has_attachment and has_act and (has_mailbox or has_question)
 
 
 def _is_official_source_lookup_question(text: str) -> bool:

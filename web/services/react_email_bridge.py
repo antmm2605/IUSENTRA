@@ -53,8 +53,8 @@ def _pec_quality_label(value: str) -> tuple[str, str]:
     if raw == "rosso":
         return "Qualità critica", "danger"
     if raw in {"da_controllare", "provvisorio", "provisional"}:
-        return "Controllo da completare", "warning"
-    return "Da controllare", "neutral"
+        return "Presidio richiesto", "warning"
+    return "Controllo non disponibile", "neutral"
 
 
 def _pec_signature_label(value: str) -> tuple[str, str]:
@@ -133,6 +133,7 @@ def _pec_audit_payload(summary: dict[str, Any] | None) -> dict[str, Any] | None:
     signature_label, signature_tone = _pec_signature_label(str(summary.get("signature_status") or ""))
     pec_id = str(summary.get("id") or "")
     report = summary.get("validation_report") if isinstance(summary.get("validation_report"), dict) else {}
+    deadline_proposal = report.get("deadline_proposal") if isinstance(report.get("deadline_proposal"), dict) else {}
     semantic_context = report.get("semantic_context") if isinstance(report.get("semantic_context"), dict) else {}
     link = summary.get("fascicolo_link") if isinstance(summary.get("fascicolo_link"), dict) else {}
     fields = summary.get("fields") if isinstance(summary.get("fields"), dict) else {}
@@ -159,6 +160,7 @@ def _pec_audit_payload(summary: dict[str, Any] | None) -> dict[str, Any] | None:
         "normativeReferences": list(report.get("normative_references") or semantic_context.get("normative_references") or []),
         "agentQuestions": list(report.get("agent_questions") or semantic_context.get("agent_questions") or []),
         "recommendedActions": list(report.get("recommended_actions") or semantic_context.get("recommended_actions") or []),
+        "deadlineProposal": deadline_proposal,
         "confidence": fields,
         "candidates": list(link.get("candidates") or []),
         "attachments": [
@@ -175,12 +177,12 @@ def _pec_audit_payload(summary: dict[str, Any] | None) -> dict[str, Any] | None:
         "quickActions": {
             "saveMatter": "" if provisional else f"/api/pec/messages/{quote(pec_id, safe='')}/salva-fascicolo" if pec_id else "",
             "requestMissingAttachment": "" if provisional else f"/api/pec/messages/{quote(pec_id, safe='')}/richiedi-allegato-mancante" if pec_id else "",
-            "scheduleDeadline": "" if provisional else f"/api/pec/messages/{quote(pec_id, safe='')}/schedula-scadenza" if pec_id else "",
+            "scheduleDeadline": "" if provisional or not deadline_proposal.get("auto_create") else f"/api/pec/messages/{quote(pec_id, safe='')}/schedula-scadenza" if pec_id else "",
             "openMime": "" if provisional else f"/api/pec/messages/{quote(pec_id, safe='')}/mime" if pec_id else "",
             "runAudit": run_audit_href,
         },
         "persisted": not provisional,
-        "storageLabel": "MIME originale da acquisire" if provisional else "MIME originale conservato",
+        "storageLabel": "MIME da acquisire automaticamente" if provisional else "MIME originale conservato",
         "storageTone": "warning" if provisional else "success",
         "sourceEmailId": source_email_id,
     }
@@ -357,11 +359,16 @@ def _provisional_pec_audit_summary(email_obj: Any, *, include_telematic: bool = 
             "code": "audit_storage_pending",
             "severity": "warning",
             "blocking": False,
-            "title": "Conservazione audit-grade da eseguire",
-            "detail": "La PEC è visibile nello storico email, ma il MIME originale non risulta ancora nella cassaforte PEC audit-grade. Usa il controllo per acquisire il MIME originale da IMAP.",
+            "title": "Acquisizione MIME originale richiesta",
+            "detail": "Il software ha eseguito il presidio sul testo disponibile; per chiudere l'esito audit-grade deve acquisire il MIME originale da IMAP, verificare allegati, firme, OCR e hash.",
         },
         *list(report.get("issues") or []),
     ]
+    recommended = [
+        "Esegui controllo audit-grade per acquisire il MIME originale e aggiornare esito, firme, OCR e collegamento fascicolo.",
+        *list(report.get("recommended_actions") or []),
+    ]
+    report["recommended_actions"] = list(dict.fromkeys(_safe_text(item) for item in recommended if _safe_text(item)))
     report["severity"] = "warning" if report.get("severity") in {"", "ok"} else report.get("severity")
     quality_status = "giallo" if has_telematic_signal else "da_controllare"
     signature_status = "non_applicabile"

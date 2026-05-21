@@ -2,6 +2,14 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.246.4 - 2026-05-21
+
+Le casistiche PEC/notifiche/depositi restano nel dominio dati studio e audit interno. Le fonti normative ufficiali servono a governare la matrice del comportamento software, ma la risposta su cosa risulta da una PEC deve citare prima messaggi, MIME, allegati, ricevute, firme, OCR e validation report disponibili per il tenant.
+
+Il presidio automatico delle PEC non crea un parere legale né un termine processuale conclusivo: quando `deadline_proposal` è applicabile, viene salvata una scadenza operativa con `operational_due_at` e profilo `PEC_AUTO_PRESIDIO`. Lex deve presentarla come promemoria automatico di controllo e non come termine definitivo.
+
+Il fallback a fonti pubbliche o a cataloghi di modelli è escluso quando la domanda dell'avvocato chiede quali atti, depositi, notifiche o comunicazioni risultano dagli allegati PEC/email. In quel caso il sistema deve usare esclusivamente sorgenti operative interne autorizzate, evidenziando lacune probatorie come MIME originale non ancora acquisito, firme non verificate o allegati mancanti.
+
 ## Aggiornamento operativo 2.246.3 - 2026-05-21
 
 Le domande su PEC di deposito, controlli, MIME, firma, notifica o cancelleria restano nel perimetro dati studio. Lex consulta casella PEC e `pec_audit`; non attiva una bozza e non devia su fonti pubbliche quando l'utente chiede quali PEC controllare.

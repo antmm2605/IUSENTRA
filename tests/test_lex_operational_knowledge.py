@@ -603,6 +603,25 @@ def test_latest_pec_response_exposes_openable_message_and_attachment_links():
     assert any(obj.object_type == "allegato_email" and obj.action_url == "/email/messaggio/pec-1/allegato/0" for obj in answer.objects)
 
 
+def test_lex_attachment_act_question_uses_pec_context_not_templates():
+    service, user = _service(repositories=_base_repositories())
+    question = "Quale atto risulta notificato, depositato o comunicato negli allegati?"
+
+    route = OperationalQueryRouter().route(question)
+    answer = service.answer(question=question, user=user, studio=SimpleNamespace(slug="tenant-a"))
+
+    assert route is not None
+    assert route.intent == "communications_lookup"
+    assert {"email_pec", "pec_audit", "email_ordinaria", "messaggi"}.issubset(set(route.source_ids))
+    assert answer is not None
+    assert "Atto risultante dagli allegati." in answer.answer
+    assert "Comunicazione di riferimento: Esito deposito." in answer.answer
+    assert "Non emerge con certezza un atto principale" in answer.answer
+    assert "ricevuta.eml" in answer.answer
+    assert "Template atti" not in answer.answer
+    assert not any(source.source_id == "template_atti" for source in answer.sources)
+
+
 def test_lex_studio_reasoner_real_question_audit_matrix():
     service, user = _service(repositories=_base_repositories())
     studio = SimpleNamespace(slug="tenant-a")

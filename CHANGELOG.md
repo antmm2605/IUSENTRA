@@ -7,6 +7,13 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.246.4 - 2026-05-21
+
+- Rafforzata la matrice PEC per notifiche e depositi: il controllo automatico distingue PCT, Giudice di Pace, notifiche ex L. 53/1994, UNEP, PAT, PTT, penale SNT/PDP, ricevute PEC, firme e domicilio digitale, mostrando esito operativo non bloccante e riferimenti normativi.
+- La scadenza PEC generata dal software è ora un presidio operativo automatico (`operational_due_at`) e non un termine legale conclusivo: viene proposta/creata in modo idempotente quando il `deadline_proposal` lo consente.
+- Compattata la UI PEC: il testo email resta leggibile, il presidio audit appare come avviso compatto e pannello laterale con esito, anomalie, domande operative, confidence e azioni automatiche coerenti.
+- Corretto Lex sulle domande “Quale atto risulta notificato, depositato o comunicato negli allegati?”: la risposta usa PEC/email/audit e allegati reali, non il catalogo dei template.
+
 ## 2.246.3 - 2026-05-21
 
 - Corretto il bridge PEC React: le PEC storiche presenti nella casella, ma non ancora acquisite nella cassaforte audit-grade, mostrano comunque presidio provvisorio in UI con badge qualità/firme/evento, confidence per campo, anomalie, riferimenti normativi, domande operative e avviso esplicito “MIME originale da acquisire”.

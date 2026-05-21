@@ -5,6 +5,7 @@
 
 .iu-docai-header,
 .iu-docai-upload,
+.iu-docai-forensic,
 .iu-docai-list article,
 .iu-docai-detail,
 .iu-docai-empty {
@@ -35,6 +36,11 @@
 }
 
 .iu-docai-header > div:first-child > span,
+.iu-docai-forensic > header,
+.iu-docai-forensic > header > div:first-child > span,
+.iu-docai-forensic__actions,
+.iu-docai-forensic__badges,
+.iu-docai-forensic__title,
 .iu-docai-header__badges,
 .iu-docai-list__actions,
 .iu-docai-list__meta,
@@ -55,6 +61,7 @@
 
 .iu-docai-header button,
 .iu-docai-upload button,
+.iu-docai-forensic button,
 .iu-docai-list button,
 .iu-docai-search button,
 .iu-docai-empty button {
@@ -65,6 +72,104 @@
   color: var(--iu-text, #172033);
   padding: .55rem .8rem;
   font-weight: 700;
+}
+
+.iu-docai-forensic {
+  display: grid;
+  gap: .9rem;
+  padding: 1rem;
+}
+
+.iu-docai-forensic > header {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.iu-docai-forensic h4 {
+  margin: .2rem 0;
+}
+
+.iu-docai-forensic p {
+  margin: 0;
+  color: var(--iu-muted, #65758b);
+}
+
+.iu-docai-forensic__actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.iu-docai-forensic__actions input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.iu-docai-forensic__grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 34%) minmax(0, 1fr);
+  gap: .9rem;
+  align-items: start;
+}
+
+.iu-docai-forensic__list {
+  display: grid;
+  gap: .55rem;
+}
+
+.iu-docai-forensic__list > button {
+  display: grid;
+  justify-items: start;
+  gap: .35rem;
+  text-align: left;
+}
+
+.iu-docai-forensic__list > button.is-selected {
+  border-color: var(--iu-blue-600, #2563eb);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, .12);
+}
+
+.iu-docai-forensic__list span,
+.iu-docai-forensic__detail small {
+  color: var(--iu-muted, #65758b);
+}
+
+.iu-docai-forensic__detail {
+  display: grid;
+  gap: .8rem;
+  min-width: 0;
+}
+
+.iu-docai-forensic__title {
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: .8rem;
+}
+
+.iu-docai-forensic__title > div {
+  display: grid;
+  min-width: 0;
+}
+
+.iu-docai-forensic__badges {
+  flex-wrap: wrap;
+}
+
+.iu-docai-tree {
+  display: grid;
+  gap: .35rem;
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.iu-docai-tree li {
+  color: var(--iu-text, #172033);
+}
+
+.iu-docai-tree small {
+  color: var(--iu-muted, #65758b);
 }
 
 .iu-docai-upload {
@@ -272,6 +377,8 @@
 @media (max-width: 900px) {
   .iu-docai-header,
   .iu-docai-upload,
+  .iu-docai-forensic > header,
+  .iu-docai-forensic__grid,
   .iu-docai-layout,
   .iu-docai-kv {
     grid-template-columns: 1fr;

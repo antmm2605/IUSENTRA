@@ -2472,3 +2472,8 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - Ogni run salva una sintesi `result_json` derivata da tool, proposte, warning e blocchi, redatta prima dell'esposizione API.
 - Le metriche 80% usano lo stato effettivo del run: baseline degli step, letture completate, review, correzioni, blocchi e rifiuti.
 - I test dedicati sono stati estesi a 29 casi mirati: sei ricette operative, preview read-only, approve con permessi, blocco senza step approvato, feature flag, tenant isolation, PII redaction e divieti PEC/deposito/firma.
+## Aggiornamento 2026-05-21: Legal Document Understanding 2.248.0
+
+- La pagina Documenti AI del fascicolo include il pannello React “Lettura forense” per upload, badge sicurezza/validazione, albero ZIP/PEC, classificazione, dati estratti, eventi proposti, invio Lex dopo validazione e proof bundle.
+- Le API `/api/documents*` e `/api/pec/{id}/process` sono tenant-aware e protette dai flag `legal_document_understanding`, `ocr_forensic`, `pec_zip_ocr` e `lex_validated_documents_only`.
+- I gate mirati sono registrati in `artifacts/react-migration/pytest-confirmed-ok.md`: compileall, pytest documentale 16/16, feature flag/bootstrap 5/5, typecheck e build Vite.

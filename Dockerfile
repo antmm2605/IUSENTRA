@@ -1,4 +1,4 @@
-#  version: 2.247.6
+#  version: 2.248.0
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:

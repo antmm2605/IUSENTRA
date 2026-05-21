@@ -42,6 +42,10 @@ APP_V2_DEFAULT_OFF_FLAGS = frozenset(
 
 APP_V2_DEFAULT_ON_FLAGS = frozenset(
     {
+        "ocr_forensic",
+        "legal_document_understanding",
+        "pec_zip_ocr",
+        "lex_validated_documents_only",
         "lex.legalSkills.enabled",
         "lex.workflowAgents.enabled",
         "routes.appV2.dashboard.home",
@@ -117,6 +121,10 @@ def _flag(key: str, description: str) -> FeatureFlagDefinition:
 
 
 FEATURE_FLAG_DEFINITIONS: tuple[FeatureFlagDefinition, ...] = (
+    _flag("ocr_forensic", "OCR forense con token, coordinate, confidenza, audit e revisione selettiva."),
+    _flag("legal_document_understanding", "Comprensione documentale legale end-to-end per fascicoli, PEC, allegati e Lex."),
+    _flag("pec_zip_ocr", "Estrazione sicura degli ZIP PEC con OCR e analisi dei file interni validati."),
+    _flag("lex_validated_documents_only", "Indicizzazione Lex consentita solo per documenti validati."),
     _flag("routes.appV2.dashboard.home", "Panoramica nella shell App V2 sperimentale."),
     _flag("routes.appV2.dashboard.regia", "Regia operativa nella shell App V2 sperimentale."),
     _flag("routes.appV2.search.global", "Ricerca globale nella shell App V2 sperimentale."),

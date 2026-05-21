@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.0 - 2026-05-21
+
+- Introdotta la piattaforma Legal Document Understanding: acquisizione upload/PEC, estrazione sicura ZIP anche annidati, OCR forense, classificazione multi-rito, entità legali, validazione, matching fascicolo, eventi proposti, revisione umana, storage probatorio, proof bundle e gate Lex su soli documenti validati.
+- Aggiunte API `/api/documents*` e `/api/pec/{id}/process`, migrazione `20260521_legal_document_understanding.sql`, feature flag dedicati, pannello React “Lettura forense” nei Documenti AI e CLI `legal-document-understanding-report`.
+- Coperti test negativi ZIP, classificazione multi-area, estrazione entità, validazione, eventi, matching, Lex validato-only, proof bundle e tenant isolation.
+
 ## 2.247.6 - 2026-05-21
 
 - Ridotto il diff CodeQL della PR rimuovendo le annotazioni non efficaci e mantenendo solo i fix reali, senza copiare o ripristinare il branch verde protetto.

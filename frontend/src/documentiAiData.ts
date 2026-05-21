@@ -93,6 +93,76 @@ export type DocumentAISearchPayload = {
   }>
 }
 
+export type LegalDocumentRecord = {
+  id: string
+  tenant_id: string
+  fascicolo_id: string | null
+  parent_document_id: string | null
+  root_document_id: string
+  source_type: string
+  source_message_id: string | null
+  original_filename: string
+  normalized_filename: string
+  mime_type: string
+  extension: string
+  sha256: string
+  file_size: number
+  status: string
+  security_status: string
+  processing_status: string
+  created_at: string
+  updated_at: string
+}
+
+export type LegalDocumentEvidence = {
+  document: LegalDocumentRecord | null
+  files: Array<Record<string, unknown>>
+  classification: Record<string, unknown> | null
+  entities: Array<Record<string, unknown>>
+  validation: Record<string, unknown> | null
+  case_match: Record<string, unknown> | null
+  events: Array<Record<string, unknown>>
+  lex_index: Record<string, unknown> | null
+  audit: Array<Record<string, unknown>>
+  hash_chain: Array<Record<string, unknown>>
+}
+
+export type LegalDocumentTree = {
+  document: LegalDocumentRecord | null
+  children: Array<{
+    link: Record<string, unknown>
+    document: LegalDocumentRecord | null
+    children: LegalDocumentTree['children']
+  }>
+}
+
+export type LegalDocumentListPayload = {
+  ok: boolean
+  data: LegalDocumentRecord[]
+  count: number
+}
+
+export type LegalDocumentEvidencePayload = {
+  ok: boolean
+  data: LegalDocumentEvidence
+}
+
+export type LegalDocumentTreePayload = {
+  ok: boolean
+  data: LegalDocumentTree
+}
+
+export type LegalDocumentUploadPayload = {
+  ok: boolean
+  data: Array<{
+    document: LegalDocumentRecord | null
+    children: Array<Record<string, unknown>>
+    blocked: Array<Record<string, unknown>>
+    processed: Array<Record<string, unknown>>
+  }>
+  count: number
+}
+
 function csrfToken(): string {
   return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || ''
 }
@@ -164,6 +234,50 @@ export function uploadDocumentAI(fascicoloId: string, file: File): Promise<Docum
       body: form,
     },
   )
+}
+
+export function fetchLegalDocuments(fascicoloId: string): Promise<LegalDocumentListPayload> {
+  const params = new URLSearchParams()
+  if (fascicoloId) params.set('fascicolo_id', fascicoloId)
+  return jsonRequest<LegalDocumentListPayload>(`/api/documents?${params.toString()}`)
+}
+
+export function fetchLegalDocumentEvidence(documentId: string): Promise<LegalDocumentEvidencePayload> {
+  return jsonRequest<LegalDocumentEvidencePayload>(`/api/documents/${encodeURIComponent(documentId)}/evidence`)
+}
+
+export function fetchLegalDocumentTree(documentId: string): Promise<LegalDocumentTreePayload> {
+  return jsonRequest<LegalDocumentTreePayload>(`/api/documents/${encodeURIComponent(documentId)}/archive-tree`)
+}
+
+export function uploadLegalDocument(fascicoloId: string, file: File): Promise<LegalDocumentUploadPayload> {
+  const form = new FormData()
+  form.append('file', file)
+  if (fascicoloId) form.append('fascicolo_id', fascicoloId)
+  return jsonRequest<LegalDocumentUploadPayload>('/api/documents/upload', {
+    method: 'POST',
+    body: form,
+  })
+}
+
+export function approveLegalDocument(documentId: string): Promise<{ok: boolean; data: Record<string, unknown>}> {
+  return jsonRequest<{ok: boolean; data: Record<string, unknown>}>(`/api/documents/${encodeURIComponent(documentId)}/review`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'validated', motivo: 'Revisione umana completata' }),
+  })
+}
+
+export function requestLegalDocumentLexIndex(documentId: string): Promise<{ok: boolean; data: Record<string, unknown>}> {
+  return jsonRequest<{ok: boolean; data: Record<string, unknown>}>(`/api/documents/${encodeURIComponent(documentId)}/lex-index`, {
+    method: 'POST',
+  })
+}
+
+export function createLegalDocumentProofBundle(documentId: string): Promise<{ok: boolean; data: Record<string, unknown>}> {
+  return jsonRequest<{ok: boolean; data: Record<string, unknown>}>(`/api/documents/${encodeURIComponent(documentId)}/proof-bundle`, {
+    method: 'POST',
+  })
 }
 
 export function formatDocumentAISize(sizeBytes: number): string {

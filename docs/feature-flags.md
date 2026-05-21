@@ -24,6 +24,7 @@ completo pagina/flag/default/fallback e' generato in
 | Agenda e scadenze | `routes.appV2.agenda.calendar`, `routes.appV2.deadlines.list`, `routes.appV2.deadlines.hearingWizard` | on | route e drawer bloccati se spenti |
 | Documenti e redazione | `routes.appV2.documents.list`, `routes.appV2.documents.templates`, `routes.appV2.documents.drafting`, `routes.appV2.documents.checklist` | on | editor e checklist spegnibili |
 | Studio, mandato e amministrazione | `routes.appV2.studio.statistics`, `routes.appV2.billing.quotes`, `routes.appV2.admin.users`, `routes.appV2.settings.studio` | on | menu nascosto e shell bloccata se spenti |
+| Legal Document Understanding | `ocr_forensic`, `legal_document_understanding`, `pec_zip_ocr`, `lex_validated_documents_only` | on | OCR forense, ZIP PEC, validazione e gate Lex |
 | Servizi telematici non parificati | `routes.appV2.telematico.center`, `routes.appV2.telematico.surface` | off | workflow ministeriali fail-closed |
 | Notifiche dispositivo | `routes.appV2.notifications.mobilePush` | off | frontend evita Web Push, backend rifiuta subscribe/test |
 | Legal Skills | `lex.legalSkills.enabled`, `routes.appV2.legalSkills.*` | on | catalogo, profilo, esecuzione e revisione sono attivi; trust layer, custom skill e agenti schedulati restano fail-closed |

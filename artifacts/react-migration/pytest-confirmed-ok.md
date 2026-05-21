@@ -2890,3 +2890,14 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | --- | --- | --- |
 | `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml` | OK | Eseguiti con `PyYAML` temporaneo fuori repository perché il runtime Python embedded locale è isolato. `docs/openapi.yaml` è stato rigenerato sulle linee reali di `web/blueprints/api_v1_react.py` dopo il controllo Template Atti; gate di allineamento e validazione OpenAPI sono verdi. |
 | `python scripts\react-migration\generate_app_v2_test_docs.py`; `python scripts\react-migration\generate_app_v2_page_registry.py --check`; `python scripts\react-migration\generate_app_v2_test_docs.py --check` | OK | Il job `CI / App V2 registry and test plan gates` ha segnalato l'inventario non aggiornato con i nuovi test Template Atti. Rigenerati `docs/test-inventory.md` e `docs/test-plan-app-v2.md`; i check di registry e documenti risultano allineati nel runtime locale temporaneo. |
+## Legal Document Understanding 2.248.0 - 2026-05-21
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m compileall -q legal_document_ingestion web\blueprints\legal_documents_api.py web\services\legal_document_ingestion_runtime.py pct\cli.py` | OK | Sintassi confermata per pipeline documentale, API, runtime Flask e CLI metriche. |
+| `python -m pytest tests/test_legal_document_ingestion.py -q --tb=short` | OK | 16/16 passati: ZIP PEC, ZIP annidati, path traversal, zip bomb, ZIP corrotti, classificazione multi-rito, entità, validazione, eventi, matching, Lex validato-only, proof bundle e tenant isolation. |
+| `python -m pytest tests/test_app_v2_feature_flags.py tests/test_web_bootstrap.py::test_create_app_applies_runtime_overrides_and_registers_blueprints -q --tb=short` | OK | 5/5 passati: feature flag nuovi e registrazione blueprint `legal_documents_api` senza regressioni bootstrap. |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript verde dopo pannello React “Lettura forense” in Documenti AI. |
+| `pnpm --filter @iusentra/studio test` | OK | Contratti React, App V2 frontend, Legal Skills e UI coverage verdi dopo aggiornamento dello stato operativo Documenti AI. |
+| `pnpm --filter @iusentra/studio build:vite` | OK | Build Vite completata; asset React rigenerati in `web/static/react`. |
+| `python -m pct.cli legal-document-understanding-report --json` | OK | Report JSON prodotto; target 80% correttamente `false` senza dataset reale misurato. |

@@ -3098,6 +3098,32 @@ def cmd_utf8_integrity(roots, check_only, max_files, max_file_bytes, report_path
         click.echo(f"Report: {report.get('report_path')}")
 
 
+@cli.command("legal-document-understanding-report")
+@click.option("--db", "db_path", default="", help="Percorso SQLite della piattaforma documentale.")
+@click.option("--storage-root", default="", help="Radice storage probatorio associata al database.")
+@click.option("--tenant-id", default="", help="Limita il report a uno studio.")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Stampa il report in JSON.")
+def cmd_legal_document_understanding_report(db_path, storage_root, tenant_id, as_json):
+    """Produce il report metriche Legal Document Understanding."""
+    from legal_document_ingestion.metrics import build_legal_document_understanding_report
+
+    resolved_db = db_path or os.getenv("LEGAL_DOCUMENTS_DB") or "./data/legal_document_understanding.sqlite"
+    resolved_storage = storage_root or os.getenv("LEGAL_DOCUMENTS_STORAGE") or ""
+    report = build_legal_document_understanding_report(
+        db_path=resolved_db,
+        storage_root=resolved_storage or None,
+        tenant_id=tenant_id or None,
+    )
+    if as_json:
+        click.echo(json.dumps(report, ensure_ascii=False, indent=2))
+        return
+    click.echo("Legal Document Understanding - report metriche")
+    click.echo(f"Documenti misurati: {report.get('dataset', {}).get('documents', 0)}")
+    click.echo(f"Riduzione lavoro stimata: {report.get('percentuale_riduzione_lavoro_studio_stimata', 0)}%")
+    click.echo(f"Obiettivo 80% raggiunto: {'sì' if report.get('target_80_percent_raggiunto') else 'no'}")
+    click.echo(str(report.get("nota_misurazione") or ""))
+
+
 @cli.command("lex-agenti-operativi")
 @click.option("--all", "run_all", is_flag=True, default=False, help="Esegue tutti i micro-agenti operativi Lex")
 @click.option("--agent", "agent_ids", multiple=True, help="Agent id interno da eseguire. Ripetibile")

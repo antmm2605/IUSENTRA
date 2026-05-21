@@ -42,7 +42,8 @@ def _json_error(exc: Exception, status: int = 400):
     elif status == 403:
         message = "Dati dello studio non disponibili per questa richiesta."
     elif isinstance(exc, LegalDocumentIngestionError):
-        message = str(exc) or "Documento non acquisito."
+        current_app.logger.info("Legal Document Understanding non completato", exc_info=True)
+        message = "Documento non acquisito."
     else:
         current_app.logger.info("Legal Document Understanding non completato", exc_info=True)
         message = "Operazione documentale non completata."

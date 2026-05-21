@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any, Iterable
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode, urlsplit
 
 from flask import Blueprint, current_app, g, make_response, redirect, render_template, request, url_for
 
@@ -41,8 +41,14 @@ _LEGACY_FIRST_PREFIXES = (
 
 def _local_redirect_target(path: str, query: dict[str, str]) -> str:
     clean_path = str(path or "/").replace("\r", "").replace("\n", "")
-    if not clean_path.startswith("/") or clean_path.startswith("//"):
+    parsed = urlsplit(clean_path)
+    if parsed.scheme or parsed.netloc or not clean_path.startswith("/") or clean_path.startswith("//"):
         clean_path = "/"
+    clean_path = "/" + "/".join(
+        quote(part, safe="-._~:@")
+        for part in clean_path.split("/")
+        if part
+    )
     encoded = urlencode(query)
     return f"{clean_path}?{encoded}" if encoded else clean_path
 

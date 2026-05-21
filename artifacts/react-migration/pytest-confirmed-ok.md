@@ -6,6 +6,16 @@ Aggiornato: 2026-05-21, CodeQL PR diff cleanup 2.247.6, CodeQL PR annotations cl
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
+## Hotfix CI/CodeQL/PWA 2.248.1 - 2026-05-21
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m ruff check ...file toccati...`; `python -m ruff check --select E9,F63,F7,F82 core pct web lex tests tools worker.py gunicorn.conf.py visible_signature.py wsgi.py`; `python -m flake8 core pct web lex tests tools worker.py gunicorn.conf.py visible_signature.py wsgi.py` | OK | Lint bloccante e flake8 verdi dopo redazione errori, path guard e riallineamento PWA. |
+| `python tools/sync_packaging_files.py --check`; `python scripts/react-migration/generate_api_contracts.py --check`; `python scripts/validate_openapi.py docs/openapi.yaml`; `python scripts/verify_openapi_provider.py`; `python scripts/smoke_app_v2_all.py --subset contracts`; `python -m pytest -q tests/test_openapi_contracts_phase6.py --tb=short` | OK | Chiuso il blocco primario `Lint + syntax`: OpenAPI allineato, provider verification OK (`auth-error=203`, `success=27`, `backend-security=1`) e contratti fase 6 5/5. |
+| `python scripts/react-migration/generate_app_v2_page_registry.py --check`; `python scripts/react-migration/generate_app_v2_test_docs.py --check`; `python scripts/smoke_app_v2_all.py --subset inventory`; `python -m pytest -q tests/test_app_v2_page_registry.py tests/test_app_v2_test_plan_phase10.py tests/test_ci_cd_gates_phase11.py --tb=short` | OK | Registry e documenti App V2 rigenerati e verificati: smoke inventory PASS=3, test 13/13. |
+| `python -m pytest tests/test_legal_document_ingestion.py tests/test_auth.py::test_admin_default_usa_password_bootstrap_configurata tests/test_auth.py::test_admin_default_password_temporanea_viene_generata_e_salvata tests/test_web_bootstrap.py::test_create_app_applies_runtime_overrides_and_registers_blueprints -q --tb=short`; `python -m pytest -q tests/test_auth.py tests/test_backend_security_phase5.py tests/test_tenant_isolation_runtime.py tests/test_app_v2_feature_flags.py tests/test_app_v2_routing.py tests/test_openapi_contracts_phase6.py --tb=short` | OK | Shard mirati 19/19 e 76/76: ingestion, auth, bootstrap, sicurezza backend, isolamento tenant, routing e feature flag invariati. |
+| `python -m pct.cli legal-document-understanding-report --json`; `python -m pytest -q tests/test_ci_no_regression_contract.py --cov=tests.test_ci_no_regression_contract --cov-report=term-missing --cov-fail-under=100`; `python tools/check_python_baseline.py`; `python -m mypy --platform linux packaging_manifest.py docker/entrypoint.py tools/sync_packaging_files.py` | OK | Report metriche eseguito: target 80% non dichiarato raggiunto senza dataset reale; contratto CI 100%, baseline Python e mypy governato verdi. |
+
 ## CodeQL PR diff cleanup 2.247.6 - 2026-05-21
 
 | Comando / verifica | Esito | Nota |

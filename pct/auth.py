@@ -576,11 +576,7 @@ class GestioneUtenti:
                         pass
                 sqlite_changed = self._apply_tenant_context_to_users(self._utenti)
                 if self._tenant_json_should_repair_sqlite(legacy_utenti, self._utenti):
-                    logger.warning(
-                        "GestioneUtenti: riallineo studio.db da archivio utenti locale per tenant=%s db=%s",
-                        self._tenant_slug_context,
-                        self.db_path,
-                    )
+                    logger.warning("GestioneUtenti: riallineo studio.db da archivio utenti locale.")
                     self._utenti = legacy_utenti
                     self._salva_utenti()
                 elif not self._utenti and legacy_utenti:
@@ -737,7 +733,11 @@ class GestioneUtenti:
         self._salva_bootstrap_admin_credentials(bootstrap_password)
 
     def _salva_bootstrap_admin_credentials(self, temporary_secret: str) -> None:
-        secret_ciphertext = self._encrypt_bootstrap_admin_secret(temporary_secret)
+        secret_ciphertext = ""
+        fernet = self._bootstrap_secret_fernet()
+        if temporary_secret and fernet is not None:
+            encrypted_secret = fernet.encrypt(temporary_secret.encode("utf-8")).decode("ascii")
+            secret_ciphertext = _BOOTSTRAP_SECRET_PREFIX + encrypted_secret
         payload = {
             "username": "admin",
             "bootstrap_secret_ciphertext": secret_ciphertext,

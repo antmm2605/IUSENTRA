@@ -844,14 +844,14 @@ def build_react_tariffario_run_payload(
     dynamic = _dynamic_options(state=state, pratica=pratica, phase_catalog=phase_catalog)
     try:
         run = _run_engine(state=state, profilo=profilo, regola=regola, pratica=pratica, references=references)
-    except (ValueError, KeyError) as exc:
+    except (ValueError, KeyError):
         return {
             "ok": False,
             "state": state,
             "profile": _profile_payload(profilo, pratica, state),
             "dynamic": dynamic,
             "result": None,
-            "warnings": [_warning("calcolo_non_completato", str(exc))],
+            "warnings": [_warning("calcolo_non_completato", "Calcolo tariffario non completato.")],
         }
     return {
         "ok": True,

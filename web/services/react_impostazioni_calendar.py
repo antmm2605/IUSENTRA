@@ -393,8 +393,8 @@ def create_calendar_profile(*, payload: dict[str, Any], get_calendar_sync: Any) 
         errors["source_url"] = "Inserisci il link del calendario."
     try:
         source_url = _validate_calendar_url(source_url)
-    except ValueError as exc:
-        errors["source_url"] = str(exc)
+    except ValueError:
+        errors["source_url"] = "Link calendario non valido o non consentito."
     try:
         reminder = max(int(payload.get("default_reminder_minuti") or 60), 0)
     except (TypeError, ValueError):
@@ -432,10 +432,14 @@ def sync_calendar_profile(*, profile_id: str, get_calendar_sync: Any, get_agenda
         }
     except Exception as exc:
         try:
-            manager.mark_sync_error(profile_id, str(exc))
+            manager.mark_sync_error(profile_id, type(exc).__name__)
         except Exception:
             pass
-        return {"ok": False, "message": "Sincronizzazione non riuscita.", "errors": {"profile": str(exc)}}
+        return {
+            "ok": False,
+            "message": "Sincronizzazione non riuscita.",
+            "errors": {"profile": "Verifica il calendario collegato e riprova."},
+        }
 
 
 def toggle_calendar_profile(*, profile_id: str, get_calendar_sync: Any) -> dict[str, Any]:

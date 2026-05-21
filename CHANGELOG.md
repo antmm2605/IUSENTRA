@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.1 - 2026-05-21
+
+- Chiuso l'hotfix post-push su CI e sicurezza: OpenAPI e inventari App V2 rigenerati, messaggi d'errore redatti, query metriche parametrizzate e percorsi SQLite/runtime validati prima dell'uso.
+- Rafforzata la superficie PWA in produzione con `/manifest.json` pubblico e favicon non protetta da login, così Chrome non riceve redirect di autenticazione sulle risorse applicative di base.
+- Verificati localmente i gate che avevano generato cascata rossa: lint/syntax, contratti OpenAPI, smoke App V2, security/tenant shard mirato, report Legal Document Understanding e compilazione Python.
+
 ## 2.248.0 - 2026-05-21
 
 - Introdotta la piattaforma Legal Document Understanding: acquisizione upload/PEC, estrazione sicura ZIP anche annidati, OCR forense, classificazione multi-rito, entità legali, validazione, matching fascicolo, eventi proposti, revisione umana, storage probatorio, proof bundle e gate Lex su soli documenti validati.

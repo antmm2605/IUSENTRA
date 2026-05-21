@@ -46,6 +46,7 @@ from pct.legal_update_pipeline import build_legal_update_pipeline
 from pct.legal_update_repository import LegalUpdateDbConfig, LegalUpdateRepository
 from pct.postgres_runtime_support import database_config_to_dsn
 from pct.scadenziario import GestioneScadenziario
+from pct.path_security import UnsafeRuntimePath, resolve_runtime_path
 from pct.storage import StudioDB
 from pct.storage_migration import migrate_core_storage_to_postgres
 from pct.telematico_repository import GestioneTelematicoRepository
@@ -162,7 +163,10 @@ def _write_backup_artifact(
 
 
 def _json_record_count(path: str) -> int:
-    file_path = Path(str(path or "").strip())
+    try:
+        file_path = resolve_runtime_path(str(path or "").strip(), allowed_suffixes={".json"})
+    except UnsafeRuntimePath:
+        return 0
     if not file_path.exists() or file_path.suffix.lower() != ".json":
         return 0
     try:
@@ -177,7 +181,10 @@ def _json_record_count(path: str) -> int:
 
 
 def _count_files(path: str, suffixes: tuple[str, ...] = ()) -> int:
-    root = Path(str(path or "").strip())
+    try:
+        root = resolve_runtime_path(str(path or "").strip())
+    except UnsafeRuntimePath:
+        return 0
     if not root.exists():
         return 0
     if root.is_file():

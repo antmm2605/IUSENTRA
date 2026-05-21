@@ -9,6 +9,7 @@ from typing import Any, Callable
 from flask import Blueprint, Response, g, jsonify, request
 
 from pct.pec_pipeline import PecAuditRepository, ingest_synthetic_dataset
+from web.services.security_redaction import redact_exception_details
 from web.services.tenant_api_auth import api_key_valid_for_request
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
 
@@ -63,7 +64,7 @@ def _json_error(exc: Exception, status: int = 400):
 
 
 def _json_success(payload: dict, status: int = 200):
-    return jsonify(payload), status
+    return jsonify(redact_exception_details(payload)), status
 
 
 @pec_pipeline_api.get("/messages")

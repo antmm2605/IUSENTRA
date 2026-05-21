@@ -9,12 +9,11 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from email import policy
-from pathlib import Path
 from typing import Any, Iterable
 
 from .archive_extractor import ExtractedArchiveFile, extract_zip_bytes
 from .evidence_hash import sha256_bytes, utc_now
-from .mime_detector import MimeDetection, detect_mime
+from .mime_detector import detect_mime
 from .repository import LegalDocumentRepository, sanitize_filename
 from .zip_safety import ZipSafetyConfig
 
@@ -336,7 +335,7 @@ class LegalDocumentIngestionService:
         return {"document": document, "children": children, "blocked": result.blocked, "warnings": result.warnings}
 
     def process_document(self, tenant_id: str, document_id: str, *, actor: str = "legal-document-understanding") -> dict[str, Any]:
-        document = self._require_document(tenant_id, document_id)
+        self._require_document(tenant_id, document_id)
         ocr = self.run_ocr(tenant_id, document_id, actor=actor) if self.config.enable_forensic_ocr else self.repository.get_ocr_overlay(tenant_id, document_id)
         text = str((ocr.get("ocr_run") or {}).get("corrected_text") or (ocr.get("ocr_run") or {}).get("raw_text") or self.repository.latest_ocr_text(tenant_id, document_id))
         classification = self.classify_document(tenant_id, document_id, text=text, actor=actor)
@@ -1005,8 +1004,8 @@ def _score_case(case: dict[str, Any], entity_values: dict[str, list[str]], hayst
     if office and office in haystack:
         score += 0.2
         signals.append("ufficio")
-    for field, signal in (("nome_cliente", "cliente"), ("controparte", "controparte"), ("oggetto", "oggetto"), ("codice_fiscale", "codice fiscale"), ("partita_iva", "partita IVA"), ("pec", "PEC"), ("numero_sentenza", "numero sentenza")):
-        value = _searchable(str(case.get(field) or ""))
+    for case_field, signal in (("nome_cliente", "cliente"), ("controparte", "controparte"), ("oggetto", "oggetto"), ("codice_fiscale", "codice fiscale"), ("partita_iva", "partita IVA"), ("pec", "PEC"), ("numero_sentenza", "numero sentenza")):
+        value = _searchable(str(case.get(case_field) or ""))
         if value and value in haystack:
             score += 0.12
             signals.append(signal)

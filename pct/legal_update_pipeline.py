@@ -1749,8 +1749,13 @@ class LegalUpdatePipeline:
         for source_code in selected:
             try:
                 reports.append(self.scan_source(source_code, request_get=request_get, auto_publish=False))
-            except Exception as exc:
-                reports.append({"source": source_code, "error": str(exc), "documents_found": 0, "processed": 0})
+            except Exception:
+                reports.append({
+                    "source": source_code,
+                    "error": "Fonte non acquisita.",
+                    "documents_found": 0,
+                    "processed": 0,
+                })
         autopublished = self.publish_auto_news(limit=40) if auto_publish else {"count": 0, "items": []}
         self._export_repository_json_if_enabled()
         return {
@@ -2026,11 +2031,11 @@ class LegalUpdatePipeline:
             return {"attempted": 0, "saved": 0, "attachments": 0, "ok": False, "reason": "url fonte assente"}
         try:
             verification = verify_legal_update_against_public_sources(review, source, direct_only=direct_only)
-        except Exception as exc:
+        except Exception:
             verification = {
                 "ok": False,
                 "status": "insufficient",
-                "reason": f"Verifica pubblica non completata in acquisizione: {_truncate(str(exc), 160)}",
+                "reason": "Verifica pubblica non completata in acquisizione.",
                 "confirmation_count": 0,
                 "official_confirmations": 0,
                 "confirmations": [],
@@ -2064,10 +2069,10 @@ class LegalUpdatePipeline:
             return None
         try:
             verification = verify_legal_update_against_public_sources(review, source)
-        except Exception as exc:
+        except Exception:
             verification = {
                 "ok": False,
-                "reason": f"Lettura fonte ufficiale non completata: {_truncate(str(exc), 180)}",
+                "reason": "Lettura fonte ufficiale non completata.",
                 "confirmation_count": 0,
                 "confirmations": [],
                 "searched": {},
@@ -2408,10 +2413,10 @@ class LegalUpdatePipeline:
             review = self.repository.get_review_item(int(row["id"])) or row
             try:
                 verification = verify_legal_update_against_public_sources(review, source)
-            except Exception as exc:
+            except Exception:
                 verification = {
                     "ok": False,
-                    "reason": f"Verifica pubblica non completata: {_truncate(str(exc), 160)}",
+                    "reason": "Verifica pubblica non completata.",
                     "confirmation_count": 0,
                 }
             verification_attempts += 1
@@ -2464,12 +2469,12 @@ class LegalUpdatePipeline:
                 )
             try:
                 self.publish_review(int(row["id"]), reviewer="system", verification=verification)
-            except Exception as exc:
+            except Exception:
                 skipped.append(
                     {
                         "id": int(row["id"]),
                         "reason": "errore_pubblicazione",
-                        "detail": _truncate(str(exc), 180),
+                        "detail": "Pubblicazione non completata.",
                     }
                 )
                 continue

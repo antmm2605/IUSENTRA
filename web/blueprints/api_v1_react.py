@@ -80,6 +80,7 @@ from web.services.react_dashboard_cache import (
     clear_dashboard_payload_cache,
     get_dashboard_payload_cached,
 )
+from web.services.security_redaction import redact_exception_details
 from web.services.react_document_editor_bridge import build_react_document_editor_payload
 from web.services.react_email_bridge import build_react_email_detail_payload, build_react_email_payload
 from web.services.react_fascicoli_bridge import (
@@ -634,6 +635,10 @@ def _request_payload() -> dict[str, Any]:
 
 def _json_validation_error(message: str, errors: dict[str, str], *, status: int = 200):
     return jsonify({"ok": False, "message": message, "errors": errors}), status
+
+
+def _jsonify_redacted(payload: Any):
+    return jsonify(redact_exception_details(payload))
 
 
 def _request_json_object() -> tuple[dict[str, Any] | None, Any | None]:
@@ -2136,7 +2141,7 @@ def notifiche_legali_anteprima_relata():
     result = preview_legal_relata(_augment_custom_relata_payload(payload))
     if result.get("ok"):
         _audit_event("notifiche_legali.anteprima_relata", "notifica_legale", "", "Anteprima relata compilata generata.")
-    return jsonify(result), 200 if result.get("ok") else 400
+    return _jsonify_redacted(result), 200 if result.get("ok") else 400
 
 
 @api_v1_react.post("/notifiche-legali/bozze-relata")
@@ -2610,7 +2615,7 @@ def strumenti_legali_react_calcola(tool_id: str):
             "warnings": list(result.get("warnings") or []),
             "sources": list(result.get("sources") or []),
         })
-    except ValueError as exc:
+    except ValueError:
         message = "Verifica i dati inseriti e riprova."
         return jsonify({
             "ok": False,
@@ -3391,7 +3396,7 @@ def dashboard_sync_mailboxes():
     try:
         result = sync_mailboxes_for_current_context(force=force)
         result["ok"] = bool(result.get("ok", True))
-        return jsonify(result)
+        return _jsonify_redacted(result)
     finally:
         clear_dashboard_payload_cache()
 
@@ -3530,7 +3535,7 @@ def utenti_nuovo_crea():
             email=email,
             nome_completo=nome_completo,
         )
-    except ValueError as exc:
+    except ValueError:
         message = "Utente non creato. Controlla i dati inseriti."
         field = "username" if "username" in message.lower() else "_form"
         return _json_validation_error(message, {field: message})
@@ -3610,7 +3615,7 @@ def utenti_aggiorna_stato(id_utente: str):
             payload=payload or {},
             ip=request.remote_addr or "",
         )
-        return jsonify(result), _utenti_result_status(result)
+        return _jsonify_redacted(result), _utenti_result_status(result)
     except Exception as exc:
         current_app.logger.exception("Errore modifica stato utente React JSON: %s", exc)
         return _json_validation_error(
@@ -3636,7 +3641,7 @@ def utenti_aggiorna_ruolo(id_utente: str):
             payload=payload or {},
             ip=request.remote_addr or "",
         )
-        return jsonify(result), _utenti_result_status(result)
+        return _jsonify_redacted(result), _utenti_result_status(result)
     except Exception as exc:
         current_app.logger.exception("Errore modifica ruolo utente React JSON: %s", exc)
         return _json_validation_error(
@@ -3662,7 +3667,7 @@ def utenti_reset_password(id_utente: str):
             payload=payload or {},
             ip=request.remote_addr or "",
         )
-        return jsonify(result), _utenti_result_status(result)
+        return _jsonify_redacted(result), _utenti_result_status(result)
     except Exception as exc:
         current_app.logger.exception("Errore reset credenziale utente React JSON: %s", exc)
         return _json_validation_error(
@@ -3688,7 +3693,7 @@ def utenti_aggiorna_profilo(id_utente: str):
             payload=payload or {},
             ip=request.remote_addr or "",
         )
-        return jsonify(result), _utenti_result_status(result)
+        return _jsonify_redacted(result), _utenti_result_status(result)
     except Exception as exc:
         current_app.logger.exception("Errore modifica profilo utente React JSON: %s", exc)
         return _json_validation_error(
@@ -3809,7 +3814,7 @@ def backup_crea():
             payload=payload or {},
             ip=request.remote_addr or "",
         )
-        return jsonify(result), _backup_result_status(result)
+        return _jsonify_redacted(result), _backup_result_status(result)
     except Exception as exc:
         current_app.logger.exception("Errore creazione backup React JSON: %s", exc)
         return _json_validation_error(
@@ -3835,7 +3840,7 @@ def backup_verifica():
             payload=payload or {},
             ip=request.remote_addr or "",
         )
-        return jsonify(result), _backup_result_status(result)
+        return _jsonify_redacted(result), _backup_result_status(result)
     except Exception as exc:
         current_app.logger.exception("Errore verifica backup React JSON: %s", exc)
         return _json_validation_error(
@@ -3887,7 +3892,7 @@ def sito_studio_builder_template():
     if error_response is not None:
         return error_response
     result = apply_react_builder_template(payload or {})
-    return jsonify(result), 200 if result.get("ok") else 400
+    return _jsonify_redacted(result), 200 if result.get("ok") else 400
 
 
 @api_v1_react.post("/sito-studio/builder/design")
@@ -4194,7 +4199,7 @@ def sito_studio_contatto_collega(id_contatto: str):
     if error_response is not None:
         return error_response
     result = link_react_sito_contatto(id_contatto, payload or {}, get_clienti=get_clienti)
-    return jsonify(result), 200 if result.get("ok") else 400
+    return _jsonify_redacted(result), 200 if result.get("ok") else 400
 
 
 @api_v1_react.post("/sito-studio/prenotazioni/<id_prenotazione>/stato")
@@ -4207,7 +4212,7 @@ def sito_studio_prenotazione_stato(id_prenotazione: str):
     if error_response is not None:
         return error_response
     result = update_react_sito_booking_status(id_prenotazione, payload or {})
-    return jsonify(result), 200 if result.get("ok") else 400
+    return _jsonify_redacted(result), 200 if result.get("ok") else 400
 
 
 @api_v1_react.get("/studio")
@@ -4270,7 +4275,7 @@ def impostazioni_page_test(test_id: str):
         return error_response
     result = run_react_impostazioni_test(test_id, payload or {})
     status_code = 200 if result.get("ok") or result.get("local_signer_required") else 400
-    return jsonify(result), status_code
+    return _jsonify_redacted(result), status_code
 
 
 @api_v1_react.get("/impostazioni/ai/status")
@@ -4319,7 +4324,7 @@ def impostazioni_page_ai_bootstrap():
     if error_response is not None:
         return error_response
     result = bootstrap_react_impostazioni_ai(force=bool((payload or {}).get("force")))
-    return jsonify(result), 200 if result.get("ok") else 400
+    return _jsonify_redacted(result), 200 if result.get("ok") else 400
 
 
 @api_v1_react.post("/impostazioni/notifiche/link")
@@ -4339,14 +4344,14 @@ def impostazioni_notifiche_invia():
     if error_response is not None:
         return error_response
     result = send_notifica(payload or {})
-    return jsonify(result), 200 if result.get("ok") else 400
+    return _jsonify_redacted(result), 200 if result.get("ok") else 400
 
 
 @api_v1_react.post("/impostazioni/notifiche/promemoria-domani")
 @_richiedi_auth
 def impostazioni_notifiche_promemoria_domani():
     result = send_promemoria_domani()
-    return jsonify(result), 200 if result.get("ok") else 400
+    return _jsonify_redacted(result), 200 if result.get("ok") else 400
 
 
 @api_v1_react.post("/impostazioni/calendari/profili")
@@ -4371,7 +4376,7 @@ def impostazioni_calendari_sincronizza(profile_id: str):
     if not _puo_configurare_impostazioni():
         return jsonify({"ok": False, "message": "Permesso impostazioni richiesto.", "errors": {"permission": "Permesso insufficiente."}}), 403
     result = sync_calendar_profile(profile_id=profile_id, get_calendar_sync=get_calendar_sync, get_agenda=get_agenda)
-    return jsonify(result), 200 if result.get("ok") else 400
+    return _jsonify_redacted(result), 200 if result.get("ok") else 400
 
 
 @api_v1_react.post("/impostazioni/calendari/profili/<profile_id>/stato")
@@ -4654,7 +4659,7 @@ def fatturazione_nuova_crea():
             config=current_app.config,
             ip_address=request.remote_addr or "",
         )
-        return jsonify(result), status
+        return _jsonify_redacted(result), status
     except Exception as exc:
         current_app.logger.exception("Errore creazione parcella React JSON: %s", exc)
         return jsonify({
@@ -4689,7 +4694,7 @@ def fatturazione_detail_page(id_documento: str):
         get_fascicoli=get_fascicoli,
         id_documento=id_documento,
     )
-    return jsonify(result), status
+    return _jsonify_redacted(result), status
 
 
 @api_v1_react.post("/fatturazione/<id_documento>/stato")
@@ -4714,7 +4719,7 @@ def fatturazione_aggiorna_stato(id_documento: str):
         payload=payload,
         ip_address=request.remote_addr or "",
     )
-    return jsonify(result), status
+    return _jsonify_redacted(result), status
 
 
 @api_v1_react.post("/fatturazione/<id_documento>/annulla")
@@ -4739,7 +4744,7 @@ def fatturazione_annulla(id_documento: str):
         payload=payload,
         ip_address=request.remote_addr or "",
     )
-    return jsonify(result), status
+    return _jsonify_redacted(result), status
 
 
 @api_v1_react.post("/fatturazione/<id_documento>/segna-pagata")
@@ -4924,10 +4929,10 @@ def tariffario_page():
         return jsonify(build_react_tariffario_error_payload("Permesso fatturazione.leggi richiesto.")), 403
     try:
         return jsonify(
-            build_react_tariffario_payload(
+            redact_exception_details(build_react_tariffario_payload(
                 get_normative_tables=get_normative_tables,
                 query=dict(request.args),
-            )
+            ))
         )
     except Exception as exc:
         current_app.logger.exception("Errore Tariffario React bridge: %s", exc)
@@ -4945,7 +4950,7 @@ def tariffario_detail_page(id_voce: str):
     if not utente or not _puo_leggere_fatturazione():
         return jsonify({"ok": False, "message": "Permesso fatturazione.leggi richiesto.", "errors": {"permission": "Operazione non autorizzata."}, "item": None}), 403
     result, status = build_react_tariffario_detail_payload(get_normative_tables=get_normative_tables, id_voce=id_voce)
-    return jsonify(result), status
+    return _jsonify_redacted(result), status
 
 
 @api_v1_react.post("/tariffario/calcola")
@@ -4961,7 +4966,7 @@ def tariffario_calcola_page():
         return error_response
     try:
         result, status = calculate_react_tariffario(get_normative_tables=get_normative_tables, payload=payload)
-        return jsonify(result), status
+        return _jsonify_redacted(result), status
     except Exception as exc:
         current_app.logger.exception("Errore calcolo Tariffario React bridge: %s", exc)
         return jsonify(
@@ -5508,7 +5513,7 @@ def redazione_atti_produci():
         return jsonify({"ok": False, "errors": {"sessione": "Sessione utente richiesta."}, "warnings": []}), 403
     payload = request.get_json(silent=True) or {}
     result, status = produce_react_redazione_atti(payload, config=_studio_prefill_config())
-    return jsonify(result), status
+    return _jsonify_redacted(result), status
 
 
 @api_v1_react.get("/giurisprudenza")
@@ -5545,7 +5550,7 @@ def _legal_intelligence_ui_payload(page: str, legacy_contract: str):
         ), 403
     try:
         return jsonify(
-            build_react_legal_intelligence_payload(
+            redact_exception_details(build_react_legal_intelligence_payload(
                 get_legal_intelligence=get_legal_intelligence,
                 get_legal_update_pipeline=get_legal_update_pipeline,
                 get_fascicoli=get_fascicoli,
@@ -5555,7 +5560,7 @@ def _legal_intelligence_ui_payload(page: str, legacy_contract: str):
                 page=page,
                 query=dict(request.args),
                 config=dict(current_app.config),
-            )
+            ))
         )
     except Exception as exc:
         current_app.logger.exception("Errore Legal Intelligence React bridge: %s", exc)
@@ -5694,7 +5699,7 @@ def preventivi_nuovo_crea():
         payload=payload,
         ip_address=request.remote_addr or "",
     )
-    return jsonify(result), status
+    return _jsonify_redacted(result), status
 
 
 @api_v1_react.get("/preventivi/conferimento/nuovo")
@@ -5726,7 +5731,7 @@ def preventivi_conferimento_nuovo_crea():
         payload=payload,
         ip_address=request.remote_addr or "",
     )
-    return jsonify(result), status
+    return _jsonify_redacted(result), status
 
 
 @api_v1_react.get("/preventivi/<id_preventivo>")

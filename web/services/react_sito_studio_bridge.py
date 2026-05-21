@@ -411,8 +411,8 @@ def link_react_sito_contatto(id_contatto: str, payload: dict[str, Any], *, get_c
         return _mutation_error("Azione di collegamento non supportata.", "mode")
     try:
         lead_id = create_lead_cliente_from_submission(submission)
-    except ValueError as exc:
-        return _mutation_error(str(exc), "cliente")
+    except ValueError:
+        return _mutation_error("Cliente potenziale non creato.", "cliente")
     repo.update_contact_submission_lead(site_id, contact_id, lead_id)
     audit_studio_site_action(
         "sito_studio.crea_lead_cliente",
@@ -437,8 +437,8 @@ def update_react_sito_booking_status(id_prenotazione: str, payload: dict[str, An
         return _mutation_error("Stato prenotazione non ammesso.", "status")
     try:
         updated = approve_booking_request_for_current_site(booking_id) if status == "approved" else reject_booking_request_for_current_site(booking_id)
-    except ValueError as exc:
-        return _mutation_error(str(exc), "status")
+    except ValueError:
+        return _mutation_error("Prenotazione non aggiornabile.", "status")
     return {
         "ok": True,
         "message": "Prenotazione aggiornata.",

@@ -363,8 +363,12 @@ def verify_react_backup_integrity(
 
     try:
         check = manager.verifica_integrita(backup_id)
-    except ValueError as exc:
-        return _result(ok=False, message=str(exc), errors={"backupId": str(exc)})
+    except ValueError:
+        return _result(
+            ok=False,
+            message="Backup non verificabile.",
+            errors={"backupId": "La copia indicata non puo' essere verificata."},
+        )
 
     updated = manager.get(backup_id) or record
     backup_payload = _record(updated)

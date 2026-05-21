@@ -26,6 +26,7 @@ def register_pwa_routes(app: Flask) -> None:
         return response
 
     @app.route("/manifest.webmanifest")
+    @app.route("/manifest.json")
     def web_manifest():
         return send_file(
             app.root_path + "/static/manifest.webmanifest",

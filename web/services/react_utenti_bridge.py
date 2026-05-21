@@ -363,6 +363,10 @@ def _reject_unknown(payload: dict[str, Any], allowed: set[str]) -> dict[str, str
     return {"payload": "Campi non ammessi: " + ", ".join(unknown)}
 
 
+def _operation_not_available(field: str = "_form") -> dict[str, str]:
+    return {field: "Operazione non disponibile per i dati indicati."}
+
+
 def update_react_utente_status(
     *,
     get_utenti: Callable[[], Any],
@@ -381,8 +385,8 @@ def update_react_utente_status(
         return _validation("Controlla i campi evidenziati.", errors, manager=manager, current_user=current_user)
     try:
         target = _target_user(manager, user_id)
-    except ValueError as exc:
-        return _validation(str(exc), {"id_utente": str(exc)}, manager=manager, current_user=current_user)
+    except ValueError:
+        return _validation("Utente non trovato.", _operation_not_available("id_utente"), manager=manager, current_user=current_user)
     if _role_value(getattr(target, "ruolo", "")) == RuoloUtente.SUPERADMIN.value:
         return _validation("SUPERADMIN non modificabile da questa superficie.", {"permission": "Usa il pannello piattaforma."}, manager=manager, current_user=current_user)
     requested_active = bool(payload["active"])
@@ -401,8 +405,8 @@ def update_react_utente_status(
             ip,
         )
         return _updated_result(manager, current_user, updated, "Stato account aggiornato.")
-    except ValueError as exc:
-        return _validation(str(exc), {"active": str(exc)}, manager=manager, current_user=current_user)
+    except ValueError:
+        return _validation("Stato account non aggiornato.", _operation_not_available("active"), manager=manager, current_user=current_user)
 
 
 def update_react_utente_role(
@@ -425,8 +429,8 @@ def update_react_utente_role(
     assert target_role is not None
     try:
         target = _target_user(manager, user_id)
-    except ValueError as exc:
-        return _validation(str(exc), {"id_utente": str(exc)}, manager=manager, current_user=current_user)
+    except ValueError:
+        return _validation("Utente non trovato.", _operation_not_available("id_utente"), manager=manager, current_user=current_user)
     if _role_value(getattr(target, "ruolo", "")) == RuoloUtente.SUPERADMIN.value:
         return _validation("SUPERADMIN non modificabile da questa superficie.", {"permission": "Usa il pannello piattaforma."}, manager=manager, current_user=current_user)
     if _is_last_active_admin(manager, target) and target_role != RuoloUtente.AMMINISTRATORE:
@@ -445,8 +449,8 @@ def update_react_utente_role(
             ip,
         )
         return _updated_result(manager, current_user, updated, "Ruolo utente aggiornato.")
-    except ValueError as exc:
-        return _validation(str(exc), {"role": str(exc)}, manager=manager, current_user=current_user)
+    except ValueError:
+        return _validation("Ruolo non aggiornato.", _operation_not_available("role"), manager=manager, current_user=current_user)
 
 
 def reset_react_utente_password(
@@ -470,8 +474,8 @@ def reset_react_utente_password(
         return _validation("Controlla i campi evidenziati.", errors, manager=manager, current_user=current_user)
     try:
         target = _target_user(manager, user_id)
-    except ValueError as exc:
-        return _validation(str(exc), {"id_utente": str(exc)}, manager=manager, current_user=current_user)
+    except ValueError:
+        return _validation("Utente non trovato.", _operation_not_available("id_utente"), manager=manager, current_user=current_user)
     if _role_value(getattr(target, "ruolo", "")) == RuoloUtente.SUPERADMIN.value:
         return _validation("SUPERADMIN non modificabile da questa superficie.", {"permission": "Usa il pannello piattaforma."}, manager=manager, current_user=current_user)
     try:
@@ -485,8 +489,13 @@ def reset_react_utente_password(
             ip,
         )
         return _updated_result(manager, current_user, updated, "Credenziale temporanea reimpostata. Il valore non viene restituito dal server.")
-    except ValueError as exc:
-        return _validation(str(exc), {"temporaryPassword": str(exc)}, manager=manager, current_user=current_user)
+    except ValueError:
+        return _validation(
+            "Credenziale non aggiornata.",
+            _operation_not_available("temporaryPassword"),
+            manager=manager,
+            current_user=current_user,
+        )
 
 
 def update_react_utente_profile(
@@ -509,8 +518,8 @@ def update_react_utente_profile(
         return _validation("Controlla i campi evidenziati.", errors, manager=manager, current_user=current_user)
     try:
         target = _target_user(manager, user_id)
-    except ValueError as exc:
-        return _validation(str(exc), {"id_utente": str(exc)}, manager=manager, current_user=current_user)
+    except ValueError:
+        return _validation("Utente non trovato.", _operation_not_available("id_utente"), manager=manager, current_user=current_user)
     if _role_value(getattr(target, "ruolo", "")) == RuoloUtente.SUPERADMIN.value:
         return _validation("SUPERADMIN non modificabile da questa superficie.", {"permission": "Usa il pannello piattaforma."}, manager=manager, current_user=current_user)
     try:
@@ -524,5 +533,5 @@ def update_react_utente_profile(
             ip,
         )
         return _updated_result(manager, current_user, updated, "Profilo utente aggiornato.")
-    except ValueError as exc:
-        return _validation(str(exc), {"_form": str(exc)}, manager=manager, current_user=current_user)
+    except ValueError:
+        return _validation("Profilo non aggiornato.", _operation_not_available(), manager=manager, current_user=current_user)

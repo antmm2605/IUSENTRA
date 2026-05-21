@@ -6,6 +6,14 @@ Aggiornato: 2026-05-21, CodeQL PR diff cleanup 2.247.6, CodeQL PR annotations cl
 
 Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, controllare qui: si lavora solo sugli item aperti, poi si spostano nel report `pytest-confirmed-ok.md` quando il test o lo shard passa.
 
+## Note hotfix CI/CodeQL/PWA 2.248.1 - 2026-05-21
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Push precedente `01cabf0b` | `CI / Lint + syntax`, aggregatori Pytest core e Local Signer | Risolto localmente | Il gate primario falliva perché `docs/openapi.yaml` non era allineato; gli aggregatori a valle risultavano rossi perché gli shard reali erano `Skipped`. Rigenerati OpenAPI, registry e piano test App V2. | Dopo push verificare prima `Lint + syntax`; se è verde, leggere gli shard reali prima degli aggregatori. |
+| Code scanning results / CodeQL | Annotazioni security su errori, path, redirect, SQL e segreti | In attesa di verifica GitHub dopo push | Aggiunti redattore ricorsivo payload, guardia path SQLite/runtime, query metriche senza SQL dinamico, password bootstrap cifrata e redirect locale normalizzato. | Se CodeQL resta rosso, leggere solo le annotazioni nuove del nuovo check e correggere puntualmente. |
+| Produzione bianca segnalata dall'utente | `https://app.iusentra.it` | Mitigazione pronta da deploy | Prima del fix il server rispondeva e la login renderizzava; Chrome però chiedeva `/manifest.json` e favicon ricevendo redirect login. Aggiunti alias manifest pubblico e favicon tra route pubbliche. | Dopo deploy svuotare cache/PWA lato browser se la scheda resta bianca pur con login servita correttamente. |
+
 ## Note CodeQL PR diff cleanup 2.247.6 - 2026-05-21
 
 | Area | Gate | Stato | Nota | Azione |

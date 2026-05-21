@@ -8,6 +8,7 @@ Prefix:  /admin/
 from __future__ import annotations
 
 from datetime import datetime
+from functools import wraps
 from pathlib import Path
 import sqlite3
 from time import monotonic
@@ -51,6 +52,7 @@ from web.services.migration_assistant import (
 )
 from web.services.observability_runtime import build_observability_payload
 from web.services.product_governance_surface import build_product_governance_surface
+from web.services.security_redaction import redact_exception_details
 from web.services.studio_installation_status import build_studio_installation_status
 from web.services.system_health_surface import build_system_health_surface
 from web.services.system_health_surface import build_system_health_api_payload
@@ -166,8 +168,6 @@ def _utenti_globali_piattaforma(gu: GestioneUtenti) -> list:
 
 
 # ============================================================= Decoratore
-
-from functools import wraps
 
 
 def superadmin_required(fn):
@@ -611,7 +611,7 @@ def salute_sistema():
 @admin_bp.route("/system-health")
 @superadmin_required
 def system_health():
-    return jsonify(build_system_health_api_payload())
+    return jsonify(redact_exception_details(build_system_health_api_payload()))
 
 
 @admin_bp.route("/lex-scorecard")
@@ -690,7 +690,7 @@ def nuovo_studio():
 
         tm = _tenant_manager()
         try:
-            studio = tm.crea(
+            tm.crea(
                 nome=nome,
                 slug=slug,
                 piano=piano,
@@ -729,7 +729,8 @@ def nuovo_studio():
                 tenant_slug=slug,
             )
         except Exception as e:
-            flash(f"Studio creato ma errore nella creazione utente admin: {e}", "warning")
+            current_app.logger.exception("Errore creazione amministratore studio: %s", e)
+            flash("Studio creato, ma la creazione dell'amministratore non è riuscita.", "warning")
             return redirect(url_for("admin.dettaglio_studio", slug=slug))
 
         provisioning = tm.provision_storage_backend(
@@ -904,7 +905,7 @@ def impersona_studio(slug: str):
 def esci_impersonazione():
     """Torna al SUPERADMIN originale."""
     orig_user_id  = session.pop("superadmin_user_id", None)
-    orig_auth_db  = session.pop("superadmin_auth_db", None)
+    session.pop("superadmin_auth_db", None)
 
     if not orig_user_id:
         return redirect(url_for("dashboard"))
@@ -1184,8 +1185,8 @@ def testa_connessione_db(slug: str):
     try:
         tm = _tenant_manager()
         risultato = tm.testa_connessione(slug)
-        return jsonify(risultato)
-    except Exception as e:
+        return jsonify(redact_exception_details(risultato))
+    except Exception:
         current_app.logger.exception("Errore test connessione DB")
         return jsonify({
             "ok": False,
@@ -1224,7 +1225,7 @@ def api_storage_studio(slug: str):
 @admin_bp.route("/api/governance")
 @superadmin_required
 def api_governance():
-    return jsonify(build_product_governance_surface(selected_slug=request.args.get("slug", "")))
+    return jsonify(redact_exception_details(build_product_governance_surface(selected_slug=request.args.get("slug", ""))))
 
 
 # ============================================================= Utility

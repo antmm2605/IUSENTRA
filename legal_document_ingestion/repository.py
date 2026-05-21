@@ -480,19 +480,16 @@ class LegalDocumentRepository:
             return self._row(row) if row else None
 
     def list_documents(self, tenant_id: str, *, fascicolo_id: str = "", limit: int = 100) -> list[dict[str, Any]]:
-        params: list[Any] = [tenant_id]
-        where = "tenant_id=?"
+        limit_value = max(1, min(int(limit or 100), 500))
+        query = "SELECT * FROM documents WHERE tenant_id=? ORDER BY created_at DESC LIMIT ?"
+        params: tuple[Any, ...] = (tenant_id, limit_value)
         if fascicolo_id:
-            where += " AND fascicolo_id=?"
-            params.append(fascicolo_id)
-        params.append(max(1, min(int(limit or 100), 500)))
+            query = "SELECT * FROM documents WHERE tenant_id=? AND fascicolo_id=? ORDER BY created_at DESC LIMIT ?"
+            params = (tenant_id, fascicolo_id, limit_value)
         with self.connect() as conn:
             return [
                 self._row(row)
-                for row in conn.execute(
-                    f"SELECT * FROM documents WHERE {where} ORDER BY created_at DESC LIMIT ?",
-                    tuple(params),
-                ).fetchall()
+                for row in conn.execute(query, params).fetchall()
             ]
 
     def file_for_document(self, tenant_id: str, document_id: str) -> dict[str, Any] | None:
@@ -777,12 +774,13 @@ class LegalDocumentRepository:
         ids = [str(item) for item in event_ids if str(item or "").strip()]
         if not ids:
             return self.list_events(tenant_id, document_id)
-        placeholders = ",".join("?" for _ in ids)
         with self.connect() as conn:
-            conn.execute(
-                f"UPDATE document_events SET status='approved', approved_by=?, approved_at=? WHERE tenant_id=? AND document_id=? AND id IN ({placeholders})",
-                (actor, utc_now(), tenant_id, document_id, *ids),
-            )
+            approved_at = utc_now()
+            for event_id in ids:
+                conn.execute(
+                    "UPDATE document_events SET status='approved', approved_by=?, approved_at=? WHERE tenant_id=? AND document_id=? AND id=?",
+                    (actor, approved_at, tenant_id, document_id, event_id),
+                )
             self.append_audit(conn, tenant_id=tenant_id, actor=actor, action="legal.event.approved", resource_type="document", resource_id=document_id, payload={"event_ids": ids})
             conn.commit()
         return self.list_events(tenant_id, document_id)
@@ -938,22 +936,30 @@ class LegalDocumentRepository:
         return {"id": bundle_id, "stored_uri": rel.as_posix(), "sha256": digest, "manifest": manifest}
 
     def metrics(self, tenant_id: str | None = None) -> dict[str, Any]:
-        where = ""
-        params: tuple[Any, ...] = ()
-        if tenant_id:
-            where = " WHERE tenant_id=?"
-            params = (tenant_id,)
         with self.connect() as conn:
-            documents = _scalar(conn, f"SELECT COUNT(*) FROM documents{where}", params)
-            validated = _scalar(conn, f"SELECT COUNT(*) FROM document_validations{where + (' AND' if where else ' WHERE')} result='valid'", params)
-            review = _scalar(conn, f"SELECT COUNT(*) FROM document_validations{where + (' AND' if where else ' WHERE')} result='needs_review'", params)
-            rejected = _scalar(conn, f"SELECT COUNT(*) FROM document_validations{where + (' AND' if where else ' WHERE')} result IN ('rejected','unsafe_file')", params)
-            lex_ready = _scalar(conn, f"SELECT COUNT(*) FROM lex_index_jobs{where + (' AND' if where else ' WHERE')} status='completed'", params)
-            events_total = _scalar(conn, f"SELECT COUNT(*) FROM document_events{where}", params)
-            events_approved = _scalar(conn, f"SELECT COUNT(*) FROM document_events{where + (' AND' if where else ' WHERE')} status='approved'", params)
-            class_rows = [row[0] for row in conn.execute(f"SELECT confidence FROM document_classifications{where}", params).fetchall()]
-            match_rows = [row[0] for row in conn.execute(f"SELECT confidence FROM document_case_matches{where}", params).fetchall()]
-            ocr_rows = [row[0] for row in conn.execute(f"SELECT confidence_document FROM document_ocr_runs{where}", params).fetchall()]
+            if tenant_id:
+                params = (tenant_id,)
+                documents = _scalar(conn, "SELECT COUNT(*) FROM documents WHERE tenant_id=?", params)
+                validated = _scalar(conn, "SELECT COUNT(*) FROM document_validations WHERE tenant_id=? AND result='valid'", params)
+                review = _scalar(conn, "SELECT COUNT(*) FROM document_validations WHERE tenant_id=? AND result='needs_review'", params)
+                rejected = _scalar(conn, "SELECT COUNT(*) FROM document_validations WHERE tenant_id=? AND result IN ('rejected','unsafe_file')", params)
+                lex_ready = _scalar(conn, "SELECT COUNT(*) FROM lex_index_jobs WHERE tenant_id=? AND status='completed'", params)
+                events_total = _scalar(conn, "SELECT COUNT(*) FROM document_events WHERE tenant_id=?", params)
+                events_approved = _scalar(conn, "SELECT COUNT(*) FROM document_events WHERE tenant_id=? AND status='approved'", params)
+                class_rows = [row[0] for row in conn.execute("SELECT confidence FROM document_classifications WHERE tenant_id=?", params).fetchall()]
+                match_rows = [row[0] for row in conn.execute("SELECT confidence FROM document_case_matches WHERE tenant_id=?", params).fetchall()]
+                ocr_rows = [row[0] for row in conn.execute("SELECT confidence_document FROM document_ocr_runs WHERE tenant_id=?", params).fetchall()]
+            else:
+                documents = _scalar(conn, "SELECT COUNT(*) FROM documents")
+                validated = _scalar(conn, "SELECT COUNT(*) FROM document_validations WHERE result='valid'")
+                review = _scalar(conn, "SELECT COUNT(*) FROM document_validations WHERE result='needs_review'")
+                rejected = _scalar(conn, "SELECT COUNT(*) FROM document_validations WHERE result IN ('rejected','unsafe_file')")
+                lex_ready = _scalar(conn, "SELECT COUNT(*) FROM lex_index_jobs WHERE status='completed'")
+                events_total = _scalar(conn, "SELECT COUNT(*) FROM document_events")
+                events_approved = _scalar(conn, "SELECT COUNT(*) FROM document_events WHERE status='approved'")
+                class_rows = [row[0] for row in conn.execute("SELECT confidence FROM document_classifications").fetchall()]
+                match_rows = [row[0] for row in conn.execute("SELECT confidence FROM document_case_matches").fetchall()]
+                ocr_rows = [row[0] for row in conn.execute("SELECT confidence_document FROM document_ocr_runs").fetchall()]
         auto_rate = (validated / documents) if documents else 0.0
         review_rate = (review / documents) if documents else 0.0
         estimated_reduction = round(min(0.95, auto_rate * 0.65 + (lex_ready / max(documents, 1)) * 0.15 + (events_total / max(documents, 1)) * 0.08), 3) if documents else 0.0
@@ -1073,7 +1079,7 @@ def safe_join(root: str | Path, rel: str | Path) -> Path:
     return target
 
 
-def _scalar(conn: sqlite3.Connection, sql: str, params: tuple[Any, ...]) -> int:
+def _scalar(conn: sqlite3.Connection, sql: str, params: tuple[Any, ...] = ()) -> int:
     row = conn.execute(sql, params).fetchone()
     return int(row[0] or 0) if row else 0
 

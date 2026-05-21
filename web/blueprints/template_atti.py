@@ -963,14 +963,14 @@ def template_inventory_data():
 @_richiedi_login
 def template_prefill_data(codice: str):
     payload, status = _resolve_template_prefill_response(codice)
-    return _json_response_safe(payload, status)
+    return jsonify(_json_safe_payload(payload)), status
 
 
 @template_atti.route("/<codice>/prefill/resolve", methods=["POST"])
 @_richiedi_login
 def template_prefill_resolve(codice: str):
     payload, status = _resolve_template_prefill_response(codice, _request_payload())
-    return _json_response_safe(payload, status)
+    return jsonify(_json_safe_payload(payload)), status
 
 
 @template_atti.route("/<codice>/prefill/merge", methods=["POST"])
@@ -981,7 +981,7 @@ def template_prefill_merge(codice: str):
     request_payload = _request_payload()
     resolved_payload, status = _resolve_template_prefill_response(codice, request_payload)
     if status != 200:
-        return _json_response_safe(resolved_payload, status)
+        return jsonify(_json_safe_payload(resolved_payload)), status
     user_values = request_payload.get("user_values") if isinstance(request_payload.get("user_values"), dict) else {}
     if not user_values:
         user_values = request_payload.get("values") if isinstance(request_payload.get("values"), dict) else {}
@@ -1036,7 +1036,7 @@ def template_verifica_completa(codice: str):
         return jsonify({"ok": False, "errore": "Template non trovato."}), 404
     prefill_payload, status = _resolve_template_prefill_response(safe_code, request_payload)
     if status != 200:
-        return _json_response_safe(prefill_payload, status)
+        return jsonify(_json_safe_payload(prefill_payload)), status
     prefill = prefill_payload.get("prefill") or {}
     user_values = request_payload.get("values") if isinstance(request_payload.get("values"), dict) else {}
     merge = merge_prefill_values(user_values, prefill.get("values"), prefill.get("fields"))
@@ -1308,11 +1308,8 @@ def compila(model_code: str):
     if not model:
         abort(404)
     resolved = _resolve_compiler_context(model_code)
-    id_cliente = resolved["id_cliente"]
-    id_fascicolo = resolved["id_fascicolo"]
     selected_cliente = resolved["selected_cliente"]
     selected_fascicolo = resolved["selected_fascicolo"]
-    initial_payload = resolved["initial_payload"]
     payload = resolved["payload"]
     correction_context = resolved["correction_context"]
     assistant_analysis = _build_assistant_analysis(
@@ -1781,7 +1778,7 @@ def _fallback_pdf_from_text(titolo: str, testo: str, config: dict, timbro=None) 
         from reportlab.platypus import (SimpleDocTemplate, Paragraph,
                                          Spacer, HRFlowable)
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.lib.enums import TA_CENTER, TA_LEFT
+        from reportlab.lib.enums import TA_CENTER
 
         PRIMARY = colors.HexColor("#1a3a5c")
         buf = io.BytesIO()

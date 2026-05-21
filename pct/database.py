@@ -13,10 +13,7 @@ Funzionalità:
 
 from __future__ import annotations
 
-import csv
-import io
 import json
-import os
 import shutil
 import sqlite3
 import time
@@ -31,6 +28,7 @@ from pct.catalogo_strutturale import (
     seed_catalogo_strutturale,
 )
 from pct.pdp_penale_workflow import SCHEMA_SQL_PDP_PENALE
+from pct.path_security import resolve_sqlite_path
 from pct.telematico_workflow import SCHEMA_SQL_TELEMATICO
 
 
@@ -1097,7 +1095,7 @@ class GestioneDatabase:
             if not u.get("password_hash", ""):
                 problemi.append(ProblemaIntegrita(
                     modulo="utenti", tipo="DATO_MANCANTE", severita="CRITICO",
-                    messaggio=f"Utente senza password hash",
+                    messaggio="Utente senza password hash",
                     id_record=uid, campo="password_hash",
                     suggerimento="Reimpostare la password dell'utente",
                 ))
@@ -1144,8 +1142,8 @@ class GestioneDatabase:
             values: Dict[str, dict] = {}
             duplicates: set[str] = set()
             for record in records:
-                for field in fields:
-                    key = _norm(record.get(field))
+                for key_field in fields:
+                    key = _norm(record.get(key_field))
                     if not key:
                         continue
                     if key in values and values[key] is not record:
@@ -1222,8 +1220,8 @@ class GestioneDatabase:
             direct = fascicoli_by_alias.get(_norm(missing_id))
             if direct:
                 return direct
-            for field in ("numero_fascicolo", "fascicolo_numero", "numero", "id_pratica"):
-                candidate = fascicoli_by_alias.get(_norm(record.get(field)))
+            for candidate_field in ("numero_fascicolo", "fascicolo_numero", "numero", "id_pratica"):
+                candidate = fascicoli_by_alias.get(_norm(record.get(candidate_field)))
                 if candidate:
                     return candidate
             return None
@@ -1554,8 +1552,9 @@ class GestioneDatabase:
         RisultatoMigrazione con conteggio record migrati e lista errori.
         """
         t0 = time.monotonic()
-        percorso_db = str(Path(percorso_db).resolve())
-        Path(percorso_db).parent.mkdir(parents=True, exist_ok=True)
+        percorso_db_path = resolve_sqlite_path(percorso_db)
+        percorso_db = str(percorso_db_path)
+        percorso_db_path.parent.mkdir(parents=True, exist_ok=True)
 
         conn = sqlite3.connect(percorso_db)
         conn.row_factory = sqlite3.Row

@@ -9,6 +9,8 @@ from typing import Any
 
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
 
+from web.services.security_redaction import redact_exception_details
+
 
 def _wants_json_response() -> bool:
     return (
@@ -163,13 +165,13 @@ def register_fascicoli_editor_routes(
             percorso = gestore_fascicoli.percorso_documento(id_fasc, id_doc)
             esito = converti_pdfa(str(percorso))
             if esito["ok"]:
-                msg = f"Documento convertito in PDF/A-2B con successo. {esito['messaggio']}"
+                msg = "Documento convertito in PDF/A-2B con successo."
                 flash(msg, "success")
                 audit("documento.converti_pdfa", id_fasc=id_fasc, id_doc=id_doc, nome=documento.nome)
                 if _wants_json_response():
                     return jsonify({"ok": True, "messaggio": msg})
             else:
-                msg = f"Conversione PDF/A non riuscita: {esito['messaggio']}"
+                msg = "Conversione PDF/A non riuscita."
                 if _wants_json_response():
                     return jsonify({"ok": False, "messaggio": msg}), 400
                 flash(msg, "danger")
@@ -191,7 +193,7 @@ def register_fascicoli_editor_routes(
             documento = next(doc for doc in fascicolo.documenti if doc.id == id_doc)
             raw = decrypt_doc(percorso.read_bytes())
             html, avvisi, meta = documento_to_html(raw, documento.nome)
-            return jsonify({"ok": True, "html": html, "avvisi": avvisi, "nome": documento.nome, "meta": meta})
+            return jsonify(redact_exception_details({"ok": True, "html": html, "avvisi": avvisi, "nome": documento.nome, "meta": meta}))
         except Exception as exc:
             app.logger.exception("Errore api_editor_carica_html: %s", exc)
             return jsonify({"ok": False, "html": "<p>Documento non caricato.</p>", "avvisi": ["Documento non caricato."], "meta": {}})
@@ -270,7 +272,7 @@ def register_fascicoli_editor_routes(
                 as_attachment=True,
                 download_name=titolo + ".pdf",
             )
-        except ImportError as exc:
+        except ImportError:
             return jsonify({"errore": "Generazione PDF non disponibile."}), 503
         except Exception as exc:
             app.logger.exception("Errore api_editor_pdf: %s", exc)
@@ -294,7 +296,7 @@ def register_fascicoli_editor_routes(
                 as_attachment=True,
                 download_name=titolo + ".docx",
             )
-        except ImportError as exc:
+        except ImportError:
             return jsonify({"errore": "Generazione DOCX non disponibile."}), 503
         except Exception as exc:
             app.logger.exception("Errore api_editor_docx: %s", exc)

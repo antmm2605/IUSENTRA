@@ -31,7 +31,9 @@ import logging
 import sqlite3
 import threading
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
+
+from pct.path_security import resolve_sqlite_path
 
 # ------------------------------------------------------------------ importazione lazy schema
 # Evita importazione circolare se pct.database importasse pct.storage.
@@ -75,7 +77,7 @@ class StudioDB:
     """
 
     def __init__(self, db_path: str) -> None:
-        self.db_path = Path(db_path).resolve()
+        self.db_path = resolve_sqlite_path(db_path)
         self._local = threading.local()
         self._ensure_schema()
 
@@ -85,11 +87,11 @@ class StudioDB:
         Restituisce l'istanza singleton per questo percorso.
         Thread-safe: la creazione è protetta da lock.
         """
-        key = str(Path(db_path).resolve())
+        key = str(resolve_sqlite_path(db_path))
         if key not in _instances:
             with _instances_lock:
                 if key not in _instances:
-                    _instances[key] = cls(db_path)
+                    _instances[key] = cls(key)
         return _instances[key]
 
     @classmethod

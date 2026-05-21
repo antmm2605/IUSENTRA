@@ -12,7 +12,7 @@ Questo registro è generato da `scripts/react-migration/generate_app_v2_page_reg
 - Route legacy operative: 18.
 - Route App V2 dichiarate in frontend: 14.
 - Alias legacy verso App V2 in frontend: 32.
-- Route Flask GET candidate rilevate fuori manifest: 242.
+- Route Flask GET candidate rilevate fuori manifest: 243.
 
 ### Distribuzione rischio
 
@@ -398,6 +398,10 @@ Storybook è presente come infrastruttura frontend, ma non è dichiarato copertu
 
 | Flag | Variabile | Descrizione | Default |
 | --- | --- | --- | --- |
+| ocr_forensic | IUSENTRA_FF_OCR_FORENSIC | OCR forense con token, coordinate, confidenza, audit e revisione selettiva. | on |
+| legal_document_understanding | IUSENTRA_FF_LEGAL_DOCUMENT_UNDERSTANDING | Comprensione documentale legale end-to-end per fascicoli, PEC, allegati e Lex. | on |
+| pec_zip_ocr | IUSENTRA_FF_PEC_ZIP_OCR | Estrazione sicura degli ZIP PEC con OCR e analisi dei file interni validati. | on |
+| lex_validated_documents_only | IUSENTRA_FF_LEX_VALIDATED_DOCUMENTS_ONLY | Indicizzazione Lex consentita solo per documenti validati. | on |
 | routes.appV2.dashboard.home | IUSENTRA_FF_ROUTES_APPV2_DASHBOARD_HOME | Panoramica nella shell App V2 sperimentale. | on |
 | routes.appV2.dashboard.regia | IUSENTRA_FF_ROUTES_APPV2_DASHBOARD_REGIA | Regia operativa nella shell App V2 sperimentale. | on |
 | routes.appV2.search.global | IUSENTRA_FF_ROUTES_APPV2_SEARCH_GLOBAL | Ricerca globale nella shell App V2 sperimentale. | on |
@@ -724,6 +728,7 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /lex-operativo | GET | web/bootstrap/lex_operational_routes.py | lex_operational.html |
 | /login | GET,POST | web/services/auth_runtime.py | auth/login.html, auth/login_2fa.html |
 | /login/2fa | GET,POST | web/services/auth_runtime.py | auth/login.html, auth/login_2fa.html |
+| /manifest.json | GET | web/bootstrap/pwa_routes.py | offline.html |
 | /manifest.webmanifest | GET | web/bootstrap/pwa_routes.py | offline.html |
 | /messaggi/{id_msg} | GET | web/bootstrap/messages_routes.py | messaggi/dettaglio.html, messaggi/form.html, messaggi/lista.html |
 | /metrics | GET | web/bootstrap/health_routes.py | non rilevato |
@@ -752,7 +757,6 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /polisWeb/local-signer/setup/macos | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
 | /polisWeb/local-signer/setup/windows | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
 | /polisWeb/local-signer/setup/windows-exe | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
-| /polisWeb/local-signer/setup/windows-ps1 | GET | web/bootstrap/telematico_local_signer_routes.py | non rilevato |
 
 ## Regola operativa fase 4
 

@@ -31,6 +31,7 @@ def register_auth_runtime(
         "login",
         "login_2fa",
         "static",
+        "favicon",
         "service_worker",
         "web_manifest",
         "offline",

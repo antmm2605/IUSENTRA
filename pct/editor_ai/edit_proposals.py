@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import re
-
 from .models import AttoAIEditProposal, new_id, utc_now
 from .validators import EditorAIValidationError, clean_text, validate_edit_operation
 
@@ -24,8 +22,8 @@ def build_edit_proposals(
     now = utc_now()
     lower = clean_instructions.lower()
 
-    replace_match = re.search(r"sostituisc[ia]\s+['\"](.+?)['\"]\s+con\s+['\"](.+?)['\"]", clean_instructions, re.IGNORECASE)
-    if replace_match:
+    replace_pair = _parse_replace_instruction(clean_instructions)
+    if replace_pair is not None:
         operation = "replace"
         proposals.append(
             AttoAIEditProposal(
@@ -35,8 +33,8 @@ def build_edit_proposals(
                 status="pending",
                 operation_type=operation,
                 target_block_id=None,
-                find_text=replace_match.group(1),
-                replace_text=replace_match.group(2),
+                find_text=replace_pair[0],
+                replace_text=replace_pair[1],
                 insert_text=None,
                 reason="Sostituzione puntuale richiesta dall'utente.",
                 created_by=created_by,
@@ -118,3 +116,29 @@ def apply_edit_proposal_to_html(current_html: str, proposal: AttoAIEditProposal)
             warnings.append("Verificare numerazione e rinvii dopo l'accettazione della modifica.")
         return f"{html}\n{insert}", warnings
     raise EditorAIValidationError("Operazione modifica non supportata.")
+
+
+def _parse_replace_instruction(instructions: str) -> tuple[str, str] | None:
+    lowered = instructions.casefold()
+    if not (lowered.startswith("sostituisci ") or lowered.startswith("sostituisca ")):
+        return None
+    quoted: list[str] = []
+    index = 0
+    while index < len(instructions) and len(quoted) < 2:
+        quote = instructions[index]
+        if quote not in {"'", '"'}:
+            index += 1
+            continue
+        end = instructions.find(quote, index + 1)
+        if end < 0:
+            return None
+        quoted.append(instructions[index + 1 : end])
+        index = end + 1
+    if len(quoted) != 2:
+        return None
+    between = instructions[
+        instructions.find(quoted[0]) + len(quoted[0]) : instructions.find(quoted[1])
+    ].casefold()
+    if " con " not in f" {between} ":
+        return None
+    return quoted[0], quoted[1]

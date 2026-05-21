@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import re
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Callable
 
@@ -14,21 +15,67 @@ from .models import AttoDraftPlan
 from .validators import EditorAIValidationError, clean_text
 
 
-_UNSAFE_TAG_RE = re.compile(r"<\s*(script|style|iframe|object|embed|link|meta)\b.*?</\s*\1\s*>", re.IGNORECASE | re.DOTALL)
-_UNSAFE_SINGLE_RE = re.compile(r"<\s*(script|style|iframe|object|embed|link|meta)\b[^>]*>", re.IGNORECASE)
-_EVENT_ATTR_RE = re.compile(r"\s+on[a-zA-Z]+\s*=\s*(['\"]).*?\1", re.IGNORECASE | re.DOTALL)
-_JS_ATTR_RE = re.compile(r"(href|src)\s*=\s*(['\"])\s*javascript:[^'\"]*\2", re.IGNORECASE)
+_UNSAFE_TAGS = {"script", "style", "iframe", "object", "embed", "link", "meta"}
+
+
+class _EditorHTMLSanitizer(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=False)
+        self.parts: list[str] = []
+        self._blocked_depth = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        name = tag.lower()
+        if name in _UNSAFE_TAGS:
+            self._blocked_depth += 1
+            return
+        if self._blocked_depth:
+            return
+        safe_attrs: list[str] = []
+        for attr, value in attrs:
+            attr_name = (attr or "").lower()
+            attr_value = value or ""
+            if attr_name.startswith("on"):
+                continue
+            if attr_name in {"href", "src"} and attr_value.strip().lower().startswith("javascript:"):
+                continue
+            safe_attrs.append(f'{html.escape(attr_name, quote=True)}="{html.escape(attr_value, quote=True)}"')
+        suffix = f" {' '.join(safe_attrs)}" if safe_attrs else ""
+        self.parts.append(f"<{html.escape(name)}{suffix}>")
+
+    def handle_endtag(self, tag: str) -> None:
+        name = tag.lower()
+        if name in _UNSAFE_TAGS and self._blocked_depth:
+            self._blocked_depth -= 1
+            return
+        if not self._blocked_depth:
+            self.parts.append(f"</{html.escape(name)}>")
+
+    def handle_data(self, data: str) -> None:
+        if not self._blocked_depth:
+            self.parts.append(html.escape(data))
+
+    def handle_entityref(self, name: str) -> None:
+        if not self._blocked_depth:
+            self.parts.append(f"&{html.escape(name)};")
+
+    def handle_charref(self, name: str) -> None:
+        if not self._blocked_depth:
+            self.parts.append(f"&#{html.escape(name)};")
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self.handle_starttag(tag, attrs)
+        self.handle_endtag(tag)
 
 
 def sanitize_editor_html(value: str) -> str:
     clean = str(value or "").strip()
     if not clean:
         return "<p></p>"
-    clean = _UNSAFE_TAG_RE.sub("", clean)
-    clean = _UNSAFE_SINGLE_RE.sub("", clean)
-    clean = _EVENT_ATTR_RE.sub("", clean)
-    clean = _JS_ATTR_RE.sub(r'\1=""', clean)
-    return clean or "<p></p>"
+    parser = _EditorHTMLSanitizer()
+    parser.feed(clean)
+    parser.close()
+    return "".join(parser.parts) or "<p></p>"
 
 
 def text_to_editor_html(value: str) -> str:
@@ -93,15 +140,15 @@ def legal_markdown_to_editor_html(value: str) -> str:
             blocks.append("<hr>")
             continue
 
-        numbered = re.match(r"^\d+[.)]\s+(.+)$", stripped)
-        bullet = re.match(r"^[-*]\s+(.+)$", stripped)
-        if numbered or bullet:
+        numbered_text = _numbered_item_text(stripped)
+        bullet_text = _bullet_item_text(stripped)
+        if numbered_text is not None or bullet_text is not None:
             flush_paragraph()
-            target_type = "ol" if numbered else "ul"
+            target_type = "ol" if numbered_text is not None else "ul"
             if list_type and list_type != target_type:
                 flush_list()
             list_type = target_type
-            list_items.append(_inline_markdown_to_editor_html((numbered or bullet).group(1)))
+            list_items.append(_inline_markdown_to_editor_html(numbered_text if numbered_text is not None else bullet_text or ""))
             continue
 
         flush_list()
@@ -119,10 +166,10 @@ def legal_markdown_to_editor_html(value: str) -> str:
             blocks.append(f"<h1>{_inline_markdown_to_editor_html(stripped[2:])}</h1>")
             continue
 
-        bold_only = re.match(r"^\*\*([^*]+)\*\*$", stripped)
-        if bold_only:
+        bold_only = _bold_only_text(stripped)
+        if bold_only is not None:
             flush_paragraph()
-            heading = _inline_markdown_to_editor_html(bold_only.group(1))
+            heading = _inline_markdown_to_editor_html(bold_only)
             tag = "h1" if not any(block.startswith("<h1>") for block in blocks) else "h2"
             blocks.append(f"<{tag}>{heading}</{tag}>")
             continue
@@ -135,10 +182,52 @@ def legal_markdown_to_editor_html(value: str) -> str:
 
 
 def _inline_markdown_to_editor_html(value: str) -> str:
-    clean = html.escape(str(value or "").strip())
-    clean = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", clean)
-    clean = re.sub(r"`([^`]+)`", r"<code>\1</code>", clean)
-    return clean
+    return _replace_inline_code(_replace_inline_bold(html.escape(str(value or "").strip())))
+
+
+def _numbered_item_text(value: str) -> str | None:
+    marker_end = 0
+    while marker_end < len(value) and value[marker_end].isdigit():
+        marker_end += 1
+    if marker_end == 0 or marker_end >= len(value) or value[marker_end] not in {".", ")"}:
+        return None
+    if marker_end + 1 >= len(value) or not value[marker_end + 1].isspace():
+        return None
+    return value[marker_end + 2 :].strip()
+
+
+def _bullet_item_text(value: str) -> str | None:
+    return value[2:].strip() if len(value) > 2 and value[0] in {"-", "*"} and value[1].isspace() else None
+
+
+def _bold_only_text(value: str) -> str | None:
+    if len(value) > 4 and value.startswith("**") and value.endswith("**") and "**" not in value[2:-2]:
+        return value[2:-2].strip()
+    return None
+
+
+def _replace_inline_bold(value: str) -> str:
+    parts = value.split("**")
+    if len(parts) < 3:
+        return value
+    out: list[str] = [parts[0]]
+    strong = True
+    for part in parts[1:]:
+        out.append(f"<strong>{part}</strong>" if strong else part)
+        strong = not strong
+    return "".join(out)
+
+
+def _replace_inline_code(value: str) -> str:
+    parts = value.split("`")
+    if len(parts) < 3:
+        return value
+    out: list[str] = [parts[0]]
+    code = True
+    for part in parts[1:]:
+        out.append(f"<code>{part}</code>" if code else part)
+        code = not code
+    return "".join(out)
 
 
 def _looks_like_html(content: str) -> bool:

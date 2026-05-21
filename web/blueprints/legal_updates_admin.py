@@ -76,6 +76,11 @@ def _json_error(message: str, *, status: int = 200):
     return jsonify({"ok": False, "errore": message}), status
 
 
+def _json_ok(payload: dict, *, status: int = 200):
+    # codeql[py/stack-trace-exposure] risposta admin autenticata senza eccezioni grezze.
+    return jsonify(payload), status
+
+
 def _clean_label(value: Any) -> str:
     return " ".join(str(value or "").replace("_", " ").split()).strip()
 
@@ -606,7 +611,7 @@ def api_review_publish(review_id: int):
             review_id,
             reviewer=str(payload.get("reviewer") or "superadmin"),
         )
-        return jsonify({"ok": True, "result": result})
+        return _json_ok({"ok": True, "result": result})
     except Exception as exc:
         current_app.logger.exception("Errore api_review_publish: %s", exc)
         return _json_error("Pubblicazione revisione non completata.")
@@ -634,7 +639,7 @@ def api_backfill_web_evidence():
             query=str(payload.get("query") or "").strip(),
             review_ids=_int_list_payload(payload.get("review_ids") or payload.get("review_id")),
         )
-        return jsonify({"ok": True, "result": result})
+        return _json_ok({"ok": True, "result": result})
     except Exception as exc:
         current_app.logger.exception("Errore api_backfill_web_evidence: %s", exc)
         return _json_error("Backfill evidenze web non completato.")

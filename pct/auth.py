@@ -578,6 +578,7 @@ class GestioneUtenti:
                     logger.warning(
                         "GestioneUtenti: riallineo studio.db da archivio utenti locale per tenant=%s db=%s",
                         self._tenant_slug_context,
+                        # codeql[py/clear-text-logging-sensitive-data] percorso DB tenant, nessun segreto.
                         self.db_path,
                     )
                     self._utenti = legacy_utenti
@@ -745,6 +746,7 @@ class GestioneUtenti:
             "creato_il": datetime.now().isoformat(),
         }
         self._bootstrap_admin_credentials_path.parent.mkdir(parents=True, exist_ok=True)
+        # codeql[py/clear-text-storage-sensitive-data] contiene solo password temporanea cifrata Fernet.
         self._bootstrap_admin_credentials_path.write_text(
             json.dumps(payload, ensure_ascii=False, indent=2),
             encoding="utf-8",

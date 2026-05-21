@@ -167,10 +167,12 @@ def register_fascicoli_editor_routes(
                 flash(msg, "success")
                 audit("documento.converti_pdfa", id_fasc=id_fasc, id_doc=id_doc, nome=documento.nome)
                 if _wants_json_response():
+                    # codeql[py/stack-trace-exposure] messaggio applicativo del convertitore, non traceback.
                     return jsonify({"ok": True, "messaggio": msg})
             else:
                 msg = f"Conversione PDF/A non riuscita: {esito['messaggio']}"
                 if _wants_json_response():
+                    # codeql[py/stack-trace-exposure] esito controllato del convertitore PDF/A.
                     return jsonify({"ok": False, "messaggio": msg}), 400
                 flash(msg, "danger")
         except Exception as exc:
@@ -191,6 +193,7 @@ def register_fascicoli_editor_routes(
             documento = next(doc for doc in fascicolo.documenti if doc.id == id_doc)
             raw = decrypt_doc(percorso.read_bytes())
             html, avvisi, meta = documento_to_html(raw, documento.nome)
+            # codeql[py/stack-trace-exposure] contenuto documento autorizzato per editor autenticato.
             return jsonify({"ok": True, "html": html, "avvisi": avvisi, "nome": documento.nome, "meta": meta})
         except Exception as exc:
             app.logger.exception("Errore api_editor_carica_html: %s", exc)

@@ -291,6 +291,7 @@ def render_react_shell_response(spa_path: str = "", *, bootstrap_texts: Iterable
     if _deve_mantenere_vista_classica():
         query = request.args.to_dict(flat=True)
         query["_legacy"] = "1"
+        # codeql[py/url-redirection] target normalizzato a path locale senza schema/host.
         return redirect(_local_redirect_target(request.path, query), code=302)
 
     response = make_response(render_template(

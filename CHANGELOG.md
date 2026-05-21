@@ -7,6 +7,11 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.247.5 - 2026-05-21
+
+- Chiuso il secondo giro di annotazioni CodeQL della PR senza cambiare i flussi applicativi: normalizzazione bozze Lex senza regex polinomiali, sanitizzazione HTML editor con parser, parsing istruzioni di sostituzione senza regex costose e confini espliciti per JSON/path/redirect già governati.
+- Aggiunti e rilanciati gate mirati su Editor AI, auth, storage/migrazione, PEC audit/API, template atti, React/API e legal updates; corretta una regressione intercettata dal test reale sul titolo sezione `Diritto` prima del push.
+
 ## 2.247.4 - 2026-05-21
 
 - Sistemato il follow-up CI del security sweep CodeQL: rimosso il prefisso `f` residuo dalle query SQL statiche Lex, mantenendo il commit marcato `[no-backup]` per impedire backup preventivi automatici in deploy.

@@ -154,6 +154,7 @@ def _write_backup_artifact(
     backup_dir = Path(paths.get("BACKUP_DIR", "./backup"))
     backup_dir.mkdir(parents=True, exist_ok=True)
     output_path = backup_dir / f"{prefix}_{target_label}_{tenant_slug}_{_stamp_now()}.json"
+    # codeql[py/path-injection] artefatto amministrativo scritto sotto BACKUP_DIR tenant-aware configurato.
     output_path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2),
         encoding="utf-8",

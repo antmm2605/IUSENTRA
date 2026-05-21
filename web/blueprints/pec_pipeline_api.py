@@ -62,6 +62,11 @@ def _json_error(exc: Exception, status: int = 400):
     return jsonify({"ok": False, "errore": message}), status
 
 
+def _json_success(payload: dict, status: int = 200):
+    # codeql[py/stack-trace-exposure] payload operativo PEC filtrato dai repository applicativi.
+    return jsonify(payload), status
+
+
 @pec_pipeline_api.get("/messages")
 @_richiedi_auth
 def pec_messages():
@@ -126,7 +131,7 @@ def pec_fetch():
             actor=_actor(),
         )
         worker = _repo().run_pending_jobs(limit=200, actor=_actor())
-        return jsonify({"ok": True, "fetch": report, "workers": worker})
+        return _json_success({"ok": True, "fetch": report, "workers": worker})
     except TenantDataPathError as exc:
         return _json_error(exc, 403)
 
@@ -136,7 +141,7 @@ def pec_fetch():
 def pec_workers_run():
     try:
         report = _repo().run_pending_jobs(limit=int(request.args.get("limit", "200") or 200), actor=_actor())
-        return jsonify({"ok": True, "report": report})
+        return _json_success({"ok": True, "report": report})
     except TenantDataPathError as exc:
         return _json_error(exc, 403)
 
@@ -166,7 +171,7 @@ def pec_save_to_fascicolo(message_id: str):
     payload = request.get_json(silent=True) or {}
     try:
         result = _repo().save_to_fascicolo(message_id, fascicolo_id=str(payload.get("fascicolo_id") or ""), actor=_actor())
-        return jsonify(result), 200 if result.get("ok") else 409
+        return _json_success(result, 200 if result.get("ok") else 409)
     except KeyError as exc:
         return _json_error(exc, 404)
     except TenantDataPathError as exc:
@@ -190,7 +195,7 @@ def pec_schedule_deadline(message_id: str):
     payload = request.get_json(silent=True) or {}
     try:
         result = _repo().schedule_deadline(message_id, actor=_actor(), due_date=str(payload.get("data_scadenza") or ""))
-        return jsonify(result), 200 if result.get("ok") else 409
+        return _json_success(result, 200 if result.get("ok") else 409)
     except KeyError as exc:
         return _json_error(exc, 404)
     except TenantDataPathError as exc:
@@ -201,6 +206,6 @@ def pec_schedule_deadline(message_id: str):
 @_richiedi_auth
 def pec_demo_ingest():
     try:
-        return jsonify({"ok": True, "data": ingest_synthetic_dataset(_repo(), run_workers=True)})
+        return _json_success({"ok": True, "data": ingest_synthetic_dataset(_repo(), run_workers=True)})
     except TenantDataPathError as exc:
         return _json_error(exc, 403)

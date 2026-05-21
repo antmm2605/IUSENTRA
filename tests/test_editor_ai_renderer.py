@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from lex.formatting.legal_draft_layout import normalize_legal_draft_layout
+from pct.editor_ai.edit_proposals import build_edit_proposals
 from pct.editor_ai.editor_renderer import (
     create_editor_document,
     legal_markdown_to_editor_html,
@@ -79,3 +81,38 @@ Il debitore non ha adempiuto.
     assert "<ol><li>Pagare il dovuto</li><li>Consegnare i documenti</li></ol>" in html
     assert "<ul><li>Codice fiscale cliente</li><li>Indirizzo controparte</li></ul>" in html
     assert "<blockquote" not in html
+
+
+def test_normalize_legal_draft_layout_impagina_bozza_piatta_senza_regex_costose():
+    text = (
+        "**BOZZA - DIFFIDA E MESSA IN MORA** --- 17/05/2026 Spett.le Mario Rossi "
+        "[Indirizzo controparte] Oggetto: Sollecito pagamento Fatto Il debitore non ha adempiuto. "
+        "Diritto Art. 1219 c.c. Richiesta formale Si diffida al pagamento. "
+        "1. Pagare il dovuto 2. Consegnare i documenti Avvertenza Verificare dati. "
+        "Con osservanza, Avv. Bianchi Fonti consultate: archivio interno"
+    )
+
+    normalized = normalize_legal_draft_layout(text)
+
+    assert normalized.startswith("**BOZZA - DIFFIDA E MESSA IN MORA**")
+    assert "**Spett.le**" in normalized
+    assert "[Indirizzo controparte]" in normalized
+    assert "**Oggetto:**" in normalized
+    assert "**Fatto**" in normalized
+    assert "\n1. Pagare il dovuto" in normalized
+    assert "Fonti consultate" not in normalized
+
+
+def test_build_edit_proposals_sostituzione_conserva_testi_quotati():
+    proposals = build_edit_proposals(
+        atto_ai_id="atto-ai-1",
+        version_id="v1",
+        instructions='sostituisci "vecchio importo" con "nuovo importo"',
+        current_html="<p>vecchio importo</p>",
+        created_by="utente",
+    )
+
+    assert len(proposals) == 1
+    assert proposals[0].operation_type == "replace"
+    assert proposals[0].find_text == "vecchio importo"
+    assert proposals[0].replace_text == "nuovo importo"

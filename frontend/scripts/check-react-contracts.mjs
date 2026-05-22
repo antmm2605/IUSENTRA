@@ -642,8 +642,28 @@ assertContains(iusentraPreset, 'IusentraContextFilters', 'preset globale espone 
 assertContains(iusentraPreset, 'IusentraPaginationBar', 'preset globale espone PaginationBar')
 assertContains(iusentraPreset, 'IusentraRoutePresetFrame', 'preset globale espone RoutePresetFrame')
 assertContains(iusentraPreset, 'PRESET_ROUTE_LAYOUT_SELECTORS', 'preset globale registra layout locali delle rotte')
+assertContains(iusentraPreset, 'IUSENTRA_PAGE_SEQUENCE', 'preset globale espone sequenza pagina canonica')
+assertContains(iusentraPreset, 'applyRouteSequencePreset', 'preset globale applica la sequenza alle rotte')
+assertContains(iusentraPreset, 'classifySequenceSlot', 'preset globale classifica header, azioni, filtri, contenuto e supporto')
+assertContains(iusentraPreset, 'IUSENTRA_SEQUENCE_ROOT_SELECTORS', 'preset globale registra radici sequenza')
+assertContains(iusentraPreset, "'.iusentra-main-area'", 'preset globale include MainArea tra le radici sequenza')
+assertContains(iusentraPreset, 'iusentraSequenceManaged', 'preset globale preserva gli slot dichiarati dai componenti')
+assertContains(iusentraPreset, 'applySequencePart', 'preset globale promuove sottotitolo e azioni a slot verificabili')
 assertContains(iusentraPreset, 'ResizeObserver', 'preset globale misura altezza SupportRail')
 assertContains(iusentraPreset, '--iusentra-support-rail-min-height', 'preset globale passa min-height alla MainSurface')
+for (const sequenceSlot of [
+  'page-header',
+  'operational-subtitle',
+  'primary-actions',
+  'filters',
+  'context-filters',
+  'main-content',
+  'pagination-footer',
+  'support-sidebar',
+]) {
+  assertContains(iusentraPreset, `'${sequenceSlot}'`, `preset globale registra slot sequenza ${sequenceSlot}`)
+  assertContains(iusentraDesignSystemCss, `data-iusentra-sequence-slot="${sequenceSlot}"`, `CSS preset ordina slot ${sequenceSlot}`)
+}
 for (const routeLayoutSelector of [
   '.iu-ag-layout',
   '.iu-cli-layout',
@@ -660,9 +680,16 @@ for (const routeLayoutSelector of [
 }
 assertContains(iusentraComponentsIndex, 'IusentraMainArea', 'componenti IUSENTRA esportano il preset globale')
 assertContains(iusentraComponentsIndex, 'IusentraRoutePresetFrame', 'componenti IUSENTRA esportano RoutePresetFrame')
+assertContains(iusentraComponentsIndex, 'IUSENTRA_PAGE_SEQUENCE', 'componenti IUSENTRA esportano la sequenza globale')
 assertContains(iusentraDesignSystemCss, '--iusentra-support-rail-width', 'CSS preset centralizza larghezza rail')
 assertContains(iusentraDesignSystemCss, 'grid-template-columns: minmax(0, 1fr) minmax(320px, var(--iusentra-support-rail-width))', 'CSS preset definisce griglia desktop')
 assertContains(iusentraDesignSystemCss, '.iusentra-route-preset--active .iusentra-route-grid', 'CSS preset normalizza griglie di rotta')
+assertContains(iusentraDesignSystemCss, '.iusentra-route-preset--active .iu-content.iusentra-route-sequence', 'CSS preset impone la sequenza sul contenuto pagina')
+assertContains(iusentraDesignSystemCss, 'order: 10', 'CSS preset mette header prima')
+assertContains(iusentraDesignSystemCss, 'order: 30', 'CSS preset mette azioni principali prima dei filtri')
+assertContains(iusentraDesignSystemCss, 'order: 40', 'CSS preset mette filtri dopo le azioni')
+assertContains(iusentraDesignSystemCss, 'order: 70', 'CSS preset mette paginazione dopo il contenuto')
+assertContains(iusentraDesignSystemCss, 'order: 80', 'CSS preset mette supporto dopo il footer nel flusso')
 assertContains(iusentraDesignSystemCss, '--iusentra-route-rail-height', 'CSS preset usa altezza rail di rotta')
 assertContains(iusentraDesignSystemCss, '.iusentra-data-surface--fill', 'CSS preset fa crescere DataSurface')
 assertContains(iusentraDesignSystemCss, 'margin-top: auto', 'CSS preset ancora la paginazione in basso')

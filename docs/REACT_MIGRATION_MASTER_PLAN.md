@@ -1,5 +1,11 @@
 # Migrazione progressiva Flask + React
 
+## Sequenza preset globale IUSENTRA - 2026-05-22 - 2.248.13
+
+Il preset grafico globale è stato rafforzato con una sequenza pagina obbligatoria: Header pagina, Sottotitolo operativo, Azioni principali, Filtri, Contesto filtri / riepilogo, Contenuto principale, Paginazione / footer e Sidebar di supporto. La sequenza è definita in `IUSENTRA_PAGE_SEQUENCE`, applicata dal `IusentraRoutePresetFrame` tramite `data-iusentra-sequence-slot` e ordinata in `frontend/src/styles/iusentra-design-system.css`.
+
+Il gate `scripts/react-migration/audit-ui-preset-sequence.mjs` è incluso nel test frontend e fallisce se il builder non resta escluso, se lo slot map non è completo o se il preset perde la sequenza. L'audit di tranche è registrato in `artifacts/react-migration/ui-preset-sequence-audit.md`.
+
 ## Preset grafico globale IUSENTRA - 2026-05-22 - 2.248.12
 
 Il frontend React dispone ora di un preset grafico globale documentato in `docs/UI_PRESET_IUSENTRA.md` e implementato in `frontend/src/components/iusentra/IusentraPreset.tsx`. Il preset centralizza PageShell, MainArea, MainSurface, SupportRail, PanelCard, DataSurface, FiltersBar, ContextFilters, PaginationBar, ActionCard, EmptyState, token di griglia, rail, bordi, stati, card, filtri, paginazione e mappa icone.

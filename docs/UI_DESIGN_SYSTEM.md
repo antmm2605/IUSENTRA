@@ -53,6 +53,8 @@ Dal 22 maggio 2026 le pagine operative React devono comporre il preset documenta
 
 Il preset è applicato dalla shell React a tutte le pagine, con esclusione esplicita di `/sito-studio/builder`. `IusentraRoutePresetFrame` normalizza anche le griglie locali già presenti su Agenda, Clienti/Soggetti, PEC, Scadenziario, Telematico, Preventivi, Template atti e amministrazione. Le pagine con tabelle o liste devono usare `IusentraDataSurface` con footer/paginazione ancorato in basso; le pagine con rail laterale devono usare `IusentraMainArea` e `IusentraSupportRail`, così la superficie principale si allinea almeno all'altezza della colonna di supporto.
 
+Lo stesso frame impone la sequenza `IUSENTRA_PAGE_SEQUENCE` su ogni superficie operativa: Header pagina, Sottotitolo operativo, Azioni principali, Filtri, Contesto filtri / riepilogo, Contenuto principale, Paginazione / footer, Sidebar di supporto. Le sezioni vengono marcate con `data-iusentra-sequence-slot`, ordinate dal CSS globale e verificate dal gate `audit-ui-preset-sequence.mjs`.
+
 ## Token colore
 
 La palette deve restare istituzionale e leggibile:
@@ -83,14 +85,18 @@ Dimensioni consigliate: 18 px per toolbar e tabella, 20 px per card e sidebar, 2
 
 ## Pattern pagina
 
-Ogni pagina operativa dovrebbe comporre:
+Ogni pagina operativa deve comporre:
 
 1. `IusPageShell`
 2. `IusSectionHeader`
-3. toolbar o filtri con controlli reali
-4. contenuto principale con `IusActionCard`, `IusMetricCard`, `IusDataTableShell` o pannelli collassabili
-5. stati vuoti, errore, successo e loading espliciti
-6. Lex AI flottante solo dove previsto dalla superficie
+3. azioni principali o card operative con `IusActionCard` / `IusMetricCard`
+4. toolbar o filtri con controlli reali
+5. contesto filtri, riepilogo o stato operativo
+6. contenuto principale con `IusDataTableShell`, `IusentraDataSurface` o pannelli collassabili
+7. paginazione o footer agganciato alla superficie dati
+8. sidebar di supporto solo per riepiloghi, alert, checklist e azioni secondarie
+9. stati vuoti, errore, successo e loading espliciti
+10. Lex AI flottante solo dove previsto dalla superficie
 
 Esempio sintetico:
 

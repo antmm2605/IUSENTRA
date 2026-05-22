@@ -25,15 +25,19 @@ export function IusSectionHeader({
 }) {
   const HeadingTag = level === 1 ? 'h1' : level === 2 ? 'h2' : 'h3'
   return (
-    <header className={cn('ius-section-header', className)}>
+    <header className={cn('ius-section-header', className)} data-iusentra-sequence-slot="page-header">
       <div className="ius-section-header__main">
         {area || icon ? <IusLegalIcon area={area} icon={icon} tone={tone} /> : null}
         <div>
-          <HeadingTag>{title}</HeadingTag>
-          {description ? <p>{description}</p> : null}
+          <HeadingTag data-iusentra-sequence-part="page-header">{title}</HeadingTag>
+          {description ? (
+            <p data-iusentra-sequence-slot="operational-subtitle" data-iusentra-sequence-part="operational-subtitle">
+              {description}
+            </p>
+          ) : null}
         </div>
       </div>
-      {actions ? <div className="ius-section-header__actions">{actions}</div> : null}
+      {actions ? <div className="ius-section-header__actions" data-iusentra-sequence-slot="primary-actions" data-iusentra-sequence-part="primary-actions">{actions}</div> : null}
     </header>
   )
 }

@@ -3127,6 +3127,7 @@ def test_react_fascicoli_usa_preset_grafico_globale():
     preset = Path("frontend/src/components/iusentra/IusentraPreset.tsx").read_text(encoding="utf-8")
     design_css = Path("frontend/src/styles/iusentra-design-system.css").read_text(encoding="utf-8")
     docs = Path("docs/UI_PRESET_IUSENTRA.md").read_text(encoding="utf-8")
+    section_header = Path("frontend/src/components/iusentra/IusSectionHeader.tsx").read_text(encoding="utf-8")
 
     for token in (
         "IusentraPageShell",
@@ -3147,6 +3148,33 @@ def test_react_fascicoli_usa_preset_grafico_globale():
 
     assert "ResizeObserver" in preset
     assert "PRESET_ROUTE_LAYOUT_SELECTORS" in preset
+    assert "IUSENTRA_PAGE_SEQUENCE" in preset
+    assert "IUSENTRA_PAGE_SEQUENCE_VERSION" in preset
+    assert "IUSENTRA_SEQUENCE_ROOT_SELECTORS" in preset
+    assert "'.iusentra-main-area'" in preset
+    assert "classifySequenceSlot" in preset
+    assert "applyRouteSequencePreset" in preset
+    assert "iusentraSequenceManaged" in preset
+    assert "applySequencePart" in preset
+    assert "applyRouteSequencePreset(root)" in preset
+    for sequence_slot, sequence_label in (
+        ("page-header", "Header pagina"),
+        ("operational-subtitle", "Sottotitolo operativo"),
+        ("primary-actions", "Azioni principali"),
+        ("filters", "Filtri"),
+        ("context-filters", "Contesto filtri / riepilogo"),
+        ("main-content", "Contenuto principale"),
+        ("pagination-footer", "Paginazione / footer"),
+        ("support-sidebar", "Sidebar di supporto"),
+    ):
+        assert f"'{sequence_slot}'" in preset
+        assert f'data-iusentra-sequence-slot="{sequence_slot}"' in design_css
+        assert sequence_label in docs
+    assert 'data-iusentra-sequence-slot="page-header"' in section_header
+    assert 'data-iusentra-sequence-slot="operational-subtitle"' in section_header
+    assert 'data-iusentra-sequence-part="operational-subtitle"' in section_header
+    assert 'data-iusentra-sequence-slot="primary-actions"' in section_header
+    assert 'data-iusentra-sequence-part="primary-actions"' in section_header
     for route_layout in (
         ".iu-ag-layout",
         ".iu-cli-layout",
@@ -3164,6 +3192,9 @@ def test_react_fascicoli_usa_preset_grafico_globale():
     assert "--iusentra-route-rail-height" in preset
     assert "grid-template-columns: minmax(0, 1fr) minmax(320px, var(--iusentra-support-rail-width))" in design_css
     assert ".iusentra-route-preset--active .iusentra-route-grid" in design_css
+    assert ".iusentra-route-preset--active .iu-content.iusentra-route-sequence" in design_css
+    for order in ("order: 10", "order: 20", "order: 30", "order: 40", "order: 50", "order: 60", "order: 70", "order: 80"):
+        assert order in design_css
     assert "margin-top: auto" in design_css
     assert "isSitoStudioBuilderPage?'excluded':'active'" in app_source
     assert "IusentraRoutePresetFrame routeKey={routeKey} enabled={!isSitoStudioBuilderPage}" in app_source

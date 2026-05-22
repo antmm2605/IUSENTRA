@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.13 - 2026-05-22
+
+- Rafforzato il preset grafico globale IUSENTRA: `IusentraRoutePresetFrame` ora impone la sequenza canonica Header pagina, Sottotitolo operativo, Azioni principali, Filtri, Contesto filtri, Contenuto principale, Paginazione/footer e Sidebar di supporto su tutte le rotte React operative.
+- Aggiunti gli slot `data-iusentra-sequence-slot`, l'export `IUSENTRA_PAGE_SEQUENCE`, la marcatura di `IusSectionHeader` e il CSS globale di ordinamento, mantenendo `/sito-studio/builder` esclusa dal preset.
+- Aggiunto il gate `scripts/react-migration/audit-ui-preset-sequence.mjs`, incluso nel test frontend, e documentato l'audit in `artifacts/react-migration/ui-preset-sequence-audit.md`.
+
 ## 2.248.12 - 2026-05-22
 
 - Introdotto il preset grafico globale IUSENTRA con componenti centralizzati PageShell, MainArea, MainSurface, SupportRail, PanelCard, DataSurface, FiltersBar, ContextFilters, PaginationBar, ActionCard ed EmptyState.

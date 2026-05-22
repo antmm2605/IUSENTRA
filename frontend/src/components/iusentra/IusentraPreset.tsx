@@ -78,6 +78,35 @@ const PRESET_ROUTE_LAYOUT_SELECTORS = [
 
 const PRESET_ROUTE_LAYOUT_SELECTOR = PRESET_ROUTE_LAYOUT_SELECTORS.join(',')
 
+export const IUSENTRA_PAGE_SEQUENCE = [
+  { slot: 'page-header', label: 'Header pagina', order: 10 },
+  { slot: 'operational-subtitle', label: 'Sottotitolo operativo', order: 20 },
+  { slot: 'primary-actions', label: 'Azioni principali', order: 30 },
+  { slot: 'filters', label: 'Filtri', order: 40 },
+  { slot: 'context-filters', label: 'Contesto filtri / riepilogo', order: 50 },
+  { slot: 'main-content', label: 'Contenuto principale', order: 60 },
+  { slot: 'pagination-footer', label: 'Paginazione / footer', order: 70 },
+  { slot: 'support-sidebar', label: 'Sidebar di supporto', order: 80 },
+] as const
+
+export type IusentraPageSequenceSlot = (typeof IUSENTRA_PAGE_SEQUENCE)[number]['slot']
+
+const IUSENTRA_PAGE_SEQUENCE_VERSION = 'canonical-v1'
+const IUSENTRA_PAGE_SEQUENCE_ORDER = IUSENTRA_PAGE_SEQUENCE.map((item) => item.slot).join('>')
+
+const IUSENTRA_SEQUENCE_ROOT_SELECTORS = [
+  '.iu-content',
+  '.iusentra-page-shell',
+  '.iusentra-page-shell__body',
+  '.iusentra-main-area',
+  '.iusentra-main-surface',
+  '.iusentra-data-surface',
+  '.iusentra-route-main-surface',
+] as const
+
+const IUSENTRA_SEQUENCE_ROOT_SELECTOR = IUSENTRA_SEQUENCE_ROOT_SELECTORS.join(',')
+const IUSENTRA_SEQUENCE_SLOT_CLASS_PREFIX = 'iusentra-sequence-slot--'
+
 type PresetLayoutContextValue = {
   setSupportRailNode: (node: HTMLElement | null) => void
 }
@@ -121,6 +150,114 @@ function isRailCandidate(element: HTMLElement) {
     className.includes('support') ||
     className.includes('preview')
   )
+}
+
+function classNameOf(element: HTMLElement) {
+  return element.className.toString().toLowerCase()
+}
+
+function ownsClassToken(element: HTMLElement, matcher: RegExp) {
+  return Array.from(element.classList).some((token) => matcher.test(token.toLowerCase()))
+}
+
+function classifySequenceSlot(element: HTMLElement): IusentraPageSequenceSlot | null {
+  const declared = element.dataset.iusentraSequenceSlot
+  if (declared && IUSENTRA_PAGE_SEQUENCE.some((item) => item.slot === declared)) return declared as IusentraPageSequenceSlot
+
+  const className = classNameOf(element)
+  const preset = element.dataset.iusentraPreset || ''
+  const tag = element.tagName.toLowerCase()
+
+  if (preset === 'support-rail' || element.classList.contains('iusentra-route-rail') || isRailCandidate(element)) return 'support-sidebar'
+  if (preset === 'pagination-bar' || tag === 'footer' || className.includes('pagination') || className.includes('pager')) return 'pagination-footer'
+  if (preset === 'data-surface' || className.includes('table-card') || className.includes('data-surface')) return 'main-content'
+  if (preset === 'context-filters' || className.includes('advanced') || className.includes('context') || className.includes('status-line') || className.endsWith('-status') || className.includes('-status ') || className.includes('bulkbar') || className.includes('notice') || className.includes('alert')) return 'context-filters'
+  if (preset === 'filters-bar' || className.includes('filters') || className.includes('filter') || className.includes('toolbar') || className.includes('searchbar') || className.includes('search-panel')) return 'filters'
+  if (preset === 'action-card' || className.includes('actions-grid') || className.includes('quick-actions') || className.includes('action-grid') || className.includes('hero__actions') || ownsClassToken(element, /(?:stats|kpis|metrics)$/)) return 'primary-actions'
+  if (className.includes('page-heading') || className.includes('section-header') || ownsClassToken(element, /hero$/)) return 'page-header'
+  if (preset === 'main-surface' || className.includes('layout') || className.includes('workspace') || className.includes('main-list') || className.includes('main-panel') || className.includes('list-card') || className.includes('lower-grid')) return 'main-content'
+  return null
+}
+
+function clearSequenceSlot(element: HTMLElement) {
+  const routeManaged = element.dataset.iusentraSequenceManaged === 'route'
+  if (routeManaged) {
+    delete element.dataset.iusentraSequenceSlot
+    delete element.dataset.iusentraSequenceOrder
+    delete element.dataset.iusentraSequenceManaged
+  }
+  Array.from(element.classList)
+    .filter((token) => token.startsWith(IUSENTRA_SEQUENCE_SLOT_CLASS_PREFIX))
+    .forEach((token) => element.classList.remove(token))
+}
+
+function applySequenceSlot(element: HTMLElement, slot: IusentraPageSequenceSlot) {
+  const order = IUSENTRA_PAGE_SEQUENCE.find((item) => item.slot === slot)?.order ?? 999
+  const declaredByComponent = Boolean(element.dataset.iusentraSequenceSlot && element.dataset.iusentraSequenceManaged !== 'route')
+  clearSequenceSlot(element)
+  element.dataset.iusentraSequenceSlot = slot
+  element.dataset.iusentraSequenceOrder = String(order)
+  if (!declaredByComponent) element.dataset.iusentraSequenceManaged = 'route'
+  element.classList.add(`${IUSENTRA_SEQUENCE_SLOT_CLASS_PREFIX}${slot}`)
+}
+
+function applySequencePart(element: HTMLElement, slot: IusentraPageSequenceSlot) {
+  element.dataset.iusentraSequencePart = slot
+  if (!element.dataset.iusentraSequenceSlot) {
+    applySequenceSlot(element, slot)
+  }
+}
+
+function markNestedSequenceParts(element: HTMLElement, slot: IusentraPageSequenceSlot) {
+  if (slot === 'page-header') {
+    const title = element.querySelector<HTMLElement>('h1,h2,[data-iusentra-title]')
+    const subtitle = element.querySelector<HTMLElement>('p,.ius-section-header__description,[data-iusentra-subtitle]')
+    const actions = element.querySelector<HTMLElement>('[class*="__actions"],[class*="hero-actions"],[data-iusentra-actions]')
+    if (title) title.dataset.iusentraSequencePart = 'page-header'
+    if (subtitle) applySequencePart(subtitle, 'operational-subtitle')
+    if (actions) applySequencePart(actions, 'primary-actions')
+  }
+
+  if (slot === 'primary-actions') {
+    element.querySelectorAll<HTMLElement>('article,a,button,[data-iusentra-preset="action-card"]')
+      .forEach((child) => {
+        child.dataset.iusentraSequencePart = 'primary-actions'
+      })
+  }
+}
+
+function applyRouteSequencePreset(root: HTMLElement) {
+  const sequenceRoots = new Set<HTMLElement>()
+  root.querySelectorAll<HTMLElement>(IUSENTRA_SEQUENCE_ROOT_SELECTOR).forEach((element) => {
+    if (!element.closest('.iusentra-route-preset--excluded')) sequenceRoots.add(element)
+  })
+
+  sequenceRoots.forEach((sequenceRoot) => {
+    sequenceRoot.classList.add('iusentra-route-sequence')
+    sequenceRoot.dataset.iusentraSequence = IUSENTRA_PAGE_SEQUENCE_VERSION
+    sequenceRoot.dataset.iusentraSequenceOrder = IUSENTRA_PAGE_SEQUENCE_ORDER
+
+    Array.from(sequenceRoot.children).forEach((child) => {
+      if (!(child instanceof HTMLElement)) return
+      const slot = classifySequenceSlot(child)
+      if (slot) {
+        applySequenceSlot(child, slot)
+        markNestedSequenceParts(child, slot)
+      }
+    })
+  })
+
+  return () => {
+    sequenceRoots.forEach((sequenceRoot) => {
+      sequenceRoot.classList.remove('iusentra-route-sequence')
+      delete sequenceRoot.dataset.iusentraSequence
+      delete sequenceRoot.dataset.iusentraSequenceOrder
+      sequenceRoot.querySelectorAll<HTMLElement>('[data-iusentra-sequence-slot],[data-iusentra-sequence-part]').forEach((element) => {
+        clearSequenceSlot(element)
+        delete element.dataset.iusentraSequencePart
+      })
+    })
+  }
 }
 
 function applyRouteGridPreset(root: HTMLElement) {
@@ -214,14 +351,24 @@ export function IusentraRoutePresetFrame({
 
     let cleanup = () => {}
     let raf = window.requestAnimationFrame(() => {
-      cleanup = applyRouteGridPreset(root)
+      const cleanupGrid = applyRouteGridPreset(root)
+      const cleanupSequence = applyRouteSequencePreset(root)
+      cleanup = () => {
+        cleanupSequence()
+        cleanupGrid()
+      }
     })
 
     const observer = new MutationObserver(() => {
       window.cancelAnimationFrame(raf)
       cleanup()
       raf = window.requestAnimationFrame(() => {
-        cleanup = applyRouteGridPreset(root)
+        const cleanupGrid = applyRouteGridPreset(root)
+        const cleanupSequence = applyRouteSequencePreset(root)
+        cleanup = () => {
+          cleanupSequence()
+          cleanupGrid()
+        }
       })
     })
     observer.observe(root, { childList: true, subtree: true })
@@ -327,6 +474,7 @@ export function IusentraMainArea({
         className={cn('iusentra-main-area', className)}
         style={style}
         data-iusentra-preset="main-area"
+        data-iusentra-sequence-slot="main-content"
       >
         {children}
       </section>
@@ -342,7 +490,7 @@ export function IusentraMainSurface({
   className?: string
 }) {
   return (
-    <section className={cn('iusentra-main-surface', className)} data-iusentra-preset="main-surface">
+    <section className={cn('iusentra-main-surface', className)} data-iusentra-preset="main-surface" data-iusentra-sequence-slot="main-content">
       {children}
     </section>
   )
@@ -361,7 +509,7 @@ export function IusentraSupportRail({
   }, [context])
 
   return (
-    <aside ref={ref} className={cn('iusentra-support-rail', className)} data-iusentra-preset="support-rail">
+    <aside ref={ref} className={cn('iusentra-support-rail', className)} data-iusentra-preset="support-rail" data-iusentra-sequence-slot="support-sidebar">
       {children}
     </aside>
   )
@@ -414,7 +562,7 @@ export function IusentraFiltersBar({
   className?: string
 }) {
   return (
-    <section className={cn('iusentra-filters-bar', className)} data-iusentra-preset="filters-bar" aria-label="Filtri principali">
+    <section className={cn('iusentra-filters-bar', className)} data-iusentra-preset="filters-bar" data-iusentra-sequence-slot="filters" aria-label="Filtri principali">
       {children}
     </section>
   )
@@ -428,7 +576,7 @@ export function IusentraContextFilters({
   className?: string
 }) {
   return (
-    <section className={cn('iusentra-context-filters', className)} data-iusentra-preset="context-filters" aria-label="Contesto filtri">
+    <section className={cn('iusentra-context-filters', className)} data-iusentra-preset="context-filters" data-iusentra-sequence-slot="context-filters" aria-label="Contesto filtri">
       {children}
     </section>
   )
@@ -442,7 +590,7 @@ export function IusentraPaginationBar({
   className?: string
 }) {
   return (
-    <footer className={cn('iusentra-pagination-bar', className)} data-iusentra-preset="pagination-bar">
+    <footer className={cn('iusentra-pagination-bar', className)} data-iusentra-preset="pagination-bar" data-iusentra-sequence-slot="pagination-footer">
       {children}
     </footer>
   )
@@ -473,6 +621,7 @@ export function IusentraDataSurface({
     <section
       className={cn('iusentra-data-surface', fill && 'iusentra-data-surface--fill', className)}
       data-iusentra-preset="data-surface"
+      data-iusentra-sequence-slot="main-content"
       aria-label={ariaLabel}
     >
       {(title || toolbar) ? (
@@ -501,7 +650,7 @@ export function IusentraActionCard({
   className?: string
 }) {
   return (
-    <article className={cn('iusentra-action-card', className)} data-iusentra-preset="action-card">
+    <article className={cn('iusentra-action-card', className)} data-iusentra-preset="action-card" data-iusentra-sequence-slot="primary-actions">
       {children}
     </article>
   )

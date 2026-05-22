@@ -36,6 +36,8 @@ export {
   IusentraPanelCard,
   IusentraRoutePresetFrame,
   IusentraSupportRail,
+  IUSENTRA_PAGE_SEQUENCE,
   iusentraPresetIcons,
+  type IusentraPageSequenceSlot,
   type IusentraPresetIconKey,
 } from './IusentraPreset'

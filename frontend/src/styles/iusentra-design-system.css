@@ -1181,6 +1181,67 @@
   align-items: start;
 }
 
+.iusentra-route-preset--active .iusentra-route-sequence {
+  min-width: 0;
+}
+
+.iusentra-route-preset--active .iu-content.iusentra-route-sequence,
+.iusentra-route-preset--active .iusentra-page-shell.iusentra-route-sequence,
+.iusentra-route-preset--active .iusentra-page-shell__body.iusentra-route-sequence,
+.iusentra-route-preset--active .iusentra-main-surface.iusentra-route-sequence {
+  display: flex;
+  flex-direction: column;
+  gap: var(--iusentra-layout-gap);
+}
+
+.iusentra-route-preset--active [data-iusentra-sequence-slot] {
+  min-width: 0;
+}
+
+.iusentra-route-preset--active [data-iusentra-sequence-slot="page-header"] {
+  order: 10;
+}
+
+.iusentra-route-preset--active [data-iusentra-sequence-slot="operational-subtitle"] {
+  order: 20;
+}
+
+.iusentra-route-preset--active [data-iusentra-sequence-slot="primary-actions"] {
+  order: 30;
+}
+
+.iusentra-route-preset--active [data-iusentra-sequence-slot="filters"] {
+  order: 40;
+}
+
+.iusentra-route-preset--active [data-iusentra-sequence-slot="context-filters"] {
+  order: 50;
+}
+
+.iusentra-route-preset--active [data-iusentra-sequence-slot="main-content"] {
+  order: 60;
+}
+
+.iusentra-route-preset--active [data-iusentra-sequence-slot="pagination-footer"] {
+  order: 70;
+}
+
+.iusentra-route-preset--active [data-iusentra-sequence-slot="support-sidebar"] {
+  order: 80;
+}
+
+.iusentra-route-preset--active [data-iusentra-sequence-part="page-header"] {
+  order: 10;
+}
+
+.iusentra-route-preset--active [data-iusentra-sequence-part="operational-subtitle"] {
+  order: 20;
+}
+
+.iusentra-route-preset--active [data-iusentra-sequence-part="primary-actions"] {
+  order: 30;
+}
+
 .iusentra-route-preset--active .iusentra-route-grid > .iusentra-route-main-surface,
 .iusentra-route-preset--active .iusentra-route-grid > .iusentra-route-rail {
   min-width: 0;

@@ -25,6 +25,7 @@ const sectionHeader = read('frontend/src/components/iusentra/IusSectionHeader.ts
 const css = read('frontend/src/styles/iusentra-design-system.css')
 const app = read('frontend/src/App.tsx')
 const docs = read('docs/UI_PRESET_IUSENTRA.md')
+const visualAudit = read('scripts/react-migration/visual-load-audit.mjs')
 const packageJson = JSON.parse(read('frontend/package.json'))
 
 const sequence = [
@@ -46,6 +47,9 @@ assertContains(preset, 'classifySequenceSlot', 'preset globale classifica gli sl
 assertContains(preset, 'applyRouteSequencePreset', 'preset globale applica la sequenza alle rotte')
 assertContains(preset, 'iusentraSequenceManaged', 'preset globale non cancella gli slot dichiarati dai componenti')
 assertContains(preset, 'applySequencePart', 'preset globale promuove sottotitolo e azioni a slot verificabili')
+assertContains(preset, "classifySequenceSlot(child) ?? 'main-content'", 'preset globale manda ogni blocco non riconosciuto nel contenuto principale')
+assertContains(preset, '/(?:tabs|tablist|switcher)$/', 'preset globale tratta tab e selettori pagina come filtri')
+assertContains(preset, '/(?:note|summary)$/', 'preset globale tratta note e riepiloghi come contesto')
 assertContains(preset, 'applyRouteGridPreset(root)', 'preset globale conserva la griglia')
 assertContains(preset, 'applyRouteSequencePreset(root)', 'frame globale applica anche la sequenza')
 assertContains(preset, "route === '/sito-studio/builder'", 'builder resta escluso dal preset')
@@ -62,6 +66,10 @@ for (const [slot, label] of sequence) {
 for (const order of ['order: 10', 'order: 20', 'order: 30', 'order: 40', 'order: 50', 'order: 60', 'order: 70', 'order: 80']) {
   assertContains(css, order, `ordine CSS ${order}`)
 }
+assertContains(css, '.iusentra-route-sequence > :not([data-iusentra-sequence-slot])', 'CSS fallback impedisce blocchi senza slot prima del titolo')
+assertContains(css, 'section[class*="-hero"][data-iusentra-sequence-slot="page-header"]', 'CSS normalizza gli hero locali nel preset unico')
+assertContains(visualAudit, 'sequenza_header_non_primo', 'audit browser blocca contenuto sopra al titolo')
+assertContains(visualAudit, 'builder_preset_attivo', 'audit browser controlla esclusione builder')
 
 for (const marker of [
   'data-iusentra-sequence-slot="page-header"',

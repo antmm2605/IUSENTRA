@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.14 - 2026-05-22
+
+- Corretto il preset grafico globale IUSENTRA: ogni blocco non riconosciuto viene ora marcato come `main-content`, quindi nessuna card, tab, nota o sezione operativa può finire prima del titolo pagina.
+- Normalizzati dal preset unico tab/switcher, note/riepiloghi e hero locali: pagine come Panoramica, Regia Operativa, Scadenziario e Nuovo Cliente mantengono la sequenza Header, sottotitolo, azioni/card, filtri, contesto, contenuto, footer e sidebar.
+- Rafforzati audit, contratti React e test Fascicoli per bloccare regressioni sulla sequenza globale; `/sito-studio/builder` resta l'unica pagina esclusa.
+
 ## 2.248.13 - 2026-05-22
 
 - Rafforzato il preset grafico globale IUSENTRA: `IusentraRoutePresetFrame` ora impone la sequenza canonica Header pagina, Sottotitolo operativo, Azioni principali, Filtri, Contesto filtri, Contenuto principale, Paginazione/footer e Sidebar di supporto su tutte le rotte React operative.

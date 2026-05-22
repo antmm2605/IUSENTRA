@@ -171,8 +171,8 @@ function classifySequenceSlot(element: HTMLElement): IusentraPageSequenceSlot | 
   if (preset === 'support-rail' || element.classList.contains('iusentra-route-rail') || isRailCandidate(element)) return 'support-sidebar'
   if (preset === 'pagination-bar' || tag === 'footer' || className.includes('pagination') || className.includes('pager')) return 'pagination-footer'
   if (preset === 'data-surface' || className.includes('table-card') || className.includes('data-surface')) return 'main-content'
-  if (preset === 'context-filters' || className.includes('advanced') || className.includes('context') || className.includes('status-line') || className.endsWith('-status') || className.includes('-status ') || className.includes('bulkbar') || className.includes('notice') || className.includes('alert')) return 'context-filters'
-  if (preset === 'filters-bar' || className.includes('filters') || className.includes('filter') || className.includes('toolbar') || className.includes('searchbar') || className.includes('search-panel')) return 'filters'
+  if (preset === 'context-filters' || className.includes('advanced') || className.includes('context') || className.includes('status-line') || className.endsWith('-status') || className.includes('-status ') || className.includes('bulkbar') || className.includes('notice') || className.includes('alert') || ownsClassToken(element, /(?:note|summary)$/)) return 'context-filters'
+  if (preset === 'filters-bar' || className.includes('filters') || className.includes('filter') || className.includes('toolbar') || className.includes('searchbar') || className.includes('search-panel') || ownsClassToken(element, /(?:tabs|tablist|switcher)$/)) return 'filters'
   if (preset === 'action-card' || className.includes('actions-grid') || className.includes('quick-actions') || className.includes('action-grid') || className.includes('hero__actions') || ownsClassToken(element, /(?:stats|kpis|metrics)$/)) return 'primary-actions'
   if (className.includes('page-heading') || className.includes('section-header') || ownsClassToken(element, /hero$/)) return 'page-header'
   if (preset === 'main-surface' || className.includes('layout') || className.includes('workspace') || className.includes('main-list') || className.includes('main-panel') || className.includes('list-card') || className.includes('lower-grid')) return 'main-content'
@@ -239,11 +239,9 @@ function applyRouteSequencePreset(root: HTMLElement) {
 
     Array.from(sequenceRoot.children).forEach((child) => {
       if (!(child instanceof HTMLElement)) return
-      const slot = classifySequenceSlot(child)
-      if (slot) {
-        applySequenceSlot(child, slot)
-        markNestedSequenceParts(child, slot)
-      }
+      const slot = classifySequenceSlot(child) ?? 'main-content'
+      applySequenceSlot(child, slot)
+      markNestedSequenceParts(child, slot)
     })
   })
 

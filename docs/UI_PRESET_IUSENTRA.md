@@ -19,6 +19,8 @@ Ogni pagina operativa React deve seguire la stessa sequenza visiva e logica. La 
 
 `IusentraRoutePresetFrame` applica questa sequenza a tutte le rotte operative tramite `IUSENTRA_PAGE_SEQUENCE`, `IUSENTRA_SEQUENCE_ROOT_SELECTORS` e gli attributi `data-iusentra-sequence-slot`. La pagina `/sito-studio/builder` è l'unica esclusa e non riceve né griglia né sequenza del preset.
 
+Nessun blocco può restare senza ordine: se una sezione locale non viene riconosciuta dal classificatore centrale, il frame la marca come `main-content`. Questo impedisce a calcolatori, tab, note, card o pannelli locali di salire prima dell'header pagina. Tab e switcher sono filtri; note, alert e riepiloghi sono contesto; gli hero locali vengono resi come header pagina del preset unico.
+
 Gli slot canonici sono:
 
 - `page-header`: titolo della pagina;

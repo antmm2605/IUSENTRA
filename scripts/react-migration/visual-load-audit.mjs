@@ -51,6 +51,7 @@ const allRoutes = [
   ['Strumenti Forensi', '/strumenti-legali'],
   ['Strumenti Operativi', '/strumenti-operativi'],
   ['Sito Studio', '/sito-studio'],
+  ['Sito Studio Builder', '/sito-studio/builder'],
   ['Amministrazione', '/amministrazione'],
   ['Utenti', '/utenti'],
   ['Profili e Permessi', '/profili'],
@@ -70,6 +71,7 @@ const routes = routeFilter.size
 
 const viewports = [
   { name: 'desktop', width: 1440, height: 980, mobile: false },
+  { name: 'tablet', width: 1024, height: 900, mobile: false },
   { name: 'mobile', width: 390, height: 844, mobile: true },
 ].filter((viewport) => {
   const filter = (process.env.IUSENTRA_AUDIT_VIEWPORTS || '').split(',').map((item) => item.trim()).filter(Boolean)
@@ -201,6 +203,27 @@ async function waitForPage(client, startedAt) {
           .map((node) => (node.innerText || node.textContent || '').trim())
           .filter((value) => /Caricamento/i.test(value));
         const primaryLoading = primaryLoaders.length > 0 || /^Caricamento/i.test(h1) || /^Caricamento/i.test(h2);
+        const presetActive = Boolean(document.querySelector('.iusentra-route-preset--active'));
+        const sequenceRoot = document.querySelector('.iu-content.iusentra-route-sequence, .iusentra-route-sequence');
+        const sequenceItems = sequenceRoot
+          ? Array.from(sequenceRoot.children)
+              .filter((node) => node instanceof HTMLElement && isVisible(node))
+              .map((node, index) => {
+                const rect = node.getBoundingClientRect();
+                const cssOrder = Number(window.getComputedStyle(node).order);
+                return {
+                  index,
+                  slot: node.dataset.iusentraSequenceSlot || '',
+                  order: Number.isFinite(cssOrder) ? cssOrder : 0,
+                  top: Math.round(rect.top),
+                  left: Math.round(rect.left),
+                  text: (node.innerText || node.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 90),
+                };
+              })
+          : [];
+        const visualSlots = [...sequenceItems].sort((a, b) => a.top - b.top || a.left - b.left || a.index - b.index);
+        const headerIndex = visualSlots.findIndex((item) => item.slot === 'page-header');
+        const itemsBeforeHeader = headerIndex > 0 ? visualSlots.slice(0, headerIndex) : [];
         return {
           url: location.href,
           title: document.title,
@@ -222,6 +245,12 @@ async function waitForPage(client, startedAt) {
           viewportWidth: window.innerWidth,
           viewportHeight: window.innerHeight,
           styleSystem: styleLinks.some((href) => href.includes('/static/react/') || href.includes('app.css')),
+          presetActive,
+          sequenceRoot: Boolean(sequenceRoot),
+          sequenceItems,
+          sequenceUnordered: sequenceItems.filter((item) => !item.slot).length,
+          sequenceHeaderFirst: headerIndex === 0,
+          sequenceBeforeHeader: itemsBeforeHeader.map((item) => ({ slot: item.slot, text: item.text })),
         };
       })()`,
     })
@@ -307,6 +336,16 @@ async function auditOne(client, routeName, route, viewport) {
   if (hits.length) failures.push('testo_tecnico_visibile')
   if (data.horizontalOverflow) failures.push('overflow_orizzontale')
   if (consoleEntries.some((line) => /\berror\b|uncaught|failed/i.test(line))) failures.push('console_error')
+  if (route === '/sito-studio/builder') {
+    if (data.presetActive) failures.push('builder_preset_attivo')
+  } else {
+    if (!data.presetActive) failures.push('preset_globale_assente')
+    if (!data.sequenceRoot) failures.push('sequenza_preset_assente')
+    if (data.sequenceUnordered > 0) failures.push('sequenza_blocchi_senza_slot')
+    if (data.sequenceRoot && data.sequenceItems?.some((item) => item.slot === 'page-header') && !data.sequenceHeaderFirst) {
+      failures.push('sequenza_header_non_primo')
+    }
+  }
   const warnings = []
   if (screenshotWarning) warnings.push(screenshotWarning)
   if ((data.links?.length || 0) < 2 && (data.actions || 0) < 3 && route !== '/') warnings.push('collegamenti_o_azioni_da_arricchire')
@@ -330,6 +369,10 @@ async function auditOne(client, routeName, route, viewport) {
     forbiddenContexts,
     horizontalOverflow: data.horizontalOverflow,
     scrollHeight: data.scrollHeight,
+    presetActive: data.presetActive,
+    sequenceUnordered: data.sequenceUnordered,
+    sequenceHeaderFirst: data.sequenceHeaderFirst,
+    sequenceBeforeHeader: data.sequenceBeforeHeader || [],
     loadingContext: data.loadingContext || [],
     console: consoleEntries,
     screenshot: screenshotName,

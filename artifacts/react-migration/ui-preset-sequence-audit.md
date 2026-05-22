@@ -1,6 +1,6 @@
 # Audit preset sequenza IUSENTRA
 
-Aggiornato: 22 maggio 2026, versione 2.248.13.
+Aggiornato: 22 maggio 2026, versione 2.248.14.
 
 ## Esito
 
@@ -18,7 +18,7 @@ Passato. Il preset globale non si limita più alla griglia: impone la sequenza p
 8. Sidebar di supporto
 
 Gli slot sono centralizzati in `IUSENTRA_PAGE_SEQUENCE` e applicati da `IusentraRoutePresetFrame` tramite `data-iusentra-sequence-slot`.
-Gli slot dichiarati direttamente dai componenti React vengono preservati: la normalizzazione globale aggiunge solo classificazione e ordine, senza cancellare `DataSurface`, `SupportRail`, sottotitolo e azioni già marcati.
+Gli slot dichiarati direttamente dai componenti React vengono preservati: la normalizzazione globale aggiunge solo classificazione e ordine, senza cancellare `DataSurface`, `SupportRail`, sottotitolo e azioni già marcati. Ogni blocco non riconosciuto viene marcato come `main-content`, così non può precedere il titolo pagina.
 
 ## Perimetro
 
@@ -38,6 +38,9 @@ Gli slot dichiarati direttamente dai componenti React vengono preservati: la nor
 - Tutte le altre rotte React restano avvolte da `IusentraRoutePresetFrame`.
 - Header e sottotitolo vengono marcati come parti della sequenza.
 - Header, sottotitolo e azioni principali sono anche slot verificabili nel DOM.
+- I blocchi senza classificazione esplicita ricadono su `main-content`.
+- Tab e switcher sono filtri; note e riepiloghi sono contesto.
+- Gli hero locali vengono normalizzati come header pagina del preset unico.
 - Le azioni principali hanno ordine prima dei filtri.
 - I filtri hanno ordine prima del contesto.
 - Il contenuto principale segue il contesto.
@@ -55,9 +58,11 @@ Gli slot dichiarati direttamente dai componenti React vengono preservati: la nor
 - `python scripts/react-migration/generate_api_contracts.py --check`: OK
 - `python scripts/validate_openapi.py docs/openapi.yaml`: OK
 - `python scripts/verify_openapi_provider.py`: OK
-- Browser reale Chrome headless Docker locale: OK, 27/27 controlli desktop 1440, tablet 1024 e mobile 390 su `/fascicoli`, `/agenda`, `/scadenziario`, `/clienti`, `/soggetti`, `/email/`, `/deposito/checklist`, `/admin/database` e `/sito-studio/builder`
-- `pnpm --filter @iusentra/studio build`: OK
-- `docker compose build --no-cache`, `docker compose up -d --force-recreate`, `docker compose ps`, `/api/pronto`, versione container: OK, runtime `2.248.13`
+- Browser reale Chrome headless Docker locale: OK, 15/15 controlli su desktop 1440, tablet 1024 e mobile 390 per `/`, `/workspace-intelligente`, `/scadenziario`, `/clienti/nuovo` e `/sito-studio/builder`.
+- Audit DOM browser: OK, le pagine operative hanno `presetActive=true`, header primo, zero blocchi senza slot; `/sito-studio/builder` ha `presetActive=false`.
+- `pnpm --filter @iusentra/studio build`: OK, asset React rigenerati su 2.248.14.
+- Docker locale: OK, build no-cache app/scheduler/OCR, container healthy e `/api/pronto` su `2.248.14`.
+- Deploy: da rilanciare su 2.248.14 dopo commit e push.
 
 ## Nota di rischio residuo
 

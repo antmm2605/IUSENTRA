@@ -55,6 +55,8 @@ Il preset è applicato dalla shell React a tutte le pagine, con esclusione espli
 
 Lo stesso frame impone la sequenza `IUSENTRA_PAGE_SEQUENCE` su ogni superficie operativa: Header pagina, Sottotitolo operativo, Azioni principali, Filtri, Contesto filtri / riepilogo, Contenuto principale, Paginazione / footer, Sidebar di supporto. Le sezioni vengono marcate con `data-iusentra-sequence-slot`, ordinate dal CSS globale e verificate dal gate `audit-ui-preset-sequence.mjs`.
 
+Ogni figlio diretto non classificato dal preset viene trattato come `main-content`: una pagina non può più mostrare card, tab, note o calcolatori sopra al titolo solo perché usa classi locali. Gli hero locali sono normalizzati come header pagina, con superficie chiara, bordo e spaziatura del sistema.
+
 ## Token colore
 
 La palette deve restare istituzionale e leggibile:

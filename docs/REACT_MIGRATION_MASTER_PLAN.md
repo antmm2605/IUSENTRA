@@ -1,5 +1,11 @@
 # Migrazione progressiva Flask + React
 
+## Hotfix preset unico globale IUSENTRA - 2026-05-22 - 2.248.14
+
+Il preset unico non può lasciare blocchi non classificati prima dell'header pagina. `IusentraRoutePresetFrame` assegna ora `main-content` come fallback a ogni figlio diretto non riconosciuto, mentre tab/switcher vengono trattati come filtri e note/riepiloghi come contesto. Il CSS globale normalizza anche gli hero locali come header pagina del preset, evitando varianti isolate come hero scuri o card operative sopra al titolo.
+
+Questa regola vale per tutte le rotte React operative e continua a escludere solo `/sito-studio/builder`.
+
 ## Sequenza preset globale IUSENTRA - 2026-05-22 - 2.248.13
 
 Il preset grafico globale è stato rafforzato con una sequenza pagina obbligatoria: Header pagina, Sottotitolo operativo, Azioni principali, Filtri, Contesto filtri / riepilogo, Contenuto principale, Paginazione / footer e Sidebar di supporto. La sequenza è definita in `IUSENTRA_PAGE_SEQUENCE`, applicata dal `IusentraRoutePresetFrame` tramite `data-iusentra-sequence-slot` e ordinata in `frontend/src/styles/iusentra-design-system.css`.

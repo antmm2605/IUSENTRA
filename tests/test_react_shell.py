@@ -3128,6 +3128,7 @@ def test_react_fascicoli_usa_preset_grafico_globale():
     design_css = Path("frontend/src/styles/iusentra-design-system.css").read_text(encoding="utf-8")
     docs = Path("docs/UI_PRESET_IUSENTRA.md").read_text(encoding="utf-8")
     section_header = Path("frontend/src/components/iusentra/IusSectionHeader.tsx").read_text(encoding="utf-8")
+    visual_audit = Path("scripts/react-migration/visual-load-audit.mjs").read_text(encoding="utf-8")
 
     for token in (
         "IusentraPageShell",
@@ -3156,6 +3157,9 @@ def test_react_fascicoli_usa_preset_grafico_globale():
     assert "applyRouteSequencePreset" in preset
     assert "iusentraSequenceManaged" in preset
     assert "applySequencePart" in preset
+    assert "classifySequenceSlot(child) ?? 'main-content'" in preset
+    assert "/(?:tabs|tablist|switcher)$/" in preset
+    assert "/(?:note|summary)$/" in preset
     assert "applyRouteSequencePreset(root)" in preset
     for sequence_slot, sequence_label in (
         ("page-header", "Header pagina"),
@@ -3193,6 +3197,12 @@ def test_react_fascicoli_usa_preset_grafico_globale():
     assert "grid-template-columns: minmax(0, 1fr) minmax(320px, var(--iusentra-support-rail-width))" in design_css
     assert ".iusentra-route-preset--active .iusentra-route-grid" in design_css
     assert ".iusentra-route-preset--active .iu-content.iusentra-route-sequence" in design_css
+    assert ".iusentra-route-preset--active .iusentra-route-sequence > :not([data-iusentra-sequence-slot])" in design_css
+    assert 'section[class*="-hero"][data-iusentra-sequence-slot="page-header"]' in design_css
+    assert "sequenza_header_non_primo" in visual_audit
+    assert "builder_preset_attivo" in visual_audit
+    assert "['Sito Studio Builder', '/sito-studio/builder']" in visual_audit
+    assert "name: 'tablet', width: 1024" in visual_audit
     for order in ("order: 10", "order: 20", "order: 30", "order: 40", "order: 50", "order: 60", "order: 70", "order: 80"):
         assert order in design_css
     assert "margin-top: auto" in design_css

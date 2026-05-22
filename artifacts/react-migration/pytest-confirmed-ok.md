@@ -3050,3 +3050,13 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python scripts\smoke_app_v2_all.py --subset contracts`; `python scripts\smoke_app_v2_all.py --subset inventory` | OK | Smoke contratti offline PASS=2/SKIP live previsto e inventory PASS=3 dopo il preset. |
 | `python tools\check_repo_governance.py` | OK | Governance repository verde dopo la correzione del preset e gli artefatti visuali. |
 | `git diff --check` | OK | Nessun errore whitespace; restano solo warning CRLF su file non collegati già sporchi nella worktree. |
+## Guida Pratica e App V2 test docs 2.248.15 - 2026-05-22
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python scripts\react-migration\generate_app_v2_page_registry.py --check` | OK | Registro App V2 allineato dopo il commit Guida Pratica; il comando ha confermato il registry aggiornato. |
+| `python scripts\react-migration\generate_app_v2_test_docs.py --check` | OK | Documenti test App V2 allineati dopo la rigenerazione di `docs/test-inventory.md` e `docs/test-plan-app-v2.md` con i nuovi test Guida Pratica. |
+| `python scripts\smoke_app_v2_all.py --subset inventory` | OK | Inventory App V2 PASS=3, FAIL=0, SKIP=0, BLOCKED=0. |
+| `python scripts\smoke_app_v2_all.py --subset contracts` | OK | Contratti offline PASS=2; runtime API live saltato come previsto nello smoke offline. |
+| `python -m pytest -q tests\test_app_v2_page_registry.py tests\test_app_v2_test_plan_phase10.py tests\test_ci_cd_gates_phase11.py --tb=short` | OK | 13/13 passati: registry, test plan fase 10 e gate CI/CD fase 11 coerenti con i documenti rigenerati. |
+| `git diff --check -- docs\test-inventory.md docs\test-plan-app-v2.md` | OK | Nessun errore whitespace sui documenti rigenerati. |

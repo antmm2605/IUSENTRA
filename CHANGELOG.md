@@ -8,6 +8,8 @@
 - Estesi audit e contratti React per fallire su support rail troppo stretta, anteprima email troppo stretta e header locali fuori preset.
 - Rimossa dalla Guida Pratica operativa la traccia del vecchio prototipo immobiliare: il servizio e la UI non mostrano più le frasi di conferma scheda, la progressione `0/16 requisiti` o il blocco `Vendita di cose immobili / Scheda 140011`; la memoria operativa registra il nuovo vincolo.
 
+- Riallineati `docs/test-inventory.md` e `docs/test-plan-app-v2.md` ai nuovi test Guida Pratica, così il gate App V2 non blocca gli shard successivi per documenti generati non aggiornati.
+
 ## 2.248.14 - 2026-05-22
 
 - Corretto il preset grafico globale IUSENTRA: ogni blocco non riconosciuto viene ora marcato come `main-content`, quindi nessuna card, tab, nota o sezione operativa può finire prima del titolo pagina.

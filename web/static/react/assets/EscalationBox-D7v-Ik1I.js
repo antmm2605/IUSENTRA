@@ -1,0 +1,1 @@
+import{aU as r,ax as i}from"./index-BPTf-538.js";import{A as s,b as t,a as l}from"./alert-QJS6_Mb3.js";function x({title:e="Verifica richiesta",message:a}){return r.jsxs(s,{className:"border-amber-200 bg-amber-50 text-amber-950",children:[r.jsx(i,{"aria-hidden":"true"}),r.jsx(t,{children:e}),r.jsx(l,{children:a})]})}export{x as E};

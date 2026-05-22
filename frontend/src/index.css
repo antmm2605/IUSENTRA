@@ -1115,6 +1115,30 @@ body.react-shell-page #root{
   }
 }
 
+.iusentra-preset-active .iu-ag-week--week{
+  --iu-ag-day-min-width:118px;
+}
+
+.iusentra-preset-active .iu-ag-week--week .iu-ag-day{
+  min-width:var(--iu-ag-day-min-width,118px);
+}
+
+@media(min-width:1181px) and (max-width:1480px){
+  .iusentra-preset-active .iu-ag-layout.iusentra-route-grid[data-iusentra-layout-has-rail="true"]{
+    grid-template-columns:minmax(0,1fr) !important;
+  }
+
+  .iusentra-preset-active .iu-ag-layout.iusentra-route-grid > .iu-ag-calendar-card{
+    grid-column:1;
+  }
+
+  .iusentra-preset-active .iu-ag-layout.iusentra-route-grid > .iu-ag-inspector.iusentra-route-rail{
+    grid-column:1;
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) !important;
+  }
+}
+
 @media(max-width:1180px){
   .iu-lex-float{
     display:block!important;

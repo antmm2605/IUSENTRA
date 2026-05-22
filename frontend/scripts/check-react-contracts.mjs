@@ -97,6 +97,7 @@ function pythonTupleSource(source, name) {
 }
 
 const app = read('src/App.tsx')
+const mainEntrypoint = read('src/main.tsx')
 const appRoutes = read('src/app/routes.ts')
 const appRouter = read('src/app/router.tsx')
 const featureFlags = read('src/lib/featureFlags.ts')
@@ -647,6 +648,7 @@ assertContains(iusentraPreset, 'IUSENTRA_PAGE_SEQUENCE', 'preset globale espone 
 assertContains(iusentraPreset, 'applyRouteSequencePreset', 'preset globale applica la sequenza alle rotte')
 assertContains(iusentraPreset, 'classifySequenceSlot', 'preset globale classifica header, azioni, filtri, contenuto e supporto')
 assertContains(iusentraPreset, 'IUSENTRA_SEQUENCE_ROOT_SELECTORS', 'preset globale registra radici sequenza')
+assertContains(iusentraPreset, "'main[class*=\"-page\"]'", 'preset globale include le pagine React locali come radici sequenza')
 assertContains(iusentraPreset, "'.iusentra-main-area'", 'preset globale include MainArea tra le radici sequenza')
 assertContains(iusentraPreset, 'iusentraSequenceManaged', 'preset globale preserva gli slot dichiarati dai componenti')
 assertContains(iusentraPreset, 'applySequencePart', 'preset globale promuove sottotitolo e azioni a slot verificabili')
@@ -675,7 +677,9 @@ for (const routeLayoutSelector of [
   '.iu-mail-layout',
   '.iu-msg-layout',
   '.iu-scad-layout',
+  '.iu-sm-layout',
   '.iu-tel-surface-grid',
+  '.iu-tel-tribunali-workspace',
   '.iu-template-compiler-layout',
   '.iu-pwiz-layout',
   '.iu-db-layout',
@@ -689,10 +693,21 @@ assertContains(iusentraDesignSystemCss, '--iusentra-support-rail-width', 'CSS pr
 assertContains(iusentraDesignSystemCss, 'grid-template-columns: minmax(0, 1fr) minmax(320px, var(--iusentra-support-rail-width))', 'CSS preset definisce griglia desktop')
 assertContains(iusentraDesignSystemCss, '.iusentra-route-preset--active .iusentra-route-grid', 'CSS preset normalizza griglie di rotta')
 assertContains(iusentraDesignSystemCss, '.iusentra-route-preset--active .iu-content.iusentra-route-sequence', 'CSS preset impone la sequenza sul contenuto pagina')
+assertContains(iusentraDesignSystemCss, '.iusentra-route-grid > .iusentra-route-rail', 'CSS preset forza il rail laterale verticale')
 assertContains(iusentraDesignSystemCss, '.iusentra-route-preset--active .iusentra-route-sequence > :not([data-iusentra-sequence-slot])', 'CSS preset impedisce ai blocchi senza slot di precedere il titolo')
 assertContains(iusentraDesignSystemCss, 'section[class*="-hero"][data-iusentra-sequence-slot="page-header"]', 'CSS preset normalizza gli hero locali come header pagina unico')
+assertContains(iusentraPreset, 'IUSENTRA_ROUTE_PRESET_RUNTIME_CSS', 'preset globale inietta runtime CSS sopra gli stili locali')
+assertContains(iusentraPreset, 'data-iusentra-runtime-preset', 'preset globale espone marker runtime CSS')
+assertContains(mainEntrypoint, "import './index.css'\nimport './styles/iusentra-design-system.css'", 'entrypoint React importa il CSS del preset globale dopo gli stili locali')
 assertContains(visualLoadAudit, 'sequenza_header_non_primo', 'visual audit blocca pagine con contenuto sopra al titolo')
 assertContains(visualLoadAudit, 'builder_preset_attivo', 'visual audit verifica che il builder resti fuori dal preset')
+assertContains(visualLoadAudit, 'support_rail_card_troppo_stretta', 'visual audit blocca rail spezzati in micro-card')
+assertContains(visualLoadAudit, 'agenda_settimana_incompleta', 'visual audit blocca Agenda settimana desktop incompleta')
+assertContains(visualLoadAudit, 'agenda_supporto_non_verticale', 'visual audit blocca supporto Agenda in colonne strette')
+assertContains(visualLoadAudit, 'email_preview_troppo_stretta', 'visual audit blocca split email incoerenti')
+assertContains(visualLoadAudit, 'header_preset_scuro', 'visual audit blocca hero/header fuori preset')
+assertContains(visualLoadAudit, "['Documenti', '/documenti']", 'visual audit include Documenti')
+assertContains(visualLoadAudit, "['Tribunali / PEC', '/tribunali']", 'visual audit include Tribunali')
 assertContains(visualLoadAudit, "['Sito Studio Builder', '/sito-studio/builder']", 'visual audit include il builder escluso')
 assertContains(visualLoadAudit, "name: 'tablet', width: 1024", 'visual audit copre il viewport tablet richiesto')
 assertContains(iusentraDesignSystemCss, 'order: 10', 'CSS preset mette header prima')
@@ -706,8 +721,9 @@ assertContains(iusentraDesignSystemCss, 'margin-top: auto', 'CSS preset ancora l
 assertContains(iusentraDesignSystemCss, '.iusentra-preset-active .iu-panel', 'CSS preset normalizza pannelli globali')
 
 assertContains(app, '/global-search', 'nav ricerca studio')
-assertContains(app, "isSitoStudioBuilderPage?'excluded':'active'", 'preset globale esclude solo Sito Studio Builder')
-assertContains(app, 'IusentraRoutePresetFrame routeKey={routeKey} enabled={!isSitoStudioBuilderPage}', 'App avvolge tutte le rotte React nel frame preset')
+assertContains(app, 'const isPresetExcludedPage = isSitoStudioBuilderPage || isEmailPage || isEmailOrdinariaPage', 'preset globale esclude builder e caselle email')
+assertContains(app, "isPresetExcludedPage?'excluded':'active'", 'shell React usa esclusione preset centralizzata')
+assertContains(app, 'IusentraRoutePresetFrame routeKey={routeKey} enabled={!isPresetExcludedPage}', 'App avvolge le rotte React nel frame preset quando consentito')
 assertContains(app, 'iusentra-preset-active', 'shell React applica preset globale')
 assertContains(app, 'iusentra-preset-excluded', 'shell React conserva grafica builder esclusa')
 assertContains(app, '/agenda', 'nav agenda')

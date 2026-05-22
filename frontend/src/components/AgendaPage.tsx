@@ -491,7 +491,10 @@ export function AgendaPage() {
               <a href="/impostazioni/calendario"><Settings2 size={16}/> Preferenze</a>
             </div>
           </header>
-          <div className={`iu-ag-week ${view === 'month' ? 'iu-ag-week--month' : ''}`} style={{ gridTemplateColumns: view === 'month' ? undefined : `repeat(${displayDays.length}, minmax(188px, 1fr))` }}>
+          <div
+            className={`iu-ag-week ${view === 'month' ? 'iu-ag-week--month' : view === 'week' ? 'iu-ag-week--week' : 'iu-ag-week--day'}`}
+            style={{ gridTemplateColumns: view === 'month' ? undefined : `repeat(${displayDays.length}, minmax(var(--iu-ag-day-min-width, 118px), 1fr))` }}
+          >
             {displayDays.map((day) => <DayColumn day={day} key={day.id} view={view} onCreateSlot={openNewAppointment} onDropEvent={moveEvent}/>)}
           </div>
         </div>

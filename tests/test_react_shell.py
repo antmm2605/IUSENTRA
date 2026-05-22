@@ -3122,6 +3122,7 @@ def test_react_fascicoli_page_collegata_nav_api_e_lex():
 
 def test_react_fascicoli_usa_preset_grafico_globale():
     app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    main_source = Path("frontend/src/main.tsx").read_text(encoding="utf-8")
     page_source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
     css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
     preset = Path("frontend/src/components/iusentra/IusentraPreset.tsx").read_text(encoding="utf-8")
@@ -3152,6 +3153,9 @@ def test_react_fascicoli_usa_preset_grafico_globale():
     assert "IUSENTRA_PAGE_SEQUENCE" in preset
     assert "IUSENTRA_PAGE_SEQUENCE_VERSION" in preset
     assert "IUSENTRA_SEQUENCE_ROOT_SELECTORS" in preset
+    assert "IUSENTRA_ROUTE_PRESET_RUNTIME_CSS" in preset
+    assert "data-iusentra-runtime-preset" in preset
+    assert "'main[class*=\"-page\"]'" in preset
     assert "'.iusentra-main-area'" in preset
     assert "classifySequenceSlot" in preset
     assert "applyRouteSequencePreset" in preset
@@ -3186,7 +3190,9 @@ def test_react_fascicoli_usa_preset_grafico_globale():
         ".iu-mail-layout",
         ".iu-msg-layout",
         ".iu-scad-layout",
+        ".iu-sm-layout",
         ".iu-tel-surface-grid",
+        ".iu-tel-tribunali-workspace",
         ".iu-template-compiler-layout",
         ".iu-pwiz-layout",
         ".iu-db-layout",
@@ -3197,17 +3203,27 @@ def test_react_fascicoli_usa_preset_grafico_globale():
     assert "grid-template-columns: minmax(0, 1fr) minmax(320px, var(--iusentra-support-rail-width))" in design_css
     assert ".iusentra-route-preset--active .iusentra-route-grid" in design_css
     assert ".iusentra-route-preset--active .iu-content.iusentra-route-sequence" in design_css
+    assert ".iusentra-route-grid > .iusentra-route-rail" in design_css
     assert ".iusentra-route-preset--active .iusentra-route-sequence > :not([data-iusentra-sequence-slot])" in design_css
     assert 'section[class*="-hero"][data-iusentra-sequence-slot="page-header"]' in design_css
     assert "sequenza_header_non_primo" in visual_audit
     assert "builder_preset_attivo" in visual_audit
+    assert "support_rail_card_troppo_stretta" in visual_audit
+    assert "agenda_settimana_incompleta" in visual_audit
+    assert "agenda_supporto_non_verticale" in visual_audit
+    assert "email_preview_troppo_stretta" in visual_audit
+    assert "header_preset_scuro" in visual_audit
+    assert "['Documenti', '/documenti']" in visual_audit
+    assert "['Tribunali / PEC', '/tribunali']" in visual_audit
     assert "['Sito Studio Builder', '/sito-studio/builder']" in visual_audit
     assert "name: 'tablet', width: 1024" in visual_audit
     for order in ("order: 10", "order: 20", "order: 30", "order: 40", "order: 50", "order: 60", "order: 70", "order: 80"):
         assert order in design_css
     assert "margin-top: auto" in design_css
-    assert "isSitoStudioBuilderPage?'excluded':'active'" in app_source
-    assert "IusentraRoutePresetFrame routeKey={routeKey} enabled={!isSitoStudioBuilderPage}" in app_source
+    assert "const isPresetExcludedPage = isSitoStudioBuilderPage || isEmailPage || isEmailOrdinariaPage" in app_source
+    assert "isPresetExcludedPage?'excluded':'active'" in app_source
+    assert "IusentraRoutePresetFrame routeKey={routeKey} enabled={!isPresetExcludedPage}" in app_source
+    assert "import './index.css'\nimport './styles/iusentra-design-system.css'" in main_source
     assert "iusentra-preset-active" in app_source
     assert "iusentra-preset-excluded" in app_source
 

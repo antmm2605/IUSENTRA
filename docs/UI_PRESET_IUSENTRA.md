@@ -21,6 +21,8 @@ Ogni pagina operativa React deve seguire la stessa sequenza visiva e logica. La 
 
 Nessun blocco può restare senza ordine: se una sezione locale non viene riconosciuta dal classificatore centrale, il frame la marca come `main-content`. Questo impedisce a calcolatori, tab, note, card o pannelli locali di salire prima dell'header pagina. Tab e switcher sono filtri; note, alert e riepiloghi sono contesto; gli hero locali vengono resi come header pagina del preset unico.
 
+Le pagine che usano ancora componenti locali devono essere agganciate dal frame tramite selettori di rotta o classi pagina. Non è ammesso che Documenti, Agenda, Fascicoli, Clienti, PEC, Email ordinaria, Messaggi, Telematico, Studio, Fatturazione, Preventivi o Compensi Forensi mantengano una griglia autonoma se questa produce card fuori asse, header scuri non coerenti, rail spezzati o contenuti principali compressi.
+
 Gli slot canonici sono:
 
 - `page-header`: titolo della pagina;
@@ -139,6 +141,10 @@ La `IusentraSupportRail` contiene solo supporto alla pagina:
 
 Non contiene il contenuto principale. Ogni pannello usa `IusentraPanelCard` con titolo, icona coerente, badge opzionale, testo sintetico e azione solo quando necessaria.
 
+Su desktop la rail deve restare una colonna verticale. Sono vietate mini-colonne laterali generate da CSS locali, per esempio tre pannelli strettissimi dentro una sidebar da 340/380px. Se una pagina vuole mostrare più pannelli affiancati, deve farlo nel contenuto principale o sotto la griglia, non nella SupportRail laterale.
+
+Le pagine email sono l'eccezione strutturale governata dal preset: la lista messaggi è la colonna operativa sinistra, più stretta, mentre l'anteprima/corpo email è la superficie principale destra, più ampia. I pannelli di audit o supporto possono scendere sotto come supporto, ma non devono comprimere il testo email.
+
 ## Nuove viste di dettaglio
 
 Quando il contenuto non entra in modo ordinato:
@@ -195,9 +201,16 @@ La sequenza non è affidata alla memoria di chi modifica una pagina. I gate obbl
 - `node frontend/scripts/check-react-contracts.mjs`: verifica che il frame globale, gli slot sequenza, il CSS ordine e Fascicoli restino agganciati al preset;
 - `node scripts/react-migration/audit-ui-preset-sequence.mjs`: verifica gli 8 slot canonici, l'esclusione `/sito-studio/builder`, l'export dei componenti e l'inclusione del gate nel test frontend;
 - `python -m pytest tests/test_react_shell.py::test_react_fascicoli_usa_preset_grafico_globale -q --tb=short`: impedisce regressioni su PageShell, MainArea, SupportRail, DataSurface, filtri, contesto e sequenza;
-- browser reale desktop, tablet e mobile sulle rotte rappresentative: `/fascicoli`, `/agenda`, `/scadenziario`, `/clienti`, `/soggetti`, `/email/`, `/deposito/checklist`, `/admin/database` e `/sito-studio/builder`.
+- browser reale desktop, tablet e mobile sulle rotte rappresentative: `/`, `/workspace-intelligente`, `/agenda`, `/fascicoli`, `/clienti`, `/documenti`, `/email/`, `/email-ordinaria/`, `/messaggi`, `/messaggi/nuovo`, `/scadenziario`, `/tribunali`, `/studio`, `/fatturazione/`, `/preventivi/`, `/compensi-forensi`, `/deposito/checklist`, `/admin/database` e `/sito-studio/builder`.
 
 Il test deve fallire se una pagina operativa rimuove `IusentraRoutePresetFrame`, se il builder non resta escluso, se le azioni principali non precedono i filtri o se la paginazione perde l'ancoraggio nella superficie dati.
+
+L'audit visuale deve fallire anche se:
+
+- una SupportRail desktop viene spezzata in micro-card troppo strette;
+- la preview email resta più stretta della lista messaggi;
+- un header locale resta scuro o usa uno stile diverso dal preset;
+- una pagina operativa come Documenti resta fuori dalla sequenza governata.
 
 ## Esempi corretti
 

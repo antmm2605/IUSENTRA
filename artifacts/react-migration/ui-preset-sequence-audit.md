@@ -1,10 +1,10 @@
 # Audit preset sequenza IUSENTRA
 
-Aggiornato: 22 maggio 2026, versione 2.248.14.
+Aggiornato: 22 maggio 2026, versione 2.248.15.
 
 ## Esito
 
-Passato. Il preset globale non si limita più alla griglia: impone la sequenza pagina canonica su tutte le rotte React operative, con esclusione esplicita di `/sito-studio/builder`.
+In aggiornamento. Il preset globale non si limita più alla griglia: impone la sequenza pagina canonica su tutte le rotte React operative, con esclusione esplicita di `/sito-studio/builder`, e ora blocca anche rail laterali spezzate, header locali fuori preset e split email sbilanciati.
 
 ## Sequenza governata
 
@@ -46,6 +46,9 @@ Gli slot dichiarati direttamente dai componenti React vengono preservati: la nor
 - Il contenuto principale segue il contesto.
 - La paginazione/footer segue il contenuto.
 - La sidebar resta supporto e in flusso mobile arriva dopo il contenuto.
+- Le pagine con componenti locali, incluse Documenti, Studio, Fatturazione, Preventivi e Compensi Forensi, sono radici sequenza governate dal preset.
+- Le SupportRail desktop devono restare verticali e non possono produrre micro-card affiancate.
+- Nelle pagine email la lista messaggi resta più stretta e il corpo/anteprima messaggio resta più ampio.
 
 ## Gate eseguiti
 
@@ -58,11 +61,11 @@ Gli slot dichiarati direttamente dai componenti React vengono preservati: la nor
 - `python scripts/react-migration/generate_api_contracts.py --check`: OK
 - `python scripts/validate_openapi.py docs/openapi.yaml`: OK
 - `python scripts/verify_openapi_provider.py`: OK
-- Browser reale Chrome headless Docker locale: OK, 15/15 controlli su desktop 1440, tablet 1024 e mobile 390 per `/`, `/workspace-intelligente`, `/scadenziario`, `/clienti/nuovo` e `/sito-studio/builder`.
-- Audit DOM browser: OK, le pagine operative hanno `presetActive=true`, header primo, zero blocchi senza slot; `/sito-studio/builder` ha `presetActive=false`.
-- `pnpm --filter @iusentra/studio build`: OK, asset React rigenerati su 2.248.14.
-- Docker locale: OK, build no-cache app/scheduler/OCR, container healthy e `/api/pronto` su `2.248.14`.
-- Deploy: da rilanciare su 2.248.14 dopo commit e push.
+- Browser reale Chrome headless Docker locale: da rilanciare su desktop 1440, tablet 1024 e mobile 390 includendo `/documenti`, `/email/`, `/email-ordinaria/`, `/messaggi`, `/messaggi/nuovo`, `/tribunali`, `/studio`, `/fatturazione/`, `/preventivi/`, `/compensi-forensi` e `/sito-studio/builder`.
+- Audit DOM browser: da rilanciare con le nuove failure `support_rail_card_troppo_stretta`, `email_preview_troppo_stretta` e `header_preset_scuro`.
+- `pnpm --filter @iusentra/studio build`: da rilanciare su 2.248.15.
+- Docker locale: da rilanciare su 2.248.15.
+- Deploy: da rilanciare su 2.248.15 dopo commit e push.
 
 ## Nota di rischio residuo
 

@@ -360,7 +360,7 @@ function Preview({ values, info, client }:{ values: ComposeState; info: ChannelI
         {values.oggetto && values.canale === 'EMAIL' ? <strong>{values.oggetto}</strong> : null}
         <p>{values.testo || 'Scrivi il testo del messaggio...'}</p>
       </div>
-      {tooLong ? <p className="iu-msg-warning"><Clock3 size={14}/>Il testo supera la lunghezza standard SMS: potrebbe essere diviso in pi? messaggi.</p> : null}
+      {tooLong ? <p className="iu-msg-warning"><Clock3 size={14}/>Il testo supera la lunghezza standard SMS: potrebbe essere diviso in più messaggi.</p> : null}
     </section>
   )
 }
@@ -439,7 +439,7 @@ export function NuovoMessaggioPage() {
         <form className="iu-msg-compose" onSubmit={handleSubmit}>
           <input type="hidden" name="from_cliente" value={data.query.fromCliente}/>
 
-          <Panel title="Canale" subtitle="Scegli il mezzo pi? adatto" icon={<MessageCircle size={17}/>}>
+          <Panel title="Canale" subtitle="Scegli il mezzo più adatto" icon={<MessageCircle size={17}/>}>
             <div className="iu-msg-channel-picker">
               {data.channelInfo.map((channel) => (
                 <label className={`iu-msg-channel-card ${values.canale === channel.value ? 'is-active' : ''}`} key={channel.value}>
@@ -494,11 +494,11 @@ export function NuovoMessaggioPage() {
 
         <aside className="iu-msg-compose-side">
           <Preview values={values} info={info} client={selectedClient}/>
-          <Panel title="Checklist qualit?" subtitle="Prima di inviare" icon={<CheckCircle2 size={17}/>}>
+          <Panel title="Checklist qualità" subtitle="Prima di inviare" icon={<CheckCircle2 size={17}/>}>
             <div className="iu-msg-checklist">
               <p><CheckCircle2 size={15}/>Destinatario compilato e coerente con il canale.</p>
               <p><CheckCircle2 size={15}/>Cliente collegato quando la comunicazione riguarda una pratica.</p>
-              <p><CheckCircle2 size={15}/>Per WhatsApp senza Twilio verr? generato un link manuale.</p>
+              <p><CheckCircle2 size={15}/>Per WhatsApp senza Twilio verrà generato un link manuale.</p>
             </div>
           </Panel>
           <Panel title="Canali" subtitle="Stato configurazione" icon={<AtSign size={17}/>}>
@@ -510,7 +510,7 @@ export function NuovoMessaggioPage() {
       <FloatingLex
         context="nuovo-messaggio"
         title="Lex AI invio messaggio"
-        body="Posso aiutarti a rendere il testo pi? chiaro, professionale e coerente con cliente, canale e pratica."
+        body="Posso aiutarti a rendere il testo più chiaro, professionale e coerente con cliente, canale e pratica."
         primaryHref="#lex"
         secondaryHref="/messaggi"
         secondaryLabel="Storico messaggi"

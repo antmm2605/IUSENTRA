@@ -63,6 +63,7 @@ const PRESET_ROUTE_LAYOUT_SELECTORS = [
   '.iu-appt-layout',
   '.iu-deadline-layout',
   '.iu-sm-layout',
+  '.iu-studio-module .iu-sm-layout',
   '.iu-tar-layout',
   '.iu-pwiz-layout',
   '.iu-docai-layout',
@@ -71,6 +72,7 @@ const PRESET_ROUTE_LAYOUT_SELECTORS = [
   '.iu-site-ai-layout',
   '.iu-settings-layout',
   '.iu-tel-workspace',
+  '.iu-tel-tribunali-workspace',
   '.iu-tel-command-grid',
   '.iu-tel-surface-grid',
   '.iu-tel-acquisition__grid',
@@ -95,7 +97,9 @@ const IUSENTRA_PAGE_SEQUENCE_VERSION = 'canonical-v1'
 const IUSENTRA_PAGE_SEQUENCE_ORDER = IUSENTRA_PAGE_SEQUENCE.map((item) => item.slot).join('>')
 
 const IUSENTRA_SEQUENCE_ROOT_SELECTORS = [
+  'main[class*="-page"]',
   '.iu-content',
+  '.iu-od-stack',
   '.iusentra-page-shell',
   '.iusentra-page-shell__body',
   '.iusentra-main-area',
@@ -106,6 +110,140 @@ const IUSENTRA_SEQUENCE_ROOT_SELECTORS = [
 
 const IUSENTRA_SEQUENCE_ROOT_SELECTOR = IUSENTRA_SEQUENCE_ROOT_SELECTORS.join(',')
 const IUSENTRA_SEQUENCE_SLOT_CLASS_PREFIX = 'iusentra-sequence-slot--'
+
+const IUSENTRA_ROUTE_PRESET_RUNTIME_CSS = `
+.iusentra-route-preset--active main[class*="-page"].iusentra-route-sequence,
+.iusentra-route-preset--active .iu-content.iusentra-route-sequence,
+.iusentra-route-preset--active .iu-od-stack.iusentra-route-sequence,
+.iusentra-route-preset--active .iusentra-page-shell.iusentra-route-sequence,
+.iusentra-route-preset--active .iusentra-page-shell__body.iusentra-route-sequence,
+.iusentra-route-preset--active .iusentra-main-surface.iusentra-route-sequence {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: var(--iusentra-layout-gap) !important;
+}
+.iusentra-route-preset--active [data-iusentra-sequence-slot="page-header"] { order: 10 !important; }
+.iusentra-route-preset--active [data-iusentra-sequence-slot="operational-subtitle"] { order: 20 !important; }
+.iusentra-route-preset--active [data-iusentra-sequence-slot="primary-actions"] { order: 30 !important; }
+.iusentra-route-preset--active [data-iusentra-sequence-slot="filters"] { order: 40 !important; }
+.iusentra-route-preset--active [data-iusentra-sequence-slot="context-filters"] { order: 50 !important; }
+.iusentra-route-preset--active [data-iusentra-sequence-slot="main-content"] { order: 60 !important; }
+.iusentra-route-preset--active [data-iusentra-sequence-slot="pagination-footer"] { order: 70 !important; }
+.iusentra-route-preset--active [data-iusentra-sequence-slot="support-sidebar"] { order: 80 !important; }
+.iusentra-route-preset--active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"],
+.iusentra-route-preset--active .iusentra-route-sequence > section[class*="-hero"][data-iusentra-sequence-slot="page-header"] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: var(--iusentra-layout-gap) !important;
+  width: 100% !important;
+  padding: clamp(20px, 2.4vw, 28px) !important;
+  border: 1px solid var(--iusentra-border) !important;
+  border-radius: var(--iusentra-radius-lg) !important;
+  background: var(--iusentra-surface-bg) !important;
+  color: var(--iusentra-text) !important;
+  box-shadow: var(--iusentra-shadow-card) !important;
+}
+.iusentra-route-preset--active [data-iusentra-sequence-slot="page-header"] h1,
+.iusentra-route-preset--active [data-iusentra-sequence-slot="page-header"] h2 {
+  color: var(--iusentra-text) !important;
+  letter-spacing: 0 !important;
+}
+.iusentra-route-preset--active [data-iusentra-sequence-slot="page-header"] p {
+  color: var(--iusentra-text-muted) !important;
+}
+.iusentra-route-preset--active .iusentra-route-grid {
+  gap: var(--iusentra-layout-gap) !important;
+  align-items: start !important;
+}
+.iusentra-route-preset--active .iusentra-route-grid > .iusentra-route-main-surface,
+.iusentra-route-preset--active .iusentra-route-grid > .iusentra-route-rail {
+  min-width: 0 !important;
+}
+.iusentra-route-preset--active .iusentra-route-grid > .iusentra-route-rail,
+.iusentra-route-preset--active .iu-fas-insights.iusentra-route-rail,
+.iusentra-route-preset--active .iu-cli-insights.iusentra-route-rail,
+.iusentra-route-preset--active .iu-sogg-insights.iusentra-route-rail,
+.iusentra-route-preset--active .iu-msg-sidecol.iusentra-route-rail,
+.iusentra-route-preset--active .iu-msg-compose-side.iusentra-route-rail,
+.iusentra-route-preset--active .iu-ag-inspector.iusentra-route-rail {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: var(--iusentra-layout-gap) !important;
+  align-self: start !important;
+}
+@media (min-width: 1181px) {
+  .iusentra-route-preset--active .iusentra-route-grid[data-iusentra-layout-has-rail="true"] {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, var(--iusentra-support-rail-width)) !important;
+  }
+  .iusentra-route-preset--active .iusentra-route-grid[data-iusentra-layout-has-rail="true"] > .iusentra-route-main-surface {
+    min-height: max(var(--iusentra-route-rail-height, 0px), var(--iusentra-surface-min-height)) !important;
+  }
+  .iusentra-route-preset--active .iu-mail-layout.iusentra-route-grid[data-iusentra-layout-has-rail="true"] {
+    grid-template-columns: minmax(300px, 370px) minmax(600px, 1fr) !important;
+  }
+  .iusentra-route-preset--active .iu-mail-layout.iusentra-route-grid > .iu-mail-list-card {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+  .iusentra-route-preset--active .iu-mail-layout.iusentra-route-grid > .iu-mail-preview-card {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+  }
+  .iusentra-route-preset--active .iu-mail-layout.iusentra-route-grid > .iu-mail-inspector.iusentra-route-rail {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) !important;
+  }
+}
+@media (min-width: 1181px) and (max-width: 1480px) {
+  .iusentra-route-preset--active .iu-ag-layout.iusentra-route-grid[data-iusentra-layout-has-rail="true"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .iusentra-route-preset--active .iu-ag-layout.iusentra-route-grid > .iu-ag-calendar-card,
+  .iusentra-route-preset--active .iu-ag-layout.iusentra-route-grid > .iu-ag-inspector.iusentra-route-rail {
+    grid-column: 1 !important;
+  }
+}
+@media (min-width: 1181px) and (max-width: 1320px) {
+  .iusentra-route-preset--active .iu-fas-layout.iusentra-route-grid[data-iusentra-layout-has-rail="true"],
+  .iusentra-route-preset--active .iu-cli-layout.iusentra-route-grid[data-iusentra-layout-has-rail="true"],
+  .iusentra-route-preset--active .iu-sogg-layout.iusentra-route-grid[data-iusentra-layout-has-rail="true"],
+  .iusentra-route-preset--active .iu-msg-layout.iusentra-route-grid[data-iusentra-layout-has-rail="true"],
+  .iusentra-route-preset--active .iu-msg-compose-layout.iusentra-route-grid[data-iusentra-layout-has-rail="true"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+@media (max-width: 1180px) {
+  .iusentra-route-preset--active .iusentra-route-grid[data-iusentra-layout-has-rail="true"] {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+.iusentra-route-preset--active .iu-ag-week--week { --iu-ag-day-min-width: 118px !important; }
+.iusentra-route-preset--active .iu-ag-week--week .iu-ag-day { min-width: var(--iu-ag-day-min-width, 118px) !important; }
+.iusentra-preset-active .iu-msg-filters {
+  grid-template-columns: minmax(220px, 1fr) minmax(148px, 200px) minmax(148px, 200px) auto auto !important;
+  align-items: center !important;
+}
+.iusentra-preset-active .iu-msg-filters label,
+.iusentra-preset-active .iu-msg-filters select,
+.iusentra-preset-active .iu-msg-filters button,
+.iusentra-preset-active .iu-msg-filters a {
+  height: var(--iusentra-toolbar-height) !important;
+  min-height: var(--iusentra-toolbar-height) !important;
+  align-self: center !important;
+  white-space: nowrap !important;
+}
+@media (max-width: 880px) {
+  .iusentra-preset-active .iu-msg-filters { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; }
+  .iusentra-preset-active .iu-msg-filters label { grid-column: 1 / -1 !important; }
+}
+@media (max-width: 620px) {
+  .iusentra-preset-active .iu-msg-filters { grid-template-columns: minmax(0, 1fr) !important; }
+}
+`
 
 type PresetLayoutContextValue = {
   setSupportRailNode: (node: HTMLElement | null) => void
@@ -141,14 +279,14 @@ function isRailCandidate(element: HTMLElement) {
   if (element.tagName === 'ASIDE') return true
   const className = element.className.toString().toLowerCase()
   if (className.includes('main')) return false
+  if (className.includes('iu-mail-preview-card')) return false
   return (
     className.includes('rail') ||
     className.includes('side') ||
     className.includes('sidebar') ||
     className.includes('inspector') ||
     className.includes('insights') ||
-    className.includes('support') ||
-    className.includes('preview')
+    className.includes('support')
   )
 }
 
@@ -171,7 +309,7 @@ function classifySequenceSlot(element: HTMLElement): IusentraPageSequenceSlot | 
   if (preset === 'support-rail' || element.classList.contains('iusentra-route-rail') || isRailCandidate(element)) return 'support-sidebar'
   if (preset === 'pagination-bar' || tag === 'footer' || className.includes('pagination') || className.includes('pager')) return 'pagination-footer'
   if (preset === 'data-surface' || className.includes('table-card') || className.includes('data-surface')) return 'main-content'
-  if (preset === 'context-filters' || className.includes('advanced') || className.includes('context') || className.includes('status-line') || className.endsWith('-status') || className.includes('-status ') || className.includes('bulkbar') || className.includes('notice') || className.includes('alert') || ownsClassToken(element, /(?:note|summary)$/)) return 'context-filters'
+  if (preset === 'context-filters' || className.includes('advanced') || className.includes('context') || className.includes('status-line') || className.endsWith('-status') || className.includes('-status ') || className.includes('bulkbar') || className.includes('notice') || className.includes('alert') || className.includes('warning') || className.includes('warnings') || className.includes('banner') || className.includes('contract') || ownsClassToken(element, /(?:note|summary)$/)) return 'context-filters'
   if (preset === 'filters-bar' || className.includes('filters') || className.includes('filter') || className.includes('toolbar') || className.includes('searchbar') || className.includes('search-panel') || ownsClassToken(element, /(?:tabs|tablist|switcher)$/)) return 'filters'
   if (preset === 'action-card' || className.includes('actions-grid') || className.includes('quick-actions') || className.includes('action-grid') || className.includes('hero__actions') || ownsClassToken(element, /(?:stats|kpis|metrics)$/)) return 'primary-actions'
   if (className.includes('page-heading') || className.includes('section-header') || ownsClassToken(element, /hero$/)) return 'page-header'
@@ -386,6 +524,7 @@ export function IusentraRoutePresetFrame({
       data-iusentra-route={routeKey}
       data-iusentra-route-category={category}
     >
+      {enabled ? <style data-iusentra-runtime-preset>{IUSENTRA_ROUTE_PRESET_RUNTIME_CSS}</style> : null}
       {children}
     </div>
   )

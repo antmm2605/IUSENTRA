@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.248.15 - 2026-05-22
+
+- Rafforzato il preset grafico globale sulle pagine operative che avevano ancora layout locali incoerenti: Documenti, Agenda, Fascicoli, Clienti, PEC, Email ordinaria, Messaggi, Telematico, Studio, Fatturazione, Preventivi e Compensi Forensi restano governate dalla stessa sequenza visiva, con `/sito-studio/builder` esclusa.
+- Bloccate le sidebar spezzate in micro-colonne e normalizzati header, KPI, pannelli economici e superfici operative tramite token globali, evitando stili locali contrastanti.
+- Ripristinate le caselle Email PEC ed Email ordinaria nella vista classica a tre aree, escludendole dal preset globale come il builder sito studio per evitare deformazioni dello split lista/lettura/sidebar.
+- Estesi audit e contratti React per fallire su support rail troppo stretta, anteprima email troppo stretta e header locali fuori preset.
+
 ## 2.248.14 - 2026-05-22
 
 - Corretto il preset grafico globale IUSENTRA: ogni blocco non riconosciuto viene ora marcato come `main-content`, quindi nessuna card, tab, nota o sezione operativa può finire prima del titolo pagina.

@@ -33,6 +33,7 @@ const allRoutes = [
   ['Nuova Scadenza', '/scadenziario/nuova'],
   ['Preparazione Udienza Guidata', '/wizard-pro'],
   ['Controlli Atti', '/deposito/checklist'],
+  ['Tribunali / PEC', '/tribunali'],
   ['Studio', '/studio'],
   ['Parcelle e Fatture', '/fatturazione'],
   ['Preventivi e Incarichi', '/preventivi'],
@@ -40,6 +41,7 @@ const allRoutes = [
   ['Nuovo Conferimento', '/preventivi/conferimento/nuovo'],
   ['Dettaglio Conferimento', '/preventivi/conferimento/f613a379-326a-42b8-8465-777d8998b624'],
   ['Compensi Forensi', '/compensi-forensi'],
+  ['Documenti', '/documenti'],
   ['Redazione Atti', '/redazione-atti'],
   ['Statistiche', '/statistiche'],
   ['Legal Skills', '/legal-skills'],
@@ -224,6 +226,67 @@ async function waitForPage(client, startedAt) {
         const visualSlots = [...sequenceItems].sort((a, b) => a.top - b.top || a.left - b.left || a.index - b.index);
         const headerIndex = visualSlots.findIndex((item) => item.slot === 'page-header');
         const itemsBeforeHeader = headerIndex > 0 ? visualSlots.slice(0, headerIndex) : [];
+        const parseRgb = (value) => {
+          const match = String(value || '').match(/rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)/i);
+          if (!match) return null;
+          return [Number(match[1]), Number(match[2]), Number(match[3])];
+        };
+        const luminance = (rgb) => {
+          if (!rgb) return null;
+          const [r, g, b] = rgb.map((channel) => channel / 255);
+          return Math.round((0.2126 * r + 0.7152 * g + 0.0722 * b) * 255);
+        };
+        const headerNode = Array.from(document.querySelectorAll('.iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"]')).find(isVisible);
+        const headerBackground = headerNode ? window.getComputedStyle(headerNode).backgroundColor : '';
+        const headerBackgroundImage = headerNode ? window.getComputedStyle(headerNode).backgroundImage : '';
+        const routeRails = Array.from(document.querySelectorAll('.iusentra-route-grid[data-iusentra-layout-has-rail="true"] > .iusentra-route-rail'))
+          .filter(isVisible)
+          .map((rail) => {
+            const rect = rail.getBoundingClientRect();
+            const style = window.getComputedStyle(rail);
+            const children = Array.from(rail.children).filter((child) => child instanceof HTMLElement && isVisible(child));
+            const childWidths = children.map((child) => Math.round(child.getBoundingClientRect().width));
+            return {
+              width: Math.round(rect.width),
+              columnCount: style.gridTemplateColumns ? style.gridTemplateColumns.split(' ').filter(Boolean).length : 1,
+              childMinWidth: childWidths.length ? Math.min(...childWidths) : Math.round(rect.width),
+            };
+          });
+        const emailLayout = document.querySelector('.iu-mail-layout.iusentra-route-grid');
+        const emailList = emailLayout?.querySelector('.iu-mail-list-card');
+        const emailPreview = emailLayout?.querySelector('.iu-mail-preview-card');
+        const emailSplit = emailLayout && emailList && emailPreview && isVisible(emailList) && isVisible(emailPreview)
+          ? {
+              listWidth: Math.round(emailList.getBoundingClientRect().width),
+              previewWidth: Math.round(emailPreview.getBoundingClientRect().width),
+            }
+          : null;
+        const agendaWeekNode = document.querySelector('.iu-ag-week--week');
+        const agendaDays = agendaWeekNode
+          ? Array.from(agendaWeekNode.querySelectorAll('.iu-ag-day')).filter((day) => day instanceof HTMLElement && isVisible(day))
+          : [];
+        const agendaWeekRect = agendaWeekNode ? agendaWeekNode.getBoundingClientRect() : null;
+        const agendaVisibleDays = agendaWeekRect
+          ? agendaDays.filter((day) => {
+              const rect = day.getBoundingClientRect();
+              return rect.left >= agendaWeekRect.left - 4 && rect.right <= agendaWeekRect.right + 4;
+            }).length
+          : 0;
+        const agendaInspector = document.querySelector('.iu-ag-layout.iusentra-route-grid > .iu-ag-inspector.iusentra-route-rail');
+        const agendaInspectorStyle = agendaInspector ? window.getComputedStyle(agendaInspector) : null;
+        const agendaInspectorColumns = agendaInspectorStyle?.gridTemplateColumns
+          ? agendaInspectorStyle.gridTemplateColumns.split(' ').filter(Boolean).length
+          : null;
+        const agendaWeek = agendaWeekNode && agendaWeekRect
+          ? {
+              days: agendaDays.length,
+              visibleDays: agendaVisibleDays,
+              width: Math.round(agendaWeekRect.width),
+              scrollWidth: agendaWeekNode.scrollWidth,
+              dayMinWidth: agendaDays.length ? Math.min(...agendaDays.map((day) => Math.round(day.getBoundingClientRect().width))) : 0,
+              inspectorColumns: agendaInspectorColumns,
+            }
+          : null;
         return {
           url: location.href,
           title: document.title,
@@ -251,6 +314,10 @@ async function waitForPage(client, startedAt) {
           sequenceUnordered: sequenceItems.filter((item) => !item.slot).length,
           sequenceHeaderFirst: headerIndex === 0,
           sequenceBeforeHeader: itemsBeforeHeader.map((item) => ({ slot: item.slot, text: item.text })),
+          headerLuminance: luminance(parseRgb(headerBackground) || parseRgb(headerBackgroundImage)),
+          routeRails,
+          emailSplit,
+          agendaWeek,
         };
       })()`,
     })
@@ -345,6 +412,21 @@ async function auditOne(client, routeName, route, viewport) {
     if (data.sequenceRoot && data.sequenceItems?.some((item) => item.slot === 'page-header') && !data.sequenceHeaderFirst) {
       failures.push('sequenza_header_non_primo')
     }
+    if ((data.routeRails || []).some((rail) => rail.width <= 520 && (rail.columnCount > 1 || rail.childMinWidth < 220))) {
+      failures.push('support_rail_card_troppo_stretta')
+    }
+    if (route === '/agenda' && viewport.name === 'desktop' && data.agendaWeek?.days >= 7 && data.agendaWeek.visibleDays < 7) {
+      failures.push('agenda_settimana_incompleta')
+    }
+    if (route === '/agenda' && viewport.name === 'desktop' && data.agendaWeek?.inspectorColumns && data.agendaWeek.inspectorColumns > 1) {
+      failures.push('agenda_supporto_non_verticale')
+    }
+    if (data.emailSplit && viewport.name !== 'mobile' && data.emailSplit.previewWidth <= data.emailSplit.listWidth + 120) {
+      failures.push('email_preview_troppo_stretta')
+    }
+    if (viewport.name === 'desktop' && typeof data.headerLuminance === 'number' && data.headerLuminance < 170) {
+      failures.push('header_preset_scuro')
+    }
   }
   const warnings = []
   if (screenshotWarning) warnings.push(screenshotWarning)
@@ -373,6 +455,10 @@ async function auditOne(client, routeName, route, viewport) {
     sequenceUnordered: data.sequenceUnordered,
     sequenceHeaderFirst: data.sequenceHeaderFirst,
     sequenceBeforeHeader: data.sequenceBeforeHeader || [],
+    headerLuminance: data.headerLuminance,
+    routeRails: data.routeRails || [],
+    emailSplit: data.emailSplit || null,
+    agendaWeek: data.agendaWeek || null,
     loadingContext: data.loadingContext || [],
     console: consoleEntries,
     screenshot: screenshotName,

@@ -6,6 +6,7 @@ from .sources.compliance import ComplianceSource
 from .sources.documenti import DocumentiSource
 from .sources.fascicoli import FascicoliSource
 from .sources.giurisprudenza import GiurisprudenzaSource
+from .sources.guida_pratica import GuidaPraticaSource
 from .sources.legal_intelligence import LegalIntelligenceSource
 from .sources.legal_updates import LegalUpdatesSource
 from .sources.normative import NormativeSource
@@ -117,7 +118,7 @@ class SourceRouter:
         if _is_free_web_request(request):
             return [OfficialWebSource()]
 
-        local_sources = [StudioDatabaseSource()]
+        local_sources = [StudioDatabaseSource(), GuidaPraticaSource()]
         legal_sources = []
         workflow_sources = []
 

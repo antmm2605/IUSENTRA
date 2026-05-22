@@ -6,13 +6,13 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 387.
+- File pytest censiti: 388.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
 | Tipo test | Conteggio |
 | --- | --- |
-| API contract | 65 |
+| API contract | 66 |
 | Backend | 41 |
 | E2E | 6 |
 | Frontend static gate | 1 |
@@ -33,7 +33,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 14 |
 | 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 38 |
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 28 |
-| 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 133 |
+| 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 134 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
 | 09-misc | Test non classificati dalle fasi principali | 63 |
 
@@ -285,6 +285,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | File/document security | Tenant isolation | tests/test_legal_document_ingestion.py | tenant, feature flag, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_lex_document_tools_auto_index.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_lex_fascicolo_documents_tools.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Frontend React | API contract | lex/tests/unit/test_guida_pratica_source.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | API contract | tests/test_react_condivisioni.py | 403/RBAC | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | API contract | tests/test_react_document_editor.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | API contract | tests/test_react_preventivo_wizard_console.py | 401 anonimo, feature flag, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |

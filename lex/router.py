@@ -236,6 +236,17 @@ class LexRouter:
         "da dove parto",
     )
     _FONTI_HINTS = ("fonte", "fonti", "riferimento bibliografico", "citazione ufficiale")
+    _GUIDA_PRATICA_HINTS = (
+        "guida pratica",
+        "scheda pratica",
+        "guida operativa",
+        "checklist pratica",
+        "cosa verificare per",
+        "come procedere per",
+        "atto da redigere",
+        "allegati obbligatori",
+        "campi obbligatori",
+    )
     _CLIENTE_ANAGRAFICA_HINTS = (
         "mi dai i dati del cliente",
         "mi dati i dati del cliente",
@@ -408,6 +419,8 @@ class LexRouter:
         # P9: economico
         if self._has_any(text, self._ECONOMICO_HINTS):
             return "economico"
+        if self._has_any(text, self._GUIDA_PRATICA_HINTS) and not getattr(request, "fascicolo_id", None):
+            return "question_answering"
         # P10: anagrafica cliente (ha priorità su fascicolo generico)
         if self._has_any(text, self._CLIENTE_ANAGRAFICA_HINTS) or self._looks_like_cliente_anagrafica(text):
             return "studio_data_lookup"

@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.248.11 - 2026-05-22
+
+- Uniformato il caricamento React dei fascicoli al loader tenant-aware usato dalla Guida Pratica: un fascicolo valido in JSON legacy resta apribile anche quando lo SQLite operativo non è ancora popolato.
+- Aggiunto test di regressione perché dettaglio fascicolo e Guida Pratica leggano lo stesso fascicolo reale, così Lex e l'interfaccia restano allineati alla conoscenza operativa dell'avvocato.
+- Reso più robusto il build Docker di produzione: il download di Dart Sass usa retry espliciti e archivio temporaneo, così un trasferimento parziale non rompe il gate `--no-cache`.
+
+## 2.248.10 - 2026-05-22
+
+- Integrati i moduli TOP9 set2 parte 1 e parte 2 nella Guida Pratica, con 1.054 schede curate e copertura ancora completa dei 1.018 codici ufficiali PST/XSD.
+- Resa la Guida Pratica esplicitamente facoltativa nel fascicolo: se manca il codice oggetto viene proposta una scheda dall'oggetto della pratica quando possibile, senza bloccare il lavoro dell'avvocato.
+- Sanificati i codici ricevuti non coerenti con il catalogo ministeriale: `121003` resta guida interna non depositabile, mentre le schede arrivate come `413011` e `140012` sono state integrate come alias pratici senza sovrascrivere le descrizioni ufficiali.
+- Agganciata la Guida Pratica completa a Lex tramite `GuidaPraticaSource`: Lex legge scheda, normativa, adempimenti, atto, campi, allegati, avvertimenti e termini per rispondere in modo conversazionale all'avvocato, senza confondere guida interna e codice di deposito.
+
 ## 2.248.9 - 2026-05-22
 
 - Applicata la Guida Pratica completa come knowledge base separato dal codice, con moduli JSON dedicati e completamento curato dei codici ufficiali PST/XSD mancanti.

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from pathlib import Path
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -13,7 +13,6 @@ from pct.pratiche_collegate_catalog import (  # noqa: E402
     list_codici_oggetto_pst,
     looks_like_codice_oggetto_pst,
 )
-
 
 FIXTURE_KB = ROOT / "pct" / "data" / "legal_knowledge_base.json"
 FULL_KB = ROOT / "pct" / "data" / "legal_knowledge_base.full.json"
@@ -189,3 +188,83 @@ def test_official_alphanumeric_codes_are_valid_and_depositable():
     assert guida["coverage"]["level"] == "curata"
     assert guida["codice_deposito"]["depositabile"] is True
     assert guida["atto_principale"]["campi_obbligatori"]
+
+
+def test_top9_set2_part1_integrates_official_and_internal_guides():
+    service = GuidaPraticaService(kb_path=FULL_KB)
+
+    expected = {
+        "111021": True,
+        "620001": True,
+        "100002": False,
+        "413071": False,
+        "143002": False,
+    }
+    for codice, depositabile in expected.items():
+        guida = service.get_guidance(codice)
+
+        assert guida["coverage"]["level"] == "curata"
+        assert "kb_98_top9_set2_parte1.json" in (guida.get("_source_files") or [])
+        assert guida["codice_deposito"]["depositabile"] is depositabile
+        if depositabile:
+            assert codice_oggetto_pst_entry(codice) is not None
+        else:
+            assert codice_oggetto_pst_entry(codice) is None
+
+
+def test_top9_set2_part2_integrates_without_corrupting_official_codes():
+    service = GuidaPraticaService(kb_path=FULL_KB)
+
+    licenziamento = service.get_guidance("220101")
+    assert licenziamento["coverage"]["level"] == "curata"
+    assert licenziamento["codice_deposito"]["depositabile"] is True
+    assert "kb_98_top9_set2_parte2.json" in (licenziamento.get("_source_files") or [])
+
+    divisione = service.get_guidance("121003")
+    assert divisione["coverage"]["level"] == "curata"
+    assert divisione["codice_deposito"]["depositabile"] is False
+    assert divisione["codice_originale_ricevuto"] == "121003"
+    assert codice_oggetto_pst_entry("121003") is None
+
+    tutela_ufficiale = service.get_guidance("413011")
+    assert tutela_ufficiale["denominazione"] == "Provvedimenti urgenti prima dell'assunzione delle funzioni del tutore o del protutore (art. 361 c.c.)"
+    assert tutela_ufficiale["codice_deposito"]["depositabile"] is True
+    assert "kb_98_top9_set2_parte2.json" not in (tutela_ufficiale.get("_source_files") or [])
+
+    tutela_guida = service.get_guidance("GUIDA_TUTELA_MINORI_ORDINARIA")
+    assert tutela_guida["coverage"]["level"] == "curata"
+    assert tutela_guida["codice_deposito"]["depositabile"] is False
+    assert tutela_guida["codice_originale_ricevuto"] == "413011"
+    assert "kb_98_top9_set2_parte2.json" in (tutela_guida.get("_source_files") or [])
+
+    vendita_ufficiale = service.get_guidance("140012")
+    assert vendita_ufficiale["denominazione"] == "Vendita di cose mobili"
+    assert vendita_ufficiale["codice_deposito"]["depositabile"] is True
+    assert "kb_98_top9_set2_parte2.json" not in (vendita_ufficiale.get("_source_files") or [])
+
+    compravendita_guida = service.get_guidance("GUIDA_COMPRAVENDITA_IMMOBILIARE_RISOLUZIONE")
+    assert compravendita_guida["coverage"]["level"] == "curata"
+    assert compravendita_guida["codice_deposito"]["depositabile"] is False
+    assert compravendita_guida["codice_originale_ricevuto"] == "140012"
+    assert "kb_98_top9_set2_parte2.json" in (compravendita_guida.get("_source_files") or [])
+
+
+def test_fascicolo_without_code_gets_practical_suggestion_from_object():
+    service = GuidaPraticaService(kb_path=FULL_KB)
+
+    match = service.suggest_guidance_from_fascicolo(
+        {
+            "titolo": "RG 466/2023 - Azioni di competenza del Giudice di Pace in materia di risarcimento danno",
+            "oggetto": "Azioni di competenza del Giudice di Pace in materia di risarcimento danno",
+            "codice_oggetto_pst": "",
+        }
+    )
+
+    assert match is not None
+    assert match["codice"] == "145009"
+    assert match["confirmation_required"] is True
+    assert "deposito" not in match["message"].casefold()
+
+    guida = service.get_guidance(match["codice"])
+    assert guida["coverage"]["level"] == "curata"
+    assert guida["codice_deposito"]["depositabile"] is True

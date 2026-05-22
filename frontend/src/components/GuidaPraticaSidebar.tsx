@@ -108,25 +108,6 @@ function ReviewBanner({ guida }:{guida?:GuidaPratica}) {
   )
 }
 
-function DepositBanner({ guida }:{guida?:GuidaPratica}) {
-  const status = guida?.codice_deposito
-  if (!status) return null
-  if (status.depositabile) {
-    return (
-      <div className="iu-guida-deposit is-ok" role="note">
-        <ShieldCheck size={16}/>
-        <span>{status.messaggio || 'Codice presente nel catalogo ufficiale PST/XSD.'}</span>
-      </div>
-    )
-  }
-  return (
-    <div className="iu-guida-deposit is-warning" role="note">
-      <AlertTriangle size={16}/>
-      <span>{status.messaggio || 'Guida interna disponibile, ma non utilizzabile come codice definitivo di deposito.'}</span>
-    </div>
-  )
-}
-
 function ChecklistTab({ response }:{response:GuidaPraticaResponse}) {
   const checklist = response.checklist
   const guida = response.guida
@@ -136,7 +117,6 @@ function ChecklistTab({ response }:{response:GuidaPraticaResponse}) {
   const missingWarnings = checklist?.avvertimenti_mancanti || []
   return (
     <div className="iu-guida-tab-panel">
-      <DepositBanner guida={guida}/>
       <ReviewBanner guida={guida}/>
       <div className="iu-guida-progress" aria-label="Completamento guida pratica">
         <div><strong>{completion}%</strong><span>{checklist?.completati ?? 0}/{checklist?.totale ?? 0} requisiti</span></div>
@@ -234,7 +214,8 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
   }
   useEffect(load, [fascicoloId, codice])
   const guida = response.guida
-  const depositStatus = guida?.codice_deposito
+  const suggestedMatch = response.matchedFromFascicolo
+  const showOptionalEmpty = response.ok && response.guidaPraticaDisponibile === false
   if (!fascicoloId && !codice) return null
   return (
     <aside id="guida-pratica" className="iu-guida-pratica" aria-label="Guida pratica della pratica">
@@ -242,16 +223,23 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
         <div>
           <span><BookOpen size={16}/> Guida pratica</span>
           <h2>{guida?.denominazione || fascicoloTitle || 'Guida per codice materia'}</h2>
-          <p>{effectiveCode ? `Codice ${effectiveCode}` : response.message || 'Codice materia da impostare nel fascicolo.'}</p>
+          <p>{effectiveCode ? `Scheda ${effectiveCode}` : response.message || 'Guida facoltativa non collegata.'}</p>
+          {suggestedMatch?.confirmation_required ? <p className="iu-guida-suggested-note">Scheda pratica suggerita dall'oggetto del fascicolo: confermala nella scheda fascicolo se vuoi mantenerla collegata alla pratica.</p> : null}
         </div>
         <div className="iu-guida-header-actions">
-          {depositStatus ? <Badge tone={depositStatus.depositabile ? 'success' : 'warning'}>{depositStatus.depositabile ? 'Codice PST verificato' : 'Guida interna'}</Badge> : null}
+          {response.guidaPraticaFacoltativa !== false ? <Badge tone="neutral">Uso facoltativo</Badge> : null}
+          {suggestedMatch ? <Badge tone="warning">Scheda suggerita</Badge> : effectiveCode ? <Badge tone="success">Scheda collegata</Badge> : null}
           {guida?.coverage ? <Badge tone={guida.coverage.needs_reviewer ? 'warning' : 'success'}>{coverageLabel(guida.coverage.level)}</Badge> : null}
           <button type="button" onClick={load} disabled={loading} title="Aggiorna guida pratica"><RefreshCw size={14}/></button>
         </div>
       </header>
       {loading && !response.generatedAt ? (
         <div className="iu-guida-loading"><RefreshCw size={16}/><span>Caricamento guida pratica...</span></div>
+      ) : showOptionalEmpty ? (
+        <div className="iu-guida-empty" role="note">
+          <BookOpen size={17}/>
+          <span>{response.message || 'La guida pratica è facoltativa: puoi continuare a lavorare sul fascicolo oppure collegare una materia quando vuoi usarla.'}</span>
+        </div>
       ) : !response.ok ? (
         <div className="iu-guida-error"><AlertTriangle size={17}/><span>{response.message || 'Guida non disponibile.'}</span></div>
       ) : (

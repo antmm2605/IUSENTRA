@@ -2,6 +2,18 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.248.11 - 2026-05-22
+
+La conoscenza linguistica e conversazionale di Lex va arricchita sempre con le fonti operative curate dello studio. Per la Guida Pratica questo significa: lettura completa della scheda quando pertinente, risposta naturale all'avvocato, badge UI `Uso facoltativo`, nessun blocco del fascicolo e nessuna confusione tra supporto pratico interno e dato ministeriale.
+
+Audit aggiuntivo: dettaglio fascicolo React e `GuidaPraticaSource` devono risolvere lo stesso fascicolo reale anche in fallback JSON legacy con SQLite operativo non ancora popolato.
+
+## Aggiornamento operativo 2.248.10 - 2026-05-22
+
+La Guida Pratica è ora fonte interna completa per Lex tramite `GuidaPraticaSource`. Non è fonte pubblica esterna e non sostituisce il catalogo ministeriale di deposito: arricchisce invece la risposta operativa con normativa letta dalla scheda, presupposti, adempimenti, atto, campi, allegati, avvertimenti, termini, atti collegati ed esiti.
+
+Regola di audit: ogni nuova guida curata deve diventare anche conoscenza conversazionale di Lex. La risposta all'avvocato deve essere pratica, poco invasiva e distinta dal deposito: "questa guida aiuta il lavoro" non significa "questo alias è un codice ufficiale".
+
 ## Aggiornamento operativo 2.248.9 - 2026-05-22
 
 La Guida Pratica PST/XSD è una knowledge base interna separata dal codice e non una fonte pubblica esterna. Le schede ufficiali sono collegate al catalogo ministeriale caricato nel prodotto e devono essere trattate come supporto operativo al fascicolo; gli alias interni non depositabili non vanno mai trasformati in codice oggetto di deposito.

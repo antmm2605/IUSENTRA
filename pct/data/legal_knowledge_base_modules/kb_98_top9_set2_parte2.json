@@ -1,0 +1,2483 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET2_PARTE2_SANIFICATO",
+  "denominazione": "Secondo set di 9 codici più frequenti - PARTE 2 di 2 (codici 220101, 121003, 413011, 140012) - integrazione verificata IUSENTRA",
+  "registri": [
+    "SICID",
+    "SIVG"
+  ],
+  "data_generazione": "2026-05-22",
+  "scopo": "Parte 2: licenziamento gmo, divisione ereditaria, tutela minori, risoluzione compravendita immobiliare. Completa il set2 iniziato in kb_top9_set2_parte1.json (111021, 100002, 413071, 620001, 143002)",
+  "codici_materia": [
+    {
+      "codice": "220101",
+      "denominazione": "Licenziamento individuale per giustificato motivo oggettivo (gmo)",
+      "categoria": "Lavoro - licenziamenti individuali",
+      "sottocategoria": "Impugnazione licenziamento per ragioni economiche/organizzative/produttive",
+      "rito": "Rito ordinario del lavoro ex artt. 409 e ss. c.p.c. (per assunti dal 7/3/2015) OR Rito Fornero ex L. 92/2012 c. 47-69 (per assunti ante 7/3/2015 con tutela ex art. 18 St.Lav.)",
+      "competenza": "Tribunale del lavoro - foro luogo sede di lavoro (art. 413 c.p.c.)",
+      "uffici_destinatari": [
+        "SICID-Lavoro / SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 604/1966",
+          "articolo": "3",
+          "descrizione": "Giustificato motivo OGGETTIVO - 'ragioni inerenti all'attività produttiva, all'organizzazione del lavoro e al regolare funzionamento di essa'"
+        },
+        {
+          "fonte": "L. 604/1966",
+          "articolo": "6",
+          "descrizione": "Termini impugnazione: 60 gg + 180 gg"
+        },
+        {
+          "fonte": "L. 604/1966",
+          "articolo": "7",
+          "descrizione": "Procedura preventiva ITL (per assunti ante 7/3/2015 e datori oltre 15 dipendenti - regime art. 18)"
+        },
+        {
+          "fonte": "L. 300/1970",
+          "articolo": "18",
+          "descrizione": "Reintegrazione (per assunti ante 7/3/2015)"
+        },
+        {
+          "fonte": "L. 92/2012",
+          "articolo": "1 c. 42",
+          "descrizione": "Tutele graduate gmo: reintegratoria attenuata (manifesta insussistenza fatto) - indennitaria forte (altri casi)"
+        },
+        {
+          "fonte": "D.Lgs. 23/2015",
+          "articolo": "3 c. 1",
+          "descrizione": "Tutele crescenti gmo - solo tutela indennitaria (no reintegra) - 6-36 mensilità post Corte Cost. 194/2018"
+        },
+        {
+          "fonte": "Corte Cost. 194/2018",
+          "descrizione": "Incostituzionalità criterio rigido indennità tutele crescenti - oggi discrezionalità giudice da 6 a 36 mensilità"
+        },
+        {
+          "fonte": "Corte Cost. 59/2021",
+          "descrizione": "Incostituzionalità sanzione indennitaria automatica per gmo manifestamente insussistente nel regime tutele crescenti - oggi reintegra anche per tutele crescenti se manifesta insussistenza"
+        },
+        {
+          "fonte": "Corte Cost. 7/2024",
+          "descrizione": "Conferma necessità verifica giurisdizionale piena del gmo"
+        },
+        {
+          "fonte": "Cass. SU 19774/2017",
+          "descrizione": "Obbligo repechage - onere prova in capo al datore"
+        }
+      ],
+      "presupposti_sostanziali_gmo": [
+        "RAGIONI INERENTI ALL'ATTIVITÀ PRODUTTIVA, ALL'ORGANIZZAZIONE DEL LAVORO E AL REGOLARE FUNZIONAMENTO DI ESSA (art. 3 L. 604/66)",
+        "EFFETTIVITÀ E NON PRETESTUOSITÀ delle ragioni (no licenziamento camuffato per motivo soggettivo)",
+        "NESSO CAUSALE tra ragioni dedotte e soppressione della posizione",
+        "OBBLIGO REPECHAGE: verifica impossibilità di ricollocazione del lavoratore in altre mansioni equivalenti o inferiori (Cass. SU 19774/2017)",
+        "Per regime art. 18 (ante 7/3/2015): rispetto PROCEDURA PREVENTIVA ITL ex art. 7 L. 604/66",
+        "RISPETTO CRITERI DI SCELTA in caso di soppressione di una posizione tra più equivalenti (proporzionalità, ragionevolezza)"
+      ],
+      "vizi_dedotti_tipici": [
+        "INSUSSISTENZA RAGIONI ECONOMICHE/ORGANIZZATIVE dedotte (carenza prova del datore)",
+        "MANIFESTA INSUSSISTENZA del fatto posto a base del licenziamento (→ reintegra attenuata per art. 18 c. 7 e oggi anche tutele crescenti post Corte Cost. 59/2021)",
+        "VIOLAZIONE OBBLIGO REPECHAGE (mancata verifica alternative occupazionali)",
+        "DISCRIMINATORIETÀ MASCHERATA da gmo (licenziamento per motivi vietati: genere, età, malattia, gravidanza, ecc.)",
+        "VIOLAZIONE CRITERI DI SCELTA tra posizioni equivalenti",
+        "VIZI DELLA PROCEDURA ex art. 7 L. 604/66 (per regime ante 7/3/2015)",
+        "TARDIVITÀ del licenziamento (sproporzione tra ragioni dedotte e tempo di reazione)",
+        "ASSUNZIONI SUCCESSIVE per stesse mansioni (indicatore di pretestuosità)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "tentativo_facoltativo": "Conciliazione ITL ex art. 410 c.p.c. (facoltativa per privato); OBBLIGATORIA per pubblico impiego ex art. 65 D.Lgs. 165/2001"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "IMPUGNAZIONE STRAGIUDIZIALE TEMPESTIVA - 60 GG dalla comunicazione del licenziamento",
+          "modalita": "PEC, raccomandata A/R, consegna a mani con sottoscrizione",
+          "criticita": "MASSIMA - decadenza in caso di mancato rispetto",
+          "norma": "art. 6 L. 604/1966"
+        },
+        {
+          "step": 2,
+          "descrizione": "Acquisizione documentazione completa del rapporto di lavoro",
+          "documenti": [
+            "Lettera assunzione/contratto",
+            "Lettera di licenziamento con MOTIVAZIONE DETTAGLIATA (per gmo deve essere precisa, non generica)",
+            "Buste paga",
+            "CCNL applicato",
+            "Eventuali comunicazioni precedenti"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "VERIFICA REGIME APPLICABILE in base a data assunzione + dimensionale",
+          "criterio": "Ante 7/3/2015 oltre 15 dip: art. 18 + rito Fornero. Dal 7/3/2015: tutele crescenti + rito ordinario lavoro. Sotto 15 dip: L. 604/66 tutela indennitaria 2.5-6 mensilità OR tutele crescenti ridotte"
+        },
+        {
+          "step": 4,
+          "descrizione": "ANALISI APPROFONDITA DELLE RAGIONI ECONOMICHE/ORGANIZZATIVE DEDOTTE",
+          "verifica_effettivita": [
+            "Bilanci ultimi 3 esercizi del datore",
+            "Documentazione su crisi/ristrutturazione",
+            "Soppressione posizione: verificare se effettivamente eliminata o sostituita",
+            "Andamento organico aziendale (assunzioni successive al licenziamento - indicatore di pretestuosità)",
+            "CCNL e accordi collettivi"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "VERIFICA REPECHAGE - posizioni alternative disponibili al momento del licenziamento",
+          "elementi": [
+            "Posizioni vacanti o liberatesi",
+            "Posizioni con mansioni inferiori (art. 2103 c.c. post D.Lgs. 81/2015 consente demansionamento conservativo)",
+            "Assunzioni effettuate nel periodo immediatamente successivo al licenziamento"
+          ]
+        },
+        {
+          "step": 6,
+          "descrizione": "Quantificazione domande: retribuzioni globali di fatto da licenziamento + contributi + eventuali danni accessori"
+        },
+        {
+          "step": 7,
+          "descrizione": "Calcolo termine 180 gg per deposito ricorso",
+          "norma": "art. 6 c. 2 L. 604/1966"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_impugnazione_licenziamento_gmo",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per impugnazione licenziamento per giustificato motivo oggettivo",
+        "schema_xsd_ministeriale": "AttoLavoro.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del lavoro (foro luogo sede di lavoro)",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore",
+            "label": "Lavoratore ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_lavoro",
+            "label": "Datore di lavoro convenuto",
+            "type": "object_persona_giuridica",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "denominazione",
+                "type": "string"
+              },
+              {
+                "id": "CF_PIVA",
+                "type": "string"
+              },
+              {
+                "id": "sede_legale",
+                "type": "address"
+              },
+              {
+                "id": "sede_lavoro",
+                "type": "address"
+              },
+              {
+                "id": "settore_attivita_codice_ATECO",
+                "type": "string"
+              },
+              {
+                "id": "numero_dipendenti_unita_produttiva",
+                "type": "integer"
+              },
+              {
+                "id": "numero_dipendenti_complessivi",
+                "type": "integer"
+              }
+            ]
+          },
+          {
+            "id": "data_assunzione",
+            "label": "Data assunzione (CRITICA per regime applicabile)",
+            "type": "date",
+            "required": true
+          },
+          {
+            "id": "regime_applicabile",
+            "label": "Regime applicabile",
+            "type": "select",
+            "required": true,
+            "options": [
+              "art_18_pre_legge_fornero",
+              "art_18_post_legge_92_2012",
+              "dlgs_23_2015_tutele_crescenti",
+              "L_604_1966_piccole_imprese"
+            ]
+          },
+          {
+            "id": "qualifica_e_mansioni",
+            "label": "Qualifica e mansioni svolte",
+            "type": "object",
+            "required": true
+          },
+          {
+            "id": "ccnl_applicato",
+            "label": "CCNL applicato",
+            "type": "string",
+            "required": true
+          },
+          {
+            "id": "data_licenziamento",
+            "label": "Data lettera licenziamento",
+            "type": "date",
+            "required": true
+          },
+          {
+            "id": "data_ricezione_licenziamento",
+            "label": "Data ricezione lettera",
+            "type": "date",
+            "required": true
+          },
+          {
+            "id": "data_impugnazione_stragiudiziale",
+            "label": "Data impugnazione stragiudiziale (max 60 gg)",
+            "type": "date",
+            "required": true,
+            "validation": "entro_60_gg_da_ricezione",
+            "critico": true
+          },
+          {
+            "id": "motivazione_licenziamento_datore",
+            "label": "Motivazione esposta dal datore nella lettera",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "tipo_ragione_dedotta",
+            "label": "Tipo di ragione oggettiva dedotta",
+            "type": "select",
+            "required": true,
+            "options": [
+              "soppressione_posizione_lavorativa",
+              "riorganizzazione_aziendale",
+              "crisi_economica_aziendale",
+              "esternalizzazione_outsourcing",
+              "innovazione_tecnologica",
+              "trasferimento_attivita",
+              "altro"
+            ]
+          },
+          {
+            "id": "procedura_preventiva_ITL_esperita",
+            "label": "Procedura preventiva ITL ex art. 7 L. 604/66 (per regime art. 18)",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "applicabile",
+                "type": "boolean"
+              },
+              {
+                "id": "esperita",
+                "type": "boolean"
+              },
+              {
+                "id": "esito",
+                "type": "select"
+              }
+            ]
+          },
+          {
+            "id": "vizi_dedotti",
+            "label": "Vizi dedotti",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "insussistenza_ragioni_economiche_dedotte",
+              "manifesta_insussistenza_fatto_posto_a_base",
+              "violazione_obbligo_repechage",
+              "discriminatorieta_mascherata",
+              "violazione_criteri_scelta",
+              "vizi_procedurali_art_7_L_604",
+              "tardivita_licenziamento",
+              "carenza_motivazione_specifica",
+              "assunzioni_successive_al_licenziamento_per_stesse_mansioni"
+            ]
+          },
+          {
+            "id": "esposizione_vizi",
+            "label": "Esposizione dettagliata vizi",
+            "type": "textarea",
+            "required": true,
+            "min_length": 500
+          },
+          {
+            "id": "elementi_repechage",
+            "label": "Elementi su violazione repechage",
+            "type": "textarea"
+          },
+          {
+            "id": "tutela_richiesta_principale",
+            "label": "Tutela principale richiesta",
+            "type": "select",
+            "required": true,
+            "options": [
+              "reintegratoria_piena_art_18_c_1_discriminazione",
+              "reintegratoria_attenuata_art_18_c_4_manifesta_insussistenza",
+              "indennitaria_forte_art_18_c_5_da_12_a_24_mensilita",
+              "indennitaria_attenuata_art_18_c_6_vizi_formali",
+              "reintegratoria_tutele_crescenti_post_corte_cost_59_2021",
+              "indennitaria_tutele_crescenti_da_6_a_36_mensilita"
+            ]
+          },
+          {
+            "id": "retribuzione_globale_di_fatto_mensile",
+            "label": "Ultima RGF mensile",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "domande_aggiuntive",
+            "label": "Domande aggiuntive",
+            "type": "select_multi"
+          },
+          {
+            "id": "richiesta_700",
+            "label": "Provvedimento d'urgenza ex art. 700",
+            "type": "boolean",
+            "default": false
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Termini decadenziali 60 gg + 180 gg ex art. 6 L. 604/1966",
+          "Indicazione data assunzione per regime applicabile",
+          "Indicazione dimensionale datore (per individuazione tutela)",
+          "Indicazione applicabilità Corte Cost. 59/2021 per tutele crescenti (manifesta insussistenza → reintegra)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "lettera_licenziamento",
+          "label": "Lettera di licenziamento con motivazione completa",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "ricevuta_consegna_licenziamento",
+          "label": "Prova della data di ricezione (PEC, raccomandata A/R)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "impugnazione_stragiudiziale_con_prova",
+          "label": "Impugnazione stragiudiziale con PROVA invio entro 60 gg",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "contratto_lavoro",
+          "label": "Contratto individuale di lavoro",
+          "required": true
+        },
+        {
+          "id": "buste_paga_ultimi_12_mesi",
+          "label": "Buste paga ultimi 12 mesi",
+          "required": true
+        },
+        {
+          "id": "cud_ultimi_3_anni",
+          "label": "CUD/CU ultimi 3 anni",
+          "required": true
+        },
+        {
+          "id": "ccnl_applicato",
+          "label": "Estratto CCNL applicato",
+          "required": true
+        },
+        {
+          "id": "documenti_situazione_aziendale",
+          "label": "Documenti su situazione economica/organizzativa aziendale (bilanci, comunicazioni)",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documenti_assunzioni_successive",
+          "label": "Documenti su assunzioni successive al licenziamento per stesse mansioni (utili per dimostrare pretestuosità)",
+          "required": false,
+          "rilevante": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per controversie individuali di lavoro per reddito sotto 3x soglia patrocinio a spese dello Stato",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ricorso_700_reintegra_anticipata",
+          "trigger": "Pericolo grave e irreparabile",
+          "codice_correlato": "211010"
+        },
+        {
+          "tipo": "memoria_difensiva_datore",
+          "termine": "10 gg prima udienza"
+        },
+        {
+          "tipo": "ctu_contabile_aziendale",
+          "trigger": "Per verifica effettività ragioni economiche",
+          "automatico": false
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "reintegra_piena_art_18_c_1",
+          "descrizione": "Licenziamento discriminatorio - reintegra + tutto il risarcimento"
+        },
+        {
+          "esito": "reintegra_attenuata_art_18_c_4_manifesta_insussistenza",
+          "descrizione": "Manifesta insussistenza fatto posto a base gmo - reintegra + indennità max 12 mensilità"
+        },
+        {
+          "esito": "indennita_forte_art_18_c_5",
+          "descrizione": "Da 12 a 24 mensilità (no reintegra) - gmo non manifestamente insussistente ma illegittimo"
+        },
+        {
+          "esito": "indennita_tutele_crescenti",
+          "descrizione": "Per assunti dal 7/3/2015: indennità 6-36 mensilità (post Corte Cost. 194/2018)"
+        },
+        {
+          "esito": "reintegra_tutele_crescenti_post_corte_cost_59_2021",
+          "descrizione": "Manifesta insussistenza per tutele crescenti → reintegra (anche se il D.Lgs. 23/2015 escludeva)"
+        },
+        {
+          "esito": "rigetto",
+          "descrizione": "Licenziamento legittimo - effettività ragioni e repechage verificati"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "IMPUGNAZIONE STRAGIUDIZIALE",
+          "giorni": 60,
+          "decorrenza": "ricezione licenziamento",
+          "natura": "DECADENZIALE",
+          "norma": "art. 6 L. 604/1966",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "DEPOSITO RICORSO",
+          "giorni": 180,
+          "decorrenza": "impugnazione stragiudiziale",
+          "natura": "DECADENZIALE",
+          "norma": "art. 6 c. 2 L. 604/1966",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Costituzione datore",
+          "giorni": 10,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio",
+          "norma": "art. 416 c.p.c."
+        },
+        {
+          "termine": "Appello",
+          "giorni": 30,
+          "decorrenza": "notifica sentenza",
+          "natura": "perentorio"
+        }
+      ],
+      "guida_pratica_facoltativa": true,
+      "codice_deposito_automatico": true,
+      "verifica_pst_xsd_iusentra": {
+        "data": "2026-05-22",
+        "esito": "codice_ufficiale_allineato",
+        "motivo": "Codice e descrizione coerenti con il catalogo PST/XSD ufficiale locale."
+      }
+    },
+    {
+      "codice": "121003",
+      "denominazione": "Divisione di comunione ereditaria (divisione giudiziale)",
+      "categoria": "Successioni e diritti reali - divisione",
+      "sottocategoria": "Scioglimento della comunione ereditaria per via giudiziale",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA ex art. 5 c. 1-bis D.Lgs. 28/2010",
+      "competenza": "Tribunale del luogo dell'apertura della successione (art. 22 c.p.c.) - foro esclusivo",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "713",
+          "descrizione": "Diritto di chiedere la divisione (imprescrittibile)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "714",
+          "descrizione": "Comunione di beni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "715",
+          "descrizione": "Casi nei quali può essere sospesa la divisione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "718",
+          "descrizione": "Diritto ai beni in natura"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "720",
+          "descrizione": "Immobili non comodamente divisibili - assegnazione all'erede con maggior quota"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "722",
+          "descrizione": "Divisione mediante estrazione a sorte"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "725",
+          "descrizione": "Conferimento dei debiti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "726",
+          "descrizione": "Stima dei beni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "727-732",
+          "descrizione": "Operazioni divisionali"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "733",
+          "descrizione": "Norme date dal testatore per la divisione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "737-751",
+          "descrizione": "Collazione - obbligo di conferire le donazioni in vita"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "763",
+          "descrizione": "Rescissione per lesione (oltre 1/4)"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "784",
+          "descrizione": "Procedimento di divisione giudiziale - litisconsorzio necessario"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "785-791",
+          "descrizione": "Procedimento di divisione - fase istruttoria e decisoria"
+        },
+        {
+          "fonte": "D.Lgs. 28/2010",
+          "articolo": "5 c. 1-bis",
+          "descrizione": "Mediazione obbligatoria per cause su successioni e divisioni"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI UNA COMUNIONE EREDITARIA (più eredi che hanno accettato l'eredità)",
+        "DIRITTO IMPRESCRITTIBILE alla divisione ex art. 713 c.c. (salvo patto di indivisione max 10 anni o sospensione 5 anni ex 715)",
+        "MANCATO ACCORDO sulla divisione amichevole (necessario tentativo - condizione di mediazione)",
+        "Identificazione precisa della MASSA EREDITARIA e degli AVENTI DIRITTO",
+        "Coniuge superstite: quota di legittima + diritti speciali (uso e abitazione casa coniugale ex art. 540 c.c.)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materie": "DIVISIONE + SUCCESSIONI EREDITARIE",
+        "natura": "condizione di procedibilità",
+        "particolarita": "Spesso necessaria nomina mediatore con specifiche competenze immobiliari/contabili"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "RICOSTRUZIONE COMPLETA DELLA MASSA EREDITARIA",
+          "elementi": [
+            "Beni immobili (visure catastali, ispezioni Conservatoria, atti di provenienza)",
+            "Beni mobili (conti correnti, dossier titoli, polizze)",
+            "Quote/partecipazioni societarie",
+            "Crediti del de cuius",
+            "Debiti del de cuius (passività)",
+            "Eventuali donazioni effettuate in vita (per collazione ex art. 737 c.c.)"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "Identificazione COMPLETA DEGLI AVENTI DIRITTO",
+          "documenti": [
+            "Certificato di morte de cuius",
+            "Eventuale testamento (pubblicato e registrato)",
+            "Atto notorio o dichiarazione sostitutiva su eredi",
+            "Stato di famiglia storico del de cuius e degli eredi"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "VERIFICA ACCETTAZIONI EREDITÀ",
+          "tipologie": [
+            "Accettazione pura e semplice (espressa o tacita)",
+            "Accettazione con beneficio di inventario (per minori, incapaci - obbligatoria)",
+            "Rinuncia all'eredità (con conseguente accrescimento o devoluzione)"
+          ],
+          "rilevanza": "Solo gli accettanti sono litisconsorti necessari nella divisione"
+        },
+        {
+          "step": 4,
+          "descrizione": "QUANTIFICAZIONE QUOTE EREDITARIE",
+          "criterio": "Per successione legittima: artt. 565-586 c.c. - successione testamentaria: rispetto delle disposizioni del testatore con riserva quote legittima ex artt. 536-552 c.c.",
+          "verifica_legittima": "Per evitare azione di riduzione (art. 553 c.c.) da parte di legittimari lesi"
+        },
+        {
+          "step": 5,
+          "descrizione": "COLLAZIONE delle donazioni in vita ex art. 737 c.c.",
+          "principio": "Le donazioni fatte in vita dal de cuius a discendenti e coniuge sono conferite alla massa per essere imputate sulla quota di ciascuno (salvo dispensa)"
+        },
+        {
+          "step": 6,
+          "descrizione": "ATTIVAZIONE MEDIAZIONE OBBLIGATORIA",
+          "documenti_da_predisporre": [
+            "Istanza con identificazione masse, eredi, valori",
+            "Documentazione probatoria",
+            "Eventuale perizia estimativa di parte"
+          ]
+        },
+        {
+          "step": 7,
+          "descrizione": "Valutazione modalità di divisione",
+          "modalita_preferenza_in_ordine": [
+            "DIVISIONE IN NATURA con formazione delle porzioni (art. 718 c.c.)",
+            "ATTRIBUZIONE in natura ad un solo erede con conguaglio in denaro (per immobili non comodamente divisibili - art. 720 c.c.)",
+            "VENDITA giudiziale dei beni con divisione del ricavato"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_divisione_ereditaria",
+        "denominazione": "Atto di citazione per divisione di comunione ereditaria ex artt. 713 e ss. c.c. e 784 e ss. c.p.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del luogo apertura successione (art. 22 c.p.c.)",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "erede_attore",
+            "label": "Erede attore (uno qualsiasi dei coeredi può chiedere divisione)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "altri_eredi_convenuti",
+            "label": "Altri eredi convenuti (LITISCONSORTI NECESSARI - tutti gli accettanti)",
+            "type": "array_persone",
+            "required": true,
+            "min_items": 1
+          },
+          {
+            "id": "de_cuius",
+            "label": "De cuius",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "codice_fiscale",
+                "type": "string"
+              },
+              {
+                "id": "data_nascita",
+                "type": "date"
+              },
+              {
+                "id": "data_morte",
+                "type": "date"
+              },
+              {
+                "id": "ultimo_domicilio",
+                "type": "address",
+                "rilevante_per_competenza": true
+              }
+            ]
+          },
+          {
+            "id": "tipo_successione",
+            "label": "Tipo di successione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "legittima_ex_artt_565_586",
+              "testamentaria_con_testamento_pubblico",
+              "testamentaria_con_testamento_olografo_pubblicato",
+              "testamentaria_con_testamento_segreto",
+              "mista"
+            ]
+          },
+          {
+            "id": "testamento_estremi",
+            "label": "Estremi testamento (se presente)",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "data_redazione",
+                "type": "date"
+              },
+              {
+                "id": "notaio_pubblicante",
+                "type": "string"
+              },
+              {
+                "id": "data_pubblicazione",
+                "type": "date"
+              },
+              {
+                "id": "registrazione_AE",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "eredi_e_quote",
+            "label": "Eredi e quote",
+            "type": "array",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome_erede",
+                "type": "string"
+              },
+              {
+                "id": "rapporto_de_cuius",
+                "type": "select",
+                "options": [
+                  "coniuge",
+                  "figlio_legittimo",
+                  "figlio_naturale_riconosciuto",
+                  "ascendente",
+                  "fratello_sorella",
+                  "altro_parente",
+                  "erede_testamentario"
+                ]
+              },
+              {
+                "id": "quota_legittima_se_legittimario",
+                "type": "fraction"
+              },
+              {
+                "id": "quota_disponibile_se_testamentaria",
+                "type": "fraction"
+              },
+              {
+                "id": "quota_totale_attribuita",
+                "type": "fraction"
+              },
+              {
+                "id": "accettazione_eredita",
+                "type": "select",
+                "options": [
+                  "pura_e_semplice_espressa",
+                  "pura_e_semplice_tacita",
+                  "con_beneficio_di_inventario",
+                  "non_ancora_avvenuta"
+                ]
+              },
+              {
+                "id": "data_accettazione",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "massa_ereditaria",
+            "label": "Massa ereditaria",
+            "type": "object_complesso",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "immobili",
+                "type": "array",
+                "sub_fields": [
+                  {
+                    "id": "tipo",
+                    "type": "string"
+                  },
+                  {
+                    "id": "ubicazione",
+                    "type": "address"
+                  },
+                  {
+                    "id": "dati_catastali",
+                    "type": "object"
+                  },
+                  {
+                    "id": "valore_stimato",
+                    "type": "currency"
+                  },
+                  {
+                    "id": "gravami",
+                    "type": "string"
+                  }
+                ]
+              },
+              {
+                "id": "beni_mobili",
+                "type": "array"
+              },
+              {
+                "id": "conti_correnti_titoli",
+                "type": "array"
+              },
+              {
+                "id": "partecipazioni_societarie",
+                "type": "array"
+              },
+              {
+                "id": "crediti_attivi",
+                "type": "array"
+              },
+              {
+                "id": "debiti_ereditari",
+                "type": "array"
+              },
+              {
+                "id": "valore_attivo_totale",
+                "type": "currency"
+              },
+              {
+                "id": "valore_passivo_totale",
+                "type": "currency"
+              },
+              {
+                "id": "patrimonio_netto",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "donazioni_in_vita_collazione",
+            "label": "Donazioni in vita - collazione",
+            "type": "array",
+            "sub_fields": [
+              {
+                "id": "beneficiario",
+                "type": "string"
+              },
+              {
+                "id": "oggetto_donazione",
+                "type": "string"
+              },
+              {
+                "id": "data_donazione",
+                "type": "date"
+              },
+              {
+                "id": "valore_da_collazionare",
+                "type": "currency"
+              },
+              {
+                "id": "dispensa_collazione",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "modalita_divisione_proposta",
+            "label": "Modalità di divisione proposta",
+            "type": "select",
+            "required": true,
+            "options": [
+              "in_natura_con_formazione_porzioni",
+              "in_natura_con_assegnazione_e_conguaglio",
+              "vendita_giudiziale_e_divisione_ricavato"
+            ]
+          },
+          {
+            "id": "richiesta_perizia_estimativa",
+            "label": "Richiesta CTU estimativa dei beni",
+            "type": "boolean",
+            "default": true
+          },
+          {
+            "id": "richiesta_nomina_notaio",
+            "label": "Richiesta nomina notaio per operazioni divisionali",
+            "type": "boolean"
+          },
+          {
+            "id": "diritti_speciali_coniuge_540",
+            "label": "Diritti speciali coniuge superstite ex art. 540 c.c. (uso/abitazione casa coniugale)",
+            "type": "boolean"
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "LITISCONSORZIO NECESSARIO con tutti gli eredi accettanti (pena nullità) - art. 784 c.p.c.",
+          "Foro esclusivo del luogo apertura successione (art. 22 c.p.c.)",
+          "Mediazione obbligatoria preventiva ex art. 5 c. 1-bis D.Lgs. 28/2010",
+          "Diritto imprescrittibile alla divisione (art. 713 c.c.)",
+          "Verifica eventuali patti di indivisione o sospensione (artt. 715, 717 c.c.)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "certificato_morte_de_cuius",
+          "label": "Certificato di morte del de cuius",
+          "required": true
+        },
+        {
+          "id": "testamento_pubblicato_e_registrato",
+          "label": "Testamento pubblicato presso notaio e registrato (se presente)",
+          "required_if": "tipo_successione LIKE testamentaria"
+        },
+        {
+          "id": "atto_notorio_o_dichiarazione_eredi",
+          "label": "Atto notorio o dichiarazione sostitutiva degli eredi",
+          "required": true
+        },
+        {
+          "id": "stato_di_famiglia_storico_de_cuius",
+          "label": "Stato di famiglia storico del de cuius",
+          "required": true
+        },
+        {
+          "id": "dichiarazione_di_successione_AE",
+          "label": "Dichiarazione di successione presentata all'Agenzia Entrate",
+          "required": true
+        },
+        {
+          "id": "visure_catastali_immobili",
+          "label": "Visure catastali aggiornate di tutti gli immobili",
+          "required": true
+        },
+        {
+          "id": "atti_provenienza_immobili",
+          "label": "Atti di provenienza degli immobili",
+          "required": true
+        },
+        {
+          "id": "ispezioni_conservatoria_immobili",
+          "label": "Ispezioni Conservatoria immobili",
+          "required": true
+        },
+        {
+          "id": "estratti_conto_e_dossier_titoli",
+          "label": "Estratti conto e dossier titoli del de cuius",
+          "required": true
+        },
+        {
+          "id": "visure_camerali_partecipazioni",
+          "label": "Visure camerali per partecipazioni societarie",
+          "required_if": "partecipazioni_societarie_presenti=true"
+        },
+        {
+          "id": "polizze_vita",
+          "label": "Polizze vita e relativi beneficiari",
+          "required": false
+        },
+        {
+          "id": "atti_donazione_in_vita",
+          "label": "Atti di donazione in vita (per collazione)",
+          "required_if": "donazioni_da_collazionare_presenti=true"
+        },
+        {
+          "id": "perizia_estimativa_di_parte",
+          "label": "Perizia estimativa di parte (consigliata)",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbale_mediazione_negativa",
+          "label": "Verbale mediazione obbligatoria conclusasi negativamente",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "atto_accettazione_con_beneficio",
+          "label": "Atto di accettazione con beneficio inventario (per minori/incapaci)",
+          "required_if": "presenza_minori_incapaci=true"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al VALORE DELLA MASSA EREDITARIA (non solo quota dell'attore)",
+        "marca_bollo_forfettaria": 27.0,
+        "imposta_di_registro_per_divisioni": "1% sul valore della massa ex DPR 131/1986 (con possibilità di tassazione progressiva se beni di prevalente natura immobiliare)",
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ricorso_mediazione_obbligatoria",
+          "trigger": "Condizione procedibilità preliminare",
+          "automatico": false
+        },
+        {
+          "tipo": "ctu_estimativa",
+          "trigger": "Disposta dal giudice",
+          "automatico": false
+        },
+        {
+          "tipo": "nomina_notaio_per_operazioni_divisionali",
+          "trigger": "Decisione del giudice",
+          "automatico": false
+        },
+        {
+          "tipo": "azione_riduzione_legittima_553",
+          "trigger": "Lesione della quota di legittima",
+          "codice_correlato": "120030"
+        },
+        {
+          "tipo": "azione_di_collazione_737",
+          "trigger": "Donazioni in vita non collazionate spontaneamente",
+          "automatico": false
+        },
+        {
+          "tipo": "rescissione_divisione_per_lesione_763",
+          "trigger": "Lesione oltre 1/4 nella divisione",
+          "termine": "2 anni dalla divisione"
+        },
+        {
+          "tipo": "vendita_giudiziale_beni_indivisi",
+          "trigger": "Impossibilità divisione in natura e mancato accordo su assegnazione",
+          "automatico": false
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "divisione_in_natura_con_porzioni",
+          "descrizione": "Formazione di porzioni equivalenti con assegnazione (anche per sorteggio) e conguagli"
+        },
+        {
+          "esito": "assegnazione_a_un_erede_e_conguaglio",
+          "descrizione": "Per immobili non comodamente divisibili - assegnazione all'erede con maggior quota + conguaglio in denaro agli altri (art. 720 c.c.)"
+        },
+        {
+          "esito": "vendita_giudiziale_e_distribuzione",
+          "descrizione": "Vendita all'asta e divisione del ricavato (residuale)"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo tra coeredi in corso di causa"
+        },
+        {
+          "esito": "rigetto_per_difetto_litisconsorzio",
+          "descrizione": "Mancata citazione di tutti gli eredi"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Diritto alla divisione",
+          "natura": "imprescrittibile",
+          "norma": "art. 713 c.c."
+        },
+        {
+          "termine": "Patto di indivisione max",
+          "anni": 10,
+          "norma": "art. 1111 c.c."
+        },
+        {
+          "termine": "Sospensione divisione disposta dal giudice",
+          "anni": 5,
+          "norma": "art. 715 c.c."
+        },
+        {
+          "termine": "Mediazione obbligatoria - max procedimento",
+          "giorni": 90,
+          "norma": "art. 6 D.Lgs. 28/2010"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "decorrenza": "notifica citazione",
+          "natura": "minimo legale",
+          "norma": "art. 163-bis c.p.c."
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        },
+        {
+          "termine": "Azione di riduzione legittima",
+          "anni": 10,
+          "decorrenza": "apertura successione",
+          "natura": "prescrizione"
+        },
+        {
+          "termine": "Rescissione per lesione divisione",
+          "anni": 2,
+          "decorrenza": "divisione stessa",
+          "natura": "decadenziale",
+          "norma": "art. 763 c.c."
+        }
+      ],
+      "codice_originale_ricevuto": "121003",
+      "guida_pratica_facoltativa": true,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale: scheda pratica interna facoltativa, non usabile come codice deposito.",
+      "codici_ufficiali_correlati_da_valutare": [],
+      "verifica_pst_xsd_iusentra": {
+        "data": "2026-05-22",
+        "esito": "guida_interna_non_depositabile",
+        "motivo": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale: scheda pratica interna facoltativa, non usabile come codice deposito."
+      }
+    },
+    {
+      "codice": "GUIDA_TUTELA_MINORI_ORDINARIA",
+      "denominazione": "Apertura della tutela ordinaria - minori (per genitori deceduti, decaduti o impossibilitati)",
+      "categoria": "Volontaria giurisdizione - protezione dei minori",
+      "sottocategoria": "Tutela del minore - nomina del tutore (artt. 343-389 c.c.)",
+      "rito": "Procedimento camerale - GIUDICE TUTELARE",
+      "competenza": "GIUDICE TUTELARE del Tribunale del luogo di residenza/domicilio del minore",
+      "uffici_destinatari": [
+        "SIVG - Giudice Tutelare"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "343",
+          "descrizione": "Apertura della tutela - presupposti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "344",
+          "descrizione": "Funzioni del giudice tutelare"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "345",
+          "descrizione": "Doveri di chi denuncia la situazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "346",
+          "descrizione": "Nomina del tutore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "347",
+          "descrizione": "Unicità della tutela"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "348",
+          "descrizione": "Scelta del tutore - ordine di preferenza"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "349",
+          "descrizione": "Giuramento del tutore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "350-352",
+          "descrizione": "Cause di incapacità, esclusione, dispensa dall'ufficio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "357",
+          "descrizione": "Funzioni del tutore (rappresentanza, cura, amministrazione)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "362",
+          "descrizione": "Inventario - obbligo entro 10 giorni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "374",
+          "descrizione": "Atti di straordinaria amministrazione - autorizzazione del GT"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "375",
+          "descrizione": "Autorizzazione del Tribunale (atti più gravi)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "380-382",
+          "descrizione": "Rendiconto annuale obbligatorio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "336-bis",
+          "descrizione": "Ascolto del minore"
+        },
+        {
+          "fonte": "L. 184/1983",
+          "descrizione": "Diritto del minore a una famiglia - in caso di minori in stato di abbandono"
+        },
+        {
+          "fonte": "Convenzione Strasburgo 1996",
+          "descrizione": "Esercizio dei diritti dei minori - audizione minore"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "MINORE DI ETÀ (sotto i 18 anni)",
+        "Una delle SITUAZIONI ex art. 343 c.c.:",
+        "1) Entrambi i GENITORI DECEDUTI",
+        "2) Entrambi i genitori DECADUTI dalla responsabilità genitoriale (art. 330 c.c.)",
+        "3) Entrambi i genitori IMPOSSIBILITATI ad esercitare la responsabilità (es. coma, gravi patologie, irreperibilità)",
+        "4) Minore non riconosciuto da nessuno dei genitori (e non in procedura di adozione)",
+        "NB: per i minori in stato di abbandono → procedimento di adozione ex L. 184/1983 (Tribunale per i Minorenni)"
+      ],
+      "differenze_tutela_vs_adozione": {
+        "tutela_artt_343_389": "Misura temporanea/permanente per gestione patrimoniale + cura del minore - GT del Tribunale ordinario - mantiene rapporti con famiglia di origine",
+        "adozione_L_184": "Misura definitiva di sostituzione del rapporto di filiazione - Tribunale Minorenni - per minori in stato di abbandono"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VERIFICA PRESUPPOSTI per apertura tutela",
+          "documenti": [
+            "Per decesso: certificati di morte dei genitori",
+            "Per decadenza: sentenza di decadenza dalla responsabilità genitoriale",
+            "Per impossibilità: certificazione medica/sanitaria sulla situazione dei genitori",
+            "Per mancato riconoscimento: certificazione anagrafica"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "Identificazione del minore",
+          "documenti": [
+            "Estratto di nascita",
+            "Stato di famiglia",
+            "Codice fiscale",
+            "Documenti di identità"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "IDENTIFICAZIONE CANDIDATO TUTORE",
+          "ordine_preferenza_art_348": [
+            "Persone designate dal genitore superstite (testamento, atto pubblico, scrittura privata autenticata)",
+            "Ascendenti o altri parenti idonei",
+            "Ordine di prossimità: nonni paterni, nonni materni, zii, fratelli/sorelle maggiorenni",
+            "In ultima istanza: persona idonea estranea alla famiglia"
+          ],
+          "verifiche": [
+            "Capacità di intendere e volere",
+            "Idoneità morale",
+            "Assenza conflitto di interessi",
+            "Disponibilità all'incarico"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "INVENTARIO PATRIMONIALE del minore",
+          "elementi": [
+            "Beni di proprietà del minore (eredità ricevute, beni propri)",
+            "Crediti del minore",
+            "Pensioni/rendite spettanti",
+            "Eventuali debiti"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "Pianificazione esigenze immediate del minore",
+          "elementi": [
+            "Sistemazione abitativa e cura personale",
+            "Iscrizione scolastica",
+            "Tessera sanitaria, medico curante",
+            "Eventuali necessità mediche/psicologiche specifiche",
+            "Gestione pensione di reversibilità (se applicabile)"
+          ]
+        },
+        {
+          "step": 6,
+          "descrizione": "Coordinamento con servizi sociali (in casi di criticità)",
+          "rilevanza": "I servizi sociali possono fornire supporto al tutore e relazioni periodiche al GT"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_apertura_tutela_minore",
+        "denominazione": "Ricorso per apertura della tutela e nomina del tutore ex artt. 343 e ss. c.c.",
+        "schema_xsd_ministeriale": "AttoVolontariaGiurisdizione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Giudice Tutelare del Tribunale del luogo di residenza del minore",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "minore",
+            "label": "Minore tutelando",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "codice_fiscale",
+                "type": "string"
+              },
+              {
+                "id": "data_luogo_nascita",
+                "type": "object"
+              },
+              {
+                "id": "residenza_anagrafica",
+                "type": "address"
+              },
+              {
+                "id": "domicilio_attuale",
+                "type": "address",
+                "rilevante_se_diverso_da_residenza": true
+              },
+              {
+                "id": "stato_di_studi",
+                "type": "string"
+              },
+              {
+                "id": "eventuali_disabilita",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "ricorrente",
+            "label": "Ricorrente (parente, ascendente, ente, PM, servizi sociali)",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "rapporto_con_minore",
+                "type": "select",
+                "options": [
+                  "ascendente",
+                  "parente_idoneo",
+                  "ente_servizi_sociali",
+                  "pubblico_ministero",
+                  "tutore_provvisorio_temporaneo",
+                  "altro"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "presupposto_tutela",
+            "label": "Presupposto per apertura tutela",
+            "type": "select",
+            "required": true,
+            "options": [
+              "entrambi_genitori_deceduti",
+              "entrambi_genitori_decaduti_responsabilita_genitoriale",
+              "entrambi_genitori_impossibilitati",
+              "minore_non_riconosciuto",
+              "altro"
+            ]
+          },
+          {
+            "id": "situazione_genitori",
+            "label": "Descrizione dettagliata situazione dei genitori",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "genitore_1",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "cognome_nome",
+                    "type": "string"
+                  },
+                  {
+                    "id": "stato",
+                    "type": "select",
+                    "options": [
+                      "deceduto",
+                      "decaduto_responsabilita",
+                      "impossibilitato",
+                      "non_ha_riconosciuto_il_figlio",
+                      "irreperibile"
+                    ]
+                  },
+                  {
+                    "id": "data_evento",
+                    "type": "date"
+                  },
+                  {
+                    "id": "documentazione_supporto",
+                    "type": "string"
+                  }
+                ]
+              },
+              {
+                "id": "genitore_2",
+                "type": "object",
+                "sub_fields": "(stessa struttura)"
+              }
+            ]
+          },
+          {
+            "id": "tutore_proposto",
+            "label": "Tutore proposto",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "codice_fiscale",
+                "type": "string"
+              },
+              {
+                "id": "rapporto_con_minore",
+                "type": "string"
+              },
+              {
+                "id": "residenza_e_domicilio",
+                "type": "address"
+              },
+              {
+                "id": "professione_e_reddito",
+                "type": "object"
+              },
+              {
+                "id": "consenso_assunzione_incarico",
+                "type": "boolean",
+                "required": true
+              },
+              {
+                "id": "rapporto_prossimita_ex_348",
+                "type": "string",
+                "motivazione_per_scelta": true
+              },
+              {
+                "id": "eventuale_designazione_genitore_348_c1",
+                "type": "object"
+              }
+            ]
+          },
+          {
+            "id": "altri_parenti_da_audire",
+            "label": "Altri parenti da audire (ascendenti, fratelli/sorelle maggiorenni, ecc.)",
+            "type": "array_persone",
+            "required": true
+          },
+          {
+            "id": "patrimonio_minore",
+            "label": "Patrimonio del minore",
+            "type": "object_complesso",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "beni_immobili",
+                "type": "array"
+              },
+              {
+                "id": "beni_mobili",
+                "type": "array"
+              },
+              {
+                "id": "conti_correnti_titoli",
+                "type": "array"
+              },
+              {
+                "id": "eredita_ricevute",
+                "type": "array"
+              },
+              {
+                "id": "pensioni_rendite_spettanti",
+                "type": "array"
+              },
+              {
+                "id": "debiti",
+                "type": "array"
+              },
+              {
+                "id": "valore_patrimoniale_totale",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "esigenze_di_cura",
+            "label": "Esigenze di cura immediate",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "richiesta_provvedimenti_urgenti",
+            "label": "Richiesta provvedimenti urgenti (es. nomina tutore provvisorio, prelievo da conto per spese urgenti)",
+            "type": "boolean"
+          },
+          {
+            "id": "audizione_minore_richiesta",
+            "label": "Audizione del minore (obbligatoria se >12 anni o anche minore se capace di discernimento)",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "minore_di_almeno_12_anni",
+                "type": "boolean"
+              },
+              {
+                "id": "richiesta_audizione",
+                "type": "boolean",
+                "default": true
+              }
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "AUDIZIONE DEL MINORE OBBLIGATORIA se >12 anni o anche infradodicenne se capace di discernimento (art. 336-bis c.c.)",
+          "AUDIZIONE OBBLIGATORIA DEI PARENTI ENTRO IL 3° GRADO (art. 346 c.c.)",
+          "PARERE PM OBBLIGATORIO ex art. 70 c.p.c.",
+          "Indicazione obbligo INVENTARIO BENI MINORE entro 10 gg dalla nomina (art. 362 c.c.)",
+          "Indicazione obbligo RENDICONTO ANNUALE al GT (art. 380 c.c.)",
+          "Indicazione obbligo AUTORIZZAZIONE GT per atti straordinaria amministrazione (artt. 374-375 c.c.)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "estratto_di_nascita_minore",
+          "label": "Estratto di nascita del minore",
+          "required": true
+        },
+        {
+          "id": "stato_famiglia_minore",
+          "label": "Stato di famiglia",
+          "required": true
+        },
+        {
+          "id": "certificato_morte_genitori",
+          "label": "Certificati di morte dei genitori (se deceduti)",
+          "required_if": "presupposto=deceduti"
+        },
+        {
+          "id": "sentenza_decadenza_responsabilita",
+          "label": "Sentenza di decadenza dalla responsabilità genitoriale (se applicabile)",
+          "required_if": "presupposto=decaduti"
+        },
+        {
+          "id": "certificazione_medica_genitori",
+          "label": "Certificazione medica su impossibilità genitori",
+          "required_if": "presupposto=impossibilitati"
+        },
+        {
+          "id": "consenso_tutore_proposto",
+          "label": "Consenso scritto del tutore proposto + documento identità + CF",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "designazione_genitore_348",
+          "label": "Eventuale designazione del genitore superstite ex art. 348 c. 1 c.c.",
+          "required": false,
+          "se_presente": "prevale"
+        },
+        {
+          "id": "documenti_identita",
+          "label": "Documenti identità ricorrente, minore (se ne ha), tutore proposto",
+          "required": true
+        },
+        {
+          "id": "documentazione_patrimoniale_minore",
+          "label": "Documentazione patrimoniale del minore (visure, atti, estratti conto)",
+          "required": true
+        },
+        {
+          "id": "documentazione_scolastica_e_sanitaria_minore",
+          "label": "Documentazione scolastica e sanitaria del minore",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "relazione_servizi_sociali",
+          "label": "Eventuale relazione servizi sociali",
+          "required": false,
+          "rilevante_se_criticita": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "ESENTE - procedimento VG protettivo a favore di minori",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio dal 28/2/2023 anche per VG"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "decreto_apertura_tutela_e_nomina_tutore",
+          "trigger": "Esito procedimento",
+          "automatico": false
+        },
+        {
+          "tipo": "verbale_giuramento_tutore_349",
+          "trigger": "Accettazione incarico",
+          "automatico": false
+        },
+        {
+          "tipo": "inventario_beni_minore",
+          "trigger": "Nomina tutore",
+          "termine": "10 gg ex art. 362 c.c.",
+          "critico": true
+        },
+        {
+          "tipo": "istanza_autorizzazione_atti_straordinaria_374_375",
+          "trigger": "Atti straordinari (vendite, donazioni, accettazione/rinuncia eredità, ipoteche)",
+          "automatico": false
+        },
+        {
+          "tipo": "rendiconto_annuale_tutore_380",
+          "trigger": "Scadenza annuale",
+          "automatico": false
+        },
+        {
+          "tipo": "istanza_emancipazione_minore",
+          "trigger": "Compimento 16 anni - solo casi specifici",
+          "norma": "art. 84 c.c. matrimonio"
+        },
+        {
+          "tipo": "fine_automatica_tutela_maggiore_eta",
+          "trigger": "Compimento 18 anni del minore",
+          "automatico": true
+        },
+        {
+          "tipo": "reclamo_corte_appello",
+          "trigger": "Decreto GT",
+          "termine": "10 gg comunicazione"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "decreto_apertura_tutela_con_nomina_tutore",
+          "descrizione": "Apertura tutela e nomina del tutore proposto (o altro idoneo)"
+        },
+        {
+          "esito": "decreto_nomina_tutore_diverso",
+          "descrizione": "GT nomina tutore diverso da quello proposto (per ragioni di idoneità o conflitto interesse)"
+        },
+        {
+          "esito": "decreto_apertura_tutela_provvisoria",
+          "descrizione": "Tutela provvisoria in pendenza di chiarimenti"
+        },
+        {
+          "esito": "rigetto_per_insussistenza_presupposti",
+          "descrizione": "Rigetto per insussistenza presupposti (es. un genitore ancora idoneo)"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Decisione del GT",
+          "giorni": 60,
+          "decorrenza": "deposito ricorso",
+          "natura": "ordinatorio"
+        },
+        {
+          "termine": "Reclamo in Corte d'Appello",
+          "giorni": 10,
+          "decorrenza": "comunicazione decreto",
+          "natura": "perentorio"
+        },
+        {
+          "termine": "Inventario beni minore",
+          "giorni": 10,
+          "decorrenza": "nomina tutore",
+          "natura": "ordinatorio",
+          "norma": "art. 362 c.c."
+        },
+        {
+          "termine": "Rendiconto annuale tutore",
+          "giorni": 365,
+          "decorrenza": "data nomina e anni successivi",
+          "natura": "ordinatorio",
+          "norma": "art. 380 c.c."
+        },
+        {
+          "termine": "Fine tutela",
+          "automatica": "Compimento 18 anni del minore"
+        }
+      ],
+      "codice_originale_ricevuto": "413011",
+      "guida_pratica_facoltativa": true,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Il codice 413011 è ufficiale, ma la sua descrizione ministeriale è diversa dalla scheda ricevuta; per evitare incoerenze di deposito la guida resta interna e facoltativa.",
+      "codici_ufficiali_correlati_da_valutare": [
+        "413010",
+        "B02041"
+      ],
+      "verifica_pst_xsd_iusentra": {
+        "data": "2026-05-22",
+        "esito": "guida_interna_non_depositabile",
+        "motivo": "Il codice 413011 è ufficiale, ma la sua descrizione ministeriale è diversa dalla scheda ricevuta; per evitare incoerenze di deposito la guida resta interna e facoltativa."
+      }
+    },
+    {
+      "codice": "GUIDA_COMPRAVENDITA_IMMOBILIARE_RISOLUZIONE",
+      "denominazione": "Risoluzione del contratto di compravendita immobiliare per inadempimento",
+      "categoria": "Contratti - risoluzione per inadempimento",
+      "sottocategoria": "Risoluzione contratto compravendita immobile - artt. 1453 e ss. c.c.",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale del luogo dell'immobile (foro esclusivo art. 21 c.p.c. per controversie reali) o luogo esecuzione obbligazione (art. 20 c.p.c. per profili obbligatori)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1470-1509",
+          "descrizione": "Della vendita - disposizioni generali e particolari"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1453",
+          "descrizione": "Risoluzione del contratto per inadempimento - azione generale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1454",
+          "descrizione": "Diffida ad adempiere"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1455",
+          "descrizione": "Importanza dell'inadempimento - non scarsa importanza"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1456",
+          "descrizione": "Clausola risolutiva espressa"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1457",
+          "descrizione": "Termine essenziale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1458",
+          "descrizione": "Effetti della risoluzione - efficacia retroattiva (salvo per contratti ad esecuzione continuata)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1218",
+          "descrizione": "Responsabilità del debitore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1223-1226",
+          "descrizione": "Quantificazione danni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1490",
+          "descrizione": "Garanzia per vizi della cosa venduta"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1495",
+          "descrizione": "Termini denuncia vizi: 8 gg dalla scoperta - prescrizione 1 anno"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1497",
+          "descrizione": "Mancanza di qualità promesse o essenziali"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2932",
+          "descrizione": "Esecuzione specifica obbligo di concludere contratto - applicabile a preliminare"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1385",
+          "descrizione": "Caparra confirmatoria - effetti in caso di inadempimento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1386",
+          "descrizione": "Caparra penitenziale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2652 n. 1",
+          "descrizione": "Trascrizione domanda di risoluzione - opponibilità a terzi"
+        },
+        {
+          "fonte": "D.Lgs. 122/2005",
+          "descrizione": "Disciplina della tutela degli acquirenti di immobili da costruire"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI UN CONTRATTO DI COMPRAVENDITA IMMOBILIARE valido (anche preliminare in alcune configurazioni)",
+        "INADEMPIMENTO di una delle parti:",
+        "PER IL VENDITORE: mancata consegna, vizi della cosa, evizione, mancanza qualità promesse, ipoteche/oneri non dichiarati",
+        "PER L'ACQUIRENTE: mancato pagamento del prezzo, mancato adempimento di obblighi accessori",
+        "IMPORTANZA dell'inadempimento ex art. 1455 c.c. (non di scarsa importanza)",
+        "PER DIFFIDA AD ADEMPIERE: notifica diffida con termine minimo 15 gg (art. 1454 c.c.)",
+        "PER CLAUSOLA RISOLUTIVA ESPRESSA: dichiarazione di volersi avvalere della clausola (art. 1456)",
+        "PER TERMINE ESSENZIALE: decorso del termine senza adempimento (art. 1457)"
+      ],
+      "modalita_risoluzione": {
+        "giudiziale": "Azione ex art. 1453 c.c. - sentenza costitutiva",
+        "diffida_ad_adempiere": "Stragiudiziale ex art. 1454 c.c. - risoluzione di diritto dopo termine se inadempimento persiste",
+        "clausola_risolutiva_espressa": "Stragiudiziale ex art. 1456 c.c. - risoluzione di diritto dopo dichiarazione",
+        "termine_essenziale": "Stragiudiziale ex art. 1457 c.c. - risoluzione di diritto al decorso del termine"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "regola": "L'azione di risoluzione di contratto di compravendita immobiliare riguarda DIRITTI REALI → MEDIAZIONE OBBLIGATORIA ex art. 5 c. 1-bis D.Lgs. 28/2010",
+        "natura": "Condizione di procedibilità",
+        "alternativa": "Negoziazione assistita possibile ma non sostituisce mediazione per diritti reali"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione contratto di compravendita e atti collegati",
+          "documenti": [
+            "Contratto preliminare (compromesso) registrato",
+            "Atto definitivo notarile",
+            "Visure catastali",
+            "Atti di provenienza ventennali",
+            "Ispezioni Conservatoria",
+            "Eventuale APE",
+            "Certificato destinazione urbanistica (se terreno)",
+            "Eventuali atti di consegna dell'immobile"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "Identificazione precisa dell'INADEMPIMENTO",
+          "tipologie_per_venditore": [
+            "Mancata consegna dell'immobile",
+            "VIZI della cosa (gravi - non si tratta di garanzia bensì risoluzione)",
+            "Mancanza di QUALITÀ PROMESSE o essenziali",
+            "EVIZIONE totale o parziale",
+            "Ipoteche/oneri non dichiarati gravanti sull'immobile",
+            "Difformità urbanistiche/catastali non sanabili",
+            "Mancata fornitura documentazione tecnica obbligatoria"
+          ],
+          "tipologie_per_acquirente": [
+            "Mancato pagamento del prezzo (totale o parziale)",
+            "Mancato adempimento accessori (es. consegna garanzie)",
+            "Rifiuto di stipulare atto definitivo"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "DIFFIDA AD ADEMPIERE ex art. 1454 c.c. (consigliata per chiarezza)",
+          "termine_minimo": "15 gg",
+          "modalita": "Atto scritto (raccomandata A/R o PEC) con espressa avvertenza che decorso il termine il contratto si intenderà risolto"
+        },
+        {
+          "step": 4,
+          "descrizione": "Quantificazione DANNI DA RISARCIRE",
+          "voci": [
+            "Restituzione prestazioni (se contratto già eseguito)",
+            "Differenza di prezzo (mercato attuale vs prezzo contrattuale)",
+            "Spese sostenute per stipula (notarili, mediazione, tasse)",
+            "Lucro cessante (es. mancato godimento immobile)",
+            "Eventuali danni accessori",
+            "Per caparra confirmatoria: facoltà di trattenerla (art. 1385) o restituirla doppia"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "Verifica eventuale TRASCRIZIONE DOMANDA GIUDIZIALE",
+          "norma": "art. 2652 n. 1 c.c. - trascrizione della domanda di risoluzione per opponibilità ai terzi acquirenti"
+        },
+        {
+          "step": 6,
+          "descrizione": "ATTIVAZIONE MEDIAZIONE OBBLIGATORIA (per diritti reali)",
+          "luogo": "Organismo del luogo dell'immobile"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_risoluzione_compravendita_immobiliare",
+        "denominazione": "Atto di citazione per risoluzione del contratto di compravendita immobiliare ex artt. 1453 e ss. c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del luogo dell'immobile",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "label": "Attore (parte non inadempiente)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto",
+            "label": "Convenuto (parte inadempiente)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "ruolo_attore",
+            "label": "Ruolo attore",
+            "type": "select",
+            "required": true,
+            "options": [
+              "venditore",
+              "acquirente_promissario_acquirente"
+            ]
+          },
+          {
+            "id": "contratto_compravendita",
+            "label": "Contratto di compravendita",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_contratto",
+                "type": "select",
+                "options": [
+                  "preliminare_compromesso",
+                  "definitivo_atto_pubblico_notarile",
+                  "promessa_di_vendita",
+                  "vendita_di_cosa_futura_costruzione"
+                ]
+              },
+              {
+                "id": "data_stipula",
+                "type": "date"
+              },
+              {
+                "id": "notaio_rogante",
+                "type": "string"
+              },
+              {
+                "id": "estremi_rogito",
+                "type": "string"
+              },
+              {
+                "id": "data_registrazione",
+                "type": "date"
+              },
+              {
+                "id": "data_trascrizione",
+                "type": "date"
+              },
+              {
+                "id": "prezzo_pattuito",
+                "type": "currency"
+              },
+              {
+                "id": "prezzo_pagato",
+                "type": "currency"
+              },
+              {
+                "id": "modalita_pagamento",
+                "type": "string"
+              },
+              {
+                "id": "caparra_versata",
+                "type": "currency"
+              },
+              {
+                "id": "tipo_caparra",
+                "type": "select",
+                "options": [
+                  "confirmatoria_1385",
+                  "penitenziale_1386",
+                  "nessuna"
+                ]
+              },
+              {
+                "id": "data_consegna_pattuita",
+                "type": "date"
+              },
+              {
+                "id": "data_consegna_avvenuta",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "immobile_oggetto",
+            "label": "Immobile oggetto della compravendita",
+            "type": "object_immobile",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "ubicazione",
+                "type": "address"
+              },
+              {
+                "id": "dati_catastali",
+                "type": "object"
+              },
+              {
+                "id": "destinazione_uso",
+                "type": "string"
+              },
+              {
+                "id": "superficie_e_consistenza",
+                "type": "object"
+              },
+              {
+                "id": "stato_immobile_alla_stipula",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "inadempimento_dedotto",
+            "label": "Inadempimento dedotto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_inadempimento",
+                "type": "select",
+                "required": true,
+                "options": [
+                  "mancato_pagamento_prezzo_totale",
+                  "mancato_pagamento_prezzo_parziale",
+                  "mancata_consegna_immobile",
+                  "vizi_gravi_immobile",
+                  "mancanza_qualita_promesse_o_essenziali",
+                  "evizione_totale",
+                  "evizione_parziale",
+                  "ipoteche_oneri_non_dichiarati",
+                  "difformita_urbanistiche_non_sanabili",
+                  "rifiuto_stipulare_definitivo_da_preliminare",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 300
+              },
+              {
+                "id": "data_inadempimento",
+                "type": "date"
+              },
+              {
+                "id": "gravita_e_importanza_art_1455",
+                "type": "textarea",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "diffida_ad_adempiere",
+            "label": "Diffida ad adempiere inviata ex art. 1454 c.c.",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "inviata",
+                "type": "boolean"
+              },
+              {
+                "id": "data_invio",
+                "type": "date"
+              },
+              {
+                "id": "modalita_invio",
+                "type": "select",
+                "options": [
+                  "raccomandata_AR",
+                  "PEC",
+                  "atto_giudiziario"
+                ]
+              },
+              {
+                "id": "termine_assegnato_giorni",
+                "type": "integer",
+                "min": 15
+              },
+              {
+                "id": "esito",
+                "type": "select",
+                "options": [
+                  "nessuna_risposta",
+                  "rifiuto_adempimento",
+                  "adempimento_parziale",
+                  "altra"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "clausola_risolutiva_espressa",
+            "label": "Eventuale clausola risolutiva espressa ex art. 1456",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "presente_in_contratto",
+                "type": "boolean"
+              },
+              {
+                "id": "dichiarazione_avvalersi_clausola",
+                "type": "boolean"
+              },
+              {
+                "id": "data_dichiarazione",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "termine_essenziale",
+            "label": "Termine essenziale ex art. 1457 c.c.",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "presente",
+                "type": "boolean"
+              },
+              {
+                "id": "data_termine_essenziale",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "risoluzione_del_contratto",
+              "restituzione_prezzo_versato",
+              "restituzione_immobile_consegnato",
+              "trattenuta_caparra_confirmatoria_1385",
+              "restituzione_caparra_doppia_acquirente_1385",
+              "risarcimento_danni",
+              "interessi_legali_su_somme_da_restituire",
+              "cancellazione_trascrizione_contratto",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "danni_richiesti",
+            "label": "Quantificazione danni richiesti",
+            "type": "object_complesso",
+            "sub_fields": [
+              {
+                "id": "differenza_prezzo_di_mercato",
+                "type": "currency"
+              },
+              {
+                "id": "spese_stipula_notarili_e_mediazione",
+                "type": "currency"
+              },
+              {
+                "id": "lucro_cessante_da_mancato_godimento",
+                "type": "currency"
+              },
+              {
+                "id": "altri_danni_accessori",
+                "type": "currency"
+              },
+              {
+                "id": "totale_danni",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "richiesta_trascrizione_domanda_2652",
+            "label": "Richiesta trascrizione domanda giudiziale ex art. 2652 c.c. (per opponibilità a terzi)",
+            "type": "boolean",
+            "default": true
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Foro esclusivo del luogo dell'immobile per controversie reali (art. 21 c.p.c.)",
+          "Mediazione obbligatoria preventiva ex art. 5 c. 1-bis D.Lgs. 28/2010 per diritti reali",
+          "Termine a comparire 120 gg post-Cartabia (art. 163-bis c.p.c.)",
+          "Costituzione convenuto 70 gg prima udienza (art. 166 c.p.c.) con avvertimento decadenze",
+          "Per vizi: termini specifici 8 gg denuncia + 1 anno prescrizione (art. 1495 c.c.) - per gravissimi: risoluzione ex 1453",
+          "Indicazione trascrizione della domanda di risoluzione per opponibilità ex art. 2652 n. 1 c.c."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_preliminare_o_definitivo",
+          "label": "Contratto preliminare e/o definitivo (rogito notarile)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "ricevuta_registrazione_e_trascrizione",
+          "label": "Ricevuta di registrazione e nota di trascrizione",
+          "required": true
+        },
+        {
+          "id": "visure_catastali_immobile",
+          "label": "Visure catastali aggiornate dell'immobile",
+          "required": true
+        },
+        {
+          "id": "ispezione_conservatoria",
+          "label": "Ispezione Conservatoria sull'immobile (per verifica gravami)",
+          "required": true
+        },
+        {
+          "id": "atti_provenienza_ventennali",
+          "label": "Atti di provenienza ventennali",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "ape_attestato_prestazione_energetica",
+          "label": "APE (se applicabile)",
+          "required": false
+        },
+        {
+          "id": "ricevute_pagamento_prezzo",
+          "label": "Ricevute pagamento del prezzo - per attore acquirente",
+          "required_if": "attore=acquirente"
+        },
+        {
+          "id": "documentazione_caparra",
+          "label": "Documentazione versamento caparra",
+          "required_if": "caparra_versata>0"
+        },
+        {
+          "id": "verbale_consegna_immobile",
+          "label": "Verbale di consegna dell'immobile (se avvenuta)",
+          "required_if": "consegna_avvenuta=true"
+        },
+        {
+          "id": "diffida_e_relata_notifica",
+          "label": "Diffida ad adempiere e prova di notifica/invio",
+          "required_if": "diffida_inviata=true"
+        },
+        {
+          "id": "perizia_vizi_immobile",
+          "label": "Perizia tecnica sui vizi dell'immobile",
+          "required_if": "inadempimento=vizi",
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_difformita_urbanistica",
+          "label": "Documentazione su eventuali difformità urbanistiche",
+          "required_if": "inadempimento=difformita_urbanistiche"
+        },
+        {
+          "id": "verbale_mediazione_negativa",
+          "label": "Verbale mediazione obbligatoria conclusa negativamente",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore (prezzo del contratto / valore restituzione / quantificazione danni)",
+        "marca_bollo_forfettaria": 27.0,
+        "tasse_trascrizione_domanda_2652": "Imposta ipotecaria fissa + tasse + tributi speciali",
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "trascrizione_domanda_giudiziale_2652",
+          "trigger": "Opponibilità a terzi acquirenti dell'immobile",
+          "norma": "art. 2652 n. 1 c.c."
+        },
+        {
+          "tipo": "ricorso_mediazione_obbligatoria",
+          "trigger": "Condizione procedibilità preliminare",
+          "automatico": false
+        },
+        {
+          "tipo": "comparsa_costituzione_convenuto",
+          "trigger": "Costituzione convenuto",
+          "termine": "70 gg prima udienza"
+        },
+        {
+          "tipo": "domanda_riconvenzionale_esecuzione_specifica_2932",
+          "trigger": "Convenuto chiede esecuzione in luogo di risoluzione",
+          "norma": "art. 2932 c.c."
+        },
+        {
+          "tipo": "ctu_estimativa",
+          "trigger": "Disposta dal giudice",
+          "automatico": false
+        },
+        {
+          "tipo": "sentenza_risoluzione_con_effetti_restitutori",
+          "trigger": "Esito accoglimento",
+          "automatico": false
+        },
+        {
+          "tipo": "cancellazione_trascrizione_contratto",
+          "trigger": "Sentenza definitiva di risoluzione",
+          "automatico": false
+        },
+        {
+          "tipo": "esecuzione_per_restituzione_immobile",
+          "trigger": "Mancato adempimento spontaneo",
+          "codice_correlato": "511012"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "risoluzione_con_restituzioni_e_danni",
+          "descrizione": "Risoluzione pronunciata con effetti retroattivi: restituzione prezzo + restituzione immobile + risarcimento danni"
+        },
+        {
+          "esito": "risoluzione_con_trattenuta_caparra",
+          "descrizione": "Per inadempimento acquirente: venditore trattiene caparra confirmatoria (art. 1385)"
+        },
+        {
+          "esito": "risoluzione_con_restituzione_caparra_doppia",
+          "descrizione": "Per inadempimento venditore: acquirente ha diritto al doppio della caparra (art. 1385)"
+        },
+        {
+          "esito": "rigetto_per_inadempimento_non_grave",
+          "descrizione": "Rigetto perché inadempimento non di importanza tale ex art. 1455"
+        },
+        {
+          "esito": "esecuzione_specifica_2932_su_domanda_riconvenzionale",
+          "descrizione": "Per preliminare: sentenza che produce effetti del definitivo (art. 2932 c.c.)"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo transattivo in corso di causa"
+        },
+        {
+          "esito": "improcedibilita_per_mancata_mediazione",
+          "descrizione": "Improcedibilità per omessa mediazione obbligatoria"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione azione risoluzione",
+          "anni": 10,
+          "decorrenza": "inadempimento",
+          "natura": "prescrizione",
+          "norma": "art. 2946 c.c."
+        },
+        {
+          "termine": "Denuncia vizi ex art. 1495 c.c.",
+          "giorni": 8,
+          "decorrenza": "scoperta vizio",
+          "natura": "decadenziale"
+        },
+        {
+          "termine": "Prescrizione azione per vizi",
+          "anno": 1,
+          "decorrenza": "consegna",
+          "natura": "prescrizione breve",
+          "norma": "art. 1495 c.c."
+        },
+        {
+          "termine": "Diffida ad adempiere - termine minimo",
+          "giorni": 15,
+          "decorrenza": "notifica diffida",
+          "natura": "minimo legale",
+          "norma": "art. 1454 c.c."
+        },
+        {
+          "termine": "Mediazione obbligatoria - max procedimento",
+          "giorni": 90,
+          "norma": "art. 6 D.Lgs. 28/2010"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "decorrenza": "notifica citazione (post-Cartabia)",
+          "natura": "minimo legale",
+          "norma": "art. 163-bis c.p.c."
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio",
+          "norma": "art. 166 c.p.c."
+        },
+        {
+          "termine": "Appello",
+          "giorni": 30,
+          "decorrenza": "notifica sentenza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "140012",
+      "guida_pratica_facoltativa": true,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Il codice 140012 è ufficiale, ma riguarda la vendita di cose mobili; la scheda ricevuta riguarda una risoluzione di compravendita immobiliare e non viene collegata al codice ufficiale.",
+      "codici_ufficiali_correlati_da_valutare": [
+        "140011"
+      ],
+      "verifica_pst_xsd_iusentra": {
+        "data": "2026-05-22",
+        "esito": "guida_interna_non_depositabile",
+        "motivo": "Il codice 140012 è ufficiale, ma riguarda la vendita di cose mobili; la scheda ricevuta riguarda una risoluzione di compravendita immobiliare e non viene collegata al codice ufficiale."
+      }
+    }
+  ],
+  "criterio_integrazione_iusentra": {
+    "guida_pratica_facoltativa": true,
+    "deposito": "I codici di deposito restano esclusivamente quelli presenti nel catalogo PST/XSD ufficiale locale e negli XSD ministeriali verificati.",
+    "sanificazioni": [
+      {
+        "codice_originale": "121003",
+        "codice_integrato": "121003",
+        "esito": "non presente nel catalogo PST/XSD ufficiale locale; mantenuto come guida interna non depositabile"
+      },
+      {
+        "codice_originale": "413011",
+        "codice_integrato": "GUIDA_TUTELA_MINORI_ORDINARIA",
+        "esito": "413011 esiste, ma indica provvedimenti urgenti ex art. 361 c.c.; la scheda ricevuta riguarda apertura della tutela ordinaria/minori e non viene agganciata al codice ufficiale"
+      },
+      {
+        "codice_originale": "140012",
+        "codice_integrato": "GUIDA_COMPRAVENDITA_IMMOBILIARE_RISOLUZIONE",
+        "esito": "140012 esiste, ma indica vendita di cose mobili; la scheda ricevuta riguarda risoluzione di compravendita immobiliare e non viene agganciata al codice ufficiale"
+      }
+    ]
+  }
+}

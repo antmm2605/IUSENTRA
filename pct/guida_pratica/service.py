@@ -16,6 +16,7 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 import re
+import unicodedata
 from typing import Any, Iterable
 
 
@@ -26,6 +27,64 @@ class GuidaPraticaError(ValueError):
 def _text(value: Any, default: str = "") -> str:
     text = str(value if value is not None else default).strip()
     return text if text else default
+
+
+_SEARCH_STOPWORDS = {
+    "a",
+    "ad",
+    "al",
+    "alla",
+    "alle",
+    "anche",
+    "art",
+    "azione",
+    "azioni",
+    "causa",
+    "che",
+    "con",
+    "contro",
+    "da",
+    "dal",
+    "dei",
+    "del",
+    "della",
+    "delle",
+    "di",
+    "e",
+    "ed",
+    "ex",
+    "fase",
+    "fascicolo",
+    "giudice",
+    "il",
+    "in",
+    "la",
+    "le",
+    "materia",
+    "nel",
+    "per",
+    "procedimento",
+    "rg",
+    "ricorso",
+    "studio",
+    "tribunale",
+}
+
+
+def _fold_for_search(value: Any) -> str:
+    raw = unicodedata.normalize("NFKD", _text(value).casefold())
+    ascii_text = "".join(char for char in raw if not unicodedata.combining(char))
+    return re.sub(r"[^a-z0-9]+", " ", ascii_text).strip()
+
+
+def _search_tokens(*values: Any) -> set[str]:
+    tokens: set[str] = set()
+    for value in values:
+        for token in _fold_for_search(value).split():
+            if token.isdigit() or len(token) < 3 or token in _SEARCH_STOPWORDS:
+                continue
+            tokens.add(token)
+    return tokens
 
 
 def normalize_codice_materia(value: Any) -> str:
@@ -372,6 +431,78 @@ class GuidaPraticaService:
             if len(rows) >= limit:
                 break
         return rows
+
+    def suggest_guidance_from_fascicolo(self, fascicolo: dict[str, Any], *, min_score: float = 0.72) -> dict[str, Any] | None:
+        """Suggerisce una guida ufficiale quando il fascicolo non ha ancora il codice PST.
+
+        La Guida Pratica è un supporto facoltativo per l'avvocato: quando oggetto o
+        titolo sono sufficientemente chiari, propone una scheda coerente senza rendere
+        quel collegamento un requisito per continuare il lavoro sul fascicolo.
+        """
+
+        candidates = [
+            ("oggetto", fascicolo.get("oggetto") or fascicolo.get("object")),
+            ("titolo", fascicolo.get("titolo") or fascicolo.get("title")),
+            ("tipo_procedimento", fascicolo.get("tipo_procedimento") or fascicolo.get("procedureType")),
+            ("area_pratica", fascicolo.get("area_pratica") or fascicolo.get("practiceArea")),
+            ("procedura_operativa", fascicolo.get("procedura_operativa_nome") or fascicolo.get("proceduraOperativaNome")),
+        ]
+        best: dict[str, Any] | None = None
+        for source, raw_query in candidates:
+            query = _text(raw_query)
+            query_folded = _fold_for_search(query)
+            query_tokens = _search_tokens(query)
+            if not query_folded or len(query_tokens) < 2:
+                continue
+            for codice, row in self._official_catalog_index.items():
+                candidate_label = self._candidate_label(codice, row)
+                candidate_folded = _fold_for_search(candidate_label)
+                candidate_tokens = _search_tokens(candidate_label)
+                if not candidate_tokens:
+                    continue
+                score = 0.0
+                reason = "token"
+                if len(candidate_folded) >= 18 and candidate_folded in query_folded:
+                    score = 0.99
+                    reason = "descrizione completa nel fascicolo"
+                elif len(query_folded) >= 18 and query_folded in candidate_folded:
+                    score = 0.97
+                    reason = "oggetto completo nel catalogo"
+                else:
+                    overlap = query_tokens & candidate_tokens
+                    if len(overlap) < 3:
+                        continue
+                    recall = len(overlap) / max(1, len(query_tokens))
+                    precision = len(overlap) / max(1, len(candidate_tokens))
+                    score = (recall * 0.72) + (precision * 0.28)
+                    if recall < 0.58:
+                        continue
+                if score < min_score:
+                    continue
+                if best is None or score > float(best["score"]):
+                    best = {
+                        "codice": codice,
+                        "denominazione": _text(row.get("descrizione")) or _text(self._kb_index.get(codice, {}).get("denominazione")),
+                        "score": round(score, 3),
+                        "source_field": source,
+                        "matched_by": reason,
+                        "confirmation_required": True,
+                        "message": "Scheda pratica individuata dall'oggetto del fascicolo: confermala nella scheda fascicolo se vuoi mantenerla collegata alla pratica.",
+                    }
+        return best
+
+    def _candidate_label(self, codice: str, catalog_row: dict[str, Any]) -> str:
+        item = self._kb_index.get(codice, {})
+        values = [
+            catalog_row.get("descrizione"),
+            catalog_row.get("parent_label"),
+            catalog_row.get("area_label"),
+            catalog_row.get("area"),
+            item.get("denominazione"),
+            item.get("categoria"),
+            item.get("sottocategoria"),
+        ]
+        return " ".join(_text(value) for value in values if _text(value))
 
     def get_guidance(self, codice_materia: Any, *, fascicolo: dict[str, Any] | None = None) -> dict[str, Any]:
         """Restituisce la guida completa per codice.
@@ -792,7 +923,7 @@ class GuidaPraticaService:
             out["avvertenze_redazionali"] = _unique_by_json(
                 [
                     *_as_list(out.get("avvertenze_redazionali")),
-                    "Questa scheda è una guida interna e non risulta nel catalogo PST/XSD depositabile. Prima del deposito selezionare il codice ministeriale ufficiale corrispondente.",
+                    "Questa scheda è una guida pratica interna: usala per orientare il lavoro. Se devi depositare un atto, seleziona nella scheda fascicolo il codice ministeriale ufficiale corrispondente.",
                 ]
             )
         # Molti codici del KB completo sono schede normative sintetiche.
@@ -826,14 +957,14 @@ class GuidaPraticaService:
                 "ufficiale": True,
                 "depositabile": True,
                 "fonte": _text(official.get("file_fonte") or official.get("fileFonte")),
-                "messaggio": "Codice presente nel catalogo ufficiale PST/XSD caricato: utilizzabile nei controlli di deposito.",
+                "messaggio": "Codice presente nel catalogo ufficiale PST/XSD caricato.",
             }
         return {
             "codice": "",
             "ufficiale": False,
             "depositabile": False,
             "fonte": "",
-            "messaggio": "Guida interna non presente nel catalogo PST/XSD depositabile: non usare come codice definitivo di deposito.",
+            "messaggio": "Guida pratica interna non presente nel catalogo PST/XSD ufficiale.",
         }
 
     def _quick_help(self, guidance: dict[str, Any]) -> dict[str, Any]:
@@ -956,7 +1087,7 @@ class GuidaPraticaService:
             out.append(
                 {
                     "type": "codice_deposito_non_ufficiale",
-                    "message": "Questa guida non corrisponde a un codice PST/XSD ufficiale: per il deposito selezionare un codice ministeriale depositabile.",
+                    "message": "Questa guida non corrisponde a un codice PST/XSD ufficiale: se devi depositare un atto, seleziona un codice ministeriale nella scheda fascicolo.",
                     "bloccante": True,
                 }
             )

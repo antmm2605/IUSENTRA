@@ -1,9 +1,9 @@
 {
   "ok": true,
   "coverage": {
-    "curata": 1048
+    "curata": 1054
   },
-  "catalog_size": 1048,
+  "catalog_size": 1054,
   "official_catalog_size": 1018,
   "missing_required": [],
   "official_coverage": {
@@ -16,8 +16,32 @@
   "deposit_code_coherence": {
     "ok": true,
     "incoherent": [],
-    "aliases_or_internal_count": 30,
+    "aliases_or_internal_count": 36,
     "aliases_or_internal": [
+      {
+        "codice": "100002",
+        "denominazione": "Opposizione a decreto ingiuntivo (art. 645 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "121003",
+        "denominazione": "Divisione di comunione ereditaria (divisione giudiziale)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "143002",
+        "denominazione": "Responsabilità professionale del personale sanitario e della struttura sanitaria (Legge Gelli-Bianco)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "413071",
+        "denominazione": "Apertura della tutela ordinaria (interdizione di maggiorenne)",
+        "coverage": "curata",
+        "depositabile": false
+      },
       {
         "codice": "510001_O",
         "denominazione": "Espropriazione mobiliare presso il debitore (pre L. 80/2005)",
@@ -111,6 +135,18 @@
       {
         "codice": "ESEC_TERZI_001",
         "denominazione": "Pignoramento presso terzi",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_COMPRAVENDITA_IMMOBILIARE_RISOLUZIONE",
+        "denominazione": "Risoluzione del contratto di compravendita immobiliare per inadempimento",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_TUTELA_MINORI_ORDINARIA",
+        "denominazione": "Apertura della tutela ordinaria - minori (per genitori deceduti, decaduti o impossibilitati)",
         "coverage": "curata",
         "depositabile": false
       },

@@ -1,6 +1,9 @@
 {
   "ok": true,
-  "fascicoloId": "3AD21EE8",
+  "baseUrl": "http://127.0.0.1:53101",
+  "fascicoloId": "03572C55",
+  "codiceGuida": "220101",
+  "versione": "2.248.11",
   "results": [
     {
       "viewport": {
@@ -11,14 +14,30 @@
       "ok": true,
       "consoleErrors": [],
       "info": {
-        "guideVisible": true,
-        "guideWidth": 1082,
+        "required": {
+          "Guida pratica": true,
+          "Scheda 220101": true,
+          "Guida curata": true,
+          "Uso facoltativo": true
+        },
+        "forbidden": {
+          "Fascicolo non trovato": false,
+          "Codice PST verificato": false,
+          "blocca il lavoro": false,
+          "backend": false,
+          "frontend": false,
+          "legacy": false,
+          "payload": false,
+          "runtime": false,
+          "json_api": false,
+          "undefined": false,
+          "null": false,
+          "demo": false,
+          "sample": false,
+          "repository": false
+        },
         "overflowX": false,
-        "containsCodiceVerificato": true,
-        "containsCurata": true,
-        "containsChecklist": true,
-        "technicalTerms": [],
-        "guideText": "Guida pratica\nProcedimento di ingiunzione ante causam\n\nCodice 010001\n\nCodice PST verificato\nGuida curata\nChecklist\nNormativa\nAtto\nAdempimenti\nCodice presente nel catalogo ufficiale PST/XSD caricato: utilizzabile nei controlli di deposito.\n7%\n3/44 requisiti\nPrima cosa da fare\n\nVerifica codice materia, rito, parti, competenza e documenti fondativi.\n\nCampi mancanti\nDati ricorrente (creditore)\nDati ingiungendo (debitore)\nDifensore con procura\nCapitale richiesto\nInteressi (decorrenza, tipo)\nCausale del credito\nProva scritta indicata\nRichiesta esecuzione provvisoria ex art. 642 c.p.c.\nSpese, competenze e onorari richiesti\nDati ricorrente (creditore)\nDati ingiungendo (debitore)\nDifensore con procura\nCapitale richiesto (Euro)\nInteressi\nCausale del credito (descrizione fatti costitutivi)\nNatura del credito\nProva scritta indicata\nDocumenti probatori allegati (riferimento allegati)\nTipo provvisoria richiesta\nMotivazione della richiesta di provvisoria\nCalcolo competenze secondo parametri D.M. 147/2022\nValore della causa (per CU e parametri)\nScaglione di valore per parametri forensi\nAllegati mancanti\nDocumenti probatori del credito\nProcura alle liti\nDocumenti probatori del credito (fatture, contratti, scritture, titoli)\nProcura alle liti\nNota di iscrizione a ruolo\nAvvertimenti di rito\nIndicazione termine 40 giorni per opposizione (art. 641 c.p.c.)\nAvvertimento ex art. 645 c.p.c. sull'opposi"
+        "bodyExcerpt": "IUSENTRA\nLo studio legale, in un unico sistema\nPanoramica\nRegia Operativa\nRicerca Studio\nAGENDA\nFASCICOLI\nTutti i Fascicoli\nNuovo Fascicolo\nArchivio\nCLIENTI E ANAGRAFICHE\nSOGGETTI E PARTI\nCOMUNICAZIONI\nSCADENZE E TERMINI\nSERVIZI TELEMATICI\nSTUDIO\nSITO STUDIO\nIMPOSTAZIONI\nAMMINISTRAZIONE\nO\nOperatore Test\nAMMINISTRATORE\nCerca fascicolo, cliente, udienza, documento...\nCtrl K\nven 22 mag\nNuovo\nFASCICOLO\nLicenziamento individuale per giustificato motivo oggettivo\n\nAperto\nLavoro\nLicenziamento individuale per giustificato motivo oggettivo\n\nFascicoli\nModifica\nQuadro AI\nCopertina\nPDF\n2026/001\nRif. interno 2026/001\nCliente non collegato\nUfficio non impostato\nDati aggiornati\nProfilo\n9\nGuida pratica\nRegia Operativa\n0\nDocumenti e atti\n0\nAttività\n0\nUdienze / scadenze\n0\nComunicazioni / Cancelleria\n0\nAudit\n0\nGestione\nContesto economico\nConformità\nSoggetti\n0\nQUADRO INTELLIGENTE AI\nControlli qualità da verificare\n\nAnalisi del fascicolo, documenti, scadenze, attività e prossime azioni usando i dati reali della pratica.\n\nQuadro completo\nDocumenti e atti\nCompilatore atti\nIndice Lex\nElimina fascicolo\nQUADRO INTELLIGENTE\nControlli qualità da verificare\nApri quadro completo\nDocumenti\n0 firmati o verificati\nControlla atti, allegati e file acquisiti nel fascicolo.\nScadenze\nNessuna data critica\nApri lo scadenziario per programmare il presidio.\nIncarico\n0\nincarichi collegati\nConformità\n4 verifiche aperte\nControlli qualità, parti, sync portale e dati principali.\nGuida pratica\nLicenziamento individuale per giustificato motivo oggettivo (gmo)\n\nScheda 220101\n\nUso facoltativo\nScheda collegata\nGuida curata\nChecklist\nNormativa\nAtto\nAdempimenti\n0%\n0/95 requisiti\nPrima cosa da fare\n\nVerifica codice materia, rito, parti, competenza e documenti fondativi.\n\nCampi mancanti\nLavoratore ricorrente\nDatore convenuto"
       },
       "screenshotPath": "artifacts\\guida-pratica\\browser-guida-pratica-desktop.png"
     },
@@ -31,14 +50,30 @@
       "ok": true,
       "consoleErrors": [],
       "info": {
-        "guideVisible": true,
-        "guideWidth": 788,
+        "required": {
+          "Guida pratica": true,
+          "Scheda 220101": true,
+          "Guida curata": true,
+          "Uso facoltativo": true
+        },
+        "forbidden": {
+          "Fascicolo non trovato": false,
+          "Codice PST verificato": false,
+          "blocca il lavoro": false,
+          "backend": false,
+          "frontend": false,
+          "legacy": false,
+          "payload": false,
+          "runtime": false,
+          "json_api": false,
+          "undefined": false,
+          "null": false,
+          "demo": false,
+          "sample": false,
+          "repository": false
+        },
         "overflowX": false,
-        "containsCodiceVerificato": true,
-        "containsCurata": true,
-        "containsChecklist": true,
-        "technicalTerms": [],
-        "guideText": "Guida pratica\nProcedimento di ingiunzione ante causam\n\nCodice 010001\n\nCodice PST verificato\nGuida curata\nChecklist\nNormativa\nAtto\nAdempimenti\nCodice presente nel catalogo ufficiale PST/XSD caricato: utilizzabile nei controlli di deposito.\n7%\n3/44 requisiti\nPrima cosa da fare\n\nVerifica codice materia, rito, parti, competenza e documenti fondativi.\n\nCampi mancanti\nDati ricorrente (creditore)\nDati ingiungendo (debitore)\nDifensore con procura\nCapitale richiesto\nInteressi (decorrenza, tipo)\nCausale del credito\nProva scritta indicata\nRichiesta esecuzione provvisoria ex art. 642 c.p.c.\nSpese, competenze e onorari richiesti\nDati ricorrente (creditore)\nDati ingiungendo (debitore)\nDifensore con procura\nCapitale richiesto (Euro)\nInteressi\nCausale del credito (descrizione fatti costitutivi)\nNatura del credito\nProva scritta indicata\nDocumenti probatori allegati (riferimento allegati)\nTipo provvisoria richiesta\nMotivazione della richiesta di provvisoria\nCalcolo competenze secondo parametri D.M. 147/2022\nValore della causa (per CU e parametri)\nScaglione di valore per parametri forensi\nAllegati mancanti\nDocumenti probatori del credito\nProcura alle liti\nDocumenti probatori del credito (fatture, contratti, scritture, titoli)\nProcura alle liti\nNota di iscrizione a ruolo\nAvvertimenti di rito\nIndicazione termine 40 giorni per opposizione (art. 641 c.p.c.)\nAvvertimento ex art. 645 c.p.c. sull'opposi"
+        "bodyExcerpt": "Cerca fascicolo, cliente, udienza, documento...\nFASCICOLO\nLicenziamento individuale per giustificato motivo oggettivo\n\nAperto\nLavoro\nLicenziamento individuale per giustificato motivo oggettivo\n\nFascicoli\nModifica\nQuadro AI\nCopertina\nPDF\n2026/001\nRif. interno 2026/001\nCliente non collegato\nUfficio non impostato\nDati aggiornati\nProfilo\n9\nGuida pratica\nRegia Operativa\n0\nDocumenti e atti\n0\nAttività\n0\nUdienze / scadenze\n0\nComunicazioni / Cancelleria\n0\nAudit\n0\nGestione\nContesto economico\nConformità\nSoggetti\n0\nQUADRO INTELLIGENTE AI\nControlli qualità da verificare\n\nAnalisi del fascicolo, documenti, scadenze, attività e prossime azioni usando i dati reali della pratica.\n\nQuadro completo\nDocumenti e atti\nCompilatore atti\nIndice Lex\nElimina fascicolo\nQUADRO INTELLIGENTE\nControlli qualità da verificare\nApri quadro completo\nDocumenti\n0 firmati o verificati\nControlla atti, allegati e file acquisiti nel fascicolo.\nScadenze\nNessuna data critica\nApri lo scadenziario per programmare il presidio.\nIncarico\n0\nincarichi collegati\nConformità\n4 verifiche aperte\nControlli qualità, parti, sync portale e dati principali.\nGuida pratica\nLicenziamento individuale per giustificato motivo oggettivo (gmo)\n\nScheda 220101\n\nUso facoltativo\nScheda collegata\nGuida curata\nChecklist\nNormativa\nAtto\nAdempimenti\n0%\n0/95 requisiti\nPrima cosa da fare\n\nVerifica codice materia, rito, parti, competenza e documenti fondativi.\n\nCampi mancanti\nLavoratore ricorrente\nDatore convenuto\nData assunzione (determina regime applicabile)\nQualifica e mansioni\nCCNL applicato\nLettera licenziamento (data, motivazione)\nFatti contestati dal datore\nVizi\nData impugnazione stragiudiziale\nTutela richiesta\nUltima retribuzione mensile\nRegime applicabile\nTribunale del lavoro (foro luogo sede di lavoro)\nLavoratore ricorrente\nDatore di lavoro "
       },
       "screenshotPath": "artifacts\\guida-pratica\\browser-guida-pratica-tablet.png"
     },
@@ -51,14 +86,30 @@
       "ok": true,
       "consoleErrors": [],
       "info": {
-        "guideVisible": true,
-        "guideWidth": 370,
+        "required": {
+          "Guida pratica": true,
+          "Scheda 220101": true,
+          "Guida curata": true,
+          "Uso facoltativo": true
+        },
+        "forbidden": {
+          "Fascicolo non trovato": false,
+          "Codice PST verificato": false,
+          "blocca il lavoro": false,
+          "backend": false,
+          "frontend": false,
+          "legacy": false,
+          "payload": false,
+          "runtime": false,
+          "json_api": false,
+          "undefined": false,
+          "null": false,
+          "demo": false,
+          "sample": false,
+          "repository": false
+        },
         "overflowX": false,
-        "containsCodiceVerificato": true,
-        "containsCurata": true,
-        "containsChecklist": true,
-        "technicalTerms": [],
-        "guideText": "Guida pratica\nProcedimento di ingiunzione ante causam\n\nCodice 010001\n\nCodice PST verificato\nGuida curata\nChecklist\nNormativa\nAtto\nAdempimenti\nCodice presente nel catalogo ufficiale PST/XSD caricato: utilizzabile nei controlli di deposito.\n7%\n3/44 requisiti\nPrima cosa da fare\n\nVerifica codice materia, rito, parti, competenza e documenti fondativi.\n\nCampi mancanti\nDati ricorrente (creditore)\nDati ingiungendo (debitore)\nDifensore con procura\nCapitale richiesto\nInteressi (decorrenza, tipo)\nCausale del credito\nProva scritta indicata\nRichiesta esecuzione provvisoria ex art. 642 c.p.c.\nSpese, competenze e onorari richiesti\nDati ricorrente (creditore)\nDati ingiungendo (debitore)\nDifensore con procura\nCapitale richiesto (Euro)\nInteressi\nCausale del credito (descrizione fatti costitutivi)\nNatura del credito\nProva scritta indicata\nDocumenti probatori allegati (riferimento allegati)\nTipo provvisoria richiesta\nMotivazione della richiesta di provvisoria\nCalcolo competenze secondo parametri D.M. 147/2022\nValore della causa (per CU e parametri)\nScaglione di valore per parametri forensi\nAllegati mancanti\nDocumenti probatori del credito\nProcura alle liti\nDocumenti probatori del credito (fatture, contratti, scritture, titoli)\nProcura alle liti\nNota di iscrizione a ruolo\nAvvertimenti di rito\nIndicazione termine 40 giorni per opposizione (art. 641 c.p.c.)\nAvvertimento ex art. 645 c.p.c. sull'opposi"
+        "bodyExcerpt": "Cerca fascicolo, cliente, udienza, documento...\nFASCICOLO\nLicenziamento individuale per giustificato motivo oggettivo\n\nAperto\nLavoro\nLicenziamento individuale per giustificato motivo oggettivo\n\nFascicoli\nModifica\nQuadro AI\nCopertina\nPDF\n2026/001\nRif. interno 2026/001\nCliente non collegato\nUfficio non impostato\nDati aggiornati\nProfilo\n9\nGuida pratica\nRegia Operativa\n0\nDocumenti e atti\n0\nAttività\n0\nUdienze / scadenze\n0\nComunicazioni / Cancelleria\n0\nAudit\n0\nGestione\nContesto economico\nConformità\nSoggetti\n0\nQUADRO INTELLIGENTE AI\nControlli qualità da verificare\n\nAnalisi del fascicolo, documenti, scadenze, attività e prossime azioni usando i dati reali della pratica.\n\nQuadro completo\nDocumenti e atti\nCompilatore atti\nIndice Lex\nElimina fascicolo\nQUADRO INTELLIGENTE\nControlli qualità da verificare\nApri quadro completo\nDocumenti\n0 firmati o verificati\nControlla atti, allegati e file acquisiti nel fascicolo.\nScadenze\nNessuna data critica\nApri lo scadenziario per programmare il presidio.\nIncarico\n0\nincarichi collegati\nConformità\n4 verifiche aperte\nControlli qualità, parti, sync portale e dati principali.\nGuida pratica\nLicenziamento individuale per giustificato motivo oggettivo (gmo)\n\nScheda 220101\n\nUso facoltativo\nScheda collegata\nGuida curata\nChecklist\nNormativa\nAtto\nAdempimenti\n0%\n0/95 requisiti\nPrima cosa da fare\n\nVerifica codice materia, rito, parti, competenza e documenti fondativi.\n\nCampi mancanti\nLavoratore ricorrente\nDatore convenuto\nData assunzione (determina regime applicabile)\nQualifica e mansioni\nCCNL applicato\nLettera licenziamento (data, motivazione)\nFatti contestati dal datore\nVizi\nData impugnazione stragiudiziale\nTutela richiesta\nUltima retribuzione mensile\nRegime applicabile\nTribunale del lavoro (foro luogo sede di lavoro)\nLavoratore ricorrente\nDatore di lavoro "
       },
       "screenshotPath": "artifacts\\guida-pratica\\browser-guida-pratica-mobile.png"
     }

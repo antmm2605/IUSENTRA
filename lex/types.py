@@ -87,6 +87,7 @@ SourceType = Literal[
     "fattura",
     "strumento",
     "telematico",
+    "guida_pratica",
     "normativa",
     "compliance",
     "web_ufficiale",

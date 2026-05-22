@@ -7,14 +7,14 @@
 3. Le guide curate coprono tutti i codici ufficiali depositabili.
 4. Gli alias interni non presenti nel catalogo ufficiale restano non depositabili.
 
-## Stato audit 2.248.9
+## Stato audit 2.248.10
 
 ```text
 record ufficiali PST/XSD: 1.018
 guide ufficiali curate: 1.018
 codici ufficiali senza guida curata: 0
 incoerenze deposito: 0
-alias interni non depositabili: 30
+schede interne o alias non depositabili: 36
 ```
 
 Il CSV dei mancanti è `artifacts/guida-pratica/codici-ufficiali-senza-guida-curata.csv` e contiene solo l'intestazione.
@@ -34,4 +34,4 @@ python scripts\validate_guida_pratica.py --require-official-curated --fail-on-ge
 
 La guida può spiegare anche schede interne o alias storici, ma il deposito deve usare solo codici presenti nel catalogo ufficiale PST/XSD. Il servizio espone `codice_deposito.depositabile=true` solo per questi codici.
 
-Quando il codice non è depositabile, il checklist restituisce il blocco `codice_deposito_non_ufficiale` e la UI indica che la scheda è una guida interna, non un codice definitivo di deposito.
+Quando il codice non è depositabile, il checklist mantiene il presidio `codice_deposito_non_ufficiale` per la generazione deposito, ma la guida resta un'opzione di consultazione e non blocca il lavoro ordinario sul fascicolo.

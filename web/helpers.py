@@ -63,13 +63,13 @@ def _cfg(key: str) -> str:
     return current_app.config[key]
 
 
-def _studio_db():
+def _studio_db(anchor_key: str = "CLIENTI_DB"):
     anchor = None
     paths = getattr(g, "data_paths", {})
-    if paths and "CLIENTI_DB" in paths:
-        anchor = paths["CLIENTI_DB"]
+    if paths and anchor_key in paths:
+        anchor = paths[anchor_key]
     else:
-        anchor = current_app.config.get("CLIENTI_DB")
+        anchor = current_app.config.get(anchor_key)
     if not anchor:
         return None
     return get_request_studio_db(anchor)
@@ -78,11 +78,11 @@ def _studio_db():
 # ---------------------------------------------------------------- gestori dati
 
 def get_agenda() -> Agenda:
-    return Agenda(db_path=_cfg("AGENDA_DB"), studio_db=_studio_db())
+    return Agenda(db_path=_cfg("AGENDA_DB"), studio_db=_studio_db("AGENDA_DB"))
 
 
 def get_clienti() -> GestioneClienti:
-    return GestioneClienti(db_path=_cfg("CLIENTI_DB"), studio_db=_studio_db())
+    return GestioneClienti(db_path=_cfg("CLIENTI_DB"), studio_db=_studio_db("CLIENTI_DB"))
 
 
 def get_fascicoli() -> GestioneFascicoli:
@@ -90,7 +90,7 @@ def get_fascicoli() -> GestioneFascicoli:
         db_path=_cfg("FASCICOLI_DB"),
         documents_dir=_cfg("FASCICOLI_DOCS"),
         archive_dir=_cfg("FASCICOLI_ARCH"),
-        studio_db=_studio_db(),
+        studio_db=_studio_db("FASCICOLI_DB"),
     )
 
 
@@ -99,35 +99,35 @@ def get_practice_engine() -> PracticeEngineRepository:
 
 
 def get_scadenziario() -> GestioneScadenziario:
-    return GestioneScadenziario(db_path=_cfg("SCADENZIARIO_DB"), studio_db=_studio_db())
+    return GestioneScadenziario(db_path=_cfg("SCADENZIARIO_DB"), studio_db=_studio_db("SCADENZIARIO_DB"))
 
 
 def get_timesheet() -> GestioneTimesheet:
-    return GestioneTimesheet(db_path=_cfg("TIMESHEET_DB"), studio_db=_studio_db())
+    return GestioneTimesheet(db_path=_cfg("TIMESHEET_DB"), studio_db=_studio_db("TIMESHEET_DB"))
 
 
 def get_time_tracking() -> GestioneTimeTracking:
-    return GestioneTimeTracking(db_path=_cfg("TIME_TRACKING_DB"), studio_db=_studio_db())
+    return GestioneTimeTracking(db_path=_cfg("TIME_TRACKING_DB"), studio_db=_studio_db("TIME_TRACKING_DB"))
 
 
 def get_preventivi() -> GestionePreventivi:
-    return GestionePreventivi(db_path=_cfg("PREVENTIVI_DB"), studio_db=_studio_db())
+    return GestionePreventivi(db_path=_cfg("PREVENTIVI_DB"), studio_db=_studio_db("PREVENTIVI_DB"))
 
 
 def get_preventivi_readonly() -> GestionePreventivi:
     return GestionePreventivi(
         db_path=_cfg("PREVENTIVI_DB"),
-        studio_db=_studio_db(),
+        studio_db=_studio_db("PREVENTIVI_DB"),
         sync_repository_on_init=False,
     )
 
 
 def get_fatturazione() -> GestioneFatturazione:
-    return GestioneFatturazione(db_path=_cfg("FATTURAZIONE_DB"), studio_db=_studio_db())
+    return GestioneFatturazione(db_path=_cfg("FATTURAZIONE_DB"), studio_db=_studio_db("FATTURAZIONE_DB"))
 
 
 def get_pagamenti() -> GestionePagamenti:
-    return GestionePagamenti(db_dir=_cfg("PAGAMENTI_DIR"), studio_db=_studio_db())
+    return GestionePagamenti(db_dir=_cfg("PAGAMENTI_DIR"), studio_db=_studio_db("PAGAMENTI_DIR"))
 
 
 def get_messaggi() -> GestioneMessaggi:
@@ -139,7 +139,7 @@ def get_messaggi() -> GestioneMessaggi:
     return GestioneMessaggi(
         ConfigMessaggistica(studio_nome=studio_nome()),
         db_path=tenant_data_path("MESSAGGI_DB", default_path, require_tenant=True),
-        studio_db=_studio_db(),
+        studio_db=_studio_db("MESSAGGI_DB"),
     )
 
 
@@ -164,7 +164,7 @@ def get_utenti() -> GestioneUtenti:
         db_path=_cfg("AUTH_DB"),
         audit_path=_cfg("AUDIT_DB"),
         secret_key=current_app.secret_key,
-        studio_db=_studio_db(),
+        studio_db=_studio_db("AUTH_DB"),
         bootstrap_admin_password=current_app.config.get("BOOTSTRAP_ADMIN_PASSWORD", ""),
         bootstrap_admin_credentials_path=current_app.config.get(
             "BOOTSTRAP_ADMIN_CREDENTIALS_PATH", ""

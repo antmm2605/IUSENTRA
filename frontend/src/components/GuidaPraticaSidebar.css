@@ -33,6 +33,13 @@
   color: var(--iu-slate-600, #475569);
 }
 
+.iu-guida-header .iu-guida-suggested-note {
+  margin-top: 6px;
+  color: #92400e;
+  font-size: .88rem;
+  font-weight: 700;
+}
+
 .iu-guida-header-actions {
   display: flex;
   gap: 8px;
@@ -170,7 +177,7 @@
 .iu-guida-ok,
 .iu-guida-error,
 .iu-guida-review,
-.iu-guida-deposit,
+.iu-guida-empty,
 .iu-guida-loading {
   display: flex;
   align-items: flex-start;
@@ -184,7 +191,7 @@
 
 .iu-guida-error,
 .iu-guida-review,
-.iu-guida-deposit,
+.iu-guida-empty,
 .iu-guida-loading {
   border-radius: 8px;
   padding: 13px;
@@ -201,14 +208,10 @@
   color: #92400e;
 }
 
-.iu-guida-deposit.is-ok {
-  background: rgba(236, 253, 245, .95);
-  color: var(--iu-success-700, #047857);
-}
-
-.iu-guida-deposit.is-warning {
-  background: rgba(255, 251, 235, .95);
-  color: #92400e;
+.iu-guida-empty {
+  margin: 18px;
+  background: rgba(248, 250, 252, .95);
+  color: var(--iu-slate-700, #334155);
 }
 
 .iu-guida-loading {

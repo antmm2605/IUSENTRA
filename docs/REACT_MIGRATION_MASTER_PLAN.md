@@ -1,5 +1,11 @@
 # Migrazione progressiva Flask + React
 
+## Guida Pratica facoltativa e TOP9 set2 - 2026-05-22 - 2.248.10
+
+La Guida Pratica nel fascicolo è ora esplicitamente opzionale: se manca il codice oggetto, il backend può suggerire una scheda dall'oggetto o dal titolo del fascicolo, ma la UI non blocca il lavoro e richiede conferma per mantenere il collegamento. Le schede arrivate con codice non presente o non coerente con la descrizione ministeriale restano guide interne non depositabili.
+
+Il secondo modulo TOP9 set2 è stato integrato senza sovrascrivere i codici ufficiali: `220101` arricchisce la scheda depositabile, `121003` resta interno, `413011` mantiene l'oggetto ministeriale sui provvedimenti urgenti e la guida tutela minori passa a `GUIDA_TUTELA_MINORI_ORDINARIA`, `140012` mantiene la vendita di cose mobili e la guida sulla risoluzione compravendita immobiliare passa a `GUIDA_COMPRAVENDITA_IMMOBILIARE_RISOLUZIONE`.
+
 ## Guida Pratica fascicolo e codici PST/XSD - 2026-05-22 - 2.248.9
 
 Il dettaglio fascicolo React espone ora la Guida Pratica collegata al codice oggetto PST/XSD del fascicolo. La scheda mostra checklist, normativa, atto da redigere, campi, allegati, adempimenti e stato del codice deposito con linguaggio operativo per l'avvocato, senza esporre sigle tecniche interne o flussi separati.

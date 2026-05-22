@@ -6,7 +6,8 @@
 - Guide ufficiali curate: 1.018 su 1.018.
 - Codici ufficiali senza guida curata: 0.
 - Incoerenze tra catalogo ufficiale e stato depositabile: 0.
-- Alias/schede interne non depositabili: 30, mantenute come guida interna e bloccate per la generazione deposito.
+- Alias/schede interne non depositabili: 36, mantenute come guida interna e bloccate per la generazione deposito.
+- Guida Pratica disponibile anche a Lex come fonte interna conversazionale tramite `GuidaPraticaSource`, senza rendere la guida un requisito bloccante del fascicolo.
 
 ## File audit
 
@@ -25,14 +26,16 @@
 | `python scripts\verify_pst_xsd_catalog.py` | OK | Catalogo PST/XSD ufficiale integro: 1.018 record validi. |
 | `python scripts\validate_guida_pratica.py --require-official-curated --fail-on-generated ...` | OK | 1.018 codici ufficiali curati, 0 senza guida, coerenza deposito OK. |
 | `python -m pytest tests\test_guida_pratica_service.py tests\test_guida_pratica_api.py tests\test_import_pst_xsd_codici_oggetto.py tests\test_pst_xsd_catalog_importer.py tests\test_codici_oggetto_pst_catalog.py tests\test_react_shell.py::test_react_blueprints_registered -q --tb=short` | OK | 23 test passati. |
+| `python -m pytest lex\tests\unit\test_guida_pratica_source.py lex\tests\unit\test_retrieval_orchestrator.py lex\tests\unit\test_deterministic_provider.py lex\tests\unit\test_router.py tests\test_guida_pratica_service.py tests\test_guida_pratica_api.py -q --tb=short` | OK | 46 test passati: Lex recupera la guida completa, risponde in modo conversazionale e non confonde alias interni con codici ufficiali di deposito. |
 | `python -m ruff check ...` | OK | Ruff verde sul perimetro guida, catalogo, API e test. |
 | `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript senza errori. |
-| `pnpm --filter @iusentra/studio build` | OK | Build Vite completata. |
-| Browser desktop/tablet/mobile su fascicolo con codice `010001` | OK | Guida visibile, badge `Codice PST verificato`, badge `Guida curata`, nessun overflow orizzontale, nessun errore console, nessun testo tecnico vietato. |
+| `pnpm --filter @iusentra/studio build` | OK | Build Vite completata su versione 2.248.11. |
+| `python -m pytest tests\test_guida_pratica_api.py::test_guida_pratica_api_fascicolo_react_legge_stesso_fascicolo_json_legacy -q --tb=short` | OK | Il dettaglio React e la Guida Pratica leggono lo stesso fascicolo JSON legacy anche con SQLite operativo non popolato. |
+| Browser desktop/tablet/mobile su fascicolo con codice `220101` | OK | Guida visibile, badge `Uso facoltativo`, badge `Scheda collegata`, badge `Guida curata`, nessun `Codice PST verificato`, nessun overflow orizzontale, nessun errore console, nessun testo tecnico vietato. |
 | `python -m pct.cli utf8-integrity ...` | OK | UTF-8 valido sui file guida e UI; i due JSON grandi verificati con soglia 12 MB. |
 | `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python -m pytest tests\test_openapi_contracts_phase6.py -q --tb=short` | OK | Contratti API riallineati, OpenAPI valido, provider verification OK e test OpenAPI 5/5. |
 | `python -m pytest tests\test_procedure_inventory_importer.py tests\test_procedure_xsd_mapper.py tests\test_procedure_source_research.py tests\test_procedure_knowledge_pipeline.py tests\test_procedure_lifecycle.py tests\test_digital_signature_workflow.py tests\test_telematic_deposit_workflow.py tests\test_post_acceptance_obligations.py tests\test_notification_workflow.py tests\test_evidence_vault.py tests\test_procedure_coverage_ext.py tests\test_procedure_lifecycle_repository.py tests\test_procedure_lifecycle_edges.py -q --tb=short` | OK | 33/33 passati sul perimetro deposito, XSD, firma, notifiche e lifecycle procedura. |
-| Docker locale no-cache + container audit | OK | `docker compose build --no-cache app scheduler-worker ocr-worker` completato; container app/OCR/scheduler healthy; `/api/pronto` espone `2.248.9`; validatore Guida Pratica nel container OK con 1.018/1.018 ufficiali curati. |
+| Docker locale no-cache + container audit | OK | Primo tentativo intercettato con download Dart Sass troncato; Dockerfile reso robusto con retry e archivio temporaneo. Rilancio `docker compose build --no-cache app scheduler-worker ocr-worker` completato; container app/OCR/scheduler/redis healthy; `/api/pronto` espone `2.248.11`; validatore Guida Pratica nel container OK con 1.018/1.018 ufficiali curati. |
 | `python scripts\smoke_app_v2_all.py --subset contracts`; `python scripts\smoke_app_v2_all.py --subset inventory` | OK | Smoke contratti offline PASS=2/SKIP live runtime previsto; inventory PASS=3. |
 | `python tools\check_repo_governance.py`; `python scripts\validate_docs_links.py ...`; `python scripts\validate_docs_commands.py`; packaging/readiness/UTF-8 | OK | Governance repo OK, link e comandi documentali validi, packaging sincronizzato, 13 test readiness/UTF-8 passati e scan UTF-8 mirato OK. |
 

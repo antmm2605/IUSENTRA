@@ -7,6 +7,22 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.248.11 - 22 maggio 2026
+
+Regola permanente di prodotto: arricchire Lex sempre in modo conversazionale con l'avvocato. Ogni guida pratica curata, matrice operativa, scheda di fascicolo o conoscenza linguistica dello studio deve diventare anche conoscenza interrogabile da Lex, non solo contenuto visibile in pagina. Lex deve leggerla integralmente quando è pertinente, usare un linguaggio naturale da assistente di studio, distinguere supporto pratico interno da dato ufficiale e non rendere la guida un blocco del lavoro.
+
+Il dettaglio fascicolo React e la Guida Pratica devono leggere lo stesso fascicolo reale anche quando lo SQLite operativo non è ancora popolato e il dato vive nel JSON legacy. Il badge `Uso facoltativo` segnala all'avvocato che la guida è un aiuto operativo, non un requisito bloccante.
+
+## Aggiornamento operativo 2.248.10 - 22 maggio 2026
+
+La Guida Pratica è fonte operativa facoltativa: quando il fascicolo non ha codice oggetto, Lex e la UI possono usare titolo e oggetto della pratica per suggerire una scheda, ma devono indicarla come proposta da confermare e non come codice ministeriale. L'oggetto della pratica e l'oggetto della guida corrispondono solo quando il codice PST/XSD ufficiale e la scheda hanno la stessa descrizione sostanziale.
+
+Per i moduli TOP9 set2, i codici ricevuti con descrizione non coerente con il catalogo ministeriale devono restare guide interne: `413011` non va confuso con apertura tutela minori perché il ministeriale indica provvedimenti urgenti ex art. 361 c.c.; `140012` non va confuso con compravendita immobiliare perché il ministeriale indica vendita di cose mobili.
+
+Lex deve leggere la Guida Pratica come fonte interna completa tramite `GuidaPraticaSource`: normativa, presupposti, adempimenti, atto principale, campi, allegati, avvertimenti, termini, atti collegati, esiti e note di integrazione devono entrare nel retrieval quando l'avvocato chiede aiuto operativo, una checklist, una scheda pratica o un orientamento sul fascicolo. La risposta deve essere conversazionale e professionale: Lex parla all'avvocato come assistente di studio, spiega il primo controllo utile, l'atto da preparare, gli allegati da presidiare e i limiti, senza trasformare la guida in blocco operativo.
+
+Regola permanente: arricchire sempre la conoscenza linguistica e conversazionale di Lex con le fonti operative curate dello studio. Quando una nuova guida, matrice o scheda pratica viene integrata, deve diventare anche conoscenza interrogabile da Lex, con tono chiaro per l'avvocato e distinzione esplicita tra supporto pratico interno, dato ufficiale e punto da verificare.
+
 ## Aggiornamento operativo 2.248.9 - 22 maggio 2026
 
 La Guida Pratica dei codici PST/XSD diventa una sorgente strutturata separata dal codice applicativo: `pct/data/legal_knowledge_base.full.json` e i moduli `pct/data/legal_knowledge_base_modules/`. Quando Lex o una UI di fascicolo ragionano sul codice oggetto, devono distinguere il codice ufficiale depositabile dagli alias interni.

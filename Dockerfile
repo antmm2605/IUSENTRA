@@ -1,4 +1,4 @@
-#  version: 2.248.9
+#  version: 2.248.11
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -50,9 +50,11 @@ ARG DART_SASS_VERSION=1.83.0
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
         ca-certificates \
-    && curl -fsSL \
+    && curl -fL --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 \
+       --output /tmp/dart-sass.tar.gz \
        "https://github.com/sass/dart-sass/releases/download/${DART_SASS_VERSION}/dart-sass-${DART_SASS_VERSION}-linux-x64.tar.gz" \
-       | tar -xzC /tmp \
+    && tar -xzf /tmp/dart-sass.tar.gz -C /tmp \
+    && rm -f /tmp/dart-sass.tar.gz \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /scss
@@ -111,7 +113,7 @@ RUN corepack enable \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.248.9" \
+      org.opencontainers.image.version="2.248.11" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 

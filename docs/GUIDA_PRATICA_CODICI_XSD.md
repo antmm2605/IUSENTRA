@@ -15,13 +15,13 @@ Quando l'avvocato apre un fascicolo, IUSENTRA legge il codice oggetto PST/XSD de
 
 La guida è una knowledge base separata dal codice applicativo. Il catalogo ufficiale PST/XSD resta la fonte del codice depositabile; le schede guida spiegano come lavorare sul fascicolo e non inventano codici ministeriali.
 
-## Stato 2.248.9
+## Stato 2.248.10
 
 - Catalogo ufficiale `pct/data/cataloghi/codici_oggetto_pst.json`: 1.018 record validi.
 - Guide ufficiali curate: 1.018 su 1.018.
 - Codici ufficiali senza guida curata: 0.
 - Incoerenze tra guida e codice depositabile: 0.
-- Alias interni non depositabili: 30, mantenuti solo per retrocompatibilità e guida interna.
+- Schede interne o alias non depositabili: 36, mantenuti per continuità, ricerca e guida pratica facoltativa.
 
 ## File principali
 
@@ -60,9 +60,9 @@ Gli endpoint richiedono sessione o API key e almeno un permesso tra lettura fasc
 
 ## Integrazione fascicolo
 
-Nel dettaglio fascicolo React il pannello `GuidaPraticaSidebar` usa `f.codiceOggettoPst`, chiama l'endpoint del fascicolo e mostra checklist, normativa, atto, adempimenti e stato del codice deposito.
+Nel dettaglio fascicolo React il pannello `GuidaPraticaSidebar` usa il codice oggetto del fascicolo quando presente. Se il fascicolo non ha un codice valorizzato, prova a proporre una scheda pratica dall'oggetto o dal titolo del fascicolo, ma resta sempre un supporto facoltativo.
 
-Se il codice è ufficiale, la UI mostra `Codice PST verificato`. Se il codice è un alias interno, la guida resta visibile ma viene marcata come non depositabile e il checklist blocca la generazione deposito finché non viene scelto un codice ministeriale ufficiale.
+La guida mostra checklist, normativa, atto, adempimenti e avvertenze operative. Non blocca il lavoro dell'avvocato: se non è collegata, il fascicolo resta utilizzabile; se una scheda interna non coincide con un codice PST/XSD ufficiale, viene mantenuta come guida non depositabile e l'eventuale deposito deve usare un codice ministeriale scelto nella scheda fascicolo.
 
 ## Validazione obbligatoria
 

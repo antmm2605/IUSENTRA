@@ -9,19 +9,19 @@ La Guida Pratica vive fuori dal codice applicativo:
 
 Il merge dei moduli produce un knowledge base unico, ma il catalogo ufficiale PST/XSD resta separato in `pct/data/cataloghi/codici_oggetto_pst.json`.
 
-## Risultato operativo 2.248.9
+## Risultato operativo 2.248.10
 
-- Codici nel catalogo guida: 1.048.
+- Codici nel catalogo guida: 1.054.
 - Codici ufficiali PST/XSD: 1.018.
 - Codici ufficiali con guida curata: 1.018.
 - Codici ufficiali senza guida curata: 0.
-- Alias interni non depositabili: 30.
+- Schede interne o alias non depositabili: 36.
 
-Gli alias interni sono mantenuti per continuità dei fascicoli e per guida operativa, ma non vengono considerati codici di deposito.
+Le schede interne sono mantenute per continuità dei fascicoli, ricerca e guida operativa facoltativa, ma non vengono considerate codici di deposito.
 
 ## Uso nel fascicolo
 
-Nel dettaglio fascicolo React, `GuidaPraticaSidebar` legge il codice oggetto e chiama:
+Nel dettaglio fascicolo React, `GuidaPraticaSidebar` legge il codice oggetto quando presente e chiama:
 
 ```text
 GET /api/v1/ui/fascicoli/<id_fasc>/guida-pratica
@@ -35,7 +35,9 @@ Il backend risolve il codice, legge il knowledge base, applica eventuale eredita
 - campi obbligatori;
 - allegati;
 - adempimenti;
-- stato del codice deposito.
+- stato operativo della guida.
+
+Se il fascicolo non ha un codice oggetto valorizzato, il backend può proporre una scheda pratica dall'oggetto o dal titolo. La proposta è sempre facoltativa e non blocca il lavoro: per un deposito telematico resta necessario scegliere nella scheda fascicolo un codice PST/XSD ufficiale.
 
 ## Validazione
 

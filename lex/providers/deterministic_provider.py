@@ -3,9 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from .base import BaseProvider
 from lex.contracts import ProviderDraft
 from lex.formatting.legal_draft_layout import normalize_legal_draft_layout
+
+from .base import BaseProvider
 
 try:  # esportato anche per test legacy con monkeypatch
     from lex.tools.studio_data_gateway import build_cliente_answer, find_cliente
@@ -1170,7 +1171,8 @@ def _studio_data_lookup_text(q: str, context: Any) -> str:
 
     find_fascicoli = None
     try:
-        from lex.tools.studio_data_gateway import find_cliente as search_cliente, find_fascicoli_by_cliente
+        from lex.tools.studio_data_gateway import find_cliente as search_cliente
+        from lex.tools.studio_data_gateway import find_fascicoli_by_cliente
 
         find_fascicoli = find_fascicoli_by_cliente
         matches = search_cliente(q)
@@ -1241,6 +1243,86 @@ def _generic_operational_text(q: str, context: Any, title: str, summary: str) ->
     )
 
 
+def _item_metadata(item: Any) -> dict[str, Any]:
+    metadata = getattr(item, "metadata", None)
+    return dict(metadata or {}) if isinstance(metadata, dict) else {}
+
+
+def _guide_items(items: list[Any]) -> list[Any]:
+    return [
+        item for item in list(items or [])
+        if str(getattr(item, "source_type", "") or "").strip().lower() == "guida_pratica"
+    ]
+
+
+def _first_label(values: list[Any], *keys: str) -> str:
+    for value in list(values or []):
+        if isinstance(value, dict):
+            for key in keys:
+                text = str(value.get(key) or "").strip()
+                if text:
+                    return text
+        else:
+            text = str(value or "").strip()
+            if text:
+                return text
+    return ""
+
+
+def _guida_pratica_text(question: str, items: list[Any], context: Any, *, compact: bool = False) -> str:
+    """Trasforma la fonte Guida Pratica in una risposta conversazionale."""
+
+    first = next(iter(_guide_items(items)), None)
+    if first is None:
+        return ""
+    metadata = _item_metadata(first)
+    guidance = metadata.get("guidance_payload") if isinstance(metadata.get("guidance_payload"), dict) else {}
+    if not isinstance(guidance, dict):
+        guidance = {}
+
+    denominazione = str(metadata.get("denominazione") or getattr(first, "title", "") or "guida pratica").strip()
+    codice = str(metadata.get("codice") or getattr(first, "source_id", "") or "").strip()
+    deposito_ufficiale = bool(metadata.get("deposit_code_official"))
+    depositabile = bool(metadata.get("depositable"))
+    atto = guidance.get("atto_principale") if isinstance(guidance.get("atto_principale"), dict) else {}
+    quick = guidance.get("quick_help") if isinstance(guidance.get("quick_help"), dict) else {}
+    adempimenti = guidance.get("adempimenti_propedeutici") if isinstance(guidance.get("adempimenti_propedeutici"), list) else []
+    allegati = guidance.get("allegati_obbligatori") if isinstance(guidance.get("allegati_obbligatori"), list) else []
+    campi = atto.get("campi_obbligatori") if isinstance(atto.get("campi_obbligatori"), list) else []
+    avvertimenti = atto.get("avvertimenti_obbligatori") if isinstance(atto.get("avvertimenti_obbligatori"), list) else []
+
+    first_step = str(quick.get("prima_cosa_da_fare") or _first_label(adempimenti, "azione", "label", "descrizione")).strip()
+    act_name = str(quick.get("atto_da_redigere") or atto.get("denominazione") or atto.get("tipo_atto") or "").strip()
+    first_attachment = _first_label(allegati, "label", "descrizione", "id")
+    first_field = _first_label(campi, "label", "descrizione", "id")
+    first_warning = _first_label(avvertimenti)
+
+    lines = [
+        f"Ho letto la guida pratica collegata: {denominazione}{f' ({codice})' if codice else ''}.",
+        "La uso come supporto operativo per l'avvocato: orienta preparazione, controlli, allegati e linguaggio dell'atto, ma non blocca il lavoro sul fascicolo.",
+    ]
+    if depositabile and deposito_ufficiale:
+        lines.append("Per il deposito, il codice risulta presente nel catalogo PST/XSD ufficiale caricato localmente.")
+    else:
+        lines.append("Per il deposito, questa è una guida interna: va scelto nella scheda fascicolo il codice ministeriale ufficiale coerente.")
+    if first_step:
+        lines.append(f"Primo controllo pratico: {first_step}.")
+    if act_name:
+        lines.append(f"Atto da preparare o verificare: {act_name}.")
+    if first_field:
+        lines.append(f"Campo chiave da non saltare: {first_field}.")
+    if first_attachment:
+        lines.append(f"Allegato da presidiare subito: {first_attachment}.")
+    if first_warning:
+        lines.append(f"Avvertenza redazionale: {first_warning}.")
+    if not compact:
+        content = str(getattr(first, "content", "") or "").strip()
+        if content:
+            lines.append("Dettaglio operativo letto dalla scheda:")
+            lines.append(_shorten(content, 1800))
+    return "\n".join(line for line in lines if line)
+
+
 class DeterministicProvider(BaseProvider):
     provider_name = "deterministic"
 
@@ -1258,8 +1340,17 @@ class DeterministicProvider(BaseProvider):
             text = _economic_text(q, context, title, summary)
         elif workflow in {"fascicolo"}:
             text = _fascicolo_text(q, context, title, summary)
+            guide_text = _guida_pratica_text(q, items, context, compact=True)
+            if guide_text:
+                if "ho bisogno del riferimento corretto della pratica" in text:
+                    text = guide_text
+                else:
+                    text = f"{text}\n\n{guide_text}"
         elif workflow in {"telematico_status", "deposito_telematico", "compliance"}:
             text = _compliance_text(q, context, title, summary)
+            guide_text = _guida_pratica_text(q, items, context, compact=True)
+            if guide_text:
+                text = f"{text}\n\n{guide_text}"
         elif workflow == "studio_data_lookup":
             text = _studio_data_lookup_text(q, context)
         elif workflow == "atto_da_template":
@@ -1295,6 +1386,8 @@ class DeterministicProvider(BaseProvider):
                 text = build_lettera_cliente_template(context)
             else:
                 text = build_diffida_messa_in_mora_template(context)
+        elif _guide_items(items) and workflow in {"question_answering", "atto", "documento"}:
+            text = _guida_pratica_text(q, items, context)
         else:
             text = _generic_operational_text(q, context, title, summary)
 

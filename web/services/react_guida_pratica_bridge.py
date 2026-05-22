@@ -1,7 +1,8 @@
 """Bridge React/API per Guida Pratica fascicolo.
 
-Il bridge resta sottile: risolve il fascicolo dai repository esistenti, legge il codice oggetto PST già esposto
-nel payload fascicoli e delega la conoscenza a `pct.guida_pratica.GuidaPraticaService`.
+Il bridge resta sottile: risolve il fascicolo dai repository esistenti, usa il
+codice materia quando presente o l'oggetto/titolo quando il codice non è stato
+ancora salvato, e delega la conoscenza a `pct.guida_pratica.GuidaPraticaService`.
 """
 
 from __future__ import annotations
@@ -70,8 +71,16 @@ def fascicolo_guida_context(fascicolo: Any) -> dict[str, Any]:
         "id": _text(getattr(fascicolo, "id", "")),
         "titolo": _text(getattr(fascicolo, "titolo", "") or getattr(fascicolo, "oggetto", "")),
         "title": _text(getattr(fascicolo, "titolo", "") or getattr(fascicolo, "oggetto", "")),
+        "oggetto": _text(getattr(fascicolo, "oggetto", "")),
+        "object": _text(getattr(fascicolo, "oggetto", "")),
         "tipo": _enum_value(getattr(fascicolo, "tipo", "")),
         "stato": _enum_value(getattr(fascicolo, "stato", "")),
+        "tipo_procedimento": _text(getattr(fascicolo, "tipo_procedimento", "")),
+        "procedureType": _text(getattr(fascicolo, "tipo_procedimento", "")),
+        "area_pratica": _text(getattr(fascicolo, "area_pratica", "")),
+        "practiceArea": _text(getattr(fascicolo, "area_pratica", "")),
+        "procedura_operativa_nome": _text(getattr(fascicolo, "procedura_operativa_nome", "")),
+        "proceduraOperativaNome": _text(getattr(fascicolo, "procedura_operativa_nome", "")),
         "cliente": _text(getattr(fascicolo, "nome_cliente", "")),
         "controparte": _text(getattr(fascicolo, "controparte", "")),
         "tribunale": _text(getattr(fascicolo, "tribunale", "")),
@@ -95,10 +104,34 @@ def build_react_guida_pratica_payload(*, codice: str, fascicolo: dict[str, Any] 
         "ok": True,
         "source": "legal_knowledge_base_json_catalogo_xsd",
         "generatedAt": _now(),
+        "guidaPraticaFacoltativa": True,
+        "guidaPraticaDisponibile": True,
+        "bloccaLavoro": False,
         "guida": guida,
         "checklist": checklist,
         "catalogoSize": service.catalog_size(),
     }
+
+
+def _mark_suggested_code_payload(payload: dict[str, Any], match: dict[str, Any]) -> dict[str, Any]:
+    message = _text(
+        match.get("message"),
+        "Scheda pratica individuata dall'oggetto del fascicolo: confermala nella scheda fascicolo per mantenerla collegata alla pratica.",
+    )
+    if isinstance(payload.get("guida"), dict):
+        payload["guida"]["guida_pratica_suggerita"] = True
+    checklist = payload.get("checklist")
+    if isinstance(checklist, dict):
+        checklist["guida_pratica_suggerita"] = True
+        checklist["requires_code_confirmation"] = False
+        checklist["blocca_lavoro"] = False
+    payload["matchedFromFascicolo"] = match
+    payload["message"] = message
+    payload["guidaPraticaFacoltativa"] = True
+    payload["guidaPraticaDisponibile"] = True
+    payload["bloccaLavoro"] = False
+    payload["source"] = "legal_knowledge_base_json_suggerimento_fascicolo"
+    return payload
 
 
 def build_react_guida_pratica_catalog_payload(*, query: str = "", coverage: str = "", limit: int = 500, service: GuidaPraticaService | None = None) -> dict[str, Any]:
@@ -122,18 +155,30 @@ def build_react_guida_pratica_catalog_payload(*, query: str = "", coverage: str 
 
 
 def build_react_fascicolo_guida_pratica_payload(*, get_fascicoli: Callable[[], Any], id_fasc: str, service: GuidaPraticaService | None = None) -> dict[str, Any]:
+    service = service or GuidaPraticaService()
     fascicolo = resolve_fascicolo_for_guida(get_fascicoli, id_fasc)
     if not fascicolo:
         return {"ok": False, "generatedAt": _now(), "notFound": True, "message": "Fascicolo non trovato."}
     context = fascicolo_guida_context(fascicolo)
     codice = normalize_codice_materia(context.get("codice_oggetto_pst"))
     if not codice:
+        match = service.suggest_guidance_from_fascicolo(context)
+        if match:
+            context["codice_oggetto_pst_suggerito"] = _text(match.get("codice"))
+            context["codiceOggettoPstSuggerito"] = _text(match.get("codice"))
+            payload = build_react_guida_pratica_payload(codice=_text(match.get("codice")), fascicolo=context, service=service)
+            payload["fascicolo"] = context
+            return _mark_suggested_code_payload(payload, match)
         return {
-            "ok": False,
+            "ok": True,
             "generatedAt": _now(),
             "fascicolo": context,
-            "message": "Il fascicolo non ha un codice oggetto PST/materia valorizzato. Impostalo nella scheda fascicolo per attivare la Guida Pratica.",
-            "code": "codice_oggetto_missing",
+            "message": "Nessuna scheda pratica collegata al fascicolo. Puoi continuare a lavorare; se vuoi usare la guida, seleziona una materia nella scheda fascicolo.",
+            "code": "guida_pratica_facoltativa_non_collegata",
+            "source": "guida_pratica_facoltativa_non_collegata",
+            "guidaPraticaFacoltativa": True,
+            "guidaPraticaDisponibile": False,
+            "bloccaLavoro": False,
         }
     payload = build_react_guida_pratica_payload(codice=codice, fascicolo=context, service=service)
     payload["fascicolo"] = context

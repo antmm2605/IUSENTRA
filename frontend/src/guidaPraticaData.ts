@@ -114,7 +114,19 @@ export type GuidaPraticaResponse = {
   message?: string
   code?: string
   notFound?: boolean
+  guidaPraticaFacoltativa?: boolean
+  guidaPraticaDisponibile?: boolean
+  bloccaLavoro?: boolean
   fascicolo?: Record<string, unknown>
+  matchedFromFascicolo?: {
+    codice?: string
+    denominazione?: string
+    score?: number
+    source_field?: string
+    matched_by?: string
+    confirmation_required?: boolean
+    message?: string
+  }
   guida?: GuidaPratica
   checklist?: GuidaChecklist
   catalogoSize?: number
@@ -144,7 +156,7 @@ export function emptyGuidaPraticaResponse(message = 'Guida Pratica non disponibi
 }
 
 export function codiceFromResponse(response: GuidaPraticaResponse): string {
-  return text(response.guida?.codice || response.checklist?.codice || response.fascicolo?.codice_oggetto_pst || response.fascicolo?.codiceOggettoPst)
+  return text(response.guida?.codice || response.checklist?.codice || response.fascicolo?.codice_oggetto_pst || response.fascicolo?.codiceOggettoPst || response.matchedFromFascicolo?.codice)
 }
 
 export function getFascicoloGuidaPratica(fascicoloId: string): Promise<GuidaPraticaResponse> {

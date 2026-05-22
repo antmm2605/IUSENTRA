@@ -203,6 +203,7 @@ def _payload_from_config(cfg: Any, *, can_update: bool) -> dict[str, Any]:
         "studio": {
             "nome": cfg.studio.nome,
             "avvocato": cfg.studio.avvocato,
+            "qualifica_professionale": getattr(cfg.studio, "qualifica_professionale", ""),
             "numero_iscrizione_albo": cfg.studio.numero_iscrizione_albo,
             "ordine_avvocati": cfg.studio.ordine_avvocati,
             "piva": cfg.studio.piva,
@@ -363,6 +364,7 @@ def update_react_impostazioni_section(section: str, payload: dict[str, Any], *, 
         cfg.studio = ConfigDatiStudio(
             nome=_text(data.get("nome")),
             avvocato=_text(data.get("avvocato")),
+            qualifica_professionale=_text(data.get("qualifica_professionale")),
             numero_iscrizione_albo=_text(data.get("numero_iscrizione_albo")),
             ordine_avvocati=_text(data.get("ordine_avvocati")),
             piva=_text(data.get("piva")),

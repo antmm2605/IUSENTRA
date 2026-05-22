@@ -42,7 +42,8 @@ export type GuidaSezione = {
 
 export type GuidaAdempimento = {
   step?: number | string
-  azione: string
+  azione?: string
+  descrizione?: string
   obbligatorio?: boolean
   consigliato?: boolean
   modalita?: string[]
@@ -71,7 +72,13 @@ export type GuidaPratica = {
     riferimenti_secondari?: GuidaNormativa[]
     novita_rilevanti?: Array<Record<string, unknown>>
   }
+  tipologie_di_intervento?: Array<string | Record<string, unknown>>
   presupposti_sostanziali?: string[]
+  legittimati_attivi?: Array<string | Record<string, unknown>>
+  obbligo_mediazione?: string | boolean | Record<string, unknown>
+  obbligo_mediazione_o_negoziazione_assistita?: string | boolean | Record<string, unknown>
+  richiesta_provvedimenti_urgenti?: string | boolean | Record<string, unknown>
+  avvertimenti_obbligatori?: string[]
   adempimenti_propedeutici?: GuidaAdempimento[]
   atto_principale?: {
     tipo_atto?: string
@@ -85,6 +92,7 @@ export type GuidaPratica = {
   avvertenze_redazionali?: string[]
   adempimenti_fiscali_telematici?: Record<string, unknown>
   termini_processuali?: Array<Record<string, unknown>>
+  esiti_processuali_tipici?: Array<string | Record<string, unknown>>
   esiti_processuali_attesi?: Array<Record<string, unknown>>
 }
 
@@ -105,6 +113,37 @@ export type GuidaChecklist = {
   pronto_per_generazione: boolean
   requires_review: boolean
   blockers: Array<Record<string, unknown>>
+}
+
+export type GuidaTemplateSuggestion = {
+  id: string
+  compilerCode: string
+  title: string
+  matter: string
+  area: string
+  channel: string
+  prefillStatus: string
+  score: number
+  reasons: string[]
+  href: string
+  editorHint: string
+}
+
+export type GuidaDocumentPlan = {
+  enabled: boolean
+  documentoSuggerito: string
+  template: {
+    status: string
+    autoLoad: boolean
+    reason: string
+    recommended: GuidaTemplateSuggestion | null
+    alternatives: GuidaTemplateSuggestion[]
+  }
+  import: {
+    enabled: boolean
+    formats: string[]
+    message: string
+  }
 }
 
 export type GuidaPraticaResponse = {
@@ -129,6 +168,7 @@ export type GuidaPraticaResponse = {
   }
   guida?: GuidaPratica
   checklist?: GuidaChecklist
+  documentPlan?: GuidaDocumentPlan
   catalogoSize?: number
 }
 

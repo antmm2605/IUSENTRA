@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IUSENTRA - Editor avanzato in anteprima</title>
+  <link rel="stylesheet" href="flow.css">
+  <style>
+    body {
+      overflow: hidden;
+    }
+
+    .editor-app {
+      height: calc(100vh - 72px);
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      padding: 16px 20px 18px;
+      gap: 12px;
+    }
+
+    .editor-hero {
+      min-height: 92px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: center;
+      padding: 16px 18px;
+      border: 1px solid #d8e5f3;
+      border-radius: 18px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(236, 244, 255, 0.9)),
+        radial-gradient(circle at 96% 12%, rgba(15, 94, 216, 0.08), transparent 28%);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .editor-hero h1 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.12;
+      font-weight: 850;
+    }
+
+    .editor-hero p {
+      max-width: 920px;
+      margin: 6px 0 0;
+      color: #4c5b74;
+      line-height: 1.42;
+      font-weight: 690;
+    }
+
+    .editor-workspace {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 84px minmax(0, 1fr) 352px;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .tool-rail {
+      display: grid;
+      grid-auto-rows: min-content;
+      gap: 10px;
+      padding: 10px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fbfdff;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .tool-tile {
+      min-height: 68px;
+      display: grid;
+      place-items: center;
+      gap: 5px;
+      padding: 8px 4px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: #fff;
+      color: #213149;
+      font-size: 11px;
+      line-height: 1.1;
+      font-weight: 850;
+      text-align: center;
+    }
+
+    .tool-tile svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .tool-tile.active {
+      border-color: #0b2b5b;
+      background: #0b2b5b;
+      color: #fff;
+      box-shadow: 0 12px 24px rgba(11, 43, 91, 0.18);
+    }
+
+    .doc-stage {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #f8fbff;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .command-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .doc-tabs {
+      display: flex;
+      gap: 6px;
+      overflow: hidden;
+    }
+
+    .doc-tab {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      color: #34435c;
+      font-size: 12px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .doc-tab.active {
+      border-color: #b9d5ff;
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+
+    .format-strip {
+      display: flex;
+      gap: 5px;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .format-btn,
+    .format-select {
+      min-height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 9px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: #26364f;
+      font-size: 12px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .format-btn.icon {
+      width: 33px;
+      padding: 0;
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+    .canvas-wrap {
+      min-height: 0;
+      overflow: auto;
+      padding: 22px 26px 34px;
+      background:
+        linear-gradient(90deg, rgba(211, 221, 234, 0.6) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(211, 221, 234, 0.6) 1px, transparent 1px),
+        #e9eef6;
+      background-size: 32px 32px;
+    }
+
+    .page-shell {
+      width: 720px;
+      min-height: 1018px;
+      margin: 0 auto;
+      position: relative;
+      background: #fffdfa;
+      box-shadow: 0 22px 48px rgba(18, 34, 58, 0.18);
+      border: 1px solid #e5dfd6;
+    }
+
+    .page-ruler-x {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 22px;
+      border-bottom: 1px solid #e3e0db;
+      background: #fbf8f2;
+    }
+
+    .page-ruler-y {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 24px;
+      border-right: 1px solid #e3e0db;
+      background: #fbf8f2;
+    }
+
+    .legal-page {
+      padding: 44px 58px 78px 78px;
+      font-family: Georgia, "Times New Roman", serif;
+      color: #111827;
+      line-height: 1.62;
+    }
+
+    .studio-mark {
+      width: 235px;
+      min-height: 78px;
+      margin-left: 18px;
+      text-align: center;
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .court-title {
+      margin: 46px auto 20px;
+      text-align: center;
+      font-size: 17px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .doc-heading {
+      max-width: 420px;
+      margin: 0 auto 22px;
+      text-align: center;
+      font-size: 17px;
+      line-height: 1.35;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .editable-section {
+      position: relative;
+      margin: 0 0 14px;
+      padding: 8px 10px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+    }
+
+    .editable-section.active {
+      border-color: #9cc7ff;
+      background: rgba(239, 247, 255, 0.65);
+      box-shadow: 0 0 0 3px rgba(15, 94, 216, 0.08);
+    }
+
+    .section-tag {
+      position: absolute;
+      top: -12px;
+      left: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-height: 22px;
+      padding: 0 8px;
+      border: 1px solid #b9d5ff;
+      border-radius: 999px;
+      background: #fff;
+      color: var(--blue);
+      font-family: "Segoe UI", system-ui, sans-serif;
+      font-size: 10px;
+      font-weight: 900;
+    }
+
+    .selected-text {
+      background: #fff1bd;
+      box-shadow: 0 0 0 2px #fff1bd;
+      border-radius: 3px;
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1.08em;
+      margin: 0 2px;
+      background: #0f5ed8;
+      vertical-align: -2px;
+    }
+
+    .comment-pin {
+      position: absolute;
+      right: -40px;
+      top: 16px;
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      border: 1px solid #f0c480;
+      background: #fff7e8;
+      color: #925c09;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .bottom-status {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 12px;
+      border-top: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .status-left {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      color: #53627a;
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .right-inspector {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fbfdff;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .inspector-head {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .inspector-head strong {
+      display: block;
+      font-size: 15px;
+      font-weight: 900;
+    }
+
+    .inspector-head span {
+      display: block;
+      margin-top: 3px;
+      color: #53627a;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .inspector-scroll {
+      min-height: 0;
+      overflow: auto;
+      padding: 12px;
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .inspect-card {
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .inspect-card header {
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 11px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfdff;
+    }
+
+    .inspect-card header strong {
+      flex: 1;
+      font-weight: 900;
+    }
+
+    .inspect-body {
+      padding: 10px 11px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .field-row,
+    .source-row,
+    .ai-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 9px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .field-row strong,
+    .source-row strong,
+    .ai-row strong {
+      display: block;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .field-row span,
+    .source-row span,
+    .ai-row span {
+      display: block;
+      margin-top: 2px;
+      color: #5d6c83;
+      font-size: 11px;
+      line-height: 1.35;
+      font-weight: 650;
+    }
+
+    .ai-row {
+      border-color: #bfd6f6;
+      background: #f8fbff;
+    }
+
+    .comment-card {
+      padding: 10px 11px;
+      border: 1px solid #f0c480;
+      border-radius: 11px;
+      background: #fff7e8;
+      color: #382a12;
+      font-size: 12px;
+      line-height: 1.42;
+      font-weight: 700;
+    }
+
+    .split-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .split-actions button {
+      min-height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fff;
+      color: #25364f;
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .split-actions .primary-mini {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: #fff;
+    }
+
+    @media (max-width: 1180px) {
+      .editor-workspace {
+        grid-template-columns: 76px minmax(0, 1fr);
+      }
+
+      .right-inspector {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="search">
+      <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+      <span class="hint">Cerca fascicolo, cliente, udienza, documento...</span>
+      <span class="kbd">Ctrl K</span>
+    </div>
+    <div class="top-actions">
+      <button class="date-btn">ven 22 mag <svg class="i" viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18"></path><rect x="3" y="4" width="18" height="18" rx="3"></rect></svg></button>
+      <button class="secondary-btn">Fascicolo</button>
+      <button class="primary-btn">Conferma documento</button>
+    </div>
+  </header>
+
+  <main class="editor-app">
+    <section class="editor-hero">
+      <div>
+        <div class="eyebrow">Anteprima modificabile</div>
+        <h1>Ricorso in opposizione, editor integrato</h1>
+        <p>Una sola finestra: documento modificabile, dati fascicolo in sola lettura, guida pratica, fonti, AI redazionale e mini anteprima PDF. La guida resta aperta e non completa il passaggio finché l'avvocato non conferma.</p>
+      </div>
+      <div class="hero-actions">
+        <button class="secondary-btn">Salva bozza</button>
+        <button class="secondary-btn">Anteprima PDF</button>
+        <button class="primary-btn">Conferma e salva</button>
+      </div>
+    </section>
+
+    <section class="editor-workspace">
+      <nav class="tool-rail" aria-label="Strumenti editor">
+        <button class="tool-tile"><svg class="i" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"></path><path d="M2 14h4M10 8h4M18 16h4"></path></svg><span>Setup</span></button>
+        <button class="tool-tile"><svg class="i" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg><span>Pagine</span></button>
+        <button class="tool-tile"><svg class="i" viewBox="0 0 24 24"><path d="m21 16-9 5-9-5"></path><path d="m21 12-9 5-9-5"></path><path d="m21 8-9 5-9-5 9-5Z"></path></svg><span>Blocchi</span></button>
+        <button class="tool-tile active"><svg class="i" viewBox="0 0 24 24"><path d="M4 7V4h16v3"></path><path d="M9 20h6"></path><path d="M12 4v16"></path></svg><span>Testo</span></button>
+        <button class="tool-tile"><svg class="i" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="10.5" r="2.5"></circle><circle cx="8.5" cy="11.5" r="2.5"></circle><path d="M6.5 14.5 4 20l5.5-2.5"></path></svg><span>Aspetto</span></button>
+        <button class="tool-tile"><svg class="i" viewBox="0 0 24 24"><path d="M3 5h18M3 12h18M3 19h18"></path><path d="M7 5v14"></path></svg><span>Fonti</span></button>
+        <button class="tool-tile"><svg class="i" viewBox="0 0 24 24"><path d="m21.4 11.6-8.8 8.8a6 6 0 0 1-8.5-8.5l8.8-8.8a4 4 0 0 1 5.7 5.7l-8.9 8.8a2 2 0 0 1-2.8-2.8l8.2-8.2"></path></svg><span>Allegati</span></button>
+        <button class="tool-tile"><svg class="i" viewBox="0 0 24 24"><path d="M12 8V4H8"></path><path d="M4 12a8 8 0 1 0 2.3-5.7L4 8"></path></svg><span>AI</span></button>
+        <button class="tool-tile"><svg class="i" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg><span>Firma</span></button>
+        <button class="tool-tile"><svg class="i" viewBox="0 0 24 24"><path d="M4 12v8h16v-8"></path><path d="M12 16V4"></path><path d="m7 9 5-5 5 5"></path></svg><span>Salva</span></button>
+      </nav>
+
+      <article class="doc-stage">
+        <div class="command-row">
+          <div class="doc-tabs">
+            <button class="doc-tab active">Atto principale</button>
+            <button class="doc-tab">Procura</button>
+            <button class="doc-tab">Allegati</button>
+          </div>
+          <div class="format-strip">
+            <button class="format-btn icon">B</button>
+            <button class="format-btn icon">I</button>
+            <button class="format-btn icon">U</button>
+            <button class="format-select">Stile atto</button>
+            <button class="format-select">Premesse</button>
+            <button class="format-select">Motivi</button>
+            <button class="format-btn">Inserisci fonte</button>
+            <button class="format-btn">Rigenera sezione</button>
+          </div>
+          <span class="badge gold">bozza modificata</span>
+        </div>
+
+        <div class="canvas-wrap">
+          <div class="page-shell">
+            <div class="page-ruler-x"></div>
+            <div class="page-ruler-y"></div>
+            <div class="legal-page">
+              <div class="studio-mark">
+                <strong>STUDIO LEGALE MONTAGNESE</strong><br>
+                Avv. Roberto Montagnese<br>
+                Patrocinante in Cassazione<br>
+                Via Nino Bixio 4, Taurianova (RC)<br>
+                PEC r.montagnese@pec.it
+              </div>
+              <div class="court-title">Giudice di Pace di Palmi</div>
+              <div class="doc-heading">Ricorso in opposizione avverso sanzione amministrativa</div>
+
+              <section class="editable-section">
+                <p><strong>Per:</strong> Crocitti Giovanni, rappresentato e difeso dall'avvocato indicato in epigrafe, come da procura alle liti allegata al fascicolo.</p>
+              </section>
+
+              <section class="editable-section active">
+                <span class="section-tag">Testo modificabile</span>
+                <span class="comment-pin">1</span>
+                <p><strong>Premesse.</strong> Nell'interesse del ricorrente si propone opposizione avverso il verbale notificato dal Comune di Taurianova, come acquisito nel fascicolo.</p>
+                <p><strong>Motivi.</strong> Il verbale viene contestato per i profili indicati dall'avvocato nella presente bozza. <span class="selected-text">Inserire il motivo specifico dopo l'esame del verbale e della prova di notifica</span><span class="cursor"></span>.</p>
+                <p><strong>Istanza cautelare.</strong> Ove ne ricorrano i presupposti, si chiede la sospensione dell'efficacia esecutiva del provvedimento impugnato.</p>
+              </section>
+
+              <section class="editable-section">
+                <p><strong>Conclusioni.</strong> Si chiede l'accoglimento dell'opposizione, con ogni conseguente statuizione e con vittoria di spese, competenze ed onorari.</p>
+              </section>
+
+              <section class="editable-section">
+                <p><strong>Allegati.</strong> Verbale impugnato, procura alle liti, documenti identificativi, prova della notifica e ulteriori documenti già acquisiti nel fascicolo.</p>
+              </section>
+            </div>
+          </div>
+        </div>
+
+        <div class="bottom-status">
+          <div class="status-left">
+            <span class="badge gold">Modifica manuale non confermata</span>
+            <span>La sezione Motivi è stata aperta dall'avvocato. La guida resta su "aperto".</span>
+          </div>
+          <div class="hero-actions">
+            <button class="secondary-btn">Salva bozza</button>
+            <button class="secondary-btn">Anteprima PDF</button>
+            <button class="primary-btn">Conferma documento</button>
+          </div>
+        </div>
+      </article>
+
+      <aside class="right-inspector">
+        <div class="inspector-head">
+          <strong>Controllo redazionale</strong>
+          <span>Fascicolo, guida, fonti e AI nello stesso punto.</span>
+        </div>
+        <div class="inspector-scroll">
+          <article class="inspect-card">
+            <header>
+              <svg class="i" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"></path><path d="M8 9h8M8 13h8M8 17h4"></path></svg>
+              <strong>Dati fascicolo</strong>
+              <span class="badge green">letti</span>
+            </header>
+            <div class="inspect-body">
+              <div class="field-row"><div><strong>Cliente</strong><span>Crocitti Giovanni</span></div><span class="badge green">ok</span></div>
+              <div class="field-row"><div><strong>Ufficio</strong><span>Giudice di Pace di Palmi</span></div><span class="badge green">ok</span></div>
+              <div class="field-row"><div><strong>Oggetto</strong><span>Opposizione a sanzione amministrativa</span></div><span class="badge green">ok</span></div>
+            </div>
+          </article>
+
+          <article class="inspect-card">
+            <header>
+              <svg class="i" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"></path></svg>
+              <strong>Guida Pratica</strong>
+              <span class="badge gold">aperto</span>
+            </header>
+            <div class="inspect-body">
+              <div class="source-row"><div><strong>Documento</strong><span>Bozza modificata, non ancora confermata.</span></div><span class="badge gold">aperto</span></div>
+              <div class="source-row"><div><strong>Allegati</strong><span>Procura e prova notifica da verificare.</span></div><span class="badge">controllo</span></div>
+            </div>
+          </article>
+
+          <article class="inspect-card">
+            <header>
+              <svg class="i" viewBox="0 0 24 24"><path d="M3 5h18M3 12h18M3 19h18"></path><path d="M7 5v14"></path></svg>
+              <strong>Fonti e controlli</strong>
+            </header>
+            <div class="inspect-body">
+              <div class="source-row"><div><strong>Art. 7 D.Lgs. 150/2011</strong><span>Verifica rito e termine opposizione.</span></div><span class="badge blue">fonte</span></div>
+              <div class="source-row"><div><strong>Verbale impugnato</strong><span>Documento acquisito nel fascicolo.</span></div><span class="badge green">presente</span></div>
+              <div class="comment-card">Nota sul punto selezionato: aggiungere motivo specifico dopo lettura del verbale e della relata. Non confermare il documento senza questa verifica.</div>
+            </div>
+          </article>
+
+          <article class="inspect-card">
+            <header>
+              <svg class="i" viewBox="0 0 24 24"><path d="M12 8V4H8"></path><path d="M4 12a8 8 0 1 0 2.3-5.7L4 8"></path></svg>
+              <strong>AI redazionale</strong>
+            </header>
+            <div class="inspect-body">
+              <div class="ai-row"><div><strong>Riscrivi motivo selezionato</strong><span>Usa tono tecnico, senza inventare fatti non presenti.</span></div><span class="badge blue">AI</span></div>
+              <div class="ai-row"><div><strong>Controlla coerenza</strong><span>Confronta testo, fascicolo e allegati.</span></div><span class="badge blue">AI</span></div>
+              <div class="split-actions">
+                <button>Proponi testo</button>
+                <button class="primary-mini">Applica selezione</button>
+              </div>
+            </div>
+          </article>
+        </div>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>

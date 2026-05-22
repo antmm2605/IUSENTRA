@@ -1896,6 +1896,31 @@ def test_impostazioni_react_api_redige_segreti_e_salva_configurazioni(tmp_path: 
             },
             headers={"X-API-Key": "react-test-key"},
         )
+        save_studio = client.post(
+            "/api/v1/ui/impostazioni/studio",
+            json={
+                "nome": "Studio Legale Test",
+                "avvocato": "Avv. Test",
+                "qualifica_professionale": "Patrocinante in Cassazione",
+                "numero_iscrizione_albo": "123",
+                "ordine_avvocati": "Palmi",
+                "piva": "",
+                "cf": "",
+                "indirizzo": "Via del Foro 1",
+                "city": "Palmi",
+                "province": "RC",
+                "patron_name": "",
+                "patron_day": 0,
+                "patron_month": 0,
+                "telefono": "",
+                "email": "",
+                "sito_web": "",
+                "iban": "",
+                "banca": "",
+                "codice_fiscale_avvocato": "RSSMRA80A01H501Z",
+            },
+            headers={"X-API-Key": "react-test-key"},
+        )
         save_pagamenti = client.post(
             "/api/v1/ui/impostazioni/pagamenti",
             json={
@@ -1961,6 +1986,9 @@ def test_impostazioni_react_api_redige_segreti_e_salva_configurazioni(tmp_path: 
     assert save_pec.get_json()["ok"] is True
     assert save_firma.status_code == 200
     assert save_firma.get_json()["ok"] is True
+    assert save_studio.status_code == 200
+    assert save_studio.get_json()["ok"] is True
+    assert save_studio.get_json()["studio"]["qualifica_professionale"] == "Patrocinante in Cassazione"
     assert save_pagamenti.status_code == 200
     assert save_pagamenti.get_json()["ok"] is True
     assert save_pagamenti.get_json()["pagamenti"]["stripe_sk_test"]["present"] is True
@@ -1979,6 +2007,11 @@ def test_impostazioni_react_api_redige_segreti_e_salva_configurazioni(tmp_path: 
     assert saved.pec.password == "pec-super-segreta"
     assert saved.firma.backend_preferito == "pkcs11"
     assert saved.firma.visible_signature_mode == "basso_sinistra"
+    assert saved.studio.qualifica_professionale == "Patrocinante in Cassazione"
+    from pct.studio_timbro import default_timbro_payload
+
+    timbro = default_timbro_payload(config_studio=saved)
+    assert timbro["qualifiche_professionali"] == "Patrocinante in Cassazione"
 
 
 def test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale():
@@ -1994,7 +2027,10 @@ def test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale():
     signer = Path("frontend/src/features/impostazioni/localSigner.ts").read_text(encoding="utf-8")
     api = Path("frontend/src/features/impostazioni/api.ts").read_text(encoding="utf-8")
 
-    assert "Dati Studio" in Path("frontend/src/features/impostazioni/constants.ts").read_text(encoding="utf-8")
+    constants = Path("frontend/src/features/impostazioni/constants.ts").read_text(encoding="utf-8")
+    assert "Dati Studio" in constants
+    assert "Qualifica professionale" in constants
+    assert "Patrocinante in Cassazione" in constants
     assert "Eye, EyeOff" in form
     assert "Mostra valore inserito" in form
     assert "SettingsSummary" in page
@@ -2025,7 +2061,6 @@ def test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale():
     assert "segreti_redatti" not in page
     assert "Segreti protetti" not in page
     assert "Password e token sono indicati" not in page
-    constants = Path("frontend/src/features/impostazioni/constants.ts").read_text(encoding="utf-8")
     assert "Modello conversazione" not in constants
     assert "Modello ricerca documenti" not in constants
     assert "Automatico (consigliato)" in constants

@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IUSENTRA - Anteprima e modifica documento</title>
+  <link rel="stylesheet" href="flow.css">
+  <style>
+    .edit-stage {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 16px;
+      align-items: start;
+      padding: 16px;
+      background: #f7f9fc;
+      min-height: 615px;
+    }
+
+    .editor-shell {
+      min-height: 584px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .editor-head {
+      min-height: 58px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfdff;
+    }
+
+    .editor-title {
+      flex: 1;
+    }
+
+    .editor-title strong {
+      display: block;
+      font-size: 16px;
+      font-weight: 900;
+    }
+
+    .editor-title span {
+      display: block;
+      margin-top: 2px;
+      color: #53627a;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .formatbar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #f8fbff;
+    }
+
+    .formatbar button {
+      min-width: 33px;
+      height: 31px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: #26364f;
+      font-weight: 900;
+    }
+
+    .formatbar .wide {
+      min-width: 96px;
+      padding: 0 10px;
+      font-size: 12px;
+    }
+
+    .editable-paper {
+      margin: 14px;
+      min-height: 426px;
+      padding: 24px 32px;
+      border: 1px solid #b9d5ff;
+      border-radius: 12px;
+      background: #fffdfa;
+      box-shadow: inset 0 0 0 3px rgba(15, 94, 216, 0.05);
+      color: #182235;
+      font-family: Georgia, "Times New Roman", serif;
+      line-height: 1.58;
+    }
+
+    .editable-paper h2 {
+      margin: 0 0 18px;
+      text-align: center;
+      font-size: 18px;
+      line-height: 1.25;
+      text-transform: uppercase;
+    }
+
+    .editable-paper p {
+      margin: 0 0 12px;
+    }
+
+    .manual-change {
+      border-radius: 4px;
+      background: #fff1c2;
+      box-shadow: 0 0 0 2px #fff1c2;
+    }
+
+    .caret {
+      display: inline-block;
+      width: 2px;
+      height: 1.1em;
+      margin: 0 2px;
+      background: var(--blue);
+      vertical-align: -2px;
+    }
+
+    .editor-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-top: 1px solid var(--line);
+      background: #fbfdff;
+    }
+
+    .saved-state {
+      color: #53627a;
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .side-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .compact-a4 {
+      width: 204px;
+      min-height: 286px;
+      margin: 0 auto;
+      transform: none;
+    }
+
+    .compact-a4 .studio { top: 4px; left: 28px; width: 70px; font-size: 4px; }
+    .compact-a4 .stamp { right: 5px; width: 50px; height: 50px; font-size: 4px; }
+    .compact-a4 .court { top: 44px; left: 44px; width: 96px; font-size: 6px; }
+    .compact-a4 .doc-title { top: 64px; left: 35px; width: 130px; font-size: 6px; }
+    .compact-a4 .body-lines { top: 92px; left: 28px; right: 24px; gap: 4px; }
+    .compact-a4 .line { height: 4px; }
+    .compact-a4 .vertical-sign { font-size: 3px; right: 3px; bottom: 16px; }
+
+    .state-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: #fff;
+    }
+
+    .state-row strong {
+      display: block;
+      font-weight: 850;
+    }
+
+    .state-row span {
+      display: block;
+      margin-top: 3px;
+      color: #5d6c83;
+      font-size: 12px;
+      font-weight: 650;
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="search">
+      <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+      <span class="hint">Cerca fascicolo, cliente, udienza, documento...</span>
+      <span class="kbd">Ctrl K</span>
+    </div>
+    <div class="top-actions">
+      <button class="date-btn">ven 22 mag <svg class="i" viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18"></path><rect x="3" y="4" width="18" height="18" rx="3"></rect></svg></button>
+      <button class="secondary-btn">Torna al fascicolo</button>
+    </div>
+  </header>
+
+  <main class="app">
+    <section class="hero">
+      <div>
+        <div class="eyebrow">Anteprima e modifica</div>
+        <h1>Ricorso in opposizione</h1>
+        <p>Il documento è aperto in bozza. I dati del fascicolo restano sorgente, il testo dell'atto è modificabile prima del salvataggio.</p>
+      </div>
+      <div class="hero-actions">
+        <button class="secondary-btn">Salva bozza</button>
+        <button class="secondary-btn">Anteprima PDF</button>
+        <button class="primary-btn">Conferma e salva nel fascicolo</button>
+      </div>
+    </section>
+
+    <section class="edit-stage">
+      <article class="editor-shell">
+        <div class="editor-head">
+          <div class="section-icon">
+            <svg class="i" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+          </div>
+          <div class="editor-title">
+            <strong>Editor documento</strong>
+            <span>Bozza generata dal template GDP_001, modifiche manuali preservate.</span>
+          </div>
+          <span class="badge gold">bozza aperta</span>
+        </div>
+        <div class="formatbar" aria-label="Strumenti redazionali">
+          <button>B</button>
+          <button>I</button>
+          <button>U</button>
+          <button class="wide">Premesse</button>
+          <button class="wide">Motivi</button>
+          <button class="wide">Conclusioni</button>
+          <button class="wide">Rigenera sezione</button>
+        </div>
+        <div class="editable-paper" role="textbox" aria-label="Testo modificabile del ricorso">
+          <h2>Ricorso in opposizione<br>avverso sanzione amministrativa</h2>
+          <p><strong>Premesse.</strong> Nell'interesse di Crocitti Giovanni, come da dati del fascicolo, si propone opposizione avverso il verbale notificato dal Comune di Taurianova.</p>
+          <p><strong>Motivi.</strong> Il verbale viene contestato per i profili indicati dall'avvocato nella presente bozza. <span class="manual-change">Inserire qui il motivo specifico rilevato dopo l'esame del verbale</span><span class="caret"></span>.</p>
+          <p><strong>Istanze.</strong> Si chiede l'accoglimento dell'opposizione e, ove ne ricorrano i presupposti, la sospensione dell'efficacia esecutiva del provvedimento impugnato.</p>
+          <p><strong>Allegati.</strong> Verbale impugnato, documenti identificativi, procura alle liti e prova della notifica, se acquisita nel fascicolo.</p>
+        </div>
+        <div class="editor-foot">
+          <span class="saved-state">Ultima modifica manuale non ancora confermata nel fascicolo.</span>
+          <div class="hero-actions">
+            <button class="secondary-btn">Salva bozza</button>
+            <button class="primary-btn">Conferma documento</button>
+          </div>
+        </div>
+      </article>
+
+      <aside class="side-stack">
+        <article class="panel rounded">
+          <div class="panel-head">
+            <div class="section-icon"><svg class="i" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"></path><path d="M8 9h8M8 13h8M8 17h4"></path></svg></div>
+            <div class="panel-title"><strong>Dati dal fascicolo</strong><span>Sorgente, non modificabile qui</span></div>
+          </div>
+          <div class="panel-body compact-list">
+            <div class="state-row"><div><strong>Cliente</strong><span>Crocitti Giovanni</span></div><span class="badge green">presente</span></div>
+            <div class="state-row"><div><strong>Ufficio</strong><span>Giudice di Pace di Palmi</span></div><span class="badge green">presente</span></div>
+            <div class="state-row"><div><strong>Oggetto</strong><span>Opposizione a sanzione amministrativa</span></div><span class="badge green">presente</span></div>
+          </div>
+        </article>
+
+        <article class="panel rounded">
+          <div class="panel-head">
+            <div class="section-icon"><svg class="i" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></div>
+            <div class="panel-title"><strong>Guida Pratica</strong><span>Stato del passaggio</span></div>
+          </div>
+          <div class="panel-body compact-list">
+            <div class="state-row"><div><strong>Ricorso in opposizione</strong><span>Bozza modificata, non ancora confermata</span></div><span class="badge gold">aperto</span></div>
+            <div class="state-row"><div><strong>Completamento</strong><span>Avviene solo dopo conferma e salvataggio</span></div><span class="badge">non completo</span></div>
+          </div>
+        </article>
+
+        <article class="panel rounded">
+          <div class="panel-head">
+            <div class="section-icon"><svg class="i" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg></div>
+            <div class="panel-title"><strong>Mini anteprima PDF</strong><span>Impaginazione modello</span></div>
+          </div>
+          <div class="panel-body">
+            <div class="preview-wrap" style="min-height:auto;padding:10px">
+              <div class="a4 compact-a4">
+                <div class="studio">STUDIO LEGALE<br>Avv. Roberto Montagnese<br>Via Nino Bixio 4<br>PEC studio</div>
+                <div class="stamp">Area firma</div>
+                <div class="court">GIUDICE DI PACE DI PALMI</div>
+                <div class="doc-title">RICORSO IN OPPOSIZIONE</div>
+                <div class="body-lines"><div class="line"></div><div class="line"></div><div class="line short"></div><div class="line"></div><div class="line"></div><div class="line short"></div></div>
+                <div class="vertical-sign">Documento conforme al modello</div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>

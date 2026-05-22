@@ -39,6 +39,53 @@ def test_guida_pratica_source_legge_scheda_completa_da_codice_ufficiale():
     assert item.metadata["full_guidance_available"] is True
     assert item.metadata["linguistic_profile"] == "conversazionale_avvocato"
     assert isinstance(item.metadata["guidance_payload"], dict)
+    assert item.metadata["document_plan"]["enabled"] is True
+    assert item.metadata["document_plan"]["import"]["enabled"] is True
+    assert "Piano documento della guida" in item.content
+    assert "import PDF/Word disponibile" in item.content
+
+
+def test_guida_pratica_source_lex_legge_contesto_fascicolo_e_piano_documento():
+    source = GuidaPraticaSource()
+    request = _request(
+        "Lex, aiutami con la guida pratica del fascicolo",
+        metadata={
+            "fascicolo": {
+                "cliente": "Cliente Studio",
+                "ufficio": "Tribunale di Palmi",
+                "oggetto": "Licenziamento individuale per giustificato motivo oggettivo",
+                "codice_oggetto_pst": "220101",
+                "documenti_count": 3,
+                "attivita_count": 2,
+            }
+        },
+    )
+
+    item = source.search([request.query], request, {})[0]
+
+    assert item.source_id == "220101"
+    assert "Contesto fascicolo letto dalla guida" in item.content
+    assert "cliente: Cliente Studio" in item.content
+    assert "codice ufficiale fascicolo: 220101" in item.content
+    assert item.metadata["document_plan"]["enabled"] is True
+    assert item.metadata["document_plan"]["import"]["formats"] == ["PDF", "Word"]
+
+
+def test_guida_pratica_source_espone_voci_curate_utente_quando_presenti():
+    source = GuidaPraticaSource()
+    request = _request("Guida pratica codice GUIDA_ADS_MODIFICA_REVOCA_413062")
+
+    item = source.search([request.query], request, {})[0]
+
+    assert item.source_id == "GUIDA_ADS_MODIFICA_REVOCA_413062"
+    assert "Tipologie di intervento" in item.content
+    assert "Legittimati attivi" in item.content
+    assert "Obbligo mediazione o negoziazione" in item.content
+    assert "Avvertimenti redazionali obbligatori" in item.content
+    assert "Esiti processuali tipici" in item.content
+    assert item.metadata["tipologie_intervento_count"] > 0
+    assert item.metadata["legittimati_attivi_count"] > 0
+    assert item.metadata["has_obbligo_mediazione"] is True
 
 
 def test_guida_pratica_source_non_forza_alias_su_codice_ministeriale_differente():

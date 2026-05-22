@@ -1,0 +1,840 @@
+﻿codice,denominazione,profilo,profilo_label,termini_processuali,fonti_ufficiali,quality_hint
+012002,Consulenza tecnica preventiva (art. 696-bis cpc.) - responsabilità sanitaria L. 24/2017,atp_istruzione_preventiva,ATP e istruzione preventiva,3,5,curata_codex_fonti_ufficiali
+012003,Consulenza tecnica preventiva (art. 696-bis cpc) - altre ipotesi,atp_istruzione_preventiva,ATP e istruzione preventiva,3,5,curata_codex_fonti_ufficiali
+014002,Provvedimenti cautelari in materia di tutela della concorrenza e del mercato (art. 33 L. n. 287/90),cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+017002,Sequestro giudiziario ex art. 670 c.p.c. - Sez. Spec. Impresa,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+017003,Sequestro (liberatorio) ex art. 687 c.p.c. - Sez. Spec. Impresa,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+017004,Provvedimenti cautelari in materia di tutela della concorrenza e del mercato,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+017007,Sequestro (art. 129 c.p.i.),cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+017008,Descrizione (art. 129 c.p.i.),cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+017009,Inibitoria (art. 156 l. n. 663/1941 – Legge Autore),cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+017010,Sequestro (art. 161 l. n. 633/1941 – Legge Autore),cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+017011,Descrizione (art. 161 L.633/1941 – Legge Autore),cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+017012,Consulenza tecnica preventiva (art. 128 c.p.i.),atp_istruzione_preventiva,ATP e istruzione preventiva,3,5,curata_codex_fonti_ufficiali
+017999,Altri procedimenti cautelari - Sez. Spec. Impresa,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+018001,Istanza sospensione dell'esecuzione ex art. 373 c.p.c.,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+018002,Altri procedimenti cautelari,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+019999,Altri procedimenti cautelari,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+030021,Intimazione di licenza o di sfratto per cessazione del rapporto di locazione d'opera (art. 659 c.p.c.),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+050001,Procedimento di Ingiunzione Ante Causam,monitorio,Procedimento monitorio,4,5,curata_codex_fonti_ufficiali
+051001,Sequestro conservativo ex art. 671 c.p.c.,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+051002,Sequestro giudiziario ex art. 670 c.p.c.,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+051003,Sequestro (liberatorio) ex art. 687 c.p.c.,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+052001,Prova testimoniale e/o Accertamento tecnico preventivo,atp_istruzione_preventiva,ATP e istruzione preventiva,3,5,curata_codex_fonti_ufficiali
+052011,Ispezione preventiva,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+053001,"Inibitoria(art.63R.D.n.929/1942,art.83R.D.n.1127/1939,L n.52/1996,d.lgs.30/2005)",cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+055011,Provvedimenti d'urgenza ex art. 700 c.p.c,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+059999,Altri procedimenti cautelari in materia di diritto societario ecc.,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+100019,Opposizione all'esecuzione mobiliare e immobiliare riassunta davanti al Giudice di Pace,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+100999,PROVA,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+101004,Revocazione per contrarietà alla Convenzione europea dei diritti dell'uomo ex art. 391-quater,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+101005,"Ricorso al Presidente del Tribunale per ricusazione arbitro (art. 815, comma 3 cpc)",contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+101011,Rogatorie civili,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+101012,Prova Delegata,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+102011,Privilegio,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+103001,Questioni di diritto della navigazione (esclusi i contratti di trasporto),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+104001,Controversie di competenza del Tribunale Regionale delle Acque Pubbliche,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+105001,Usi civici,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+106003,Espropriazione,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+106004,Azione di nullita e risarcimento in materia di tutela della concorrenza e del mercato (art. 33 L. n. 287/90),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+106005,Opposizione avverso il decreto di esecutivita sentenze in materia civile e commerciale di cui alle convenzioni di Bruxelles e Lugano (L. 804/71),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+106007,Reclamo ex art. 818-bis cpc,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+106502,Accertamento requisiti sentenze straniere in materia diversa da quella matrimoniale (art. 67 L. n. 218/95),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+108001,Istanza di conciliazione,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+109999,Altri istituti e leggi speciali,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+110000,Altre ipotesi di cui al comma 3 art. 3 L.46/2017,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+110011,"Diritti della personalita (anche della persona giuridica) (es.: identita personale, nome, immagine, onore e reputazione, riservatezza)",famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+110021,Diritti di elettorato attivo e passivo,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+110022,Diritti della cittadinanza,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+110023,Riconoscimento dello stato di apolidia,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+110033,Riconoscimento diritto di soggiorno cittadini UE (art. 8. Dlgs 30/2007),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+110034,Impugnazione provvedimento di allontanamento ex art. 20 e 21 D.Lgs 30/2007,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+110035,Impugnazioni Unita' Dublino UE 604/2013,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+110036,Convalida del provvedimento di trattenimento o proroga del trattenimento,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+110037,Ricongiungimento familiare (art.30),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+110038,Impugnazione avverso diniego/revoca di rilascio/rinnovo permesso di soggiorno,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+110039,Impugnazione avverso diniego di visto di ingresso per motivi di ricongiungimento familiare da parte dell’autorita' consolare,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+110040,Impugnazione diniego protezione umanitaria da parte del Questore,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+110041,Convalida del provvedimento del questore di accompagnamento immediato alla frontiera,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+110044,Reclamo avverso diniego sospensione provvedimento,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+110045,Convalida dei provvedimenti di trattenimento per i cittadini comunitari,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+110999,Altri istituti relativi allo stato della persona ed ai diritti della personalita,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111003,Separazione consensuale e divorzio congiunto (Cessazione effetti civili),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111004,Separazione consensuale e divorzio congiunto (Scioglimento matrimonio),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111005,Modifica delle condizioni di separazione (contenzioso),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111010,Modifica delle condizioni di separazione (ricorso congiunto),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111011,Divorzio congiunto,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111013,Modifica delle condizioni di divorzio (contenzioso),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111014,Modifica delle condizioni di divorzio (ricorso congiunto),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111021,Divorzio congiunto - Scioglimento matrimonio,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111022,Divorzio contenzioso - Scioglimento matrimonio,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111023,Separazione giudiziale e divorzio congiunto (Cessazione effetti civili),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111024,Separazione giudiziale e divorzio contenzioso (Cessazione effetti civili),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111101,Filiazione legittima,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111102,Filiazione naturale,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111104,Attuazione dei provvedimenti sull'affidamento,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111105,Dichiarazione giudiziale di paternità e maternità naturale - ammissibilita',famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111106,Regolamentazione dell'esercizio della responsabilità genitoriale (contenzioso),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111107,Regolamentazione dell'esercizio della responsabilità genitoriale (ricorso congiunto),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111108,Modifica condizioni regolamentaz. esercizio responsabilità genitoriale (contenzioso),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111109,Modifica condizioni regolamentaz. esercizio responsabilità genitoriale (ricorso congiunto),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111110,Azione di dichiarazione giudiziale di paternità o maternità riguardante minori (art.274 Cod. Civ.) (contenzioso),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111111,Impugnazione di riconoscimento di paternità o maternità riguardante minori (artt.74 e 264 Cod. Civ.) (contenzioso),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+111201,Matrimonio (promessa di matrimonio ex artt. 79-81 c.c. - opposizione al matrimonio ex artt. 102 - 104 c.c. - impugnazione del matrimonio ex artt. 117 e ss. c.c.),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+111211,Regime Patrimoniale: della famiglia ex artt. 159 e ss. c.c.,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111212,Regime Patrimoniale della famiglia di fatto,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111213,Attribuzione di quota di pensione e di indennità di fine rapporto lavorativo,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+111214,Fondo patrimoniale (artt. 167 e ss. c.c.),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111215,Sostituzione dell'amministratore del patrimonio familiare,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111216,Sequestro dei beni del coniuge separato (art. 156 c.c.),cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+111217,Fondo di solidarietà a tutela del coniuge in stato di bisogno,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111401,Mutamento di sesso,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111402,Stato civile (rettifica del nome e altri atti dello Stato civile),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111403,Dichiarazione di assenza o di morte presunta (COLLEGIO),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111404,Adozione di maggiorenni,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111501,Esecutorieta sentenza Sacra Rota nullita di matrimonio (L. 121/85),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111502,Accertamento dei requisiti sentenza straniera di divorzio (art. 67 L. 218/95),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111503,Istanza per la nomina del curatore speciale del minore,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111504,"Matrimonio (pubbl.ni matrimoniali ex artt. 93 e ss. cc, nulla osta al matrim.)",famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111601,Misure di protezione contro gli abusi familiari (art. 473 bis.71 c.p.c.),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111602,"Ricorso per violenza domestica o di genere ex artt. 473 bis.40, 473 bis. 41, 73 bis.42",famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111604,Istanza per la nomina del curatore speciale del minore,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+111999,"Altri istituti di diritto di famiglia (es.: mantenimento figli naturali e legittimi, etc.)",famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+112001,Deprecato per iscrizione in secondo grado - Interdizione di minori,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+112002,Deprecato per iscrizione in secondo grado - Inabilitazione di minori,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+112102,Riconoscimento di figlio naturale (art. 250 c.c.),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+112104,Regolamentazione rapporti con gli ascendenti (art. 317-bis Cod. Civ.),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+112105,Controllo della responsabilità genitoriale sui figli (art. 330 - 333 Cod. Civ.),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+112106,Convalida del provvedimento ex art. 403 CC,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+112107,Affidamento minori (post Riforma Cartabia),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+112108,Istanza ex art. 473 bis.69 Cpc (Ordini di protezione contro gli abusi familiari su soggetto minore),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+112109,Provvedimenti indifferibili (Art. 473 bis.15 C.p.c.),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+112110,Attuazione dei provvedimenti sull'affidamento (Art. 473 bis.38 Cpc),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+112111,Provvedimenti in caso di inadempienze o violazioni (Art. 473 bis.39 C.p.c.),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+112202,"Disconoscimento di figlio naturale (art. 250, 233, 244 c.c.)",famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+112999,Altri procedimenti in materia minorile,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+118001,Controversie di competenza del TSAP ex art. 142 rd 1775/1933,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+118002,Controversie di competenza del TSAP ex art. 143 rd 1775/1933,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+118003,Revocazione ex art. 199 rd 1775/1933,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+118004,Rettificazione sentenza ex art. 204 rd 1775/1933,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+118099,Altre controversie di competenza del TSAP,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+129999,Altri istituti relativi alle successioni,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+130011,Superficie,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+130021,Enfiteusi,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+130031,Usufrutto,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+130032,Abitazione - Uso,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+130052,tabelle millesimali,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+130099,altri rapporti condominiali,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+130111,Apposizione di termini,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+130131,Osservanza distanze riguardo alberi/siepi,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+131001,Diritti ed obblighi del possessore non riconducibili alle azioni di reintegrazione e manutenzione),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+131011,Divisione di beni non caduti in successione,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+131101,Diritti ed obblighi del possessore non riconducibili alle azioni di reintegrazione e manutenzione),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+132001,Pegno - Ipoteca - Trascrizione e pubblicita di beni immobili e mobili,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+139999,Altri istituti in materia di diritti reali possesso e trascrizioni,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+140001,Cessione dei crediti,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+140002,Arbitraggio - Perizia contrattuale,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+140012,Vendita di cose mobili,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+140021,Appalto di opere pubbliche,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+140031,Somministrazione,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+140032,Locazione di beni mobili,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+140033,"Spedizione - Trasporto (nazionale, internazionale, terrestre, aereo, marittimo, misto)",contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+140034,Mandato,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+140035,Agenzia,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+140036,Mediazione,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+140037,Deposito,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+140038,Mutuo,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+140039,Transazione,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+140051,Assicurazione contro i danni,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+140052,Assicurazione sulla vita,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+140061,Fideiussione - Polizza fideiussoria,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+140101,Promessa di pagamento - Ricognizione di debito,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+140102,Titoli di credito,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+140111,Indebito soggettivo - Indebito oggettivo,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+140112,Arricchimento senza causa,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+140999,Altri contratti tipici ed obbligazioni non rientranti nelle altre materie,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+141001,Donazione,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+142001,Prestazione d'opera intellettuale,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+142999,Altri contratti d'opera,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+143101,Cessione di azienda,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+143102,Concessione di vendita,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+143103,Distribuzione,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+143104,Licenza d'uso,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+143105,Noleggio,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+143106,Subfomitura,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+143111,Factoring,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+143112,Franchising,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+143121,Leasing,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+143131,Intermediazione finanziaria (S.I.M.) - Contratti di Borsa,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+143999,Altri contratti atipici,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+144001,"Cessazione del contratto di locazione alla scadenza, uso abitativo",contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+144002,"Cessazione del contratto di locazione alla scadenza, uso diverso",contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+144011,Recesso dal contratto del Conduttore uso abitativo,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+144012,Recesso dal contratto del Conduttore uso diverso,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+144031,"Cause relative alla validita o efficacia del contratto o di singole clausole (azione di simulazione, nullita, annullamento, etc.)",contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+144032,Pagamento del corrispettivo - Indennita di avviamento - Ripetizione di indebito - Risarcimento del danno,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+144033,"Diritto di prelazione - diritto di riscatto del conduttore (ex L. n. 392/1978, ex L. n.431/1998 e altre leggi speciali)",contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+144101,Affitto di azienda,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+144301,Comodato di immobile urbano,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+144999,Altri istituti del diritto delle locazioni,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+145009,Azioni di competenza del Giudice di Pace in materia di risarcimento danno,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+145011,"Responsabilita dei genitori, dei tutori e dei maestri (art. 2048 c.c.)",contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+145012,Responsabilita per l'esercizio di attivita pericolose (art. 2050 c.c.),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+145013,Responsabilita ex artt. 2049 - 2051 - 2052 c.c.,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+145014,Rovina di edificio (art. 2053c.c.),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+145021,Responsabilita del produttore,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+145111,Responsabilita civile dei magistrati (cause di cui alla legge n. 117/1988),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+145999,Altre ipotesi di responsabilita Extracontrattuale non ricomprese nelle altre materie (art. 2043 c.c. e norme speciali),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+146041,"Contratti bancari (deposito bancario, cassetta di sicurezza, apertura di credito bancario, anticipazione bancaria, conto corrente bancario, sconto bancario) cui non si applica il d.l.vo n. 5/2003",contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+146231,"Intermed. mobiliare (servizi e contratti di invest.,servizi accessori,fondi di invest., gestione collettiva del risparmio,gestione accentrata di strumenti finan.,vendita di prodotti finanz.,cartolarizzazione di crediti,contratti di borsa)",esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+146232,Credito per le opere pubbliche (lett. f art. 1 d.l.vo n. 5/2003),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+146239,Altri contratti bancari e controversie in genere di cui alla lettera e) art. 1 d.l.vo n. 5/2003,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+146331,"Pagamento di somma di danaro o consegna di cosa mobile in materia di controversie promosse da una banca nei confronti di altra banca e di cui alle lettere e), f) art. 1 d.l.vo n. 5/2003",contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+150001,Associazione - Comitato,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+150002,Associazione in partecipazione,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+150003,Consorzio,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+150004,Fondazione,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+150999,Altri istituti relativi alle persone giuridiche,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+151111,"Cause di responsabilita proposte dalla L.CA. in societa fiduciarie e di revisione ex art. 2, L. n. 430/1986 (COLLEGIO E RITO DEL LAVORO)",lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+151120,"Rapporti sociali e cessione di partecipazione nelle societa di fatto, di persone, di capitali, di cooperative e mutue assicuratrici",crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+151121,Cause in materia di trasferimento di partecipazioni sociali etc.,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+151122,Cause in materia di patti parasociali,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+151123,Cause in materia di offerte pubbliche etc.,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+151130,Opposizione dei creditori alla fusione delle societa (art. 2503 c.c.),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+151999,Altri istituti di diritto societario,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+152001,Cause di respons. vs gli amministratori delle società di persone,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+152003,Impugnazione delle delibere di assemblea – società di persone,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+152004,Cause in materia di rapporti societari – società di persone,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+152005,Cause in materia di trasferimento di partecipazioni sociali etc. – società di persone,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+152006,Cause in materia di patti parasociali – società di persone,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+152110,"Cause di responsabilita contro gli organi amministrativi e di controllo, i direttori generali e i liquidatori delle associazioni in partecipazione e dei consorzi (COLLEGIO)",crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+152112,Impugnazione delle deliberazioni dell'assemblea e del consiglio di amministrazione delle associazioni in partecipazione e dei consorzi (COLLEGIO),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+152999,Altre controversie in materia di società di persone,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+153120,"Cause in materia di rapporti societari, ivi compresi quelli concernenti le societa di fatto nonche l'accertamento, la costituzione, la modificazione o l'estinzione del rapporto societario",crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+153121,Cause in materia di trasferimento di partecipazioni sociali e di negozi o diritti inerenti,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+153122,Cause in materia di patti parasociali,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+153123,"Cause in materia di offerte pubbliche di acquisto, di scambio e di vendita (O.P.A., O.P.S., O.P.V.)",esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+153999,Altri istituti di diritto societario soggetti al d.l.vo n. 5/2003,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+154112,"Pagamento di somma di danaro o di consegna di cosa mobile in cause di impugnazione delle deliberazioni dell'assemblea e del c.d.a. delle societa, delle mutue assicuratrici e delle societa cooperative",impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+154120,"Pagamento di somma di danaro o di consegna di cosa mobile in materia di rapporti societari, ivi compresi quelli concernenti le societa di fatto",crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+154121,Pagamento di somma di danaro o di consegna di cosa mobile in cause in materia di trasferimento di partecipazioni sociali e di negozi o diritti inerenti,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+154122,Pagamento di somma di danaro o di consegna di cosa mobile in cause in materia di patti parasociali,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+154123,"Pagamento di somma di danaro o di consegna di cosa mobile in cause in materia di offerte pubbliche di acquisto, di scambio e di vendita (O.P.A., O.P.S., O.P.V.)",esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+154999,Pagamento di somma di danaro o di consegna di cosa mobile in cause residuali in materia di dirtto societario soggette al d.l.vo n. 5/2003,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+170001,Brevetto (invenzione e modello) - Marchio: Nullita - Decadenza,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+170004,Marchio,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+170011,Concorrenza sleale,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+170013,Concorrenza sleale interferente,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+170014,Marchi di fatto,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+170015,Nome a dominio,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+170021,Diritto di autore,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+170031,Ditta - Insegna - Denominazione sociale - Ragione sociale,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+170041,Antitrust afferente diritti di proprietà industriale,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+170042,Antitrust,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+170999,Altri istituti di diritto industriale,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+171002,Opposizione all'accertamento dello stato di insolvenza,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+171101,azione di inefficacia ex art. 44,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+171102,azione di inefficacia ex art. 64,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+171103,azione ex artt. 72 e ss.,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+171104,azione di inefficacia ex art. 167,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+171204,Istanza di revocazione contro crediti ammessi (art. 102),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+171205,"Domande di rivendicazione,, restituzione e separazione di cose mobili (art. 103)",crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+171301,Contestazione avverso il rendiconto del curatore (art. 116),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+171311,Cause di omologazione di concordato fallimentare (artt. 124 e ss.),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+171321,Cause di omologazione di concordato preventivo (art. 160 e ss.),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+171401,Istanza e ricorso per la dichiarazione di fallimento e relativo reclamo (art. 6-22 del R.D. n. 267/1942),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+171402,Istanza per estensione di fallimento (art. 147 del R.D. n. 267/1942,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+171403,Accertamento dello stato di insolvenza nella Liquidazione coatta amministrativa o nella Amministrazione straordinaria e relativo reclamo,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+171404,Esdebitazione del Debitore Incapiente (CCI),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+171405,Reclamo avverso il rigetto della dichiarazione dello stato di insolvenza (LCA),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+171406,Opposizione all'omologazione del piano di ristrutturazione,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+171999,Altri istituti di diritto fallimentare,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+172001,Brevetto (invenzione e modello) - Marchio,impresa_societario,"Impresa, societario e proprietà industriale",3,6,curata_codex_fonti_ufficiali
+172011,Concorrenza sleale,impresa_societario,"Impresa, societario e proprietà industriale",3,6,curata_codex_fonti_ufficiali
+172012,Concorrenza sleale interferente- marchio di fatto - nome a dominio,impresa_societario,"Impresa, societario e proprietà industriale",3,6,curata_codex_fonti_ufficiali
+172021,Diritto di autore,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+172031,Ditta - Insegna - Denominazione sociale,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+172999,Altri istituti di diritto industriale,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+173001,Brevetto (invenzione e modello) - Marchio,impresa_societario,"Impresa, societario e proprietà industriale",3,6,curata_codex_fonti_ufficiali
+173011,Concorrenza sleale,impresa_societario,"Impresa, societario e proprietà industriale",3,6,curata_codex_fonti_ufficiali
+173012,Concorrenza sleale interferente- marchio di fatto - nome a dominio,impresa_societario,"Impresa, societario e proprietà industriale",3,6,curata_codex_fonti_ufficiali
+173021,Diritto di autore,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+173031,Ditta - Insegna - Denominazione sociale,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+173999,Altri istituti di diritto industriale,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+174101,Azione di inefficacia ex art. 144 CCI,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+174102,Azione di inefficacia ex art. 163 CCI,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+174103,Azione di inefficacia ex art. 94 CCI,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+174104,Azione revocatoria ex art. 166 CCI,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+174201,Opposizione sentenza di apertura della liquidazione giudiziale,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+174202,Opposizione all'accertamento dello stato di insolvenza,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+174203,Opposizione omologazione concordato preventivo,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+174204,Opposizione omologazione accordo di ristrutturazione,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+174999,Altri istituti di diritto concorsuale,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+180003,Opposizione ordinanza prefettizia di cui all'art. 75 c.4 DPR 309/1990 (stupefacenti),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+180004,Opposizione ordinanza/decreto prefettizio di cui all'art. di cui all'art. 75 c.9 DPR 309/1990 (stupefacenti),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+180011,Risarcimento danni da occupazione illegittima ed accessione invertita,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+180021,Contenzioso di diritto tributario e doganale,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+180031,Contenzioso di diritto valutario,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+180041,Contenzioso relativo a beni demaniali,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+180051,Risarcimento danni da provvedimento illegittimo della P-A.,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+180999,Altre controversie di diritto amministrativo,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+181003,"Cause di respons. vs gli organi amministrativi e di controllo,etc - Sez. Spec. Impresa",crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181004,"Impugn delle deliber. dell'assem. e del CdA,etc. - Sez. Spec. Impresa",impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+181005,Cause in materia di rapporti societari - Sez. Spec. Impresa,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181006,Brevetto di invenzione,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181007,Brevetto di modello di utilita',crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181008,Marchio,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181009,Concorrenza sleale interferente,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181010,Marchi di fatto,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181011,Nome a dominio,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181012,Diritto di autore e diritti connessi,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181013,Ditta - Insegna - Denominazione sociale - Ragione sociale,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181014,Disegni e modelli comunitari registrati,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181015,Disegni e modelli comunitari non registrati,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181016,Disegni e modelli nazionali,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181017,Controversie in materia di proprietà industriale per violazione della normativa antitrust nazionale,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181018,Controversie in materia di proprietà industriale per violazione della normativa antitrust dell’Unione Europea,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181019,Controversie in materia di operazioni di concentrazione societarie,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181022,Marchio Europeo,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181023,Brevetto Europeo,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181024,Marchio collettivo (art. 11 c.p.i.),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181025,Tutela indicazioni geografiche (art. 29 c.p.i.),impresa_societario,"Impresa, societario e proprietà industriale",3,6,curata_codex_fonti_ufficiali
+181026,Tutela segreti commerciali (art. 98 c.p.i.),impresa_societario,"Impresa, societario e proprietà industriale",3,6,curata_codex_fonti_ufficiali
+181027,Tutela delle informazioni segrete – Know how (art. 99 c.p.i.),impresa_societario,"Impresa, societario e proprietà industriale",3,6,curata_codex_fonti_ufficiali
+181028,Appalti pubblici sopra soglia di rilevanza comunitaria,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181029,Cause in materia di trasferimento di partecipazioni sociali etc. - Sez. Spec. imprese,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181030,Cause in materia di patti parasociali - Sez. Spec. Impresa,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181031,Cause in materia di offerte pubbliche etc. - Sez. Spec. Impresa,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181032,Revocazione ex art. 395 c.p.c. - Sez. Spec. Impresa,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+181033,Opposizione di terzo ex artt. 404 e ss. c.p.c. - Sez. Spec. Impresa,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+181034,Controversie in materia di indennità di espropriazione dei diritti di proprietà industriale,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181035,"Controversie contro i provvedimenti del Consiglio dell’ordine di cui al capo VI del D.Lgs. 30/2005,",crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181036,"Cause in materia di rapporti tra società di cui agli artt. 2359, co. 1, n. 3, 2497septies c.c. e 2545septies c.c.",crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181037,Azione revocatoria (art. 2901 c.c.) - Sez. Spec. Impresa,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181042,Azione inibitoria collettiva,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+181099,Altre controversie di competenza della Sez. Spec. dell’Impresa in materia di propr. Industriale e diritto d’autore,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+181999,Altre controversie di competenza della Sez. Spec. dell’Impresa in materia societaria,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+210001,Ingiunzione in materia di lavoro,monitorio,Procedimento monitorio,4,5,curata_codex_fonti_ufficiali
+210002,Ingiunzione in materia di previdenza obbligatoria,monitorio,Procedimento monitorio,4,5,curata_codex_fonti_ufficiali
+210003,Ingiunzione in materia di assistenza obbligatoria,monitorio,Procedimento monitorio,4,5,curata_codex_fonti_ufficiali
+210012,"ex art. 18, 7' comma, Statuto lavoratori",monitorio,Procedimento monitorio,4,5,curata_codex_fonti_ufficiali
+210013,"ex art. 15, L. n. 903/1977 (parita uomo-donna)",monitorio,Procedimento monitorio,4,5,curata_codex_fonti_ufficiali
+210017,"Reclamo ex art. 1, comma 58, L. 92/2012",monitorio,Procedimento monitorio,4,5,curata_codex_fonti_ufficiali
+210999,altre ipotesi,monitorio,Procedimento monitorio,4,5,curata_codex_fonti_ufficiali
+211001,sequestro conservativo,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+211002,Sequestro giudiziario ex art. 670 c.p.c.,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+211999,altre ipotesi,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+220002,appalto di manodopera,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+220003,lavoro interinale,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+220004,avviamento obbligatorio,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+220010,contratto a termine e di formazione e lavoro,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+220011,apprendistato,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+220012,patto di prova,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+220020,categoria e qualifica,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+220021,mansione e jus variandi,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+220030,trasferimento del lavoratore,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+220031,trasferimento di azienda,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+220040,sanzione disciplinare conservativa,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+220060,sospensione con intervento della Cassa integrazione guadagni,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+220070,Risarcimento danni da infortunio,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+220071,Risarcimento danni da dequalificazione,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+220072,Risarcimento danni:altre ipotesi,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+220104,Licenziamento del socio della cooperativa,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+220105,Licenziamento discriminatorio,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+220111,Impugnazione licenziamento con domanda di reintegrazione,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+220120,Dimissioni,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+220999,Altre ipotesi,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221001,qualificazione,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221002,appalto di manodopera,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221003,lavoro interinale,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221004,avviamento obbligatorio,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221010,contratto a termine e di formazione e lavoro,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221011,apprendistato,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221012,patto di prova,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221020,categoria e qualifica,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221021,mansione e jus variandi,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221030,trasferimento del lavoratore,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221031,trasferimento di azienda,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221040,sanzione disciplinare conservativa,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221050,retribuzione,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221060,sospensione con intervento della Cassa integrazione guadagni,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221070,Risarcimento danni da infortunio,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221071,Risarcimento danni da dequalificazione,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221072,Risarcimento danni:altre ipotesi,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221099,Altre ipotesi,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221101,Licenziamento individuale per giust. motivo oggettivo,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221102,Licenziamento individuale per giusta causa,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221103,Licenziamento individuale del dirigente,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221105,Licenziamento discriminatorio,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221111,Impugnazione licenziamento con domanda di reintegrazione,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+221120,Dimissioni,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+221999,Altre ipotesi,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+222101,Licenziamento individuale per giust. motivo oggettivo,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+222102,Licenziamento individuale per giusta causa,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+222103,Licenziamento individuale del dirigente,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+222105,Licenziamento discriminatorio,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+222111,Impugnazione licenziamento con domanda di reintegrazione,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+222120,Dimissioni,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+222999,Altre ipotesi,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+223001,"Rapporto di agenzia e altri rapporti di collaborazione ex art. 409, n. 3 c.p.c.",lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+223999,Altre controversie in materia di lavoro parasubordinato,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+230010,Obbligo contributivo del datore di lavoro,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+230020,Ripetizione di indebito,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+230999,Altre controversie in materia di previdenza obbligatoria,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+231999,Altre controversie in materia di assistenza obbligatoria,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+310001,Procedimento cautelare ante causam,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+320999,Altri istituti di diritto agrario,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+400000,Iscrizione Registro Stampa,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400100,Reclamo avverso decreto inammissibilita responsabilita civile magistrati,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+400201,Ricorso avverso il decreto di espulsione del prefetto (art. 13 c.8),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400202,Convalida del provvedimento del questore di trattenimento presso centro permanenza temporanea (art. 14 c. 4 Dl. vo 286/98),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400203,Ricongiungimento familiare (art. 30),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400204,"Atti discriminatori (art. 43, 44 )",volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400205,Convalida del Provvedimento del questore di accompagnamento alla frontiera (art. 13 c.5 bis D.L. 286/98),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400206,Convalida del Provvedimento del questore di accompagnamento alla frontiera e trattenimento presso centro di permanenza temporaneo (art. 13 c.5 bis e art. 14 c. 4 D.L. 286/98),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400209,Altri procedimenti in materia di espulsione immigrati,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400210,"Ricorso per la liquidazione degli onorari e dei diritti dell'avvocato (artt. 28 e 29, L. 794/1942) (COLLEGIO)",crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+400211,Ricorso avverso il decreto di liquidazione di compensi agli ausiliari del magistrato e ai collaboratori ex art. 170 T.U. n. 115/2002,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+400212,Iscrizione Albo consulenti,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400230,Autorizzazione del Tribunale ex art. 375 e 397 c.c. (COLLEGIO),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400250,Procedimento ammissione patrocinio a spese dello Stato - civile - art. 126 T.U. n. 115/2002,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400251,Procedimento ammissione patrocinio a spese dello Stato - penale - art. 99 T.U. n. 115/2002,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400252,Ricorso avverso il rigetto dell'istanza per l'ammissione anticipata (P.S.S.),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400253,Revoca del provvedimento di ammissione e ricorso avverso il relativo decreto (P.S.S.),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400260,Ammortamento titoli,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400270,Nomina di amministratore della comunione (art. 1105 c.c.) (COLLEGIO),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400272,"Revoca di amministratore di comunione o condominio (artt. 1105 e 1129, 3' comma c.c.) (COLLEGIO)",volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400280,Nomina degli arbitri (art. 810 c.p.c.),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400281,Liquidazione delle spese e dell'onorario dell'arbitro (art. 814 c.p.c.),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+400282,Dichiarazione di esecutivita del lodo arbitrale (art. 825 c.p.c.),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400290,Svincolo indennita L.686/1926 e L.2359/1865,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400300,Ricevimento e verbalizzazione di dichiarazione giurata,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400310,Apertura forzata di cassetta di sicurezza (art. 1841 c.c.),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400320,Ricorso avverso provvedimenti C.R.A. (art. 7 L. 443/85),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400330,N.O. trapianto tra viventi (art. 2 L. 26.6.1967 n. 458),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400400,Procedimento disciplinare contro notaio (COLLEGIO),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400401,Idoneita cauzione notarile (art. 22 L. 16.2.1913 n. 89),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400402,Nomina interprete per sordomunti (artt. 56 e 57 L. 16.2.1913 n. 89),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400403,Nomina professionista in luogo dell'OCC,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400404,Misure protettive e cautelari (risanamento aziendale),cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+400405,Autorizzazioni del tribunale (risanamento aziendale),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400410,"Procedimenti relativi agli ordini professionali (iscrizione, elezione, impugnazione contro provvedimento disciplinare, etc.)",impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+400510,"Cancellazione di nome dall'elenco dei protesti (art. 12, L. n. 349/1973)",volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400511,Disposizioni in materia di riabilitazione civile del debitore protestato (art. 17 L. 108/96 - usura),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400610,Reclamo avverso il rifiuto del conservatore di procedere alla cancellazione di ipoteca (artt. 2888 c.c. e 113 Disp. Att. c.p.c.) (COLLEGIO),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+400710,Impugnazione ex lege sulla privacy (L. n. 675/1996),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+400711,Opposizione al provvedimento del garante per la tutela delle persone e di altri soggetti rispetto al trattamento dei dati personali (art. 29 L. n. 675/1996),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+400801,"Titolo legale per le successioni aperte in Italia riguardanti i depositi iscritti presso la Cassa depositi e prestiti (art. 15, Libro II, T.U. n. 453/1913 come modificato dall'art. 7 L. 6.7.1949 n. 466)",volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400802,Richiesta documentazione per la successione aperta in Italia in titoli del debito pubblico (artt. 14 e 15 L. 12.8.1975 n. 752),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+400902,Opposizione ex. Art. 5 ter L89/2001,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+400999,Altri istituti camerali e di volontaria giurisdizione,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+401001,Notificazione per i pubblici proclami (art.150 cpc),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+401002,Rilascio seconda copia esecutiva (art. 476 cpc),esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+401003,Ricerca con modalita' telematiche dei beni da pignorare - Art. 492 bis.,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+406001,Attuazione di sentenze e provvedimenti stranieri e autorizzazione assunzioni rogatorie (artt. 67 e 69 L. n. 218/95),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+406100,Iscrizione albo liquidatori di avaria,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+406200,Sanzioni amministrative comminate dalla Banca d'Italia (art. 145 D.L.vo n. 385/93 - solo Roma),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+406210,Sanzioni amministrative comminate dalla Consob (D.L.vo n. 58/98 - foro regionale),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+406220,"Azioni di nullita`, risarcimento danno e provvedimenti di urgenza legge anti trust (art. 33 L. 287/1990)",cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+406300,Dichiarazione di esecutivita di decisioni straniere in materia civile e commerciale (Reg. CE 44/01 e ss. mod. ed int.),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+406301,Esecutorieta lodo arbitrale straniero (Provv. Presidenziale),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+406302,Trasmissione in forma autentica sentenze in forza della convenzione con la Repubblica di S. Marino,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+406303,Dichiarazione di esecutivita' decisioni in materia matrimoniale e di potesta' dei genitori sui figli (Regolamento (CE) n. 1347/2000 del 29 maggio 2000),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+406801,"Titolo legale per le successioni aperte in Italia riguardanti i depositi iscritti presso la Cassa depositi e prestiti (art. 15, Libro II, T.U. n. 453/1913 come modificato dall'art. 7 L. 6.7.1949 n. 466)",impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+406802,Richiesta documentazione per la successione aperta all'estero in titoli del debito pubblico (artt. 14 e 15 L. 12.8.1975 n. 752),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+406999,Altri istituti di competenza della Corte di Appello in 1^ grado,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+411002,"Ricorso per violenza domestica o di genere ex artt. 473bis.40, 473bis.41, 473bis.42 cpc",famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411003,Reclamo provvedimenti temporanei e urgenti ex art. 473bis.24 c.p.c.,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+411510,Esecutorieta sentenza Sacra Rota nullita di matrimonio - domanda congiunta (L. 121/85),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411603,Attuazione dei provvedimenti sull'affidamento,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411610,Attribuzione di quota di pensione e di indennita di fine rapporto lavorativo,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+411620,Adozione di maggiorenni,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411630,Dichiarazione giudiziale di paternita e maternita naturale -amissibilita,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411640,Fondo patrimoniale (artt. 167 e ss. c.c.),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411641,Sostituzione dell'amministratore del patrimonio familiare,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411650,"Matrimonio (pubblicazioni matrimoniali ex artt. 93 e ss. c.c., nulla osta al matrimonio dello straniero, etc.)",famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411660,Sequestro dei beni del coniuge separato (art. 156 c.c.),cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+411670,Fondo solidarietà ex L. 208/2015,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411671,Separazione consensuale e divorzio congiunto (Cessazione effetti civili),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411672,Separazione consensuale e divorzio congiunto (Scioglimento matrimonio),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411673,Modifica delle condizioni di separazione (ricorso congiunto),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411674,Divorzio congiunto - Cessazione effetti civili,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411675,Modifica delle condizioni di divorzio (ricorso congiunto),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411676,Divorzio congiunto - Scioglimento matrimonio,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411677,Regolamentazione dell'esercizio della responsabilità genitoriale (ricorso congiunto),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411678,Modifica condizioni regolamentaz. esercizio responsabilità genitoriale (ricorso congiunto),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411679,Fondo patrimoniale (artt. 167 e ss. c.c.),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411680,Sostituzione dell'amministratore del patrimonio familiare,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411681,Stato civile (rettifica del nome e altri atti dello Stato civile),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411682,Dichiarazione di assenza o di morte presunta (COLLEGIO),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411683,Adozione di maggiorenni,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411684,Esecutorieta sentenza Sacra Rota nullita di matrimonio (L. 121/85),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411685,Accertamento dei requisiti sentenza straniera di divorzio (art. 67 L. 218/95),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411686,Esecutorieta sentenza Sacra Rota nullita di matrimonio - domanda congiunta,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411687,"Matrimonio (pubbl.ni matrimoniali ex artt. 93 e ss. cc, nulla osta al matrim.)",famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411688,Istanza per la nomina del curatore speciale del minore,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411689,Assunzione del cognome del genitore da parte del figlio naturale minorenne (art. 262 Cod. Civ.),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411703,Accordi ex art. 6 d.l. n.132 del 2014,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411706,Separazione consensuale,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+411999,Altri istituti di diritto di famiglia (es. mantenimento figli naturali e legittimi),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412301,"Deprecato (Non Iscrivibile) - Procedimenti per la dichiarazione di adottabilita (artt. 8, 9, 11 e 12 L. n. 184/1983)",famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412302,Deprecato (Non Iscrivibile) - Dichiarazione di disponibilita all'adozione (art. 22 L. n. 184/1983),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412303,Impugnazione decreto affidamento preadottivo (art. 24 L. n. 184/1983),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+412304,Opposizioni a dichiarazioni di adottabilita (art.17 L. n. 184/1983),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412305,Adozione in casi particolari (art. 44 lett. a L. n. 184/1983 - vincolo di parentela),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412306,Adozione in casi particolari (art. 44 lett. b L. n. 184/1983 - figlio adottivo dell'altro coniuge),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412307,Deprecato (Non Iscrivibile) - Adozione in casi particolari (art. 44 lett. c L. n. 184/1983 - impossibilita affidamento preadottivo),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412308,Idoneita all'adozione di minori stranieri (art.30 L. n. 184/1983),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412309,Deprecato (Non Iscrivibile) - Dichiarazioni di efficacia di provvedimenti stranieri in materia di adozione (art.32 L. n. 184/1983),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412310,Impugnazione sentenza di adozione (art. 26 L. n. 184/1983),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+412311,Adozione in casi particolari (art. 44 lett. d L. n. 184/1983 - impossibilita' affidamento preadottivo),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412312,Adozione in casi particolari (art. 44 lett. c L. n. 184/1983 - minore orfano e portatore di handicap),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412313,Procedimento di adozione ex art. 35 co. 2 L. 184/1983 (ratifica adozione estera),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412314,Procedimento di adozione ex art. 35 co. 4 L. 184/1983 (ratifica adozione estera con affido preadottivo),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412315,Procedimento di adozione ex art. 36 co. 2 L. 184/1983 (Paesi non Aja),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412316,Procedimento di adozione ex art. 36 co. 4 L. 184/1983 (cittadini italiani residenti all'estero),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412317,Revoca dello stato di adottabilita' (Art. 21 L. 184/1983),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412318,Revoca adozione in casi particolari per fatto dell'adottato (Art. 51 L. n. 184/1983),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412319,Revoca adozione in casi particolari per fatto dell'adottante (Art. 52 L. n. 184/1983),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412320,Revoca decreto di idoneita' adozione internazionale (art. 30 co. 4 L. 184/1983),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412321,Autorizzazione al rilascio degli atti di cui all'art. 28 L. 184/1983,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+412400,Deprecato (Non Iscrivibile) - Affidamento minori,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412401,Deprecato (Non Iscrivibile) - Regolamentazione della potesta fra genitori (art. 317 bis),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412420,Deprecato (Non Iscrivibile) - Regolamentazione visite,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412421,Affidamento minori (ante Riforma Cartabia),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412501,Ammissione al matrimonio del minore (art.84),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412502,Deprecato (Non Iscrivibile) - Assunzione del cognome del genitore da parte del figlio naturale minorenne (art.262),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412503,Deprecato (Non Iscrivibile) - Procedimenti per l'ammissibilita dell'azione di dichiarazione giudiziale di paternità o maternità riguardante minori (art.274) (contenzioso),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412504,Deprecato (Non Iscrivibile) - Autorizzazione all'impugnazione di riconoscimento di paternita o maternita riguardante minori (artt.74 e 264) (contenzioso),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+412505,"Misure amministrative applicate ai minori (R.D. L.20/7/34 n. 1404, art 25)",famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412506,Costituzione di usufrutto,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412507,Autorizzazione al riconoscimento (art. 251 Cod. Civ.),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412601,Interdizione e inabilitazione ex art. 416 Cod. Civ.,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412701,Autorizzazione per i genitori stranieri all'ingresso o alla permanenza in Italia a seguito del minore (art. 31 co.3 D. Lgs. 286/1998),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412702,Accertamento dell'età del minore (art. 19-bis D. Lgs 142/2015),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+412999,Altri procedimenti,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+413001,Rappresentanza ed atti di amministrazione straordinaria di beni di figli minori (art. 320 c.c.),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+413002,"Nomina di curatore speciale (artt. 320, ult. comma e 321 c.c., art. 45 Disp. Att. C.C.)",famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+413003,Vigilanza del giudice tutelare sull'osservanza delle condizioni stabilite dal Tribunale per l'esercizio della potesta e per l'amministrazione dei beni (art. 337 C.C.),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+413010,Apertura della tutela (art. 343 c.c.),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+413011,Provvedimenti urgenti prima dell'assunzione delle funzioni del tutore o del protutore (art. 361 c.c.),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+413012,Nomina del cancelliere o del notaio per la formazione dell'inventario (art. 363 c.c.),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+413013,Provvedimenti circa l'educazione e l'amministraz di beni del minore ex art. 371 C.C.,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+413014,"Autorizzazioni del giudice tutelare ex artt. 372, 373 e 374 c.c.",famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+413015,"Autorizzazioni e pareri del giudice tutelare su atti del curatore dell'emancipato e dell'inabilitato, ex artt. 394, 424 e ss. c.c.",famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+413016,Rifiuto del consenso da parte del curatore ex art. 395 c.c.,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+413017,Apertura della Curatela,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+413018,Apertura della Vigilanza sui Minori,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+413020,"Interruzione volontaria di gravidanza di minore (art. 12, L. n. 194/1978)",famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+413030,"Affido familiare consensuale (art. 4, L. n. 184/1983)",famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+413040,"Autorizzazione al rilascio di documento valido per l'espatrio (art. 3 lett. A-B, L. n. 1185/1967)",esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+413050,Trattamento Sanitario Obbligatorio ed amministrazione provvisoria (L. n. 833/1978),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+413062,Autorizzazioni del notaio ex art. art. 21 D.Lgs. 149/2022,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+413999,Altri istituti di competenza del giudice tutelare,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+418001,Ottemperanza sentenze TSAP,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+418002,Declaratoria illegittimita' del silenzio della P.A.,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+418099,Altre controversie di competenza del TSAP da trattare in camera di consiglio,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+420301,Nomina del curatore dell'eredita rilasciata ex art. 508 c.c.,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+420303,Autorizzazioni al curatore dell'eredita giacente per gli atti eccedenti l'ordinaria amministrazione (artt. 782 c.p.c. e 530 c.c.),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+420304,Accettazione Esecutore Testamentario,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+420305,Rinuncia Esecutore Testamentario,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+420310,Proroga per la redazione dell'inventario dell'eredita accettata con beneficio di inventario ex art. 485 c.c.,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+420311,Autorizzazione all'alienazione di beni di eredita accettata con beneficio d'inventario (art. 493 c.c.),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+420320,Vendita di beni ereditari beni mobili,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+420321,Vendita di beni ereditari: beni immobili (COLLEGIO),esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+420325,Vendita beni ereditari mobili ante accettazione ex art. 460 cc,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+420326,Vendita beni ereditari immobili ante accettazione ex art. 460 cc,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+420330,"Fissazione termini in materia successoria (artt. 749 c.p.c., 481 e 496 c.c.)",volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+420331,Apposizione e rimozione sigilli in materia successoria (artt. 752-762 e ss. c.p.c.),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+420332,Nomina dell'ufficiale che procede all'inventario ex art. 769 c.p.c.,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+420999,Altri istituti di volontaria giurisdizione e procedimenti camerali in materia di successioni,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+451301,Decreto di omologa degli atti di societa di capitali,impresa_societario,"Impresa, societario e proprietà industriale",3,6,curata_codex_fonti_ufficiali
+451312,"Nomina di esperto (artt. 2343, 2440, 2498, 2501 quinquies,2504 novies c.c., etc.)",volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+451314,Nomina del rappresentante comune degli obbligazionisti e dei possessori delle azioni di risparmio (art. 2417 c.c.),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+451320,Riduzione del capitale per perdite (art. 2446 c.c.) (COLLEGIO),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+451330,Ricorso al Giudice del Registro,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+451999,Altri istituti di volontaria giurisdizione e procedimenti camerali in materia di diritto societario,impresa_societario,"Impresa, societario e proprietà industriale",3,6,curata_codex_fonti_ufficiali
+452330,Ricorso al giudice del Registro in materia non soggetta al d.l.vo n. 5/2003,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+453301,Decreto di omologa degli atti di societa di capitali (art. 2436 c.c.),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+453312,"Nomina di esperto (artt. 2343, 2343-bis, 2437-ter; 2501-sexies, 2545-undecies c.c., etc.)",contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+453314,Nomina del rappresentante comune degli obbligazionisti e dei possessori delle azioni di risparmio (art. 2417 c.c.),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+453315,Nomina del rappresentante comune dei comproprietari di azioni (art. 2347 c.c.) e di quote (art. 2468 c.c.)obbligazionisti e dei possessori delle azioni di risparmio (art. 2417 c.c.),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+453330,Ricorso al giudice del Registro in materia soggetta al d.l.vo n. 5/2003,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+453420,"Riduzione del capitale per perdite (art. 2446, 2482-bis c.c.) (COLLEGIO)",contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+453421,Approvazione della revoca dei sindaci (art. 2400),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+453422,"Opposizione dei creditori alla riduzione del capitale per recesso del socio (art. 2437-quater c.c.), alla riduzione per esuberanza (artt. 2445, 2482 c.c.), alla costituzione del patrimonio destinato (art. 2447-quater c.c.), alla revoca dell",impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+453423,Decreto di accertamento dello scioglimento della societa (art. 2485 c.c.),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+453424,Decreto di cancellazione della societa dal registro delle imprese su istanza dell'autorita competente al rilascio delle autorizzazioni (art. 223 quater att. C.c.),esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+453999,Altre materie soggette al procedimento camerale ex artt. 28 e segg. D.l.vo n. 5/2003,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+454001,Ricorso al giudice del Registro ex art. 2190 e 2191 c.c.,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+454002,Ricorso al giudice del Registro ex art. 2189 c.c.,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+455001,Nomina di liquidatore (artt. 2309 c.c.; art. 2315 c.c.),impresa_societario,"Impresa, societario e proprietà industriale",3,6,curata_codex_fonti_ufficiali
+455999,Altre materie soggette al procedimento camerale – società di persone,impresa_societario,"Impresa, societario e proprietà industriale",3,6,curata_codex_fonti_ufficiali
+471400,Procedure Concorsuali,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+471402,Istanza per estensione di fallimento (art. 147 del R.D. n. 267/1942,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+471403,Accertamento dello stato di insolvenza nella Liquidazione coatta amministrativa o nella Amministrazione straordinaria e relativo reclamo,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+471404,ESDEBITAZIONE DEL DEBITORE INCAPIENTE (CCI),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+471405,LIQUIDAZIONE COATTA AMMINISTRATIVA (CCI),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+471410,Istanza di ammissione alla procedura di Amministrazione controllata e relativo reclamo (artt. 187 del R.D. n. 267/1942),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+471412,AMMINISTRAZIONE STRAORDINARIA PRODI BIS (CCI),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+471413,AMMINISTRAZIONE STRAORDINARIA L.166/2004 MARZANO (CCI),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+471414,ACCORDI DI RISTRUTTURAZIONE (CCI),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+471415,CONCORDATO PREVENTIVO OMOLOGATO (CCI),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+471416,LIQUIDAZIONE GIUDIZIALE (CCI),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+471417,RISTRUTTURAZIONE DEI DEBITI (CCI),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+471418,CONCORDATO MINORE (CCI),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+471419,LIQUIDAZIONE CONTROLLATA (CCI),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+471420,Conversione da fallimento in liquidazione coatta amministrativa (COLLEGIO),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+471421,Conversione da fallimento in amministrazione straordinaria (COLLEGIO),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+471422,Conversione da amministrazione straordinaria in fallimento (COLLEGIO),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+471423,Concordato Semplificato,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+471424,Concordato Semplificato CCI,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+471425,Piano di Ristrutturazione Omologato CCI,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+471430,"Procedimento di riabilitazione civile del fallito (art. 142 e ss., R.D. n. 267/1942)",crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+471440,Reclamo avverso la chiusura del fallimento (artt. 118 e 119 L.F.),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+471999,Altri istituti di volontaria giurisdizione e procedimenti camerali in materia di fallimento e procedure concorsuali,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+472001,Apposizione sigilli,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+473450,PROCEDIMENTO UNITARIO,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+473451,Ricorso per liquidazione giudiziale,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+473452,Ricorso fissazione termine per deposito proposta cp o accordi,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+473453,Ricorso per ammissione concordato preventivo,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+473454,Ricorso per omologa accordi di ristrutturazione,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+473455,Ricorso per la dichiarazione stato insolvenza (lca),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+473456,Ricorso per la dichiarazione stato insolvenza (asp),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+473457,Ricorso per la dichiarazione stato insolvenza (asm),crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+473458,Ricorso ristrutturazione debiti del consumatore,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+473459,Ricorso concordato minore,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+473460,Ricorso liquidazione controllata,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+473461,Ricorso per Omologazione Piano di Ristrutturazione,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+481310,Nomina di liquidatore - Sez. Spec. Impresa,impresa_societario,"Impresa, societario e proprietà industriale",3,6,curata_codex_fonti_ufficiali
+481311,Convocazione di assemblea ex art. 2367 c.c.,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+481312,"Nomina di esperto (artt. 2343, 2440, 2498, 2501 quinquies,2504 novies c.c., etc)",volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+481313,Denunzia ex art. 2409 c.c.,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+481314,Nomina del rappresentante comune degli obbligazionisti e dei possessori delle az,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+481320,Riduzione del capitale per perdite (art. 2446 c.c.),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+481401,Misure protettive,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+481402,"Nomina esperto ex art. 17, lett. a",volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+481403,Liquidazione compensi OCRI,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+481421,Approvazione della revoca dei sindaci (art. 2400),volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+481422,"Procedure ex artt. 2437quat,2445,2482,2447quat,2487ter,2500nov,2503 c.c.",volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+481423,Decreto di accertamento dello scioglimento della società (art. 2485 c.c.),impresa_societario,"Impresa, societario e proprietà industriale",3,6,curata_codex_fonti_ufficiali
+481999,Altre materie soggette al procedimento camerale - Sez. Spec. Impresa,impresa_societario,"Impresa, societario e proprietà industriale",3,6,curata_codex_fonti_ufficiali
+490999,Altri procedimenti camerali,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+510012,Espropriazione Mobiliare presso il debitore (CARTABIA),esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+510100,Deposito verbale di pagamento a mani dell'Ufficiale Giudiziario,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+511010,"Istanza di rifissazione dello sfratto ex art. 6, L. n. 431/1998",esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+511011,"Istanza di decadenza da sospensione dello sfratto ex art. 6, L. n. 431/1998",esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+511013,Liquidazione delle spese di esecuzione ex art. 611 c.p.c,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+511999,Altre ipotesi,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+512021,Rimborso spese di esecuzione (art. 614 c.p.c.),esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+512022,Ricorso per misure di coercizione indiretta (art. 614-bis),esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+520001,Ricorso all'esattore per l'autorizzazione a trattenere la somma ricavata dalla vendita (R.D. 639/1910),esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+520002,Vendita del pegno,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+520003,Esecuzione forzata per l'espropriazione del marchio,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+520004,Vendita di navi e aeromobili,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+520005,Esecuzione esattoriale Mobiliare,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+520006,Esecuzione esattoriale Mobiliare presso terzi,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+520999,Altre ipotesi,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+530011,Opposizione all'esecuzione mobiliare,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+530021,Opposizione agli atti esecutivi mobiliari,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+530031,Opposizione di terzo all'esecuzione mobiliare,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+610012,Espropriazione Immobiliare (CARTABIA),esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+620001,Esecuzione esattoriale Immobiliare,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+630012,Opposizione all'esecuzione immobiliare,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+630022,Opposizione agli atti esecutivi immobiliari,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+630032,Opposizione del terzo all'esecuzione immobiliare,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+700001,Asseverazione di perizia,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+700002,Asseverazione di traduzione,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+700011,Atto notorio,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+700012,Dichiarazione sostitutiva di atto notorio,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+701001,Autenticazione di documento,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+701002,Autenticazione di firma,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+701003,Autenticazione di fotografia,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+709999,Altri atti amministrativi,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+710001,Istanza di Conciliazione,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B00000,Migrazione,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B01001,Autorizzazione al rilascio degli atti di cui all'art. 28 co.3 L. 184/1983 - Adottato minorenne,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+B01002,Autorizzazione al rilascio degli atti di cui all'art. 28 co.3 L. 184/1983 - Adottato maggiorenne,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+B01003,Istanza per l'accesso alle informazioni sulla famiglia d'origine (art. 28 co. 4 L. 184/1983) - Adottato minorenne,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B01004,Istanza per l'accesso alle informazioni sulla famiglia d'origine (art. 28 co. 5 L. 184/1983) - Adottato maggiorenne (> 18 e < 25 anni),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B01005,Istanza per l'accesso alle informazioni sulla famiglia d'origine (art. 28 co. 5 L. 184/1983) - Adottato maggiorenne (>= 25 anni),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02001,Interdizione e inabilitazione ex art. 416 Cod. Civ.,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+B02002,"Procedure per il rimpatrio dei minori sottratti ovvero dell'attuazione del diritto di visita del genitore non affidatario (Convenzione Aja 25.10.1980 ratificata con L. 64/1994, artt. 6 e 7)",famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02003,Scambio di informazioni tra Stati membri (art. 80 Reg. UE 1111/2019),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B02004,Cooperazione per attuazione tra Stati membri (art. 81 Reg. UE 1111/2019),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B02005,Collocamento del minore in altro Stato membro (art. 82 Reg. UE 1111/2019),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02006,Provvedimenti cautelari a favore di minori per cui è competente un¿autorità estera (art. 15 Reg. UE 1111/2019),cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+B02007,Collocamento del minore in altro Stato non UE (Art. 33 Convenzione Aja 19/10/1996),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02008,Altri procedimenti contenziosi,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B02009,Segnalazione in merito all'ingresso di un minore in Italia (art. 33 co. 4 e 5 L. 184/1983),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02010,Procedimento per l'espatrio del minore a scopo di adozione (art. 40 L. 184/1983),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02011,Accertamento dell'età del minore (art. 19-bis D. Lgs 142/2015),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02012,Accoglienza minori non accompagnati (art. 19 D. Lgs. 142/2015),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02013,Autorizzazione per i genitori stranieri all'ingresso o alla permanenza in Italia a seguito del minore (art. 31 co.3 D. Lgs. 286/1998),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02014,Procedimento per espulsione del minore (art. 31 co.4 D. Lgs. 286/1998),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02015,Procedimento ex art. 33 D. Lgs. 286/1998,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B02016,Affidamento minori (ante Riforma Cartabia),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02017,Proroga periodo di affidamento (ante Riforma Cartabia),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B02018,Affidamento familiare (art.4 co.2 L. 184/1983),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B02019,Proroga periodo di affidamento familiare (art. 4 co. 4 L. 184/1983),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B02020,Affidamento ai servizi sociali (Art. 5-bis L. n. 184/1983),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B02021,Proroga periodo di affidamento ai servizi (Art. 5-bis L. n. 184/1983),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B02022,Proroga collocamento in comunità/casa famiglia (art. 4 co.7 L. 184/1983),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02023,Attuazione dei provvedimenti sull'affidamento (Art. 473 bis.38 Cpc),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B02024,Provvedimenti in caso di inadempienze o violazioni (Art. 473 bis.39 C.p.c.),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B02025,Ammissione al matrimonio del minore (art. 84 Cod. Civ.),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02026,Decadenza dalla responsabilità genitoriale sui figli (art. 330 Cod. Civ.),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02027,Reintegrazione nella responsabilità genitoriale (art. 332 Cod. Civ.),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02028,Procedimento ex art. 333 Cod. Civ. (Condotta del genitore pregiudizievole ai figli),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02029,Procedimento ex art. 334 Cod. Civ. (Rimozione dell'amministrazione),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B02030,Procedimento ex art. 335 Cod. Civ. (Riammissione dell'amministrazione),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B02031,Procedimento ex art. 371 Cod. Civ. co.2 (Autorizzazione del tutore alla continuazione di un'impresa commerciale nell'interesse del minore),impresa_societario,"Impresa, societario e proprietà industriale",3,6,curata_codex_fonti_ufficiali
+B02032,Autorizzazione al riconoscimento (art. 251 Cod. Civ.),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B02033,Autorizzazione al riconoscimento dei figli nati fuori dal matrimonio (Art. 250 co.5 CC),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02034,Regolamentazione rapporti con gli ascendenti (art. 317-bis Cod. Civ.),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B02035,Procedimento per verifica veridicità del riconoscimento del figlio naturale (art. 74 L. 184/1983),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02036,Rettificazioni/formazioni relative agli atti dello stato civile (art. 100 DPR 396/2000),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B02037,Istanza ex art. 473 bis.69 Cpc (Ordini di protezione contro gli abusi familiari ¿ soggetto minore),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02038,Convalida del provvedimento ex art. 403 CC,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B02039,Reclamo avverso i decreti del Giudice tutelare (art. 45 Disp. Att. Cod. Civ.),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+B02040,Apertura della tutela parentale di minori stranieri non accompagnati,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02041,Apertura della tutela di minore privo di genitori (deceduti o decaduti o sospesi) - Art. 473 bis.7 Cpc,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02042,Apertura della tutela di minori stranieri non accompagnati,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02043,Altri procedimenti camerali,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B02044,Misure applicabili ai minori per condotta o per carattere (Art. 25 R.D. 1404/1934),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02045,Procedimento ex art. 25 bis R.D. 1404/1934 (Minori che esercitano la prostituzione o vittime di reati a carattere sessuale),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B02046,Prosieguo amministrativo ex art. 29 R.D. 1404/1934,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B02047,Affidamento ai servizi sociali del minore straniero non accompagnato che ha raggiunto la maggiore età (art. 13 L. 47/2017),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B03001,Procedimenti per la dichiarazione di adottabilità minori con genitore noto (artt. 8 e seg. L. 184/1983),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B03002,Procedimenti per la dichiarazione di adottabilità minori con genitore ignoto (art. 11 co. 2 L. 184/1983),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B03003,Revoca dello stato di adottabilità (Art. 21 L. 184/1983),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B03004,Sospensione procedimento di adottabilità per minore non riconoscibile per difetto di età (art. 11 co. 3 L. 184/1983),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B04001,Adozione in casi particolari (art. 44 lett. a L. n. 184/1983 - minore orfano),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B04002,Adozione in casi particolari (art. 44 lett. b L. n. 184/1983 - figlio dell'altro coniuge),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B04003,Adozione in casi particolari (art. 44 lett. c L. n. 184/1983 - minore orfano e portatore di handicap),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B04004,Adozione in casi particolari (art. 44 lett. d L. n. 184/1983 - impossibilità affidamento preadottivo),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B04005,Revoca adozione in casi particolari per fatto dell'adottato (Art. 51 L. n. 184/1983),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B04006,Revoca adozione in casi particolari per fatto dell'adottante (Art. 52 L. n. 184/1983),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B04007,Procedimento di adozione ex art. 35 co. 2 L. 184/1983 (ratifica adozione estera),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B04008,Procedimento di adozione ex art. 35 co. 4 L. 184/1983 (ratifica adozione estera con affido preadottivo),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B04009,Procedimento di adozione ex art. 36 co. 2 L. 184/1983 (Paesi non Aja),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B04010,Procedimento di adozione ex art. 36 co. 4 L. 184/1983 (cittadini italiani residenti all¿estero),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B04011,Abbinamento a scopo adottivo (art. 22 co. 5 L. 184/1983),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B04012,Procedimento di adozione nazionale (art. 25 L. 184/1983),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B05001,Dichiarazione di disponibilità all'adozione nazionale (artt. 22 e seg. L. 184/1983),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B05002,Dichiarazione di disponibilità all'adozione internazionale (art. 29 bis 184/1983),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B05003,Revoca decreto di idoneità adozione internazionale (art. 30 co. 4 L. 184/1983),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+B06001,"Opposizione al decreto di liquidazione al difensore, all'ausiliario e al consulente tecnico (artt. 84 e 170 TUSG)",impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+B06002,Opposizione alla revoca dell'ammissione al P.S.S. (art. 170 TUSG),impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+B06003,Opposizione avverso il decreto di liquidazione al difensore,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+B06004,Prove delegate art. 203 C.p.c.,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+B06005,Reclamo alla mancata ammissione al Gratuito patrocinio,impugnazione,"Impugnazione, reclamo od opposizione",5,5,curata_codex_fonti_ufficiali
+C00000,Migrazione,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C01001,Richiesta apertura stato di adottabilita,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C01002,Abbandono minori,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C01003,Minore esposto - madre che non vuole essere nominata,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C01004,Dichiarazione di nascita di figlio naturale,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C01005,Nascita neonato da madre minorenne,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C01006,Nascituro - segnalazione,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C02001,Abbandono neonato non riconosciuto,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C03001,Abuso alcol minore,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C03002,Abuso stupefacenti minore,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C03003,Abuso alcol genitore/i,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C03004,Abuso stupefacenti genitore/i,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C04001,Abuso sessuale altra a.g. (art. 609 decies),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C04002,Abuso/molestia sessuale,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C04003,Abuso sessuale non in famiglia,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C04004,Abuso sessuale in famiglia,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C04005,Pornografia minorile,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C04006,Abuso sessuale - minore autore,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C05013,Ricerca delle origini,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C05014,Formazione atto di nascita,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C05015,Riconoscimento tardivo di minore,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C06001,Abuso di mezzi di correzione,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C06002,Accattonaggio genitore,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C06003,Accattonaggio minorile,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C06004,Affido familiare proroga,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C06005,Affido familiare,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C06006,Art. 4 dpr 448/88 segnalazione a pm tm reati minorenni residenti in altro distretto,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C06007,Conflittualita' familiare,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C06008,Crisi adottive,crisi_impresa,Crisi d'impresa,3,7,curata_codex_fonti_ufficiali
+C06009,Denunce tra genitori di minori,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C06010,Disagio abitativo -trascuratezza,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C06011,Disagio familiare,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C06012,Disagio personale genitore/i,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C06013,Pene accessorie genitori,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C06014,Disagio psichico/psicologico genitore/i,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C06015,Femminicidio,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C06016,Immigrazione clandestina,immigrazione_cittadinanza,"Immigrazione, protezione internazionale o cittadinanza",3,6,curata_codex_fonti_ufficiali
+C06017,Inadempienza obbligo vaccinale,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C06018,Incapacità educativa,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C06019,Induzione al matrimonio,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C06020,Inosservanza di un provvedimento dell'a.g.,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C06021,Lesioni patite da minore,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C06022,Minore figlio di persona arrestata o detenuta,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C06023,Richiesta affidamento servizi sociali,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C06024,Ricovero ospedaliero,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C06025,Rifiuto di prestazioni sanitarie,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C06026,Rintraccio minore,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C06027,Segnalazione nascita da madre con problematiche,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C06028,Sfruttamento minore (lavoro),lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+C06029,Uccisione minore,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C06030,Violazione obblighi mantenimento (art. 570 cp),contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C06031,Allontanamento minore (art. 403 cc),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C07001,Adescamento minori (art. 609 undecies cp),cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+C07002,Allontanamento dalla comunita',cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+C07003,Allontanamento/fuga abitazione,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+C07004,Atti vandalici,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+C07005,Giochi mortali in rete-adescamento tramite web,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+C07006,Cyberbullismo,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+C07007,Bullismo-minore autore,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+C07008,Bullismo-minore vittima,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+C07009,Disagio - problemi psichici del minore,cautelare,Procedimento cautelare,3,5,curata_codex_fonti_ufficiali
+C07010,Devianza minore,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C07011,Dipendenze patologiche minore,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C07012,Disturbo alimentare,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C07013,Tentato suicidio e autolesionismo,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C07014,Dipendenza web minore,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C08001,Dispersione scolastica femmine,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C08002,Dispersione scolastica maschile,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C08003,Istruzione parentale,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C09001,Maltrattamenti familiari - vittima,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C09002,Maltrattamenti extrafamiliari - vittima,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C09003,Maltrattamenti violenza assistita,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C09004,Maltrattamenti - minore autore,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C10001,Minore autore di reati non infraquattordicenne,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C10002,Minore autore di reati infraquattordicenne,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C10003,Reclami avverso provvedimenti giudice tutelare,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C10004,Visti giudice tutelare,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C11001,Msna prosieguo amministrativo,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C11002,Msna accertamento età,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C11003,Msna allontanamento in comunita',contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C11004,Tutele minori stranieri c/o parenti,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C11005,Msna non collocato in comunita',contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C11006,Msna vittime tratta,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C12001,Msna collocato in comunita',contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C12002,Msna collocati presso privati,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C13001,Apertura proc. amministrativo - rieducazione/irregolarita' condotta,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C13002,Prosieguo amministrativo,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C13003,Prostituzione minorile,famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C14001,Sottrazione internazionale di minore (art 7 l.64/1994),famiglia_minori,"Persone, famiglia e minorenni",3,7,curata_codex_fonti_ufficiali
+C15001,Interdizione/inabilitazione,volontaria_giurisdizione,Volontaria giurisdizione,3,6,curata_codex_fonti_ufficiali
+C15002,Tutele,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C15003,Curatele,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+C16001,Segnalazione ex art. 403 cc,contenzioso_ordinario,Contenzioso civile ordinario,2,5,curata_codex_fonti_ufficiali
+ESEC_AVVISO_ASTE_VENDITA,Avviso di vendita / pubblicità della vendita esecutiva,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+ESEC_DISTRIBUZIONE,Distribuzione del ricavato e progetto di distribuzione,esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+ESEC_ESTINZIONE_629,Estinzione del processo esecutivo (artt. 629-632 c.p.c.),esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+ESEC_INTERVENTO_499,"Intervento dei creditori (artt. 498-500, 525-526, 564, 566 c.p.c.)",esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+ESEC_OBBLIGHI_001,Esecuzione forzata degli obblighi di fare e di non fare (art. 612-614 c.p.c.),esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+ESEC_RIDUZIONE_496,Riduzione del pignoramento (art. 496 c.p.c.),esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+ESEC_SOSPENSIONE_624,Sospensione dell'esecuzione (art. 624 c.p.c.),esecuzione,Esecuzione forzata,5,5,curata_codex_fonti_ufficiali
+LAV_CONTRATTI_FLESSIBILI,"Contratti a termine, somministrazione, apprendistato (D.Lgs. 81/2015)",lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+LAV_LIC_COLLETTIVO,Licenziamenti collettivi (L. 223/1991),lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+LAV_MOBBING_001,"Mobbing, straining, demansionamento e danni da illegittima condotta del datore",lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+LAV_PREVID_001,Prestazioni INPS - pensioni e indennità (previdenza obbligatoria),lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+LAV_PUBBLICO_IMPIEGO,Pubblico impiego privatizzato (controversie ex art. 63 D.Lgs. 165/2001),lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+LAV_QUALIFICA_001,Accertamento natura del rapporto di lavoro / rivendicazione qualifica,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+LAV_REPRESSIONE_DISCRIM,"Repressione condotte discriminatorie (D.Lgs. 198/2006, D.Lgs. 215/2003)",lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+LAV_TENTATIVO_CONCILIAZIONE,Tentativo facoltativo/obbligatorio di conciliazione e procedura ITL,lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali
+LAV_TRASF_AZIENDA,Trasferimento d'azienda (art. 2112 c.c.),lavoro_previdenza,Lavoro e previdenza,4,6,curata_codex_fonti_ufficiali

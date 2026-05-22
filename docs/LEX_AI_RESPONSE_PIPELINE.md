@@ -13,6 +13,8 @@ Regola permanente di prodotto: arricchire Lex sempre in modo conversazionale con
 
 Il dettaglio fascicolo React e la Guida Pratica devono leggere lo stesso fascicolo reale anche quando lo SQLite operativo non è ancora popolato e il dato vive nel JSON legacy. Il badge `Uso facoltativo` segnala all'avvocato che la guida è un aiuto operativo, non un requisito bloccante.
 
+Regola permanente fascicolo/deposito: il codice che apre il fascicolo è sempre il codice ufficiale o normativo previsto per il deposito. La Guida Pratica si aggancia alla stessa materia e arricchisce il ragionamento operativo, ma non sostituisce mai il `codice_oggetto_pst` del fascicolo. Se Lex recupera una guida interna o un alias non depositabile, deve trattarlo solo come scheda pratica e deve mantenere come codice di deposito il codice ufficiale presente nel fascicolo.
+
 ## Aggiornamento operativo 2.248.10 - 22 maggio 2026
 
 La Guida Pratica è fonte operativa facoltativa: quando il fascicolo non ha codice oggetto, Lex e la UI possono usare titolo e oggetto della pratica per suggerire una scheda, ma devono indicarla come proposta da confermare e non come codice ministeriale. L'oggetto della pratica e l'oggetto della guida corrispondono solo quando il codice PST/XSD ufficiale e la scheda hanno la stessa descrizione sostanziale.

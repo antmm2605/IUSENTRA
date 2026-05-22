@@ -1,0 +1,944 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>IUSENTRA - Guida Pratica proposta v3</title>
+    <style>
+      :root {
+        --nav: #172238;
+        --nav-soft: #26344f;
+        --page: #f4f6f3;
+        --panel: #fffdf8;
+        --panel-soft: #fbfaf6;
+        --ink: #172033;
+        --soft-ink: #4f5d76;
+        --muted: #6c778a;
+        --line: #dde5ef;
+        --line-strong: #c8d4e5;
+        --blue: #1f5fd4;
+        --blue-strong: #164da9;
+        --blue-soft: #edf4ff;
+        --gold: #9a6515;
+        --gold-soft: #fff7e3;
+        --green: #1d7554;
+        --green-soft: #e9f7f0;
+        --red: #a94333;
+        --red-soft: #fff0eb;
+        --shadow: 0 16px 46px rgba(23, 32, 51, 0.12);
+        font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        background: var(--page);
+      }
+
+      button,
+      input,
+      textarea {
+        font: inherit;
+      }
+
+      .app {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 236px minmax(0, 1fr);
+      }
+
+      .sidebar {
+        background: var(--nav);
+        color: #eef3ff;
+        padding: 22px 18px;
+      }
+
+      .brand {
+        font-weight: 750;
+        margin-bottom: 24px;
+      }
+
+      .nav {
+        display: grid;
+        gap: 4px;
+      }
+
+      .nav div {
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        border-radius: 6px;
+        color: #cbd6e9;
+        font-size: 14px;
+      }
+
+      .nav .active {
+        background: var(--nav-soft);
+        color: #fbfdff;
+      }
+
+      .stage {
+        min-width: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      body.state-open .stage {
+        grid-template-columns: 372px minmax(0, 1fr);
+      }
+
+      .guide-panel {
+        display: none;
+        min-width: 0;
+        height: 100vh;
+        position: sticky;
+        top: 0;
+        background: var(--panel);
+        border-right: 1px solid var(--line-strong);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      body.state-open .guide-panel {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .guide-head {
+        padding: 18px 18px 14px;
+        border-bottom: 1px solid var(--line);
+        background: linear-gradient(180deg, #fffdf8 0%, #f7fbff 100%);
+      }
+
+      .guide-kicker,
+      .guide-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .guide-kicker {
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 10px;
+      }
+
+      .icon-button {
+        width: 36px;
+        height: 36px;
+        border: 1px solid var(--line-strong);
+        border-radius: 6px;
+        background: #fbfdff;
+        color: var(--soft-ink);
+        cursor: pointer;
+      }
+
+      .guide-title {
+        margin: 0;
+        font-size: 20px;
+        line-height: 1.25;
+      }
+
+      .guide-text {
+        margin: 8px 0 0;
+        color: var(--soft-ink);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 12px;
+      }
+
+      .badge {
+        min-height: 24px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 8px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #fbfdff;
+        color: var(--soft-ink);
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .badge.green {
+        color: var(--green);
+        background: var(--green-soft);
+        border-color: #bfe1d0;
+      }
+
+      .badge.gold {
+        color: #81500c;
+        background: var(--gold-soft);
+        border-color: #ecd398;
+      }
+
+      .guide-body {
+        padding: 14px 16px;
+        overflow: auto;
+      }
+
+      .first-action,
+      .guide-group,
+      .guide-progress {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfdff;
+      }
+
+      .first-action {
+        padding: 13px;
+        border-color: #bdd0ef;
+        background: #f7fbff;
+        margin-bottom: 12px;
+      }
+
+      .first-action small {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 750;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+      }
+
+      .first-action strong {
+        font-size: 14px;
+        line-height: 1.35;
+      }
+
+      .guide-progress {
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+
+      .guide-progress header {
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 9px;
+      }
+
+      .meter {
+        height: 8px;
+        border-radius: 999px;
+        background: #edf1f6;
+        overflow: hidden;
+      }
+
+      .meter span {
+        display: block;
+        width: 19%;
+        height: 100%;
+        background: var(--blue);
+      }
+
+      .tabs {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 6px;
+        position: sticky;
+        top: 0;
+        background: var(--panel);
+        padding: 8px 0 10px;
+      }
+
+      .tabs button {
+        min-height: 34px;
+        border: 1px solid var(--line-strong);
+        background: #fbfdff;
+        color: var(--soft-ink);
+        border-radius: 6px;
+        cursor: pointer;
+        padding: 0 6px;
+        font-size: 12px;
+      }
+
+      .tabs .active {
+        border-color: var(--blue);
+        background: var(--blue);
+        color: #fbfdff;
+      }
+
+      .guide-group {
+        padding: 12px;
+        margin-bottom: 10px;
+      }
+
+      .guide-group h3 {
+        margin: 0 0 9px;
+        font-size: 14px;
+      }
+
+      .guide-list,
+      .doc-list,
+      .activity-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 8px;
+      }
+
+      .guide-list li {
+        display: grid;
+        grid-template-columns: 22px minmax(0, 1fr);
+        gap: 8px;
+        align-items: start;
+        padding: 8px;
+        border: 1px solid #edf0f4;
+        border-radius: 6px;
+        background: #fcfcfb;
+        font-size: 13px;
+        line-height: 1.35;
+      }
+
+      .guide-list li.warn {
+        border-color: #eccb92;
+        background: #fffaf0;
+      }
+
+      .mark {
+        width: 20px;
+        height: 20px;
+        display: inline-grid;
+        place-items: center;
+        border: 1px solid var(--line-strong);
+        border-radius: 5px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .warn .mark {
+        color: var(--gold);
+        border-color: #d7a55e;
+      }
+
+      .guide-foot {
+        margin-top: auto;
+        padding: 12px 16px;
+        border-top: 1px solid var(--line);
+        background: #fbfdff;
+      }
+
+      .guide-foot small {
+        color: var(--muted);
+        line-height: 1.35;
+      }
+
+      .workspace {
+        min-width: 0;
+        padding: 26px 32px 42px;
+      }
+
+      .case-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 22px;
+        margin-bottom: 14px;
+      }
+
+      .breadcrumb,
+      .meta,
+      .field span,
+      .note,
+      .doc-meta,
+      .activity-meta {
+        color: var(--muted);
+      }
+
+      .breadcrumb {
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 24px;
+        line-height: 1.2;
+      }
+
+      .meta {
+        margin-top: 8px;
+        font-size: 14px;
+      }
+
+      .case-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .btn {
+        min-height: 38px;
+        padding: 0 14px;
+        border-radius: 6px;
+        border: 1px solid var(--line-strong);
+        background: #fbfdff;
+        color: var(--ink);
+        cursor: pointer;
+      }
+
+      .btn.primary {
+        border-color: var(--blue-strong);
+        background: var(--blue);
+        color: #fbfdff;
+      }
+
+      .guide-rail,
+      .hidden-note {
+        display: none;
+        margin: 0 0 14px;
+        border: 1px solid #c5d5ef;
+        border-radius: 8px;
+        background: #f8fbff;
+      }
+
+      .guide-rail {
+        align-items: center;
+        gap: 10px;
+        width: min(330px, 100%);
+        min-height: 50px;
+        padding: 8px 10px;
+        text-align: left;
+        box-shadow: 0 10px 26px rgba(31, 95, 212, 0.1);
+      }
+
+      body.state-closed .guide-rail,
+      body.state-nocode .guide-rail {
+        display: flex;
+      }
+
+      .rail-icon {
+        width: 30px;
+        height: 30px;
+        display: inline-grid;
+        place-items: center;
+        border-radius: 6px;
+        background: var(--blue-soft);
+        color: var(--blue);
+        flex: 0 0 auto;
+      }
+
+      .rail-copy strong,
+      .rail-copy span {
+        display: block;
+      }
+
+      .rail-copy strong {
+        font-size: 13px;
+      }
+
+      .rail-copy span {
+        margin-top: 2px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .hidden-note {
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        width: min(760px, 100%);
+        min-height: 50px;
+        padding: 10px 12px;
+        background: #fbfdff;
+        border-color: var(--line);
+      }
+
+      body.state-hidden .hidden-note {
+        display: flex;
+      }
+
+      .hidden-note strong,
+      .hidden-note span {
+        display: block;
+      }
+
+      .hidden-note strong {
+        font-size: 13px;
+      }
+
+      .hidden-note span {
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .case-tabs {
+        display: flex;
+        gap: 8px;
+        margin: 0 0 14px;
+        overflow-x: auto;
+      }
+
+      .case-tabs button {
+        min-height: 36px;
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        background: #fbfdff;
+        color: var(--soft-ink);
+        padding: 0 14px;
+        white-space: nowrap;
+      }
+
+      .case-tabs .active {
+        background: var(--blue);
+        border-color: var(--blue);
+        color: #fbfdff;
+      }
+
+      .case-shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.65fr);
+        gap: 18px;
+        align-items: start;
+      }
+
+      .section {
+        background: var(--panel-soft);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 16px;
+      }
+
+      .section + .section {
+        margin-top: 14px;
+      }
+
+      .section h2 {
+        margin: 0 0 12px;
+        font-size: 16px;
+      }
+
+      .field-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .field {
+        min-height: 62px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fbfdff;
+        padding: 10px 12px;
+      }
+
+      .field span {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+      }
+
+      .field strong {
+        font-size: 14px;
+        line-height: 1.3;
+      }
+
+      .doc-list li,
+      .activity-list li {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fbfdff;
+        padding: 10px 12px;
+      }
+
+      .doc-title,
+      .activity-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .doc-meta,
+      .activity-meta {
+        margin-top: 5px;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 23px;
+        padding: 0 8px;
+        border-radius: 999px;
+        background: var(--green-soft);
+        color: var(--green);
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .status-pill.warn {
+        background: var(--gold-soft);
+        color: var(--gold);
+      }
+
+      .note {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .side-stack {
+        display: grid;
+        gap: 14px;
+      }
+
+      .quick-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .quick-actions .btn {
+        min-height: 42px;
+        padding: 0 10px;
+      }
+
+      .lex-box {
+        border: 1px solid #bdd0ef;
+        background: #f7fbff;
+      }
+
+      .lex-box .btn {
+        margin-top: 12px;
+      }
+
+      .preview {
+        margin-top: 16px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      @media (max-width: 1180px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          display: none;
+        }
+
+        body.state-open .stage {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .guide-panel {
+          position: fixed;
+          inset: 0 auto 0 0;
+          width: min(390px, calc(100vw - 18px));
+          z-index: 5;
+        }
+      }
+
+      @media (max-width: 920px) {
+        .workspace {
+          padding: 22px 18px 34px;
+        }
+
+        .case-top,
+        .hidden-note {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .case-shell,
+        .field-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .quick-actions {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body class="state-open">
+    <main class="app">
+      <aside class="sidebar" aria-label="Navigazione studio">
+        <div class="brand">IUSENTRA</div>
+        <nav class="nav">
+          <div>Panoramica</div>
+          <div class="active">Fascicoli</div>
+          <div>Clienti</div>
+          <div>Scadenze</div>
+          <div>Redazione atti</div>
+        </nav>
+      </aside>
+
+      <section class="stage">
+        <aside class="guide-panel" aria-label="Guida Pratica">
+          <header class="guide-head">
+            <div class="guide-kicker">
+              <span>Guida pratica del fascicolo</span>
+              <button class="icon-button" type="button" aria-label="Chiudi guida" onclick="setState('closed')">X</button>
+            </div>
+            <h2 class="guide-title">Vendita di cose immobili</h2>
+            <p class="guide-text">Supporto operativo facoltativo collegato all'oggetto della pratica. Il fascicolo resta la sede principale del lavoro.</p>
+            <div class="badge-row">
+              <span class="badge">Uso facoltativo</span>
+              <span class="badge gold">Scheda 140011</span>
+              <span class="badge green">Guida curata</span>
+            </div>
+          </header>
+
+          <div class="guide-body">
+            <section class="first-action">
+              <small>Prima cosa da fare</small>
+              <strong>Verifica competenza, valore, titolo contrattuale e condizione di procedibilità prima di impostare la domanda.</strong>
+            </section>
+
+            <section class="guide-progress">
+              <header>
+                <span>Controlli completati</span>
+                <strong>3/16</strong>
+              </header>
+              <div class="meter"><span></span></div>
+            </section>
+
+            <nav class="tabs" aria-label="Sezioni della guida">
+              <button class="active" type="button">Azioni</button>
+              <button type="button">Atto</button>
+              <button type="button">Prove</button>
+              <button type="button">Norme</button>
+              <button type="button">Rito</button>
+            </nav>
+
+            <section class="guide-group">
+              <h3>Controlli sostanziali</h3>
+              <ul class="guide-list">
+                <li><span class="mark">i</span><span>Individuare se la domanda mira a risoluzione, adempimento, esecuzione specifica o restituzioni.</span></li>
+                <li><span class="mark">i</span><span>Collegare contratto, parti, immobile, prezzo pattuito e inadempimento contestato.</span></li>
+                <li class="warn"><span class="mark">!</span><span>Verificare mediazione, negoziazione o altra condizione di procedibilità quando prevista dal caso concreto.</span></li>
+              </ul>
+            </section>
+
+            <section class="guide-group">
+              <h3>Atto e documenti</h3>
+              <ul class="guide-list">
+                <li class="warn"><span class="mark">!</span><span>Completare tipo di azione, domande subordinate, dati catastali e bene oggetto della domanda.</span></li>
+                <li class="warn"><span class="mark">!</span><span>Allegare procura, documento fondativo, prova del pagamento o dell'inadempimento, ricevute dovute.</span></li>
+                <li><span class="mark">i</span><span>Le verifiche sono promemoria pratici: non bloccano il deposito e non cambiano il fascicolo.</span></li>
+              </ul>
+            </section>
+
+            <section class="guide-group">
+              <h3>Fonti usate per arricchire</h3>
+              <ul class="guide-list">
+                <li><span class="mark">§</span><span>Codice civile: vendita, forma scritta, esecuzione specifica.</span></li>
+                <li><span class="mark">§</span><span>Art. 163 c.p.c.: elementi della citazione, prove, conclusioni e avvertimenti.</span></li>
+                <li><span class="mark">§</span><span>PST Ministero: iscrizione a ruolo, allegati, pagamenti e XSD SICI.</span></li>
+              </ul>
+            </section>
+          </div>
+
+          <footer class="guide-foot">
+            <small>Supporto laterale, mai blocco operativo.</small>
+            <button class="btn" type="button" onclick="setState('hidden')">Non usare qui</button>
+          </footer>
+        </aside>
+
+        <section class="workspace">
+          <header class="case-top">
+            <div>
+              <div class="breadcrumb">Fascicoli / Civile / Pratica</div>
+              <h1>Vendita di cose immobili</h1>
+              <div class="meta">Fascicolo 24/2026 · oggetto pratica 140011 · valore e competenza da verificare</div>
+            </div>
+            <div class="case-actions">
+              <button class="btn" type="button">Nuova attività</button>
+              <button class="btn" type="button">Aggiungi documento</button>
+              <button class="btn primary" type="button">Salva fascicolo</button>
+            </div>
+          </header>
+
+          <button class="guide-rail" type="button" onclick="setState('open')">
+            <span class="rail-icon" aria-hidden="true">i</span>
+            <span class="rail-copy">
+              <strong>Guida pratica</strong>
+              <span class="closed-copy">3/16 controlli, uso facoltativo</span>
+            </span>
+          </button>
+
+          <div class="hidden-note">
+            <div>
+              <strong>Guida pratica nascosta per questo fascicolo</strong>
+              <span>Il fascicolo resta completo. La guida può essere riattivata quando serve.</span>
+            </div>
+            <button class="btn" type="button" onclick="setState('open')">Riattiva</button>
+          </div>
+
+          <nav class="case-tabs" aria-label="Schede fascicolo">
+            <button class="active" type="button">Sintesi</button>
+            <button type="button">Parti</button>
+            <button type="button">Documenti</button>
+            <button type="button">Attività</button>
+            <button type="button">Scadenze</button>
+            <button type="button">Deposito</button>
+          </nav>
+
+          <div class="case-shell">
+            <div>
+              <section class="section">
+                <h2>Quadro fascicolo</h2>
+                <div class="field-grid">
+                  <div class="field">
+                    <span>Oggetto pratica</span>
+                    <strong>Risoluzione contratto immobiliare</strong>
+                  </div>
+                  <div class="field">
+                    <span>Codice oggetto</span>
+                    <strong class="code-value">140011</strong>
+                  </div>
+                  <div class="field">
+                    <span>Ufficio</span>
+                    <strong>Tribunale da confermare</strong>
+                  </div>
+                  <div class="field">
+                    <span>Cliente</span>
+                    <strong>Da collegare</strong>
+                  </div>
+                  <div class="field">
+                    <span>Controparte</span>
+                    <strong>Da completare</strong>
+                  </div>
+                  <div class="field">
+                    <span>Stato pratica</span>
+                    <strong>Istruttoria iniziale</strong>
+                  </div>
+                </div>
+              </section>
+
+              <section class="section">
+                <h2>Documenti del fascicolo</h2>
+                <ul class="doc-list">
+                  <li>
+                    <div class="doc-title">
+                      <span>Contratto preliminare</span>
+                      <span class="status-pill">presente</span>
+                    </div>
+                    <div class="doc-meta">Documento fondativo già collegato al fascicolo.</div>
+                  </li>
+                  <li>
+                    <div class="doc-title">
+                      <span>Bozza atto di citazione</span>
+                      <span class="status-pill warn">da completare</span>
+                    </div>
+                    <div class="doc-meta">Mancano conclusioni, mezzi di prova e allegati finali.</div>
+                  </li>
+                  <li>
+                    <div class="doc-title">
+                      <span>Procura alle liti</span>
+                      <span class="status-pill warn">da verificare</span>
+                    </div>
+                    <div class="doc-meta">Controllare firma e collegamento all'atto.</div>
+                  </li>
+                </ul>
+              </section>
+
+              <section class="section">
+                <h2>Attività e scadenze</h2>
+                <ul class="activity-list">
+                  <li>
+                    <div class="activity-title">Verifica competenza e valore</div>
+                    <div class="activity-meta">Da completare prima della redazione definitiva.</div>
+                  </li>
+                  <li>
+                    <div class="activity-title">Controllo condizione di procedibilità</div>
+                    <div class="activity-meta">Promemoria operativo, non blocco automatico.</div>
+                  </li>
+                </ul>
+              </section>
+            </div>
+
+            <aside class="side-stack">
+              <section class="section">
+                <h2>Azioni fascicolo</h2>
+                <div class="quick-actions">
+                  <button class="btn" type="button">Atto</button>
+                  <button class="btn" type="button">Scadenza</button>
+                  <button class="btn" type="button">Deposito</button>
+                  <button class="btn" type="button">Lex</button>
+                </div>
+              </section>
+
+              <section class="section lex-box">
+                <h2>Lex sul fascicolo</h2>
+                <p class="note">Lex legge fascicolo, documenti e guida pratica curata per rispondere in modo conversazionale all'avvocato.</p>
+                <button class="btn primary" type="button">Chiedi a Lex</button>
+              </section>
+
+              <section class="section">
+                <h2>Stato operativo</h2>
+                <div class="activity-list">
+                  <li>
+                    <div class="activity-title">Dati obbligatori</div>
+                    <div class="activity-meta">Da completare</div>
+                  </li>
+                  <li>
+                    <div class="activity-title">Documenti</div>
+                    <div class="activity-meta">2 verifiche aperte</div>
+                  </li>
+                  <li>
+                    <div class="activity-title">Guida pratica</div>
+                    <div class="activity-meta guide-status">Aperta</div>
+                  </li>
+                </div>
+              </section>
+            </aside>
+          </div>
+
+          <p class="preview">Anteprima non integrata: serve solo a decidere grafica e comportamento prima di toccare l'app reale.</p>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      const states = ["state-open", "state-closed", "state-hidden", "state-nocode"];
+      const statusText = {
+        open: "Aperta",
+        closed: "Disponibile",
+        hidden: "Nascosta",
+        nocode: "Suggerita dall'oggetto",
+      };
+
+      function setState(name) {
+        document.body.classList.remove(...states);
+        document.body.classList.add(`state-${name}`);
+        const guideStatus = document.querySelector(".guide-status");
+        const codeValue = document.querySelector(".code-value");
+        const closedCopy = document.querySelector(".closed-copy");
+        if (guideStatus) guideStatus.textContent = statusText[name] || "Disponibile";
+        if (name === "nocode") {
+          if (codeValue) codeValue.textContent = "Non impostato";
+          if (closedCopy) closedCopy.textContent = "Suggeribile dall'oggetto, non obbligatoria";
+        } else {
+          if (codeValue) codeValue.textContent = "140011";
+          if (closedCopy) closedCopy.textContent = "3/16 controlli, uso facoltativo";
+        }
+      }
+
+      const initial = window.location.hash.replace("#", "") || "open";
+      setState(["open", "closed", "hidden", "nocode"].includes(initial) ? initial : "open");
+    </script>
+  </body>
+</html>

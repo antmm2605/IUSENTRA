@@ -487,7 +487,7 @@ class GuidaPraticaService:
                         "source_field": source,
                         "matched_by": reason,
                         "confirmation_required": True,
-                        "message": "Scheda pratica individuata dall'oggetto del fascicolo: confermala nella scheda fascicolo se vuoi mantenerla collegata alla pratica.",
+                        "message": "Guida pratica facoltativa suggerita dal contesto del fascicolo. Il codice ufficiale resta nella scheda fascicolo e la guida non blocca il lavoro.",
                     }
         return best
 

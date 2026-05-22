@@ -93,6 +93,7 @@ def _applica_cifratura(d: Dict[str, Any], f, cifra: bool) -> Dict[str, Any]:
 class ConfigDatiStudio:
     nome: str = "IUSENTRA"
     avvocato: str = ""
+    qualifica_professionale: str = ""
     numero_iscrizione_albo: str = ""
     ordine_avvocati: str = ""
     piva: str = ""
@@ -429,6 +430,7 @@ class GestioneConfigStudio:
             studio=ConfigDatiStudio(
                 nome=os.getenv("PCT_STUDIO_NOME", "IUSENTRA"),
                 avvocato=os.getenv("PCT_STUDIO_AVVOCATO", ""),
+                qualifica_professionale=os.getenv("PCT_STUDIO_QUALIFICA_PROFESSIONALE", ""),
                 numero_iscrizione_albo=os.getenv("PCT_STUDIO_NUMERO_ISCRIZIONE_ALBO", ""),
                 ordine_avvocati=os.getenv("PCT_STUDIO_ORDINE_AVVOCATI", ""),
                 piva=os.getenv("PCT_STUDIO_PIVA", ""),
@@ -852,4 +854,3 @@ def test_whatsapp(cfg: ConfigWhatsApp) -> Dict[str, Any]:
         except Exception as e:
             return {"ok": False, "messaggio": f"Errore CallMeBot: {e}"}
     return {"ok": False, "messaggio": "Nessun provider WhatsApp configurato."}
-

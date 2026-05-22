@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IUSENTRA - Generazione documento guidata</title>
+  <link rel="stylesheet" href="flow.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="search">
+      <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+      <span class="hint">Cerca fascicolo, cliente, udienza, documento...</span>
+      <span class="kbd">Ctrl K</span>
+    </div>
+    <div class="top-actions">
+      <button class="date-btn">ven 22 mag <svg class="i" viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18"></path><rect x="3" y="4" width="18" height="18" rx="3"></rect></svg></button>
+      <button class="primary-btn"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg> Nuovo</button>
+    </div>
+  </header>
+
+  <div class="overlay-page">
+    <main class="app dimmed" aria-hidden="true">
+      <section class="hero">
+        <div>
+          <div class="eyebrow">Fascicolo esistente</div>
+          <h1>Opposizione a sanzione amministrativa</h1>
+          <p>La guida resta collegata al fascicolo. Il documento viene generato in una finestra operativa e salvato nei documenti della pratica.</p>
+        </div>
+        <div class="hero-actions">
+          <button class="secondary-btn">Modifica</button>
+          <button class="secondary-btn">Quadro AI</button>
+          <button class="primary-btn">PDF</button>
+        </div>
+      </section>
+      <nav class="tabs"><span class="tab active">Sintesi</span><span class="tab">Parti</span><span class="tab">Documenti</span><span class="tab">Attività</span><span class="tab">Scadenze</span><span class="tab">Deposito</span></nav>
+      <section class="page-grid">
+        <article class="panel rounded">
+          <div class="panel-head"><div class="section-icon"></div><div class="panel-title"><strong>Documenti fascicolo</strong><span>La pagina resta sotto la finestra</span></div></div>
+          <div class="panel-body document-list">
+            <div class="document-row"><div><strong>Verbale impugnato</strong><span>Documento acquisito</span></div><span class="badge green">presente</span></div>
+            <div class="document-row"><div><strong>Ricorso in opposizione</strong><span>In compilazione</span></div><span class="badge gold">aperto</span></div>
+          </div>
+        </article>
+        <aside class="rail">
+          <article class="panel rounded">
+            <div class="panel-head"><div class="section-icon"></div><div class="panel-title"><strong>Guida pratica</strong><span>Resta sotto e aggiorna lo stato</span></div></div>
+            <div class="panel-body compact-list">
+              <div class="guide-item ready"><div><strong>Verbale e notifica</strong><span>Verificati</span></div><span class="badge green">ok</span></div>
+              <div class="guide-item warning"><div><strong>Ricorso in opposizione</strong><span>Documento in compilazione</span></div><span class="badge gold">ora</span></div>
+            </div>
+          </article>
+        </aside>
+      </section>
+    </main>
+
+    <section class="drawer" role="dialog" aria-label="Generazione ricorso">
+      <div class="drawer-head">
+        <div class="drawer-title">
+          <h2>Genera e modifica ricorso in opposizione</h2>
+          <p>Template GDP_001. I dati del fascicolo sono letti automaticamente; il testo dell'atto resta modificabile prima del salvataggio.</p>
+        </div>
+        <button class="secondary-btn">Torna al fascicolo</button>
+      </div>
+      <div class="drawer-body">
+        <div class="drawer-stack">
+          <article class="panel rounded">
+            <div class="panel-head">
+              <div class="section-icon"><svg class="i" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"></path><path d="M8 9h8M8 13h8M8 17h4"></path></svg></div>
+              <div class="panel-title"><strong>Dati dal fascicolo</strong><span>Solo lettura, nessun campo duplicato</span></div>
+            </div>
+            <div class="panel-body readonly-grid">
+              <div class="readonly"><span>Cliente</span><strong>Crocitti Giovanni</strong></div>
+              <div class="readonly"><span>Controparte</span><strong>Comune di Taurianova</strong></div>
+              <div class="readonly"><span>Ufficio</span><strong>Giudice di Pace di Palmi</strong></div>
+              <div class="readonly"><span>Oggetto</span><strong>Opposizione a sanzione amministrativa</strong></div>
+            </div>
+          </article>
+
+          <article class="panel rounded">
+            <div class="panel-head">
+              <div class="section-icon"><svg class="i" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg></div>
+              <div class="panel-title"><strong>Contenuto dell'atto</strong><span>Integrazioni proprie del documento</span></div>
+            </div>
+            <div class="panel-body">
+              <div class="notice">La guida propone struttura, riferimenti e allegati. L'avvocato può correggere il testo, salvare una bozza o confermare il documento pronto.</div>
+              <div class="section-toolbar">
+                <span class="sr-label">Testo modificabile</span>
+                <div class="tools">
+                  <button class="tiny-btn">Rigenera sezione</button>
+                  <button class="tiny-btn">Apri nel compilatore</button>
+                </div>
+              </div>
+              <div class="document-edit">
+                <h3>Ricorso in opposizione avverso sanzione amministrativa</h3>
+                <p><strong>Premesse.</strong> Nell'interesse di Crocitti Giovanni, come da dati del fascicolo, si propone opposizione avverso il verbale notificato dal Comune di Taurianova.</p>
+                <p><strong>Motivi.</strong> Il ricorso espone i profili di contestazione del verbale, con riserva di integrare motivi e documenti dopo la verifica degli allegati acquisiti.</p>
+                <p><strong>Istanze.</strong> Si chiede l'accoglimento dell'opposizione e, ove ne ricorrano i presupposti, la sospensione dell'efficacia esecutiva del provvedimento impugnato.</p>
+              </div>
+              <div class="edit-note"><svg class="i" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>Le modifiche manuali restano salvate nella bozza. La guida completa il passaggio solo dopo conferma.</div>
+            </div>
+          </article>
+        </div>
+
+        <aside class="preview-wrap">
+          <div class="a4">
+            <div class="studio">STUDIO LEGALE<br>Avv. __________________<br>Via __________________<br>PEC __________________</div>
+            <div class="stamp">Area firma digitale<br>e timbro studio<br>come da modello</div>
+            <div class="court">GIUDICE DI PACE DI PALMI</div>
+            <div class="doc-title">RICORSO IN OPPOSIZIONE<br>AVVERSO SANZIONE AMMINISTRATIVA</div>
+            <div class="body-lines">
+              <div class="line"></div><div class="line"></div><div class="line short"></div>
+              <div class="line"></div><div class="line"></div><div class="line"></div>
+              <div class="line short"></div><div class="line"></div><div class="line"></div>
+              <div class="line"></div><div class="line short"></div>
+            </div>
+            <div class="vertical-sign">Documento conforme al modello di impaginazione dello studio</div>
+          </div>
+        </aside>
+      </div>
+      <div class="drawer-foot">
+        <span class="fine-note">Il documento rientra nel fascicolo come bozza o definitivo. La guida segna il passaggio completo solo dopo conferma.</span>
+        <div class="hero-actions">
+          <button class="secondary-btn">Salva bozza</button>
+          <button class="secondary-btn">Anteprima PDF</button>
+          <button class="primary-btn">Conferma e salva nel fascicolo</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

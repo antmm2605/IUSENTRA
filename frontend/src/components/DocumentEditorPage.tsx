@@ -730,9 +730,36 @@ export function DocumentEditorPage() {
   }
 
   const importFile = async (file?: File) => {
-    if (!file || !editorRef.current || conversionLocked) return
-    if (!window.confirm(`Sostituire il contenuto editor con "${file.name}"? Il salvataggio resta manuale o automatico.`)) return
+    if (!file) return
+    if (!window.confirm(`Importare "${file.name}" nell'anteprima? Il documento del fascicolo verrà versionato.`)) return
     const lower = file.name.toLowerCase()
+    const serverImport = lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc')
+      || (!data.document.editable || conversionLocked)
+    if (serverImport) {
+      if (!data.endpoints.importFile) {
+        setStatus({ tone: 'danger', label: 'Import non disponibile per questo documento' })
+        return
+      }
+      setStatus({ tone: 'saving', label: 'Importazione documento' })
+      try {
+        const formData = new FormData()
+        formData.append('documento', file)
+        const response = await fetch(data.endpoints.importFile, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          body: formData,
+        })
+        const payload = await response.json().catch(() => ({} as Record<string, unknown>))
+        if (!response.ok || payload.ok === false) throw new Error(text(payload.messaggio || payload.message, 'Documento non importato.'))
+        setStatus({ tone: 'success', label: text(payload.message || payload.messaggio, 'Documento importato') })
+        window.setTimeout(() => window.location.reload(), 450)
+      } catch (error) {
+        setStatus({ tone: 'danger', label: error instanceof Error ? error.message : 'Import non riuscito' })
+      }
+      return
+    }
+    if (!editorRef.current) return
     const content = await file.text()
     const html = lower.endsWith('.html') || lower.endsWith('.htm')
       ? sanitizeHtml(content)
@@ -990,6 +1017,7 @@ export function DocumentEditorPage() {
               <h2>{pdfPreviewMode ? 'Anteprima PDF fedele all\'originale' : 'Documento non modificabile in editor'}</h2>
               <p>{lockedReason || 'Apri il documento in anteprima o scaricalo per lavorarlo con un applicativo esterno.'}</p>
               <a href={doc.actions.preview || data.fascicolo.detailHref}><Eye size={15}/>{pdfPreviewMode ? 'Apri PDF originale' : 'Apri anteprima'}</a>
+              <button type="button" onClick={() => replaceFileRef.current?.click()}><UploadCloud size={15}/> Importa PDF/Word</button>
             </div>
           </section>
           {doc.actions.preview ? (
@@ -1011,7 +1039,8 @@ export function DocumentEditorPage() {
         </>
       ) : (
         <>
-          <section className="iu-de-toolbar" aria-label="Barra strumenti editor">
+          <section className="iu-de-editor-stage">
+            <section className="iu-de-toolbar" aria-label="Barra strumenti editor">
             <label className="iu-de-field iu-de-field--style"><span>Stile</span>
               <select aria-label="Stile paragrafo" onChange={(event) => runCommand('formatBlock', event.target.value)} defaultValue="p">
                 <option value="p">Normale</option>
@@ -1060,8 +1089,9 @@ export function DocumentEditorPage() {
             <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => replaceFileRef.current?.click()}><UploadCloud size={15}/> Importa</button>
             <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => void exportFile(data.endpoints.exportPdf, 'pdf')}><FileDown size={15}/> PDF</button>
             <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => void exportFile(data.endpoints.exportDocx, 'docx')}><FileDown size={15}/> DOCX</button>
-          </section>
+            </section>
 
+            <div className="iu-de-editor-main">
           <section className="iu-de-meta-row" aria-label="Stato editor">
             <span className={statusClass}>{status.tone === 'success' ? <CheckCircle2 size={15}/> : status.tone === 'loading' || status.tone === 'saving' ? <LoaderCircle className="iu-spin" size={15}/> : <Pilcrow size={15}/>} {status.label}</span>
             <span>{stats.words} parole - {stats.chars} caratteri - {stats.readingMinutes} min</span>
@@ -1102,19 +1132,22 @@ export function DocumentEditorPage() {
               </div>
             </section>
           </section>
+            </div>
+          </section>
 
-          <input
-            ref={replaceFileRef}
-            type="file"
-            hidden
-            accept=".txt,.html,.htm,.md"
-            onChange={(event) => {
-              void importFile(event.target.files?.[0])
-              event.target.value = ''
-            }}
-          />
         </>
       )}
+
+      <input
+        ref={replaceFileRef}
+        type="file"
+        hidden
+        accept=".pdf,.doc,.docx,.txt,.html,.htm,.md"
+        onChange={(event) => {
+          void importFile(event.target.files?.[0])
+          event.target.value = ''
+        }}
+      />
 
       <FloatingLex
         context="editor-documento"

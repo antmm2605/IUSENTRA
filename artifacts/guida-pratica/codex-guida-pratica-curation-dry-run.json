@@ -1,0 +1,93 @@
+{
+  "ok": true,
+  "generated_at": "2026-05-22T12:49:02Z",
+  "target": "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_99_completamento_codici_ufficiali.json",
+  "records_curati": 839,
+  "by_profile": {
+    "famiglia_minori": 228,
+    "contenzioso_ordinario": 192,
+    "crisi_impresa": 86,
+    "impugnazione": 76,
+    "lavoro_previdenza": 68,
+    "volontaria_giurisdizione": 68,
+    "esecuzione": 41,
+    "atp_istruzione_preventiva": 34,
+    "cautelare": 23,
+    "impresa_societario": 11,
+    "monitorio": 8,
+    "immigrazione_cittadinanza": 4
+  },
+  "terms_by_profile": {
+    "famiglia_minori": 684,
+    "contenzioso_ordinario": 384,
+    "impugnazione": 380,
+    "lavoro_previdenza": 272,
+    "crisi_impresa": 258,
+    "esecuzione": 205,
+    "volontaria_giurisdizione": 204,
+    "atp_istruzione_preventiva": 102,
+    "cautelare": 69,
+    "impresa_societario": 33,
+    "monitorio": 32,
+    "immigrazione_cittadinanza": 12
+  },
+  "official_sources": {
+    "normattiva_cpc": {
+      "tipo": "normativa",
+      "fonte": "Normattiva",
+      "titolo": "Codice di procedura civile, R.D. 28 ottobre 1940, n. 1443",
+      "url": "https://www.normattiva.it/eli/stato/REGIO_DECRETO/1940/10/28/1443/CONSOLIDATED",
+      "uso": "rito, termini, notifiche, costituzione, impugnazioni, cautelari, volontaria giurisdizione ed esecuzione"
+    },
+    "normattiva_cc": {
+      "tipo": "normativa",
+      "fonte": "Normattiva",
+      "titolo": "Codice civile, R.D. 16 marzo 1942, n. 262",
+      "url": "https://www.normattiva.it/eli/stato/REGIO_DECRETO/1942/03/16/262/CONSOLIDATED",
+      "uso": "presupposti sostanziali, prescrizione, decadenza, diritti reali, famiglia, successioni, societario"
+    },
+    "normattiva_l742_1969": {
+      "tipo": "normativa",
+      "fonte": "Normattiva",
+      "titolo": "L. 7 ottobre 1969, n. 742, sospensione feriale dei termini processuali",
+      "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=069U0742",
+      "uso": "verifica sospensione feriale, esclusioni e regimi speciali"
+    },
+    "normattiva_dlg149_2022": {
+      "tipo": "normativa",
+      "fonte": "Normattiva",
+      "titolo": "D.Lgs. 10 ottobre 2022, n. 149, riforma del processo civile",
+      "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2022;149=",
+      "uso": "procedimenti persone, minorenni e famiglie, razionalizzazione esecuzione e modifiche Cartabia"
+    },
+    "normattiva_ccii": {
+      "tipo": "normativa",
+      "fonte": "Normattiva",
+      "titolo": "D.Lgs. 12 gennaio 2019, n. 14, Codice della crisi d'impresa e dell'insolvenza",
+      "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=19G00007",
+      "uso": "procedure concorsuali, crisi, liquidazione giudiziale e strumenti di regolazione"
+    },
+    "pst_specifiche_dm44_2024": {
+      "tipo": "tecnica",
+      "fonte": "Portale Servizi Telematici, Ministero della Giustizia",
+      "titolo": "Specifiche tecniche ex art. 34 D.M. 44/2011, provvedimento 7 agosto 2024",
+      "url": "https://pst.giustizia.it/PST/resources/cms/documents/m_dg.DOG07.07082024.0004292.ID_SPECIFICHETECNICHE_DM_44_2011_FINALE_31_.pdf",
+      "uso": "deposito telematico, servizi PST, fascicolo informatico, busta e trattamento dati"
+    },
+    "pst_comunicazioni_notifiche": {
+      "tipo": "tecnica",
+      "fonte": "Portale Servizi Telematici, Ministero della Giustizia",
+      "titolo": "Comunicazioni e notificazioni telematiche",
+      "url": "https://servizipst.giustizia.it/PST/it/pst_1_7.wp",
+      "uso": "PEC, RegIndE, comunicazioni di cancelleria e prerequisiti telematici"
+    },
+    "catalogo_pst_xsd_locale": {
+      "tipo": "catalogo_locale_verificato",
+      "fonte": "IUSENTRA",
+      "titolo": "Catalogo codici oggetto PST/XSD locale verificato",
+      "url": "pct/data/cataloghi/codici_oggetto_pst.json",
+      "uso": "codice oggetto, registro, file XSD e depositabilità"
+    }
+  },
+  "dry_run": true
+}

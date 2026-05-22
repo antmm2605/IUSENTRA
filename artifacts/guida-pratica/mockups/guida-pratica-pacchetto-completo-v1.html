@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IUSENTRA - Pacchetto Guida Pratica</title>
+  <style>
+    :root {
+      --nav: #172238;
+      --nav-soft: #25334f;
+      --page: #f3f6f9;
+      --paper: #ffffff;
+      --paper-soft: #f8fbff;
+      --ink: #172033;
+      --muted: #596779;
+      --line: #dbe4ef;
+      --line-soft: #edf2f7;
+      --blue: #2563eb;
+      --blue-soft: #eef5ff;
+      --green: #047857;
+      --green-soft: #e8f7ef;
+      --gold: #a16207;
+      --gold-soft: #fff7df;
+      --red-soft: #fff2e8;
+      --shadow: 0 14px 32px rgba(15, 23, 42, .10);
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: var(--page); color: var(--ink); font-size: 14px; }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .shell { min-height: 100vh; display: grid; grid-template-columns: 236px minmax(0, 1fr); }
+    .sidebar { background: var(--nav); color: #eaf0fb; padding: 24px 18px; }
+    .brand { font-weight: 850; letter-spacing: .08em; margin-bottom: 24px; }
+    .nav { display: grid; gap: 6px; }
+    .nav span { min-height: 38px; display: flex; align-items: center; padding: 0 12px; border-radius: 6px; color: #cbd6e9; }
+    .nav .active { background: var(--nav-soft); color: #fff; }
+
+    .app-main { min-width: 0; display: grid; grid-template-rows: 68px 54px minmax(0, 1fr); }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 24px;
+      background: rgba(255, 255, 255, .88);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(10px);
+    }
+
+    .search {
+      width: min(620px, 44vw);
+      height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--muted);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, .05);
+    }
+
+    .kbd { margin-left: auto; color: #334155; font-size: 12px; font-weight: 850; }
+    .actions { display: flex; gap: 10px; align-items: center; }
+    .btn, .icon-btn {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 10px;
+      min-height: 38px;
+      padding: 0 14px;
+      color: #14213d;
+      font-weight: 750;
+    }
+    .btn.primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .btn.success { background: var(--green-soft); color: var(--green); border-color: #b8e4d1; }
+    .btn.warning { background: var(--gold-soft); color: var(--gold); border-color: #f2d190; }
+    .icon-btn { width: 42px; padding: 0; }
+
+    .screenbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 24px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+      overflow-x: auto;
+    }
+
+    .screenbar button {
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      padding: 0 12px;
+      white-space: nowrap;
+      color: #334155;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .screenbar button.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+    .screen-wrap { min-height: 0; position: relative; overflow: hidden; }
+    .screen { display: none; height: 100%; min-height: 0; }
+    .screen.active { display: grid; }
+
+    .workspace {
+      min-height: 0;
+      grid-template-columns: 64px 390px minmax(0, 1fr);
+      overflow: hidden;
+    }
+
+    .workspace.no-guide { grid-template-columns: 64px minmax(0, 1fr); }
+    .workspace.form { grid-template-columns: minmax(0, 1fr) 360px; padding: 24px; gap: 16px; overflow: auto; }
+
+    .guide-tab {
+      background: #fff;
+      border-right: 1px solid var(--line);
+      display: grid;
+      align-content: start;
+      justify-items: center;
+      gap: 10px;
+      padding: 14px 8px;
+    }
+    .guide-tab button {
+      width: 46px;
+      height: 46px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--blue);
+      color: #fff;
+      font-weight: 900;
+      box-shadow: 0 12px 24px rgba(37, 99, 235, .22);
+    }
+    .guide-tab small {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      color: var(--muted);
+      font-weight: 850;
+      letter-spacing: .04em;
+    }
+
+    .guide {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      background: var(--paper);
+      border-right: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+    .guide-head {
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #fffdf7, #f5f9ff);
+    }
+    .guide-kicker {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--blue);
+      text-transform: uppercase;
+      letter-spacing: .11em;
+      font-size: 11px;
+      font-weight: 900;
+    }
+    .guide h1 { margin: 8px 0 6px; font-size: 18px; line-height: 1.18; letter-spacing: 0; }
+    .guide p { margin: 0; color: var(--muted); line-height: 1.42; }
+
+    .guide-nav {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      padding: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+    .guide-nav button {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 8px 3px;
+      color: #475569;
+      font-size: 12px;
+      font-weight: 850;
+    }
+    .guide-nav .active { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+    .guide-body {
+      min-height: 0;
+      overflow: hidden;
+      padding: 12px;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 10px;
+    }
+    .guide-body.detail { grid-template-rows: minmax(0, 1fr); }
+    .guide-scroll { min-height: 0; display: grid; gap: 8px; overflow: auto; padding-right: 3px; }
+
+    .now-card {
+      border: 1px solid #b8e4d1;
+      border-radius: 8px;
+      background: var(--green-soft);
+      padding: 10px;
+      display: grid;
+      gap: 4px;
+    }
+    .now-card strong { color: #0f3f30; }
+    .now-card span { color: #335747; font-size: 13px; line-height: 1.35; }
+
+    .section-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px;
+      display: grid;
+      gap: 7px;
+    }
+    .section-card.active { border-color: #c8dcff; background: #f7fbff; }
+    .section-title { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .section-title strong { font-size: 13px; }
+    .section-title span { color: var(--muted); font-size: 12px; font-weight: 750; }
+
+    .mini-list, .line-list {
+      display: grid;
+      gap: 5px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .mini-list li, .line-list li {
+      display: grid;
+      gap: 2px;
+      border: 1px solid var(--line-soft);
+      border-radius: 7px;
+      background: #fff;
+      padding: 7px 8px;
+    }
+    .mini-list strong, .line-list strong { font-size: 12.5px; }
+    .mini-list span, .line-list span { color: var(--muted); font-size: 12px; line-height: 1.32; }
+
+    .guide-foot {
+      border-top: 1px solid var(--line);
+      padding: 10px 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      background: #fff;
+    }
+    .guide-foot .btn { padding: 0 10px; min-height: 34px; }
+
+    .content {
+      min-width: 0;
+      overflow: auto;
+      padding: 24px;
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .hero {
+      min-height: 128px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: linear-gradient(135deg, #fff, #eef5ff);
+      padding: 22px;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, .04);
+    }
+    .eyebrow { color: var(--blue); font-size: 12px; text-transform: uppercase; letter-spacing: .12em; font-weight: 900; }
+    .hero h2 { margin: 8px 0; font-size: 29px; line-height: 1.08; letter-spacing: 0; }
+    .hero .sub { color: var(--muted); max-width: 880px; line-height: 1.45; }
+
+    .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .badge {
+      min-height: 23px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: #334155;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .badge.green { background: var(--green-soft); border-color: #b8e4d1; color: var(--green); }
+    .badge.gold { background: var(--gold-soft); border-color: #f2d190; color: var(--gold); }
+    .badge.blue { background: var(--blue-soft); border-color: #c8dcff; color: #174ea6; }
+
+    .grid { display: grid; grid-template-columns: minmax(0, 1.35fr) 360px; gap: 16px; }
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, .06);
+      overflow: hidden;
+    }
+    .panel-head {
+      min-height: 52px;
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .panel-body { padding: 14px 16px; }
+
+    .field-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .field {
+      min-height: 70px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper-soft);
+      padding: 10px;
+      display: grid;
+      gap: 4px;
+    }
+    .field span { color: var(--muted); font-size: 12px; font-weight: 750; }
+    .field strong { font-size: 14px; line-height: 1.24; }
+
+    .note {
+      margin-top: 10px;
+      border: 1px solid #f2d190;
+      border-radius: 8px;
+      background: #fffaf0;
+      padding: 10px;
+      color: #6b4b16;
+      line-height: 1.42;
+      font-weight: 650;
+    }
+
+    .steps { display: grid; gap: 9px; }
+    .step {
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px;
+    }
+    .num {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-weight: 900;
+    }
+    .step strong { font-size: 13px; }
+    .step span { color: var(--muted); font-size: 12px; }
+    .step.done { background: var(--green-soft); border-color: #b8e4d1; }
+    .step.active { background: #fffaf0; border-color: #f2d190; }
+
+    .side-stack { display: grid; gap: 16px; align-content: start; }
+    .side-note { border: 1px solid var(--line); border-radius: 8px; background: var(--paper-soft); padding: 10px; display: grid; gap: 4px; }
+    .side-note span { color: var(--muted); font-size: 13px; line-height: 1.35; }
+
+    .form-hero {
+      grid-column: 1 / -1;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: linear-gradient(135deg, #fff, #eef5ff);
+      padding: 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .form-hero h2 { margin: 8px 0 6px; font-size: 30px; letter-spacing: 0; }
+    .form-panel { grid-column: 1; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .form-field { display: grid; gap: 6px; }
+    .form-field.wide { grid-column: 1 / -1; }
+    .form-field label { color: #334155; font-size: 12px; font-weight: 850; }
+    .form-field input, .form-field select, .form-field textarea {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fff;
+      padding: 9px 11px;
+      color: #172033;
+    }
+    .form-field textarea { min-height: 96px; resize: none; }
+
+    .closed-guide {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 46px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, .06);
+    }
+    .closed-guide .mark { width: 46px; height: 46px; border-radius: 12px; background: var(--blue); color: #fff; display: grid; place-items: center; font-weight: 900; }
+    .closed-guide span { color: var(--muted); }
+
+    .terms-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .term { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: #fff; display: grid; gap: 4px; }
+    .term span { color: var(--muted); font-size: 12px; }
+
+    .editor-layout { display: grid; grid-template-columns: 76px minmax(0, 1fr) 330px; gap: 14px; min-height: 520px; }
+    .toolbar { display: grid; gap: 8px; align-content: start; }
+    .tool {
+      height: 58px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      display: grid;
+      place-items: center;
+      color: #334155;
+      font-size: 11px;
+      font-weight: 850;
+    }
+    .tool.active { background: var(--nav); color: #fff; border-color: var(--nav); }
+    .paper-preview {
+      min-height: 520px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fffdf8;
+      padding: 22px 28px;
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, .02);
+    }
+    .stamp { text-align: right; font-size: 12px; font-weight: 800; line-height: 1.3; margin-bottom: 18px; }
+    .paper-preview h3 { margin: 0 0 14px; text-align: center; font-size: 16px; }
+    .paper-preview p { margin: 0 0 10px; line-height: 1.58; color: #253044; }
+    .editor-side { display: grid; gap: 12px; align-content: start; }
+
+    .document-list { display: grid; gap: 9px; }
+    .doc { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+    .doc span { color: var(--muted); font-size: 12px; }
+
+    @media (max-width: 1180px) {
+      .workspace { grid-template-columns: 58px 360px minmax(0, 1fr); }
+      .grid, .workspace.form { grid-template-columns: 1fr; }
+      .field-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .editor-layout { grid-template-columns: 70px minmax(0, 1fr); }
+      .editor-side { grid-column: 1 / -1; }
+    }
+    @media (max-width: 860px) {
+      .shell { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .app-main { grid-template-rows: auto auto minmax(0, 1fr); }
+      .topbar { padding: 12px; flex-direction: column; align-items: stretch; }
+      .search { width: 100%; }
+      .screenbar { padding: 8px 12px; }
+      .screen, .workspace, .workspace.no-guide { height: auto; min-height: 0; grid-template-columns: 1fr; }
+      .guide-tab { display: none; }
+      .guide { max-height: 520px; border-right: none; border-bottom: 1px solid var(--line); }
+      .content { padding: 14px; }
+      .hero, .form-hero { display: grid; }
+      .field-grid, .form-grid, .terms-grid { grid-template-columns: 1fr; }
+      .editor-layout { grid-template-columns: 1fr; }
+      .toolbar { grid-template-columns: repeat(4, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">IUSENTRA</div>
+      <nav class="nav">
+        <span>Panoramica</span>
+        <span class="active">Fascicoli</span>
+        <span>Clienti</span>
+        <span>Documenti</span>
+        <span>Redazione atti</span>
+        <span>Impostazioni</span>
+      </nav>
+    </aside>
+
+    <main class="app-main">
+      <header class="topbar">
+        <div class="search">Cerca fascicolo, cliente, udienza, documento... <span class="kbd">Ctrl K</span></div>
+        <div class="actions">
+          <button class="icon-btn" type="button">!</button>
+          <button class="icon-btn" type="button">⏱</button>
+          <button class="btn primary" type="button">+ Nuovo</button>
+        </div>
+      </header>
+
+      <nav class="screenbar" aria-label="Schermate pacchetto">
+        <button class="active" type="button" data-target="apertura">1 Apertura</button>
+        <button type="button" data-target="nascosta">2 Guida nascosta</button>
+        <button type="button" data-target="ora">3 Guida ora</button>
+        <button type="button" data-target="contesto">4 Contesto e termini</button>
+        <button type="button" data-target="editor">5 Anteprima modifica</button>
+        <button type="button" data-target="completato">6 Rientro completato</button>
+      </nav>
+
+      <div class="screen-wrap">
+        <section class="screen workspace form active" data-screen="apertura">
+          <article class="form-hero">
+            <div>
+              <div class="eyebrow">Apertura nuovo fascicolo</div>
+              <h2>Nuovo Fascicolo</h2>
+              <p class="sub">Si definiscono i dati fonte. La guida usa questi dati dopo il salvataggio, senza duplicarli nel documento.</p>
+            </div>
+            <button class="btn primary" type="button">Salva e apri fascicolo</button>
+          </article>
+
+          <article class="panel form-panel">
+            <div class="panel-head"><strong>Dati generali</strong><span class="badge gold">fonte fascicolo</span></div>
+            <div class="panel-body form-grid">
+              <div class="form-field"><label>Pratica</label><input value="Erede richiedente - titolo legale successorio"></div>
+              <div class="form-field"><label>Rif. cartaceo</label><input value=""></div>
+              <div class="form-field"><label>Tipo fascicolo</label><select><option>Civile</option></select></div>
+              <div class="form-field"><label>Stato pratica</label><select><option>Aperta</option></select></div>
+              <div class="form-field"><label>Data apertura</label><input value="22/05/2026"></div>
+              <div class="form-field"><label>Fase</label><select><option>Istruttoria iniziale</option></select></div>
+              <div class="form-field wide"><label>Oggetto pratica</label><textarea>Titolo legale per successione e depositi presso Cassa depositi e prestiti.</textarea></div>
+              <div class="form-field wide"><label>Pratiche collegate</label><input value="406801 - codice ufficiale PST/XSD, selezionato da catalogo ministeriale locale"></div>
+            </div>
+          </article>
+
+          <aside class="side-stack">
+            <article class="panel">
+              <div class="panel-head"><strong>Presidio apertura</strong><span class="badge blue">PST/XSD</span></div>
+              <div class="panel-body">
+                <div class="side-note"><strong>Codice fascicolo</strong><span>Resta il codice ufficiale depositabile. La guida non crea codici paralleli.</span></div>
+                <div class="side-note"><strong>Guida pratica</strong><span>Si collega solo se l’avvocato vuole usarla. Nessun blocco sul lavoro ordinario.</span></div>
+              </div>
+            </article>
+            <article class="panel">
+              <div class="panel-head"><strong>Contesto economico</strong><span class="badge">previsto</span></div>
+              <div class="panel-body">
+                <div class="side-note"><strong>Preventivo e incarico</strong><span>Arrivano dal flusso economico e saranno letti dal fascicolo.</span></div>
+                <div class="side-note"><strong>Parcella</strong><span>Se presente, Lex e compilatore la considerano nel contesto.</span></div>
+              </div>
+            </article>
+          </aside>
+        </section>
+
+        <section class="screen workspace no-guide" data-screen="nascosta">
+          <aside class="guide-tab" aria-label="Guida pratica richiudibile">
+            <button type="button">GP</button>
+            <small>Guida pratica</small>
+          </aside>
+          <section class="content">
+            <article class="hero">
+              <div>
+                <div class="eyebrow">Fascicolo aperto</div>
+                <h2>Titolo legale successione e depositi CDP</h2>
+                <div class="sub">La guida è chiusa. Il fascicolo resta completamente operativo e il codice ufficiale resta quello del catalogo PST/XSD.</div>
+                <div class="badges"><span class="badge blue">Codice 406801</span><span class="badge">Guida facoltativa</span><span class="badge green">Nessun blocco</span></div>
+              </div>
+              <div class="actions"><button class="btn" type="button">Modifica</button><button class="btn primary" type="button">Apri documento</button></div>
+            </article>
+
+            <div class="closed-guide">
+              <div class="mark">GP</div>
+              <div><strong>Guida pratica nascosta</strong><br><span>Riattivabile a sinistra quando l’avvocato vuole controllare passaggi, termini o generare un documento assistito.</span></div>
+              <button class="btn primary" type="button">Apri guida</button>
+            </div>
+
+            <section class="grid">
+              <article class="panel">
+                <div class="panel-head"><strong>Sintesi fascicolo</strong><span class="badge green">dati fonte</span></div>
+                <div class="panel-body field-grid">
+                  <div class="field"><span>Cliente</span><strong>Erede richiedente</strong></div>
+                  <div class="field"><span>Parti</span><strong>CDP e interessati</strong></div>
+                  <div class="field"><span>Ufficio</span><strong>Tribunale competente</strong></div>
+                  <div class="field"><span>Economia</span><strong>Preventivo e incarico collegati</strong></div>
+                </div>
+              </article>
+              <aside class="panel">
+                <div class="panel-head"><strong>Lex</strong><span class="badge blue">attivo</span></div>
+                <div class="panel-body"><div class="side-note"><strong>Conoscenza pronta</strong><span>Anche con guida chiusa, Lex può leggere il fascicolo e la guida collegata quando serve rispondere all’avvocato.</span></div></div>
+              </aside>
+            </section>
+          </section>
+        </section>
+
+        <section class="screen workspace" data-screen="ora">
+          <aside class="guide-tab" aria-label="Comando guida">
+            <button type="button">GP</button>
+            <small>Guida pratica</small>
+          </aside>
+          <aside class="guide" aria-label="Guida pratica compatta">
+            <header class="guide-head">
+              <div class="guide-kicker"><span>Guida pratica</span><button class="btn" type="button" style="min-height:30px;padding:0 9px">Nascondi</button></div>
+              <h1>Titolo legale successione e depositi CDP</h1>
+              <p>Assiste la pratica, non sostituisce il fascicolo e non cambia il codice depositabile.</p>
+              <div class="badges"><span class="badge blue">406801 PST/XSD</span><span class="badge green">Guida curata</span><span class="badge">Facoltativa</span></div>
+            </header>
+            <nav class="guide-nav"><button class="active" type="button">Ora</button><button type="button">Contesto</button><button type="button">Termini</button><button type="button">Atto</button></nav>
+            <div class="guide-body">
+              <div class="now-card"><strong>Cosa fare adesso</strong><span>Controlla titolo successorio, documenti fondativi e termini. Se serve, genera il documento senza uscire dal fascicolo.</span></div>
+              <div class="guide-scroll">
+                <article class="section-card active"><div class="section-title"><strong>Contesto specialistico</strong><span>8 voci</span></div><ul class="mini-list"><li><strong>Tipologie di intervento</strong><span>istanza, verifica titolo, integrazione documentale</span></li><li><strong>Presupposti e legittimati</strong><span>qualità successoria, interesse concreto, documenti identificativi</span></li></ul></article>
+                <article class="section-card"><div class="section-title"><strong>Procedibilità e urgenza</strong><span>presidio</span></div><ul class="mini-list"><li><strong>Mediazione / negoziazione</strong><span>mostrata come verifica pratica, non blocco automatico</span></li><li><strong>Provvedimenti urgenti</strong><span>valutazione separata se emerge rischio attuale</span></li></ul></article>
+                <article class="section-card"><div class="section-title"><strong>Adempimenti e allegati</strong><span>10 voci</span></div><ul class="mini-list"><li><strong>Documenti richiesti</strong><span>titolo, certificati, documento identità, eventuale procura</span></li><li><strong>Passaggi preparatori</strong><span>competenza, parti, valore, contributo e deposito</span></li></ul></article>
+                <article class="section-card"><div class="section-title"><strong>Termini processuali</strong><span>5 voci</span></div><ul class="mini-list"><li><strong>Scadenze calcolabili</strong><span>portate nello scadenziario quando la data base è nel fascicolo</span></li><li><strong>Termini da verifica avvocato</strong><span>visibili come controllo, senza falsi automatismi</span></li></ul></article>
+              </div>
+            </div>
+            <footer class="guide-foot"><button class="btn primary" type="button">Genera documento</button><button class="btn" type="button">Mostra dettagli</button></footer>
+          </aside>
+          <section class="content">
+            <article class="hero"><div><div class="eyebrow">Fascicolo aperto</div><h2>Titolo legale successione e depositi CDP</h2><div class="sub">Il fascicolo rimane la pagina principale: la guida è un aiuto laterale, richiudibile e non bloccante.</div><div class="badges"><span class="badge gold">Istruttoria</span><span class="badge blue">Codice ufficiale 406801</span><span class="badge green">Lex legge fascicolo e guida</span></div></div><div class="actions"><button class="btn" type="button">Modifica</button><button class="btn" type="button">Quadro AI</button><button class="btn primary" type="button">Apri documento</button></div></article>
+            <section class="grid">
+              <article class="panel"><div class="panel-head"><strong>Dati del fascicolo usati dalla guida</strong><span class="badge green">fonte unica</span></div><div class="panel-body"><div class="field-grid"><div class="field"><span>Cliente</span><strong>Erede richiedente</strong></div><div class="field"><span>Parti</span><strong>CDP e soggetti interessati</strong></div><div class="field"><span>Ufficio</span><strong>Tribunale competente</strong></div><div class="field"><span>Oggetto pratica</span><strong>Titolo legale successorio</strong></div><div class="field"><span>Codice oggetto</span><strong>406801 ufficiale PST/XSD</strong></div><div class="field"><span>Valore</span><strong>Da preventivo o fascicolo</strong></div><div class="field"><span>Rito e fase</span><strong>Volontaria giurisdizione, istruttoria</strong></div><div class="field"><span>Economia pratica</span><strong>Preventivo, incarico, parcella se presente</strong></div></div><div class="note">La guida legge questi dati e segnala solo ciò che manca davvero nel fascicolo.</div></div></article>
+              <aside class="panel"><div class="panel-head"><strong>Lex</strong><span class="badge blue">arricchito</span></div><div class="panel-body side-stack"><div class="side-note"><strong>Conoscenza completa</strong><span>Lex legge guida, fascicolo, termini, allegati, template scelto e documento generato.</span></div><div class="side-note"><strong>Conversazionale</strong><span>Risponde all’avvocato in modo pratico: cosa fare, cosa manca, quali rischi controllare.</span></div><div class="side-note"><strong>Non invasivo</strong><span>Se la guida è nascosta, il fascicolo resta operativo.</span></div></div></aside>
+            </section>
+          </section>
+        </section>
+
+        <section class="screen workspace" data-screen="contesto">
+          <aside class="guide-tab"><button type="button">GP</button><small>Guida pratica</small></aside>
+          <aside class="guide">
+            <header class="guide-head"><div class="guide-kicker"><span>Guida pratica</span><button class="btn" style="min-height:30px;padding:0 9px" type="button">Nascondi</button></div><h1>Contesto e termini</h1><p>Mostra le voci nuove senza sommergere l’avvocato.</p><div class="badges"><span class="badge green">curata</span><span class="badge blue">Lex legge tutto</span></div></header>
+            <nav class="guide-nav"><button type="button">Ora</button><button class="active" type="button">Contesto</button><button type="button">Termini</button><button type="button">Atto</button></nav>
+            <div class="guide-body detail">
+              <div class="guide-scroll">
+                <article class="section-card active"><div class="section-title"><strong>Tipologie di intervento</strong><span>3</span></div><ul class="mini-list"><li><strong>Istanza principale</strong><span>richiesta titolo legale e verifica deposito CDP</span></li><li><strong>Integrazione documentale</strong><span>se certificati o qualità successoria non sono completi</span></li></ul></article>
+                <article class="section-card"><div class="section-title"><strong>Presupposti sostanziali</strong><span>3</span></div><ul class="mini-list"><li><strong>Qualità successoria</strong><span>documentata da certificati o atti equipollenti</span></li><li><strong>Interesse concreto</strong><span>collegato al deposito o alla somma da svincolare</span></li></ul></article>
+                <article class="section-card"><div class="section-title"><strong>Legittimati attivi</strong><span>2</span></div><ul class="mini-list"><li><strong>Erede o avente diritto</strong><span>anche tramite procuratore, se mandato presente</span></li><li><strong>Rappresentante</strong><span>con documentazione dei poteri</span></li></ul></article>
+                <article class="section-card"><div class="section-title"><strong>Termini processuali</strong><span>5</span></div><ul class="mini-list"><li><strong>Calcolabile</strong><span>entra nello scadenziario se la data base è valorizzata</span></li><li><strong>Da verifica avvocato</strong><span>resta visibile quando la regola dipende dal caso concreto</span></li></ul></article>
+              </div>
+            </div>
+            <footer class="guide-foot"><button class="btn primary" type="button">Apri scadenze</button><button class="btn" type="button">Fonti</button></footer>
+          </aside>
+          <section class="content">
+            <article class="hero"><div><div class="eyebrow">Contesto operativo</div><h2>Termini e voci specialistiche visibili</h2><div class="sub">Le voci integrate non restano nascoste nella KB: diventano controlli leggibili, con stato calcolabile o verifica avvocato.</div></div><div class="actions"><button class="btn" type="button">Aggiorna</button><button class="btn primary" type="button">Salva controlli</button></div></article>
+            <section class="grid">
+              <article class="panel"><div class="panel-head"><strong>Termini processuali</strong><span class="badge blue">importati nel DB</span></div><div class="panel-body terms-grid"><div class="term"><strong>Deposito integrazione</strong><span>calcolabile se data provvedimento presente</span><span class="badge green">calcolabile</span></div><div class="term"><strong>Opposizione o reclamo</strong><span>da verificare secondo atto e rito effettivo</span><span class="badge gold">verifica avvocato</span></div><div class="term"><strong>Comunicazione cancelleria</strong><span>decorrenza da evento nel fascicolo</span><span class="badge green">calcolabile</span></div><div class="term"><strong>Termine lungo</strong><span>presidio informativo, non automatismo cieco</span><span class="badge">informativo</span></div></div></article>
+              <aside class="panel"><div class="panel-head"><strong>Scadenziario</strong><span class="badge green">collegato</span></div><div class="panel-body side-stack"><div class="side-note"><strong>Se manca la data base</strong><span>il termine non diventa falso completato, resta da valorizzare nel fascicolo.</span></div><div class="side-note"><strong>Se è calcolabile</strong><span>la scadenza viene proposta allo scadenziario con fonte e audit.</span></div></div></aside>
+            </section>
+          </section>
+        </section>
+
+        <section class="screen workspace no-guide" data-screen="editor">
+          <aside class="guide-tab"><button type="button">GP</button><small>Guida sotto</small></aside>
+          <section class="content">
+            <article class="hero"><div><div class="eyebrow">Anteprima modifica</div><h2>Generazione documento assistita</h2><div class="sub">La finestra di anteprima non chiude la guida: l’avvocato modifica il documento e poi rientra nel fascicolo.</div></div><div class="actions"><button class="btn" type="button">Annulla</button><button class="btn success" type="button">Salva nel fascicolo</button></div></article>
+            <section class="panel">
+              <div class="panel-head"><strong>Editor documento in anteprima</strong><span class="badge blue">toolbar compatta</span></div>
+              <div class="panel-body editor-layout">
+                <div class="toolbar"><div class="tool">Setup</div><div class="tool">Pagine</div><div class="tool">Blocchi</div><div class="tool active">Testi</div><div class="tool">Aspetto</div><div class="tool">AI</div></div>
+                <div class="paper-preview">
+                  <div class="stamp">Studio Legale<br>Avv. titolare<br>Patrocinante in Cassazione: da Dati Studio</div>
+                  <h3>Istanza per titolo legale successorio</h3>
+                  <p>Il documento viene generato dal catalogo template usando cliente, parti, ufficio, oggetto, valore, rito, fase, preventivo e conferimento incarico già presenti nel fascicolo.</p>
+                  <p>L’avvocato può modificare testo, blocchi, impaginazione, riferimenti e allegati prima del salvataggio.</p>
+                  <p>Al salvataggio il documento rientra nei documenti fascicolo e aggiorna il passaggio della guida.</p>
+                </div>
+                <aside class="editor-side">
+                  <article class="section-card active"><div class="section-title"><strong>Dati letti</strong><span>fascicolo</span></div><ul class="mini-list"><li><strong>Cliente, parti, ufficio</strong><span>non richiesti di nuovo nel compilatore</span></li><li><strong>Preventivo e incarico</strong><span>disponibili per intestazioni e contesto economico</span></li></ul></article>
+                  <article class="section-card"><div class="section-title"><strong>Controlli guida</strong><span>live</span></div><ul class="mini-list"><li><strong>Atto principale</strong><span>collegato al template scelto</span></li><li><strong>Allegati</strong><span>se mancanti restano da controllare nel fascicolo</span></li></ul></article>
+                  <button class="btn primary" type="button">Salva e completa passaggio</button>
+                </aside>
+              </div>
+            </section>
+          </section>
+        </section>
+
+        <section class="screen workspace" data-screen="completato">
+          <aside class="guide-tab"><button type="button">GP</button><small>Guida pratica</small></aside>
+          <aside class="guide">
+            <header class="guide-head"><div class="guide-kicker"><span>Rientro nel fascicolo</span><button class="btn" style="min-height:30px;padding:0 9px" type="button">Nascondi</button></div><h1>Passaggi aggiornati</h1><p>Il documento è stato salvato, la guida marca il punto completato e il fascicolo resta principale.</p><div class="badges"><span class="badge green">documento completo</span><span class="badge blue">Lex aggiornato</span></div></header>
+            <nav class="guide-nav"><button class="active" type="button">Ora</button><button type="button">Contesto</button><button type="button">Termini</button><button type="button">Atto</button></nav>
+            <div class="guide-body">
+              <div class="now-card"><strong>Prossimo controllo</strong><span>Verifica allegati e termini prima dell’eventuale deposito. La guida resta di supporto, non sostituisce il controllo professionale.</span></div>
+              <div class="guide-scroll">
+                <article class="section-card active"><div class="section-title"><strong>Documento generato</strong><span>completo</span></div><ul class="mini-list"><li><strong>Istanza principale</strong><span>salvata nei documenti del fascicolo</span></li><li><strong>Template e modifiche</strong><span>tracciate per Lex e audit</span></li></ul></article>
+                <article class="section-card"><div class="section-title"><strong>Allegati</strong><span>da controllare</span></div><ul class="mini-list"><li><strong>Procura e certificati</strong><span>controllo finale prima del deposito</span></li></ul></article>
+              </div>
+            </div>
+            <footer class="guide-foot"><button class="btn primary" type="button">Apri allegati</button><button class="btn" type="button">Chiudi guida</button></footer>
+          </aside>
+          <section class="content">
+            <article class="hero"><div><div class="eyebrow">Fascicolo completato</div><h2>Documento salvato nel fascicolo</h2><div class="sub">Il codice ufficiale resta 406801. La guida ha aggiornato lo stato operativo, senza cambiare il flusso di deposito.</div><div class="badges"><span class="badge blue">406801 PST/XSD</span><span class="badge green">Documento presente</span><span class="badge gold">Allegati da controllare</span></div></div><div class="actions"><button class="btn" type="button">Fascicolo</button><button class="btn primary" type="button">Apri documento</button></div></article>
+            <section class="grid">
+              <article class="panel"><div class="panel-head"><strong>Documenti fascicolo</strong><span class="badge green">aggiornati</span></div><div class="panel-body document-list"><div class="doc"><div><strong>Istanza per titolo legale successorio</strong><br><span>Generata dal template e modificata in anteprima</span></div><span class="badge green">completa</span></div><div class="doc"><div><strong>Documenti fondativi</strong><br><span>Certificati, titolo e documenti identità</span></div><span class="badge gold">da controllare</span></div><div class="doc"><div><strong>Procura alle liti</strong><br><span>Da collegare se necessaria</span></div><span class="badge">verifica</span></div></div></article>
+              <aside class="panel"><div class="panel-head"><strong>Lex</strong><span class="badge blue">aggiornato</span></div><div class="panel-body side-stack"><div class="side-note"><strong>Inventario completo</strong><span>Lex conosce fascicolo, guida, template selezionato e documento salvato.</span></div><div class="side-note"><strong>Aiuto conversazionale</strong><span>Può spiegare cosa manca e proporre i prossimi controlli all’avvocato.</span></div></div></aside>
+            </section>
+          </section>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const buttons = Array.from(document.querySelectorAll('.screenbar button'));
+    const screens = Array.from(document.querySelectorAll('.screen'));
+
+    function activate(id) {
+      screens.forEach((screen) => screen.classList.toggle('active', screen.dataset.screen === id));
+      buttons.forEach((button) => button.classList.toggle('active', button.dataset.target === id));
+      if (location.hash.slice(1) !== id) history.replaceState(null, '', `#${id}`);
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener('click', () => activate(button.dataset.target));
+    });
+
+    const initial = location.hash.slice(1);
+    if (initial && screens.some((screen) => screen.dataset.screen === initial)) {
+      activate(initial);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "generated_at": "2026-05-22T12:19:40Z",
+  "dry_run": true,
+  "sources": [
+    "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set2_parte1.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set2_parte2.json"
+  ],
+  "records": 52,
+  "by_phase": {
+    "generico_da_classificare": 11,
+    "prescrizione_decadenza": 10,
+    "impugnazione": 9,
+    "notifica": 8,
+    "costituzione": 6,
+    "deposito": 4,
+    "procedimentale": 2,
+    "udienza": 1,
+    "adempimento_amministrativo": 1
+  },
+  "by_classification": {
+    "calcolabile_giorni": 41,
+    "informativo_non_calcolabile": 5,
+    "termine_lungo_o_prescrizione": 5,
+    "calcolabile_anni_da_verificare": 1
+  },
+  "calculable_templates": 41,
+  "csv": "artifacts\\guida-pratica\\termini-processuali-top9-set2-audit.csv",
+  "db": "D:\\legale\\IUSENTRA\\data\\scadenziario\\termini_processuali.json",
+  "import": null
+}

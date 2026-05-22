@@ -114,12 +114,18 @@ def default_timbro_payload(
     provincia = _clean(getattr(studio, "province", "") if studio else app_config.get("PCT_STUDIO_PROVINCE", ""))
     cap_citta = " ".join(part for part in [citta, f"({provincia})" if provincia else ""] if part).strip()
     ordine = _clean(getattr(studio, "ordine_avvocati", "") if studio else app_config.get("STUDIO_ORDINE_AVVOCATI", ""))
+    qualifica_professionale = _clean(
+        getattr(studio, "qualifica_professionale", "")
+        if studio
+        else app_config.get("PCT_STUDIO_QUALIFICA_PROFESSIONALE", "")
+    )
     numero_albo = _clean(
         getattr(studio, "numero_iscrizione_albo", "")
         if studio
         else app_config.get("STUDIO_NUMERO_ISCRIZIONE_ALBO", "")
     )
-    qualifiche = " - ".join(part for part in [ordine, f"n. {numero_albo}" if numero_albo else ""] if part)
+    qualifiche_albo = " - ".join(part for part in [ordine, f"n. {numero_albo}" if numero_albo else ""] if part)
+    qualifiche = qualifica_professionale or qualifiche_albo
     payload = {
         "studio_nome": _clean(getattr(studio, "nome", "") if studio else app_config.get("STUDIO_NOME", ""))
         or _clean(app_config.get("STUDIO_NOME", "")),

@@ -1,0 +1,995 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>IUSENTRA - Guida pratica e generazione documenti</title>
+    <style>
+      :root {
+        --nav: #172238;
+        --nav-soft: #26344f;
+        --page: #f4f6f3;
+        --paper: #fffdf8;
+        --paper-soft: #fbfaf6;
+        --ink: #172033;
+        --soft-ink: #4f5d76;
+        --muted: #6c778a;
+        --line: #dde5ef;
+        --line-strong: #c8d4e5;
+        --blue: #1f5fd4;
+        --blue-strong: #164da9;
+        --blue-soft: #edf4ff;
+        --gold: #9a6515;
+        --gold-soft: #fff7e3;
+        --green: #1d7554;
+        --green-soft: #e9f7f0;
+        --red: #a94333;
+        --red-soft: #fff0eb;
+        --shadow: 0 18px 54px rgba(23, 32, 51, 0.14);
+        font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        background: var(--page);
+      }
+
+      button,
+      input,
+      textarea {
+        font: inherit;
+      }
+
+      .app {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 236px 390px minmax(0, 1fr);
+      }
+
+      .sidebar {
+        background: var(--nav);
+        color: #eef3ff;
+        padding: 22px 18px;
+      }
+
+      .brand {
+        font-weight: 750;
+        margin-bottom: 24px;
+      }
+
+      .nav {
+        display: grid;
+        gap: 4px;
+      }
+
+      .nav div {
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        border-radius: 6px;
+        color: #cbd6e9;
+        font-size: 14px;
+      }
+
+      .nav .active {
+        background: var(--nav-soft);
+        color: #fbfdff;
+      }
+
+      .guide {
+        min-height: 100vh;
+        background: var(--paper);
+        border-right: 1px solid var(--line-strong);
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        position: sticky;
+        top: 0;
+      }
+
+      .guide-head {
+        padding: 18px 18px 14px;
+        border-bottom: 1px solid var(--line);
+        background: linear-gradient(180deg, #fffdf8 0%, #f7fbff 100%);
+      }
+
+      .kicker {
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 10px;
+      }
+
+      .guide h1,
+      .workspace h1 {
+        margin: 0;
+        line-height: 1.2;
+      }
+
+      .guide h1 {
+        font-size: 20px;
+      }
+
+      .guide-text {
+        margin: 8px 0 0;
+        color: var(--soft-ink);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 12px;
+      }
+
+      .badge {
+        min-height: 24px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 8px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #fbfdff;
+        color: var(--soft-ink);
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .badge.green {
+        color: var(--green);
+        background: var(--green-soft);
+        border-color: #bfe1d0;
+      }
+
+      .badge.gold {
+        color: #81500c;
+        background: var(--gold-soft);
+        border-color: #ecd398;
+      }
+
+      .guide-body {
+        padding: 14px 16px;
+        overflow: auto;
+      }
+
+      .guide-card,
+      .task,
+      .mini-progress {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfdff;
+      }
+
+      .guide-card {
+        padding: 13px;
+        border-color: #bdd0ef;
+        background: #f7fbff;
+        margin-bottom: 12px;
+      }
+
+      .guide-card small {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 750;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+      }
+
+      .guide-card strong {
+        font-size: 14px;
+        line-height: 1.35;
+      }
+
+      .mini-progress {
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+
+      .mini-progress header {
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 9px;
+      }
+
+      .meter {
+        height: 8px;
+        border-radius: 999px;
+        background: #edf1f6;
+        overflow: hidden;
+      }
+
+      .meter span {
+        display: block;
+        width: 31%;
+        height: 100%;
+        background: var(--blue);
+      }
+
+      .task-list {
+        display: grid;
+        gap: 9px;
+      }
+
+      .task {
+        padding: 10px;
+      }
+
+      .task.done {
+        border-color: #bfe1d0;
+        background: #f3fbf7;
+      }
+
+      .task.open {
+        border-color: #bdd0ef;
+        background: #f7fbff;
+      }
+
+      .task-title {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 13px;
+        font-weight: 760;
+      }
+
+      .task p {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .task-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .guide-foot {
+        margin-top: auto;
+        padding: 12px 16px;
+        border-top: 1px solid var(--line);
+        background: #fbfdff;
+      }
+
+      .workspace {
+        min-width: 0;
+        padding: 26px 32px 42px;
+        position: relative;
+      }
+
+      .case-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+        margin-bottom: 16px;
+      }
+
+      .workspace h1 {
+        font-size: 24px;
+      }
+
+      .meta,
+      .field span,
+      .note,
+      .doc-meta,
+      .step-meta {
+        color: var(--muted);
+      }
+
+      .meta {
+        margin-top: 8px;
+        font-size: 14px;
+      }
+
+      .case-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        min-height: 38px;
+        padding: 0 14px;
+        border-radius: 6px;
+        border: 1px solid var(--line-strong);
+        background: #fbfdff;
+        color: var(--ink);
+        cursor: pointer;
+      }
+
+      .btn.primary {
+        border-color: var(--blue-strong);
+        background: var(--blue);
+        color: #fbfdff;
+      }
+
+      .btn.ghost {
+        background: var(--paper-soft);
+      }
+
+      .btn.small {
+        min-height: 32px;
+        padding: 0 10px;
+        font-size: 12px;
+      }
+
+      .case-shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+        gap: 18px;
+        align-items: start;
+      }
+
+      .section {
+        background: var(--paper-soft);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 16px;
+      }
+
+      .section + .section {
+        margin-top: 14px;
+      }
+
+      .section h2 {
+        margin: 0 0 12px;
+        font-size: 16px;
+      }
+
+      .field-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .field {
+        min-height: 62px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fbfdff;
+        padding: 10px 12px;
+      }
+
+      .field span {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+      }
+
+      .field strong {
+        font-size: 14px;
+      }
+
+      .doc-list,
+      .step-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 9px;
+      }
+
+      .doc-list li,
+      .step-list li {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fbfdff;
+        padding: 10px 12px;
+      }
+
+      .doc-title,
+      .step-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 14px;
+        font-weight: 740;
+      }
+
+      .doc-meta,
+      .step-meta {
+        margin-top: 5px;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        min-height: 23px;
+        padding: 0 8px;
+        border-radius: 999px;
+        background: var(--gold-soft);
+        color: var(--gold);
+        font-size: 12px;
+        font-weight: 650;
+        white-space: nowrap;
+      }
+
+      .status.ok {
+        background: var(--green-soft);
+        color: var(--green);
+      }
+
+      .generator {
+        display: none;
+        position: fixed;
+        inset: 24px 24px 24px auto;
+        width: min(960px, calc(100vw - 270px));
+        z-index: 8;
+        background: #fbfdff;
+        border: 1px solid var(--line-strong);
+        border-radius: 10px;
+        box-shadow: 0 28px 90px rgba(23, 32, 51, 0.22);
+        overflow: hidden;
+      }
+
+      body.state-generate .generator,
+      body.state-complete .generator {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+
+      .generator-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 16px 18px;
+        border-bottom: 1px solid var(--line);
+        background: #fffdf8;
+      }
+
+      .generator-title {
+        margin: 0;
+        font-size: 19px;
+        line-height: 1.25;
+      }
+
+      .generator-body {
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 340px minmax(0, 1fr);
+        gap: 0;
+      }
+
+      .generator-form {
+        min-height: 0;
+        overflow: auto;
+        padding: 16px;
+        border-right: 1px solid var(--line);
+        background: var(--paper-soft);
+      }
+
+      .generator-form h3,
+      .preview-pane h3 {
+        margin: 0 0 12px;
+        font-size: 15px;
+      }
+
+      .resolved-grid,
+      .verification-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .resolved-card {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fbfdff;
+        padding: 9px 10px;
+      }
+
+      .resolved-card span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .resolved-card strong {
+        display: block;
+        margin-top: 5px;
+        font-size: 14px;
+        line-height: 1.35;
+      }
+
+      .verification-list {
+        margin-top: 12px;
+      }
+
+      .verification-item {
+        border: 1px solid #eccb92;
+        border-radius: 6px;
+        background: #fffaf0;
+        padding: 9px 10px;
+        color: #694307;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .complete-box {
+        display: none;
+        margin: 12px 0;
+        border: 1px solid #bfe1d0;
+        border-radius: 8px;
+        background: #f3fbf7;
+        padding: 12px;
+        color: var(--green);
+        font-size: 13px;
+        line-height: 1.4;
+      }
+
+      .catalog-box {
+        border: 1px solid #bdd0ef;
+        border-radius: 8px;
+        background: #f7fbff;
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+
+      .catalog-box strong,
+      .catalog-box span {
+        display: block;
+      }
+
+      .catalog-box strong {
+        font-size: 13px;
+      }
+
+      .catalog-box span {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .catalog-split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        margin-top: 10px;
+      }
+
+      .catalog-split div {
+        min-height: 36px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fbfdff;
+        padding: 6px 8px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      body.state-complete .complete-box {
+        display: block;
+      }
+
+      .preview-pane {
+        min-height: 0;
+        overflow: auto;
+        padding: 18px;
+        background: #eef2f7;
+      }
+
+      .a4 {
+        width: 595px;
+        min-height: 842px;
+        margin: 0 auto;
+        background: #fffffb;
+        box-shadow: 0 12px 34px rgba(23, 32, 51, 0.22);
+        padding: 16px 78px 54px;
+        font-family: "Times New Roman", Times, serif;
+        color: #111111;
+      }
+
+      .studio-head {
+        text-align: center;
+        line-height: 1.02;
+        margin-bottom: 74px;
+      }
+
+      .studio-head .studio {
+        font-size: 21px;
+        font-weight: 700;
+      }
+
+      .studio-head .lawyer {
+        font-size: 16px;
+        font-weight: 700;
+        font-style: italic;
+      }
+
+      .studio-head .small {
+        font-size: 12px;
+      }
+
+      .court {
+        text-align: center;
+        font-size: 25px;
+        font-weight: 700;
+        margin-bottom: 16px;
+      }
+
+      .act-title {
+        text-align: center;
+        font-size: 19px;
+        font-weight: 700;
+        font-style: italic;
+        margin-bottom: 22px;
+      }
+
+      .doc-body {
+        font-size: 18px;
+        line-height: 2.05;
+        text-align: justify;
+      }
+
+      .doc-body h4 {
+        text-align: center;
+        margin: 10px 0 4px;
+        font-size: 24px;
+      }
+
+      .doc-body .fill {
+        color: #111111;
+        text-decoration: none;
+      }
+
+      .doc-footer {
+        margin-top: 34px;
+        display: flex;
+        justify-content: space-between;
+        gap: 30px;
+        font-size: 16px;
+      }
+
+      .backdrop-note {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        display: none;
+        background: rgba(23, 32, 51, 0.08);
+        z-index: 7;
+      }
+
+      body.state-generate .backdrop-note,
+      body.state-complete .backdrop-note {
+        display: block;
+      }
+
+      body.state-complete .task.open {
+        border-color: #bfe1d0;
+        background: #f3fbf7;
+      }
+
+      body.state-complete .task.open .pending-label {
+        display: none;
+      }
+
+      body.state-complete .task.open .complete-label {
+        display: inline-flex;
+      }
+
+      .complete-label {
+        display: none;
+      }
+
+      @media (max-width: 1280px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          display: none;
+        }
+
+        .guide {
+          position: relative;
+          min-height: auto;
+        }
+
+        .generator {
+          inset: 16px;
+          width: auto;
+        }
+
+        .case-shell,
+        .generator-body {
+          grid-template-columns: 1fr;
+        }
+
+        .generator-form {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+          max-height: 300px;
+        }
+      }
+    </style>
+  </head>
+  <body class="state-generate">
+    <main class="app">
+      <aside class="sidebar" aria-label="Navigazione studio">
+        <div class="brand">IUSENTRA</div>
+        <nav class="nav">
+          <div>Panoramica</div>
+          <div class="active">Fascicoli</div>
+          <div>Documenti</div>
+          <div>Redazione atti</div>
+          <div>Lex</div>
+        </nav>
+      </aside>
+
+      <aside class="guide" aria-label="Guida pratica">
+        <header class="guide-head">
+          <div class="kicker">Piano assistito della pratica</div>
+          <h1>Vendita di cose immobili</h1>
+          <p class="guide-text">La guida resta aperta mentre l'avvocato genera i documenti richiesti. Ogni documento completato aggiorna lo stato della pratica.</p>
+          <div class="badge-row">
+            <span class="badge">Uso facoltativo</span>
+            <span class="badge gold">Scheda 140011</span>
+            <span class="badge green">Guida curata</span>
+          </div>
+        </header>
+
+        <div class="guide-body">
+          <section class="guide-card">
+            <small>Prima cosa da fare</small>
+            <strong>Completa il quadro contrattuale, poi genera l'atto principale con il modello uniforme dello studio.</strong>
+          </section>
+
+          <section class="mini-progress">
+            <header>
+              <span>Avanzamento pratica</span>
+              <strong>5/16</strong>
+            </header>
+            <div class="meter"><span></span></div>
+          </section>
+
+          <div class="task-list">
+            <section class="task done">
+              <div class="task-title">
+                <span>Contratto preliminare</span>
+                <span class="status ok">completo</span>
+              </div>
+              <p>Documento fondativo già collegato al fascicolo.</p>
+            </section>
+
+            <section class="task open">
+              <div class="task-title">
+                <span>Atto di citazione</span>
+                <span class="status pending-label">da generare</span>
+                <span class="status ok complete-label">completo</span>
+              </div>
+              <p>Voce presa dal catalogo template: CIV_ORD_005, rafforzata con guida pratica, fonti e layout uniforme dello studio.</p>
+              <div class="task-actions">
+                <button class="btn small primary" type="button" onclick="setState('generate')">Genera</button>
+                <button class="btn small" type="button">Vedi fonti</button>
+              </div>
+            </section>
+
+            <section class="task">
+              <div class="task-title">
+                <span>Procura alle liti</span>
+                <span class="status">da verificare</span>
+              </div>
+              <p>Può essere prodotta dallo stesso motore di template o allegata se già firmata.</p>
+            </section>
+
+            <section class="task">
+              <div class="task-title">
+                <span>Nota iscrizione e allegati</span>
+                <span class="status">da controllare</span>
+              </div>
+              <p>Promemoria operativo collegato al deposito, senza blocchi automatici arbitrari.</p>
+            </section>
+          </div>
+        </div>
+
+        <footer class="guide-foot">
+          <button class="btn ghost" type="button">Nascondi guida</button>
+        </footer>
+      </aside>
+
+      <section class="workspace">
+        <header class="case-top">
+          <div>
+            <div class="kicker">Fascicolo / Civile / Pratica</div>
+            <h1>Vendita di cose immobili</h1>
+            <div class="meta">Il fascicolo resta sotto il flusso guidato: dati, parti, documenti, scadenze e Lex non vengono sostituiti.</div>
+          </div>
+          <div class="case-actions">
+            <button class="btn">Nuova attività</button>
+            <button class="btn primary">Salva fascicolo</button>
+          </div>
+        </header>
+
+        <div class="case-shell">
+          <div>
+            <section class="section">
+              <h2>Dati già presenti nel fascicolo</h2>
+              <div class="field-grid">
+                <div class="field">
+                  <span>Ufficio</span>
+                  <strong>Tribunale di Palmi</strong>
+                </div>
+                <div class="field">
+                  <span>Cliente</span>
+                  <strong>Crocitti Giovanni</strong>
+                </div>
+                <div class="field">
+                  <span>Oggetto</span>
+                  <strong>Risoluzione contratto immobiliare</strong>
+                </div>
+                <div class="field">
+                  <span>Template suggerito</span>
+                  <strong>CIV_ORD_005, atto di citazione per risoluzione contrattuale</strong>
+                </div>
+              </div>
+            </section>
+
+            <section class="section">
+              <h2>Documenti fascicolo</h2>
+              <ul class="doc-list">
+                <li>
+                  <div class="doc-title">
+                    <span>Contratto preliminare</span>
+                    <span class="status ok">presente</span>
+                  </div>
+                  <div class="doc-meta">Fonte disponibile per precompilazione e controllo Lex.</div>
+                </li>
+                <li>
+                  <div class="doc-title">
+                    <span>Atto di citazione</span>
+                    <span class="status">in generazione</span>
+                  </div>
+                  <div class="doc-meta">Sarà salvato nel fascicolo quando l'avvocato conferma.</div>
+                </li>
+              </ul>
+            </section>
+          </div>
+
+          <aside>
+            <section class="section">
+              <h2>Come lavora il piano assistito</h2>
+              <ul class="step-list">
+                <li>
+                  <div class="step-title">1. Catalogo template</div>
+                  <div class="step-meta">La guida interroga il catalogo master e propone i template coerenti con materia, rito e fase.</div>
+                </li>
+                <li>
+                  <div class="step-title">2. Finestra di generazione</div>
+                  <div class="step-meta">Si apre sopra il fascicolo, senza chiudere la guida.</div>
+                </li>
+                <li>
+                  <div class="step-title">3. Template uniforme</div>
+                  <div class="step-meta">Il documento usa sempre l'impaginazione del modello PDF.</div>
+                </li>
+                <li>
+                  <div class="step-title">4. Rientro nella guida</div>
+                  <div class="step-meta">Alla conferma, il documento è salvato e la voce diventa completa.</div>
+                </li>
+              </ul>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <div class="backdrop-note" aria-hidden="true"></div>
+
+      <section class="generator" aria-label="Generazione documento">
+        <header class="generator-head">
+          <div>
+            <div class="kicker">Documento richiesto dalla guida pratica</div>
+            <h2 class="generator-title">Genera atto di citazione per risoluzione contrattuale</h2>
+            <div class="meta">Template CIV_ORD_005 · layout uniforme dello studio · precompilazione dal fascicolo</div>
+          </div>
+          <div class="case-actions">
+            <button class="btn" type="button">Salva bozza</button>
+            <button class="btn primary" type="button" onclick="setState('complete')">Conferma documento</button>
+          </div>
+        </header>
+
+        <div class="generator-body">
+          <aside class="generator-form">
+            <div class="catalog-box">
+              <strong>Catalogo template collegato</strong>
+              <span>420 template master, con binding al compilatore operativo. Il modello selezionato eredita layout, campi, fonti e controlli della guida pratica.</span>
+              <div class="catalog-split">
+                <div>Core<br /><strong>122</strong></div>
+                <div>Advanced<br /><strong>186</strong></div>
+                <div>Specialist<br /><strong>92</strong></div>
+                <div>Studio interno<br /><strong>20</strong></div>
+              </div>
+            </div>
+            <h3>Dati letti dal fascicolo</h3>
+            <div class="complete-box">Documento generato e collegato al fascicolo. La guida pratica segna l'atto come completo.</div>
+            <div class="resolved-grid">
+              <div class="resolved-card">
+                <span>Ufficio giudiziario</span>
+                <strong>Tribunale di Palmi</strong>
+              </div>
+              <div class="resolved-card">
+                <span>Parte assistita</span>
+                <strong>Crocitti Giovanni</strong>
+              </div>
+              <div class="resolved-card">
+                <span>Controparte</span>
+                <strong>Da scheda fascicolo: Comune di Taurianova</strong>
+              </div>
+              <div class="resolved-card">
+                <span>Domanda principale</span>
+                <strong>Risoluzione del contratto e conseguenze di legge</strong>
+              </div>
+              <div class="resolved-card">
+                <span>Documenti richiamati</span>
+                <strong>Contratto, comunicazioni, prova del pagamento, eventuali diffide</strong>
+              </div>
+            </div>
+            <div class="verification-list">
+              <div class="verification-item">Se un dato manca, il generatore non lo chiede qui: apre la sezione corretta del fascicolo.</div>
+              <div class="verification-item">L'avvocato conferma l'atto solo dopo aver visto anteprima e fonti della Guida Pratica.</div>
+            </div>
+          </aside>
+
+          <section class="preview-pane">
+            <h3>Anteprima impaginazione</h3>
+            <article class="a4">
+              <header class="studio-head">
+                <div class="studio">STUDIO LEGALE MONTAGNESE</div>
+                <div class="lawyer">Avvocato Roberto Montagnese</div>
+                <div class="lawyer">Patrocinante in Cassazione</div>
+                <div class="small">Via N. Bixio, 4 - Tel e Fax 0966 - 611363</div>
+                <div class="small">89029 TAURIANOVA (RC)</div>
+                <div class="small">Cod. Fisc. MNT RRT 64L01 L063H</div>
+                <div class="small">Partita IVA 01301790802</div>
+                <div class="small">PEC: roberto.montagnese@coapalmi.legalmail.it</div>
+              </header>
+
+              <div class="court"><span class="fill">Tribunale di Palmi</span></div>
+              <div class="act-title">Atto di citazione</div>
+
+              <section class="doc-body">
+                <p><strong><span class="fill">Crocitti Giovanni</span></strong>, rappresentato e difeso dall'Avv. Roberto Montagnese, con procura allegata al presente atto ed elettivamente domiciliato presso il di lui studio, espone quanto segue.</p>
+                <h4>Premesse</h4>
+                <p>In data risultante dagli atti di causa le parti concludevano contratto avente a oggetto il rapporto indicato nel fascicolo. La parte convenuta si rendeva inadempiente secondo quanto risulta dai documenti allegati.</p>
+                <h4>Motivi</h4>
+                <p>La domanda è proposta per ottenere la risoluzione del contratto, le restituzioni e ogni conseguenza di legge, nei limiti delle conclusioni che l'avvocato confermerà.</p>
+                <h4>Conclusioni</h4>
+                <p>Piaccia all'Ill.mo Tribunale adito accogliere le domande formulate, con vittoria di spese e competenze.</p>
+              </section>
+
+              <footer class="doc-footer">
+                <span>Taurianova, data da fascicolo</span>
+                <span>Avv. Roberto Montagnese</span>
+              </footer>
+            </article>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      function setState(name) {
+        document.body.classList.remove("state-generate", "state-complete");
+        document.body.classList.add(`state-${name}`);
+      }
+
+      const initial = window.location.hash.replace("#", "") || "generate";
+      setState(["generate", "complete"].includes(initial) ? initial : "generate");
+    </script>
+  </body>
+</html>

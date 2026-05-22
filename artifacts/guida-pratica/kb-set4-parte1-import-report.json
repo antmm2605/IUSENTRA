@@ -1,0 +1,15 @@
+{
+  "source": "C:\\Users\\antmm\\OneDrive\\Desktop\\guida avvocato\\kb_top9_set4_parte1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set4_parte1.json",
+  "sha256": "F7AA800217AD1E8A1921DE544117FD35288865EE410D5F2A759F26B6A3CE9A88",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET4_PARTE1",
+  "denominazione": "Quarto set di 9 codici - PARTE 1 di 2 (revocazione 395, petizione eredità, servitù coattiva, risoluzione appalto, responsabilità avvocato)",
+  "codici_materia": [
+    "101001",
+    "120010",
+    "130041",
+    "140001",
+    "143001"
+  ],
+  "termini_processuali_raw": 27
+}

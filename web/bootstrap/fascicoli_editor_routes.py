@@ -278,6 +278,74 @@ def register_fascicoli_editor_routes(
             app.logger.exception("Errore api_editor_pdf: %s", exc)
             return "Generazione PDF non completata.", 500
 
+    @app.route("/api/editor/<id_fasc>/<id_doc>/importa", methods=["POST"])
+    def api_editor_importa(id_fasc, id_doc):
+        gestore_fascicoli = get_fascicoli()
+        utente = getattr(g, "utente_corrente", None)
+        try:
+            storage = request.files.get("documento") or request.files.get("file")
+            if not storage or not getattr(storage, "filename", ""):
+                return jsonify({"ok": False, "messaggio": "Seleziona un documento PDF, Word, HTML o testo."}), 400
+            filename = str(storage.filename or "").strip()
+            extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+            allowed = {"pdf", "docx", "doc", "html", "htm", "txt", "md"}
+            if extension not in allowed:
+                return jsonify({"ok": False, "messaggio": "Formato non supportato dall'anteprima editor."}), 400
+            raw = storage.read()
+            if not raw:
+                return jsonify({"ok": False, "messaggio": "Il documento selezionato è vuoto."}), 400
+            fascicolo = gestore_fascicoli.get(id_fasc)
+            if not fascicolo:
+                return jsonify({"ok": False, "messaggio": "Fascicolo non trovato."}), 404
+            documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
+            if not documento:
+                return jsonify({"ok": False, "messaggio": "Documento non trovato."}), 404
+            if getattr(documento, "firmato_digitalmente", False) or str(getattr(documento, "nome", "")).lower().endswith(".p7m"):
+                return jsonify({"ok": False, "messaggio": "Documento firmato: usa la funzione di sostituzione controllata dal fascicolo."}), 400
+
+            doc_salvato = gestore_fascicoli.sostituisci_documento(
+                id_fasc,
+                id_doc,
+                nome_file=filename,
+                contenuto=encrypt_doc(raw),
+                caricato_da=utente.username if utente else "editor",
+                note="Importato nell'anteprima editor",
+            )
+            accoda_ocr(
+                percorso=str(gestore_fascicoli.percorso_documento(id_fasc, doc_salvato.id)),
+                hash_sha256=doc_salvato.hash_sha256,
+                id_fasc=id_fasc,
+                id_doc=doc_salvato.id,
+                nome_doc=doc_salvato.nome,
+                tipo_doc=doc_salvato.tipo.value,
+                index_path=_cfg_data_path("SEARCH_INDEX"),
+            )
+            _indicizza_salvataggio_editor(
+                id_fasc=id_fasc,
+                document_id=doc_salvato.id,
+                filename=filename,
+                content=raw,
+            )
+            audit("fascicoli.documento.editor_importa", "fascicolo", id_fasc, dettagli=f"doc {id_doc} - {filename}")
+            editable_after_import = extension in {"docx", "html", "htm", "txt", "md"}
+            message = (
+                "Documento importato: puoi modificarlo nell'anteprima."
+                if editable_after_import
+                else "PDF importato e collegato: resta salvabile come originale se non convertibile in modo affidabile."
+            )
+            return jsonify(
+                {
+                    "ok": True,
+                    "message": message,
+                    "messaggio": message,
+                    "documento": {"id": doc_salvato.id, "nome": doc_salvato.nome, "editable": editable_after_import},
+                    "reload": True,
+                }
+            )
+        except Exception as exc:
+            app.logger.exception("Errore api_editor_importa: %s", exc)
+            return jsonify({"ok": False, "messaggio": "Documento non importato nell'editor."}), 500
+
     @app.route("/api/editor/<id_fasc>/<id_doc>/docx", methods=["POST"])
     def api_editor_docx(id_fasc, id_doc):
         from pct.editor import html_to_docx

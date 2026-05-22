@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>IUSENTRA - Anteprima Guida Pratica</title>
+    <style>
+      :root {
+        --bg: #f6f7f4;
+        --surface: #fbfaf6;
+        --panel: #fffdf8;
+        --ink: #172033;
+        --muted: #677087;
+        --line: #dfe5ee;
+        --line-strong: #c9d3e3;
+        --blue: #1f5fd4;
+        --blue-quiet: #eaf1ff;
+        --gold: #b7791f;
+        --gold-quiet: #fff6df;
+        --green: #1f7a55;
+        --green-quiet: #e7f6ef;
+        --danger: #a33b2b;
+        --danger-quiet: #fff0eb;
+        --shadow: 0 18px 50px rgba(23, 32, 51, 0.14);
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        background: var(--bg);
+      }
+
+      .app {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 248px minmax(0, 1fr);
+      }
+
+      .sidebar {
+        background: #18243a;
+        color: #eef3ff;
+        padding: 22px 18px;
+      }
+
+      .brand {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0;
+        margin-bottom: 22px;
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 38px;
+        padding: 0 12px;
+        border-radius: 6px;
+        color: #c8d3e6;
+        font-size: 14px;
+      }
+
+      .nav-item.active {
+        background: rgba(255, 255, 255, 0.12);
+        color: #ffffff;
+      }
+
+      .content {
+        position: relative;
+        padding: 28px 34px 42px;
+        overflow: hidden;
+      }
+
+      .page-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 18px;
+      }
+
+      .breadcrumb {
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 24px;
+        line-height: 1.2;
+        letter-spacing: 0;
+      }
+
+      .case-meta {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      button,
+      .button {
+        border: 1px solid var(--line-strong);
+        background: var(--surface);
+        color: var(--ink);
+        min-height: 38px;
+        padding: 0 14px;
+        border-radius: 6px;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .button.primary {
+        border-color: #174db1;
+        background: var(--blue);
+        color: #f9fbff;
+      }
+
+      .case-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.45fr) minmax(330px, 0.55fr);
+        gap: 18px;
+      }
+
+      .section {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 18px;
+      }
+
+      .section + .section {
+        margin-top: 14px;
+      }
+
+      .section h2 {
+        margin: 0 0 12px;
+        font-size: 16px;
+        line-height: 1.3;
+      }
+
+      .field-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .field {
+        border: 1px solid var(--line);
+        background: #ffffff;
+        border-radius: 6px;
+        min-height: 58px;
+        padding: 10px 12px;
+      }
+
+      .field label {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 6px;
+      }
+
+      .field strong {
+        font-size: 14px;
+      }
+
+      .right-card {
+        display: grid;
+        gap: 10px;
+      }
+
+      .status-line {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .guide-dock {
+        position: absolute;
+        left: 18px;
+        top: 118px;
+        z-index: 7;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 214px;
+        min-height: 46px;
+        border: 1px solid #c6d5f0;
+        background: #f8fbff;
+        color: var(--ink);
+        border-radius: 0 8px 8px 0;
+        padding: 8px 10px;
+        box-shadow: 0 8px 24px rgba(31, 95, 212, 0.12);
+      }
+
+      .dock-icon {
+        display: grid;
+        place-items: center;
+        flex: 0 0 28px;
+        height: 28px;
+        border-radius: 6px;
+        background: var(--blue-quiet);
+        color: var(--blue);
+      }
+
+      .dock-copy {
+        min-width: 0;
+      }
+
+      .dock-copy strong {
+        display: block;
+        font-size: 13px;
+        line-height: 1.2;
+      }
+
+      .dock-copy span {
+        display: block;
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .drawer-scrim {
+        position: absolute;
+        inset: 0;
+        background: rgba(23, 32, 51, 0.08);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 180ms ease-out;
+        z-index: 8;
+      }
+
+      .guide-panel {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 9;
+        width: min(430px, calc(100vw - 24px));
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background: var(--panel);
+        border-right: 1px solid var(--line-strong);
+        box-shadow: var(--shadow);
+        transform: translateX(-104%);
+        transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      body.guide-open .drawer-scrim {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      body.guide-open .guide-panel {
+        transform: translateX(0);
+      }
+
+      .guide-top {
+        padding: 18px 18px 14px;
+        border-bottom: 1px solid var(--line);
+        background: linear-gradient(180deg, #fffdf8, #f8fbff);
+      }
+
+      .guide-kicker {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .guide-title {
+        margin: 0;
+        font-size: 19px;
+        line-height: 1.25;
+      }
+
+      .guide-subtitle {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 12px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 8px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: #ffffff;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .badge.green {
+        color: var(--green);
+        background: var(--green-quiet);
+        border-color: #bfe2d0;
+      }
+
+      .badge.gold {
+        color: #8a570e;
+        background: var(--gold-quiet);
+        border-color: #efd59b;
+      }
+
+      .guide-body {
+        padding: 14px 16px 18px;
+        overflow: auto;
+      }
+
+      .next-action {
+        border: 1px solid #bfd0ef;
+        background: #f7faff;
+        border-radius: 8px;
+        padding: 13px;
+        margin-bottom: 12px;
+      }
+
+      .next-action span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 650;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        margin-bottom: 5px;
+      }
+
+      .next-action strong {
+        display: block;
+        font-size: 14px;
+        line-height: 1.35;
+      }
+
+      .progress-card {
+        border: 1px solid var(--line);
+        background: #ffffff;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+
+      .progress-card header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 9px;
+      }
+
+      .meter {
+        height: 8px;
+        background: #edf1f6;
+        border-radius: 99px;
+        overflow: hidden;
+      }
+
+      .meter span {
+        display: block;
+        width: 18%;
+        height: 100%;
+        background: var(--blue);
+      }
+
+      .guide-tabs {
+        position: sticky;
+        top: -14px;
+        z-index: 2;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 6px;
+        padding: 8px 0 10px;
+        background: var(--panel);
+      }
+
+      .guide-tabs button {
+        min-height: 34px;
+        padding: 0 8px;
+        border-radius: 6px;
+        font-size: 13px;
+      }
+
+      .guide-tabs button.active {
+        background: var(--blue);
+        border-color: var(--blue);
+        color: #ffffff;
+      }
+
+      .guide-group {
+        border: 1px solid var(--line);
+        background: #ffffff;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 10px;
+      }
+
+      .guide-group h3 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 10px;
+        font-size: 14px;
+      }
+
+      .guide-list {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .guide-list li {
+        display: grid;
+        grid-template-columns: 22px minmax(0, 1fr);
+        gap: 8px;
+        align-items: start;
+        min-height: 38px;
+        padding: 8px;
+        border: 1px solid #edf0f4;
+        border-radius: 6px;
+        background: #fcfcfb;
+        font-size: 13px;
+        line-height: 1.35;
+      }
+
+      .guide-list li.warning {
+        border-color: #efcf9d;
+        background: #fffaf0;
+      }
+
+      .guide-list li.danger {
+        border-color: #e6b5aa;
+        background: var(--danger-quiet);
+      }
+
+      .mark {
+        display: grid;
+        place-items: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 5px;
+        border: 1px solid var(--line-strong);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .warning .mark {
+        border-color: #dbad68;
+        color: var(--gold);
+      }
+
+      .danger .mark {
+        border-color: #c77b6d;
+        color: var(--danger);
+      }
+
+      .guide-foot {
+        margin-top: auto;
+        padding: 12px 16px;
+        border-top: 1px solid var(--line);
+        background: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .guide-foot small {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .close {
+        min-width: 38px;
+        padding: 0;
+      }
+
+      .preview-note {
+        margin-top: 16px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      @media (max-width: 980px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          display: none;
+        }
+
+        .case-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .content {
+          padding: 22px 18px 34px;
+        }
+
+        .guide-dock {
+          position: sticky;
+          top: 0;
+          left: 0;
+          margin-bottom: 14px;
+          border-radius: 8px;
+        }
+      }
+    </style>
+  </head>
+  <body class="guide-open">
+    <main class="app">
+      <aside class="sidebar" aria-label="Navigazione studio">
+        <div class="brand">IUSENTRA</div>
+        <div class="nav-item">Panoramica</div>
+        <div class="nav-item active">Fascicoli</div>
+        <div class="nav-item">Clienti</div>
+        <div class="nav-item">Scadenze</div>
+        <div class="nav-item">Redazione atti</div>
+      </aside>
+
+      <section class="content">
+        <button class="guide-dock" type="button" aria-label="Apri Guida Pratica" onclick="openGuide()">
+          <span class="dock-icon" aria-hidden="true">□</span>
+          <span class="dock-copy">
+            <strong>Guida pratica</strong>
+            <span>3/16 controlli, uso facoltativo</span>
+          </span>
+        </button>
+
+        <div class="page-head">
+          <div>
+            <div class="breadcrumb">Fascicoli / Civile / Pratica</div>
+            <h1>Vendita di cose immobili</h1>
+            <div class="case-meta">Scheda 140011 · valore e competenza da verificare</div>
+          </div>
+          <div class="actions">
+            <button type="button">Aggiorna</button>
+            <button class="primary" type="button">Salva fascicolo</button>
+          </div>
+        </div>
+
+        <div class="case-grid">
+          <div>
+            <section class="section">
+              <h2>Dati essenziali</h2>
+              <div class="field-grid">
+                <div class="field">
+                  <label>Oggetto pratica</label>
+                  <strong>Risoluzione contratto immobiliare</strong>
+                </div>
+                <div class="field">
+                  <label>Codice oggetto</label>
+                  <strong>140011</strong>
+                </div>
+                <div class="field">
+                  <label>Cliente</label>
+                  <strong>Da collegare</strong>
+                </div>
+                <div class="field">
+                  <label>Prossima scadenza</label>
+                  <strong>Nessuna scadenza impostata</strong>
+                </div>
+              </div>
+            </section>
+            <section class="section">
+              <h2>Attività recenti</h2>
+              <p class="case-meta">Qui restano le informazioni del fascicolo. La guida non occupa tutta la pagina e non blocca il lavoro.</p>
+            </section>
+          </div>
+          <aside class="section right-card">
+            <h2>Stato fascicolo</h2>
+            <div class="status-line"><span>Dati obbligatori</span><strong>Da completare</strong></div>
+            <div class="status-line"><span>Documenti</span><strong>2 mancanti</strong></div>
+            <div class="status-line"><span>Guida pratica</span><strong>Disponibile</strong></div>
+          </aside>
+        </div>
+
+        <p class="preview-note">Anteprima non integrata: questo mockup serve solo a validare la direzione grafica.</p>
+
+        <div class="drawer-scrim" onclick="closeGuide()" aria-hidden="true"></div>
+
+        <aside class="guide-panel" aria-label="Guida Pratica">
+          <header class="guide-top">
+            <div class="guide-kicker">
+              <span>Guida pratica</span>
+              <button class="close" type="button" aria-label="Chiudi Guida Pratica" onclick="closeGuide()">×</button>
+            </div>
+            <h2 class="guide-title">Vendita di cose immobili</h2>
+            <p class="guide-subtitle">Supporto operativo facoltativo per controllare impostazione, documenti e passaggi prima di procedere con l'atto.</p>
+            <div class="badge-row">
+              <span class="badge">Uso facoltativo</span>
+              <span class="badge gold">Scheda 140011</span>
+              <span class="badge green">Guida curata</span>
+            </div>
+          </header>
+
+          <div class="guide-body">
+            <section class="next-action">
+              <span>Prima cosa da fare</span>
+              <strong>Verifica competenza per materia, valore e territorio prima di impostare la domanda.</strong>
+            </section>
+
+            <section class="progress-card">
+              <header>
+                <span>Controlli completati</span>
+                <strong>3/16</strong>
+              </header>
+              <div class="meter" aria-label="Avanzamento controlli"><span></span></div>
+            </section>
+
+            <nav class="guide-tabs" aria-label="Sezioni guida">
+              <button class="active" type="button">Controlli</button>
+              <button type="button">Norme</button>
+              <button type="button">Atto</button>
+              <button type="button">Allegati</button>
+            </nav>
+
+            <section class="guide-group">
+              <h3>Controlli principali</h3>
+              <ul class="guide-list">
+                <li><span class="mark">✓</span><span>Oggetto della domanda coerente con il codice indicato nel fascicolo.</span></li>
+                <li><span class="mark">✓</span><span>Competenza del giudice verificata rispetto al valore e al territorio.</span></li>
+                <li><span class="mark">✓</span><span>Parti principali identificate con dati anagrafici completi.</span></li>
+                <li class="warning"><span class="mark">!</span><span>Verificare se l'azione è preliminare o definitiva.</span></li>
+              </ul>
+            </section>
+
+            <section class="guide-group">
+              <h3>Campi da completare</h3>
+              <ul class="guide-list">
+                <li class="warning"><span class="mark">!</span><span>Tipo azione.</span></li>
+                <li class="warning"><span class="mark">!</span><span>Data del contratto.</span></li>
+                <li class="warning"><span class="mark">!</span><span>Immobile oggetto della domanda.</span></li>
+                <li class="warning"><span class="mark">!</span><span>Prezzo pattuito e inadempimento contestato.</span></li>
+              </ul>
+            </section>
+
+            <section class="guide-group">
+              <h3>Riferimenti essenziali</h3>
+              <ul class="guide-list">
+                <li><span class="mark">§</span><span><strong>c.c. artt. 1470-1547</strong><br />Disciplina della vendita.</span></li>
+                <li><span class="mark">§</span><span><strong>c.c. art. 1350</strong><br />Forma scritta per immobili.</span></li>
+                <li><span class="mark">§</span><span><strong>c.c. art. 2932</strong><br />Esecuzione specifica dell'obbligo di concludere il contratto.</span></li>
+              </ul>
+            </section>
+
+            <section class="guide-group">
+              <h3>Avvertimenti</h3>
+              <ul class="guide-list">
+                <li class="danger"><span class="mark">!</span><span>Non confondere la guida pratica con un controllo bloccante: resta supporto operativo dell'avvocato.</span></li>
+                <li class="warning"><span class="mark">!</span><span>Controllare sempre allegati fondativi e procura prima della notifica o del deposito.</span></li>
+              </ul>
+            </section>
+          </div>
+
+          <footer class="guide-foot">
+            <small>La scheda aiuta a lavorare meglio, non sostituisce la valutazione professionale.</small>
+            <button class="primary" type="button">Segna controllo</button>
+          </footer>
+        </aside>
+      </section>
+    </main>
+
+    <script>
+      function openGuide() {
+        document.body.classList.add("guide-open");
+      }
+
+      function closeGuide() {
+        document.body.classList.remove("guide-open");
+      }
+
+      if (window.location.hash === "#closed") {
+        closeGuide();
+      }
+    </script>
+  </body>
+</html>

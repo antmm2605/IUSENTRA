@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-05-22T14:49:24.596Z",
+  "source": "guida-pratica-pacchetto-completo-v2.html",
+  "viewport": "1600x900",
+  "screens": [
+    "apertura",
+    "nascosta",
+    "ora",
+    "contesto",
+    "editor",
+    "completato"
+  ]
+}

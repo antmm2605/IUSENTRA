@@ -1,0 +1,637 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET3_PARTE2",
+  "denominazione": "Terzo set di 9 codici più frequenti - PARTE 2 di 2",
+  "registri": ["SICID", "SIVG"],
+  "data_generazione": "2026-05-22",
+  "scopo": "Parte 2: modifica/revoca AdS, recesso socio SRL, opposizione esecuzione ex 615 c.2, concorrenza sleale art. 2598 c.c.",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_ADS_MODIFICA_REVOCA_413062",
+      "codice_originale_ricevuto": "413062",
+      "codici_ufficiali_correlati_da_valutare": ["413062"],
+      "nota_integrazione_iusentra": "Scheda interna non depositabile: il codice numerico ricevuto non combacia con la descrizione ministeriale locale del codice 413062. Conservare il contenuto come guida pratica e selezionare il codice PST/XSD ufficiale corretto nella scheda fascicolo prima del deposito.",
+      "denominazione": "Modifica o revoca del decreto di nomina dell'amministratore di sostegno",
+      "categoria": "Volontaria giurisdizione - protezione - AdS in fase modificativa",
+      "sottocategoria": "Procedimento di modifica, sostituzione, integrazione, revoca dell'amministrazione di sostegno",
+      "rito": "Procedimento camerale - GIUDICE TUTELARE (stesso che ha aperto l'AdS)",
+      "competenza": "GIUDICE TUTELARE del Tribunale del luogo di residenza/domicilio del beneficiario - stesso che ha aperto l'AdS",
+      "uffici_destinatari": ["SIVG - Giudice Tutelare"],
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "405", "descrizione": "Decreto di nomina AdS - contenuto modificabile"},
+        {"fonte": "c.c.", "articolo": "407 c. 4", "descrizione": "Possibilità per il GT di modificare/integrare il decreto di nomina"},
+        {"fonte": "c.c.", "articolo": "410", "descrizione": "Doveri dell'amministratore di sostegno - rendiconto"},
+        {"fonte": "c.c.", "articolo": "413", "descrizione": "Revoca dell'amministrazione di sostegno"},
+        {"fonte": "L. 6/2004", "descrizione": "Istituzione dell'AdS"},
+        {"fonte": "c.p.c.", "articolo": "720-bis", "descrizione": "Norme applicabili ai procedimenti in materia di AdS"}
+      ],
+      "tipologie_di_intervento": [
+        "MODIFICA del decreto: ampliamento/riduzione poteri AdS, cambio durata, cambio modalità",
+        "INTEGRAZIONE: aggiunta di nuovi poteri o atti specifici",
+        "SOSTITUZIONE dell'AdS: nomina di un nuovo AdS per dimissioni, decesso, conflitto di interessi, gravi inadempienze",
+        "REVOCA dell'AdS (art. 413 c.c.): venir meno presupposti (es. ripristino capacità del beneficiario)",
+        "CESSAZIONE per morte del beneficiario o passaggio ad altra misura (interdizione)"
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI UN DECRETO DI APERTURA AdS in corso (codice 413061)",
+        "Una delle CAUSE che giustificano la modifica/revoca:",
+        "PER MODIFICA: mutamento delle condizioni del beneficiario (peggioramento → ampliamento; miglioramento → riduzione poteri); inadeguatezza della misura iniziale",
+        "PER SOSTITUZIONE AdS: dimissioni AdS, decesso AdS, conflitto di interessi, gravi inadempienze, perdita di idoneità",
+        "PER REVOCA art. 413: venir meno dei presupposti (ripristino capacità - ad es. guarigione, miglioramento) OPPURE inadeguatezza misura"
+      ],
+      "legittimati_attivi": [
+        "Lo stesso beneficiario",
+        "L'amministratore di sostegno in carica (per dimissioni, per modifiche operative)",
+        "Il coniuge, persona stabilmente convivente, parenti entro 4° grado, affini entro 2°",
+        "Il PM",
+        "I responsabili servizi sanitari/sociali",
+        "Il GT può anche procedere d'ufficio per modifiche urgenti"
+      ],
+      "obbligo_mediazione": {"obbligatoria": false},
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione del decreto di apertura AdS originario",
+          "documenti": ["Decreto di nomina originario", "Verbale di giuramento AdS", "Eventuali successivi decreti di modifica/autorizzazione"]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DEL MUTAMENTO DI CONDIZIONI o della causa di intervento",
+          "casi_tipici": [
+            "Peggioramento salute: aggiornamenti medici, certificazioni specialistiche, relazioni di servizi sociali",
+            "Miglioramento: certificazioni mediche attestanti recupero capacità",
+            "Sostituzione AdS: lettera di dimissioni AdS uscente o documentazione su inadempienze",
+            "Conflitto interessi: documentazione su comportamenti incompatibili (ad es. AdS che gestisce per propri interessi)"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "Acquisizione RENDICONTO AGGIORNATO dell'AdS",
+          "rilevanza": "Il GT valuta la regolarità della gestione - rendiconto critico nei casi di sostituzione/revoca per gravi inadempienze"
+        },
+        {
+          "step": 4,
+          "descrizione": "Identificazione candidato NUOVO AdS (in caso di sostituzione)",
+          "criteri": "Stessa logica art. 408 c.c. dell'apertura originaria"
+        },
+        {
+          "step": 5,
+          "descrizione": "Verifica eventuali ATTI PENDENTI o autorizzazioni in corso",
+          "criticita": "Continuità della gestione - evitare vuoti di rappresentanza"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_modifica_o_revoca_ads",
+        "denominazione": "Ricorso per modifica/integrazione/revoca del decreto di nomina amministratore di sostegno",
+        "schema_xsd_ministeriale": "AttoVolontariaGiurisdizione.xsd",
+        "campi_chiave": [
+          {"id": "tribunale", "label": "GT che ha aperto l'AdS", "type": "select", "required": true},
+          {"id": "tipo_intervento_richiesto", "label": "Tipo di intervento richiesto", "type": "select", "required": true, "options": ["modifica_poteri_ads_ampliamento", "modifica_poteri_ads_riduzione", "integrazione_atti_specifici", "sostituzione_ads_per_dimissioni", "sostituzione_ads_per_decesso", "sostituzione_ads_per_conflitto_interessi", "sostituzione_ads_per_gravi_inadempienze", "revoca_ads_per_ripristino_capacita_413_cc", "revoca_ads_per_inadeguatezza_misura", "passaggio_a_interdizione_o_inabilitazione", "cessazione_per_morte_beneficiario"]},
+          {"id": "beneficiario", "label": "Beneficiario AdS", "type": "object_persona", "required": true},
+          {"id": "ricorrente", "label": "Ricorrente", "type": "object_persona", "required": true, "sub_fields": [
+            {"id": "cognome_nome", "type": "string"},
+            {"id": "qualita", "type": "select", "options": ["beneficiario_stesso", "ads_in_carica", "coniuge_convivente", "parente_entro_4_grado", "affine_entro_2_grado", "pubblico_ministero", "servizi_sociali_sanitari", "altro"]}
+          ]},
+          {"id": "decreto_ads_in_essere", "label": "Decreto di apertura AdS in essere", "type": "object", "required": true, "sub_fields": [
+            {"id": "numero_RG", "type": "string"},
+            {"id": "data_decreto", "type": "date"},
+            {"id": "GT_emittente", "type": "string"},
+            {"id": "ads_in_carica", "type": "string"},
+            {"id": "poteri_attualmente_attribuiti", "type": "textarea"}
+          ]},
+          {"id": "causa_intervento", "label": "Causa dell'intervento richiesto", "type": "textarea", "required": true, "min_length": 300},
+          {"id": "modifica_poteri_richiesta", "label": "Modifica poteri richiesta", "type": "object", "required_if": "tipo_intervento LIKE modifica%", "sub_fields": [
+            {"id": "atti_da_aggiungere_in_rappresentanza", "type": "textarea"},
+            {"id": "atti_da_aggiungere_in_assistenza", "type": "textarea"},
+            {"id": "atti_da_eliminare", "type": "textarea"},
+            {"id": "modifica_durata", "type": "object"}
+          ]},
+          {"id": "nuovo_ads_proposto", "label": "Nuovo AdS proposto (in caso di sostituzione)", "type": "object_persona", "required_if": "tipo_intervento LIKE sostituzione%", "sub_fields": [
+            {"id": "cognome_nome", "type": "string"},
+            {"id": "codice_fiscale", "type": "string"},
+            {"id": "rapporto_con_beneficiario", "type": "string"},
+            {"id": "consenso_assunzione_incarico", "type": "boolean"}
+          ]},
+          {"id": "documentazione_supporto", "label": "Documentazione a supporto", "type": "textarea", "required": true},
+          {"id": "richiesta_audizione_beneficiario", "label": "Audizione beneficiario (obbligatoria per modifiche sostanziali)", "type": "boolean", "default": true},
+          {"id": "richiesta_provvedimenti_urgenti", "label": "Provvedimenti urgenti", "type": "boolean"}
+        ],
+        "avvertimenti_obbligatori": [
+          "Audizione personale del beneficiario, se possibile, ex art. 407 c. 2 c.c.",
+          "Per revoca art. 413: necessità di accertamento del ripristino della capacità (con eventuale CTU)",
+          "Per sostituzione AdS: rendiconto finale dell'AdS uscente",
+          "Continuità della gestione fino alla decisione (in casi gravi richiesta AdS provvisorio)",
+          "Reclamabilità del decreto in Corte d'Appello ex art. 720-bis c.p.c."
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "decreto_apertura_ads_originario", "label": "Decreto di apertura AdS originario", "required": true, "critico": true},
+        {"id": "verbale_giuramento_ads", "label": "Verbale di giuramento AdS in carica", "required": true},
+        {"id": "documentazione_mutamento_condizioni", "label": "Documentazione sul mutamento di condizioni (certificazioni mediche aggiornate, relazioni servizi sociali)", "required": true, "critico": true},
+        {"id": "rendiconto_aggiornato_ads", "label": "Rendiconto aggiornato dell'AdS in carica", "required": true},
+        {"id": "documentazione_inadempienze", "label": "Documentazione su inadempienze AdS (se sostituzione per gravi motivi)", "required_if": "tipo_intervento=sostituzione_per_gravi_inadempienze", "critico": true},
+        {"id": "consenso_nuovo_ads", "label": "Consenso scritto del nuovo AdS proposto + documenti", "required_if": "tipo_intervento LIKE sostituzione%", "critico": true},
+        {"id": "perizia_su_ripristino_capacita", "label": "Perizia medico-legale su ripristino capacità (per revoca art. 413)", "required_if": "tipo_intervento=revoca_per_ripristino_capacita"},
+        {"id": "certificato_morte_beneficiario", "label": "Certificato di morte del beneficiario (se cessazione per morte)", "required_if": "tipo_intervento=cessazione_per_morte"},
+        {"id": "documenti_identita", "label": "Documenti identità ricorrente, beneficiario, nuovo AdS", "required": true}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "ESENTE - procedimento VG protettivo",
+        "marca_bollo_forfettaria": 27.00,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {"tipo": "decreto_modifica_o_revoca_ads", "trigger": "Esito procedimento", "automatico": false},
+        {"tipo": "verbale_giuramento_nuovo_ads", "trigger": "Sostituzione AdS", "automatico": false},
+        {"tipo": "rendiconto_finale_ads_uscente", "trigger": "Cessazione/sostituzione AdS", "automatico": false, "critico": true},
+        {"tipo": "ricorso_apertura_interdizione_o_inabilitazione", "trigger": "Passaggio a misura più invasiva", "codice_correlato": "413071"},
+        {"tipo": "reclamo_corte_appello", "trigger": "Decreto GT", "termine": "10 gg", "norma": "art. 720-bis c.p.c."}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "decreto_modifica_decreto_originario", "descrizione": "Modifica con ampliamento/riduzione poteri"},
+        {"esito": "decreto_sostituzione_ads", "descrizione": "Sostituzione dell'AdS con altro soggetto"},
+        {"esito": "decreto_revoca_ads_413", "descrizione": "Revoca AdS per ripristino capacità - chiusura procedimento"},
+        {"esito": "passaggio_a_interdizione", "descrizione": "Il GT ritiene necessaria misura più invasiva"},
+        {"esito": "rigetto_per_insussistenza_presupposti", "descrizione": "Mantenimento dello status quo"}
+      ],
+      "termini_processuali": [
+        {"termine": "Decisione del GT", "giorni": 60, "decorrenza": "deposito ricorso", "natura": "ordinatorio"},
+        {"termine": "Reclamo Corte d'Appello", "giorni": 10, "decorrenza": "comunicazione decreto", "natura": "perentorio", "norma": "art. 720-bis c.p.c."}
+      ]
+    },
+    {
+      "codice": "GUIDA_RECESSO_SOCIO_SRL_150003",
+      "codice_originale_ricevuto": "150003",
+      "codici_ufficiali_correlati_da_valutare": ["150003"],
+      "nota_integrazione_iusentra": "Scheda interna non depositabile: il codice numerico ricevuto non combacia con la descrizione ministeriale locale del codice 150003. Conservare il contenuto come guida pratica e selezionare il codice PST/XSD ufficiale corretto nella scheda fascicolo prima del deposito.",
+      "denominazione": "Recesso del socio di S.r.l. e liquidazione della quota (artt. 2473 c.c.)",
+      "categoria": "Diritto societario - vicende del socio",
+      "sottocategoria": "Esercizio del diritto di recesso del socio S.r.l. e determinazione del valore di liquidazione della quota",
+      "rito": "Rito ordinario di cognizione (la S.S.I. ha competenza per le S.r.l. con caratteristiche specifiche)",
+      "competenza": "TRIBUNALE - SEZIONE SPECIALIZZATA IN MATERIA DI IMPRESA per S.r.l. di rilevanza significativa (D.L. 1/2012); altrimenti Tribunale ordinario - sezione civile",
+      "competenza_territoriale": "Foro della sede sociale (art. 19 c.p.c.) o foro convenzionalmente pattuito",
+      "uffici_destinatari": ["SICID - sezione impresa o sezione civile"],
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2473", "descrizione": "Recesso del socio S.r.l. - cause"},
+        {"fonte": "c.c.", "articolo": "2473-bis", "descrizione": "Esclusione del socio S.r.l."},
+        {"fonte": "c.c.", "articolo": "2473 c. 3", "descrizione": "Valore della quota - perizia + liquidazione"},
+        {"fonte": "c.c.", "articolo": "2479-bis", "descrizione": "Decisioni dei soci"},
+        {"fonte": "c.c.", "articolo": "2347", "descrizione": "Trasferimento partecipazioni S.r.l."},
+        {"fonte": "D.L. 1/2012 (conv. L. 27/2012)", "articolo": "2", "descrizione": "Istituzione Tribunale delle Imprese - competenza"},
+        {"fonte": "D.Lgs. 168/2003", "descrizione": "Sezioni specializzate"},
+        {"fonte": "Cass. SU 16608/2015", "descrizione": "Recesso ha effetto solo dopo liquidazione quota - permanenza qualità socio"}
+      ],
+      "cause_recesso_legali_art_2473": [
+        "Cambiamento dell'oggetto sociale o del tipo della società",
+        "Fusione o scissione",
+        "Revoca dello stato di liquidazione",
+        "Trasferimento della sede sociale all'estero",
+        "Eliminazione di una o più cause di recesso previste nell'atto costitutivo",
+        "Modifica dei diritti particolari attribuiti ad alcuni soci (per S.r.l.)",
+        "Aumento di capitale con esclusione del diritto di opzione (in alcuni casi)",
+        "PROROGA della società quando il socio non ha contribuito alla decisione"
+      ],
+      "cause_recesso_statutarie": "L'atto costitutivo può prevedere altre cause di recesso specifiche per la singola S.r.l.",
+      "presupposti_sostanziali": [
+        "QUALITÀ DI SOCIO della S.r.l. al momento dell'evento legittimante",
+        "Una delle CAUSE DI RECESSO (legali ex art. 2473 o statutarie)",
+        "DICHIARAZIONE DI RECESSO formalizzata e tempestiva (entro 15 gg dalla decisione legittimante - art. 2473)",
+        "MANCATA LIQUIDAZIONE SPONTANEA della quota OR CONTESTAZIONE sul valore di liquidazione"
+      ],
+      "obbligo_mediazione": {"obbligatoria": false, "ma": "Per cause societarie è prevista mediazione facoltativa - vedi anche conciliazione presso Camere Arbitrali (ad es. Camera Conciliazione Camera Commercio)"},
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VERIFICA QUALITÀ DI SOCIO e PERCENTUALE PARTECIPAZIONE",
+          "documenti": [
+            "Visura camerale aggiornata",
+            "Libro soci (per S.r.l. è abolito da L. 2009 ma può rilevare ex art. 2470 c.c.)",
+            "Atto costitutivo e statuto sociale aggiornati",
+            "Eventuali atti di trasferimento quota"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "IDENTIFICAZIONE PRECISA DELLA CAUSA DI RECESSO",
+          "elementi": [
+            "Verbale assemblea/decisione dei soci che ha deliberato l'evento legittimante",
+            "Tipo evento (cambio oggetto, fusione, ecc.)",
+            "Voto del socio (deve aver dissentito - non aver concorso alla decisione)",
+            "Verifica conformità atto costitutivo (per cause statutarie)"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "ESERCIZIO TEMPESTIVO DEL RECESSO",
+          "termine": "15 gg dall'iscrizione della decisione/delibera nel Registro Imprese (per cause legali) - termini statutari possono variare",
+          "modalita": "Dichiarazione scritta indirizzata alla società (raccomandata A/R, PEC) - contenuto: identificazione socio, indicazione causa di recesso, dichiarazione di volontà"
+        },
+        {
+          "step": 4,
+          "descrizione": "RICHIESTA LIQUIDAZIONE QUOTA",
+          "modalita_legale_art_2473_c3": [
+            "Valore proporzionale al patrimonio sociale, determinato in base al valore di mercato della quota al momento del recesso",
+            "Tener conto della consistenza patrimoniale, redditività, prospettive, valore di mercato",
+            "In caso di disaccordo: perizia di un esperto nominato dal Tribunale su istanza del socio recedente"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "Tentativo di accordo sul valore della quota",
+          "vantaggio": "Evita perizia e contenzioso lungo"
+        },
+        {
+          "step": 6,
+          "descrizione": "Se contestazione: RICORSO AL TRIBUNALE per NOMINA ESPERTO ex art. 2473 c. 3 OR per LIQUIDAZIONE GIUDIZIALE"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_recesso_e_liquidazione_quota_srl",
+        "denominazione": "Atto di citazione per accertamento del diritto di recesso e liquidazione della quota ex art. 2473 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {"id": "tribunale", "label": "Tribunale - sez. impresa o sez. civile", "type": "select", "required": true},
+          {"id": "socio_recedente", "label": "Socio recedente attore", "type": "object_persona", "required": true},
+          {"id": "societa_resistente", "label": "Società resistente (S.r.l.)", "type": "object_persona_giuridica", "required": true, "sub_fields": [
+            {"id": "denominazione_sociale", "type": "string"},
+            {"id": "codice_fiscale_partita_iva", "type": "string"},
+            {"id": "sede_legale", "type": "address"},
+            {"id": "rappresentante_legale", "type": "string"},
+            {"id": "capitale_sociale", "type": "currency"}
+          ]},
+          {"id": "partecipazione_socio_recedente", "label": "Partecipazione del socio recedente", "type": "object", "required": true, "sub_fields": [
+            {"id": "valore_nominale", "type": "currency"},
+            {"id": "percentuale_partecipazione", "type": "percentage"},
+            {"id": "data_acquisto_partecipazione", "type": "date"},
+            {"id": "modalita_acquisto", "type": "select", "options": ["sottoscrizione_originaria", "trasferimento_inter_vivos", "successione_mortis_causa", "altro"]}
+          ]},
+          {"id": "causa_recesso", "label": "Causa di recesso esercitata", "type": "object", "required": true, "sub_fields": [
+            {"id": "tipo", "type": "select", "required": true, "options": ["cambiamento_oggetto_sociale", "cambiamento_tipo_sociale", "fusione", "scissione", "revoca_liquidazione", "trasferimento_sede_estero", "modifica_diritti_particolari", "eliminazione_cause_recesso_statutarie", "proroga_termine_societario", "altra_causa_statutaria"]},
+            {"id": "fonte", "type": "select", "options": ["legale_art_2473_cc", "statutaria"]},
+            {"id": "estremi_decisione_legittimante", "type": "object", "sub_fields": [
+              {"id": "data_assemblea_decisione", "type": "date"},
+              {"id": "verbale_estremi", "type": "string"},
+              {"id": "data_iscrizione_registro_imprese", "type": "date", "rilevante_per_decorrenza_termine": true},
+              {"id": "voto_del_socio_recedente", "type": "select", "options": ["dissenziente", "astenuto", "assente"]}
+            ]}
+          ]},
+          {"id": "dichiarazione_recesso", "label": "Dichiarazione di recesso", "type": "object", "required": true, "sub_fields": [
+            {"id": "data_dichiarazione_recesso", "type": "date", "required": true, "validation": "entro_15_gg_iscrizione_RI", "critico": true},
+            {"id": "modalita_invio", "type": "select", "options": ["raccomandata_AR", "PEC", "consegna_a_mani"]},
+            {"id": "destinatario", "type": "string"},
+            {"id": "ricevuta_consegna", "type": "string"}
+          ]},
+          {"id": "liquidazione_quota", "label": "Aspetti sulla liquidazione della quota", "type": "object_complesso", "required": true, "sub_fields": [
+            {"id": "valore_richiesto_dal_recedente", "type": "currency", "required": true},
+            {"id": "criteri_di_determinazione_proposti", "type": "textarea"},
+            {"id": "offerta_della_societa", "type": "currency"},
+            {"id": "differenza_e_contestazione", "type": "textarea"},
+            {"id": "richiesta_perizia_esperto_tribunale", "type": "boolean", "default": true},
+            {"id": "criteri_per_perizia", "type": "textarea"}
+          ]},
+          {"id": "domande", "label": "Domande", "type": "select_multi", "required": true, "options": ["accertamento_diritto_di_recesso", "nomina_esperto_per_perizia_2473_c_3", "determinazione_giudiziale_valore_quota", "condanna_societa_liquidazione_quota", "interessi_legali_su_somme", "spese_di_lite"]},
+          {"id": "udienza_comparizione", "label": "Prima udienza", "type": "date", "required": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "Termine 15 gg dichiarazione recesso dall'iscrizione decisione nel Registro Imprese (art. 2473 c. 2 c.c.)",
+          "Recesso ha effetto solo dopo liquidazione quota (Cass. SU 16608/2015)",
+          "Foro sede sociale o convenzionalmente pattuito"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "visura_camerale_societa", "label": "Visura camerale aggiornata della società", "required": true},
+        {"id": "atto_costitutivo_statuto", "label": "Atto costitutivo e statuto vigente", "required": true, "critico": true},
+        {"id": "atto_acquisto_partecipazione", "label": "Atto di acquisto della partecipazione (rogito notarile o altro)", "required": true},
+        {"id": "verbale_assemblea_legittimante_recesso", "label": "Verbale assemblea/decisione che ha deliberato l'evento legittimante", "required": true, "critico": true},
+        {"id": "iscrizione_decisione_registro_imprese", "label": "Iscrizione decisione nel Registro Imprese (per decorrenza termine)", "required": true, "critico": true},
+        {"id": "dichiarazione_recesso_e_prova_invio", "label": "Dichiarazione di recesso con prova invio entro 15 gg", "required": true, "critico": true},
+        {"id": "eventuale_risposta_societa", "label": "Eventuale risposta della società alla dichiarazione di recesso", "required": false},
+        {"id": "bilanci_ultimi_3_anni", "label": "Bilanci ultimi 3 anni della società", "required": true, "consigliato_per_valutazione_quota": true},
+        {"id": "perizia_estimativa_di_parte", "label": "Perizia estimativa di parte (consigliata)", "required": false, "consigliato": true},
+        {"id": "procura_alle_liti", "label": "Procura alle liti", "required": true}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore della quota oggetto di contestazione",
+        "marca_bollo_forfettaria": 27.00,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {"tipo": "istanza_nomina_esperto_2473_c_3", "trigger": "Disaccordo sul valore", "automatico": false},
+        {"tipo": "ctu_estimativa_aziendale", "trigger": "Disposta dal giudice", "automatico": false},
+        {"tipo": "domanda_riconvenzionale_societa_inesistenza_recesso", "trigger": "Società contesta il diritto di recesso", "automatico": false},
+        {"tipo": "azione_responsabilita_amministratori", "trigger": "Se gestione società pregiudizievole post-recesso", "codice_correlato": "151110"},
+        {"tipo": "appello", "trigger": "Sentenza primo grado", "termine": "30 gg notifica"}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "accertamento_recesso_e_condanna_liquidazione", "descrizione": "Accertamento legittimità recesso + condanna società alla liquidazione del valore determinato"},
+        {"esito": "accertamento_parziale", "descrizione": "Valore della quota inferiore a quello richiesto"},
+        {"esito": "rigetto_per_assenza_causa_recesso", "descrizione": "La causa invocata non legittima il recesso"},
+        {"esito": "rigetto_per_tardivita_dichiarazione_recesso", "descrizione": "Dichiarazione oltre 15 gg dall'iscrizione"},
+        {"esito": "transazione", "descrizione": "Accordo sul valore di liquidazione"}
+      ],
+      "termini_processuali": [
+        {"termine": "DICHIARAZIONE DI RECESSO", "giorni": 15, "decorrenza": "iscrizione decisione legittimante nel Registro Imprese", "natura": "decadenziale", "norma": "art. 2473 c. 2 c.c.", "criticita": "MASSIMA"},
+        {"termine": "Liquidazione spontanea quota", "mesi": 6, "decorrenza": "comunicazione recesso", "natura": "termine legale", "norma": "art. 2473 c. 4 c.c."},
+        {"termine": "Termine a comparire", "giorni": 120, "decorrenza": "notifica citazione (post-Cartabia)", "natura": "minimo legale"},
+        {"termine": "Costituzione convenuto", "giorni": 70, "decorrenza": "prima udienza", "natura": "perentorio"}
+      ]
+    },
+    {
+      "codice": "100011",
+      "denominazione": "Opposizione all'esecuzione ex art. 615 c. 2 c.p.c. (dopo l'inizio dell'esecuzione)",
+      "categoria": "Opposizioni esecutive",
+      "sottocategoria": "Opposizione successiva all'inizio dell'esecuzione - merito",
+      "rito": "Procedimento davanti al GIUDICE DELL'ESECUZIONE - successiva fase di merito davanti al giudice competente per la causa di valore corrispondente",
+      "competenza": "GIUDICE DELL'ESECUZIONE per fase iniziale (sospensione e opposizione formale); GIUDICE COMPETENTE PER VALORE/MATERIA per la fase di merito (dopo l'introduzione del giudizio di merito ex art. 616 c.p.c.)",
+      "uffici_destinatari": ["SIECIC per fase davanti al GE", "SICID per fase di merito"],
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "615 c. 2", "descrizione": "Opposizione all'esecuzione dopo il pignoramento"},
+        {"fonte": "c.p.c.", "articolo": "616", "descrizione": "Provvedimenti del giudice dell'esecuzione e introduzione fase di merito"},
+        {"fonte": "c.p.c.", "articolo": "617", "descrizione": "Opposizione agli atti esecutivi (formali) - termine 20 gg"},
+        {"fonte": "c.p.c.", "articolo": "619", "descrizione": "Opposizione di terzo all'esecuzione"},
+        {"fonte": "c.p.c.", "articolo": "624", "descrizione": "Sospensione dell'esecuzione"},
+        {"fonte": "c.p.c.", "articolo": "624-bis", "descrizione": "Sospensione concordata"},
+        {"fonte": "c.p.c.", "articolo": "27", "descrizione": "Competenza per esecuzione forzata"},
+        {"fonte": "c.p.c.", "articolo": "184 disp.att.", "descrizione": "Forma del ricorso opposizione esecutiva"}
+      ],
+      "presupposti_sostanziali": [
+        "ESECUZIONE FORZATA IN CORSO (post-pignoramento)",
+        "CONTESTAZIONE DEL DIRITTO DEL CREDITORE A PROCEDERE AD ESECUZIONE FORZATA (questioni di merito - non vizi formali di singoli atti, per i quali si usa art. 617)",
+        "Motivi tipici: estinzione del credito (pagamento), prescrizione, intervenuta novazione/transazione, carenza del titolo esecutivo, inesistenza del diritto, eccezione di carenza di legittimazione"
+      ],
+      "differenza_da_615_c1": "L'opposizione ex art. 615 c. 1 è PRE-esecutiva (dopo il precetto, prima del pignoramento) e si propone con citazione al giudice del merito; l'opposizione ex art. 615 c. 2 è POST-esecutiva (dopo il pignoramento) e si propone con ricorso al GIUDICE DELL'ESECUZIONE che decide su sospensione e poi rimette le parti al giudice di merito",
+      "differenza_da_617": "L'art. 617 riguarda VIZI FORMALI dei singoli atti esecutivi (es. nullità notificazione precetto, vizi pignoramento, vizi atti UNEP); termine perentorio 20 giorni dall'atto contestato",
+      "obbligo_mediazione": {"obbligatoria": false},
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione documentazione dell'esecuzione in corso",
+          "documenti": [
+            "Atto di pignoramento (mobiliare, immobiliare, presso terzi) con prova notifica",
+            "Titolo esecutivo notificato",
+            "Precetto notificato",
+            "Iscrizione a ruolo SIECIC",
+            "Eventuali ordinanze del GE già emanate"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "Identificazione dei MOTIVI DI OPPOSIZIONE",
+          "tipologie": [
+            "Estinzione del credito (pagamento totale/parziale, compensazione, novazione, transazione)",
+            "Prescrizione del titolo esecutivo o del credito sottostante",
+            "Carenza/inefficacia del titolo esecutivo (sentenza riformata in appello, decreto ingiuntivo revocato)",
+            "Inesistenza/carenza di legittimazione attiva/passiva",
+            "Intervenute pronunce concorsuali (concordato preventivo, liquidazione giudiziale - non più fallimento)"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "VALUTAZIONE URGENZA - RICHIESTA SOSPENSIONE ESECUZIONE ex art. 624 c.p.c.",
+          "presupposti": "Fumus boni iuris dell'opposizione + pericolo di pregiudizio irreparabile",
+          "vantaggio_strategico": "Sospensione cautelare impedisce vendita all'asta o assegnazione fino a definizione opposizione"
+        },
+        {
+          "step": 4,
+          "descrizione": "Raccolta PROVE DELL'ESTINZIONE/INESISTENZA DEL CREDITO",
+          "esempi": [
+            "Ricevute di pagamento",
+            "Accordi transattivi",
+            "Decisioni che hanno modificato il titolo (sentenze d'appello, sentenze di revocazione)",
+            "Atti di novazione",
+            "Prescrizioni"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "Predisposizione RICORSO AL GIUDICE DELL'ESECUZIONE",
+          "forma": "Ricorso (non citazione) - art. 615 c. 2 + art. 184 disp.att. c.p.c.",
+          "contenuto": "Indicazione esecuzione, parti, motivi opposizione, prove, eventuale richiesta sospensione"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_opposizione_esecuzione_615_c_2",
+        "denominazione": "Ricorso al Giudice dell'Esecuzione per opposizione all'esecuzione ex art. 615 c. 2 c.p.c.",
+        "schema_xsd_ministeriale": "AttoEsecuzione.xsd",
+        "campi_chiave": [
+          {"id": "tribunale_giudice_esecuzione", "label": "Tribunale - Giudice dell'Esecuzione", "type": "select", "required": true},
+          {"id": "opponente_debitore_esecutato", "label": "Opponente (debitore esecutato)", "type": "object_persona", "required": true},
+          {"id": "creditore_procedente", "label": "Creditore procedente (opposto)", "type": "object_persona", "required": true},
+          {"id": "eventuali_creditori_intervenienti", "label": "Eventuali creditori intervenienti", "type": "array_persone"},
+          {"id": "procedura_esecutiva_in_corso", "label": "Procedura esecutiva in corso", "type": "object", "required": true, "sub_fields": [
+            {"id": "numero_RG_esecuzione", "type": "string", "required": true},
+            {"id": "data_iscrizione_ruolo", "type": "date"},
+            {"id": "tipo_esecuzione", "type": "select", "options": ["mobiliare_presso_debitore_510001", "presso_terzi_510002", "immobiliare_610001_o_620001", "consegna_rilascio_511012", "obblighi_fare_non_fare_512020"]},
+            {"id": "data_pignoramento", "type": "date"},
+            {"id": "stato_procedura", "type": "select", "options": ["pignoramento_eseguito", "vendita_disposta", "vendita_in_corso", "aggiudicazione_avvenuta", "distribuzione_in_corso"]}
+          ]},
+          {"id": "titolo_esecutivo", "label": "Titolo esecutivo opposto", "type": "object", "required": true, "sub_fields": [
+            {"id": "tipo_titolo", "type": "select"},
+            {"id": "estremi", "type": "string"},
+            {"id": "data_titolo", "type": "date"},
+            {"id": "autorita_emittente", "type": "string"}
+          ]},
+          {"id": "motivi_opposizione", "label": "Motivi di opposizione", "type": "select_multi", "required": true, "options": ["estinzione_credito_per_pagamento", "estinzione_per_compensazione", "estinzione_per_novazione_transazione", "estinzione_per_remissione", "prescrizione_titolo_esecutivo", "prescrizione_credito_sottostante", "carenza_titolo_esecutivo", "inefficacia_titolo_per_riforma_in_appello", "revocazione_titolo", "carenza_legittimazione_attiva", "carenza_legittimazione_passiva", "intervento_procedure_concorsuali", "altri_fatti_estintivi_o_impeditivi"]},
+          {"id": "esposizione_fatti_e_motivi", "label": "Esposizione dettagliata fatti e motivi", "type": "textarea", "required": true, "min_length": 300},
+          {"id": "richiesta_sospensione_624", "label": "Richiesta sospensione esecuzione ex art. 624 c.p.c.", "type": "object", "required": true, "sub_fields": [
+            {"id": "richiesta", "type": "boolean", "default": true},
+            {"id": "fumus_boni_iuris", "type": "textarea", "required_if": "richiesta=true"},
+            {"id": "periculum_in_mora", "type": "textarea", "required_if": "richiesta=true"}
+          ]},
+          {"id": "conclusioni", "label": "Conclusioni davanti al GE", "type": "textarea", "required": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "Distinzione 615 c.2 vs 617: 615 c.2 per merito (no termine perentorio rigido, ma rilevanza preclusioni); 617 per vizi formali (20 gg)",
+          "Il GE non decide nel merito ma si pronuncia su sospensione e rimette le parti davanti al giudice competente per la causa di valore corrispondente ex art. 616 c.p.c.",
+          "Necessità di rispettare il termine assegnato dal GE per l'introduzione della causa di merito (di norma 60 gg)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "atto_pignoramento_e_relata", "label": "Atto di pignoramento con relata di notifica", "required": true, "critico": true},
+        {"id": "titolo_esecutivo_opposto", "label": "Titolo esecutivo opposto", "required": true},
+        {"id": "precetto_e_relata", "label": "Precetto e relata di notifica", "required": true},
+        {"id": "documentazione_estinzione_credito", "label": "Documentazione probatoria estinzione/inesistenza credito (ricevute, accordi, sentenze)", "required": true, "critico": true},
+        {"id": "verbali_udienze_esecuzione", "label": "Eventuali verbali di udienze esecutive precedenti", "required": false},
+        {"id": "procura_alle_liti", "label": "Procura alle liti", "required": true}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore del credito contestato",
+        "marca_bollo_forfettaria": 27.00,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {"tipo": "ordinanza_GE_su_sospensione", "trigger": "Decisione del GE sulla richiesta sospensione", "automatico": false},
+        {"tipo": "ordinanza_GE_assegnazione_termine_introduzione_merito", "trigger": "GE rimette le parti al giudice di merito", "termine_introduzione_giudizio_merito": "fissato dal GE (di norma 60 gg)", "norma": "art. 616 c.p.c."},
+        {"tipo": "atto_di_introduzione_causa_di_merito_davanti_al_giudice_competente", "trigger": "Termine assegnato dal GE", "automatico": false},
+        {"tipo": "ricorso_opposizione_617_per_vizi_formali", "trigger": "Vizi formali atti esecutivi", "codice_correlato": "100021"},
+        {"tipo": "ricorso_opposizione_terzo_619", "trigger": "Bene pignorato di proprietà di terzo", "codice_correlato": "100031"},
+        {"tipo": "reclamo_collegio_avverso_ordinanza_GE", "trigger": "Ordinanza del GE su sospensione/vendita", "termine": "20 gg", "norma": "art. 669-terdecies (analogico) o 591-ter"}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "accoglimento_opposizione_estinzione_esecuzione", "descrizione": "Accertamento che il credito è estinto/inesistente - estinzione esecuzione + condanna creditore alle spese"},
+        {"esito": "rigetto_opposizione", "descrizione": "L'esecuzione prosegue - opponente condannato alle spese; eventuali sanzioni ex art. 96"},
+        {"esito": "sospensione_cautelare_in_attesa_merito", "descrizione": "GE sospende l'esecuzione in attesa della decisione di merito"},
+        {"esito": "transazione", "descrizione": "Accordo tra le parti - estinzione esecuzione"}
+      ],
+      "termini_processuali": [
+        {"termine": "Termine assegnato dal GE per introduzione causa di merito", "giorni": "fissato dal GE (di norma 60)", "natura": "decadenziale", "norma": "art. 616 c.p.c.", "criticita": "MASSIMA"},
+        {"termine": "Reclamo avverso ordinanza GE su sospensione", "giorni": 20, "decorrenza": "udienza o comunicazione ordinanza", "natura": "perentorio"},
+        {"termine": "OPPOSIZIONE 617 (formale - distinta)", "giorni": 20, "decorrenza": "atto contestato", "natura": "decadenziale", "norma": "art. 617 c.p.c."}
+      ]
+    },
+    {
+      "codice": "170006",
+      "denominazione": "Concorrenza sleale (art. 2598 c.c.)",
+      "categoria": "Diritto industriale e commerciale",
+      "sottocategoria": "Atti di concorrenza sleale - confusione, denigrazione, scorrettezza professionale",
+      "rito": "Rito ordinario di cognizione (con frequente fase cautelare ex art. 700 c.p.c. o inibitoria)",
+      "competenza": "TRIBUNALE SEZIONE SPECIALIZZATA IN MATERIA DI IMPRESA quando la concorrenza sleale è interferente con la proprietà intellettuale (D.Lgs. 168/2003, D.L. 1/2012); altrimenti Tribunale ordinario sezione civile",
+      "competenza_territoriale": "Foro generale (residenza/sede convenuto) ex art. 18-19 c.p.c. o luogo del fatto illecito ex art. 20 c.p.c.",
+      "uffici_destinatari": ["SICID"],
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "2598", "descrizione": "Atti di concorrenza sleale"},
+        {"fonte": "c.c.", "articolo": "2599", "descrizione": "Sanzioni - inibitoria, distruzione, rimozione effetti"},
+        {"fonte": "c.c.", "articolo": "2600", "descrizione": "Risarcimento del danno - presunzione di colpa"},
+        {"fonte": "c.c.", "articolo": "2601", "descrizione": "Azione delle associazioni professionali (e oggi anche enti collettivi)"},
+        {"fonte": "D.Lgs. 30/2005 (CPI)", "descrizione": "Codice della proprietà industriale - interferenze con concorrenza sleale"},
+        {"fonte": "Convenzione Unione di Parigi 1883", "articolo": "10-bis", "descrizione": "Concorrenza sleale internazionale"},
+        {"fonte": "D.Lgs. 145/2007", "descrizione": "Pubblicità ingannevole e comparativa illecita"},
+        {"fonte": "L. 287/1990", "descrizione": "Tutela concorrenza - rapporti con concorrenza sleale (Cass. SU 2207/2005)"},
+        {"fonte": "c.p.c.", "articolo": "700", "descrizione": "Provvedimenti d'urgenza - frequente in materia"},
+        {"fonte": "D.L. 1/2012", "articolo": "2", "descrizione": "Tribunale delle Imprese - competenza per concorrenza sleale interferente con IP"}
+      ],
+      "tipologie_concorrenza_sleale_art_2598": [
+        "ATTO CONFUSORIO (n. 1): uso di nomi/segni distintivi idonei a creare confusione con prodotti/attività del concorrente; imitazione servile dei prodotti del concorrente; qualunque altro mezzo idoneo a creare confusione",
+        "ATTO DENIGRATORIO O APPROPRIATIVO (n. 2): diffusione di notizie/apprezzamenti sui prodotti/attività del concorrente idonei a determinarne il discredito; appropriazione di pregi dei prodotti/impresa del concorrente",
+        "SCORRETTEZZA PROFESSIONALE (n. 3): ogni altro mezzo non conforme ai principi della correttezza professionale e idoneo a danneggiare l'altrui azienda - clausola generale (es. storno di dipendenti con animus nocendi, spionaggio industriale, violazione segreti commerciali, boicottaggio)"
+      ],
+      "presupposti_sostanziali": [
+        "RAPPORTO DI CONCORRENZA tra le parti (stesso mercato rilevante - settoriale e geografico)",
+        "ATTO DI CONCORRENZA SLEALE riconducibile a una delle tre tipologie",
+        "DANNO o pericolo di danno per il concorrente leso",
+        "Per risarcimento: PRESUNZIONE DI COLPA ex art. 2600 c.c. (è il convenuto a dover provare assenza di colpa)"
+      ],
+      "obbligo_mediazione": {"obbligatoria": false, "tentativo_facoltativo": "Conciliazione presso Camere Arbitrali specializzate"},
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VERIFICA RAPPORTO DI CONCORRENZA",
+          "elementi": [
+            "Stesso mercato rilevante (prodotti/servizi sostituibili)",
+            "Stesso ambito geografico (anche solo locale per pubblici esercizi)",
+            "Operatività attuale o potenziale (per imprese in fase di start-up)"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DELL'ATTO DI CONCORRENZA SLEALE",
+          "tipologie_di_prova": [
+            "Per confusione: campioni dei prodotti, materiali promozionali, screenshot siti web, packaging",
+            "Per denigrazione: dichiarazioni del concorrente, articoli di stampa, pubblicità denigratorie, comunicazioni a clienti",
+            "Per scorrettezza: documentazione su storno di dipendenti, contratti di lavoro precedenti, mail private aziendali sottratte, accesso a segreti commerciali"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "Quantificazione DEL DANNO",
+          "voci": [
+            "Danno emergente: spese sostenute per contrastare l'atto sleale, perdita di clienti specifici",
+            "Lucro cessante: mancati profitti dimostrabili",
+            "Sviamento di clientela",
+            "Danno all'immagine commerciale",
+            "Eventuale danno da diffusione di informazioni denigratorie"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VALUTAZIONE STRATEGICA: AZIONE CAUTELARE PRIMA O CONTESTUALE",
+          "rito_cautelare": "Art. 700 c.p.c. - inibitoria d'urgenza - molto frequente in materia per fermare immediatamente la condotta",
+          "vantaggio": "Ferma subito la condotta, fa risparmiare tempo nella tutela",
+          "codice_correlato": "015011 o 017005 (per sez. impresa)"
+        },
+        {
+          "step": 5,
+          "descrizione": "Diffida formale al concorrente (raccomandata o PEC)",
+          "vantaggio": "Talvolta porta a cessazione spontanea; interrompe prescrizione"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_concorrenza_sleale",
+        "denominazione": "Atto di citazione per concorrenza sleale ex art. 2598 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {"id": "tribunale", "label": "Tribunale - sez. impresa (se interferenza IP) o sez. civile", "type": "select", "required": true},
+          {"id": "attore_impresa_lesa", "label": "Attore (impresa lesa)", "type": "object_persona_giuridica", "required": true},
+          {"id": "convenuto_concorrente_sleale", "label": "Convenuto (concorrente sleale)", "type": "object_persona_giuridica", "required": true},
+          {"id": "rapporto_concorrenza", "label": "Rapporto di concorrenza", "type": "object", "required": true, "sub_fields": [
+            {"id": "settore_di_attivita", "type": "string"},
+            {"id": "mercato_geografico", "type": "string"},
+            {"id": "prodotti_servizi_sostituibili", "type": "textarea"}
+          ]},
+          {"id": "tipologia_concorrenza_sleale", "label": "Tipologia di concorrenza sleale", "type": "select_multi", "required": true, "options": ["confusoria_uso_segni_distintivi_n_1", "confusoria_imitazione_servile_prodotti_n_1", "denigratoria_diffusione_notizie_apprezzamenti_n_2", "appropriazione_di_pregi_n_2", "scorrettezza_professionale_storno_dipendenti_n_3", "scorrettezza_professionale_violazione_segreti_n_3", "scorrettezza_professionale_spionaggio_industriale_n_3", "scorrettezza_professionale_boicottaggio_n_3", "altra_scorrettezza_n_3"]},
+          {"id": "descrizione_atti_sleali", "label": "Descrizione dettagliata atti di concorrenza sleale", "type": "textarea", "required": true, "min_length": 500},
+          {"id": "data_inizio_atti_sleali", "label": "Data inizio atti sleali", "type": "date", "required": true},
+          {"id": "atti_sleali_in_corso", "label": "Atti sleali ancora in corso", "type": "boolean", "required": true},
+          {"id": "diffida_inviata", "label": "Diffida inviata al concorrente", "type": "object", "sub_fields": [
+            {"id": "inviata", "type": "boolean"},
+            {"id": "data", "type": "date"},
+            {"id": "esito", "type": "select", "options": ["nessuna_risposta", "rifiuto_cessazione", "cessazione_parziale", "transazione"]}
+          ]},
+          {"id": "danno_richiesto", "label": "Danno richiesto", "type": "object_complesso", "required": true, "sub_fields": [
+            {"id": "danno_emergente", "type": "currency"},
+            {"id": "lucro_cessante", "type": "currency"},
+            {"id": "sviamento_clientela", "type": "currency"},
+            {"id": "danno_immagine_commerciale", "type": "currency"},
+            {"id": "totale_richiesto", "type": "currency"}
+          ]},
+          {"id": "domande", "label": "Domande", "type": "select_multi", "required": true, "options": ["accertamento_concorrenza_sleale", "inibitoria_continuazione_atti_2599", "ordine_distruzione_o_rimozione_effetti", "ordine_pubblicazione_sentenza_2599_c_2", "condanna_risarcimento_danni_2600", "penalita_giornaliere_per_inosservanza_inibitoria", "spese_di_lite"]},
+          {"id": "richiesta_provvedimento_urgente_700", "label": "Richiesta provvedimento d'urgenza ex art. 700 c.p.c. (inibitoria immediata)", "type": "boolean", "default": false, "nota": "Frequente - codice cautelare 015011 o 017005"},
+          {"id": "udienza_comparizione", "label": "Prima udienza", "type": "date", "required": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "PRESUNZIONE DI COLPA ex art. 2600 c.c. - il convenuto deve provare l'assenza di colpa",
+          "Inibitoria + distruzione/rimozione effetti + risarcimento + pubblicazione sentenza (art. 2599-2600)",
+          "Termine a comparire 120 gg post-Cartabia",
+          "Costituzione convenuto 70 gg prima udienza con decadenze"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "documentazione_rapporto_concorrenza", "label": "Documentazione del rapporto di concorrenza (visure, brochure, listini, ecc.)", "required": true, "critico": true},
+        {"id": "prove_atti_sleali", "label": "Prove documentali degli atti sleali (campioni, screenshot, pubblicità, comunicazioni, dichiarazioni, ecc.)", "required": true, "critico": true},
+        {"id": "documenti_segreti_commerciali_violati", "label": "Documenti relativi a segreti commerciali violati (se applicabile)", "required_if": "violazione_segreti=true"},
+        {"id": "documentazione_storno_dipendenti", "label": "Documentazione su storno di dipendenti (se applicabile): contratti, mail, lettere assunzione", "required_if": "storno_dipendenti=true"},
+        {"id": "bilanci_e_dati_economici_attore", "label": "Bilanci e dati economici dell'attore (per quantificazione danno)", "required": true},
+        {"id": "documentazione_clientela_persa_o_sviamento", "label": "Documentazione su clientela persa o sviata", "required": false, "consigliato": true},
+        {"id": "diffida_e_relata", "label": "Diffida inviata al concorrente con prova invio", "required_if": "diffida_inviata=true"},
+        {"id": "perizia_tecnica_imitazione_servile", "label": "Perizia tecnica su imitazione servile (se applicabile)", "required_if": "imitazione_servile=true"},
+        {"id": "procura_alle_liti", "label": "Procura alle liti", "required": true}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore del danno richiesto",
+        "marca_bollo_forfettaria": 27.00,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {"tipo": "ricorso_cautelare_700_inibitoria", "trigger": "Tutela d'urgenza per fermare la condotta", "codice_correlato": "015011/017005", "automatico": false, "consigliato": "alta frequenza"},
+        {"tipo": "ricorso_descrizione_e_sequestro_129_cpi", "trigger": "Se interferenza con IP", "codice_correlato": "017007/017008"},
+        {"tipo": "comparsa_costituzione_convenuto", "trigger": "Costituzione convenuto", "termine": "70 gg prima udienza"},
+        {"tipo": "ctu_tecnica_o_contabile", "trigger": "Disposta dal giudice", "automatico": false},
+        {"tipo": "domanda_riconvenzionale_concorrenza_sleale_convenuto", "trigger": "Convenuto deduce a sua volta concorrenza sleale dell'attore", "automatico": false},
+        {"tipo": "appello", "trigger": "Sentenza primo grado", "termine": "30 gg notifica"}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "accertamento_concorrenza_sleale_inibitoria_risarcimento", "descrizione": "Accertamento + inibitoria + condanna risarcimento + eventuali penalità + pubblicazione sentenza"},
+        {"esito": "solo_inibitoria_senza_risarcimento", "descrizione": "Inibitoria concessa ma danno non quantificato (per insufficienza prova quantum)"},
+        {"esito": "rigetto_per_assenza_rapporto_concorrenza", "descrizione": "Le parti non sono concorrenti"},
+        {"esito": "rigetto_per_assenza_atti_sleali", "descrizione": "Comportamento non integra fattispecie 2598"},
+        {"esito": "transazione_con_cessazione_e_indennizzo", "descrizione": "Accordo transattivo"}
+      ],
+      "termini_processuali": [
+        {"termine": "Prescrizione azione", "anni": 5, "decorrenza": "fatto illecito (atti continuati: dalla cessazione)", "natura": "prescrizione", "norma": "art. 2947 c.c."},
+        {"termine": "Termine a comparire", "giorni": 120, "decorrenza": "notifica citazione (post-Cartabia)", "natura": "minimo legale"},
+        {"termine": "Costituzione convenuto", "giorni": 70, "decorrenza": "prima udienza", "natura": "perentorio"},
+        {"termine": "Appello", "giorni": 30, "decorrenza": "notifica sentenza", "natura": "perentorio"}
+      ]
+    }
+  ]
+}

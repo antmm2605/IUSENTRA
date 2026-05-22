@@ -107,6 +107,7 @@ def _cfg_web(tmp_path: Path) -> dict:
         "TEMPLATE_ATTI_PREFS_DB": str(tmp_path / "template_atti" / "editor_layout.json"),
         "PREVENTIVI_DB": str(tmp_path / "preventivi" / "preventivi.json"),
         "FATTURAZIONE_DB": str(tmp_path / "fatturazione" / "parcelle.json"),
+        "PAGAMENTI_DIR": str(tmp_path / "pagamenti"),
         "TIMESHEET_DB": str(tmp_path / "timesheet" / "entries.json"),
         "LOCAL_AI_DB": str(tmp_path / "intelligence" / "local_ai.db"),
         "LOCAL_AI_POLICY": str(REPO_ROOT / "config" / "ai-policy.json"),

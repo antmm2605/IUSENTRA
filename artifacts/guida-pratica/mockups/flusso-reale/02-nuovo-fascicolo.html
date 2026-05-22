@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Flusso reale - Nuovo fascicolo</title>
+    <link rel="stylesheet" href="flow.css" />
+  </head>
+  <body>
+    <main class="app">
+      <aside class="sidebar">
+        <div class="brand">IUSENTRA</div>
+        <nav class="nav">
+          <a>Panoramica</a>
+          <a class="active">Fascicoli</a>
+          <a>Clienti</a>
+          <a>Documenti</a>
+          <a>Redazione atti</a>
+        </nav>
+      </aside>
+      <section class="content">
+        <header class="hero">
+          <div>
+            <div class="eyebrow">Pagina esistente</div>
+            <h1>Nuovo Fascicolo</h1>
+            <p>Qui si definiscono i dati della pratica. Il generatore documenti non deve richiederli di nuovo.</p>
+          </div>
+          <div class="actions"><a class="btn" href="01-fascicoli.html">Fascicoli</a><a class="btn primary" href="03-fascicolo-aperto.html">Salva e apri fascicolo</a></div>
+        </header>
+
+        <section class="grid-2">
+          <div class="panel">
+            <div class="panel-head"><strong>Scheda fascicolo</strong><span class="badge gold">dati fonte</span></div>
+            <div class="panel-body">
+              <div class="field-grid">
+                <label class="field"><span>Cliente</span><input value="Crocitti Giovanni" /></label>
+                <label class="field"><span>Controparte</span><input value="Comune di Taurianova" /></label>
+                <label class="field"><span>Ufficio</span><input value="Giudice di Pace di Palmi" /></label>
+                <label class="field"><span>Oggetto pratica</span><input value="Opposizione a sanzione amministrativa" /></label>
+                <label class="field"><span>Codice oggetto</span><input value="Da catalogo PST/XSD, se valorizzato" /></label>
+                <label class="field"><span>Fase</span><select><option>Istruttoria iniziale</option></select></label>
+                <label class="field" style="grid-column:1/-1"><span>Note operative</span><textarea>Verbale notificato, termini e allegati da verificare.</textarea></label>
+              </div>
+            </div>
+          </div>
+          <aside class="panel">
+            <div class="panel-head"><strong>Regola</strong></div>
+            <div class="panel-body">
+              <div class="task done"><div class="task-title">Questi dati restano nel fascicolo</div><p>Guida, Lex e compilatore li leggono da qui.</p></div>
+              <div class="task selected"><div class="task-title">Niente campi duplicati</div><p>Se manca un dato, si torna a questa scheda.</p></div>
+            </div>
+          </aside>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

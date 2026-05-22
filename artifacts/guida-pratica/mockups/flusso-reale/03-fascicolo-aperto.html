@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Flusso reale - Fascicolo aperto</title>
+    <link rel="stylesheet" href="flow.css" />
+  </head>
+  <body>
+    <main class="app">
+      <aside class="sidebar">
+        <div class="brand">IUSENTRA</div>
+        <nav class="nav">
+          <a>Panoramica</a>
+          <a class="active">Fascicoli</a>
+          <a>Clienti</a>
+          <a>Documenti</a>
+          <a>Redazione atti</a>
+        </nav>
+      </aside>
+      <section class="content">
+        <header class="hero">
+          <div>
+            <div class="eyebrow">Fascicolo esistente</div>
+            <h1>Opposizione a sanzione amministrativa</h1>
+            <p><span class="badge gold">istruttoria</span> <span class="badge">Giudice di Pace di Palmi</span> <span class="badge">Crocitti Giovanni</span></p>
+          </div>
+          <div class="actions"><a class="btn">Modifica</a><a class="btn">Quadro AI</a><a class="btn primary">PDF</a></div>
+        </header>
+
+        <nav class="section-tabs">
+          <a class="active">Sintesi</a><a>Parti</a><a>Documenti</a><a>Attività</a><a>Scadenze</a><a>Deposito</a>
+        </nav>
+
+        <section class="guide-layout">
+          <aside class="guide">
+            <header>
+              <div class="eyebrow">Guida Pratica</div>
+              <h2>Piano assistito</h2>
+              <p>Facoltativo. Legge il fascicolo e propone documenti, controlli e fonti.</p>
+            </header>
+            <div class="guide-list">
+              <div class="task done"><div class="task-title">Verbale e notifica <span class="badge green">verificati</span></div></div>
+              <div class="task selected"><div class="task-title">Ricorso in opposizione <span class="badge gold">da generare</span></div><p>Da catalogo template, binding al compilatore.</p><p><a class="btn primary" href="04-generazione-documento.html">Genera documento</a></p></div>
+              <div class="task"><div class="task-title">Allegati <span class="badge gold">da controllare</span></div></div>
+            </div>
+          </aside>
+          <section class="grid-2" style="grid-template-columns:minmax(0,1fr) 330px">
+            <div class="panel">
+              <div class="panel-head"><strong>Fascicolo ancora principale</strong></div>
+              <div class="panel-body">
+                <div class="field-grid three">
+                  <div class="field"><span>Cliente</span><strong>Crocitti Giovanni</strong></div>
+                  <div class="field"><span>Controparte</span><strong>Comune di Taurianova</strong></div>
+                  <div class="field"><span>Ufficio</span><strong>Giudice di Pace di Palmi</strong></div>
+                  <div class="field"><span>Documenti</span><strong>Verbale presente</strong></div>
+                  <div class="field"><span>Scadenze</span><strong>Da calcolare</strong></div>
+                  <div class="field"><span>Lex</span><strong>Legge fascicolo e guida</strong></div>
+                </div>
+              </div>
+            </div>
+            <aside class="panel">
+              <div class="panel-head"><strong>Catalogo template</strong></div>
+              <div class="panel-body">
+                <div class="task selected"><div class="task-title">GDP_001</div><p>Ricorso davanti al Giudice di Pace.</p></div>
+                <div class="grid-3" style="grid-template-columns:1fr 1fr">
+                  <div class="field"><span>Core</span><strong>122</strong></div>
+                  <div class="field"><span>Advanced</span><strong>186</strong></div>
+                  <div class="field"><span>Specialist</span><strong>92</strong></div>
+                  <div class="field"><span>Studio</span><strong>20</strong></div>
+                </div>
+              </div>
+            </aside>
+          </section>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

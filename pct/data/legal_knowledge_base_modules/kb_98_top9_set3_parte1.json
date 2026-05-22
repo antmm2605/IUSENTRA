@@ -1,0 +1,978 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET3_PARTE1",
+  "denominazione": "Terzo set di 9 codici più frequenti - PARTE 1 di 2",
+  "registri": ["SICID", "SIVG"],
+  "data_generazione": "2026-05-22",
+  "scopo": "Parte 1: riduzione legittima, rivendicazione, usucapione, affidamento figli naturali, recupero crediti professionali. Completa il set3 con kb_top9_set3_parte2.json",
+  "codici_materia": [
+    {
+      "codice": "120030",
+      "denominazione": "Azione di riduzione per lesione della quota di legittima",
+      "categoria": "Successioni - tutela dei legittimari",
+      "sottocategoria": "Azione di riduzione delle disposizioni testamentarie e delle donazioni lesive della legittima",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA ex art. 5 c. 1-bis D.Lgs. 28/2010 (materia successioni)",
+      "competenza": "Tribunale del luogo di apertura della successione (art. 22 c.p.c.) - foro esclusivo",
+      "uffici_destinatari": ["SICID"],
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "536", "descrizione": "Legittimari (coniuge, figli, ascendenti)"},
+        {"fonte": "c.c.", "articolo": "537", "descrizione": "Riserva a favore dei figli"},
+        {"fonte": "c.c.", "articolo": "538", "descrizione": "Riserva a favore degli ascendenti"},
+        {"fonte": "c.c.", "articolo": "540", "descrizione": "Riserva a favore del coniuge + diritto di uso e abitazione casa familiare"},
+        {"fonte": "c.c.", "articolo": "542", "descrizione": "Concorso del coniuge con i figli"},
+        {"fonte": "c.c.", "articolo": "544", "descrizione": "Concorso del coniuge con gli ascendenti"},
+        {"fonte": "c.c.", "articolo": "549", "descrizione": "Divieto di pesi o condizioni sulla legittima"},
+        {"fonte": "c.c.", "articolo": "553", "descrizione": "Azione di riduzione - generale"},
+        {"fonte": "c.c.", "articolo": "554", "descrizione": "Riduzione delle disposizioni testamentarie"},
+        {"fonte": "c.c.", "articolo": "555", "descrizione": "Riduzione delle donazioni"},
+        {"fonte": "c.c.", "articolo": "556", "descrizione": "Determinazione della porzione disponibile"},
+        {"fonte": "c.c.", "articolo": "557", "descrizione": "Soggetti che possono chiedere la riduzione"},
+        {"fonte": "c.c.", "articolo": "559", "descrizione": "Riduzione proporzionale"},
+        {"fonte": "c.c.", "articolo": "560", "descrizione": "Riduzione del legato o della donazione d'immobile"},
+        {"fonte": "c.c.", "articolo": "561", "descrizione": "Restituzione degli immobili"},
+        {"fonte": "c.c.", "articolo": "562", "descrizione": "Insolvenza del donatario"},
+        {"fonte": "c.c.", "articolo": "563", "descrizione": "Azione contro gli aventi causa dai donatari"},
+        {"fonte": "c.c.", "articolo": "564", "descrizione": "Condizioni per chiedere la riduzione: accettazione con beneficio di inventario per i legittimari non in possesso di beni ereditari"},
+        {"fonte": "c.c.", "articolo": "2652 n. 8", "descrizione": "Trascrizione della domanda di riduzione"},
+        {"fonte": "L. 80/2005", "descrizione": "Modifica art. 561 c.c. - decennio di opponibilità della trascrizione donazione"}
+      ],
+      "presupposti_sostanziali": [
+        "QUALITÀ DI LEGITTIMARIO dell'attore: coniuge, figli legittimi/naturali/adottivi, ascendenti (in mancanza di figli)",
+        "LESIONE DELLA QUOTA DI LEGITTIMA: la somma di quanto ricevuto dal legittimario (per successione + donazioni + legati) è inferiore alla quota di legittima a lui spettante",
+        "ACCETTAZIONE EREDITÀ CON BENEFICIO D'INVENTARIO (art. 564 c.c.) - PRESUPPOSTO PROCESSUALE OBBLIGATORIO PER LEGITTIMARI NON IN POSSESSO DI BENI EREDITARI",
+        "Per attaccare donazioni: gradualità dell'azione - prima si riducono le disposizioni testamentarie, poi le donazioni dalla più recente alla più remota (art. 559)",
+        "Calcolo della 'riunione fittizia' ex art. 556 c.c. (relictum + donatum - debiti, con detrazione passività)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materie": "SUCCESSIONI EREDITARIE",
+        "natura": "condizione di procedibilità"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VERIFICA QUALITÀ DI LEGITTIMARIO dell'attore",
+          "documenti": ["Certificato morte de cuius", "Atti di nascita (per filiazione)", "Estratto matrimonio (per coniuge)", "Stato di famiglia storico"]
+        },
+        {
+          "step": 2,
+          "descrizione": "ACCETTAZIONE EREDITÀ CON BENEFICIO D'INVENTARIO ex art. 564 c.c.",
+          "criticita": "MASSIMA - se il legittimario non è in possesso di beni ereditari e non ha accettato con beneficio, l'azione è inammissibile",
+          "termini_accettazione": "10 anni dall'apertura successione + 3 mesi inventario per chi è in possesso di beni",
+          "modalita": "Dichiarazione resa al notaio o cancelliere del Tribunale + inventario"
+        },
+        {
+          "step": 3,
+          "descrizione": "RICOSTRUZIONE 'RIUNIONE FITTIZIA' ex art. 556 c.c.",
+          "elementi_da_calcolare": [
+            "RELICTUM: valore beni del de cuius alla data di apertura successione",
+            "Donazioni in vita (DONATUM): valore alla data di apertura della successione, ricostruito",
+            "Debiti del de cuius alla data di apertura",
+            "Quota disponibile = (relictum + donatum - debiti) × quota disponibile",
+            "Quota di legittima singolo legittimario = (relictum + donatum - debiti) × quota di legittima"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "Identificazione delle DISPOSIZIONI LESIVE",
+          "ordine_riduzione_art_559": [
+            "1) Riduzione delle disposizioni testamentarie (legati e istituzioni di erede) proporzionalmente",
+            "2) Se ancora insufficiente: riduzione delle donazioni dalla più RECENTE alla più REMOTA",
+            "3) Per donazioni dello stesso giorno: riduzione proporzionale"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "Identificazione TERZI ACQUIRENTI dai donatari (azione di restituzione ex art. 563)",
+          "limite_temporale": "20 anni dalla trascrizione donazione (10 anni se opposizione ex art. 561) per attaccare i terzi acquirenti"
+        },
+        {
+          "step": 6,
+          "descrizione": "ATTIVAZIONE MEDIAZIONE OBBLIGATORIA",
+          "documenti_da_predisporre": ["Istanza con quantificazione lesione", "Documentazione ereditaria completa", "Eventuale perizia di parte"]
+        },
+        {
+          "step": 7,
+          "descrizione": "Predisposizione domanda con eventuale RICHIESTA TRASCRIZIONE EX ART. 2652 N. 8 c.c.",
+          "rilevanza": "Per opponibilità ai terzi e per fermare ulteriori atti dispositivi"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_azione_riduzione",
+        "denominazione": "Atto di citazione per azione di riduzione per lesione della quota di legittima ex artt. 553 e ss. c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {"id": "tribunale", "label": "Tribunale del luogo apertura successione", "type": "select", "required": true},
+          {"id": "legittimario_attore", "label": "Legittimario attore", "type": "object_persona", "required": true, "sub_fields": [
+            {"id": "cognome_nome", "type": "string"},
+            {"id": "codice_fiscale", "type": "string"},
+            {"id": "rapporto_con_de_cuius", "type": "select", "required": true, "options": ["coniuge", "figlio_legittimo", "figlio_naturale_riconosciuto", "figlio_adottivo", "ascendente"]}
+          ]},
+          {"id": "eredi_testamentari_e_donatari_convenuti", "label": "Convenuti (eredi testamentari, legatari, donatari beneficiari delle disposizioni lesive - LITISCONSORTI NECESSARI)", "type": "array_persone", "required": true, "min_items": 1},
+          {"id": "terzi_acquirenti_dai_donatari", "label": "Eventuali terzi acquirenti dai donatari (per azione di restituzione ex art. 563)", "type": "array_persone"},
+          {"id": "de_cuius", "label": "De cuius", "type": "object_persona", "required": true, "sub_fields": [
+            {"id": "cognome_nome", "type": "string"},
+            {"id": "codice_fiscale", "type": "string"},
+            {"id": "data_morte", "type": "date"},
+            {"id": "ultimo_domicilio", "type": "address"}
+          ]},
+          {"id": "accettazione_beneficio_inventario", "label": "Accettazione eredità con beneficio d'inventario (PRESUPPOSTO PROCESSUALE)", "type": "object", "required": true, "critico": true, "sub_fields": [
+            {"id": "legittimario_in_possesso_beni_ereditari", "type": "boolean"},
+            {"id": "accettazione_avvenuta", "type": "boolean", "required_if": "legittimario_in_possesso_beni_ereditari=false"},
+            {"id": "data_accettazione_beneficio", "type": "date"},
+            {"id": "modalita", "type": "select", "options": ["dichiarazione_notarile", "dichiarazione_cancelleria_tribunale"]},
+            {"id": "inventario_redatto", "type": "boolean"}
+          ]},
+          {"id": "successione", "label": "Tipo di successione", "type": "select", "required": true, "options": ["legittima", "testamentaria_pubblico", "testamentaria_olografo", "testamentaria_segreto", "mista"]},
+          {"id": "testamento", "label": "Testamento (se presente)", "type": "object", "sub_fields": [
+            {"id": "data_redazione", "type": "date"},
+            {"id": "data_pubblicazione", "type": "date"},
+            {"id": "disposizioni_lesive", "type": "textarea"}
+          ]},
+          {"id": "riunione_fittizia_556", "label": "Calcolo riunione fittizia ex art. 556 c.c.", "type": "object_complesso", "required": true, "critico": true, "sub_fields": [
+            {"id": "relictum_valore", "type": "currency", "label": "Valore relictum alla data apertura successione"},
+            {"id": "donatum_dettaglio", "type": "array", "sub_fields": [
+              {"id": "donatario", "type": "string"},
+              {"id": "oggetto_donazione", "type": "string"},
+              {"id": "data_donazione", "type": "date"},
+              {"id": "atto_notarile_estremi", "type": "string"},
+              {"id": "valore_alla_data_morte_de_cuius", "type": "currency"}
+            ]},
+            {"id": "totale_donatum", "type": "currency"},
+            {"id": "debiti_ereditari", "type": "currency"},
+            {"id": "asse_ereditario_riunito", "type": "currency", "formula": "relictum + donatum - debiti"},
+            {"id": "quota_legittima_complessiva_legittimari", "type": "fraction"},
+            {"id": "quota_disponibile", "type": "fraction"},
+            {"id": "quota_legittima_attore", "type": "fraction"},
+            {"id": "valore_quota_legittima_attore", "type": "currency"},
+            {"id": "valore_effettivamente_ricevuto_attore", "type": "currency"},
+            {"id": "ammontare_lesione", "type": "currency", "formula": "valore quota legittima - valore ricevuto"}
+          ]},
+          {"id": "disposizioni_da_ridurre", "label": "Disposizioni da ridurre (in ordine di gradualità)", "type": "array", "required": true, "sub_fields": [
+            {"id": "tipo", "type": "select", "options": ["istituzione_erede_testamentaria", "legato_testamentario", "donazione_in_vita"]},
+            {"id": "beneficiario", "type": "string"},
+            {"id": "oggetto", "type": "string"},
+            {"id": "data", "type": "date"},
+            {"id": "valore", "type": "currency"},
+            {"id": "ordine_riduzione", "type": "integer"},
+            {"id": "ammontare_riduzione_richiesto", "type": "currency"}
+          ]},
+          {"id": "domande", "label": "Domande", "type": "select_multi", "required": true, "options": ["accertamento_lesione_legittima", "riduzione_disposizioni_testamentarie", "riduzione_donazioni_in_vita", "restituzione_beni_in_natura_o_per_equivalente", "azione_restituzione_contro_terzi_acquirenti_563", "trascrizione_domanda_2652_n_8", "interessi_legali", "spese_di_lite"]},
+          {"id": "richiesta_trascrizione_domanda", "label": "Richiesta trascrizione domanda giudiziale ex art. 2652 n. 8", "type": "boolean", "default": true},
+          {"id": "udienza_comparizione", "label": "Prima udienza", "type": "date", "required": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "ACCETTAZIONE BENEFICIO D'INVENTARIO ex art. 564 c.c. è PRESUPPOSTO PROCESSUALE per legittimari non in possesso di beni ereditari",
+          "LITISCONSORZIO NECESSARIO con tutti i beneficiari delle disposizioni lesive",
+          "Foro esclusivo del luogo apertura successione (art. 22 c.p.c.)",
+          "Mediazione obbligatoria preventiva ex art. 5 c. 1-bis D.Lgs. 28/2010",
+          "Indicazione gradualità ex art. 559: prima testamentarie, poi donazioni dalla più recente alla più remota",
+          "Trascrizione domanda ex art. 2652 n. 8 c.c. per opponibilità",
+          "Prescrizione decennale dell'azione (Cass. SU 20644/2004)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "certificato_morte", "label": "Certificato morte de cuius", "required": true},
+        {"id": "testamento_pubblicato", "label": "Testamento pubblicato e registrato (se presente)", "required_if": "successione_testamentaria"},
+        {"id": "atti_di_donazione_in_vita", "label": "Atti di donazione effettuate in vita dal de cuius", "required": true, "critico": true},
+        {"id": "atto_accettazione_beneficio_inventario", "label": "Atto di accettazione eredità con beneficio d'inventario + verbale inventario", "required": true, "critico": true},
+        {"id": "dichiarazione_successione_ae", "label": "Dichiarazione di successione presentata all'Agenzia Entrate", "required": true},
+        {"id": "stato_famiglia_storico_de_cuius", "label": "Stato di famiglia storico", "required": true},
+        {"id": "atti_di_provenienza_beni_ereditari", "label": "Atti di provenienza beni ereditari", "required": true},
+        {"id": "visure_catastali_e_ispezioni_immobili", "label": "Visure catastali e ispezioni Conservatoria immobili", "required": true},
+        {"id": "documentazione_patrimoniale_de_cuius", "label": "Documentazione patrimoniale del de cuius (estratti conto, dossier titoli, partecipazioni)", "required": true},
+        {"id": "perizia_estimativa_di_parte", "label": "Perizia estimativa di parte per riunione fittizia", "required": false, "consigliato": true},
+        {"id": "verbale_mediazione_negativa", "label": "Verbale mediazione obbligatoria conclusasi negativamente", "required": true, "critico": true},
+        {"id": "procura_alle_liti", "label": "Procura alle liti", "required": true}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore della lesione",
+        "marca_bollo_forfettaria": 27.00,
+        "tasse_trascrizione_domanda_2652_n8": "Imposta ipotecaria fissa + tasse",
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {"tipo": "ricorso_mediazione_obbligatoria", "trigger": "Condizione procedibilità", "automatico": false},
+        {"tipo": "trascrizione_domanda_giudiziale_2652_n_8", "trigger": "Opponibilità a terzi"},
+        {"tipo": "atto_accettazione_beneficio_inventario_notarile", "trigger": "Presupposto processuale - se non già fatto", "automatico": false, "critico": true},
+        {"tipo": "ctu_estimativa", "trigger": "Determinazione valori della riunione fittizia", "automatico": false},
+        {"tipo": "azione_restituzione_563_contro_terzi", "trigger": "Donatario insolvente / immobile alienato a terzi", "automatico": false},
+        {"tipo": "azione_collazione_737_separata_o_unita", "trigger": "Donazioni a discendenti/coniuge", "codice_correlato": "121003"},
+        {"tipo": "domanda_divisione_ereditaria_separata", "trigger": "Necessità successiva di dividere quote", "codice_correlato": "121003"}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "accoglimento_riduzione_e_restituzione", "descrizione": "Riduzione disposizioni lesive + restituzione beni in natura o per equivalente"},
+        {"esito": "accoglimento_parziale", "descrizione": "Riduzione parziale - non tutte le disposizioni colpite"},
+        {"esito": "rigetto_per_mancata_accettazione_beneficio", "descrizione": "Inammissibilità per mancato rispetto art. 564 c.c."},
+        {"esito": "rigetto_per_assenza_lesione", "descrizione": "Calcolo della riunione fittizia non evidenzia lesione"},
+        {"esito": "transazione", "descrizione": "Accordo tra legittimari e beneficiari delle disposizioni"}
+      ],
+      "termini_processuali": [
+        {"termine": "PRESCRIZIONE AZIONE RIDUZIONE", "anni": 10, "decorrenza": "apertura successione", "natura": "prescrizione", "norma": "Cass. SU 20644/2004", "criticita": "MASSIMA"},
+        {"termine": "Accettazione eredità", "anni": 10, "decorrenza": "apertura successione", "natura": "prescrizione del diritto", "norma": "art. 480 c.c."},
+        {"termine": "Inventario per possessore di beni ereditari", "giorni": 90, "decorrenza": "apertura successione", "natura": "decadenziale (per chi è in possesso)", "norma": "art. 485 c.c."},
+        {"termine": "Termine a comparire", "giorni": 120, "decorrenza": "notifica citazione", "natura": "minimo legale"},
+        {"termine": "Costituzione convenuto", "giorni": 70, "decorrenza": "prima udienza", "natura": "perentorio"},
+        {"termine": "Azione restituzione contro terzi 561-563", "anni": 20, "decorrenza": "trascrizione donazione (10 se opposizione)", "natura": "decadenziale", "norma": "L. 80/2005"}
+      ]
+    },
+    {
+      "codice": "130001",
+      "denominazione": "Azione di rivendicazione (immobiliare)",
+      "categoria": "Diritti reali - tutela della proprietà",
+      "sottocategoria": "Rivendicazione del bene posseduto da altri - prova del titolo di proprietà (probatio diabolica)",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA ex art. 5 c. 1-bis D.Lgs. 28/2010",
+      "competenza": "Tribunale del luogo dell'immobile (art. 21 c.p.c. - foro esclusivo per diritti reali immobiliari)",
+      "uffici_destinatari": ["SICID"],
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "948", "descrizione": "Azione di rivendicazione - imprescrittibile (salvo usucapione)"},
+        {"fonte": "c.c.", "articolo": "949", "descrizione": "Azione negatoria"},
+        {"fonte": "c.c.", "articolo": "950", "descrizione": "Azione di regolamento dei confini"},
+        {"fonte": "c.c.", "articolo": "951", "descrizione": "Azione per apposizione di termini"},
+        {"fonte": "c.c.", "articolo": "1158", "descrizione": "Usucapione ventennale immobili (eccezione tipica)"},
+        {"fonte": "c.c.", "articolo": "1159", "descrizione": "Usucapione decennale con buona fede + titolo + trascrizione"},
+        {"fonte": "c.c.", "articolo": "2643", "descrizione": "Atti soggetti a trascrizione"},
+        {"fonte": "c.c.", "articolo": "2644", "descrizione": "Effetti della trascrizione"},
+        {"fonte": "c.c.", "articolo": "2652 n. 1", "descrizione": "Trascrizione della domanda di rivendicazione"},
+        {"fonte": "c.c.", "articolo": "2697", "descrizione": "Onere della prova (sull'attore)"}
+      ],
+      "presupposti_sostanziali": [
+        "QUALITÀ DI PROPRIETARIO dell'attore (probatio diabolica - serve dimostrare titolo di proprietà valido + provenienze ventennali ininterrotte fino a un titolo originario o un acquisto a titolo originario tipo usucapione)",
+        "POSSESSO/DETENZIONE DEL BENE DA PARTE DI ALTRI (convenuto)",
+        "ASSENZA DI TITOLO IDONEO DEL CONVENUTO (chi detiene il bene non ha titolo per giustificare il possesso)",
+        "AZIONE IMPRESCRITTIBILE (salvo intervenuta usucapione da parte del convenuto)"
+      ],
+      "oneri_probatori": {
+        "principio": "Probatio diabolica - art. 948 c.c.: l'attore deve dimostrare la proprietà in maniera RIGOROSA",
+        "modalita_prova": [
+          "Atto di acquisto a titolo derivativo + acquisti dei danti causa per almeno 20 anni (ricostruzione ventennale)",
+          "OPPURE prova di acquisto a titolo originario (usucapione, accessione, occupazione)",
+          "Trascrizione dell'atto + atti di provenienza",
+          "Coincidenza tra bene rivendicato e bene oggetto del titolo"
+        ]
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "DIRITTI REALI",
+        "natura": "condizione di procedibilità"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "RICOSTRUZIONE VENTENNALE DEL TITOLO DI PROPRIETÀ",
+          "documenti": [
+            "Atto di acquisto dell'attore (rogito notarile)",
+            "Atti di acquisto dei danti causa per ulteriori 20 anni",
+            "Note di trascrizione di tutti gli atti",
+            "Successioni eventualmente intervenute",
+            "Visure catastali storiche"
+          ],
+          "criticita": "FONDAMENTALE - senza ricostruzione completa l'azione fallisce"
+        },
+        {
+          "step": 2,
+          "descrizione": "IDENTIFICAZIONE PRECISA DEL BENE RIVENDICATO",
+          "elementi": [
+            "Coincidenza identificativa tra bene rivendicato e bene oggetto del titolo (potenziali discrepanze tra confini reali e catastali)",
+            "Visura catastale aggiornata",
+            "Rilievo topografico (se utile)"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "VERIFICA POSSESSO DEL CONVENUTO",
+          "elementi": [
+            "Dimostrazione che il convenuto detiene/possiede effettivamente il bene",
+            "Durata del possesso (per eccezione usucapione)",
+            "Modalità del possesso (buona/mala fede, titolo, ecc.)"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VERIFICA EVENTUALE INTERVENUTA USUCAPIONE",
+          "termini": "20 anni per usucapione ordinaria (art. 1158), 10 anni con buona fede + titolo + trascrizione (art. 1159), 5 anni per piccole proprietà rurali (art. 1159-bis)",
+          "rischio_strategico": "Se il convenuto può eccepire usucapione, la rivendicazione può essere rigettata"
+        },
+        {
+          "step": 5,
+          "descrizione": "ATTIVAZIONE MEDIAZIONE OBBLIGATORIA",
+          "luogo": "Organismo del luogo dell'immobile"
+        },
+        {
+          "step": 6,
+          "descrizione": "TRASCRIZIONE DOMANDA EX ART. 2652 N. 1 c.c.",
+          "vantaggio": "Opponibilità ai terzi acquirenti successivi alla trascrizione"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_rivendicazione",
+        "denominazione": "Atto di citazione per azione di rivendicazione immobiliare ex art. 948 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {"id": "tribunale", "label": "Tribunale del luogo dell'immobile (art. 21 c.p.c.)", "type": "select", "required": true},
+          {"id": "attore_proprietario", "label": "Attore (proprietario rivendicante)", "type": "object_persona", "required": true},
+          {"id": "convenuti_possessori", "label": "Convenuti (possessori/detentori)", "type": "array_persone", "required": true, "min_items": 1},
+          {"id": "immobile_rivendicato", "label": "Immobile rivendicato", "type": "object_immobile", "required": true, "sub_fields": [
+            {"id": "ubicazione_completa", "type": "address"},
+            {"id": "dati_catastali", "type": "object", "sub_fields": [
+              {"id": "foglio", "type": "string"},
+              {"id": "particella", "type": "string"},
+              {"id": "subalterno", "type": "string"},
+              {"id": "categoria_catastale", "type": "string"}
+            ]},
+            {"id": "descrizione_fisica", "type": "textarea"},
+            {"id": "confini", "type": "textarea"},
+            {"id": "superficie", "type": "object"}
+          ]},
+          {"id": "ricostruzione_ventennale", "label": "Ricostruzione titoli ventennali", "type": "array", "required": true, "critico": true, "sub_fields": [
+            {"id": "atto_estremi", "type": "string"},
+            {"id": "tipo_atto", "type": "select", "options": ["compravendita", "donazione", "successione", "permuta", "divisione", "altro"]},
+            {"id": "data_atto", "type": "date"},
+            {"id": "notaio_rogante", "type": "string"},
+            {"id": "data_trascrizione", "type": "date"},
+            {"id": "dante_causa", "type": "string"},
+            {"id": "avente_causa", "type": "string"}
+          ]},
+          {"id": "titolo_originario_acquisto", "label": "Eventuale titolo originario (usucapione, accessione)", "type": "object"},
+          {"id": "possesso_convenuto", "label": "Descrizione possesso/detenzione del convenuto", "type": "object", "required": true, "sub_fields": [
+            {"id": "modalita_possesso", "type": "textarea"},
+            {"id": "decorrenza_possesso", "type": "date"},
+            {"id": "buona_fede_o_mala_fede", "type": "select"},
+            {"id": "eventuale_titolo_giustificativo", "type": "string"}
+          ]},
+          {"id": "domande", "label": "Domande", "type": "select_multi", "required": true, "options": ["accertamento_proprieta_attore", "condanna_rilascio_bene", "risarcimento_danni_da_occupazione", "indennita_di_occupazione_1591_o_2041", "condanna_demolizione_eventuali_opere_abusive", "trascrizione_domanda_2652_n_1", "spese_di_lite"]},
+          {"id": "danni_da_occupazione_richiesti", "label": "Danni da occupazione richiesti", "type": "currency"},
+          {"id": "richiesta_trascrizione_2652", "label": "Richiesta trascrizione domanda ex art. 2652 n. 1", "type": "boolean", "default": true},
+          {"id": "udienza_comparizione", "label": "Prima udienza", "type": "date", "required": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "ONERE DELLA PROVA RIGOROSO (probatio diabolica) ex art. 948 c.c.",
+          "Foro esclusivo del luogo immobile (art. 21 c.p.c.)",
+          "Mediazione obbligatoria preventiva (diritti reali)",
+          "Trascrizione domanda ex art. 2652 n. 1 c.c. per opponibilità a terzi",
+          "RISCHIO USUCAPIONE: verificare durata possesso del convenuto",
+          "AZIONE IMPRESCRITTIBILE - salvo intervenuta usucapione"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "atto_acquisto_attore", "label": "Atto di acquisto dell'attore (rogito notarile)", "required": true, "critico": true},
+        {"id": "atti_provenienza_ventennali", "label": "Atti di provenienza per almeno 20 anni (ricostruzione ventennale)", "required": true, "critico": true},
+        {"id": "note_trascrizione_tutti_atti", "label": "Note di trascrizione di tutti gli atti", "required": true},
+        {"id": "ispezione_conservatoria_ventennale", "label": "Ispezione ipocatastale ventennale", "required": true, "critico": true},
+        {"id": "visure_catastali_storiche_e_attuali", "label": "Visure catastali storiche e attuali", "required": true},
+        {"id": "eventuali_successioni", "label": "Dichiarazioni di successione (se nella catena ci sono successioni)", "required_if": "successioni_nella_catena=true"},
+        {"id": "perizia_topografica", "label": "Eventuale perizia topografica/rilievo", "required": false, "consigliato": true},
+        {"id": "verbale_mediazione_negativa", "label": "Verbale mediazione obbligatoria conclusa negativamente", "required": true, "critico": true},
+        {"id": "procura_alle_liti", "label": "Procura alle liti", "required": true}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore dell'immobile rivendicato",
+        "marca_bollo_forfettaria": 27.00,
+        "tasse_trascrizione_domanda": "Imposta ipotecaria fissa + tasse",
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {"tipo": "ricorso_mediazione_obbligatoria", "trigger": "Condizione procedibilità preliminare"},
+        {"tipo": "trascrizione_domanda_2652_n_1", "trigger": "Opponibilità a terzi"},
+        {"tipo": "azione_cautelare_700_o_sequestro_giudiziario_670", "trigger": "Pericolo dispersione bene o atti dispositivi", "codice_correlato": "011002/015011"},
+        {"tipo": "ctu_topografica_estimativa", "trigger": "Disposta dal giudice", "automatico": false},
+        {"tipo": "domanda_riconvenzionale_usucapione_convenuto", "trigger": "Convenuto eccepisce usucapione", "codice_correlato": "130033"},
+        {"tipo": "esecuzione_per_rilascio", "trigger": "Sentenza esecutiva non spontaneamente eseguita", "codice_correlato": "511012"},
+        {"tipo": "appello", "trigger": "Sentenza primo grado", "termine": "30 gg notifica"}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "accertamento_proprieta_e_rilascio", "descrizione": "Accertamento proprietà attore + ordine di rilascio del bene + eventuali danni"},
+        {"esito": "rigetto_per_insufficienza_prova_titolo", "descrizione": "Probatio diabolica non soddisfatta - rigetto"},
+        {"esito": "accoglimento_usucapione_convenuto", "descrizione": "Convenuto ha usucapito - rigetto rivendicazione + accertamento proprietà convenuto"},
+        {"esito": "transazione", "descrizione": "Accordo (vendita, compromesso, riconoscimento)"}
+      ],
+      "termini_processuali": [
+        {"termine": "AZIONE IMPRESCRITTIBILE", "natura": "imprescrittibile", "norma": "art. 948 c.c.", "eccezione": "Salvo usucapione"},
+        {"termine": "Mediazione obbligatoria - max", "giorni": 90, "norma": "art. 6 D.Lgs. 28/2010"},
+        {"termine": "Termine a comparire", "giorni": 120, "natura": "minimo legale post-Cartabia"},
+        {"termine": "Costituzione convenuto", "giorni": 70, "decorrenza": "prima udienza", "natura": "perentorio"},
+        {"termine": "Appello", "giorni": 30, "decorrenza": "notifica sentenza", "natura": "perentorio"}
+      ]
+    },
+    {
+      "codice": "130033",
+      "denominazione": "Accertamento dell'acquisto della proprietà per usucapione",
+      "categoria": "Diritti reali - acquisto a titolo originario",
+      "sottocategoria": "Accertamento giudiziale di intervenuta usucapione (ordinaria, abbreviata, speciale)",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA ex art. 5 c. 1-bis D.Lgs. 28/2010 (NB: il D.L. 132/2014 ha previsto anche la negoziazione assistita per usucapione, ma con effetti più limitati)",
+      "competenza": "Tribunale del luogo dell'immobile (art. 21 c.p.c. - foro esclusivo)",
+      "uffici_destinatari": ["SICID"],
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1158", "descrizione": "Usucapione ordinaria - 20 anni di possesso continuato e non interrotto"},
+        {"fonte": "c.c.", "articolo": "1159", "descrizione": "Usucapione decennale - buona fede + titolo astrattamente idoneo + trascrizione"},
+        {"fonte": "c.c.", "articolo": "1159-bis", "descrizione": "Usucapione speciale fondi rustici di piccole proprietà - 15 anni / 5 anni con titolo + trascrizione"},
+        {"fonte": "c.c.", "articolo": "1140", "descrizione": "Possesso - definizione"},
+        {"fonte": "c.c.", "articolo": "1141", "descrizione": "Mutamento della detenzione in possesso (interversio possessionis)"},
+        {"fonte": "c.c.", "articolo": "1142", "descrizione": "Presunzione di possesso continuato"},
+        {"fonte": "c.c.", "articolo": "1143", "descrizione": "Presunzione di possesso intermedio"},
+        {"fonte": "c.c.", "articolo": "1144", "descrizione": "Possesso ad usucapionem - atti di tolleranza non valgono"},
+        {"fonte": "c.c.", "articolo": "1145", "descrizione": "Possesso di beni del demanio o appartenenti al patrimonio indisponibile"},
+        {"fonte": "c.c.", "articolo": "1146", "descrizione": "Successione e accessione del possesso"},
+        {"fonte": "c.c.", "articolo": "1165", "descrizione": "Norme sulla prescrizione applicabili all'usucapione - interruzione, sospensione"},
+        {"fonte": "c.c.", "articolo": "1167", "descrizione": "Interruzione naturale dell'usucapione"},
+        {"fonte": "c.c.", "articolo": "2643", "descrizione": "Atti soggetti a trascrizione - sentenza di usucapione"},
+        {"fonte": "c.c.", "articolo": "2651", "descrizione": "Trascrizione dell'acquisto per usucapione - effetto dichiarativo"},
+        {"fonte": "D.L. 132/2014", "articolo": "1-bis", "descrizione": "Negoziazione assistita anche per accertamento dell'usucapione (con effetti più limitati - art. 2643 n. 12-bis)"}
+      ],
+      "presupposti_sostanziali_usucapione_ordinaria": [
+        "POSSESSO del bene (corpus + animus possidendi - non semplice detenzione)",
+        "Possesso PACIFICO (no violenza)",
+        "Possesso PUBBLICO (no clandestinità)",
+        "Possesso CONTINUO (no interruzioni per 20 anni)",
+        "Possesso NON INTERROTTO (no riconoscimenti, no perdita possesso)",
+        "DECORSO DI 20 ANNI (immobili - art. 1158 c.c.)"
+      ],
+      "presupposti_usucapione_abbreviata_1159": [
+        "Tutti i presupposti dell'usucapione ordinaria",
+        "BUONA FEDE all'inizio del possesso",
+        "TITOLO ASTRATTAMENTE IDONEO al trasferimento della proprietà (anche se inefficace - es. atto a non domino)",
+        "TRASCRIZIONE del titolo",
+        "DECORSO DI 10 ANNI dalla trascrizione"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "DIRITTI REALI",
+        "natura": "condizione di procedibilità",
+        "alternativa_negoziazione_assistita": "Possibile con effetti più limitati per la sola trascrizione (art. 1-bis D.L. 132/2014, art. 2643 n. 12-bis c.c.) - NON sostituisce sentenza"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "RICOSTRUZIONE DEL POSSESSO",
+          "elementi": [
+            "Data inizio possesso (anche con accessione/successione del possesso ex art. 1146 c.c.)",
+            "Modalità acquisizione possesso (es. tolleranza? Detenzione poi mutata? Acquisto da non legittimato?)",
+            "Caratteristiche del possesso: pacifico, pubblico, continuato, non interrotto, NON precario",
+            "Eventuali interruzioni (atti di reazione del proprietario, riconoscimenti del possessore)"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "Acquisizione PROVE DEL POSSESSO",
+          "documenti": [
+            "Atto di acquisto (anche se inefficace - per usucapione abbreviata)",
+            "Documenti di pagamento tasse/imposte sull'immobile (IMU, TARI - utili come prova)",
+            "Contratti di utenze a nome del possessore",
+            "Bollette utenze",
+            "Eventuali contratti di affitto stipulati come locatore (segno di animus possidendi)",
+            "Fotografie storiche, dichiarazioni testimoniali",
+            "Riprese aeree storiche, cartografie",
+            "Eventuali atti di immissione in possesso, verbali, ecc."
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "Identificazione del PROPRIETARIO FORMALE (convenuto)",
+          "verifiche": [
+            "Visura catastale per individuare l'intestatario",
+            "Ispezione Conservatoria per atti di provenienza",
+            "Per intestatari deceduti: dichiarazione di successione, eredi"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "Verifica eventuali ECCEZIONI DEL CONVENUTO",
+          "tipologie": [
+            "Interruzione del possesso (atti di reazione: lettere di diffida, denunce, azioni legali)",
+            "Atti di tolleranza (art. 1144 c.c.) - non costituiscono possesso",
+            "Bene appartenente al demanio o patrimonio indisponibile (art. 1145 c.c.)",
+            "Possesso non pacifico/pubblico/continuato"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "ATTIVAZIONE MEDIAZIONE OBBLIGATORIA o valutazione NEGOZIAZIONE ASSISTITA ex 1-bis D.L. 132/2014",
+          "differenza": "Mediazione: solo se positiva, vale come accordo da omologare. Negoziazione assistita: anche se non si arriva ad accordo, l'esito può essere trascritto come 'accordo' di accertamento usucapione ex art. 2643 n. 12-bis - con maggiore solidità rispetto alla sola trascrizione di una sentenza"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_accertamento_usucapione",
+        "denominazione": "Atto di citazione per accertamento dell'intervenuta usucapione ex art. 1158 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {"id": "tribunale", "label": "Tribunale del luogo dell'immobile", "type": "select", "required": true},
+          {"id": "attore_possessore", "label": "Attore (possessore usucapente)", "type": "object_persona", "required": true},
+          {"id": "convenuti_proprietari_formali", "label": "Convenuti (proprietari formali / intestatari catastali)", "type": "array_persone", "required": true, "min_items": 1},
+          {"id": "immobile_oggetto_usucapione", "label": "Immobile oggetto dell'usucapione", "type": "object_immobile", "required": true},
+          {"id": "tipo_usucapione_dedotta", "label": "Tipo usucapione invocata", "type": "select", "required": true, "options": ["ordinaria_20_anni_1158", "abbreviata_10_anni_1159_buona_fede_titolo_trascrizione", "speciale_fondi_rustici_1159_bis"]},
+          {"id": "possesso", "label": "Descrizione del possesso", "type": "object_complesso", "required": true, "sub_fields": [
+            {"id": "data_inizio_possesso", "type": "date", "required": true, "critico": true},
+            {"id": "modalita_acquisizione_possesso", "type": "select", "options": ["acquisto_da_non_legittimato", "successione_del_possesso_1146", "occupazione", "interversio_possessionis_1141", "altro"]},
+            {"id": "descrizione_acquisizione", "type": "textarea", "min_length": 200},
+            {"id": "caratteri_possesso", "type": "object", "sub_fields": [
+              {"id": "pacifico", "type": "boolean", "default": true},
+              {"id": "pubblico", "type": "boolean", "default": true},
+              {"id": "continuato_non_interrotto", "type": "boolean", "default": true},
+              {"id": "uti_dominus_animus_possidendi", "type": "boolean", "default": true}
+            ]},
+            {"id": "atti_di_godimento_compiuti", "type": "textarea", "required": true},
+            {"id": "spese_pagate_dall_attore", "type": "textarea", "label": "Spese pagate dall'attore (IMU, TARI, manutenzione, miglioramenti) - prova animus dominus"},
+            {"id": "testimoni_disponibili", "type": "array_persone"}
+          ]},
+          {"id": "buona_fede_iniziale", "label": "Buona fede all'inizio del possesso", "type": "boolean", "required_if": "tipo_usucapione=abbreviata"},
+          {"id": "titolo_astrattamente_idoneo", "label": "Titolo astrattamente idoneo (per usucapione abbreviata)", "type": "object", "required_if": "tipo_usucapione=abbreviata", "sub_fields": [
+            {"id": "tipo_atto", "type": "string"},
+            {"id": "data_atto", "type": "date"},
+            {"id": "notaio", "type": "string"},
+            {"id": "data_trascrizione", "type": "date"},
+            {"id": "perche_inefficace", "type": "textarea"}
+          ]},
+          {"id": "intestazione_catastale_attuale", "label": "Intestazione catastale attuale", "type": "string", "required": true},
+          {"id": "atti_proprietari_formali_su_immobile", "label": "Atti dei proprietari formali sull'immobile (per verifica non interruzione)", "type": "textarea"},
+          {"id": "domande", "label": "Domande", "type": "select_multi", "required": true, "options": ["accertamento_acquisto_proprieta_per_usucapione", "ordine_di_trascrizione_della_sentenza_2651", "accertamento_estensione_e_confini", "spese_di_lite"]},
+          {"id": "udienza_comparizione", "label": "Prima udienza", "type": "date", "required": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "Onere della prova in capo all'attore (decorso 20 anni / 10 anni + buona fede + titolo + trascrizione)",
+          "Distinzione possesso (ad usucapionem) vs detenzione (art. 1141 c.c.) vs atti di tolleranza (art. 1144)",
+          "Foro esclusivo del luogo immobile",
+          "Mediazione obbligatoria preventiva",
+          "Litisconsorzio necessario con tutti gli intestatari catastali (e relativi eredi se deceduti)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "visura_catastale_attuale", "label": "Visura catastale aggiornata", "required": true},
+        {"id": "ispezione_conservatoria", "label": "Ispezione Conservatoria sull'immobile (proprietari formali e gravami)", "required": true},
+        {"id": "documenti_pagamento_tributi", "label": "Documenti pagamento IMU/TARI/altre tasse da parte dell'attore (essenziali come prova di animus)", "required": true, "critico": true},
+        {"id": "contratti_utenze_a_nome_attore", "label": "Contratti utenze (luce, gas, acqua, telefono) a nome dell'attore", "required": true},
+        {"id": "bollette_utenze_storiche", "label": "Bollette utenze storiche (almeno 20 anni)", "required": false, "consigliato": true},
+        {"id": "fotografie_storiche", "label": "Fotografie storiche dell'immobile con datazione", "required": false, "rilevante": true},
+        {"id": "eventuali_atti_acquisto_non_efficaci", "label": "Eventuali atti di acquisto (anche inefficaci) per usucapione abbreviata", "required_if": "tipo_usucapione=abbreviata"},
+        {"id": "documentazione_su_lavori_e_miglioramenti", "label": "Documentazione su lavori e miglioramenti effettuati sull'immobile", "required": false, "rilevante": true},
+        {"id": "elenco_testimoni_e_dichiarazioni", "label": "Elenco testimoni con relativi recapiti", "required": true},
+        {"id": "dichiarazione_successione_se_morti_proprietari", "label": "Dichiarazione di successione (se proprietari deceduti)", "required_if": "proprietari_deceduti=true"},
+        {"id": "verbale_mediazione_negativa", "label": "Verbale mediazione obbligatoria conclusa negativamente", "required": true, "critico": true},
+        {"id": "procura_alle_liti", "label": "Procura alle liti", "required": true}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore dell'immobile",
+        "marca_bollo_forfettaria": 27.00,
+        "tasse_trascrizione_sentenza_usucapione": "Imposta di registro + tasse ipotecaria/catastale + INVIM (se applicabile)",
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {"tipo": "ricorso_mediazione_obbligatoria", "trigger": "Condizione procedibilità"},
+        {"tipo": "negoziazione_assistita_1_bis_DL_132", "trigger": "Alternativa: accordo con effetti trascritti", "norma": "art. 2643 n. 12-bis c.c."},
+        {"tipo": "ctu_su_caratteri_immobile_e_confini", "trigger": "Disposta dal giudice", "automatico": false},
+        {"tipo": "prove_testimoniali_per_possesso", "trigger": "Quasi sempre necessarie", "automatico": false},
+        {"tipo": "trascrizione_sentenza_usucapione_2651", "trigger": "Sentenza definitiva di accertamento", "norma": "art. 2651 c.c.", "effetto": "Dichiarativo (non costitutivo)"},
+        {"tipo": "azione_rivendicazione_proprietario_in_via_riconvenzionale", "trigger": "Convenuto chiede rilascio bene", "codice_correlato": "130001"},
+        {"tipo": "appello", "trigger": "Sentenza primo grado", "termine": "30 gg notifica"}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "accertamento_usucapione_e_trascrizione", "descrizione": "Sentenza dichiarativa di acquisto della proprietà per usucapione + ordine di trascrizione"},
+        {"esito": "rigetto_per_assenza_possesso_qualificato", "descrizione": "Possesso non qualificato (era detenzione/tolleranza, mancanza di animus)"},
+        {"esito": "rigetto_per_interruzione_possesso", "descrizione": "Interruzione del decorso 20-ennale per atti di reazione del proprietario"},
+        {"esito": "rigetto_per_assenza_caratteri_possesso", "descrizione": "Possesso non pacifico/pubblico/continuato"},
+        {"esito": "transazione_o_acquisto_da_proprietario_formale", "descrizione": "Accordo: il proprietario riconosce/vende a prezzo simbolico per regolarizzare"}
+      ],
+      "termini_processuali": [
+        {"termine": "USUCAPIONE ORDINARIA", "anni": 20, "decorrenza": "inizio possesso", "natura": "termine sostanziale", "norma": "art. 1158 c.c."},
+        {"termine": "USUCAPIONE ABBREVIATA", "anni": 10, "decorrenza": "trascrizione titolo + buona fede", "natura": "termine sostanziale", "norma": "art. 1159 c.c."},
+        {"termine": "USUCAPIONE FONDI RUSTICI PICCOLI", "anni": 15, "decorrenza": "inizio possesso", "natura": "termine sostanziale", "norma": "art. 1159-bis c.c."},
+        {"termine": "USUCAPIONE FONDI RUSTICI BREVE", "anni": 5, "decorrenza": "trascrizione titolo + buona fede", "natura": "termine sostanziale", "norma": "art. 1159-bis c.p.c."},
+        {"termine": "Mediazione obbligatoria - max", "giorni": 90},
+        {"termine": "Termine a comparire", "giorni": 120, "natura": "minimo legale post-Cartabia"},
+        {"termine": "Costituzione convenuto", "giorni": 70, "decorrenza": "prima udienza", "natura": "perentorio"}
+      ]
+    },
+    {
+      "codice": "111006",
+      "denominazione": "Affidamento e mantenimento dei figli nati fuori dal matrimonio",
+      "categoria": "Persone e famiglia - filiazione fuori matrimonio",
+      "sottocategoria": "Procedimento per determinazione affidamento, collocamento, mantenimento dei figli di coppie non coniugate",
+      "rito": "Rito unificato persone e famiglia ex artt. 473-bis e ss. c.p.c. (post-Cartabia - in vigore dal 28/2/2023)",
+      "competenza": "Tribunale ordinario - sezione famiglia (Tribunale per le persone, per i minorenni e per le famiglie quando istituito ex D.Lgs. 149/2022)",
+      "competenza_territoriale": "Tribunale del luogo di residenza abituale del minore (art. 473-bis.11 c.p.c.)",
+      "uffici_destinatari": ["SICID"],
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "315-bis", "descrizione": "Diritti e doveri del figlio - parità tra figli (post L. 219/2012)"},
+        {"fonte": "c.c.", "articolo": "316", "descrizione": "Responsabilità genitoriale - esercizio congiunto"},
+        {"fonte": "c.c.", "articolo": "316-bis", "descrizione": "Concorso nei bisogni della famiglia"},
+        {"fonte": "c.c.", "articolo": "316-ter", "descrizione": "Provvedimenti riguardo ai figli"},
+        {"fonte": "c.c.", "articolo": "337-bis - 337-octies", "descrizione": "Esercizio responsabilità genitoriale all'esito di procedimenti relativi a figli nati fuori dal matrimonio (oggi rito 473-bis)"},
+        {"fonte": "c.c.", "articolo": "337-ter", "descrizione": "Affidamento condiviso come regola - affidamento esclusivo come eccezione"},
+        {"fonte": "c.c.", "articolo": "337-quater", "descrizione": "Affidamento esclusivo - presupposti"},
+        {"fonte": "c.c.", "articolo": "337-quinquies", "descrizione": "Revisione disposizioni"},
+        {"fonte": "c.c.", "articolo": "337-sexies", "descrizione": "Assegnazione casa familiare"},
+        {"fonte": "c.c.", "articolo": "337-septies", "descrizione": "Mantenimento figli maggiorenni non autosufficienti"},
+        {"fonte": "c.c.", "articolo": "337-octies", "descrizione": "Audizione minore + interventi su responsabilità genitoriale"},
+        {"fonte": "L. 54/2006", "descrizione": "Affidamento condiviso - principio cardine"},
+        {"fonte": "L. 219/2012", "descrizione": "Parità tra figli nati nel matrimonio e fuori"},
+        {"fonte": "D.Lgs. 154/2013", "descrizione": "Disciplina parità filiazione - estensione regole separazione anche a figli nati fuori matrimonio"},
+        {"fonte": "c.p.c.", "articolo": "473-bis", "descrizione": "Disposizioni generali del rito unificato persone e famiglia"},
+        {"fonte": "c.p.c.", "articolo": "473-bis.11", "descrizione": "Competenza territoriale (residenza minore)"},
+        {"fonte": "c.p.c.", "articolo": "473-bis.12", "descrizione": "Forma della domanda e piano genitoriale"},
+        {"fonte": "c.p.c.", "articolo": "473-bis.22", "descrizione": "Ascolto del minore"},
+        {"fonte": "D.Lgs. 149/2022", "descrizione": "Riforma Cartabia"}
+      ],
+      "presupposti_sostanziali": [
+        "FIGLIO MINORE NATO FUORI DAL MATRIMONIO (riconosciuto da entrambi i genitori o da uno con verificata genitorialità)",
+        "CESSAZIONE DELLA CONVIVENZA dei genitori (o mancata convivenza)",
+        "Mancato accordo dei genitori sulle modalità di esercizio della responsabilità genitoriale, sull'affidamento, collocamento, mantenimento",
+        "INTERESSE DEL MINORE come criterio guida (art. 337-ter c.c.)"
+      ],
+      "differenze_rispetto_a_figli_matrimoniali": "Dopo L. 219/2012 e D.Lgs. 154/2013: piena parità - le regole sostanziali sono identiche (artt. 337-bis ss. c.c.) - cambia solo che non c'è il vincolo matrimoniale come oggetto della causa (non si tratta di separazione/divorzio)",
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "alternativa_facoltativa": "Negoziazione assistita ex art. 6 D.L. 132/2014 per accordi su responsabilità genitoriale fuori matrimonio (con autorizzazione PM se figli minori)",
+        "mediazione_familiare_facoltativa": "Consigliata in caso di conflitti su figli"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione documentazione su filiazione",
+          "documenti": [
+            "Atto di nascita del minore (con riconoscimento di entrambi i genitori)",
+            "Stato di famiglia",
+            "Eventuali sentenze di accertamento giudiziale paternità/maternità",
+            "Eventuali accordi precedenti (anche stragiudiziali) sui figli"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "Ricostruzione situazione di fatto",
+          "elementi": [
+            "Durata della convivenza dei genitori (se mai esistita)",
+            "Data cessazione convivenza",
+            "Attuale collocamento di fatto del minore",
+            "Regime visite/frequentazione esistente di fatto"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "Raccolta documentazione economica completa di entrambi i genitori",
+          "documenti": ["Dichiarazioni redditi ultimi 3 anni", "Estratti conto correnti", "Documentazione patrimoniale", "Buste paga"]
+        },
+        {
+          "step": 4,
+          "descrizione": "PREDISPOSIZIONE PIANO GENITORIALE OBBLIGATORIO ex art. 473-bis.12 c. 3 c.p.c.",
+          "contenuto": ["Attività scolastiche, extra-scolastiche, sportive, ludiche", "Frequentazioni abituali", "Vacanze e villeggiatura", "Cure mediche", "Festività e ricorrenze"]
+        },
+        {
+          "step": 5,
+          "descrizione": "Quantificazione assegno di mantenimento per il minore",
+          "criteri_337_ter": [
+            "Esigenze del figlio",
+            "Tenore di vita goduto durante la convivenza",
+            "Tempi di permanenza presso ciascun genitore",
+            "Risorse economiche di ciascun genitore",
+            "Valenza economica delle cure (lavoro domestico)"
+          ]
+        },
+        {
+          "step": 6,
+          "descrizione": "Valutazione assegnazione casa familiare (se rilevante)",
+          "criterio_337_sexies": "Assegnazione collegata al collocamento prevalente del minore"
+        },
+        {
+          "step": 7,
+          "descrizione": "Tentativo conciliazione/negoziazione assistita (raccomandato, anche se non obbligatorio)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_affidamento_mantenimento_figli_naturali",
+        "denominazione": "Ricorso ex artt. 473-bis e ss. c.p.c. per provvedimenti relativi a figli nati fuori dal matrimonio",
+        "schema_xsd_ministeriale": "AttoFamiglia.xsd",
+        "campi_chiave": [
+          {"id": "tribunale", "label": "Tribunale del luogo di residenza abituale del minore", "type": "select", "required": true},
+          {"id": "genitore_ricorrente", "label": "Genitore ricorrente", "type": "object_persona", "required": true, "sub_fields": [
+            {"id": "cognome_nome", "type": "string"},
+            {"id": "codice_fiscale", "type": "string"},
+            {"id": "data_luogo_nascita", "type": "object"},
+            {"id": "residenza", "type": "address"},
+            {"id": "professione", "type": "string"},
+            {"id": "reddito_annuo_lordo", "type": "currency"}
+          ]},
+          {"id": "genitore_resistente", "label": "Genitore resistente", "type": "object_persona", "required": true, "sub_fields": "(stessa struttura del ricorrente)"},
+          {"id": "minori", "label": "Figli minori oggetto del procedimento", "type": "array_persone", "required": true, "min_items": 1, "sub_fields": [
+            {"id": "cognome_nome", "type": "string"},
+            {"id": "data_nascita", "type": "date"},
+            {"id": "codice_fiscale", "type": "string"},
+            {"id": "riconoscimento", "type": "object", "sub_fields": [
+              {"id": "riconoscimento_da_entrambi_genitori", "type": "boolean"},
+              {"id": "data_riconoscimento_padre", "type": "date"},
+              {"id": "data_riconoscimento_madre", "type": "date"}
+            ]},
+            {"id": "stato_attuale_studi", "type": "string"},
+            {"id": "eventuali_disabilita", "type": "string"}
+          ]},
+          {"id": "situazione_relazionale", "label": "Situazione relazionale tra i genitori", "type": "object", "required": true, "sub_fields": [
+            {"id": "convivenza_avvenuta", "type": "boolean"},
+            {"id": "data_inizio_convivenza", "type": "date"},
+            {"id": "data_cessazione_convivenza", "type": "date"},
+            {"id": "convivenza_di_fatto_iscritta_anagrafe", "type": "boolean"}
+          ]},
+          {"id": "domande", "label": "Domande", "type": "object_complesso", "required": true, "sub_fields": [
+            {"id": "affidamento_richiesto", "type": "select", "required": true, "options": ["condiviso_paritetico", "condiviso_collocazione_prevalente_ricorrente", "condiviso_collocazione_prevalente_resistente", "esclusivo_ricorrente_motivato", "esclusivo_resistente_motivato"]},
+            {"id": "motivazione_eventuale_affidamento_esclusivo", "type": "textarea", "required_if": "affidamento_richiesto LIKE %esclusivo%", "min_length": 300},
+            {"id": "regime_visite_frequentazione", "type": "textarea", "required": true},
+            {"id": "decisioni_di_maggiore_interesse", "type": "select", "options": ["di_comune_accordo", "del_genitore_collocatario", "del_genitore_affidatario_esclusivo"]},
+            {"id": "assegno_mantenimento_minore_richiesto", "type": "currency", "label": "Assegno mensile mantenimento richiesto per il figlio"},
+            {"id": "rivalutazione_istat", "type": "boolean", "default": true},
+            {"id": "modalita_versamento", "type": "string"},
+            {"id": "spese_straordinarie_ripartizione", "type": "object", "sub_fields": [
+              {"id": "quota_ricorrente", "type": "percentage"},
+              {"id": "quota_resistente", "type": "percentage"},
+              {"id": "tipologie_che_richiedono_accordo", "type": "array"}
+            ]},
+            {"id": "assegnazione_casa_familiare", "type": "object", "sub_fields": [
+              {"id": "richiesta", "type": "boolean"},
+              {"id": "indirizzo_immobile", "type": "address"},
+              {"id": "titolo_godimento", "type": "select", "options": ["proprieta_un_genitore", "proprieta_comune", "locazione", "comodato"]}
+            ]}
+          ]},
+          {"id": "piano_genitoriale", "label": "Piano genitoriale ex art. 473-bis.12 c. 3 (OBBLIGATORIO)", "type": "object_complesso", "required": true, "sub_fields": [
+            {"id": "attivita_scolastiche", "type": "textarea", "required": true},
+            {"id": "attivita_extra_scolastiche", "type": "textarea", "required": true},
+            {"id": "attivita_sportive_ricreative", "type": "textarea", "required": true},
+            {"id": "frequentazioni_abituali", "type": "textarea", "required": true},
+            {"id": "vacanze_villeggiatura", "type": "textarea", "required": true},
+            {"id": "cure_mediche", "type": "textarea", "required": true},
+            {"id": "festivita_ricorrenze", "type": "textarea", "required": true}
+          ]},
+          {"id": "richiesta_audizione_minore", "label": "Audizione minore (obbligatoria >12 anni o se capace)", "type": "boolean", "default": true},
+          {"id": "richiesta_provvedimenti_urgenti_473_bis_15", "label": "Richiesta provvedimenti indifferibili", "type": "boolean", "default": false}
+        ],
+        "avvertimenti_obbligatori": [
+          "Comparizione personale obbligatoria delle parti ex art. 473-bis.14 c.p.c.",
+          "Costituzione resistente almeno 30 gg prima udienza (art. 473-bis.16 c.p.c.) con decadenze",
+          "Obbligo produzione documentazione reddituale e patrimoniale completa ex art. 473-bis.12 c. 5",
+          "Ascolto obbligatorio del minore >12 anni (art. 473-bis.22 c.p.c.)",
+          "PARERE PM OBBLIGATORIO ex art. 70 c.p.c."
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "atto_nascita_minore", "label": "Atto di nascita del minore (con riconoscimento)", "required": true, "critico": true},
+        {"id": "stato_famiglia", "label": "Stato di famiglia", "required": true},
+        {"id": "redditi_3_anni_ricorrente", "label": "Dichiarazioni redditi ultimi 3 anni del ricorrente", "required": true},
+        {"id": "redditi_3_anni_resistente", "label": "Dichiarazioni redditi ultimi 3 anni del resistente (se disponibili)", "required": false},
+        {"id": "estratti_conto_3_anni", "label": "Estratti conto correnti ultimi 3 anni", "required": true},
+        {"id": "documenti_patrimoniali", "label": "Documenti patrimoniali (visure immobiliari, PRA, ecc.)", "required": true},
+        {"id": "buste_paga_12_mesi", "label": "Buste paga ultimi 12 mesi", "required": true},
+        {"id": "documentazione_spese_minori", "label": "Documentazione spese sostenute per il minore (scuola, sport, sanitarie)", "required": false, "consigliato": true},
+        {"id": "piano_genitoriale", "label": "Piano genitoriale formalizzato", "required": true, "critico": true},
+        {"id": "eventuali_accordi_pregressi", "label": "Eventuali accordi pregressi (anche stragiudiziali)", "required": false},
+        {"id": "documentazione_disabilita_minore", "label": "Documentazione su eventuali disabilità del minore", "required_if": "minore_disabile=true"},
+        {"id": "procura_alle_liti", "label": "Procura alle liti", "required": true}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione - procedimenti relativi a figli minori sono esenti",
+        "marca_bollo_forfettaria": 27.00,
+        "deposito_telematico": "Obbligatorio - anonimizzazione dati sensibili minori"
+      },
+      "atti_collegati": [
+        {"tipo": "memoria_integrativa_473_bis_17", "trigger": "Risposta a comparsa resistente", "termine": "20 gg prima udienza"},
+        {"tipo": "ricorso_provvedimenti_urgenti_473_bis_15", "trigger": "Pericolo grave e irreparabile", "automatico": false},
+        {"tipo": "ricorso_modifica_condizioni_473_bis_29", "trigger": "Sopravvenienze post-decisione", "codice_correlato": "411601"},
+        {"tipo": "azione_riconoscimento_paternita", "trigger": "Se la paternità non è stata ancora riconosciuta", "codice_correlato": "111007"},
+        {"tipo": "sequestro_beni_genitore_inadempiente_156_c_c", "trigger": "Mancato pagamento assegno", "automatico": false}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "sentenza_affidamento_condiviso", "descrizione": "Affidamento condiviso (regola) con regime visite e mantenimento"},
+        {"esito": "sentenza_affidamento_esclusivo", "descrizione": "Affidamento esclusivo (eccezione) per gravi motivi"},
+        {"esito": "decreto_provvedimenti_urgenti", "descrizione": "Provvedimenti indifferibili"},
+        {"esito": "transazione_omologata", "descrizione": "Accordo tra i genitori, omologato dal giudice"}
+      ],
+      "termini_processuali": [
+        {"termine": "Costituzione resistente", "giorni": 30, "decorrenza": "prima udienza", "natura": "perentorio", "norma": "art. 473-bis.16 c.p.c."},
+        {"termine": "Memoria integrativa ricorrente", "giorni": 20, "decorrenza": "prima udienza", "natura": "perentorio", "norma": "art. 473-bis.17 c.p.c."},
+        {"termine": "Memoria di replica resistente", "giorni": 10, "decorrenza": "prima udienza", "natura": "perentorio", "norma": "art. 473-bis.17 c.p.c."},
+        {"termine": "Reclamo provvedimenti indifferibili", "giorni": 30, "decorrenza": "comunicazione/notifica", "natura": "perentorio", "norma": "art. 473-bis.24 c.p.c."}
+      ]
+    },
+    {
+      "codice": "GUIDA_ONORARI_PROFESSIONALI_L794",
+      "codice_originale_ricevuto": "141001",
+      "codici_ufficiali_correlati_da_valutare": ["141001"],
+      "nota_integrazione_iusentra": "Scheda interna non depositabile: il codice numerico ricevuto non combacia con la descrizione ministeriale locale del codice 141001. Conservare il contenuto come guida pratica e selezionare il codice PST/XSD ufficiale corretto nella scheda fascicolo prima del deposito.",
+      "denominazione": "Procedimento sommario per onorari professionali ex L. 794/1942 (art. 14 D.Lgs. 150/2011)",
+      "categoria": "Recupero crediti professionali",
+      "sottocategoria": "Procedimento speciale per liquidazione compensi professionali (avvocati, prestazioni stragiudiziali) - rito sommario speciale",
+      "rito": "Rito sommario speciale ex art. 14 D.Lgs. 150/2011 (sostitutivo del vecchio rito L. 794/1942) - rito camerale con termini abbreviati",
+      "competenza": "Tribunale o Giudice di Pace (in base al valore) competente per la causa di valore corrispondente; per avvocati: il giudice che ha conosciuto della causa o, per attività stragiudiziale, il giudice del luogo di residenza del professionista",
+      "uffici_destinatari": ["SICID"],
+      "normativa": [
+        {"fonte": "L. 794/1942", "descrizione": "Disciplina degli onorari di avvocato (storicamente applicabile fino alla riforma del 2011)"},
+        {"fonte": "D.Lgs. 150/2011", "articolo": "14", "descrizione": "Controversie in materia di liquidazione degli onorari e dei diritti di avvocato - rito sommario di cognizione"},
+        {"fonte": "D.M. 55/2014", "descrizione": "Parametri forensi (modificato da D.M. 37/2018 e D.M. 147/2022)"},
+        {"fonte": "D.M. 147/2022", "descrizione": "Adeguamento parametri forensi (in vigore dal 23/10/2022)"},
+        {"fonte": "L. 247/2012", "articolo": "13", "descrizione": "Onorari di avvocato - principi"},
+        {"fonte": "c.p.c.", "articolo": "702-bis - 702-quater (oggi 281-decies)", "descrizione": "Rito sommario di cognizione"},
+        {"fonte": "Cass. SU 4485/2018", "descrizione": "Ambito applicativo del rito sommario - solo attività giudiziali e stragiudiziali strettamente connesse al giudizio"},
+        {"fonte": "c.c.", "articolo": "2233", "descrizione": "Compenso del prestatore d'opera intellettuale"},
+        {"fonte": "c.c.", "articolo": "2956 n. 2", "descrizione": "Prescrizione presuntiva 3 anni compensi avvocati"}
+      ],
+      "presupposti_sostanziali": [
+        "PRESTAZIONE PROFESSIONALE EFFETTIVAMENTE RESA dall'avvocato a favore del cliente",
+        "INESISTENZA O INADEGUATEZZA DEL PAGAMENTO da parte del cliente",
+        "ATTIVITÀ GIUDIZIALE (CASS. SU 4485/2018: il rito speciale si applica solo all'attività giudiziale o strettamente connessa al giudizio; per attività stragiudiziale autonoma si usa il rito ordinario o monitorio)",
+        "VIDIMA o PARERE dell'ordine professionale (consigliata, anche se non più obbligatoria post-Cassazione)"
+      ],
+      "ambito_applicativo": {
+        "rito_speciale_si_applica": [
+          "Attività giudiziale dell'avvocato in giudizi davanti a giudici di pace, tribunali, corti d'appello",
+          "Attività stragiudiziale strettamente connessa a un giudizio già instaurato",
+          "Onorari di avvocato in cause civili e penali"
+        ],
+        "rito_speciale_non_si_applica_per": [
+          "Prestazioni stragiudiziali autonome (consulenze, redazione contratti, pareri) - rito ordinario o monitorio",
+          "Spese e diritti dei procuratori non avvocati (rito ordinario)",
+          "Compensi altri professionisti (commercialisti, ingegneri, ecc.) - rito ordinario o monitorio"
+        ]
+      },
+      "obbligo_mediazione": {"obbligatoria": false},
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione documentazione della prestazione professionale",
+          "documenti": [
+            "Mandato/procura del cliente",
+            "Atti processuali predisposti",
+            "Corrispondenza con cliente",
+            "Atti del giudizio (citazione, comparse, sentenze)",
+            "Eventuali pareri legali resi"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "Quantificazione COMPENSI SECONDO PARAMETRI FORENSI D.M. 147/2022",
+          "fasi_calcolo": [
+            "Identificazione VALORE DELLA CAUSA e SCAGLIONE corrispondente",
+            "Calcolo per FASI (studio, introduttiva, istruttoria, decisoria) con valori medi parametrici",
+            "Eventuali aumenti/riduzioni del 50% rispetto ai valori medi",
+            "Aggiunta spese forfettarie 15% per attività non documentate",
+            "CPA 4% sul totale + IVA"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "RICHIESTA VIDIMA DELL'ORDINE PROFESSIONALE",
+          "vantaggio": "Anche se non più obbligatoria post-Cass., dà maggiore solidità alla pretesa",
+          "norma_storica": "Art. 636 c.p.c. richiede parcella vistata dall'ordine per decreto ingiuntivo"
+        },
+        {
+          "step": 4,
+          "descrizione": "Diffida ad adempiere al cliente (PEC o raccomandata)",
+          "vantaggio_strategico": "Tenta soluzione conciliativa - interrompe prescrizione"
+        },
+        {
+          "step": 5,
+          "descrizione": "Scelta strategica del rito",
+          "alternative": [
+            "Decreto ingiuntivo ex art. 633 c.p.c. (codice 010001) - più veloce, ma soggetto a opposizione che porterebbe al rito sommario",
+            "Ricorso ex art. 14 D.Lgs. 150/2011 - rito sommario speciale, contradditorio diretto - più rapido in caso di contestazione",
+            "Rito ordinario per attività stragiudiziali autonome"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_sommario_liquidazione_onorari_avvocato",
+        "denominazione": "Ricorso ex art. 14 D.Lgs. 150/2011 per liquidazione onorari di avvocato",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {"id": "tribunale", "label": "Giudice competente (luogo del giudizio o residenza professionista)", "type": "select", "required": true},
+          {"id": "avvocato_ricorrente", "label": "Avvocato ricorrente", "type": "object_persona", "required": true, "sub_fields": [
+            {"id": "cognome_nome", "type": "string"},
+            {"id": "codice_fiscale", "type": "string"},
+            {"id": "partita_iva", "type": "string"},
+            {"id": "ordine_iscrizione", "type": "string"},
+            {"id": "indirizzo_studio", "type": "address"},
+            {"id": "pec", "type": "email"}
+          ]},
+          {"id": "cliente_resistente", "label": "Cliente resistente", "type": "object_persona", "required": true},
+          {"id": "mandato_professionale", "label": "Mandato professionale", "type": "object", "required": true, "sub_fields": [
+            {"id": "data_conferimento", "type": "date"},
+            {"id": "modalita", "type": "select", "options": ["scrittura_privata", "procura_in_calce_atto", "procura_speciale_autenticata", "verbale_udienza", "altro"]},
+            {"id": "oggetto_mandato", "type": "textarea"},
+            {"id": "compenso_eventualmente_concordato", "type": "currency"}
+          ]},
+          {"id": "attivita_svolta", "label": "Attività svolta", "type": "object_complesso", "required": true, "sub_fields": [
+            {"id": "tipo_attivita", "type": "select", "options": ["giudiziale_civile_primo_grado", "giudiziale_civile_appello", "giudiziale_cassazione", "giudiziale_penale", "stragiudiziale_connessa_a_giudizio", "stragiudiziale_autonoma"]},
+            {"id": "giudizio_riferimento", "type": "object", "sub_fields": [
+              {"id": "ufficio_giudiziario", "type": "string"},
+              {"id": "numero_RG", "type": "string"},
+              {"id": "controparte", "type": "string"},
+              {"id": "esito_giudizio", "type": "string"}
+            ]},
+            {"id": "descrizione_attivita_dettagliata", "type": "textarea", "min_length": 500},
+            {"id": "fasi_processuali_svolte", "type": "array", "sub_fields": [
+              {"id": "fase", "type": "select", "options": ["studio_controversia", "fase_introduttiva", "fase_istruttoria_trattazione", "fase_decisionale", "fase_esecutiva"]},
+              {"id": "atti_compiuti", "type": "textarea"},
+              {"id": "valore_parametrico", "type": "currency"}
+            ]}
+          ]},
+          {"id": "compensi_richiesti", "label": "Compensi richiesti", "type": "object_complesso", "required": true, "sub_fields": [
+            {"id": "valore_della_causa", "type": "currency", "required": true},
+            {"id": "scaglione_parametrico", "type": "string", "required": true},
+            {"id": "applicazione_parametri", "type": "object", "sub_fields": [
+              {"id": "fase_studio", "type": "currency"},
+              {"id": "fase_introduttiva", "type": "currency"},
+              {"id": "fase_istruttoria", "type": "currency"},
+              {"id": "fase_decisionale", "type": "currency"},
+              {"id": "totale_compensi_base", "type": "currency"}
+            ]},
+            {"id": "aumenti_riduzioni_motivate", "type": "object"},
+            {"id": "spese_forfettarie_15_percento", "type": "currency"},
+            {"id": "cpa_4_percento", "type": "currency"},
+            {"id": "iva", "type": "currency"},
+            {"id": "totale_richiesto", "type": "currency", "required": true}
+          ]},
+          {"id": "pagamenti_ricevuti", "label": "Eventuali pagamenti già ricevuti", "type": "array"},
+          {"id": "vidima_ordine", "label": "Parere/vidima dell'ordine", "type": "object", "sub_fields": [
+            {"id": "presente", "type": "boolean"},
+            {"id": "data_vidima", "type": "date"},
+            {"id": "ordine_emittente", "type": "string"}
+          ]},
+          {"id": "udienza_comparizione", "label": "Prima udienza", "type": "date", "required": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "Indicazione applicabilità rito sommario ex art. 14 D.Lgs. 150/2011 per attività giudiziale/connessa",
+          "Costituzione resistente con avvertimento delle decadenze (rito sommario abbreviato)",
+          "Prescrizione presuntiva 3 anni ex art. 2956 n. 2 c.c."
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "mandato_procura", "label": "Mandato/procura del cliente", "required": true, "critico": true},
+        {"id": "atti_processuali", "label": "Atti del giudizio (citazione/ricorso, comparse, sentenze)", "required": true},
+        {"id": "corrispondenza_cliente", "label": "Corrispondenza con il cliente", "required": false, "consigliato": true},
+        {"id": "parcella_dettagliata", "label": "Parcella dettagliata con applicazione parametri D.M. 147/2022", "required": true, "critico": true},
+        {"id": "vidima_ordine_se_richiesta", "label": "Vidima dell'ordine sulla parcella", "required": false, "consigliato": true},
+        {"id": "diffida_ad_adempiere", "label": "Diffida ad adempiere inviata al cliente", "required": false},
+        {"id": "ricevute_pagamenti_parziali", "label": "Ricevute eventuali pagamenti parziali", "required_if": "pagamenti_parziali_ricevuti=true"},
+        {"id": "procura_alle_liti", "label": "Procura alle liti (per il legale che assiste il legale ricorrente, se diverso)", "required": false}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore della pretesa",
+        "marca_bollo_forfettaria": 27.00,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {"tipo": "decreto_ingiuntivo_alternativo", "trigger": "Strategia alternativa - DI ex art. 633 + 636 c.p.c.", "codice_correlato": "010001"},
+        {"tipo": "comparsa_costituzione_cliente_resistente", "trigger": "Costituzione resistente"},
+        {"tipo": "ordinanza_di_liquidazione", "trigger": "Esito procedimento - rapidissimo nel rito sommario", "automatico": false},
+        {"tipo": "appello", "trigger": "Ordinanza di liquidazione", "termine": "30 gg notifica", "norma": "art. 14 D.Lgs. 150/2011"}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "ordinanza_liquidazione_pieno_accoglimento", "descrizione": "Liquidazione del compenso secondo richiesta"},
+        {"esito": "ordinanza_liquidazione_parziale", "descrizione": "Riduzione del compenso (rispetto ai parametri o per attività non documentata)"},
+        {"esito": "rigetto_per_mancato_svolgimento_attivita", "descrizione": "Rigetto per prestazione non provata o inadeguata"},
+        {"esito": "transazione", "descrizione": "Accordo transattivo in corso di causa"}
+      ],
+      "termini_processuali": [
+        {"termine": "PRESCRIZIONE PRESUNTIVA ONORARI", "anni": 3, "decorrenza": "esaurimento mandato", "natura": "prescrizione presuntiva", "norma": "art. 2956 n. 2 c.c."},
+        {"termine": "PRESCRIZIONE ORDINARIA (su prestazione comprovata)", "anni": 10, "decorrenza": "ultima prestazione", "norma": "art. 2946 c.c."},
+        {"termine": "Costituzione resistente", "giorni": "fissato dal giudice nel decreto di fissazione udienza (di norma 30 gg)", "natura": "perentorio"},
+        {"termine": "Appello ordinanza ex art. 14 D.Lgs. 150/2011", "giorni": 30, "decorrenza": "notifica", "natura": "perentorio"}
+      ]
+    }
+  ]
+}

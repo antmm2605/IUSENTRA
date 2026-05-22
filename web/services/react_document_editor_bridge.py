@@ -243,12 +243,13 @@ def build_react_document_editor_payload(
         "endpoints": {
             "loadHtml": f"/api/editor/{fid}/{document['id']}/html",
             "save": f"/api/editor/{fid}/{document['id']}/salva",
+            "importFile": f"/api/editor/{fid}/{document['id']}/importa",
             "exportPdf": f"/api/editor/{fid}/{document['id']}/pdf",
             "exportDocx": f"/api/editor/{fid}/{document['id']}/docx",
         },
         "editorAI": _editor_ai_payload(fid, document["id"]),
         "capabilities": {
-            "formats": [".docx", ".pdf", ".txt", ".html", ".htm"],
+            "formats": [".docx", ".doc", ".pdf", ".txt", ".html", ".htm", ".md"],
             "autosaveSeconds": 30,
             "localBundle": True,
         },

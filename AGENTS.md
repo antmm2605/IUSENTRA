@@ -144,6 +144,7 @@ Quando il lavoro riguarda PCT, PST, PolisWeb, PDP, PAT, PTT, SIGP, buste, PEC, f
 - distinguere norma certa, specifica tecnica, prassi locale, fallback prudente e punto da verificare;
 - se un dato non e' certo, implementare warning professionali e configurabili, non blocchi arbitrari;
 - mantenere coerenza tra dominio, storage, route/API, UI, test, documentazione e deploy quando coinvolti.
+- **Regola Guida Pratica/fascicolo/deposito:** il codice che apre il fascicolo deve restare sempre il codice ufficiale o normativo previsto per il deposito. La Guida Pratica si aggancia alla stessa materia del fascicolo e puo' avere alias o identificativi interni per recuperare la scheda, ma non deve mai sostituire, rinominare, declassare o sovrascrivere il `codice_oggetto_pst` del fascicolo. Se una guida interna non e' depositabile, resta solo supporto operativo; il deposito usa sempre il codice ufficiale presente nel fascicolo.
 
 ### Regole per Lex AI e RAG
 
@@ -276,6 +277,9 @@ Ogni nuova funzione, refactor o correzione deve essere considerata **completata 
   - documentare il limite residuo e i passaggi necessari per validarlo.
 - La consegna deve puntare a un risultato **almeno pari e preferibilmente piu' professionale** di quanto richiesto, senza scorciatoie, placeholder invisibili o funzioni scollegate dalla UI reale.
 - I test non devono coprire solo il caso felice: ogni requisito critico deve avere almeno un test o una verifica di regressione coerente con il rischio.
+- Quando l'utente consegna materiale professionale gia' strutturato, l'agente deve seguirne la stessa logica, profondita' e granularita': non trasformare schede curate in riassunti generici, non perdere fasi operative, termini processuali, allegati, presupposti, fonti, varianti, esiti e controlli. Ogni riduzione deve essere considerata regressione.
+- Per Guida Pratica, template atti, termini processuali, Lex e fascicolo, il risultato deve essere super professionale, intuitivo e distintivo: non basta importare testo; bisogna collegarlo a DB, UI, Lex, scadenziario, template, audit, permessi, test e report. I termini processuali devono diventare operativi in tutto e per tutto, con evento generatore, decorrenza, natura, fase, calcolo quando possibile, revisione professionale quando necessaria e tracciamento.
+- Se l'utente allega piu' file o pacchetti con nomi simili, l'agente deve rileggerli tutti, confrontare hash e contenuto, distinguere nuovi moduli da duplicati gia' integrati e registrare la deduplicazione in un report. Non saltare file perche' sembrano simili e non duplicare file identici con nomi diversi.
 
 Checklist minima obbligatoria per dichiarare conclusa una feature:
 

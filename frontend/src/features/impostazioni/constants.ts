@@ -38,6 +38,7 @@ export const SETTINGS_FIELDS: Record<SettingsSection, SettingsField[]> = {
   studio: [
     { name: 'nome', label: 'Nome studio', required: true, width: 'half' },
     { name: 'avvocato', label: 'Avvocato titolare', width: 'half' },
+    { name: 'qualifica_professionale', label: 'Qualifica professionale', width: 'half', placeholder: 'Patrocinante in Cassazione' },
     { name: 'numero_iscrizione_albo', label: 'Numero iscrizione Albo', width: 'third' },
     { name: 'ordine_avvocati', label: 'Ordine degli Avvocati', width: 'third' },
     { name: 'codice_fiscale_avvocato', label: 'C.F. Avvocato per PCT', width: 'third', placeholder: 'RSSMRA80A01H501Z' },

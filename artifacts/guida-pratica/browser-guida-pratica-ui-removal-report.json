@@ -1,0 +1,22 @@
+{
+  "generated_at": "2026-05-22",
+  "route": "http://127.0.0.1:8080/fascicoli/nuovo",
+  "title": "IUSENTRA",
+  "flow_under_test": "apertura fascicolo reale -> controllo presenza vecchio blocco guida pratica -> pagina resta operativa",
+  "result": "ok",
+  "meaningful_content": true,
+  "console_errors_or_warnings": [],
+  "forbidden_text_checks": {
+    "Scheda pratica suggerita dall'oggetto del fascicolo": false,
+    "Scheda pratica individuata dall'oggetto del fascicolo": false,
+    "Vendita di cose immobili / Scheda 140011": false,
+    "0/16 requisiti": false,
+    "Tipo azione / Preliminare o definitivo / Data contratto": false,
+    "Checklist / Normativa / Atto / Adempimenti": false
+  },
+  "visible_start": "Cerca fascicolo, cliente, udienza, documento... Ctrl K ven 22 mag 49 Nuovo APERTURA NUOVO FASCICOLO Apertura nuovo fascicolo Compila i dati principali della pratica e collega il procedimento corretto.",
+  "notes": [
+    "Il vecchio pannello sperimentale non è più presente sulla pagina reale di apertura fascicolo.",
+    "Il controllo riguarda la UI operativa; le occorrenze nei cataloghi ministeriali o nei mockup storici non sono componenti renderizzati."
+  ]
+}

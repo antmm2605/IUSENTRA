@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>IUSENTRA - Storyboard piano assistito della pratica</title>
+    <style>
+      :root {
+        --nav: #172238;
+        --nav-soft: #26344f;
+        --page: #f4f6f3;
+        --paper: #fffdf8;
+        --paper-soft: #fbfaf6;
+        --ink: #172033;
+        --soft-ink: #4f5d76;
+        --muted: #6c778a;
+        --line: #dde5ef;
+        --line-strong: #c8d4e5;
+        --blue: #1f5fd4;
+        --blue-strong: #164da9;
+        --blue-soft: #edf4ff;
+        --gold: #9a6515;
+        --gold-soft: #fff7e3;
+        --green: #1d7554;
+        --green-soft: #e9f7f0;
+        --red: #a94333;
+        --red-soft: #fff0eb;
+        --shadow: 0 18px 54px rgba(23, 32, 51, 0.14);
+        font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--page);
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .page {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 236px minmax(0, 1fr);
+      }
+
+      .sidebar {
+        min-height: 100vh;
+        background: var(--nav);
+        color: #eef3ff;
+        padding: 22px 18px;
+        position: sticky;
+        top: 0;
+      }
+
+      .brand {
+        font-weight: 760;
+        margin-bottom: 24px;
+      }
+
+      .nav {
+        display: grid;
+        gap: 4px;
+      }
+
+      .nav div {
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        border-radius: 6px;
+        color: #cbd6e9;
+        font-size: 14px;
+      }
+
+      .nav .active {
+        background: var(--nav-soft);
+        color: #fbfdff;
+      }
+
+      .content {
+        min-width: 0;
+        padding: 26px 32px 42px;
+      }
+
+      .intro {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 24px;
+        margin-bottom: 18px;
+      }
+
+      .kicker,
+      .meta,
+      .field span,
+      .note,
+      .step-copy,
+      .doc-meta,
+      .source-text {
+        color: var(--muted);
+      }
+
+      .kicker {
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        line-height: 1.2;
+      }
+
+      h1 {
+        font-size: 26px;
+      }
+
+      .meta {
+        margin-top: 8px;
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0 9px;
+        background: #fbfdff;
+        color: var(--soft-ink);
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .badge.green {
+        color: var(--green);
+        background: var(--green-soft);
+        border-color: #bfe1d0;
+      }
+
+      .badge.gold {
+        color: #81500c;
+        background: var(--gold-soft);
+        border-color: #ecd398;
+      }
+
+      .flow {
+        display: grid;
+        gap: 18px;
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: 210px minmax(0, 1fr);
+        gap: 16px;
+        align-items: stretch;
+      }
+
+      .step-label {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--paper-soft);
+        padding: 14px;
+        min-height: 126px;
+      }
+
+      .step-number {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+        background: var(--blue);
+        color: #fbfdff;
+        font-weight: 780;
+        margin-bottom: 10px;
+      }
+
+      .step-label h2 {
+        font-size: 16px;
+      }
+
+      .step-copy {
+        margin-top: 8px;
+        font-size: 13px;
+        line-height: 1.42;
+      }
+
+      .screen {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fbfdff;
+        box-shadow: 0 12px 30px rgba(23, 32, 51, 0.08);
+        overflow: hidden;
+      }
+
+      .screen-head {
+        min-height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--line);
+        background: #fffdf8;
+        padding: 10px 14px;
+      }
+
+      .screen-head strong {
+        font-size: 14px;
+      }
+
+      .screen-body {
+        padding: 14px;
+      }
+
+      .case-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: 14px;
+      }
+
+      .section {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--paper-soft);
+        padding: 14px;
+      }
+
+      .section h3 {
+        font-size: 15px;
+        margin-bottom: 10px;
+      }
+
+      .field-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .field {
+        min-height: 58px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fbfdff;
+        padding: 9px 10px;
+      }
+
+      .field span {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 12px;
+      }
+
+      .field strong {
+        font-size: 13px;
+        line-height: 1.3;
+      }
+
+      .guide-layout {
+        display: grid;
+        grid-template-columns: 330px minmax(0, 1fr);
+        gap: 14px;
+      }
+
+      .guide-panel {
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: var(--paper);
+        overflow: hidden;
+      }
+
+      .guide-panel header {
+        padding: 13px;
+        border-bottom: 1px solid var(--line);
+        background: linear-gradient(180deg, #fffdf8 0%, #f7fbff 100%);
+      }
+
+      .guide-panel h3 {
+        font-size: 17px;
+      }
+
+      .guide-panel p {
+        margin: 7px 0 0;
+        color: var(--soft-ink);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .guide-list {
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+      }
+
+      .task {
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #fbfdff;
+        padding: 9px;
+      }
+
+      .task.selected {
+        border-color: #bdd0ef;
+        background: #f7fbff;
+      }
+
+      .task.done {
+        border-color: #bfe1d0;
+        background: #f3fbf7;
+      }
+
+      .task-title,
+      .row-title {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 13px;
+        font-weight: 740;
+      }
+
+      .task p {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        padding: 0 8px;
+        border-radius: 999px;
+        background: var(--gold-soft);
+        color: var(--gold);
+        font-size: 12px;
+        font-weight: 650;
+        white-space: nowrap;
+      }
+
+      .status.ok {
+        background: var(--green-soft);
+        color: var(--green);
+      }
+
+      .btn {
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 6px;
+        border: 1px solid var(--line-strong);
+        background: #fbfdff;
+        color: var(--ink);
+      }
+
+      .btn.primary {
+        border-color: var(--blue-strong);
+        background: var(--blue);
+        color: #fbfdff;
+      }
+
+      .catalog {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 300px;
+        gap: 14px;
+      }
+
+      .template-card {
+        border: 1px solid #bdd0ef;
+        border-radius: 8px;
+        background: #f7fbff;
+        padding: 12px;
+      }
+
+      .template-card h3 {
+        font-size: 16px;
+      }
+
+      .template-card p,
+      .source-text {
+        margin: 8px 0 0;
+        font-size: 13px;
+        line-height: 1.42;
+      }
+
+      .split-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .split-grid .field {
+        min-height: 50px;
+      }
+
+      .generator-layout {
+        display: grid;
+        grid-template-columns: 330px minmax(0, 1fr);
+        gap: 14px;
+      }
+
+      .acquired {
+        display: grid;
+        gap: 8px;
+      }
+
+      .warning {
+        border: 1px solid #eccb92;
+        border-radius: 6px;
+        background: #fffaf0;
+        color: #694307;
+        padding: 9px 10px;
+        font-size: 12px;
+        line-height: 1.36;
+      }
+
+      .preview-pane {
+        background: #eef2f7;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        overflow: auto;
+      }
+
+      .a4 {
+        position: relative;
+        width: 595px;
+        min-height: 842px;
+        margin: 0 auto;
+        background: #fffffb;
+        box-shadow: 0 12px 34px rgba(23, 32, 51, 0.22);
+        font-family: "Times New Roman", Times, serif;
+        color: #111111;
+      }
+
+      .studio-head {
+        position: absolute;
+        left: 78px;
+        top: 7px;
+        width: 194px;
+        height: 80px;
+        text-align: center;
+        line-height: 1.02;
+      }
+
+      .studio-head .studio {
+        font-size: 15px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .studio-head .lawyer {
+        font-size: 12px;
+        font-weight: 700;
+        font-style: italic;
+        white-space: nowrap;
+      }
+
+      .studio-head .small {
+        font-size: 9px;
+        white-space: nowrap;
+      }
+
+      .court {
+        position: absolute;
+        left: 133px;
+        top: 130px;
+        width: 270px;
+        text-align: center;
+        font-size: 21px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .title-one {
+        position: absolute;
+        left: 193px;
+        top: 158px;
+        width: 153px;
+        text-align: center;
+        font-size: 15px;
+        font-weight: 700;
+        font-style: italic;
+        white-space: nowrap;
+      }
+
+      .title-two {
+        position: absolute;
+        left: 179px;
+        top: 181px;
+        width: 176px;
+        text-align: center;
+        font-size: 15px;
+        font-weight: 700;
+        font-style: italic;
+        white-space: nowrap;
+      }
+
+      .doc-body {
+        position: absolute;
+        left: 80px;
+        top: 205px;
+        width: 374px;
+        font-size: 16px;
+        line-height: 1.9;
+        text-align: justify;
+      }
+
+      .doc-body h4 {
+        text-align: center;
+        font-size: 21px;
+        margin: 8px 0 4px;
+      }
+
+      .signature-overlay {
+        position: absolute;
+        left: 446px;
+        top: 1px;
+        width: 148px;
+        height: 143px;
+        border-radius: 50%;
+        background: rgba(169, 67, 51, 0.08);
+        color: #111111;
+        padding: 10px 8px;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        font-size: 13px;
+        line-height: 1.1;
+      }
+
+      .signature-side {
+        position: absolute;
+        left: 578px;
+        top: 381px;
+        width: 10px;
+        height: 421px;
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        font-family: "Segoe UI", system-ui, sans-serif;
+        font-size: 9px;
+      }
+
+      .save-row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .source-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      @media (max-width: 1180px) {
+        .page {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          display: none;
+        }
+
+        .step,
+        .case-layout,
+        .guide-layout,
+        .catalog,
+        .generator-layout,
+        .source-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .content {
+          padding: 22px 18px 34px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <aside class="sidebar" aria-label="Navigazione studio">
+        <div class="brand">IUSENTRA</div>
+        <nav class="nav">
+          <div>Panoramica</div>
+          <div class="active">Fascicoli</div>
+          <div>Documenti</div>
+          <div>Redazione atti</div>
+          <div>Lex</div>
+        </nav>
+      </aside>
+
+      <section class="content">
+        <header class="intro">
+          <div>
+            <div class="kicker">Visualizzazione prima dell'integrazione</div>
+            <h1>Piano assistito della pratica</h1>
+            <p class="meta">Storyboard completo dei passaggi: si parte dal fascicolo, la guida legge il contesto, il catalogo template sceglie il modello, il compilatore usa il layout del PDF, il documento viene salvato e la guida si aggiorna.</p>
+          </div>
+          <div class="legend">
+            <span class="badge">Guida facoltativa</span>
+            <span class="badge gold">Catalogo 420 template</span>
+            <span class="badge green">Compilatore atti</span>
+          </div>
+        </header>
+
+        <section class="flow">
+          <article class="step" id="fascicolo">
+            <aside class="step-label">
+              <div class="step-number">1</div>
+              <h2>Apertura fascicolo</h2>
+              <p class="step-copy">Il flusso parte sempre dal fascicolo. Cliente, ufficio, parti, oggetto e documenti sono qui.</p>
+            </aside>
+            <div class="screen">
+              <div class="screen-head">
+                <strong>Fascicolo aperto</strong>
+                <button class="btn primary">Salva fascicolo</button>
+              </div>
+              <div class="screen-body case-layout">
+                <section class="section">
+                  <h3>Dati già presenti</h3>
+                  <div class="field-grid">
+                    <div class="field"><span>Cliente</span><strong>Crocitti Giovanni</strong></div>
+                    <div class="field"><span>Ufficio</span><strong>Giudice di Pace di Palmi</strong></div>
+                    <div class="field"><span>Oggetto pratica</span><strong>Opposizione a sanzione amministrativa</strong></div>
+                    <div class="field"><span>Controparte</span><strong>Comune di Taurianova</strong></div>
+                    <div class="field"><span>Codice oggetto</span><strong>da scheda fascicolo</strong></div>
+                    <div class="field"><span>Stato</span><strong>Istruttoria iniziale</strong></div>
+                  </div>
+                </section>
+                <aside class="section">
+                  <h3>Documenti fascicolo</h3>
+                  <div class="task done"><div class="task-title">Verbale impugnato <span class="status ok">presente</span></div></div>
+                  <div class="task"><div class="task-title">Ricorso <span class="status">da generare</span></div></div>
+                </aside>
+              </div>
+            </div>
+          </article>
+
+          <article class="step" id="guida">
+            <aside class="step-label">
+              <div class="step-number">2</div>
+              <h2>Guida agganciata</h2>
+              <p class="step-copy">La guida resta laterale e facoltativa. Non sostituisce il fascicolo e non blocca il lavoro.</p>
+            </aside>
+            <div class="screen">
+              <div class="screen-head">
+                <strong>Guida pratica nel fascicolo</strong>
+                <button class="btn">Nascondi guida</button>
+              </div>
+              <div class="screen-body guide-layout">
+                <aside class="guide-panel">
+                  <header>
+                    <div class="kicker">Piano assistito</div>
+                    <h3>Opposizione a sanzione amministrativa</h3>
+                    <p>La guida legge il fascicolo e propone verifiche, atti e allegati.</p>
+                  </header>
+                  <div class="guide-list">
+                    <div class="task done"><div class="task-title">Verbale e notifica <span class="status ok">verificati</span></div></div>
+                    <div class="task selected"><div class="task-title">Ricorso in opposizione <span class="status">da generare</span></div><p>Documento richiesto dalla guida.</p></div>
+                    <div class="task"><div class="task-title">Allegati <span class="status">da controllare</span></div></div>
+                  </div>
+                </aside>
+                <section class="section">
+                  <h3>Fascicolo ancora operativo</h3>
+                  <div class="field-grid">
+                    <div class="field"><span>Attività</span><strong>Verifica termini</strong></div>
+                    <div class="field"><span>Scadenze</span><strong>Da calcolare</strong></div>
+                    <div class="field"><span>Lex</span><strong>Legge guida e fascicolo</strong></div>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </article>
+
+          <article class="step" id="catalogo">
+            <aside class="step-label">
+              <div class="step-number">3</div>
+              <h2>Catalogo template</h2>
+              <p class="step-copy">La guida non inventa documenti: sceglie dal catalogo master e dal binding del compilatore.</p>
+            </aside>
+            <div class="screen">
+              <div class="screen-head">
+                <strong>Selezione governata del template</strong>
+                <button class="btn primary">Usa template</button>
+              </div>
+              <div class="screen-body catalog">
+                <section class="template-card">
+                  <h3>GDP_001, Ricorso davanti al Giudice di Pace</h3>
+                  <p>Template selezionato perché il fascicolo indica opposizione a sanzione amministrativa davanti al Giudice di Pace. Il binding passa al compilatore operativo.</p>
+                  <div class="badge-row">
+                    <span class="badge">PST_GDP</span>
+                    <span class="badge gold">depositabile se pertinente</span>
+                    <span class="badge green">layout unico</span>
+                  </div>
+                </section>
+                <aside class="section">
+                  <h3>Catalogo</h3>
+                  <div class="split-grid">
+                    <div class="field"><span>Core</span><strong>122</strong></div>
+                    <div class="field"><span>Advanced</span><strong>186</strong></div>
+                    <div class="field"><span>Specialist</span><strong>92</strong></div>
+                    <div class="field"><span>Studio interno</span><strong>20</strong></div>
+                  </div>
+                </aside>
+              </div>
+            </div>
+          </article>
+
+          <article class="step" id="generazione">
+            <aside class="step-label">
+              <div class="step-number">4</div>
+              <h2>Generazione</h2>
+              <p class="step-copy">La finestra si apre sopra fascicolo e guida. Mostra dati acquisiti, non campi duplicati.</p>
+            </aside>
+            <div class="screen">
+              <div class="screen-head">
+                <strong>Genera documento richiesto dalla guida</strong>
+                <button class="btn primary">Conferma documento</button>
+              </div>
+              <div class="screen-body generator-layout">
+                <aside class="section">
+                  <h3>Dati letti dal fascicolo</h3>
+                  <div class="acquired">
+                    <div class="field"><span>Ufficio</span><strong>Ufficio del Giudice di Pace di Palmi</strong></div>
+                    <div class="field"><span>Parte assistita</span><strong>Crocitti Giovanni</strong></div>
+                    <div class="field"><span>Controparte</span><strong>Comune di Taurianova</strong></div>
+                    <div class="field"><span>Documento</span><strong>Ricorso in opposizione</strong></div>
+                    <div class="warning">Se un dato manca, si torna alla scheda fascicolo. Il generatore non lo chiede come campo isolato.</div>
+                  </div>
+                </aside>
+                <section class="preview-pane">
+                  <div class="a4">
+                    <header class="studio-head">
+                      <div class="studio">STUDIO LEGALE MONTAGNESE</div>
+                      <div class="lawyer">Avvocato Roberto Montagnese</div>
+                      <div class="lawyer">Patrocinante in Cassazione</div>
+                      <div class="small">Via N. Bixio, 4 - Tel e Fax 0966 - 611363</div>
+                      <div class="small">89029 TAURIANOVA (RC)</div>
+                      <div class="small">Cod. Fisc. MNT RRT 64L01 L063H</div>
+                      <div class="small">Partita IVA 01301790802</div>
+                      <div class="small">PEC: roberto.montagnese@coapalmi.legalmail.it</div>
+                    </header>
+                    <div class="signature-overlay">Firmato digitalmente da<br /><strong>ROBERTO MONTAGNESE</strong><br />Data e ora della firma</div>
+                    <div class="signature-side">Firmato Da: ROBERTO MONTAGNESE Emesso Da: ARUBAPEC EU QUALIFIED CERTIFICATES CA G1</div>
+                    <div class="court">Ufficio del Giudice di Pace di Palmi</div>
+                    <div class="title-one">Ricorso in Opposizione</div>
+                    <div class="title-two">a sanzione amministrativa</div>
+                    <section class="doc-body">
+                      <p><strong>Crocitti Giovanni</strong>, rappresentato e difeso dall'Avv. Roberto Montagnese, con procura allegata al presente atto ed elettivamente domiciliato presso il di lui studio, propone</p>
+                      <h4>Ricorso</h4>
+                      <p>avverso il verbale di accertamento indicato nel fascicolo, notificato nella data registrata nella scheda pratica, con ogni conseguente domanda di legge.</p>
+                      <h4>Motivi</h4>
+                      <p>La ricostruzione dei fatti e le ragioni di opposizione vengono generate dal template, dalle fonti e dai documenti del fascicolo, previa conferma dell'avvocato.</p>
+                    </section>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </article>
+
+          <article class="step" id="completamento">
+            <aside class="step-label">
+              <div class="step-number">5</div>
+              <h2>Conferma e salvataggio</h2>
+              <p class="step-copy">La conferma crea il documento nel fascicolo e registra lo stato della guida.</p>
+            </aside>
+            <div class="screen">
+              <div class="screen-head">
+                <strong>Rientro nel fascicolo</strong>
+                <button class="btn primary">Apri documento</button>
+              </div>
+              <div class="screen-body">
+                <div class="save-row">
+                  <section class="section">
+                    <h3>Documento salvato</h3>
+                    <p class="note">Ricorso in opposizione generato e collegato al fascicolo.</p>
+                  </section>
+                  <section class="section">
+                    <h3>Guida aggiornata</h3>
+                    <p class="note">La voce “Ricorso” passa da “da generare” a “completo”.</p>
+                  </section>
+                  <section class="section">
+                    <h3>Lex aggiornato</h3>
+                    <p class="note">Lex conosce documento, template, guida e fonti usate.</p>
+                  </section>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="step" id="facoltativa">
+            <aside class="step-label">
+              <div class="step-number">6</div>
+              <h2>Guida facoltativa</h2>
+              <p class="step-copy">Se l'avvocato non vuole usare la guida, il fascicolo continua a funzionare normalmente.</p>
+            </aside>
+            <div class="screen">
+              <div class="screen-head">
+                <strong>Stati non bloccanti</strong>
+                <button class="btn">Riattiva guida</button>
+              </div>
+              <div class="screen-body source-grid">
+                <section class="section">
+                  <h3>Guida nascosta</h3>
+                  <p class="source-text">La guida resta nascosta per quel fascicolo. Documenti, scadenze, atti e deposito restano disponibili.</p>
+                </section>
+                <section class="section">
+                  <h3>Codice non valorizzato</h3>
+                  <p class="source-text">Il sistema suggerisce una guida dall'oggetto pratica, ma non blocca il lavoro.</p>
+                </section>
+                <section class="section">
+                  <h3>Arricchimento fonti</h3>
+                  <p class="source-text">Normattiva, PST, XSD e documentazione ministeriale alimentano controlli pratici e risposte Lex.</p>
+                </section>
+              </div>
+            </div>
+          </article>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

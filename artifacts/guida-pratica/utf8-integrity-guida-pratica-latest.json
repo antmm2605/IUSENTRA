@@ -1,0 +1,21 @@
+{
+  "checked_files": 4,
+  "error_files": 0,
+  "files": [],
+  "files_with_artifacts": 0,
+  "finished_at": "2026-05-22T16:59:29Z",
+  "no_backup_created": true,
+  "ok": true,
+  "repair_enabled": false,
+  "repaired_files": 0,
+  "roots": [
+    "D:\\legale\\IUSENTRA\\docs\\GUIDA_PRATICA_PIANO_OPERATIVO.md",
+    "D:\\legale\\IUSENTRA\\artifacts\\guida-pratica\\IMPLEMENTATION_AUDIT.md",
+    "D:\\legale\\IUSENTRA\\artifacts\\guida-pratica\\browser-guida-pratica-ui-removal-report.json",
+    "D:\\legale\\IUSENTRA\\CHANGELOG.md"
+  ],
+  "schema_version": "iusentra.utf8_integrity.v1",
+  "skipped_large_files": 0,
+  "started_at": "2026-05-22T16:59:28Z",
+  "unresolved_replacement_files": 0
+}

@@ -74,6 +74,7 @@ export type DocumentEditorPayload = {
   endpoints: {
     loadHtml: string
     save: string
+    importFile: string
     exportPdf: string
     exportDocx: string
   }
@@ -131,7 +132,7 @@ export const emptyDocumentEditorPayload: DocumentEditorPayload = {
     portal: { name: '', class: '', sender: '', date: '' },
     actions: { preview: '', download: '', sign: '', detail: '/fascicoli' },
   },
-  endpoints: { loadHtml: '', save: '', exportPdf: '', exportDocx: '' },
+  endpoints: { loadHtml: '', save: '', importFile: '', exportPdf: '', exportDocx: '' },
   capabilities: { formats: [], autosaveSeconds: 30, localBundle: true },
   editorAI: emptyEditorAI,
   warnings: [],
@@ -215,6 +216,7 @@ function normalizeEndpoints(value: unknown): DocumentEditorPayload['endpoints'] 
   return {
     loadHtml: text(row.loadHtml),
     save: text(row.save),
+    importFile: text(row.importFile),
     exportPdf: text(row.exportPdf),
     exportDocx: text(row.exportDocx),
   }

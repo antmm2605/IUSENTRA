@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IUSENTRA - Apertura fascicolo con guida facoltativa</title>
+  <link rel="stylesheet" href="flow.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="search">
+      <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+      <span class="hint">Cerca fascicolo, cliente, udienza, documento...</span>
+      <span class="kbd">Ctrl K</span>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" aria-label="Orologio"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></button>
+      <button class="date-btn">ven 22 mag <svg class="i" viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18"></path><rect x="3" y="4" width="18" height="18" rx="3"></rect></svg></button>
+      <button class="icon-btn" aria-label="Avvisi"><svg class="i" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"></path><path d="M10.3 3.9 2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg></button>
+      <button class="icon-btn mini-alert" aria-label="Notifiche"><svg class="i" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M10 21h4"></path></svg></button>
+      <button class="icon-btn" aria-label="Filtri"><svg class="i" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"></path><path d="M2 14h4M10 8h4M18 16h4"></path></svg></button>
+      <button class="primary-btn"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg> Nuovo</button>
+    </div>
+  </header>
+
+  <main class="app">
+    <section class="hero">
+      <div>
+        <div class="eyebrow"><svg class="i" viewBox="0 0 24 24"><path d="M3 7h18M3 7v13h18V7M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Apertura nuovo fascicolo</div>
+        <h1>Apertura nuovo fascicolo</h1>
+        <p>Compila i dati principali della pratica e collega il procedimento corretto. La guida pratica resta un aiuto facoltativo, non blocca il lavoro dello studio.</p>
+      </div>
+      <div class="hero-actions">
+        <button class="secondary-btn"><svg class="i" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg> Fascicoli</button>
+        <button class="primary-btn">Salva e apri fascicolo</button>
+      </div>
+    </section>
+
+    <section class="page-grid">
+      <div class="main-stack">
+        <article class="panel">
+          <div class="panel-head">
+            <div class="section-icon"><svg class="i" viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v12H3z"></path><path d="M3 7V5h6l2 2"></path></svg></div>
+            <div class="panel-title"><strong>Dati generali</strong><span>Pratica, oggetto, stato e date principali</span></div>
+            <span class="collapse">⌃</span>
+          </div>
+          <div class="panel-body">
+            <div class="form-grid">
+              <div class="field"><label>Pratica <span class="required">*</span></label><div class="control input-muted">es. Rossi c/ Bianchi - Inadempimento contrattuale</div></div>
+              <div class="field"><label>Rif. cartaceo</label><div class="control"></div></div>
+              <div class="field"><label>Tipo fascicolo <span class="required">*</span></label><div class="control">Civile <span style="margin-left:auto">⌄</span></div></div>
+              <div class="field"><label>Stato della pratica</label><div class="control">Aperta <span style="margin-left:auto">⌄</span></div></div>
+              <div class="field"><label>Data di apertura</label><div class="control">22/05/2026 <span style="margin-left:auto">▢</span></div></div>
+              <div class="field"><label>Data archiviazione</label><div class="control input-muted">gg/mm/aaaa <span style="margin-left:auto">▢</span></div></div>
+              <div class="field full"><label>Oggetto pratica</label><textarea class="control"></textarea></div>
+              <div class="field"><label>Personalizzabile</label><div class="checkbox-row"><span class="fake-check"></span> Valori modificabili dallo studio</div></div>
+              <div class="field full">
+                <label>Pratiche collegate</label>
+                <div class="catalog-search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg> Es. 014001, sfratto, famiglia, ATP</div>
+                <p class="fine-note"><strong>1018 codici ufficiali disponibili.</strong> Il codice scelto resta modificabile finché non viene generata o inviata la busta.</p>
+                <p class="fine-note">Il codice selezionato viene conservato nel fascicolo e usato solo quando il flusso lo richiede.</p>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <aside class="rail">
+        <article class="panel">
+          <div class="panel-head">
+            <div class="section-icon"><svg class="i" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg></div>
+            <div class="panel-title"><strong>Presidio deposito assistito</strong><span>PCT / PST Civile - apertura fascicolo</span></div>
+            <span class="collapse">⌃</span>
+          </div>
+          <div class="panel-body callout">
+            <div class="callout-row"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5l3 2"></path></svg><span>IUSENTRA prepara e controlla. Firma, busta e invio restano sempre confermati dall'utente.</span></div>
+            <div class="callout-row"><svg class="i" viewBox="0 0 24 24"><path d="M3 21h18"></path><path d="M5 21V8l7-5 7 5v13"></path></svg><span>Canale suggerito: <strong>PCT / PST Civile</strong></span></div>
+            <div class="callout-row"><svg class="i" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"></path><path d="M3 6h.01M3 12h.01M3 18h.01"></path></svg><span>Campi minimi apertura: titolo, tipo, oggetto, autorità giudiziaria, controparte.</span></div>
+            <div class="callout-box">Se usi Fascicolo Veloce, dopo il salvataggio puoi aprire il deposito assistito. Atto principale, procura, prova notifica e contributo saranno controllati prima dell'invio.</div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div class="section-icon"><svg class="i" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"></path></svg></div>
+            <div class="panel-title"><strong>Guida pratica</strong><span>Aiuto operativo, non obbligatorio</span></div>
+            <span class="collapse">⌃</span>
+          </div>
+          <div class="panel-body">
+            <div class="guide-switch">
+              <div class="switch-text">
+                <strong>Attiva dopo il salvataggio</strong>
+                <span>Legge il fascicolo e propone controlli, fonti e documenti senza chiedere di nuovo cliente, ufficio o oggetto.</span>
+              </div>
+              <span class="toggle"></span>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div class="section-icon"><svg class="i" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></div>
+            <div class="panel-title"><strong>Prossimi passi</strong><span>Compatti, dentro la pagina esistente</span></div>
+          </div>
+          <div class="panel-body compact-list">
+            <div class="step-line active"><span class="num">1</span><div><strong>Salva fascicolo</strong><span>Dati principali e codice pratica</span></div><span class="badge blue">ora</span></div>
+            <div class="step-line"><span class="num">2</span><div><strong>Apri guida pratica</strong><span>Facoltativa, sempre richiudibile</span></div></div>
+            <div class="step-line"><span class="num">3</span><div><strong>Genera atto se serve</strong><span>Dal catalogo template</span></div></div>
+          </div>
+        </article>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,898 @@
+﻿bucket,codice,denominazione,termini_processuali,source_files
+codex_curated_completion,012002,Consulenza tecnica preventiva (art. 696-bis cpc.) - responsabilità sanitaria L. 24/2017,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,012003,Consulenza tecnica preventiva (art. 696-bis cpc) - altre ipotesi,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,014002,Provvedimenti cautelari in materia di tutela della concorrenza e del mercato (art. 33 L. n. 287/90),3,kb_01_procedimenti_speciali_cautelari.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,017002,Sequestro giudiziario ex art. 670 c.p.c. - Sez. Spec. Impresa,3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,017003,Sequestro (liberatorio) ex art. 687 c.p.c. - Sez. Spec. Impresa,3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,017004,Provvedimenti cautelari in materia di tutela della concorrenza e del mercato,3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,017007,Sequestro (art. 129 c.p.i.),3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,017008,Descrizione (art. 129 c.p.i.),3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,017009,Inibitoria (art. 156 l. n. 663/1941 – Legge Autore),3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,017010,Sequestro (art. 161 l. n. 633/1941 – Legge Autore),3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,017011,Descrizione (art. 161 L.633/1941 – Legge Autore),3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,017012,Consulenza tecnica preventiva (art. 128 c.p.i.),3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,017999,Altri procedimenti cautelari - Sez. Spec. Impresa,3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,018001,Istanza sospensione dell'esecuzione ex art. 373 c.p.c.,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,018002,Altri procedimenti cautelari,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,019999,Altri procedimenti cautelari,3,kb_01_procedimenti_speciali_cautelari.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,030021,Intimazione di licenza o di sfratto per cessazione del rapporto di locazione d'opera (art. 659 c.p.c.),2,kb_00_sfratti.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,050001,Procedimento di Ingiunzione Ante Causam,4,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,051001,Sequestro conservativo ex art. 671 c.p.c.,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,051002,Sequestro giudiziario ex art. 670 c.p.c.,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,051003,Sequestro (liberatorio) ex art. 687 c.p.c.,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,052001,Prova testimoniale e/o Accertamento tecnico preventivo,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,052011,Ispezione preventiva,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,053001,"Inibitoria(art.63R.D.n.929/1942,art.83R.D.n.1127/1939,L n.52/1996,d.lgs.30/2005)",3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,055011,Provvedimenti d'urgenza ex art. 700 c.p.c,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,059999,Altri procedimenti cautelari in materia di diritto societario ecc.,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,100019,Opposizione all'esecuzione mobiliare e immobiliare riassunta davanti al Giudice di Pace,5,kb_02_opposizioni_impugnazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,100999,PROVA,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,101004,Revocazione per contrarietà alla Convenzione europea dei diritti dell'uomo ex art. 391-quater,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,101005,"Ricorso al Presidente del Tribunale per ricusazione arbitro (art. 815, comma 3 cpc)",2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,101011,Rogatorie civili,2,kb_02_opposizioni_impugnazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,101012,Prova Delegata,2,kb_02_opposizioni_impugnazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,102011,Privilegio,3,kb_02_opposizioni_impugnazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,103001,Questioni di diritto della navigazione (esclusi i contratti di trasporto),2,kb_02_opposizioni_impugnazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,104001,Controversie di competenza del Tribunale Regionale delle Acque Pubbliche,5,kb_02_opposizioni_impugnazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,105001,Usi civici,5,kb_02_opposizioni_impugnazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,106003,Espropriazione,5,kb_02_opposizioni_impugnazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,106004,Azione di nullita e risarcimento in materia di tutela della concorrenza e del mercato (art. 33 L. n. 287/90),5,kb_02_opposizioni_impugnazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,106005,Opposizione avverso il decreto di esecutivita sentenze in materia civile e commerciale di cui alle convenzioni di Bruxelles e Lugano (L. 804/71),5,kb_02_opposizioni_impugnazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,106007,Reclamo ex art. 818-bis cpc,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,106502,Accertamento requisiti sentenze straniere in materia diversa da quella matrimoniale (art. 67 L. n. 218/95),5,kb_02_opposizioni_impugnazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,108001,Istanza di conciliazione,2,kb_02_opposizioni_impugnazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,109999,Altri istituti e leggi speciali,2,kb_02_opposizioni_impugnazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,110000,Altre ipotesi di cui al comma 3 art. 3 L.46/2017,3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,110011,"Diritti della personalita (anche della persona giuridica) (es.: identita personale, nome, immagine, onore e reputazione, riservatezza)",3,kb_03_persone_famiglia_minori.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,110021,Diritti di elettorato attivo e passivo,3,kb_03_persone_famiglia_minori.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,110022,Diritti della cittadinanza,3,kb_03_persone_famiglia_minori.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,110023,Riconoscimento dello stato di apolidia,3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,110033,Riconoscimento diritto di soggiorno cittadini UE (art. 8. Dlgs 30/2007),3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,110034,Impugnazione provvedimento di allontanamento ex art. 20 e 21 D.Lgs 30/2007,5,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,110035,Impugnazioni Unita' Dublino UE 604/2013,5,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,110036,Convalida del provvedimento di trattenimento o proroga del trattenimento,3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,110037,Ricongiungimento familiare (art.30),3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,110038,Impugnazione avverso diniego/revoca di rilascio/rinnovo permesso di soggiorno,5,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,110039,Impugnazione avverso diniego di visto di ingresso per motivi di ricongiungimento familiare da parte dell’autorita' consolare,5,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,110040,Impugnazione diniego protezione umanitaria da parte del Questore,5,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,110041,Convalida del provvedimento del questore di accompagnamento immediato alla frontiera,3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,110044,Reclamo avverso diniego sospensione provvedimento,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,110045,Convalida dei provvedimenti di trattenimento per i cittadini comunitari,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,110999,Altri istituti relativi allo stato della persona ed ai diritti della personalita,3,kb_03_persone_famiglia_minori.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111003,Separazione consensuale e divorzio congiunto (Cessazione effetti civili),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111004,Separazione consensuale e divorzio congiunto (Scioglimento matrimonio),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111005,Modifica delle condizioni di separazione (contenzioso),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111010,Modifica delle condizioni di separazione (ricorso congiunto),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111011,Divorzio congiunto,3,kb_03_persone_famiglia_minori.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111013,Modifica delle condizioni di divorzio (contenzioso),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111014,Modifica delle condizioni di divorzio (ricorso congiunto),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111021,Divorzio congiunto - Scioglimento matrimonio,7,kb_03_persone_famiglia_minori.json;kb_98_top9_set2_parte1.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111022,Divorzio contenzioso - Scioglimento matrimonio,3,kb_03_persone_famiglia_minori.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111023,Separazione giudiziale e divorzio congiunto (Cessazione effetti civili),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111024,Separazione giudiziale e divorzio contenzioso (Cessazione effetti civili),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111101,Filiazione legittima,3,kb_03_persone_famiglia_minori.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111102,Filiazione naturale,3,kb_03_persone_famiglia_minori.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111104,Attuazione dei provvedimenti sull'affidamento,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111105,Dichiarazione giudiziale di paternità e maternità naturale - ammissibilita',3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111106,Regolamentazione dell'esercizio della responsabilità genitoriale (contenzioso),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111107,Regolamentazione dell'esercizio della responsabilità genitoriale (ricorso congiunto),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111108,Modifica condizioni regolamentaz. esercizio responsabilità genitoriale (contenzioso),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111109,Modifica condizioni regolamentaz. esercizio responsabilità genitoriale (ricorso congiunto),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111110,Azione di dichiarazione giudiziale di paternità o maternità riguardante minori (art.274 Cod. Civ.) (contenzioso),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111111,Impugnazione di riconoscimento di paternità o maternità riguardante minori (artt.74 e 264 Cod. Civ.) (contenzioso),5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111201,Matrimonio (promessa di matrimonio ex artt. 79-81 c.c. - opposizione al matrimonio ex artt. 102 - 104 c.c. - impugnazione del matrimonio ex artt. 117 e ss. c.c.),5,kb_03_persone_famiglia_minori.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111211,Regime Patrimoniale: della famiglia ex artt. 159 e ss. c.c.,3,kb_03_persone_famiglia_minori.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111212,Regime Patrimoniale della famiglia di fatto,3,kb_03_persone_famiglia_minori.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111213,Attribuzione di quota di pensione e di indennità di fine rapporto lavorativo,4,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111214,Fondo patrimoniale (artt. 167 e ss. c.c.),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111215,Sostituzione dell'amministratore del patrimonio familiare,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111216,Sequestro dei beni del coniuge separato (art. 156 c.c.),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111217,Fondo di solidarietà a tutela del coniuge in stato di bisogno,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111401,Mutamento di sesso,3,kb_03_persone_famiglia_minori.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111402,Stato civile (rettifica del nome e altri atti dello Stato civile),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111403,Dichiarazione di assenza o di morte presunta (COLLEGIO),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111404,Adozione di maggiorenni,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111501,Esecutorieta sentenza Sacra Rota nullita di matrimonio (L. 121/85),3,kb_03_persone_famiglia_minori.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111502,Accertamento dei requisiti sentenza straniera di divorzio (art. 67 L. 218/95),3,kb_03_persone_famiglia_minori.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111503,Istanza per la nomina del curatore speciale del minore,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111504,"Matrimonio (pubbl.ni matrimoniali ex artt. 93 e ss. cc, nulla osta al matrim.)",3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111601,Misure di protezione contro gli abusi familiari (art. 473 bis.71 c.p.c.),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111602,"Ricorso per violenza domestica o di genere ex artt. 473 bis.40, 473 bis. 41, 73 bis.42",3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111604,Istanza per la nomina del curatore speciale del minore,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,111999,"Altri istituti di diritto di famiglia (es.: mantenimento figli naturali e legittimi, etc.)",3,kb_03_persone_famiglia_minori.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,112001,Deprecato per iscrizione in secondo grado - Interdizione di minori,3,kb_03_persone_famiglia_minori.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,112002,Deprecato per iscrizione in secondo grado - Inabilitazione di minori,3,kb_03_persone_famiglia_minori.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,112102,Riconoscimento di figlio naturale (art. 250 c.c.),3,kb_03_persone_famiglia_minori.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,112104,Regolamentazione rapporti con gli ascendenti (art. 317-bis Cod. Civ.),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,112105,Controllo della responsabilità genitoriale sui figli (art. 330 - 333 Cod. Civ.),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,112106,Convalida del provvedimento ex art. 403 CC,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,112107,Affidamento minori (post Riforma Cartabia),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,112108,Istanza ex art. 473 bis.69 Cpc (Ordini di protezione contro gli abusi familiari su soggetto minore),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,112109,Provvedimenti indifferibili (Art. 473 bis.15 C.p.c.),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,112110,Attuazione dei provvedimenti sull'affidamento (Art. 473 bis.38 Cpc),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,112111,Provvedimenti in caso di inadempienze o violazioni (Art. 473 bis.39 C.p.c.),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,112202,"Disconoscimento di figlio naturale (art. 250, 233, 244 c.c.)",3,kb_03_persone_famiglia_minori.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,112999,Altri procedimenti in materia minorile,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,118001,Controversie di competenza del TSAP ex art. 142 rd 1775/1933,2,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,118002,Controversie di competenza del TSAP ex art. 143 rd 1775/1933,2,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,118003,Revocazione ex art. 199 rd 1775/1933,5,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,118004,Rettificazione sentenza ex art. 204 rd 1775/1933,2,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,118099,Altre controversie di competenza del TSAP,2,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,129999,Altri istituti relativi alle successioni,2,kb_04_successioni_diritti_reali.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,130011,Superficie,2,kb_04_successioni_diritti_reali.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,130021,Enfiteusi,2,kb_04_successioni_diritti_reali.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,130031,Usufrutto,2,kb_04_successioni_diritti_reali.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,130032,Abitazione - Uso,2,kb_04_successioni_diritti_reali.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,130052,tabelle millesimali,2,kb_04_successioni_diritti_reali.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,130099,altri rapporti condominiali,2,kb_04_successioni_diritti_reali.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,130111,Apposizione di termini,2,kb_04_successioni_diritti_reali.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,130131,Osservanza distanze riguardo alberi/siepi,2,kb_04_successioni_diritti_reali.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,131001,Diritti ed obblighi del possessore non riconducibili alle azioni di reintegrazione e manutenzione),2,kb_04_successioni_diritti_reali.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,131011,Divisione di beni non caduti in successione,2,kb_04_successioni_diritti_reali.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,131101,Diritti ed obblighi del possessore non riconducibili alle azioni di reintegrazione e manutenzione),2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,132001,Pegno - Ipoteca - Trascrizione e pubblicita di beni immobili e mobili,3,kb_04_successioni_diritti_reali.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,139999,Altri istituti in materia di diritti reali possesso e trascrizioni,2,kb_04_successioni_diritti_reali.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,140001,Cessione dei crediti,10,kb_05_contratti_responsabilita_locazioni.json;kb_98_top9_set4_parte1.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,140002,Arbitraggio - Perizia contrattuale,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,140012,Vendita di cose mobili,5,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,140021,Appalto di opere pubbliche,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,140031,Somministrazione,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,140032,Locazione di beni mobili,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,140033,"Spedizione - Trasporto (nazionale, internazionale, terrestre, aereo, marittimo, misto)",2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,140034,Mandato,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,140035,Agenzia,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,140036,Mediazione,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,140037,Deposito,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,140038,Mutuo,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,140039,Transazione,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,140051,Assicurazione contro i danni,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,140052,Assicurazione sulla vita,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,140061,Fideiussione - Polizza fideiussoria,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,140101,Promessa di pagamento - Ricognizione di debito,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,140102,Titoli di credito,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,140111,Indebito soggettivo - Indebito oggettivo,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,140112,Arricchimento senza causa,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,140999,Altri contratti tipici ed obbligazioni non rientranti nelle altre materie,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,141001,Donazione,6,kb_05_contratti_responsabilita_locazioni.json;kb_98_top9_set3_parte1.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,142001,Prestazione d'opera intellettuale,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,142999,Altri contratti d'opera,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,143101,Cessione di azienda,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,143102,Concessione di vendita,5,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,143103,Distribuzione,5,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,143104,Licenza d'uso,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,143105,Noleggio,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,143106,Subfomitura,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,143111,Factoring,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,143112,Franchising,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,143121,Leasing,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,143131,Intermediazione finanziaria (S.I.M.) - Contratti di Borsa,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,143999,Altri contratti atipici,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,144001,"Cessazione del contratto di locazione alla scadenza, uso abitativo",2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,144002,"Cessazione del contratto di locazione alla scadenza, uso diverso",2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,144011,Recesso dal contratto del Conduttore uso abitativo,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,144012,Recesso dal contratto del Conduttore uso diverso,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,144031,"Cause relative alla validita o efficacia del contratto o di singole clausole (azione di simulazione, nullita, annullamento, etc.)",2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,144032,Pagamento del corrispettivo - Indennita di avviamento - Ripetizione di indebito - Risarcimento del danno,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,144033,"Diritto di prelazione - diritto di riscatto del conduttore (ex L. n. 392/1978, ex L. n.431/1998 e altre leggi speciali)",2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,144101,Affitto di azienda,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,144301,Comodato di immobile urbano,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,144999,Altri istituti del diritto delle locazioni,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,145009,Azioni di competenza del Giudice di Pace in materia di risarcimento danno,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,145011,"Responsabilita dei genitori, dei tutori e dei maestri (art. 2048 c.c.)",2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,145012,Responsabilita per l'esercizio di attivita pericolose (art. 2050 c.c.),2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,145013,Responsabilita ex artt. 2049 - 2051 - 2052 c.c.,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,145014,Rovina di edificio (art. 2053c.c.),2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,145021,Responsabilita del produttore,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,145111,Responsabilita civile dei magistrati (cause di cui alla legge n. 117/1988),2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,145999,Altre ipotesi di responsabilita Extracontrattuale non ricomprese nelle altre materie (art. 2043 c.c. e norme speciali),2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,146041,"Contratti bancari (deposito bancario, cassetta di sicurezza, apertura di credito bancario, anticipazione bancaria, conto corrente bancario, sconto bancario) cui non si applica il d.l.vo n. 5/2003",2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,146231,"Intermed. mobiliare (servizi e contratti di invest.,servizi accessori,fondi di invest., gestione collettiva del risparmio,gestione accentrata di strumenti finan.,vendita di prodotti finanz.,cartolarizzazione di crediti,contratti di borsa)",5,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,146232,Credito per le opere pubbliche (lett. f art. 1 d.l.vo n. 5/2003),2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,146239,Altri contratti bancari e controversie in genere di cui alla lettera e) art. 1 d.l.vo n. 5/2003,2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,146331,"Pagamento di somma di danaro o consegna di cosa mobile in materia di controversie promosse da una banca nei confronti di altra banca e di cui alle lettere e), f) art. 1 d.l.vo n. 5/2003",2,kb_05_contratti_responsabilita_locazioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,150001,Associazione - Comitato,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,150002,Associazione in partecipazione,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,150003,Consorzio,7,kb_06_societario_industriale_fallimentare.json;kb_98_top9_set3_parte2.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,150004,Fondazione,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,150999,Altri istituti relativi alle persone giuridiche,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,151111,"Cause di responsabilita proposte dalla L.CA. in societa fiduciarie e di revisione ex art. 2, L. n. 430/1986 (COLLEGIO E RITO DEL LAVORO)",4,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,151120,"Rapporti sociali e cessione di partecipazione nelle societa di fatto, di persone, di capitali, di cooperative e mutue assicuratrici",3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,151121,Cause in materia di trasferimento di partecipazioni sociali etc.,2,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,151122,Cause in materia di patti parasociali,2,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,151123,Cause in materia di offerte pubbliche etc.,2,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,151130,Opposizione dei creditori alla fusione delle societa (art. 2503 c.c.),5,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,151999,Altri istituti di diritto societario,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,152001,Cause di respons. vs gli amministratori delle società di persone,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,152003,Impugnazione delle delibere di assemblea – società di persone,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,152004,Cause in materia di rapporti societari – società di persone,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,152005,Cause in materia di trasferimento di partecipazioni sociali etc. – società di persone,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,152006,Cause in materia di patti parasociali – società di persone,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,152110,"Cause di responsabilita contro gli organi amministrativi e di controllo, i direttori generali e i liquidatori delle associazioni in partecipazione e dei consorzi (COLLEGIO)",3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,152112,Impugnazione delle deliberazioni dell'assemblea e del consiglio di amministrazione delle associazioni in partecipazione e dei consorzi (COLLEGIO),5,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,152999,Altre controversie in materia di società di persone,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,153120,"Cause in materia di rapporti societari, ivi compresi quelli concernenti le societa di fatto nonche l'accertamento, la costituzione, la modificazione o l'estinzione del rapporto societario",3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,153121,Cause in materia di trasferimento di partecipazioni sociali e di negozi o diritti inerenti,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,153122,Cause in materia di patti parasociali,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,153123,"Cause in materia di offerte pubbliche di acquisto, di scambio e di vendita (O.P.A., O.P.S., O.P.V.)",5,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,153999,Altri istituti di diritto societario soggetti al d.l.vo n. 5/2003,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,154112,"Pagamento di somma di danaro o di consegna di cosa mobile in cause di impugnazione delle deliberazioni dell'assemblea e del c.d.a. delle societa, delle mutue assicuratrici e delle societa cooperative",5,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,154120,"Pagamento di somma di danaro o di consegna di cosa mobile in materia di rapporti societari, ivi compresi quelli concernenti le societa di fatto",3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,154121,Pagamento di somma di danaro o di consegna di cosa mobile in cause in materia di trasferimento di partecipazioni sociali e di negozi o diritti inerenti,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,154122,Pagamento di somma di danaro o di consegna di cosa mobile in cause in materia di patti parasociali,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,154123,"Pagamento di somma di danaro o di consegna di cosa mobile in cause in materia di offerte pubbliche di acquisto, di scambio e di vendita (O.P.A., O.P.S., O.P.V.)",5,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,154999,Pagamento di somma di danaro o di consegna di cosa mobile in cause residuali in materia di dirtto societario soggette al d.l.vo n. 5/2003,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,170001,Brevetto (invenzione e modello) - Marchio: Nullita - Decadenza,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,170004,Marchio,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,170011,Concorrenza sleale,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,170013,Concorrenza sleale interferente,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,170014,Marchi di fatto,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,170015,Nome a dominio,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,170021,Diritto di autore,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,170031,Ditta - Insegna - Denominazione sociale - Ragione sociale,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,170041,Antitrust afferente diritti di proprietà industriale,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,170042,Antitrust,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,170999,Altri istituti di diritto industriale,2,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,171002,Opposizione all'accertamento dello stato di insolvenza,5,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,171101,azione di inefficacia ex art. 44,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,171102,azione di inefficacia ex art. 64,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,171103,azione ex artt. 72 e ss.,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,171104,azione di inefficacia ex art. 167,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,171204,Istanza di revocazione contro crediti ammessi (art. 102),5,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,171205,"Domande di rivendicazione,, restituzione e separazione di cose mobili (art. 103)",3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,171301,Contestazione avverso il rendiconto del curatore (art. 116),3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,171311,Cause di omologazione di concordato fallimentare (artt. 124 e ss.),3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,171321,Cause di omologazione di concordato preventivo (art. 160 e ss.),3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,171401,Istanza e ricorso per la dichiarazione di fallimento e relativo reclamo (art. 6-22 del R.D. n. 267/1942),5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,171402,Istanza per estensione di fallimento (art. 147 del R.D. n. 267/1942,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,171403,Accertamento dello stato di insolvenza nella Liquidazione coatta amministrativa o nella Amministrazione straordinaria e relativo reclamo,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,171404,Esdebitazione del Debitore Incapiente (CCI),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,171405,Reclamo avverso il rigetto della dichiarazione dello stato di insolvenza (LCA),5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,171406,Opposizione all'omologazione del piano di ristrutturazione,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,171999,Altri istituti di diritto fallimentare,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,172001,Brevetto (invenzione e modello) - Marchio,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,172011,Concorrenza sleale,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,172012,Concorrenza sleale interferente- marchio di fatto - nome a dominio,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,172021,Diritto di autore,2,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,172031,Ditta - Insegna - Denominazione sociale,2,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,172999,Altri istituti di diritto industriale,2,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,173001,Brevetto (invenzione e modello) - Marchio,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,173011,Concorrenza sleale,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,173012,Concorrenza sleale interferente- marchio di fatto - nome a dominio,3,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,173021,Diritto di autore,2,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,173031,Ditta - Insegna - Denominazione sociale,2,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,173999,Altri istituti di diritto industriale,2,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,174101,Azione di inefficacia ex art. 144 CCI,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,174102,Azione di inefficacia ex art. 163 CCI,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,174103,Azione di inefficacia ex art. 94 CCI,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,174104,Azione revocatoria ex art. 166 CCI,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,174201,Opposizione sentenza di apertura della liquidazione giudiziale,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,174202,Opposizione all'accertamento dello stato di insolvenza,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,174203,Opposizione omologazione concordato preventivo,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,174204,Opposizione omologazione accordo di ristrutturazione,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,174999,Altri istituti di diritto concorsuale,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,180003,Opposizione ordinanza prefettizia di cui all'art. 75 c.4 DPR 309/1990 (stupefacenti),5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,180004,Opposizione ordinanza/decreto prefettizio di cui all'art. di cui all'art. 75 c.9 DPR 309/1990 (stupefacenti),5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,180011,Risarcimento danni da occupazione illegittima ed accessione invertita,2,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,180021,Contenzioso di diritto tributario e doganale,2,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,180031,Contenzioso di diritto valutario,2,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,180041,Contenzioso relativo a beni demaniali,2,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,180051,Risarcimento danni da provvedimento illegittimo della P-A.,2,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,180999,Altre controversie di diritto amministrativo,2,kb_06_societario_industriale_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181003,"Cause di respons. vs gli organi amministrativi e di controllo,etc - Sez. Spec. Impresa",3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181004,"Impugn delle deliber. dell'assem. e del CdA,etc. - Sez. Spec. Impresa",5,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181005,Cause in materia di rapporti societari - Sez. Spec. Impresa,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181006,Brevetto di invenzione,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181007,Brevetto di modello di utilita',3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181008,Marchio,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181009,Concorrenza sleale interferente,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181010,Marchi di fatto,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181011,Nome a dominio,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181012,Diritto di autore e diritti connessi,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181013,Ditta - Insegna - Denominazione sociale - Ragione sociale,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181014,Disegni e modelli comunitari registrati,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181015,Disegni e modelli comunitari non registrati,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181016,Disegni e modelli nazionali,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181017,Controversie in materia di proprietà industriale per violazione della normativa antitrust nazionale,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181018,Controversie in materia di proprietà industriale per violazione della normativa antitrust dell’Unione Europea,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181019,Controversie in materia di operazioni di concentrazione societarie,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181022,Marchio Europeo,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181023,Brevetto Europeo,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181024,Marchio collettivo (art. 11 c.p.i.),3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181025,Tutela indicazioni geografiche (art. 29 c.p.i.),3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181026,Tutela segreti commerciali (art. 98 c.p.i.),3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181027,Tutela delle informazioni segrete – Know how (art. 99 c.p.i.),3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181028,Appalti pubblici sopra soglia di rilevanza comunitaria,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181029,Cause in materia di trasferimento di partecipazioni sociali etc. - Sez. Spec. imprese,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181030,Cause in materia di patti parasociali - Sez. Spec. Impresa,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181031,Cause in materia di offerte pubbliche etc. - Sez. Spec. Impresa,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181032,Revocazione ex art. 395 c.p.c. - Sez. Spec. Impresa,5,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181033,Opposizione di terzo ex artt. 404 e ss. c.p.c. - Sez. Spec. Impresa,5,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181034,Controversie in materia di indennità di espropriazione dei diritti di proprietà industriale,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181035,"Controversie contro i provvedimenti del Consiglio dell’ordine di cui al capo VI del D.Lgs. 30/2005,",3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181036,"Cause in materia di rapporti tra società di cui agli artt. 2359, co. 1, n. 3, 2497septies c.c. e 2545septies c.c.",3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181037,Azione revocatoria (art. 2901 c.c.) - Sez. Spec. Impresa,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181042,Azione inibitoria collettiva,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181099,Altre controversie di competenza della Sez. Spec. dell’Impresa in materia di propr. Industriale e diritto d’autore,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,181999,Altre controversie di competenza della Sez. Spec. dell’Impresa in materia societaria,3,kb_14_sezione_specializzata_impresa.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,210001,Ingiunzione in materia di lavoro,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,210002,Ingiunzione in materia di previdenza obbligatoria,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,210003,Ingiunzione in materia di assistenza obbligatoria,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,210012,"ex art. 18, 7' comma, Statuto lavoratori",4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,210013,"ex art. 15, L. n. 903/1977 (parita uomo-donna)",4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,210017,"Reclamo ex art. 1, comma 58, L. 92/2012",4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,210999,altre ipotesi,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,211001,sequestro conservativo,3,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,211002,Sequestro giudiziario ex art. 670 c.p.c.,3,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,211999,altre ipotesi,3,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,220002,appalto di manodopera,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,220003,lavoro interinale,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,220004,avviamento obbligatorio,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,220010,contratto a termine e di formazione e lavoro,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,220011,apprendistato,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,220012,patto di prova,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,220020,categoria e qualifica,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,220021,mansione e jus variandi,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,220030,trasferimento del lavoratore,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,220031,trasferimento di azienda,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,220040,sanzione disciplinare conservativa,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,220060,sospensione con intervento della Cassa integrazione guadagni,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,220070,Risarcimento danni da infortunio,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,220071,Risarcimento danni da dequalificazione,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,220072,Risarcimento danni:altre ipotesi,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,220104,Licenziamento del socio della cooperativa,4,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,220105,Licenziamento discriminatorio,4,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,220111,Impugnazione licenziamento con domanda di reintegrazione,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,220120,Dimissioni,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,220999,Altre ipotesi,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221001,qualificazione,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221002,appalto di manodopera,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221003,lavoro interinale,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221004,avviamento obbligatorio,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221010,contratto a termine e di formazione e lavoro,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221011,apprendistato,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221012,patto di prova,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221020,categoria e qualifica,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221021,mansione e jus variandi,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221030,trasferimento del lavoratore,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221031,trasferimento di azienda,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221040,sanzione disciplinare conservativa,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221050,retribuzione,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221060,sospensione con intervento della Cassa integrazione guadagni,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221070,Risarcimento danni da infortunio,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221071,Risarcimento danni da dequalificazione,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221072,Risarcimento danni:altre ipotesi,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221099,Altre ipotesi,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221101,Licenziamento individuale per giust. motivo oggettivo,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221102,Licenziamento individuale per giusta causa,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221103,Licenziamento individuale del dirigente,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221105,Licenziamento discriminatorio,4,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221111,Impugnazione licenziamento con domanda di reintegrazione,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221120,Dimissioni,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,221999,Altre ipotesi,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,222101,Licenziamento individuale per giust. motivo oggettivo,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,222102,Licenziamento individuale per giusta causa,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,222103,Licenziamento individuale del dirigente,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,222105,Licenziamento discriminatorio,4,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,222111,Impugnazione licenziamento con domanda di reintegrazione,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,222120,Dimissioni,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,222999,Altre ipotesi,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,223001,"Rapporto di agenzia e altri rapporti di collaborazione ex art. 409, n. 3 c.p.c.",4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,223999,Altre controversie in materia di lavoro parasubordinato,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,230010,Obbligo contributivo del datore di lavoro,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,230020,Ripetizione di indebito,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,230999,Altre controversie in materia di previdenza obbligatoria,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,231999,Altre controversie in materia di assistenza obbligatoria,4,kb_13_lavoro_previdenza.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,310001,Procedimento cautelare ante causam,3,kb_07_diritto_agrario.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,320999,Altri istituti di diritto agrario,2,kb_07_diritto_agrario.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400000,Iscrizione Registro Stampa,3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400100,Reclamo avverso decreto inammissibilita responsabilita civile magistrati,5,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400201,Ricorso avverso il decreto di espulsione del prefetto (art. 13 c.8),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400202,Convalida del provvedimento del questore di trattenimento presso centro permanenza temporanea (art. 14 c. 4 Dl. vo 286/98),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400203,Ricongiungimento familiare (art. 30),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400204,"Atti discriminatori (art. 43, 44 )",3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400205,Convalida del Provvedimento del questore di accompagnamento alla frontiera (art. 13 c.5 bis D.L. 286/98),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400206,Convalida del Provvedimento del questore di accompagnamento alla frontiera e trattenimento presso centro di permanenza temporaneo (art. 13 c.5 bis e art. 14 c. 4 D.L. 286/98),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400209,Altri procedimenti in materia di espulsione immigrati,3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400210,"Ricorso per la liquidazione degli onorari e dei diritti dell'avvocato (artt. 28 e 29, L. 794/1942) (COLLEGIO)",3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400211,Ricorso avverso il decreto di liquidazione di compensi agli ausiliari del magistrato e ai collaboratori ex art. 170 T.U. n. 115/2002,3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400212,Iscrizione Albo consulenti,3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400230,Autorizzazione del Tribunale ex art. 375 e 397 c.c. (COLLEGIO),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400250,Procedimento ammissione patrocinio a spese dello Stato - civile - art. 126 T.U. n. 115/2002,3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400251,Procedimento ammissione patrocinio a spese dello Stato - penale - art. 99 T.U. n. 115/2002,3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400252,Ricorso avverso il rigetto dell'istanza per l'ammissione anticipata (P.S.S.),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400253,Revoca del provvedimento di ammissione e ricorso avverso il relativo decreto (P.S.S.),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400260,Ammortamento titoli,3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400270,Nomina di amministratore della comunione (art. 1105 c.c.) (COLLEGIO),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400272,"Revoca di amministratore di comunione o condominio (artt. 1105 e 1129, 3' comma c.c.) (COLLEGIO)",3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400280,Nomina degli arbitri (art. 810 c.p.c.),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400281,Liquidazione delle spese e dell'onorario dell'arbitro (art. 814 c.p.c.),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400282,Dichiarazione di esecutivita del lodo arbitrale (art. 825 c.p.c.),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400290,Svincolo indennita L.686/1926 e L.2359/1865,3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400300,Ricevimento e verbalizzazione di dichiarazione giurata,3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400310,Apertura forzata di cassetta di sicurezza (art. 1841 c.c.),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400320,Ricorso avverso provvedimenti C.R.A. (art. 7 L. 443/85),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400330,N.O. trapianto tra viventi (art. 2 L. 26.6.1967 n. 458),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400400,Procedimento disciplinare contro notaio (COLLEGIO),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400401,Idoneita cauzione notarile (art. 22 L. 16.2.1913 n. 89),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400402,Nomina interprete per sordomunti (artt. 56 e 57 L. 16.2.1913 n. 89),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400403,Nomina professionista in luogo dell'OCC,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400404,Misure protettive e cautelari (risanamento aziendale),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400405,Autorizzazioni del tribunale (risanamento aziendale),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400410,"Procedimenti relativi agli ordini professionali (iscrizione, elezione, impugnazione contro provvedimento disciplinare, etc.)",5,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400510,"Cancellazione di nome dall'elenco dei protesti (art. 12, L. n. 349/1973)",3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400511,Disposizioni in materia di riabilitazione civile del debitore protestato (art. 17 L. 108/96 - usura),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400610,Reclamo avverso il rifiuto del conservatore di procedere alla cancellazione di ipoteca (artt. 2888 c.c. e 113 Disp. Att. c.p.c.) (COLLEGIO),5,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400710,Impugnazione ex lege sulla privacy (L. n. 675/1996),5,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400711,Opposizione al provvedimento del garante per la tutela delle persone e di altri soggetti rispetto al trattamento dei dati personali (art. 29 L. n. 675/1996),5,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400801,"Titolo legale per le successioni aperte in Italia riguardanti i depositi iscritti presso la Cassa depositi e prestiti (art. 15, Libro II, T.U. n. 453/1913 come modificato dall'art. 7 L. 6.7.1949 n. 466)",3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400802,Richiesta documentazione per la successione aperta in Italia in titoli del debito pubblico (artt. 14 e 15 L. 12.8.1975 n. 752),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400902,Opposizione ex. Art. 5 ter L89/2001,5,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,400999,Altri istituti camerali e di volontaria giurisdizione,3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,401001,Notificazione per i pubblici proclami (art.150 cpc),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,401002,Rilascio seconda copia esecutiva (art. 476 cpc),5,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,401003,Ricerca con modalita' telematiche dei beni da pignorare - Art. 492 bis.,5,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,406001,Attuazione di sentenze e provvedimenti stranieri e autorizzazione assunzioni rogatorie (artt. 67 e 69 L. n. 218/95),5,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,406100,Iscrizione albo liquidatori di avaria,5,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,406200,Sanzioni amministrative comminate dalla Banca d'Italia (art. 145 D.L.vo n. 385/93 - solo Roma),5,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,406210,Sanzioni amministrative comminate dalla Consob (D.L.vo n. 58/98 - foro regionale),5,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,406220,"Azioni di nullita`, risarcimento danno e provvedimenti di urgenza legge anti trust (art. 33 L. 287/1990)",3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,406300,Dichiarazione di esecutivita di decisioni straniere in materia civile e commerciale (Reg. CE 44/01 e ss. mod. ed int.),5,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,406301,Esecutorieta lodo arbitrale straniero (Provv. Presidenziale),5,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,406302,Trasmissione in forma autentica sentenze in forza della convenzione con la Repubblica di S. Marino,5,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,406303,Dichiarazione di esecutivita' decisioni in materia matrimoniale e di potesta' dei genitori sui figli (Regolamento (CE) n. 1347/2000 del 29 maggio 2000),5,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,406801,"Titolo legale per le successioni aperte in Italia riguardanti i depositi iscritti presso la Cassa depositi e prestiti (art. 15, Libro II, T.U. n. 453/1913 come modificato dall'art. 7 L. 6.7.1949 n. 466)",5,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,406802,Richiesta documentazione per la successione aperta all'estero in titoli del debito pubblico (artt. 14 e 15 L. 12.8.1975 n. 752),5,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,406999,Altri istituti di competenza della Corte di Appello in 1^ grado,5,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411002,"Ricorso per violenza domestica o di genere ex artt. 473bis.40, 473bis.41, 473bis.42 cpc",3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411003,Reclamo provvedimenti temporanei e urgenti ex art. 473bis.24 c.p.c.,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411510,Esecutorieta sentenza Sacra Rota nullita di matrimonio - domanda congiunta (L. 121/85),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411603,Attuazione dei provvedimenti sull'affidamento,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411610,Attribuzione di quota di pensione e di indennita di fine rapporto lavorativo,4,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411620,Adozione di maggiorenni,3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411630,Dichiarazione giudiziale di paternita e maternita naturale -amissibilita,3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411640,Fondo patrimoniale (artt. 167 e ss. c.c.),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411641,Sostituzione dell'amministratore del patrimonio familiare,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411650,"Matrimonio (pubblicazioni matrimoniali ex artt. 93 e ss. c.c., nulla osta al matrimonio dello straniero, etc.)",3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411660,Sequestro dei beni del coniuge separato (art. 156 c.c.),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411670,Fondo solidarietà ex L. 208/2015,3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411671,Separazione consensuale e divorzio congiunto (Cessazione effetti civili),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411672,Separazione consensuale e divorzio congiunto (Scioglimento matrimonio),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411673,Modifica delle condizioni di separazione (ricorso congiunto),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411674,Divorzio congiunto - Cessazione effetti civili,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411675,Modifica delle condizioni di divorzio (ricorso congiunto),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411676,Divorzio congiunto - Scioglimento matrimonio,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411677,Regolamentazione dell'esercizio della responsabilità genitoriale (ricorso congiunto),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411678,Modifica condizioni regolamentaz. esercizio responsabilità genitoriale (ricorso congiunto),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411679,Fondo patrimoniale (artt. 167 e ss. c.c.),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411680,Sostituzione dell'amministratore del patrimonio familiare,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411681,Stato civile (rettifica del nome e altri atti dello Stato civile),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411682,Dichiarazione di assenza o di morte presunta (COLLEGIO),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411683,Adozione di maggiorenni,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411684,Esecutorieta sentenza Sacra Rota nullita di matrimonio (L. 121/85),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411685,Accertamento dei requisiti sentenza straniera di divorzio (art. 67 L. 218/95),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411686,Esecutorieta sentenza Sacra Rota nullita di matrimonio - domanda congiunta,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411687,"Matrimonio (pubbl.ni matrimoniali ex artt. 93 e ss. cc, nulla osta al matrim.)",3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411688,Istanza per la nomina del curatore speciale del minore,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411689,Assunzione del cognome del genitore da parte del figlio naturale minorenne (art. 262 Cod. Civ.),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411703,Accordi ex art. 6 d.l. n.132 del 2014,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411706,Separazione consensuale,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,411999,Altri istituti di diritto di famiglia (es. mantenimento figli naturali e legittimi),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412301,"Deprecato (Non Iscrivibile) - Procedimenti per la dichiarazione di adottabilita (artt. 8, 9, 11 e 12 L. n. 184/1983)",3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412302,Deprecato (Non Iscrivibile) - Dichiarazione di disponibilita all'adozione (art. 22 L. n. 184/1983),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412303,Impugnazione decreto affidamento preadottivo (art. 24 L. n. 184/1983),5,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412304,Opposizioni a dichiarazioni di adottabilita (art.17 L. n. 184/1983),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412305,Adozione in casi particolari (art. 44 lett. a L. n. 184/1983 - vincolo di parentela),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412306,Adozione in casi particolari (art. 44 lett. b L. n. 184/1983 - figlio adottivo dell'altro coniuge),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412307,Deprecato (Non Iscrivibile) - Adozione in casi particolari (art. 44 lett. c L. n. 184/1983 - impossibilita affidamento preadottivo),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412308,Idoneita all'adozione di minori stranieri (art.30 L. n. 184/1983),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412309,Deprecato (Non Iscrivibile) - Dichiarazioni di efficacia di provvedimenti stranieri in materia di adozione (art.32 L. n. 184/1983),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412310,Impugnazione sentenza di adozione (art. 26 L. n. 184/1983),5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412311,Adozione in casi particolari (art. 44 lett. d L. n. 184/1983 - impossibilita' affidamento preadottivo),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412312,Adozione in casi particolari (art. 44 lett. c L. n. 184/1983 - minore orfano e portatore di handicap),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412313,Procedimento di adozione ex art. 35 co. 2 L. 184/1983 (ratifica adozione estera),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412314,Procedimento di adozione ex art. 35 co. 4 L. 184/1983 (ratifica adozione estera con affido preadottivo),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412315,Procedimento di adozione ex art. 36 co. 2 L. 184/1983 (Paesi non Aja),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412316,Procedimento di adozione ex art. 36 co. 4 L. 184/1983 (cittadini italiani residenti all'estero),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412317,Revoca dello stato di adottabilita' (Art. 21 L. 184/1983),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412318,Revoca adozione in casi particolari per fatto dell'adottato (Art. 51 L. n. 184/1983),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412319,Revoca adozione in casi particolari per fatto dell'adottante (Art. 52 L. n. 184/1983),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412320,Revoca decreto di idoneita' adozione internazionale (art. 30 co. 4 L. 184/1983),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412321,Autorizzazione al rilascio degli atti di cui all'art. 28 L. 184/1983,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412400,Deprecato (Non Iscrivibile) - Affidamento minori,3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412401,Deprecato (Non Iscrivibile) - Regolamentazione della potesta fra genitori (art. 317 bis),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412420,Deprecato (Non Iscrivibile) - Regolamentazione visite,3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412421,Affidamento minori (ante Riforma Cartabia),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412501,Ammissione al matrimonio del minore (art.84),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412502,Deprecato (Non Iscrivibile) - Assunzione del cognome del genitore da parte del figlio naturale minorenne (art.262),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412503,Deprecato (Non Iscrivibile) - Procedimenti per l'ammissibilita dell'azione di dichiarazione giudiziale di paternità o maternità riguardante minori (art.274) (contenzioso),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412504,Deprecato (Non Iscrivibile) - Autorizzazione all'impugnazione di riconoscimento di paternita o maternita riguardante minori (artt.74 e 264) (contenzioso),5,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412505,"Misure amministrative applicate ai minori (R.D. L.20/7/34 n. 1404, art 25)",3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412506,Costituzione di usufrutto,3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412507,Autorizzazione al riconoscimento (art. 251 Cod. Civ.),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412601,Interdizione e inabilitazione ex art. 416 Cod. Civ.,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412701,Autorizzazione per i genitori stranieri all'ingresso o alla permanenza in Italia a seguito del minore (art. 31 co.3 D. Lgs. 286/1998),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412702,Accertamento dell'età del minore (art. 19-bis D. Lgs 142/2015),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,412999,Altri procedimenti,3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,413001,Rappresentanza ed atti di amministrazione straordinaria di beni di figli minori (art. 320 c.c.),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,413002,"Nomina di curatore speciale (artt. 320, ult. comma e 321 c.c., art. 45 Disp. Att. C.C.)",3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,413003,Vigilanza del giudice tutelare sull'osservanza delle condizioni stabilite dal Tribunale per l'esercizio della potesta e per l'amministrazione dei beni (art. 337 C.C.),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,413010,Apertura della tutela (art. 343 c.c.),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,413011,Provvedimenti urgenti prima dell'assunzione delle funzioni del tutore o del protutore (art. 361 c.c.),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,413012,Nomina del cancelliere o del notaio per la formazione dell'inventario (art. 363 c.c.),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,413013,Provvedimenti circa l'educazione e l'amministraz di beni del minore ex art. 371 C.C.,3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,413014,"Autorizzazioni del giudice tutelare ex artt. 372, 373 e 374 c.c.",3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,413015,"Autorizzazioni e pareri del giudice tutelare su atti del curatore dell'emancipato e dell'inabilitato, ex artt. 394, 424 e ss. c.c.",3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,413016,Rifiuto del consenso da parte del curatore ex art. 395 c.c.,3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,413017,Apertura della Curatela,3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,413018,Apertura della Vigilanza sui Minori,3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,413020,"Interruzione volontaria di gravidanza di minore (art. 12, L. n. 194/1978)",3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,413030,"Affido familiare consensuale (art. 4, L. n. 184/1983)",3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,413040,"Autorizzazione al rilascio di documento valido per l'espatrio (art. 3 lett. A-B, L. n. 1185/1967)",5,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,413050,Trattamento Sanitario Obbligatorio ed amministrazione provvisoria (L. n. 833/1978),3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,413062,Autorizzazioni del notaio ex art. art. 21 D.Lgs. 149/2022,5,kb_98_top9_set3_parte2.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,413999,Altri istituti di competenza del giudice tutelare,3,kb_08_volontaria_giurisdizione_famiglia.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,418001,Ottemperanza sentenze TSAP,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,418002,Declaratoria illegittimita' del silenzio della P.A.,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,418099,Altre controversie di competenza del TSAP da trattare in camera di consiglio,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,420301,Nomina del curatore dell'eredita rilasciata ex art. 508 c.c.,3,kb_09_volontaria_giurisdizione_successioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,420303,Autorizzazioni al curatore dell'eredita giacente per gli atti eccedenti l'ordinaria amministrazione (artt. 782 c.p.c. e 530 c.c.),3,kb_09_volontaria_giurisdizione_successioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,420304,Accettazione Esecutore Testamentario,3,kb_09_volontaria_giurisdizione_successioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,420305,Rinuncia Esecutore Testamentario,3,kb_09_volontaria_giurisdizione_successioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,420310,Proroga per la redazione dell'inventario dell'eredita accettata con beneficio di inventario ex art. 485 c.c.,3,kb_09_volontaria_giurisdizione_successioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,420311,Autorizzazione all'alienazione di beni di eredita accettata con beneficio d'inventario (art. 493 c.c.),3,kb_09_volontaria_giurisdizione_successioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,420320,Vendita di beni ereditari beni mobili,5,kb_09_volontaria_giurisdizione_successioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,420321,Vendita di beni ereditari: beni immobili (COLLEGIO),5,kb_09_volontaria_giurisdizione_successioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,420325,Vendita beni ereditari mobili ante accettazione ex art. 460 cc,5,kb_09_volontaria_giurisdizione_successioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,420326,Vendita beni ereditari immobili ante accettazione ex art. 460 cc,5,kb_09_volontaria_giurisdizione_successioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,420330,"Fissazione termini in materia successoria (artt. 749 c.p.c., 481 e 496 c.c.)",3,kb_09_volontaria_giurisdizione_successioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,420331,Apposizione e rimozione sigilli in materia successoria (artt. 752-762 e ss. c.p.c.),3,kb_09_volontaria_giurisdizione_successioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,420332,Nomina dell'ufficiale che procede all'inventario ex art. 769 c.p.c.,3,kb_09_volontaria_giurisdizione_successioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,420999,Altri istituti di volontaria giurisdizione e procedimenti camerali in materia di successioni,3,kb_09_volontaria_giurisdizione_successioni.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,451301,Decreto di omologa degli atti di societa di capitali,3,kb_10_volontaria_giurisdizione_societaria.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,451312,"Nomina di esperto (artt. 2343, 2440, 2498, 2501 quinquies,2504 novies c.c., etc.)",3,kb_10_volontaria_giurisdizione_societaria.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,451314,Nomina del rappresentante comune degli obbligazionisti e dei possessori delle azioni di risparmio (art. 2417 c.c.),3,kb_10_volontaria_giurisdizione_societaria.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,451320,Riduzione del capitale per perdite (art. 2446 c.c.) (COLLEGIO),3,kb_10_volontaria_giurisdizione_societaria.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,451330,Ricorso al Giudice del Registro,3,kb_10_volontaria_giurisdizione_societaria.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,451999,Altri istituti di volontaria giurisdizione e procedimenti camerali in materia di diritto societario,3,kb_10_volontaria_giurisdizione_societaria.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,452330,Ricorso al giudice del Registro in materia non soggetta al d.l.vo n. 5/2003,2,kb_10_volontaria_giurisdizione_societaria.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,453301,Decreto di omologa degli atti di societa di capitali (art. 2436 c.c.),3,kb_10_volontaria_giurisdizione_societaria.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,453312,"Nomina di esperto (artt. 2343, 2343-bis, 2437-ter; 2501-sexies, 2545-undecies c.c., etc.)",2,kb_10_volontaria_giurisdizione_societaria.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,453314,Nomina del rappresentante comune degli obbligazionisti e dei possessori delle azioni di risparmio (art. 2417 c.c.),2,kb_10_volontaria_giurisdizione_societaria.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,453315,Nomina del rappresentante comune dei comproprietari di azioni (art. 2347 c.c.) e di quote (art. 2468 c.c.)obbligazionisti e dei possessori delle azioni di risparmio (art. 2417 c.c.),2,kb_10_volontaria_giurisdizione_societaria.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,453330,Ricorso al giudice del Registro in materia soggetta al d.l.vo n. 5/2003,2,kb_10_volontaria_giurisdizione_societaria.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,453420,"Riduzione del capitale per perdite (art. 2446, 2482-bis c.c.) (COLLEGIO)",2,kb_10_volontaria_giurisdizione_societaria.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,453421,Approvazione della revoca dei sindaci (art. 2400),2,kb_10_volontaria_giurisdizione_societaria.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,453422,"Opposizione dei creditori alla riduzione del capitale per recesso del socio (art. 2437-quater c.c.), alla riduzione per esuberanza (artt. 2445, 2482 c.c.), alla costituzione del patrimonio destinato (art. 2447-quater c.c.), alla revoca dell",5,kb_10_volontaria_giurisdizione_societaria.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,453423,Decreto di accertamento dello scioglimento della societa (art. 2485 c.c.),3,kb_10_volontaria_giurisdizione_societaria.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,453424,Decreto di cancellazione della societa dal registro delle imprese su istanza dell'autorita competente al rilascio delle autorizzazioni (art. 223 quater att. C.c.),5,kb_10_volontaria_giurisdizione_societaria.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,453999,Altre materie soggette al procedimento camerale ex artt. 28 e segg. D.l.vo n. 5/2003,2,kb_10_volontaria_giurisdizione_societaria.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,454001,Ricorso al giudice del Registro ex art. 2190 e 2191 c.c.,3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,454002,Ricorso al giudice del Registro ex art. 2189 c.c.,3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,455001,Nomina di liquidatore (artt. 2309 c.c.; art. 2315 c.c.),3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,455999,Altre materie soggette al procedimento camerale – società di persone,3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471400,Procedure Concorsuali,3,kb_12_esecuzioni_forzate.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471402,Istanza per estensione di fallimento (art. 147 del R.D. n. 267/1942,3,kb_11_volontaria_giurisdizione_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471403,Accertamento dello stato di insolvenza nella Liquidazione coatta amministrativa o nella Amministrazione straordinaria e relativo reclamo,5,kb_11_volontaria_giurisdizione_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471404,ESDEBITAZIONE DEL DEBITORE INCAPIENTE (CCI),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471405,LIQUIDAZIONE COATTA AMMINISTRATIVA (CCI),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471410,Istanza di ammissione alla procedura di Amministrazione controllata e relativo reclamo (artt. 187 del R.D. n. 267/1942),5,kb_11_volontaria_giurisdizione_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471412,AMMINISTRAZIONE STRAORDINARIA PRODI BIS (CCI),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471413,AMMINISTRAZIONE STRAORDINARIA L.166/2004 MARZANO (CCI),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471414,ACCORDI DI RISTRUTTURAZIONE (CCI),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471415,CONCORDATO PREVENTIVO OMOLOGATO (CCI),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471416,LIQUIDAZIONE GIUDIZIALE (CCI),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471417,RISTRUTTURAZIONE DEI DEBITI (CCI),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471418,CONCORDATO MINORE (CCI),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471419,LIQUIDAZIONE CONTROLLATA (CCI),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471420,Conversione da fallimento in liquidazione coatta amministrativa (COLLEGIO),3,kb_11_volontaria_giurisdizione_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471421,Conversione da fallimento in amministrazione straordinaria (COLLEGIO),3,kb_11_volontaria_giurisdizione_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471422,Conversione da amministrazione straordinaria in fallimento (COLLEGIO),3,kb_11_volontaria_giurisdizione_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471423,Concordato Semplificato,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471424,Concordato Semplificato CCI,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471425,Piano di Ristrutturazione Omologato CCI,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471430,"Procedimento di riabilitazione civile del fallito (art. 142 e ss., R.D. n. 267/1942)",3,kb_11_volontaria_giurisdizione_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471440,Reclamo avverso la chiusura del fallimento (artt. 118 e 119 L.F.),5,kb_11_volontaria_giurisdizione_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,471999,Altri istituti di volontaria giurisdizione e procedimenti camerali in materia di fallimento e procedure concorsuali,3,kb_11_volontaria_giurisdizione_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,472001,Apposizione sigilli,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,473450,PROCEDIMENTO UNITARIO,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,473451,Ricorso per liquidazione giudiziale,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,473452,Ricorso fissazione termine per deposito proposta cp o accordi,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,473453,Ricorso per ammissione concordato preventivo,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,473454,Ricorso per omologa accordi di ristrutturazione,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,473455,Ricorso per la dichiarazione stato insolvenza (lca),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,473456,Ricorso per la dichiarazione stato insolvenza (asp),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,473457,Ricorso per la dichiarazione stato insolvenza (asm),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,473458,Ricorso ristrutturazione debiti del consumatore,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,473459,Ricorso concordato minore,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,473460,Ricorso liquidazione controllata,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,473461,Ricorso per Omologazione Piano di Ristrutturazione,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,481310,Nomina di liquidatore - Sez. Spec. Impresa,3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,481311,Convocazione di assemblea ex art. 2367 c.c.,3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,481312,"Nomina di esperto (artt. 2343, 2440, 2498, 2501 quinquies,2504 novies c.c., etc)",3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,481313,Denunzia ex art. 2409 c.c.,3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,481314,Nomina del rappresentante comune degli obbligazionisti e dei possessori delle az,3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,481320,Riduzione del capitale per perdite (art. 2446 c.c.),3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,481401,Misure protettive,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,481402,"Nomina esperto ex art. 17, lett. a",3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,481403,Liquidazione compensi OCRI,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,481421,Approvazione della revoca dei sindaci (art. 2400),3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,481422,"Procedure ex artt. 2437quat,2445,2482,2447quat,2487ter,2500nov,2503 c.c.",3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,481423,Decreto di accertamento dello scioglimento della società (art. 2485 c.c.),3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,481999,Altre materie soggette al procedimento camerale - Sez. Spec. Impresa,3,kb_15_addendum_codici_aggiuntivi.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,490999,Altri procedimenti camerali,3,kb_11_volontaria_giurisdizione_fallimentare.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,510012,Espropriazione Mobiliare presso il debitore (CARTABIA),5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,510100,Deposito verbale di pagamento a mani dell'Ufficiale Giudiziario,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,511010,"Istanza di rifissazione dello sfratto ex art. 6, L. n. 431/1998",5,kb_00_sfratti.json;kb_12_esecuzioni_forzate.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,511011,"Istanza di decadenza da sospensione dello sfratto ex art. 6, L. n. 431/1998",5,kb_00_sfratti.json;kb_12_esecuzioni_forzate.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,511013,Liquidazione delle spese di esecuzione ex art. 611 c.p.c,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,511999,Altre ipotesi,5,kb_12_esecuzioni_forzate.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,512021,Rimborso spese di esecuzione (art. 614 c.p.c.),5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,512022,Ricorso per misure di coercizione indiretta (art. 614-bis),5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,520001,Ricorso all'esattore per l'autorizzazione a trattenere la somma ricavata dalla vendita (R.D. 639/1910),5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,520002,Vendita del pegno,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,520003,Esecuzione forzata per l'espropriazione del marchio,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,520004,Vendita di navi e aeromobili,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,520005,Esecuzione esattoriale Mobiliare,5,kb_12_esecuzioni_forzate.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,520006,Esecuzione esattoriale Mobiliare presso terzi,5,kb_12_esecuzioni_forzate.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,520999,Altre ipotesi,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,530011,Opposizione all'esecuzione mobiliare,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,530021,Opposizione agli atti esecutivi mobiliari,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,530031,Opposizione di terzo all'esecuzione mobiliare,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,610012,Espropriazione Immobiliare (CARTABIA),5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,620001,Esecuzione esattoriale Immobiliare,10,kb_12_esecuzioni_forzate.json;kb_98_top9_set2_parte1.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,630012,Opposizione all'esecuzione immobiliare,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,630022,Opposizione agli atti esecutivi immobiliari,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,630032,Opposizione del terzo all'esecuzione immobiliare,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,700001,Asseverazione di perizia,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,700002,Asseverazione di traduzione,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,700011,Atto notorio,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,700012,Dichiarazione sostitutiva di atto notorio,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,701001,Autenticazione di documento,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,701002,Autenticazione di firma,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,701003,Autenticazione di fotografia,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,709999,Altri atti amministrativi,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,710001,Istanza di Conciliazione,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B00000,Migrazione,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B01001,Autorizzazione al rilascio degli atti di cui all'art. 28 co.3 L. 184/1983 - Adottato minorenne,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B01002,Autorizzazione al rilascio degli atti di cui all'art. 28 co.3 L. 184/1983 - Adottato maggiorenne,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B01003,Istanza per l'accesso alle informazioni sulla famiglia d'origine (art. 28 co. 4 L. 184/1983) - Adottato minorenne,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B01004,Istanza per l'accesso alle informazioni sulla famiglia d'origine (art. 28 co. 5 L. 184/1983) - Adottato maggiorenne (> 18 e < 25 anni),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B01005,Istanza per l'accesso alle informazioni sulla famiglia d'origine (art. 28 co. 5 L. 184/1983) - Adottato maggiorenne (>= 25 anni),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02001,Interdizione e inabilitazione ex art. 416 Cod. Civ.,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02002,"Procedure per il rimpatrio dei minori sottratti ovvero dell'attuazione del diritto di visita del genitore non affidatario (Convenzione Aja 25.10.1980 ratificata con L. 64/1994, artt. 6 e 7)",3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02003,Scambio di informazioni tra Stati membri (art. 80 Reg. UE 1111/2019),2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02004,Cooperazione per attuazione tra Stati membri (art. 81 Reg. UE 1111/2019),2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02005,Collocamento del minore in altro Stato membro (art. 82 Reg. UE 1111/2019),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02006,Provvedimenti cautelari a favore di minori per cui è competente un¿autorità estera (art. 15 Reg. UE 1111/2019),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02007,Collocamento del minore in altro Stato non UE (Art. 33 Convenzione Aja 19/10/1996),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02008,Altri procedimenti contenziosi,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02009,Segnalazione in merito all'ingresso di un minore in Italia (art. 33 co. 4 e 5 L. 184/1983),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02010,Procedimento per l'espatrio del minore a scopo di adozione (art. 40 L. 184/1983),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02011,Accertamento dell'età del minore (art. 19-bis D. Lgs 142/2015),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02012,Accoglienza minori non accompagnati (art. 19 D. Lgs. 142/2015),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02013,Autorizzazione per i genitori stranieri all'ingresso o alla permanenza in Italia a seguito del minore (art. 31 co.3 D. Lgs. 286/1998),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02014,Procedimento per espulsione del minore (art. 31 co.4 D. Lgs. 286/1998),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02015,Procedimento ex art. 33 D. Lgs. 286/1998,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02016,Affidamento minori (ante Riforma Cartabia),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02017,Proroga periodo di affidamento (ante Riforma Cartabia),2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02018,Affidamento familiare (art.4 co.2 L. 184/1983),2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02019,Proroga periodo di affidamento familiare (art. 4 co. 4 L. 184/1983),2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02020,Affidamento ai servizi sociali (Art. 5-bis L. n. 184/1983),2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02021,Proroga periodo di affidamento ai servizi (Art. 5-bis L. n. 184/1983),2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02022,Proroga collocamento in comunità/casa famiglia (art. 4 co.7 L. 184/1983),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02023,Attuazione dei provvedimenti sull'affidamento (Art. 473 bis.38 Cpc),2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02024,Provvedimenti in caso di inadempienze o violazioni (Art. 473 bis.39 C.p.c.),2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02025,Ammissione al matrimonio del minore (art. 84 Cod. Civ.),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02026,Decadenza dalla responsabilità genitoriale sui figli (art. 330 Cod. Civ.),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02027,Reintegrazione nella responsabilità genitoriale (art. 332 Cod. Civ.),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02028,Procedimento ex art. 333 Cod. Civ. (Condotta del genitore pregiudizievole ai figli),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02029,Procedimento ex art. 334 Cod. Civ. (Rimozione dell'amministrazione),2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02030,Procedimento ex art. 335 Cod. Civ. (Riammissione dell'amministrazione),2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02031,Procedimento ex art. 371 Cod. Civ. co.2 (Autorizzazione del tutore alla continuazione di un'impresa commerciale nell'interesse del minore),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02032,Autorizzazione al riconoscimento (art. 251 Cod. Civ.),2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02033,Autorizzazione al riconoscimento dei figli nati fuori dal matrimonio (Art. 250 co.5 CC),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02034,Regolamentazione rapporti con gli ascendenti (art. 317-bis Cod. Civ.),2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02035,Procedimento per verifica veridicità del riconoscimento del figlio naturale (art. 74 L. 184/1983),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02036,Rettificazioni/formazioni relative agli atti dello stato civile (art. 100 DPR 396/2000),2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02037,Istanza ex art. 473 bis.69 Cpc (Ordini di protezione contro gli abusi familiari ¿ soggetto minore),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02038,Convalida del provvedimento ex art. 403 CC,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02039,Reclamo avverso i decreti del Giudice tutelare (art. 45 Disp. Att. Cod. Civ.),5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02040,Apertura della tutela parentale di minori stranieri non accompagnati,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02041,Apertura della tutela di minore privo di genitori (deceduti o decaduti o sospesi) - Art. 473 bis.7 Cpc,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02042,Apertura della tutela di minori stranieri non accompagnati,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02043,Altri procedimenti camerali,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02044,Misure applicabili ai minori per condotta o per carattere (Art. 25 R.D. 1404/1934),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02045,Procedimento ex art. 25 bis R.D. 1404/1934 (Minori che esercitano la prostituzione o vittime di reati a carattere sessuale),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02046,Prosieguo amministrativo ex art. 29 R.D. 1404/1934,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B02047,Affidamento ai servizi sociali del minore straniero non accompagnato che ha raggiunto la maggiore età (art. 13 L. 47/2017),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B03001,Procedimenti per la dichiarazione di adottabilità minori con genitore noto (artt. 8 e seg. L. 184/1983),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B03002,Procedimenti per la dichiarazione di adottabilità minori con genitore ignoto (art. 11 co. 2 L. 184/1983),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B03003,Revoca dello stato di adottabilità (Art. 21 L. 184/1983),2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B03004,Sospensione procedimento di adottabilità per minore non riconoscibile per difetto di età (art. 11 co. 3 L. 184/1983),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B04001,Adozione in casi particolari (art. 44 lett. a L. n. 184/1983 - minore orfano),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B04002,Adozione in casi particolari (art. 44 lett. b L. n. 184/1983 - figlio dell'altro coniuge),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B04003,Adozione in casi particolari (art. 44 lett. c L. n. 184/1983 - minore orfano e portatore di handicap),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B04004,Adozione in casi particolari (art. 44 lett. d L. n. 184/1983 - impossibilità affidamento preadottivo),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B04005,Revoca adozione in casi particolari per fatto dell'adottato (Art. 51 L. n. 184/1983),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B04006,Revoca adozione in casi particolari per fatto dell'adottante (Art. 52 L. n. 184/1983),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B04007,Procedimento di adozione ex art. 35 co. 2 L. 184/1983 (ratifica adozione estera),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B04008,Procedimento di adozione ex art. 35 co. 4 L. 184/1983 (ratifica adozione estera con affido preadottivo),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B04009,Procedimento di adozione ex art. 36 co. 2 L. 184/1983 (Paesi non Aja),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B04010,Procedimento di adozione ex art. 36 co. 4 L. 184/1983 (cittadini italiani residenti all¿estero),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B04011,Abbinamento a scopo adottivo (art. 22 co. 5 L. 184/1983),2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B04012,Procedimento di adozione nazionale (art. 25 L. 184/1983),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B05001,Dichiarazione di disponibilità all'adozione nazionale (artt. 22 e seg. L. 184/1983),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B05002,Dichiarazione di disponibilità all'adozione internazionale (art. 29 bis 184/1983),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B05003,Revoca decreto di idoneità adozione internazionale (art. 30 co. 4 L. 184/1983),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B06001,"Opposizione al decreto di liquidazione al difensore, all'ausiliario e al consulente tecnico (artt. 84 e 170 TUSG)",5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B06002,Opposizione alla revoca dell'ammissione al P.S.S. (art. 170 TUSG),5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B06003,Opposizione avverso il decreto di liquidazione al difensore,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B06004,Prove delegate art. 203 C.p.c.,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,B06005,Reclamo alla mancata ammissione al Gratuito patrocinio,5,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C00000,Migrazione,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C01001,Richiesta apertura stato di adottabilita,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C01002,Abbandono minori,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C01003,Minore esposto - madre che non vuole essere nominata,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C01004,Dichiarazione di nascita di figlio naturale,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C01005,Nascita neonato da madre minorenne,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C01006,Nascituro - segnalazione,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C02001,Abbandono neonato non riconosciuto,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C03001,Abuso alcol minore,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C03002,Abuso stupefacenti minore,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C03003,Abuso alcol genitore/i,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C03004,Abuso stupefacenti genitore/i,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C04001,Abuso sessuale altra a.g. (art. 609 decies),2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C04002,Abuso/molestia sessuale,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C04003,Abuso sessuale non in famiglia,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C04004,Abuso sessuale in famiglia,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C04005,Pornografia minorile,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C04006,Abuso sessuale - minore autore,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C05013,Ricerca delle origini,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C05014,Formazione atto di nascita,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C05015,Riconoscimento tardivo di minore,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06001,Abuso di mezzi di correzione,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06002,Accattonaggio genitore,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06003,Accattonaggio minorile,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06004,Affido familiare proroga,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06005,Affido familiare,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06006,Art. 4 dpr 448/88 segnalazione a pm tm reati minorenni residenti in altro distretto,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06007,Conflittualita' familiare,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06008,Crisi adottive,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06009,Denunce tra genitori di minori,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06010,Disagio abitativo -trascuratezza,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06011,Disagio familiare,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06012,Disagio personale genitore/i,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06013,Pene accessorie genitori,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06014,Disagio psichico/psicologico genitore/i,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06015,Femminicidio,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06016,Immigrazione clandestina,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06017,Inadempienza obbligo vaccinale,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06018,Incapacità educativa,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06019,Induzione al matrimonio,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06020,Inosservanza di un provvedimento dell'a.g.,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06021,Lesioni patite da minore,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06022,Minore figlio di persona arrestata o detenuta,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06023,Richiesta affidamento servizi sociali,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06024,Ricovero ospedaliero,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06025,Rifiuto di prestazioni sanitarie,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06026,Rintraccio minore,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06027,Segnalazione nascita da madre con problematiche,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06028,Sfruttamento minore (lavoro),4,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06029,Uccisione minore,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06030,Violazione obblighi mantenimento (art. 570 cp),2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C06031,Allontanamento minore (art. 403 cc),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C07001,Adescamento minori (art. 609 undecies cp),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C07002,Allontanamento dalla comunita',3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C07003,Allontanamento/fuga abitazione,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C07004,Atti vandalici,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C07005,Giochi mortali in rete-adescamento tramite web,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C07006,Cyberbullismo,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C07007,Bullismo-minore autore,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C07008,Bullismo-minore vittima,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C07009,Disagio - problemi psichici del minore,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C07010,Devianza minore,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C07011,Dipendenze patologiche minore,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C07012,Disturbo alimentare,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C07013,Tentato suicidio e autolesionismo,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C07014,Dipendenza web minore,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C08001,Dispersione scolastica femmine,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C08002,Dispersione scolastica maschile,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C08003,Istruzione parentale,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C09001,Maltrattamenti familiari - vittima,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C09002,Maltrattamenti extrafamiliari - vittima,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C09003,Maltrattamenti violenza assistita,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C09004,Maltrattamenti - minore autore,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C10001,Minore autore di reati non infraquattordicenne,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C10002,Minore autore di reati infraquattordicenne,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C10003,Reclami avverso provvedimenti giudice tutelare,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C10004,Visti giudice tutelare,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C11001,Msna prosieguo amministrativo,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C11002,Msna accertamento età,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C11003,Msna allontanamento in comunita',2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C11004,Tutele minori stranieri c/o parenti,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C11005,Msna non collocato in comunita',2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C11006,Msna vittime tratta,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C12001,Msna collocato in comunita',2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C12002,Msna collocati presso privati,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C13001,Apertura proc. amministrativo - rieducazione/irregolarita' condotta,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C13002,Prosieguo amministrativo,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C13003,Prostituzione minorile,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C14001,Sottrazione internazionale di minore (art 7 l.64/1994),3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C15001,Interdizione/inabilitazione,3,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C15002,Tutele,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C15003,Curatele,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,C16001,Segnalazione ex art. 403 cc,2,kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,ESEC_AVVISO_ASTE_VENDITA,Avviso di vendita / pubblicità della vendita esecutiva,5,kb_96_esecuzioni_forzate_logiche_legacy.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,ESEC_DISTRIBUZIONE,Distribuzione del ricavato e progetto di distribuzione,5,kb_96_esecuzioni_forzate_logiche_legacy.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,ESEC_ESTINZIONE_629,Estinzione del processo esecutivo (artt. 629-632 c.p.c.),5,kb_96_esecuzioni_forzate_logiche_legacy.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,ESEC_INTERVENTO_499,"Intervento dei creditori (artt. 498-500, 525-526, 564, 566 c.p.c.)",5,kb_96_esecuzioni_forzate_logiche_legacy.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,ESEC_OBBLIGHI_001,Esecuzione forzata degli obblighi di fare e di non fare (art. 612-614 c.p.c.),5,kb_96_esecuzioni_forzate_logiche_legacy.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,ESEC_RIDUZIONE_496,Riduzione del pignoramento (art. 496 c.p.c.),5,kb_96_esecuzioni_forzate_logiche_legacy.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,ESEC_SOSPENSIONE_624,Sospensione dell'esecuzione (art. 624 c.p.c.),5,kb_96_esecuzioni_forzate_logiche_legacy.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,LAV_CONTRATTI_FLESSIBILI,"Contratti a termine, somministrazione, apprendistato (D.Lgs. 81/2015)",4,kb_97_lavoro_previdenza_logiche_legacy.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,LAV_LIC_COLLETTIVO,Licenziamenti collettivi (L. 223/1991),4,kb_97_lavoro_previdenza_logiche_legacy.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,LAV_MOBBING_001,"Mobbing, straining, demansionamento e danni da illegittima condotta del datore",4,kb_97_lavoro_previdenza_logiche_legacy.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,LAV_PREVID_001,Prestazioni INPS - pensioni e indennità (previdenza obbligatoria),4,kb_97_lavoro_previdenza_logiche_legacy.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,LAV_PUBBLICO_IMPIEGO,Pubblico impiego privatizzato (controversie ex art. 63 D.Lgs. 165/2001),4,kb_97_lavoro_previdenza_logiche_legacy.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,LAV_QUALIFICA_001,Accertamento natura del rapporto di lavoro / rivendicazione qualifica,4,kb_97_lavoro_previdenza_logiche_legacy.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,LAV_REPRESSIONE_DISCRIM,"Repressione condotte discriminatorie (D.Lgs. 198/2006, D.Lgs. 215/2003)",4,kb_97_lavoro_previdenza_logiche_legacy.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,LAV_TENTATIVO_CONCILIAZIONE,Tentativo facoltativo/obbligatorio di conciliazione e procedura ITL,4,kb_97_lavoro_previdenza_logiche_legacy.json;kb_99_completamento_codici_ufficiali.json
+codex_curated_completion,LAV_TRASF_AZIENDA,Trasferimento d'azienda (art. 2112 c.c.),4,kb_97_lavoro_previdenza_logiche_legacy.json;kb_99_completamento_codici_ufficiali.json
+project_existing_modules,011001,Sequestro conservativo ex art. 671 c.p.c.,1,kb_01_procedimenti_speciali_cautelari.json
+project_existing_modules,014100,Reclamo alla Corte di Appello avverso Procedimenti Cautelari,1,kb_01_procedimenti_speciali_cautelari.json
+project_existing_modules,015011,Provvedimenti d'urgenza ex art. 700 c.p.c.,1,kb_01_procedimenti_speciali_cautelari.json
+project_existing_modules,030001,Intimazione di licenza o di sfratto per finita locazione (art. 657 c.p.c.) - uso abitativo,2,kb_00_sfratti.json
+project_existing_modules,100021,Opposizione agli atti esecutivi (art. 617 c.p.c.) - mobiliare,1,kb_02_opposizioni_impugnazioni.json
+project_existing_modules,101002,Revocazione della sentenza ex artt. 395 e ss. c.p.c.,2,kb_02_opposizioni_impugnazioni.json
+project_existing_modules,102002,Azione revocatoria ordinaria ex art. 2901 c.c.,1,kb_02_opposizioni_impugnazioni.json
+project_existing_modules,106002,Impugnazione di lodi nazionali (art. 828 c.p.c.),1,kb_02_opposizioni_impugnazioni.json
+project_existing_modules,110032,Impugnazione ex art. 35 D.Lgs. 25/2008 (protezione internazionale),1,kb_15_addendum_codici_aggiuntivi.json
+project_existing_modules,151112,Impugnazione delle deliberazioni dell'assemblea e del CdA,2,kb_06_societario_industriale_fallimentare.json
+project_existing_modules,171001,Opposizione alla sentenza dichiarativa di fallimento (art. 18 L.F.),1,kb_06_societario_industriale_fallimentare.json
+project_existing_modules,171201,Opposizione allo stato passivo (art. 98 L.F.),1,kb_06_societario_industriale_fallimentare.json
+project_existing_modules,180001,Opposizione all'ordinanza-ingiunzione ex artt. 22 e ss. L. 689/1981 (escluso lavoro),1,kb_06_societario_industriale_fallimentare.json
+project_existing_modules,210011,Procedimento ex art. 28 Statuto dei lavoratori - fase di opposizione,1,kb_13_lavoro_previdenza.json
+project_existing_modules,210016,Opposizione L. 92/2012 (Rito Fornero - fase di opposizione),1,kb_13_lavoro_previdenza.json
+project_existing_modules,230001,Previdenza obbligatoria - prestazione: malattia,1,kb_13_lavoro_previdenza.json
+project_existing_modules,230003,Previdenza obbligatoria - prestazione: indennità/rendita vitalizia INAIL o equivalente,1,kb_13_lavoro_previdenza.json
+project_existing_modules,231001,Assistenza obbligatoria - assegno/pensione (invalidità civile),1,kb_13_lavoro_previdenza.json
+project_existing_modules,232100,Opposizione all'ordinanza-ingiunzione ex artt. 22 e ss. L. 689/1981 in materia di lavoro e previdenza/assistenza obbligatorie,1,kb_13_lavoro_previdenza.json
+project_existing_modules,320001,Azione di condanna al rilascio del fondo per scadenza del contratto,2,kb_07_diritto_agrario.json
+project_existing_modules,406401,Equa riparazione per violazione del termine ragionevole del processo (L. 89/2001),1,kb_08_volontaria_giurisdizione_famiglia.json
+project_existing_modules,420300,Accettazione eredità con beneficio di inventario (art. 484 c.c.),3,kb_09_volontaria_giurisdizione_successioni.json
+project_existing_modules,510001,Espropriazione mobiliare presso il debitore (post L. 80/2005),3,kb_12_esecuzioni_forzate.json
+project_existing_modules,511012,Esecuzione ex artt. 605-611 c.p.c. (consegna o rilascio),1,kb_12_esecuzioni_forzate.json
+project_existing_modules,610001,Espropriazione immobiliare (post L. 80/2005),4,kb_12_esecuzioni_forzate.json
+project_existing_modules,ESEC_CONSEGNA_001,Esecuzione per consegna o rilascio (art. 605-611 c.p.c.),1,kb_96_esecuzioni_forzate_logiche_legacy.json
+project_existing_modules,ESEC_IMM_001,Pignoramento immobiliare,4,kb_96_esecuzioni_forzate_logiche_legacy.json
+project_existing_modules,ESEC_MOB_001,Pignoramento mobiliare presso il debitore,3,kb_96_esecuzioni_forzate_logiche_legacy.json
+project_existing_modules,ESEC_TERZI_001,Pignoramento presso terzi,2,kb_96_esecuzioni_forzate_logiche_legacy.json
+project_existing_modules,LAV_INVCIV_001,"Invalidità civile, cecità, sordità - prestazioni assistenziali (L. 118/1971, L. 18/1980)",1,kb_97_lavoro_previdenza_logiche_legacy.json
+project_existing_modules,LAV_LIC_001,Impugnazione di licenziamento individuale (art. 18 St.Lav. / Jobs Act),2,kb_97_lavoro_previdenza_logiche_legacy.json
+project_existing_modules,LAV_SCIOPERO_ART28,Repressione condotta antisindacale (art. 28 L. 300/1970),1,kb_97_lavoro_previdenza_logiche_legacy.json
+user_curated_material,010001,Procedimento di ingiunzione ante causam,9,kb_01_procedimenti_speciali_cautelari.json;kb_98_top9_codici_frequenti_dettaglio_massimo.json
+user_curated_material,100001,Opposizione a precetto (art. 615 c. 1 c.p.c.),4,kb_02_opposizioni_impugnazioni.json;kb_98_top9_codici_frequenti_dettaglio_massimo.json
+user_curated_material,100002,Opposizione a decreto ingiuntivo (art. 645 c.p.c.),6,kb_98_top9_set2_parte1.json
+user_curated_material,100011,Opposizione all'esecuzione ex art. 615 c. 2 c.p.c. (dopo l'inizio dell'esecuzione),3,kb_02_opposizioni_impugnazioni.json;kb_98_top9_set3_parte2.json
+user_curated_material,101001,Revocazione ordinaria della sentenza (art. 395 c.p.c.),5,kb_02_opposizioni_impugnazioni.json;kb_98_top9_set4_parte1.json
+user_curated_material,111002,Separazione giudiziale,6,kb_03_persone_famiglia_minori.json;kb_98_top9_codici_frequenti_dettaglio_massimo.json
+user_curated_material,111006,Affidamento e mantenimento dei figli nati fuori dal matrimonio,4,kb_98_top9_set3_parte1.json
+user_curated_material,120010,Petizione di eredità (art. 533 c.c.),5,kb_98_top9_set4_parte1.json
+user_curated_material,120030,Azione di riduzione per lesione della quota di legittima,6,kb_98_top9_set3_parte1.json
+user_curated_material,121003,Divisione di comunione ereditaria (divisione giudiziale),8,kb_98_top9_set2_parte2.json
+user_curated_material,130001,Azione di rivendicazione (immobiliare),5,kb_04_successioni_diritti_reali.json;kb_98_top9_set3_parte1.json
+user_curated_material,130033,Accertamento dell'acquisto della proprietà per usucapione,7,kb_98_top9_set3_parte1.json
+user_curated_material,130041,Costituzione di servitù coattiva (passaggio coattivo ex art. 1051 c.c. e altre servitù coattive),5,kb_04_successioni_diritti_reali.json;kb_98_top9_set4_parte1.json
+user_curated_material,130051,Comunione e Condominio - impugnazione di delibera assembleare e spese condominiali,5,kb_04_successioni_diritti_reali.json;kb_98_top9_codici_frequenti_dettaglio_massimo.json
+user_curated_material,143001,Responsabilità professionale dell'avvocato,4,kb_98_top9_set4_parte1.json
+user_curated_material,143002,Responsabilità professionale del personale sanitario e della struttura sanitaria (Legge Gelli-Bianco),7,kb_98_top9_set2_parte1.json
+user_curated_material,144021,Risoluzione del contratto di locazione per inadempimento - uso abitativo,5,kb_05_contratti_responsabilita_locazioni.json;kb_98_top9_codici_frequenti_dettaglio_massimo.json
+user_curated_material,145002,Risarcimento del danno - lesione personale (responsabilità extracontrattuale),6,kb_05_contratti_responsabilita_locazioni.json;kb_98_top9_codici_frequenti_dettaglio_massimo.json
+user_curated_material,170006,Concorrenza sleale (art. 2598 c.c.),4,kb_98_top9_set3_parte2.json
+user_curated_material,220100,Licenziamento individuale per giustificato motivo soggettivo,8,kb_13_lavoro_previdenza.json;kb_98_top9_codici_frequenti_dettaglio_massimo.json
+user_curated_material,220101,Licenziamento individuale per giustificato motivo oggettivo (gmo),4,kb_13_lavoro_previdenza.json;kb_98_top9_set2_parte2.json
+user_curated_material,413061,Apertura amministrazione di sostegno,5,kb_08_volontaria_giurisdizione_famiglia.json;kb_98_top9_codici_frequenti_dettaglio_massimo.json
+user_curated_material,413071,Apertura della tutela ordinaria (interdizione di maggiorenne),5,kb_98_top9_set2_parte1.json
+user_curated_material,510002,Espropriazione mobiliare presso terzi (post L. 80/2005),8,kb_12_esecuzioni_forzate.json;kb_98_top9_codici_frequenti_dettaglio_massimo.json
+user_curated_material,GUIDA_COMPRAVENDITA_IMMOBILIARE_RISOLUZIONE,Risoluzione del contratto di compravendita immobiliare per inadempimento,8,kb_98_top9_set2_parte2.json
+user_curated_material,GUIDA_TUTELA_MINORI_ORDINARIA,"Apertura della tutela ordinaria - minori (per genitori deceduti, decaduti o impossibilitati)",5,kb_98_top9_set2_parte2.json

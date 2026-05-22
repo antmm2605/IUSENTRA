@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Flusso reale - Fascicoli</title>
+    <link rel="stylesheet" href="flow.css" />
+  </head>
+  <body>
+    <main class="app">
+      <aside class="sidebar">
+        <div class="brand">IUSENTRA</div>
+        <nav class="nav">
+          <a>Panoramica</a>
+          <a class="active">Fascicoli</a>
+          <a>Clienti</a>
+          <a>Documenti</a>
+          <a>Redazione atti</a>
+        </nav>
+      </aside>
+      <section class="content">
+        <header class="hero">
+          <div>
+            <div class="eyebrow">Pagina esistente</div>
+            <h1>Fascicoli</h1>
+            <p>Si parte dalla pagina già presente. Da qui l'avvocato apre un fascicolo esistente oppure crea un nuovo fascicolo.</p>
+          </div>
+          <div class="actions">
+            <a class="btn">Archivio</a>
+            <a class="btn primary" href="02-nuovo-fascicolo.html">Nuovo fascicolo</a>
+          </div>
+        </header>
+
+        <section class="grid-2">
+          <div class="panel">
+            <div class="panel-head"><strong>Elenco fascicoli</strong><span class="badge">pagina esistente</span></div>
+            <div class="panel-body">
+              <table class="table">
+                <thead><tr><th>Fascicolo</th><th>Cliente</th><th>Ufficio</th><th>Stato</th><th>Azione</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Opposizione a sanzione amministrativa</strong><small>Fascicolo 24/2026</small></td>
+                    <td>Crocitti Giovanni</td>
+                    <td>Giudice di Pace di Palmi</td>
+                    <td><span class="badge gold">istruttoria</span></td>
+                    <td><a class="btn" href="03-fascicolo-aperto.html">Apri</a></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Vendita di cose immobili</strong><small>Fascicolo 18/2026</small></td>
+                    <td>Da collegare</td>
+                    <td>Tribunale da confermare</td>
+                    <td><span class="badge">bozza</span></td>
+                    <td><a class="btn" href="03-fascicolo-aperto.html">Apri</a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <aside class="panel">
+            <div class="panel-head"><strong>Cosa cambia</strong></div>
+            <div class="panel-body">
+              <div class="task done"><div class="task-title">Nessuna nuova pagina</div><p>La lista fascicoli resta quella esistente.</p></div>
+              <div class="task"><div class="task-title">Guida dopo il fascicolo</div><p>La Guida Pratica entra solo quando il fascicolo è aperto o definito.</p></div>
+            </div>
+          </aside>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

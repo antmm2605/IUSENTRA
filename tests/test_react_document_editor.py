@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 from pathlib import Path
 
 from pct.fascicoli import TipoDocumento, TipoFascicolo
@@ -98,6 +99,9 @@ def test_editor_documento_payload_react_usa_dati_reali(tmp_path: Path):
     assert payload["document"]["editable"] is True
     assert payload["endpoints"]["loadHtml"] == f"/api/editor/{fascicolo.id}/{documento.id}/html"
     assert payload["endpoints"]["save"] == f"/api/editor/{fascicolo.id}/{documento.id}/salva"
+    assert payload["endpoints"]["importFile"] == f"/api/editor/{fascicolo.id}/{documento.id}/importa"
+    assert ".docx" in payload["capabilities"]["formats"]
+    assert ".pdf" in payload["capabilities"]["formats"]
     assert payload["editorAI"]["enabled"] is True
     assert payload["editorAI"]["bootstrap"] == f"/api/v1/ui/fascicoli/{fascicolo.id}/editor-ai/bootstrap"
     assert payload["editorAI"]["generate"] == f"/api/v1/ui/fascicoli/{fascicolo.id}/editor-ai/genera"
@@ -119,6 +123,33 @@ def test_editor_documento_payload_pdf_usa_anteprima_nativa(tmp_path: Path):
     assert "anteprima nativa" in payload["document"]["lockedReason"]
     assert payload["document"]["actions"]["preview"] == f"/fascicoli/{fascicolo.id}/documenti/{documento.id}/visualizza"
     assert any("Anteprima PDF nativa" in warning for warning in payload["warnings"])
+
+
+def test_editor_documento_importa_pdf_word_versiona_documento(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicolo, documento = _seed_documento_editabile(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            f"/api/editor/{fascicolo.id}/{documento.id}/importa",
+            data={"documento": (io.BytesIO(b"documento word importato"), "ricorso_importato.docx")},
+            content_type="multipart/form-data",
+        )
+
+    payload = response.get_json()
+    with app.test_request_context("/"):
+        fascicoli = get_fascicoli()
+        updated = fascicoli.get(fascicolo.id)
+        updated_doc = next(doc for doc in updated.documenti if doc.id == documento.id)
+
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["documento"]["nome"] == "ricorso_importato.docx"
+    assert payload["documento"]["editable"] is True
+    assert updated_doc.nome == "ricorso_importato.docx"
+    assert updated_doc.versioni
 
 
 def test_editor_documento_react_contract_statico():
@@ -147,7 +178,9 @@ def test_editor_documento_react_contract_statico():
     assert "Payload reale" not in page_source
     assert "https://esm.sh" not in page_source
     assert "editorAI" in data_source
+    assert "importFile" in data_source
     assert "/api/v1/ui/fascicoli/${encodeURIComponent(idFascicolo)}/documenti/${encodeURIComponent(idDocumento)}/editor" in data_source
     assert "build_react_document_editor_payload" in bridge_source
     assert "editorAI" in bridge_source
+    assert "/importa" in bridge_source
     assert 'render_react_shell_response(f"fascicoli/{id_fasc}/documenti/{id_doc}/editor")' in route_source

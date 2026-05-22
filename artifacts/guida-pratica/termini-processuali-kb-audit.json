@@ -1,0 +1,56 @@
+{
+  "generated_at": "2026-05-22T12:15:57Z",
+  "sources_scanned": [
+    "pct\\data\\legal_knowledge_base.full.json",
+    "pct\\data\\legal_knowledge_base.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_00_sfratti.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_01_procedimenti_speciali_cautelari.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_02_opposizioni_impugnazioni.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_03_persone_famiglia_minori.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_04_successioni_diritti_reali.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_05_contratti_responsabilita_locazioni.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_06_societario_industriale_fallimentare.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_07_diritto_agrario.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_08_volontaria_giurisdizione_famiglia.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_09_volontaria_giurisdizione_successioni.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_10_volontaria_giurisdizione_societaria.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_11_volontaria_giurisdizione_fallimentare.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_12_esecuzioni_forzate.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_13_lavoro_previdenza.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_14_sezione_specializzata_impresa.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_15_addendum_codici_aggiuntivi.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_96_esecuzioni_forzate_logiche_legacy.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_97_lavoro_previdenza_logiche_legacy.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_codici_frequenti_dettaglio_massimo.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set2_parte1.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set2_parte2.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_99_completamento_codici_ufficiali.json",
+    "pct\\data\\legal_knowledge_base_modules\\kb_index.json",
+    "C:\\Users\\antmm\\Downloads\\kb_top9_set2_parte1.json",
+    "C:\\Users\\antmm\\AppData\\Local\\Temp\\kb_top9_set2_parte2.json"
+  ],
+  "records": 2045,
+  "by_phase": {
+    "notifica": 1752,
+    "impugnazione": 87,
+    "generico_da_classificare": 71,
+    "prescrizione_decadenza": 50,
+    "deposito": 42,
+    "costituzione": 29,
+    "procedimentale": 6,
+    "udienza": 5,
+    "adempimento_amministrativo": 3
+  },
+  "by_classification": {
+    "manual_review": 1678,
+    "calcolabile_giorni": 318,
+    "informativo_non_calcolabile": 31,
+    "termine_lungo_o_prescrizione": 15,
+    "calcolabile_anni_da_convertire": 3
+  },
+  "by_target": {
+    "legal_procedure_deadlines": 1724,
+    "deadline_templates+legal_procedure_deadlines": 321
+  },
+  "csv": "D:\\legale\\IUSENTRA\\artifacts\\guida-pratica\\termini-processuali-kb-audit.csv"
+}

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
 
@@ -28,8 +28,8 @@ def test_guida_pratica_api_catalogo_codice_e_checklist(tmp_path: Path):
     alias_payload = checklist_alias.get_json()
 
     assert catalogo.status_code == 200
-    assert catalogo_payload["summary"]["catalogoSize"] == 1054
-    assert catalogo_payload["summary"]["coverage"]["curata"] == 1054
+    assert catalogo_payload["summary"]["catalogoSize"] >= 1058
+    assert catalogo_payload["summary"]["coverage"]["curata"] == catalogo_payload["summary"]["catalogoSize"]
     assert codice.status_code == 200
     assert codice_payload["guida"]["coverage"]["level"] == "curata"
     assert codice_payload["guida"]["codice_deposito"]["depositabile"] is True
@@ -51,9 +51,24 @@ def test_guida_pratica_api_agganciata_al_fascicolo(tmp_path: Path):
     fascicolo = fascicoli.nuovo(
         "Ricorso monitorio",
         TipoFascicolo.CIVILE,
+        nome_cliente="Cliente Studio",
+        controparte="Controparte Test",
+        tribunale="Tribunale di Palmi",
+        valore_causa=25000,
+        valore_preventivato=1200,
+        compenso_pattuito=1500,
+        data_prossima_udienza="2026-06-15",
+        note="Nota operativa del fascicolo",
         codice_oggetto_pst="010001",
         fonte_codice_oggetto="PST_XSD",
         file_fonte_codice_oggetto="tipi-base.xsd",
+    )
+    fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "procura alle liti.pdf",
+        TipoDocumento.PROCURA,
+        b"%PDF-1.4\n% procura\n%%EOF",
+        note="Procura caricata",
     )
 
     with app.test_client() as client:
@@ -64,10 +79,20 @@ def test_guida_pratica_api_agganciata_al_fascicolo(tmp_path: Path):
     assert response.status_code == 200
     assert payload["ok"] is True
     assert payload["fascicolo"]["codice_oggetto_pst"] == "010001"
+    assert payload["fascicolo"]["cliente"] == "Cliente Studio"
+    assert payload["fascicolo"]["preventivo"]["presente"] is True
+    assert payload["fascicolo"]["conferimento_incarico"]["presente"] is True
+    assert payload["fascicolo"]["procura_delega"]["presente"] is True
+    assert payload["fascicolo"]["documenti_count"] == 1
+    assert payload["fascicolo"]["scadenze"][0]["tipo"] == "prossima_udienza"
     assert payload["guida"]["codice"] == "010001"
     assert payload["guida"]["coverage"]["level"] == "curata"
     assert payload["guida"]["codice_deposito"]["depositabile"] is True
     assert payload["checklist"]["codice_deposito"]["depositabile"] is True
+    assert payload["bloccaLavoro"] is False
+    assert payload["documentPlan"]["enabled"] is True
+    assert payload["documentPlan"]["import"]["enabled"] is True
+    assert "Word" in payload["documentPlan"]["import"]["formats"]
 
 
 def test_guida_pratica_api_fascicolo_react_legge_stesso_fascicolo_json_legacy(tmp_path: Path):
@@ -132,8 +157,16 @@ def test_guida_pratica_api_fascicolo_senza_codice_propone_scheda_facoltativa_da_
     assert payload["guida"]["coverage"]["level"] == "curata"
     assert payload["matchedFromFascicolo"]["confirmation_required"] is True
     assert "deposito" not in payload["message"].casefold()
+    assert "Scheda pratica suggerita dall'oggetto del fascicolo" not in payload["message"]
+    assert "Scheda pratica individuata dall'oggetto del fascicolo" not in payload["message"]
+    assert "Guida pratica facoltativa suggerita" in payload["message"]
     assert payload["checklist"]["blocca_lavoro"] is False
     assert not any(blocker.get("type") == "codice_oggetto_da_confermare" for blocker in payload["checklist"]["blockers"])
+
+    ui_source = Path("frontend/src/components/GuidaPraticaSidebar.tsx").read_text(encoding="utf-8")
+    assert "Scheda pratica suggerita dall'oggetto del fascicolo" not in ui_source
+    assert "Scheda pratica individuata dall'oggetto del fascicolo" not in ui_source
+    assert "'Ora'" in ui_source
 
 
 def test_guida_pratica_api_fascicolo_senza_codice_resta_facoltativa_e_non_blocca(tmp_path: Path):

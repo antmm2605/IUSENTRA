@@ -66,6 +66,12 @@ def _clean(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
 
 
+def _display(value: Any) -> str:
+    if isinstance(value, bool):
+        return "sì" if value else "no"
+    return _clean(value)
+
+
 def _as_dict(value: Any) -> dict[str, Any]:
     return dict(value or {}) if isinstance(value, dict) else {}
 
@@ -203,11 +209,11 @@ def _item_to_text(value: Any) -> str:
             value.get("descrizione"),
             value.get("note"),
         ]
-        text = " - ".join(_clean(part) for part in parts if _clean(part))
+        text = " - ".join(_display(part) for part in parts if _display(part))
         if not text and value:
-            text = ", ".join(f"{key}: {_clean(item)}" for key, item in value.items() if _clean(item))
+            text = ", ".join(f"{key}: {_display(item)}" for key, item in value.items() if _display(item))
         return text
-    return _clean(value)
+    return _display(value)
 
 
 def _section(label: str, values: Any, *, limit: int = 24) -> str:
@@ -216,6 +222,8 @@ def _section(label: str, values: Any, *, limit: int = 24) -> str:
         for key, value in values.items():
             if isinstance(value, list):
                 flat.extend(value)
+            elif isinstance(value, bool):
+                flat.append({key: value})
             elif _clean(value):
                 flat.append({key: value})
         values = flat
@@ -239,7 +247,50 @@ def _quick_line(guidance: dict[str, Any]) -> str:
     return "; ".join(part for part in parts if part)
 
 
-def _guidance_content(guidance: dict[str, Any], *, matched_by: str) -> str:
+def _fascicolo_content(fascicolo: dict[str, Any]) -> str:
+    if not fascicolo:
+        return ""
+    parts = [
+        f"cliente: {_clean(fascicolo.get('cliente') or fascicolo.get('client'))}" if _clean(fascicolo.get("cliente") or fascicolo.get("client")) else "",
+        f"ufficio: {_clean(fascicolo.get('ufficio') or fascicolo.get('tribunale'))}" if _clean(fascicolo.get("ufficio") or fascicolo.get("tribunale")) else "",
+        f"oggetto pratica: {_clean(fascicolo.get('oggetto') or fascicolo.get('object') or fascicolo.get('titolo'))}" if _clean(fascicolo.get("oggetto") or fascicolo.get("object") or fascicolo.get("titolo")) else "",
+        f"codice ufficiale fascicolo: {_clean(fascicolo.get('codice_oggetto_pst') or fascicolo.get('codiceOggettoPst'))}" if _clean(fascicolo.get("codice_oggetto_pst") or fascicolo.get("codiceOggettoPst")) else "",
+        f"documenti presenti: {fascicolo.get('documenti_count')}" if fascicolo.get("documenti_count") is not None else "",
+        f"attività o scadenze presenti: {fascicolo.get('attivita_count')}" if fascicolo.get("attivita_count") is not None else "",
+    ]
+    return "Contesto fascicolo letto dalla guida: " + "; ".join(part for part in parts if part) + "." if any(parts) else ""
+
+
+def _document_plan_content(document_plan: dict[str, Any]) -> str:
+    if not document_plan:
+        return ""
+    template = _as_dict(document_plan.get("template"))
+    recommended = _as_dict(template.get("recommended"))
+    parts = [
+        f"documento suggerito: {_clean(document_plan.get('documentoSuggerito'))}" if _clean(document_plan.get("documentoSuggerito")) else "",
+        f"template filtrato: {_clean(recommended.get('title'))}" if _clean(recommended.get("title")) else "",
+        f"stato template: {_clean(template.get('status'))}" if _clean(template.get("status")) else "",
+        "import PDF/Word disponibile" if _as_dict(document_plan.get("import")).get("enabled") else "",
+    ]
+    return "Piano documento della guida: " + "; ".join(part for part in parts if part) + "." if any(parts) else ""
+
+
+def _document_plan_for(guidance: dict[str, Any], fascicolo: dict[str, Any]) -> dict[str, Any]:
+    try:
+        from web.services.react_guida_pratica_bridge import build_document_plan_for_guida
+
+        return build_document_plan_for_guida(guidance, fascicolo)
+    except Exception:
+        return {}
+
+
+def _guidance_content(
+    guidance: dict[str, Any],
+    *,
+    matched_by: str,
+    fascicolo: dict[str, Any] | None = None,
+    document_plan: dict[str, Any] | None = None,
+) -> str:
     atto = _as_dict(guidance.get("atto_principale"))
     deposito = _as_dict(guidance.get("codice_deposito"))
     coverage = _as_dict(guidance.get("coverage"))
@@ -254,14 +305,21 @@ def _guidance_content(guidance: dict[str, Any], *, matched_by: str) -> str:
         f"Uffici destinatari: {', '.join(_clean(item) for item in _as_list(guidance.get('uffici_destinatari')) if _clean(item))}." if _as_list(guidance.get("uffici_destinatari")) else "",
         "Codice deposito: ufficiale PST/XSD caricato." if deposito.get("depositabile") else "Codice deposito: guida interna non depositabile; per il deposito selezionare il codice ministeriale ufficiale nella scheda fascicolo.",
         f"Copertura: {_clean(coverage.get('level'))} - {_clean(coverage.get('message'))}." if coverage else "",
+        _fascicolo_content(fascicolo or {}),
+        _document_plan_content(document_plan or {}),
         _quick_line(guidance),
         _section("Normativa letta dalla scheda", guidance.get("normativa"), limit=28),
+        _section("Tipologie di intervento", guidance.get("tipologie_di_intervento"), limit=18),
         _section("Presupposti sostanziali", guidance.get("presupposti_sostanziali") or guidance.get("presupposti_sostanziali_gmo"), limit=24),
+        _section("Legittimati attivi", guidance.get("legittimati_attivi"), limit=18),
+        _section("Obbligo mediazione o negoziazione", guidance.get("obbligo_mediazione") or guidance.get("obbligo_mediazione_o_negoziazione_assistita"), limit=18),
+        _section("Richiesta provvedimenti urgenti", guidance.get("richiesta_provvedimenti_urgenti"), limit=18),
         _section("Adempimenti propedeutici", guidance.get("adempimenti_propedeutici"), limit=24),
         f"Atto principale: {_clean(atto.get('denominazione') or atto.get('tipo_atto'))}." if atto else "",
         f"Schema XSD indicato: {_clean(atto.get('schema_xsd_ministeriale'))}." if _clean(atto.get("schema_xsd_ministeriale")) else "",
         _section("Struttura obbligatoria dell'atto", atto.get("struttura_obbligatoria"), limit=24),
         _section("Campi obbligatori o chiave", atto.get("campi_obbligatori") or atto.get("campi_chiave") or atto.get("campi_specifici"), limit=28),
+        _section("Avvertimenti obbligatori della guida", guidance.get("avvertimenti_obbligatori"), limit=20),
         _section("Avvertimenti redazionali obbligatori", atto.get("avvertimenti_obbligatori"), limit=24),
         _section("Allegati obbligatori", guidance.get("allegati_obbligatori"), limit=28),
         _section("Adempimenti fiscali e telematici", guidance.get("adempimenti_fiscali_telematici") or guidance.get("adempimenti_fiscali"), limit=20),
@@ -296,6 +354,12 @@ def _compact_metadata(guidance: dict[str, Any]) -> dict[str, Any]:
         "deposit_code_message": _clean(deposito.get("messaggio")),
         "schema_xsd": _clean(atto.get("schema_xsd_ministeriale")),
         "atto_principale": _clean(atto.get("denominazione") or atto.get("tipo_atto")),
+        "tipologie_intervento_count": len(_as_list(guidance.get("tipologie_di_intervento"))),
+        "legittimati_attivi_count": len(_as_list(guidance.get("legittimati_attivi"))),
+        "has_obbligo_mediazione": bool(guidance.get("obbligo_mediazione") or guidance.get("obbligo_mediazione_o_negoziazione_assistita")),
+        "has_richiesta_provvedimenti_urgenti": bool(guidance.get("richiesta_provvedimenti_urgenti")),
+        "avvertimenti_obbligatori_count": len(_as_list(guidance.get("avvertimenti_obbligatori"))),
+        "esiti_processuali_tipici_count": len(_as_list(guidance.get("esiti_processuali_tipici"))),
         "codice_originale_ricevuto": _clean(guidance.get("codice_originale_ricevuto")),
         "codici_ufficiali_correlati_da_valutare": [
             _clean(item) for item in _as_list(guidance.get("codici_ufficiali_correlati_da_valutare")) if _clean(item)
@@ -377,6 +441,7 @@ class GuidaPraticaSource:
             return
         deposito = _as_dict(guidance.get("codice_deposito"))
         metadata = _compact_metadata(guidance)
+        document_plan = _document_plan_for(guidance, fascicolo)
         metadata.update(extra_metadata or {})
         metadata["authority"] = "iusentra_guida_pratica"
         metadata["matched_by"] = matched_by
@@ -384,12 +449,13 @@ class GuidaPraticaSource:
         metadata["source_category"] = "knowledge_base_interna"
         metadata["source_access_status"] = "available"
         metadata["guidance_payload"] = guidance
+        metadata["document_plan"] = document_plan
         results.append(
             EvidenceItem(
                 source_type="guida_pratica",
                 source_id=normalized,
                 title=f"Guida pratica - {_clean(guidance.get('denominazione')) or normalized}",
-                content=_guidance_content(guidance, matched_by=matched_by),
+                content=_guidance_content(guidance, matched_by=matched_by, fascicolo=fascicolo, document_plan=document_plan),
                 score=0.94 if deposito.get("depositabile") else 0.88,
                 metadata=metadata,
                 trust_class="B",

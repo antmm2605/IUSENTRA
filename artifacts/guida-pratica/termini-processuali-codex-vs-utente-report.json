@@ -1,0 +1,17 @@
+{
+  "codex_curated_completion": {
+    "codes_with_terms": 839,
+    "term_entries": 2670,
+    "note": "Schede prodotte/curate da Codex nel modulo di completamento, con fonti ufficiali e profili rito/materia."
+  },
+  "user_curated_material": {
+    "codes_with_terms": 26,
+    "term_entries": 147,
+    "note": "Materiale consegnato dall'utente e integrato senza semplificazione."
+  },
+  "project_existing_modules": {
+    "codes_with_terms": 32,
+    "term_entries": 50,
+    "note": "Moduli già presenti nel progetto, diversi dai top set utente e dal completamento Codex."
+  }
+}

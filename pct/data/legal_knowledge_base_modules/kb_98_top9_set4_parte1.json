@@ -1,0 +1,941 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET4_PARTE1",
+  "denominazione": "Quarto set di 9 codici - PARTE 1 di 2 (revocazione 395, petizione eredità, servitù coattiva, risoluzione appalto, responsabilità avvocato)",
+  "registri": ["SICID"],
+  "data_generazione": "2026-05-22",
+  "scopo": "Parte 1 del quarto set TOP9. Codici differenti dai 27 già forniti (9 sfratti + set1 + set2 + set3)",
+  "codici_materia": [
+    {
+      "codice": "101001",
+      "denominazione": "Revocazione ordinaria della sentenza (art. 395 c.p.c.)",
+      "categoria": "Impugnazioni straordinarie",
+      "sottocategoria": "Revocazione per motivi straordinari delle sentenze passate in giudicato o non più impugnabili",
+      "rito": "Rito ordinario di cognizione davanti al giudice che ha emesso la sentenza impugnata",
+      "competenza": "STESSO GIUDICE che ha emesso la sentenza revocanda (Tribunale, Corte d'Appello, Cassazione - quest'ultima solo per casi tassativi ex art. 391-bis e ter)",
+      "uffici_destinatari": ["SICID"],
+      "normativa": [
+        {"fonte": "c.p.c.", "articolo": "395", "descrizione": "Motivi della revocazione (dolo, false prove, scoperta documenti decisivi, errore di fatto, dolo del giudice, contrarietà ad altra sentenza)"},
+        {"fonte": "c.p.c.", "articolo": "396", "descrizione": "Sentenze impugnabili - giudicato non preclude revocazione straordinaria"},
+        {"fonte": "c.p.c.", "articolo": "397", "descrizione": "Revocazione del PM"},
+        {"fonte": "c.p.c.", "articolo": "398", "descrizione": "Forma della domanda - citazione"},
+        {"fonte": "c.p.c.", "articolo": "399", "descrizione": "Procedimento"},
+        {"fonte": "c.p.c.", "articolo": "400", "descrizione": "Decisione"},
+        {"fonte": "c.p.c.", "articolo": "401", "descrizione": "Sospensione esecuzione"},
+        {"fonte": "c.p.c.", "articolo": "402", "descrizione": "Pluralità di pronunzie"},
+        {"fonte": "c.p.c.", "articolo": "403", "descrizione": "Esecuzione della sentenza di revocazione"},
+        {"fonte": "c.p.c.", "articolo": "326", "descrizione": "Termini per la revocazione - 30 gg dalla scoperta o dal passaggio in giudicato"},
+        {"fonte": "c.p.c.", "articolo": "327", "descrizione": "Termine lungo - 6 mesi dalla pubblicazione"},
+        {"fonte": "c.p.c.", "articolo": "391-bis", "descrizione": "Revocazione contro le sentenze di Cassazione per errore di fatto"},
+        {"fonte": "c.p.c.", "articolo": "391-ter", "descrizione": "Revocazione contro le sentenze di Cassazione che sono state pronunciate in violazione della Convenzione EDU"}
+      ],
+      "motivi_revocazione_art_395": [
+        "N. 1: SENTENZA EFFETTO DEL DOLO DI UNA DELLE PARTI a danno dell'altra (revocazione straordinaria - dolo processuale del vincitore)",
+        "N. 2: GIUDIZIO basato su PROVE RICONOSCIUTE O DICHIARATE FALSE DOPO LA SENTENZA oppure di cui la parte ignorava la falsità (revocazione straordinaria)",
+        "N. 3: DOPO LA SENTENZA si è trovato uno o più DOCUMENTI DECISIVI che la parte non aveva potuto produrre per forza maggiore o per fatto dell'avversario (revocazione straordinaria)",
+        "N. 4: ERRORE DI FATTO RISULTANTE DAGLI ATTI O DOCUMENTI di causa (la sentenza ha supposto un fatto la cui verità è incontrastabilmente esclusa, o ha negato un fatto la cui verità è positivamente stabilita) - revocazione ordinaria",
+        "N. 5: SENTENZA CONTRARIA AD ALTRA PRECEDENTE avente fra le parti autorità di cosa giudicata (revocazione ordinaria)",
+        "N. 6: SENTENZA EFFETTO DEL DOLO DEL GIUDICE accertato con sentenza passata in giudicato (revocazione straordinaria)"
+      ],
+      "distinzione_ordinaria_straordinaria": {
+        "ordinaria_n_4_5": "Termine ex art. 325 c.p.c. (30 gg dalla notificazione) o ex art. 327 (6 mesi dalla pubblicazione) - in pendenza dell'ordinaria impugnabilità",
+        "straordinaria_n_1_2_3_6": "Termine 30 gg dalla SCOPERTA del fatto giustificante - può essere proposta anche dopo il passaggio in giudicato"
+      },
+      "presupposti_sostanziali": [
+        "ESISTENZA DI SENTENZA pronunciata in giudizio civile (anche di volontaria giurisdizione in alcuni casi)",
+        "Sentenza NON PIÙ IMPUGNABILE con i mezzi ordinari (passata in giudicato) OPPURE pendenza di termini",
+        "Uno dei MOTIVI ex art. 395 c.p.c.",
+        "Per revocazione straordinaria: PROVA RIGOROSA della scoperta del motivo + tempestività dei 30 gg dalla scoperta",
+        "INTERESSE AD AGIRE - la revocazione deve poter cambiare l'esito"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": "Solo se il rapporto sostanziale sottostante rientra in materie ex art. 5 c. 1-bis D.Lgs. 28/2010",
+        "valutazione_caso_per_caso": true
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione completa della SENTENZA REVOCANDA e degli atti del giudizio",
+          "documenti": ["Sentenza con attestazione passaggio in giudicato (o termini pendenti)", "Atti del fascicolo del giudizio originario", "Eventuali atti di impugnazione precedenti"]
+        },
+        {
+          "step": 2,
+          "descrizione": "IDENTIFICAZIONE PRECISA DEL MOTIVO ex art. 395 c.p.c.",
+          "verifica_critica": [
+            "N. 1 (dolo parte): prove del dolo processuale del vincitore - condotta fraudolenta diretta a fuorviare il giudice",
+            "N. 2 (false prove): sentenza penale di falso, accertamento giudiziale falsità, riconoscimento del falsificatore",
+            "N. 3 (documenti scoperti): documenti DECISIVI (idonei a invertire l'esito) + impossibilità non imputabile alla parte (forza maggiore o fatto dell'avversario)",
+            "N. 4 (errore di fatto): errore PERCETTIVO del giudice (svista materiale) - NON errore di valutazione/interpretazione",
+            "N. 5 (sentenze contrarie): due sentenze definitive contrarie tra stesse parti",
+            "N. 6 (dolo giudice): sentenza penale di condanna del giudice"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "VERIFICA TERMINI",
+          "calcolo": {
+            "revocazione_ordinaria_4_5": "30 gg dalla notificazione sentenza OR 6 mesi dalla pubblicazione",
+            "revocazione_straordinaria_1_2_3_6": "30 gg dalla SCOPERTA del fatto giustificante (data certa)"
+          },
+          "criticita": "MASSIMA - decadenza preclude azione"
+        },
+        {
+          "step": 4,
+          "descrizione": "RACCOLTA PROVE del motivo di revocazione",
+          "esempi": [
+            "Per dolo: lettere, mail, dichiarazioni che provano la condotta fraudolenta",
+            "Per false prove: sentenza penale o atto pubblico che accerta falsità",
+            "Per documenti scoperti: i documenti stessi + prova dell'impossibilità di averli prima",
+            "Per errore di fatto: confronto tra quanto risulta dagli atti e quanto stabilito in sentenza"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "Valutazione richiesta SOSPENSIONE ESECUZIONE sentenza ex art. 401 c.p.c.",
+          "presupposti": "Gravi motivi e pericolo grave/irreparabile"
+        },
+        {
+          "step": 6,
+          "descrizione": "Predisposizione CITAZIONE",
+          "forma": "Atto di citazione - art. 398 c.p.c."
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_revocazione_395",
+        "denominazione": "Atto di citazione per revocazione ex art. 395 c.p.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {"id": "tribunale", "label": "Giudice che ha emesso la sentenza revocanda", "type": "select", "required": true},
+          {"id": "revocante_attore", "label": "Revocante (attore - parte soccombente)", "type": "object_persona", "required": true},
+          {"id": "revocato_convenuto", "label": "Revocato (controparte vincitrice)", "type": "object_persona", "required": true},
+          {"id": "altre_parti_giudizio_originario", "label": "Altre parti del giudizio originario (litisconsorti)", "type": "array_persone"},
+          {"id": "sentenza_revocanda", "label": "Sentenza revocanda", "type": "object", "required": true, "sub_fields": [
+            {"id": "tribunale_emittente", "type": "string"},
+            {"id": "numero_sentenza", "type": "string"},
+            {"id": "data_pubblicazione", "type": "date"},
+            {"id": "data_notificazione_attore", "type": "date"},
+            {"id": "passaggio_in_giudicato", "type": "boolean"},
+            {"id": "data_passaggio_giudicato", "type": "date"},
+            {"id": "oggetto_del_giudizio", "type": "textarea"},
+            {"id": "dispositivo_sintesi", "type": "textarea"}
+          ]},
+          {"id": "motivo_revocazione", "label": "Motivo di revocazione ex art. 395", "type": "select", "required": true, "options": ["n_1_dolo_della_parte", "n_2_prove_false", "n_3_documenti_decisivi_ritrovati", "n_4_errore_di_fatto", "n_5_contrarieta_altra_sentenza_giudicato", "n_6_dolo_del_giudice"]},
+          {"id": "natura_revocazione", "label": "Natura revocazione", "type": "select", "required": true, "options": ["ordinaria_motivi_n_4_5", "straordinaria_motivi_n_1_2_3_6"]},
+          {"id": "data_scoperta_fatto_giustificante", "label": "Data scoperta fatto giustificante (CRITICO per revocazione straordinaria)", "type": "date", "required_if": "natura_revocazione=straordinaria", "critico": true},
+          {"id": "esposizione_motivo", "label": "Esposizione dettagliata del motivo di revocazione", "type": "textarea", "required": true, "min_length": 500},
+          {"id": "prove_motivo_revocazione", "label": "Prove del motivo di revocazione", "type": "object", "required": true, "sub_fields": [
+            {"id": "documenti_probatori", "type": "textarea"},
+            {"id": "eventuali_sentenze_penali", "type": "object"},
+            {"id": "prova_impossibilita_produrre_documenti", "type": "textarea", "required_if": "motivo=n_3"}
+          ]},
+          {"id": "esito_alternativo_richiesto", "label": "Esito alternativo richiesto se accolta revocazione", "type": "textarea", "required": true},
+          {"id": "richiesta_sospensione_esecuzione_401", "label": "Richiesta sospensione esecuzione ex art. 401 c.p.c.", "type": "boolean"},
+          {"id": "motivazione_sospensione", "label": "Motivazione richiesta sospensione (gravi motivi)", "type": "textarea", "required_if": "richiesta_sospensione=true"},
+          {"id": "udienza_comparizione", "label": "Prima udienza", "type": "date", "required": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "Termine 30 gg dalla SCOPERTA del fatto per revocazione straordinaria (n. 1, 2, 3, 6)",
+          "Termine 30 gg dalla notifica / 6 mesi dalla pubblicazione per revocazione ordinaria (n. 4, 5)",
+          "Stesso giudice che ha emesso la sentenza revocanda",
+          "Necessità prova rigorosa del motivo di revocazione",
+          "Termine a comparire 120 gg post-Cartabia"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "sentenza_revocanda_copia_autentica", "label": "Sentenza revocanda in copia autentica con attestazione passaggio in giudicato", "required": true, "critico": true},
+        {"id": "atti_giudizio_originario", "label": "Atti del giudizio originario rilevanti", "required": true},
+        {"id": "documenti_prova_motivo_revocazione", "label": "Documenti probatori del motivo di revocazione", "required": true, "critico": true},
+        {"id": "documenti_scoperti_per_motivo_n_3", "label": "Documenti decisivi ritrovati (per motivo n. 3)", "required_if": "motivo=n_3", "critico": true},
+        {"id": "sentenza_penale_falso_o_dolo", "label": "Sentenza penale di falso/dolo (per motivi n. 1, 2, 6)", "required_if": "motivo=n_1_o_2_o_6"},
+        {"id": "prova_data_scoperta", "label": "Prova della data di scoperta del fatto giustificante (per revocazione straordinaria)", "required_if": "natura_revocazione=straordinaria", "critico": true},
+        {"id": "altra_sentenza_giudicato_contraria", "label": "Altra sentenza passata in giudicato contraria (per motivo n. 5)", "required_if": "motivo=n_5"},
+        {"id": "procura_alle_liti", "label": "Procura alle liti", "required": true}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Maggiorato del 50% rispetto al rito ordinario (ex art. 13 c. 1-bis DPR 115/2002 per impugnazioni)",
+        "marca_bollo_forfettaria": 27.00,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {"tipo": "istanza_sospensione_esecuzione_401", "trigger": "Pericolo esecuzione imminente", "automatico": false},
+        {"tipo": "comparsa_costituzione_revocato", "trigger": "Costituzione convenuto", "termine": "70 gg prima udienza"},
+        {"tipo": "ctu_o_prove_su_motivo_revocazione", "trigger": "Disposta dal giudice", "automatico": false},
+        {"tipo": "sentenza_su_revocazione_artt_400_403", "trigger": "Esito procedimento", "automatico": false},
+        {"tipo": "appello_o_cassazione_avverso_sentenza_revocazione", "trigger": "Sentenza primo grado/appello revocato", "termine": "secondo regole ordinarie"}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "accoglimento_revocazione_e_rescissione_sentenza", "descrizione": "Sentenza revocanda annullata + nuova decisione di merito ex art. 402 c.p.c."},
+        {"esito": "accoglimento_revocazione_e_rinvio", "descrizione": "Revocazione accolta con rinvio per nuovo esame (raro)"},
+        {"esito": "rigetto_per_insussistenza_motivo", "descrizione": "Motivo invocato non sussiste o non è provato"},
+        {"esito": "rigetto_per_tardivita", "descrizione": "Decadenza per superamento termini"},
+        {"esito": "inammissibilita", "descrizione": "Per assenza presupposti (sentenza non impugnabile, motivo non ricompreso in 395)"}
+      ],
+      "termini_processuali": [
+        {"termine": "REVOCAZIONE STRAORDINARIA (n. 1, 2, 3, 6)", "giorni": 30, "decorrenza": "scoperta fatto giustificante", "natura": "DECADENZIALE", "norma": "art. 326 c.p.c.", "criticita": "MASSIMA"},
+        {"termine": "REVOCAZIONE ORDINARIA (n. 4, 5)", "giorni": 30, "decorrenza": "notifica sentenza", "natura": "decadenziale", "norma": "art. 325 c.p.c."},
+        {"termine": "Revocazione ordinaria - termine lungo", "mesi": 6, "decorrenza": "pubblicazione sentenza", "natura": "decadenziale", "norma": "art. 327 c.p.c."},
+        {"termine": "Termine a comparire", "giorni": 120, "natura": "minimo legale post-Cartabia"},
+        {"termine": "Costituzione convenuto", "giorni": 70, "decorrenza": "prima udienza", "natura": "perentorio"}
+      ]
+    },
+    {
+      "codice": "120010",
+      "denominazione": "Petizione di eredità (art. 533 c.c.)",
+      "categoria": "Successioni - tutela dell'erede vero",
+      "sottocategoria": "Azione dell'erede contro il possessore dei beni ereditari per ottenere il riconoscimento della qualità di erede e la restituzione dei beni",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA ex art. 5 c. 1-bis D.Lgs. 28/2010 (materia successioni)",
+      "competenza": "Tribunale del luogo di apertura della successione (art. 22 c.p.c.) - foro esclusivo",
+      "uffici_destinatari": ["SICID"],
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "533", "descrizione": "Nozione - azione di petizione - imprescrittibile (salvo usucapione)"},
+        {"fonte": "c.c.", "articolo": "534", "descrizione": "Diritti dei terzi acquirenti dall'erede apparente"},
+        {"fonte": "c.c.", "articolo": "535", "descrizione": "Posizione del possessore di beni ereditari"},
+        {"fonte": "c.c.", "articolo": "459", "descrizione": "Accettazione dell'eredità - condizione per esperire l'azione"},
+        {"fonte": "c.c.", "articolo": "476", "descrizione": "Accettazione tacita"},
+        {"fonte": "c.c.", "articolo": "480", "descrizione": "Prescrizione del diritto di accettare l'eredità - 10 anni"},
+        {"fonte": "c.c.", "articolo": "485", "descrizione": "Possessore di beni ereditari - obbligo di inventario"},
+        {"fonte": "c.c.", "articolo": "2652 n. 7", "descrizione": "Trascrizione della domanda di petizione di eredità"},
+        {"fonte": "c.c.", "articolo": "2697", "descrizione": "Onere della prova - sull'attore"},
+        {"fonte": "Cass. SU 24664/2007", "descrizione": "Petizione e azione di rivendicazione - differenze"}
+      ],
+      "presupposti_sostanziali": [
+        "QUALITÀ DI EREDE dell'attore (legittimo, testamentario - anche legittimario successibile)",
+        "ACCETTAZIONE DELL'EREDITÀ (espressa, tacita, con beneficio inventario) - necessaria per esperire l'azione (art. 459 c.c.)",
+        "POSSESSO DEI BENI EREDITARI da parte del CONVENUTO che si qualifica come erede (possessor pro herede) o senza titolo (possessor pro possessore)",
+        "AZIONE UNIVERSALE - riguarda l'intero asse ereditario (a differenza della rivendicazione che riguarda un singolo bene)",
+        "AZIONE IMPRESCRITTIBILE (salvo usucapione dei singoli beni da parte del possessore) - art. 533 c. 2 c.c."
+      ],
+      "differenze_da_rivendicazione_e_riduzione": {
+        "petizione_eredita_533": "Azione UNIVERSALE - riguarda l'intero asse - imprescrittibile - serve accettazione - prova qualità di erede + appartenenza beni a de cuius",
+        "rivendicazione_948": "Azione SINGOLARE - riguarda singolo bene - imprescrittibile - probatio diabolica (ricostruzione ventennale)",
+        "riduzione_legittima_553": "Azione del legittimario LESO da disposizioni testamentarie/donazioni - presuppone accettazione beneficio inventario"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "SUCCESSIONI EREDITARIE",
+        "natura": "condizione di procedibilità"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VERIFICA QUALITÀ DI EREDE dell'attore",
+          "documenti": [
+            "Certificato morte de cuius",
+            "Atto di nascita attore (per filiazione)",
+            "Estratto matrimonio (per coniuge)",
+            "Stato di famiglia storico",
+            "Testamento (se attore è erede testamentario)",
+            "Eventuale atto notorio o dichiarazione sostitutiva eredi"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "ACCETTAZIONE EREDITÀ (PRESUPPOSTO PROCESSUALE)",
+          "modalita": [
+            "Accettazione espressa (dichiarazione al notaio o cancelliere)",
+            "Accettazione tacita (atti che presuppongono la qualità di erede - art. 476)",
+            "Accettazione con beneficio di inventario (consigliata)"
+          ],
+          "termine_max": "10 anni dall'apertura successione (art. 480 c.c.)"
+        },
+        {
+          "step": 3,
+          "descrizione": "Identificazione dei BENI EREDITARI e del POSSESSORE",
+          "elementi": [
+            "Inventario dei beni del de cuius alla data di apertura",
+            "Identificazione del soggetto che si è impossessato dei beni (anche se si qualifica come erede)",
+            "Documentazione del possesso del convenuto"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VERIFICA STATUS DEL POSSESSORE",
+          "tipologie": [
+            "Possessor pro herede: si qualifica come erede (in malafede o buona fede)",
+            "Possessor pro possessore: detiene senza qualificarsi come erede",
+            "Erede apparente: chi appare come erede ma non lo è effettivamente (rileva per art. 534 - tutela terzi acquirenti in buona fede)"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "Verifica eventuale INTERVENUTA USUCAPIONE dei beni da parte del possessore",
+          "rischio": "Usucapione individuale dei singoli beni può limitare l'azione (Cass. SU 24664/2007)"
+        },
+        {
+          "step": 6,
+          "descrizione": "ATTIVAZIONE MEDIAZIONE OBBLIGATORIA",
+          "luogo": "Organismo del luogo apertura successione"
+        },
+        {
+          "step": 7,
+          "descrizione": "Valutazione TRASCRIZIONE DOMANDA ex art. 2652 n. 7 c.c.",
+          "vantaggio": "Opponibilità ai terzi acquirenti dall'erede apparente"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_petizione_eredita",
+        "denominazione": "Atto di citazione per petizione di eredità ex art. 533 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {"id": "tribunale", "label": "Tribunale del luogo apertura successione", "type": "select", "required": true},
+          {"id": "erede_attore", "label": "Erede attore", "type": "object_persona", "required": true},
+          {"id": "possessore_convenuto", "label": "Possessore beni ereditari convenuto", "type": "object_persona", "required": true, "sub_fields": [
+            {"id": "cognome_nome", "type": "string"},
+            {"id": "qualificazione_giuridica", "type": "select", "options": ["si_qualifica_come_erede_pro_herede", "possiede_senza_titolo_pro_possessore", "erede_apparente"]},
+            {"id": "buona_o_mala_fede", "type": "select"}
+          ]},
+          {"id": "altri_eredi_litisconsorti", "label": "Eventuali altri eredi (litisconsorti)", "type": "array_persone"},
+          {"id": "de_cuius", "label": "De cuius", "type": "object_persona", "required": true},
+          {"id": "qualita_erede_attore", "label": "Titolo della qualità di erede", "type": "object", "required": true, "sub_fields": [
+            {"id": "tipo_successione", "type": "select", "options": ["legittima_artt_565_586", "testamentaria_pubblico", "testamentaria_olografo", "testamentaria_segreto"]},
+            {"id": "rapporto_con_de_cuius", "type": "select", "options": ["coniuge", "figlio", "ascendente", "fratello_sorella", "altro_legittimario", "erede_testamentario", "altro"]},
+            {"id": "quota_attribuita", "type": "fraction"}
+          ]},
+          {"id": "accettazione_eredita", "label": "Accettazione eredità (PRESUPPOSTO)", "type": "object", "required": true, "critico": true, "sub_fields": [
+            {"id": "tipo_accettazione", "type": "select", "options": ["espressa_notarile", "espressa_cancelleria_tribunale", "tacita", "con_beneficio_di_inventario"]},
+            {"id": "data_accettazione", "type": "date", "required": true},
+            {"id": "modalita_dettagliata", "type": "textarea"}
+          ]},
+          {"id": "beni_ereditari_oggetto_petizione", "label": "Beni ereditari oggetto della petizione", "type": "array", "required": true, "sub_fields": [
+            {"id": "tipo_bene", "type": "select", "options": ["immobile", "mobile_registrato", "denaro_conto_corrente", "partecipazioni_societarie", "credito", "altro_mobile"]},
+            {"id": "descrizione", "type": "textarea"},
+            {"id": "valore_stimato", "type": "currency"},
+            {"id": "possesso_attuale_del_convenuto", "type": "boolean", "required": true}
+          ]},
+          {"id": "domande", "label": "Domande", "type": "select_multi", "required": true, "options": ["accertamento_qualita_di_erede_attore", "condanna_restituzione_beni_in_natura", "condanna_restituzione_frutti_civili_naturali_industriali_535_c_2", "indennita_per_beni_non_restituibili", "risarcimento_danni", "trascrizione_domanda_2652_n_7", "spese_di_lite"]},
+          {"id": "richiesta_trascrizione_2652_n_7", "label": "Richiesta trascrizione domanda ex art. 2652 n. 7", "type": "boolean", "default": true},
+          {"id": "udienza_comparizione", "label": "Prima udienza", "type": "date", "required": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "ACCETTAZIONE EREDITÀ è presupposto processuale dell'azione (art. 459 c.c.)",
+          "Azione IMPRESCRITTIBILE (salvo usucapione)",
+          "Foro esclusivo del luogo apertura successione (art. 22 c.p.c.)",
+          "Mediazione obbligatoria preventiva",
+          "Trascrizione domanda ex art. 2652 n. 7 c.c. per opponibilità",
+          "Onere della prova: qualità di erede + appartenenza beni al patrimonio del de cuius (art. 2697)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "certificato_morte_de_cuius", "label": "Certificato di morte de cuius", "required": true},
+        {"id": "testamento_pubblicato", "label": "Testamento pubblicato (se applicabile)", "required_if": "successione_testamentaria"},
+        {"id": "documenti_qualita_erede", "label": "Documenti probatori qualità di erede (atti nascita, matrimonio, stato famiglia)", "required": true, "critico": true},
+        {"id": "atto_accettazione_eredita", "label": "Atto di accettazione dell'eredità", "required": true, "critico": true},
+        {"id": "dichiarazione_successione_ae", "label": "Dichiarazione di successione presentata all'Agenzia Entrate", "required": true},
+        {"id": "documentazione_beni_ereditari", "label": "Documentazione sui beni ereditari (visure, atti, estratti conto)", "required": true},
+        {"id": "documentazione_possesso_convenuto", "label": "Documentazione sul possesso dei beni da parte del convenuto", "required": true},
+        {"id": "perizia_estimativa_di_parte", "label": "Perizia estimativa di parte (consigliata)", "required": false, "consigliato": true},
+        {"id": "verbale_mediazione_negativa", "label": "Verbale mediazione obbligatoria conclusa negativamente", "required": true, "critico": true},
+        {"id": "procura_alle_liti", "label": "Procura alle liti", "required": true}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore dei beni ereditari oggetto",
+        "marca_bollo_forfettaria": 27.00,
+        "tasse_trascrizione_domanda": "Imposta ipotecaria fissa + tasse",
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {"tipo": "ricorso_mediazione_obbligatoria", "trigger": "Condizione procedibilità"},
+        {"tipo": "trascrizione_domanda_2652_n_7", "trigger": "Opponibilità a terzi acquirenti"},
+        {"tipo": "atto_accettazione_eredita_se_non_fatta", "trigger": "Presupposto processuale", "critico": true},
+        {"tipo": "ctu_estimativa_e_su_titolarita", "trigger": "Disposta dal giudice", "automatico": false},
+        {"tipo": "domanda_riconvenzionale_convenuto_qualifica_erede", "trigger": "Convenuto rivendica a sua volta qualità di erede", "automatico": false},
+        {"tipo": "domanda_divisione_ereditaria_successiva", "trigger": "Dopo accertamento qualità di erede - se più eredi", "codice_correlato": "121003"},
+        {"tipo": "esecuzione_per_restituzione_beni", "trigger": "Sentenza esecutiva non spontaneamente eseguita", "codice_correlato": "511012"},
+        {"tipo": "appello", "trigger": "Sentenza primo grado", "termine": "30 gg notifica"}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "accertamento_qualita_erede_e_restituzione", "descrizione": "Accertamento qualità di erede + condanna restituzione beni + frutti (per possessore in mala fede)"},
+        {"esito": "rigetto_per_assenza_qualita_erede", "descrizione": "L'attore non è erede - rigetto"},
+        {"esito": "rigetto_per_intervenuta_usucapione", "descrizione": "Convenuto ha usucapito i beni - rigetto petizione su quei beni"},
+        {"esito": "transazione", "descrizione": "Accordo (ad esempio: riconoscimento qualità di coerede con divisione successiva)"}
+      ],
+      "termini_processuali": [
+        {"termine": "AZIONE IMPRESCRITTIBILE", "natura": "imprescrittibile", "norma": "art. 533 c. 2 c.c.", "eccezione": "Salvo usucapione singoli beni"},
+        {"termine": "Accettazione eredità", "anni": 10, "decorrenza": "apertura successione", "natura": "prescrizione del diritto di accettare", "norma": "art. 480 c.c.", "criticita": "ALTA"},
+        {"termine": "Mediazione obbligatoria - max", "giorni": 90, "norma": "art. 6 D.Lgs. 28/2010"},
+        {"termine": "Termine a comparire", "giorni": 120, "natura": "minimo legale post-Cartabia"},
+        {"termine": "Costituzione convenuto", "giorni": 70, "decorrenza": "prima udienza", "natura": "perentorio"}
+      ]
+    },
+    {
+      "codice": "130041",
+      "denominazione": "Costituzione di servitù coattiva (passaggio coattivo ex art. 1051 c.c. e altre servitù coattive)",
+      "categoria": "Diritti reali - servitù",
+      "sottocategoria": "Azione costitutiva di servitù coattiva (passaggio, acquedotto, elettrodotto, ecc.)",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA ex art. 5 c. 1-bis D.Lgs. 28/2010 (diritti reali)",
+      "competenza": "Tribunale del luogo dell'immobile (art. 21 c.p.c. - foro esclusivo)",
+      "uffici_destinatari": ["SICID"],
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1027", "descrizione": "Nozione di servitù prediale"},
+        {"fonte": "c.c.", "articolo": "1031", "descrizione": "Costituzione delle servitù"},
+        {"fonte": "c.c.", "articolo": "1032", "descrizione": "Costituzione coattiva"},
+        {"fonte": "c.c.", "articolo": "1051", "descrizione": "Passaggio coattivo - fondo intercluso"},
+        {"fonte": "c.c.", "articolo": "1052", "descrizione": "Passaggio coattivo a favore di fondo non intercluso"},
+        {"fonte": "c.c.", "articolo": "1053", "descrizione": "Modalità del passaggio"},
+        {"fonte": "c.c.", "articolo": "1054", "descrizione": "Cessazione del passaggio"},
+        {"fonte": "c.c.", "articolo": "1055", "descrizione": "Riscatto del passaggio coattivo"},
+        {"fonte": "c.c.", "articolo": "1033-1041", "descrizione": "Acquedotto e scarico coattivo"},
+        {"fonte": "c.c.", "articolo": "1056-1057", "descrizione": "Elettrodotto coattivo"},
+        {"fonte": "c.c.", "articolo": "1058", "descrizione": "Funivia coattiva"},
+        {"fonte": "c.c.", "articolo": "1032 c. 2", "descrizione": "Indennità - obbligatoria"},
+        {"fonte": "c.c.", "articolo": "2643 n. 4", "descrizione": "Trascrizione sentenza costitutiva di servitù"},
+        {"fonte": "c.c.", "articolo": "2652 n. 1", "descrizione": "Trascrizione domanda costitutiva di servitù"}
+      ],
+      "presupposti_sostanziali_passaggio_coattivo_1051": [
+        "FONDO INTERCLUSO: il fondo dell'attore non ha accesso alla via pubblica oppure non può procurarselo senza eccessivo dispendio o disagio",
+        "INTERCLUSIONE ASSOLUTA (no uscita alcuna) o RELATIVA (uscita inadeguata, eccessivamente dispendiosa o disagiata)",
+        "FONDO SERVENTE: identificazione del fondo del convenuto su cui costituire il passaggio",
+        "Necessità del passaggio per le esigenze dell'agricoltura/industria del fondo dominante",
+        "INDENNIZZO al proprietario del fondo servente (art. 1032 c. 2 c.c.) - presupposto necessario"
+      ],
+      "presupposti_passaggio_1052_non_intercluso": [
+        "Fondo NON intercluso ma con accesso INADEGUATO ai bisogni del fondo",
+        "Più ristretti requisiti rispetto al 1051",
+        "Valutazione discrezionale del giudice sull'opportunità + indennità"
+      ],
+      "modalita_di_passaggio_art_1053": [
+        "Il passaggio deve essere stabilito in modo da ARRECARE IL MINOR DANNO al fondo servente",
+        "Stabilita la zona, la direzione e l'ampiezza",
+        "Generalmente in punto più breve verso la via pubblica salvo specifiche ragioni"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "DIRITTI REALI",
+        "natura": "condizione di procedibilità"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VERIFICA SITUAZIONE DI INTERCLUSIONE",
+          "elementi": [
+            "Identificazione precisa fondo dominante (attore) e fondo servente (convenuto)",
+            "Documentazione assenza/inadeguatezza accesso via pubblica",
+            "Visure catastali + rilievi topografici",
+            "Foto aeree e cartografia",
+            "Eventuale storia delle modalità di accesso pregresse"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "ANALISI DEI POSSIBILI PERCORSI",
+          "criterio_art_1053": [
+            "Minimo danno per il fondo servente",
+            "Percorso più breve verso via pubblica",
+            "Adeguatezza alle esigenze del fondo dominante (auto, mezzi agricoli, ecc.)",
+            "Eventuali percorsi alternativi attraverso altri fondi"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "QUANTIFICAZIONE INDENNITÀ",
+          "criterio": [
+            "Diminuzione di valore del fondo servente",
+            "Eventuali pregiudizi (limitazione di godimento, lavori da eseguire)",
+            "Valore della servitù in sé (utilità per il fondo dominante)"
+          ],
+          "modalita_tipica": "Stima di mercato + perizia di parte"
+        },
+        {
+          "step": 4,
+          "descrizione": "TENTATIVO DI ACCORDO CON IL PROPRIETARIO DEL FONDO SERVENTE",
+          "modalita_alternative": [
+            "Servitù volontaria (con atto notarile registrato e trascritto)",
+            "Indennità concordata",
+            "Costituzione di servitù temporanea"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "ATTIVAZIONE MEDIAZIONE OBBLIGATORIA",
+          "vantaggio_strategico": "In materia di servitù può portare a soluzioni concordate (es. determinazione consensuale del passaggio)"
+        },
+        {
+          "step": 6,
+          "descrizione": "Valutazione TRASCRIZIONE DOMANDA ex art. 2652 n. 1",
+          "rilevanza": "Opponibilità a terzi acquirenti del fondo servente"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_costituzione_servitu_coattiva",
+        "denominazione": "Atto di citazione per costituzione di servitù coattiva di passaggio ex art. 1051 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {"id": "tribunale", "label": "Tribunale del luogo dell'immobile (art. 21 c.p.c.)", "type": "select", "required": true},
+          {"id": "proprietario_fondo_dominante", "label": "Proprietario fondo dominante (attore)", "type": "object_persona", "required": true},
+          {"id": "proprietari_fondo_servente", "label": "Proprietari fondo servente (convenuti)", "type": "array_persone", "required": true, "min_items": 1},
+          {"id": "tipo_servitu_richiesta", "label": "Tipo di servitù coattiva richiesta", "type": "select", "required": true, "options": ["passaggio_coattivo_1051_fondo_intercluso", "passaggio_coattivo_1052_fondo_non_intercluso", "acquedotto_coattivo_1033", "scarico_coattivo_1043", "elettrodotto_coattivo_1056", "funivia_coattiva_1058", "altra"]},
+          {"id": "fondo_dominante", "label": "Fondo dominante (dell'attore)", "type": "object_immobile", "required": true, "sub_fields": [
+            {"id": "ubicazione", "type": "address"},
+            {"id": "dati_catastali", "type": "object"},
+            {"id": "destinazione_d_uso", "type": "string"},
+            {"id": "superficie", "type": "object"},
+            {"id": "confini", "type": "textarea"}
+          ]},
+          {"id": "fondo_servente", "label": "Fondo servente (del convenuto)", "type": "object_immobile", "required": true, "sub_fields": "(stessa struttura)"},
+          {"id": "situazione_interclusione", "label": "Situazione di interclusione", "type": "object", "required": true, "critico": true, "sub_fields": [
+            {"id": "tipo_interclusione", "type": "select", "options": ["assoluta_no_accesso_alcuno", "relativa_accesso_inadeguato_dispendioso", "relativa_passaggio_attuale_oneroso_o_pericoloso"]},
+            {"id": "via_pubblica_di_riferimento", "type": "string"},
+            {"id": "distanza_dal_fondo_dominante", "type": "string"},
+            {"id": "descrizione_dettagliata_interclusione", "type": "textarea", "required": true, "min_length": 300},
+            {"id": "esigenze_fondo_dominante", "type": "textarea"}
+          ]},
+          {"id": "tracciato_proposto", "label": "Tracciato proposto della servitù", "type": "object", "required": true, "sub_fields": [
+            {"id": "descrizione_percorso", "type": "textarea"},
+            {"id": "lunghezza", "type": "number_metri"},
+            {"id": "larghezza", "type": "number_metri"},
+            {"id": "criterio_minor_danno_1053", "type": "textarea"},
+            {"id": "tracciato_alternativo_considerato", "type": "textarea"}
+          ]},
+          {"id": "indennita_offerta", "label": "Indennità offerta al proprietario fondo servente", "type": "object", "required": true, "sub_fields": [
+            {"id": "importo_offerto", "type": "currency"},
+            {"id": "criteri_calcolo", "type": "textarea"},
+            {"id": "modalita_pagamento", "type": "select", "options": ["unica_soluzione", "rateale", "indennita_annuale"]}
+          ]},
+          {"id": "domande", "label": "Domande", "type": "select_multi", "required": true, "options": ["accertamento_interclusione_o_inadeguatezza", "costituzione_servitu_passaggio_coattivo", "determinazione_tracciato_e_modalita", "determinazione_indennita", "trascrizione_sentenza_2643_n_4", "trascrizione_domanda_2652_n_1", "spese_di_lite"]},
+          {"id": "richiesta_trascrizione_domanda", "label": "Richiesta trascrizione domanda ex art. 2652 n. 1", "type": "boolean", "default": true},
+          {"id": "udienza_comparizione", "label": "Prima udienza", "type": "date", "required": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "Foro esclusivo del luogo dell'immobile (art. 21 c.p.c.)",
+          "Mediazione obbligatoria preventiva (diritti reali)",
+          "Necessità OBBLIGATORIA INDENNITÀ al proprietario fondo servente (art. 1032 c. 2)",
+          "Tracciato secondo criterio MINOR DANNO ex art. 1053",
+          "Trascrizione sentenza costitutiva ex art. 2643 n. 4 c.c.",
+          "Onere prova interclusione/inadeguatezza in capo all'attore"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "atti_proprieta_fondo_dominante", "label": "Atti di proprietà del fondo dominante", "required": true, "critico": true},
+        {"id": "visure_catastali_fondi", "label": "Visure catastali aggiornate dei fondi dominante e servente", "required": true},
+        {"id": "ispezioni_conservatoria", "label": "Ispezioni Conservatoria sui due fondi", "required": true},
+        {"id": "rilievo_topografico", "label": "Rilievo topografico con planimetria + tracciato proposto", "required": true, "critico": true},
+        {"id": "estratto_di_mappa_catastale", "label": "Estratto di mappa catastale con evidenziazione fondi e percorsi", "required": true},
+        {"id": "documentazione_fotografica", "label": "Documentazione fotografica della situazione dei luoghi", "required": false, "consigliato": true},
+        {"id": "perizia_tecnica_di_parte", "label": "Perizia tecnica di parte (su interclusione e tracciato)", "required": false, "consigliato": true},
+        {"id": "perizia_estimativa_indennita", "label": "Perizia estimativa per indennità", "required": false, "consigliato": true},
+        {"id": "verbale_mediazione_negativa", "label": "Verbale mediazione obbligatoria conclusa negativamente", "required": true, "critico": true},
+        {"id": "procura_alle_liti", "label": "Procura alle liti", "required": true}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore (valore servitù + indennità)",
+        "marca_bollo_forfettaria": 27.00,
+        "tasse_trascrizione_sentenza_servitu": "Imposta ipotecaria + tributi",
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {"tipo": "ricorso_mediazione_obbligatoria", "trigger": "Condizione procedibilità"},
+        {"tipo": "trascrizione_domanda_2652_n_1", "trigger": "Opponibilità a terzi"},
+        {"tipo": "ctu_tecnico_topografica_ed_estimativa", "trigger": "Disposta dal giudice", "automatico": false, "molto_frequente": true},
+        {"tipo": "sopralluogo_del_giudice", "trigger": "Disposto dal giudice", "automatico": false},
+        {"tipo": "sentenza_costitutiva_e_trascrizione", "trigger": "Esito accoglimento", "norma": "art. 2643 n. 4 c.c."},
+        {"tipo": "azione_per_riscatto_passaggio_coattivo_1055", "trigger": "Cessate le condizioni di interclusione", "norma": "art. 1055 c.c."},
+        {"tipo": "appello", "trigger": "Sentenza primo grado", "termine": "30 gg notifica"}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "costituzione_servitu_con_indennita", "descrizione": "Sentenza costitutiva di servitù di passaggio + determinazione tracciato + indennità"},
+        {"esito": "rigetto_per_assenza_interclusione", "descrizione": "Rigetto per assenza dei presupposti di interclusione"},
+        {"esito": "modifica_tracciato_proposto", "descrizione": "Servitù costituita ma con tracciato modificato rispetto a quello proposto"},
+        {"esito": "transazione_con_servitu_volontaria", "descrizione": "Accordo: costituzione servitù volontaria con atto notarile"}
+      ],
+      "termini_processuali": [
+        {"termine": "AZIONE IMPRESCRITTIBILE", "natura": "imprescrittibile", "eccezione": "fino a permanenza presupposti"},
+        {"termine": "Mediazione obbligatoria - max", "giorni": 90, "norma": "art. 6 D.Lgs. 28/2010"},
+        {"termine": "Termine a comparire", "giorni": 120, "natura": "minimo legale post-Cartabia"},
+        {"termine": "Costituzione convenuto", "giorni": 70, "decorrenza": "prima udienza", "natura": "perentorio"},
+        {"termine": "Appello", "giorni": 30, "decorrenza": "notifica sentenza", "natura": "perentorio"}
+      ]
+    },
+    {
+      "codice": "GUIDA_RISOLUZIONE_APPALTO_140001",
+      "codice_originale_ricevuto": "140001",
+      "codici_ufficiali_correlati_da_valutare": ["140001"],
+      "nota_integrazione_iusentra": "Scheda interna non depositabile: il codice numerico ricevuto non combacia con la descrizione ministeriale locale del codice 140001. Conservare il contenuto come guida pratica e selezionare il codice PST/XSD ufficiale corretto nella scheda fascicolo prima del deposito.",
+      "denominazione": "Risoluzione del contratto di appalto",
+      "categoria": "Contratti - appalto",
+      "sottocategoria": "Risoluzione contratto di appalto privato per inadempimento (artt. 1668-1669 c.c.) o per altri motivi",
+      "rito": "Rito ordinario di cognizione (per appalti privati); rito speciale per appalti pubblici",
+      "competenza": "Tribunale del luogo dell'esecuzione (art. 20 c.p.c.) o residenza convenuto (artt. 18-19) o foro convenzionalmente pattuito; per appalti su immobili: foro luogo immobile (art. 21)",
+      "uffici_destinatari": ["SICID"],
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1655", "descrizione": "Nozione di appalto"},
+        {"fonte": "c.c.", "articolo": "1657-1663", "descrizione": "Esecuzione dell'appalto, varianti, prezzo"},
+        {"fonte": "c.c.", "articolo": "1665", "descrizione": "Verifica dell'opera"},
+        {"fonte": "c.c.", "articolo": "1666", "descrizione": "Verifica e pagamento di parti dell'opera"},
+        {"fonte": "c.c.", "articolo": "1667", "descrizione": "Difformità e vizi - garanzia generale"},
+        {"fonte": "c.c.", "articolo": "1668", "descrizione": "Effetti della garanzia - opzione tra riduzione/eliminazione difetti/risoluzione"},
+        {"fonte": "c.c.", "articolo": "1669", "descrizione": "Rovina e difetti di cose immobili - responsabilità decennale"},
+        {"fonte": "c.c.", "articolo": "1670", "descrizione": "Responsabilità verso il subappaltatore"},
+        {"fonte": "c.c.", "articolo": "1671", "descrizione": "Recesso unilaterale dal contratto"},
+        {"fonte": "c.c.", "articolo": "1672", "descrizione": "Impossibilità di esecuzione"},
+        {"fonte": "c.c.", "articolo": "1453-1458", "descrizione": "Risoluzione per inadempimento (norme generali)"},
+        {"fonte": "c.c.", "articolo": "1454", "descrizione": "Diffida ad adempiere"},
+        {"fonte": "c.c.", "articolo": "2226", "descrizione": "Verifica e termini di denuncia per la prestazione d'opera (rilevante in casi misti)"},
+        {"fonte": "D.Lgs. 36/2023", "descrizione": "Codice contratti pubblici - per appalti pubblici (con specifico rito)"}
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI UN CONTRATTO DI APPALTO valido (anche verbale per appalti di modesto valore)",
+        "INADEMPIMENTO di una delle parti:",
+        "PER L'APPALTATORE: difformità, vizi, ritardo grave, non conformità a regola d'arte, abbandono dei lavori",
+        "PER IL COMMITTENTE: mancato pagamento, mancata fornitura di materiali concordati, mancato rilascio di permessi/accessi, impossibilità di esecuzione per fatto suo",
+        "IMPORTANZA DELL'INADEMPIMENTO ex art. 1455 c.c.",
+        "Per art. 1668-1669: tempestiva DENUNCIA DEI VIZI",
+        "Per garanzia art. 1669: vizi che incidano sulla DURATA o STABILITÀ dell'immobile"
+      ],
+      "regime_dei_vizi": {
+        "art_1668": "Vizi/difformità non gravi: committente può chiedere ELIMINAZIONE difetti a spese appaltatore OPPURE PROPORZIONALE RIDUZIONE PREZZO - RISOLUZIONE solo se difformità rende l'opera del tutto inadatta",
+        "art_1669": "Vizi/rovina di IMMOBILE: durata di GARANZIA DECENNALE - denuncia entro 1 anno dalla scoperta - azione entro 1 anno dalla denuncia",
+        "art_1667": "Vizi non gravi mobili: garanzia + denuncia entro 60 gg dalla scoperta - azione entro 2 anni dalla consegna"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "ma": "Per appalti su IMMOBILI (vizi 1669): valutare se rientra in 'diritti reali' (art. 5 c. 1-bis D.Lgs. 28/2010) - controverso",
+        "negoziazione_assistita": "Obbligatoria per crediti fino a 50.000 € ex D.L. 132/2014",
+        "esenzioni": "Esclusi appalti pubblici (per profili amministrativi)"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione contratto di appalto e atti collegati",
+          "documenti": [
+            "Contratto di appalto (scritto o, se verbale, prova testimoniale + documenti collaterali)",
+            "Capitolato",
+            "Computo metrico",
+            "Eventuali varianti concordate",
+            "Verbali di consegna lavori, di accettazione",
+            "Fatture e pagamenti effettuati"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DELL'INADEMPIMENTO",
+          "tipologie_da_appaltatore": [
+            "Difformità: relazioni tecniche, perizie, foto, riprese video",
+            "Vizi: stessi mezzi probatori + verbali di verifica",
+            "Ritardi: cronoprogramma originario + stato avanzamento attuale",
+            "Abbandono lavori: documentazione fotografica + comunicazioni del committente"
+          ],
+          "tipologie_da_committente": [
+            "Mancato pagamento: fatture emesse + solleciti",
+            "Mancata fornitura materiali: documentazione di richieste",
+            "Mancato rilascio accessi/permessi"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "DENUNCIA TEMPESTIVA DEI VIZI",
+          "termini": [
+            "Art. 1667 (vizi mobili): 60 gg dalla scoperta",
+            "Art. 1669 (vizi immobili - durata/stabilità): 1 anno dalla scoperta"
+          ],
+          "modalita": "Raccomandata A/R o PEC dettagliata"
+        },
+        {
+          "step": 4,
+          "descrizione": "DIFFIDA AD ADEMPIERE ex art. 1454 c.c. (consigliata)",
+          "termine_minimo": "15 gg",
+          "vantaggio_strategico": "Eventualmente costituisce risoluzione di diritto in caso di persistenza inadempimento"
+        },
+        {
+          "step": 5,
+          "descrizione": "Quantificazione DANNI",
+          "voci": [
+            "Costo di eliminazione vizi/difformità (perizia)",
+            "Costo di completamento opera (se appaltatore ha abbandonato)",
+            "Riduzione di valore dell'opera",
+            "Maggior costo per affidamento ad altro appaltatore",
+            "Danno emergente da impossibilità di utilizzo",
+            "Lucro cessante",
+            "Penali contrattuali"
+          ]
+        },
+        {
+          "step": 6,
+          "descrizione": "Valutazione strategica: risoluzione vs eliminazione difetti vs riduzione prezzo",
+          "criterio_1668": "La risoluzione è chiedibile solo se difformità rende l'opera DEL TUTTO INADATTA all'uso"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_risoluzione_appalto",
+        "denominazione": "Atto di citazione per risoluzione del contratto di appalto e risarcimento danni",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {"id": "tribunale", "label": "Tribunale competente", "type": "select", "required": true},
+          {"id": "attore", "label": "Attore (committente o appaltatore)", "type": "object_persona", "required": true},
+          {"id": "convenuto", "label": "Convenuto (controparte appaltante)", "type": "object_persona", "required": true},
+          {"id": "ruolo_attore", "label": "Ruolo attore", "type": "select", "required": true, "options": ["committente", "appaltatore"]},
+          {"id": "contratto_appalto", "label": "Contratto di appalto", "type": "object", "required": true, "sub_fields": [
+            {"id": "tipo_appalto", "type": "select", "options": ["opere_edili_nuova_costruzione", "ristrutturazione_immobile", "manutenzione_straordinaria", "lavori_specifici_impianti", "fornitura_e_posa", "servizi_di_appalto", "altro"]},
+            {"id": "forma_contratto", "type": "select", "options": ["scrittura_privata", "scrittura_privata_autenticata", "atto_pubblico", "verbale"]},
+            {"id": "data_stipula", "type": "date"},
+            {"id": "data_inizio_lavori", "type": "date"},
+            {"id": "data_fine_lavori_pattuita", "type": "date"},
+            {"id": "prezzo_pattuito", "type": "currency"},
+            {"id": "modalita_pagamento", "type": "string"},
+            {"id": "varianti_concordate", "type": "textarea"}
+          ]},
+          {"id": "oggetto_appalto", "label": "Oggetto dell'appalto", "type": "object", "required": true, "sub_fields": [
+            {"id": "descrizione_opera", "type": "textarea"},
+            {"id": "ubicazione_lavori", "type": "address"},
+            {"id": "estremi_immobile_se_appalto_immobiliare", "type": "object"}
+          ]},
+          {"id": "inadempimento_dedotto", "label": "Inadempimento dedotto", "type": "object", "required": true, "sub_fields": [
+            {"id": "tipo_inadempimento", "type": "select_multi", "required": true, "options": ["difformita_o_vizi_opera_1667", "vizi_durata_stabilita_immobile_1669", "ritardo_grave_consegna", "abbandono_lavori_appaltatore", "non_conformita_regola_arte", "violazione_capitolato", "mancato_pagamento_committente", "mancata_consegna_materiali_committente", "mancato_rilascio_permessi", "altro"]},
+            {"id": "descrizione_dettagliata", "type": "textarea", "required": true, "min_length": 500},
+            {"id": "data_inadempimento_o_scoperta_vizi", "type": "date", "required": true},
+            {"id": "gravita_e_importanza_1455", "type": "textarea", "required": true}
+          ]},
+          {"id": "denuncia_vizi", "label": "Denuncia vizi (per garanzia)", "type": "object", "sub_fields": [
+            {"id": "effettuata", "type": "boolean"},
+            {"id": "data_denuncia", "type": "date"},
+            {"id": "modalita_invio", "type": "select", "options": ["raccomandata_AR", "PEC"]},
+            {"id": "termine_rispetto_1667_1669", "type": "boolean", "critico": true}
+          ]},
+          {"id": "diffida_ad_adempiere", "label": "Diffida ad adempiere", "type": "object", "sub_fields": [
+            {"id": "inviata", "type": "boolean"},
+            {"id": "data_invio", "type": "date"},
+            {"id": "termine_assegnato", "type": "integer"},
+            {"id": "esito", "type": "select"}
+          ]},
+          {"id": "domande", "label": "Domande", "type": "select_multi", "required": true, "options": ["risoluzione_contratto_per_inadempimento", "eliminazione_difetti_a_spese_appaltatore_1668", "proporzionale_riduzione_prezzo_1668", "restituzione_acconti", "risarcimento_danni", "indennita_lavori_eseguiti", "penali_contrattuali", "interessi_legali", "spese_di_lite"]},
+          {"id": "danni_richiesti", "label": "Quantificazione danni", "type": "object_complesso", "sub_fields": [
+            {"id": "costo_eliminazione_vizi", "type": "currency"},
+            {"id": "costo_completamento_opera", "type": "currency"},
+            {"id": "danno_emergente", "type": "currency"},
+            {"id": "lucro_cessante", "type": "currency"},
+            {"id": "penali_contrattuali", "type": "currency"},
+            {"id": "totale_richiesto", "type": "currency"}
+          ]},
+          {"id": "udienza_comparizione", "label": "Prima udienza", "type": "date", "required": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "Termini tassativi denuncia vizi: 60 gg art. 1667 / 1 anno art. 1669",
+          "Risoluzione 1668 solo se opera del tutto inadatta all'uso",
+          "Termine a comparire 120 gg post-Cartabia",
+          "Costituzione convenuto 70 gg prima udienza"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "contratto_appalto", "label": "Contratto di appalto", "required": true, "critico": true},
+        {"id": "capitolato_e_computo_metrico", "label": "Capitolato + computo metrico", "required": false, "consigliato": true},
+        {"id": "verbali_consegna_e_accettazione", "label": "Verbali consegna lavori e accettazione", "required": false},
+        {"id": "fatture_e_pagamenti", "label": "Fatture emesse + ricevute pagamenti", "required": true},
+        {"id": "denuncia_vizi_e_relata", "label": "Denuncia vizi con prova invio nei termini", "required_if": "tipo_inadempimento contiene vizi", "critico": true},
+        {"id": "diffida_ad_adempiere_e_relata", "label": "Diffida ad adempiere", "required_if": "diffida_inviata=true"},
+        {"id": "perizia_tecnica_su_vizi_difformita", "label": "Perizia tecnica su vizi e difformità", "required": false, "consigliato": true},
+        {"id": "documentazione_fotografica", "label": "Documentazione fotografica dei vizi/difformità/stato lavori", "required": false, "consigliato": true},
+        {"id": "comunicazioni_intercorse", "label": "Corrispondenza intercorsa tra le parti", "required": false},
+        {"id": "procura_alle_liti", "label": "Procura alle liti", "required": true}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore (prezzo contratto + danni)",
+        "marca_bollo_forfettaria": 27.00,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {"tipo": "atp_conciliativo_696_bis", "trigger": "Per quantificazione vizi e tentativo conciliazione", "automatico": false, "codice_correlato": "012001"},
+        {"tipo": "ctu_tecnica_su_vizi_e_difformita", "trigger": "Disposta dal giudice", "automatico": false, "molto_frequente": true},
+        {"tipo": "comparsa_costituzione_convenuto", "trigger": "Costituzione convenuto", "termine": "70 gg prima udienza"},
+        {"tipo": "chiamata_in_garanzia_progettista_o_direttore_lavori", "trigger": "Vizi di progetto o di direzione", "automatico": false},
+        {"tipo": "azione_responsabilita_decennale_1669", "trigger": "Vizi di durata/stabilità immobile", "termine": "1 anno scoperta + 1 anno azione"},
+        {"tipo": "esecuzione_per_eliminazione_difetti", "trigger": "Sentenza esecutiva non eseguita", "codice_correlato": "512020"},
+        {"tipo": "appello", "trigger": "Sentenza primo grado", "termine": "30 gg notifica"}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "risoluzione_e_risarcimento", "descrizione": "Risoluzione contratto + restituzioni + risarcimento danni"},
+        {"esito": "condanna_eliminazione_difetti_1668", "descrizione": "Senza risoluzione - condanna eliminazione difetti a spese appaltatore"},
+        {"esito": "riduzione_proporzionale_prezzo_1668", "descrizione": "Riduzione del prezzo per vizi/difformità non gravi"},
+        {"esito": "rigetto_per_decadenza_termini_denuncia", "descrizione": "Mancata denuncia tempestiva dei vizi"},
+        {"esito": "rigetto_per_inadempimento_non_grave", "descrizione": "Inadempimento non di importanza tale ex art. 1455"},
+        {"esito": "transazione", "descrizione": "Accordo transattivo"}
+      ],
+      "termini_processuali": [
+        {"termine": "DENUNCIA VIZI MOBILI", "giorni": 60, "decorrenza": "scoperta", "natura": "DECADENZIALE", "norma": "art. 1667 c. 2 c.c.", "criticita": "MASSIMA"},
+        {"termine": "AZIONE PER VIZI MOBILI", "anni": 2, "decorrenza": "consegna opera", "natura": "decadenziale", "norma": "art. 1667 c. 3 c.c."},
+        {"termine": "DENUNCIA VIZI IMMOBILE (1669)", "anno": 1, "decorrenza": "scoperta", "natura": "DECADENZIALE", "norma": "art. 1669 c.c.", "criticita": "MASSIMA"},
+        {"termine": "AZIONE GARANZIA DECENNALE IMMOBILI", "anno": 1, "decorrenza": "denuncia", "natura": "decadenziale", "norma": "art. 1669 c. 2 c.c."},
+        {"termine": "Durata garanzia decennale immobili", "anni": 10, "decorrenza": "compimento opera"},
+        {"termine": "Prescrizione ordinaria per risoluzione", "anni": 10, "natura": "prescrizione", "norma": "art. 2946 c.c."},
+        {"termine": "Termine a comparire", "giorni": 120, "natura": "minimo legale post-Cartabia"},
+        {"termine": "Costituzione convenuto", "giorni": 70, "decorrenza": "prima udienza", "natura": "perentorio"}
+      ]
+    },
+    {
+      "codice": "143001",
+      "denominazione": "Responsabilità professionale dell'avvocato",
+      "categoria": "Responsabilità civile - responsabilità professionale",
+      "sottocategoria": "Risarcimento danni da malpractice dell'avvocato - responsabilità contrattuale per inadempimento mandato",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale del luogo dell'esecuzione della prestazione (art. 20 c.p.c.) o residenza convenuto (artt. 18-19); per valore > 5.000 €",
+      "uffici_destinatari": ["SICID"],
+      "normativa": [
+        {"fonte": "c.c.", "articolo": "1218", "descrizione": "Responsabilità contrattuale del debitore"},
+        {"fonte": "c.c.", "articolo": "1176 c. 2", "descrizione": "Diligenza del professionista (diligenza qualificata)"},
+        {"fonte": "c.c.", "articolo": "2236", "descrizione": "Responsabilità del prestatore d'opera - limitazione per problemi tecnici di speciale difficoltà (dolo o colpa grave)"},
+        {"fonte": "c.c.", "articolo": "2230-2238", "descrizione": "Prestazione d'opera intellettuale"},
+        {"fonte": "c.c.", "articolo": "1223-1226", "descrizione": "Risarcimento danno"},
+        {"fonte": "c.c.", "articolo": "2697", "descrizione": "Onere prova - sul cliente l'inadempimento + danno + nesso causale"},
+        {"fonte": "c.c.", "articolo": "2946", "descrizione": "Prescrizione decennale ordinaria per contrattuale"},
+        {"fonte": "L. 247/2012", "descrizione": "Nuovo ordinamento forense - artt. 12 e 13 sui doveri deontologici"},
+        {"fonte": "L. 24/2017", "articolo": "10", "descrizione": "Obbligo assicurazione anche avvocati (estensione del principio)"},
+        {"fonte": "Codice Deontologico Forense", "articoli": "9-30", "descrizione": "Doveri di diligenza, competenza, segretezza"},
+        {"fonte": "Cass. SU 18347/2017", "descrizione": "Onere della prova del danno - perdita di chance"},
+        {"fonte": "Cass. 22008/2015", "descrizione": "Inadempimento del mandato e responsabilità per decadenze processuali"}
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI UN MANDATO PROFESSIONALE (procura alle liti, contratto di patrocinio, mandato stragiudiziale)",
+        "INADEMPIMENTO o INESATTO ADEMPIMENTO del mandato da parte dell'avvocato",
+        "DILIGENZA QUALIFICATA come parametro (art. 1176 c. 2 c.c.) - non semplice diligenza del buon padre di famiglia",
+        "DANNO al cliente",
+        "NESSO DI CAUSALITÀ tra inadempimento e danno",
+        "Per problemi tecnici di speciale difficoltà: applicabilità art. 2236 c.c. (limitazione a dolo o colpa grave)"
+      ],
+      "tipologie_inadempimento_tipiche": [
+        "DECADENZE PROCESSUALI: omessa impugnazione nei termini, omesso deposito ricorso, omesso atto entro decadenza",
+        "ERRORI STRATEGICI: scelta giurisdizione errata, mancato fondamento normativo, errato inquadramento giuridico",
+        "OMESSO COMPIMENTO DI ATTI: omessa iscrizione a ruolo, omessa notifica, omessa comparizione",
+        "INSUFFICIENTE DILIGENZA: prove non raccolte, testimoni non citati, eccezioni non sollevate",
+        "MANCATA INFORMAZIONE del cliente su rischi/opportunità",
+        "CONFLITTO DI INTERESSI",
+        "VIOLAZIONE SEGRETO PROFESSIONALE"
+      ],
+      "criterio_perdita_di_chance": "Cass. SU 18347/2017: nel caso di responsabilità del professionista, il danno consiste nella PERDITA DI CHANCE - probabilità di vittoria che il cliente avrebbe avuto - quantificazione con criteri probabilistici",
+      "obbligo_mediazione": {"obbligatoria": false, "tentativo_facoltativo": "Conciliazione presso COA - facoltativa"},
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione del MANDATO PROFESSIONALE e degli atti correlati",
+          "documenti": [
+            "Procura alle liti / contratto di patrocinio",
+            "Mandato per attività stragiudiziale",
+            "Corrispondenza con l'avvocato (mail, PEC, lettere)",
+            "Atti processuali predisposti dall'avvocato",
+            "Eventuali sentenze e provvedimenti del giudice"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "IDENTIFICAZIONE PRECISA DELL'INADEMPIMENTO",
+          "verifica_critica": [
+            "Per decadenza processuale: identificazione del termine non rispettato + sentenza/provvedimento che ne attesta gli effetti",
+            "Per errore strategico: ricostruzione cosa avrebbe dovuto fare un avvocato diligente nella stessa situazione",
+            "Per omissioni: identificazione atti dovuti e non compiuti",
+            "Per mancata informazione: documentazione di ciò che il cliente non sapeva e che ha pregiudicato la sua decisione"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "QUANTIFICAZIONE DEL DANNO - SOPRATTUTTO PERDITA DI CHANCE",
+          "metodologia": [
+            "Identificare l'esito che il cliente avrebbe ragionevolmente ottenuto in assenza dell'inadempimento",
+            "Calcolare la PROBABILITÀ di vittoria (es. 60%, 40%, ecc.)",
+            "Quantificare il valore della pretesa originaria (capitale + interessi)",
+            "Danno = valore della pretesa × probabilità di vittoria (perdita di chance)",
+            "Aggiungere eventuali danni emergenti (spese di lite, costi di nuova causa)"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "Eventuale RICHIESTA STRAGIUDIZIALE all'avvocato e alla sua COMPAGNIA ASSICURATIVA",
+          "vantaggio": "L'obbligo di assicurazione (oggi vigente) consente azione diretta o transazione preventiva"
+        },
+        {
+          "step": 5,
+          "descrizione": "Acquisizione PARERE TECNICO DI ALTRO AVVOCATO ESPERTO",
+          "rilevanza": "Utile per dimostrare la violazione della diligenza qualificata - può fungere da CTP di parte"
+        },
+        {
+          "step": 6,
+          "descrizione": "Verifica eventuale RICORSO PROCEDIMENTO DISCIPLINARE presso COA",
+          "rilevanza": "Procedimento parallelo - può fornire elementi probatori (giudicato disciplinare)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_responsabilita_professionale_avvocato",
+        "denominazione": "Atto di citazione per responsabilità professionale dell'avvocato",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {"id": "tribunale", "label": "Tribunale competente", "type": "select", "required": true},
+          {"id": "cliente_attore", "label": "Cliente attore (danneggiato)", "type": "object_persona", "required": true},
+          {"id": "avvocato_convenuto", "label": "Avvocato convenuto", "type": "object_persona", "required": true, "sub_fields": [
+            {"id": "cognome_nome", "type": "string"},
+            {"id": "codice_fiscale", "type": "string"},
+            {"id": "ordine_iscrizione", "type": "string"},
+            {"id": "studio_legale_indirizzo", "type": "address"}
+          ]},
+          {"id": "assicuratore_avvocato", "label": "Compagnia assicuratrice (azione diretta possibile per obbligo assicurativo)", "type": "object_persona_giuridica"},
+          {"id": "mandato_professionale", "label": "Mandato professionale", "type": "object", "required": true, "sub_fields": [
+            {"id": "data_conferimento", "type": "date"},
+            {"id": "tipo_mandato", "type": "select", "options": ["procura_alle_liti", "patrocinio_stragiudiziale", "consulenza_legale", "redazione_atti"]},
+            {"id": "oggetto", "type": "textarea"},
+            {"id": "compenso_pattuito_eventuale", "type": "currency"}
+          ]},
+          {"id": "tipo_inadempimento", "label": "Tipo di inadempimento", "type": "select_multi", "required": true, "options": ["decadenza_processuale_omessa_impugnazione", "decadenza_per_omesso_deposito_ricorso", "decadenza_per_omessa_costituzione", "omesso_atto_processuale_dovuto", "errore_strategico_giurisdizione_o_qualificazione", "scelta_normativa_errata", "mancata_eccezione_tempestiva", "mancata_raccolta_prove", "omessa_citazione_testimoni", "mancata_informazione_cliente", "conflitto_di_interessi", "violazione_segreto_professionale", "altro"]},
+          {"id": "esposizione_inadempimento", "label": "Esposizione dettagliata dell'inadempimento", "type": "textarea", "required": true, "min_length": 500},
+          {"id": "diligenza_qualificata_violata", "label": "Descrizione della diligenza qualificata violata", "type": "textarea", "required": true},
+          {"id": "danno_subito", "label": "Danno subito", "type": "object_complesso", "required": true, "sub_fields": [
+            {"id": "esito_processuale_negativo", "type": "textarea"},
+            {"id": "ricostruzione_esito_probabile_se_diligente", "type": "textarea", "required": true, "min_length": 300},
+            {"id": "calcolo_perdita_di_chance", "type": "object", "sub_fields": [
+              {"id": "probabilita_di_vittoria_stimata", "type": "percentage"},
+              {"id": "valore_pretesa_originaria", "type": "currency"},
+              {"id": "perdita_di_chance_calcolata", "type": "currency"}
+            ]},
+            {"id": "spese_legali_inutilmente_sostenute", "type": "currency"},
+            {"id": "altri_danni", "type": "currency"},
+            {"id": "totale_richiesto", "type": "currency"}
+          ]},
+          {"id": "parere_tecnico_di_parte", "label": "Parere tecnico di altro avvocato (allegato come CTP)", "type": "boolean", "consigliato": true},
+          {"id": "udienza_comparizione", "label": "Prima udienza", "type": "date", "required": true}
+        ],
+        "avvertimenti_obbligatori": [
+          "Diligenza qualificata ex art. 1176 c. 2 c.c. come parametro",
+          "Art. 2236 c.c. - limitazione a dolo o colpa grave solo per problemi tecnici di speciale difficoltà",
+          "Onere prova del cliente: inadempimento + danno + nesso (Cass. SU 18347/2017)",
+          "Perdita di chance come misura del danno",
+          "Prescrizione decennale (responsabilità contrattuale)",
+          "Termine a comparire 120 gg post-Cartabia"
+        ]
+      },
+      "allegati_obbligatori": [
+        {"id": "procura_o_mandato_professionale", "label": "Procura alle liti / contratto di patrocinio originario", "required": true, "critico": true},
+        {"id": "atti_processuali_predisposti", "label": "Atti processuali predisposti dall'avvocato convenuto", "required": true},
+        {"id": "sentenze_e_provvedimenti", "label": "Sentenze e provvedimenti del giudice (per documentare decadenze/esiti negativi)", "required": true, "critico": true},
+        {"id": "corrispondenza_con_avvocato", "label": "Corrispondenza con l'avvocato (mail, PEC, lettere)", "required": true},
+        {"id": "documenti_originari_del_caso", "label": "Documenti originari del caso patrocinato (per ricostruzione esito probabile)", "required": true},
+        {"id": "parere_tecnico_avvocato_esperto", "label": "Parere tecnico di altro avvocato esperto (CTP di parte)", "required": false, "fortemente_consigliato": true},
+        {"id": "richiesta_stragiudiziale", "label": "Eventuale richiesta stragiudiziale all'avvocato e/o assicurazione", "required": false},
+        {"id": "procedimento_disciplinare_COA", "label": "Documentazione su eventuale procedimento disciplinare presso COA", "required": false},
+        {"id": "fatture_pagate_per_prestazione_inadempiuta", "label": "Fatture pagate per la prestazione inadempiuta", "required": false},
+        {"id": "procura_alle_liti_nuova_causa", "label": "Procura alle liti per la nuova causa", "required": true}
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore del danno richiesto",
+        "marca_bollo_forfettaria": 27.00,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {"tipo": "richiesta_stragiudiziale_assicurazione", "trigger": "Per via diretta o transattiva", "automatico": false},
+        {"tipo": "ricorso_disciplinare_COA", "trigger": "Procedimento parallelo", "automatico": false},
+        {"tipo": "ctu_tecnica_su_diligenza_e_chance", "trigger": "Disposta dal giudice", "automatico": false},
+        {"tipo": "chiamata_in_garanzia_assicurazione", "trigger": "Domanda di garanzia dell'avvocato", "automatico": false},
+        {"tipo": "appello", "trigger": "Sentenza primo grado", "termine": "30 gg notifica"}
+      ],
+      "esiti_processuali_tipici": [
+        {"esito": "accoglimento_e_risarcimento_perdita_chance", "descrizione": "Condanna avvocato (e/o assicurazione) al risarcimento del danno calcolato come perdita di chance"},
+        {"esito": "accoglimento_parziale", "descrizione": "Probabilità di vittoria inferiore - quantum inferiore"},
+        {"esito": "rigetto_per_assenza_inadempimento", "descrizione": "Comportamento dell'avvocato conforme alla diligenza qualificata"},
+        {"esito": "rigetto_per_assenza_nesso_causale", "descrizione": "Anche se inadempimento, danno non causalmente collegato"},
+        {"esito": "rigetto_per_2236_difficolta_tecnica", "descrizione": "Problema di speciale difficoltà - colpa grave non provata"},
+        {"esito": "transazione", "descrizione": "Accordo - molto frequente per evitare condanna disciplinare e danno reputazionale"}
+      ],
+      "termini_processuali": [
+        {"termine": "Prescrizione responsabilità contrattuale", "anni": 10, "decorrenza": "esaurimento mandato o scoperta danno", "natura": "prescrizione", "norma": "art. 2946 c.c."},
+        {"termine": "Termine a comparire", "giorni": 120, "natura": "minimo legale post-Cartabia"},
+        {"termine": "Costituzione convenuto", "giorni": 70, "decorrenza": "prima udienza", "natura": "perentorio"},
+        {"termine": "Appello", "giorni": 30, "decorrenza": "notifica sentenza", "natura": "perentorio"}
+      ]
+    }
+  ]
+}

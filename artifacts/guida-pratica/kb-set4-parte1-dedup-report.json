@@ -1,0 +1,9 @@
+{
+  "generated_at": "2026-05-22T12:25:52Z",
+  "input_file": "C:\\Users\\antmm\\OneDrive\\Desktop\\guida avvocato\\kb_top9_set4_parte1.json",
+  "input_sha256": "B1AB3FBA4CA8FB4ABB5D238AD09B4177B4D3ABDC35186C3CE1C6A565929E4E36",
+  "matched_existing_module": "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set3_parte1.json",
+  "matched_existing_sha256": "B1AB3FBA4CA8FB4ABB5D238AD09B4177B4D3ABDC35186C3CE1C6A565929E4E36",
+  "status": "already_integrated_duplicate_by_sha256",
+  "reason": "Il nome del file indica set4_parte1, ma il payload dichiara TOP9_CODICI_FREQUENTI_SET3_PARTE1 ed è identico al modulo set3_parte1 già integrato."
+}

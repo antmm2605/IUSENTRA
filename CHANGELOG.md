@@ -6,6 +6,7 @@
 - Bloccate le sidebar spezzate in micro-colonne e normalizzati header, KPI, pannelli economici e superfici operative tramite token globali, evitando stili locali contrastanti.
 - Ripristinate le caselle Email PEC ed Email ordinaria nella vista classica a tre aree, escludendole dal preset globale come il builder sito studio per evitare deformazioni dello split lista/lettura/sidebar.
 - Estesi audit e contratti React per fallire su support rail troppo stretta, anteprima email troppo stretta e header locali fuori preset.
+- Rimossa dalla Guida Pratica operativa la traccia del vecchio prototipo immobiliare: il servizio e la UI non mostrano più le frasi di conferma scheda, la progressione `0/16 requisiti` o il blocco `Vendita di cose immobili / Scheda 140011`; la memoria operativa registra il nuovo vincolo.
 
 ## 2.248.14 - 2026-05-22
 

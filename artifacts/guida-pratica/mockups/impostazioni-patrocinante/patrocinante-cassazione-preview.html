@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IUSENTRA - Anteprima campo Patrocinante in Cassazione</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #637087;
+      --line: #dde5ee;
+      --line-strong: #cbd9ea;
+      --panel: #fbfdff;
+      --paper: #f5f7fa;
+      --blue: #1264df;
+      --blue-soft: #eaf3ff;
+      --green-soft: #edf8f3;
+      --green: #087a58;
+      --gold-soft: #fff8e9;
+      --gold: #a56406;
+      --shadow: 0 16px 42px rgba(19, 34, 56, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      font-size: 14px;
+      letter-spacing: 0;
+    }
+
+    .page {
+      min-height: 100vh;
+      padding: 0 24px 24px;
+    }
+
+    .header {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: start;
+      padding-top: 0;
+    }
+
+    .header-icon,
+    .panel-icon,
+    .rail-icon {
+      display: grid;
+      place-items: center;
+      width: 43px;
+      height: 43px;
+      border-radius: 12px;
+      border: 1px solid #cfe0f3;
+      background: #eaf3ff;
+      color: var(--blue);
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 31px;
+      line-height: 1.02;
+      font-weight: 820;
+    }
+
+    .header p {
+      max-width: 650px;
+      margin: 7px 0 0;
+      color: #5c6a83;
+      line-height: 1.45;
+      font-weight: 720;
+    }
+
+    .refresh {
+      min-height: 38px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      font-weight: 800;
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin: 22px 0 10px;
+    }
+
+    .tab {
+      min-height: 39px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fff;
+      color: #5d6471;
+      font-weight: 850;
+    }
+
+    .tab.active {
+      border-color: #d4e0ef;
+      background: #f9fbfe;
+      color: #434b59;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .settings-card {
+      padding: 25px 24px 20px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .section-head strong {
+      display: block;
+      font-size: 16px;
+      font-weight: 880;
+    }
+
+    .section-head span {
+      display: block;
+      margin-top: 4px;
+      color: #65738a;
+      font-weight: 720;
+    }
+
+    .section-pill {
+      margin-left: auto;
+      min-height: 26px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 10px;
+      border: 1px solid #bcd5ff;
+      border-radius: 999px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 15px 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field.half { grid-column: span 1.5; }
+    .field.span-2 { grid-column: span 2; }
+    .field.full { grid-column: 1 / -1; }
+
+    .field label {
+      color: #344158;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .required { color: #c84e36; }
+
+    .input {
+      min-height: 32px;
+      display: flex;
+      align-items: center;
+      width: 100%;
+      padding: 0 11px;
+      border: 1px solid #d7e0e9;
+      border-radius: 10px;
+      background: #fff;
+      color: #364157;
+      font-weight: 800;
+    }
+
+    .highlight-input {
+      min-height: 32px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 12px;
+      border: 1px solid #b8d5ff;
+      border-radius: 10px;
+      background: #f6faff;
+      color: #1c3f76;
+      font-weight: 850;
+      position: relative;
+      box-shadow: 0 0 0 3px rgba(18, 100, 223, 0.08);
+    }
+
+    .highlight-input .value {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .new-badge {
+      margin-left: auto;
+      min-height: 22px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 8px;
+      border: 1px solid #d7a64c;
+      border-radius: 999px;
+      background: var(--gold-soft);
+      color: var(--gold);
+      font-size: 11px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .field-help {
+      color: #65738a;
+      font-size: 11px;
+      line-height: 1.35;
+      font-weight: 680;
+    }
+
+    .info-box {
+      grid-column: 1 / -1;
+      min-height: 63px;
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr);
+      align-items: center;
+      gap: 12px;
+      padding: 10px 13px;
+      border: 1px solid #d7e0e9;
+      border-radius: 10px;
+      background: #fff;
+      color: #3d4b62;
+    }
+
+    .save {
+      justify-self: end;
+      min-height: 36px;
+      padding: 0 15px;
+      border: 1px solid var(--blue);
+      border-radius: 9px;
+      background: var(--blue);
+      color: #fff;
+      font-weight: 900;
+    }
+
+    .rail {
+      display: grid;
+      gap: 12px;
+    }
+
+    .rail-card {
+      padding: 16px 16px 14px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .rail-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .rail-head strong {
+      display: block;
+      font-size: 16px;
+      font-weight: 880;
+    }
+
+    .rail-head span {
+      display: block;
+      margin-top: 2px;
+      color: #536078;
+      font-weight: 720;
+    }
+
+    .rail-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .rail-item {
+      min-height: 64px;
+      display: grid;
+      grid-template-columns: 24px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .ok {
+      width: 18px;
+      height: 18px;
+      display: grid;
+      place-items: center;
+      border: 1.5px solid var(--blue);
+      border-radius: 999px;
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .rail-item strong {
+      display: block;
+      font-weight: 880;
+    }
+
+    .rail-item span {
+      display: inline-flex;
+      margin-top: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--green-soft);
+      color: #111d2f;
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .callout {
+      border-color: #b8d5ff;
+      background: #f6faff;
+    }
+
+    svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="header">
+      <div class="header-icon">
+        <svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"></path><path d="M2 14h4M10 8h4M18 16h4"></path></svg>
+      </div>
+      <div>
+        <h1>Impostazioni</h1>
+        <p>Dati studio, canali di comunicazione, firma digitale, automazioni e AI locale in un unico pannello operativo.</p>
+      </div>
+      <button class="refresh">Aggiorna</button>
+    </section>
+
+    <nav class="tabs" aria-label="Sezioni impostazioni">
+      <span class="tab active"><svg viewBox="0 0 24 24"><path d="M3 21h18"></path><path d="M5 21V7l8-4v18"></path><path d="M19 21V11l-6-4"></path></svg>Dati Studio</span>
+      <span class="tab">PEC</span>
+      <span class="tab">Firma Digitale</span>
+      <span class="tab">Email SMTP</span>
+      <span class="tab">WhatsApp</span>
+      <span class="tab">Scheduler</span>
+      <span class="tab">AI Locale</span>
+      <span class="tab">Pagamenti</span>
+      <span class="tab">Notifiche</span>
+      <span class="tab">Backup</span>
+      <span class="tab">Calendari</span>
+    </nav>
+
+    <section class="layout">
+      <article class="card settings-card">
+        <div class="section-head">
+          <div class="panel-icon">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6M9 13h6M9 17h4"></path></svg>
+          </div>
+          <div>
+            <strong>Dati Studio</strong>
+            <span>Anagrafica, albo, recapiti e coordinate usate nei documenti.</span>
+          </div>
+          <span class="section-pill">Dati Studio</span>
+        </div>
+
+        <div class="form-grid">
+          <div class="field span-2">
+            <label>Nome studio <span class="required">*</span></label>
+            <div class="input">Studio Legale Montagnese</div>
+          </div>
+          <div class="field">
+            <label>Avvocato titolare</label>
+            <div class="input">Roberto Montagnese</div>
+          </div>
+
+          <div class="field">
+            <label>Numero iscrizione Albo</label>
+            <div class="input"></div>
+          </div>
+          <div class="field">
+            <label>Ordine degli Avvocati</label>
+            <div class="input">Palmi</div>
+          </div>
+          <div class="field">
+            <label>Qualifica professionale</label>
+            <div class="highlight-input"><span class="value">Patrocinante in Cassazione</span><span class="new-badge">campo libero</span></div>
+            <div class="field-help">Testo libero per timbro e template: es. Avvocato cassazionista, Patrocinante dinanzi alle giurisdizioni superiori o altra formula dello studio.</div>
+          </div>
+
+          <div class="field">
+            <label>C.F. Avvocato per PCT</label>
+            <div class="input">MNTRRT64L01L063H</div>
+          </div>
+          <div class="field">
+            <label>Partita IVA</label>
+            <div class="input">01301790802</div>
+          </div>
+          <div class="field">
+            <label>Codice fiscale studio</label>
+            <div class="input">MNTRRT64L01L063H</div>
+          </div>
+
+          <div class="field">
+            <label>Telefono</label>
+            <div class="input">+393487831366</div>
+          </div>
+          <div class="field">
+            <label>Email studio</label>
+            <div class="input">r.montagnese@tiscali.it</div>
+          </div>
+          <div class="field">
+            <label>Sito web</label>
+            <div class="input"></div>
+          </div>
+
+          <div class="field full">
+            <label>Indirizzo</label>
+            <div class="input">Via NINO BIXIO 4 - 89029 Taurianova (RC)</div>
+          </div>
+
+          <div class="field">
+            <label>Città</label>
+            <div class="input">Taurianova</div>
+          </div>
+          <div class="field">
+            <label>Provincia</label>
+            <div class="input">RC</div>
+          </div>
+          <div class="field">
+            <label>Santo patrono</label>
+            <div class="input">madonna</div>
+          </div>
+
+          <div class="field">
+            <label>Giorno patrono</label>
+            <div class="input">8</div>
+          </div>
+          <div class="field">
+            <label>Mese patrono</label>
+            <div class="input">9</div>
+          </div>
+          <div class="field"></div>
+
+          <div class="field span-2">
+            <label>IBAN</label>
+            <div class="input">IT93C0303281610010000013029</div>
+          </div>
+          <div class="field">
+            <label>Banca</label>
+            <div class="input">Credem</div>
+          </div>
+
+          <div class="info-box">
+            <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg>
+            <div>
+              <strong>Controllo configurazione</strong><br>
+              <span>Questa sezione viene controllata al momento del salvataggio e registrata nello storico dello studio.</span>
+            </div>
+          </div>
+
+          <button class="save">Salva sezione</button>
+        </div>
+      </article>
+
+      <aside class="rail">
+        <article class="rail-card">
+          <div class="rail-head">
+            <div class="rail-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-5"></path></svg>
+            </div>
+            <div><strong>Presidio configurazione</strong><span>11 di 11 sezioni configurate</span></div>
+          </div>
+          <div class="rail-list">
+            <div class="rail-item callout"><div class="ok">✓</div><div><strong>Dati Studio</strong><span>configurata</span></div></div>
+            <div class="rail-item"><div class="ok">✓</div><div><strong>PEC</strong><span>configurata</span></div></div>
+            <div class="rail-item"><div class="ok">✓</div><div><strong>Firma Digitale</strong><span>configurata</span></div></div>
+            <div class="rail-item"><div class="ok">✓</div><div><strong>Email SMTP</strong><span>configurata</span></div></div>
+            <div class="rail-item"><div class="ok">✓</div><div><strong>WhatsApp</strong><span>configurata</span></div></div>
+            <div class="rail-item"><div class="ok">✓</div><div><strong>Scheduler</strong><span>configurata</span></div></div>
+            <div class="rail-item"><div class="ok">✓</div><div><strong>AI Locale</strong><span>configurata</span></div></div>
+          </div>
+        </article>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>

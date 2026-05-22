@@ -127,6 +127,43 @@ def _overall_state(issues: Iterable[ValidationIssue]) -> str:
     return "ok"
 
 
+_DRAFT_ONLY_DEPOSIT_CODES = {
+    "codice_oggetto_pst_mancante",
+    "codice_oggetto_pst_non_ufficiale",
+    "campo_mancante_controparte",
+    "depositante_non_identificato",
+    "materia_non_compatibile",
+    "xml_codice_oggetto_mancante",
+    "xml_codice_oggetto_non_ufficiale",
+    "ufficio_non_mappato_catalogo",
+    "schema_office_unresolved",
+    "schema_office_type_mismatch",
+    "schema_channel_office_mismatch",
+    "procura_mancante",
+    "contributo_non_evidenziato",
+    "prova_notifica_non_rilevata",
+    "indice_non_rilevato",
+    "provvedimento_impugnato_mancante",
+}
+
+
+def _redaction_issue_for_draft(issue: ValidationIssue) -> ValidationIssue:
+    if issue.code not in _DRAFT_ONLY_DEPOSIT_CODES:
+        return issue
+    return replace(
+        issue,
+        level=LEVEL_WARNING,
+        title=f"{issue.title} nel fascicolo, non nel template",
+        detail=(
+            f"{issue.detail} Questo controllo resta necessario prima del deposito, "
+            "ma non blocca la redazione e l'apertura della bozza in editor."
+        ),
+        suggested_action=(
+            "Produci e revisiona prima il documento; il controllo verrà ripreso nel fascicolo o nel deposito assistito."
+        ),
+    )
+
+
 def _dedupe_sources(*groups: Iterable[Dict[str, str]]) -> list[dict[str, str]]:
     seen: set[tuple[str, str]] = set()
     result: list[dict[str, str]] = []
@@ -779,6 +816,9 @@ class AssistenteRedazionale:
             titolo=_first_text(payload.get("title"), model.get("name", "")),
             oggetto=_first_text(payload.get("subject"), payload.get("claim_subject"), payload.get("request_subject"), model.get("name", "")),
             tribunale=tribunal,
+            codice_oggetto_pst=getattr(fascicolo, "codice_oggetto_pst", "") if fascicolo else "",
+            fonte_codice_oggetto=getattr(fascicolo, "fonte_codice_oggetto", "") if fascicolo else "",
+            file_fonte_codice_oggetto=getattr(fascicolo, "file_fonte_codice_oggetto", "") if fascicolo else "",
             numero_rg=_first_text(payload.get("proceeding_number"), getattr(fascicolo, "numero_rg", "") if fascicolo else ""),
             anno_rg=getattr(fascicolo, "anno_rg", 0) if fascicolo else 0,
             controparte=_first_text(
@@ -810,6 +850,7 @@ class AssistenteRedazionale:
         context = {
             "tipo_atto": profile.tipo_atto_code,
             "codice_registro": profile.registry_suggestion,
+            "codice_oggetto_pst": getattr(fascicolo, "codice_oggetto_pst", ""),
             "oggetto": _first_text(payload.get("subject"), payload.get("title"), model["name"]),
             "numero_rg": _first_text(payload.get("proceeding_number"), getattr(fascicolo, "numero_rg", "")),
             "anno_rg": getattr(fascicolo, "anno_rg", 0),
@@ -828,6 +869,7 @@ class AssistenteRedazionale:
             selected_documents=draft_documents,
             all_documents=draft_documents,
         )
+        issues = [_redaction_issue_for_draft(issue) for issue in issues]
         compiler_errors = validate_payload(model["code"], payload)
         for field_name, error in compiler_errors.items():
             issues.append(
@@ -938,7 +980,7 @@ class AssistenteRedazionale:
                 )
             elif profile.allowed_office_types and office_type not in profile.allowed_office_types:
                 issues.append(
-                    ValidationIssue(
+                    _redaction_issue_for_draft(ValidationIssue(
                         service=SERVICE_TECNICO,
                         level=LEVEL_BLOCK,
                         code="schema_office_type_mismatch",
@@ -949,7 +991,7 @@ class AssistenteRedazionale:
                         source="Catalogo schemi ministeriali versionato",
                         suggested_action="Allinea la sede al giudice compatibile prima della generazione della busta.",
                         field="recipient_or_court",
-                    )
+                    ))
                 )
             issues.append(
                 ValidationIssue(
@@ -976,7 +1018,7 @@ class AssistenteRedazionale:
 
         if profile.allowed_office_types and office_type and office_type not in profile.allowed_office_types:
             issues.append(
-                ValidationIssue(
+                _redaction_issue_for_draft(ValidationIssue(
                     service=SERVICE_TECNICO,
                     level=LEVEL_BLOCK,
                     code="schema_channel_office_mismatch",
@@ -988,7 +1030,7 @@ class AssistenteRedazionale:
                     source="Catalogo schemi ministeriali versionato",
                     suggested_action="Verifica la sede / ufficio prima di procedere con la bozza.",
                     field="recipient_or_court",
-                )
+                ))
             )
         issues.append(
             ValidationIssue(

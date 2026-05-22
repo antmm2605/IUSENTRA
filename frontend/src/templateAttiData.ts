@@ -71,6 +71,52 @@ export type TemplateCompilerNote = {
   text: string
 }
 
+export type TemplateGuidePreviewStep = {
+  id: string
+  label: string
+  state: 'done' | 'active' | 'pending'
+}
+
+export type TemplateGuidePreviewCheck = {
+  label: string
+  value: string
+  tone: AdminTone
+}
+
+export type TemplateGuidePreview = {
+  enabled: boolean
+  eyebrow: string
+  title: string
+  subtitle: string
+  badge: string
+  guideCode: string
+  guideTitle: string
+  fascicoloHref: string
+  uploadEndpoint: string
+  importEndpoint: string
+  previewPdfHref: string
+  saveEndpoint: string
+  renderEndpoint: string
+  importLabel: string
+  previewLabel: string
+  saveLabel: string
+  initialText: string
+  reason: string
+  steps: TemplateGuidePreviewStep[]
+  template: {
+    code: string
+    name: string
+    reason: string
+    autoLoad: boolean
+  }
+  import: {
+    enabled: boolean
+    formats: string
+    note: string
+  }
+  layoutChecks: TemplateGuidePreviewCheck[]
+}
+
 export type TemplateNormativeReference = {
   id: string
   title: string
@@ -168,6 +214,7 @@ export type TemplateCompilerData = {
   }
   attachments: string[]
   sections: Array<{ label: string; state: string }>
+  guidePreview: TemplateGuidePreview
 }
 
 export const emptyTemplateAttiPage: TemplateAttiPageData = {
@@ -244,6 +291,30 @@ export const emptyTemplateCompilerPage: TemplateCompilerData = {
   checks: { blocking: [], recommended: [] },
   attachments: [],
   sections: [],
+  guidePreview: {
+    enabled: false,
+    eyebrow: 'Anteprima modifica',
+    title: 'Editor documento con impaginazione modello',
+    subtitle: '',
+    badge: 'template filtrato dalla guida',
+    guideCode: '',
+    guideTitle: '',
+    fascicoloHref: '',
+    uploadEndpoint: '',
+    importEndpoint: '',
+    previewPdfHref: '',
+    saveEndpoint: '',
+    renderEndpoint: '',
+    importLabel: 'Importa PDF/Word',
+    previewLabel: 'Anteprima PDF',
+    saveLabel: 'Salva nel fascicolo',
+    initialText: '',
+    reason: '',
+    steps: [],
+    template: { code: '', name: '', reason: '', autoLoad: false },
+    import: { enabled: false, formats: 'PDF/DOCX', note: '' },
+    layoutChecks: [],
+  },
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -420,6 +491,66 @@ function normaliseCompilerField(input: unknown): TemplateCompilerField {
   }
 }
 
+function normaliseGuidePreviewStep(input: unknown): TemplateGuidePreviewStep {
+  const item = asRecord(input)
+  const rawState = text(item.state)
+  const state: TemplateGuidePreviewStep['state'] = rawState === 'done' || rawState === 'active' || rawState === 'pending' ? rawState : 'pending'
+  return {
+    id: text(item.id) || text(item.label) || 'step',
+    label: text(item.label) || 'Passaggio',
+    state,
+  }
+}
+
+function normaliseGuidePreviewCheck(input: unknown): TemplateGuidePreviewCheck {
+  const item = asRecord(input)
+  return {
+    label: text(item.label) || 'Controllo',
+    value: text(item.value) || 'ok',
+    tone: tone(item.tone || 'success'),
+  }
+}
+
+function normaliseGuidePreview(input: unknown, modelCode: string, modelName: string): TemplateGuidePreview {
+  const item = asRecord(input)
+  const template = asRecord(item.template)
+  const importInfo = asRecord(item.import)
+  const fallback = emptyTemplateCompilerPage.guidePreview
+  return {
+    enabled: item.enabled === true,
+    eyebrow: text(item.eyebrow) || fallback.eyebrow,
+    title: text(item.title) || fallback.title,
+    subtitle: text(item.subtitle),
+    badge: text(item.badge) || fallback.badge,
+    guideCode: text(item.guideCode),
+    guideTitle: text(item.guideTitle),
+    fascicoloHref: safeHref(item.fascicoloHref, ''),
+    uploadEndpoint: safeHref(item.uploadEndpoint, ''),
+    importEndpoint: safeHref(item.importEndpoint, ''),
+    previewPdfHref: safeHref(item.previewPdfHref, ''),
+    saveEndpoint: safeHref(item.saveEndpoint, ''),
+    renderEndpoint: safeHref(item.renderEndpoint, ''),
+    importLabel: text(item.importLabel) || fallback.importLabel,
+    previewLabel: text(item.previewLabel) || fallback.previewLabel,
+    saveLabel: text(item.saveLabel) || fallback.saveLabel,
+    initialText: text(item.initialText),
+    reason: text(item.reason),
+    steps: list(item.steps).map(normaliseGuidePreviewStep).filter((step) => step.id || step.label),
+    template: {
+      code: text(template.code) || modelCode,
+      name: text(template.name) || modelName || modelCode || 'Template atto',
+      reason: text(template.reason),
+      autoLoad: template.autoLoad === true || template.auto_load === true,
+    },
+    import: {
+      enabled: importInfo.enabled !== false,
+      formats: text(importInfo.formats) || fallback.import.formats,
+      note: text(importInfo.note),
+    },
+    layoutChecks: list(item.layoutChecks).map(normaliseGuidePreviewCheck).filter((check) => check.label),
+  }
+}
+
 function normaliseNormativeReference(input: unknown): TemplateNormativeReference {
   const item = asRecord(input)
   const rawText = typeof input === 'string' ? input : ''
@@ -530,6 +661,7 @@ function normaliseCompilerPage(input: unknown): TemplateCompilerData {
       const item = asRecord(value)
       return { label: text(item.label), state: text(item.state) }
     }).filter((section) => section.label),
+    guidePreview: normaliseGuidePreview(page.guidePreview, text(model.code), text(model.name)),
   }
 }
 

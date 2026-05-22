@@ -15,7 +15,7 @@ import copy
 from datetime import date
 from typing import Any, Dict, Iterable, List, Optional
 
-from pct.template_atti_compiler_bindings import compiler_alias_specs
+from pct.template_atti_compiler_bindings import catalog_core_compiler_alias_specs, compiler_alias_specs
 
 
 def _fc(label: str, field_type: str = "text") -> dict[str, str]:
@@ -573,6 +573,7 @@ AREA_LABELS = {
 
 STATUS_OPTIONS = [("BOZZA", "Bozza"), ("IN_REVISIONE", "In revisione"), ("PRONTO", "Pronto")]
 MODEL_INDEX = {model["code"]: model for model in MODELS}
+CATALOG_CORE_BINDING_INDEX = {binding["compiler_code"]: binding for binding in catalog_core_compiler_alias_specs()}
 HIDDEN_BASE_FIELDS = {"model_code", "area", "act_type", "case_id", "author_user_id", "version", "status"}
 
 # Mapping tipologia wizard preventivi → model_code compilatore (può essere lista di codici)
@@ -1738,7 +1739,22 @@ def modelli_per_area() -> list[dict[str, Any]]:
 
 def get_modello(model_code: str) -> Optional[dict[str, Any]]:
     model = MODEL_INDEX.get(model_code)
-    return copy.deepcopy(model) if model else None
+    if model:
+        return copy.deepcopy(model)
+    binding = CATALOG_CORE_BINDING_INDEX.get(model_code)
+    if not binding:
+        return None
+    base = MODEL_INDEX.get(binding["base_code"])
+    if not base:
+        return None
+    alias = copy.deepcopy(base)
+    alias["code"] = binding["compiler_code"]
+    alias["name"] = binding["title"]
+    if binding.get("area"):
+        alias["area"] = binding["area"]
+    alias["alias_of"] = binding["base_code"]
+    alias["catalog_template_alias"] = True
+    return alias
 
 
 def campi_catalogo() -> dict[str, dict[str, Any]]:

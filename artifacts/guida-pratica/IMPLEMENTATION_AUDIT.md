@@ -6,7 +6,7 @@
 - Guide ufficiali curate: 1.018 su 1.018.
 - Codici ufficiali senza guida curata: 0.
 - Incoerenze tra catalogo ufficiale e stato depositabile: 0.
-- Alias/schede interne non depositabili: 46, mantenute come guida interna e bloccate per la generazione deposito.
+- Alias/schede interne non depositabili: 49, mantenute come guida interna e bloccate per la generazione deposito.
 - Guida Pratica disponibile anche a Lex come fonte interna conversazionale tramite `GuidaPraticaSource`, senza rendere la guida un requisito bloccante del fascicolo.
 - Vecchio blocco UI sperimentale rimosso dal servizio e dal componente React: non rientrano più le frasi `Scheda pratica suggerita...` / `Scheda pratica individuata...`, la progressione `0/16 requisiti` e il profilo immobiliare `Vendita di cose immobili / Scheda 140011` come pannello operativo.
 
@@ -19,6 +19,9 @@
 - `artifacts/guida-pratica/browser-guida-pratica-ui-removal-report.json`
 - `artifacts/guida-pratica/utf8-integrity-report.json`
 - `artifacts/guida-pratica/utf8-integrity-large-report.json`
+- `artifacts/guida-pratica/kb-set4-parte2-import-report.json`
+- `artifacts/guida-pratica/termini-processuali-set4-parte2-import-report.json`
+- `artifacts/guida-pratica/termini-processuali-set4-parte2-kb-audit.csv`
 
 ## Verifiche eseguite
 
@@ -26,9 +29,11 @@
 | --- | --- | --- |
 | `python scripts\validate_codici_oggetto_pst.py --min-records 1000` | OK | 1.018 record, duplicati 0, invalidi 0, descrizioni mancanti 0. |
 | `python scripts\verify_pst_xsd_catalog.py` | OK | Catalogo PST/XSD ufficiale integro: 1.018 record validi. |
-| `python scripts\validate_guida_pratica.py --require-official-curated --fail-on-generated ...` | OK | 1.018 codici ufficiali curati, 0 senza guida, coerenza deposito OK. |
-| `python scripts\import_guida_pratica_termini_processuali.py` | OK | 2.878 termini importati, 823 template calcolabili e audit termini aggiornato. |
-| `python scripts\audit_guida_pratica_user_material_fields.py --fail-on-loss --report ...latest.json --csv ...latest.csv` | OK | 6 file utente, 32 schede, 642 righe, 0 voci perse tra file ricevuti, KB, servizio/API, UI e Lex. |
+| `python scripts\validate_guida_pratica.py --require-official-curated --fail-on-generated ...` | OK | 1.018 codici ufficiali curati, 0 senza guida, coerenza deposito OK, 49 alias interni non depositabili. |
+| `python scripts\import_guida_pratica_termini_processuali.py --report artifacts\guida-pratica\termini-processuali-set4-parte2-import-report.json --csv artifacts\guida-pratica\termini-processuali-set4-parte2-kb-audit.csv` | OK | 2.895 termini importati, 832 template calcolabili e audit termini aggiornato. |
+| `python scripts\audit_guida_pratica_user_material_fields.py --fail-on-loss --report ...latest.json --csv ...latest.csv` | OK | 7 file utente, 36 schede, 724 righe, 0 voci perse tra file ricevuti, KB, servizio/API, UI e Lex. |
+| `python -m pytest tests\test_guida_pratica_api.py::test_template_filtrato_da_guida_pratica_espone_anteprima_operativa tests\test_guida_pratica_api.py::test_guida_pratica_api_agganciata_al_fascicolo tests\test_react_shell.py::test_post_nuovo_fascicolo_con_cliente_apre_il_fascicolo -q --tb=short` | OK | Template filtrato dalla Guida Pratica, import documento, anteprima PDF, salvataggio nel fascicolo e redirect nuovo fascicolo verso fascicolo reale governati da test. |
+| `python -m pytest tests\test_template_atti_master_catalog.py tests\test_guida_pratica_api.py::test_template_filtrato_da_guida_pratica_espone_anteprima_operativa -q --tb=short` | OK | Il catalogo resta a 192 modelli operativi storici e gli alias core come `GDP_001` aprono il compilatore reale solo quando richiesti. |
 | Browser su `http://127.0.0.1:8080/fascicoli/nuovo` | OK | Pagina reale caricata, nessuna occorrenza del vecchio blocco `Vendita di cose immobili / Scheda 140011`, nessuna frase `Scheda pratica suggerita...` o `Scheda pratica individuata...`, zero errori console. |
 | `python -m pytest -q tests\test_guida_pratica_api.py lex\tests\unit\test_guida_pratica_source.py tests\test_react_document_editor.py tests\test_import_guida_pratica_termini_processuali.py tests\test_curate_codex_guida_pratica_completion.py tests\test_guida_pratica_service.py tests\test_pst_xsd_catalog_importer.py ...` | OK | 42 test passati sul perimetro Guida Pratica, Lex, import termini, editor documento, catalogo PST/XSD e Impostazioni. |
 | `npm run build` da `frontend` | OK | TypeScript e build Vite completati dopo la rimozione del vecchio contesto UI e l'aggiornamento dei bundle React. |
@@ -54,3 +59,7 @@ Nessuno. Il CSV `artifacts/guida-pratica/codici-ufficiali-senza-guida-curata.csv
 ## Nota operativa su audit voce per voce
 
 L'audit voce per voce aggiornato è disponibile in `artifacts/guida-pratica/guida-pratica-user-material-field-audit-latest.json` e `artifacts/guida-pratica/guida-pratica-user-material-field-audit-latest.csv`. Il CSV canonico `artifacts/guida-pratica/guida-pratica-user-material-field-audit.csv` risulta temporaneamente aperto da un altro processo Windows; il JSON canonico è aggiornato, mentre il CSV canonico va riallineato appena il file non è più bloccato.
+
+## Nota operativa su anteprima, template filtrato e import
+
+La pagina reale `/template-atti/compila/<codice>` deve riprodurre il mockup approvato quando arriva dalla Guida Pratica con `id_fascicolo`, `guida_pratica` e `origine=guida_pratica`: template già filtrato, caricamento automatico del modello suggerito, import PDF/DOC/DOCX, anteprima PDF e salvataggio nel fascicolo senza chiudere il fascicolo. Il confronto visivo deve usare gli screenshot canonici in `artifacts/guida-pratica/mockups/pacchetto-completo-v2/`.

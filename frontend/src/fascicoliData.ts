@@ -237,6 +237,7 @@ export type FascicoloFull = FascicoloRow & {
   practiceArea: string
   proceduraOperativaCodice: string
   codiceOggettoPst: string
+  codiceGuidaPratica: string
   fonteCodiceOggetto: string
   fileFonteCodiceOggetto: string
   riferimentoCartaceo: string
@@ -519,7 +520,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
     nextDeadline: 'n.d.', nextDeadlineIso: '', status: 'aperto', documents: 0, unreadCommunications: 0, alerts: 0, openedAt: '', closedAt: '', updatedAt: '',
     href: '/fascicoli', operationalHref: '/fascicoli', editHref: '/fascicoli', operationalEditHref: '/fascicoli', exportPdfHref: '', deleteHref: '', archiveZipHref: '', restoreAction: '', tone: 'neutral',
     object: '', counterparty: '', counterpartyTaxCode: '', judge: '', section: '', leadLawyer: '', dominus: '', value: '', quotedValue: '', agreedFee: '',
-    procedureType: '', practiceId: '', practiceArea: '', proceduraOperativaCodice: '', codiceOggettoPst: '', fonteCodiceOggetto: '', fileFonteCodiceOggetto: '',
+    procedureType: '', practiceId: '', practiceArea: '', proceduraOperativaCodice: '', codiceOggettoPst: '', codiceGuidaPratica: '', fonteCodiceOggetto: '', fileFonteCodiceOggetto: '',
     riferimentoCartaceo: '', attorePrincipale: '', istruttorePmGip: '', cancelliere: '', ctu: '', ctp: '',
     statoPraticaOperativa: '', personalizzabile: false, fascicoloVeloce: false, documentiInizialiCount: 0, emailInizialiCount: 0, dataAperturaIso: '', dataChiusuraIso: '',
     firstHearing: '', citationNotification: '', nextHearing: '', notes: '', reservedNotes: '',
@@ -871,6 +872,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     practiceArea: text(fullPayload.practiceArea ?? fullPayload.area_pratica),
     proceduraOperativaCodice: text(fullPayload.proceduraOperativaCodice ?? fullPayload.procedura_operativa_codice),
     codiceOggettoPst: text(fullPayload.codiceOggettoPst ?? fullPayload.codice_oggetto_pst),
+    codiceGuidaPratica: text(fullPayload.codiceGuidaPratica ?? fullPayload.codice_guida_pratica),
     fonteCodiceOggetto: text(fullPayload.fonteCodiceOggetto ?? fullPayload.fonte_codice_oggetto),
     fileFonteCodiceOggetto: text(fullPayload.fileFonteCodiceOggetto ?? fullPayload.file_fonte_codice_oggetto),
     riferimentoCartaceo: text(fullPayload.riferimentoCartaceo ?? fullPayload.riferimento_cartaceo),
@@ -1044,7 +1046,7 @@ function normalizeFormPayload(payload: unknown): FascicoloFormData {
     correction: isRecord(payload.correction) ? { active: bool(payload.correction.active), title: text(payload.correction.title), help: text(payload.correction.help), highlight: text(payload.correction.highlight) } : undefined,
     guardrails: guardrails ? {
       available: guardrails.available === undefined ? true : bool(guardrails.available),
-      title: text(guardrails.title, 'Presidio deposito assistito'),
+      title: text(guardrails.title, 'Presidio apertura fascicolo'),
       portal: text(guardrails.portal, 'PCT'),
       channel: text(guardrails.channel, 'PCT_TELEMATICO'),
       channelLabel: text(guardrails.channelLabel ?? guardrails.channel_label, 'PCT / PST Civile'),

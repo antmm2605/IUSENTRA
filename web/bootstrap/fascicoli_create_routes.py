@@ -12,6 +12,7 @@ from flask import Flask, flash, jsonify, redirect, render_template, request, url
 
 from pct.clienti import Recapiti
 from pct.fascicoli import StatoFascicolo, TipoDocumento, TipoFascicolo
+from pct.guida_pratica import GuidaPraticaError, GuidaPraticaService, normalize_codice_materia
 from pct.pratiche_collegate_catalog import (
     codice_oggetto_pst_entry,
     looks_like_codice_oggetto_pst,
@@ -205,6 +206,22 @@ def register_fascicoli_create_routes(
             "file_fonte_codice_oggetto": str(form.get("file_fonte_codice_oggetto", "") or resolved["file_fonte_codice_oggetto"]).strip(),
             "descrizione": str(entry.get("descrizione", "") or "").strip(),
         }
+
+    def _codice_guida_pratica_da_form(form: Any, *, codice_oggetto_pst: str, context: dict[str, Any]) -> str:
+        explicit = normalize_codice_materia(form.get("codice_guida_pratica", ""))
+        if explicit:
+            try:
+                GuidaPraticaService().get_guidance(explicit, fascicolo=context)
+            except GuidaPraticaError as exc:
+                raise ValueError("Codice Guida Pratica non valido. Scegli una scheda esistente.") from exc
+            return explicit
+        if codice_oggetto_pst:
+            return ""
+        try:
+            match = GuidaPraticaService().suggest_guidance_from_fascicolo(context)
+        except Exception:
+            return ""
+        return normalize_codice_materia(match.get("codice")) if match else ""
 
     def _split_nome_persona(nome_completo: str) -> tuple[str, str]:
         parti = [parte for parte in str(nome_completo or "").strip().split() if parte]
@@ -423,6 +440,18 @@ def register_fascicoli_create_routes(
                 )
                 if codice_oggetto["codice_oggetto_pst"] and oggetto == codice_oggetto["codice_oggetto_pst"]:
                     oggetto = codice_oggetto["descrizione"] or oggetto
+                codice_guida_pratica = _codice_guida_pratica_da_form(
+                    form,
+                    codice_oggetto_pst=codice_oggetto["codice_oggetto_pst"],
+                    context={
+                        "titolo": titolo,
+                        "oggetto": oggetto,
+                        "tipo": tipo_valore,
+                        "tipo_procedimento": form.get("tipo_procedimento", ""),
+                        "area_pratica": form.get("area_pratica", ""),
+                        "procedura_operativa_nome": form.get("procedura_operativa_nome", ""),
+                    },
+                )
                 fascicolo = gestore_fascicoli.nuovo(
                     titolo=titolo,
                     tipo=tipo_fascicolo,
@@ -447,6 +476,7 @@ def register_fascicoli_create_routes(
                     area_pratica=form.get("area_pratica", ""),
                     procedura_operativa_codice=form.get("procedura_operativa_codice", "").strip(),
                     codice_oggetto_pst=codice_oggetto["codice_oggetto_pst"],
+                    codice_guida_pratica=codice_guida_pratica,
                     fonte_codice_oggetto=codice_oggetto["fonte_codice_oggetto"],
                     file_fonte_codice_oggetto=codice_oggetto["file_fonte_codice_oggetto"],
                     riferimento_cartaceo=form.get("riferimento_cartaceo", "").strip(),
@@ -536,9 +566,6 @@ def register_fascicoli_create_routes(
                     return _risposta_successo_form(messaggio_creazione, target, id_fascicolo=fascicolo.id)
                 if source_preventivo or source_conferimento:
                     target = url_for("dettaglio_fascicolo", id_fasc=fascicolo.id)
-                    return _risposta_successo_form(messaggio_creazione, target, id_fascicolo=fascicolo.id)
-                if id_cliente:
-                    target = url_for("cartella_cliente", id_cliente=id_cliente)
                     return _risposta_successo_form(messaggio_creazione, target, id_fascicolo=fascicolo.id)
                 target = url_for("dettaglio_fascicolo", id_fasc=fascicolo.id)
                 return _risposta_successo_form(messaggio_creazione, target, id_fascicolo=fascicolo.id)

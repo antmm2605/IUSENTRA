@@ -30,6 +30,7 @@ USER_MODULE_PATTERNS = (
     "kb_98_top9_set3_parte1.json",
     "kb_98_top9_set3_parte2.json",
     "kb_98_top9_set4_parte1.json",
+    "kb_98_top9_set4_parte2.json",
 )
 
 CONTROLLED_FIELDS: dict[str, list[list[str]]] = {

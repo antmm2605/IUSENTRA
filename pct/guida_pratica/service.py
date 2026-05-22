@@ -71,6 +71,29 @@ _SEARCH_STOPWORDS = {
 }
 
 
+_GUIDA_PRATICA_ALIAS_OVERRIDES: tuple[dict[str, Any], ...] = (
+    {
+        "codice": "100002",
+        "phrases": (
+            "opposizione a decreto ingiuntivo",
+            "opposizione al decreto ingiuntivo",
+            "opposizione decreto ingiuntivo",
+        ),
+        "generic_phrases": (
+            "opposizione a decreto",
+            "opposizione decreto",
+        ),
+        "exclude_if": (
+            "decreto penale",
+            "decreto prefettizio",
+            "decreto espulsione",
+            "decreto legge",
+            "decreto legislativo",
+        ),
+    },
+)
+
+
 def _fold_for_search(value: Any) -> str:
     raw = unicodedata.normalize("NFKD", _text(value).casefold())
     ascii_text = "".join(char for char in raw if not unicodedata.combining(char))
@@ -452,6 +475,9 @@ class GuidaPraticaService:
             query = _text(raw_query)
             query_folded = _fold_for_search(query)
             query_tokens = _search_tokens(query)
+            alias_match = self._suggest_guidance_from_alias(source=source, query_folded=query_folded)
+            if alias_match and (best is None or float(alias_match["score"]) > float(best["score"])):
+                best = alias_match
             if not query_folded or len(query_tokens) < 2:
                 continue
             for codice, row in self._official_catalog_index.items():
@@ -490,6 +516,39 @@ class GuidaPraticaService:
                         "message": "Guida pratica facoltativa suggerita dal contesto del fascicolo. Il codice ufficiale resta nella scheda fascicolo e la guida non blocca il lavoro.",
                     }
         return best
+
+    def _suggest_guidance_from_alias(self, *, source: str, query_folded: str) -> dict[str, Any] | None:
+        if not query_folded:
+            return None
+        for rule in _GUIDA_PRATICA_ALIAS_OVERRIDES:
+            codice = normalize_codice_materia(rule.get("codice"))
+            if codice not in self._kb_index:
+                continue
+            exclude_terms = rule.get("exclude_if") if isinstance(rule.get("exclude_if"), (list, tuple)) else []
+            blocked = any(_fold_for_search(term) in query_folded for term in exclude_terms)
+            if blocked:
+                continue
+            raw_exact = rule.get("phrases") if isinstance(rule.get("phrases"), (list, tuple)) else []
+            raw_generic = rule.get("generic_phrases") if isinstance(rule.get("generic_phrases"), (list, tuple)) else []
+            exact_phrases = tuple(_fold_for_search(term) for term in raw_exact)
+            generic_phrases = tuple(_fold_for_search(term) for term in raw_generic)
+            matched_exact = next((term for term in exact_phrases if term and term in query_folded), "")
+            matched_generic = next((term for term in generic_phrases if term and term in query_folded), "")
+            if not matched_exact and not matched_generic:
+                continue
+            item = self._kb_index.get(codice, {})
+            row = self._catalog_index.get(codice, self._catalog_row_from_kb_item(codice, item))
+            return {
+                "codice": codice,
+                "denominazione": _text(row.get("descrizione")) or _text(item.get("denominazione")),
+                "score": 0.995 if matched_exact else 0.92,
+                "source_field": source,
+                "matched_by": "alias guida pratica",
+                "confirmation_required": True,
+                "guide_only": codice not in self._official_catalog_index,
+                "message": "Guida pratica facoltativa collegata da alias operativo. L'alias della guida non sostituisce il codice ufficiale del fascicolo.",
+            }
+        return None
 
     def _candidate_label(self, codice: str, catalog_row: dict[str, Any]) -> str:
         item = self._kb_index.get(codice, {})

@@ -151,6 +151,8 @@ def fascicolo_guida_context(fascicolo: Any) -> dict[str, Any]:
         "anno_rg": _text(getattr(fascicolo, "anno_rg", "")),
         "codice_oggetto_pst": normalize_codice_materia(getattr(fascicolo, "codice_oggetto_pst", "")),
         "codiceOggettoPst": normalize_codice_materia(getattr(fascicolo, "codice_oggetto_pst", "")),
+        "codice_guida_pratica": normalize_codice_materia(getattr(fascicolo, "codice_guida_pratica", "")),
+        "codiceGuidaPratica": normalize_codice_materia(getattr(fascicolo, "codice_guida_pratica", "")),
         "fonte_codice_oggetto": _text(getattr(fascicolo, "fonte_codice_oggetto", "")),
         "fonteCodiceOggetto": _text(getattr(fascicolo, "fonte_codice_oggetto", "")),
         "file_fonte_codice_oggetto": _text(getattr(fascicolo, "file_fonte_codice_oggetto", "")),
@@ -236,6 +238,13 @@ _TEMPLATE_GENERIC_TOKENS = {
     "straordinaria",
     "procedimento",
     "civile",
+    "azioni",
+    "competenza",
+    "materia",
+    "giudice",
+    "responsabilita",
+    "davanti",
+    "atto_introduttivo_o_istanza_telematica",
     "art",
     "cpc",
     "c",
@@ -287,9 +296,95 @@ def _template_row_primary_tokens(row: dict[str, Any]) -> set[str]:
     return {token for token in _normalizza_testo(primary).split() if token}
 
 
+_FAMILY_TEMPLATE_TOKENS = {
+    "famiglia",
+    "persone",
+    "minori",
+    "minore",
+    "figli",
+    "figlio",
+    "affidamento",
+    "genitoriale",
+    "separazione",
+    "divorzio",
+    "mantenimento",
+    "tutela",
+    "curatela",
+    "ads",
+    "volontaria",
+}
+
+_FAMILY_CONTEXT_TOKENS = _FAMILY_TEMPLATE_TOKENS | {
+    "familiare",
+    "coniugi",
+    "coniuge",
+    "paternita",
+    "maternita",
+}
+
+
+def _joined_template_context(guida: dict[str, Any], fascicolo: dict[str, Any]) -> str:
+    atto = guida.get("atto_principale") if isinstance(guida.get("atto_principale"), dict) else {}
+    quick = guida.get("quick_help") if isinstance(guida.get("quick_help"), dict) else {}
+    parts: list[Any] = [
+        guida.get("codice"),
+        guida.get("denominazione"),
+        guida.get("categoria"),
+        guida.get("macro_area"),
+        atto.get("denominazione") if isinstance(atto, dict) else "",
+        atto.get("tipo_atto") if isinstance(atto, dict) else "",
+        quick.get("atto_da_redigere") if isinstance(quick, dict) else "",
+        fascicolo.get("titolo"),
+        fascicolo.get("oggetto"),
+        fascicolo.get("area_pratica"),
+        fascicolo.get("tipo"),
+        fascicolo.get("rito"),
+        fascicolo.get("fase"),
+        fascicolo.get("tribunale"),
+        fascicolo.get("ufficio_giudiziario"),
+        fascicolo.get("codice_oggetto_pst"),
+    ]
+    return _normalizza_testo(" ".join(_text(part) for part in parts if _text(part)))
+
+
+def _token_present(text: str, *tokens: str) -> bool:
+    return any(token in text for token in tokens)
+
+
+def _is_family_template(row: dict[str, Any], row_text: str) -> bool:
+    code = _normalizza_testo(row.get("codice") or row.get("link_compilatore_code") or "")
+    if code.startswith("fam") or code.startswith("vgs"):
+        return True
+    row_tokens = set(row_text.split())
+    return bool(row_tokens.intersection(_FAMILY_TEMPLATE_TOKENS))
+
+
+def _is_gdp_template(row: dict[str, Any], row_text: str) -> bool:
+    code = _normalizza_testo(row.get("codice") or row.get("link_compilatore_code") or "")
+    channel = _normalizza_testo(row.get("canale_deposito") or row.get("portale_deposito") or "")
+    return code.startswith("gdp") or "pst_gdp" in channel or "giudice di pace" in row_text
+
+
+def _template_is_context_compatible(row: dict[str, Any], guida: dict[str, Any], fascicolo: dict[str, Any]) -> bool:
+    row_text = _template_row_text(row)
+    context_text = _joined_template_context(guida, fascicolo)
+    context_tokens = set(context_text.split())
+    family_context = bool(context_tokens.intersection(_FAMILY_CONTEXT_TOKENS))
+    family_template = _is_family_template(row, row_text)
+    gdp_context = _token_present(context_text, "giudice di pace", "gdp", "sigp")
+    gdp_template = _is_gdp_template(row, row_text)
+
+    if family_template and not family_context:
+        return False
+    if gdp_context and not gdp_template:
+        return False
+    return True
+
+
 def _score_template(row: dict[str, Any], guida: dict[str, Any], fascicolo: dict[str, Any], tokens: list[str]) -> tuple[int, list[str]]:
     row_text = _template_row_text(row)
     row_tokens = _template_row_tokens(row)
+    context_text = _joined_template_context(guida, fascicolo)
     if not row_text:
         return 0, []
     score = 0
@@ -311,6 +406,12 @@ def _score_template(row: dict[str, Any], guida: dict[str, Any], fascicolo: dict[
     if code and code in row_text:
         score += 5
         reasons.append("codice pratica")
+    if _token_present(context_text, "giudice di pace", "gdp", "sigp") and _is_gdp_template(row, row_text):
+        score += 12
+        reasons.append("ufficio Giudice di Pace")
+    if _token_present(context_text, "risarcimento", "danno") and _token_present(row_text, "risarcimento", "danno"):
+        score += 6
+        reasons.append("materia risarcimento danni")
     hits = [token for token in tokens if token in row_tokens]
     if hits:
         score += min(10, len(hits) * 2)
@@ -376,6 +477,8 @@ def build_document_plan_for_guida(guida: dict[str, Any] | None, fascicolo: dict[
     specific_tokens = _specific_template_tokens(guida, fascicolo)
     candidates: list[tuple[int, list[str], dict[str, Any]]] = []
     for row in build_template_catalog_items():
+        if not _template_is_context_compatible(row, guida, fascicolo):
+            continue
         row_tokens = _template_row_tokens(row)
         if specific_tokens:
             specific_hits = [token for token in specific_tokens if token in row_tokens]
@@ -441,7 +544,10 @@ def build_react_guida_pratica_payload(*, codice: str, fascicolo: dict[str, Any] 
 
 
 def _mark_suggested_code_payload(payload: dict[str, Any], match: dict[str, Any]) -> dict[str, Any]:
-    message = "Guida pratica facoltativa suggerita dal contesto del fascicolo. Il fascicolo resta operativo; conferma una materia ufficiale solo se vuoi collegarla stabilmente."
+    message = _text(
+        match.get("message"),
+        "Guida pratica facoltativa suggerita dal contesto del fascicolo. Il fascicolo resta operativo; conferma una materia ufficiale solo se vuoi collegarla stabilmente.",
+    )
     if isinstance(payload.get("guida"), dict):
         payload["guida"]["guida_pratica_suggerita"] = True
     checklist = payload.get("checklist")
@@ -484,12 +590,18 @@ def build_react_fascicolo_guida_pratica_payload(*, get_fascicoli: Callable[[], A
     if not fascicolo:
         return {"ok": False, "generatedAt": _now(), "notFound": True, "message": "Fascicolo non trovato."}
     context = fascicolo_guida_context(fascicolo)
-    codice = normalize_codice_materia(context.get("codice_oggetto_pst"))
+    codice_guida = normalize_codice_materia(context.get("codice_guida_pratica") or context.get("codiceGuidaPratica"))
+    codice = codice_guida or normalize_codice_materia(context.get("codice_oggetto_pst"))
     if not codice:
         match = service.suggest_guidance_from_fascicolo(context)
         if match:
-            context["codice_oggetto_pst_suggerito"] = _text(match.get("codice"))
-            context["codiceOggettoPstSuggerito"] = _text(match.get("codice"))
+            suggested_code = _text(match.get("codice"))
+            if match.get("guide_only"):
+                context["codice_guida_pratica_suggerito"] = suggested_code
+                context["codiceGuidaPraticaSuggerito"] = suggested_code
+            else:
+                context["codice_oggetto_pst_suggerito"] = suggested_code
+                context["codiceOggettoPstSuggerito"] = suggested_code
             payload = build_react_guida_pratica_payload(codice=_text(match.get("codice")), fascicolo=context, service=service)
             payload["fascicolo"] = context
             return _mark_suggested_code_payload(payload, match)

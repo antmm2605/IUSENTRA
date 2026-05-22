@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, ArrowLeft, BookOpen, BriefcaseBusiness, CheckCircle2, ExternalLink, FileText, Filter, RefreshCw, Save, Search, ShieldCheck, Tags, UserRound } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Bot, BookOpen, BriefcaseBusiness, CheckCircle2, Eye, ExternalLink, FileText, Filter, Layers, Palette, RefreshCw, Save, Search, ShieldCheck, Sparkles, Tags, Type, UploadCloud, UserRound } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
@@ -20,7 +20,7 @@ import {
   type TemplateAttiRecord,
 } from '../templateAttiData'
 import { displaySourceLabel } from '../displayText'
-import { submitFormJson } from '../formSubmit'
+import { csrfToken, submitFormJson } from '../formSubmit'
 import { FloatingLex } from './FloatingLex'
 import './TemplateAttiPage.css'
 
@@ -53,6 +53,30 @@ function collectControlData(root: HTMLElement | null) {
     formData.append(control.name, control.value)
   })
   return formData
+}
+
+function guideDraftFromData(data: TemplateCompilerData) {
+  if (data.guidePreview.initialText.trim()) return data.guidePreview.initialText
+  const client = data.selectors.selectedClienteLabel || 'Cliente della pratica'
+  const office = data.baseFields.find((field) => /ufficio|giudice|tribunale/i.test(field.name + field.label))?.value || 'Ufficio competente'
+  const title = data.extraFields.find((field) => /titolo|oggetto|ricorso|atto/i.test(field.name + field.label))?.value || data.model.name
+  return [
+    `${office}`,
+    '',
+    `${title}`,
+    '',
+    `${client}, rappresentato e difeso dall'avvocato indicato nel fascicolo, con procura allegata e domicilio professionale presso lo studio.`,
+    '',
+    'Ricorso',
+    '',
+    'Avverso il provvedimento indicato nel fascicolo, con i dati già acquisiti da pratica, cliente, parti, termini e documenti collegati.',
+  ].join('\n')
+}
+
+function htmlToPlainText(html: string) {
+  const node = document.createElement('div')
+  node.innerHTML = html
+  return node.innerText || node.textContent || ''
 }
 
 function ContractStrip({ data }: { data: TemplateAttiPageData }) {
@@ -570,6 +594,22 @@ function LexActionCard({ data }: { data: TemplateCompilerData }) {
 }
 
 function CompliancePanel({ data }: { data: TemplateCompilerData }) {
+  if (data.guidePreview.enabled) {
+    const redactionMissing = data.compliance.missingFields.filter((item) => !/codice oggetto pst|procura|contributo|deposito|datiatto|allegat/i.test(item))
+    return (
+      <>
+        {redactionMissing.length ? (
+          <section className="iu-template-compiler-panel">
+            <h3>Dati redazionali da completare</h3>
+            <div className="iu-template-compiler-checks iu-template-compiler-checks--block">
+              {redactionMissing.slice(0, 8).map((item) => <p key={item}>{item}</p>)}
+            </div>
+          </section>
+        ) : null}
+        <NormativeReferencesCard data={data} />
+      </>
+    )
+  }
   return (
     <>
       <ComplianceStatusCard data={data} />
@@ -587,9 +627,11 @@ function CompliancePanel({ data }: { data: TemplateCompilerData }) {
 function CompilerSidePanel({ data }: { data: TemplateCompilerData }) {
   const missing = [...data.baseFields, ...data.extraFields].filter((field) => field.note?.tone === 'missing').length
   const found = [...data.baseFields, ...data.extraFields].filter((field) => field.note?.tone === 'found').length
+  const redactionChecks = data.checks.blocking.filter((item) => !/codice oggetto pst|procura|contributo|deposito|datiatto|schema ministeriale|allegati essenziali|materia del fascicolo/i.test(item))
+  const depositChecks = [...data.checks.blocking, ...data.checks.recommended].filter((item) => /codice oggetto pst|procura|contributo|deposito|datiatto|schema ministeriale|allegati essenziali|ufficio non ancora risolto|materia del fascicolo/i.test(item))
   return (
     <aside className="iu-template-compiler-aside">
-      {data.stamp.lines.length ? (
+      {!data.guidePreview.enabled && data.stamp.lines.length ? (
         <section className="iu-template-compiler-panel iu-template-compiler-stamp" aria-label="Anteprima timbro studio">
           <h3>Timbro studio</h3>
           <div>
@@ -613,17 +655,18 @@ function CompilerSidePanel({ data }: { data: TemplateCompilerData }) {
             : 'Seleziona cliente e pratica quando disponibili.'}
         </p>
       </section>
-      {data.checks.blocking.length || data.checks.recommended.length ? (
+      {redactionChecks.length || depositChecks.length ? (
         <section className="iu-template-compiler-panel">
-          <h3>Controlli redazionali</h3>
-          {data.checks.blocking.length ? (
+          <h3>{data.guidePreview.enabled ? 'Controlli produzione documento' : 'Controlli redazionali'}</h3>
+          {redactionChecks.length ? (
             <div className="iu-template-compiler-checks iu-template-compiler-checks--block">
-              {data.checks.blocking.slice(0, 6).map((item) => <p key={item}>{item}</p>)}
+              {redactionChecks.slice(0, 6).map((item) => <p key={item}>{item}</p>)}
             </div>
           ) : null}
-          {data.checks.recommended.length ? (
+          {depositChecks.length ? (
             <div className="iu-template-compiler-checks">
-              {data.checks.recommended.slice(0, 6).map((item) => <p key={item}>{item}</p>)}
+              <strong>Da riprendere prima del deposito</strong>
+              {depositChecks.slice(0, 8).map((item) => <p key={item}>{item}</p>)}
             </div>
           ) : null}
         </section>
@@ -648,26 +691,290 @@ function CompilerSidePanel({ data }: { data: TemplateCompilerData }) {
   )
 }
 
+function GuidePreviewWorkspace({
+  data,
+  activeTool,
+  draftText,
+  importing,
+  importStatus,
+  pdfStatus,
+  saving,
+  onToolSelect,
+  onDraftTextChange,
+  onImport,
+  onPreviewPdf,
+  onDownloadWord,
+  onRefreshPreview,
+  onSave,
+}: {
+  data: TemplateCompilerData
+  activeTool: string
+  draftText: string
+  importing: boolean
+  importStatus: string
+  pdfStatus: string
+  saving: boolean
+  onToolSelect: (tool: string) => void
+  onDraftTextChange: (value: string) => void
+  onImport: () => void
+  onPreviewPdf: () => void
+  onDownloadWord: () => void
+  onRefreshPreview: () => void
+  onSave: () => void
+}) {
+  const preview = data.guidePreview
+  const toolbar = [
+    { label: 'Setup', icon: ShieldCheck },
+    { label: 'Pagine', icon: FileText },
+    { label: 'Blocchi', icon: Layers },
+    { label: 'Testi', icon: Type },
+    { label: 'Aspetto', icon: Palette },
+    { label: 'Fonti', icon: BookOpen },
+    { label: 'AI', icon: Bot },
+  ]
+  const lines = data.stamp.lines.slice(0, 7)
+  const client = data.selectors.selectedClienteLabel || 'Cliente della pratica'
+  const office = data.baseFields.find((field) => /ufficio|giudice|tribunale/i.test(field.name + field.label))?.value || 'Ufficio competente'
+  const title = data.extraFields.find((field) => /titolo|oggetto|ricorso|atto/i.test(field.name + field.label))?.value || data.model.name
+  const sourceRows = data.compliance.normativeReferences.length
+    ? data.compliance.normativeReferences.slice(0, 3).map((ref) => ref.title || ref.article || ref.sourceTitle)
+    : []
+  const toolPanel = (() => {
+    if (activeTool === 'Setup') {
+      return (
+        <div>
+          <b>Setup documento</b>
+          <span>Il timbro legge i dati studio e l'atto resta collegato al fascicolo.</span>
+          <ButtonLink href="/impostazioni?tab=studio" tone="neutral">Dati Studio</ButtonLink>
+        </div>
+      )
+    }
+    if (activeTool === 'Pagine') {
+      return (
+        <div>
+          <b>Pagine</b>
+          <span>Formato A4, margini e timbro coerenti con il modello PDF approvato.</span>
+          <Button type="button" tone="neutral" onClick={onPreviewPdf}>Verifica PDF</Button>
+        </div>
+      )
+    }
+    if (activeTool === 'Blocchi') {
+      return (
+        <div>
+          <b>Blocchi atto</b>
+          <span>{data.sections.map((section) => section.label).filter(Boolean).slice(0, 5).join(' · ') || 'Intestazione · Parti · Fatti · Diritto · Richieste'}</span>
+        </div>
+      )
+    }
+    if (activeTool === 'Aspetto') {
+      return (
+        <div>
+          <b>Aspetto</b>
+          <span>Stile studio, corpo testo leggibile e firma laterale come nel modello.</span>
+          <Button type="button" tone="neutral" onClick={onDownloadWord}>Scarica Word</Button>
+        </div>
+      )
+    }
+    if (activeTool === 'Fonti') {
+      return (
+        <div>
+          <b>Fonti</b>
+          <span>{sourceRows.length ? sourceRows.join(' · ') : 'Fonti e riferimenti del template disponibili nel fascicolo e nella guida.'}</span>
+        </div>
+      )
+    }
+    if (activeTool === 'AI') {
+      return (
+        <div>
+          <b>AI</b>
+          <span>Lex legge fascicolo, guida, template e testo in anteprima come contesto operativo.</span>
+          <Button type="button" tone="neutral" onClick={() => window.dispatchEvent(new CustomEvent('iusentra:lex-open'))}>
+            <Sparkles size={15} aria-hidden="true" />
+            Apri Lex
+          </Button>
+        </div>
+      )
+    }
+    return (
+      <div>
+        <b>Testi</b>
+        <span>Il testo sotto è modificabile direttamente prima di PDF, Word o salvataggio nel fascicolo.</span>
+        <Button type="button" tone="neutral" disabled={!preview.renderEndpoint} onClick={onRefreshPreview}>Aggiorna anteprima dal template</Button>
+      </div>
+    )
+  })()
+  return (
+    <section className="iu-template-guide-workspace" aria-label="Anteprima modifica Guida Pratica">
+      <nav className="iu-template-guide-steps" aria-label="Passaggi guida pratica">
+        {preview.steps.map((step) => (
+          <span className={`iu-template-guide-step is-${step.state}`} key={step.id}>{step.label}</span>
+        ))}
+      </nav>
+      <div className="iu-template-guide-shell">
+        <div className="iu-template-guide-rail" aria-hidden="true">
+          <strong>GP</strong>
+          <span>Guida sotto</span>
+        </div>
+        <div className="iu-template-guide-body">
+          <article className="iu-template-guide-hero">
+            <div>
+              <p className="iu-template-eyebrow">{preview.eyebrow}</p>
+              <h2>{preview.title}</h2>
+              <p>{preview.subtitle}</p>
+            </div>
+            <div className="iu-template-guide-hero__actions">
+              <Button type="button" tone="neutral" disabled={!preview.importEndpoint || importing} onClick={onImport}>
+                <UploadCloud size={16} aria-hidden="true" />
+                {importing ? 'Importazione...' : preview.importLabel}
+              </Button>
+              <Button type="button" tone="neutral" disabled={!preview.previewPdfHref} onClick={onPreviewPdf}>
+                <Eye size={16} aria-hidden="true" />
+                {preview.previewLabel}
+              </Button>
+              <Button type="button" tone="primary" disabled={saving || !data.selectors.selectedFascicoloId} onClick={onSave}>
+                <Save size={16} aria-hidden="true" />
+                {saving ? 'Salvataggio...' : preview.saveLabel}
+              </Button>
+            </div>
+          </article>
+          {importStatus ? <p className="iu-template-guide-status" role="status">{importStatus}</p> : null}
+          {pdfStatus ? <p className="iu-template-guide-status" role="status">{pdfStatus}</p> : null}
+          <section className="iu-template-guide-editor iu-od-card">
+            <header className="iu-template-guide-editor__head">
+              <strong>Editor documento in anteprima</strong>
+              <Badge tone="info">{preview.badge}</Badge>
+            </header>
+            <div className="iu-template-guide-editor__grid">
+              <aside className="iu-template-guide-toolbar" aria-label="Strumenti editor documento">
+                {toolbar.map((item) => {
+                  const Icon = item.icon
+                  const selected = activeTool === item.label
+                  return (
+                    <button type="button" className={selected ? 'is-active' : ''} key={item.label} title={item.label} aria-label={item.label} aria-pressed={selected} onClick={() => onToolSelect(item.label)}>
+                      <Icon size={18} aria-hidden="true" />
+                      <span>{item.label}</span>
+                    </button>
+                  )
+                })}
+              </aside>
+              <article className="iu-template-guide-page-preview" aria-label="Pagina documento">
+                <div className="iu-template-guide-paper">
+                  <div className="iu-template-guide-paper__stamp">
+                    {lines.length ? lines.map((line, index) => (
+                      <span className={line.bold ? 'is-bold' : ''} key={`${line.text}-${index}`}>{line.text}</span>
+                    )) : (
+                      <>
+                        <span className="is-bold">STUDIO LEGALE</span>
+                        <span>Dati studio da Impostazioni</span>
+                      </>
+                    )}
+                  </div>
+                  <h3>{office}</h3>
+                  <h4>{title}</h4>
+                  <p><strong>{client}</strong>, rappresentato e difeso dall'avvocato indicato nel fascicolo, con procura allegata e domicilio professionale presso lo studio.</p>
+                  <h5>Ricorso</h5>
+                  <label className="iu-template-guide-editable">
+                    <span>Testo modificabile</span>
+                    <textarea value={draftText} onChange={(event) => onDraftTextChange(event.currentTarget.value)} aria-label="Testo documento modificabile" />
+                  </label>
+                </div>
+              </article>
+              <aside className="iu-template-guide-side">
+                <section className="iu-template-guide-tool-panel">
+                  <header>
+                    <strong>{activeTool}</strong>
+                    <span>operativo</span>
+                  </header>
+                  {toolPanel}
+                </section>
+                <section>
+                  <header>
+                    <strong>Template proposto</strong>
+                    <span>automatico</span>
+                  </header>
+                  <div className="iu-template-guide-card">
+                    <b>{preview.template.code} {preview.template.name}</b>
+                    <small>{preview.template.reason}</small>
+                  </div>
+                  <div className="iu-template-guide-actions">
+                    <ButtonLink href={data.catalogHref} tone="neutral">Cambia</ButtonLink>
+                    <Button type="button" tone="neutral" disabled={!preview.renderEndpoint} onClick={onRefreshPreview}>Aggiorna</Button>
+                    <Button type="button" tone="neutral" onClick={onPreviewPdf}>PDF</Button>
+                    <Button type="button" tone="neutral" onClick={onDownloadWord}>Word</Button>
+                  </div>
+                </section>
+                <section>
+                  <header>
+                    <strong>Motivo guida</strong>
+                  </header>
+                  <p>{preview.reason}</p>
+                </section>
+                <section>
+                  <header>
+                    <strong>Documento avvocato</strong>
+                    <span>facoltativo</span>
+                  </header>
+                  <button type="button" className="iu-template-guide-import-card" disabled={!preview.importEndpoint || importing} onClick={onImport}>
+                    <b>{preview.import.note || "Importa nell'anteprima"}</b>
+                    <small>{preview.import.formats}</small>
+                  </button>
+                </section>
+                <section>
+                  <header>
+                    <strong>Impaginazione</strong>
+                    <span>modello PDF</span>
+                  </header>
+                  {preview.layoutChecks.map((check) => (
+                    <div className="iu-template-guide-check" key={check.label}>
+                      <b>{check.label}</b>
+                      <small>{check.value}</small>
+                      <Badge tone={check.tone}>{check.tone === 'success' ? 'ok' : 'verifica'}</Badge>
+                    </div>
+                  ))}
+                </section>
+              </aside>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function TemplateCompilerView({ modelCode }: { modelCode: string }) {
   const [data, setData] = useState<TemplateCompilerData>(emptyTemplateCompilerPage)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [submitMessage, setSubmitMessage] = useState('')
   const [submitError, setSubmitError] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importStatus, setImportStatus] = useState('')
+  const [pdfStatus, setPdfStatus] = useState('')
+  const [activeGuideTool, setActiveGuideTool] = useState('Testi')
+  const [guideDraftText, setGuideDraftText] = useState('')
+  const guideImportRef = useRef<HTMLInputElement>(null)
   const contextRef = useRef<HTMLDivElement>(null)
   const compilerRef = useRef<HTMLDivElement>(null)
+  const previewRenderTimerRef = useRef<number | undefined>(undefined)
   const hiddenQuery = useMemo(queryHiddenInputs, [])
 
   function load() {
     setLoading(true)
     getTemplateAttiCompilerPage(modelCode)
-      .then(setData)
+      .then((payload) => {
+        setData(payload)
+        setGuideDraftText((current) => current || guideDraftFromData(payload))
+      })
       .finally(() => setLoading(false))
   }
 
   useEffect(() => {
     load()
   }, [modelCode])
+
+  useEffect(() => () => {
+    if (previewRenderTimerRef.current) window.clearTimeout(previewRenderTimerRef.current)
+  }, [])
 
   const applyContext = (intent = '') => {
     const params = new URLSearchParams(window.location.search)
@@ -685,9 +992,13 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
 
   const submitCompiler = () => {
     const state = data.compliance.overallState || data.compliance.state
-    if (!data.selectors.selectedFascicoloId || submitting || state === 'block') return
+    const guideMode = data.guidePreview.enabled
+    if (!data.selectors.selectedFascicoloId || submitting || (!guideMode && state === 'block')) return
     const formData = collectControlData(compilerRef.current)
-    if (state === 'warning') {
+    if (guideMode) {
+      formData.set('requested_draft', 'working_draft')
+      formData.set('confirmed_warning', '1')
+    } else if (state === 'warning') {
       const confirmed = window.confirm('I controlli richiedono una bozza di lavoro da revisionare. Vuoi confermare la creazione?')
       if (!confirmed) return
       formData.set('requested_draft', 'working_draft')
@@ -711,13 +1022,142 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
       .finally(() => setSubmitting(false))
   }
 
+  const buildGuideFormData = () => {
+    const formData = new FormData()
+    hiddenQuery.forEach((item) => formData.set(item.name, item.value))
+    collectControlData(compilerRef.current).forEach((value, name) => formData.set(name, value))
+    formData.set('_react_return', '1')
+    formData.set('model_code', data.model.code || modelCode)
+    formData.set('title', data.model.name || data.guidePreview.template.name || 'Atto')
+    formData.set('testo_generato', guideDraftText || guideDraftFromData(data))
+    formData.set('id_fascicolo', data.selectors.selectedFascicoloId)
+    formData.set('case_id', data.selectors.selectedFascicoloId)
+    formData.set('id_cliente', data.selectors.selectedClienteId)
+    formData.set('requested_draft', 'working_draft')
+    formData.set('confirmed_warning', '1')
+    if (data.guidePreview.guideCode) formData.set('guida_pratica', data.guidePreview.guideCode)
+    return formData
+  }
+
+  const refreshGuidePreviewFromCompiler = () => {
+    if (!data.guidePreview.enabled || !data.guidePreview.renderEndpoint) return
+    const formData = buildGuideFormData()
+    setPdfStatus('Aggiorno anteprima dal template compilato...')
+    submitFormJson(data.guidePreview.renderEndpoint, formData)
+      .then((result) => {
+        const text = String(result.testo_generato || result.text || '')
+        if (text.trim()) setGuideDraftText(text)
+        setPdfStatus(result.message || 'Anteprima aggiornata dal template compilato.')
+      })
+      .catch((error) => setPdfStatus(error instanceof Error ? error.message : 'Anteprima non aggiornata. Il testo visibile resta modificabile.'))
+  }
+
+  const scheduleGuidePreviewFromCompiler = () => {
+    if (!data.guidePreview.enabled || !data.guidePreview.renderEndpoint) return
+    if (previewRenderTimerRef.current) window.clearTimeout(previewRenderTimerRef.current)
+    previewRenderTimerRef.current = window.setTimeout(refreshGuidePreviewFromCompiler, 700)
+  }
+
+  const saveGuidePreview = () => {
+    if (!data.guidePreview.saveEndpoint) {
+      submitCompiler()
+      return
+    }
+    if (!data.selectors.selectedFascicoloId || submitting) return
+    setSubmitting(true)
+    setSubmitError('')
+    setSubmitMessage('')
+    setPdfStatus('')
+    submitFormJson(data.guidePreview.saveEndpoint, buildGuideFormData())
+      .then((result) => {
+        const link = result.editor_url || result.redirect_url || result.redirect || ''
+        setSubmitMessage(result.message || (link ? `Documento salvato nel fascicolo. Apri: ${link}` : 'Documento salvato nel fascicolo.'))
+      })
+      .catch((error) => setSubmitError(error instanceof Error ? error.message : 'Documento non salvato nel fascicolo.'))
+      .finally(() => setSubmitting(false))
+  }
+
+  const downloadGuideWord = () => {
+    const title = data.model.name || data.guidePreview.template.name || 'Atto'
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title></head><body><pre style="font-family: Georgia, serif; white-space: pre-wrap;">${(guideDraftText || guideDraftFromData(data)).replace(/[&<>]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[char] || char))}</pre></body></html>`
+    const blob = new Blob([html], { type: 'application/msword;charset=utf-8' })
+    const href = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = href
+    link.download = `${(data.model.code || 'atto').toLowerCase()}-guida-pratica.doc`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.setTimeout(() => URL.revokeObjectURL(href), 15000)
+    setPdfStatus('Documento Word scaricato.')
+  }
+
+  const previewPdf = () => {
+    if (!data.guidePreview.previewPdfHref) return
+    const formData = data.guidePreview.enabled ? buildGuideFormData() : collectControlData(compilerRef.current)
+    const title = data.model.name || data.guidePreview.template.name || 'Atto'
+    if (!String(formData.get('title') || '').trim()) formData.set('title', title)
+    if (!String(formData.get('testo_generato') || '').trim()) {
+      formData.set(
+        'testo_generato',
+        `${title}\n\n${data.summary || 'Bozza generata dal template filtrato dalla Guida Pratica.'}`,
+      )
+    }
+    setPdfStatus('Genero anteprima PDF...')
+    fetch(data.guidePreview.previewPdfHref, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        Accept: 'application/pdf',
+        ...(csrfToken() ? { 'X-CSRFToken': csrfToken() } : {}),
+      },
+      body: formData,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Anteprima PDF non generata.')
+        const blob = await response.blob()
+        const href = URL.createObjectURL(blob)
+        window.open(href, '_blank', 'noopener,noreferrer')
+        window.setTimeout(() => URL.revokeObjectURL(href), 15000)
+        setPdfStatus('Anteprima PDF aperta.')
+      })
+      .catch((error) => setPdfStatus(error instanceof Error ? error.message : 'Anteprima PDF non generata.'))
+  }
+
+  const importGuideDocument = () => {
+    guideImportRef.current?.click()
+  }
+
+  const handleGuideImportFile = (file?: File) => {
+    if (!file || importing) return
+    const formData = new FormData()
+    formData.append('file', file)
+    setImporting(true)
+    setImportStatus('Importo il documento nell\'anteprima...')
+    submitFormJson(data.guidePreview.importEndpoint || '/template-atti/api/importa-documento', formData)
+      .then((result) => {
+        const content = String(result.contenuto || result.content || '')
+        if (content.trim()) {
+          setGuideDraftText(result.tipo === 'html' ? htmlToPlainText(content) : content)
+          setImportStatus('Documento importato nell\'anteprima. Puoi modificarlo o salvarlo nel fascicolo.')
+        } else {
+          setImportStatus(result.errore || result.message || 'Documento importato, ma senza testo estraibile. Puoi salvarlo come originale dal fascicolo.')
+        }
+      })
+      .catch((error) => setImportStatus(error instanceof Error ? error.message : 'Documento non importato nell\'anteprima.'))
+      .finally(() => {
+        setImporting(false)
+        if (guideImportRef.current) guideImportRef.current.value = ''
+      })
+  }
+
   if (loading) {
     return <LoadingState title="Caricamento compilazione" message="Recupero campi, dati disponibili e controlli del modello." />
   }
 
   return (
     <Page
-      title="Compila template atto"
+      title={data.guidePreview.enabled ? 'Anteprima modifica' : 'Compila template atto'}
       subtitle={`${data.model.name} - ${data.model.code}${data.model.area ? ` - ${data.model.area}` : ''}`}
       actions={
         <>
@@ -745,8 +1185,34 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
           client_id: data.selectors.selectedClienteId,
         }}
       />
+      <input
+        ref={guideImportRef}
+        type="file"
+        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        className="iu-template-guide-file-input"
+        onChange={(event) => handleGuideImportFile(event.currentTarget.files?.[0])}
+      />
       <div className="iu-template-compiler-page">
-        <section className="iu-template-compiler-hero iu-od-surface">
+        {data.guidePreview.enabled ? (
+          <GuidePreviewWorkspace
+            data={data}
+            activeTool={activeGuideTool}
+            draftText={guideDraftText || guideDraftFromData(data)}
+            importing={importing}
+            importStatus={importStatus}
+            pdfStatus={submitMessage || submitError || pdfStatus}
+            saving={submitting}
+            onToolSelect={setActiveGuideTool}
+            onDraftTextChange={setGuideDraftText}
+            onImport={importGuideDocument}
+            onPreviewPdf={previewPdf}
+            onDownloadWord={downloadGuideWord}
+            onRefreshPreview={refreshGuidePreviewFromCompiler}
+            onSave={saveGuidePreview}
+          />
+        ) : null}
+
+        <section className={`iu-template-compiler-hero iu-od-surface${data.guidePreview.enabled ? ' iu-template-compiler-hero--compact' : ''}`}>
           <div>
             <p className="iu-template-eyebrow">Redazione guidata</p>
             <h2>{data.model.name}</h2>
@@ -795,11 +1261,11 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
               </div>
             </div>
 
-            <div className="iu-template-compiler-form iu-od-card" ref={compilerRef}>
+            <div className="iu-template-compiler-form iu-od-card" ref={compilerRef} onInput={scheduleGuidePreviewFromCompiler} onChange={scheduleGuidePreviewFromCompiler}>
               <input type="hidden" name="_react_return" value="1" />
               <input type="hidden" name="id_cliente" value={data.selectors.selectedClienteId} />
               <input type="hidden" name="id_fascicolo" value={data.selectors.selectedFascicoloId} />
-              <input type="hidden" name="requested_draft" value={(data.compliance.overallState || data.compliance.state) === 'warning' ? 'working_draft' : 'final_draft'} />
+              <input type="hidden" name="requested_draft" value={data.guidePreview.enabled || (data.compliance.overallState || data.compliance.state) === 'warning' ? 'working_draft' : 'final_draft'} />
               {Object.entries(data.hidden).map(([name, value]) => <input type="hidden" name={name} value={value} key={name} />)}
               <section>
                 <header>
@@ -824,9 +1290,9 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
               {submitError ? <p className="iu-template-compiler-error" role="alert">{submitError}</p> : null}
               {submitMessage ? <p className="iu-template-compiler-note iu-template-compiler-note--found" role="status">{submitMessage}</p> : null}
               <footer className="iu-template-compiler-actions">
-                <Button type="button" tone="primary" disabled={!data.selectors.selectedFascicoloId || submitting || (data.compliance.overallState || data.compliance.state) === 'block'} title={!data.selectors.selectedFascicoloId ? 'Seleziona prima una pratica collegata.' : (data.compliance.overallState || data.compliance.state) === 'block' ? 'Completa i controlli bloccanti prima di creare la bozza.' : undefined} onClick={submitCompiler}>
+                <Button type="button" tone="primary" disabled={!data.selectors.selectedFascicoloId || submitting || (!data.guidePreview.enabled && (data.compliance.overallState || data.compliance.state) === 'block')} title={!data.selectors.selectedFascicoloId ? 'Seleziona prima una pratica collegata.' : !data.guidePreview.enabled && (data.compliance.overallState || data.compliance.state) === 'block' ? 'Completa i controlli bloccanti prima di creare la bozza.' : undefined} onClick={submitCompiler}>
                   <Save size={17} aria-hidden="true" />
-                  {submitting ? 'Creazione in corso...' : (data.compliance.overallState || data.compliance.state) === 'block' ? 'Completa i controlli' : data.selectors.selectedFascicoloId ? data.submitLabel : 'Seleziona pratica collegata'}
+                  {submitting ? 'Creazione in corso...' : !data.guidePreview.enabled && (data.compliance.overallState || data.compliance.state) === 'block' ? 'Completa i controlli' : data.selectors.selectedFascicoloId ? data.submitLabel : 'Seleziona pratica collegata'}
                 </Button>
                 <ButtonLink href={data.catalogHref} tone="neutral">Annulla</ButtonLink>
               </footer>

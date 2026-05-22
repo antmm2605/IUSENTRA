@@ -1,0 +1,14 @@
+{
+  "url": "http://127.0.0.1:8080/template-atti/compila/GDP_001?id_fascicolo=2DE106E6&guida_pratica=140011&origine=guida_pratica",
+  "title": "IUSENTRA",
+  "has_guide_workspace": 1,
+  "has_step_5": true,
+  "has_import": true,
+  "has_preview_pdf": true,
+  "has_save_case": true,
+  "has_template_filtered_badge": true,
+  "has_old_vendita_block": false,
+  "has_old_0_16": false,
+  "has_old_scheda_pratica_suggerita": false,
+  "console_errors": []
+}

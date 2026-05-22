@@ -8,6 +8,15 @@ export type FormSubmitResult = {
   compliance_state?: string
   created_as?: string
   id?: string
+  document_id?: string
+  redirect_url?: string
+  testo_generato?: string
+  text?: string
+  contenuto?: string
+  content?: string
+  tipo?: string
+  errore?: string
+  error?: string
   whatsappLink?: string
 }
 
@@ -60,6 +69,15 @@ export async function submitFormJson(endpoint: string, formData: FormData): Prom
     compliance_state: typeof payload.compliance_state === 'string' ? payload.compliance_state : '',
     created_as: typeof payload.created_as === 'string' ? payload.created_as : '',
     id: typeof payload.id === 'string' ? payload.id : '',
+    document_id: typeof payload.document_id === 'string' ? payload.document_id : '',
+    redirect_url: typeof payload.redirect_url === 'string' ? payload.redirect_url : '',
+    testo_generato: typeof payload.testo_generato === 'string' ? payload.testo_generato : '',
+    text: typeof payload.text === 'string' ? payload.text : '',
+    contenuto: typeof payload.contenuto === 'string' ? payload.contenuto : '',
+    content: typeof payload.content === 'string' ? payload.content : '',
+    tipo: typeof payload.tipo === 'string' ? payload.tipo : '',
+    errore: typeof payload.errore === 'string' ? payload.errore : '',
+    error: typeof payload.error === 'string' ? payload.error : '',
     whatsappLink: typeof payload.whatsappLink === 'string' ? payload.whatsappLink : '',
   }
 }

@@ -1047,6 +1047,7 @@ def _form_fascicolo_payload(
             "practiceArea": _text(getattr(fascicolo, "area_pratica", "")),
             "proceduraOperativaCodice": _text(getattr(fascicolo, "procedura_operativa_codice", "")),
             "codiceOggettoPst": _text(getattr(fascicolo, "codice_oggetto_pst", "")),
+            "codiceGuidaPratica": _text(getattr(fascicolo, "codice_guida_pratica", "")),
             "fonteCodiceOggetto": _text(getattr(fascicolo, "fonte_codice_oggetto", "")),
             "fileFonteCodiceOggetto": _text(getattr(fascicolo, "file_fonte_codice_oggetto", "")),
             "riferimentoCartaceo": _text(getattr(fascicolo, "riferimento_cartaceo", "")),
@@ -1113,7 +1114,7 @@ def _new_fascicolo_guardrails(query: dict[str, str], fascicolo: Any | None = Non
     channel = _deposit_channel_for_type(tipo)
     return {
         "available": True,
-        "title": "Presidio deposito assistito",
+        "title": "Presidio apertura fascicolo",
         "portal": channel["portal"],
         "channel": channel["channel"],
         "channelLabel": channel["label"],
@@ -1123,16 +1124,16 @@ def _new_fascicolo_guardrails(query: dict[str, str], fascicolo: Any | None = Non
             {
                 "code": "DOCUMENTI_PREDEPOSITO_DOPO_CREAZIONE",
                 "message": (
-                    "Se usi Fascicolo Veloce, dopo il salvataggio si apre il deposito assistito. "
-                    "Atto principale, procura, prova notifica e contributo saranno controllati prima dell'invio."
+                    "La Guida Pratica resta facoltativa. I dati salvati qui alimentano fascicolo, Lex, documenti "
+                    "e controlli quando decidi di usarli."
                 ),
                 "field": "documenti",
             }
         ],
-        "requiredOpeningFields": ["titolo", "tipo", "oggetto", "autorita giudiziaria", "controparte"],
+        "requiredOpeningFields": ["titolo", "tipo", "oggetto", "autorità giudiziaria", "controparte"],
         "nextStep": {
-            "label": "Dopo la creazione vai al deposito assistito",
-            "href": "/deposito/checklist",
+            "label": "Dopo la creazione resta nel fascicolo",
+            "href": "",
         },
     }
 
@@ -1875,6 +1876,7 @@ def _full_fascicolo(fascicolo: Any, *, apps: Iterable[Any] | None = None, studio
             "practiceArea": _text(getattr(fascicolo, "area_pratica", "")),
             "proceduraOperativaCodice": _text(getattr(fascicolo, "procedura_operativa_codice", "")),
             "codiceOggettoPst": _text(getattr(fascicolo, "codice_oggetto_pst", "")),
+            "codiceGuidaPratica": _text(getattr(fascicolo, "codice_guida_pratica", "")),
             "fonteCodiceOggetto": _text(getattr(fascicolo, "fonte_codice_oggetto", "")),
             "fileFonteCodiceOggetto": _text(getattr(fascicolo, "file_fonte_codice_oggetto", "")),
             "firstHearing": _date_label(getattr(fascicolo, "data_prima_udienza", "")),

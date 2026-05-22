@@ -1,0 +1,2111 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET4_PARTE2",
+  "denominazione": "Quarto set di 9 codici - PARTE 2 di 2",
+  "registri": [
+    "SICID",
+    "SILP"
+  ],
+  "data_generazione": "2026-05-22",
+  "scopo": "Parte 2 del quarto set TOP9: infortunio sul lavoro, riconoscimento paternità/maternità, esclusione socio società persone, risarcimento violazione marchio/brevetto",
+  "codici_materia": [
+    {
+      "codice": "220070",
+      "denominazione": "Risarcimento danni da infortunio sul lavoro / malattia professionale",
+      "categoria": "Lavoro - responsabilità datoriale + INAIL",
+      "sottocategoria": "Azione del lavoratore (o eredi) per risarcimento danno DIFFERENZIALE rispetto alle prestazioni INAIL",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro - foro del luogo della sede di lavoro (art. 413 c.p.c.)",
+      "uffici_destinatari": [
+        "SICID-Lavoro / SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2087",
+          "descrizione": "Tutela delle condizioni di lavoro - obbligo di sicurezza del datore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1218",
+          "descrizione": "Responsabilità contrattuale (qualificazione preferita post Cass. SU 26972/2008 per danni da inadempimento obbligo sicurezza)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2043",
+          "descrizione": "Responsabilità extracontrattuale (alternativa)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2049",
+          "descrizione": "Responsabilità del datore per fatti dei dipendenti (per danni a colleghi)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2056",
+          "descrizione": "Valutazione danni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2059",
+          "descrizione": "Danno non patrimoniale"
+        },
+        {
+          "fonte": "D.P.R. 1124/1965 (TU Infortuni)",
+          "descrizione": "Testo Unico INAIL - prestazioni assicurative obbligatorie"
+        },
+        {
+          "fonte": "D.P.R. 1124/1965",
+          "articolo": "10",
+          "descrizione": "Esonero responsabilità civile datore - LIMITI: vale solo per danni coperti da INAIL e per condotte non penalmente rilevanti"
+        },
+        {
+          "fonte": "D.P.R. 1124/1965",
+          "articolo": "11",
+          "descrizione": "Regresso INAIL contro datore responsabile"
+        },
+        {
+          "fonte": "D.Lgs. 38/2000",
+          "descrizione": "Riordino INAIL - introduzione indennizzo danno biologico"
+        },
+        {
+          "fonte": "D.Lgs. 81/2008 (TU Sicurezza Lavoro)",
+          "descrizione": "Testo Unico sicurezza sul lavoro - obblighi specifici datore"
+        },
+        {
+          "fonte": "c.p.",
+          "articolo": "590-bis",
+          "descrizione": "Lesioni personali stradali gravi e gravissime (in materia connessa)"
+        },
+        {
+          "fonte": "c.p.",
+          "articolo": "589-bis - 590-bis",
+          "descrizione": "Omicidio e lesioni colpose da violazione norme sicurezza lavoro"
+        },
+        {
+          "fonte": "Cass. SU 26972/2008 (San Martino)",
+          "descrizione": "Categoria unitaria danno non patrimoniale + responsabilità contrattuale 2087"
+        },
+        {
+          "fonte": "Cass. SU 19956/2008",
+          "descrizione": "Danno biologico differenziale rispetto a INAIL"
+        },
+        {
+          "fonte": "Tabelle Tribunale Milano 2024",
+          "descrizione": "Liquidazione danno biologico macro-permanenti (post Cass. SU 6651/2024)"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "RAPPORTO DI LAVORO subordinato o assimilato (con esposizione al rischio professionale)",
+        "INFORTUNIO IN OCCASIONE DI LAVORO oppure MALATTIA PROFESSIONALE",
+        "VIOLAZIONE da parte del datore di OBBLIGHI DI SICUREZZA (art. 2087 c.c. + D.Lgs. 81/2008)",
+        "DANNO al lavoratore",
+        "NESSO DI CAUSALITÀ tra violazione e danno (criterio probabilistico)",
+        "Per danno DIFFERENZIALE: prima quantificazione completa del danno civilistico, poi sottrazione delle prestazioni INAIL già erogate"
+      ],
+      "danno_differenziale": {
+        "principio": "Le prestazioni INAIL coprono solo una parte del danno civilistico - il lavoratore può chiedere al datore la DIFFERENZA (danno differenziale)",
+        "metodologia_calcolo": [
+          "1. Quantificazione completa del danno secondo criteri civilistici (Tabelle Milano)",
+          "2. Identificazione delle prestazioni INAIL erogate (capitalizzate)",
+          "3. DIFFERENZIALE = Danno civilistico - Prestazioni INAIL",
+          "Per voci NON coperte da INAIL (es. danno morale): liquidazione integrale a carico datore"
+        ]
+      },
+      "esonero_datore_art_10_dpr_1124": {
+        "regola": "Il datore è esonerato da responsabilità civile per i danni coperti da INAIL",
+        "eccezioni": [
+          "Condotta penalmente rilevante (anche colposa)",
+          "Danno NON coperto da INAIL (es. danno morale, danno non strettamente biologico)",
+          "Danno differenziale per la parte eccedente la copertura INAIL"
+        ]
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "tentativo_facoltativo": "Conciliazione ITL ex art. 410 c.p.c. (facoltativa per privato)"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione documentazione dell'INFORTUNIO/MALATTIA",
+          "documenti": [
+            "Denuncia INAIL (modello 4-bis)",
+            "Verbale ASL/ITL",
+            "Cartelle cliniche e referti pronto soccorso",
+            "Verbale di infortunio sul lavoro",
+            "Eventuale relazione di consulente RLS o RSPP",
+            "Riconoscimento INAIL della natura professionale dell'evento"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "Documentazione del RAPPORTO DI LAVORO",
+          "documenti": [
+            "Contratto di lavoro",
+            "CCNL applicato",
+            "Buste paga",
+            "Mansionario",
+            "Documentazione su rischio specifico della mansione"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "RICOSTRUZIONE VIOLAZIONE OBBLIGO SICUREZZA",
+          "elementi": [
+            "DVR (Documento Valutazione Rischi)",
+            "Procedure di sicurezza disattese",
+            "Mancata formazione/informazione del lavoratore",
+            "Mancata fornitura DPI adeguati",
+            "Inadeguatezza delle attrezzature/macchinari",
+            "Violazione norme specifiche D.Lgs. 81/2008",
+            "Eventuali precedenti infortuni analoghi nella stessa azienda"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "Quantificazione DANNO COMPLETO secondo criteri civilistici",
+          "voci": [
+            "Danno biologico permanente (Tabelle Milano)",
+            "Danno biologico temporaneo",
+            "Danno morale/da sofferenza",
+            "Personalizzazione danno biologico (fino a +30%)",
+            "Danno patrimoniale emergente (spese mediche, di assistenza)",
+            "Danno patrimoniale lucro cessante (mancato guadagno, riduzione capacità lavorativa specifica)",
+            "Danno parentale per familiari (in caso di morte o lesioni gravissime)"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "Acquisizione dati su PRESTAZIONI INAIL erogate",
+          "documenti": [
+            "Visura prestazioni INAIL",
+            "Calcolo rendita/indennità capitalizzata"
+          ]
+        },
+        {
+          "step": 6,
+          "descrizione": "Calcolo DIFFERENZIALE",
+          "operazione": "Danno civilistico complessivo - Prestazioni INAIL erogate (capitalizzate)"
+        },
+        {
+          "step": 7,
+          "descrizione": "Eventuale RICHIESTA STRAGIUDIZIALE al datore e alla sua assicurazione",
+          "vantaggio": "Tentativo conciliativo che può evitare il giudizio"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_risarcimento_infortunio_sul_lavoro",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per risarcimento danno differenziale da infortunio sul lavoro",
+        "schema_xsd_ministeriale": "AttoLavoro.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del lavoro",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore_infortunato",
+            "label": "Lavoratore infortunato (o eredi)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_lavoro_convenuto",
+            "label": "Datore di lavoro convenuto",
+            "type": "object_persona_giuridica",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "denominazione",
+                "type": "string"
+              },
+              {
+                "id": "codice_fiscale_partita_iva",
+                "type": "string"
+              },
+              {
+                "id": "sede_legale",
+                "type": "address"
+              },
+              {
+                "id": "settore_attivita",
+                "type": "string"
+              },
+              {
+                "id": "polizza_assicurativa_RC",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "assicuratore_datore_RC",
+            "label": "Compagnia assicuratrice RC del datore (azione diretta possibile)",
+            "type": "object_persona_giuridica"
+          },
+          {
+            "id": "evento_infortunio_o_malattia",
+            "label": "Evento",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "infortunio_sul_lavoro",
+                  "malattia_professionale_tabellata",
+                  "malattia_professionale_non_tabellata"
+                ]
+              },
+              {
+                "id": "data_evento",
+                "type": "date"
+              },
+              {
+                "id": "luogo",
+                "type": "string"
+              },
+              {
+                "id": "modalita_accadimento",
+                "type": "textarea",
+                "min_length": 300
+              },
+              {
+                "id": "mansioni_svolte_al_momento",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "rapporto_lavoro",
+            "label": "Rapporto di lavoro",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_contratto",
+                "type": "select"
+              },
+              {
+                "id": "data_assunzione",
+                "type": "date"
+              },
+              {
+                "id": "qualifica",
+                "type": "string"
+              },
+              {
+                "id": "mansioni",
+                "type": "textarea"
+              },
+              {
+                "id": "ccnl_applicato",
+                "type": "string"
+              },
+              {
+                "id": "retribuzione_globale_di_fatto",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "violazione_obblighi_sicurezza",
+            "label": "Violazione obblighi di sicurezza (art. 2087 c.c. + D.Lgs. 81/2008)",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipologia_violazioni",
+                "type": "select_multi",
+                "required": true,
+                "options": [
+                  "dvr_inadeguato_o_assente",
+                  "mancata_formazione_informazione",
+                  "mancata_fornitura_dpi",
+                  "dpi_inadeguati",
+                  "macchinari_attrezzature_non_a_norma",
+                  "procedure_sicurezza_non_rispettate",
+                  "mancata_sorveglianza_sanitaria",
+                  "non_designazione_RSPP_o_RLS",
+                  "violazione_norme_specifiche_TU_81_2008",
+                  "altra"
+                ]
+              },
+              {
+                "id": "descrizione_violazioni",
+                "type": "textarea",
+                "required": true,
+                "min_length": 500
+              },
+              {
+                "id": "norme_specifiche_violate",
+                "type": "array"
+              },
+              {
+                "id": "precedenti_infortuni_analoghi",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "danno_subito",
+            "label": "Danno subito",
+            "type": "object_complesso",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_lesione",
+                "type": "select",
+                "options": [
+                  "lieve_entita_fino_9_IP",
+                  "non_lieve_entita_oltre_9_IP",
+                  "morte"
+                ]
+              },
+              {
+                "id": "invalidita_temporanea_totale_giorni",
+                "type": "integer"
+              },
+              {
+                "id": "invalidita_temporanea_parziale",
+                "type": "object"
+              },
+              {
+                "id": "invalidita_permanente_percentuale",
+                "type": "percentage"
+              },
+              {
+                "id": "danno_biologico_calcolato",
+                "type": "currency"
+              },
+              {
+                "id": "danno_morale_da_sofferenza",
+                "type": "currency"
+              },
+              {
+                "id": "personalizzazione",
+                "type": "currency"
+              },
+              {
+                "id": "danno_patrimoniale_emergente",
+                "type": "currency"
+              },
+              {
+                "id": "danno_patrimoniale_lucro_cessante",
+                "type": "currency"
+              },
+              {
+                "id": "danno_parentale_iure_proprio",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "prestazioni_inail_ricevute",
+            "label": "Prestazioni INAIL ricevute",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "indennita_temporanea_giornaliera",
+                "type": "currency"
+              },
+              {
+                "id": "rendita_o_indennizzo_capitale",
+                "type": "currency"
+              },
+              {
+                "id": "capitale_rendita_capitalizzato",
+                "type": "currency",
+                "calcolato": true
+              },
+              {
+                "id": "altre_prestazioni",
+                "type": "array"
+              }
+            ]
+          },
+          {
+            "id": "danno_differenziale",
+            "label": "Danno differenziale richiesto",
+            "type": "currency",
+            "required": true,
+            "formula": "danno_civilistico_totale - prestazioni_INAIL_capitalizzate"
+          },
+          {
+            "id": "danni_non_coperti_INAIL",
+            "label": "Voci di danno non coperte da INAIL (es. danno morale - liquidazione integrale)",
+            "type": "currency"
+          },
+          {
+            "id": "totale_richiesto",
+            "label": "Totale richiesto al datore",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Responsabilità contrattuale ex art. 2087 c.c. (preferita post Cass. SU 26972/2008)",
+          "Esonero datore art. 10 DPR 1124/65 non si applica per condotte penalmente rilevanti e per danno differenziale",
+          "Tabelle Milano 2024 per liquidazione danno biologico macro-permanenti",
+          "Onere prova datore: prova di aver adottato tutte le misure di sicurezza necessarie (inversione ex 1218 c.c.)",
+          "Prescrizione decennale per responsabilità contrattuale (art. 2946 c.c.)",
+          "Eventuale azione di regresso INAIL contro il datore ex art. 11 DPR 1124/65"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "denuncia_infortunio_INAIL",
+          "label": "Denuncia INAIL e riconoscimento natura professionale",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_sanitaria_completa",
+          "label": "Cartelle cliniche, referti pronto soccorso, visite specialistiche, fisioterapie",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "verbale_ASL_ITL",
+          "label": "Verbale ASL/Ispettorato del Lavoro",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "contratto_lavoro_e_CCNL",
+          "label": "Contratto lavoro + CCNL applicato",
+          "required": true
+        },
+        {
+          "id": "buste_paga_ultimi_12_mesi",
+          "label": "Buste paga ultimi 12 mesi",
+          "required": true
+        },
+        {
+          "id": "DVR_aziendale",
+          "label": "Documento di Valutazione Rischi aziendale",
+          "required": false,
+          "molto_rilevante": true
+        },
+        {
+          "id": "documenti_formazione_lavoratore",
+          "label": "Documenti formazione/informazione del lavoratore",
+          "required": false,
+          "rilevante": true
+        },
+        {
+          "id": "documentazione_DPI_consegnati",
+          "label": "Documentazione DPI consegnati e formazione su uso",
+          "required": false,
+          "rilevante": true
+        },
+        {
+          "id": "perizia_medico_legale_di_parte",
+          "label": "Perizia medico-legale di parte",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "visura_prestazioni_INAIL",
+          "label": "Visura prestazioni INAIL erogate (per calcolo differenziale)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "eventuali_sentenze_penali",
+          "label": "Eventuali sentenze penali a carico del datore (per superamento esonero art. 10)",
+          "required": false,
+          "rilevante": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per controversie individuali di lavoro per reddito sotto 3x soglia patrocinio a spese dello Stato",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ctu_medico_legale",
+          "trigger": "Disposta dal giudice",
+          "automatico": false,
+          "molto_frequente": true
+        },
+        {
+          "tipo": "memoria_difensiva_datore",
+          "trigger": "Costituzione datore",
+          "termine": "10 gg prima udienza"
+        },
+        {
+          "tipo": "chiamata_in_garanzia_assicurazione_RC_datore",
+          "trigger": "Domanda di garanzia datore",
+          "automatico": false
+        },
+        {
+          "tipo": "azione_INAIL_per_regresso_art_11_dpr_1124",
+          "trigger": "INAIL agisce contro datore",
+          "automatico": false,
+          "modalita": "parallela"
+        },
+        {
+          "tipo": "procedimento_penale_paralle_589_bis_590_bis",
+          "trigger": "Eventi gravi/mortali",
+          "automatico": false
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_pieno_danno_differenziale",
+          "descrizione": "Condanna datore (e/o assicurazione) al risarcimento integrale del differenziale + voci non coperte INAIL"
+        },
+        {
+          "esito": "accoglimento_parziale",
+          "descrizione": "Riduzione del quantum o riconoscimento di colpa concorrente del lavoratore"
+        },
+        {
+          "esito": "rigetto_per_assenza_violazione_obblighi",
+          "descrizione": "Datore aveva adottato tutte le misure di sicurezza necessarie - rigetto"
+        },
+        {
+          "esito": "rigetto_per_esonero_art_10_dpr_1124",
+          "descrizione": "Esonero applicabile (no rilevanza penale + danno tutto coperto INAIL)"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo transattivo con datore e/o compagnia assicuratrice"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione responsabilità contrattuale 2087",
+          "anni": 10,
+          "decorrenza": "evento o consolidamento danno",
+          "natura": "prescrizione",
+          "norma": "art. 2946 c.c."
+        },
+        {
+          "termine": "Prescrizione responsabilità extracontrattuale",
+          "anni": 5,
+          "decorrenza": "evento",
+          "natura": "prescrizione",
+          "norma": "art. 2947 c.c."
+        },
+        {
+          "termine": "Prescrizione se reato (es. lesioni colpose)",
+          "anni": 6,
+          "decorrenza": "evento",
+          "natura": "prescrizione lunga",
+          "norma": "art. 2947 c. 3 c.c."
+        },
+        {
+          "termine": "Costituzione datore",
+          "giorni": 10,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio",
+          "norma": "art. 416 c.p.c."
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_RICONOSCIMENTO_PATERNITA_MATERNITA_111007",
+      "denominazione": "Riconoscimento giudiziale della paternità o della maternità",
+      "categoria": "Persone e famiglia - filiazione",
+      "sottocategoria": "Dichiarazione giudiziale di paternità/maternità di figlio non riconosciuto volontariamente (art. 269 c.c.)",
+      "rito": "Rito unificato persone e famiglia ex artt. 473-bis e ss. c.p.c. (post-Cartabia)",
+      "competenza": "Tribunale ordinario - sezione famiglia (Tribunale per le persone, per i minorenni e per le famiglie ex D.Lgs. 149/2022)",
+      "competenza_territoriale": "Tribunale della residenza del convenuto (art. 18 c.p.c.) o del figlio (per minori art. 473-bis.11)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "269",
+          "descrizione": "Dichiarazione giudiziale di paternità e di maternità"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "270",
+          "descrizione": "Legittimazione attiva e termini"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "273",
+          "descrizione": "Effetti della sentenza dichiarativa"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "276",
+          "descrizione": "Legittimazione passiva - eredi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "277",
+          "descrizione": "Decisione del giudice sui rapporti tra le parti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "279",
+          "descrizione": "Diritto al mantenimento, all'istruzione e all'educazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "30 Cost.",
+          "descrizione": "Tutela della filiazione naturale"
+        },
+        {
+          "fonte": "L. 219/2012",
+          "descrizione": "Parità tra figli nati nel matrimonio e fuori - riforma art. 269 c.c."
+        },
+        {
+          "fonte": "D.Lgs. 154/2013",
+          "descrizione": "Disciplina parità filiazione"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis",
+          "descrizione": "Rito unificato persone e famiglia"
+        },
+        {
+          "fonte": "Cass. SU 16100/2014",
+          "descrizione": "Imprescrittibilità azione del figlio"
+        },
+        {
+          "fonte": "Corte Cost. 50/2006",
+          "descrizione": "Possibilità di prova ematogenetica/DNA"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "FIGLIO NON RICONOSCIUTO volontariamente dal genitore (padre o madre)",
+        "PROVA della filiazione biologica (oggi pressoché sempre TEST DEL DNA)",
+        "LEGITTIMAZIONE ATTIVA: figlio stesso (anche se minore - tramite curatore speciale) o genitore che esercita la responsabilità (per i minori)",
+        "LEGITTIMAZIONE PASSIVA: genitore non riconoscente (o suoi eredi se deceduto - art. 276 c.c.)"
+      ],
+      "azione_imprescrittibile_per_il_figlio": "Cass. SU 16100/2014: l'azione del figlio è IMPRESCRITTIBILE; quella esercitata dal genitore o curatore in nome del minore: 1 anno dalla rappresentanza, salvo riconoscimento del rapporto",
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione documentazione sullo STATO DEL FIGLIO",
+          "documenti": [
+            "Atto di nascita (con indicazione 'di padre/madre ignoto/a')",
+            "Eventuale dichiarazione di filiazione da parte di un solo genitore",
+            "Stato di famiglia"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "Identificazione del PRESUNTO GENITORE",
+          "elementi": [
+            "Generalità complete",
+            "Indirizzo, codice fiscale",
+            "Verifica esistenza (se deceduto: identificazione eredi - litisconsorzio necessario)"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "RACCOLTA INDIZI DELLA RELAZIONE GENITORIALE",
+          "tipologie_di_prove": [
+            "Documentazione della relazione tra i presunti genitori (lettere, mail, foto)",
+            "Testimonianze",
+            "Documenti che attestano periodi di coabitazione",
+            "Eventuali precedenti riconoscimenti spontanei",
+            "Comportamento del presunto genitore (frequentazione, mantenimento spontaneo del figlio)"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VALUTAZIONE DEL TEST DEL DNA",
+          "modalita_pratica": [
+            "Prova principale del giudizio",
+            "Disposta dal giudice come CTU genetica",
+            "Necessità del consenso del presunto genitore",
+            "Conseguenze del RIFIUTO: argomento di prova ex art. 116 c. 2 c.p.c. (può fondare la dichiarazione di paternità anche senza DNA - Cass. consolidata)"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "Quantificazione DOMANDE ECONOMICHE COLLATERALI",
+          "elementi": [
+            "Mantenimento dalla nascita (per gli arretrati, in alcuni casi)",
+            "Mantenimento futuro",
+            "Spese straordinarie",
+            "Eventuali danni morali per mancato riconoscimento (controversa)"
+          ]
+        },
+        {
+          "step": 6,
+          "descrizione": "Per figli MINORI: nomina CURATORE SPECIALE",
+          "obbligatorio_se_conflitto": "Quando il genitore che esercita la responsabilità ha conflitto con il figlio (raro in queste cause)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_riconoscimento_paternita_maternita",
+        "denominazione": "Ricorso ex art. 269 c.c. per dichiarazione giudiziale di paternità/maternità",
+        "schema_xsd_ministeriale": "AttoFamiglia.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente (sezione famiglia)",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "figlio_ricorrente_o_chi_esercita_potesta",
+            "label": "Figlio ricorrente (se maggiorenne) o genitore che esercita la responsabilità (per minori)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "presunto_genitore_convenuto",
+            "label": "Presunto genitore convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "eredi_se_deceduto",
+            "label": "Eredi del presunto genitore (se deceduto - LITISCONSORTI NECESSARI ex art. 276)",
+            "type": "array_persone",
+            "required_if": "presunto_genitore_deceduto=true"
+          },
+          {
+            "id": "curatore_speciale",
+            "label": "Curatore speciale del minore (se nominato)",
+            "type": "object_persona"
+          },
+          {
+            "id": "domanda",
+            "label": "Tipo di domanda",
+            "type": "select",
+            "required": true,
+            "options": [
+              "dichiarazione_paternita",
+              "dichiarazione_maternita"
+            ]
+          },
+          {
+            "id": "dati_figlio",
+            "label": "Dati del figlio",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome_attuale",
+                "type": "string"
+              },
+              {
+                "id": "data_luogo_nascita",
+                "type": "object"
+              },
+              {
+                "id": "atto_di_nascita_indicazione_genitori",
+                "type": "string",
+                "esempio": "padre ignoto, madre dichiarante"
+              },
+              {
+                "id": "maggiorenne_o_minore",
+                "type": "select"
+              }
+            ]
+          },
+          {
+            "id": "presunta_relazione_genitoriale",
+            "label": "Descrizione presunta relazione genitoriale",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "natura_relazione",
+                "type": "select",
+                "options": [
+                  "coniugio_non_riconosciuto",
+                  "convivenza_more_uxorio",
+                  "relazione_intima_non_continuativa",
+                  "rapporti_occasionali",
+                  "altro"
+                ]
+              },
+              {
+                "id": "periodo_relazione",
+                "type": "object"
+              },
+              {
+                "id": "circostanze_concepimento",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "indizi_e_prove",
+            "label": "Indizi e prove disponibili",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "lettere_mail_foto",
+                "type": "boolean"
+              },
+              {
+                "id": "testimoni",
+                "type": "array_persone"
+              },
+              {
+                "id": "comportamento_presunto_genitore",
+                "type": "textarea"
+              },
+              {
+                "id": "altri_indizi",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "richiesta_ctu_genetica",
+            "label": "Richiesta CTU genetica (test DNA)",
+            "type": "boolean",
+            "default": true,
+            "fortemente_consigliato": true
+          },
+          {
+            "id": "domande_economiche_collegate",
+            "label": "Domande economiche collegate",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "mantenimento_arretrato",
+                "type": "currency"
+              },
+              {
+                "id": "mantenimento_futuro_mensile",
+                "type": "currency"
+              },
+              {
+                "id": "spese_straordinarie",
+                "type": "string"
+              },
+              {
+                "id": "risarcimento_danni_morali",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "dichiarazione_paternita_maternita",
+              "attribuzione_cognome",
+              "mantenimento_dalla_nascita",
+              "mantenimento_futuro",
+              "risarcimento_danni_morali_per_mancato_riconoscimento",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "AZIONE IMPRESCRITTIBILE per il figlio (Cass. SU 16100/2014)",
+          "LITISCONSORZIO NECESSARIO con eredi se presunto genitore deceduto (art. 276 c.c.)",
+          "Audizione del minore obbligatoria se >12 anni o capace (art. 473-bis.22)",
+          "Parere PM obbligatorio (art. 70 c.p.c.)",
+          "CTU genetica disposta dal giudice - rifiuto del convenuto può fondare la dichiarazione (art. 116 c.2)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atto_di_nascita_figlio",
+          "label": "Atto di nascita del figlio (con indicazione genitori conosciuti)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "stato_famiglia",
+          "label": "Stato di famiglia",
+          "required": true
+        },
+        {
+          "id": "certificato_morte_presunto_genitore",
+          "label": "Certificato di morte del presunto genitore (se deceduto)",
+          "required_if": "presunto_genitore_deceduto=true"
+        },
+        {
+          "id": "stato_famiglia_presunto_genitore",
+          "label": "Stato di famiglia presunto genitore (per identificare eredi)",
+          "required_if": "presunto_genitore_deceduto=true"
+        },
+        {
+          "id": "documentazione_relazione",
+          "label": "Documentazione della presunta relazione (lettere, foto, mail, testimoni)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "elenco_testimoni",
+          "label": "Elenco testimoni con recapiti",
+          "required": true
+        },
+        {
+          "id": "documenti_economici_per_mantenimento",
+          "label": "Documenti economici (redditi del presunto genitore se disponibili)",
+          "required": false
+        },
+        {
+          "id": "decreto_nomina_curatore_speciale",
+          "label": "Decreto di nomina curatore speciale (se applicabile)",
+          "required_if": "necessario_curatore_speciale=true"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per procedimenti relativi a stato delle persone e famiglia",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio - anonimizzazione dati minori"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ctu_genetica_dna",
+          "trigger": "Disposta dal giudice - prova principale",
+          "automatico": false,
+          "critico": true
+        },
+        {
+          "tipo": "prova_testimoniale",
+          "trigger": "Disposta dal giudice",
+          "automatico": false
+        },
+        {
+          "tipo": "sentenza_dichiarativa_paternita_maternita",
+          "trigger": "Esito accoglimento",
+          "automatico": false
+        },
+        {
+          "tipo": "annotazione_atto_di_nascita",
+          "trigger": "Sentenza passata in giudicato",
+          "ufficio": "Comune di nascita"
+        },
+        {
+          "tipo": "ricorso_per_mantenimento_figli_naturali",
+          "trigger": "Successivamente o nello stesso giudizio",
+          "codice_correlato": "111006"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "dichiarazione_paternita_o_maternita_con_DNA_positivo",
+          "descrizione": "Sentenza dichiarativa - cognome del padre attribuito + mantenimento"
+        },
+        {
+          "esito": "dichiarazione_anche_senza_DNA_per_rifiuto_convenuto",
+          "descrizione": "Rifiuto del DNA → argomento di prova ex art. 116 c. 2 → dichiarazione possibile"
+        },
+        {
+          "esito": "rigetto_per_DNA_negativo",
+          "descrizione": "DNA esclude la paternità - rigetto"
+        },
+        {
+          "esito": "rigetto_per_insufficienza_prove",
+          "descrizione": "Indizi insufficienti e DNA non disponibile"
+        },
+        {
+          "esito": "riconoscimento_volontario_in_corso_di_causa",
+          "descrizione": "Il presunto genitore riconosce - cessazione materia del contendere"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "AZIONE DEL FIGLIO",
+          "natura": "imprescrittibile",
+          "norma": "art. 270 c.c. + Cass. SU 16100/2014"
+        },
+        {
+          "termine": "Azione del genitore esercente la responsabilità per il minore",
+          "anno": 1,
+          "decorrenza": "rappresentanza",
+          "natura": "decadenziale"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 30,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio",
+          "norma": "art. 473-bis.16 c.p.c."
+        }
+      ],
+      "codice_originale_ricevuto": "111007",
+      "codici_ufficiali_correlati_da_valutare": [
+        "111103",
+        "111105",
+        "111110",
+        "112103"
+      ],
+      "codice_deposito": null,
+      "catalogo_xsd": null,
+      "_conversione_deposito": "Codice ricevuto non presente nel catalogo PST/XSD locale; guida conservata come interna non depositabile."
+    },
+    {
+      "codice": "GUIDA_ESCLUSIONE_SOCIO_SOCIETA_PERSONE_150010",
+      "denominazione": "Esclusione del socio di società di persone (art. 2286 c.c.)",
+      "categoria": "Diritto societario - vicende del socio",
+      "sottocategoria": "Esclusione del socio per gravi inadempienze o altre cause - società di persone (s.n.c., s.a.s.)",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale - sezione civile o sezione impresa (a seconda della rilevanza); foro sede sociale (art. 19 c.p.c.)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2286",
+          "descrizione": "Esclusione del socio - cause (gravi inadempienze)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2287",
+          "descrizione": "Procedimento di esclusione - delibera dei soci"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2288",
+          "descrizione": "Esclusione di diritto (fallimento socio, ecc.)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2289",
+          "descrizione": "Liquidazione della quota del socio uscente"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2290",
+          "descrizione": "Responsabilità del socio uscente"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2293",
+          "descrizione": "Norme applicabili s.n.c."
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2306",
+          "descrizione": "Riduzione di capitale s.n.c. (e applicazione ad esclusione)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2313",
+          "descrizione": "S.a.s. - accomandatari e accomandanti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2351",
+          "descrizione": "Esclusione socio accomandante"
+        },
+        {
+          "fonte": "D.L. 1/2012",
+          "descrizione": "Tribunale delle Imprese per società di una certa rilevanza"
+        }
+      ],
+      "cause_esclusione_art_2286": [
+        "GRAVI INADEMPIENZE delle obbligazioni che derivano dalla legge o dal contratto sociale",
+        "INTERDIZIONE o INABILITAZIONE del socio o sua condanna a pena che comporta interdizione dai pubblici uffici",
+        "IMPOSSIBILITÀ DI PRESTARE L'OPERA (per i soci d'opera) per inettitudine sopravvenuta o per altra causa",
+        "PERIMENTO della cosa il cui godimento è stato conferito (per soci che hanno conferito il godimento di una cosa)"
+      ],
+      "esclusione_di_diritto_art_2288": [
+        "Dichiarazione di FALLIMENTO del socio (oggi: liquidazione giudiziale)",
+        "ALTRE CAUSE previste dal contratto sociale"
+      ],
+      "procedimento_esclusione_art_2287": {
+        "modalita_ordinaria": [
+          "DELIBERA della maggioranza dei soci (computati per teste, NON per quote)",
+          "Esclusione del socio interessato dal computo (è la maggioranza degli ALTRI soci)",
+          "Comunicazione al socio escluso entro 30 gg",
+          "Effetto: 30 gg dalla comunicazione"
+        ],
+        "opposizione_socio_escluso": [
+          "TERMINE 30 GG dalla comunicazione",
+          "OPPOSIZIONE al Tribunale (rito ordinario)",
+          "Sospensione dell'efficacia se il giudice lo dispone"
+        ],
+        "esclusione_giudiziale": "Per società composta da SOLI DUE SOCI: la decisione spetta al GIUDICE su istanza di uno dei due"
+      },
+      "presupposti_sostanziali": [
+        "QUALITÀ DI SOCIO in società di persone (s.n.c., s.a.s., società semplice)",
+        "Sussistenza di una CAUSA DI ESCLUSIONE ex art. 2286 c.c.",
+        "Per esclusione ORDINARIA: regolare DELIBERA degli altri soci",
+        "Per esclusione GIUDIZIALE (società di soli 2 soci): istanza dell'altro socio"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici_per_societa_che_esclude": [
+        {
+          "step": 1,
+          "descrizione": "Verifica della CAUSA DI ESCLUSIONE",
+          "documentazione": [
+            "Per gravi inadempienze: documentazione delle violazioni (mail, comunicazioni, atti)",
+            "Per interdizione/inabilitazione: sentenza definitiva",
+            "Per impossibilità prestare opera: certificazione medica o documentazione"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DELIBERAZIONE DEI SOCI ex art. 2287",
+          "modalita": [
+            "Convocazione degli altri soci",
+            "Verbale della decisione (anche informale per società di persone)",
+            "Maggioranza per TESTE (non per quote)",
+            "Esclusione del socio da espellere dal computo della maggioranza"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "COMUNICAZIONE AL SOCIO ESCLUSO",
+          "termine": "30 gg dalla decisione",
+          "modalita": "Raccomandata A/R o PEC dettagliata (con indicazione cause e decorrenza effetti)"
+        },
+        {
+          "step": 4,
+          "descrizione": "LIQUIDAZIONE DELLA QUOTA del socio escluso (art. 2289)",
+          "criterio": "Valore della quota al momento dello scioglimento del rapporto sociale + utili e perdite delle operazioni in corso"
+        }
+      ],
+      "adempimenti_propedeutici_per_socio_escluso_che_oppone": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione della COMUNICAZIONE DI ESCLUSIONE",
+          "elementi": [
+            "Data ricezione (critico per termine 30 gg)",
+            "Motivazione invocata",
+            "Eventuale verbale della delibera"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "Verifica REGOLARITÀ DELLA DELIBERA",
+          "controlli": [
+            "Maggioranza calcolata correttamente (per teste, escludendo il socio)",
+            "Convocazione corretta degli altri soci",
+            "Verbale conforme",
+            "Indicazione causa di esclusione tra quelle tassative ex 2286"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "Verifica SUSSISTENZA EFFETTIVA della causa",
+          "documentazione": [
+            "Smentita delle violazioni contestate",
+            "Prove dell'adempimento delle obbligazioni sociali"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "DEPOSITO RICORSO IN OPPOSIZIONE entro 30 gg dalla comunicazione",
+          "criticita": "MASSIMA - decadenza preclude impugnazione",
+          "norma": "art. 2287 c.p.c."
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_opposizione_esclusione_o_esclusione_giudiziale",
+        "denominazione": "Atto di citazione per opposizione all'esclusione (o per esclusione giudiziale ex art. 2287 c.p.c.)",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale - sezione civile o impresa",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "tipo_giudizio",
+            "label": "Tipo di giudizio",
+            "type": "select",
+            "required": true,
+            "options": [
+              "opposizione_socio_escluso_alla_delibera",
+              "esclusione_giudiziale_societa_di_2_soci"
+            ]
+          },
+          {
+            "id": "attore",
+            "label": "Attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto_societa_o_altro_socio",
+            "label": "Convenuto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "societa",
+                  "altro_socio_societa_2_soci"
+                ]
+              },
+              {
+                "id": "denominazione_o_nome",
+                "type": "string"
+              },
+              {
+                "id": "sede_o_residenza",
+                "type": "address"
+              }
+            ]
+          },
+          {
+            "id": "altri_soci_litisconsorti",
+            "label": "Altri soci litisconsorti",
+            "type": "array_persone",
+            "rilevanza": "Per opposizione: tutti gli altri soci della società"
+          },
+          {
+            "id": "societa",
+            "label": "Società",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "denominazione_sociale",
+                "type": "string"
+              },
+              {
+                "id": "tipo_societa",
+                "type": "select",
+                "options": [
+                  "snc",
+                  "sas",
+                  "societa_semplice"
+                ]
+              },
+              {
+                "id": "codice_fiscale_partita_iva",
+                "type": "string"
+              },
+              {
+                "id": "sede_legale",
+                "type": "address"
+              },
+              {
+                "id": "numero_soci_totali",
+                "type": "integer"
+              },
+              {
+                "id": "soci_completi_elenco",
+                "type": "array_persone"
+              }
+            ]
+          },
+          {
+            "id": "delibera_esclusione_impugnata",
+            "label": "Delibera di esclusione (se opposizione)",
+            "type": "object",
+            "required_if": "tipo_giudizio=opposizione",
+            "sub_fields": [
+              {
+                "id": "data_delibera",
+                "type": "date"
+              },
+              {
+                "id": "causa_invocata",
+                "type": "select",
+                "options": [
+                  "gravi_inadempienze_2286_n_1",
+                  "interdizione_inabilitazione_2286_n_2",
+                  "impossibilita_prestare_opera_2286_n_3",
+                  "perimento_cosa_in_godimento_2286_n_4"
+                ]
+              },
+              {
+                "id": "descrizione_motivazione",
+                "type": "textarea"
+              },
+              {
+                "id": "data_comunicazione_socio_escluso",
+                "type": "date",
+                "critico": true
+              },
+              {
+                "id": "data_ricezione_socio_escluso",
+                "type": "date",
+                "critico": true
+              },
+              {
+                "id": "termine_opposizione_30_gg_rispettato",
+                "type": "boolean",
+                "validation": "differenza_date_max_30_gg"
+              }
+            ]
+          },
+          {
+            "id": "motivi_opposizione_o_richiesta_esclusione",
+            "label": "Motivi di opposizione o di richiesta esclusione giudiziale",
+            "type": "textarea",
+            "required": true,
+            "min_length": 300
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "annullamento_delibera_esclusione",
+              "accertamento_qualita_socio",
+              "esclusione_giudiziale_altro_socio_2_soci",
+              "liquidazione_quota_socio_escluso",
+              "risarcimento_danni",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Termine 30 gg OPPOSIZIONE dalla comunicazione (decadenziale)",
+          "Litisconsorzio con tutti gli altri soci",
+          "Per società di 2 soci: esclusione GIUDIZIALE - non delibera",
+          "Maggioranza per TESTE non per quote (art. 2287 c.c.)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atto_costitutivo_societa",
+          "label": "Atto costitutivo della società",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "visura_camerale",
+          "label": "Visura camerale aggiornata",
+          "required": true
+        },
+        {
+          "id": "delibera_esclusione_e_verbale",
+          "label": "Delibera di esclusione e verbale (se opposizione)",
+          "required_if": "tipo_giudizio=opposizione",
+          "critico": true
+        },
+        {
+          "id": "comunicazione_esclusione_e_prova_invio_e_ricezione",
+          "label": "Comunicazione esclusione con prova invio e ricezione",
+          "required_if": "tipo_giudizio=opposizione",
+          "critico": true
+        },
+        {
+          "id": "documentazione_cause_esclusione",
+          "label": "Documentazione delle cause invocate (per la società) o smentita (per il socio)",
+          "required": true
+        },
+        {
+          "id": "bilanci_societa",
+          "label": "Bilanci ultimi 3 anni (per valutazione liquidazione quota)",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_adempimento_obblighi_sociali",
+          "label": "Documentazione adempimento obblighi sociali (per socio escluso)",
+          "required_if": "tipo_giudizio=opposizione"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore della quota o del danno richiesto",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "istanza_sospensione_efficacia_delibera_700",
+          "trigger": "Pericolo grave per il socio escluso",
+          "automatico": false
+        },
+        {
+          "tipo": "ctu_estimativa_quota",
+          "trigger": "Per liquidazione quota",
+          "automatico": false
+        },
+        {
+          "tipo": "azione_responsabilita_amministratori",
+          "trigger": "Eventuale - se gestione pregiudizievole",
+          "automatico": false
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "annullamento_delibera_esclusione",
+          "descrizione": "Socio reintegrato nella qualità sociale + eventuale risarcimento"
+        },
+        {
+          "esito": "rigetto_opposizione_e_conferma_esclusione",
+          "descrizione": "Esclusione confermata + liquidazione quota"
+        },
+        {
+          "esito": "esclusione_giudiziale_societa_di_2_soci",
+          "descrizione": "Pronuncia di esclusione dell'altro socio + liquidazione"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo (rientro nella società o liquidazione concordata)"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "OPPOSIZIONE SOCIO ESCLUSO",
+          "giorni": 30,
+          "decorrenza": "comunicazione esclusione",
+          "natura": "DECADENZIALE",
+          "norma": "art. 2287 c.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Decorrenza effetti esclusione",
+          "giorni": 30,
+          "decorrenza": "comunicazione",
+          "natura": "termine sostanziale"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "150010",
+      "codici_ufficiali_correlati_da_valutare": [
+        "151120",
+        "152004",
+        "152999",
+        "181005"
+      ],
+      "codice_deposito": null,
+      "catalogo_xsd": null,
+      "_conversione_deposito": "Codice ricevuto non presente nel catalogo PST/XSD locale; guida conservata come interna non depositabile."
+    },
+    {
+      "codice": "GUIDA_VIOLAZIONE_MARCHIO_BREVETTO_170011",
+      "denominazione": "Risarcimento danni da violazione di marchio o brevetto",
+      "categoria": "Diritto industriale - tutela proprietà industriale",
+      "sottocategoria": "Azione di contraffazione di marchio/brevetto + risarcimento danni",
+      "rito": "Rito ordinario di cognizione (con frequente fase cautelare ex artt. 128-131 CPI)",
+      "competenza": "TRIBUNALE - SEZIONE SPECIALIZZATA IN MATERIA DI IMPRESA (D.Lgs. 168/2003) - foro speciale industria art. 120 CPI",
+      "uffici_destinatari": [
+        "SICID - sezione specializzata impresa"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 30/2005 (Codice Proprietà Industriale - CPI)",
+          "descrizione": "Disciplina marchi, brevetti, modelli, indicazioni geografiche"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "1",
+          "descrizione": "Oggetto della proprietà industriale"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "7-28",
+          "descrizione": "Marchi - requisiti di registrabilità, contraffazione"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "45-81",
+          "descrizione": "Brevetti per invenzioni industriali"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "31-44",
+          "descrizione": "Modelli e disegni"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "120",
+          "descrizione": "Competenza territoriale - foro speciale (luogo violazione o residenza convenuto)"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "125",
+          "descrizione": "Risarcimento del danno e restituzione degli utili"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "126",
+          "descrizione": "Pubblicazione della sentenza"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "128",
+          "descrizione": "Descrizione e sequestro (cautelari)"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "129",
+          "descrizione": "Descrizione e sequestro - modalità"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "131",
+          "descrizione": "Inibitoria - misure cautelari ed esecutive"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "132",
+          "descrizione": "Misure correttive e sanzioni civili"
+        },
+        {
+          "fonte": "D.Lgs. 168/2003",
+          "descrizione": "Sezioni specializzate proprietà industriale e intellettuale (oggi sezioni impresa)"
+        },
+        {
+          "fonte": "Reg. UE 2017/1001",
+          "descrizione": "Marchio dell'Unione Europea (EUIPO)"
+        },
+        {
+          "fonte": "Reg. UE 2002/6",
+          "descrizione": "Disegni e modelli comunitari"
+        },
+        {
+          "fonte": "Convenzione Brevetto Europeo (CBE)",
+          "descrizione": "Brevetti europei"
+        },
+        {
+          "fonte": "Cass. SU 14503/2013",
+          "descrizione": "Risarcimento danno IP - criteri di determinazione"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "TITOLARITÀ DI UN DIRITTO DI PROPRIETÀ INDUSTRIALE valido ed efficace:",
+        "- MARCHIO REGISTRATO (nazionale, UE, internazionale) ed in vigore",
+        "- BREVETTO (per invenzione, modello di utilità) concesso e in vigore",
+        "- MODELLO/DISEGNO registrato",
+        "- DIRITTO DI PRIORITÀ in caso di domanda di registrazione pendente",
+        "ATTO DI VIOLAZIONE (contraffazione, usurpazione, imitazione):",
+        "- Per marchi: uso confusorio, evocazione, parassitismo (anche per marchi notori)",
+        "- Per brevetti: realizzazione/uso/vendita del prodotto brevettato senza licenza",
+        "DANNO al titolare (lucro cessante, danno emergente, danno all'immagine)",
+        "NESSO DI CAUSALITÀ tra violazione e danno"
+      ],
+      "criteri_quantificazione_danno_art_125_cpi": [
+        "Considerazione di TUTTI gli aspetti pertinenti (conseguenze economiche, lucro cessante, benefici del contraffattore)",
+        "POSSIBILITÀ DI ALTERNATIVE:",
+        "1. LIQUIDAZIONE EQUITATIVA tenendo conto di lucro cessante + utili contraffattore",
+        "2. RESTITUZIONE DEGLI UTILI realizzati dal contraffattore (anche se il titolare non avrebbe avuto la stessa capacità produttiva)",
+        "3. PARAMETRO DELLA ROYALTY ipotetica (corrispettivo che il contraffattore avrebbe dovuto pagare per licenza)",
+        "Aggiunta DANNO ALL'IMMAGINE per marchi (anche danno morale)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "ma": "Per controversie su contratti di licenza/cessione: mediazione facoltativa - per contraffazione: non obbligatoria"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione documentazione del DIRITTO DI PRIVATIVA",
+          "documenti": [
+            "Per marchio: attestato di registrazione UIBM o UE o internazionale + classi e prodotti",
+            "Per brevetto: attestato di concessione UIBM o EPO + rivendicazioni",
+            "Per modello/disegno: attestato di registrazione",
+            "Eventuali rinnovi e modifiche",
+            "Eventuali contratti di licenza in corso"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DELLA VIOLAZIONE",
+          "tipologie": [
+            "Acquisto del prodotto contraffatto con fattura",
+            "Foto del prodotto contraffatto e del marchio/segno utilizzato",
+            "Screenshot del sito web del contraffattore",
+            "Materiali promozionali e pubblicitari del contraffattore",
+            "Eventuali testimonianze",
+            "Documentazione su vendita su piattaforme online (Amazon, eBay)"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "VALUTAZIONE TECNICA della contraffazione",
+          "metodologia": [
+            "Per marchi: confronto visivo/fonetico/concettuale - prova della confusione",
+            "Per brevetti: analisi delle rivendicazioni e confronto con prodotto contraffatto - eventuale perizia tecnica",
+            "Per modelli: confronto visivo della 'impressione generale'"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VALUTAZIONE FASE CAUTELARE PRIMA O CONTESTUALE",
+          "strumenti_cautelari_CPI": [
+            "DESCRIZIONE (art. 129) - acquisizione prove",
+            "SEQUESTRO (art. 129) - dei prodotti contraffatti",
+            "INIBITORIA (art. 131) - blocco immediato della produzione/commercializzazione",
+            "PENALITÀ giornaliere"
+          ],
+          "frequenza": "ALTISSIMA - quasi sempre richiesta tutela cautelare per fermare immediatamente la contraffazione"
+        },
+        {
+          "step": 5,
+          "descrizione": "Quantificazione DANNI",
+          "voci": [
+            "Lucro cessante (mancate vendite del titolare)",
+            "Utili realizzati dal contraffattore (art. 125 CPI)",
+            "Royalty ipotetica",
+            "Danno all'immagine/reputazionale",
+            "Spese per indagini e perizie",
+            "Eventuali penali giornaliere"
+          ]
+        },
+        {
+          "step": 6,
+          "descrizione": "DIFFIDA FORMALE al contraffattore",
+          "vantaggio": "Talvolta porta a cessazione spontanea + accordi transattivi"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_contraffazione_marchio_brevetto",
+        "denominazione": "Atto di citazione per contraffazione di marchio/brevetto e risarcimento danni ex artt. 125-126 CPI",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale sezione specializzata impresa",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "titolare_diritto",
+            "label": "Titolare del diritto di privativa (attore)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "contraffattore_convenuto",
+            "label": "Contraffattore convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "diritto_di_privativa",
+            "label": "Diritto di privativa violato",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_diritto",
+                "type": "select",
+                "required": true,
+                "options": [
+                  "marchio_nazionale",
+                  "marchio_UE",
+                  "marchio_internazionale",
+                  "brevetto_invenzione_nazionale",
+                  "brevetto_invenzione_europeo",
+                  "brevetto_invenzione_internazionale_PCT",
+                  "modello_utilita",
+                  "disegno_modello_nazionale",
+                  "disegno_modello_comunitario"
+                ]
+              },
+              {
+                "id": "numero_registrazione",
+                "type": "string"
+              },
+              {
+                "id": "ufficio_competente",
+                "type": "select",
+                "options": [
+                  "UIBM_Italia",
+                  "EUIPO_UE",
+                  "OMPI_internazionale",
+                  "EPO_Europeo"
+                ]
+              },
+              {
+                "id": "data_deposito",
+                "type": "date"
+              },
+              {
+                "id": "data_concessione_registrazione",
+                "type": "date"
+              },
+              {
+                "id": "data_scadenza_rinnovo",
+                "type": "date"
+              },
+              {
+                "id": "classi_di_registrazione_marchio",
+                "type": "array"
+              },
+              {
+                "id": "rivendicazioni_brevetto",
+                "type": "textarea"
+              },
+              {
+                "id": "rappresentazione_grafica_marchio",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "atti_di_violazione",
+            "label": "Atti di violazione",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_violazione",
+                "type": "select_multi",
+                "options": [
+                  "uso_marchio_uguale_per_prodotti_uguali",
+                  "uso_marchio_simile_con_rischio_confusione",
+                  "evocazione_marchio_notorio",
+                  "parassitismo_o_indebito_vantaggio",
+                  "fabbricazione_prodotto_brevettato",
+                  "uso_prodotto_brevettato",
+                  "commercializzazione_prodotto_brevettato",
+                  "importazione_prodotto_contraffatto",
+                  "imitazione_modello_disegno"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 500
+              },
+              {
+                "id": "data_inizio_violazione",
+                "type": "date"
+              },
+              {
+                "id": "violazione_in_corso",
+                "type": "boolean"
+              },
+              {
+                "id": "canale_distribuzione",
+                "type": "select",
+                "options": [
+                  "negozio_fisico",
+                  "e_commerce_proprio",
+                  "marketplace_amazon_ebay",
+                  "rivenditori",
+                  "altro"
+                ]
+              },
+              {
+                "id": "stima_volume_vendite_contraffattore",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "danno_richiesto",
+            "label": "Danno richiesto",
+            "type": "object_complesso",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "criterio_quantificazione",
+                "type": "select",
+                "required": true,
+                "options": [
+                  "lucro_cessante",
+                  "restituzione_utili_contraffattore",
+                  "royalty_ipotetica",
+                  "equitativa_125_c_2"
+                ]
+              },
+              {
+                "id": "lucro_cessante",
+                "type": "currency"
+              },
+              {
+                "id": "utili_contraffattore",
+                "type": "currency"
+              },
+              {
+                "id": "royalty_ipotetica_calcolata",
+                "type": "currency"
+              },
+              {
+                "id": "danno_immagine_reputazione",
+                "type": "currency"
+              },
+              {
+                "id": "spese_indagini_perizie",
+                "type": "currency"
+              },
+              {
+                "id": "totale_richiesto",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_contraffazione",
+              "inibitoria_definitiva_continuazione_atti_131",
+              "ordine_distruzione_prodotti_contraffatti_124",
+              "ordine_ritiro_dal_commercio",
+              "risarcimento_danni_125",
+              "pubblicazione_sentenza_126",
+              "penalita_giornaliere_per_inosservanza_inibitoria",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "richiesta_provvedimenti_cautelari",
+            "label": "Richiesta provvedimenti cautelari (descrizione, sequestro, inibitoria 128-131 CPI)",
+            "type": "boolean",
+            "default": false,
+            "nota": "Codice cautelare correlato 017006-017008"
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Competenza esclusiva Tribunale - sezione specializzata impresa (D.Lgs. 168/2003)",
+          "Foro speciale art. 120 CPI",
+          "Quantificazione danno secondo criteri art. 125 CPI (lucro cessante, utili, royalty)",
+          "Possibilità di richiedere strumenti cautelari (artt. 128-131 CPI)",
+          "Termine a comparire 120 gg post-Cartabia",
+          "Costituzione convenuto 70 gg prima udienza"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "attestato_registrazione_diritto",
+          "label": "Attestato di registrazione/concessione del diritto di privativa",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_classes_e_prodotti",
+          "label": "Documentazione classi e prodotti coperti (per marchi)",
+          "required_if": "tipo_diritto LIKE marchio"
+        },
+        {
+          "id": "rivendicazioni_brevetto",
+          "label": "Rivendicazioni del brevetto (per brevetti)",
+          "required_if": "tipo_diritto LIKE brevetto"
+        },
+        {
+          "id": "documentazione_uso_marchio_attore",
+          "label": "Documentazione dell'uso del marchio da parte dell'attore (rilevante per marchi non notori)",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "prodotti_contraffatti_o_loro_documentazione",
+          "label": "Prodotti contraffatti o loro documentazione (fatture acquisto, foto, screenshot)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_tecnica_su_contraffazione",
+          "label": "Perizia tecnica su contraffazione (per brevetti)",
+          "required_if": "tipo_diritto LIKE brevetto",
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_quantificazione_danno",
+          "label": "Documentazione per quantificazione danno (bilanci, dati di vendita)",
+          "required": true
+        },
+        {
+          "id": "diffida_e_relata",
+          "label": "Diffida al contraffattore con prova invio",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore del danno richiesto + applicazione tariffe speciali sezione impresa",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ricorso_cautelare_descrizione_sequestro_inibitoria_128_131_cpi",
+          "trigger": "Tutela d'urgenza",
+          "automatico": false,
+          "molto_frequente": true,
+          "codice_correlato": "017006-017008"
+        },
+        {
+          "tipo": "comparsa_costituzione_convenuto",
+          "trigger": "Costituzione convenuto",
+          "termine": "70 gg prima udienza"
+        },
+        {
+          "tipo": "ctu_tecnica_e_contabile",
+          "trigger": "Disposta dal giudice",
+          "automatico": false,
+          "molto_frequente": true
+        },
+        {
+          "tipo": "azione_nullita_o_decadenza_diritto_privativa_riconvenzionale",
+          "trigger": "Convenuto eccepisce nullità del titolo",
+          "automatico": false
+        },
+        {
+          "tipo": "domanda_inibitoria_definitiva_131",
+          "trigger": "Misura di tutela principale",
+          "automatico": false
+        },
+        {
+          "tipo": "esecuzione_per_distruzione_prodotti",
+          "trigger": "Sentenza esecutiva",
+          "codice_correlato": "512020"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accertamento_contraffazione_e_tutela_piena",
+          "descrizione": "Accertamento + inibitoria + distruzione prodotti + risarcimento danni + pubblicazione sentenza"
+        },
+        {
+          "esito": "accertamento_e_solo_inibitoria_senza_risarcimento",
+          "descrizione": "Contraffazione accertata ma danno non quantificato (rara - di solito ricorso ad equità)"
+        },
+        {
+          "esito": "rigetto_per_invalidita_titolo_diritto_privativa",
+          "descrizione": "Il titolo del diritto è nullo/decaduto (eccezione tipica del convenuto)"
+        },
+        {
+          "esito": "rigetto_per_assenza_contraffazione",
+          "descrizione": "I segni/prodotti non sono confondibili o non rientrano nelle rivendicazioni"
+        },
+        {
+          "esito": "transazione_con_licenza_o_cessazione",
+          "descrizione": "Accordo: cessazione + indennizzo o licenza con royalty"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione azione",
+          "anni": 5,
+          "decorrenza": "fatto illecito o sua scoperta",
+          "natura": "prescrizione",
+          "norma": "art. 2947 c.c."
+        },
+        {
+          "termine": "Durata diritto marchio",
+          "anni": 10,
+          "rinnovo_indefinito": true,
+          "norma": "art. 16 CPI"
+        },
+        {
+          "termine": "Durata diritto brevetto invenzione",
+          "anni": 20,
+          "decorrenza": "deposito",
+          "norma": "art. 60 CPI"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "170011",
+      "codici_ufficiali_correlati_da_valutare": [
+        "170001",
+        "170002",
+        "170003",
+        "170004",
+        "170009",
+        "172001",
+        "173001",
+        "181006",
+        "181008",
+        "181022",
+        "181023"
+      ],
+      "codice_deposito": null,
+      "catalogo_xsd": null,
+      "_conversione_deposito": "Il codice ufficiale 170011 è Concorrenza sleale; la scheda ricevuta riguarda marchio/brevetto e resta interna per non alterare il deposito."
+    }
+  ]
+}

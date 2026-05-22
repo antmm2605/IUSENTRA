@@ -1,0 +1,70 @@
+{
+  "source": "C:\\Users\\antmm\\OneDrive\\Desktop\\guida avvocato\\kb_top9_set4_parte2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set4_parte2.json",
+  "sha256": "AB0CDFE51D10A8123DE73BE51E597C64F3E90288429527BF6018E5B723D5BEE5",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET4_PARTE2",
+  "denominazione": "Quarto set di 9 codici - PARTE 2 di 2",
+  "json_repairs": [
+    {
+      "line": 212,
+      "from": "{..., \"automatico\": false, \"parallela\"}",
+      "to": "{..., \"automatico\": false, \"modalita\": \"parallela\"}",
+      "reason": "Valore senza chiave nel JSON ricevuto; conservato come modalita operativa."
+    }
+  ],
+  "codici_materia_originali": [
+    "220070",
+    "111007",
+    "150010",
+    "170011"
+  ],
+  "codici_materia_integrati": [
+    "220070",
+    "GUIDA_RICONOSCIMENTO_PATERNITA_MATERNITA_111007",
+    "GUIDA_ESCLUSIONE_SOCIO_SOCIETA_PERSONE_150010",
+    "GUIDA_VIOLAZIONE_MARCHIO_BREVETTO_170011"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "111007",
+      "codice_integrato": "GUIDA_RICONOSCIMENTO_PATERNITA_MATERNITA_111007",
+      "codici_ufficiali_correlati_da_valutare": [
+        "111103",
+        "111105",
+        "111110",
+        "112103"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD locale; guida conservata come interna non depositabile."
+    },
+    {
+      "codice_originale": "150010",
+      "codice_integrato": "GUIDA_ESCLUSIONE_SOCIO_SOCIETA_PERSONE_150010",
+      "codici_ufficiali_correlati_da_valutare": [
+        "151120",
+        "152004",
+        "152999",
+        "181005"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD locale; guida conservata come interna non depositabile."
+    },
+    {
+      "codice_originale": "170011",
+      "codice_integrato": "GUIDA_VIOLAZIONE_MARCHIO_BREVETTO_170011",
+      "codici_ufficiali_correlati_da_valutare": [
+        "170001",
+        "170002",
+        "170003",
+        "170004",
+        "170009",
+        "172001",
+        "173001",
+        "181006",
+        "181008",
+        "181022",
+        "181023"
+      ],
+      "reason": "Il codice ufficiale 170011 è Concorrenza sleale; la scheda ricevuta riguarda marchio/brevetto e resta interna per non alterare il deposito."
+    }
+  ],
+  "termini_processuali_raw": 17
+}

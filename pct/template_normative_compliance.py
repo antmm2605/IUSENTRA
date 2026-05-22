@@ -848,6 +848,8 @@ def enforce_generation_gate(
     confirmed_warning: bool = False,
 ) -> tuple[bool, str, str]:
     requested = _clean(requested_draft) or "final_draft"
+    if compliance.overall_state == "block" and requested == "working_draft" and confirmed_warning:
+        return True, "working_draft", "Bozza di lavoro autorizzata: i controlli verranno ripresi prima del deposito o della conferma finale."
     if compliance.overall_state == "block":
         return False, "blocked", "La bozza finale è bloccata dai controlli applicabili."
     if requested == "final_draft" and not compliance.can_generate_final_draft:

@@ -1,0 +1,25 @@
+{
+  "containsGuideCode100002": true,
+  "containsNoGuideMessage": false,
+  "containsOppositionGuide": true,
+  "gestioneIndex": 1,
+  "guideBeforeGestione": true,
+  "guideExists": true,
+  "guideFirstInRail": true,
+  "guideInOperationalRail": true,
+  "guideIndex": 0,
+  "guideRect": {
+    "height": 84,
+    "width": 358,
+    "x": 1168,
+    "y": 800
+  },
+  "guideText": " Guida praticaOpposizione a decreto ingiuntivo (art. 645 c.p.c.)Scheda 100002FacoltativaGuida curata",
+  "sideRect": {
+    "height": 616,
+    "width": 360,
+    "x": 1168,
+    "y": 800
+  },
+  "url": "http://127.0.0.1:8080/fascicoli/ECC8DDD7"
+}

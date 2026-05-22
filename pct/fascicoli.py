@@ -623,6 +623,7 @@ class Fascicolo:
     codice_oggetto_pst: str = ""
     fonte_codice_oggetto: str = ""
     file_fonte_codice_oggetto: str = ""
+    codice_guida_pratica: str = ""  # codice scheda guida, anche alias interno non depositabile
     riferimento_cartaceo: str = ""
     attore_principale: str = ""
     istruttore_pm_gip: str = ""

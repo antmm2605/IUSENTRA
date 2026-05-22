@@ -2,17 +2,17 @@
 
 ## Stato consolidato 2.248.11
 
-La v4 caricata dall'utente è stata applicata e completata sul catalogo ufficiale presente in repository, che contiene 1.018 record validi. I moduli TOP9 set2, set3 e set4 parte 1 sono stati integrati mantenendo separati codici ufficiali e schede interne.
+La v4 caricata dall'utente è stata applicata e completata sul catalogo ufficiale presente in repository, che contiene 1.018 record validi. I moduli TOP9 set2, set3 e set4 parte 1 e parte 2 sono stati integrati mantenendo separati codici ufficiali e schede interne.
 
 ## Numeri finali
 
-- Moduli KB caricati: 25.
-- Codici unificati nel KB full: 1.064.
+- Moduli KB caricati: 26.
+- Codici unificati nel KB full: 1.067.
 - Record ufficiali nel catalogo PST/XSD: 1.018.
 - Guide ufficiali curate: 1.018.
 - Codici ufficiali senza guida curata: 0.
-- Copertura finale: `{"curata": 1064}`.
-- Schede interne o alias non depositabili: 46.
+- Copertura finale: `{"curata": 1067}`.
+- Schede interne o alias non depositabili: 49.
 
 ## Curation Codex del completamento automatico
 
@@ -24,8 +24,8 @@ Risultato:
 - profili applicati: famiglia/minori, contenzioso ordinario, crisi d'impresa, impugnazioni, volontaria giurisdizione, lavoro/previdenza, cautelare, esecuzione, impresa/societario, monitorio, ATP e immigrazione/cittadinanza;
 - ogni scheda conserva la Guida Pratica facoltativa, non blocca il fascicolo e legge cliente, parti, ufficio, oggetto, codice, valore, rito, fase, documenti, scadenze, note, preventivo, conferimento incarico e parcella quando presenti;
 - Lex riceve contesto conversazionale tramite `guida_operativa_curata.lex_context`;
-- i termini processuali sono stati reimportati nello scadenziario: 2.878 record, 823 template calcolabili e 2.017 presidi `manual_review`.
-- l'audit voce per voce sui file utente controlla 32 schede, 642 righe campo e 543 voci effettivamente presenti nel materiale ricevuto: 0 perse nel KB full, 0 perse nel servizio/API, 0 non supportate da UI e 0 non leggibili da Lex.
+- i termini processuali sono stati reimportati nello scadenziario: 2.895 record, 832 template calcolabili e 2.017 presidi `manual_review`.
+- l'audit voce per voce sui file utente controlla 36 schede, 724 righe campo e 612 voci effettivamente presenti nel materiale ricevuto: 0 perse nel KB full, 0 perse nel servizio/API, 0 non supportate da UI e 0 non leggibili da Lex.
 
 Report:
 
@@ -35,6 +35,9 @@ Report:
 - `artifacts/guida-pratica/termini-processuali-after-codex-curation-audit.csv`.
 - `artifacts/guida-pratica/guida-pratica-user-material-field-audit.json`;
 - `artifacts/guida-pratica/guida-pratica-user-material-field-audit.csv`.
+- `artifacts/guida-pratica/kb-set4-parte2-import-report.json`;
+- `artifacts/guida-pratica/termini-processuali-set4-parte2-import-report.json`;
+- `artifacts/guida-pratica/termini-processuali-set4-parte2-kb-audit.csv`.
 
 ## Audit voce per voce del materiale utente
 
@@ -42,21 +45,24 @@ Il controllo obbligatorio `scripts/audit_guida_pratica_user_material_fields.py` 
 
 Risultato al 22 maggio 2026:
 
-- file controllati: `kb_98_top9_codici_frequenti_dettaglio_massimo.json`, `kb_98_top9_set2_parte1.json`, `kb_98_top9_set2_parte2.json`, `kb_98_top9_set3_parte1.json`, `kb_98_top9_set3_parte2.json`, `kb_98_top9_set4_parte1.json`;
-- 32 schede controllate;
-- 642 righe di audit;
-- 543 voci presenti nei file ricevuti;
+- file controllati: `kb_98_top9_codici_frequenti_dettaglio_massimo.json`, `kb_98_top9_set2_parte1.json`, `kb_98_top9_set2_parte2.json`, `kb_98_top9_set3_parte1.json`, `kb_98_top9_set3_parte2.json`, `kb_98_top9_set4_parte1.json`, `kb_98_top9_set4_parte2.json`;
+- 36 schede controllate;
+- 724 righe di audit;
+- 612 voci presenti nei file ricevuti;
 - 0 voci presenti nel materiale utente perse nel KB completo;
 - 0 voci presenti nel materiale utente perse nel servizio/API;
 - 0 voci presenti nel materiale utente non supportate dalla UI della Guida Pratica;
 - 0 voci presenti nel materiale utente non leggibili da Lex.
 
-Quattro schede con codice numerico non coerente con la descrizione ministeriale locale sono state conservate come guide interne non depositabili, per non contaminare il catalogo ufficiale di deposito:
+Sette schede con codice numerico non coerente con la descrizione ministeriale locale sono state conservate come guide interne non depositabili, per non contaminare il catalogo ufficiale di deposito:
 
 - `GUIDA_ONORARI_PROFESSIONALI_L794`, ricevuta come `141001`;
 - `GUIDA_ADS_MODIFICA_REVOCA_413062`, ricevuta come `413062`;
 - `GUIDA_RECESSO_SOCIO_SRL_150003`, ricevuta come `150003`;
-- `GUIDA_RISOLUZIONE_APPALTO_140001`, ricevuta come `140001`.
+- `GUIDA_RISOLUZIONE_APPALTO_140001`, ricevuta come `140001`;
+- `GUIDA_RICONOSCIMENTO_PATERNITA_MATERNITA_111007`, ricevuta come `111007`;
+- `GUIDA_ESCLUSIONE_SOCIO_SOCIETA_PERSONE_150010`, ricevuta come `150010`;
+- `GUIDA_VIOLAZIONE_MARCHIO_BREVETTO_170011`, ricevuta come `170011`.
 
 Nel CSV restano segnalate solo variazioni descrittive compatibili con il catalogo ufficiale locale per `111021`, `620001` e la competenza di `100011`; le voci operative, i termini, gli allegati, gli adempimenti e le sezioni specialistiche sono conservati.
 

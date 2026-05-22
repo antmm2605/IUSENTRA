@@ -14,6 +14,7 @@ from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
 from typing import Any, Callable, Iterable
+from urllib.parse import urlencode
 
 from flask import Blueprint, current_app, g, jsonify, request, send_file, session, url_for
 from werkzeug.exceptions import HTTPException
@@ -5062,6 +5063,79 @@ def _react_template_field_note(prefill: dict[str, Any]) -> dict[str, str] | None
     return None
 
 
+def _react_template_office_options(
+    field: dict[str, Any],
+    *,
+    selected_fascicolo: Any = None,
+    current_value: str = "",
+) -> list[dict[str, str]]:
+    name = str(field.get("name") or "").casefold()
+    label = str(field.get("label") or "").casefold()
+    text = f"{name} {label}"
+    if not any(token in text for token in ("court", "tribunale", "ufficio", "giudice", "autorita", "authority")):
+        return []
+
+    fascicolo_office = _react_template_attr(selected_fascicolo, "tribunale", "ufficio_giudiziario")
+    context = f"{text} {fascicolo_office}".casefold()
+    if "minorenni" in context or "minori" in context or "family" in context:
+        allowed_types = {"TM"}
+    elif "giudice di pace" in context or "gdp" in context or "sigp" in context:
+        allowed_types = {"GP"}
+    elif "corte d'appello" in context or "appello" in context:
+        allowed_types = {"CA"}
+    elif "procura" in context:
+        allowed_types = {"PC", "PG"}
+    else:
+        allowed_types = {"OR", "GP", "TM", "CA"}
+
+    try:
+        data_path = Path(__file__).resolve().parents[2] / "pct" / "data" / "uffici_ministero.json"
+        data = json.loads(data_path.read_text(encoding="utf-8"))
+    except Exception:
+        data = {}
+
+    def _office_label(row: dict[str, Any]) -> str:
+        return str(row.get("descrizione_ministero") or row.get("nome") or "").strip()
+
+    current = str(current_value or fascicolo_office or "").strip()
+    current_key = current.casefold()
+    rows: list[tuple[int, str, str]] = []
+    for codice, row in (data.get("uffici") or {}).items():
+        if not isinstance(row, dict):
+            continue
+        if str(row.get("tipo_ministero") or "").strip().upper() not in allowed_types:
+            continue
+        label_value = _office_label(row)
+        if not label_value:
+            continue
+        comune = str(row.get("comune_ministero") or "").strip()
+        distretto = str(row.get("distretto_ministero") or row.get("distretto_gl") or "").strip()
+        full_label = label_value
+        if distretto and distretto.casefold() not in full_label.casefold():
+            full_label = f"{full_label} ({distretto})"
+        priority = 0
+        haystack = f"{label_value} {comune} {distretto}".casefold()
+        if current_key and (current_key in haystack or haystack in current_key):
+            priority = -100
+        rows.append((priority, full_label, str(codice or label_value).strip()))
+    rows.sort(key=lambda item: (item[0], item[1].casefold()))
+
+    options: list[dict[str, str]] = []
+    seen: set[str] = set()
+    if current:
+        options.append(_react_template_choice(current, f"{current} - dal fascicolo"))
+        seen.add(current.casefold())
+    for _, label_value, value in rows:
+        key = label_value.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        options.append(_react_template_choice(label_value, label_value, codiceUfficio=value))
+        if len(options) >= 80:
+            break
+    return options
+
+
 def _react_template_field_payload(
     field: dict[str, Any],
     *,
@@ -5069,6 +5143,7 @@ def _react_template_field_payload(
     field_options: dict[str, list[Any]],
     errors: dict[str, str],
     prefill_fields: dict[str, dict[str, Any]],
+    selected_fascicolo: Any = None,
 ) -> dict[str, Any]:
     name = str(field.get("name") or "").strip()
     options = []
@@ -5078,13 +5153,23 @@ def _react_template_field_payload(
         elif isinstance(option, dict):
             options.append(_react_template_choice(option.get("value"), option.get("label") or option.get("text")))
     prefill = prefill_fields.get(name) if isinstance(prefill_fields.get(name), dict) else {}
+    value = str(form_values.get(name, "") or "")
+    office_options = _react_template_office_options(field, selected_fascicolo=selected_fascicolo, current_value=value)
+    if office_options and not options:
+        options = office_options
+    field_type = str(field.get("type") or "text").strip()
+    if office_options:
+        field_type = "select"
     return {
         "name": name,
         "label": str(field.get("label") or name.replace("_", " ").title()).strip(),
-        "type": str(field.get("type") or "text").strip(),
-        "placeholder": str(field.get("placeholder") or "").strip(),
+        "type": field_type,
+        "placeholder": str(
+            field.get("placeholder")
+            or ("Seleziona dal catalogo uffici giudiziari" if office_options else "")
+        ).strip(),
         "required": bool(field.get("required")),
-        "value": str(form_values.get(name, "") or ""),
+        "value": value,
         "options": options,
         "error": str(errors.get(name) or "").strip(),
         "note": _react_template_field_note(prefill),
@@ -5259,6 +5344,136 @@ def _react_template_compliance_payload(
         }
 
 
+def _react_template_guide_preview_payload(
+    *,
+    model_code: str,
+    model_name: str,
+    selected_fascicolo: Any,
+    selected_cliente: Any,
+    guidance: dict[str, Any],
+    stamp: dict[str, Any],
+    initial_text: str = "",
+) -> dict[str, Any]:
+    guide_code = str(request.args.get("guida_pratica") or request.args.get("codice_guida") or "").strip()
+    origin = str(request.args.get("origine") or request.args.get("source") or "").strip().lower()
+    enabled = bool(guide_code or origin == "guida_pratica")
+    if not enabled:
+        return {"enabled": False}
+    fascicolo_id = _react_template_attr(selected_fascicolo, "id")
+    guide_title = str(guidance.get("title") or guidance.get("summary") or "").strip()
+    canonical_model_code = _guide_selected_model_code(
+        model_code=model_code,
+        guide_code=guide_code,
+        selected_fascicolo=selected_fascicolo,
+    )
+    model_label = str(model_name or model_code or "Template atto").strip()
+    selected_case_label = _react_template_attr(selected_fascicolo, "titolo", "oggetto")
+    selected_client_label = _react_template_attr(selected_cliente, "nome_completo", "ragione_sociale", "nome")
+    subtitle = (
+        "La guida carica il template già filtrato sulla pratica; l'avvocato può cambiarlo o "
+        "importare un proprio PDF/Word senza chiudere il fascicolo."
+    )
+    if selected_case_label or selected_client_label:
+        subtitle = f"{subtitle} Contesto: {' - '.join(part for part in [selected_case_label, selected_client_label] if part)}."
+    return {
+        "enabled": True,
+        "eyebrow": "Anteprima modifica",
+        "title": "Editor documento con impaginazione modello",
+        "subtitle": subtitle,
+        "badge": "template filtrato dalla guida",
+        "guideCode": guide_code,
+        "guideTitle": guide_title,
+        "fascicoloHref": url_for("dettaglio_fascicolo", id_fasc=fascicolo_id) if fascicolo_id else "",
+        "uploadEndpoint": url_for("carica_documento", id_fasc=fascicolo_id) if fascicolo_id else "",
+        "importEndpoint": url_for("template_atti.api_importa_documento"),
+        "previewPdfHref": url_for("template_atti.compila_pdf", model_code=model_code),
+        "saveEndpoint": url_for("template_atti.compila_guida_pratica_salva", model_code=model_code),
+        "renderEndpoint": url_for("template_atti.compila_guida_pratica_anteprima", model_code=model_code),
+        "importLabel": "Importa PDF/Word",
+        "previewLabel": "Anteprima PDF",
+        "saveLabel": "Salva nel fascicolo",
+        "initialText": initial_text,
+        "reason": "atto principale suggerito per questo passaggio operativo",
+        "steps": [
+            {"id": "apertura", "label": "1 Apertura", "state": "done"},
+            {"id": "guida-nascosta", "label": "2 Guida nascosta", "state": "done"},
+            {"id": "guida-ora", "label": "3 Guida ora", "state": "done"},
+            {"id": "contesto-termini", "label": "4 Contesto e termini", "state": "done"},
+            {"id": "anteprima-modifica", "label": "5 Anteprima modifica", "state": "active"},
+            {"id": "rientro", "label": "6 Rientro completato", "state": "pending"},
+        ],
+        "template": {
+            "code": canonical_model_code,
+            "name": model_label,
+            "reason": "filtrato da codice, rito, fase, ufficio e oggetto pratica",
+            "autoLoad": True,
+        },
+        "import": {
+            "enabled": True,
+            "formats": "PDF/DOCX",
+            "note": "Importa nell'anteprima: modifica se editabile, altrimenti salva l'originale collegato.",
+        },
+        "layoutChecks": [
+            {"label": "Timbro studio", "value": "alto sinistra, dati da Impostazioni Studio", "tone": "success" if (stamp.get("lines") or []) else "warning"},
+            {"label": "Corpo atto", "value": "impaginazione coerente al template", "tone": "success"},
+        ],
+    }
+
+
+def _guide_selected_model_code(*, model_code: str, guide_code: str, selected_fascicolo: Any) -> str:
+    try:
+        from web.services.react_guida_pratica_bridge import build_document_plan_for_guida, fascicolo_guida_context
+        from pct.guida_pratica import GuidaPraticaService
+
+        if not guide_code or not selected_fascicolo:
+            return str(model_code or "").strip()
+        fascicolo_context = fascicolo_guida_context(selected_fascicolo)
+        guida = GuidaPraticaService().get_guidance(guide_code, fascicolo=fascicolo_context)
+        plan = build_document_plan_for_guida(guida, fascicolo_context)
+        recommended = ((plan.get("template") or {}).get("recommended") or {}) if isinstance(plan, dict) else {}
+        return str(recommended.get("id") or recommended.get("compilerCode") or model_code or "").strip()
+    except Exception:
+        current_app.logger.debug("Template filtrato guida non risolto per %s", model_code, exc_info=True)
+        return str(model_code or "").strip()
+
+
+def _guide_template_target_code(*, model_code: str, guide_code: str, selected_fascicolo: Any) -> str:
+    resolved = _guide_selected_model_code(
+        model_code=model_code,
+        guide_code=guide_code,
+        selected_fascicolo=selected_fascicolo,
+    )
+    if not resolved:
+        return ""
+    target = resolved
+    try:
+        from pct.compilatore_atti import get_modello
+
+        if not get_modello(target):
+            from pct.template_catalog_service import build_template_catalog_items
+
+            row = next((item for item in build_template_catalog_items() if str(item.get("codice") or "").strip() == target), None)
+            target = str((row or {}).get("link_compilatore_code") or target).strip()
+    except Exception:
+        return ""
+    return target
+
+
+def _redirect_target_for_guide_template(*, model_code: str, guide_code: str, selected_fascicolo: Any) -> str:
+    target = _guide_template_target_code(
+        model_code=model_code,
+        guide_code=guide_code,
+        selected_fascicolo=selected_fascicolo,
+    )
+    if target and target != model_code:
+        params = request.args.to_dict(flat=True)
+        params["guida_pratica"] = guide_code
+        params["origine"] = "guida_pratica"
+        href = url_for("template_atti.compila", model_code=target)
+        return f"{href}?{urlencode(params)}"
+    return ""
+
+
 @api_v1_react.get("/template-atti/compila/<model_code>")
 @_richiedi_auth
 def template_atti_compila_page(model_code: str):
@@ -5271,6 +5486,31 @@ def template_atti_compila_page(model_code: str):
             _contesto_compilatore,
             _resolve_compiler_context,
         )
+
+        requested_model_code = str(model_code or "").strip()
+        guide_code = str(request.args.get("guida_pratica") or request.args.get("codice_guida") or "").strip()
+        origin = str(request.args.get("origine") or request.args.get("source") or "").strip().lower()
+        selected_fascicolo = None
+        selected_fascicolo_id = str(
+            request.args.get("id_fascicolo")
+            or request.args.get("case_id")
+            or request.form.get("id_fascicolo")
+            or request.form.get("case_id")
+            or ""
+        ).strip()
+        if selected_fascicolo_id:
+            try:
+                selected_fascicolo = get_fascicoli().get(selected_fascicolo_id)
+            except Exception:
+                selected_fascicolo = None
+        if guide_code or origin == "guida_pratica":
+            target_code = _guide_template_target_code(
+                model_code=requested_model_code,
+                guide_code=guide_code,
+                selected_fascicolo=selected_fascicolo,
+            )
+            if target_code:
+                model_code = target_code
 
         resolved = _resolve_compiler_context(model_code)
         assistant_analysis = _build_assistant_analysis(
@@ -5292,6 +5532,8 @@ def template_atti_compila_page(model_code: str):
         errors = ctx.get("errors") or {}
         prefill_resolution = ctx.get("prefill_resolution") if isinstance(ctx.get("prefill_resolution"), dict) else {}
         prefill_fields = prefill_resolution.get("fields") if isinstance(prefill_resolution.get("fields"), dict) else {}
+        selected_cliente = ctx.get("selected_cliente")
+        selected_fascicolo = ctx.get("selected_fascicolo")
         base_fields = [
             _react_template_field_payload(
                 field,
@@ -5299,6 +5541,7 @@ def template_atti_compila_page(model_code: str):
                 field_options=ctx.get("field_options") or {},
                 errors=errors,
                 prefill_fields=prefill_fields,
+                selected_fascicolo=selected_fascicolo,
             )
             for field in ctx.get("base_fields", [])
         ]
@@ -5309,6 +5552,7 @@ def template_atti_compila_page(model_code: str):
                 field_options=ctx.get("field_options") or {},
                 errors=errors,
                 prefill_fields=prefill_fields,
+                selected_fascicolo=selected_fascicolo,
             )
             for field in ctx.get("extra_fields", [])
         ]
@@ -5331,8 +5575,6 @@ def template_atti_compila_page(model_code: str):
                     clienteId=_react_template_attr(fascicolo, "id_cliente"),
                 )
             )
-        selected_cliente = ctx.get("selected_cliente")
-        selected_fascicolo = ctx.get("selected_fascicolo")
         issues = assistant_analysis.get("issues", []) if isinstance(assistant_analysis, dict) else []
         blocking_issues = [
             str((issue or {}).get("title") or (issue or {}).get("message") or "").strip()
@@ -5346,6 +5588,17 @@ def template_atti_compila_page(model_code: str):
         ]
         stamp = ctx.get("studio_timbro_preview") or {}
         guidance = ctx.get("guidance") if isinstance(ctx.get("guidance"), dict) else {}
+        initial_text = ""
+        if guide_code or origin == "guida_pratica":
+            try:
+                from pct.compilatore_atti import render_compiled_act
+
+                initial_text = render_compiled_act(
+                    model_code,
+                    ctx.get("payload") if isinstance(ctx.get("payload"), dict) else form_values,
+                )
+            except Exception:
+                current_app.logger.debug("Anteprima testo template non generata per %s", model_code, exc_info=True)
         return jsonify(
             {
                 "ok": True,
@@ -5370,6 +5623,7 @@ def template_atti_compila_page(model_code: str):
                     name: str(form_values.get(name, "") or "")
                     for name in hidden_names
                 },
+                "requestedModelCode": requested_model_code,
                 "baseFields": base_fields,
                 "extraFields": extra_fields,
                 "stamp": {
@@ -5395,6 +5649,15 @@ def template_atti_compila_page(model_code: str):
                     for section in (assistant_analysis.get("sections", []) if isinstance(assistant_analysis, dict) else [])
                     if isinstance(section, dict)
                 ],
+                "guidePreview": _react_template_guide_preview_payload(
+                    model_code=model_code,
+                    model_name=str(model.get("name") or model_code),
+                    selected_fascicolo=selected_fascicolo,
+                    selected_cliente=selected_cliente,
+                    guidance=guidance,
+                    stamp=stamp,
+                    initial_text=initial_text,
+                ),
             }
         )
     except Exception as exc:

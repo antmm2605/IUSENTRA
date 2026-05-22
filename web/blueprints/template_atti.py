@@ -1,5 +1,5 @@
-"""
-web/blueprints/template_atti.py — Generatore atti legali da template.
+﻿"""
+web/blueprints/template_atti.py - Generatore atti legali da template.
 
 URL base: /template-atti/
 """
@@ -1379,6 +1379,10 @@ def compila(model_code: str):
         selected_cliente=selected_cliente,
         selected_fascicolo=selected_fascicolo,
     )
+    guide_mode = bool(
+        str(request.form.get("guida_pratica") or request.args.get("guida_pratica") or "").strip()
+        or str(request.args.get("origine") or request.form.get("origine") or "").strip().lower() == "guida_pratica"
+    )
 
     if request.method == "POST":
         errors = validate_payload(model_code, payload)
@@ -1411,7 +1415,7 @@ def compila(model_code: str):
                 "template_atti/compilatore.html",
                 **ctx,
             )
-        if blockers:
+        if blockers and not guide_mode:
             first = blockers[0]
             flash(
                 f"Bozza bloccata: {first.get('title')}. {first.get('suggested_action', '')}".strip(),
@@ -1435,7 +1439,10 @@ def compila(model_code: str):
 
         requested_draft = request.form.get("requested_draft", "final_draft").strip() or "final_draft"
         confirmed_warning = request.form.get("confirmed_warning") in {"1", "true", "on", "si"}
-        if compliance_result.overall_state == "block":
+        if guide_mode:
+            requested_draft = "working_draft"
+            confirmed_warning = True
+        if compliance_result.overall_state == "block" and not guide_mode:
             message = "La bozza finale è bloccata dai controlli applicabili."
             flash(message, "warning")
             if request.form.get("_react_return"):
@@ -1548,6 +1555,103 @@ def compila(model_code: str):
     )
 
 
+@template_atti.route("/compila/<model_code>/guida-pratica/salva", methods=["POST"])
+@_richiedi_login
+def compila_guida_pratica_salva(model_code: str):
+    from pct.compilatore_atti import get_modello, render_compiled_act
+    from pct.template_normative_compliance import analyze_template_compliance
+
+    model = get_modello(model_code)
+    if not model:
+        abort(404)
+    resolved = _resolve_compiler_context(model_code)
+    selected_cliente = resolved["selected_cliente"]
+    selected_fascicolo = resolved["selected_fascicolo"]
+    payload = dict(resolved["payload"] or {})
+    if not selected_fascicolo:
+        return jsonify({
+            "ok": False,
+            "message": "Seleziona prima il fascicolo: il documento deve rientrare in una pratica reale.",
+        }), 400
+
+    testo_generato = request.form.get("testo_generato", "").strip()
+    if not testo_generato:
+        testo_generato = render_compiled_act(model_code, payload)
+    payload["title"] = request.form.get("title", "").strip() or payload.get("title") or model.get("name") or model_code
+    payload["case_id"] = request.form.get("case_id", "").strip() or request.form.get("id_fascicolo", "").strip() or getattr(selected_fascicolo, "id", "")
+    payload["id_cliente"] = request.form.get("id_cliente", "").strip() or payload.get("id_cliente") or getattr(selected_fascicolo, "id_cliente", "")
+    if request.form.get("guida_pratica"):
+        payload["guida_pratica"] = request.form.get("guida_pratica", "").strip()
+
+    try:
+        compliance_result = analyze_template_compliance(
+            model_code,
+            payload=payload,
+            fascicolo=selected_fascicolo,
+            cliente=selected_cliente,
+            documents=list(getattr(selected_fascicolo, "documenti", []) or []),
+            studio_timbro_payload=payload.get("_studio_timbro") if isinstance(payload, dict) else None,
+            strict_payload=False,
+        )
+        editor_import = _importa_compilazione_editor_professionale(
+            model_code=model_code,
+            model=model,
+            payload=payload,
+            testo_generato=testo_generato,
+            selected_fascicolo=selected_fascicolo,
+            compliance_result=compliance_result,
+            requested_draft="working_draft",
+            confirmed_warning=True,
+        )
+    except Exception as exc:
+        current_app.logger.exception("Salvataggio anteprima Guida Pratica non riuscito per %s: %s", model_code, exc)
+        return jsonify({
+            "ok": False,
+            "message": "Documento non salvato nel fascicolo. Controlla i dati essenziali e riprova.",
+        }), 500
+
+    if not editor_import:
+        return jsonify({
+            "ok": False,
+            "message": "Documento non salvato: fascicolo non collegato.",
+        }), 400
+    return jsonify({
+        "ok": True,
+        "message": "Documento salvato nel fascicolo come bozza modificabile.",
+        "document_id": editor_import["document_id"],
+        "editor_url": editor_import["editor_url"],
+        "redirect_url": editor_import["editor_url"],
+        "created_as": editor_import.get("created_as") or "working_draft",
+        "compliance_state": editor_import.get("compliance_state") or "warning",
+    })
+
+
+@template_atti.route("/compila/<model_code>/guida-pratica/anteprima", methods=["POST"])
+@_richiedi_login
+def compila_guida_pratica_anteprima(model_code: str):
+    from pct.compilatore_atti import get_modello, render_compiled_act
+
+    model = get_modello(model_code)
+    if not model:
+        abort(404)
+    try:
+        resolved = _resolve_compiler_context(model_code)
+        payload = dict(resolved["payload"] or {})
+        testo_generato = render_compiled_act(model_code, payload)
+    except Exception as exc:
+        current_app.logger.exception("Anteprima Guida Pratica non generata per %s: %s", model_code, exc)
+        return jsonify({
+            "ok": False,
+            "message": "Anteprima non aggiornata. Il testo già visibile resta modificabile.",
+        }), 500
+    return jsonify({
+        "ok": True,
+        "message": "Anteprima aggiornata dal template compilato.",
+        "testo_generato": testo_generato,
+        "text": testo_generato,
+    })
+
+
 @template_atti.route("/api/editor-layout", methods=["POST"])
 @_richiedi_login
 def salva_editor_layout():
@@ -1650,11 +1754,14 @@ def pdf(id_template: str):
 @template_atti.route("/compila/<model_code>/pdf", methods=["POST"])
 @_richiedi_login
 def compila_pdf(model_code: str):
-    from pct.compilatore_atti import get_modello
+    from pct.compilatore_atti import get_modello, render_compiled_act
     model = get_modello(model_code)
     if not model:
         abort(404)
-    testo = request.form.get("testo_generato", "")
+    testo = request.form.get("testo_generato", "").strip()
+    if not testo:
+        resolved = _resolve_compiler_context(model_code)
+        testo = render_compiled_act(model_code, resolved["payload"])
     titolo = request.form.get("title", "") or model["name"]
     layout = _parse_editor_layout(request.form.get("testo_generato__editor_layout"))
     buf = _genera_pdf(titolo, testo, current_app.config, layout=layout, timbro=_get_studio_timbro())

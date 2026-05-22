@@ -93,6 +93,7 @@ Ogni file consegnato dall'utente deve essere inventariato. Stato attuale:
 - `kb_top9_set3_parte2.json`: integrato come `pct/data/legal_knowledge_base_modules/kb_98_top9_set3_parte2.json`;
 - `kb_top9_set4_parte1.json`: prima consegna controllata il 22 maggio 2026, identica per SHA-256 al modulo `kb_98_top9_set3_parte1.json`; registrata senza duplicazione nel report `artifacts/guida-pratica/kb-set4-parte1-dedup-report.json`.
 - `kb_top9_set4_parte1.json`: revisione successiva controllata il 22 maggio 2026, SHA-256 `F7AA800217AD1E8A1921DE544117FD35288865EE410D5F2A759F26B6A3CE9A88`, macro area `TOP9_CODICI_FREQUENTI_SET4_PARTE1`; integrata come `pct/data/legal_knowledge_base_modules/kb_98_top9_set4_parte1.json` con i codici `101001`, `120010`, `130041`, `143001` e la guida interna `GUIDA_RISOLUZIONE_APPALTO_140001` ricevuta come `140001`, più 27 termini processuali grezzi. Report: `artifacts/guida-pratica/kb-set4-parte1-import-report.json`.
+- `kb_top9_set4_parte2.json`: consegna successiva controllata il 22 maggio 2026, SHA-256 `AB0CDFE51D10A8123DE73BE51E597C64F3E90288429527BF6018E5B723D5BEE5`, macro area `TOP9_CODICI_FREQUENTI_SET4_PARTE2`; integrata come `pct/data/legal_knowledge_base_modules/kb_98_top9_set4_parte2.json` con il codice ufficiale `220070` e le guide interne `GUIDA_RICONOSCIMENTO_PATERNITA_MATERNITA_111007`, `GUIDA_ESCLUSIONE_SOCIO_SOCIETA_PERSONE_150010`, `GUIDA_VIOLAZIONE_MARCHIO_BREVETTO_170011`. Il JSON ricevuto aveva un valore senza chiave alla riga 212, conservato come `modalita: parallela`. Report: `artifacts/guida-pratica/kb-set4-parte2-import-report.json`.
 
 Regola: se un nuovo file ha nome diverso ma contenuto identico, deve essere registrato come già assorbito; se ha stesso nome logico ma contenuto diverso, deve essere trattato come revisione e confrontato campo per campo prima del merge.
 
@@ -102,10 +103,10 @@ Audit eseguito con `scripts/audit_guida_pratica_user_material_fields.py`.
 
 Risultato:
 
-- 6 file utente controllati;
-- 32 schede controllate;
-- 642 righe di audit;
-- 543 voci presenti nei file ricevuti;
+- 7 file utente controllati;
+- 36 schede controllate;
+- 724 righe di audit;
+- 612 voci presenti nei file ricevuti;
 - 0 voci presenti nel materiale utente perse nel KB completo;
 - 0 voci presenti nel materiale utente perse nel servizio/API;
 - 0 voci presenti nel materiale utente non supportate dalla UI della Guida Pratica;
@@ -116,7 +117,10 @@ Schede ricevute con codice numerico non coerente con la descrizione ministeriale
 - `GUIDA_ONORARI_PROFESSIONALI_L794`, ricevuta come `141001`;
 - `GUIDA_ADS_MODIFICA_REVOCA_413062`, ricevuta come `413062`;
 - `GUIDA_RECESSO_SOCIO_SRL_150003`, ricevuta come `150003`;
-- `GUIDA_RISOLUZIONE_APPALTO_140001`, ricevuta come `140001`.
+- `GUIDA_RISOLUZIONE_APPALTO_140001`, ricevuta come `140001`;
+- `GUIDA_RICONOSCIMENTO_PATERNITA_MATERNITA_111007`, ricevuta come `111007`;
+- `GUIDA_ESCLUSIONE_SOCIO_SOCIETA_PERSONE_150010`, ricevuta come `150010`;
+- `GUIDA_VIOLAZIONE_MARCHIO_BREVETTO_170011`, ricevuta come `170011`.
 
 Questa conversione è obbligatoria: protegge il deposito, conserva integralmente la guida pratica dell'utente e impedisce che una scheda operativa non combaciante venga mostrata come codice ministeriale ufficiale.
 
@@ -141,6 +145,19 @@ Questa conversione è obbligatoria: protegge il deposito, conserva integralmente
 17. La Guida Pratica marca il passaggio come completato solo quando il documento viene salvato o confermato come pronto.
 18. Lex aggiorna la propria conoscenza conversazionale: fascicolo, guida, template scelto o documento importato, fonti e documento finale.
 
+### Stato implementativo da preservare
+
+La schermata approvata `Anteprima modifica` deve essere implementata nella pagina reale `/template-atti/compila/<codice>` quando aperta dalla Guida Pratica con `id_fascicolo`, `guida_pratica` e `origine=guida_pratica`.
+
+Comportamenti obbligatori:
+
+- il template arriva già filtrato in base alla pratica, al codice, al rito, alla fase, all'ufficio e al documento suggerito dalla guida;
+- se il filtro individua il template principale, la pagina lo carica automaticamente nell'anteprima;
+- l'avvocato può cambiare template, importare PDF/DOC/DOCX, vedere l'anteprima PDF e salvare nel fascicolo senza chiudere il fascicolo;
+- il documento importato è modificabile quando il formato lo consente; se non è modificabile, viene salvato come originale collegato;
+- il timbro studio usa i dati di `impostazioni?tab=studio` e deve rispettare posizione e dimensioni del modello approvato;
+- l'interfaccia reale deve essere confrontata con gli screenshot approvati, non reinterpretata.
+
 ## Regole di implementazione fissate il 22 maggio 2026
 
 Queste regole sono operative e non vanno semplificate nelle tranche successive:
@@ -157,6 +174,11 @@ Queste regole sono operative e non vanno semplificate nelle tranche successive:
 - il timbro studio usa i dati di `impostazioni?tab=studio`, incluso il campo libero `Qualifica professionale`, ad esempio `Patrocinante in Cassazione`;
 - Lex deve leggere guida, contesto fascicolo e piano documento in modo conversazionale, distinguendo sempre fatto certo, dato mancante e suggerimento operativo;
 - il codice ufficiale del fascicolo resta il codice depositabile PST/XSD quando previsto e non viene mai sostituito da alias interni della guida.
+- la Guida Pratica deve essere associata prima per codice: `codice_oggetto_pst` quando la scheda coincide con un codice ufficiale depositabile, oppure `codice_guida_pratica` quando la scheda è un alias interno/non depositabile;
+- esempi come `100002 - Opposizione a decreto ingiuntivo (art. 645 c.p.c.)` devono vivere in `codice_guida_pratica` se non sono presenti nel catalogo PST/XSD ufficiale locale, lasciando vuoto o invariato il codice di deposito del fascicolo finché l'avvocato seleziona il codice ufficiale corretto;
+- l'associazione testuale dall'oggetto del fascicolo è solo fallback per proporre una scheda e deve salvare/mostrare il codice guida separato appena disponibile, così l'avvocato non dipende da frasi o titoli;
+- i match `guide_only` non devono mai essere esposti come `codice_oggetto_pst_suggerito`: devono restare `codice_guida_pratica_suggerito`, senza effetti sul deposito.
+- nella pagina reale del fascicolo la Guida Pratica non deve essere un blocco di fondo pagina: deve stare nel rail operativo del fascicolo, in alto, prima di `Gestione fascicolo`, come pannello compatto facoltativo apribile in verticale.
 
 ### Aggiornamento operativo: rimozione del vecchio contesto UI
 
@@ -729,23 +751,26 @@ Ogni azione rilevante deve entrare nell'audit:
 
 L'audit deve registrare utente, studio/tenant, fascicolo, documento, template, fonte, azione, esito e timestamp.
 
-## Timbro, intestazione studio e firma visibile
+## Timbro, intestazione studio e firma digitale
 
 Il timbro/intestazione studio deve essere identico per posizione e dimensioni al modello PDF fornito dall'utente (`modello da seguire per templeate.pdf`).
 
-Misure estratte dal modello PDF:
+Misure estratte dal modello PDF per l'atto redazionale:
 
 - formato pagina: A4, `595,32 x 842,04` punti;
 - intestazione/timbro studio: `x=77,9`, `y=6,5`, larghezza `194,3`, altezza `79,2`;
 - ufficio giudiziario: `x=132,6`, `y=130,3`, larghezza `269,6`, altezza `18,8`;
 - titolo atto riga 1: `x=192,9`, `y=157,8`, larghezza `152,7`, altezza `14,0`;
 - titolo atto riga 2: `x=179,4`, `y=180,8`, larghezza `175,5`, altezza `14,0`;
-- prima riga corpo: `x=79,5`, `y=204,5`, larghezza `374,3`, altezza `13,3`;
-- testo verticale firma digitale: `x=577,8`, `y=381,1`, larghezza `9,6`, altezza `420,9`;
-- blocco firma digitale visibile: `x=445,5`, `y=6,8`, larghezza `142,5`, altezza `121,6`;
-- immagine/timbro firma digitale: `x=446,5`, `y=0,9`, larghezza `148,0`, altezza `143,1`.
+- prima riga corpo: `x=79,5`, `y=204,5`, larghezza `374,3`, altezza `13,3`.
 
-Il layout del template e la firma digitale visibile devono restare separati:
+Regola vincolante decisa il 22 maggio 2026:
+
+- nell'anteprima redazionale della Guida Pratica e del compilatore atti non deve comparire alcun blocco finto di firma digitale, nessuna dicitura `Firmato digitalmente da` e nessun `SerialNumber`;
+- la firma digitale visibile appartiene solo al flusso reale di firma digitale/deposito, quando l'avvocato firma effettivamente il documento;
+- le eventuali misure della firma digitale visibile del modello sono quindi riferimenti per il flusso di firma reale, non per l'editor e non per l'anteprima modificabile.
+
+Il layout del template, l'anteprima redazionale e il flusso di firma digitale devono restare separati:
 
 - il template genera l'atto base con intestazione/timbro studio nella posizione del modello;
 - la firma digitale visibile è un overlay del processo di firma e non deve modificare il corpo dell'atto;

@@ -1,9 +1,9 @@
 {
   "ok": true,
   "coverage": {
-    "curata": 1064
+    "curata": 1067
   },
-  "catalog_size": 1064,
+  "catalog_size": 1067,
   "official_catalog_size": 1018,
   "missing_required": [],
   "official_coverage": {
@@ -16,7 +16,7 @@
   "deposit_code_coherence": {
     "ok": true,
     "incoherent": [],
-    "aliases_or_internal_count": 46,
+    "aliases_or_internal_count": 49,
     "aliases_or_internal": [
       {
         "codice": "100002",
@@ -187,6 +187,12 @@
         "depositabile": false
       },
       {
+        "codice": "GUIDA_ESCLUSIONE_SOCIO_SOCIETA_PERSONE_150010",
+        "denominazione": "Esclusione del socio di società di persone (art. 2286 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
         "codice": "GUIDA_ONORARI_PROFESSIONALI_L794",
         "denominazione": "Procedimento sommario per onorari professionali ex L. 794/1942 (art. 14 D.Lgs. 150/2011)",
         "coverage": "curata",
@@ -199,6 +205,12 @@
         "depositabile": false
       },
       {
+        "codice": "GUIDA_RICONOSCIMENTO_PATERNITA_MATERNITA_111007",
+        "denominazione": "Riconoscimento giudiziale della paternità o della maternità",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
         "codice": "GUIDA_RISOLUZIONE_APPALTO_140001",
         "denominazione": "Risoluzione del contratto di appalto",
         "coverage": "curata",
@@ -207,6 +219,12 @@
       {
         "codice": "GUIDA_TUTELA_MINORI_ORDINARIA",
         "denominazione": "Apertura della tutela ordinaria - minori (per genitori deceduti, decaduti o impossibilitati)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_VIOLAZIONE_MARCHIO_BREVETTO_170011",
+        "denominazione": "Risarcimento danni da violazione di marchio o brevetto",
         "coverage": "curata",
         "depositabile": false
       },

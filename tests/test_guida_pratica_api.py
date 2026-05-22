@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+from tests.test_applicazioni import _crea_operatore, _login
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
 
@@ -95,6 +96,162 @@ def test_guida_pratica_api_agganciata_al_fascicolo(tmp_path: Path):
     assert "Word" in payload["documentPlan"]["import"]["formats"]
 
 
+def test_template_filtrato_da_guida_pratica_espone_anteprima_operativa(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Opposizione a sanzione amministrativa",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Crocitti Giovanni",
+        tribunale="Giudice di Pace di Palmi",
+        codice_oggetto_pst="140011",
+        fonte_codice_oggetto="PST_XSD",
+    )
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.get(
+            f"/api/v1/ui/template-atti/compila/GDP_001"
+            f"?id_fascicolo={fascicolo.id}&guida_pratica=140011&origine=guida_pratica",
+        )
+
+    payload = response.get_json()
+    preview = payload["guidePreview"]
+
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert preview["enabled"] is True
+    assert preview["title"] == "Editor documento con impaginazione modello"
+    assert preview["template"]["code"].startswith("GDP_")
+    assert preview["template"]["autoLoad"] is True
+    assert preview["uploadEndpoint"] == f"/fascicoli/{fascicolo.id}/documenti/carica"
+    assert preview["previewPdfHref"] == f"/template-atti/compila/{payload['model']['code']}/pdf"
+    assert preview["steps"][4]["label"] == "5 Anteprima modifica"
+    assert preview["steps"][4]["state"] == "active"
+    assert any(check["label"] == "Timbro studio" for check in preview["layoutChecks"])
+
+
+def test_template_guida_gdp_risarcimento_non_carica_modello_famiglia(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Azioni di competenza del Giudice di Pace in materia di risarcimento danno",
+        TipoFascicolo.CIVILE,
+        oggetto="Azioni di competenza del Giudice di Pace in materia di risarcimento danno",
+        nome_cliente="Crocitti Giovanni",
+        controparte="Comune di Taurianova",
+        tribunale="Giudice di Pace di Palmi",
+        valore_causa=1500,
+        note="Verbale impugnato e domanda risarcitoria da sviluppare.",
+        codice_oggetto_pst="",
+    )
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.get(
+            f"/api/v1/ui/template-atti/compila/FAM_AFF_001"
+            f"?id_fascicolo={fascicolo.id}&guida_pratica=145009&origine=guida_pratica",
+        )
+
+    payload = response.get_json()
+    fields = payload["baseFields"] + payload["extraFields"]
+    field_names = {field["name"] for field in fields}
+    court_field = next(field for field in fields if field["name"] == "court_name")
+
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["model"]["code"] == "GDP_002"
+    assert "FAM_AFF_001" != payload["model"]["code"]
+    assert payload["guidePreview"]["template"]["code"] == "GDP_002"
+    assert "family_court" not in field_names
+    assert "children" not in field_names
+    assert court_field["type"] == "select"
+    assert any("Giudice di Pace di Palmi" in option["label"] for option in court_field["options"])
+    assert "Giudice di Pace" in payload["guidePreview"]["initialText"]
+    assert "Tribunale per i Minorenni" not in payload["guidePreview"]["initialText"]
+
+
+def test_template_guida_anteprima_render_e_salvataggio_non_bloccati_da_pst_mancante(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Risarcimento davanti al Giudice di Pace",
+        TipoFascicolo.CIVILE,
+        oggetto="Risarcimento danni da fatto illecito",
+        nome_cliente="Crocitti Giovanni",
+        controparte="Comune di Taurianova",
+        tribunale="Giudice di Pace di Palmi",
+        valore_causa=1500,
+        note="Il cliente chiede il risarcimento del danno subito.",
+        codice_oggetto_pst="",
+    )
+    form = {
+        "_react_return": "1",
+        "id_fascicolo": fascicolo.id,
+        "case_id": fascicolo.id,
+        "guida_pratica": "145009",
+        "title": "Atto di citazione davanti al Giudice di Pace",
+        "area": "CIVILE",
+        "act_type": "atto introduttivo",
+        "matter": "Risarcimento danni",
+        "recipient_or_court": "Giudice di Pace di Palmi",
+        "client_or_sender": "Crocitti Giovanni",
+        "counterparty_or_recipient": "Comune di Taurianova",
+        "court_name": "Giudice di Pace di Palmi",
+        "plaintiff": "Crocitti Giovanni",
+        "defendant": "Comune di Taurianova",
+        "claim_subject": "Risarcimento danni da fatto illecito",
+        "facts": "Il cliente chiede il risarcimento del danno subito.",
+        "legal_arguments": "Responsabilità civile e prova del danno.",
+        "requests_or_conclusions": "Accertare la responsabilità e condannare al risarcimento.",
+        "evidence_means": "Documenti e prova testimoniale.",
+        "documents_offered": "documenti già presenti nel fascicolo",
+        "case_value": "1500",
+        "testo_generato": "Testo modificato nell'anteprima prima del deposito.",
+        "requested_draft": "working_draft",
+        "confirmed_warning": "1",
+    }
+
+    with app.test_client() as client:
+        _login(client)
+        preview = client.post(
+            f"/template-atti/compila/GDP_002/guida-pratica/anteprima"
+            f"?id_fascicolo={fascicolo.id}&guida_pratica=145009&origine=guida_pratica",
+            data=form,
+        )
+        saved = client.post(
+            f"/template-atti/compila/GDP_002/guida-pratica/salva"
+            f"?id_fascicolo={fascicolo.id}&guida_pratica=145009&origine=guida_pratica",
+            data=form,
+        )
+
+    preview_payload = preview.get_json()
+    saved_payload = saved.get_json()
+
+    assert preview.status_code == 200
+    assert preview_payload["ok"] is True
+    assert "Giudice di Pace" in preview_payload["testo_generato"]
+    assert saved.status_code == 200
+    assert saved_payload["ok"] is True
+    assert saved_payload["created_as"] == "working_draft"
+    assert "Codice oggetto PST mancante" not in saved_payload["message"]
+
+
 def test_guida_pratica_api_fascicolo_react_legge_stesso_fascicolo_json_legacy(tmp_path: Path):
     app = _app(tmp_path)
     headers = {"X-API-Key": "guida-test-key"}
@@ -167,6 +324,88 @@ def test_guida_pratica_api_fascicolo_senza_codice_propone_scheda_facoltativa_da_
     assert "Scheda pratica suggerita dall'oggetto del fascicolo" not in ui_source
     assert "Scheda pratica individuata dall'oggetto del fascicolo" not in ui_source
     assert "'Ora'" in ui_source
+
+
+def test_guida_pratica_ui_fascicolo_restante_nel_rail_operativo():
+    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/GuidaPraticaSidebar.css").read_text(encoding="utf-8")
+
+    detail_grid_pos = source.index('<section className="iu-fas-detail-grid">')
+    rail_pos = source.index('<aside className="iu-fas-detail-side">', detail_grid_pos)
+    guida_pos = source.index("<GuidaPraticaSidebar", rail_pos)
+    gestione_pos = source.index('<DetailSection id="gestione"', rail_pos)
+
+    assert rail_pos < guida_pos < gestione_pos
+    assert ".iu-fas-detail-side > .iu-guida-pratica" in css
+    assert "max-height: calc(100vh - 345px)" in css
+
+
+def test_guida_pratica_api_fascicolo_associa_guida_per_codice_separato_non_deposito(tmp_path: Path):
+    app = _app(tmp_path)
+    headers = {"X-API-Key": "guida-test-key"}
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "RG 2048/2025 - Opposizione a decreto",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Rossi Mario",
+        oggetto="Opposizione a decreto",
+        codice_oggetto_pst="",
+        codice_guida_pratica="100002",
+    )
+
+    with app.test_client() as client:
+        response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/guida-pratica", headers=headers)
+
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["guidaPraticaDisponibile"] is True
+    assert payload["bloccaLavoro"] is False
+    assert payload["fascicolo"]["codice_oggetto_pst"] == ""
+    assert payload["fascicolo"]["codice_guida_pratica"] == "100002"
+    assert payload["guida"]["codice"] == "100002"
+    assert payload["guida"]["denominazione"] == "Opposizione a decreto ingiuntivo (art. 645 c.p.c.)"
+    assert payload["guida"]["codice_deposito"]["depositabile"] is False
+    assert "matchedFromFascicolo" not in payload
+
+
+def test_guida_pratica_api_fascicolo_opposizione_decreto_abbreviato_propone_codice_guida(tmp_path: Path):
+    app = _app(tmp_path)
+    headers = {"X-API-Key": "guida-test-key"}
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "RG 2048/2025 - Opposizione a decreto",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Rossi Mario",
+        oggetto="Opposizione a decreto",
+        codice_oggetto_pst="",
+    )
+
+    with app.test_client() as client:
+        response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/guida-pratica", headers=headers)
+
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["guidaPraticaDisponibile"] is True
+    assert payload["bloccaLavoro"] is False
+    assert payload["guida"]["codice"] == "100002"
+    assert payload["matchedFromFascicolo"]["matched_by"] == "alias guida pratica"
+    assert payload["matchedFromFascicolo"]["guide_only"] is True
+    assert payload["fascicolo"]["codice_guida_pratica_suggerito"] == "100002"
+    assert "codice_oggetto_pst_suggerito" not in payload["fascicolo"]
+    assert "Opposizione a decreto ingiuntivo" in payload["guida"]["denominazione"]
+    assert "Nessuna scheda pratica collegata" not in payload["message"]
 
 
 def test_guida_pratica_api_fascicolo_senza_codice_resta_facoltativa_e_non_blocca(tmp_path: Path):

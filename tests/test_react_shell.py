@@ -3411,7 +3411,7 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert 'title="Servizi telematici"' in page_source
     assert "FascicoloGuardrailsPanel" in page_source
     assert "data.guardrails" in page_source
-    assert "Presidio deposito assistito" in page_source
+    assert "Presidio apertura fascicolo" in page_source
     assert "FascicoloFormGuardrails" in data_source
     assert "guardrails: guardrails ?" in data_source
     assert "_new_fascicolo_guardrails" in bridge
@@ -3924,6 +3924,37 @@ def test_react_fascicolo_nuovo_form_collassabile_e_fascicolo_veloce():
     assert 'name="email_fascicolo"' in source
     assert 'accept=".eml,message/rfc822"' in source
     assert "findCodiceOggettoPst(nextQuery.trim())" in codice_search
+
+
+def test_post_nuovo_fascicolo_con_cliente_apre_il_fascicolo(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    gestore_clienti = GestioneClienti(db_path=app.config["CLIENTI_DB"])
+    cliente = gestore_clienti.nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Mario",
+        cognome="Fascicolo",
+        codice_fiscale="FSRMRA80A01H501U",
+    )
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            "/fascicoli/nuovo",
+            data={
+                "id_cliente": cliente.id,
+                "titolo": "Nuovo fascicolo da cliente",
+                "tipo": TipoFascicolo.CIVILE.value,
+                "oggetto": "Apertura ordinaria da scheda cliente",
+                "tribunale": "Tribunale di Milano",
+            },
+            follow_redirects=False,
+        )
+        location = response.headers["Location"]
+
+    assert response.status_code in {302, 303}
+    assert "/clienti/" not in location
+    assert re.search(r"/fascicoli/[^/]+$", location)
 
 
 def test_post_nuovo_fascicolo_veloce_carica_documenti_ed_email_eml(tmp_path: Path):

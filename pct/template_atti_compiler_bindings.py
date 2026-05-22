@@ -1,6 +1,8 @@
 """Binding tra modelli built-in del workspace atti e compilatore guidato."""
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
 
 
@@ -127,9 +129,77 @@ BUILTIN_COMPILER_BINDINGS: list[dict[str, Any]] = [
 ]
 
 
+def _catalog_core_template_bindings() -> list[dict[str, Any]]:
+    catalog_path = Path(__file__).parent / "template_atti_catalogo_data" / "core.json"
+    try:
+        catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    items = catalog.get("template") if isinstance(catalog, dict) else []
+    bindings: list[dict[str, Any]] = []
+    for item in items if isinstance(items, list) else []:
+        if not isinstance(item, dict):
+            continue
+        code = str(item.get("id") or "").strip()
+        title = str(item.get("titolo") or item.get("title") or code).strip()
+        if not code or not title:
+            continue
+        bindings.append(
+            _binding(
+                title,
+                code,
+                _base_code_for_catalog_template(title, str(item.get("procedimento") or ""), str(item.get("fase") or "")),
+                area="CIVILE",
+            )
+        )
+    return bindings
+
+
+def _base_code_for_catalog_template(title: str, procedure: str = "", phase: str = "") -> str:
+    text = " ".join([title, procedure, phase]).casefold()
+    if "opposizione a decreto ingiuntivo" in text:
+        return "CIV_OPPDI_001"
+    if "decreto ingiuntivo" in text or "monitorio" in text:
+        return "CIV_RDI_001"
+    if "pignoramento presso terzi" in text:
+        return "CIV_PPT_001"
+    if "pignoramento" in text:
+        return "CIV_PIGBASE_001"
+    if "precetto" in text:
+        return "CIV_PREC_001"
+    if "opposizione agli atti esecutivi" in text:
+        return "CIV_OPATTESE_001"
+    if "opposizione all'esecuzione" in text or "opposizione esecuzione" in text:
+        return "CIV_OPESE_001"
+    if any(token in text for token in ("cautelar", "urgenza", "700", "sequestro", "inaudita", "reclamo cautelare")):
+        return "CIV_RCAUT_001"
+    if "comparsa" in text:
+        return "CIV_COM_001"
+    if "appello" in text or "cassazione" in text or "revocazione" in text or "opposizione di terzo" in text:
+        return "CIV_APP_001"
+    if "memoria" in text or "note" in text:
+        return "CIV_MEM_001"
+    if "istanza" in text:
+        return "CIV_IST_001"
+    if "procura" in text or "mandato" in text or "domicilio" in text:
+        return "CIV_PROCBASE_001"
+    if "notifica" in text or "relata" in text or "conformita" in text or "conformità" in text:
+        return "CIV_NOTIFBASE_001"
+    if "deposito" in text or "indice allegati" in text or "fascicolo di parte" in text:
+        return "CIV_DEPDOC_001"
+    return "CIV_CIT_001"
+
+
 def compiler_alias_specs() -> list[dict[str, Any]]:
     return [dict(item) for item in BUILTIN_COMPILER_BINDINGS]
 
 
+def catalog_core_compiler_alias_specs() -> list[dict[str, Any]]:
+    by_code: dict[str, dict[str, Any]] = {}
+    for item in _catalog_core_template_bindings():
+        by_code[str(item.get("compiler_code") or "")] = dict(item)
+    return [dict(item) for item in by_code.values()]
+
+
 def compiler_binding_map_by_title() -> dict[str, dict[str, Any]]:
-    return {item["title"]: dict(item) for item in BUILTIN_COMPILER_BINDINGS}
+    return {item["title"]: dict(item) for item in compiler_alias_specs()}

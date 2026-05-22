@@ -2,6 +2,10 @@
 
 ## 2.248.15 - 2026-05-22
 
+- Integrato `kb_top9_set4_parte2.json` nella Guida Pratica come modulo separato, con audit voce per voce aggiornato a 7 file utente, 36 schede, 724 righe e zero voci perse tra KB, servizio/API, UI e Lex.
+- Aggiornato l'import dei termini processuali della Guida Pratica a 2.895 record e 832 template calcolabili, mantenendo i presidi `manual_review` quando il termine non è calcolabile con sicurezza.
+- Collegata la Guida Pratica al compilatore atti con anteprima reale: template filtrato dalla pratica, caricamento automatico del modello suggerito, import PDF/DOC/DOCX, anteprima PDF e salvataggio nel fascicolo senza chiudere il fascicolo.
+- Corretto il flusso di apertura nuovo fascicolo con cliente collegato: il salvataggio ordinario apre il fascicolo creato, mentre il deposito assistito resta separato e opzionale.
 - Rafforzato il preset grafico globale sulle pagine operative che avevano ancora layout locali incoerenti: Documenti, Agenda, Fascicoli, Clienti, PEC, Email ordinaria, Messaggi, Telematico, Studio, Fatturazione, Preventivi e Compensi Forensi restano governate dalla stessa sequenza visiva, con `/sito-studio/builder` esclusa.
 - Bloccate le sidebar spezzate in micro-colonne e normalizzati header, KPI, pannelli economici e superfici operative tramite token globali, evitando stili locali contrastanti.
 - Ripristinate le caselle Email PEC ed Email ordinaria nella vista classica a tre aree, escludendole dal preset globale come il builder sito studio per evitare deformazioni dello split lista/lettura/sidebar.

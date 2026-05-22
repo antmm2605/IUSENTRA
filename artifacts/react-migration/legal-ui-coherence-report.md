@@ -2,6 +2,14 @@
 
 Generato: 2026-05-08T10:03:02.066Z
 
+Aggiornamento 2026-05-22: preset grafico globale 2.248.12. IUSENTRA dispone
+di un vocabolario unico per superfici operative, support rail, filtri, contesto
+filtri, DataSurface, paginazione, card e stati vuoti. Fascicoli è il caso
+pilota: Cabina fascicoli, Alert operativi e Azioni rapide restano pannelli di
+supporto; il contenuto principale è nella DataSurface allineata alla rail, con
+linguaggio da studio legale e senza testi tecnici vietati. `/sito-studio/builder`
+resta escluso per preservare il suo editor visuale.
+
 Aggiornamento 2026-05-16: `/ricerca-legale/mediazione` 2.243.4 diventa un
 registro professionale consultabile dentro IUSENTRA. La pagina mostra metriche,
 mappa contesto, 5 filtri, tabella compatta con 80 risultati renderizzati e

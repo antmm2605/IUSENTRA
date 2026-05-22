@@ -2,6 +2,15 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-22T12:05:00+02:00: preset grafico globale 2.248.12.
+Audit UI esteso al preset IUSENTRA: il contratto React rifiuta la pagina
+Fascicoli se non usa PageShell, MainArea, MainSurface, SupportRail, DataSurface,
+FiltersBar, ContextFilters e paginazione centralizzata. La verifica browser
+post-build conferma desktop 1440 senza overflow, `Per pagina` nel toolbar,
+footer nella DataSurface e MainSurface/SupportRail entrambe alte 670 px con
+bottom 1093. Tablet e mobile degradano senza overflow; `/sito-studio/builder`
+non riceve la shell/preset.
+
 Aggiornamento 2026-05-16T17:40:00+02:00: registri mediazione interni 2.243.4.
 `/ricerca-legale/mediazione` e `/legal-intelligence/mediazione` sono confermate
 come superfici React operative: la pagina espone 3.035 record ministeriali

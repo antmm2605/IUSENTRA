@@ -50,6 +50,16 @@ import { Badge, Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
 import { SyncedTopScrollbar } from './SyncedTopScrollbar'
 import {
+  IusentraContextFilters,
+  IusentraDataSurface,
+  IusentraFiltersBar,
+  IusentraMainArea,
+  IusentraMainSurface,
+  IusentraPageShell,
+  IusentraPanelCard,
+  IusentraSupportRail,
+} from './iusentra'
+import {
   emptyFascicoliPage,
   emptyFascicoloDetail,
   emptyFascicoloForm,
@@ -414,22 +424,35 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
   const total = pagination?.total ?? items.length
   const currentPage = pagination?.page ?? 1
   const totalPages = pagination?.pages ?? (items.length ? 1 : 0)
+  const pageSizeControl = onPageSizeChange ? (
+    <label className="iu-fas-page-size">
+      <span>Per pagina</span>
+      <select value={pageSize || pagination?.pageSize || 25} onChange={(event) => onPageSizeChange(Number(event.target.value))}>
+        <option value={25}>25</option>
+        <option value={50}>50</option>
+        <option value={100}>100</option>
+      </select>
+    </label>
+  ) : null
+  const paginationControls = onPageChange && pagination ? (
+    <>
+      <button type="button" onClick={() => onPageChange(currentPage - 1)} disabled={currentPage <= 1}>Precedente</button>
+      <span>Pagina {currentPage} di {Math.max(1, totalPages)}</span>
+      <button type="button" onClick={() => onPageChange(currentPage + 1)} disabled={totalPages === 0 || currentPage >= totalPages}>Successiva</button>
+    </>
+  ) : null
   return (
-    <section className="iu-fas-table-card" aria-label={archive ? 'Archivio fascicoli' : 'Elenco fascicoli'}>
-      <div className="iu-fas-table-head">
-        <strong>{total} fascicoli</strong>
-        {onPageSizeChange ? (
-          <label>
-            <span>Per pagina</span>
-            <select value={pageSize || pagination?.pageSize || 25} onChange={(event) => onPageSizeChange(Number(event.target.value))}>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-          </label>
-        ) : null}
-      </div>
-      <SyncedTopScrollbar className="iu-fas-table-wrap">
+    <IusentraDataSurface
+      title={`${total} fascicoli`}
+      subtitle={archive ? 'Archivio pratiche chiuse' : 'Elenco operativo dello studio'}
+      toolbar={pageSizeControl}
+      footer={paginationControls}
+      fill
+      className="iu-fas-table-card"
+      ariaLabel={archive ? 'Archivio fascicoli' : 'Elenco fascicoli'}
+      empty={!items.length ? <p className="iu-empty">Nessun fascicolo corrisponde ai filtri impostati.</p> : null}
+    >
+      <SyncedTopScrollbar className="iu-fas-table-wrap iusentra-data-surface__scroll">
         <table className="iu-fas-table">
           <thead>
             <tr>
@@ -466,21 +489,13 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
       <div className="iu-fas-mobile-list">
         {items.map((item) => <DossierMobileCard item={item} checked={selected.has(item.id)} onToggle={() => onToggle(item.id)} archive={archive} onDeleted={onDeleted} onError={onError} key={item.id}/>) }
       </div>
-      {onPageChange && pagination ? (
-        <div className="iu-fas-pagination" aria-label="Paginazione fascicoli">
-          <button type="button" onClick={() => onPageChange(currentPage - 1)} disabled={currentPage <= 1}>Precedente</button>
-          <span>Pagina {currentPage} di {Math.max(1, totalPages)}</span>
-          <button type="button" onClick={() => onPageChange(currentPage + 1)} disabled={totalPages === 0 || currentPage >= totalPages}>Successiva</button>
-        </div>
-      ) : null}
-      {!items.length ? <p className="iu-empty">Nessun fascicolo corrisponde ai filtri impostati.</p> : null}
-    </section>
+    </IusentraDataSurface>
   )
 }
 
 function ListFilters({ data, query, setQuery, type, setType, status, setStatus, advancedOpen, setAdvancedOpen, refresh }:{data:FascicoliPageData; query:string; setQuery:(value:string)=>void; type:FascicoloTipo; setType:(value:FascicoloTipo)=>void; status:FascicoloStato; setStatus:(value:FascicoloStato)=>void; advancedOpen:boolean; setAdvancedOpen:(value:boolean)=>void; refresh:()=>void}) {
   return (
-    <section className="iu-fas-toolbar" aria-label="Filtri fascicoli">
+    <IusentraFiltersBar className="iu-fas-toolbar">
       <label className="iu-fas-search">
         <Search size={17}/>
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca per numero, titolo, cliente, n. causa..."/>
@@ -499,7 +514,7 @@ function ListFilters({ data, query, setQuery, type, setType, status, setStatus, 
       </label>
       <button className="iu-fas-filter-btn" type="button" onClick={() => setAdvancedOpen(!advancedOpen)} aria-expanded={advancedOpen}><Filter size={16}/> Filtri</button>
       <button className="iu-fas-icon-btn" type="button" onClick={refresh} aria-label="Aggiorna fascicoli"><RefreshCw size={17}/></button>
-    </section>
+    </IusentraFiltersBar>
   )
 }
 
@@ -507,8 +522,8 @@ function InsightPanel({ data, visible }:{data:FascicoliPageData; visible:Fascico
   const urgent = visible.filter((item) => item.alerts > 0 || item.unreadCommunications > 0).slice(0, 4)
   const withoutDeadline = visible.filter((item) => item.status !== 'archiviato' && !item.nextDeadlineIso && item.nextDeadline === 'n.d.').length
   return (
-    <aside className="iu-fas-insights">
-      <Panel title="Cabina fascicoli" subtitle="Controlli che conviene avere subito" icon={<Gauge size={17}/>}>
+    <IusentraSupportRail className="iu-fas-insights">
+      <IusentraPanelCard title="Cabina fascicoli" subtitle="Controlli che conviene avere subito" icon={Gauge}>
         <div className="iu-fas-briefing">
           <article>
             <span>Da governare ora</span>
@@ -521,8 +536,8 @@ function InsightPanel({ data, visible }:{data:FascicoliPageData; visible:Fascico
             <small>{withoutDeadline} pratiche attive non hanno una prossima scadenza visibile.</small>
           </article>
         </div>
-      </Panel>
-      <Panel title="Alert operativi" icon={<Bell size={17}/>} count={urgent.length}>
+      </IusentraPanelCard>
+      <IusentraPanelCard title="Alert operativi" icon={Bell} badge={urgent.length} tone="warning">
         {urgent.length ? (
           <div className="iu-fas-alerts">
             {urgent.map((item) => (
@@ -534,16 +549,16 @@ function InsightPanel({ data, visible }:{data:FascicoliPageData; visible:Fascico
             ))}
           </div>
         ) : <p className="iu-empty">Nessun alert sui fascicoli visibili.</p>}
-      </Panel>
-      <Panel title="Azioni rapide" icon={<Sparkles size={17}/>}>
+      </IusentraPanelCard>
+      <IusentraPanelCard title="Azioni rapide" icon={Sparkles} tone="gold">
         <div className="iu-fas-quick-actions">
           <a href="/fascicoli/nuovo"><FolderPlus size={15}/> Nuovo fascicolo</a>
           <a href="/scadenziario/nuova"><CalendarDays size={15}/> Nuova scadenza</a>
           <a href="/redazione-atti"><FileCheck2 size={15}/> Redazione atti</a>
           <a href="/fascicoli/archivio"><Archive size={15}/> Archivio</a>
         </div>
-      </Panel>
-    </aside>
+      </IusentraPanelCard>
+    </IusentraSupportRail>
   )
 }
 
@@ -611,47 +626,57 @@ function FascicoliListPage() {
 
   return (
     <main className="iu-content iu-fascicoli-page">
-      <section className="iu-fas-hero">
-        <div>
-          <span className="iu-fas-eyebrow"><FolderOpen size={16}/> Fascicoli</span>
-          <h1>Fascicoli</h1>
-          <p>Procedimenti civili, penali, amministrativi e tributari con scadenze, documenti, clienti e prossime azioni.</p>
-        </div>
-        <div className="iu-fas-hero__actions">
-          <Button href="/fascicoli/esporta"><Download size={15}/> Esporta</Button>
-          <Button href="/fascicoli/archivio"><Archive size={15}/> Archivio</Button>
-          <Button variant="primary" href="/fascicoli/nuovo"><FolderPlus size={16}/> Nuovo fascicolo</Button>
-        </div>
-      </section>
-
-      <section className="iu-fas-stats" aria-label="Indicatori fascicoli">
-        <StatCard icon={<FolderOpen size={19}/>} label="Attivi" value={data.summary.active} note="non archiviati" tone="primary"/>
-        <StatCard icon={<CheckCircle2 size={19}/>} label="In corso" value={data.summary.inProgress} note="da lavorare" tone="success"/>
-        <StatCard icon={<Archive size={19}/>} label="Da archiviare" value={data.summary.toArchive} note="definiti o pronti" tone="warning"/>
-        <StatCard icon={<CalendarDays size={19}/>} label="Scadenze 7g" value={data.summary.deadlines7} note="priorità immediata" tone="danger"/>
-        <StatCard icon={<FileText size={19}/>} label="Documenti" value={data.summary.documents} note="nel perimetro visibile" tone="purple"/>
-        <StatCard icon={<Bell size={19}/>} label="Comunicazioni" value={data.summary.unreadCommunications} note="non lette o da associare" tone="info"/>
-      </section>
-
-      {data.deadlines.length ? (
-        <section className="iu-fas-deadline-alert">
-          <AlertIcon />
+      <IusentraPageShell className="iu-fas-preset-shell">
+        <section className="iu-fas-hero">
           <div>
-            <strong>Scadenze entro 7 giorni</strong>
-            <div>{data.deadlines.slice(0, 4).map((item) => <a href={item.href} key={item.id}>{item.matterRef} - {item.title} <span>{item.date}</span></a>)}</div>
+            <span className="iu-fas-eyebrow"><FolderOpen size={16}/> Fascicoli</span>
+            <h1>Fascicoli</h1>
+            <p>Procedimenti civili, penali, amministrativi e tributari con scadenze, documenti, clienti e prossime azioni.</p>
+          </div>
+          <div className="iu-fas-hero__actions">
+            <Button href="/fascicoli/esporta"><Download size={15}/> Esporta</Button>
+            <Button href="/fascicoli/archivio"><Archive size={15}/> Archivio</Button>
+            <Button variant="primary" href="/fascicoli/nuovo"><FolderPlus size={16}/> Nuovo fascicolo</Button>
           </div>
         </section>
-      ) : null}
 
-      <ListFilters data={data} query={query} setQuery={setQuery} type={type} setType={updateType} status={status} setStatus={updateStatus} advancedOpen={advancedOpen} setAdvancedOpen={setAdvancedOpen} refresh={refresh}/>
-
-      {advancedOpen ? (
-        <section className="iu-fas-advanced" aria-label="Filtri avanzati fascicoli">
-          <label><span>Ufficio giudiziario</span><input value={court} onChange={(event) => setCourt(event.target.value)} placeholder="Tribunale, TAR, GDP..."/></label>
-          <label><span>Ordinamento</span><select value={sort} onChange={(event) => updateSort(event.target.value as SortKey)}>{(Object.keys(sortLabels) as SortKey[]).map((item) => <option value={item} key={item}>{sortLabels[item]}</option>)}</select></label>
-          <label className="iu-fas-check"><input type="checkbox" checked={alertsOnly} onChange={(event) => updateAlertsOnly(event.target.checked)}/><span>Solo fascicoli con alert o comunicazioni</span></label>
+        <section className="iu-fas-stats" aria-label="Indicatori fascicoli">
+          <StatCard icon={<FolderOpen size={19}/>} label="Attivi" value={data.summary.active} note="non archiviati" tone="primary"/>
+          <StatCard icon={<CheckCircle2 size={19}/>} label="In corso" value={data.summary.inProgress} note="da lavorare" tone="success"/>
+          <StatCard icon={<Archive size={19}/>} label="Da archiviare" value={data.summary.toArchive} note="definiti o pronti" tone="warning"/>
+          <StatCard icon={<CalendarDays size={19}/>} label="Scadenze 7g" value={data.summary.deadlines7} note="priorità immediata" tone="danger"/>
+          <StatCard icon={<FileText size={19}/>} label="Documenti" value={data.summary.documents} note="nel perimetro visibile" tone="purple"/>
+          <StatCard icon={<Bell size={19}/>} label="Comunicazioni" value={data.summary.unreadCommunications} note="non lette o da associare" tone="info"/>
         </section>
-      ) : null}
+
+        {data.deadlines.length ? (
+          <section className="iu-fas-deadline-alert">
+            <AlertIcon />
+            <div>
+              <strong>Scadenze entro 7 giorni</strong>
+              <div>{data.deadlines.slice(0, 4).map((item) => <a href={item.href} key={item.id}>{item.matterRef} - {item.title} <span>{item.date}</span></a>)}</div>
+            </div>
+          </section>
+        ) : null}
+
+      <IusentraMainArea className="iu-fas-layout">
+        <IusentraMainSurface className="iu-fas-main-list">
+          <ListFilters data={data} query={query} setQuery={setQuery} type={type} setType={updateType} status={status} setStatus={updateStatus} advancedOpen={advancedOpen} setAdvancedOpen={setAdvancedOpen} refresh={refresh}/>
+
+      <IusentraContextFilters className={`iu-fas-advanced ${advancedOpen ? 'is-open' : 'is-compact'}`}>
+        <div className="iu-fas-context-summary">
+          <span>Contesto filtri</span>
+          <strong>{sortLabels[sort]}</strong>
+          <small>{court ? `Ufficio: ${court}` : 'Tutti gli uffici'}{alertsOnly ? ' · solo alert' : ''}</small>
+        </div>
+        {advancedOpen ? (
+          <>
+            <label><span>Ufficio giudiziario</span><input value={court} onChange={(event) => setCourt(event.target.value)} placeholder="Tribunale, TAR, GDP..."/></label>
+            <label><span>Ordinamento</span><select value={sort} onChange={(event) => updateSort(event.target.value as SortKey)}>{(Object.keys(sortLabels) as SortKey[]).map((item) => <option value={item} key={item}>{sortLabels[item]}</option>)}</select></label>
+            <label className="iu-fas-check"><input type="checkbox" checked={alertsOnly} onChange={(event) => updateAlertsOnly(event.target.checked)}/><span>Solo fascicoli con alert o comunicazioni</span></label>
+          </>
+        ) : null}
+      </IusentraContextFilters>
 
       <section className="iu-fas-status-line">
         <span className={loading ? '' : 'is-ok'}>{loading ? 'Sincronizzazione fascicoli...' : 'Dati aggiornati'}</span>
@@ -661,8 +686,6 @@ function FascicoliListPage() {
 
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
 
-      <section className="iu-fas-layout">
-        <div className="iu-fas-main-list">
           {selectedVisible ? (
             <div className="iu-fas-bulkbar">
               <strong>{selectedVisible} fascicoli selezionati</strong>
@@ -671,27 +694,28 @@ function FascicoliListPage() {
             </div>
           ) : null}
           <FascicoliTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} onDeleted={handleFascicoloDeleted} onError={handleListError} pagination={data.pagination} pageSize={pageSize} onPageSizeChange={updatePageSize} onPageChange={updatePage}/>
-        </div>
+        </IusentraMainSurface>
         <InsightPanel data={data} visible={visible}/>
-      </section>
+      </IusentraMainArea>
 
-      <section className="iu-fas-lower-grid">
-        <Panel title="Controllo qualità fascicoli" subtitle="Cose da non lasciare implicite" icon={<BriefcaseBusiness size={17}/>}>
-          <div className="iu-fas-checklist">
-            <span><Landmark size={16}/> Ufficio, RG e tipo procedimento sempre visibili</span>
-            <span><CalendarDays size={16}/> Prossima scadenza in evidenza per ogni pratica attiva</span>
-            <span><FileText size={16}/> Documenti locali, portale e stato firma separati</span>
-          </div>
-        </Panel>
-        <Panel title="Integrazioni pronte" subtitle="Agganci alla gestione telematica" icon={<Sparkles size={17}/>}>
-          <div className="iu-fas-integrations">
-            <a href="/polisWeb">PolisWeb / PST</a>
-            <a href="/pdp">PDP Penale</a>
-            <a href="/pat">PAT Amministrativo</a>
-            <a href="/sigit">PTT Tributario</a>
-          </div>
-        </Panel>
-      </section>
+        <section className="iu-fas-lower-grid">
+          <Panel title="Controllo qualità fascicoli" subtitle="Cose da non lasciare implicite" icon={<BriefcaseBusiness size={17}/>}>
+            <div className="iu-fas-checklist">
+              <span><Landmark size={16}/> Ufficio, RG e tipo procedimento sempre visibili</span>
+              <span><CalendarDays size={16}/> Prossima scadenza in evidenza per ogni pratica attiva</span>
+              <span><FileText size={16}/> Documenti locali, portale e stato firma separati</span>
+            </div>
+          </Panel>
+          <Panel title="Integrazioni pronte" subtitle="Agganci alla gestione telematica" icon={<Sparkles size={17}/>}>
+            <div className="iu-fas-integrations">
+              <a href="/polisWeb">PolisWeb / PST</a>
+              <a href="/pdp">PDP Penale</a>
+              <a href="/pat">PAT Amministrativo</a>
+              <a href="/sigit">PTT Tributario</a>
+            </div>
+          </Panel>
+        </section>
+      </IusentraPageShell>
 
       <FloatingLex context="fascicoli" title="Lex AI fascicoli" body="Posso sintetizzare un fascicolo, evidenziare scadenze senza prossima azione, preparare una lista documenti e suggerire il percorso prima di deposito, udienza o archiviazione." primaryHref="#lex" primaryLabel="Apri Lex fascicoli" secondaryHref="/global-search?tipo=fascicoli" secondaryLabel="Cerca fascicoli" />
     </main>

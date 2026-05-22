@@ -3120,6 +3120,76 @@ def test_react_fascicoli_page_collegata_nav_api_e_lex():
     assert "@media(max-width:760px)" in css
 
 
+def test_react_fascicoli_usa_preset_grafico_globale():
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    page_source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+    preset = Path("frontend/src/components/iusentra/IusentraPreset.tsx").read_text(encoding="utf-8")
+    design_css = Path("frontend/src/styles/iusentra-design-system.css").read_text(encoding="utf-8")
+    docs = Path("docs/UI_PRESET_IUSENTRA.md").read_text(encoding="utf-8")
+
+    for token in (
+        "IusentraPageShell",
+        "IusentraMainArea",
+        "IusentraMainSurface",
+        "IusentraSupportRail",
+        "IusentraPanelCard",
+        "IusentraDataSurface",
+        "IusentraFiltersBar",
+        "IusentraContextFilters",
+        "IusentraPaginationBar",
+        "IusentraActionCard",
+        "IusentraEmptyState",
+        "IusentraRoutePresetFrame",
+    ):
+        assert token in preset
+        assert token in docs
+
+    assert "ResizeObserver" in preset
+    assert "PRESET_ROUTE_LAYOUT_SELECTORS" in preset
+    for route_layout in (
+        ".iu-ag-layout",
+        ".iu-cli-layout",
+        ".iu-sogg-layout",
+        ".iu-mail-layout",
+        ".iu-msg-layout",
+        ".iu-scad-layout",
+        ".iu-tel-surface-grid",
+        ".iu-template-compiler-layout",
+        ".iu-pwiz-layout",
+        ".iu-db-layout",
+    ):
+        assert route_layout in preset
+    assert "--iusentra-support-rail-min-height" in preset
+    assert "--iusentra-route-rail-height" in preset
+    assert "grid-template-columns: minmax(0, 1fr) minmax(320px, var(--iusentra-support-rail-width))" in design_css
+    assert ".iusentra-route-preset--active .iusentra-route-grid" in design_css
+    assert "margin-top: auto" in design_css
+    assert "isSitoStudioBuilderPage?'excluded':'active'" in app_source
+    assert "IusentraRoutePresetFrame routeKey={routeKey} enabled={!isSitoStudioBuilderPage}" in app_source
+    assert "iusentra-preset-active" in app_source
+    assert "iusentra-preset-excluded" in app_source
+
+    for token in (
+        "IusentraPageShell",
+        "IusentraMainArea",
+        "IusentraMainSurface",
+        "IusentraSupportRail",
+        "IusentraDataSurface",
+        "IusentraFiltersBar",
+        "IusentraContextFilters",
+    ):
+        assert token in page_source
+    assert "footer={paginationControls}" in page_source
+    assert "className=\"iu-fas-page-size\"" in page_source
+    assert "iu-fas-context-summary" in page_source
+    assert ".iu-fas-layout.iusentra-main-area" in css
+    assert ".iu-fas-insights.iusentra-support-rail" in css
+    assert ".iu-fas-table-card.iusentra-data-surface" in css
+    assert ".iu-fas-advanced.is-compact" in css
+    assert "grid-template-columns:minmax(0,1fr) minmax(340px,360px)" in css
+
+
 def test_react_fascicoli_bridge_usa_repository_reali(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()

@@ -27,6 +27,11 @@
 .iu-fas-advanced{grid-template-columns:minmax(220px,1fr) 220px minmax(240px,auto);margin-top:-6px}
 .iu-fas-advanced .iu-fas-check{justify-content:flex-start;color:#0f172a;font-size:13px;font-weight:800}
 .iu-fas-advanced .iu-fas-check input{width:auto}
+.iu-fas-context-summary{grid-column:1/-1;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;min-height:34px;color:var(--iu-slate-600);font-size:12px;font-weight:820}
+.iu-fas-context-summary span{color:var(--iu-slate-500);font-weight:900;text-transform:uppercase;letter-spacing:.06em}
+.iu-fas-context-summary strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;font-size:13px;font-weight:950}
+.iu-fas-context-summary small{min-width:0;color:var(--iu-slate-500);font-size:12px;font-weight:760;text-align:right;white-space:nowrap}
+.iu-fas-advanced.is-compact{grid-template-columns:1fr;padding-block:8px}
 .iu-fas-status-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap;color:var(--iu-slate-500);font-size:12px;font-weight:820}
 .iu-fas-status-line>span{display:inline-flex;align-items:center;min-height:28px;padding:0 10px;border-radius:999px;background:rgba(37,99,235,.08);color:var(--iu-blue-700)}
 .iu-fas-status-line>span.is-ok{background:rgba(16,185,129,.1);color:#047857}
@@ -111,6 +116,8 @@
   .iu-fas-stat>strong{font-size:21px}
   .iu-fas-toolbar{grid-template-columns:1fr}
   .iu-fas-filter-btn,.iu-fas-icon-btn{width:100%}
+  .iu-fas-context-summary{grid-template-columns:1fr;gap:3px}
+  .iu-fas-context-summary small{text-align:left;white-space:normal}
   .iu-fas-status-line{gap:8px}
   .iu-fas-table-wrap{display:none}
   .iu-fas-table-head{display:none}
@@ -447,4 +454,116 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
   .iu-fas-lex-indexing dl{grid-template-columns:repeat(2,minmax(0,1fr))}
   .iu-fas-audit-summary{grid-template-columns:1fr}
   .iu-fas-audit-actions{display:grid}
+}
+
+/* Preset grafico globale IUSENTRA - Fascicoli come pagina pilota. */
+.iu-fas-layout.iusentra-main-area{
+  grid-template-columns:minmax(0,1fr) minmax(340px,360px);
+  gap:var(--iusentra-layout-gap,16px);
+  align-items:start;
+}
+.iu-fas-main-list.iusentra-main-surface{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  min-width:0;
+}
+.iu-fas-insights.iusentra-support-rail{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:var(--iusentra-layout-gap,16px);
+  position:sticky;
+  top:92px;
+}
+.iu-fas-toolbar.iusentra-filters-bar{
+  grid-template-columns:minmax(260px,1fr) 180px 180px auto auto;
+  margin:0;
+}
+.iu-fas-advanced.iusentra-context-filters{
+  grid-template-columns:minmax(220px,1fr) 220px minmax(240px,auto);
+  margin:0;
+}
+.iu-fas-table-card.iusentra-data-surface{
+  flex:1 1 auto;
+  min-height:0;
+}
+.iu-fas-table-card .iusentra-data-surface__header{
+  min-height:48px;
+  display:flex;
+}
+.iu-fas-page-size{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:32px;
+  padding:0 10px;
+  border:1px solid var(--iu-border);
+  border-radius:9px;
+  background:#fff;
+  color:#0f172a;
+  font-size:12px;
+  font-weight:850;
+}
+.iu-fas-page-size span{
+  color:var(--iu-slate-500);
+  font-size:11px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.iu-fas-page-size select{
+  border:0;
+  background:transparent;
+  color:#0f172a;
+  font:inherit;
+  font-weight:900;
+}
+.iu-fas-table-wrap{
+  flex:1 1 auto;
+  min-height:0;
+}
+.iu-fas-table{
+  height:auto;
+}
+.iu-fas-table-card .iusentra-pagination-bar{
+  flex:0 0 auto;
+}
+.iu-fas-insights .iusentra-panel-card__body{
+  padding:12px 16px 14px;
+}
+
+@media(max-width:1180px){
+  .iu-fas-layout.iusentra-main-area{
+    grid-template-columns:1fr;
+  }
+  .iu-fas-insights.iusentra-support-rail{
+    position:static;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
+
+@media(max-width:980px){
+  .iu-fas-toolbar.iusentra-filters-bar{
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+  }
+  .iu-fas-toolbar.iusentra-filters-bar .iu-fas-search{
+    grid-column:1/-1;
+  }
+  .iu-fas-advanced.iusentra-context-filters,
+  .iu-fas-insights.iusentra-support-rail{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:760px){
+  .iu-fas-toolbar.iusentra-filters-bar{
+    grid-template-columns:1fr;
+  }
+  .iu-fas-table-card.iusentra-data-surface{
+    min-height:auto;
+  }
+  .iu-fas-table-card .iusentra-data-surface__header{
+    display:none;
+  }
 }

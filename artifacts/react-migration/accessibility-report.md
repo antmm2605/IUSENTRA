@@ -15,6 +15,7 @@ Generato: 2026-05-08
 - 2026-05-15: rifinitura 2.236.5 mantiene accessibilita' tastiera su Ricerca Studio senza mostrare scorciatoie tecniche come testo primario; lo stato ricerca usa `aria-label` professionale e il retry mobile `/soggetti/nuovo` conferma H1 e contenuto raggiungibili.
 - 2026-05-15: Sito Studio Builder Pro 2.239.1 aggiunge label e title ai controlli icona del builder, compresi tab verticali, resize pannello, formattazione testo, allineamenti, device preview e azioni blocco/media. Il rich text resta limitato a corsivo, sottolineato, apice e pedice filtrati lato server; i menu tablet/mobile della preview restano visibili anche nei formati compatti.
 - 2026-05-16: Ricerca Legale 2.239.3 usa `aria-label` per sezioni, percorso operativo, mappa fonti, risultati e scheda contesto; le tab hanno `aria-current`, le icone sono decorative dove opportuno e le azioni principali restano pulsanti/testi espliciti (`Leggi contesto`, `Cerca collegati`, `Fonte originale`).
+- 2026-05-22: Preset grafico globale 2.248.12 aggiunge landmark e label ai blocchi centrali: `IusentraFiltersBar` ha `aria-label="Filtri principali"`, `IusentraContextFilters` ha `aria-label="Contesto filtri"`, DataSurface espone header/body/footer coerenti e le card laterali usano titolo, icona e contenuto sintetico. Browser desktop/tablet/mobile su Fascicoli conferma controlli e paginazione visibili senza overflow.
 
 ## Problemi corretti
 

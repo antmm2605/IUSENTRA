@@ -6,6 +6,13 @@ Violazioni: 0
 
 Nessuna route piena risulta mascherata da legacy.
 
+## Aggiornamento 2.248.12 - 2026-05-22
+
+Il preset grafico globale non promuove route finte: la pagina Fascicoli usa API
+e dati reali già presenti, mentre il lavoro grafico centralizza struttura,
+token, DataSurface e SupportRail. `/sito-studio/builder` resta esplicitamente
+fuori dal preset e non viene mascherato da shell alternativa.
+
 ## Aggiornamento 2.243.4 - 2026-05-16
 
 `/ricerca-legale/mediazione` e `/legal-intelligence/mediazione` confermate come

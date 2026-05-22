@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.248.12 - 2026-05-22
+
+- Introdotto il preset grafico globale IUSENTRA con componenti centralizzati PageShell, MainArea, MainSurface, SupportRail, PanelCard, DataSurface, FiltersBar, ContextFilters, PaginationBar, ActionCard ed EmptyState.
+- Aggiunto `IusentraRoutePresetFrame` nella shell React: tutte le rotte operative vengono avvolte dal preset, con esclusione esplicita di `/sito-studio/builder`, e le griglie locali note ricevono token, rail e min-height coerenti.
+- Allineata la pagina Fascicoli al preset come caso pilota: DataSurface con footer/paginazione ancorato in basso, selettore `Per pagina` in alto, SupportRail con Cabina fascicoli, Alert operativi e Azioni rapide, e altezza desktop allineata alla rail senza deformare le righe.
+- Centralizzati token, griglia, rail, card, filtri, paginazione, scroll e mappa icone in `docs/UI_PRESET_IUSENTRA.md`, mantenendo esclusa la pagina `/sito-studio/builder` dal preset.
+- Riallineato `docs/openapi.yaml` alla versione `2.248.12` dopo il bump, così il gate CI `API contract gates` non blocca gli shard Pytest e Local Signer a valle.
+
 ## 2.248.11 - 2026-05-22
 
 - Uniformato il caricamento React dei fascicoli al loader tenant-aware usato dalla Guida Pratica: un fascicolo valido in JSON legacy resta apribile anche quando lo SQLite operativo non è ancora popolato.

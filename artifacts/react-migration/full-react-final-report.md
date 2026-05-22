@@ -2,6 +2,20 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-22T12:05:00+02:00: Preset grafico globale IUSENTRA
+2.248.12.
+Il preset grafico globale è ora centralizzato in `IusentraPreset.tsx` e
+documentato in `docs/UI_PRESET_IUSENTRA.md`: PageShell, MainArea, MainSurface,
+SupportRail, PanelCard, DataSurface, FiltersBar, ContextFilters, PaginationBar,
+ActionCard, EmptyState, token grafici e mappa icone sono il riferimento unico
+per le pagine operative. La pagina Fascicoli usa il preset come caso pilota e
+mantiene la DataSurface allineata alla SupportRail desktop; `/sito-studio/builder`
+resta esclusa dal preset come richiesto.
+
+Gate verdi: contratti React, App V2 frontend, legal skills, typecheck, build
+Vite, test shell Fascicoli/preset e browser locale desktop/tablet/mobile sul
+caso pilota dopo build.
+
 Aggiornamento 2026-05-18T17:20:00+02:00: Update Intelligence fonti/PDF/OCR/Lex
 2.245.40.
 La console `/admin/aggiornamenti-legali/` espone ora contatori su evidenze web,

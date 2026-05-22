@@ -47,6 +47,12 @@ Non duplicare componenti gia' presenti. Se una pagina usa `frontend/src/ui/*`, a
 - `LexFloatingButton`: pulsante flottante per Lex AI dove previsto.
 - `LexPanel`: drawer/pannello Lex con contesto, fonti, documenti usati, modalita operative e stati di contesto insufficiente.
 
+## Preset grafico globale
+
+Dal 22 maggio 2026 le pagine operative React devono comporre il preset documentato in [UI_PRESET_IUSENTRA.md](UI_PRESET_IUSENTRA.md): `IusentraRoutePresetFrame`, `IusentraPageShell`, `IusentraMainArea`, `IusentraMainSurface`, `IusentraSupportRail`, `IusentraPanelCard`, `IusentraDataSurface`, `IusentraFiltersBar`, `IusentraContextFilters`, `IusentraPaginationBar`, `IusentraActionCard` e `IusentraEmptyState`.
+
+Il preset è applicato dalla shell React a tutte le pagine, con esclusione esplicita di `/sito-studio/builder`. `IusentraRoutePresetFrame` normalizza anche le griglie locali già presenti su Agenda, Clienti/Soggetti, PEC, Scadenziario, Telematico, Preventivi, Template atti e amministrazione. Le pagine con tabelle o liste devono usare `IusentraDataSurface` con footer/paginazione ancorato in basso; le pagine con rail laterale devono usare `IusentraMainArea` e `IusentraSupportRail`, così la superficie principale si allinea almeno all'altezza della colonna di supporto.
+
 ## Token colore
 
 La palette deve restare istituzionale e leggibile:

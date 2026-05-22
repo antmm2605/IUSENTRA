@@ -1,5 +1,11 @@
 # Migrazione progressiva Flask + React
 
+## Preset grafico globale IUSENTRA - 2026-05-22 - 2.248.12
+
+Il frontend React dispone ora di un preset grafico globale documentato in `docs/UI_PRESET_IUSENTRA.md` e implementato in `frontend/src/components/iusentra/IusentraPreset.tsx`. Il preset centralizza PageShell, MainArea, MainSurface, SupportRail, PanelCard, DataSurface, FiltersBar, ContextFilters, PaginationBar, ActionCard, EmptyState, token di griglia, rail, bordi, stati, card, filtri, paginazione e mappa icone.
+
+La pagina Fascicoli è il caso pilota: la tabella è dentro `IusentraDataSurface`, il selettore `Per pagina` resta nel toolbar alto, il footer `Precedente / Pagina / Successiva` resta ancorato nella superficie dati e su desktop `IusentraMainSurface` misura la SupportRail con `ResizeObserver` per allinearsi alla fine di `Cabina fascicoli`, `Alert operativi` e `Azioni rapide` senza allungare le righe. La pagina `/sito-studio/builder` resta esclusa dal preset come richiesto.
+
 ## Guida Pratica facoltativa e TOP9 set2 - 2026-05-22 - 2.248.10
 
 La Guida Pratica nel fascicolo è ora esplicitamente opzionale: se manca il codice oggetto, il backend può suggerire una scheda dall'oggetto o dal titolo del fascicolo, ma la UI non blocca il lavoro e richiede conferma per mantenere il collegamento. Le schede arrivate con codice non presente o non coerente con la descrizione ministeriale restano guide interne non depositabili.

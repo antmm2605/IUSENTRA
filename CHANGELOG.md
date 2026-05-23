@@ -7,6 +7,7 @@
 - Verificati typecheck, build Vite, gate React, audit UI e browser reale desktop/tablet/mobile sul dettaglio fascicolo, con destinazioni cliente/soggetti editabili e zero overflow o testi tecnici vietati.
 
 - Stabilizzati i checkout dei workflow `CI` e `CI Quality Overlay`: i job scaricano il ref dell'evento invece dello SHA grezzo, evitando i failure infrastrutturali `could not read Username for 'https://github.com'` prima dell'esecuzione dei test.
+- Resa obbligatoria la pulizia post-deploy Hetzner anche quando il commit risulta già presente sul server: il workflow esegue comunque `docker builder prune --all --force` e rimuove lo snapshot temporaneo residuo.
 
 ## 2.248.19 - 2026-05-23
 

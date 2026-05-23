@@ -216,7 +216,7 @@ Il workflow `.github/workflows/deploy-hetzner.yml` esegue il deploy sul server H
 7. Stampa un summary GitHub Actions con commit, host, esito.
 8. Cancella la chiave SSH dal runner (`shred`).
 
-`concurrency: deploy-hetzner-production` con `cancel-in-progress: false` garantisce che due push ravvicinati producano deploy in coda, mai paralleli. Se il secondo push dei branch gemelli trova gia' lo stesso commit su `/opt/iusentra/repo`, il workflow salta backup e rebuild e mantiene le verifiche post-deploy.
+`concurrency: deploy-hetzner-production` con `cancel-in-progress: false` garantisce che due push ravvicinati producano deploy in coda, mai paralleli. Se il secondo push dei branch gemelli trova gia' lo stesso commit su `/opt/iusentra/repo`, il workflow salta backup e rebuild, mantiene le verifiche post-deploy ed esegue comunque la pulizia rigenerabile con `docker builder prune --all --force` e rimozione di `/opt/iusentra/tmp-backup-snapshot`.
 
 ### Setup una tantum
 

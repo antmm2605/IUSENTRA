@@ -212,6 +212,18 @@ jobs:
             check_public_route "${path}"
           done
 
+      - name: Pulizia cache build Docker
+        if: always()
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy \
+              -o BatchMode=yes \
+              -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              'docker builder prune --all --force && rm -rf /opt/iusentra/tmp-backup-snapshot'
+
       - name: Summary deploy
         if: always()
         run: |

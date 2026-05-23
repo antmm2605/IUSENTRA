@@ -27,7 +27,7 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | Comando / verifica | Esito | Nota |
 | --- | --- | --- |
 | `python -m pytest tests\test_ci_no_regression_contract.py tests\test_ci_cd_gates_phase11.py -q --tb=short` | OK | 11/11: i contratti CI restano verdi dopo il passaggio dei checkout `CI` e `CI Quality Overlay` da SHA grezzo a ref evento. |
-| `python -m pytest tests\test_utf8_integrity.py -q --tb=short` | OK | 4/4: documentazione aggiornata senza introdurre regressioni UTF-8. |
+| `python -m pytest tests\test_utf8_integrity.py tests\test_release_readiness.py -q --tb=short` | OK | 5/5: documentazione e readiness release verdi dopo la pulizia Docker post-deploy sempre eseguita. |
 | `git diff --check` | OK | Nessun whitespace error nelle modifiche workflow e report. |
 
 ## Guida Pratica TOP9 set6 2.248.19 - 2026-05-23

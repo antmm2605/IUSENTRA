@@ -85,6 +85,8 @@ def _subject_items(soggetti_repo: Any, soggetti: list[Any], clienti: list[Any]) 
             "province": _text(getattr(indirizzo, "provincia", "")),
             "clientId": id_cliente,
             "clientName": clienti_by_id.get(id_cliente, ""),
+            "matterIds": fascicoli if isinstance(fascicoli, list) else [],
+            "matterRefs": fascicoli if isinstance(fascicoli, list) else [],
             "matters": len(fascicoli) if isinstance(fascicoli, list) else 0,
             "isLegal": _is_legal_type(getattr(soggetto, "tipo", "")),
             "missingFields": [

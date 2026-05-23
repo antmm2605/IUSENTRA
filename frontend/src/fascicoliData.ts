@@ -222,6 +222,7 @@ export type FascicoloMoney = { id: string; label: string; value: string; note: s
 export type FascicoloPerson = { id: string; name: string; taxCode: string; vat: string; email: string; pec: string; phone: string; address: string; href: string }
 
 export type FascicoloFull = FascicoloRow & {
+  clientId: string
   object: string
   counterparty: string
   counterpartyTaxCode: string
@@ -519,7 +520,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
     id: '', ref: 'n.d.', internalRef: 'n.d.', title: 'Fascicolo non trovato', subtitle: '', type: 'altro', client: 'n.d.', court: 'n.d.', rg: 'n.d.',
     nextDeadline: 'n.d.', nextDeadlineIso: '', status: 'aperto', documents: 0, unreadCommunications: 0, alerts: 0, openedAt: '', closedAt: '', updatedAt: '',
     href: '/fascicoli', operationalHref: '/fascicoli', editHref: '/fascicoli', operationalEditHref: '/fascicoli', exportPdfHref: '', deleteHref: '', archiveZipHref: '', restoreAction: '', tone: 'neutral',
-    object: '', counterparty: '', counterpartyTaxCode: '', judge: '', section: '', leadLawyer: '', dominus: '', value: '', quotedValue: '', agreedFee: '',
+    clientId: '', object: '', counterparty: '', counterpartyTaxCode: '', judge: '', section: '', leadLawyer: '', dominus: '', value: '', quotedValue: '', agreedFee: '',
     procedureType: '', practiceId: '', practiceArea: '', proceduraOperativaCodice: '', codiceOggettoPst: '', codiceGuidaPratica: '', fonteCodiceOggetto: '', fileFonteCodiceOggetto: '',
     riferimentoCartaceo: '', attorePrincipale: '', istruttorePmGip: '', cancelliere: '', ctu: '', ctp: '',
     statoPraticaOperativa: '', personalizzabile: false, fascicoloVeloce: false, documentiInizialiCount: 0, emailInizialiCount: 0, dataAperturaIso: '', dataChiusuraIso: '',
@@ -857,6 +858,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
   const full: FascicoloFull = {
     ...emptyFascicoloDetail.fascicolo,
     ...base,
+    clientId: text(fullPayload.clientId ?? fullPayload.client_id ?? fullPayload.id_cliente),
     object: text(fullPayload.object ?? fullPayload.oggetto),
     counterparty: text(fullPayload.counterparty ?? fullPayload.controparte),
     counterpartyTaxCode: text(fullPayload.counterpartyTaxCode ?? fullPayload.cf_controparte),

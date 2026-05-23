@@ -1,5 +1,11 @@
 # Migrazione progressiva Flask + React
 
+## Hotfix fascicolo anagrafiche in nuova finestra - 2026-05-23 - 2.248.20
+
+Il dettaglio fascicolo React espone ora due azioni rapide nella card iniziale: `Cliente` apre in una nuova finestra la modifica dell'anagrafica cliente collegata al fascicolo, mentre `Soggetti` apre in una nuova finestra la pagina Soggetti e Parti filtrata con `?fascicolo=<id>`.
+
+Il bridge fascicoli porta `clientId` fino alla UI e il bridge soggetti espone `matterIds`/`matterRefs`, così il filtro lavora sui collegamenti reali delle parti processuali. La verifica browser reale desktop, tablet e mobile conferma assenza di overflow, sovrapposizioni e testi tecnici vietati; le destinazioni restano modificabili senza chiudere il fascicolo.
+
 ## Hotfix preset unico globale IUSENTRA - 2026-05-22 - 2.248.14
 
 Il preset unico non può lasciare blocchi non classificati prima dell'header pagina. `IusentraRoutePresetFrame` assegna ora `main-content` come fallback a ogni figlio diretto non riconosciuto, mentre tab/switcher vengono trattati come filtri e note/riepiloghi come contesto. Il CSS globale normalizza anche gli hero locali come header pagina del preset, evitando varianti isolate come hero scuri o card operative sopra al titolo.

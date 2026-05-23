@@ -75,7 +75,20 @@ function visible(item: SoggettoRow, query: string): boolean {
     item.city,
     item.province,
     item.clientName,
+    item.matterRefs.join(' '),
   ].join(' ')).includes(needle)
+}
+
+function initialMatterFilter(): string {
+  if (typeof window === 'undefined') return ''
+  const params = new URLSearchParams(window.location.search)
+  return params.get('fascicolo') || params.get('id_fascicolo') || ''
+}
+
+function initialSubjectQuery(): string {
+  if (typeof window === 'undefined') return ''
+  const params = new URLSearchParams(window.location.search)
+  return params.get('q') || params.get('search') || ''
 }
 
 function sortRows(rows: SoggettoRow[], sort: SortKey): SoggettoRow[] {
@@ -270,7 +283,7 @@ function SelectedSubjectPanel({ item }:{item:SoggettoRow}) {
 export function SoggettiPage() {
   const [data, setData] = useState<SoggettiPageData>(emptySoggettiPage)
   const [loading, setLoading] = useState(true)
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(initialSubjectQuery)
   const [typeFilter, setTypeFilter] = useState<SoggettoTipo>('tutti')
   const [roleFilter, setRoleFilter] = useState('tutti')
   const [qualityOnly, setQualityOnly] = useState(false)
@@ -281,6 +294,7 @@ export function SoggettiPage() {
   const [feedback, setFeedback] = useState('')
   const [error, setError] = useState('')
   const selectedId = routeSubjectId()
+  const matterFilter = initialMatterFilter()
 
   useEffect(() => {
     let alive = true
@@ -296,11 +310,12 @@ export function SoggettiPage() {
 
   const filtered = useMemo(() => sortRows(data.items.filter((item) => {
     if (!visible(item, query)) return false
+    if (matterFilter && !item.matterIds.includes(matterFilter)) return false
     if (typeFilter !== 'tutti' && item.type !== typeFilter) return false
     if (roleFilter !== 'tutti' && item.role !== roleFilter) return false
     if (qualityOnly && !item.missingFields.length && !hasNoContacts(item)) return false
     return true
-  }), sort), [data.items, query, typeFilter, roleFilter, qualityOnly, sort])
+  }), sort), [data.items, query, matterFilter, typeFilter, roleFilter, qualityOnly, sort])
   const selectedSubject = selectedId ? data.items.find((item) => item.id === selectedId) : undefined
   const selectedVisibleIds = useMemo(
     () => filtered.filter((item) => selected.has(item.id)).map((item) => item.id),
@@ -406,6 +421,7 @@ export function SoggettiPage() {
       <section className="iu-sogg-status">
         <span className={loading ? '' : 'is-ok'}>{loading ? 'Caricamento soggetti...' : 'Dati aggiornati'}</span>
         <small><ShieldCheck size={14}/> Le operazioni di dettaglio, modifica ed eliminazione restano allineate con i dati di studio.</small>
+        {matterFilter ? <small className="iu-sogg-status__selected">Filtro fascicolo attivo</small> : null}
         {selectedVisible ? <small className="iu-sogg-status__selected">{selectedVisible} selezionati</small> : null}
         {feedback ? <small className="iu-sogg-status__feedback">{feedback}</small> : null}
         {error ? <small className="iu-sogg-status__error">{error}</small> : null}

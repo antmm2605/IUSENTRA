@@ -2109,6 +2109,9 @@ function DetailPage({ id }:{id:string}) {
   const quadroHref = `/fascicoli/${encodedId}/quadro`
   const compilerHref = `/template-atti/catalogo?id_fascicolo=${encodedId}`
   const detailReturnHref = `/fascicoli/${encodeURIComponent(f.id || id)}#conformita`
+  const clientId = data.client?.id || f.clientId
+  const clientRecordHref = clientId ? `/clienti/${encodeURIComponent(clientId)}/modifica` : '/clienti'
+  const partiesRecordHref = `/soggetti?fascicolo=${encodedId}`
   const signedDocuments = data.documents.filter((doc) => doc.signed).length
   const documentsCount = data.quickCounts.documenti || data.documents.length
   const unsignedDocuments = Math.max(0, documentsCount - signedDocuments)
@@ -2161,7 +2164,7 @@ function DetailPage({ id }:{id:string}) {
     <main id="fascicolo-top" className="iu-content iu-fascicoli-page iu-fascicolo-detail-page">
       <section className="iu-fas-hero iu-fas-detail-hero">
         <div><span className="iu-fas-eyebrow"><FolderOpen size={16}/> Fascicolo</span><h1>{f.title}</h1><p><Badge tone={f.tone}>{formatFascicoloStatus(f.status)}</Badge><Badge tone="neutral">{formatFascicoloType(f.type)}</Badge>{f.archiveReady ? <Badge tone="warning">Pronto per archivio</Badge> : null}<span>{f.object || f.subtitle}</span></p></div>
-        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={quadroHref}><Gauge size={15}/> Quadro AI</Button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button variant="primary" href={data.actions.exportPdf || f.exportPdfHref}><FileDown size={15}/> PDF</Button></div>
+        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><a className="iu-button iu-button--secondary iu-fas-record-link" href={clientRecordHref} target="_blank" rel="noopener noreferrer" aria-label="Apri anagrafica cliente in una nuova finestra" title="Apri anagrafica cliente in una nuova finestra"><UserRound size={15}/> Cliente</a><a className="iu-button iu-button--secondary iu-fas-record-link" href={partiesRecordHref} target="_blank" rel="noopener noreferrer" aria-label="Apri soggetti e parti in una nuova finestra" title="Apri soggetti e parti in una nuova finestra"><UsersRound size={15}/> Soggetti</a><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={quadroHref}><Gauge size={15}/> Quadro AI</Button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button variant="primary" href={data.actions.exportPdf || f.exportPdfHref}><FileDown size={15}/> PDF</Button></div>
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : 'Dati aggiornati'}</span></section>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}

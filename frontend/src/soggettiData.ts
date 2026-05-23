@@ -16,6 +16,8 @@ export type SoggettoRow = {
   province: string
   clientId: string
   clientName: string
+  matterIds: string[]
+  matterRefs: string[]
   matters: number
   isLegal: boolean
   missingFields: string[]
@@ -120,6 +122,8 @@ function normalizeItem(value: unknown, index: number): SoggettoRow {
     province: text(item.province ?? item.provincia),
     clientId: text(item.clientId ?? item.client_id ?? item.id_cliente),
     clientName: text(item.clientName ?? item.client_name ?? item.cliente),
+    matterIds: arrayText(item.matterIds ?? item.matter_ids ?? item.fascicoli_ids),
+    matterRefs: arrayText(item.matterRefs ?? item.matter_refs ?? item.fascicoli_riferimenti),
     matters: number(item.matters ?? item.fascicoli),
     isLegal: Boolean(item.isLegal ?? item.is_legal),
     missingFields: arrayText(item.missingFields ?? item.missing_fields),

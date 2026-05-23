@@ -4204,6 +4204,7 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     soggetti_page = Path("frontend/src/components/SoggettiPage.tsx").read_text(encoding="utf-8")
     soggetti_data = Path("frontend/src/soggettiData.ts").read_text(encoding="utf-8")
     soggetti_css = Path("frontend/src/components/SoggettiPage.css").read_text(encoding="utf-8")
+    fascicoli_page = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
     api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
     clienti_routes = Path("web/bootstrap/clienti_routes.py").read_text(encoding="utf-8")
     soggetti_model = Path("pct/soggetti.py").read_text(encoding="utf-8")
@@ -4222,6 +4223,13 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert "/api/v1/ui/soggetti/${encodeURIComponent(decodeURIComponent(subjectEditMatch[1]))}/modifica" in new_data
     assert "edit_subject" in new_data
     assert "/api/v1/ui/soggetti" in soggetti_data
+    assert "matterIds.includes(matterFilter)" in soggetti_page
+    assert "matterIds:" in soggetti_data
+    assert "clientRecordHref" in fascicoli_page
+    assert "partiesRecordHref" in fascicoli_page
+    assert 'target="_blank" rel="noopener noreferrer"' in fascicoli_page
+    assert "Apri anagrafica cliente in una nuova finestra" in fascicoli_page
+    assert "Apri soggetti e parti in una nuova finestra" in fascicoli_page
     assert "/api/cf/calcola" in new_page
     assert "/api/cf/decodifica" in new_page
     assert "Genera CF" in new_page
@@ -4266,6 +4274,7 @@ def test_react_clienti_nuovo_e_soggetti_api_usa_repository_reali(tmp_path: Path)
         qualifica="CONTROPARTE",
         id_cliente=cliente.id,
     )
+    soggetti.aggiungi_parte("fas-test", soggetto.id, RuoloSoggetto.CONTROPARTE)
 
     new_response = client.get("/api/v1/ui/clienti/nuovo", headers={"X-API-Key": "react-test-key"})
     subjects_response = client.get("/api/v1/ui/soggetti", headers={"X-API-Key": "react-test-key"})
@@ -4288,6 +4297,7 @@ def test_react_clienti_nuovo_e_soggetti_api_usa_repository_reali(tmp_path: Path)
     assert subjects_payload["summary"]["total"] == 1
     assert subjects_payload["items"][0]["id"] == soggetto.id
     assert subjects_payload["items"][0]["clientName"] == cliente.nome_completo
+    assert subjects_payload["items"][0]["matterIds"] == ["fas-test"]
 
 
 def test_codice_fiscale_calcolo_e_decodifica_api_react(tmp_path: Path):

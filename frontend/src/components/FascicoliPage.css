@@ -7,6 +7,8 @@
 .iu-button{min-height:38px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 13px;border:1px solid var(--iu-border);border-radius:11px;background:#fff;color:#0f172a;font-size:13px;font-weight:850;box-shadow:0 6px 18px rgba(15,23,42,.045)}
 .iu-button--primary{border-color:transparent;background:var(--iu-navy-900);color:oklch(98% 0.006 255)}
 .iu-button--ghost{background:transparent;box-shadow:none}
+.iu-fas-record-link{border-color:rgba(176,137,104,.26);background:rgba(176,137,104,.08);color:#6f4e37}
+.iu-fas-record-link:hover{border-color:rgba(37,99,235,.28);background:#fff;color:var(--iu-blue-700);box-shadow:0 8px 22px rgba(15,23,42,.07)}
 .iu-fas-stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
 .iu-fas-stat{min-height:112px;display:grid;grid-template-columns:44px 1fr;grid-template-areas:"icon label" "icon value" "icon note";align-items:center;gap:2px 12px;padding:15px;border:1px solid var(--iu-border);border-radius:16px;background:var(--iu-bg-card);box-shadow:var(--iu-shadow-soft)}
 .iu-fas-stat>div{grid-area:icon;width:44px;height:44px;display:grid;place-items:center;border-radius:14px;background:rgba(37,99,235,.1);color:var(--iu-blue-600)}

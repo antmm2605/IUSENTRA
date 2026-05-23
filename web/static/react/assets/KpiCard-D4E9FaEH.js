@@ -1,0 +1,1 @@
+import{j as u,I as c}from"./index-C_nuYIQV.js";/* empty css           */function d({label:r,value:a,note:i,badge:s,href:t,area:p,icon:m,tone:o="primary",actionLabel:e}){return u.jsx(c,{label:r,value:a,note:i,badge:s,href:t,area:p,icon:m,tone:o,actionLabel:e,className:"iu-kpi-card"})}export{d as K};

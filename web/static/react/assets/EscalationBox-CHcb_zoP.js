@@ -1,0 +1,1 @@
+import{aF as r,aj as i}from"./index-CtPH_-kQ.js";import{A as s,b as t,a as l}from"./alert-2sbX0pI_.js";function c({title:e="Verifica richiesta",message:a}){return r.jsxs(s,{className:"border-amber-200 bg-amber-50 text-amber-950",children:[r.jsx(i,{"aria-hidden":"true"}),r.jsx(t,{children:e}),r.jsx(l,{children:a})]})}export{c as E};

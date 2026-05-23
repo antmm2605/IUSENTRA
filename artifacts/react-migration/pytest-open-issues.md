@@ -4,7 +4,7 @@ Aggiornato: 2026-05-23, Guida Pratica TOP9 set6 2.248.19, Sequenza preset global
 
 Aggiornamento corrente: 2026-05-23, notifiche legali guidate 2.248.21.
 
-Aggiornamento hotfix: 2026-05-23, asset React cache-safe 2.248.22.
+Aggiornamento hotfix: 2026-05-23, asset React cache-safe storico 2.248.23.
 
 ## Regola operativa
 
@@ -14,6 +14,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
+| Produzione React dopo deploy `4df562fa` | `/agenda`, `/fascicoli`, `/global-search`, `/notifiche-legali` | Causa estesa e corretta in hotfix 2.248.23 | L'hotfix 2.248.22 manteneva il bundle del deploy immediatamente precedente, ma alcuni browser potevano avere ancora in memoria una shell React più vecchia. In quel caso qualunque route lazy, compresa `/agenda`, poteva richiedere chunk non più presenti e mostrare `Pagina temporaneamente non disponibile`. | Conservare gli asset hashati di più generazioni React e verificare tutti i bundle presenti con `tests/test_react_asset_retention.py`; dopo deploy verificare anche asset storici e `/agenda`. |
 | Produzione React dopo deploy `21bd31e7` | `/fascicoli`, `/global-search`, `/portali/pst/acquisizione` | Causa individuata e corretta in hotfix 2.248.22 | I browser autenticati con shell React già in cache potevano richiedere i vecchi chunk Vite cancellati dal deploy, ricevere 404 e mostrare il fallback `Pagina temporaneamente non disponibile`. | Non cancellare più `web/static/react` durante build Vite; mantenere gli asset hashati precedenti e presidiare con `tests/test_react_asset_retention.py`. |
 | `/notifiche-legali` | Pytest mirato, demo audit, typecheck e contratti React | Nessuna issue aperta nuova | La regressione segnalata era reale sul flusso manuale: la UI rendeva poco evidente il percorso automatico e consentiva di lavorare su un allegato manuale alla volta. Ora la pratica seleziona tutti i documenti, l'upload notifica accetta più allegati e l'esito mostra passaggi, verifiche e audit. | Per modifiche future a notifica/deposito prova rilanciare `tests/test_notifiche_legali.py`, demo audit, typecheck, build e browser su `/notifiche-legali`. |
 | CI post-push `28cae63e` | `Lint + syntax` / `App V2 registry and test plan gates` | Risolto prima del push successivo | Il gate primario è fallito perché il nuovo test `tests/test_assistente_competencies.py` ha cambiato l'inventario App V2 e `docs/test-inventory.md` non era stato rigenerato dopo l'ultimo inserimento Lex. Gli aggregatori `Pytest core` e `Local Signer e PKCS#11` erano rossi solo perché gli shard reali erano saltati a valle del lint. | Rigenerato `docs/test-inventory.md`, rilanciati `generate_app_v2_page_registry.py --check`, `generate_app_v2_test_docs.py --check`, smoke inventory e 13 test App V2/CI; sul nuovo SHA attendere check-run completi prima di deploy. |

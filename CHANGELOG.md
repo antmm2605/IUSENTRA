@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.248.23 - 2026-05-23
+
+- Esteso l'hotfix cache React agli asset hashati delle build precedenti: `/agenda`, `/fascicoli`, `/global-search`, `/notifiche-legali` e le altre route lazy restano caricabili anche se il browser dello studio aveva ancora in memoria una shell molto più vecchia.
+- Rafforzato il presidio `tests/test_react_asset_retention.py`: il test verifica tutti i bundle JavaScript presenti e fallisce se qualunque chunk storico punta a un asset non più disponibile.
+
 ## 2.248.22 - 2026-05-23
 
 - Hotfix statico React: i vecchi asset Vite hashati restano disponibili dopo il deploy insieme ai nuovi, così i browser autenticati con shell in cache non ricevono più 404 sui chunk e non cadono nella pagina temporaneamente non disponibile.

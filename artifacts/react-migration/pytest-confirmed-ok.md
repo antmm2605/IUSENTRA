@@ -8,6 +8,17 @@ Nota conservativa: resta confermato anche lo storico `Fase 7 backfill mirato PDF
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
+## Hotfix asset React storico 2.248.23 - 2026-05-23
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| Ripristino asset storici React da 40 commit recenti | OK | 24 bundle `index-*.js` disponibili in `web/static/react/assets`, con chunk lazy storici per `/agenda`, `/fascicoli`, `/global-search`, `/notifiche-legali` e le altre superfici React. |
+| `python -m pytest tests\test_react_asset_retention.py -q --tb=short` | OK | Verifica tutti i bundle JavaScript presenti e conferma che nessun import storico punta a un asset mancante. |
+| `node node_modules\typescript\bin\tsc --noEmit`; `node node_modules\vite\bin\vite.js build` in `frontend` | OK | TypeScript e build Vite verdi; `emptyOutDir=false` preserva gli asset storici e rigenera la build corrente senza cancellarli. |
+| `python -m pytest tests\test_react_asset_retention.py tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_utf8_integrity.py -q --tb=short` | OK | 14/14 passati: retention asset, coerenza packaging, readiness release e integrità UTF-8. |
+| `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `tools\sync_packaging_files.py --check` | OK | Contratti OpenAPI e packaging allineati a `2.248.23`. Provider verification: 27 successi, 203 auth-error attesi, 1 controllo sicurezza backend atteso. |
+| `node frontend\scripts\check-react-contracts.mjs`; `node frontend\scripts\check-app-v2-frontend.mjs`; `node scripts\react-migration\audit-ui-preset-sequence.mjs`; `git diff --check` | OK | Contratti React, inventario App V2 e sequenza preset UI verdi; nessun errore whitespace. |
+
 ## Hotfix asset React cache-safe 2.248.22 - 2026-05-23
 
 | Comando / verifica | Esito | Nota |

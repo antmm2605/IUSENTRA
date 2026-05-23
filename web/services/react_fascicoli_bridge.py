@@ -17,6 +17,7 @@ from urllib.parse import quote
 
 from pct.fascicoli import EsitoAttivita, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
 from pct.fascicolo_workspace import build_fascicolo_workspace
+from pct.notifiche_legali import released_office_documents_from_portal
 from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry, codice_oggetto_pst_payload
 from web.services.react_practice_engine_bridge import build_react_practice_engine_payload
 
@@ -1264,6 +1265,180 @@ def _profile(fascicolo: Any, *, apps: Iterable[Any] | None = None, studio_avvoca
     ]
 
 
+def _notifica_portal_acquisition_href(fascicolo: Any, release: dict[str, Any] | None = None) -> str:
+    release = release or {}
+    source_text = _text(release.get("fontePortale") or release.get("servizioPortale")).upper()
+    if "PDP" in source_text:
+        base = "/portali/pdp/acquisizione"
+    elif "PAT" in source_text or "SIGA" in source_text:
+        base = "/portali/pat/acquisizione"
+    elif "PTT" in source_text or "SIGIT" in source_text:
+        base = "/portali/ptt/acquisizione"
+    else:
+        base = "/portali/pst/acquisizione"
+    params = [
+        ("id_fasc", _text(getattr(fascicolo, "id", ""))),
+        ("fascicolo_id", _text(getattr(fascicolo, "id", ""))),
+        ("mode", "update_existing"),
+        ("focus", "documenti"),
+        ("numero", _text(getattr(fascicolo, "numero_rg", ""))),
+        ("anno", _text(getattr(fascicolo, "anno_rg", ""))),
+        ("ufficio", _text(getattr(fascicolo, "tribunale", ""))),
+        ("id_deposito_pct", _text(release.get("depositoId"))),
+        ("id_deposito", _text(release.get("idDepositoEsterno"))),
+        ("id_documento", _text(release.get("documentoId") or release.get("riferimentoPortale"))),
+        ("documento_portale", _text(release.get("nome"))),
+    ]
+    query = "&".join(f"{quote(key)}={quote(value)}" for key, value in params if value)
+    return f"{base}?{query}#acquisizione-portale" if query else f"{base}#acquisizione-portale"
+
+
+def _notification_relata(fascicolo: Any) -> dict[str, Any]:
+    fid = _text(getattr(fascicolo, "id", ""))
+    pending_releases = released_office_documents_from_portal(fascicolo)
+    local_documents = list(getattr(fascicolo, "documenti", []) or [])
+
+    def _doc_haystack(doc: Any) -> str:
+        return " ".join(
+            _text(value).lower()
+            for value in (
+                getattr(doc, "nome", ""),
+                getattr(doc, "nome_originale", ""),
+                getattr(doc, "nome_portale", ""),
+                getattr(doc, "tipo_atto_portale", ""),
+                getattr(doc, "classificazione_portale", ""),
+                getattr(doc, "note", ""),
+                " ".join(str(item) for item in (getattr(doc, "tags", []) or [])),
+            )
+        )
+
+    portal_documents = [
+        doc
+        for doc in local_documents
+        if _text(getattr(doc, "fonte_documento", "")).upper() in {"PORTALE_TELEMATICO", "PST", "POLISWEB", "PDP", "PAT", "PTT", "SIGIT"}
+        or _text(getattr(doc, "id_documento_portale", ""))
+    ]
+    relata_documents = [doc for doc in local_documents if "relata" in _doc_haystack(doc) and "notifica" in _doc_haystack(doc)]
+    signed_relata = [
+        doc
+        for doc in relata_documents
+        if bool(getattr(doc, "firmato", False) or getattr(doc, "firmato_digitalmente", False))
+        or _text(getattr(doc, "nome", "")).lower().endswith(".p7m")
+    ]
+    proof_documents = [
+        doc
+        for doc in local_documents
+        if any(token in _doc_haystack(doc) for token in ("ricevuta accettazione", "ricevuta consegna", "rac", "rdac", "pec inviata"))
+    ]
+    first_release = pending_releases[0] if pending_releases else {}
+    acquisition_href = _notifica_portal_acquisition_href(fascicolo, first_release)
+    prepare_href = f"/notifiche-legali?id_fascicolo={quote(fid)}&fase=notifica#notifica" if fid else "/notifiche-legali#notifica"
+    deposit_href = f"/notifiche-legali?id_fascicolo={quote(fid)}&fase=deposito#deposito" if fid else "/notifiche-legali#deposito"
+    if pending_releases:
+        status = "da_acquisire"
+        status_label = "Documento da scaricare dal portale"
+        tone = "warning"
+        primary_href = acquisition_href
+        primary_label = "Collega e scarica"
+    elif portal_documents and not relata_documents:
+        status = "da_preparare"
+        status_label = "Relata da preparare"
+        tone = "warning"
+        primary_href = prepare_href
+        primary_label = "Prepara relata"
+    elif relata_documents and not signed_relata:
+        status = "da_firmare"
+        status_label = "Relata da firmare"
+        tone = "warning"
+        primary_href = relata_documents[0].id and f"/fascicoli/{quote(fid)}/documenti/{quote(_text(relata_documents[0].id))}/firma"
+        primary_label = "Firma relata"
+    elif signed_relata and not proof_documents:
+        status = "pronta_invio"
+        status_label = "Relata pronta per revisione e invio"
+        tone = "success"
+        primary_href = prepare_href
+        primary_label = "Apri notifica"
+    elif signed_relata and proof_documents:
+        status = "prova_raccolta"
+        status_label = "Prova notifica da depositare"
+        tone = "success"
+        primary_href = deposit_href
+        primary_label = "Controlla prova"
+    else:
+        status = "monitoraggio"
+        status_label = "Monitoraggio attivo"
+        tone = "neutral"
+        primary_href = acquisition_href
+        primary_label = "Verifica portale"
+    primary_href = primary_href or prepare_href
+    steps = [
+        {
+            "id": "rilascio_portale",
+            "label": "Rilascio documento ufficio",
+            "status": "da_acquisire" if pending_releases else "superato" if portal_documents else "monitorato",
+            "detail": f"{len(pending_releases)} documento/i da acquisire" if pending_releases else "Nessun documento d'ufficio pendente.",
+        },
+        {
+            "id": "acquisizione",
+            "label": "Acquisizione Portale Servizi",
+            "status": "superato" if portal_documents else "da_completare",
+            "detail": f"{len(portal_documents)} documento/i già nel fascicolo." if portal_documents else "Collegamento pronto con fascicolo, RG e ufficio.",
+        },
+        {
+            "id": "relata",
+            "label": "Relata notifica",
+            "status": "superato" if relata_documents else "da_preparare" if portal_documents else "in_attesa",
+            "detail": f"{len(relata_documents)} relata/e nel fascicolo." if relata_documents else "La relata sarà generata dai dati della pratica e dai documenti acquisiti.",
+        },
+        {
+            "id": "firma",
+            "label": "Firma e revisione avvocato",
+            "status": "superato" if signed_relata else "da_firmare" if relata_documents else "in_attesa",
+            "detail": "Nessun invio automatico senza revisione finale.",
+        },
+        {
+            "id": "prova",
+            "label": "RAC, RdAC e deposito prova",
+            "status": "superato" if proof_documents else "da_completare" if signed_relata else "in_attesa",
+            "detail": f"{len(proof_documents)} prova/e già collegate." if proof_documents else "Da completare dopo l'invio PEC.",
+        },
+    ]
+    monitored_documents = [
+        {
+            "id": _text(getattr(doc, "id", "")),
+            "name": _text(getattr(doc, "nome", "") or getattr(doc, "nome_originale", ""), "Documento"),
+            "kind": "relata" if doc in relata_documents else "documento_portale" if doc in portal_documents else "prova",
+            "status": "firmato" if doc in signed_relata else "acquisito",
+            "href": f"/fascicoli/{quote(fid)}/documenti/{quote(_text(getattr(doc, 'id', '')))}/visualizza" if fid and _text(getattr(doc, "id", "")) else "",
+        }
+        for doc in (portal_documents + relata_documents + proof_documents)[:20]
+    ]
+    return {
+        "status": status,
+        "statusLabel": status_label,
+        "tone": tone,
+        "releaseDetected": bool(pending_releases),
+        "pendingPortalDocuments": len(pending_releases),
+        "portalDocuments": len(portal_documents),
+        "relataDocuments": len(relata_documents),
+        "signedRelataDocuments": len(signed_relata),
+        "proofDocuments": len(proof_documents),
+        "acquisitionHref": acquisition_href,
+        "prepareHref": prepare_href,
+        "depositHref": deposit_href,
+        "primaryHref": primary_href,
+        "primaryLabel": primary_label,
+        "systemNotification": (
+            "Documento rilasciato dall'ufficio: scarica dal Portale Servizi prima della relata."
+            if pending_releases
+            else status_label
+        ),
+        "releasedDocuments": pending_releases[:20],
+        "documents": monitored_documents,
+        "steps": steps,
+    }
+
+
 def _documents(fascicolo: Any) -> list[dict[str, Any]]:
     fid = _text(getattr(fascicolo, "id", ""))
     out = []
@@ -1955,6 +2130,14 @@ def build_react_fascicolo_detail_payload(
     visible_requests = [item for item in visible_activities if "ISTAN" in item["type"].upper() or "ISTAN" in item["title"].upper()]
     requests = visible_requests if load_activities else []
     visible_deposits = _deposits(fascicolo)
+    notification_relata = _notification_relata(fascicolo)
+    relata_count = max(
+        int(notification_relata.get("pendingPortalDocuments") or 0),
+        int(notification_relata.get("relataDocuments") or 0),
+        int(notification_relata.get("signedRelataDocuments") or 0),
+        int(notification_relata.get("proofDocuments") or 0),
+        1 if _text(notification_relata.get("status")) != "monitoraggio" else 0,
+    )
     quick_counts = {
         "profilo": len(_profile(fascicolo, apps=apps, studio_avvocato_titolare=studio_avvocato_titolare)),
         "documenti": len(getattr(fascicolo, "documenti", []) or []),
@@ -1962,6 +2145,7 @@ def build_react_fascicolo_detail_payload(
         "udienze_scadenze": len(scadenze) + len(apps),
         "comunicazioni": len(visible_deposits),
         "istanze": len(visible_requests),
+        "relata_notifica": relata_count,
     }
     audit_trail = _audit_trail(fid)
     audit_bundle_action = _text((audit_trail.get("actions") or {}).get("bundle"))
@@ -2037,6 +2221,7 @@ def build_react_fascicolo_detail_payload(
         "workflow": _workflow(preventivi, conferimenti, parcelle, timesheet_entries, cliente),
         "regia": regia_payload,
         "telematic": _telematic(fascicolo),
+        "notificationRelata": notification_relata,
         "quality": _quality(fascicolo, cliente, scadenze, parties),
         "signature": _signature_settings(get_config_studio),
         "auditTrail": audit_trail,

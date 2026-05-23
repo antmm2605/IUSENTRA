@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.248.21 - 2026-05-23
+
+- Riprogettata `/notifiche-legali` come percorso guidato per avvocati: selezione automatica di tutti i documenti della pratica, allegati esterni multipli con calcolo SHA-256, azione manuale per aggiungere più allegati e pannello dei passaggi automatici.
+- Collegati UI e API ai controlli L. 53/1994: oggetto PEC vincolato, pubblici elenchi, relata separata, attestazioni per ogni allegato che le richiede, RdAC completa, pacchetto prova e audit visibile.
+- Aggiunto il controllo automatizzato del documento rilasciato dall'ufficio: monitor nel fascicolo, notifica di sistema con collegamento Portale Servizi precompilato per fascicolo/RG/ufficio e blocco della relata finché il documento non risulta acquisito.
+- Aggiunta nel dettaglio fascicolo la sezione sempre visibile `Relata notifica`, con stato acquisizione portale, relata, firma, invio, RAC/RdAC e prova da depositare.
+- Trasferita la procedura a Lex AI: competenza PEC/firma/comunicazioni aggiornata con rilevazione documento d'ufficio, notifica di sistema, acquisizione Portale Servizi, preparazione relata, revisione avvocato, invio PEC e deposito prova.
+- Aggiunto demo audit `artifacts/notifiche-legali/notifica-l53-demo-audit.md`/`.json` e PDF guida `artifacts/notifiche-legali/notifica-l53-demo-guida-avvocato.pdf` con notifica a tre allegati, documento d'ufficio acquisito e deposito prova completo, più test mirati dominio/API/UI e typecheck React.
+
 ## 2.248.20 - 2026-05-23
 
 - Aggiunte nel dettaglio fascicolo due azioni rapide professionali: `Cliente` apre in nuova finestra la modifica anagrafica del cliente collegato, `Soggetti` apre in nuova finestra la vista soggetti e parti filtrata sul fascicolo.

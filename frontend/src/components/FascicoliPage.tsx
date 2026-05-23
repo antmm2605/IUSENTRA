@@ -21,6 +21,7 @@ import {
   FileArchive,
   FileCheck2,
   FileDown,
+  FileSignature,
   FileText,
   Fingerprint,
   Filter,
@@ -1320,6 +1321,76 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, loading = false 
   )
 }
 
+function NotificationRelataMonitor({ data }:{data:FascicoloDetailData}) {
+  const monitor = data.notificationRelata
+  const actions = [
+    { label: monitor.primaryLabel || 'Apri presidio', href: monitor.primaryHref, icon: monitor.status === 'da_acquisire' ? <FileDown size={15}/> : <FileSignature size={15}/> },
+    { label: 'Acquisisci dal portale', href: monitor.acquisitionHref, icon: <FileDown size={15}/> },
+    { label: 'Prepara relata', href: monitor.prepareHref, icon: <FileSignature size={15}/> },
+    { label: 'Deposita prova', href: monitor.depositHref, icon: <Send size={15}/> },
+  ].filter((item, index, rows) => item.href && rows.findIndex((row) => row.href === item.href) === index)
+  const total = Math.max(monitor.pendingPortalDocuments, monitor.relataDocuments, monitor.signedRelataDocuments, monitor.proofDocuments)
+  return (
+    <div className={`iu-fas-relata-monitor iu-fas-relata-monitor--${monitor.tone}`}>
+      <header>
+        <div>
+          <Badge tone={monitor.tone}>{monitor.statusLabel}</Badge>
+          <h3>Relata notifica</h3>
+          <p>{monitor.systemNotification || 'Il fascicolo resta monitorato per documenti d\'ufficio, relata, firma, invio e prova.'}</p>
+        </div>
+        <strong>{total}</strong>
+      </header>
+      <div className="iu-fas-relata-actions">
+        {actions.map((action) => <a href={action.href} key={`${action.label}-${action.href}`}>{action.icon}{action.label}</a>)}
+      </div>
+      <div className="iu-fas-relata-flow">
+        {monitor.steps.map((step, index) => (
+          <article key={step.id || `${step.label}-${index}`} className={`iu-fas-relata-flow__step is-${step.status}`}>
+            <span>{index + 1}</span>
+            <div>
+              <strong>{step.label}</strong>
+              <small>{step.detail}</small>
+            </div>
+            <em>{step.status.replace(/_/g, ' ')}</em>
+          </article>
+        ))}
+      </div>
+      {monitor.releasedDocuments.length ? (
+        <section className="iu-fas-relata-list">
+          <h4>Documenti rilasciati da acquisire</h4>
+          {monitor.releasedDocuments.map((doc, index) => (
+            <article key={doc.documentoId || doc.riferimentoPortale || `${doc.nome}-${index}`}>
+              <FileDown size={16}/>
+              <div>
+                <strong>{doc.nome || doc.tipo || 'Documento d\'ufficio'}</strong>
+                <span>{[doc.fontePortale || 'Portale Servizi', doc.ufficio, doc.numeroRg && doc.annoRg ? `R.G. ${doc.numeroRg}/${doc.annoRg}` : '', doc.dataDeposito].filter(Boolean).join(' · ')}</span>
+              </div>
+              {doc.notificaRichiesta ? <Badge tone="warning">Relata richiesta</Badge> : null}
+            </article>
+          ))}
+        </section>
+      ) : null}
+      {monitor.documents.length ? (
+        <section className="iu-fas-relata-list">
+          <h4>Documenti monitorati</h4>
+          {monitor.documents.map((doc, index) => (
+            <article key={doc.id || `${doc.name}-${index}`}>
+              <FileText size={16}/>
+              <div>
+                <strong>{doc.href ? <a href={doc.href}>{doc.name}</a> : doc.name}</strong>
+                <span>{[doc.kind.replace(/_/g, ' '), doc.status.replace(/_/g, ' ')].filter(Boolean).join(' · ')}</span>
+              </div>
+            </article>
+          ))}
+        </section>
+      ) : null}
+      {!monitor.releasedDocuments.length && !monitor.documents.length ? (
+        <p className="iu-empty">Nessun documento d'ufficio da acquisire. Il collegamento al Portale Servizi resta pronto con dati del fascicolo.</p>
+      ) : null}
+    </div>
+  )
+}
+
 function fLabel(value: string) {
   return value || 'Fascicolo'
 }
@@ -2115,6 +2186,8 @@ function DetailPage({ id }:{id:string}) {
   const signedDocuments = data.documents.filter((doc) => doc.signed).length
   const documentsCount = data.quickCounts.documenti || data.documents.length
   const unsignedDocuments = Math.max(0, documentsCount - signedDocuments)
+  const notificationRelata = data.notificationRelata
+  const notificationRelataCount = data.quickCounts.relata_notifica || notificationRelata.pendingPortalDocuments || notificationRelata.relataDocuments || notificationRelata.signedRelataDocuments || notificationRelata.proofDocuments || 0
   const qualityIssues = data.quality.filter((item) => !item.ok).length + (Number(f.alerts) || 0)
   const nextDeadline = data.deadlines[0]
   const nextAppointment = data.appointments[0]
@@ -2168,7 +2241,7 @@ function DetailPage({ id }:{id:string}) {
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : 'Dati aggiornati'}</span></section>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
-      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#profilo">Profilo <b>{data.quickCounts.profilo || 0}</b></a><a href="#guida-pratica">Guida pratica</a><a href="#regia-operativa">Regia Operativa <b>{data.regia.documentSlots.length}</b></a><a href="#documenti">Documenti e atti <b>{data.quickCounts.documenti || 0}</b></a><a href="#attivita">Attività <b>{data.quickCounts.attivita || 0}</b></a><a href="#udienze">Udienze / scadenze <b>{data.quickCounts.udienze_scadenze || 0}</b></a><a href="#cancelleria">Comunicazioni / Cancelleria <b>{data.quickCounts.comunicazioni || 0}</b></a><a href="#audit">Audit <b>{data.auditTrail.summary.total}</b></a><a href="#gestione">Gestione</a><a href="#economia">Contesto economico</a><a href="#conformita">Conformità</a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a></nav>
+      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#profilo">Profilo <b>{data.quickCounts.profilo || 0}</b></a><a href="#guida-pratica">Guida pratica</a><a href="#regia-operativa">Regia Operativa <b>{data.regia.documentSlots.length}</b></a><a href="#documenti">Documenti e atti <b>{data.quickCounts.documenti || 0}</b></a><a href="#relata-notifica">Relata notifica <b>{notificationRelataCount}</b></a><a href="#attivita">Attività <b>{data.quickCounts.attivita || 0}</b></a><a href="#udienze">Udienze / scadenze <b>{data.quickCounts.udienze_scadenze || 0}</b></a><a href="#cancelleria">Comunicazioni / Cancelleria <b>{data.quickCounts.comunicazioni || 0}</b></a><a href="#audit">Audit <b>{data.auditTrail.summary.total}</b></a><a href="#gestione">Gestione</a><a href="#economia">Contesto economico</a><a href="#conformita">Conformità</a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a></nav>
       <section className="iu-fas-detail-grid iu-fas-detail-grid--with-guide">
         <aside className="iu-fas-guide-column" aria-label="Guida pratica facoltativa del fascicolo">
           <GuidaPraticaSidebar fascicoloId={f.id || id} codice={f.codiceOggettoPst} fascicoloTitle={f.title}/>
@@ -2191,14 +2264,18 @@ function DetailPage({ id }:{id:string}) {
         </header>
         <div>
           <a href="#documenti"><Badge tone={unsignedDocuments ? 'warning' : 'success'}>Documenti</Badge><strong>{unsignedDocuments ? `${unsignedDocuments} da firmare/verificare` : `${signedDocuments} firmati o verificati`}</strong><span>Controlla atti, allegati e file acquisiti nel fascicolo.</span></a>
+          <a href="#relata-notifica"><Badge tone={notificationRelata.tone}>Relata</Badge><strong>{notificationRelata.statusLabel}</strong><span>{notificationRelata.systemNotification || 'Presidio sempre visibile per notifica e prova.'}</span></a>
           <a href="#udienze"><Badge tone={nextDeadline || nextAppointment ? 'warning' : 'neutral'}>Scadenze</Badge><strong>{nextDeadline?.date || nextAppointment?.date || 'Nessuna data critica'}</strong><span>{nextDeadline?.title || nextAppointment?.title || 'Apri lo scadenziario per programmare il presidio.'}</span></a>
           <a href="#workflow"><Badge tone={conferimento?.tone || preventivo?.tone || 'neutral'}>Incarico</Badge><strong>{conferimento?.value || preventivo?.value || 'Da verificare'}</strong><span>{conferimento?.note || preventivo?.note || 'Verifica preventivo, conferimento e collegamenti economici.'}</span></a>
           <a href="#conformita"><Badge tone={qualityIssues ? 'warning' : 'success'}>Conformità</Badge><strong>{qualityIssues ? `${qualityIssues} verifiche aperte` : 'Presidio OK'}</strong><span>Controlli qualità, parti, sync portale e dati principali.</span></a>
         </div>
       </section>
-          <section className="iu-fas-cockpit"><StatCard icon={<ClipboardCheck size={19}/>} label="Regia" value={`${data.regia.header.completion}%`} note={data.regia.header.operationalState || 'da verificare'} tone={data.regia.validation.ready ? 'success' : data.regia.validation.blockers.length ? 'danger' : 'warning'} href="#regia-operativa" onClick={openSection('regia-operativa', 'regia')}/><StatCard icon={<FileText size={19}/>} label="Documenti" value={data.quickCounts.documenti || 0} note="carica e classifica" tone="primary" href="#documenti" onClick={openSection('documenti', 'documenti')}/><StatCard icon={<CalendarDays size={19}/>} label="Scadenze" value={data.quickCounts.udienze_scadenze || 0} note="gestisci agenda" tone="warning" href="#udienze" onClick={openSection('udienze', 'scadenze')}/><StatCard icon={<ListChecks size={19}/>} label="Attività" value={data.quickCounts.attivita || 0} note="aggiorna timeline" tone="success" href="#attivita" onClick={openSection('attivita', 'attivita')}/><StatCard icon={<Fingerprint size={19}/>} label="Audit" value={data.auditTrail.summary.total} note={data.auditTrail.summary.snapshotted ? 'prove in snapshot' : 'prove disponibili'} tone={data.auditTrail.summary.total ? 'success' : 'neutral'} href="#audit" onClick={openSection('audit')}/><StatCard icon={<WalletCards size={19}/>} label="Contesto economico" value={data.economics.length} note="incarico e incassi" tone="purple" href="#economia" onClick={openSection('economia')}/></section>
+          <section className="iu-fas-cockpit"><StatCard icon={<ClipboardCheck size={19}/>} label="Regia" value={`${data.regia.header.completion}%`} note={data.regia.header.operationalState || 'da verificare'} tone={data.regia.validation.ready ? 'success' : data.regia.validation.blockers.length ? 'danger' : 'warning'} href="#regia-operativa" onClick={openSection('regia-operativa', 'regia')}/><StatCard icon={<FileText size={19}/>} label="Documenti" value={data.quickCounts.documenti || 0} note="carica e classifica" tone="primary" href="#documenti" onClick={openSection('documenti', 'documenti')}/><StatCard icon={<FileSignature size={19}/>} label="Relata" value={notificationRelataCount} note={notificationRelata.statusLabel} tone={notificationRelata.tone} href="#relata-notifica" onClick={openSection('relata-notifica')}/><StatCard icon={<CalendarDays size={19}/>} label="Scadenze" value={data.quickCounts.udienze_scadenze || 0} note="gestisci agenda" tone="warning" href="#udienze" onClick={openSection('udienze', 'scadenze')}/><StatCard icon={<ListChecks size={19}/>} label="Attività" value={data.quickCounts.attivita || 0} note="aggiorna timeline" tone="success" href="#attivita" onClick={openSection('attivita', 'attivita')}/><StatCard icon={<Fingerprint size={19}/>} label="Audit" value={data.auditTrail.summary.total} note={data.auditTrail.summary.snapshotted ? 'prove in snapshot' : 'prove disponibili'} tone={data.auditTrail.summary.total ? 'success' : 'neutral'} href="#audit" onClick={openSection('audit')}/><StatCard icon={<WalletCards size={19}/>} label="Contesto economico" value={data.economics.length} note="incarico e incassi" tone="purple" href="#economia" onClick={openSection('economia')}/></section>
           <DetailSection id="profilo" title="Profilo fascicolo" icon={<BadgeCheck size={17}/>}><KvGrid items={data.profile}/>{f.notes ? <div className="iu-fas-note"><strong>Note</strong><p>{f.notes}</p></div> : null}</DetailSection>
           <RegiaOperativaSection data={data} onDone={refreshDetail} onError={failDetail} onOpen={() => loadLazySection('regia')} loading={lazyStatus.regia === 'loading'}/>
+          <DetailSection id="relata-notifica" title="Relata notifica" icon={<FileSignature size={17}/>} count={notificationRelataCount} defaultOpen={notificationRelata.releaseDetected || notificationRelata.status !== 'monitoraggio'}>
+            <NotificationRelataMonitor data={data}/>
+          </DetailSection>
           <DetailSection id="documenti" title="Documenti e atti" icon={<FileText size={17}/>} count={data.quickCounts.documenti || 0} onOpen={() => loadLazySection('documenti')}>
             <DocumentUploadWorkspace data={data} onDone={refreshDetail} onError={failDetail}/>
             <LexIndexingPanel summary={data.lexIndexing} refreshAction={data.actions.refreshLexIndex} retryAction={data.actions.retryLexIndexErrors} onDone={refreshDetail} onError={failDetail}/>

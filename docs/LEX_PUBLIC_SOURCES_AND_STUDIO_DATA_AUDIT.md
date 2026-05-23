@@ -2,6 +2,12 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.248.21 - 2026-05-23
+
+Le notifiche legali L. 53/1994 con relata, allegati, documento d'ufficio e prova RAC/RdAC sono dati operativi dello studio, non fonti pubbliche generiche. Lex deve leggere prima fascicolo, depositi portale, documenti acquisiti, notifica di sistema, bozza relata, controlli L. 53, ricevute PEC e prova deposito. Le fonti normative esterne servono come cornice, ma non sostituiscono lo stato reale del fascicolo.
+
+Procedura da conoscere: il software controlla il rilascio del documento dell'ufficio nel Portale Servizi, avvisa l'avvocato, prepara il link di acquisizione con fascicolo/R.G./ufficio già compilati, importa il documento scaricato, lo inserisce nella relata, calcola evidenze e blocca la relata se manca l'acquisizione. Lex deve spiegare il ruolo dell'avvocato come revisione professionale, accesso al portale ufficiale, firma, invio PEC e deposito della prova, senza suggerire salvataggio di credenziali o invio automatico non confermato.
+
 ## Aggiornamento operativo 2.248.19 - 2026-05-23
 
 La Guida Pratica incorpora anche le due consegne TOP9 set6 ricevute dall'utente. La base completa sale a 1.080 schede: 1.018 codici ufficiali PST/XSD restano coperti e depositabili, mentre 62 schede sono guide interne non depositabili. `111003` resta codice ufficiale; gli altri codici set6 non coerenti o assenti sono conservati come alias interni con `codice_originale_ricevuto`.

@@ -126,8 +126,27 @@ def _seed_domain(app) -> tuple[str, str]:
         TipoFascicolo.CIVILE,
         id_cliente=cliente.id,
         nome_cliente=cliente.nome_completo,
+        tribunale="Tribunale di Roma",
         numero_rg="1234",
         anno_rg=2026,
+    )
+    fascicoli.sincronizza_deposito_portale(
+        fascicolo.id,
+        fonte="PST",
+        id_deposito_esterno="PST-REL-1",
+        tipo_atto="Ordinanza da notificare",
+        data_deposito=today.isoformat(),
+        mittente="Tribunale di Roma",
+        servizio_portale="ConsultazioneFascicolo",
+        documenti_portale=[
+            {
+                "id_documento": "doc-rel-1",
+                "nome": "ordinanza_da_notificare.pdf",
+                "tipo": "Ordinanza da notificare",
+                "data_deposito": today.isoformat(),
+                "disponibile": True,
+            }
+        ],
     )
     GestioneScadenziario(app.config["SCADENZIARIO_DB"]).nuova(
         "Deposito memoria istruttoria",
@@ -216,6 +235,11 @@ def test_topbar_today_notifications_deadlines_recent_and_timer(tmp_path: Path):
         notifications = notifications_response.get_json()
         assert notifications_response.status_code == 200
         assert notifications["unreadCount"] >= 1
+        portal_item = next(item for item in notifications["items"] if item.get("actionLabel") == "Scarica dal portale")
+        assert "ordinanza_da_notificare.pdf" in portal_item["message"]
+        assert "id_fasc=" in portal_item["href"]
+        assert "numero=1234" in portal_item["href"]
+        assert "ufficio=Tribunale%20di%20Roma" in portal_item["href"]
         first_id = notifications["items"][0]["id"]
         read_response = client.patch(f"/api/notifications/{quote(first_id, safe='')}/read")
         assert read_response.status_code == 200

@@ -183,6 +183,62 @@ export type FascicoloDeposit = {
   tone: Tone
 }
 
+export type FascicoloNotificationRelataDocument = {
+  id: string
+  name: string
+  kind: string
+  status: string
+  href: string
+}
+
+export type FascicoloNotificationRelataRelease = {
+  fascicoloId: string
+  fascicoloNumero: string
+  fascicoloTitolo: string
+  ufficio: string
+  numeroRg: string
+  annoRg: string
+  depositoId: string
+  idDepositoEsterno: string
+  documentoId: string
+  nome: string
+  tipo: string
+  dataDeposito: string
+  mittente: string
+  fontePortale: string
+  servizioPortale: string
+  riferimentoPortale: string
+  notificaRichiesta: boolean
+}
+
+export type FascicoloNotificationRelataStep = {
+  id: string
+  label: string
+  status: string
+  detail: string
+}
+
+export type FascicoloNotificationRelata = {
+  status: string
+  statusLabel: string
+  tone: Tone
+  releaseDetected: boolean
+  pendingPortalDocuments: number
+  portalDocuments: number
+  relataDocuments: number
+  signedRelataDocuments: number
+  proofDocuments: number
+  acquisitionHref: string
+  prepareHref: string
+  depositHref: string
+  primaryHref: string
+  primaryLabel: string
+  systemNotification: string
+  releasedDocuments: FascicoloNotificationRelataRelease[]
+  documents: FascicoloNotificationRelataDocument[]
+  steps: FascicoloNotificationRelataStep[]
+}
+
 export type FascicoloAuditEvent = {
   eventId: string
   kind: string
@@ -339,6 +395,7 @@ export type FascicoloDetailData = {
   economics: FascicoloMoney[]
   workflow: Array<{ label: string; value: string; note: string; tone: Tone; href: string }>
   regia: RegiaOperativaData
+  notificationRelata: FascicoloNotificationRelata
   telematic: Array<{ label: string; value: string; note: string; href: string; tone: Tone }>
   quality: Array<{ label: string; value: string; ok: boolean; tone: Tone }>
   signature: { visibleSignatureMode: string; visibleSignaturePlace: string; visibleSignatureDatetimeMode: string }
@@ -512,6 +569,27 @@ export const emptyRegiaOperativa: RegiaOperativaData = {
   actions: {},
 }
 
+export const emptyNotificationRelata: FascicoloNotificationRelata = {
+  status: 'monitoraggio',
+  statusLabel: 'Monitoraggio attivo',
+  tone: 'neutral',
+  releaseDetected: false,
+  pendingPortalDocuments: 0,
+  portalDocuments: 0,
+  relataDocuments: 0,
+  signedRelataDocuments: 0,
+  proofDocuments: 0,
+  acquisitionHref: '/portali/pst/acquisizione?focus=documenti',
+  prepareHref: '/notifiche-legali#notifica',
+  depositHref: '/notifiche-legali#deposito',
+  primaryHref: '/portali/pst/acquisizione?focus=documenti',
+  primaryLabel: 'Verifica portale',
+  systemNotification: 'Monitoraggio relata notifica attivo.',
+  releasedDocuments: [],
+  documents: [],
+  steps: [],
+}
+
 export const emptyFascicoloDetail: FascicoloDetailData = {
   source: 'vuoto',
   generatedAt: '',
@@ -529,7 +607,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
     eventsSyncEnabled: false, complianceControlsEnabled: true, archiveReady: false,
   },
   quickCounts: {}, lexIndexing: { total_documents: 0, ready: 0, queued: 0, indexing: 0, errors: 0, stale: 0, not_indexed: 0, archived: 0, last_indexed_at: null, status: 'ready', warnings: [] }, profile: [], documents: [], activities: [], deadlines: [], appointments: [], deposits: [], requests: [], parties: [], history: [],
-  economics: [], workflow: [], telematic: [], quality: [],
+  economics: [], workflow: [], notificationRelata: emptyNotificationRelata, telematic: [], quality: [],
   regia: emptyRegiaOperativa,
   signature: { visibleSignatureMode: 'laterale', visibleSignaturePlace: '', visibleSignatureDatetimeMode: 'data_ora' },
   auditTrail: {
@@ -851,6 +929,71 @@ function normalizeAuditTrail(value: unknown): FascicoloAuditTrail {
   }
 }
 
+function normalizeNotificationRelata(value: unknown): FascicoloNotificationRelata {
+  if (!isRecord(value)) return emptyNotificationRelata
+  const releaseRows = asArray(value.releasedDocuments ?? value.released_documents).map((entry, index) => {
+    const row = isRecord(entry) ? entry : {}
+    return {
+      fascicoloId: text(row.fascicoloId ?? row.fascicolo_id),
+      fascicoloNumero: text(row.fascicoloNumero ?? row.fascicolo_numero),
+      fascicoloTitolo: text(row.fascicoloTitolo ?? row.fascicolo_titolo),
+      ufficio: text(row.ufficio),
+      numeroRg: text(row.numeroRg ?? row.numero_rg),
+      annoRg: text(row.annoRg ?? row.anno_rg),
+      depositoId: text(row.depositoId ?? row.deposito_id),
+      idDepositoEsterno: text(row.idDepositoEsterno ?? row.id_deposito_esterno),
+      documentoId: text(row.documentoId ?? row.documento_id, `release-${index}`),
+      nome: text(row.nome ?? row.name, 'Documento d\'ufficio'),
+      tipo: text(row.tipo ?? row.type),
+      dataDeposito: text(row.dataDeposito ?? row.data_deposito),
+      mittente: text(row.mittente ?? row.sender),
+      fontePortale: text(row.fontePortale ?? row.fonte_portale),
+      servizioPortale: text(row.servizioPortale ?? row.servizio_portale),
+      riferimentoPortale: text(row.riferimentoPortale ?? row.riferimento_portale),
+      notificaRichiesta: bool(row.notificaRichiesta ?? row.notifica_richiesta),
+    }
+  })
+  const documentRows = asArray(value.documents).map((entry, index) => {
+    const row = isRecord(entry) ? entry : {}
+    return {
+      id: text(row.id, `relata-doc-${index}`),
+      name: text(row.name ?? row.nome, 'Documento'),
+      kind: text(row.kind ?? row.tipo),
+      status: text(row.status ?? row.stato),
+      href: text(row.href),
+    }
+  })
+  const stepRows = asArray(value.steps).map((entry, index) => {
+    const row = isRecord(entry) ? entry : {}
+    return {
+      id: text(row.id, `relata-step-${index}`),
+      label: text(row.label, 'Passaggio'),
+      status: text(row.status, 'in_attesa'),
+      detail: text(row.detail ?? row.dettaglio),
+    }
+  })
+  return {
+    status: text(value.status, emptyNotificationRelata.status),
+    statusLabel: text(value.statusLabel ?? value.status_label, emptyNotificationRelata.statusLabel),
+    tone: text(value.tone, emptyNotificationRelata.tone) as Tone,
+    releaseDetected: bool(value.releaseDetected ?? value.release_detected),
+    pendingPortalDocuments: number(value.pendingPortalDocuments ?? value.pending_portal_documents),
+    portalDocuments: number(value.portalDocuments ?? value.portal_documents),
+    relataDocuments: number(value.relataDocuments ?? value.relata_documents),
+    signedRelataDocuments: number(value.signedRelataDocuments ?? value.signed_relata_documents),
+    proofDocuments: number(value.proofDocuments ?? value.proof_documents),
+    acquisitionHref: text(value.acquisitionHref ?? value.acquisition_href, emptyNotificationRelata.acquisitionHref),
+    prepareHref: text(value.prepareHref ?? value.prepare_href, emptyNotificationRelata.prepareHref),
+    depositHref: text(value.depositHref ?? value.deposit_href, emptyNotificationRelata.depositHref),
+    primaryHref: text(value.primaryHref ?? value.primary_href, emptyNotificationRelata.primaryHref),
+    primaryLabel: text(value.primaryLabel ?? value.primary_label, emptyNotificationRelata.primaryLabel),
+    systemNotification: text(value.systemNotification ?? value.system_notification, emptyNotificationRelata.systemNotification),
+    releasedDocuments: releaseRows,
+    documents: documentRows,
+    steps: stepRows,
+  }
+}
+
 function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
   if (!isRecord(payload)) return emptyFascicoloDetail
   const base = normalizeItem(payload.fascicolo ?? {}, 0)
@@ -969,6 +1112,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     economics: asArray(payload.economics).map((entry, index) => { const row = isRecord(entry) ? entry : {}; return { id: text(row.id, `money-${index}`), label: text(row.label), value: text(row.value), note: text(row.note), href: text(row.href, '/fatturazione'), tone: text(row.tone, 'neutral') as Tone } }),
     workflow: asArray(payload.workflow).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), value: text(row.value), note: text(row.note), tone: text(row.tone, 'neutral') as Tone, href: text(row.href) } }),
     regia: normalizeRegia(payload.regia),
+    notificationRelata: normalizeNotificationRelata(payload.notificationRelata ?? payload.notification_relata),
     telematic: asArray(payload.telematic).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), value: text(row.value), note: text(row.note), tone: text(row.tone, 'neutral') as Tone, href: text(row.href) } }),
     quality: asArray(payload.quality).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), value: text(row.value), ok: bool(row.ok), tone: text(row.tone, 'neutral') as Tone } }),
     signature: isRecord(payload.signature) ? {

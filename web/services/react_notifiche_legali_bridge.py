@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timezone
 from typing import Any
+from urllib.parse import urlencode
 
 from pct.notifiche_legali import (
     DOCUMENT_ORIGIN_LABELS,
@@ -15,8 +16,10 @@ from pct.notifiche_legali import (
     client_communication_templates_version,
     list_client_communication_templates,
     list_notification_templates,
+    legal_notification_automation_payload,
     normalise_custom_template,
     normalise_document_origin,
+    released_office_documents_from_portal,
     template_preview_text,
     template_catalog_version,
 )
@@ -138,11 +141,53 @@ def _document_label(documento: Any) -> str:
     return _display_text(" - ".join(part for part in (name, description) if part))
 
 
+def _portal_acquisition_href(fascicolo: Any, *, portale: str = "pst") -> str:
+    params = {
+        "id_fasc": _text(getattr(fascicolo, "id", "")),
+        "numero": _text(getattr(fascicolo, "numero_rg", "")),
+        "anno": _text(getattr(fascicolo, "anno_rg", "")),
+        "ufficio": _text(getattr(fascicolo, "tribunale", "")),
+        "focus": "documenti",
+        "mode": "update_existing",
+    }
+    query = urlencode({key: value for key, value in params.items() if value})
+    return f"/portali/{portale}/acquisizione{f'?{query}' if query else ''}"
+
+
+def _document_notification_required(documento: Any, *, origin: str, acquired_from_portal: bool) -> bool:
+    haystack = " ".join(
+        _text(value).lower()
+        for value in (
+            getattr(documento, "tipo_atto_portale", ""),
+            getattr(documento, "classificazione_portale", ""),
+            getattr(documento, "note", ""),
+            getattr(documento, "nome_originale", ""),
+            getattr(documento, "nome_portale", ""),
+            getattr(documento, "nome", ""),
+            " ".join(str(item) for item in (getattr(documento, "tags", []) or [])),
+        )
+    )
+    if any(token in haystack for token in ("notifica", "notificare", "relata", "termine breve")):
+        return True
+    return acquired_from_portal and origin in {"copia_fascicolo_informatico", "comunicazione_cancelleria"} and any(
+        token in haystack for token in ("sentenza", "ordinanza", "decreto", "provvedimento")
+    )
+
+
 def _document_from_fascicolo(documento: Any) -> dict[str, Any]:
     origin = normalise_document_origin(_infer_document_origin(documento))
     name = _first_attr(documento, "nome_originale", "nome_portale", "nome", "percorso")
     description = _first_attr(documento, "tipo_atto_portale", "classificazione_portale", "note") or name
     portal_ref = _first_attr(documento, "id_documento_portale", "id_portale", "codice_portale", "riferimento_portale")
+    source_name = _text(getattr(documento, "fonte_documento", ""))
+    portal_service = _first_attr(documento, "servizio_portale", "nome_portale")
+    acquired_from_portal = bool(
+        portal_ref
+        or source_name.upper() in {"PORTALE_TELEMATICO", "PST", "POLISWEB", "PDP", "PAT", "PTT", "SIGIT"}
+        or portal_service.upper() in {"PST", "POLISWEB", "PDP", "PAT", "PTT", "SIGIT"}
+    )
+    office_document = acquired_from_portal and origin in {"copia_fascicolo_informatico", "comunicazione_cancelleria"}
+    notification_required = _document_notification_required(documento, origin=origin, acquired_from_portal=acquired_from_portal)
     return {
         "id": _text(getattr(documento, "id", "")) or name,
         "label": _document_label(documento) or _display_text(name),
@@ -151,8 +196,13 @@ def _document_from_fascicolo(documento: Any) -> dict[str, Any]:
         "origine": origin,
         "hashSha256": _text(getattr(documento, "hash_sha256", "")),
         "dataDocumento": _text(getattr(documento, "data_documento", "")) or _text(getattr(documento, "data_deposito_portale", "")),
-        "fonte": _text(getattr(documento, "fonte_documento", "")),
+        "fonte": source_name,
         "riferimentoPortale": _text(portal_ref),
+        "servizioPortale": portal_service,
+        "documentoUfficio": office_document,
+        "acquisitoDaPortale": acquired_from_portal,
+        "notificaRichiesta": notification_required,
+        "dataRilascioPortale": _text(getattr(documento, "data_deposito_portale", "")) or _text(getattr(documento, "data_documento", "")),
         "necessitaAttestazione": origin in {"copia_fascicolo_informatico", "comunicazione_cancelleria", "scansione_analogico"},
     }
 
@@ -195,6 +245,22 @@ def _fascicolo_option(fascicolo: Any, *, cliente: Any = None, soggetti_repo: Any
         _document_from_fascicolo(documento)
         for documento in (getattr(fascicolo, "documenti", []) or [])[:60]
     ]
+    office_documents = [
+        documento
+        for documento in documents
+        if documento["documentoUfficio"] or documento["notificaRichiesta"]
+    ]
+    acquired_office_documents = [documento for documento in office_documents if documento["acquisitoDaPortale"]]
+    pending_releases = released_office_documents_from_portal(fascicolo)
+    monitor_status = (
+        "da_acquisire"
+        if pending_releases
+        else "acquisito"
+        if acquired_office_documents
+        else "da_verificare"
+        if proceeding_present
+        else "non_rilevato"
+    )
     client_name = _text(getattr(cliente, "nome_completo", "")) or _text(getattr(fascicolo, "nome_cliente", ""))
     client_cf = _text(getattr(cliente, "identificativo_fiscale", ""))
     label = _display_text(" - ".join(part for part in (_text(getattr(fascicolo, "numero", "")), _text(getattr(fascicolo, "titolo", ""))) if part))
@@ -219,6 +285,25 @@ def _fascicolo_option(fascicolo: Any, *, cliente: Any = None, soggetti_repo: Any
         },
         "destinatari": recipients[:40],
         "documenti": documents,
+        "portaleAcquisizioneHref": _portal_acquisition_href(fascicolo),
+        "documentoUfficioMonitor": {
+            "stato": monitor_status,
+            "rilascioRilevato": bool(office_documents or pending_releases),
+            "documentiAcquisiti": len(acquired_office_documents),
+            "documentiDaAcquisire": len(pending_releases),
+            "documentiDaNotificare": len([documento for documento in office_documents if documento["notificaRichiesta"]]),
+            "documentiRilasciati": pending_releases[:20],
+            "messaggio": (
+                "Documento rilasciato dall'ufficio: acquisizione richiesta dal Portale Servizi."
+                if pending_releases
+                else
+                "Documento d'ufficio acquisito dal Portale Servizi."
+                if acquired_office_documents
+                else "Verifica sul Portale Servizi se l'ufficio ha rilasciato documenti da notificare."
+                if proceeding_present
+                else "Nessun procedimento telematico da controllare."
+            ),
+        },
         "modelloSuggerito": "relata_pec_in_corso_di_causa" if proceeding_present else "relata_pec_base_l53",
     }
 
@@ -287,6 +372,7 @@ def build_react_notifiche_legali_payload(
             "clientCommunicationWithoutRelata": True,
             "depositProofWithOriginalReceipts": True,
             "parametricTemplateEngine": True,
+            "officeDocumentPortalAcquisition": True,
         },
         "templateCatalogVersion": template_catalog_version(),
         "mandatorySubject": LEGAL_NOTIFICATION_SUBJECT,
@@ -335,6 +421,16 @@ def build_react_notifiche_legali_payload(
             get_soggetti=get_soggetti,
         ),
         "campiDisponibili": available_template_fields(),
+        "automazioneGuidata": legal_notification_automation_payload(),
+        "portaleServizi": {
+            "defaultPortal": "pst",
+            "label": "Portale Servizi Telematici",
+            "acquisizioneHref": "/portali/pst/acquisizione?focus=documenti",
+            "assistantStartApi": "/api/portali/pst/assistant/start",
+            "downloadWatchApi": "/api/portali/pst/assistant/{session_id}/watch-downloads",
+            "collectApi": "/api/portali/pst/assistant/{session_id}/collect",
+            "localSignerRequired": True,
+        },
         "azioni": {
             "notifica": "/api/v1/ui/notifiche-legali/notifica",
             "anteprimaRelata": "/api/v1/ui/notifiche-legali/anteprima-relata",

@@ -45,7 +45,32 @@ export type LegalDocumentSuggestion = {
   dataDocumento: string
   fonte: string
   riferimentoPortale: string
+  servizioPortale: string
+  documentoUfficio: boolean
+  acquisitoDaPortale: boolean
+  notificaRichiesta: boolean
+  dataRilascioPortale: string
   necessitaAttestazione: boolean
+}
+
+export type LegalOfficeRelease = {
+  fascicoloId: string
+  fascicoloNumero: string
+  fascicoloTitolo: string
+  ufficio: string
+  numeroRg: string
+  annoRg: string
+  depositoId: string
+  idDepositoEsterno: string
+  documentoId: string
+  nome: string
+  tipo: string
+  dataDeposito: string
+  mittente: string
+  fontePortale: string
+  servizioPortale: string
+  riferimentoPortale: string
+  notificaRichiesta: boolean
 }
 
 export type LegalRecipientSuggestion = {
@@ -82,6 +107,16 @@ export type LegalPracticeSuggestion = {
   }
   destinatari: LegalRecipientSuggestion[]
   documenti: LegalDocumentSuggestion[]
+  portaleAcquisizioneHref: string
+  documentoUfficioMonitor: {
+    stato: string
+    rilascioRilevato: boolean
+    documentiAcquisiti: number
+    documentiDaAcquisire: number
+    documentiDaNotificare: number
+    documentiRilasciati: LegalOfficeRelease[]
+    messaggio: string
+  }
   modelloSuggerito: string
 }
 
@@ -90,6 +125,13 @@ export type LegalClientSuggestion = {
   nome: string
   codiceFiscalePiva: string
   pec: string
+}
+
+export type LegalAutomationStep = {
+  id: string
+  title: string
+  body: string
+  source: string
 }
 
 export type LegalWorkflowResult = {
@@ -135,6 +177,7 @@ export type NotificheLegaliData = {
     clientCommunicationWithoutRelata: boolean
     depositProofWithOriginalReceipts: boolean
     parametricTemplateEngine: boolean
+    officeDocumentPortalAcquisition: boolean
   }
   templateCatalogVersion: string
   mandatorySubject: string
@@ -161,6 +204,19 @@ export type NotificheLegaliData = {
     clienti: LegalClientSuggestion[]
     destinatari: LegalRecipientSuggestion[]
     note: string[]
+  }
+  automazioneGuidata: {
+    notifica: LegalAutomationStep[]
+    deposito: LegalAutomationStep[]
+  }
+  portaleServizi: {
+    defaultPortal: string
+    label: string
+    acquisizioneHref: string
+    assistantStartApi: string
+    downloadWatchApi: string
+    collectApi: string
+    localSignerRequired: boolean
   }
   azioni: {
     notifica: string
@@ -202,6 +258,7 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
     clientCommunicationWithoutRelata: true,
     depositProofWithOriginalReceipts: true,
     parametricTemplateEngine: true,
+    officeDocumentPortalAcquisition: true,
   },
   templateCatalogVersion: '',
   mandatorySubject: 'notificazione ai sensi della legge n. 53 del 1994',
@@ -228,6 +285,19 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
     clienti: [],
     destinatari: [],
     note: [],
+  },
+  automazioneGuidata: {
+    notifica: [],
+    deposito: [],
+  },
+  portaleServizi: {
+    defaultPortal: 'pst',
+    label: 'Portale Servizi Telematici',
+    acquisizioneHref: '/portali/pst/acquisizione?focus=documenti',
+    assistantStartApi: '/api/portali/pst/assistant/start',
+    downloadWatchApi: '/api/portali/pst/assistant/{session_id}/watch-downloads',
+    collectApi: '/api/portali/pst/assistant/{session_id}/collect',
+    localSignerRequired: true,
   },
   azioni: {
     notifica: '/api/v1/ui/notifiche-legali/notifica',
@@ -330,9 +400,40 @@ function documentSuggestions(value: unknown): LegalDocumentSuggestion[] {
       dataDocumento: text(row.dataDocumento),
       fonte: text(row.fonte),
       riferimentoPortale: text(row.riferimentoPortale),
+      servizioPortale: text(row.servizioPortale),
+      documentoUfficio: bool(row.documentoUfficio),
+      acquisitoDaPortale: bool(row.acquisitoDaPortale),
+      notificaRichiesta: bool(row.notificaRichiesta),
+      dataRilascioPortale: text(row.dataRilascioPortale),
       necessitaAttestazione: bool(row.necessitaAttestazione),
     }
   }).filter((item) => item.id && item.label)
+}
+
+function officeReleases(value: unknown): LegalOfficeRelease[] {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => {
+    const row = isRecord(item) ? item : {}
+    return {
+      fascicoloId: text(row.fascicoloId),
+      fascicoloNumero: text(row.fascicoloNumero),
+      fascicoloTitolo: text(row.fascicoloTitolo),
+      ufficio: text(row.ufficio),
+      numeroRg: text(row.numeroRg),
+      annoRg: text(row.annoRg),
+      depositoId: text(row.depositoId),
+      idDepositoEsterno: text(row.idDepositoEsterno),
+      documentoId: text(row.documentoId),
+      nome: text(row.nome),
+      tipo: text(row.tipo),
+      dataDeposito: text(row.dataDeposito),
+      mittente: text(row.mittente),
+      fontePortale: text(row.fontePortale),
+      servizioPortale: text(row.servizioPortale),
+      riferimentoPortale: text(row.riferimentoPortale),
+      notificaRichiesta: bool(row.notificaRichiesta),
+    }
+  }).filter((item) => item.nome || item.documentoId)
 }
 
 function recipientSuggestions(value: unknown): LegalRecipientSuggestion[] {
@@ -359,6 +460,7 @@ function practiceSuggestions(value: unknown): LegalPracticeSuggestion[] {
   return value.map((item) => {
     const row = isRecord(item) ? item : {}
     const procedimento = isRecord(row.procedimento) ? row.procedimento : {}
+    const monitor = isRecord(row.documentoUfficioMonitor) ? row.documentoUfficioMonitor : {}
     return {
       id: text(row.id),
       label: text(row.label, text(row.titolo)),
@@ -380,6 +482,16 @@ function practiceSuggestions(value: unknown): LegalPracticeSuggestion[] {
       },
       destinatari: recipientSuggestions(row.destinatari),
       documenti: documentSuggestions(row.documenti),
+      portaleAcquisizioneHref: text(row.portaleAcquisizioneHref, '/portali/pst/acquisizione?focus=documenti'),
+      documentoUfficioMonitor: {
+        stato: text(monitor.stato, 'non_rilevato'),
+        rilascioRilevato: bool(monitor.rilascioRilevato),
+        documentiAcquisiti: Number(monitor.documentiAcquisiti || 0),
+        documentiDaAcquisire: Number(monitor.documentiDaAcquisire || 0),
+        documentiDaNotificare: Number(monitor.documentiDaNotificare || 0),
+        documentiRilasciati: officeReleases(monitor.documentiRilasciati),
+        messaggio: text(monitor.messaggio),
+      },
       modelloSuggerito: text(row.modelloSuggerito, 'relata_pec_base_l53'),
     }
   }).filter((item) => item.id && item.label)
@@ -396,6 +508,19 @@ function clientSuggestions(value: unknown): LegalClientSuggestion[] {
       pec: text(row.pec),
     }
   }).filter((item) => item.id && item.nome)
+}
+
+function automationSteps(value: unknown): LegalAutomationStep[] {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => {
+    const row = isRecord(item) ? item : {}
+    return {
+      id: text(row.id),
+      title: text(row.title),
+      body: text(row.body),
+      source: text(row.source),
+    }
+  }).filter((item) => item.id && item.title)
 }
 
 function resultFromPayload(payload: unknown): LegalWorkflowResult {
@@ -440,6 +565,8 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
   const contracts = isRecord(payload.contracts) ? payload.contracts : {}
   const azioni = isRecord(payload.azioni) ? payload.azioni : {}
   const precompilazione = isRecord(payload.precompilazione) ? payload.precompilazione : {}
+  const automazioneGuidata = isRecord(payload.automazioneGuidata) ? payload.automazioneGuidata : {}
+  const portaleServizi = isRecord(payload.portaleServizi) ? payload.portaleServizi : {}
   return {
     source: text(payload.source, 'configurazione_studio'),
     generatedAt: text(payload.generatedAt),
@@ -448,6 +575,7 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
       clientCommunicationWithoutRelata: bool(contracts.clientCommunicationWithoutRelata),
       depositProofWithOriginalReceipts: bool(contracts.depositProofWithOriginalReceipts),
       parametricTemplateEngine: bool(contracts.parametricTemplateEngine),
+      officeDocumentPortalAcquisition: bool(contracts.officeDocumentPortalAcquisition),
     },
     templateCatalogVersion: text(payload.templateCatalogVersion),
     mandatorySubject: text(payload.mandatorySubject, emptyNotificheLegaliData.mandatorySubject),
@@ -474,6 +602,19 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
       clienti: clientSuggestions(precompilazione.clienti),
       destinatari: recipientSuggestions(precompilazione.destinatari),
       note: Array.isArray(precompilazione.note) ? precompilazione.note.map((item) => text(item)).filter(Boolean) : [],
+    },
+    automazioneGuidata: {
+      notifica: automationSteps(automazioneGuidata.notifica),
+      deposito: automationSteps(automazioneGuidata.deposito),
+    },
+    portaleServizi: {
+      defaultPortal: text(portaleServizi.defaultPortal, emptyNotificheLegaliData.portaleServizi.defaultPortal),
+      label: text(portaleServizi.label, emptyNotificheLegaliData.portaleServizi.label),
+      acquisizioneHref: text(portaleServizi.acquisizioneHref, emptyNotificheLegaliData.portaleServizi.acquisizioneHref),
+      assistantStartApi: text(portaleServizi.assistantStartApi, emptyNotificheLegaliData.portaleServizi.assistantStartApi),
+      downloadWatchApi: text(portaleServizi.downloadWatchApi, emptyNotificheLegaliData.portaleServizi.downloadWatchApi),
+      collectApi: text(portaleServizi.collectApi, emptyNotificheLegaliData.portaleServizi.collectApi),
+      localSignerRequired: bool(portaleServizi.localSignerRequired),
     },
     azioni: {
       notifica: text(azioni.notifica, emptyNotificheLegaliData.azioni.notifica),

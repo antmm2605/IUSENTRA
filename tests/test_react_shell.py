@@ -4437,3 +4437,15 @@ def test_react_soggetti_delete_actions_presenti_e_endpoint_json_elimina(tmp_path
     soggetti_ids_after = {item["id"] for item in payload_after["items"]}
     assert soggetto_1.id not in soggetti_ids_after
     assert soggetto_2.id not in soggetti_ids_after
+
+
+def test_react_fascicolo_relata_notifica_monitorata_in_ui_e_payload():
+    page_source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    data_source = Path("frontend/src/fascicoliData.ts").read_text(encoding="utf-8")
+    bridge_source = Path("web/services/react_fascicoli_bridge.py").read_text(encoding="utf-8")
+
+    assert "Relata notifica" in page_source
+    assert "NotificationRelataMonitor" in page_source
+    assert "notificationRelata" in data_source
+    assert '"notificationRelata": notification_relata' in bridge_source
+    assert '"relata_notifica": relata_count' in bridge_source

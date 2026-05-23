@@ -281,16 +281,31 @@ _COMPETENCE_PROFILES: tuple[LexCompetenceProfile, ...] = (
             "ricevuta",
             "cancelleria",
             "notifica pec",
+            "notifiche legali",
+            "relata",
+            "relata notifica",
+            "documento d'ufficio",
+            "documento ufficio",
+            "portale servizi",
+            "rac",
+            "rdac",
+            "legge 53",
+            "l. 53",
             "comunicazione",
             "messaggio sdi",
         ),
-        section_titles=("PEC e canali email", "Impostazioni studio", "Fascicoli"),
+        section_titles=("PEC e canali email", "Fascicoli", "Centro Servizi Telematici", "Applicazioni"),
         prompt_block=(
             "Competenza IUSENTRA: PEC, firma e comunicazioni. Se c'e' un problema tecnico o operativo su PEC, firma digitale o ricevute, "
-            "Lex deve indicare prima la causa probabile, poi il primo controllo utile e infine la correzione immediata nel flusso di studio."
+            "Lex deve indicare prima la causa probabile, poi il primo controllo utile e infine la correzione immediata nel flusso di studio. "
+            "Per le notifiche legali ex L. 53/1994 deve conoscere la procedura IUSENTRA: il software controlla il fascicolo e i depositi del Portale Servizi, "
+            "rileva il documento rilasciato dall'ufficio da notificare, avvisa l'avvocato con una notifica di sistema, apre l'acquisizione portale già precompilata "
+            "con fascicolo, R.G. e ufficio giudiziario, importa il documento scaricato nella pratica, prepara la relata con documenti, attestazioni, oggetto PEC, "
+            "pubblici elenchi e controlli L. 53, poi lascia all'avvocato la revisione finale, la firma, l'invio PEC e il deposito della prova RAC/RdAC."
         ),
         context_hint=(
-            "Per PEC e firma parti da canale, credenziali, certificato, ricevute e collegamento al fascicolo o al deposito."
+            "Per PEC e firma parti da canale, credenziali, certificato, ricevute e collegamento al fascicolo o al deposito. "
+            "Se l'utente chiede della relata o di un documento rilasciato dall'ufficio, spiega il flusso automatico: rileva, avvisa, collega al Portale Servizi, acquisisce, prepara relata, revisione avvocato, invio e prova."
         ),
     ),
     LexCompetenceProfile(

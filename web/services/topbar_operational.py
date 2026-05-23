@@ -6,6 +6,7 @@ import re
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
 from flask import current_app, g, session
@@ -15,6 +16,7 @@ from pct.email_client import CartellaEmail, GestioneEmailRicevute
 from pct.fatturazione import StatoParcella
 from pct.global_search.repository import GlobalSearchRepository
 from pct.global_search.service import GlobalSearchService, default_global_search_db_path
+from pct.notifiche_legali import released_office_documents_from_portal
 from pct.scadenziario import PrioritaTermine, StatoTermine
 from pct.notifications import NotificationRecord, NotificationServiceError
 from web.services.notifications_runtime import (
@@ -618,6 +620,34 @@ def _save_notification_ids(values: set[str]) -> None:
     session.modified = True
 
 
+def _portal_acquisition_href_for_release(fascicolo: Any, release: dict[str, Any]) -> str:
+    source = _clean_text(release.get("fontePortale") or release.get("servizioPortale") or "PST").upper()
+    if "PDP" in source:
+        base = "/portali/pdp/acquisizione"
+    elif "PAT" in source or "SIGA" in source:
+        base = "/portali/pat/acquisizione"
+    elif "PTT" in source or "SIGIT" in source:
+        base = "/portali/ptt/acquisizione"
+    else:
+        base = "/portali/pst/acquisizione"
+    params = [
+        ("id_fasc", _clean_text(getattr(fascicolo, "id", ""))),
+        ("fascicolo_id", _clean_text(getattr(fascicolo, "id", ""))),
+        ("mode", "update_existing"),
+        ("focus", "documenti"),
+        ("numero", _clean_text(release.get("numeroRg") or getattr(fascicolo, "numero_rg", ""))),
+        ("anno", _clean_text(release.get("annoRg") or getattr(fascicolo, "anno_rg", ""))),
+        ("ufficio", _clean_text(release.get("ufficio") or getattr(fascicolo, "tribunale", ""))),
+        ("id_deposito_pct", _clean_text(release.get("depositoId"))),
+        ("id_deposito", _clean_text(release.get("idDepositoEsterno"))),
+        ("id_documento", _clean_text(release.get("documentoId") or release.get("riferimentoPortale"))),
+        ("documento_portale", _clean_text(release.get("nome"))),
+        ("fase_successiva", "relata_notifica"),
+    ]
+    query = "&".join(f"{quote(key)}={quote(value)}" for key, value in params if value)
+    return f"{base}?{query}#acquisizione-portale" if query else f"{base}#acquisizione-portale"
+
+
 def _notification_items(user: Any) -> list[dict[str, Any]]:
     now = datetime.now(ROME_TZ)
     today = now.date()
@@ -692,6 +722,34 @@ def _notification_items(user: Any) -> list[dict[str, Any]]:
     if _has_perm(user, "telematico.leggi"):
         try:
             for fascicolo in get_fascicoli().tutti(archiviati=True):
+                for release in released_office_documents_from_portal(fascicolo)[:5]:
+                    rg = "/".join(
+                        part
+                        for part in (
+                            _clean_text(release.get("numeroRg") or getattr(fascicolo, "numero_rg", "")),
+                            _clean_text(release.get("annoRg") or getattr(fascicolo, "anno_rg", "")),
+                        )
+                        if part
+                    )
+                    source = _clean_text(release.get("fontePortale") or "Portale Servizi")
+                    document_name = _clean_text(release.get("nome") or release.get("tipo") or "Documento d'ufficio")
+                    detail = f"{document_name} rilasciato su {source}"
+                    if rg:
+                        detail = f"{detail}, R.G. {rg}"
+                    if release.get("notificaRichiesta"):
+                        detail = f"{detail}. Acquisizione richiesta prima della relata."
+                    items.append(
+                        _notification(
+                            f"portal-office-release:{fascicolo.id}:{release.get('depositoId') or release.get('idDepositoEsterno')}:{release.get('documentoId') or document_name}",
+                            "document",
+                            "Documento d'ufficio da scaricare",
+                            detail,
+                            _clean_text(release.get("dataDeposito")) or now.isoformat(),
+                            "urgent" if release.get("notificaRichiesta") else "important",
+                            _portal_acquisition_href_for_release(fascicolo, release),
+                            "Scarica dal portale",
+                        )
+                    )
                 for deposito in list(getattr(fascicolo, "depositi_pct", []) or [])[-5:]:
                     stato = _enum_value(getattr(deposito, "stato", ""))
                     if not stato:

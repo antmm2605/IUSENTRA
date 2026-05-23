@@ -2,6 +2,14 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-23T20:00:00+02:00: notifiche legali guidate
+2.248.21.
+Audit `/notifiche-legali`: la pagina React non limita più la notifica a un solo
+allegato manuale, seleziona automaticamente i documenti della pratica e mostra
+all'avvocato i passaggi automatici, le verifiche normative e l'audit generati
+dal dominio. Il demo controllato non invia PEC reali e documenta notifica con
+tre allegati, attestazione automatica, ricevute originali e pacchetto prova.
+
 Aggiornamento 2026-05-22T12:05:00+02:00: preset grafico globale 2.248.12.
 Audit UI esteso al preset IUSENTRA: il contratto React rifiuta la pagina
 Fascicoli se non usa PageShell, MainArea, MainSurface, SupportRail, DataSurface,
@@ -482,3 +490,9 @@ Controlli anti-mascheramento: API React verificate per presenza di
 `lex_presidio`, `archivi_ufficiali`, `ai_avanzata` e `citazioni_verificate`;
 test mirati e build Vite verdi; audit visuale Chrome desktop/mobile salvato in
 `artifacts/react-migration/visual-2.245.5-studio-lex/visual-load-audit.md`.
+
+## Aggiornamento 2.248.21 - 2026-05-23
+
+`/notifiche-legali` e dettaglio fascicolo sono stati collegati sul flusso documento d'ufficio. Il backend espone `notificationRelata`, rileva documenti portale non ancora importati, prepara la notifica di sistema e blocca la generazione della relata quando l'acquisizione portale è richiesta ma non completata.
+
+Controlli anti-mascheramento: nessuno scraping portale non autorizzato, nessuna credenziale o PIN salvati, nessun invio PEC automatico. La UI usa link di acquisizione precompilati e lascia all'avvocato accesso, download/import, revisione, firma e invio. I test coprono documento rilasciato non acquisito, documento acquisito, top bar, payload React e presenza della sezione `Relata notifica`.

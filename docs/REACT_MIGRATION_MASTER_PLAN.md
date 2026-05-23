@@ -1,5 +1,15 @@
 # Migrazione progressiva Flask + React
 
+## Revisione notifiche legali guidate - 2026-05-23 - 2.248.21
+
+La pagina `/notifiche-legali` è stata rifinita come percorso operativo guidato: quando si sceglie una pratica vengono selezionati automaticamente tutti i documenti notificabili, restando modificabili uno per uno; gli allegati esterni accettano selezione multipla, calcolo SHA-256 nel browser e aggiunta manuale progressiva senza limitarsi a un solo file.
+
+Il payload React espone i passaggi automatici della notifica e del deposito prova. L'esito mostra ora workflow, verifiche normative, pacchetto prova e audit, coerenti con L. 53/1994, art. 3-bis e art. 9, D.L. 179/2012 art. 16-ter e specifiche tecniche D.M. 44/2011 su ricevuta completa e indicizzazione ricevute. Demo e report sono in `artifacts/notifiche-legali/notifica-l53-demo-audit.md`.
+
+Estensione completata nella stessa tranche: il fascicolo React espone `notificationRelata` e una sezione `Relata notifica` sempre navigabile. Quando il monitor dei depositi portale rileva un documento d'ufficio non ancora acquisito, la top bar crea una notifica di sistema con collegamento a `/portali/<canale>/acquisizione` già valorizzato con fascicolo, numero RG e ufficio; `/notifiche-legali` riceve quei metadati, blocca la relata finché il documento non risulta acquisito dal Portale Servizi e include l'acquisizione nell'audit normativo.
+
+La demo end-to-end produce anche la guida PDF `artifacts/notifiche-legali/notifica-l53-demo-guida-avvocato.pdf`: scenario documento d'ufficio rilasciato, acquisizione assistita, relata, verifica normativa, audit, pacchetto prova e deposito RAC/RdAC.
+
 ## Hotfix fascicolo anagrafiche in nuova finestra - 2026-05-23 - 2.248.20
 
 Il dettaglio fascicolo React espone ora due azioni rapide nella card iniziale: `Cliente` apre in una nuova finestra la modifica dell'anagrafica cliente collegata al fascicolo, mentre `Soggetti` apre in una nuova finestra la pagina Soggetti e Parti filtrata con `?fascicolo=<id>`.

@@ -7,6 +7,14 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.248.21 - 23 maggio 2026
+
+Lex deve conoscere la procedura completa delle notifiche legali ex L. 53/1994 integrata in IUSENTRA. Quando l'avvocato chiede di relata, notifiche PEC, documento rilasciato dall'ufficio, Portale Servizi, RAC o RdAC, Lex deve spiegare il flusso software e non limitarsi a una risposta normativa astratta.
+
+Sequenza da usare nelle risposte operative: IUSENTRA monitora fascicolo e depositi portale; se l'ufficio giudiziario rilascia un documento da notificare, genera una notifica di sistema certa; prepara il collegamento al Portale Servizi con fascicolo, numero R.G., anno e ufficio giudiziario già compilati; l'avvocato accede al portale ufficiale e scarica il documento; il software importa il file nel fascicolo, lo collega alla relata, calcola hash e attestazioni, verifica oggetto PEC, pubblici elenchi, mittente/destinatario, relata separata e firma; la relata resta bloccata finché il documento d'ufficio non risulta acquisito; l'avvocato revisiona, firma, invia e deposita la prova con RAC/RdAC.
+
+Lex deve distinguere sempre azione automatica e decisione professionale: il software rileva, avvisa, precompila, importa, controlla e documenta audit; l'avvocato conferma accesso al portale, verifica contenuto, firma, invia e valida la prova. Se mancano documento acquisito, pubblici elenchi, attestazione, firma, ricevuta completa o prova deposito, Lex deve indicare la lacuna e la prossima azione nel gestionale.
+
 ## Aggiornamento operativo 2.248.19 - 23 maggio 2026
 
 La Guida Pratica TOP9 set6 è entrata nella sorgente `GuidaPraticaSource`. Lex deve leggere tutte le 54 schede iper-dettagliate ricevute dall'utente e non deve fermarsi ai campi standard: strategie, criteri, soglie, regimi di tutela, differenze tra procedimenti, casistiche, rimedi e danni risarcibili sono conoscenza operativa interrogabile.

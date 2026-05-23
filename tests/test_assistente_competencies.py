@@ -40,6 +40,20 @@ def test_competence_section_titles_uniscono_sync_e_configurazione():
     assert "Agenda" in titles
 
 
+def test_competence_registry_spiega_notifiche_legali_e_documento_ufficio():
+    profiles = match_competence_profiles(
+        "come funziona la relata notifica quando il documento d'ufficio va scaricato dal Portale Servizi?",
+        limit=3,
+    )
+    blocks = build_competence_prompt_blocks("notifiche legali L. 53 con RAC RdAC e Portale Servizi", limit=3)
+
+    assert profiles
+    assert profiles[0].topic == "pec_firma_comunicazioni"
+    assert "Centro Servizi Telematici" in profiles[0].section_titles
+    assert any("rileva il documento rilasciato dall'ufficio" in block for block in blocks)
+    assert any("RAC/RdAC" in block for block in blocks)
+
+
 def test_competence_catalog_prompt_elenca_le_aree_principali_di_hacs():
     prompt = build_competence_catalog_prompt()
 

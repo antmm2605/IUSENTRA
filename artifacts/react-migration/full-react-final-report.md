@@ -2,6 +2,18 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-23T20:00:00+02:00: notifiche legali guidate
+2.248.21.
+`/notifiche-legali` mantiene la superficie React operativa e ora espone un
+percorso più guidato: scelta pratica con selezione automatica di tutti i
+documenti, upload multiplo degli allegati esterni, aggiunta manuale progressiva,
+attestazioni automatiche per ogni allegato che le richiede e risultato con
+passaggi, verifiche e audit.
+
+Gate verdi: `tests/test_notifiche_legali.py`, demo audit L. 53/1994 e
+typecheck React. Il report demo è registrato in
+`artifacts/notifiche-legali/notifica-l53-demo-audit.md`.
+
 Aggiornamento 2026-05-22T12:05:00+02:00: Preset grafico globale IUSENTRA
 2.248.12.
 Il preset grafico globale è ora centralizzato in `IusentraPreset.tsx` e
@@ -891,3 +903,13 @@ lettura allegati fonte quando disponibili.
 Gate locali: py_compile mirato, pytest Ricerca Legale/Giurisprudenza 9/9,
 typecheck frontend, build Vite e Chrome headless desktop/mobile con screenshot
 non vuoti in `artifacts/react-migration/visual-2.245.5-studio-lex/`.
+
+## Notifiche legali e relata fascicolo 2.248.21
+
+`/notifiche-legali` ora gestisce il caso in cui l'ufficio giudiziario rilascia un documento da notificare: il monitor dei depositi portale lo rileva, la top bar avvisa l'avvocato con azione `Scarica dal portale`, il collegamento verso acquisizione è già compilato con fascicolo, numero RG e ufficio, e la validazione blocca la relata finché il documento non è importato come acquisito dal Portale Servizi.
+
+Nel dettaglio fascicolo React è stata aggiunta la sezione persistente `Relata notifica`, con stato rilascio, acquisizione, relata, firma, invio e prova RAC/RdAC. La sezione resta visibile anche quando non ci sono documenti da acquisire, così avvocato e software hanno sempre il presidio operativo davanti.
+
+Gate locali: py_compile mirato, typecheck React, contratti React, `tests/test_notifiche_legali.py` 32/32, test top bar mirato, test React shell sulla sezione fascicolo e demo `scripts/demo_notifiche_legali_l53.py` con PDF guida in `artifacts/notifiche-legali/notifica-l53-demo-guida-avvocato.pdf`.
+
+Verifica browser reale: Chrome CDP headless su runtime Flask isolato con fascicolo demo e documento PST rilasciato. `/notifiche-legali?id_fascicolo=...&fase=notifica` e `/fascicoli/<id>#relata-notifica` sono passate in desktop, tablet e mobile senza redirect login, pagina vuota, overflow orizzontale, errori console o testi tecnici vietati. Il click `Acquisisci dal Portale Servizi` apre `/portali/pst/acquisizione` con `id_fasc`, `numero=1234`, `anno=2026` e `ufficio=Tribunale di Roma` già compilati.

@@ -6,10 +6,13 @@ from types import SimpleNamespace
 from pct.notifiche_legali import (
     LEGAL_NOTIFICATION_SUBJECT,
     build_client_communication,
+    build_notification_normative_checks,
     client_communication_templates_version,
+    legal_notification_automation_payload,
     list_client_communication_templates,
     list_notification_templates,
     preview_legal_relata,
+    released_office_documents_from_portal,
     template_catalog_version,
     validate_deposit_notification_proof,
     validate_legal_notification,
@@ -64,7 +67,7 @@ def _legal_payload() -> dict[str, object]:
                 "origine": "copia_fascicolo",
             }
         ],
-        "attestazione_conformita": "che il file ricorso.pdf e' copia informatica conforme al fascicolo informatico.",
+        "attestazione_conformita": "che il file ricorso.pdf è copia informatica conforme al fascicolo informatico.",
     }
 
 
@@ -122,7 +125,7 @@ def test_notifica_l53_riporta_piu_documenti_nell_elenco_allegati():
         {"nome_file": "procura.pdf", "descrizione": "Procura alle liti", "origine": "firmato_digitalmente"},
         {"nome_file": "provvedimento.pdf", "descrizione": "Provvedimento", "origine": "copia_fascicolo_informatico"},
     ]
-    payload["attestazione_conformita"] = "Attesto la conformita' del provvedimento estratto dal fascicolo informatico."
+    payload["attestazione_conformita"] = "Attesto la conformità del provvedimento estratto dal fascicolo informatico."
 
     result = validate_legal_notification(payload)
 
@@ -130,6 +133,125 @@ def test_notifica_l53_riporta_piu_documenti_nell_elenco_allegati():
     assert "1. ricorso.pdf - Ricorso" in result.relata_text
     assert "2. procura.pdf - Procura alle liti" in result.relata_text
     assert "3. provvedimento.pdf - Provvedimento" in result.relata_text
+
+
+def test_notifica_l53_audit_automatico_include_normativa_e_piu_allegati():
+    payload = _legal_payload()
+    payload["documenti"] = [
+        {"nome_file": "ricorso.pdf", "descrizione": "Ricorso", "origine": "nativo_digitale", "hash_sha256": "a" * 64},
+        {"nome_file": "procura.pdf", "descrizione": "Procura alle liti", "origine": "firmato_digitalmente", "hash_sha256": "b" * 64},
+        {"nome_file": "provvedimento.pdf", "descrizione": "Provvedimento", "origine": "copia_fascicolo_informatico", "hash_sha256": "c" * 64},
+    ]
+    payload["attestazione_multipla"] = True
+
+    result = validate_legal_notification(payload)
+
+    assert result.ok is True
+    assert {item["id"] for item in legal_notification_automation_payload()["notifica"]} >= {"precompilazione", "pubblici_elenchi", "allegati"}
+    assert result.output_plan["auditTrail"]["documentsCount"] == 3
+    assert result.output_plan["workflowSteps"][0]["source"].startswith("L. 53/1994")
+    assert any(item["id"] == "allegati" and item["status"] == "superato" for item in result.output_plan["normativeChecks"])
+    assert any(item["id"] == "attestazioni" and item["status"] == "superato" for item in result.output_plan["normativeChecks"])
+
+
+def test_notifica_l53_blocca_documento_ufficio_rilasciato_non_acquisito():
+    payload = _legal_payload()
+    payload["documento_ufficio_rilasciato"] = True
+    payload["acquisizione_portale_richiesta"] = True
+    payload["documenti"] = []
+
+    result = validate_legal_notification(payload)
+    checks = build_notification_normative_checks(payload)
+
+    assert result.ok is False
+    assert any("DOCUMENTO_UFFICIO_ACQUISIZIONE_REQUIRED" in item for item in result.blockers)
+    assert any(item["id"] == "documento_ufficio_acquisito" and item["status"] == "bloccante" for item in checks)
+
+
+def test_notifica_l53_documento_ufficio_acquisito_dal_portale_supera_controllo():
+    payload = _legal_payload()
+    payload["documento_ufficio_rilasciato"] = True
+    payload["acquisizione_portale_richiesta"] = True
+    payload["documenti"] = [
+        {
+            "nome_file": "ordinanza_da_notificare.pdf",
+            "descrizione": "Ordinanza rilasciata dall'ufficio",
+            "origine": "copia_fascicolo_informatico",
+            "fonte_documento": "PORTALE_TELEMATICO",
+            "servizio_portale": "PST",
+            "riferimento_portale": "PST-REL-2026-0001",
+            "documento_ufficio": True,
+            "acquisito_da_portale": True,
+            "notifica_richiesta": True,
+            "data_rilascio_portale": "2026-05-23",
+        }
+    ]
+    payload["attestazione_multipla"] = True
+
+    result = validate_legal_notification(payload)
+
+    assert result.ok is True
+    assert result.output_plan["auditTrail"]["officeDocumentAcquisition"]["acquired"] is True
+    assert any(item["id"] == "documento_ufficio_acquisito" and item["status"] == "superato" for item in result.output_plan["normativeChecks"])
+
+
+def test_rilascio_documento_ufficio_da_metadati_portale_finche_non_acquisito():
+    fascicolo = SimpleNamespace(
+        id="fasc-portal",
+        numero="FASC-1",
+        titolo="Rossi c/ Bianchi",
+        tribunale="Tribunale di Roma",
+        numero_rg="1234",
+        anno_rg=2026,
+        documenti=[],
+        depositi_pct=[
+            SimpleNamespace(
+                id="dep-1",
+                id_deposito_esterno="PST-REL-2026-0001",
+                fonte="PST",
+                servizio_portale="ConsultazioneFascicolo",
+                tipo_atto="Ordinanza da notificare",
+                data_deposito="2026-05-23",
+                mittente="Tribunale di Roma",
+                documenti_portale=[
+                    {
+                        "id_documento": "doc-rel-1",
+                        "nome": "ordinanza_da_notificare.pdf",
+                        "tipo": "Ordinanza da notificare",
+                        "data_deposito": "2026-05-23",
+                        "disponibile": True,
+                    }
+                ],
+            )
+        ],
+    )
+
+    releases = released_office_documents_from_portal(fascicolo)
+
+    assert len(releases) == 1
+    assert releases[0]["nome"] == "ordinanza_da_notificare.pdf"
+    assert releases[0]["notificaRichiesta"] is True
+
+    fascicolo.documenti = [SimpleNamespace(id="doc-local", id_documento_portale="doc-rel-1", nome="ordinanza_da_notificare.pdf")]
+    assert released_office_documents_from_portal(fascicolo) == []
+
+
+def test_notifica_l53_controllo_attestazioni_non_basta_per_un_solo_allegato():
+    payload = _legal_payload()
+    payload["documenti"] = [
+        {
+            "nome_file": "provvedimento.pdf",
+            "descrizione": "Provvedimento",
+            "origine": "copia_fascicolo_informatico",
+            "attestazione_conformita_presente": True,
+        },
+        {"nome_file": "scansione.pdf", "descrizione": "Scansione", "origine": "scansione_analogico"},
+    ]
+    payload["attestazione_conformita"] = ""
+
+    checks = build_notification_normative_checks(payload)
+
+    assert any(item["id"] == "attestazioni" and item["status"] == "bloccante" for item in checks)
 
 
 def test_notifica_l53_modello_personalizzato_usa_campi_iusentra_e_note_avvocato():
@@ -332,6 +454,8 @@ def test_prova_deposito_richiede_rac_rdac_originali():
     assert blocked.ok is False
     assert any("originale digitale .eml o .msg" in item for item in blocked.blockers)
     assert ok.ok is True
+    assert ok.output_plan["workflowSteps"][0]["id"] == "atti"
+    assert any(item["id"] == "rac_rdac" and item["status"] == "superato" for item in ok.output_plan["normativeChecks"])
 
 
 def test_prova_deposito_accetta_piu_atti_notificati_con_hash():
@@ -357,6 +481,7 @@ def test_prova_deposito_accetta_piu_atti_notificati_con_hash():
     items = result.output_plan["evidencePack"]["items"]
     assert any(item["kind"] == "atto" and "pst:JPW_SIGP:2182464" in item["filename"] for item in items)
     assert any(item["kind"] == "allegato_2" and item["filename"] == "procura.pdf" for item in items)
+    assert result.output_plan["auditTrail"]["documentsCount"] == 2
 
 
 def test_prova_deposito_blocca_hash_non_sha256_e_dati_atto_mancanti():
@@ -411,12 +536,16 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     assert payload["mandatorySubject"] == LEGAL_NOTIFICATION_SUBJECT
     assert payload["contracts"]["clientCommunicationWithoutRelata"] is True
     assert payload["modelliRelata"][0]["previewText"]
+    assert payload["automazioneGuidata"]["notifica"][0]["source"].startswith("L. 53/1994")
+    assert payload["automazioneGuidata"]["deposito"][0]["id"] == "atti"
     assert any(field["token"] == "{{ documenti_righe }}" for field in payload["campiDisponibili"])
     assert invalid_response.status_code == 400
     assert invalid_payload["ok"] is False
     assert valid_response.status_code == 200
     assert valid_payload["ok"] is True
     assert "RELAZIONE DI NOTIFICAZIONE" in valid_payload["relataText"]
+    assert valid_payload["outputPlan"]["workflowSteps"]
+    assert valid_payload["outputPlan"]["auditTrail"]["documentsCount"] == 1
     assert client_response.status_code == 200
     assert client_payload["ok"] is True
     assert client_payload["relataText"] == ""
@@ -615,6 +744,7 @@ def test_payload_react_notifiche_legali_precompila_da_dati_iusentra():
         classificazione_portale="",
         note="",
         fonte_documento="PORTALE_TELEMATICO",
+        servizio_portale="PST",
         hash_sha256="abc123",
         data_documento="2026-05-10",
         data_deposito_portale="",
@@ -636,6 +766,7 @@ def test_payload_react_notifiche_legali_precompila_da_dati_iusentra():
         giudice="Dott. Verdi",
         tipo_procedimento="civile ordinario",
         documenti=[documento],
+        depositi_pct=[],
     )
     soggetto = SimpleNamespace(
         id="soggetto-1",
@@ -667,4 +798,64 @@ def test_payload_react_notifiche_legali_precompila_da_dati_iusentra():
     assert destinatario["fontePecSuggerita"] == "ini_pec"
     assert documento_payload["origine"] == "copia_fascicolo_informatico"
     assert documento_payload["riferimentoPortale"] == "pst-doc-1"
+    assert documento_payload["servizioPortale"] == "PST"
+    assert documento_payload["documentoUfficio"] is True
+    assert documento_payload["acquisitoDaPortale"] is True
+    assert documento_payload["notificaRichiesta"] is True
     assert documento_payload["necessitaAttestazione"] is True
+    assert pratica["portaleAcquisizioneHref"].startswith("/portali/pst/acquisizione?")
+    assert pratica["documentoUfficioMonitor"]["stato"] == "acquisito"
+
+
+def test_payload_react_notifiche_legali_segnala_documento_portale_da_acquisire():
+    fascicolo = SimpleNamespace(
+        id="fascicolo-portale",
+        numero="2026/002",
+        titolo="Cliente / Beta",
+        id_cliente="",
+        nome_cliente="Cliente",
+        controparte="Beta S.p.A.",
+        cf_controparte="",
+        tribunale="Tribunale di Roma",
+        sezione="",
+        numero_rg="5678",
+        anno_rg=2026,
+        giudice="",
+        tipo_procedimento="civile ordinario",
+        documenti=[],
+        depositi_pct=[
+            SimpleNamespace(
+                id="dep-relata",
+                id_deposito_esterno="PST-REL-2026-0002",
+                fonte="PST",
+                servizio_portale="ConsultazioneFascicolo",
+                tipo_atto="Ordinanza da notificare",
+                data_deposito="2026-05-23",
+                mittente="Tribunale di Roma",
+                documenti_portale=[
+                    {
+                        "id_documento": "pst-doc-relata",
+                        "nome": "ordinanza_da_notificare.pdf",
+                        "tipo": "Ordinanza da notificare",
+                        "data_deposito": "2026-05-23",
+                        "disponibile": True,
+                    }
+                ],
+            )
+        ],
+    )
+
+    payload = build_react_notifiche_legali_payload(
+        get_clienti=lambda: SimpleNamespace(tutti=lambda: []),
+        get_fascicoli=lambda: SimpleNamespace(tutti=lambda archiviati=False: [fascicolo]),
+        get_soggetti=lambda: SimpleNamespace(tutti=lambda: [], parti_fascicolo=lambda id_fascicolo: []),
+    )
+
+    pratica = payload["precompilazione"]["pratiche"][0]
+
+    assert payload["contracts"]["officeDocumentPortalAcquisition"] is True
+    assert pratica["documentoUfficioMonitor"]["stato"] == "da_acquisire"
+    assert pratica["documentoUfficioMonitor"]["documentiDaAcquisire"] == 1
+    assert pratica["documentoUfficioMonitor"]["documentiRilasciati"][0]["nome"] == "ordinanza_da_notificare.pdf"
+    assert "id_fasc=fascicolo-portale" in pratica["portaleAcquisizioneHref"]
+    assert "numero=5678" in pratica["portaleAcquisizioneHref"]

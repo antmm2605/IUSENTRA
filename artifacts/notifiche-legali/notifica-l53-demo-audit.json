@@ -1,0 +1,1013 @@
+{
+  "generatedAt": "2026-05-23T18:25:03+00:00",
+  "scenario": "Demo controllata: nessun invio PEC reale e nessun accesso a portali esterni.",
+  "automation": {
+    "notifica": [
+      {
+        "id": "precompilazione",
+        "title": "Precompilazione da pratica e studio",
+        "body": "IUSENTRA propone avvocato, assistito, procedimento, destinatario e documenti già presenti nel fascicolo.",
+        "source": "L. 53/1994, art. 3-bis, commi 5 e 6"
+      },
+      {
+        "id": "documento_ufficio",
+        "title": "Documento rilasciato dall'ufficio",
+        "body": "Quando il fascicolo segnala un documento d'ufficio da notificare, il percorso richiede l'acquisizione governata dal Portale Servizi prima di generare la relata.",
+        "source": "D.M. 44/2011, art. 18; specifiche tecniche art. 19-bis"
+      },
+      {
+        "id": "pubblici_elenchi",
+        "title": "Verifica PEC su pubblico elenco",
+        "body": "Il percorso registra fonte, data e ora della verifica dell'indirizzo PEC del mittente e del destinatario.",
+        "source": "L. 53/1994, art. 3-bis, comma 1; D.L. 179/2012, art. 16-ter"
+      },
+      {
+        "id": "allegati",
+        "title": "Preparazione allegati",
+        "body": "Sono ammessi più documenti; per ciascun file vengono riportati nome, origine, eventuale attestazione e impronta SHA-256 quando disponibile.",
+        "source": "Specifiche tecniche D.M. 44/2011, art. 19-bis"
+      },
+      {
+        "id": "relata",
+        "title": "Relata separata e attestazioni",
+        "body": "Il sistema genera la relata separata e le attestazioni richieste; l'avvocato rivede e firma digitalmente prima dell'invio.",
+        "source": "L. 53/1994, art. 3-bis, commi 2 e 5"
+      },
+      {
+        "id": "pec",
+        "title": "PEC con oggetto obbligatorio",
+        "body": "L'oggetto è fissato alla formula prevista e la ricevuta richiesta resta completa.",
+        "source": "L. 53/1994, art. 3-bis, commi 3 e 4; D.M. 44/2011, art. 18, comma 6"
+      },
+      {
+        "id": "prova",
+        "title": "Pacchetto prova e deposito",
+        "body": "Dopo l'invio si conservano PEC inviata, RAC e RdAC complete in originale digitale e si prepara l'indicizzazione per il deposito.",
+        "source": "L. 53/1994, art. 9; Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5"
+      }
+    ],
+    "deposito": [
+      {
+        "id": "atti",
+        "title": "Raccolta atti notificati",
+        "body": "La prova può includere più atti o allegati notificati, con nome e impronta SHA-256.",
+        "source": "Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5"
+      },
+      {
+        "id": "ricevute",
+        "title": "Ricevute originali",
+        "body": "Per ogni destinatario servono RAC e RdAC completa in formato originale digitale .eml o .msg.",
+        "source": "L. 53/1994, art. 3-bis, comma 3; D.M. 44/2011, art. 18, comma 6"
+      },
+      {
+        "id": "dati_atto",
+        "title": "Indicizzazione ricevute",
+        "body": "I riferimenti delle ricevute sono preparati per il file DatiAtto.xml della busta telematica.",
+        "source": "Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5"
+      },
+      {
+        "id": "audit",
+        "title": "Audit e controllo finale",
+        "body": "Il pacchetto prova registra file, impronte e controlli prima del deposito.",
+        "source": "L. 53/1994, art. 9"
+      }
+    ]
+  },
+  "notification": {
+    "ok": true,
+    "blockers": [],
+    "warnings": [],
+    "subject": "notificazione ai sensi della legge n. 53 del 1994",
+    "body": "Si trasmettono in allegato i documenti oggetto di notificazione a mezzo PEC, unitamente alla relazione di notificazione sottoscritta digitalmente.\n\nLa presente PEC e' inviata con oggetto:\nnotificazione ai sensi della legge n. 53 del 1994\n\nAvv. Mario Rossi",
+    "relataText": "RELAZIONE DI NOTIFICAZIONE A MEZZO POSTA ELETTRONICA CERTIFICATA\nai sensi dell'art. 3-bis della Legge 21 gennaio 1994, n. 53\n\nIo sottoscritto Avv. Mario Rossi,\nC.F. RSSMRA80A01H501U,\niscritto all'Ordine degli Avvocati di Roma,\ncon studio in Via Roma 1,\nindirizzo PEC studio.rossi@example.pec.it,\n\nnella qualita' di difensore di Cliente S.r.l.,\nC.F./P.IVA 01234567890,\ngiusta procura alle liti in atti, allegata o rilasciata su separato documento,\n\nNOTIFICO\n\na Controparte S.p.A.,\nC.F./P.IVA 09876543210,\nall'indirizzo PEC controparte@example.pec.it,\nestratto dal pubblico elenco Registro Imprese\n in data 23/05/2026 alle ore 10:30,\n\ni seguenti documenti informatici allegati al presente messaggio PEC:\n\n1. ricorso.pdf - Ricorso introduttivo\n2. procura.pdf.p7m - Procura alle liti firmata\n3. ordinanza_da_notificare.pdf - Ordinanza rilasciata dall'ufficio e acquisita dal Portale Servizi\n\nLa presente notificazione viene eseguita in relazione al procedimento\npendente innanzi a Tribunale di Roma,\nSezione III,\nR.G. n. 1234/2026.\n\nIl modello include l'attestazione automatica dei documenti estratti dal fascicolo informatico.\n\nATTESTAZIONE DI CONFORMITA\n\nAttesto che il file ordinanza_da_notificare.pdf, contenente Ordinanza rilasciata dall'ufficio e acquisita dal Portale Servizi, è copia informatica conforme al corrispondente atto o provvedimento presente nel fascicolo informatico del procedimento Tribunale di Roma, R.G. n. 1234/2026.\n\nRoma, 23/05/2026\n\nAvv. Mario Rossi\nDocumento informatico separato sottoscritto con firma digitale.\n",
+    "nextActions": [
+      "Rivedi la bozza con l'avvocato responsabile.",
+      "Esporta la relata in PDF/PDF-A e firmala digitalmente.",
+      "Invia una PEC distinta per destinatario con ricevuta completa.",
+      "Conserva messaggio inviato, RAC e RdAC in originale digitale."
+    ],
+    "templateId": "relata_pec_con_attestazione_fascicolo",
+    "templateLabel": "Con attestazione da fascicolo",
+    "templateVersion": "2026.05.12",
+    "selectedBlocks": [
+      "procedimento",
+      "attestazione:copia_fascicolo_informatico"
+    ],
+    "checklistText": "CHECKLIST PRE-INVIO NOTIFICA PEC EX L. 53/1994\n\nPratica:\nProcedimento: Tribunale di Roma - R.G. 1234/2026\n\nAvvocato notificante: Mario Rossi\nPEC: studio.rossi@example.pec.it\n\nDestinatario: Controparte S.p.A.\nPEC: controparte@example.pec.it\nFonte PEC: Registro Imprese\nData verifica: 23/05/2026 10:30\n\nControlli:\n[ ] PEC mittente verificata\n[ ] PEC destinatario estratta da pubblico elenco\n[ ] Relata generata\n[ ] Relata firmata digitalmente\n[ ] Attestazione presente se necessaria\n[ ] Oggetto PEC corretto\n[ ] Ricevuta completa richiesta\n[ ] Allegati controllati\n[ ] Avvocato ha verificato e autorizzato l'invio",
+    "logJson": {
+      "evento": "generazione_relata",
+      "template_id": "relata_pec_con_attestazione_fascicolo",
+      "template_versione": "2026.05.12",
+      "data_generazione": "2026-05-23T18:25:03+00:00",
+      "utente_generatore": "",
+      "avvocato_responsabile": "Mario Rossi",
+      "pratica": "",
+      "procedimento": "1234/2026",
+      "destinatario": "Controparte S.p.A.",
+      "pec_destinatario": "controparte@example.pec.it",
+      "fonte_pec": "Registro Imprese",
+      "documenti": [
+        {
+          "nome_file": "ricorso.pdf",
+          "descrizione": "Ricorso introduttivo",
+          "origine": "nativo_digitale",
+          "hash_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "attestazione": false
+        },
+        {
+          "nome_file": "procura.pdf.p7m",
+          "descrizione": "Procura alle liti firmata",
+          "origine": "firmato_digitalmente",
+          "hash_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "attestazione": false
+        },
+        {
+          "nome_file": "ordinanza_da_notificare.pdf",
+          "descrizione": "Ordinanza rilasciata dall'ufficio e acquisita dal Portale Servizi",
+          "origine": "copia_fascicolo_informatico",
+          "hash_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "attestazione": true
+        }
+      ],
+      "relata_firmata": true,
+      "firma_tipo": "PAdES",
+      "oggetto_pec": "notificazione ai sensi della legge n. 53 del 1994",
+      "ricevuta_richiesta": "completa",
+      "public_registry_checked": true,
+      "attestazioni": [
+        "Attesto che il file ordinanza_da_notificare.pdf, contenente Ordinanza rilasciata dall'ufficio e acquisita dal Portale Servizi, è copia informatica conforme al corrispondente atto o provvedimento presente nel fascicolo informatico del procedimento Tribunale di Roma, R.G. n. 1234/2026."
+      ]
+    },
+    "outputPlan": {
+      "folder": "notifica_23-05-2026_controparte_s_p_a",
+      "files": [
+        "relata_notifica.pdf",
+        "relata_notifica_firmata.pdf oppure relata_notifica.pdf.p7m",
+        "ricorso.pdf",
+        "procura.pdf.p7m",
+        "ordinanza_da_notificare.pdf",
+        "pec_inviata.eml",
+        "ricevuta_accettazione.eml",
+        "ricevuta_consegna_completa.eml",
+        "eventuali_avvisi_errore.eml",
+        "log_notifica.json",
+        "distinta_prova_notifica.pdf",
+        "scheda_esito_notifica.pdf"
+      ],
+      "workflowSteps": [
+        {
+          "id": "precompilazione",
+          "title": "Precompilazione da pratica e studio",
+          "body": "IUSENTRA propone avvocato, assistito, procedimento, destinatario e documenti già presenti nel fascicolo.",
+          "source": "L. 53/1994, art. 3-bis, commi 5 e 6"
+        },
+        {
+          "id": "documento_ufficio",
+          "title": "Documento rilasciato dall'ufficio",
+          "body": "Quando il fascicolo segnala un documento d'ufficio da notificare, il percorso richiede l'acquisizione governata dal Portale Servizi prima di generare la relata.",
+          "source": "D.M. 44/2011, art. 18; specifiche tecniche art. 19-bis"
+        },
+        {
+          "id": "pubblici_elenchi",
+          "title": "Verifica PEC su pubblico elenco",
+          "body": "Il percorso registra fonte, data e ora della verifica dell'indirizzo PEC del mittente e del destinatario.",
+          "source": "L. 53/1994, art. 3-bis, comma 1; D.L. 179/2012, art. 16-ter"
+        },
+        {
+          "id": "allegati",
+          "title": "Preparazione allegati",
+          "body": "Sono ammessi più documenti; per ciascun file vengono riportati nome, origine, eventuale attestazione e impronta SHA-256 quando disponibile.",
+          "source": "Specifiche tecniche D.M. 44/2011, art. 19-bis"
+        },
+        {
+          "id": "relata",
+          "title": "Relata separata e attestazioni",
+          "body": "Il sistema genera la relata separata e le attestazioni richieste; l'avvocato rivede e firma digitalmente prima dell'invio.",
+          "source": "L. 53/1994, art. 3-bis, commi 2 e 5"
+        },
+        {
+          "id": "pec",
+          "title": "PEC con oggetto obbligatorio",
+          "body": "L'oggetto è fissato alla formula prevista e la ricevuta richiesta resta completa.",
+          "source": "L. 53/1994, art. 3-bis, commi 3 e 4; D.M. 44/2011, art. 18, comma 6"
+        },
+        {
+          "id": "prova",
+          "title": "Pacchetto prova e deposito",
+          "body": "Dopo l'invio si conservano PEC inviata, RAC e RdAC complete in originale digitale e si prepara l'indicizzazione per il deposito.",
+          "source": "L. 53/1994, art. 9; Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5"
+        }
+      ],
+      "normativeChecks": [
+        {
+          "id": "oggetto_l53",
+          "label": "Oggetto PEC obbligatorio",
+          "source": "L. 53/1994, art. 3-bis, comma 4",
+          "status": "superato",
+          "detail": "La PEC deve usare la formula prevista per la notificazione in proprio.",
+          "blocking": true
+        },
+        {
+          "id": "pec_mittente",
+          "label": "PEC notificante da pubblico elenco",
+          "source": "L. 53/1994, art. 3-bis, comma 1",
+          "status": "superato",
+          "detail": "La casella del notificante deve essere censita e validata.",
+          "blocking": true
+        },
+        {
+          "id": "pec_destinatario",
+          "label": "PEC destinatario e fonte",
+          "source": "D.L. 179/2012, art. 16-ter",
+          "status": "superato",
+          "detail": "Sono richiesti fonte pubblica, data e ora della verifica.",
+          "blocking": true
+        },
+        {
+          "id": "allegati",
+          "label": "Allegati della notifica",
+          "source": "Specifiche tecniche D.M. 44/2011, art. 19-bis",
+          "status": "superato",
+          "detail": "3 documento/i indicati per la notifica.",
+          "blocking": true
+        },
+        {
+          "id": "documento_ufficio_acquisito",
+          "label": "Documento ufficio acquisito",
+          "source": "D.M. 44/2011, art. 18; specifiche tecniche art. 19-bis",
+          "status": "superato",
+          "detail": "Documento d'ufficio acquisito dal Portale Servizi e tracciato nel fascicolo.",
+          "blocking": false
+        },
+        {
+          "id": "attestazioni",
+          "label": "Attestazioni di conformità",
+          "source": "L. 53/1994, art. 3-bis, comma 2",
+          "status": "superato",
+          "detail": "Attestazioni richieste per copie da fascicolo, cancelleria o scansioni.",
+          "blocking": true
+        },
+        {
+          "id": "relata",
+          "label": "Relata separata e firma digitale",
+          "source": "L. 53/1994, art. 3-bis, comma 5",
+          "status": "superato",
+          "detail": "La relata deve essere documento informatico separato e firmato digitalmente.",
+          "blocking": true
+        },
+        {
+          "id": "ricevuta_completa",
+          "label": "RdAC completa",
+          "source": "D.M. 44/2011, art. 18, comma 6",
+          "status": "superato",
+          "detail": "La ricevuta di avvenuta consegna deve essere completa.",
+          "blocking": true
+        }
+      ],
+      "auditTrail": {
+        "phase": "notifica",
+        "generatedAt": "2026-05-23T18:25:03+00:00",
+        "practice": "",
+        "recipient": "Controparte S.p.A.",
+        "recipientPec": "controparte@example.pec.it",
+        "recipientPecSource": "Registro Imprese",
+        "documentsCount": 3,
+        "documents": [
+          {
+            "name": "ricorso.pdf",
+            "description": "Ricorso introduttivo",
+            "origin": "nativo_digitale",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "attestationRequired": false
+          },
+          {
+            "name": "procura.pdf.p7m",
+            "description": "Procura alle liti firmata",
+            "origin": "firmato_digitalmente",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "attestationRequired": false
+          },
+          {
+            "name": "ordinanza_da_notificare.pdf",
+            "description": "Ordinanza rilasciata dall'ufficio e acquisita dal Portale Servizi",
+            "origin": "copia_fascicolo_informatico",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "attestationRequired": true
+          }
+        ],
+        "officeDocumentAcquisition": {
+          "releaseDetected": true,
+          "acquisitionRequired": true,
+          "acquired": true,
+          "blocking": false,
+          "documentsCount": 1,
+          "documents": [
+            {
+              "name": "ordinanza_da_notificare.pdf",
+              "description": "Ordinanza rilasciata dall'ufficio e acquisita dal Portale Servizi",
+              "source": "PORTALE_TELEMATICO",
+              "portal": "PST",
+              "reference": "PST-REL-2026-0001",
+              "releasedAt": "23/05/2026",
+              "notificationRequired": true
+            }
+          ]
+        },
+        "attestationsGenerated": [
+          "Attesto che il file ordinanza_da_notificare.pdf, contenente Ordinanza rilasciata dall'ufficio e acquisita dal Portale Servizi, è copia informatica conforme al corrispondente atto o provvedimento presente nel fascicolo informatico del procedimento Tribunale di Roma, R.G. n. 1234/2026."
+        ],
+        "checks": [
+          {
+            "id": "oggetto_l53",
+            "label": "Oggetto PEC obbligatorio",
+            "source": "L. 53/1994, art. 3-bis, comma 4",
+            "status": "superato",
+            "detail": "La PEC deve usare la formula prevista per la notificazione in proprio.",
+            "blocking": true
+          },
+          {
+            "id": "pec_mittente",
+            "label": "PEC notificante da pubblico elenco",
+            "source": "L. 53/1994, art. 3-bis, comma 1",
+            "status": "superato",
+            "detail": "La casella del notificante deve essere censita e validata.",
+            "blocking": true
+          },
+          {
+            "id": "pec_destinatario",
+            "label": "PEC destinatario e fonte",
+            "source": "D.L. 179/2012, art. 16-ter",
+            "status": "superato",
+            "detail": "Sono richiesti fonte pubblica, data e ora della verifica.",
+            "blocking": true
+          },
+          {
+            "id": "allegati",
+            "label": "Allegati della notifica",
+            "source": "Specifiche tecniche D.M. 44/2011, art. 19-bis",
+            "status": "superato",
+            "detail": "3 documento/i indicati per la notifica.",
+            "blocking": true
+          },
+          {
+            "id": "documento_ufficio_acquisito",
+            "label": "Documento ufficio acquisito",
+            "source": "D.M. 44/2011, art. 18; specifiche tecniche art. 19-bis",
+            "status": "superato",
+            "detail": "Documento d'ufficio acquisito dal Portale Servizi e tracciato nel fascicolo.",
+            "blocking": false
+          },
+          {
+            "id": "attestazioni",
+            "label": "Attestazioni di conformità",
+            "source": "L. 53/1994, art. 3-bis, comma 2",
+            "status": "superato",
+            "detail": "Attestazioni richieste per copie da fascicolo, cancelleria o scansioni.",
+            "blocking": true
+          },
+          {
+            "id": "relata",
+            "label": "Relata separata e firma digitale",
+            "source": "L. 53/1994, art. 3-bis, comma 5",
+            "status": "superato",
+            "detail": "La relata deve essere documento informatico separato e firmato digitalmente.",
+            "blocking": true
+          },
+          {
+            "id": "ricevuta_completa",
+            "label": "RdAC completa",
+            "source": "D.M. 44/2011, art. 18, comma 6",
+            "status": "superato",
+            "detail": "La ricevuta di avvenuta consegna deve essere completa.",
+            "blocking": true
+          }
+        ],
+        "evidencePack": {}
+      }
+    }
+  },
+  "deposit": {
+    "ok": true,
+    "blockers": [],
+    "warnings": [],
+    "subject": "Deposito prova notifica",
+    "body": "Prova notifica pronta per il controllo: atto notificato, relata firmata, messaggio PEC inviato, RAC e RdAC originali per ciascun destinatario.",
+    "relataText": "",
+    "nextActions": [
+      "Inserisci atto notificato e ricevute nella busta telematica.",
+      "Controlla che RAC e RdAC restino in originale digitale.",
+      "Verifica i riferimenti ricevute in DatiAtto.xml."
+    ],
+    "templateId": "distinta_prova_notifica",
+    "templateLabel": "Distinta prova notifica",
+    "templateVersion": "2026.05.12",
+    "selectedBlocks": [],
+    "checklistText": "",
+    "logJson": {
+      "evento": "controllo_prova_notifica",
+      "evidencePack": {
+        "items": [
+          {
+            "kind": "atto",
+            "label": "Atto notificato",
+            "filename": "ricorso.pdf",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "required": true,
+            "generated": false
+          },
+          {
+            "kind": "allegato_2",
+            "label": "Allegato notificato 2",
+            "filename": "procura.pdf.p7m",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "required": true,
+            "generated": false
+          },
+          {
+            "kind": "allegato_3",
+            "label": "Allegato notificato 3",
+            "filename": "ordinanza_da_notificare.pdf",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "required": true,
+            "generated": false
+          },
+          {
+            "kind": "relata_firmata",
+            "label": "Relata firmata",
+            "filename": "relata_notifica.pdf.p7m",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "required": true,
+            "generated": false
+          },
+          {
+            "kind": "pec_inviata",
+            "label": "PEC inviata",
+            "filename": "pec_inviata.eml",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "required": true,
+            "generated": false
+          },
+          {
+            "kind": "rac",
+            "label": "RAC Controparte S.p.A.",
+            "filename": "accettazione.eml",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "required": true,
+            "generated": false
+          },
+          {
+            "kind": "rdac_completa",
+            "label": "RdAC completa Controparte S.p.A.",
+            "filename": "consegna_completa.eml",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "required": true,
+            "generated": false
+          },
+          {
+            "kind": "log_json",
+            "label": "Log JSON",
+            "filename": "log_notifica.json",
+            "sha256": "64732fb0753be22b0204506a9ad0274dea9357b571965ece3e11d3081d517fcf",
+            "required": true,
+            "generated": true
+          },
+          {
+            "kind": "distinta_prova_notifica",
+            "label": "Distinta prova notifica",
+            "filename": "distinta_prova_notifica.pdf",
+            "sha256": "8bddecd1bee6b74056c4b8bf7b679326ece99e8ce98ca03f18cfe07e2df61ed6",
+            "required": true,
+            "generated": true
+          },
+          {
+            "kind": "scheda_esito",
+            "label": "Scheda esito",
+            "filename": "scheda_esito_notifica.pdf",
+            "sha256": "149aa311f56ea4b7a42dbd4132cc7a65773b3d2b5d2c4c0c9810bb335b2e4d1d",
+            "required": true,
+            "generated": true
+          }
+        ],
+        "missing": [],
+        "invalid_hashes": [],
+        "hashes": {
+          "atto": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "allegato_2": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "allegato_3": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "relata_firmata": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "pec_inviata": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "rac": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "rdac_completa": "1111111111111111111111111111111111111111111111111111111111111111",
+          "log_json": "64732fb0753be22b0204506a9ad0274dea9357b571965ece3e11d3081d517fcf",
+          "distinta_prova_notifica": "8bddecd1bee6b74056c4b8bf7b679326ece99e8ce98ca03f18cfe07e2df61ed6",
+          "scheda_esito": "149aa311f56ea4b7a42dbd4132cc7a65773b3d2b5d2c4c0c9810bb335b2e4d1d"
+        }
+      },
+      "audit": {
+        "phase": "deposito_prova",
+        "generatedAt": "2026-05-23T18:25:03+00:00",
+        "documentsCount": 3,
+        "recipients": [
+          {
+            "name": "Controparte S.p.A.",
+            "racFile": "accettazione.eml",
+            "rdacFile": "consegna_completa.eml"
+          }
+        ],
+        "checks": [
+          {
+            "id": "atti_notificati",
+            "label": "Atti notificati",
+            "source": "Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5",
+            "status": "superato",
+            "detail": "L'atto notificato viene inserito nella busta con gli allegati necessari.",
+            "blocking": true
+          },
+          {
+            "id": "relata_firmata",
+            "label": "Relata firmata",
+            "source": "L. 53/1994, art. 3-bis, comma 5",
+            "status": "superato",
+            "detail": "La relata firmata digitalmente va conservata nel pacchetto prova.",
+            "blocking": true
+          },
+          {
+            "id": "pec_inviata",
+            "label": "PEC inviata",
+            "source": "L. 53/1994, art. 3-bis, comma 3",
+            "status": "superato",
+            "detail": "Il messaggio inviato resta allegato in originale digitale.",
+            "blocking": true
+          },
+          {
+            "id": "rac_rdac",
+            "label": "RAC e RdAC originali",
+            "source": "L. 53/1994, art. 9; D.M. 44/2011, art. 18, comma 6",
+            "status": "superato",
+            "detail": "RAC e RdAC completa devono restare file .eml o .msg per ogni destinatario.",
+            "blocking": true
+          },
+          {
+            "id": "hash",
+            "label": "Impronte SHA-256",
+            "source": "Audit interno IUSENTRA",
+            "status": "superato",
+            "detail": "Ogni file richiesto dal pacchetto prova deve avere impronta SHA-256 valida.",
+            "blocking": true
+          },
+          {
+            "id": "dati_atto",
+            "label": "Riferimenti DatiAtto.xml",
+            "source": "Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5",
+            "status": "superato",
+            "detail": "I dati identificativi delle ricevute vanno indicizzati nel deposito.",
+            "blocking": true
+          }
+        ],
+        "evidencePack": {
+          "items": [
+            {
+              "kind": "atto",
+              "label": "Atto notificato",
+              "filename": "ricorso.pdf",
+              "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "required": true,
+              "generated": false
+            },
+            {
+              "kind": "allegato_2",
+              "label": "Allegato notificato 2",
+              "filename": "procura.pdf.p7m",
+              "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "required": true,
+              "generated": false
+            },
+            {
+              "kind": "allegato_3",
+              "label": "Allegato notificato 3",
+              "filename": "ordinanza_da_notificare.pdf",
+              "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "required": true,
+              "generated": false
+            },
+            {
+              "kind": "relata_firmata",
+              "label": "Relata firmata",
+              "filename": "relata_notifica.pdf.p7m",
+              "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "required": true,
+              "generated": false
+            },
+            {
+              "kind": "pec_inviata",
+              "label": "PEC inviata",
+              "filename": "pec_inviata.eml",
+              "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "required": true,
+              "generated": false
+            },
+            {
+              "kind": "rac",
+              "label": "RAC Controparte S.p.A.",
+              "filename": "accettazione.eml",
+              "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "required": true,
+              "generated": false
+            },
+            {
+              "kind": "rdac_completa",
+              "label": "RdAC completa Controparte S.p.A.",
+              "filename": "consegna_completa.eml",
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "required": true,
+              "generated": false
+            },
+            {
+              "kind": "log_json",
+              "label": "Log JSON",
+              "filename": "log_notifica.json",
+              "sha256": "64732fb0753be22b0204506a9ad0274dea9357b571965ece3e11d3081d517fcf",
+              "required": true,
+              "generated": true
+            },
+            {
+              "kind": "distinta_prova_notifica",
+              "label": "Distinta prova notifica",
+              "filename": "distinta_prova_notifica.pdf",
+              "sha256": "8bddecd1bee6b74056c4b8bf7b679326ece99e8ce98ca03f18cfe07e2df61ed6",
+              "required": true,
+              "generated": true
+            },
+            {
+              "kind": "scheda_esito",
+              "label": "Scheda esito",
+              "filename": "scheda_esito_notifica.pdf",
+              "sha256": "149aa311f56ea4b7a42dbd4132cc7a65773b3d2b5d2c4c0c9810bb335b2e4d1d",
+              "required": true,
+              "generated": true
+            }
+          ],
+          "missing": [],
+          "invalid_hashes": [],
+          "hashes": {
+            "atto": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "allegato_2": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "allegato_3": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "relata_firmata": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "pec_inviata": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "rac": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "rdac_completa": "1111111111111111111111111111111111111111111111111111111111111111",
+            "log_json": "64732fb0753be22b0204506a9ad0274dea9357b571965ece3e11d3081d517fcf",
+            "distinta_prova_notifica": "8bddecd1bee6b74056c4b8bf7b679326ece99e8ce98ca03f18cfe07e2df61ed6",
+            "scheda_esito": "149aa311f56ea4b7a42dbd4132cc7a65773b3d2b5d2c4c0c9810bb335b2e4d1d"
+          }
+        }
+      }
+    },
+    "outputPlan": {
+      "evidencePack": {
+        "items": [
+          {
+            "kind": "atto",
+            "label": "Atto notificato",
+            "filename": "ricorso.pdf",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "required": true,
+            "generated": false
+          },
+          {
+            "kind": "allegato_2",
+            "label": "Allegato notificato 2",
+            "filename": "procura.pdf.p7m",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "required": true,
+            "generated": false
+          },
+          {
+            "kind": "allegato_3",
+            "label": "Allegato notificato 3",
+            "filename": "ordinanza_da_notificare.pdf",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "required": true,
+            "generated": false
+          },
+          {
+            "kind": "relata_firmata",
+            "label": "Relata firmata",
+            "filename": "relata_notifica.pdf.p7m",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "required": true,
+            "generated": false
+          },
+          {
+            "kind": "pec_inviata",
+            "label": "PEC inviata",
+            "filename": "pec_inviata.eml",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "required": true,
+            "generated": false
+          },
+          {
+            "kind": "rac",
+            "label": "RAC Controparte S.p.A.",
+            "filename": "accettazione.eml",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "required": true,
+            "generated": false
+          },
+          {
+            "kind": "rdac_completa",
+            "label": "RdAC completa Controparte S.p.A.",
+            "filename": "consegna_completa.eml",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "required": true,
+            "generated": false
+          },
+          {
+            "kind": "log_json",
+            "label": "Log JSON",
+            "filename": "log_notifica.json",
+            "sha256": "64732fb0753be22b0204506a9ad0274dea9357b571965ece3e11d3081d517fcf",
+            "required": true,
+            "generated": true
+          },
+          {
+            "kind": "distinta_prova_notifica",
+            "label": "Distinta prova notifica",
+            "filename": "distinta_prova_notifica.pdf",
+            "sha256": "8bddecd1bee6b74056c4b8bf7b679326ece99e8ce98ca03f18cfe07e2df61ed6",
+            "required": true,
+            "generated": true
+          },
+          {
+            "kind": "scheda_esito",
+            "label": "Scheda esito",
+            "filename": "scheda_esito_notifica.pdf",
+            "sha256": "149aa311f56ea4b7a42dbd4132cc7a65773b3d2b5d2c4c0c9810bb335b2e4d1d",
+            "required": true,
+            "generated": true
+          }
+        ],
+        "missing": [],
+        "invalid_hashes": [],
+        "hashes": {
+          "atto": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "allegato_2": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "allegato_3": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "relata_firmata": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "pec_inviata": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "rac": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "rdac_completa": "1111111111111111111111111111111111111111111111111111111111111111",
+          "log_json": "64732fb0753be22b0204506a9ad0274dea9357b571965ece3e11d3081d517fcf",
+          "distinta_prova_notifica": "8bddecd1bee6b74056c4b8bf7b679326ece99e8ce98ca03f18cfe07e2df61ed6",
+          "scheda_esito": "149aa311f56ea4b7a42dbd4132cc7a65773b3d2b5d2c4c0c9810bb335b2e4d1d"
+        }
+      },
+      "workflowSteps": [
+        {
+          "id": "atti",
+          "title": "Raccolta atti notificati",
+          "body": "La prova può includere più atti o allegati notificati, con nome e impronta SHA-256.",
+          "source": "Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5"
+        },
+        {
+          "id": "ricevute",
+          "title": "Ricevute originali",
+          "body": "Per ogni destinatario servono RAC e RdAC completa in formato originale digitale .eml o .msg.",
+          "source": "L. 53/1994, art. 3-bis, comma 3; D.M. 44/2011, art. 18, comma 6"
+        },
+        {
+          "id": "dati_atto",
+          "title": "Indicizzazione ricevute",
+          "body": "I riferimenti delle ricevute sono preparati per il file DatiAtto.xml della busta telematica.",
+          "source": "Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5"
+        },
+        {
+          "id": "audit",
+          "title": "Audit e controllo finale",
+          "body": "Il pacchetto prova registra file, impronte e controlli prima del deposito.",
+          "source": "L. 53/1994, art. 9"
+        }
+      ],
+      "normativeChecks": [
+        {
+          "id": "atti_notificati",
+          "label": "Atti notificati",
+          "source": "Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5",
+          "status": "superato",
+          "detail": "L'atto notificato viene inserito nella busta con gli allegati necessari.",
+          "blocking": true
+        },
+        {
+          "id": "relata_firmata",
+          "label": "Relata firmata",
+          "source": "L. 53/1994, art. 3-bis, comma 5",
+          "status": "superato",
+          "detail": "La relata firmata digitalmente va conservata nel pacchetto prova.",
+          "blocking": true
+        },
+        {
+          "id": "pec_inviata",
+          "label": "PEC inviata",
+          "source": "L. 53/1994, art. 3-bis, comma 3",
+          "status": "superato",
+          "detail": "Il messaggio inviato resta allegato in originale digitale.",
+          "blocking": true
+        },
+        {
+          "id": "rac_rdac",
+          "label": "RAC e RdAC originali",
+          "source": "L. 53/1994, art. 9; D.M. 44/2011, art. 18, comma 6",
+          "status": "superato",
+          "detail": "RAC e RdAC completa devono restare file .eml o .msg per ogni destinatario.",
+          "blocking": true
+        },
+        {
+          "id": "hash",
+          "label": "Impronte SHA-256",
+          "source": "Audit interno IUSENTRA",
+          "status": "superato",
+          "detail": "Ogni file richiesto dal pacchetto prova deve avere impronta SHA-256 valida.",
+          "blocking": true
+        },
+        {
+          "id": "dati_atto",
+          "label": "Riferimenti DatiAtto.xml",
+          "source": "Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5",
+          "status": "superato",
+          "detail": "I dati identificativi delle ricevute vanno indicizzati nel deposito.",
+          "blocking": true
+        }
+      ],
+      "auditTrail": {
+        "phase": "deposito_prova",
+        "generatedAt": "2026-05-23T18:25:03+00:00",
+        "documentsCount": 3,
+        "recipients": [
+          {
+            "name": "Controparte S.p.A.",
+            "racFile": "accettazione.eml",
+            "rdacFile": "consegna_completa.eml"
+          }
+        ],
+        "checks": [
+          {
+            "id": "atti_notificati",
+            "label": "Atti notificati",
+            "source": "Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5",
+            "status": "superato",
+            "detail": "L'atto notificato viene inserito nella busta con gli allegati necessari.",
+            "blocking": true
+          },
+          {
+            "id": "relata_firmata",
+            "label": "Relata firmata",
+            "source": "L. 53/1994, art. 3-bis, comma 5",
+            "status": "superato",
+            "detail": "La relata firmata digitalmente va conservata nel pacchetto prova.",
+            "blocking": true
+          },
+          {
+            "id": "pec_inviata",
+            "label": "PEC inviata",
+            "source": "L. 53/1994, art. 3-bis, comma 3",
+            "status": "superato",
+            "detail": "Il messaggio inviato resta allegato in originale digitale.",
+            "blocking": true
+          },
+          {
+            "id": "rac_rdac",
+            "label": "RAC e RdAC originali",
+            "source": "L. 53/1994, art. 9; D.M. 44/2011, art. 18, comma 6",
+            "status": "superato",
+            "detail": "RAC e RdAC completa devono restare file .eml o .msg per ogni destinatario.",
+            "blocking": true
+          },
+          {
+            "id": "hash",
+            "label": "Impronte SHA-256",
+            "source": "Audit interno IUSENTRA",
+            "status": "superato",
+            "detail": "Ogni file richiesto dal pacchetto prova deve avere impronta SHA-256 valida.",
+            "blocking": true
+          },
+          {
+            "id": "dati_atto",
+            "label": "Riferimenti DatiAtto.xml",
+            "source": "Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5",
+            "status": "superato",
+            "detail": "I dati identificativi delle ricevute vanno indicizzati nel deposito.",
+            "blocking": true
+          }
+        ],
+        "evidencePack": {
+          "items": [
+            {
+              "kind": "atto",
+              "label": "Atto notificato",
+              "filename": "ricorso.pdf",
+              "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "required": true,
+              "generated": false
+            },
+            {
+              "kind": "allegato_2",
+              "label": "Allegato notificato 2",
+              "filename": "procura.pdf.p7m",
+              "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "required": true,
+              "generated": false
+            },
+            {
+              "kind": "allegato_3",
+              "label": "Allegato notificato 3",
+              "filename": "ordinanza_da_notificare.pdf",
+              "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "required": true,
+              "generated": false
+            },
+            {
+              "kind": "relata_firmata",
+              "label": "Relata firmata",
+              "filename": "relata_notifica.pdf.p7m",
+              "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "required": true,
+              "generated": false
+            },
+            {
+              "kind": "pec_inviata",
+              "label": "PEC inviata",
+              "filename": "pec_inviata.eml",
+              "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "required": true,
+              "generated": false
+            },
+            {
+              "kind": "rac",
+              "label": "RAC Controparte S.p.A.",
+              "filename": "accettazione.eml",
+              "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "required": true,
+              "generated": false
+            },
+            {
+              "kind": "rdac_completa",
+              "label": "RdAC completa Controparte S.p.A.",
+              "filename": "consegna_completa.eml",
+              "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "required": true,
+              "generated": false
+            },
+            {
+              "kind": "log_json",
+              "label": "Log JSON",
+              "filename": "log_notifica.json",
+              "sha256": "64732fb0753be22b0204506a9ad0274dea9357b571965ece3e11d3081d517fcf",
+              "required": true,
+              "generated": true
+            },
+            {
+              "kind": "distinta_prova_notifica",
+              "label": "Distinta prova notifica",
+              "filename": "distinta_prova_notifica.pdf",
+              "sha256": "8bddecd1bee6b74056c4b8bf7b679326ece99e8ce98ca03f18cfe07e2df61ed6",
+              "required": true,
+              "generated": true
+            },
+            {
+              "kind": "scheda_esito",
+              "label": "Scheda esito",
+              "filename": "scheda_esito_notifica.pdf",
+              "sha256": "149aa311f56ea4b7a42dbd4132cc7a65773b3d2b5d2c4c0c9810bb335b2e4d1d",
+              "required": true,
+              "generated": true
+            }
+          ],
+          "missing": [],
+          "invalid_hashes": [],
+          "hashes": {
+            "atto": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "allegato_2": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "allegato_3": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "relata_firmata": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "pec_inviata": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "rac": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "rdac_completa": "1111111111111111111111111111111111111111111111111111111111111111",
+            "log_json": "64732fb0753be22b0204506a9ad0274dea9357b571965ece3e11d3081d517fcf",
+            "distinta_prova_notifica": "8bddecd1bee6b74056c4b8bf7b679326ece99e8ce98ca03f18cfe07e2df61ed6",
+            "scheda_esito": "149aa311f56ea4b7a42dbd4132cc7a65773b3d2b5d2c4c0c9810bb335b2e4d1d"
+          }
+        }
+      }
+    }
+  },
+  "artifacts": {
+    "json": "artifacts\\notifiche-legali\\notifica-l53-demo-audit.json",
+    "markdown": "artifacts\\notifiche-legali\\notifica-l53-demo-audit.md",
+    "pdf": "artifacts\\notifiche-legali\\notifica-l53-demo-guida-avvocato.pdf"
+  },
+  "officialSources": [
+    "Portale Servizi Telematici, scheda Notifiche in proprio degli avvocati: https://pst.giustizia.it/PST/it/dettaglio_schede_tematiche.page?contentId=ACC432&modelId=12",
+    "L. 53/1994, art. 3-bis e art. 9; D.L. 179/2012, art. 16-ter; D.M. 44/2011 e specifiche tecniche art. 18 e 19-bis."
+  ]
+}

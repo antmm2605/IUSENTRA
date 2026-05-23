@@ -1,5 +1,9 @@
 # Lex AI Operational Knowledge Map
 
+Aggiornamento 2026-05-23, Notifiche legali e relata fascicolo 2.248.21: Lex deve conoscere il flusso IUSENTRA per notifica ex L. 53/1994 con documento d'ufficio rilasciato dal portale. Il sistema monitora i depositi del fascicolo, crea notifica di sistema quando il documento è disponibile, precompila il collegamento al Portale Servizi con fascicolo, R.G. e ufficio, acquisisce il file scaricato dall'avvocato, lo collega alla relata e blocca la generazione definitiva finché non risulta acquisito.
+
+Nelle risposte Lex deve descrivere questi passaggi come procedura software governata: rilevazione rilascio, avviso, accesso assistito al portale ufficiale, import nel fascicolo, preparazione relata, controlli L. 53/1994, verifica pubblici elenchi, attestazioni per allegati, firma, invio PEC, conservazione RAC/RdAC e deposito prova. Le azioni dispositive restano all'avvocato: il software non conserva credenziali del portale, non accede automaticamente al posto del professionista e non invia senza revisione.
+
 Aggiornamento 2026-05-23, Guida Pratica TOP9 set6 2.248.19: Lex deve leggere anche le schede importate da `kb_top9_set6_parte1.json` e `kb_top9_set6_parte2.json`. Il knowledge base contiene 1.080 schede complessive, con 1.018 codici ufficiali depositabili e 62 guide interne non depositabili. Le 54 schede iper-dettagliate ricevute dall'utente sono controllate campo per campo: 0 perdite tra KB, servizio/API, UI e Lex, e 0 sostituzioni da profili automatici.
 
 Aggiornamento 2026-05-23, ragionamento operativo Guida Pratica 2.248.19: `GuidaPraticaSource` deve passare a Lex un ragionamento da usare nelle risposte: separare guida interna e codice ministeriale, verificare presupposti e condizioni di procedibilità, preparare l'atto, presidiare allegati e termini, distinguere fatti del fascicolo, norme e limiti. Le voci specialistiche della scheda sono conoscenza conversazionale e devono restare interrogabili.

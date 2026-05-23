@@ -60,6 +60,88 @@ DOCUMENT_ORIGIN_LABELS: dict[str, str] = {
     "scansione_analogico": "copia per immagine da originale analogico",
 }
 
+PORTAL_DOCUMENT_SOURCES = {
+    "PORTALE_TELEMATICO",
+    "PST",
+    "POLISWEB",
+    "PDP",
+    "PAT",
+    "PTT",
+    "SIGIT",
+}
+
+LEGAL_NOTIFICATION_AUTOMATION_STEPS: tuple[dict[str, str], ...] = (
+    {
+        "id": "precompilazione",
+        "title": "Precompilazione da pratica e studio",
+        "body": "IUSENTRA propone avvocato, assistito, procedimento, destinatario e documenti già presenti nel fascicolo.",
+        "source": "L. 53/1994, art. 3-bis, commi 5 e 6",
+    },
+    {
+        "id": "documento_ufficio",
+        "title": "Documento rilasciato dall'ufficio",
+        "body": "Quando il fascicolo segnala un documento d'ufficio da notificare, il percorso richiede l'acquisizione governata dal Portale Servizi prima di generare la relata.",
+        "source": "D.M. 44/2011, art. 18; specifiche tecniche art. 19-bis",
+    },
+    {
+        "id": "pubblici_elenchi",
+        "title": "Verifica PEC su pubblico elenco",
+        "body": "Il percorso registra fonte, data e ora della verifica dell'indirizzo PEC del mittente e del destinatario.",
+        "source": "L. 53/1994, art. 3-bis, comma 1; D.L. 179/2012, art. 16-ter",
+    },
+    {
+        "id": "allegati",
+        "title": "Preparazione allegati",
+        "body": "Sono ammessi più documenti; per ciascun file vengono riportati nome, origine, eventuale attestazione e impronta SHA-256 quando disponibile.",
+        "source": "Specifiche tecniche D.M. 44/2011, art. 19-bis",
+    },
+    {
+        "id": "relata",
+        "title": "Relata separata e attestazioni",
+        "body": "Il sistema genera la relata separata e le attestazioni richieste; l'avvocato rivede e firma digitalmente prima dell'invio.",
+        "source": "L. 53/1994, art. 3-bis, commi 2 e 5",
+    },
+    {
+        "id": "pec",
+        "title": "PEC con oggetto obbligatorio",
+        "body": "L'oggetto è fissato alla formula prevista e la ricevuta richiesta resta completa.",
+        "source": "L. 53/1994, art. 3-bis, commi 3 e 4; D.M. 44/2011, art. 18, comma 6",
+    },
+    {
+        "id": "prova",
+        "title": "Pacchetto prova e deposito",
+        "body": "Dopo l'invio si conservano PEC inviata, RAC e RdAC complete in originale digitale e si prepara l'indicizzazione per il deposito.",
+        "source": "L. 53/1994, art. 9; Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5",
+    },
+)
+
+LEGAL_NOTIFICATION_DEPOSIT_STEPS: tuple[dict[str, str], ...] = (
+    {
+        "id": "atti",
+        "title": "Raccolta atti notificati",
+        "body": "La prova può includere più atti o allegati notificati, con nome e impronta SHA-256.",
+        "source": "Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5",
+    },
+    {
+        "id": "ricevute",
+        "title": "Ricevute originali",
+        "body": "Per ogni destinatario servono RAC e RdAC completa in formato originale digitale .eml o .msg.",
+        "source": "L. 53/1994, art. 3-bis, comma 3; D.M. 44/2011, art. 18, comma 6",
+    },
+    {
+        "id": "dati_atto",
+        "title": "Indicizzazione ricevute",
+        "body": "I riferimenti delle ricevute sono preparati per il file DatiAtto.xml della busta telematica.",
+        "source": "Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5",
+    },
+    {
+        "id": "audit",
+        "title": "Audit e controllo finale",
+        "body": "Il pacchetto prova registra file, impronte e controlli prima del deposito.",
+        "source": "L. 53/1994, art. 9",
+    },
+)
+
 DOCUMENT_ORIGIN_ALIASES: dict[str, str] = {
     "nativo": "nativo_digitale",
     "nativo_digitale": "nativo_digitale",
@@ -241,6 +323,131 @@ def needs_attestazione(origin: Any) -> bool:
 
 def block(code: str, message: str) -> str:
     return f"{code}: {message}"
+
+
+def _normalise_portal_match(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", "", text(value).lower())
+
+
+def _portal_reference_keys_from_mapping(item: dict[str, Any]) -> set[str]:
+    keys = {
+        text(item.get("id_documento")),
+        text(item.get("id_cat")),
+        text(item.get("id_repeatto")),
+        text(item.get("msg_id")),
+    }
+    return {key for key in keys if key}
+
+
+def _portal_reference_keys_from_document(document: Any) -> set[str]:
+    keys = {
+        text(getattr(document, "id_documento_portale", "")),
+        text(getattr(document, "id_cat_portale", "")),
+        text(getattr(document, "id_repeatto_portale", "")),
+        text(getattr(document, "msg_id_portale", "")),
+    }
+    return {key for key in keys if key}
+
+
+def _portal_name_keys_from_document(document: Any) -> set[str]:
+    return {
+        key
+        for key in (
+            _normalise_portal_match(getattr(document, "nome", "")),
+            _normalise_portal_match(getattr(document, "nome_originale", "")),
+            _normalise_portal_match(getattr(document, "nome_portale", "")),
+        )
+        if key
+    }
+
+
+def _portal_item_notification_hint(item: dict[str, Any], deposit: Any) -> bool:
+    haystack = " ".join(
+        text(value).lower()
+        for value in (
+            item.get("nome"),
+            item.get("tipo"),
+            item.get("tipo_atto"),
+            item.get("mittente"),
+            getattr(deposit, "tipo_atto", ""),
+            getattr(deposit, "servizio_portale", ""),
+        )
+    )
+    return any(
+        token in haystack
+        for token in (
+            "notifica",
+            "notificare",
+            "relata",
+            "sentenza",
+            "ordinanza",
+            "decreto",
+            "provvedimento",
+            "comunicazione",
+            "cancelleria",
+        )
+    )
+
+
+def released_office_documents_from_portal(fascicolo: Any) -> list[dict[str, Any]]:
+    """Return portal-released office documents not yet represented as local files."""
+
+    local_refs = {
+        key
+        for document in getattr(fascicolo, "documenti", []) or []
+        for key in _portal_reference_keys_from_document(document)
+    }
+    local_names = {
+        key
+        for document in getattr(fascicolo, "documenti", []) or []
+        for key in _portal_name_keys_from_document(document)
+    }
+    releases: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str]] = set()
+    for deposit in getattr(fascicolo, "depositi_pct", []) or []:
+        portal_documents = list(getattr(deposit, "documenti_portale", []) or [])
+        if not portal_documents:
+            continue
+        all_linked = bool(getattr(deposit, "documenti_ids", []) or []) and len(getattr(deposit, "documenti_ids", []) or []) >= len(portal_documents)
+        for item in portal_documents:
+            if not isinstance(item, dict):
+                continue
+            if "disponibile" in item and not boolish(item.get("disponibile")):
+                continue
+            ref_keys = _portal_reference_keys_from_mapping(item)
+            name_key = _normalise_portal_match(item.get("nome"))
+            acquired = bool((ref_keys & local_refs) or (name_key and name_key in local_names) or all_linked)
+            if acquired:
+                continue
+            external_deposit_id = text(getattr(deposit, "id_deposito_esterno", "")) or text(item.get("id_deposito"))
+            document_id = text(item.get("id_documento") or item.get("id_cat") or item.get("id_repeatto") or item.get("msg_id") or item.get("nome"))
+            unique_key = (external_deposit_id, document_id, text(item.get("nome")))
+            if unique_key in seen:
+                continue
+            seen.add(unique_key)
+            service = text(getattr(deposit, "servizio_portale", "")) or text(item.get("servizio"))
+            source = text(getattr(deposit, "fonte_portale", "")) or text(getattr(deposit, "fonte", "")) or "PST"
+            releases.append({
+                "fascicoloId": text(getattr(fascicolo, "id", "")),
+                "fascicoloNumero": text(getattr(fascicolo, "numero", "")),
+                "fascicoloTitolo": text(getattr(fascicolo, "titolo", "")),
+                "ufficio": text(getattr(fascicolo, "tribunale", "")),
+                "numeroRg": text(getattr(fascicolo, "numero_rg", "")),
+                "annoRg": text(getattr(fascicolo, "anno_rg", "")),
+                "depositoId": text(getattr(deposit, "id", "")),
+                "idDepositoEsterno": external_deposit_id,
+                "documentoId": document_id,
+                "nome": text(item.get("nome")),
+                "tipo": text(item.get("tipo") or item.get("tipo_atto") or getattr(deposit, "tipo_atto", "")),
+                "dataDeposito": text(item.get("data_deposito") or getattr(deposit, "timestamp", ""))[:10],
+                "mittente": text(item.get("mittente") or getattr(deposit, "pec_destinatario", "")),
+                "fontePortale": source,
+                "servizioPortale": service,
+                "riferimentoPortale": next(iter(ref_keys), document_id),
+                "notificaRichiesta": _portal_item_notification_hint(item, deposit),
+            })
+    releases.sort(key=lambda item: (item.get("dataDeposito") or "", item.get("nome") or ""), reverse=True)
+    return releases
 
 
 def _document_attestation_declared(document: dict[str, Any], payload: dict[str, Any]) -> bool:
@@ -595,6 +802,13 @@ def _documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
             "data_comunicazione_cancelleria": payload.get("data_comunicazione_cancelleria"),
             "attestazione_conformita": payload.get("attestazione_conformita"),
             "attestazione_conformita_presente": payload.get("attestazione_conformita_presente"),
+            "fonte_documento": payload.get("fonte_documento"),
+            "riferimento_portale": payload.get("riferimento_portale"),
+            "servizio_portale": payload.get("servizio_portale"),
+            "documento_ufficio": payload.get("documento_ufficio"),
+            "notifica_richiesta": payload.get("notifica_richiesta"),
+            "acquisito_da_portale": payload.get("acquisito_da_portale"),
+            "data_rilascio_portale": payload.get("data_rilascio_portale"),
         }
         if any(text(value) for value in single.values()):
             source = [single]
@@ -604,6 +818,21 @@ def _documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
         origin = normalise_document_origin(item.get("origine"))
         description = text(item.get("descrizione"))
         privacy_description = text(item.get("descrizione_breve_privacy"), description)
+        source_name = text(item.get("fonte_documento") or item.get("fonte") or item.get("source"))
+        portal_service = text(item.get("servizio_portale") or item.get("portale") or item.get("portal"))
+        portal_reference = text(
+            item.get("riferimento_portale")
+            or item.get("riferimentoPortale")
+            or item.get("id_documento_portale")
+            or item.get("idDocumentoPortale")
+        )
+        portal_source = source_name.upper() in PORTAL_DOCUMENT_SOURCES or portal_service.upper() in PORTAL_DOCUMENT_SOURCES
+        acquired_from_portal = boolish(item.get("acquisito_da_portale") or item.get("acquisitoDaPortale")) or bool(portal_reference or portal_source)
+        office_document = boolish(item.get("documento_ufficio") or item.get("documentoUfficio")) or origin in {
+            "copia_fascicolo_informatico",
+            "comunicazione_cancelleria",
+        }
+        notification_required = boolish(item.get("notifica_richiesta") or item.get("notificaRichiesta"))
         documents.append({
             "index": index,
             "nome_file": text(item.get("nome_file") or item.get("file")),
@@ -613,6 +842,13 @@ def _documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
             "origine_label": DOCUMENT_ORIGIN_LABELS.get(origin, text(item.get("origine"))),
             "necessita_attestazione": boolish(item.get("necessita_attestazione")) or origin in ORIGINS_REQUIRING_ATTESTATION,
             "hash_sha256": text(item.get("hash_sha256")),
+            "fonte_documento": source_name,
+            "riferimento_portale": portal_reference,
+            "servizio_portale": portal_service,
+            "documento_ufficio": office_document,
+            "notifica_richiesta": notification_required,
+            "acquisito_da_portale": acquired_from_portal,
+            "data_rilascio_portale": _format_italian_date(item.get("data_rilascio_portale") or item.get("dataRilascioPortale")),
             "attestazione_conformita": multiline_text(item.get("attestazione_conformita")),
             "attestazione_conformita_presente": boolish(item.get("attestazione_conformita_presente") or item.get("attestazione_presente")),
             "data_comunicazione_cancelleria": _format_italian_date(
@@ -621,6 +857,49 @@ def _documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
             ),
         })
     return documents
+
+
+def _office_document_acquisition_state(payload: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
+    documents = context["documenti"]
+    portal_documents = [
+        document
+        for document in documents
+        if document["acquisito_da_portale"] or document["riferimento_portale"] or text(document["fonte_documento"]).upper() in PORTAL_DOCUMENT_SOURCES
+    ]
+    release_detected = (
+        boolish(payload.get("documento_ufficio_rilasciato"))
+        or boolish(payload.get("documentoUfficioRilasciato"))
+        or any(document["notifica_richiesta"] and document["documento_ufficio"] for document in documents)
+    )
+    acquisition_required = release_detected or boolish(payload.get("acquisizione_portale_richiesta")) or boolish(
+        payload.get("acquisizionePortaleRichiesta")
+    )
+    acquired = (
+        boolish(payload.get("documento_ufficio_acquisito"))
+        or boolish(payload.get("documentoUfficioAcquisito"))
+        or boolish(payload.get("acquisizione_portale_completata"))
+        or boolish(payload.get("acquisizionePortaleCompletata"))
+        or bool(portal_documents)
+    )
+    return {
+        "releaseDetected": bool(release_detected),
+        "acquisitionRequired": bool(acquisition_required),
+        "acquired": bool(acquired),
+        "blocking": bool(acquisition_required and not acquired),
+        "documentsCount": len(portal_documents),
+        "documents": [
+            {
+                "name": document["nome_file"],
+                "description": document["descrizione"],
+                "source": document["fonte_documento"],
+                "portal": document["servizio_portale"],
+                "reference": document["riferimento_portale"],
+                "releasedAt": document["data_rilascio_portale"],
+                "notificationRequired": bool(document["notifica_richiesta"]),
+            }
+            for document in portal_documents
+        ],
+    }
 
 
 def _build_context(payload: dict[str, Any], *, template: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -847,20 +1126,20 @@ def _document_attestation_text(document: dict[str, Any], context: dict[str, Any]
     proceeding = context["procedimento"]
     if origin == "copia_fascicolo_informatico":
         return (
-            f"Attesto che il file {name}, contenente {description}, e' copia informatica conforme "
+            f"Attesto che il file {name}, contenente {description}, è copia informatica conforme "
             f"al corrispondente atto o provvedimento presente nel fascicolo informatico del procedimento "
             f"{proceeding['ufficio']}, R.G. n. {proceeding['numero_rg']}/{proceeding['anno_rg']}."
         )
     if origin == "comunicazione_cancelleria":
         return (
-            f"Attesto che il file {name}, contenente {description}, e' copia informatica conforme "
+            f"Attesto che il file {name}, contenente {description}, è copia informatica conforme "
             f"al documento allegato alla comunicazione telematica di cancelleria del "
             f"{document['data_comunicazione_cancelleria']} relativa al procedimento "
             f"R.G. n. {proceeding['numero_rg']}/{proceeding['anno_rg']}."
         )
     if origin == "scansione_analogico":
         return (
-            f"Attesto che il file {name}, contenente {description}, e' copia informatica per immagine "
+            f"Attesto che il file {name}, contenente {description}, è copia informatica per immagine "
             "conforme all'originale analogico in possesso del sottoscritto difensore."
         )
     return ""
@@ -1082,6 +1361,7 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
         blockers.extend(validate_custom_template_body(custom_body))
     role = context["destinatario"]["tipo"]
     documents = context["documenti"]
+    office_acquisition = _office_document_acquisition_state(payload, context)
     subject = LEGAL_NOTIFICATION_SUBJECT
     subject_input = text(payload.get("oggetto_pec") or payload.get("subject") or _deep_get(payload, "notifica.oggetto_pec"))
 
@@ -1133,6 +1413,11 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
         blockers.append(block("RELATA_FIRMATA_REQUIRED", "La relata deve essere firmata digitalmente."))
     if not boolish(payload.get("ricevuta_completa")) or text(payload.get("ricevuta_tipo")).lower() in {"breve", "sintetica", "assente"}:
         blockers.append(block("RICEVUTA_COMPLETA_REQUIRED", "La notifica PEC L. 53/1994 richiede ricevuta di avvenuta consegna completa."))
+    if office_acquisition["blocking"]:
+        blockers.append(block(
+            "DOCUMENTO_UFFICIO_ACQUISIZIONE_REQUIRED",
+            "Acquisisci dal Portale Servizi il documento rilasciato dall'ufficio prima di preparare la notifica.",
+        ))
 
     if not documents:
         blockers.append("Seleziona almeno un documento da notificare.")
@@ -1155,7 +1440,7 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
             if not document["data_comunicazione_cancelleria"]:
                 blockers.append(f"Documento {document['index']}: indica la data della comunicazione di cancelleria.")
         if document["necessita_attestazione"] and not _document_attestation_text_present(document, payload):
-            blockers.append(block("ATTESTAZIONE_REQUIRED", f"Documento {document['index']}: attestazione di conformita' obbligatoria per l'origine indicata."))
+            blockers.append(block("ATTESTAZIONE_REQUIRED", f"Documento {document['index']}: attestazione di conformità obbligatoria per l'origine indicata."))
 
     if context["procedimento"]["presente"] or template.get("requires_proceeding"):
         context["procedimento"]["presente"] = True
@@ -1165,7 +1450,7 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
 
     if boolish(payload.get("invio_finale")):
         if boolish(payload.get("destinatari_multipli")) and not boolish(payload.get("conferma_destinatari_multipli")):
-            blockers.append("Per piu' destinatari nella stessa PEC serve una conferma esplicita.")
+            blockers.append("Per più destinatari nella stessa PEC serve una conferma esplicita.")
         if not boolish(payload.get("approvazione_avvocato")):
             blockers.append("L'invio richiede approvazione finale dell'avvocato.")
 
@@ -1175,7 +1460,7 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
         or payload.get("relata_text_override")
     )
     if relata_override_text and len(relata_override_text) > 30000:
-        blockers.append("La bozza relata modificata e' troppo lunga.")
+        blockers.append("La bozza relata modificata è troppo lunga.")
 
     blockers = list(dict.fromkeys(blockers))
     if blockers:
@@ -1355,6 +1640,164 @@ def build_generation_log(
     }
 
 
+def legal_notification_automation_payload() -> dict[str, list[dict[str, str]]]:
+    """Expose the guided statutory workflow used by API, UI and demo reports."""
+
+    return {
+        "notifica": [dict(item) for item in LEGAL_NOTIFICATION_AUTOMATION_STEPS],
+        "deposito": [dict(item) for item in LEGAL_NOTIFICATION_DEPOSIT_STEPS],
+    }
+
+
+def _check_row(
+    *,
+    id: str,
+    label: str,
+    source: str,
+    passed: bool,
+    detail: str,
+    blocking: bool = True,
+) -> dict[str, Any]:
+    if passed:
+        status = "superato"
+    elif blocking:
+        status = "bloccante"
+    else:
+        status = "da completare"
+    return {
+        "id": id,
+        "label": label,
+        "source": source,
+        "status": status,
+        "detail": detail,
+        "blocking": blocking,
+    }
+
+
+def build_notification_normative_checks(payload: dict[str, Any], *, context: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    """Return the legal checks applied to the L. 53/1994 notification draft."""
+
+    context = context or _build_context(payload, template=select_relata_template(payload))
+    documents = context["documenti"]
+    office_acquisition = _office_document_acquisition_state(payload, context)
+    attestation_required = any(document["necessita_attestazione"] for document in documents)
+    attestation_present = not attestation_required or all(
+        _document_attestation_text_present(document, payload)
+        for document in documents
+        if document["necessita_attestazione"]
+    )
+    return [
+        _check_row(
+            id="oggetto_l53",
+            label="Oggetto PEC obbligatorio",
+            source="L. 53/1994, art. 3-bis, comma 4",
+            passed=text(payload.get("oggetto_pec")).lower() == LEGAL_NOTIFICATION_SUBJECT,
+            detail="La PEC deve usare la formula prevista per la notificazione in proprio.",
+        ),
+        _check_row(
+            id="pec_mittente",
+            label="PEC notificante da pubblico elenco",
+            source="L. 53/1994, art. 3-bis, comma 1",
+            passed=boolish(payload.get("mittente_pec_pubblico_elenco")) and boolish(
+                _first(payload, "avvocato.pec_validata", "mittente_pec_validata", "pec_mittente_validata")
+            ),
+            detail="La casella del notificante deve essere censita e validata.",
+        ),
+        _check_row(
+            id="pec_destinatario",
+            label="PEC destinatario e fonte",
+            source="D.L. 179/2012, art. 16-ter",
+            passed=context["destinatario"]["fonte_pec_key"] in PUBLIC_PEC_REGISTERS
+            and boolish(_first(payload, "destinatario.pec_pubblico_elenco", "destinatario_pec_pubblico_elenco", fallback=True))
+            and bool(context["destinatario"]["data_verifica_pec"]),
+            detail="Sono richiesti fonte pubblica, data e ora della verifica.",
+        ),
+        _check_row(
+            id="allegati",
+            label="Allegati della notifica",
+            source="Specifiche tecniche D.M. 44/2011, art. 19-bis",
+            passed=bool(documents),
+            detail=f"{len(documents)} documento/i indicati per la notifica.",
+        ),
+        _check_row(
+            id="documento_ufficio_acquisito",
+            label="Documento ufficio acquisito",
+            source="D.M. 44/2011, art. 18; specifiche tecniche art. 19-bis",
+            passed=not office_acquisition["acquisitionRequired"] or office_acquisition["acquired"],
+            blocking=bool(office_acquisition["blocking"]),
+            detail=(
+                "Documento d'ufficio acquisito dal Portale Servizi e tracciato nel fascicolo."
+                if office_acquisition["acquired"]
+                else "Se il portale segnala un documento d'ufficio da notificare, l'acquisizione è obbligatoria prima della relata."
+            ),
+        ),
+        _check_row(
+            id="attestazioni",
+            label="Attestazioni di conformità",
+            source="L. 53/1994, art. 3-bis, comma 2",
+            passed=attestation_present,
+            detail=(
+                "Attestazioni non necessarie per gli allegati selezionati."
+                if not attestation_required
+                else "Attestazioni richieste per copie da fascicolo, cancelleria o scansioni."
+            ),
+        ),
+        _check_row(
+            id="relata",
+            label="Relata separata e firma digitale",
+            source="L. 53/1994, art. 3-bis, comma 5",
+            passed=boolish(_first(payload, "notifica.relata_documento_separato", "relata_documento_separato"))
+            and boolish(_first(payload, "notifica.relata_firmata", "relata_firmata")),
+            detail="La relata deve essere documento informatico separato e firmato digitalmente.",
+        ),
+        _check_row(
+            id="ricevuta_completa",
+            label="RdAC completa",
+            source="D.M. 44/2011, art. 18, comma 6",
+            passed=boolish(payload.get("ricevuta_completa")) and text(payload.get("ricevuta_tipo")).lower() not in {"breve", "sintetica", "assente"},
+            detail="La ricevuta di avvenuta consegna deve essere completa.",
+        ),
+    ]
+
+
+def build_notification_audit_trail(
+    payload: dict[str, Any],
+    *,
+    context: dict[str, Any] | None = None,
+    phase: str = "notifica",
+    evidence_pack: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Create a compact, user-facing audit summary for the guided workflow."""
+
+    context = context or _build_context(payload, template=select_relata_template(payload))
+    documents = context["documenti"]
+    attestation_blocks = _attestation_blocks(context)
+    office_acquisition = _office_document_acquisition_state(payload, context)
+    return {
+        "phase": phase,
+        "generatedAt": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "practice": context["pratica"]["codice"],
+        "recipient": context["destinatario"]["nome_denominazione"],
+        "recipientPec": context["destinatario"]["pec"],
+        "recipientPecSource": context["destinatario"]["fonte_pec"],
+        "documentsCount": len(documents),
+        "documents": [
+            {
+                "name": document["nome_file"],
+                "description": document["descrizione"],
+                "origin": document["origine"],
+                "sha256": document["hash_sha256"],
+                "attestationRequired": bool(document["necessita_attestazione"]),
+            }
+            for document in documents
+        ],
+        "officeDocumentAcquisition": office_acquisition,
+        "attestationsGenerated": attestation_blocks,
+        "checks": build_notification_normative_checks(payload, context=context),
+        "evidencePack": evidence_pack or {},
+    }
+
+
 def build_output_plan(payload: dict[str, Any]) -> dict[str, Any]:
     context = _build_context(payload, template=select_relata_template(payload))
     date = re.sub(r"[^0-9]", "-", context["notifica"]["data"]).strip("-") or datetime.now().strftime("%Y-%m-%d")
@@ -1372,7 +1815,13 @@ def build_output_plan(payload: dict[str, Any]) -> dict[str, Any]:
         "distinta_prova_notifica.pdf",
         "scheda_esito_notifica.pdf",
     ]
-    return {"folder": folder, "files": files}
+    return {
+        "folder": folder,
+        "files": files,
+        "workflowSteps": [dict(item) for item in LEGAL_NOTIFICATION_AUTOMATION_STEPS],
+        "normativeChecks": build_notification_normative_checks(payload, context=context),
+        "auditTrail": build_notification_audit_trail(payload, context=context),
+    }
 
 
 def generate_relata_pdf_bytes(payload: dict[str, Any], *, pdfa: bool = False) -> bytes:
@@ -1761,6 +2210,96 @@ def prepare_pst_failed_notification_workflow(payload: dict[str, Any]) -> LegalWo
     )
 
 
+def build_deposit_normative_checks(payload: dict[str, Any], evidence_pack: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    """Return checks for depositing proof of a PEC notification."""
+
+    evidence_pack = evidence_pack or build_notification_evidence_pack(payload)
+    recipients = payload.get("destinatari")
+    if not isinstance(recipients, list):
+        recipients = [{
+            "nome": payload.get("destinatario_nome"),
+            "rac_file": payload.get("rac_file"),
+            "rdac_file": payload.get("rdac_file"),
+        }]
+    receipt_files = [
+        text(row.get(field))
+        for row in recipients
+        if isinstance(row, dict)
+        for field in ("rac_file", "rdac_file")
+    ]
+    originals_ok = bool(receipt_files) and all(Path(filename).suffix.lower() in {".eml", ".msg"} for filename in receipt_files)
+    return [
+        _check_row(
+            id="atti_notificati",
+            label="Atti notificati",
+            source="Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5",
+            passed=bool(payload.get("atti_notificati") or text(payload.get("atto_notificato"))),
+            detail="L'atto notificato viene inserito nella busta con gli allegati necessari.",
+        ),
+        _check_row(
+            id="relata_firmata",
+            label="Relata firmata",
+            source="L. 53/1994, art. 3-bis, comma 5",
+            passed=bool(text(payload.get("relata_firmata"))),
+            detail="La relata firmata digitalmente va conservata nel pacchetto prova.",
+        ),
+        _check_row(
+            id="pec_inviata",
+            label="PEC inviata",
+            source="L. 53/1994, art. 3-bis, comma 3",
+            passed=bool(text(payload.get("pec_inviata") or payload.get("pec_inviata_file"))),
+            detail="Il messaggio inviato resta allegato in originale digitale.",
+        ),
+        _check_row(
+            id="rac_rdac",
+            label="RAC e RdAC originali",
+            source="L. 53/1994, art. 9; D.M. 44/2011, art. 18, comma 6",
+            passed=originals_ok and boolish(payload.get("ricevuta_completa")),
+            detail="RAC e RdAC completa devono restare file .eml o .msg per ogni destinatario.",
+        ),
+        _check_row(
+            id="hash",
+            label="Impronte SHA-256",
+            source="Audit interno IUSENTRA",
+            passed=not evidence_pack.get("missing") and not evidence_pack.get("invalid_hashes"),
+            detail="Ogni file richiesto dal pacchetto prova deve avere impronta SHA-256 valida.",
+        ),
+        _check_row(
+            id="dati_atto",
+            label="Riferimenti DatiAtto.xml",
+            source="Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5",
+            passed=bool(text(payload.get("dati_atto_ricevute"))),
+            detail="I dati identificativi delle ricevute vanno indicizzati nel deposito.",
+        ),
+    ]
+
+
+def build_deposit_audit_trail(payload: dict[str, Any], evidence_pack: dict[str, Any]) -> dict[str, Any]:
+    recipients = payload.get("destinatari")
+    if not isinstance(recipients, list):
+        recipients = [{
+            "nome": payload.get("destinatario_nome"),
+            "rac_file": payload.get("rac_file"),
+            "rdac_file": payload.get("rdac_file"),
+        }]
+    return {
+        "phase": "deposito_prova",
+        "generatedAt": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "documentsCount": len([item for item in evidence_pack.get("items", []) if str(item.get("kind", "")).startswith("atto") or str(item.get("kind", "")).startswith("allegato")]),
+        "recipients": [
+            {
+                "name": text(row.get("nome")),
+                "racFile": text(row.get("rac_file")),
+                "rdacFile": text(row.get("rdac_file")),
+            }
+            for row in recipients
+            if isinstance(row, dict)
+        ],
+        "checks": build_deposit_normative_checks(payload, evidence_pack),
+        "evidencePack": evidence_pack,
+    }
+
+
 def validate_deposit_notification_proof(payload: dict[str, Any]) -> LegalWorkflowResult:
     """Validate the evidence pack before deposit of notification proof."""
 
@@ -1827,6 +2366,11 @@ def validate_deposit_notification_proof(payload: dict[str, Any]) -> LegalWorkflo
             "Controlla che RAC e RdAC restino in originale digitale.",
             "Verifica i riferimenti ricevute in DatiAtto.xml.",
         ),
-        output_plan={"evidencePack": evidence_pack},
-        log_json={"evento": "controllo_prova_notifica", "evidencePack": evidence_pack},
+        output_plan={
+            "evidencePack": evidence_pack,
+            "workflowSteps": [dict(item) for item in LEGAL_NOTIFICATION_DEPOSIT_STEPS],
+            "normativeChecks": build_deposit_normative_checks(payload, evidence_pack),
+            "auditTrail": build_deposit_audit_trail(payload, evidence_pack),
+        },
+        log_json={"evento": "controllo_prova_notifica", "evidencePack": evidence_pack, "audit": build_deposit_audit_trail(payload, evidence_pack)},
     )

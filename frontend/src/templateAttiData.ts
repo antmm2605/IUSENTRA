@@ -83,6 +83,12 @@ export type TemplateGuidePreviewCheck = {
   tone: AdminTone
 }
 
+export type TemplateEditorLayout = {
+  fontSize: number
+  lineHeight: number
+  pageScale: number
+}
+
 export type TemplateGuidePreview = {
   enabled: boolean
   eyebrow: string
@@ -95,6 +101,7 @@ export type TemplateGuidePreview = {
   uploadEndpoint: string
   importEndpoint: string
   previewPdfHref: string
+  wordHref: string
   saveEndpoint: string
   renderEndpoint: string
   importLabel: string
@@ -115,6 +122,7 @@ export type TemplateGuidePreview = {
     note: string
   }
   layoutChecks: TemplateGuidePreviewCheck[]
+  editorLayout: TemplateEditorLayout
 }
 
 export type TemplateNormativeReference = {
@@ -303,6 +311,7 @@ export const emptyTemplateCompilerPage: TemplateCompilerData = {
     uploadEndpoint: '',
     importEndpoint: '',
     previewPdfHref: '',
+    wordHref: '',
     saveEndpoint: '',
     renderEndpoint: '',
     importLabel: 'Importa PDF/Word',
@@ -314,6 +323,7 @@ export const emptyTemplateCompilerPage: TemplateCompilerData = {
     template: { code: '', name: '', reason: '', autoLoad: false },
     import: { enabled: false, formats: 'PDF/DOCX', note: '' },
     layoutChecks: [],
+    editorLayout: { fontSize: 15, lineHeight: 1.72, pageScale: 100 },
   },
 }
 
@@ -515,6 +525,7 @@ function normaliseGuidePreview(input: unknown, modelCode: string, modelName: str
   const item = asRecord(input)
   const template = asRecord(item.template)
   const importInfo = asRecord(item.import)
+  const editorLayout = asRecord(item.editorLayout || item.editor_layout)
   const fallback = emptyTemplateCompilerPage.guidePreview
   return {
     enabled: item.enabled === true,
@@ -528,6 +539,7 @@ function normaliseGuidePreview(input: unknown, modelCode: string, modelName: str
     uploadEndpoint: safeHref(item.uploadEndpoint, ''),
     importEndpoint: safeHref(item.importEndpoint, ''),
     previewPdfHref: safeHref(item.previewPdfHref, ''),
+    wordHref: safeHref(item.wordHref, ''),
     saveEndpoint: safeHref(item.saveEndpoint, ''),
     renderEndpoint: safeHref(item.renderEndpoint, ''),
     importLabel: text(item.importLabel) || fallback.importLabel,
@@ -548,6 +560,11 @@ function normaliseGuidePreview(input: unknown, modelCode: string, modelName: str
       note: text(importInfo.note),
     },
     layoutChecks: list(item.layoutChecks).map(normaliseGuidePreviewCheck).filter((check) => check.label),
+    editorLayout: {
+      fontSize: Number(editorLayout.fontSize || editorLayout.font_size || fallback.editorLayout.fontSize),
+      lineHeight: Number(editorLayout.lineHeight || editorLayout.line_height || fallback.editorLayout.lineHeight),
+      pageScale: Number(editorLayout.pageScale || editorLayout.page_scale || fallback.editorLayout.pageScale),
+    },
   }
 }
 

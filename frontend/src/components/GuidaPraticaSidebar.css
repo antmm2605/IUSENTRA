@@ -11,6 +11,18 @@
   margin: 0;
 }
 
+.iu-fas-guide-column > .iu-guida-pratica {
+  border-left: 0;
+  border-radius: 0 14px 14px 0;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, .10);
+  overflow: hidden;
+}
+
+.iu-fas-guide-column > .iu-guida-pratica:not(.iu-guida-pratica--collapsed) {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
 .iu-fas-detail-side > .iu-guida-pratica + .iu-fas-detail-section {
   margin-top: 0;
 }
@@ -102,6 +114,21 @@
   padding: 13px;
 }
 
+.iu-fas-guide-column > .iu-guida-pratica .iu-guida-header {
+  background: linear-gradient(180deg, #fffdf7, #f5f9ff);
+  padding: 14px 15px;
+}
+
+.iu-fas-guide-column > .iu-guida-pratica .iu-guida-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.iu-fas-guide-column > .iu-guida-pratica .iu-guida-header-actions {
+  justify-content: flex-start;
+  margin-top: 8px;
+}
+
 .iu-guida-header span,
 .iu-guida-section h4 {
   display: inline-flex;
@@ -165,6 +192,20 @@
   padding: 10px 12px 0;
 }
 
+.iu-fas-guide-column > .iu-guida-pratica .iu-guida-tabs {
+  border-bottom: 1px solid var(--iu-slate-200, #d8dee8);
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 10px;
+}
+
+.iu-fas-guide-column > .iu-guida-pratica .iu-guida-tabs button {
+  border-radius: 8px;
+  min-width: 0;
+  padding: 0 8px;
+}
+
 .iu-guida-tabs button {
   min-height: 32px;
   padding: 0 11px;
@@ -190,6 +231,14 @@
   padding: 12px;
   max-height: calc(100vh - 345px);
   overflow: auto;
+  scrollbar-width: thin;
+}
+
+.iu-fas-guide-column > .iu-guida-pratica .iu-guida-tab-panel {
+  gap: 9px;
+  max-height: calc(100vh - 360px);
+  overflow: auto;
+  padding: 11px;
   scrollbar-width: thin;
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { AlertTriangle, ArrowLeft, Bot, BookOpen, BriefcaseBusiness, CheckCircle2, Eye, ExternalLink, FileText, Filter, Layers, Palette, RefreshCw, Save, Search, ShieldCheck, Sparkles, Tags, Type, UploadCloud, UserRound } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
@@ -55,15 +55,69 @@ function collectControlData(root: HTMLElement | null) {
   return formData
 }
 
+function allCompilerFields(data: TemplateCompilerData): TemplateCompilerField[] {
+  return [...data.baseFields, ...data.extraFields]
+}
+
+function fieldValueByName(data: TemplateCompilerData, names: string[]) {
+  const normalized = names.map((name) => name.toLowerCase())
+  return allCompilerFields(data).find((field) => normalized.includes(field.name.toLowerCase()))
+}
+
+function labelForFieldValue(field?: TemplateCompilerField) {
+  const rawValue = String(field?.value || '').trim()
+  if (!rawValue || !field) return ''
+  const option = field.options.find((item) => String(item.value || '').trim() === rawValue)
+  return String(option?.label || rawValue).trim()
+}
+
+function resolveOfficeLabel(data: TemplateCompilerData) {
+  const exact = fieldValueByName(data, [
+    'court_name',
+    'recipient_or_court',
+    'competent_court',
+    'issuing_court',
+    'appeal_court',
+    'competent_judge',
+    'competent_authority',
+    'ufficio',
+    'tribunale',
+    'giudice',
+  ])
+  if (exact) return labelForFieldValue(exact)
+  const fuzzy = allCompilerFields(data).find((field) => /ufficio|giudice|tribunale|corte|autor/i.test(`${field.name} ${field.label}`))
+  return labelForFieldValue(fuzzy)
+}
+
+function stripFixedStampFromDraft(draft: string, data: TemplateCompilerData) {
+  let text = String(draft || '')
+  const stampLines = data.stamp.lines.map((line) => line.text.trim()).filter(Boolean)
+  if (!stampLines.length) return text
+  for (const line of stampLines) {
+    const escaped = line.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    text = text.trimStart().replace(new RegExp(`^${escaped}\\s*`, 'i'), '')
+  }
+  return text.trimStart()
+}
+
+function appendHiddenInput(form: HTMLFormElement, name: string, value: FormDataEntryValue | string) {
+  if (value instanceof File) return
+  const input = document.createElement('input')
+  input.type = 'hidden'
+  input.name = name
+  input.value = String(value)
+  form.appendChild(input)
+}
+
 function guideDraftFromData(data: TemplateCompilerData) {
-  if (data.guidePreview.initialText.trim()) return data.guidePreview.initialText
+  if (data.guidePreview.initialText.trim()) return stripFixedStampFromDraft(data.guidePreview.initialText, data)
   const client = data.selectors.selectedClienteLabel || 'Cliente della pratica'
-  const office = data.baseFields.find((field) => /ufficio|giudice|tribunale/i.test(field.name + field.label))?.value || 'Ufficio competente'
-  const title = data.extraFields.find((field) => /titolo|oggetto|ricorso|atto/i.test(field.name + field.label))?.value || data.model.name
+  const office = resolveOfficeLabel(data) || 'Seleziona l\'ufficio giudiziario dal catalogo'
+  const title = labelForFieldValue(data.extraFields.find((field) => /titolo|oggetto|ricorso|atto/i.test(`${field.name} ${field.label}`))) || data.model.name
   return [
-    `${office}`,
+    office,
     '',
-    `${title}`,
+    title,
     '',
     `${client}, rappresentato e difeso dall'avvocato indicato nel fascicolo, con procura allegata e domicilio professionale presso lo studio.`,
     '',
@@ -628,7 +682,9 @@ function CompilerSidePanel({ data }: { data: TemplateCompilerData }) {
   const missing = [...data.baseFields, ...data.extraFields].filter((field) => field.note?.tone === 'missing').length
   const found = [...data.baseFields, ...data.extraFields].filter((field) => field.note?.tone === 'found').length
   const redactionChecks = data.checks.blocking.filter((item) => !/codice oggetto pst|procura|contributo|deposito|datiatto|schema ministeriale|allegati essenziali|materia del fascicolo/i.test(item))
-  const depositChecks = [...data.checks.blocking, ...data.checks.recommended].filter((item) => /codice oggetto pst|procura|contributo|deposito|datiatto|schema ministeriale|allegati essenziali|ufficio non ancora risolto|materia del fascicolo/i.test(item))
+  const depositChecks = data.guidePreview.enabled
+    ? []
+    : [...data.checks.blocking, ...data.checks.recommended].filter((item) => /codice oggetto pst|procura|contributo|deposito|datiatto|schema ministeriale|allegati essenziali|ufficio non ancora risolto|materia del fascicolo/i.test(item))
   return (
     <aside className="iu-template-compiler-aside">
       {!data.guidePreview.enabled && data.stamp.lines.length ? (
@@ -699,8 +755,12 @@ function GuidePreviewWorkspace({
   importStatus,
   pdfStatus,
   saving,
+  bodyFontSize,
+  bodyLineHeight,
   onToolSelect,
   onDraftTextChange,
+  onBodyFontSizeChange,
+  onBodyLineHeightChange,
   onImport,
   onPreviewPdf,
   onDownloadWord,
@@ -714,8 +774,12 @@ function GuidePreviewWorkspace({
   importStatus: string
   pdfStatus: string
   saving: boolean
+  bodyFontSize: number
+  bodyLineHeight: number
   onToolSelect: (tool: string) => void
   onDraftTextChange: (value: string) => void
+  onBodyFontSizeChange: (value: number) => void
+  onBodyLineHeightChange: (value: number) => void
   onImport: () => void
   onPreviewPdf: () => void
   onDownloadWord: () => void
@@ -733,9 +797,12 @@ function GuidePreviewWorkspace({
     { label: 'AI', icon: Bot },
   ]
   const lines = data.stamp.lines.slice(0, 7)
-  const client = data.selectors.selectedClienteLabel || 'Cliente della pratica'
-  const office = data.baseFields.find((field) => /ufficio|giudice|tribunale/i.test(field.name + field.label))?.value || 'Ufficio competente'
-  const title = data.extraFields.find((field) => /titolo|oggetto|ricorso|atto/i.test(field.name + field.label))?.value || data.model.name
+  const editorStyle: CSSProperties = {
+    fontSize: `${bodyFontSize}pt`,
+    lineHeight: bodyLineHeight,
+  }
+  const visibleTemplateCode = data.model.code || preview.template.code
+  const secondaryTemplateCode = preview.template.code && preview.template.code !== visibleTemplateCode ? preview.template.code : ''
   const sourceRows = data.compliance.normativeReferences.length
     ? data.compliance.normativeReferences.slice(0, 3).map((ref) => ref.title || ref.article || ref.sourceTitle)
     : []
@@ -770,7 +837,17 @@ function GuidePreviewWorkspace({
       return (
         <div>
           <b>Aspetto</b>
-          <span>Stile studio, corpo testo leggibile e firma laterale come nel modello.</span>
+          <span>Stile studio e corpo testo leggibile nel modello.</span>
+          <div className="iu-template-guide-format-controls" aria-label="Formato testo anteprima">
+            <span>Corpo testo</span>
+            <button type="button" onClick={() => onBodyFontSizeChange(Math.max(10, bodyFontSize - 1))}>A-</button>
+            <strong>{bodyFontSize} pt</strong>
+            <button type="button" onClick={() => onBodyFontSizeChange(Math.min(22, bodyFontSize + 1))}>A+</button>
+            <span>Interlinea</span>
+            <button type="button" onClick={() => onBodyLineHeightChange(Math.max(1.25, Number((bodyLineHeight - 0.1).toFixed(2))))}>-</button>
+            <strong>{bodyLineHeight.toFixed(2)}</strong>
+            <button type="button" onClick={() => onBodyLineHeightChange(Math.min(2.2, Number((bodyLineHeight + 0.1).toFixed(2))))}>+</button>
+          </div>
           <Button type="button" tone="neutral" onClick={onDownloadWord}>Scarica Word</Button>
         </div>
       )
@@ -859,7 +936,7 @@ function GuidePreviewWorkspace({
               </aside>
               <article className="iu-template-guide-page-preview" aria-label="Pagina documento">
                 <div className="iu-template-guide-paper">
-                  <div className="iu-template-guide-paper__stamp">
+                  <div className="iu-template-guide-paper__stamp" aria-label="Timbro studio">
                     {lines.length ? lines.map((line, index) => (
                       <span className={line.bold ? 'is-bold' : ''} key={`${line.text}-${index}`}>{line.text}</span>
                     )) : (
@@ -869,13 +946,18 @@ function GuidePreviewWorkspace({
                       </>
                     )}
                   </div>
-                  <h3>{office}</h3>
-                  <h4>{title}</h4>
-                  <p><strong>{client}</strong>, rappresentato e difeso dall'avvocato indicato nel fascicolo, con procura allegata e domicilio professionale presso lo studio.</p>
-                  <h5>Ricorso</h5>
-                  <label className="iu-template-guide-editable">
-                    <span>Testo modificabile</span>
-                    <textarea value={draftText} onChange={(event) => onDraftTextChange(event.currentTarget.value)} aria-label="Testo documento modificabile" />
+                  <label className="iu-template-guide-editable iu-template-guide-editable--page">
+                    <span>Corpo atto modificabile</span>
+                    <textarea
+                      data-testid="guide-body-editor"
+                      className="iu-template-guide-body-editor"
+                      name="testo_generato"
+                      value={draftText}
+                      style={editorStyle}
+                      onChange={(event) => onDraftTextChange(event.currentTarget.value)}
+                      aria-label="Corpo atto modificabile"
+                      spellCheck
+                    />
                   </label>
                 </div>
               </article>
@@ -893,7 +975,8 @@ function GuidePreviewWorkspace({
                     <span>automatico</span>
                   </header>
                   <div className="iu-template-guide-card">
-                    <b>{preview.template.code} {preview.template.name}</b>
+                    <b>{visibleTemplateCode} {preview.template.name}</b>
+                    {secondaryTemplateCode ? <small>Catalogo guida: {secondaryTemplateCode}</small> : null}
                     <small>{preview.template.reason}</small>
                   </div>
                   <div className="iu-template-guide-actions">
@@ -952,6 +1035,8 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
   const [pdfStatus, setPdfStatus] = useState('')
   const [activeGuideTool, setActiveGuideTool] = useState('Testi')
   const [guideDraftText, setGuideDraftText] = useState('')
+  const [guideFontSize, setGuideFontSize] = useState(15)
+  const [guideLineHeight, setGuideLineHeight] = useState(1.72)
   const guideImportRef = useRef<HTMLInputElement>(null)
   const contextRef = useRef<HTMLDivElement>(null)
   const compilerRef = useRef<HTMLDivElement>(null)
@@ -964,6 +1049,8 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
       .then((payload) => {
         setData(payload)
         setGuideDraftText((current) => current || guideDraftFromData(payload))
+        setGuideFontSize(payload.guidePreview.editorLayout?.fontSize || 15)
+        setGuideLineHeight(payload.guidePreview.editorLayout?.lineHeight || 1.72)
       })
       .finally(() => setLoading(false))
   }
@@ -1029,7 +1116,12 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
     formData.set('_react_return', '1')
     formData.set('model_code', data.model.code || modelCode)
     formData.set('title', data.model.name || data.guidePreview.template.name || 'Atto')
-    formData.set('testo_generato', guideDraftText || guideDraftFromData(data))
+    formData.set('testo_generato', stripFixedStampFromDraft(guideDraftText || guideDraftFromData(data), data))
+    formData.set('testo_generato__editor_layout', JSON.stringify({
+      font_size: guideFontSize,
+      line_height: guideLineHeight,
+      page_scale: data.guidePreview.editorLayout.pageScale || 100,
+    }))
     formData.set('id_fascicolo', data.selectors.selectedFascicoloId)
     formData.set('case_id', data.selectors.selectedFascicoloId)
     formData.set('id_cliente', data.selectors.selectedClienteId)
@@ -1046,7 +1138,7 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
     submitFormJson(data.guidePreview.renderEndpoint, formData)
       .then((result) => {
         const text = String(result.testo_generato || result.text || '')
-        if (text.trim()) setGuideDraftText(text)
+        if (text.trim()) setGuideDraftText(stripFixedStampFromDraft(text, data))
         setPdfStatus(result.message || 'Anteprima aggiornata dal template compilato.')
       })
       .catch((error) => setPdfStatus(error instanceof Error ? error.message : 'Anteprima non aggiornata. Il testo visibile resta modificabile.'))
@@ -1077,23 +1169,8 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
       .finally(() => setSubmitting(false))
   }
 
-  const downloadGuideWord = () => {
-    const title = data.model.name || data.guidePreview.template.name || 'Atto'
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title></head><body><pre style="font-family: Georgia, serif; white-space: pre-wrap;">${(guideDraftText || guideDraftFromData(data)).replace(/[&<>]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[char] || char))}</pre></body></html>`
-    const blob = new Blob([html], { type: 'application/msword;charset=utf-8' })
-    const href = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = href
-    link.download = `${(data.model.code || 'atto').toLowerCase()}-guida-pratica.doc`
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    window.setTimeout(() => URL.revokeObjectURL(href), 15000)
-    setPdfStatus('Documento Word scaricato.')
-  }
-
-  const previewPdf = () => {
-    if (!data.guidePreview.previewPdfHref) return
+  const submitGuideDocument = (endpoint: string, status: string, success: string) => {
+    if (!endpoint) return
     const formData = data.guidePreview.enabled ? buildGuideFormData() : collectControlData(compilerRef.current)
     const title = data.model.name || data.guidePreview.template.name || 'Atto'
     if (!String(formData.get('title') || '').trim()) formData.set('title', title)
@@ -1103,25 +1180,30 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
         `${title}\n\n${data.summary || 'Bozza generata dal template filtrato dalla Guida Pratica.'}`,
       )
     }
-    setPdfStatus('Genero anteprima PDF...')
-    fetch(data.guidePreview.previewPdfHref, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: {
-        Accept: 'application/pdf',
-        ...(csrfToken() ? { 'X-CSRFToken': csrfToken() } : {}),
-      },
-      body: formData,
-    })
-      .then(async (response) => {
-        if (!response.ok) throw new Error('Anteprima PDF non generata.')
-        const blob = await response.blob()
-        const href = URL.createObjectURL(blob)
-        window.open(href, '_blank', 'noopener,noreferrer')
-        window.setTimeout(() => URL.revokeObjectURL(href), 15000)
-        setPdfStatus('Anteprima PDF aperta.')
-      })
-      .catch((error) => setPdfStatus(error instanceof Error ? error.message : 'Anteprima PDF non generata.'))
+    setPdfStatus(status)
+    const form = document.createElement('form')
+    form.method = 'POST'
+    form.action = endpoint
+    form.target = '_blank'
+    form.enctype = 'multipart/form-data'
+    const token = csrfToken()
+    if (token) {
+      appendHiddenInput(form, '_csrf_token', token)
+      appendHiddenInput(form, 'csrf_token', token)
+    }
+    formData.forEach((value, name) => appendHiddenInput(form, name, value))
+    document.body.appendChild(form)
+    form.submit()
+    form.remove()
+    setPdfStatus(success)
+  }
+
+  const downloadGuideWord = () => {
+    submitGuideDocument(data.guidePreview.wordHref, 'Preparo documento Word...', 'Documento Word aperto.')
+  }
+
+  const previewPdf = () => {
+    submitGuideDocument(data.guidePreview.previewPdfHref, 'Apro anteprima PDF...', 'Anteprima PDF aperta.')
   }
 
   const importGuideDocument = () => {
@@ -1202,8 +1284,12 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
             importStatus={importStatus}
             pdfStatus={submitMessage || submitError || pdfStatus}
             saving={submitting}
+            bodyFontSize={guideFontSize}
+            bodyLineHeight={guideLineHeight}
             onToolSelect={setActiveGuideTool}
             onDraftTextChange={setGuideDraftText}
+            onBodyFontSizeChange={setGuideFontSize}
+            onBodyLineHeightChange={setGuideLineHeight}
             onImport={importGuideDocument}
             onPreviewPdf={previewPdf}
             onDownloadWord={downloadGuideWord}

@@ -828,7 +828,7 @@
   box-shadow: 0 16px 36px rgba(22, 34, 52, .18);
   color: #161616;
   font-family: Georgia, 'Times New Roman', serif;
-  min-height: 46rem;
+  min-height: 58rem;
   padding: 1.25rem 2rem 2rem;
   position: relative;
   width: min(100%, 45rem);
@@ -907,6 +907,62 @@
   outline: none;
   resize: vertical;
   width: 100%;
+}
+
+.iu-template-guide-editable--page {
+  margin-top: 2rem;
+  min-height: 42rem;
+  padding: .8rem .85rem;
+}
+
+.iu-template-guide-body-editor {
+  font-family: Georgia, 'Times New Roman', serif;
+  min-height: 40rem !important;
+  resize: vertical;
+  white-space: pre-wrap;
+}
+
+.iu-template-guide-format-controls {
+  align-items: center;
+  display: grid;
+  gap: .36rem;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  margin-top: .2rem;
+}
+
+.iu-template-guide-format-controls span {
+  color: #52627c;
+  font-size: .75rem;
+  font-weight: 800;
+}
+
+.iu-template-guide-format-controls strong {
+  color: #14233f;
+  font-size: .75rem;
+  min-width: 3.8rem;
+  text-align: center;
+}
+
+.iu-template-guide-format-controls button {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #d7e2f2;
+  border-radius: 8px;
+  color: #14233f;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: .72rem;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 1.85rem;
+  min-width: 2.2rem;
+  padding: 0 .35rem;
+}
+
+.iu-template-guide-format-controls button:hover {
+  border-color: rgba(37, 99, 220, .35);
+  box-shadow: 0 6px 16px rgba(37, 99, 220, .08);
 }
 
 .iu-template-guide-editable:focus-within {

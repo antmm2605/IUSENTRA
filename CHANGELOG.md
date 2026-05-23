@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.248.16 - 2026-05-22
+
+- Riallineata la Guida Pratica del fascicolo al mockup approvato: pannello operativo a sinistra, contenuto principale largo e leggibile, vecchia UI immobiliare rimossa e tab Normativa senza errore pagina.
+- Resa l'anteprima Template Atti realmente modificabile dentro la stessa finestra: editor testo, controlli aspetto, import PDF/Word, anteprima PDF, salvataggio nel fascicolo, timbro studio unico e nessuna firma digitale fittizia.
+- Separati i controlli redazionali dai controlli di deposito: la generazione del documento non blocca più per codice oggetto PST mancante; il codice ufficiale resta quello del fascicolo e viene presidiato nel flusso di deposito.
+- Corretto il template automatico della guida: l'URL `CIV_OPPDI_001` resta sul modello civile richiesto e non viene sostituito da modelli famiglia o monitori non pertinenti.
+- Aggiunto audit visivo reale con screenshot su fascicolo, normativa, lista fascicoli ed editor template, includendo prova di modifica testo e controllo anti-overflow.
+
 ## 2.248.15 - 2026-05-22
 
 - Integrato `kb_top9_set4_parte2.json` nella Guida Pratica come modulo separato, con audit voce per voce aggiornato a 7 file utente, 36 schede, 724 righe e zero voci perse tra KB, servizio/API, UI e Lex.

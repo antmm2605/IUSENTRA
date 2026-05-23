@@ -603,3 +603,11 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
 | Documenti test App V2 dopo nuovi test Guida Pratica | `python scripts\react-migration\generate_app_v2_test_docs.py --check` in CI | Risolto | Il primo push `91fceac4` ha fatto emergere che `docs/test-inventory.md` e `docs/test-plan-app-v2.md` non includevano ancora `tests/test_curate_codex_guida_pratica_completion.py` e `tests/test_import_guida_pratica_termini_processuali.py`. Gli shard a valle erano rossi o saltati per cascata dal blocco `Lint + syntax`. | Rigenerati i due documenti e rilanciati localmente registry check, test docs check, smoke inventory, smoke contratti offline e `tests/test_app_v2_page_registry.py tests/test_app_v2_test_plan_phase10.py tests/test_ci_cd_gates_phase11.py`. |
+
+## Note Guida Pratica editor e template 2.248.16 - 2026-05-22
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Filtro template guida/pratica | Pytest mirati e audit visuale | Risolto | Il filtro non deve essere cieco: corregge un template palesemente incoerente con la pratica, ad esempio famiglia su risarcimento davanti al Giudice di Pace, ma mantiene `CIV_OPPDI_001` quando è già coerente con la guida opposizione a decreto. | Per modifiche future rilanciare `test_template_guida_gdp_risarcimento_non_carica_modello_famiglia`, `test_template_guida_mantiene_modello_esplicito_coerente_con_la_guida` e audit visuale editor. |
+| Word da anteprima | HTTP reale e pytest | Risolto | La route Word andava in 500 se il layout editor era vuoto o non parsabile. Ora usa un layout sicuro e conserva il testo modificato dall'avvocato. | Tenere `test_template_guida_word_export_accetta_layout_editor_vuoto` come guardia contro regressioni. |
+| Separazione guida/deposito | Pytest deposito e visual audit | Nessuna issue aperta nuova | La Guida Pratica resta facoltativa e non blocca redazione o compilazione; i controlli PST bloccanti restano nel flusso deposito e guardano il codice ufficiale del fascicolo. | Non reintrodurre blocchi `Codice oggetto PST mancante` nella fase anteprima/modifica documento. |

@@ -5366,6 +5366,7 @@ def _react_template_guide_preview_payload(
         guide_code=guide_code,
         selected_fascicolo=selected_fascicolo,
     )
+    canonical_model_code = str(canonical_model_code or model_code or "").strip()
     model_label = str(model_name or model_code or "Template atto").strip()
     selected_case_label = _react_template_attr(selected_fascicolo, "titolo", "oggetto")
     selected_client_label = _react_template_attr(selected_cliente, "nome_completo", "ragione_sociale", "nome")
@@ -5387,6 +5388,7 @@ def _react_template_guide_preview_payload(
         "uploadEndpoint": url_for("carica_documento", id_fasc=fascicolo_id) if fascicolo_id else "",
         "importEndpoint": url_for("template_atti.api_importa_documento"),
         "previewPdfHref": url_for("template_atti.compila_pdf", model_code=model_code),
+        "wordHref": url_for("template_atti.compila_word", model_code=model_code),
         "saveEndpoint": url_for("template_atti.compila_guida_pratica_salva", model_code=model_code),
         "renderEndpoint": url_for("template_atti.compila_guida_pratica_anteprima", model_code=model_code),
         "importLabel": "Importa PDF/Word",
@@ -5417,6 +5419,11 @@ def _react_template_guide_preview_payload(
             {"label": "Timbro studio", "value": "alto sinistra, dati da Impostazioni Studio", "tone": "success" if (stamp.get("lines") or []) else "warning"},
             {"label": "Corpo atto", "value": "impaginazione coerente al template", "tone": "success"},
         ],
+        "editorLayout": {
+            "fontSize": 15,
+            "lineHeight": 1.72,
+            "pageScale": 100,
+        },
     }
 
 
@@ -5431,6 +5438,19 @@ def _guide_selected_model_code(*, model_code: str, guide_code: str, selected_fas
         guida = GuidaPraticaService().get_guidance(guide_code, fascicolo=fascicolo_context)
         plan = build_document_plan_for_guida(guida, fascicolo_context)
         recommended = ((plan.get("template") or {}).get("recommended") or {}) if isinstance(plan, dict) else {}
+        requested = str(model_code or "").strip()
+        options = [recommended]
+        alternatives = ((plan.get("template") or {}).get("alternatives") or []) if isinstance(plan, dict) else []
+        if isinstance(alternatives, list):
+            options.extend(item for item in alternatives if isinstance(item, dict))
+        for option in options:
+            option_codes = {
+                str(option.get("id") or "").strip(),
+                str(option.get("compilerCode") or "").strip(),
+                str(option.get("link_compilatore_code") or "").strip(),
+            }
+            if requested and requested in option_codes:
+                return requested
         return str(recommended.get("id") or recommended.get("compilerCode") or model_code or "").strip()
     except Exception:
         current_app.logger.debug("Template filtrato guida non risolto per %s", model_code, exc_info=True)
@@ -5504,13 +5524,13 @@ def template_atti_compila_page(model_code: str):
             except Exception:
                 selected_fascicolo = None
         if guide_code or origin == "guida_pratica":
-            target_code = _guide_template_target_code(
-                model_code=requested_model_code,
+            guide_target = _guide_template_target_code(
+                model_code=model_code,
                 guide_code=guide_code,
                 selected_fascicolo=selected_fascicolo,
             )
-            if target_code:
-                model_code = target_code
+            if guide_target and guide_target != model_code:
+                model_code = guide_target
 
         resolved = _resolve_compiler_context(model_code)
         assistant_analysis = _build_assistant_analysis(
@@ -5596,6 +5616,7 @@ def template_atti_compila_page(model_code: str):
                 initial_text = render_compiled_act(
                     model_code,
                     ctx.get("payload") if isinstance(ctx.get("payload"), dict) else form_values,
+                    include_timbro=False,
                 )
             except Exception:
                 current_app.logger.debug("Anteprima testo template non generata per %s", model_code, exc_info=True)

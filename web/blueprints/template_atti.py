@@ -673,6 +673,15 @@ def _safe_pdf_download_name(title: Any) -> str:
     return base
 
 
+def _safe_word_download_name(title: Any) -> str:
+    base = secure_filename(str(title or "").strip().lower().replace(" ", "_"))
+    if not base:
+        base = "atto"
+    if not base.endswith(".doc"):
+        base = f"{base}.doc"
+    return base
+
+
 def _json_safe_payload(value: Any) -> Any:
     if isinstance(value, str):
         return escape(value, quote=True)
@@ -1576,7 +1585,7 @@ def compila_guida_pratica_salva(model_code: str):
 
     testo_generato = request.form.get("testo_generato", "").strip()
     if not testo_generato:
-        testo_generato = render_compiled_act(model_code, payload)
+        testo_generato = render_compiled_act(model_code, payload, include_timbro=False)
     payload["title"] = request.form.get("title", "").strip() or payload.get("title") or model.get("name") or model_code
     payload["case_id"] = request.form.get("case_id", "").strip() or request.form.get("id_fascicolo", "").strip() or getattr(selected_fascicolo, "id", "")
     payload["id_cliente"] = request.form.get("id_cliente", "").strip() or payload.get("id_cliente") or getattr(selected_fascicolo, "id_cliente", "")
@@ -1637,7 +1646,7 @@ def compila_guida_pratica_anteprima(model_code: str):
     try:
         resolved = _resolve_compiler_context(model_code)
         payload = dict(resolved["payload"] or {})
-        testo_generato = render_compiled_act(model_code, payload)
+        testo_generato = render_compiled_act(model_code, payload, include_timbro=False)
     except Exception as exc:
         current_app.logger.exception("Anteprima Guida Pratica non generata per %s: %s", model_code, exc)
         return jsonify({
@@ -1761,13 +1770,62 @@ def compila_pdf(model_code: str):
     testo = request.form.get("testo_generato", "").strip()
     if not testo:
         resolved = _resolve_compiler_context(model_code)
-        testo = render_compiled_act(model_code, resolved["payload"])
+        testo = render_compiled_act(model_code, resolved["payload"], include_timbro=False)
     titolo = request.form.get("title", "") or model["name"]
     layout = _parse_editor_layout(request.form.get("testo_generato__editor_layout"))
     buf = _genera_pdf(titolo, testo, current_app.config, layout=layout, timbro=_get_studio_timbro())
     nome_file = _safe_pdf_download_name(titolo)
     return send_file(buf, mimetype="application/pdf",
                      as_attachment=False, download_name=nome_file)
+
+
+@template_atti.route("/compila/<model_code>/word", methods=["POST"])
+@_richiedi_login
+def compila_word(model_code: str):
+    from pct.compilatore_atti import get_modello, render_compiled_act
+
+    model = get_modello(model_code)
+    if not model:
+        abort(404)
+    testo = request.form.get("testo_generato", "").strip()
+    if not testo:
+        resolved = _resolve_compiler_context(model_code)
+        testo = render_compiled_act(model_code, resolved["payload"], include_timbro=False)
+    titolo = request.form.get("title", "") or model["name"]
+    layout = _parse_editor_layout(request.form.get("testo_generato__editor_layout")) or {}
+    try:
+        font_size = max(9.0, min(22.0, float(layout.get("font_size") or layout.get("fontSize") or 12)))
+    except (TypeError, ValueError):
+        font_size = 12.0
+    try:
+        line_height = max(1.0, min(2.2, float(layout.get("line_height") or layout.get("lineHeight") or 1.45)))
+    except (TypeError, ValueError):
+        line_height = 1.45
+    timbro = _get_studio_timbro()
+    try:
+        timbro_html = timbro.to_html()
+    except Exception:
+        timbro_html = ""
+    html = (
+        "<!doctype html><html><head><meta charset=\"utf-8\">"
+        f"<title>{escape(str(titolo), quote=True)}</title>"
+        "</head><body>"
+        "<section style=\"font-family: Georgia, 'Times New Roman', serif; "
+        "width: 15rem; text-align: center; line-height: 1.1; font-size: 11pt;\">"
+        f"{timbro_html}</section>"
+        "<pre style=\"font-family: Georgia, 'Times New Roman', serif; white-space: pre-wrap; "
+        f"font-size: {font_size:.1f}pt; line-height: {line_height:.2f}; "
+        f"margin-top: 28pt;\">{escape(testo)}</pre>"
+        "</body></html>"
+    )
+    buf = io.BytesIO(html.encode("utf-8"))
+    buf.seek(0)
+    return send_file(
+        buf,
+        mimetype="application/msword; charset=utf-8",
+        as_attachment=True,
+        download_name=_safe_word_download_name(titolo),
+    )
 
 
 # ================================================================ API assistente redazionale

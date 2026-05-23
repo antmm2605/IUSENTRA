@@ -1987,7 +1987,7 @@ def validate_payload(model_code: str, payload: dict[str, Any]) -> dict[str, str]
     return errors
 
 
-def render_compiled_act(model_code: str, payload: dict[str, Any]) -> str:
+def render_compiled_act(model_code: str, payload: dict[str, Any], *, include_timbro: bool = True) -> str:
     model = _require_model(model_code)
     renderers = {
         "civil_citation_v1": _render_civ_cit_001,
@@ -2001,6 +2001,8 @@ def render_compiled_act(model_code: str, payload: dict[str, Any]) -> str:
     }
     renderer = renderers.get(model.get("renderer", "generic_professional_v1"), _render_generic_professional_act)
     rendered = renderer(model, payload).strip()
+    if not include_timbro:
+        return rendered
     try:
         from pct.studio_timbro import inject_timbro_text
 

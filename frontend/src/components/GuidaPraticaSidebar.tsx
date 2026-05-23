@@ -205,9 +205,15 @@ function StructuredBlock({ value, empty = 'Voce da completare.' }:{value: unknow
   return <p className="iu-guida-lead">{text(value, empty)}</p>
 }
 
-function NormativaItem({ item }:{item:GuidaNormativa}) {
-  const label = [item.fonte, item.articolo].filter(Boolean).join(' art. ')
-  return <li><strong>{label || 'Norma'}</strong><span>{item.descrizione || 'Descrizione da completare'}</span></li>
+function NormativaItem({ item }:{item:GuidaNormativa | unknown}) {
+  if (!isRecord(item)) {
+    return <li><strong>{text(item, 'Norma')}</strong><span>Riferimento da verificare nella scheda.</span></li>
+  }
+  const fonte = text(item.fonte || item.source || item.codice || item.norma)
+  const articolo = text(item.articolo || item.article)
+  const label = [fonte, articolo].filter(Boolean).join(' art. ')
+  const detail = firstReadable(item, ['descrizione', 'description', 'testo', 'contenuto', 'nota', 'note']) || compactRecord(item)
+  return <li><strong>{label || 'Norma'}</strong><span>{detail || 'Descrizione da completare'}</span></li>
 }
 
 function ReviewBanner({ guida }:{guida?:GuidaPratica}) {
@@ -353,7 +359,11 @@ function NormativaTab({ guida }:{guida?:GuidaPratica}) {
       </Section>
       {guida?.presupposti_sostanziali?.length ? (
         <Section title="Presupposti sostanziali" icon={<Gavel size={16}/> }>
-          <ol className="iu-guida-ordered">{guida.presupposti_sostanziali.map((item, index) => <li key={itemKey('presupposto', index, item)}>{item}</li>)}</ol>
+          <ol className="iu-guida-ordered">{guida.presupposti_sostanziali.map((item, index) => {
+            const title = itemTitle(item, 'Presupposto')
+            const detail = itemDetail(item)
+            return <li key={itemKey('presupposto', index, title)}><strong>{title}</strong>{detail ? <span>{detail}</span> : null}</li>
+          })}</ol>
         </Section>
       ) : null}
     </div>
@@ -418,10 +428,20 @@ function AttoTab({ guida }:{guida?:GuidaPratica}) {
         </dl>
       </Section>
       <Section title="Struttura obbligatoria" icon={<ListChecks size={16}/> }>
-        {struttura.length ? <ol className="iu-guida-ordered">{struttura.map((item, index) => <li key={itemKey('sezione', index, item.sezione)}><strong>{item.sezione}</strong>{item.contenuto ? <span>{item.contenuto}</span> : null}</li>)}</ol> : <p className="iu-empty">Struttura da completare.</p>}
+        {struttura.length ? <ol className="iu-guida-ordered">{struttura.map((item, index) => {
+          const record: Record<string, unknown> = isRecord(item) ? item : {}
+          const title = itemTitle(item, 'Sezione')
+          const detail = firstReadable(record, ['contenuto', 'descrizione', 'testo', 'note']) || itemDetail(item)
+          return <li key={itemKey('sezione', index, title)}><strong>{title}</strong>{detail ? <span>{detail}</span> : null}</li>
+        })}</ol> : <p className="iu-empty">Struttura da completare.</p>}
       </Section>
       <Section title="Campi da compilare" icon={<ClipboardCheck size={16}/> }>
-        {campi.length ? <ul className="iu-guida-fields">{campi.map((field, index) => <li key={itemKey('campo', index, field.id)}><strong>{field.label || readableValue(field.id, 'Campo')}</strong><span>{field.required === false ? 'Opzionale' : 'Obbligatorio'} - {readableValue(field.type, 'Campo')}</span>{field.formula ? <em>{field.formula}</em> : null}</li>)}</ul> : <p className="iu-empty">Campi da configurare.</p>}
+        {campi.length ? <ul className="iu-guida-fields">{campi.map((field, index) => {
+          const record: Record<string, unknown> = isRecord(field) ? field : {}
+          const title = itemTitle(field, readableValue(record.id, 'Campo'))
+          const formula = text(record.formula)
+          return <li key={itemKey('campo', index, title)}><strong>{title}</strong><span>{record.required === false ? 'Opzionale' : 'Obbligatorio'} - {readableValue(record.type, 'Campo')}</span>{formula ? <em>{formula}</em> : null}</li>
+        })}</ul> : <p className="iu-empty">Campi da configurare.</p>}
       </Section>
     </div>
   )
@@ -436,20 +456,30 @@ function AdempimentiTab({ guida }:{guida?:GuidaPratica}) {
     <div className="iu-guida-tab-panel">
       <Section title="Adempimenti propedeutici" icon={<ClipboardCheck size={16}/> }>
         {adempimenti.length ? <ol className="iu-guida-ordered">{adempimenti.map((item, index) => {
-          const title = itemTitle(item, `Passaggio ${item.step || index + 1}`)
+          const record: Record<string, unknown> = isRecord(item) ? item : {}
+          const title = itemTitle(item, `Passaggio ${text(record.step) || index + 1}`)
           const detail = itemDetail(item)
-          return <li key={itemKey('adempimento', index, title)}><strong>{title}</strong><span>{item.obbligatorio === false ? 'Consigliato' : 'Obbligatorio'}</span>{detail ? <em>{detail}</em> : null}{item.sanzione_omissione ? <em>{item.sanzione_omissione}</em> : null}</li>
+          const omissione = text(record.sanzione_omissione)
+          return <li key={itemKey('adempimento', index, title)}><strong>{title}</strong><span>{record.obbligatorio === false ? 'Consigliato' : 'Obbligatorio'}</span>{detail ? <em>{detail}</em> : null}{omissione ? <em>{omissione}</em> : null}</li>
         })}</ol> : <p className="iu-empty">Adempimenti da configurare.</p>}
       </Section>
       <Section title="Allegati" icon={<FileText size={16}/> }>
-        {allegati.length ? <ul className="iu-guida-fields">{allegati.map((item, index) => <li key={itemKey('allegato', index, item.id)}><strong>{item.label}</strong><span>{item.required === false ? 'Facoltativo/consigliato' : 'Obbligatorio'}</span></li>)}</ul> : <p className="iu-empty">Allegati da configurare.</p>}
+        {allegati.length ? <ul className="iu-guida-fields">{allegati.map((item, index) => {
+          const record: Record<string, unknown> = isRecord(item) ? item : {}
+          const title = itemTitle(item, 'Allegato')
+          return <li key={itemKey('allegato', index, title)}><strong>{title}</strong><span>{record.required === false ? 'Facoltativo/consigliato' : 'Obbligatorio'}</span></li>
+        })}</ul> : <p className="iu-empty">Allegati da configurare.</p>}
       </Section>
       <Section title="Termini processuali" icon={<TimerReset size={16}/> }>
         <StructuredList items={termini} prefix="termine" empty="Termini da completare o da verificare nel fascicolo."/>
       </Section>
       {avvertenze.length ? (
         <Section title="Avvertenze redazionali" icon={<AlertTriangle size={16}/> }>
-          <ul className="iu-guida-warning-list">{avvertenze.map((item, index) => <li key={itemKey('avvertenza', index, item)}>{item}</li>)}</ul>
+          <ul className="iu-guida-warning-list">{avvertenze.map((item, index) => {
+            const title = itemTitle(item, 'Avvertenza')
+            const detail = itemDetail(item)
+            return <li key={itemKey('avvertenza', index, title)}><strong>{title}</strong>{detail ? <span>{detail}</span> : null}</li>
+          })}</ul>
         </Section>
       ) : null}
     </div>

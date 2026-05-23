@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from html import unescape
 from pathlib import Path
 
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
@@ -181,6 +182,41 @@ def test_template_guida_gdp_risarcimento_non_carica_modello_famiglia(tmp_path: P
     assert "Tribunale per i Minorenni" not in payload["guidePreview"]["initialText"]
 
 
+def test_template_guida_mantiene_modello_esplicito_coerente_con_la_guida(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Opposizione a decreto",
+        TipoFascicolo.CIVILE,
+        oggetto="Opposizione a decreto ingiuntivo",
+        nome_cliente="Rossi Mario",
+        controparte="Bianchi S.r.l.",
+        tribunale="Tribunale di Palmi",
+        codice_oggetto_pst="100002",
+        fonte_codice_oggetto="PST_XSD",
+    )
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.get(
+            f"/api/v1/ui/template-atti/compila/CIV_OPPDI_001"
+            f"?id_fascicolo={fascicolo.id}&guida_pratica=100002&origine=guida_pratica",
+        )
+
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["model"]["code"] == "CIV_OPPDI_001"
+    assert payload["guidePreview"]["template"]["code"] == "CIV_OPPDI_001"
+    assert "MON_012" not in payload["guidePreview"]["template"]["code"]
+
+
 def test_template_guida_anteprima_render_e_salvataggio_non_bloccati_da_pst_mancante(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
@@ -250,6 +286,29 @@ def test_template_guida_anteprima_render_e_salvataggio_non_bloccati_da_pst_manca
     assert saved_payload["ok"] is True
     assert saved_payload["created_as"] == "working_draft"
     assert "Codice oggetto PST mancante" not in saved_payload["message"]
+
+
+def test_template_guida_word_export_accetta_layout_editor_vuoto(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            "/template-atti/compila/CIV_OPPDI_001/word",
+            data={
+                "title": "Ricorso in opposizione",
+                "testo_generato": "Testo modificato dall'avvocato nell'anteprima.",
+                "testo_generato__editor_layout": "",
+            },
+        )
+
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert response.mimetype == "application/msword"
+    assert "Testo modificato dall'avvocato nell'anteprima." in unescape(body)
+    assert "Firmato digitalmente" not in body
 
 
 def test_guida_pratica_api_fascicolo_react_legge_stesso_fascicolo_json_legacy(tmp_path: Path):
@@ -328,16 +387,20 @@ def test_guida_pratica_api_fascicolo_senza_codice_propone_scheda_facoltativa_da_
 
 def test_guida_pratica_ui_fascicolo_restante_nel_rail_operativo():
     source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
-    css = Path("frontend/src/components/GuidaPraticaSidebar.css").read_text(encoding="utf-8")
+    sidebar_css = Path("frontend/src/components/GuidaPraticaSidebar.css").read_text(encoding="utf-8")
+    layout_css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
 
-    detail_grid_pos = source.index('<section className="iu-fas-detail-grid">')
-    rail_pos = source.index('<aside className="iu-fas-detail-side">', detail_grid_pos)
-    guida_pos = source.index("<GuidaPraticaSidebar", rail_pos)
+    detail_grid_pos = source.index('className="iu-fas-detail-grid iu-fas-detail-grid--with-guide"')
+    guide_column_pos = source.index('<aside className="iu-fas-guide-column"', detail_grid_pos)
+    guida_pos = source.index("<GuidaPraticaSidebar", guide_column_pos)
+    main_pos = source.index('<div className="iu-fas-detail-main">', guida_pos)
+    rail_pos = source.index('<aside className="iu-fas-detail-side">', main_pos)
     gestione_pos = source.index('<DetailSection id="gestione"', rail_pos)
 
-    assert rail_pos < guida_pos < gestione_pos
-    assert ".iu-fas-detail-side > .iu-guida-pratica" in css
-    assert "max-height: calc(100vh - 345px)" in css
+    assert detail_grid_pos < guide_column_pos < guida_pos < main_pos < rail_pos < gestione_pos
+    assert ".iu-fas-guide-column > .iu-guida-pratica" in sidebar_css
+    assert ".iu-fas-detail-grid--with-guide .iu-fas-detail-side > .iu-guida-pratica" in layout_css
+    assert "grid-template-columns:minmax(330px,390px) minmax(0,1fr) !important" in layout_css
 
 
 def test_guida_pratica_api_fascicolo_associa_guida_per_codice_separato_non_deposito(tmp_path: Path):

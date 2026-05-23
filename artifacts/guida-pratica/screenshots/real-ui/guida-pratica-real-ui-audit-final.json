@@ -1,0 +1,148 @@
+{
+  "generatedAt": "2026-05-22T23:59:11.582Z",
+  "browser": "Chrome headless via CDP (fallback: Browser plugin pane unavailable)",
+  "viewport": "1600x900",
+  "baseUrl": "http://127.0.0.1:8080",
+  "screenshots": {
+    "fascicolo-guida-left-final.png": "D:\\legale\\IUSENTRA\\artifacts\\guida-pratica\\screenshots\\real-ui\\fascicolo-guida-left-final.png",
+    "fascicolo-guida-normativa-final.png": "D:\\legale\\IUSENTRA\\artifacts\\guida-pratica\\screenshots\\real-ui\\fascicolo-guida-normativa-final.png",
+    "fascicoli-list-table-final.png": "D:\\legale\\IUSENTRA\\artifacts\\guida-pratica\\screenshots\\real-ui\\fascicoli-list-table-final.png",
+    "template-compiler-civ-oppdi-001-final.png": "D:\\legale\\IUSENTRA\\artifacts\\guida-pratica\\screenshots\\real-ui\\template-compiler-civ-oppdi-001-final.png"
+  },
+  "pass": true,
+  "audits": [
+    {
+      "name": "fascicolo_guida_left",
+      "pass": true,
+      "assertions": {
+        "real_case": true,
+        "guide_rendered": true,
+        "guide_left_column": true,
+        "not_right_rail": true,
+        "left_of_main": true,
+        "near_top": true,
+        "no_error": true,
+        "no_old_block": true,
+        "main_width_usable": true
+      },
+      "details": {
+        "url": "http://127.0.0.1:8080/fascicoli/DC5BF1DB?visual_audit=guida-left-final",
+        "title": "IUSENTRA",
+        "viewport": {
+          "width": 1600,
+          "height": 900
+        },
+        "hasRealCase": true,
+        "hasGuide": true,
+        "hasGuideColumn": true,
+        "guideInsideLeftColumn": true,
+        "oldRightRailGuide": false,
+        "guideLeftOfMain": true,
+        "guideNearTop": true,
+        "mainUsableWidth": 895,
+        "guideWidth": 374,
+        "rightSideBelowMainAt1600": true,
+        "errorPage": false,
+        "hasOldVenditaBlock": false,
+        "visibleExcerpt": "IUSENTRA\nLo studio legale, in un unico sistema\nPanoramica\nRegia Operativa\nRicerca Studio\nAGENDA\nFASCICOLI\nTutti i Fascicoli\nNuovo Fascicolo\nArchivio\nCLIENTI E ANAGRAFICHE\nSOGGETTI E PARTI\nCOMUNICAZIONI\nSCADENZE E TERMINI\nSERVIZI TELEMATICI\nSTUDIO\nSITO STUDIO\nIMPOSTAZIONI\nAMMINISTRAZIONE\nA\nAntonella Mammola\nAMMINISTRATORE\nCerca fascicolo, cliente, udienza, documento...\nCtrl K\nsab 23 mag\nNuovo\nFASCICOLO\nRG 466/2023 — Azioni di competenza del Giudice di Pace in materia di risarcimento danno\n\nDa archiviare\nCivile\nPronto per archivio\nAzioni di competenza del Giudice di Pace in materia di risarcimento danno\n\nFascicoli\nModifica\nQuadro AI\nCopertina\nPDF\nRG 466/2023\nRif. interno 2026/006\nAlessi Robertino\nGiudice di Pace - Palmi\nDati aggiornati\nProfilo\n14\nGuida pratica\nRegia Operativa\n0\nDocumenti e atti\n29\nAttività\n2\nUdienze / scadenze\n1\nComunicazioni / Cancelleria\n49\nAudit\n0\nGestione\nContesto economico\nConformità\nSoggetti\n2\nGuida pratica\nAzioni di competenza del Giudice di Pace in materia di risarcimento danno\n\nScheda 145009\n\nSuggerimento facoltativo dal contesto fascicolo. Il codice ufficiale resta nella scheda fascicolo e la guida non blocca il lavoro.\n\nUso facoltativo\nScheda suggerita\nGui"
+      }
+    },
+    {
+      "name": "fascicolo_normativa_tab",
+      "pass": true,
+      "assertions": {
+        "active_normativa": true,
+        "law_panel": true,
+        "no_error": true,
+        "not_blank": true
+      },
+      "details": {
+        "activeTab": "Normativa",
+        "hasLawPanel": true,
+        "errorPage": false,
+        "noBlank": true,
+        "excerpt": "Riferimenti primaric.p.c. art. 125Contenuto degli atti di parteD.P.R. 115/2002 art. 9 ss.Contributo unificato e spese di giustiziaD.M. 44/2011 art. 12-14Deposito telematico e busta informaticac.p.c. art. 155Computo dei termini processuali, proroghe e regole di calendario.L. 742/1969 art. 1 ss.Sospensione feriale dei termini processuali, salvo esclusioni o regimi speciali.Riferimenti secondariNessun riferimento secondario configurato.Presupposti sostanzialiIl fascicolo deve contenere cliente, controparte, ufficio, oggetto pratica, codice oggetto, valore, rito, fase, documenti, scadenze e note.Curato da: codex · Profilo: contenzioso_ordinario · Testo: Il fascicolo deve contenere cliente, controparte, ufficio, oggetto pratica, codice oggetto, valore, rito, fase, documenti, scadenze e note.Il "
+      }
+    },
+    {
+      "name": "fascicoli_list_table",
+      "pass": true,
+      "assertions": {
+        "has_list": true,
+        "has_table": true,
+        "no_page_overflow": true,
+        "table_not_absurd": true,
+        "no_error": true
+      },
+      "details": {
+        "url": "http://127.0.0.1:8080/fascicoli?visual_audit=list-final",
+        "hasList": true,
+        "hasTable": true,
+        "wrapClientWidth": 875,
+        "wrapScrollWidth": 875,
+        "bodyClientWidth": 1585,
+        "bodyScrollWidth": 1585,
+        "shellClientWidth": 1349,
+        "shellScrollWidth": 1349,
+        "errorPage": false,
+        "excerpt": "IUSENTRA\nLo studio legale, in un unico sistema\nPanoramica\nRegia Operativa\nRicerca Studio\nAGENDA\nFASCICOLI\nTutti i Fascicoli\nNuovo Fascicolo\nArchivio\nCLIENTI E ANAGRAFICHE\nSOGGETTI E PARTI\nCOMUNICAZIONI\nSCADENZE E TERMINI\nSERVIZI TELEMATICI\nSTUDIO\nSITO STUDIO\nIMPOSTAZIONI\nAMMINISTRAZIONE\nA\nAntonella Mammola\nAMMINISTRATORE\nCerca fascicolo, cliente, udienza, documento...\nCtrl K\nsab 23 mag\n49\nNuovo\nFASCICOLI\nFascicoli\n\nProcedimenti civili, penali, amministrativi e tributari con scadenze, documenti, clienti e prossime azioni.\n\nEsporta\nArchivio\nNuovo fascicolo\nATTIVI\n0\nnon archiviati\nIN CORSO\n0\nda lavorare\nDA ARCHIVIARE\n0\ndefiniti o pronti\nSCADENZE 7G\n0\npriorità immediata\nDOCUMENTI\n0\nnel perimetro visibile\nCOMUNICAZIONI\n0\nnon lette o da associare\nTIPO\nTutti i tipi (0)\nSTATO\nTutti gli stati (0)\nFiltri\nCONTESTO FILTRI\nAggiornati di recente\nTutti gli uffici\nSincronizzazione fascicoli...\nVista ope"
+      }
+    },
+    {
+      "name": "template_editor_civ_oppdi_001",
+      "pass": true,
+      "assertions": {
+        "editor_present": true,
+        "editor_is_textarea": true,
+        "edit_applied": true,
+        "font_control_present": true,
+        "font_control_clickable": true,
+        "template_code_correct": true,
+        "no_wrong_family_template": true,
+        "no_wrong_mon_template": true,
+        "no_fake_signature": true,
+        "no_deposit_blockers": true,
+        "office_resolved": true,
+        "import_available": true,
+        "preview_available": true,
+        "save_available": true,
+        "no_duplicate_stamp": true,
+        "no_error": true
+      },
+      "details": {
+        "url": "http://127.0.0.1:8080/template-atti/compila/CIV_OPPDI_001?id_fascicolo=ECC8DDD7&guida_pratica=100002&origine=guida_pratica",
+        "hasEditor": true,
+        "editorTag": "TEXTAREA",
+        "editorEditableByTextarea": true,
+        "editorValueIncludesAudit": true,
+        "visibleTemplateCode": true,
+        "wrongFamilyTemplateVisible": false,
+        "wrongMonTemplateVisible": false,
+        "noDigitalSignature": true,
+        "noDepositBlockers": true,
+        "noGenericOffice": true,
+        "hasOfficeResolved": true,
+        "hasImportWordPdf": true,
+        "hasSaveButton": true,
+        "hasPreviewButton": true,
+        "hasFormatControls": true,
+        "duplicateStudioStampInEditor": false,
+        "stampTextCount": 1,
+        "editorFontSize": "21.3333px",
+        "editorLineHeight": "36.6933px",
+        "errorPage": false,
+        "excerpt": "IUSENTRA\nLo studio legale, in un unico sistema\nPanoramica\nRegia Operativa\nRicerca Studio\nAGENDA\nFASCICOLI\nCLIENTI E ANAGRAFICHE\nSOGGETTI E PARTI\nCOMUNICAZIONI\nSCADENZE E TERMINI\nSERVIZI TELEMATICI\nSTUDIO\nSITO STUDIO\nIMPOSTAZIONI\nAMMINISTRAZIONE\nA\nAntonella Mammola\nAMMINISTRATORE\nCerca fascicolo, cliente, udienza, documento...\nCtrl K\nsab 23 mag\n49\nNuovo\nAnteprima modifica\n\nOpposizione a Decreto Ingiuntivo - CIV_OPPDI_001 - CIVILE\n\nCatalogo\nAggiorna\n1 Apertura\n2 Guida nascosta\n3 Guida ora\n4 Contesto e termini\n5 Anteprima modifica\n6 Rientro completato\nGP\nGuida sotto\n\nANTEPRIMA MODIFICA\n\nEditor documento con impaginazione modello\n\nLa guida carica il template già filtrato sulla pratica; l'avvocato può cambiarlo o importare un proprio PDF/Word senza chiudere il fascicolo. Contesto: RG 2048/2025 — Opposizione a decreto - Rossi Mario.\n\nImporta PDF/Word\nAnteprima PDF\nSalva nel fascicolo\nEditor documento in anteprima\ntemplate filtrato dalla guida\nSetup\nPagine\nBlocchi\nTesti\nAspetto\nFonti\nAI\nSTUDIO LEGALE MONTAGNESE\nAvv. Roberto Montagnese\nVia NINO BIXIO 4, 89029 - TAURIANOVA (RC) - TAURIANOVA (RC)\nC.F. MNTRRT64L01L063H - P. IVA 01301790802\nTel. +393384626697 - PEC seidonnesas@legalmail.it - Email r.montagnese@tiscali.it\nCorpo atto modificabile\nAspetto\noperativo\nAspetto\nStile studio e corpo ",
+        "editResult": {
+          "ok": true,
+          "changed": true,
+          "beforeLength": 738,
+          "afterLength": 788
+        },
+        "plusResult": {
+          "found": true,
+          "fontSize": "20px"
+        }
+      }
+    }
+  ]
+}

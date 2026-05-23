@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.248.22 - 2026-05-23
+
+- Hotfix statico React: i vecchi asset Vite hashati restano disponibili dopo il deploy insieme ai nuovi, così i browser autenticati con shell in cache non ricevono più 404 sui chunk e non cadono nella pagina temporaneamente non disponibile.
+- Impedito il ripetersi del problema impostando la build React senza svuotamento della cartella `web/static/react` e aggiungendo un test che verifica che ogni bundle `index-*.js` richiami solo asset realmente presenti.
+
 ## 2.248.21 - 2026-05-23
 
 - Riprogettata `/notifiche-legali` come percorso guidato per avvocati: selezione automatica di tutti i documenti della pratica, allegati esterni multipli con calcolo SHA-256, azione manuale per aggiungere più allegati e pannello dei passaggi automatici.

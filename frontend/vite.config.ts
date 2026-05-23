@@ -35,7 +35,10 @@ export default defineConfig({
   },
   build: {
     outDir: '../web/static/react',
-    emptyOutDir: true,
+    // I chunk Vite hanno nomi hashati e possono restare in cache nei browser
+    // autenticati durante un deploy. Non svuotare la directory evita 404 sui
+    // bundle ancora referenziati da una shell caricata prima dell'aggiornamento.
+    emptyOutDir: false,
     manifest: true,
     rollupOptions: { input: './index.html' }
   },

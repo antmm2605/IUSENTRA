@@ -8,6 +8,17 @@ Nota conservativa: resta confermato anche lo storico `Fase 7 backfill mirato PDF
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
+## Hotfix asset React cache-safe 2.248.22 - 2026-05-23
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| Chrome CDP autenticato su runtime Flask locale `http://127.0.0.1:5061` | OK | `/fascicoli`, `/global-search`, `/portali/pst/acquisizione?focus=documenti` e `/notifiche-legali` renderizzano senza fallback errore pagina e senza eccezioni console con bundle `2.248.21`. |
+| Ripristino asset da `28d0ff3f` | OK | 128 asset Vite precedenti ripristinati in `web/static/react/assets` per compatibilità con shell React già in cache nei browser autenticati. |
+| `node node_modules\typescript\bin\tsc --noEmit`; `node node_modules\vite\bin\vite.js build` in `frontend` | OK | TypeScript e build Vite verdi con `emptyOutDir=false`; i nuovi asset sono generati senza cancellare quelli precedenti. |
+| `python -m pytest tests\test_react_asset_retention.py tests\test_app_v2_page_registry.py tests\test_app_v2_test_plan_phase10.py tests\test_ci_cd_gates_phase11.py -q --tb=short` | OK | 14/14 passati: presidio asset React cache-safe, registry App V2, documenti test e gate CI fase 11. |
+| Chrome CDP autenticato post-build su runtime Flask locale `http://127.0.0.1:5061` | OK | `/fascicoli`, `/global-search`, `/portali/pst/acquisizione?focus=documenti` e `/notifiche-legali` restano renderizzate dopo la build hotfix, senza fallback pagina temporaneamente non disponibile e senza eccezioni console. |
+| `python -m pytest tests\test_react_asset_retention.py tests\test_app_v2_page_registry.py tests\test_app_v2_test_plan_phase10.py tests\test_ci_cd_gates_phase11.py tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_utf8_integrity.py -q --tb=short`; packaging/OpenAPI/contratti React/UTF-8/diff-check | OK | Gate finale hotfix 27/27, packaging e OpenAPI allineati a `2.248.22`, contratti React verdi, UTF-8 valido e nessun errore whitespace. |
+
 ## Notifiche legali guidate 2.248.21 - 2026-05-23
 
 | Comando / verifica | Esito | Nota |

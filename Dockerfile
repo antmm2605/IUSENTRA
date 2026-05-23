@@ -1,4 +1,4 @@
-#  version: 2.248.21
+#  version: 2.248.22
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -96,7 +96,7 @@ RUN corepack enable \
 # Sorgenti del frontend + alias che puntano fuori da frontend/
 COPY packages ./packages
 COPY frontend ./frontend
-# Alias '@iusentra-data' → ../pct/data (vedi frontend/vite.config.ts)
+# Alias '@iusentra-data' -> ../pct/data (vedi frontend/vite.config.ts)
 COPY pct/data ./pct/data
 COPY pct/__init__.py ./pct/__init__.py
 
@@ -113,7 +113,7 @@ RUN corepack enable \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.248.21" \
+      org.opencontainers.image.version="2.248.22" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 

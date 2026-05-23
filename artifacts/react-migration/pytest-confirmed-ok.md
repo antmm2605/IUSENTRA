@@ -22,6 +22,14 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `python tools\sync_packaging_files.py --check`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py` | OK | Packaging, contratti API e OpenAPI riallineati alla versione `2.248.20`; provider verification verde (`auth-error=203`, `success=27`, `backend-security=1`). |
 | `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_utf8_integrity.py -q --tb=short` | OK | 13/13: consistenza packaging, readiness e UTF-8 verdi dopo il bump `2.248.20`. |
 
+## Hotfix checkout GitHub Actions 2.248.20 - 2026-05-23
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests\test_ci_no_regression_contract.py tests\test_ci_cd_gates_phase11.py -q --tb=short` | OK | 11/11: i contratti CI restano verdi dopo il passaggio dei checkout `CI` e `CI Quality Overlay` da SHA grezzo a ref evento. |
+| `python -m pytest tests\test_utf8_integrity.py -q --tb=short` | OK | 4/4: documentazione aggiornata senza introdurre regressioni UTF-8. |
+| `git diff --check` | OK | Nessun whitespace error nelle modifiche workflow e report. |
+
 ## Guida Pratica TOP9 set6 2.248.19 - 2026-05-23
 
 | Comando / verifica | Esito | Nota |

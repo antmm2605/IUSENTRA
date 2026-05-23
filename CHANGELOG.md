@@ -6,6 +6,8 @@
 - Estesa la payload React dei fascicoli con `clientId` e quella dei soggetti con `matterIds`/`matterRefs`, così il filtro `?fascicolo=` usa dati reali di studio senza fallback dimostrativi.
 - Verificati typecheck, build Vite, gate React, audit UI e browser reale desktop/tablet/mobile sul dettaglio fascicolo, con destinazioni cliente/soggetti editabili e zero overflow o testi tecnici vietati.
 
+- Stabilizzati i checkout dei workflow `CI` e `CI Quality Overlay`: i job scaricano il ref dell'evento invece dello SHA grezzo, evitando i failure infrastrutturali `could not read Username for 'https://github.com'` prima dell'esecuzione dei test.
+
 ## 2.248.19 - 2026-05-23
 
 - Integrati i due moduli `kb_top9_set6_parte1.json` e `kb_top9_set6_parte2.json` nella Guida Pratica: knowledge base full aggiornata a 1.080 schede, con 1.018 codici ufficiali ancora separati dal deposito e 62 guide interne/facoltative.

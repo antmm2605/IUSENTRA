@@ -569,8 +569,11 @@ def register_fascicoli_create_routes(
                     return _risposta_successo_form(messaggio_creazione, target, id_fascicolo=fascicolo.id)
                 target = url_for("dettaglio_fascicolo", id_fasc=fascicolo.id)
                 return _risposta_successo_form(messaggio_creazione, target, id_fascicolo=fascicolo.id)
-            except (ValueError, KeyError) as exc:
-                failure = _risposta_errore_form(str(exc), status=400)
+            except (ValueError, KeyError):
+                failure = _risposta_errore_form(
+                    "Non è stato possibile creare il fascicolo: controlla i dati obbligatori e riprova.",
+                    status=400,
+                )
                 if failure is not None:
                     return failure
 

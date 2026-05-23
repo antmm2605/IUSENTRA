@@ -658,13 +658,12 @@ class _SMTP_SSLv4(_smtplib.SMTP_SSL):
     def _ssl_context(self):
         ctx = getattr(self, "context", None) or getattr(self, "_context", None)
         if ctx is None:
-            import ssl as _ssl
-            ctx = _ssl.create_default_context()
+            ctx = _crea_contesto_tls_sicuro()
             try:
                 self.context = ctx
             except Exception:
                 self._context = ctx
-        return ctx
+        return _applica_minimo_tls(ctx)
 
     def _get_socket(self, host, port, timeout):
         ipv4_addr = _resolve_ipv4(host, port)
@@ -674,6 +673,25 @@ class _SMTP_SSLv4(_smtplib.SMTP_SSL):
             raw.connect((ipv4_addr, port))
             return self._ssl_context().wrap_socket(raw, server_hostname=host)
         return super()._get_socket(host, port, timeout)
+
+
+def _applica_minimo_tls(ctx):
+    """Imposta TLS 1.2+ anche su contesti ricevuti dall'esterno."""
+    import ssl as _ssl
+
+    if hasattr(_ssl, "TLSVersion"):
+        ctx.minimum_version = _ssl.TLSVersion.TLSv1_2
+    else:
+        ctx.options |= getattr(_ssl, "OP_NO_TLSv1", 0)
+        ctx.options |= getattr(_ssl, "OP_NO_TLSv1_1", 0)
+    return ctx
+
+
+def _crea_contesto_tls_sicuro():
+    """Crea un contesto TLS senza protocolli obsoleti per test SMTP/IMAP."""
+    import ssl as _ssl
+
+    return _applica_minimo_tls(_ssl.create_default_context())
 
 
 def _msg_errore_rete(e: Exception, prefisso: str) -> str:
@@ -689,12 +707,8 @@ def _msg_errore_rete(e: Exception, prefisso: str) -> str:
     outbound_hint = f" IP pubblico del server: {outbound_ip}." if outbound_ip else ""
     # DNS failure: hostname non trovato o non risolvibile
     if isinstance(e, socket.gaierror):
-        host_info = ""
-        args = getattr(e, "args", ())
-        if len(args) >= 2:
-            host_info = f" ({args[1]})"
         return (
-            f"{prefisso}: hostname non trovato{host_info} — "
+            f"{prefisso}: hostname non trovato — "
             "verificare che l'indirizzo del server sia corretto (es. smtp.gmail.com, "
             "smtp.office365.com). Se il problema persiste in Docker, "
             "aggiungere 'dns: [8.8.8.8, 8.8.4.4]' al servizio nel docker-compose.yml."
@@ -721,14 +735,16 @@ def _msg_errore_rete(e: Exception, prefisso: str) -> str:
             "o richiedere whitelist dell'IP."
             f"{outbound_hint}"
         )
-    return f"{prefisso}: {e}"
+    return (
+        f"{prefisso}: connessione non completata. "
+        "Controlla host, porta, credenziali e certificato; il dettaglio tecnico è nel log server."
+    )
 
 
 def test_pec_smtp(cfg: ConfigPEC) -> Dict[str, Any]:
     """Testa la connessione SMTP PEC. Restituisce {'ok': bool, 'messaggio': str}."""
-    import ssl as _ssl
     try:
-        ctx = _ssl.create_default_context()
+        ctx = _crea_contesto_tls_sicuro()
         if cfg.use_ssl:
             with _SMTP_SSLv4(cfg.smtp_host, cfg.smtp_port, context=ctx, timeout=10) as s:
                 s.login(cfg.indirizzo, cfg.password)
@@ -744,9 +760,8 @@ def test_pec_smtp(cfg: ConfigPEC) -> Dict[str, Any]:
 def test_pec_imap(cfg: ConfigPEC) -> Dict[str, Any]:
     """Testa la connessione IMAP PEC. Restituisce {'ok': bool, 'messaggio': str}."""
     import imaplib
-    import ssl as _ssl
     try:
-        ctx = _ssl.create_default_context()
+        ctx = _crea_contesto_tls_sicuro()
         with imaplib.IMAP4_SSL(cfg.imap_host, cfg.imap_port,
                                 ssl_context=ctx) as m:
             m.login(cfg.indirizzo, cfg.password)
@@ -757,7 +772,6 @@ def test_pec_imap(cfg: ConfigPEC) -> Dict[str, Any]:
 
 def test_smtp_email(cfg: ConfigSMTP) -> Dict[str, Any]:
     """Testa la connessione SMTP email normale."""
-    import ssl as _ssl
     if not cfg.host:
         return {"ok": False, "messaggio": "Host SMTP non configurato. Vai in Impostazioni → Email SMTP e inserisci l'indirizzo del server (es. smtp.gmail.com)."}
     # Porta 25 è spesso bloccata o filtrata dagli ambienti hosted per policy anti-spam.
@@ -771,7 +785,7 @@ def test_smtp_email(cfg: ConfigSMTP) -> Dict[str, Any]:
     _resolved_ip = _resolve_ipv4(cfg.host, cfg.port)
     _ip_tag = f" [{_resolved_ip}:{cfg.port}]" if _resolved_ip else ""
     try:
-        ctx = _ssl.create_default_context()
+        ctx = _crea_contesto_tls_sicuro()
         if cfg.use_tls:
             # STARTTLS (porta 587 — Gmail, Outlook, IONOS…)
             with _SMTPv4(cfg.host, cfg.port, timeout=15) as s:
@@ -791,7 +805,6 @@ def test_smtp_email(cfg: ConfigSMTP) -> Dict[str, Any]:
 def test_smtp_imap(cfg: ConfigSMTP) -> Dict[str, Any]:
     """Testa la connessione IMAP della casella email ordinaria."""
     import imaplib
-    import ssl as _ssl
 
     if not cfg.imap_host:
         return {
@@ -808,7 +821,7 @@ def test_smtp_imap(cfg: ConfigSMTP) -> Dict[str, Any]:
         }
     mail = None
     try:
-        ctx = _ssl.create_default_context()
+        ctx = _crea_contesto_tls_sicuro()
         if cfg.imap_use_ssl:
             mail = imaplib.IMAP4_SSL(cfg.imap_host, cfg.imap_port, ssl_context=ctx)
         else:
@@ -840,8 +853,14 @@ def test_whatsapp(cfg: ConfigWhatsApp) -> Dict[str, Any]:
             )
             risultato = invia_messaggio(cfg.twilio_numero, "Test IUSENTRA — connessione OK.", wa_cfg)
             return {"ok": True, "messaggio": f"Twilio OK: {risultato.get('status', risultato)}"}
-        except Exception as e:
-            return {"ok": False, "messaggio": f"Errore Twilio: {e}"}
+        except Exception:
+            return {
+                "ok": False,
+                "messaggio": (
+                    "Errore Twilio: connessione non completata. "
+                    "Controlla credenziali, numero mittente e autorizzazioni nel pannello Twilio."
+                ),
+            }
     if cfg.callmebot_key:
         try:
             from pct.notifiche_wa import ConfigWA, invia_messaggio
@@ -851,6 +870,12 @@ def test_whatsapp(cfg: ConfigWhatsApp) -> Dict[str, Any]:
             )
             risultato = invia_messaggio("", "Test IUSENTRA — connessione OK.", wa_cfg)
             return {"ok": True, "messaggio": f"CallMeBot OK: {risultato}"}
-        except Exception as e:
-            return {"ok": False, "messaggio": f"Errore CallMeBot: {e}"}
+        except Exception:
+            return {
+                "ok": False,
+                "messaggio": (
+                    "Errore CallMeBot: connessione non completata. "
+                    "Controlla la chiave configurata e riprova."
+                ),
+            }
     return {"ok": False, "messaggio": "Nessun provider WhatsApp configurato."}

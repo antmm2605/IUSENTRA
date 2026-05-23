@@ -630,5 +630,10 @@ def build_react_guida_pratica_checklist_payload(*, codice: str, dati: dict[str, 
 
 def guida_pratica_error_payload(error: Exception) -> dict[str, Any]:
     if isinstance(error, GuidaPraticaError):
-        return {"ok": False, "code": "guida_pratica_error", "message": str(error), "generatedAt": _now()}
+        return {
+            "ok": False,
+            "code": "guida_pratica_error",
+            "message": "Scheda Guida Pratica non disponibile o non coerente con il catalogo.",
+            "generatedAt": _now(),
+        }
     return {"ok": False, "code": "guida_pratica_unavailable", "message": "Guida Pratica non disponibile.", "generatedAt": _now()}

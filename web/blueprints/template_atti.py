@@ -1818,14 +1818,13 @@ def compila_word(model_code: str):
         f"margin-top: 28pt;\">{escape(testo)}</pre>"
         "</body></html>"
     )
-    buf = io.BytesIO(html.encode("utf-8"))
-    buf.seek(0)
-    return send_file(
-        buf,
+    download_name = _safe_word_download_name(titolo)
+    response = current_app.response_class(
+        html.encode("utf-8"),
         mimetype="application/msword; charset=utf-8",
-        as_attachment=True,
-        download_name=_safe_word_download_name(titolo),
     )
+    response.headers["Content-Disposition"] = f'attachment; filename="{download_name}"'
+    return response
 
 
 # ================================================================ API assistente redazionale

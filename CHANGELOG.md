@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.248.17 - 2026-05-22
+
+- Rafforzati i gate CodeQL della tranche Guida Pratica: i test SMTP/IMAP usano un contesto TLS minimo 1.2, le risposte API non espongono più dettagli di eccezioni e l'export Word dell'anteprima non usa più `send_file` su contenuto derivato dalla richiesta.
+- Mantenuta invariata la separazione già decisa: Guida Pratica facoltativa, codice PST ufficiale del fascicolo riservato al deposito e anteprima/modifica documento non bloccata dai controlli di deposito.
+
 ## 2.248.16 - 2026-05-22
 
 - Riallineata la Guida Pratica del fascicolo al mockup approvato: pannello operativo a sinistra, contenuto principale largo e leggibile, vecchia UI immobiliare rimossa e tab Normativa senza errore pagina.

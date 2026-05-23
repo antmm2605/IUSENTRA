@@ -9,13 +9,13 @@ La Guida Pratica vive fuori dal codice applicativo:
 
 Il merge dei moduli produce un knowledge base unico, ma il catalogo ufficiale PST/XSD resta separato in `pct/data/cataloghi/codici_oggetto_pst.json`.
 
-## Risultato operativo 2.248.19
+## Risultato operativo 2.248.25
 
-- Codici nel catalogo guida: 1.080.
+- Codici nel catalogo guida: 1.087.
 - Codici ufficiali PST/XSD: 1.018.
 - Codici ufficiali con guida curata: 1.018.
 - Codici ufficiali senza guida curata: 0.
-- Schede interne o alias non depositabili: 62.
+- Schede interne o alias non depositabili: 69.
 
 Le schede interne sono mantenute per continuità dei fascicoli, ricerca e guida operativa facoltativa, ma non vengono considerate codici di deposito.
 
@@ -67,4 +67,13 @@ Il set ricevuto il 23 maggio 2026 è integrato nei moduli:
 
 Il codice `111003` resta agganciato al catalogo ufficiale. Le altre otto schede restano guide interne facoltative perché il codice ricevuto è assente o descrive nel catalogo locale una materia diversa: `GUIDA_PRELIMINARE_COMPRAVENDITA_2932_140002`, `GUIDA_IMPUGNAZIONE_DELIBERE_ASSEMBLEARI_155001`, `GUIDA_LICENZIAMENTO_DISCIPLINARE_220003`, `GUIDA_OPPOSIZIONE_CARTELLA_ESATTORIALE_191001`, `GUIDA_IMMISSIONI_INTOLLERABILI_130012`, `GUIDA_EREDITA_GIACENTE_413021`, `GUIDA_OPPOSIZIONE_SANZIONE_AMMINISTRATIVA_240001`, `GUIDA_DEMANSIONAMENTO_DEQUALIFICAZIONE_220030`.
 
-L'audit voce per voce controlla ora 11 moduli utente e 54 schede iper-dettagliate: nessun campo ricevuto è perso tra KB full, servizio/API, UI React e Lex, e nessuna denominazione/competenza/rito viene sostituita da profili automatici.
+## Aggiornamento TOP9 set7
+
+Il set ricevuto il 23 maggio 2026 è integrato nei moduli:
+
+- `pct/data/legal_knowledge_base_modules/kb_98_top9_set7_parte1.json`;
+- `pct/data/legal_knowledge_base_modules/kb_98_top9_set7_parte2.json`.
+
+I codici `011001` e `170001` restano agganciati al catalogo ufficiale. Le altre sette schede restano guide interne facoltative perché il codice ricevuto è assente o descrive nel catalogo locale una materia diversa: `GUIDA_GARANZIA_VIZI_COSA_VENDUTA_140011`, `GUIDA_RESPONSABILITA_COSE_CUSTODIA_160021`, `GUIDA_DISTANZE_LEGALI_COSTRUZIONI_130011`, `GUIDA_SCIOGLIMENTO_SOCIETA_PERSONE_211001`, `GUIDA_TUTELA_MAGGIORE_GRAVE_HANDICAP_413051`, `GUIDA_RISOLUZIONE_MUTUO_DECADENZA_TERMINE_142001`, `GUIDA_OPPOSIZIONE_PRECETTO_199001`.
+
+L'audit voce per voce controlla ora 13 moduli utente e 63 schede iper-dettagliate: nessun campo ricevuto è perso tra KB full, servizio/API, UI React e Lex, e nessuna denominazione/competenza/rito viene sostituita da profili automatici.

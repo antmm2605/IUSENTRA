@@ -1,0 +1,63 @@
+{
+  "source": "C:\\Users\\HelpdeskCSC4\\Downloads\\files (2).zip::kb_top9_set7_parte2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set7_parte2.json",
+  "sha256": "A2CB43E58FC48B8F8C6529CE39158A3D19951E2D183A7D65DC08CD4B8D0551DE",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET7_PARTE2",
+  "denominazione": "Settimo set di 9 codici - PARTE 2 di 2",
+  "codici_materia_originali": [
+    "211001",
+    "413051",
+    "142001",
+    "199001"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_SCIOGLIMENTO_SOCIETA_PERSONE_211001",
+    "GUIDA_TUTELA_MAGGIORE_GRAVE_HANDICAP_413051",
+    "GUIDA_RISOLUZIONE_MUTUO_DECADENZA_TERMINE_142001",
+    "GUIDA_OPPOSIZIONE_PRECETTO_199001"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "211001",
+      "codice_integrato": "GUIDA_SCIOGLIMENTO_SOCIETA_PERSONE_211001",
+      "codici_ufficiali_correlati_da_valutare": [
+        "152004",
+        "152999",
+        "455001",
+        "455999"
+      ],
+      "reason": "Il codice 211001 è ufficiale nel catalogo locale, ma riguarda sequestro conservativo in area lavoro; la scheda ricevuta riguarda scioglimento giudiziale di società di persone e resta interna."
+    },
+    {
+      "codice_originale": "413051",
+      "codice_integrato": "GUIDA_TUTELA_MAGGIORE_GRAVE_HANDICAP_413051",
+      "codici_ufficiali_correlati_da_valutare": [
+        "110001",
+        "110002",
+        "B02001",
+        "C15001"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda viene conservata come guida interna per interdizione/inabilitazione e tutela del maggiore d'età."
+    },
+    {
+      "codice_originale": "142001",
+      "codice_integrato": "GUIDA_RISOLUZIONE_MUTUO_DECADENZA_TERMINE_142001",
+      "codici_ufficiali_correlati_da_valutare": [
+        "140038",
+        "140041",
+        "140999"
+      ],
+      "reason": "Il codice 142001 è ufficiale nel catalogo locale, ma riguarda prestazione d'opera intellettuale; la scheda ricevuta riguarda risoluzione del mutuo e decadenza dal beneficio del termine, quindi resta interna."
+    },
+    {
+      "codice_originale": "199001",
+      "codice_integrato": "GUIDA_OPPOSIZIONE_PRECETTO_199001",
+      "codici_ufficiali_correlati_da_valutare": [
+        "100001"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; esiste il codice ufficiale 100001 per opposizione a precetto ex art. 615, primo comma, c.p.c., da usare per il deposito se confermato."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 15
+}

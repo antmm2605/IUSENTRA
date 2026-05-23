@@ -98,6 +98,8 @@ Ogni file consegnato dall'utente deve essere inventariato. Stato attuale:
 - `kb_top9_set5_parte2.json`: consegna controllata il 23 maggio 2026, SHA-256 `BC594B4709FD9DAB481897EB065FE82D3AE99839941BA606640C101AA6E89735`, macro area `TOP9_CODICI_FREQUENTI_SET5_PARTE2`; integrata come `pct/data/legal_knowledge_base_modules/kb_98_top9_set5_parte2.json` con il codice ufficiale `220020` e le guide interne `GUIDA_RESPONSABILITA_NOTAIO_COMMERCIALISTA_143003`, `GUIDA_CONSUMATORE_CLAUSOLE_VESSATORIE_180001`, `GUIDA_AZIONE_NEGATORIA_SERVITU_POSSESSORIA_130031`, ricevute come `143003`, `180001` e `130031` ma non usabili come codici di deposito. Report: `artifacts/guida-pratica/kb-set5-parte2-import-report.json`.
 - `kb_top9_set6_parte1.json`: consegna controllata il 23 maggio 2026, SHA-256 `551DE7054929FFBA02B4F9E65233DA654B6B8BE34C45C7B14DCDBBB40B676189`, macro area `TOP9_CODICI_FREQUENTI_SET6_PARTE1`; integrata come `pct/data/legal_knowledge_base_modules/kb_98_top9_set6_parte1.json` con le guide interne `GUIDA_PRELIMINARE_COMPRAVENDITA_2932_140002`, `GUIDA_IMPUGNAZIONE_DELIBERE_ASSEMBLEARI_155001`, `GUIDA_LICENZIAMENTO_DISCIPLINARE_220003`, `GUIDA_OPPOSIZIONE_CARTELLA_ESATTORIALE_191001`, `GUIDA_IMMISSIONI_INTOLLERABILI_130012`. Report: `artifacts/guida-pratica/kb-set6-parte1-import-report.json`.
 - `kb_top9_set6_parte2.json`: consegna controllata il 23 maggio 2026, SHA-256 `30A30AB394637494988A1D62361EC40754204B26733531409D66DC87660DD44A`, macro area `TOP9_CODICI_FREQUENTI_SET6_PARTE2`; integrata come `pct/data/legal_knowledge_base_modules/kb_98_top9_set6_parte2.json` con il codice ufficiale `111003` e le guide interne `GUIDA_EREDITA_GIACENTE_413021`, `GUIDA_OPPOSIZIONE_SANZIONE_AMMINISTRATIVA_240001`, `GUIDA_DEMANSIONAMENTO_DEQUALIFICAZIONE_220030`. Report: `artifacts/guida-pratica/kb-set6-parte2-import-report.json`.
+- `kb_top9_set7_parte1.json`: consegna controllata il 23 maggio 2026, SHA-256 `65EF8DC63818515AD7E952BF02FC8C52B38B964EC388A2026F4E6244C573B994`, macro area `TOP9_CODICI_FREQUENTI_SET7_PARTE1`; integrata come `pct/data/legal_knowledge_base_modules/kb_98_top9_set7_parte1.json` con i codici ufficiali `011001`, `170001` e le guide interne `GUIDA_GARANZIA_VIZI_COSA_VENDUTA_140011`, `GUIDA_RESPONSABILITA_COSE_CUSTODIA_160021`, `GUIDA_DISTANZE_LEGALI_COSTRUZIONI_130011`. Report: `artifacts/guida-pratica/kb-set7-parte1-import-report.json`.
+- `kb_top9_set7_parte2.json`: consegna controllata il 23 maggio 2026, SHA-256 `A2CB43E58FC48B8F8C6529CE39158A3D19951E2D183A7D65DC08CD4B8D0551DE`, macro area `TOP9_CODICI_FREQUENTI_SET7_PARTE2`; integrata come `pct/data/legal_knowledge_base_modules/kb_98_top9_set7_parte2.json` con le guide interne `GUIDA_SCIOGLIMENTO_SOCIETA_PERSONE_211001`, `GUIDA_TUTELA_MAGGIORE_GRAVE_HANDICAP_413051`, `GUIDA_RISOLUZIONE_MUTUO_DECADENZA_TERMINE_142001`, `GUIDA_OPPOSIZIONE_PRECETTO_199001`. Report: `artifacts/guida-pratica/kb-set7-parte2-import-report.json`.
 
 Regola: se un nuovo file ha nome diverso ma contenuto identico, deve essere registrato come già assorbito; se ha stesso nome logico ma contenuto diverso, deve essere trattato come revisione e confrontato campo per campo prima del merge.
 
@@ -116,7 +118,7 @@ Risultato storico prima dell'arrivo del set5:
 - 0 voci presenti nel materiale utente non supportate dalla UI della Guida Pratica;
 - 0 voci presenti nel materiale utente non leggibili da Lex.
 
-Aggiornamento 23 maggio 2026: i due moduli set6 sono stati importati, tracciati nei report dedicati e verificati con audit Python completo. Risultato corrente: 11 moduli utente, 54 schede, 1.095 righe di audit, 918 voci presenti, 0 perdite tra KB, servizio/API, UI e Lex, 0 valori scalar sostituiti nel servizio.
+Aggiornamento 23 maggio 2026: i due moduli set7 sono stati importati, tracciati nei report dedicati e verificati con audit Python completo. Risultato corrente: 13 moduli utente, 63 schede, 1.275 righe di audit, 1.072 voci presenti, 0 perdite tra KB, servizio/API, UI e Lex, 0 valori scalar sostituiti nel servizio.
 
 Schede ricevute con codice numerico non coerente con la descrizione ministeriale locale e quindi convertite in guide interne non depositabili:
 
@@ -140,6 +142,13 @@ Schede ricevute con codice numerico non coerente con la descrizione ministeriale
 - `GUIDA_EREDITA_GIACENTE_413021`, ricevuta come `413021`;
 - `GUIDA_OPPOSIZIONE_SANZIONE_AMMINISTRATIVA_240001`, ricevuta come `240001`;
 - `GUIDA_DEMANSIONAMENTO_DEQUALIFICAZIONE_220030`, ricevuta come `220030`.
+- `GUIDA_GARANZIA_VIZI_COSA_VENDUTA_140011`, ricevuta come `140011`;
+- `GUIDA_RESPONSABILITA_COSE_CUSTODIA_160021`, ricevuta come `160021`;
+- `GUIDA_DISTANZE_LEGALI_COSTRUZIONI_130011`, ricevuta come `130011`;
+- `GUIDA_SCIOGLIMENTO_SOCIETA_PERSONE_211001`, ricevuta come `211001`;
+- `GUIDA_TUTELA_MAGGIORE_GRAVE_HANDICAP_413051`, ricevuta come `413051`;
+- `GUIDA_RISOLUZIONE_MUTUO_DECADENZA_TERMINE_142001`, ricevuta come `142001`;
+- `GUIDA_OPPOSIZIONE_PRECETTO_199001`, ricevuta come `199001`.
 
 Questa conversione è obbligatoria: protegge il deposito, conserva integralmente la guida pratica dell'utente e impedisce che una scheda operativa non combaciante venga mostrata come codice ministeriale ufficiale.
 

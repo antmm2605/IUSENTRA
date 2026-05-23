@@ -2,6 +2,12 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.248.25 - 2026-05-23
+
+La Guida Pratica incorpora anche le due consegne TOP9 set7 ricevute dall'utente. La base completa sale a 1.087 schede: 1.018 codici ufficiali PST/XSD restano coperti e depositabili, mentre 69 schede sono guide interne non depositabili. `011001` e `170001` restano codici ufficiali; gli altri codici set7 non coerenti o assenti sono conservati come alias interni con `codice_originale_ricevuto`.
+
+Lex riceve le nuove schede come conoscenza pratica conversazionale: sequestro conservativo, nullità/decadenza di marchio, garanzia per vizi della vendita, responsabilità da cose in custodia, distanze legali, scioglimento di società di persone, tutela del maggiore d'età, mutuo/decadenza dal termine e opposizione a precetto. Nessuna risposta deve promuovere una guida interna a codice ufficiale del fascicolo o della busta.
+
 ## Aggiornamento operativo 2.248.21 - 2026-05-23
 
 Le notifiche legali L. 53/1994 con relata, allegati, documento d'ufficio e prova RAC/RdAC sono dati operativi dello studio, non fonti pubbliche generiche. Lex deve leggere prima fascicolo, depositi portale, documenti acquisiti, notifica di sistema, bozza relata, controlli L. 53, ricevute PEC e prova deposito. Le fonti normative esterne servono come cornice, ma non sostituiscono lo stato reale del fascicolo.

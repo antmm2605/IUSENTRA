@@ -15,14 +15,14 @@ Quando l'avvocato apre un fascicolo, IUSENTRA legge il codice oggetto PST/XSD de
 
 La guida è una knowledge base separata dal codice applicativo. Il catalogo ufficiale PST/XSD resta la fonte del codice depositabile; le schede guida spiegano come lavorare sul fascicolo e non inventano codici ministeriali.
 
-## Stato 2.248.19
+## Stato 2.248.25
 
 - Catalogo ufficiale `pct/data/cataloghi/codici_oggetto_pst.json`: 1.018 record validi.
 - Guide ufficiali curate: 1.018 su 1.018.
 - Codici ufficiali senza guida curata: 0.
 - Incoerenze tra guida e codice depositabile: 0.
-- Schede complessive nel KB full: 1.080.
-- Schede interne o alias non depositabili: 62, mantenuti per continuità, ricerca e guida pratica facoltativa.
+- Schede complessive nel KB full: 1.087.
+- Schede interne o alias non depositabili: 69, mantenuti per continuità, ricerca e guida pratica facoltativa.
 
 ## File principali
 
@@ -86,3 +86,7 @@ I moduli `kb_98_top9_set5_parte1.json` e `kb_98_top9_set5_parte2.json` aggiungon
 ## TOP9 set6
 
 I moduli `kb_98_top9_set6_parte1.json` e `kb_98_top9_set6_parte2.json` aggiungono nove schede operative. `111003` resta agganciato al catalogo ufficiale; le altre otto schede sono guide interne facoltative non depositabili e riportano il codice ricevuto in `codice_originale_ricevuto`.
+
+## TOP9 set7
+
+I moduli `kb_98_top9_set7_parte1.json` e `kb_98_top9_set7_parte2.json` aggiungono nove schede operative. `011001` e `170001` restano agganciati al catalogo ufficiale; le altre sette schede sono guide interne facoltative non depositabili e riportano il codice ricevuto in `codice_originale_ricevuto`.

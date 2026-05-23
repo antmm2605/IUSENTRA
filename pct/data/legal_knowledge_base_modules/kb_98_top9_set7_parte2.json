@@ -1,0 +1,1935 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET7_PARTE2",
+  "denominazione": "Settimo set di 9 codici - PARTE 2 di 2",
+  "registri": [
+    "SICID",
+    "SIVG"
+  ],
+  "data_generazione": "2026-05-23",
+  "scopo": "Parte 2 del settimo set TOP9: scioglimento società persone, tutela handicap maggiore d'età, risoluzione mutuo, opposizione precetto",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_SCIOGLIMENTO_SOCIETA_PERSONE_211001",
+      "denominazione": "Scioglimento giudiziale della società di persone (artt. 2272 e ss. c.c.)",
+      "categoria": "Diritto societario - vicende estintive società di persone",
+      "sottocategoria": "Azione per scioglimento e liquidazione società semplice, s.n.c., s.a.s.",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale - sezione civile o impresa; foro sede sociale (art. 19 c.p.c.)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2272",
+          "descrizione": "Cause di scioglimento della società - società semplice"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2275",
+          "descrizione": "Liquidazione - nomina dei liquidatori"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2276",
+          "descrizione": "Liquidatori - poteri"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2280",
+          "descrizione": "Conto della gestione dei liquidatori"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2282",
+          "descrizione": "Bilancio finale di liquidazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2308",
+          "descrizione": "Cause di scioglimento s.n.c."
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2309",
+          "descrizione": "Effetti dello scioglimento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2310",
+          "descrizione": "Liquidazione della società"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2311",
+          "descrizione": "Liquidatori"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2312",
+          "descrizione": "Cancellazione dal registro imprese"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2323-2324",
+          "descrizione": "Scioglimento s.a.s. - regole specifiche"
+        },
+        {
+          "fonte": "D.Lgs. 14/2019 (CCII)",
+          "descrizione": "Codice Crisi - per società insolventi"
+        },
+        {
+          "fonte": "Cass. SU 6070/2013",
+          "descrizione": "Effetti cancellazione società - estinzione e debiti residui"
+        }
+      ],
+      "cause_di_scioglimento_societa_persone": [
+        "ART. 2272 (società semplice e applicabili per estensione):",
+        "1) DECORSO DEL TERMINE pattuito (salvo proroga tacita)",
+        "2) CONSEGUIMENTO DELL'OGGETTO SOCIALE o sopravvenuta impossibilità di conseguirlo",
+        "3) VOLONTÀ DI TUTTI I SOCI (unanimità)",
+        "4) MANCANZA DELLA PLURALITÀ DI SOCI (se non ricostituita entro 6 mesi)",
+        "5) ALTRE CAUSE previste nel contratto sociale",
+        "ART. 2308 (s.n.c. - aggiunge):",
+        "6) DICHIARAZIONE DI LIQUIDAZIONE GIUDIZIALE (ex fallimento - per società commerciali)",
+        "7) ALTRE CAUSE LEGALI per s.a.s. (es. mancanza di tutte le categorie di soci)"
+      ],
+      "presupposti_sostanziali": [
+        "SOCIETÀ DI PERSONE in funzione (s.s., s.n.c., s.a.s.)",
+        "Una delle CAUSE DI SCIOGLIMENTO ex art. 2272 / 2308",
+        "Quando si chiede SCIOGLIMENTO GIUDIZIALE: dissenso tra i soci o mancata applicazione spontanea della causa di scioglimento",
+        "Possibile anche AZIONE PER ACCERTAMENTO dello scioglimento già verificato (per cancellazione registro imprese)"
+      ],
+      "fasi_della_liquidazione": [
+        "1. ACCERTAMENTO DELLA CAUSA DI SCIOGLIMENTO (eventualmente giudiziale)",
+        "2. NOMINA DEI LIQUIDATORI (consensuale o giudiziale ex art. 2275)",
+        "3. INVENTARIO da parte dei liquidatori",
+        "4. REALIZZAZIONE DELL'ATTIVO (vendita beni, riscossione crediti)",
+        "5. PAGAMENTO DEI DEBITI SOCIALI",
+        "6. EVENTUALE RICHIESTA AI SOCI DI VERSAMENTI per coprire perdite (art. 2280)",
+        "7. RIPARTIZIONE RESIDUO TRA I SOCI",
+        "8. BILANCIO FINALE DI LIQUIDAZIONE (art. 2282)",
+        "9. CANCELLAZIONE DAL REGISTRO IMPRESE (art. 2312)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VERIFICA QUALITÀ DI SOCIO E ATTO COSTITUTIVO",
+          "documenti": [
+            "Atto costitutivo società + eventuali modifiche",
+            "Visura camerale storica",
+            "Documenti di acquisto della partecipazione (per ingressi successivi)",
+            "Eventuali patti parasociali",
+            "Eventuali atti di trasferimento quote"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "IDENTIFICAZIONE CAUSA DI SCIOGLIMENTO",
+          "verifica": [
+            "Per decorso termine: data scadenza nel contratto sociale + eventuale proroga",
+            "Per impossibilità oggetto: documentazione del venir meno",
+            "Per volontà soci: necessità unanimità - tentare assemblea",
+            "Per mancanza pluralità: data uscita ultimo socio e verifica termine 6 mesi",
+            "Per altre cause statutarie: clausole specifiche"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "DOCUMENTAZIONE PATRIMONIO E SITUAZIONE SOCIETARIA",
+          "documenti": [
+            "Bilanci ultimi 3 anni",
+            "Visura immobili sociali",
+            "Inventario beni mobili e crediti",
+            "Documentazione debiti sociali",
+            "Documentazione operazioni pendenti",
+            "Eventuali contratti in essere"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "TENTATIVO DI LIQUIDAZIONE CONSENSUALE",
+          "modalita": [
+            "Verbalizzazione causa di scioglimento (atto notarile o autenticato)",
+            "Nomina consensuale dei liquidatori",
+            "Procedura di liquidazione concordata"
+          ],
+          "vantaggio": "Evita giudizio + più rapida"
+        },
+        {
+          "step": 5,
+          "descrizione": "Valutazione SCIOGLIMENTO E LIQUIDAZIONE GIUDIZIALE",
+          "necessità": [
+            "Dissenso tra i soci",
+            "Soci irreperibili",
+            "Soci inadempienti a obblighi di liquidazione",
+            "Comportamenti pregiudizievoli"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_scioglimento_giudiziale_societa_persone",
+        "denominazione": "Atto di citazione per scioglimento e liquidazione società di persone",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente - sezione civile o impresa",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore_socio",
+            "label": "Attore (socio o terzo interessato)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuti_societa_e_altri_soci",
+            "label": "Convenuti (società + altri soci - LITISCONSORTI NECESSARI)",
+            "type": "array_persone",
+            "required": true
+          },
+          {
+            "id": "societa",
+            "label": "Società",
+            "type": "object_persona_giuridica",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "denominazione",
+                "type": "string"
+              },
+              {
+                "id": "tipo_societa",
+                "type": "select",
+                "options": [
+                  "societa_semplice",
+                  "snc",
+                  "sas"
+                ]
+              },
+              {
+                "id": "sede_legale",
+                "type": "address"
+              },
+              {
+                "id": "data_costituzione",
+                "type": "date"
+              },
+              {
+                "id": "termine_di_durata",
+                "type": "date"
+              },
+              {
+                "id": "capitale_sociale",
+                "type": "currency"
+              },
+              {
+                "id": "elenco_soci_e_partecipazioni",
+                "type": "array"
+              }
+            ]
+          },
+          {
+            "id": "causa_scioglimento_dedotta",
+            "label": "Causa di scioglimento dedotta",
+            "type": "select",
+            "required": true,
+            "options": [
+              "decorso_termine_pattuito_2272_n_1",
+              "conseguimento_oggetto_o_impossibilita_2272_n_2",
+              "volonta_tutti_soci_2272_n_3",
+              "mancanza_pluralita_soci_per_oltre_6_mesi_2272_n_4",
+              "altra_causa_statutaria_2272_n_5",
+              "liquidazione_giudiziale_societa_commerciale_2308",
+              "altre_cause_legali_sas_2323_2324"
+            ]
+          },
+          {
+            "id": "descrizione_dettagliata_causa",
+            "label": "Descrizione dettagliata della causa",
+            "type": "textarea",
+            "required": true,
+            "min_length": 400
+          },
+          {
+            "id": "data_verificarsi_causa",
+            "label": "Data verificarsi della causa di scioglimento",
+            "type": "date",
+            "required": true
+          },
+          {
+            "id": "tentativi_liquidazione_consensuale",
+            "label": "Tentativi di liquidazione consensuale",
+            "type": "textarea"
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_intervenuto_scioglimento",
+              "nomina_giudiziale_dei_liquidatori",
+              "scioglimento_e_messa_in_liquidazione_della_societa",
+              "ordine_di_iscrizione_scioglimento_registro_imprese",
+              "definizione_modalita_liquidazione",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "liquidatori_proposti",
+            "label": "Liquidatori proposti",
+            "type": "array_persone"
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "LITISCONSORZIO NECESSARIO con tutti gli altri soci",
+          "Foro della sede sociale (art. 19 c.p.c.)",
+          "Per s.n.c./s.a.s. iscritte: iscrizione scioglimento nel registro imprese",
+          "Per società commerciale insolvente: alternativa apertura liquidazione giudiziale (D.Lgs. 14/2019 CCII)",
+          "Cancellazione societaria estingue società ma sopravvivono i debiti (Cass. SU 6070/2013)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atto_costitutivo_e_modifiche",
+          "label": "Atto costitutivo e modifiche statutarie",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "visura_camerale_storica",
+          "label": "Visura camerale storica della società",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_qualita_di_socio_attore",
+          "label": "Documentazione qualità di socio dell'attore",
+          "required": true
+        },
+        {
+          "id": "documentazione_causa_di_scioglimento",
+          "label": "Documentazione specifica della causa di scioglimento",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "bilanci_societa_ultimi_anni",
+          "label": "Bilanci ultimi 3 anni",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_patrimonio_societa",
+          "label": "Documentazione patrimonio attuale",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbali_assemblee_o_decisioni_dei_soci",
+          "label": "Verbali assemblee o decisioni dei soci",
+          "required": false
+        },
+        {
+          "id": "documentazione_tentativi_di_accordo",
+          "label": "Documentazione tentativi di accordo",
+          "required": false
+        },
+        {
+          "id": "consenso_liquidatori_proposti",
+          "label": "Consenso scritto dei liquidatori proposti",
+          "required_if": "liquidatori_proposti"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore (capitale sociale o patrimonio)",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "sentenza_di_scioglimento_e_nomina_liquidatori",
+          "trigger": "Esito accoglimento",
+          "automatico": false
+        },
+        {
+          "tipo": "iscrizione_scioglimento_registro_imprese",
+          "trigger": "Sentenza definitiva",
+          "obbligatoria": true
+        },
+        {
+          "tipo": "verbali_di_liquidazione",
+          "trigger": "Operatività liquidatori",
+          "automatico": false
+        },
+        {
+          "tipo": "bilancio_finale_di_liquidazione_2282",
+          "trigger": "Conclusione liquidazione",
+          "automatico": false
+        },
+        {
+          "tipo": "azione_responsabilita_amministratori_o_liquidatori",
+          "trigger": "Eventuale per cattiva gestione",
+          "automatico": false
+        },
+        {
+          "tipo": "liquidazione_giudiziale_se_insolvenza",
+          "trigger": "Per società commerciale insolvente",
+          "norma": "D.Lgs. 14/2019 CCII"
+        },
+        {
+          "tipo": "cancellazione_dal_registro_imprese",
+          "trigger": "Conclusione liquidazione",
+          "norma": "art. 2312 c.c."
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "sentenza_di_scioglimento_e_liquidazione",
+          "descrizione": "Accertamento scioglimento + nomina liquidatori"
+        },
+        {
+          "esito": "rigetto_per_assenza_causa_scioglimento",
+          "descrizione": "Cause invocate non sussistenti"
+        },
+        {
+          "esito": "transazione_con_liquidazione_consensuale",
+          "descrizione": "Accordo tra i soci in corso di causa"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Termine per ricostituzione pluralità soci",
+          "mesi": 6,
+          "decorrenza": "uscita ultimo socio",
+          "natura": "decadenziale",
+          "norma": "art. 2272 n. 4 c.c."
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuti",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "211001",
+      "codici_ufficiali_correlati_da_valutare": [
+        "152004",
+        "152999",
+        "455001",
+        "455999"
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Il codice 211001 è ufficiale nel catalogo locale, ma riguarda sequestro conservativo in area lavoro; la scheda ricevuta riguarda scioglimento giudiziale di società di persone e resta interna."
+    },
+    {
+      "codice": "GUIDA_TUTELA_MAGGIORE_GRAVE_HANDICAP_413051",
+      "denominazione": "Procedimenti di tutela del maggiore d'età con grave handicap (interdizione/inabilitazione - controversie)",
+      "categoria": "Volontaria giurisdizione - protezione - misure incapacitanti",
+      "sottocategoria": "Controversie su interdizione/inabilitazione: opposizione apertura, revoca, sostituzione tutore/curatore",
+      "rito": "Rito camerale ex artt. 712 e ss. c.p.c. con partecipazione PM obbligatoria",
+      "competenza": "Tribunale del luogo di residenza/domicilio dell'interdetto/inabilitato",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "414",
+          "descrizione": "Interdizione - presupposti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "415",
+          "descrizione": "Inabilitazione - presupposti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "417",
+          "descrizione": "Legittimazione a chiedere"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "418",
+          "descrizione": "Procedimento - esame interdicendo + parere periti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "424",
+          "descrizione": "Tutela dell'interdetto - nomina tutore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "429",
+          "descrizione": "Revoca dell'interdizione e dell'inabilitazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "430",
+          "descrizione": "Procedimento di revoca"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "404 e ss.",
+          "descrizione": "Amministrazione di sostegno (misura meno invasiva - codice 413061-413062)"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "712-720",
+          "descrizione": "Procedimento di interdizione e inabilitazione"
+        },
+        {
+          "fonte": "L. 6/2004",
+          "descrizione": "Introduzione AdS - principio di favor verso misure meno invasive"
+        },
+        {
+          "fonte": "Cass. SU 25366/2006",
+          "descrizione": "Rapporto AdS-interdizione - preferenza AdS"
+        },
+        {
+          "fonte": "Cass. 6079/2018",
+          "descrizione": "Revoca interdizione - presupposti"
+        }
+      ],
+      "tipologie_di_controversie_in_questo_codice": [
+        "OPPOSIZIONE all'apertura di interdizione/inabilitazione",
+        "RICORSO PER REVOCA dell'interdizione/inabilitazione (art. 429-430)",
+        "RICORSO PER SOSTITUZIONE TUTORE/CURATORE (per gravi inadempimenti, conflitto interessi)",
+        "RICORSO PER TRASFORMAZIONE IN AdS (passaggio a misura meno invasiva)",
+        "CONTROVERSIE SU ATTI COMPIUTI DAL TUTORE/CURATORE (impugnazioni)",
+        "RICORSO DI INTERDETTO/INABILITATO o LEGITTIMATO contro misura",
+        "DEFINIZIONE LIMITI ESATTI DELL'INABILITAZIONE (atti consentiti/vietati)"
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI UN PROVVEDIMENTO DI INTERDIZIONE/INABILITAZIONE in essere",
+        "Una delle TIPOLOGIE DI CONTROVERSIA:",
+        "- Per REVOCA: cessazione delle cause che hanno giustificato la misura (recupero capacità)",
+        "- Per SOSTITUZIONE TUTORE/CURATORE: gravi inadempienze, conflitto interessi, morte, dimissioni",
+        "- Per TRASFORMAZIONE IN AdS: adeguatezza misura meno invasiva",
+        "- Per IMPUGNAZIONE ATTI: violazione norme da parte del tutore/curatore"
+      ],
+      "legittimati_attivi": [
+        "L'INTERDETTO/INABILITATO STESSO (con difensore tecnico)",
+        "Il TUTORE/CURATORE",
+        "I PARENTI entro il 4° grado",
+        "Il PM",
+        "GIUDICE D'UFFICIO per modifiche urgenti"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Materia di volontaria giurisdizione - protezione"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "ACQUISIZIONE PROVVEDIMENTO INTERDIZIONE/INABILITAZIONE",
+          "documenti": [
+            "Sentenza di interdizione/inabilitazione",
+            "Verbale nomina tutore/curatore",
+            "Atti del procedimento originario",
+            "Eventuali successivi atti del tutore/curatore"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DEL MUTAMENTO DI CIRCOSTANZE",
+          "per_revoca": [
+            "Certificazioni mediche aggiornate attestanti recupero capacità",
+            "Relazioni psichiatriche, neurologiche",
+            "Documentazione su miglioramento progressivo",
+            "Eventuale documentazione di nuove cure efficaci"
+          ],
+          "per_sostituzione_tutore": [
+            "Documentazione su inadempienze del tutore/curatore",
+            "Documentazione su conflitto di interessi",
+            "Eventuale denuncia di abusi/maltrattamenti"
+          ],
+          "per_trasformazione_in_AdS": [
+            "Valutazione medica che attesti possibilità di AdS",
+            "Inquadramento delle reali necessità del soggetto",
+            "Identificazione candidato amministratore di sostegno"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "ACQUISIZIONE DOCUMENTAZIONE PATRIMONIALE E GESTIONALE",
+          "elementi": [
+            "Rendiconti tutore/curatore (per valutare gestione)",
+            "Documentazione atti compiuti",
+            "Patrimonio attuale interdetto/inabilitato",
+            "Eventuali abusi documentati"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VALUTAZIONE OPPORTUNITÀ AUDIZIONE DEL SOGGETTO",
+          "obbligatoria_per_revoca": "Audizione personale del soggetto necessaria (art. 419 c.c.)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_su_tutela_maggiore_handicap",
+        "denominazione": "Ricorso per revoca/modifica interdizione-inabilitazione o sostituzione tutore/curatore",
+        "schema_xsd_ministeriale": "AttoVolontariaGiurisdizione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "tipo_richiesta",
+            "label": "Tipo di richiesta",
+            "type": "select",
+            "required": true,
+            "options": [
+              "revoca_interdizione_per_recupero_capacita",
+              "revoca_inabilitazione_per_recupero_capacita",
+              "sostituzione_tutore_per_inadempienze",
+              "sostituzione_curatore_per_inadempienze",
+              "sostituzione_per_dimissioni_o_decesso_tutore",
+              "trasformazione_in_amministrazione_di_sostegno",
+              "modifica_limiti_di_inabilitazione",
+              "impugnazione_atti_tutore_o_curatore"
+            ]
+          },
+          {
+            "id": "ricorrente",
+            "label": "Ricorrente",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "interdetto_o_inabilitato_personalmente",
+                  "tutore_in_carica",
+                  "curatore_in_carica",
+                  "coniuge",
+                  "parente_entro_4_grado",
+                  "PM",
+                  "altro"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "soggetto_interdetto_o_inabilitato",
+            "label": "Soggetto interdetto/inabilitato",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tutore_o_curatore_in_carica",
+            "label": "Tutore/curatore in carica",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "provvedimento_originario",
+            "label": "Provvedimento originario",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "sentenza_di_interdizione",
+                  "sentenza_di_inabilitazione"
+                ]
+              },
+              {
+                "id": "tribunale_emittente",
+                "type": "string"
+              },
+              {
+                "id": "data_sentenza",
+                "type": "date"
+              },
+              {
+                "id": "numero_RG",
+                "type": "string"
+              },
+              {
+                "id": "tutore_nominato",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "motivazioni_della_richiesta",
+            "label": "Motivazioni della richiesta",
+            "type": "textarea",
+            "required": true,
+            "min_length": 500
+          },
+          {
+            "id": "documentazione_a_supporto",
+            "label": "Documentazione a supporto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "documentazione_medica_recupero_capacita",
+                "type": "boolean",
+                "required_if": "richiesta=revoca"
+              },
+              {
+                "id": "documentazione_inadempienze_tutore",
+                "type": "boolean",
+                "required_if": "richiesta=sostituzione_inadempienze"
+              },
+              {
+                "id": "valutazione_per_AdS",
+                "type": "boolean",
+                "required_if": "richiesta=trasformazione_in_AdS"
+              },
+              {
+                "id": "altri_documenti",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "nuovo_tutore_o_AdS_proposto",
+            "label": "Nuovo tutore/curatore o amministratore di sostegno proposto",
+            "type": "object_persona",
+            "required_if": "richiesta IN sostituzione, trasformazione"
+          },
+          {
+            "id": "richiesta_audizione_soggetto",
+            "label": "Richiesta audizione del soggetto (obbligatoria per revoca)",
+            "type": "boolean",
+            "default": true
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "revoca_interdizione_o_inabilitazione",
+              "sostituzione_tutore_o_curatore",
+              "nomina_nuovo_tutore_o_curatore",
+              "trasformazione_in_amministrazione_di_sostegno",
+              "modifica_limiti_dell_inabilitazione",
+              "annullamento_atti_tutore_o_curatore",
+              "ordine_rendiconto_tutore"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Audizione PERSONALE OBBLIGATORIA del soggetto in caso di revoca (art. 419 c.c.)",
+          "Parere PM obbligatorio",
+          "Eventuali CTU medico-legale frequente",
+          "Per trasformazione in AdS: necessaria valutazione adeguatezza misura meno invasiva (favor AdS - Cass. SU 25366/2006)",
+          "Reclamabilità del decreto in Corte d'Appello ex art. 720-bis"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "sentenza_originaria_interdizione_inabilitazione",
+          "label": "Sentenza originaria + verbale giuramento tutore/curatore",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_medica_aggiornata_per_revoca",
+          "label": "Documentazione medica aggiornata (per revoca)",
+          "required_if": "richiesta=revoca",
+          "critico": true
+        },
+        {
+          "id": "documentazione_inadempienze_tutore",
+          "label": "Documentazione inadempienze tutore (per sostituzione)",
+          "required_if": "richiesta=sostituzione_per_inadempienze",
+          "critico": true
+        },
+        {
+          "id": "rendiconti_tutore_o_curatore",
+          "label": "Rendiconti del tutore/curatore",
+          "required_if": "richiesta=sostituzione_o_impugnazione_atti"
+        },
+        {
+          "id": "valutazione_medica_per_passaggio_a_AdS",
+          "label": "Valutazione medica per passaggio a AdS",
+          "required_if": "richiesta=trasformazione_AdS"
+        },
+        {
+          "id": "consenso_nuovo_tutore_curatore_o_AdS",
+          "label": "Consenso del nuovo tutore/curatore/AdS proposto",
+          "required_if": "proposto_sostituto"
+        },
+        {
+          "id": "documenti_identita",
+          "label": "Documenti identità di tutti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente - VG protettiva",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "audizione_personale_del_soggetto",
+          "trigger": "Obbligatoria per revoca",
+          "norma": "art. 419 c.c."
+        },
+        {
+          "tipo": "ctu_medico_legale",
+          "trigger": "Per valutazione capacità o adeguatezza misura",
+          "automatico": false,
+          "frequente": true
+        },
+        {
+          "tipo": "decreto_di_revoca_o_modifica",
+          "trigger": "Esito procedimento",
+          "automatico": false
+        },
+        {
+          "tipo": "verbale_giuramento_nuovo_tutore_o_AdS",
+          "trigger": "Se sostituzione",
+          "automatico": false
+        },
+        {
+          "tipo": "rendiconto_finale_tutore_uscente",
+          "trigger": "Cessazione carica",
+          "automatico": false
+        },
+        {
+          "tipo": "iscrizione_modifiche_pubblici_registri",
+          "trigger": "Dopo decreto definitivo",
+          "automatico": false
+        },
+        {
+          "tipo": "reclamo_corte_appello",
+          "trigger": "Decreto Tribunale",
+          "termine": "30 gg",
+          "norma": "art. 720-bis c.p.c."
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "revoca_interdizione_inabilitazione",
+          "descrizione": "Riacquisizione piena capacità del soggetto"
+        },
+        {
+          "esito": "sostituzione_tutore_curatore",
+          "descrizione": "Nuovo tutore/curatore nominato"
+        },
+        {
+          "esito": "trasformazione_in_AdS",
+          "descrizione": "Passaggio a misura meno invasiva con AdS"
+        },
+        {
+          "esito": "rigetto_per_persistenza_presupposti",
+          "descrizione": "Mantenimento status quo"
+        },
+        {
+          "esito": "modifica_limiti_inabilitazione",
+          "descrizione": "Ridefinizione atti consentiti/vietati"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Decisione del Tribunale",
+          "giorni": 90,
+          "decorrenza": "deposito ricorso",
+          "natura": "ordinatorio"
+        },
+        {
+          "termine": "Reclamo Corte d'Appello",
+          "giorni": 30,
+          "decorrenza": "comunicazione decreto",
+          "natura": "perentorio",
+          "norma": "art. 720-bis c.p.c."
+        }
+      ],
+      "codice_originale_ricevuto": "413051",
+      "codici_ufficiali_correlati_da_valutare": [
+        "110001",
+        "110002",
+        "B02001",
+        "C15001"
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda viene conservata come guida interna per interdizione/inabilitazione e tutela del maggiore d'età."
+    },
+    {
+      "codice": "GUIDA_RISOLUZIONE_MUTUO_DECADENZA_TERMINE_142001",
+      "denominazione": "Risoluzione contratto di mutuo + decadenza dal beneficio del termine (art. 1186 c.c.)",
+      "categoria": "Contratti bancari e finanziari",
+      "sottocategoria": "Azione della banca per decadenza dal termine e risoluzione del mutuo per inadempimento del mutuatario",
+      "rito": "Rito ordinario di cognizione (frequente uso di rito monitorio - decreto ingiuntivo)",
+      "competenza": "Tribunale (per valore quasi sempre); foro generale convenuto o luogo esecuzione contratto",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1813",
+          "descrizione": "Nozione di mutuo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1815",
+          "descrizione": "Interessi - usura"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1819",
+          "descrizione": "Inadempimento parziale del mutuatario - decadenza dal beneficio termine"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1186",
+          "descrizione": "Decadenza dal beneficio del termine - presupposti generali"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1453-1458",
+          "descrizione": "Risoluzione per inadempimento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1455",
+          "descrizione": "Importanza dell'inadempimento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1456",
+          "descrizione": "Clausola risolutiva espressa"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1462",
+          "descrizione": "Clausola solve et repete"
+        },
+        {
+          "fonte": "TUB D.Lgs. 385/1993",
+          "articolo": "40",
+          "descrizione": "Risoluzione contratti di credito fondiario"
+        },
+        {
+          "fonte": "TUB",
+          "articolo": "117-118",
+          "descrizione": "Trasparenza condizioni contrattuali"
+        },
+        {
+          "fonte": "TUB",
+          "articolo": "120-quater",
+          "descrizione": "Surrogazione mutui (portabilità)"
+        },
+        {
+          "fonte": "L. 108/1996",
+          "descrizione": "Disciplina usura"
+        },
+        {
+          "fonte": "Cass. SU 24675/2017",
+          "descrizione": "Usura sopravvenuta - non rilevante per nullità"
+        },
+        {
+          "fonte": "Cass. SU 19597/2020",
+          "descrizione": "Anatocismo bancario - inammissibilità capitalizzazione"
+        },
+        {
+          "fonte": "Cass. SU 15130/2024",
+          "descrizione": "Decadenza beneficio termine in mutuo fondiario"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI UN CONTRATTO DI MUTUO valido (ordinario o fondiario)",
+        "INADEMPIMENTO DEL MUTUATARIO al pagamento di rate (o altre obbligazioni)",
+        "Una delle ipotesi di DECADENZA dal beneficio del termine:",
+        "- INADEMPIMENTO QUALIFICATO ex art. 1819 c.c. (anche per una sola rata, se previsto nel contratto)",
+        "- INSOLVENZA del mutuatario (art. 1186 c.c.)",
+        "- DIMINUZIONE GARANZIE per fatto del mutuatario",
+        "- MANCATA PRESTAZIONE GARANZIE PROMESSE",
+        "CLAUSOLE CONTRATTUALI SPECIFICHE applicabili (clausola risolutiva espressa, eccezioni del solve et repete)"
+      ],
+      "differenza_mutuo_ordinario_vs_fondiario": {
+        "mutuo_ordinario": "Disciplinato da c.c. 1813 e ss. - tutela secondo principi generali",
+        "mutuo_fondiario_tub_38_40": [
+          "Specifico per finanziamenti per acquisto/costruzione/ristrutturazione immobili",
+          "Garantito da ipoteca di primo grado",
+          "Disciplina speciale art. 40 TUB - risoluzione per 7 rate non pagate (anche non consecutive)",
+          "Privilegi specifici della banca",
+          "Possibilità di iscrizione ipotecaria e procedura esecutiva semplificata"
+        ]
+      },
+      "tipiche_clausole_contrattuali": [
+        "CLAUSOLA RISOLUTIVA ESPRESSA ex art. 1456 c.c. - automatica risoluzione per inadempimento determinato",
+        "Per fondiario: art. 40 TUB - 7 rate non pagate (anche non consecutive)",
+        "Per ordinario: di norma 1-2 rate non pagate",
+        "CLAUSOLA DI DECADENZA DAL TERMINE - inadempimento di una sola rata può comportare richiesta del residuo",
+        "PREVISIONE DI INTERESSI MORATORI - aggiuntivi a quelli corrispettivi",
+        "CLAUSOLA DI SOLVE ET REPETE (art. 1462 c.c.)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "CONTRATTI BANCARI E FINANZIARI",
+        "natura": "condizione di procedibilità",
+        "alternativa_arbitro_bancario_finanziario_abf": "Possibile ricorso ABF per controversie sotto soglie - alternativa stragiudiziale"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione CONTRATTO DI MUTUO E DOCUMENTI ALLEGATI",
+          "documenti": [
+            "Contratto di mutuo (atto pubblico per fondiario, scrittura privata per altri)",
+            "Piano di ammortamento",
+            "Foglio informativo / informativa precontrattuale",
+            "Eventuali atti di erogazione (per mutui erogati in tranche)",
+            "Eventuali fideiussioni o garanzie collaterali",
+            "Iscrizione ipotecaria (per fondiario)"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DELL'INADEMPIMENTO",
+          "elementi": [
+            "Estratti conto bancari di scadenze",
+            "Elenco rate scadute e non pagate",
+            "Importi delle singole rate (quote capitale + interessi)",
+            "Solleciti di pagamento già inviati",
+            "Eventuali comunicazioni con il mutuatario"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "VERIFICA TIPO DI MUTUO E NORMATIVA APPLICABILE",
+          "criterio": [
+            "Mutuo ordinario → art. 1819 c.c. + clausole contrattuali",
+            "Mutuo fondiario → art. 40 TUB (7 rate)",
+            "Verifica corrispondenza tra contratto e normativa applicabile"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "COMUNICAZIONE DI DECADENZA DAL BENEFICIO DEL TERMINE",
+          "modalita": [
+            "Raccomandata A/R o PEC dettagliata",
+            "Indicazione del numero di rate non pagate",
+            "Richiamo alla clausola contrattuale o all'art. 40 TUB",
+            "Richiesta di pagamento dell'INTERO CAPITALE RESIDUO + interessi maturati + spese",
+            "Termine ragionevole di adempimento prima di azione esecutiva"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "QUANTIFICAZIONE DEL CREDITO TOTALE",
+          "voci": [
+            "Capitale residuo (capitale non ancora rimborsato)",
+            "Interessi corrispettivi maturati sulle rate non pagate",
+            "Interessi di mora",
+            "Spese contrattuali e di insoluto",
+            "Eventuali penali contrattuali"
+          ]
+        },
+        {
+          "step": 6,
+          "descrizione": "VALUTAZIONE STRATEGICA: DECRETO INGIUNTIVO o CITAZIONE",
+          "alternative": [
+            "DECRETO INGIUNTIVO - più rapido, soggetto a opposizione (codice 010001)",
+            "CITAZIONE - in caso di contestazioni complesse",
+            "ESECUZIONE IMMOBILIARE diretta per mutuo fondiario con titolo esecutivo"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_risoluzione_mutuo_decadenza_termine",
+        "denominazione": "Atto di citazione per risoluzione mutuo + decadenza beneficio termine + condanna al pagamento",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "banca_attrice",
+            "label": "Banca attrice",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "mutuatario_convenuto",
+            "label": "Mutuatario convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "fideiussori_se_presenti",
+            "label": "Eventuali fideiussori",
+            "type": "array_persone"
+          },
+          {
+            "id": "contratto_mutuo",
+            "label": "Contratto di mutuo",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_mutuo",
+                "type": "select",
+                "required": true,
+                "options": [
+                  "mutuo_ordinario_civilistico",
+                  "mutuo_fondiario_TUB_38",
+                  "mutuo_immobiliare",
+                  "credito_al_consumo"
+                ]
+              },
+              {
+                "id": "data_stipula",
+                "type": "date"
+              },
+              {
+                "id": "notaio_rogante_se_fondiario",
+                "type": "string"
+              },
+              {
+                "id": "importo_originario_mutuo",
+                "type": "currency"
+              },
+              {
+                "id": "durata",
+                "type": "string"
+              },
+              {
+                "id": "tasso_di_interesse_TAN",
+                "type": "percentage"
+              },
+              {
+                "id": "TAEG",
+                "type": "percentage"
+              },
+              {
+                "id": "rata_mensile_originaria",
+                "type": "currency"
+              },
+              {
+                "id": "garanzie_prestate",
+                "type": "textarea"
+              },
+              {
+                "id": "iscrizione_ipotecaria_se_fondiario",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "inadempimento_mutuatario",
+            "label": "Inadempimento del mutuatario",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "numero_rate_non_pagate",
+                "type": "integer",
+                "required": true
+              },
+              {
+                "id": "elenco_rate_specifico",
+                "type": "array",
+                "sub_fields": [
+                  {
+                    "id": "data_scadenza",
+                    "type": "date"
+                  },
+                  {
+                    "id": "importo_rata",
+                    "type": "currency"
+                  }
+                ]
+              },
+              {
+                "id": "importo_totale_arretrato_capitale",
+                "type": "currency"
+              },
+              {
+                "id": "interessi_corrispettivi_maturati",
+                "type": "currency"
+              },
+              {
+                "id": "interessi_di_mora_maturati",
+                "type": "currency"
+              },
+              {
+                "id": "spese_di_insoluto",
+                "type": "currency"
+              },
+              {
+                "id": "solleciti_di_pagamento_inviati",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "decadenza_beneficio_termine",
+            "label": "Decadenza dal beneficio del termine",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "norma_o_clausola_applicabile",
+                "type": "select",
+                "options": [
+                  "art_1819_c_c",
+                  "art_40_TUB_7_rate_fondiario",
+                  "clausola_risolutiva_espressa_specifica"
+                ]
+              },
+              {
+                "id": "comunicazione_decadenza_inviata",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "data_invio",
+                    "type": "date"
+                  },
+                  {
+                    "id": "modalita",
+                    "type": "select",
+                    "options": [
+                      "raccomandata_AR",
+                      "PEC"
+                    ]
+                  },
+                  {
+                    "id": "termine_assegnato_per_pagamento",
+                    "type": "integer"
+                  },
+                  {
+                    "id": "esito",
+                    "type": "select"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "credito_complessivo_richiesto",
+            "label": "Credito complessivo richiesto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "capitale_residuo",
+                "type": "currency",
+                "required": true
+              },
+              {
+                "id": "interessi_corrispettivi_maturati",
+                "type": "currency"
+              },
+              {
+                "id": "interessi_di_mora",
+                "type": "currency"
+              },
+              {
+                "id": "spese_contrattuali_e_insoluto",
+                "type": "currency"
+              },
+              {
+                "id": "totale_richiesto",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_inadempimento_mutuatario",
+              "dichiarazione_decadenza_beneficio_termine",
+              "risoluzione_contratto_mutuo",
+              "condanna_pagamento_capitale_residuo_interessi_e_spese",
+              "interessi_di_mora_fino_a_pagamento_effettivo",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Per fondiario: art. 40 TUB richiede 7 rate non pagate (anche non consecutive) - Cass. SU 15130/2024",
+          "Verifica clausole contrattuali per mutuo ordinario",
+          "Comunicazione preventiva di decadenza dal beneficio (raccomandata)",
+          "Mediazione obbligatoria per contratti bancari (art. 5 c. 1-bis D.Lgs. 28/2010)",
+          "Possibile contestazione mutuatario su usura, anatocismo, trasparenza TUB"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_di_mutuo",
+          "label": "Contratto di mutuo originale",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "piano_di_ammortamento",
+          "label": "Piano di ammortamento",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "estratti_conto_e_documenti_inadempimento",
+          "label": "Estratti conto e documentazione inadempimento",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "comunicazione_decadenza_beneficio_termine",
+          "label": "Comunicazione di decadenza dal beneficio del termine + prova invio",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "solleciti_di_pagamento_precedenti",
+          "label": "Solleciti di pagamento precedenti",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "iscrizione_ipotecaria_per_fondiario",
+          "label": "Iscrizione ipotecaria (per fondiario)",
+          "required_if": "mutuo_fondiario"
+        },
+        {
+          "id": "informativa_precontrattuale_e_foglio_informativo",
+          "label": "Informativa precontrattuale (per trasparenza TUB)",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbale_mediazione_negativa",
+          "label": "Verbale mediazione obbligatoria conclusa negativamente",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore (capitale + interessi + spese)",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "decreto_ingiuntivo_alternativo",
+          "trigger": "Strategia alternativa più rapida",
+          "codice_correlato": "010001"
+        },
+        {
+          "tipo": "ricorso_mediazione_obbligatoria",
+          "trigger": "Condizione procedibilità",
+          "automatico": false
+        },
+        {
+          "tipo": "comparsa_costituzione_mutuatario",
+          "trigger": "Costituzione convenuto",
+          "termine": "70 gg prima udienza"
+        },
+        {
+          "tipo": "domanda_riconvenzionale_usura_anatocismo",
+          "trigger": "Tipica eccezione mutuatario",
+          "automatico": false,
+          "frequente": true
+        },
+        {
+          "tipo": "ctu_contabile_ricostruzione_credito",
+          "trigger": "Disposta dal giudice",
+          "automatico": false,
+          "molto_frequente": true
+        },
+        {
+          "tipo": "esecuzione_immobiliare_per_fondiario",
+          "trigger": "Dopo decadenza beneficio - esecuzione su immobile ipotecato",
+          "codice_correlato": "620001"
+        },
+        {
+          "tipo": "azione_fideiussori",
+          "trigger": "Per coobbligati",
+          "automatico": false
+        },
+        {
+          "tipo": "azione_revocatoria_se_atti_dispositivi_mutuatario",
+          "trigger": "Mutuatario aliena beni dopo inadempimento",
+          "codice_correlato": "102002"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_e_condanna_pagamento_integrale",
+          "descrizione": "Risoluzione + condanna capitale residuo + interessi + spese"
+        },
+        {
+          "esito": "accoglimento_parziale_riduzione_per_usura_o_anatocismo",
+          "descrizione": "Riduzione del quantum per eventuali clausole nulle"
+        },
+        {
+          "esito": "rigetto_per_assenza_inadempimento_grave",
+          "descrizione": "Inadempimento non sufficiente per risoluzione"
+        },
+        {
+          "esito": "rigetto_per_nullita_contratto_o_clausole",
+          "descrizione": "Nullità contratto per violazione TUB o usura"
+        },
+        {
+          "esito": "transazione_con_piano_rientro",
+          "descrizione": "Accordo di rientro - frequente in queste materie"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione azione risoluzione contrattuale",
+          "anni": 10,
+          "decorrenza": "inadempimento",
+          "natura": "prescrizione",
+          "norma": "art. 2946 c.c."
+        },
+        {
+          "termine": "Prescrizione delle singole rate",
+          "anni": 10,
+          "decorrenza": "scadenza singola rata",
+          "natura": "prescrizione"
+        },
+        {
+          "termine": "Mediazione obbligatoria - max",
+          "giorni": 90
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "142001",
+      "codici_ufficiali_correlati_da_valutare": [
+        "140038",
+        "140041",
+        "140999"
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Il codice 142001 è ufficiale nel catalogo locale, ma riguarda prestazione d'opera intellettuale; la scheda ricevuta riguarda risoluzione del mutuo e decadenza dal beneficio del termine, quindi resta interna."
+    },
+    {
+      "codice": "GUIDA_OPPOSIZIONE_PRECETTO_199001",
+      "denominazione": "Opposizione a precetto (art. 615 c. 1 c.p.c.)",
+      "categoria": "Opposizioni esecutive - pre-esecutiva",
+      "sottocategoria": "Opposizione all'esecuzione PRIMA dell'inizio dell'esecuzione (post-precetto, pre-pignoramento)",
+      "rito": "Rito ordinario di cognizione + possibile inibitoria",
+      "competenza": "GIUDICE COMPETENTE PER MATERIA E VALORE come per causa di merito ordinaria",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "615 c. 1",
+          "descrizione": "Opposizione all'esecuzione prima dell'inizio - con citazione al giudice competente per valore"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "615 c. 2",
+          "descrizione": "Opposizione DOPO inizio esecuzione - rito speciale davanti al GE (codice 100011)"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "480",
+          "descrizione": "Forma del precetto"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "481",
+          "descrizione": "Termine per inizio esecuzione - 90 gg dal precetto"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "482",
+          "descrizione": "Notificazione del precetto"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "474",
+          "descrizione": "Titoli esecutivi"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "615 c. 1 ultimo periodo",
+          "descrizione": "Possibilità inibitoria del precetto"
+        },
+        {
+          "fonte": "Cass. SU 14228/2024",
+          "descrizione": "Differenza tra 615 c. 1 e c. 2 - rito applicabile"
+        },
+        {
+          "fonte": "Cass. SU 11774/2019",
+          "descrizione": "Estensione opposizione anche a vizi del titolo esecutivo"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI UN PRECETTO notificato dal creditore",
+        "ASSENZA DI ESECUZIONE GIÀ INIZIATA (no pignoramento già intervenuto - in tal caso si applica 615 c. 2)",
+        "MOTIVI DI OPPOSIZIONE relativi a:",
+        "- INESISTENZA o INEFFICACIA DEL TITOLO ESECUTIVO",
+        "- ESTINZIONE DEL CREDITO (pagamento, prescrizione, compensazione, novazione)",
+        "- CONTESTAZIONI sull'AMMONTARE del credito intimato (interessi, accessori)",
+        "- CARENZA DI LEGITTIMAZIONE attiva o passiva",
+        "- VIZI DEL PRECETTO (per vizi formali si usa anche art. 617)"
+      ],
+      "differenze_critiche_615_c1_vs_c2_vs_617": {
+        "615_c_1_pre_esecutiva": [
+          "FORMA: atto di citazione",
+          "GIUDICE: quello competente per valore/materia per causa ordinaria",
+          "RITO: ordinario di cognizione",
+          "MOMENTO: dopo precetto, PRIMA del pignoramento",
+          "POSSIBILITÀ DI INIBITORIA: sì (art. 615 c. 1 ultimo periodo)"
+        ],
+        "615_c_2_post_esecutiva": [
+          "FORMA: ricorso al GE",
+          "GIUDICE: GE per sospensione, poi giudice di merito",
+          "RITO: speciale GE + rito ordinario per merito",
+          "MOMENTO: dopo pignoramento",
+          "TERMINE per intro merito: 60 gg da ordinanza GE"
+        ],
+        "617_opposizione_atti_esecutivi": [
+          "FORMA: ricorso al GE",
+          "MOTIVI: VIZI FORMALI degli atti esecutivi (notifiche, atti UNEP)",
+          "TERMINE: 20 GG dall'atto contestato (perentorio)",
+          "MOMENTO: in qualunque fase dell'esecuzione"
+        ]
+      },
+      "motivi_tipici_di_opposizione_615_c1": [
+        "INESISTENZA DEL TITOLO ESECUTIVO (sentenza riformata in appello, decreto ingiuntivo revocato)",
+        "INEFFICACIA DEL TITOLO (es. notifica decreto ingiuntivo nulla)",
+        "ESTINZIONE DEL CREDITO per pagamento già effettuato",
+        "PRESCRIZIONE del credito o del titolo",
+        "COMPENSAZIONE con crediti del debitore",
+        "NOVAZIONE o TRANSAZIONE intervenuta",
+        "REMISSIONE del debito",
+        "ECCESSIVITÀ DEGLI ACCESSORI (interessi mal calcolati, spese non dovute)",
+        "CARENZA DI LEGITTIMAZIONE attiva o passiva",
+        "VIZI DI NOTIFICAZIONE DEL TITOLO (preliminare al precetto)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Tutela del debitore esecutato - urgenza"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione PRECETTO E TITOLO ESECUTIVO",
+          "documenti": [
+            "Precetto notificato (con relata)",
+            "Titolo esecutivo presupposto (sentenza, DI, contratto, ecc.)",
+            "Eventuale notifica del titolo esecutivo precedente al precetto"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "VERIFICA NON ANCORA INIZIATA ESECUZIONE",
+          "criticita": "Se PIGNORAMENTO già notificato → 615 c. 2 (rito diverso - codice 100011)",
+          "verifica": "Visure presso UNEP, Conservatoria, PRA, anagrafe rapporti finanziari"
+        },
+        {
+          "step": 3,
+          "descrizione": "IDENTIFICAZIONE DEI MOTIVI DI OPPOSIZIONE",
+          "metodologia": [
+            "Verifica esistenza/efficacia titolo esecutivo",
+            "Verifica avvenuto pagamento (estratti conto, ricevute)",
+            "Verifica eventuale prescrizione",
+            "Verifica calcolo accessori (interessi, spese)",
+            "Verifica legittimazione attiva del creditore"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VALUTAZIONE RICHIESTA INIBITORIA",
+          "presupposti": "Fumus opposizione + periculum (esecuzione imminente)",
+          "vantaggio_strategico": "Impedisce inizio esecuzione fino a decisione"
+        },
+        {
+          "step": 5,
+          "descrizione": "RACCOLTA PROVE",
+          "tipologie": [
+            "Ricevute di pagamento",
+            "Eventuali sentenze che hanno riformato/revocato titolo",
+            "Atti transattivi/novativi",
+            "Comunicazioni con creditore"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_opposizione_precetto_615_c1",
+        "denominazione": "Atto di citazione per opposizione all'esecuzione ex art. 615 c. 1 c.p.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale_o_gdp",
+            "label": "Giudice competente per materia/valore",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "opponente_debitore_precettato",
+            "label": "Opponente (debitore precettato)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "creditore_procedente",
+            "label": "Creditore procedente (opposto)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "precetto_opposto",
+            "label": "Precetto opposto",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "data_notifica_precetto",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "ufficiale_giudiziario_notificante",
+                "type": "string"
+              },
+              {
+                "id": "importo_intimato",
+                "type": "currency"
+              },
+              {
+                "id": "termine_per_pagamento_indicato",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "titolo_esecutivo_presupposto",
+            "label": "Titolo esecutivo presupposto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_titolo",
+                "type": "select",
+                "required": true,
+                "options": [
+                  "sentenza_passata_in_giudicato",
+                  "sentenza_provvisoriamente_esecutiva",
+                  "decreto_ingiuntivo_definitivo",
+                  "decreto_ingiuntivo_provvisoriamente_esecutivo",
+                  "atto_pubblico_o_scrittura_privata_autenticata",
+                  "verbale_di_conciliazione",
+                  "decreto_di_omologazione_separazione",
+                  "ordinanza_provvisionale",
+                  "altro"
+                ]
+              },
+              {
+                "id": "estremi_titolo",
+                "type": "string"
+              },
+              {
+                "id": "autorita_emittente",
+                "type": "string"
+              },
+              {
+                "id": "data_emissione",
+                "type": "date"
+              },
+              {
+                "id": "data_notifica_titolo_se_precedente_a_precetto",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "motivi_di_opposizione",
+            "label": "Motivi di opposizione",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "inesistenza_titolo_esecutivo",
+              "inefficacia_titolo_per_riforma_appello",
+              "revocazione_decreto_ingiuntivo",
+              "estinzione_credito_per_pagamento",
+              "prescrizione_credito_o_titolo",
+              "compensazione",
+              "novazione_o_transazione",
+              "remissione_del_debito",
+              "eccessivita_accessori_interessi_spese",
+              "carenza_legittimazione_attiva",
+              "carenza_legittimazione_passiva",
+              "vizi_notifica_titolo_esecutivo",
+              "altri_motivi"
+            ]
+          },
+          {
+            "id": "esposizione_dettagliata_motivi",
+            "label": "Esposizione dettagliata dei motivi",
+            "type": "textarea",
+            "required": true,
+            "min_length": 500
+          },
+          {
+            "id": "richiesta_inibitoria_precetto",
+            "label": "Richiesta inibitoria del precetto",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "richiesta",
+                "type": "boolean",
+                "default": true
+              },
+              {
+                "id": "fumus_boni_iuris",
+                "type": "textarea",
+                "required_if": "richiesta=true"
+              },
+              {
+                "id": "periculum_in_mora",
+                "type": "textarea",
+                "required_if": "richiesta=true"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_inesistenza_credito_o_titolo",
+              "annullamento_precetto",
+              "dichiarazione_estinzione_credito",
+              "rideterminazione_importo_dovuto",
+              "inibitoria_precetto_in_attesa_decisione",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "TEMPESTIVITÀ: opposizione DEVE essere proposta PRIMA dell'inizio esecuzione (notifica pignoramento)",
+          "Se esecuzione già iniziata: rito diverso (615 c. 2 - codice 100011)",
+          "Per vizi formali degli atti esecutivi: art. 617 (termine 20 gg)",
+          "Possibilità di INIBITORIA del precetto ex art. 615 c. 1 ultimo periodo",
+          "Termine a comparire 120 gg post-Cartabia"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "precetto_e_relata_notifica",
+          "label": "Precetto e relata di notifica",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "titolo_esecutivo",
+          "label": "Titolo esecutivo presupposto",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "notifica_titolo_esecutivo_se_precedente",
+          "label": "Notifica titolo esecutivo precedente al precetto",
+          "required": false
+        },
+        {
+          "id": "documentazione_probatoria_motivi_opposizione",
+          "label": "Documentazione probatoria dei motivi (ricevute, sentenze, ecc.)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "calcolo_dettagliato_per_eccessivita_accessori",
+          "label": "Calcolo dettagliato (per eccessività accessori)",
+          "required_if": "motivi=eccessivita_accessori"
+        },
+        {
+          "id": "documentazione_su_eventuale_riforma_titolo",
+          "label": "Documentazione su eventuale riforma del titolo (sentenza appello, revocazione)",
+          "required_if": "motivi=inefficacia_titolo"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore del credito contestato",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "istanza_inibitoria_del_precetto",
+          "trigger": "Pericolo esecuzione imminente",
+          "automatico": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "tipo": "comparsa_costituzione_creditore",
+          "trigger": "Costituzione opposto",
+          "termine": "70 gg prima udienza"
+        },
+        {
+          "tipo": "ctu_contabile_per_calcolo_accessori",
+          "trigger": "Disposta dal giudice",
+          "automatico": false
+        },
+        {
+          "tipo": "conversione_in_615_c_2_se_inizia_esecuzione",
+          "trigger": "Pignoramento durante opposizione 615 c. 1",
+          "automatico": false,
+          "norma": "rito si modifica"
+        },
+        {
+          "tipo": "opposizione_617_per_vizi_formali_parallela",
+          "trigger": "Per vizi formali atti esecutivi",
+          "codice_correlato": "100021"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_e_annullamento_precetto",
+          "descrizione": "Accertamento inesistenza credito - precetto annullato + spese a opposto"
+        },
+        {
+          "esito": "accoglimento_parziale_rideterminazione_importo",
+          "descrizione": "Riduzione dell'importo intimato"
+        },
+        {
+          "esito": "rigetto_e_conferma_precetto",
+          "descrizione": "Conferma diritto del creditore - esecuzione può proseguire"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo - estinzione opposizione"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Termine per inizio esecuzione dal precetto",
+          "giorni": 90,
+          "decorrenza": "notifica precetto",
+          "natura": "decadenziale",
+          "norma": "art. 481 c.p.c.",
+          "rilevante_per_opposizione": "se non inizia in 90 gg, precetto perde efficacia"
+        },
+        {
+          "termine": "Opposizione 615 c. 1 - PRIMA dell'esecuzione",
+          "natura": "fino a inizio esecuzione",
+          "criticita": "rilevante per scelta del rito"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        },
+        {
+          "termine": "Appello",
+          "giorni": 30,
+          "decorrenza": "notifica sentenza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "199001",
+      "codici_ufficiali_correlati_da_valutare": [
+        "100001"
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; esiste il codice ufficiale 100001 per opposizione a precetto ex art. 615, primo comma, c.p.c., da usare per il deposito se confermato."
+    }
+  ]
+}

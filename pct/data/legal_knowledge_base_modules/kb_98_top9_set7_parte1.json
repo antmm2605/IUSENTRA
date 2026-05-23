@@ -1,0 +1,2546 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET7_PARTE1",
+  "denominazione": "Settimo set di 9 codici - PARTE 1 di 2 (sequestro conservativo, marchio nullità, vizi cosa venduta, cose in custodia, distanze legali)",
+  "registri": [
+    "SICID"
+  ],
+  "data_generazione": "2026-05-23",
+  "scopo": "Parte 1 del settimo set TOP9. Codici differenti dai 54 già forniti",
+  "codici_materia": [
+    {
+      "codice": "011001",
+      "denominazione": "Sequestro conservativo (art. 671 c.p.c.)",
+      "categoria": "Procedimenti cautelari - tutela del credito",
+      "sottocategoria": "Sequestro conservativo a garanzia di un credito - ante causam o in corso di causa",
+      "rito": "Procedimento cautelare uniforme ex artt. 669-bis e ss. c.p.c.",
+      "competenza": "Giudice della causa di merito (se in corso) o Tribunale del foro del merito (ante causam) ex art. 669-ter c.p.c.",
+      "uffici_destinatari": [
+        "SICID per fase cautelare",
+        "successivo merito SICID o SIECIC"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "671",
+          "descrizione": "Sequestro conservativo - presupposti: fumus boni iuris + periculum in mora"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-bis",
+          "descrizione": "Ambito di applicazione del procedimento cautelare uniforme"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-ter",
+          "descrizione": "Competenza prima della causa di merito"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-quater",
+          "descrizione": "Competenza in corso di causa"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-sexies",
+          "descrizione": "Procedimento - contraddittorio o inaudita altera parte"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-octies",
+          "descrizione": "Termine per inizio causa di merito - 60 gg"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-novies",
+          "descrizione": "Inefficacia del provvedimento cautelare"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-decies",
+          "descrizione": "Revoca e modifica"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-undecies",
+          "descrizione": "Cauzione"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-terdecies",
+          "descrizione": "Reclamo cautelare - 15 gg"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "678",
+          "descrizione": "Conversione sequestro conservativo in pignoramento (dopo titolo esecutivo)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2905-2906",
+          "descrizione": "Effetti del sequestro - inopponibilità alienazioni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2693",
+          "descrizione": "Trascrizione del sequestro (per immobili)"
+        },
+        {
+          "fonte": "Cass. SU 4427/2010",
+          "descrizione": "Sequestro conservativo - criteri di valutazione periculum"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "FUMUS BONI IURIS: probabilità di esistenza del credito (anche non liquido) - prova sommaria del diritto vantato",
+        "PERICULUM IN MORA: timore fondato di perdere la garanzia patrimoniale a causa di:",
+        "- Atti dispositivi del debitore (alienazioni, donazioni, costituzione di vincoli)",
+        "- Riduzione del patrimonio (per cattiva gestione, dissipazione, fuga all'estero)",
+        "- Indizi oggettivi di insolvenza imminente",
+        "- Comportamenti del debitore che minacciano la garanzia (Cass. SU 4427/2010)",
+        "PROPORZIONALITÀ tra valore del credito e valore dei beni da sequestrare"
+      ],
+      "elementi_che_concretano_il_periculum": [
+        "Atti recenti di alienazione di beni rilevanti",
+        "Cessione di azienda o di rami d'azienda",
+        "Trasferimento di sede societaria",
+        "Riduzioni di capitale sociale",
+        "Aumenti di indebitamento senza giustificazione",
+        "Cattiva gestione documentata",
+        "Indizi di fuga del debitore",
+        "Bilanci recenti in pesante perdita",
+        "Pendenza di procedure concorsuali",
+        "Pluralità di azioni esecutive da parte di altri creditori"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Procedura cautelare - urgenza esclude mediazione preventiva"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE DEL CREDITO (FUMUS)",
+          "documenti": [
+            "Titolo del credito (contratto, fattura, sentenza, decreto ingiuntivo)",
+            "Documentazione dell'inadempimento del debitore",
+            "Eventuali solleciti di pagamento",
+            "Eventuale procedimento di merito già in corso o in fase di predisposizione"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DEL PERICULUM",
+          "elementi": [
+            "Visure patrimoniali aggiornate del debitore (CCIAA, immobiliari, PRA)",
+            "Eventuali atti dispositivi recenti del debitore",
+            "Bilanci societari (per debitore società)",
+            "Notizie su cattiva gestione (articoli stampa, comunicazioni di terzi)",
+            "Eventuali procedure esecutive di altri creditori",
+            "Indagini sul comportamento del debitore"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "INDIVIDUAZIONE BENI DA SEQUESTRARE",
+          "tipologie": [
+            "Immobili (con trascrizione - massimo effetto)",
+            "Mobili registrati (auto, navi, aeromobili)",
+            "Crediti del debitore verso terzi (rapporti bancari, crediti commerciali)",
+            "Partecipazioni societarie",
+            "Mobili presso il debitore",
+            "Quote di S.r.l."
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VALUTAZIONE OPPORTUNITÀ DI RICORSO INAUDITA ALTERA PARTE",
+          "presupposti_inaudita_altera_parte": [
+            "Convocazione del debitore può vanificare la misura (es. avviso può portare ad atti dispositivi urgenti)",
+            "Particolare urgenza documentata"
+          ],
+          "vantaggio_strategico": "Esecuzione immediata senza preavviso al debitore"
+        },
+        {
+          "step": 5,
+          "descrizione": "VALUTAZIONE CAUZIONE",
+          "rilevanza": "Il giudice può subordinare la concessione del sequestro a cauzione da parte del ricorrente"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_sequestro_conservativo_671",
+        "denominazione": "Ricorso per sequestro conservativo ex art. 671 c.p.c.",
+        "schema_xsd_ministeriale": "AttoCautelare.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente per il merito",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "tipo_procedura",
+            "label": "Tipo di procedura",
+            "type": "select",
+            "required": true,
+            "options": [
+              "ante_causam_669_ter",
+              "in_corso_di_causa_669_quater"
+            ]
+          },
+          {
+            "id": "ricorrente_creditore",
+            "label": "Ricorrente (creditore)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "resistente_debitore",
+            "label": "Resistente (debitore)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "credito_vantato",
+            "label": "Credito vantato (FUMUS)",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_titolo",
+                "type": "select",
+                "options": [
+                  "contratto_definitivo",
+                  "decreto_ingiuntivo_non_definitivo",
+                  "sentenza_di_primo_grado_non_esecutiva",
+                  "scrittura_privata",
+                  "fattura",
+                  "credito_in_via_di_accertamento_separato",
+                  "credito_da_responsabilita_extracontrattuale"
+                ]
+              },
+              {
+                "id": "estremi_titolo",
+                "type": "string"
+              },
+              {
+                "id": "importo_credito",
+                "type": "currency",
+                "required": true
+              },
+              {
+                "id": "scadenza_credito",
+                "type": "date"
+              },
+              {
+                "id": "interessi_e_accessori",
+                "type": "currency"
+              },
+              {
+                "id": "totale_credito_da_garantire",
+                "type": "currency",
+                "required": true
+              },
+              {
+                "id": "argomentazioni_fumus",
+                "type": "textarea",
+                "required": true,
+                "min_length": 300
+              }
+            ]
+          },
+          {
+            "id": "periculum_in_mora",
+            "label": "Periculum in mora",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipologie_di_pericolo",
+                "type": "select_multi",
+                "required": true,
+                "options": [
+                  "atti_dispositivi_recenti_del_debitore",
+                  "trasferimento_sede_legale",
+                  "cessione_azienda_o_rami",
+                  "indizi_oggettivi_insolvenza",
+                  "bilanci_in_perdita_documentati",
+                  "pluralita_di_azioni_esecutive",
+                  "comportamenti_di_fuga",
+                  "cattiva_gestione_documentata",
+                  "altre_circostanze_che_minacciano_garanzia"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 500
+              },
+              {
+                "id": "documentazione_a_supporto",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "beni_da_sequestrare",
+            "label": "Beni da sottoporre a sequestro",
+            "type": "array",
+            "required": true,
+            "min_items": 1,
+            "sub_fields": [
+              {
+                "id": "tipo_bene",
+                "type": "select",
+                "options": [
+                  "immobile",
+                  "mobile_registrato",
+                  "quote_societarie",
+                  "crediti_verso_terzi",
+                  "rapporti_bancari",
+                  "beni_mobili_presso_debitore",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione_e_ubicazione",
+                "type": "string"
+              },
+              {
+                "id": "dati_identificativi",
+                "type": "object"
+              },
+              {
+                "id": "valore_stimato",
+                "type": "currency"
+              },
+              {
+                "id": "terzo_detentore_se_crediti",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "modalita_procedura",
+            "label": "Modalità procedura",
+            "type": "select",
+            "required": true,
+            "options": [
+              "contraddittorio_normale",
+              "inaudita_altera_parte_per_estrema_urgenza"
+            ]
+          },
+          {
+            "id": "motivazione_inaudita_altera_parte",
+            "label": "Motivazione per ricorso inaudita altera parte",
+            "type": "textarea",
+            "required_if": "modalita=inaudita_altera_parte"
+          },
+          {
+            "id": "richiesta_trascrizione_per_immobili",
+            "label": "Richiesta trascrizione (per immobili)",
+            "type": "boolean",
+            "default": true
+          },
+          {
+            "id": "udienza_proposta",
+            "label": "Udienza proposta (per contraddittorio)",
+            "type": "date"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "FUMUS + PERICULUM presupposti cumulativi indispensabili",
+          "Termine 60 GG per inizio causa di merito (se sequestro ante causam) ex art. 669-octies",
+          "Cauzione eventualmente disposta dal giudice ex art. 669-undecies",
+          "Reclamo cautelare 15 gg ex art. 669-terdecies",
+          "Conversione automatica in pignoramento dopo titolo esecutivo (art. 678)",
+          "Trascrizione per immobili - effetto prenotativo ex art. 2693 c.c."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "titolo_del_credito",
+          "label": "Titolo o documenti probatori del credito",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_inadempimento",
+          "label": "Documentazione dell'inadempimento",
+          "required": true
+        },
+        {
+          "id": "visure_patrimoniali_debitore",
+          "label": "Visure patrimoniali aggiornate del debitore",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_periculum",
+          "label": "Documentazione specifica del periculum",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "bilanci_societari",
+          "label": "Bilanci societari (per debitore società)",
+          "required_if": "debitore=societa"
+        },
+        {
+          "id": "atti_dispositivi_recenti",
+          "label": "Documentazione di atti dispositivi recenti del debitore",
+          "required_if": "periculum=atti_dispositivi"
+        },
+        {
+          "id": "elenco_beni_da_sequestrare_dettagliato",
+          "label": "Elenco dettagliato dei beni da sequestrare",
+          "required": true
+        },
+        {
+          "id": "ispezioni_conservatoria_per_immobili",
+          "label": "Ispezioni Conservatoria per immobili",
+          "required_if": "beni_immobili"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore - ridotto per cautelare",
+        "marca_bollo_forfettaria": 27.0,
+        "tasse_trascrizione_per_immobili": "Imposta ipotecaria + tasse",
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ordinanza_di_sequestro",
+          "trigger": "Esito procedimento cautelare",
+          "automatico": false
+        },
+        {
+          "tipo": "esecuzione_del_sequestro",
+          "trigger": "Dopo ordinanza concessoria",
+          "automatico": false
+        },
+        {
+          "tipo": "trascrizione_per_immobili",
+          "trigger": "Sequestro su immobili",
+          "norma": "art. 2693 c.c."
+        },
+        {
+          "tipo": "causa_di_merito_obbligatoria",
+          "trigger": "Termine 60 gg da ordinanza ante causam",
+          "norma": "art. 669-octies c.p.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "tipo": "reclamo_cautelare",
+          "trigger": "Avverso ordinanza",
+          "termine": "15 gg",
+          "norma": "art. 669-terdecies c.p.c."
+        },
+        {
+          "tipo": "revoca_modifica_sequestro",
+          "trigger": "Mutamento circostanze",
+          "norma": "art. 669-decies"
+        },
+        {
+          "tipo": "conversione_in_pignoramento",
+          "trigger": "Dopo titolo esecutivo definitivo",
+          "norma": "art. 678 c.p.c.",
+          "automatico": true
+        },
+        {
+          "tipo": "azione_revocatoria_per_atti_dispositivi",
+          "trigger": "Eventuale parallela",
+          "codice_correlato": "102002"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_sequestro",
+          "descrizione": "Ordinanza di concessione - esecuzione sequestro su beni specifici"
+        },
+        {
+          "esito": "accoglimento_con_cauzione",
+          "descrizione": "Sequestro subordinato a cauzione del ricorrente"
+        },
+        {
+          "esito": "accoglimento_parziale",
+          "descrizione": "Sequestro limitato a parte dei beni o a importo inferiore"
+        },
+        {
+          "esito": "rigetto_per_assenza_fumus",
+          "descrizione": "Credito non sufficientemente provato"
+        },
+        {
+          "esito": "rigetto_per_assenza_periculum",
+          "descrizione": "Nessun pericolo concreto di perdita garanzia"
+        },
+        {
+          "esito": "transazione_in_corso_di_procedura",
+          "descrizione": "Accordo tra creditore e debitore - estinzione"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "INIZIO CAUSA DI MERITO POST CAUTELARE ANTE CAUSAM",
+          "giorni": 60,
+          "decorrenza": "ordinanza concessoria",
+          "natura": "DECADENZIALE",
+          "norma": "art. 669-octies c.p.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Reclamo cautelare",
+          "giorni": 15,
+          "decorrenza": "ordinanza",
+          "natura": "perentorio",
+          "norma": "art. 669-terdecies c.p.c."
+        },
+        {
+          "termine": "Conversione in pignoramento",
+          "natura": "automatica dopo titolo esecutivo definitivo",
+          "norma": "art. 678 c.p.c."
+        }
+      ]
+    },
+    {
+      "codice": "170001",
+      "denominazione": "Azione di nullità o decadenza di marchio (CPI artt. 19-28)",
+      "categoria": "Diritto industriale - proprietà industriale",
+      "sottocategoria": "Azione di nullità o decadenza di marchio registrato",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "TRIBUNALE SEZIONE SPECIALIZZATA IN MATERIA DI IMPRESA (D.Lgs. 168/2003 + D.L. 1/2012)",
+      "competenza_territoriale": "Foro speciale ex art. 120 CPI (luogo violazione, residenza convenuto, sede UIBM/EUIPO)",
+      "uffici_destinatari": [
+        "SICID - sezione specializzata impresa"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 30/2005 (CPI)",
+          "descrizione": "Codice della proprietà industriale"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "7-12",
+          "descrizione": "Requisiti di registrabilità - capacità distintiva, novità, liceità"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "13",
+          "descrizione": "Capacità distintiva"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "14",
+          "descrizione": "Liceità - marchi contrari all'ordine pubblico, buon costume"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "16-19",
+          "descrizione": "Marchi anteriori e domande di registrazione"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "20",
+          "descrizione": "Diritti del titolare"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "21",
+          "descrizione": "Limitazioni del diritto"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "22-23",
+          "descrizione": "Decadenza per non uso quinquennale + altre cause"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "24-26",
+          "descrizione": "Decadenza per volgarizzazione, inganno del pubblico, illiceità sopravvenuta"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "25-26",
+          "descrizione": "Nullità - mancanza requisiti di registrabilità"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "120",
+          "descrizione": "Competenza territoriale - foro speciale"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "121",
+          "descrizione": "Onere della prova"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "123",
+          "descrizione": "Effetti della sentenza"
+        },
+        {
+          "fonte": "Reg. UE 2017/1001 (EUIPO)",
+          "descrizione": "Marchio dell'Unione Europea"
+        },
+        {
+          "fonte": "Cass. SU 5712/2023",
+          "descrizione": "Onere prova nullità per assenza capacità distintiva"
+        }
+      ],
+      "cause_di_nullita_assoluta_art_25": [
+        "DIFETTO DI CAPACITÀ DISTINTIVA (es. marchi descrittivi, generici)",
+        "CONTRARIETÀ ALL'ORDINE PUBBLICO O AL BUON COSTUME",
+        "MARCHI INGANNEVOLI sulla natura, qualità, provenienza geografica",
+        "MARCHI COSTITUITI ESCLUSIVAMENTE DA SEGNI ESCLUSI (forme tridimensionali necessarie per natura/funzione/valore)",
+        "MARCHI CONTRARI A norme di legge sui marchi notori, marchi anteriori non identici, indicazioni geografiche tutelate"
+      ],
+      "cause_di_nullita_relativa_art_25": [
+        "CONFLITTO CON MARCHI ANTERIORI (anche solo registrazione anteriore)",
+        "CONFLITTO CON RITRATTI, NOMI, SEGNI DISTINTIVI ALTRUI senza consenso",
+        "VIOLAZIONE DEL DIRITTO D'AUTORE altrui",
+        "MARCHIO REGISTRATO IN MALA FEDE (cd. trademark squatting)"
+      ],
+      "cause_di_decadenza_artt_22_24": [
+        "DECADENZA PER NON USO QUINQUENNALE (art. 24 CPI - 5 anni di mancato uso effettivo)",
+        "DECADENZA PER VOLGARIZZAZIONE - il marchio è divenuto denominazione generica del prodotto",
+        "DECADENZA PER INGANNO DEL PUBBLICO sopravvenuto (es. cambio caratteristiche del prodotto)",
+        "DECADENZA PER ILLICEITÀ SOPRAVVENUTA",
+        "DECADENZA PER MANCATA RINNOVAZIONE alla scadenza decennale"
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI UN MARCHIO REGISTRATO presso UIBM (nazionale), EUIPO (UE) o OMPI (internazionale)",
+        "LEGITTIMAZIONE ATTIVA - varia per tipologia:",
+        "- Nullità ASSOLUTA: CHIUNQUE vi abbia interesse (art. 122 CPI)",
+        "- Nullità RELATIVA: solo titolare del diritto anteriore",
+        "- Decadenza: chiunque vi abbia interesse",
+        "Una delle CAUSE TASSATIVE di nullità o decadenza",
+        "ONERE PROVA generalmente a carico dell'attore (Cass. SU 5712/2023)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione DOCUMENTAZIONE DEL MARCHIO CONTESTATO",
+          "documenti": [
+            "Attestato di registrazione UIBM/EUIPO/OMPI",
+            "Storia delle rinnovazioni",
+            "Eventuali trasferimenti o licenze",
+            "Estratti dal Bollettino dei Marchi"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DELLA CAUSA SPECIFICA",
+          "per_nullita_capacita_distintiva": [
+            "Studi linguistici sul significato del marchio",
+            "Documentazione che mostra l'uso descrittivo/generico nel settore",
+            "Esempi di altri usi del termine"
+          ],
+          "per_nullita_relativa_marchio_anteriore": [
+            "Attestato del marchio anteriore di titolarità dell'attore",
+            "Confronto tra i marchi (visivo, fonetico, concettuale)",
+            "Documentazione affinità prodotti/servizi"
+          ],
+          "per_decadenza_non_uso_quinquennale": [
+            "RICERCHE DI USO del marchio sul mercato negli ultimi 5 anni",
+            "Mancanza di pubblicità, cataloghi, prodotti in commercio",
+            "Eventuali perizie di mercato",
+            "Onere prova dell'USO è sul TITOLARE del marchio (art. 121 CPI - inversione)"
+          ],
+          "per_volgarizzazione": [
+            "Documentazione del divenire generico del termine",
+            "Articoli, vocabolari, uso comune",
+            "Eventuali sondaggi presso il pubblico"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "VERIFICA INTERESSE AD AGIRE",
+          "elementi": [
+            "Per nullità assoluta: anche solo interesse economico al libero uso del segno",
+            "Per nullità relativa: titolarità del marchio anteriore",
+            "Per decadenza: interesse economico al libero uso"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VALUTAZIONE STRATEGICA: PROCEDIMENTO AMMINISTRATIVO PRESSO UIBM/EUIPO",
+          "alternativa": "Possibilità di procedimento amministrativo di nullità/decadenza presso l'ufficio - alternativa al ricorso giudiziale",
+          "vantaggi_giudiziale": "Possibilità ottenere accertamento più ampio + risarcimento + dispositivi accessori"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_nullita_decadenza_marchio",
+        "denominazione": "Atto di citazione per nullità/decadenza di marchio (CPI artt. 22-25)",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale - sezione impresa",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "label": "Attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita_legittimante",
+                "type": "select",
+                "options": [
+                  "titolare_marchio_anteriore",
+                  "operatore_di_settore_interessato",
+                  "competitor",
+                  "altro_soggetto_interessato"
+                ]
+              },
+              {
+                "id": "denominazione_o_nome",
+                "type": "string"
+              },
+              {
+                "id": "interesse_ad_agire_descritto",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "titolare_marchio_convenuto",
+            "label": "Titolare del marchio convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "marchio_oggetto_della_causa",
+            "label": "Marchio oggetto della causa",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_registrazione",
+                "type": "select",
+                "options": [
+                  "nazionale_uibm",
+                  "ue_euipo",
+                  "internazionale_ompi"
+                ]
+              },
+              {
+                "id": "numero_di_registrazione",
+                "type": "string",
+                "required": true
+              },
+              {
+                "id": "data_di_deposito",
+                "type": "date"
+              },
+              {
+                "id": "data_di_registrazione",
+                "type": "date"
+              },
+              {
+                "id": "rappresentazione_grafica_o_testo",
+                "type": "string"
+              },
+              {
+                "id": "classi_prodotti_servizi_nizza",
+                "type": "array"
+              }
+            ]
+          },
+          {
+            "id": "tipo_azione_richiesta",
+            "label": "Tipo di azione",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "nullita_assoluta_25_CPI",
+              "nullita_relativa_per_marchio_anteriore",
+              "decadenza_per_non_uso_quinquennale_24",
+              "decadenza_per_volgarizzazione_13_c_3",
+              "decadenza_per_inganno_del_pubblico",
+              "decadenza_per_illiceita_sopravvenuta"
+            ]
+          },
+          {
+            "id": "cause_specifiche_dedotte",
+            "label": "Cause specifiche dedotte",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "assenza_capacita_distintiva_descrittivita",
+              "carattere_generico",
+              "marchio_ingannevole",
+              "contrarieta_ordine_pubblico_buon_costume",
+              "conflitto_marchio_anteriore_attore",
+              "conflitto_marchio_notorio_anteriore",
+              "registrazione_in_mala_fede_squatting",
+              "non_uso_5_anni",
+              "volgarizzazione",
+              "altre"
+            ]
+          },
+          {
+            "id": "esposizione_dettagliata",
+            "label": "Esposizione dettagliata",
+            "type": "textarea",
+            "required": true,
+            "min_length": 500
+          },
+          {
+            "id": "marchio_anteriore_attore_se_nullita_relativa",
+            "label": "Marchio anteriore dell'attore",
+            "type": "object",
+            "required_if": "azione=nullita_relativa",
+            "sub_fields": [
+              {
+                "id": "numero_registrazione",
+                "type": "string"
+              },
+              {
+                "id": "data_priorita",
+                "type": "date"
+              },
+              {
+                "id": "classi_prodotti",
+                "type": "array"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "dichiarazione_nullita_marchio",
+              "dichiarazione_decadenza_marchio",
+              "ordine_cancellazione_registro_marchi",
+              "trascrizione_sentenza_uibm_euipo",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Competenza esclusiva sezione specializzata impresa (D.Lgs. 168/2003)",
+          "Foro speciale art. 120 CPI",
+          "Onere prova dell'uso effettivo del marchio sul TITOLARE per decadenza non uso (art. 121 c. 1 CPI - inversione)",
+          "Sentenza retroagisce al momento del deposito (per nullità) o al verificarsi delle cause (per decadenza)",
+          "Comunicazione obbligatoria della sentenza definitiva all'UIBM/EUIPO per cancellazione"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "attestato_marchio_oggetto_causa",
+          "label": "Attestato di registrazione del marchio convenuto",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "attestato_marchio_anteriore_attore",
+          "label": "Attestato del marchio anteriore dell'attore (per nullità relativa)",
+          "required_if": "nullita_relativa",
+          "critico": true
+        },
+        {
+          "id": "documentazione_capacita_distintiva",
+          "label": "Documentazione su capacità distintiva (vocabolari, ricerche linguistiche)",
+          "required_if": "nullita_assoluta_capacita_distintiva"
+        },
+        {
+          "id": "ricerche_uso_mercato",
+          "label": "Ricerche di uso del marchio sul mercato (per decadenza non uso)",
+          "required_if": "decadenza_non_uso"
+        },
+        {
+          "id": "documentazione_volgarizzazione",
+          "label": "Documentazione volgarizzazione (vocabolari, articoli)",
+          "required_if": "decadenza_volgarizzazione"
+        },
+        {
+          "id": "documentazione_interesse_ad_agire",
+          "label": "Documentazione dell'interesse ad agire",
+          "required": true
+        },
+        {
+          "id": "perizia_tecnica_di_parte",
+          "label": "Perizia tecnica di parte (per analisi confronto marchi)",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Tariffa speciale sezione impresa",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "procedimento_amministrativo_uibm_euipo",
+          "trigger": "Alternativa o parallela",
+          "automatico": false
+        },
+        {
+          "tipo": "ctu_tecnica_su_capacita_distintiva",
+          "trigger": "Disposta dal giudice",
+          "automatico": false,
+          "frequente": true
+        },
+        {
+          "tipo": "comparsa_costituzione_titolare_marchio",
+          "trigger": "Costituzione convenuto",
+          "termine": "70 gg prima udienza"
+        },
+        {
+          "tipo": "domanda_riconvenzionale_contraffazione_da_attore",
+          "trigger": "Strategia difensiva titolare",
+          "codice_correlato": "170011"
+        },
+        {
+          "tipo": "comunicazione_sentenza_uibm_euipo",
+          "trigger": "Sentenza definitiva",
+          "obbligatoria": true,
+          "automatico": false
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "dichiarazione_nullita_o_decadenza",
+          "descrizione": "Marchio dichiarato nullo/decaduto + cancellazione dal Registro"
+        },
+        {
+          "esito": "nullita_decadenza_parziale_per_alcune_classi",
+          "descrizione": "Limitata ad alcune classi merceologiche"
+        },
+        {
+          "esito": "rigetto_per_validita_uso_effettivo",
+          "descrizione": "Marchio confermato valido"
+        },
+        {
+          "esito": "transazione_con_cessione_o_coesistenza",
+          "descrizione": "Accordo (es. cessione del marchio o coesistenza con delimitazione)"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Azione nullità ASSOLUTA - imprescrittibile",
+          "natura": "imprescrittibile"
+        },
+        {
+          "termine": "Azione nullità RELATIVA - tolerance prescription",
+          "anni": 5,
+          "decorrenza": "conoscenza dell'uso del marchio posteriore",
+          "natura": "preclusione per tolleranza",
+          "norma": "art. 28 CPI"
+        },
+        {
+          "termine": "DECADENZA NON USO",
+          "anni": 5,
+          "decorrenza": "dalla registrazione o ultima utilizzazione",
+          "natura": "termine sostanziale",
+          "norma": "art. 24 CPI"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_GARANZIA_VIZI_COSA_VENDUTA_140011",
+      "denominazione": "Garanzia per i vizi della cosa venduta (artt. 1490-1495 c.c.)",
+      "categoria": "Contratti - vendita - patologia",
+      "sottocategoria": "Azione del compratore per vizi della cosa venduta - opzione tra risoluzione, riduzione prezzo, risarcimento",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale o GdP (per valore); foro esecuzione contratto (art. 20) o residenza convenuto",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1490",
+          "descrizione": "Garanzia per i vizi - obbligo del venditore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1491",
+          "descrizione": "Esclusione della garanzia - vizi conoscibili"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1492",
+          "descrizione": "Azione redibitoria e azione estimatoria - effetti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1493",
+          "descrizione": "Effetti della risoluzione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1494",
+          "descrizione": "Risarcimento del danno"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1495",
+          "descrizione": "Termini di decadenza e prescrizione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1496",
+          "descrizione": "Vendita di animali"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1497",
+          "descrizione": "Mancanza di qualità"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1498-1509",
+          "descrizione": "Obblighi del compratore - pagamento prezzo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1519-bis - 1519-nonies",
+          "descrizione": "Vendita di beni di consumo (oggi confluiti in Cod. Consumo)"
+        },
+        {
+          "fonte": "D.Lgs. 206/2005 (Cod. Consumo)",
+          "articoli": "128-135",
+          "descrizione": "Garanzia di conformità - per vendite tra professionista e consumatore"
+        },
+        {
+          "fonte": "Cass. SU 11748/2019",
+          "descrizione": "Onere prova vizi - compratore deve provare esistenza vizio, venditore può eccepire decadenza"
+        },
+        {
+          "fonte": "Cass. SU 19702/2012",
+          "descrizione": "Termini di decadenza e denuncia - tempestività"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "CONTRATTO DI VENDITA valido (mobile, immobile, di beni di consumo)",
+        "PRESENZA DI VIZI:",
+        "- VIZIO REDIBITORIO: rende la cosa inadatta all'uso o ne diminuisce il valore in modo apprezzabile",
+        "- MANCANZA DI QUALITÀ (art. 1497): qualità promesse o essenziali assenti",
+        "- VIZI OCCULTI: non riconoscibili al momento della consegna con ordinaria diligenza",
+        "DENUNCIA TEMPESTIVA del vizio:",
+        "- 8 giorni dalla scoperta (art. 1495 c. 1)",
+        "- Salvo diverso termine pattuito",
+        "AZIONE PROPOSTA entro 1 ANNO dalla consegna (art. 1495 c. 3)"
+      ],
+      "tipologie_di_azione_a_scelta_compratore_1492": {
+        "azione_redibitoria": "Risoluzione del contratto - restituzione cosa + restituzione prezzo + spese contratto",
+        "azione_estimatoria_quanti_minoris": "Mantenimento del contratto + riduzione del prezzo proporzionale al vizio",
+        "alternativa": "Le due azioni sono alternative ma incompatibili - una preclude l'altra (Cass. costante)",
+        "risarcimento_danni_1494": "Sempre cumulabile con entrambe le azioni - per danni derivati da vizio (es. spese sostenute, perdita commerciale)"
+      },
+      "differenza_vendita_consumo_vs_civile": {
+        "vendita_civile_1490_1495": [
+          "Disciplina codicistica generale",
+          "Vizi/mancanza qualità",
+          "Termini brevi (8 gg denuncia + 1 anno azione)",
+          "Onere prova compratore"
+        ],
+        "vendita_beni_consumo_128_cod_consumo": [
+          "Disciplina speciale consumatore-professionista",
+          "DIFETTO DI CONFORMITÀ (concetto più ampio)",
+          "Garanzia legale 24 MESI",
+          "Inversione onere prova primi 12 mesi (presunzione difetto preesistente)",
+          "Diritti gerarchici: riparazione/sostituzione prima → riduzione prezzo/risoluzione poi"
+        ]
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "ma": "Per immobili (es. vizi compravendita immobiliare): se rientra in 'diritti reali' (dubbio) - prudenza valuta mediazione preventiva"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE DELLA VENDITA",
+          "documenti": [
+            "Contratto di compravendita (rogito notarile per immobili, fattura/scontrino per mobili)",
+            "Documenti di consegna (DDT, verbali, comunicazioni)",
+            "Eventuali capitolati/descrizioni del bene",
+            "Pubblicità e materiale promozionale del venditore (per qualità promesse)"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DEL VIZIO",
+          "elementi": [
+            "Descrizione dettagliata del vizio",
+            "Fotografie/video",
+            "Eventuale perizia tecnica di parte",
+            "Documentazione del momento di scoperta del vizio",
+            "Eventuali tentativi di utilizzo che hanno rivelato il vizio"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "DENUNCIA TEMPESTIVA DEL VIZIO",
+          "termine": "8 GIORNI dalla scoperta (art. 1495 c. 1)",
+          "modalita": "Raccomandata A/R o PEC dettagliata indicando vizi specifici",
+          "criticita": "MASSIMA - decadenza preclude azione"
+        },
+        {
+          "step": 4,
+          "descrizione": "VERIFICA TERMINE PER AZIONE",
+          "termine": "1 ANNO dalla consegna del bene (art. 1495 c. 3)",
+          "decorrenza": "Dalla consegna materiale, non dal contratto",
+          "criticita": "MASSIMA"
+        },
+        {
+          "step": 5,
+          "descrizione": "SCELTA STRATEGICA TRA AZIONI",
+          "alternative": [
+            "REDIBITORIA: risoluzione + restituzione - se vizio grave o se non si vuole più il bene",
+            "ESTIMATORIA: riduzione prezzo - se vizio limitato e si vuole mantenere il bene",
+            "RISARCIMENTO: sempre cumulabile - per danni ulteriori"
+          ]
+        },
+        {
+          "step": 6,
+          "descrizione": "QUANTIFICAZIONE",
+          "voci": [
+            "Per redibitoria: prezzo pagato + spese contratto + danni",
+            "Per estimatoria: riduzione proporzionale del prezzo + danni",
+            "Per risarcimento: tutti i danni derivati (es. spese di riparazione, costo di acquisto di sostituto, danno commerciale)"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_vizi_cosa_venduta",
+        "denominazione": "Atto di citazione per vizi della cosa venduta ex artt. 1490-1495 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale_o_gdp",
+            "label": "Tribunale o Giudice di Pace competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "compratore_attore",
+            "label": "Compratore attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "venditore_convenuto",
+            "label": "Venditore convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "contratto_vendita",
+            "label": "Contratto di vendita",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_vendita",
+                "type": "select",
+                "options": [
+                  "vendita_mobile_civile",
+                  "vendita_immobile_civile",
+                  "vendita_beni_consumo",
+                  "vendita_animali_1496"
+                ]
+              },
+              {
+                "id": "data_contratto",
+                "type": "date"
+              },
+              {
+                "id": "data_consegna",
+                "type": "date",
+                "required": true,
+                "critico_per_termine_1_anno": true
+              },
+              {
+                "id": "prezzo_pagato",
+                "type": "currency"
+              },
+              {
+                "id": "descrizione_bene",
+                "type": "textarea"
+              },
+              {
+                "id": "qualita_promesse_o_pubblicizzate",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "vizio_lamentato",
+            "label": "Vizio lamentato",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_vizio",
+                "type": "select_multi",
+                "options": [
+                  "vizio_redibitorio_1490",
+                  "mancanza_qualita_1497",
+                  "vizio_occulto",
+                  "vizi_apparenti_dichiarati_dal_venditore"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 400
+              },
+              {
+                "id": "data_scoperta_vizio",
+                "type": "date",
+                "required": true,
+                "critico_per_denuncia_8_gg": true
+              },
+              {
+                "id": "gravita_del_vizio",
+                "type": "textarea"
+              },
+              {
+                "id": "perizia_tecnica_di_parte_allegata",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "denuncia_del_vizio",
+            "label": "Denuncia del vizio",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "data_denuncia",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "rispetto_termine_8_giorni",
+                "type": "boolean",
+                "critico": true,
+                "validation": "differenza_max_8_giorni_da_scoperta"
+              },
+              {
+                "id": "modalita",
+                "type": "select",
+                "options": [
+                  "raccomandata_AR",
+                  "PEC",
+                  "consegna_a_mani"
+                ]
+              },
+              {
+                "id": "destinatario",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "azione_scelta",
+            "label": "Azione scelta",
+            "type": "select",
+            "required": true,
+            "options": [
+              "redibitoria_risoluzione_1492",
+              "estimatoria_riduzione_prezzo_1492",
+              "redibitoria_o_estimatoria_in_subordine"
+            ]
+          },
+          {
+            "id": "danni_richiesti_1494",
+            "label": "Danni richiesti (cumulabili)",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "spese_riparazione_sostituzione",
+                "type": "currency"
+              },
+              {
+                "id": "danno_commerciale",
+                "type": "currency"
+              },
+              {
+                "id": "altri_danni_emergenti",
+                "type": "currency"
+              },
+              {
+                "id": "lucro_cessante",
+                "type": "currency"
+              },
+              {
+                "id": "totale_danni",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "risoluzione_contratto_redibitoria_1492",
+              "riduzione_proporzionale_prezzo_estimatoria_1492",
+              "restituzione_bene_e_prezzo",
+              "risarcimento_danni_1494",
+              "rimborso_spese_contratto",
+              "interessi_legali",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "TERMINE 8 GG DENUNCIA dalla scoperta - DECADENZIALE (art. 1495 c. 1)",
+          "TERMINE 1 ANNO AZIONE dalla consegna - DECADENZIALE (art. 1495 c. 3)",
+          "Onere prova del vizio sul compratore (Cass. SU 11748/2019)",
+          "Redibitoria ed estimatoria sono ALTERNATIVE",
+          "Risarcimento sempre cumulabile",
+          "Per vendita di consumo: applicabile invece art. 128 e ss. Cod. Consumo (termini più favorevoli)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_vendita_o_fattura",
+          "label": "Contratto di vendita, fattura o ricevuta",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documento_di_consegna",
+          "label": "Documento di consegna (DDT, verbale, ricevuta)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "denuncia_vizi_e_relata_invio",
+          "label": "Denuncia dei vizi con prova invio nei termini",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_vizio",
+          "label": "Documentazione del vizio (foto, video, descrizione)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_tecnica_di_parte",
+          "label": "Perizia tecnica di parte",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "documentazione_qualita_promesse",
+          "label": "Documentazione delle qualità promesse (pubblicità, capitolati)",
+          "required_if": "azione=mancanza_qualita"
+        },
+        {
+          "id": "documentazione_danni",
+          "label": "Documentazione dei danni richiesti",
+          "required_if": "danni_richiesti"
+        },
+        {
+          "id": "eventuali_corrispondenze",
+          "label": "Corrispondenza intercorsa con venditore",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "atp_conciliativo_696_bis",
+          "trigger": "Per accertamento tecnico tempestivo del vizio",
+          "automatico": false,
+          "codice_correlato": "012001"
+        },
+        {
+          "tipo": "ctu_tecnica_su_vizi",
+          "trigger": "Disposta dal giudice",
+          "automatico": false,
+          "molto_frequente": true
+        },
+        {
+          "tipo": "comparsa_costituzione_venditore",
+          "trigger": "Costituzione convenuto",
+          "termine": "70 gg prima udienza"
+        },
+        {
+          "tipo": "chiamata_in_garanzia_a_proprio_dante_causa",
+          "trigger": "Vendite a catena - garanzia tra commercianti",
+          "automatico": false
+        },
+        {
+          "tipo": "esecuzione_per_restituzione",
+          "trigger": "Sentenza esecutiva non eseguita",
+          "codice_correlato": "511012"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_redibitoria",
+          "descrizione": "Risoluzione + restituzione prezzo + spese + danni"
+        },
+        {
+          "esito": "accoglimento_estimatoria",
+          "descrizione": "Riduzione del prezzo proporzionale + eventuali danni"
+        },
+        {
+          "esito": "rigetto_per_decadenza_8_gg_denuncia",
+          "descrizione": "Denuncia tardiva - decadenza preclude azione"
+        },
+        {
+          "esito": "rigetto_per_decadenza_1_anno_azione",
+          "descrizione": "Azione oltre 1 anno dalla consegna"
+        },
+        {
+          "esito": "rigetto_per_vizio_apparente_o_conosciuto",
+          "descrizione": "Vizio non occulto - art. 1491"
+        },
+        {
+          "esito": "rigetto_per_assenza_vizio_o_qualita_promesse",
+          "descrizione": "Vizio non accertato"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo (es. sostituzione bene + indennizzo)"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "DENUNCIA VIZI",
+          "giorni": 8,
+          "decorrenza": "scoperta vizio",
+          "natura": "DECADENZIALE",
+          "norma": "art. 1495 c. 1 c.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "AZIONE PER VIZI",
+          "anno": 1,
+          "decorrenza": "consegna bene",
+          "natura": "DECADENZIALE",
+          "norma": "art. 1495 c. 3 c.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "140011",
+      "codici_ufficiali_correlati_da_valutare": [
+        "140011",
+        "140012",
+        "140999"
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Il codice 140011 è ufficiale nel catalogo locale per vendita di cose immobili; la scheda ricevuta riguarda la garanzia per vizi della cosa venduta in senso più ampio. Resta guida interna per non sostituire la denominazione ministeriale del deposito."
+    },
+    {
+      "codice": "GUIDA_RESPONSABILITA_COSE_CUSTODIA_160021",
+      "denominazione": "Responsabilità da cose in custodia (art. 2051 c.c.)",
+      "categoria": "Responsabilità civile - responsabilità oggettiva o aggravata",
+      "sottocategoria": "Azione di risarcimento per danni causati da cose in custodia - inversione onere prova",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale o GdP (per valore); foro residenza convenuto o luogo fatto illecito",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2051",
+          "descrizione": "Danno cagionato da cosa in custodia - responsabilità custode salvo caso fortuito"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2043",
+          "descrizione": "Risarcimento per fatto illecito (norma generale)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2059",
+          "descrizione": "Danno non patrimoniale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2056",
+          "descrizione": "Valutazione danni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2947",
+          "descrizione": "Prescrizione 5 anni"
+        },
+        {
+          "fonte": "Cass. SU 7037/2024",
+          "descrizione": "Responsabilità custode P.A. per beni demaniali - inclusi i sinistri stradali"
+        },
+        {
+          "fonte": "Cass. SU 12717/2023",
+          "descrizione": "Caso fortuito - distinzione da concorso colpa danneggiato"
+        },
+        {
+          "fonte": "Cass. SU 20943/2022",
+          "descrizione": "Onere prova - basta prova del nesso causale tra cosa e danno"
+        },
+        {
+          "fonte": "Cass. 14228/2024",
+          "descrizione": "Marciapiedi pubblici e responsabilità del Comune"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI UNA COSA (mobile o immobile)",
+        "QUALITÀ DI CUSTODE del convenuto - chi ha effettivo potere fisico di controllo e di vigilanza sulla cosa",
+        "DANNO derivante DALLA COSA stessa (sia per dinamismo intrinseco sia per azione di terzi/eventi che hanno interagito con la cosa)",
+        "NESSO DI CAUSALITÀ tra cosa e danno (criterio probabilistico)",
+        "INVERSIONE ONERE PROVA: l'attore deve provare solo il nesso causale + qualità di custode; sarà il custode a dover provare il CASO FORTUITO per liberarsi (art. 2051 + Cass. SU 20943/2022)"
+      ],
+      "casistiche_tipiche": [
+        "INCIDENTI STRADALI per buche/dislivelli/segnaletica mancante - custode Comune o ANAS",
+        "CADUTE su marciapiedi dissestati o lastricati - Comune",
+        "DANNI da rami o alberi caduti - proprietario/condominio/Comune",
+        "DANNI da apparecchiature/impianti pubblici",
+        "DANNI in luoghi pubblici (parchi, piazze, musei)",
+        "INCIDENTI in esercizi commerciali (caduta su scivoloni)",
+        "DANNI da elementi architettonici (porte automatiche, scale mobili)",
+        "DANNI da animali in custodia (art. 2052 - norma speciale)",
+        "DANNI da utenze (fughe gas, allagamenti)"
+      ],
+      "caso_fortuito_come_unica_esimente": {
+        "definizione": "Evento imprevedibile e inevitabile, esterno alla sfera di controllo del custode",
+        "elementi": [
+          "Imprevedibilità",
+          "Inevitabilità",
+          "Estraneità alla sfera del custode"
+        ],
+        "casi_tipici": [
+          "Evento di forza maggiore (terremoto, alluvione eccezionale)",
+          "Fatto del terzo dolo (vandalismo)",
+          "FATTO DEL DANNEGGIATO STESSO (concorso di colpa - può ridurre o eliminare risarcimento)",
+          "Eventi del tutto eccezionali e non prevedibili"
+        ],
+        "non_costituisce_caso_fortuito": [
+          "Cattiva manutenzione (responsabilità del custode)",
+          "Difetti di progettazione (responsabilità del custode)",
+          "Eventi atmosferici ordinari",
+          "Mancata segnalazione del pericolo (responsabilità del custode)"
+        ]
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": "Solo se materia rientra in art. 5 c. 1-bis (es. condominio): in tal caso sì",
+        "valutazione_caso_per_caso": true,
+        "negoziazione_assistita": "Obbligatoria per crediti fino a 50.000 € ex D.L. 132/2014"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE DEL FATTO",
+          "elementi": [
+            "Verbali Polizia/CC/Vigili Urbani (FONDAMENTALI per sinistri stradali)",
+            "Foto/video del luogo e della cosa che ha causato il danno",
+            "Foto/video dei danni",
+            "Testimoni",
+            "Soccorsi sanitari (per lesioni personali)"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "IDENTIFICAZIONE DEL CUSTODE",
+          "verifiche": [
+            "Per strade: Comune (strade comunali), Provincia (provinciali), ANAS/Concessionari (statali/autostrade)",
+            "Per marciapiedi: Comune (di norma)",
+            "Per immobili privati: proprietario o condominio",
+            "Per beni in noleggio: noleggiatore se ha continuato controllo, altrimenti utilizzatore",
+            "Per edifici condominiali: amministratore condominio (per parti comuni)",
+            "Per esercizi commerciali: gestore"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "DOCUMENTAZIONE DELLA NATURA DELLA COSA",
+          "elementi": [
+            "Caratteristiche della cosa (descrizione, dimensioni)",
+            "Stato di manutenzione (perizia di parte se utile)",
+            "Eventuali segnalazioni precedenti del pericolo",
+            "Eventuali ordinanze precedenti (per beni demaniali)"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "DOCUMENTAZIONE DEI DANNI",
+          "voci": [
+            "Per danni alla persona: cartelle cliniche, perizia medico-legale di parte, documentazione spese",
+            "Per danni a cose: preventivi di riparazione, fatture, perizie",
+            "Per danni indiretti: documentazione spese, mancato guadagno"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "RICHIESTA STRAGIUDIZIALE",
+          "vantaggio": "Interrompe prescrizione + spesso porta a transazione (specie con ASL/Comuni assicurati)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_responsabilita_cose_in_custodia_2051",
+        "denominazione": "Atto di citazione per risarcimento danni da cosa in custodia ex art. 2051 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale_o_gdp",
+            "label": "Tribunale o GdP competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "danneggiato_attore",
+            "label": "Danneggiato attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "custode_convenuto",
+            "label": "Custode convenuto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_custode",
+                "type": "select",
+                "required": true,
+                "options": [
+                  "comune",
+                  "provincia",
+                  "regione",
+                  "anas_concessionario",
+                  "condominio",
+                  "proprietario_privato",
+                  "gestore_esercizio_commerciale",
+                  "altro_ente_pubblico",
+                  "altro_soggetto_privato"
+                ]
+              },
+              {
+                "id": "denominazione",
+                "type": "string"
+              },
+              {
+                "id": "indirizzo",
+                "type": "address"
+              }
+            ]
+          },
+          {
+            "id": "assicuratore_eventuale",
+            "label": "Eventuale compagnia assicuratrice del custode",
+            "type": "object_persona_giuridica"
+          },
+          {
+            "id": "fatto",
+            "label": "Fatto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_fatto",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "luogo_fatto",
+                "type": "address"
+              },
+              {
+                "id": "ora",
+                "type": "string"
+              },
+              {
+                "id": "descrizione_dettagliata_dinamica",
+                "type": "textarea",
+                "required": true,
+                "min_length": 500
+              }
+            ]
+          },
+          {
+            "id": "cosa_in_custodia",
+            "label": "Cosa in custodia che ha causato il danno",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "strada_buca_dislivello",
+                  "marciapiede_dissestato",
+                  "albero_o_ramo",
+                  "edificio_o_elemento_architettonico",
+                  "apparecchiatura_o_impianto",
+                  "scivoloso_dovuto_a_pioggia_o_altro",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 300
+              },
+              {
+                "id": "ubicazione_precisa",
+                "type": "address"
+              },
+              {
+                "id": "stato_di_manutenzione",
+                "type": "textarea"
+              },
+              {
+                "id": "eventuali_segnalazioni_precedenti_di_pericolo",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "qualita_di_custode_del_convenuto",
+            "label": "Prova della qualità di custode",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "nesso_causale",
+            "label": "Nesso causale tra cosa e danno",
+            "type": "textarea",
+            "required": true,
+            "min_length": 200
+          },
+          {
+            "id": "danni_subiti",
+            "label": "Danni subiti",
+            "type": "object_complesso",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "danno_alla_persona",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "lesioni_subite",
+                    "type": "textarea"
+                  },
+                  {
+                    "id": "invalidita_permanente_percentuale",
+                    "type": "percentage"
+                  },
+                  {
+                    "id": "invalidita_temporanea_giorni",
+                    "type": "integer"
+                  },
+                  {
+                    "id": "danno_biologico_calcolato",
+                    "type": "currency"
+                  },
+                  {
+                    "id": "danno_morale",
+                    "type": "currency"
+                  },
+                  {
+                    "id": "personalizzazione",
+                    "type": "currency"
+                  },
+                  {
+                    "id": "spese_mediche",
+                    "type": "currency"
+                  }
+                ]
+              },
+              {
+                "id": "danno_a_cose",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "tipo_cose_danneggiate",
+                    "type": "textarea"
+                  },
+                  {
+                    "id": "valore_riparazione_o_sostituzione",
+                    "type": "currency"
+                  },
+                  {
+                    "id": "preventivi_o_fatture",
+                    "type": "boolean"
+                  }
+                ]
+              },
+              {
+                "id": "danno_emergente_indiretto",
+                "type": "currency"
+              },
+              {
+                "id": "lucro_cessante",
+                "type": "currency"
+              },
+              {
+                "id": "totale_richiesto",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "INVERSIONE ONERE PROVA: attore prova solo nesso causale + qualità custode (Cass. SU 20943/2022)",
+          "Caso fortuito è L'UNICA esimente per il custode (art. 2051)",
+          "Concorso di colpa del danneggiato può ridurre risarcimento (art. 1227)",
+          "Prescrizione 5 anni dalla data del fatto (art. 2947)",
+          "P.A. responsabile come custode anche per beni demaniali (Cass. SU 7037/2024)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "verbali_FFOO_o_vigili",
+          "label": "Verbali Polizia/CC/Vigili Urbani",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "documentazione_fotografica_luogo_e_cosa",
+          "label": "Documentazione fotografica/video del luogo e della cosa",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_danni_fotografica",
+          "label": "Documentazione fotografica dei danni",
+          "required": true
+        },
+        {
+          "id": "documentazione_sanitaria_per_lesioni",
+          "label": "Documentazione sanitaria (per lesioni personali)",
+          "required_if": "danno_alla_persona"
+        },
+        {
+          "id": "perizia_medico_legale_di_parte",
+          "label": "Perizia medico-legale di parte",
+          "required": false,
+          "fortemente_consigliato_se_lesioni": true
+        },
+        {
+          "id": "preventivi_riparazione_o_fatture",
+          "label": "Preventivi/fatture di riparazione",
+          "required_if": "danno_a_cose"
+        },
+        {
+          "id": "elenco_testimoni",
+          "label": "Elenco testimoni con recapiti",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_qualita_di_custode_convenuto",
+          "label": "Documentazione qualità di custode del convenuto (visure stradali, atti)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "richiesta_stragiudiziale_e_riscontro",
+          "label": "Richiesta stragiudiziale e relativi riscontri",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "richiesta_stragiudiziale_e_assicurazione",
+          "trigger": "Tentativo conciliativo",
+          "automatico": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "tipo": "ctu_medico_legale",
+          "trigger": "Per danno alla persona",
+          "automatico": false,
+          "molto_frequente": true
+        },
+        {
+          "tipo": "ctu_tecnica_sui_luoghi_e_sulla_cosa",
+          "trigger": "Per accertamento tecnico",
+          "automatico": false
+        },
+        {
+          "tipo": "atp_conciliativo_696_bis",
+          "trigger": "Per quantificazione preventiva",
+          "automatico": false
+        },
+        {
+          "tipo": "chiamata_in_garanzia_assicurazione_custode",
+          "trigger": "Se custode assicurato",
+          "automatico": false
+        },
+        {
+          "tipo": "domanda_riconvenzionale_concorso_colpa_attore",
+          "trigger": "Convenuto allega colpa danneggiato",
+          "automatico": false
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_pieno",
+          "descrizione": "Condanna custode (e/o assicurazione) al risarcimento integrale"
+        },
+        {
+          "esito": "accoglimento_parziale_per_concorso_colpa",
+          "descrizione": "Riduzione per concorso di colpa del danneggiato ex art. 1227"
+        },
+        {
+          "esito": "rigetto_per_caso_fortuito",
+          "descrizione": "Provato caso fortuito - esenzione responsabilità"
+        },
+        {
+          "esito": "rigetto_per_assenza_nesso_causale",
+          "descrizione": "Mancata prova del nesso tra cosa e danno"
+        },
+        {
+          "esito": "rigetto_per_difetto_qualita_di_custode",
+          "descrizione": "Convenuto non era effettivo custode"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo con assicurazione del custode - molto frequente"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE GENERALE",
+          "anni": 5,
+          "decorrenza": "data fatto o scoperta danno",
+          "natura": "prescrizione",
+          "norma": "art. 2947 c. 1 c.c.",
+          "criticita": "ALTA"
+        },
+        {
+          "termine": "PRESCRIZIONE LUNGA SE REATO",
+          "anni": "secondo prescrizione reato",
+          "decorrenza": "fatto",
+          "natura": "prescrizione",
+          "norma": "art. 2947 c. 3 c.c."
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "160021",
+      "codici_ufficiali_correlati_da_valutare": [
+        "145013",
+        "145999"
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda viene conservata come guida interna per responsabilità da cose in custodia e collegata ai codici di responsabilità extracontrattuale pertinenti."
+    },
+    {
+      "codice": "GUIDA_DISTANZE_LEGALI_COSTRUZIONI_130011",
+      "denominazione": "Distanze legali tra costruzioni (artt. 873 e ss. c.c.)",
+      "categoria": "Diritti reali - rapporti di vicinato",
+      "sottocategoria": "Azione per rispetto distanze legali tra costruzioni (edifici, muri, alberi, finestre, vedute)",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA (diritti reali)",
+      "competenza": "Tribunale del luogo dell'immobile (art. 21 c.p.c.) - foro esclusivo",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "873",
+          "descrizione": "Distanze nelle costruzioni - 3 metri tra edifici (salvo regolamenti locali)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "874",
+          "descrizione": "Comunione forzosa del muro sul confine"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "875",
+          "descrizione": "Comunione forzosa del muro che non è sul confine"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "876",
+          "descrizione": "Innesto nel muro del vicino"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "877",
+          "descrizione": "Costruzioni in aderenza"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "878",
+          "descrizione": "Muro divisorio e di cinta"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "879",
+          "descrizione": "Edifici non soggetti all'obbligo delle distanze"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "880",
+          "descrizione": "Presunzione di comunione del muro divisorio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "881-884",
+          "descrizione": "Costruzione del muro - obblighi del proprietario"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "885-887",
+          "descrizione": "Apertura di luci"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "888",
+          "descrizione": "Apertura di vedute (finestre, balconi, terrazzi)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "889",
+          "descrizione": "Distanze per pozzi, cisterne, fosse, tubi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "890",
+          "descrizione": "Fabbriche e depositi nocivi e pericolosi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "891",
+          "descrizione": "Distanze per canali e fossi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "892-893",
+          "descrizione": "Distanze per piantumazione alberi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "905-907",
+          "descrizione": "Distanze per vedute e luci"
+        },
+        {
+          "fonte": "DM 1444/1968",
+          "articolo": "9",
+          "descrizione": "Distanze minime tra fabbricati - 10 metri (norme integrate nei regolamenti locali)"
+        },
+        {
+          "fonte": "Cass. SU 21578/2011",
+          "descrizione": "Prevalenza regolamenti locali su norme codicistiche"
+        },
+        {
+          "fonte": "Cass. SU 5839/2024",
+          "descrizione": "Sopraelevazioni e distanze - rispetto normativa vigente al momento"
+        }
+      ],
+      "principali_distanze_legali": {
+        "art_873_distanze_tra_edifici": {
+          "regola_codicistica": "Almeno 3 metri tra costruzioni su fondi finitimi",
+          "deroga_regolamenti_locali": "Possono prevedere distanze maggiori (DM 1444/1968 fissa 10 metri minimi tra fabbricati con pareti finestrate)",
+          "prevalenza": "Regolamenti locali se più rigorosi (Cass. SU 21578/2011)"
+        },
+        "art_889_distanze_per_pozzi_e_fosse": {
+          "pozzi_cisterne_concimaie": "Almeno 2 metri dal confine",
+          "tubi_acqua_gas_elettricita": "Distanze specifiche per impedire danni"
+        },
+        "art_892_distanze_per_alberi": {
+          "alberi_ad_alto_fusto": "3 metri",
+          "alberi_di_non_alta_fusto": "1,5 metri",
+          "viti_arbusti_siepi": "0,5 metri"
+        },
+        "art_905_distanze_per_vedute_dirette": {
+          "regola": "1,5 metri dal confine",
+          "vedute_oblique": "0,75 metri",
+          "luci_vere_e_proprie_900_ss": "Aperture per dare aria/luce - regole specifiche"
+        }
+      },
+      "presupposti_sostanziali": [
+        "PROPRIETÀ di fondo limitrofo o titolo idoneo (es. servitù, condominio)",
+        "VIOLAZIONE da parte del vicino delle distanze prescritte",
+        "Le distanze applicabili sono quelle:",
+        "- Del codice civile (sussidiarie)",
+        "- Dei regolamenti edilizi locali (prevalenti se più rigorosi)",
+        "- Del DM 1444/1968 (10 metri tra fabbricati)"
+      ],
+      "tutele_disponibili": [
+        "AZIONE PER RISPETTO DISTANZE: ordine di abbattimento/arretramento delle parti che violano",
+        "RISARCIMENTO DANNI subiti per la violazione",
+        "INIBITORIA per costruzioni in corso",
+        "DENUNCIA NUOVA OPERA (1171) - tutela d'urgenza"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "DIRITTI REALI",
+        "natura": "condizione di procedibilità"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE PROPRIETÀ e CONFINI",
+          "documenti": [
+            "Atti di provenienza dei fondi",
+            "Visure catastali aggiornate",
+            "Mappe catastali",
+            "Rilievo topografico (consigliato)",
+            "Eventuali atti di costituzione servitù"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "IDENTIFICAZIONE NORMATIVA APPLICABILE",
+          "criterio": [
+            "Verificare REGOLAMENTO EDILIZIO COMUNALE",
+            "Verificare PRG/PUC del Comune",
+            "Verificare eventuali ATTI CONVENZIONALI (es. lottizzazione)",
+            "Confronto con norme codicistiche (sussidiarie)",
+            "Prevalenza delle norme più rigorose"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "DOCUMENTAZIONE DELLA VIOLAZIONE",
+          "elementi": [
+            "Rilievo topografico con misurazione effettiva",
+            "Fotografie/video del manufatto in violazione",
+            "Foto aeree storiche (per evoluzione)",
+            "Eventuali permessi/SCIA del vicino (visura presso Comune)",
+            "Eventuali ordinanze/segnalazioni precedenti"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VERIFICA TEMPESTIVITÀ",
+          "regola_generale": "AZIONE IMPRESCRITTIBILE fino a permanere della violazione (è violazione continuativa)",
+          "eccezione": "Salvo intervenuta usucapione di servitù di non rispetto distanze (servitù apparente - 20 anni)"
+        },
+        {
+          "step": 5,
+          "descrizione": "TENTATIVO BONARIO + MEDIAZIONE OBBLIGATORIA"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_distanze_legali",
+        "denominazione": "Atto di citazione per violazione distanze legali (artt. 873 e ss. c.c. e regolamento edilizio)",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del luogo immobile",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore_proprietario_leso",
+            "label": "Attore - proprietario fondo confinante",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto_proprietario_violante",
+            "label": "Convenuto - proprietario che ha violato distanze",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "fondo_attore",
+            "label": "Fondo dell'attore",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "fondo_convenuto",
+            "label": "Fondo del convenuto",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "tipo_violazione",
+            "label": "Tipo di violazione",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "distanza_tra_edifici_873",
+              "distanza_pozzi_o_fosse_889",
+              "distanza_alberi_892",
+              "vedute_905",
+              "luci_900_ss",
+              "comunione_forzosa_muro_874_875",
+              "altro"
+            ]
+          },
+          {
+            "id": "normativa_applicabile",
+            "label": "Normativa applicabile",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "codice_civile_articolo",
+                "type": "string"
+              },
+              {
+                "id": "regolamento_edilizio_comune",
+                "type": "string"
+              },
+              {
+                "id": "prg_puc",
+                "type": "string"
+              },
+              {
+                "id": "dm_1444_1968",
+                "type": "boolean"
+              },
+              {
+                "id": "distanza_minima_richiesta",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "violazione_dedotta",
+            "label": "Violazione dedotta",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "distanza_attualmente_rispettata",
+                "type": "string"
+              },
+              {
+                "id": "distanza_che_dovrebbe_essere_rispettata",
+                "type": "string"
+              },
+              {
+                "id": "metri_di_violazione",
+                "type": "string"
+              },
+              {
+                "id": "descrizione_manufatto_in_violazione",
+                "type": "textarea"
+              },
+              {
+                "id": "data_inizio_costruzione_o_di_violazione",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "rilievo_topografico_di_parte",
+            "label": "Rilievo topografico di parte",
+            "type": "boolean",
+            "fortemente_consigliato": true
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_violazione_distanze",
+              "ordine_abbattimento_o_arretramento_parti_in_violazione",
+              "ordine_rimozione_alberi",
+              "ordine_chiusura_vedute_irregolari",
+              "risarcimento_danni",
+              "penalita_giornaliere_per_inadempimento",
+              "trascrizione_sentenza",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "danni_richiesti",
+            "label": "Danni richiesti",
+            "type": "currency"
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Foro esclusivo del luogo immobile (art. 21 c.p.c.)",
+          "Mediazione obbligatoria preventiva (diritti reali)",
+          "Prevalenza norme locali più rigorose su codice civile (Cass. SU 21578/2011)",
+          "AZIONE IMPRESCRITTIBILE per violazione permanente (salvo usucapione 20 anni di servitù)",
+          "DM 1444/1968 fissa 10 metri tra fabbricati con pareti finestrate"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atti_proprieta_fondi",
+          "label": "Atti di proprietà dei due fondi",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "visure_catastali_e_mappe",
+          "label": "Visure catastali e mappe catastali",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "ispezione_conservatoria",
+          "label": "Ispezione Conservatoria",
+          "required": true
+        },
+        {
+          "id": "rilievo_topografico_misurazioni",
+          "label": "Rilievo topografico con misurazioni",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "documentazione_fotografica",
+          "label": "Documentazione fotografica della violazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "regolamento_edilizio_comunale",
+          "label": "Estratto regolamento edilizio comunale applicabile",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "estratto_prg_puc",
+          "label": "Estratto PRG/PUC applicabile",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "permessi_edilizi_convenuto",
+          "label": "Eventuali permessi edilizi/SCIA del convenuto (visura presso Comune)",
+          "required": false,
+          "rilevante": true
+        },
+        {
+          "id": "verbale_mediazione_negativa",
+          "label": "Verbale mediazione obbligatoria conclusa negativamente",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ricorso_mediazione_obbligatoria",
+          "trigger": "Condizione procedibilità preliminare"
+        },
+        {
+          "tipo": "denuncia_nuova_opera_1171_alternativa_per_opere_in_corso",
+          "trigger": "Se costruzione in corso",
+          "codice_correlato": "130020"
+        },
+        {
+          "tipo": "ctu_topografica_e_tecnica",
+          "trigger": "Disposta dal giudice",
+          "automatico": false,
+          "centrale_per_decisione": true
+        },
+        {
+          "tipo": "sopralluogo_giudice",
+          "trigger": "Disposto dal giudice",
+          "automatico": false
+        },
+        {
+          "tipo": "esecuzione_per_abbattimento_o_arretramento",
+          "trigger": "Sentenza esecutiva non eseguita",
+          "codice_correlato": "512020"
+        },
+        {
+          "tipo": "domanda_riconvenzionale_usucapione_servitu",
+          "trigger": "Convenuto deduce usucapione servitù di non rispetto distanze",
+          "codice_correlato": "130033"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_pieno_abbattimento",
+          "descrizione": "Accertamento violazione + ordine abbattimento/arretramento + risarcimento + penalità"
+        },
+        {
+          "esito": "accoglimento_solo_risarcimento_no_abbattimento",
+          "descrizione": "Risarcimento per equivalente (es. se abbattimento economicamente sproporzionato)"
+        },
+        {
+          "esito": "rigetto_per_assenza_violazione",
+          "descrizione": "Distanze rispettate"
+        },
+        {
+          "esito": "rigetto_per_usucapione_servitu",
+          "descrizione": "Servitù di non rispetto distanze usucapita (20 anni)"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo (es. costituzione servitù volontaria con indennizzo)"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "AZIONE IMPRESCRITTIBILE (violazione permanente)",
+          "natura": "imprescrittibile",
+          "eccezione": "salvo usucapione servitù 20 anni"
+        },
+        {
+          "termine": "Mediazione obbligatoria - max",
+          "giorni": 90,
+          "norma": "art. 6 D.Lgs. 28/2010"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "130011",
+      "codici_ufficiali_correlati_da_valutare": [
+        "130001",
+        "130041",
+        "130111",
+        "130131"
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Il codice 130011 è ufficiale nel catalogo locale, ma riguarda la superficie; la scheda ricevuta riguarda distanze legali tra costruzioni e rapporti di vicinato, quindi resta interna per non alterare il deposito."
+    }
+  ]
+}

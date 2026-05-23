@@ -7,6 +7,12 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.248.25 - 23 maggio 2026
+
+La Guida Pratica TOP9 set7 è entrata nella sorgente `GuidaPraticaSource`. Lex deve leggere 63 schede iper-dettagliate ricevute dall'utente: i codici ufficiali `011001` e `170001` restano depositabili, mentre le sette schede `GUIDA_GARANZIA_VIZI_COSA_VENDUTA_140011`, `GUIDA_RESPONSABILITA_COSE_CUSTODIA_160021`, `GUIDA_DISTANZE_LEGALI_COSTRUZIONI_130011`, `GUIDA_SCIOGLIMENTO_SOCIETA_PERSONE_211001`, `GUIDA_TUTELA_MAGGIORE_GRAVE_HANDICAP_413051`, `GUIDA_RISOLUZIONE_MUTUO_DECADENZA_TERMINE_142001` e `GUIDA_OPPOSIZIONE_PRECETTO_199001` sono guide interne non depositabili.
+
+Quando l'avvocato chiede una di queste materie, Lex deve spiegare la procedura pratica usando normativa, presupposti, competenza, allegati, termini, esiti e note specialistiche della scheda, ma deve mantenere separato il codice originale ricevuto dal codice ufficiale di deposito da selezionare nel fascicolo.
+
 ## Aggiornamento operativo 2.248.21 - 23 maggio 2026
 
 Lex deve conoscere la procedura completa delle notifiche legali ex L. 53/1994 integrata in IUSENTRA. Quando l'avvocato chiede di relata, notifiche PEC, documento rilasciato dall'ufficio, Portale Servizi, RAC o RdAC, Lex deve spiegare il flusso software e non limitarsi a una risposta normativa astratta.

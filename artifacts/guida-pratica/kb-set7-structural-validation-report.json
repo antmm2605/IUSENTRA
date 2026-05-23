@@ -1,0 +1,144 @@
+{
+  "generated_at": "2026-05-23T21:16:07Z",
+  "zip_source": "C:\\Users\\HelpdeskCSC4\\Downloads\\files (2).zip",
+  "zip_sha256": "C60F794111DE63F9967B250D8BCC1540DAF8280A74043AB78BABA28753E2EFB4",
+  "files": [
+    {
+      "source": "C:\\Users\\HelpdeskCSC4\\Downloads\\files (2).zip::kb_top9_set7_parte1.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set7_parte1.json",
+      "sha256": "65EF8DC63818515AD7E952BF02FC8C52B38B964EC388A2026F4E6244C573B994",
+      "macro_area_id": "TOP9_CODICI_FREQUENTI_SET7_PARTE1",
+      "denominazione": "Settimo set di 9 codici - PARTE 1 di 2 (sequestro conservativo, marchio nullità, vizi cosa venduta, cose in custodia, distanze legali)",
+      "codici_materia_originali": [
+        "011001",
+        "170001",
+        "140011",
+        "160021",
+        "130011"
+      ],
+      "codici_materia_integrati": [
+        "011001",
+        "170001",
+        "GUIDA_GARANZIA_VIZI_COSA_VENDUTA_140011",
+        "GUIDA_RESPONSABILITA_COSE_CUSTODIA_160021",
+        "GUIDA_DISTANZE_LEGALI_COSTRUZIONI_130011"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "140011",
+          "codice_integrato": "GUIDA_GARANZIA_VIZI_COSA_VENDUTA_140011",
+          "codici_ufficiali_correlati_da_valutare": [
+            "140011",
+            "140012",
+            "140999"
+          ],
+          "reason": "Il codice 140011 è ufficiale nel catalogo locale per vendita di cose immobili; la scheda ricevuta riguarda la garanzia per vizi della cosa venduta in senso più ampio. Resta guida interna per non sostituire la denominazione ministeriale del deposito."
+        },
+        {
+          "codice_originale": "160021",
+          "codice_integrato": "GUIDA_RESPONSABILITA_COSE_CUSTODIA_160021",
+          "codici_ufficiali_correlati_da_valutare": [
+            "145013",
+            "145999"
+          ],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda viene conservata come guida interna per responsabilità da cose in custodia e collegata ai codici di responsabilità extracontrattuale pertinenti."
+        },
+        {
+          "codice_originale": "130011",
+          "codice_integrato": "GUIDA_DISTANZE_LEGALI_COSTRUZIONI_130011",
+          "codici_ufficiali_correlati_da_valutare": [
+            "130001",
+            "130041",
+            "130111",
+            "130131"
+          ],
+          "reason": "Il codice 130011 è ufficiale nel catalogo locale, ma riguarda la superficie; la scheda ricevuta riguarda distanze legali tra costruzioni e rapporti di vicinato, quindi resta interna per non alterare il deposito."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [
+        "011001",
+        "170001"
+      ],
+      "termini_processuali_raw": 20
+    },
+    {
+      "source": "C:\\Users\\HelpdeskCSC4\\Downloads\\files (2).zip::kb_top9_set7_parte2.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set7_parte2.json",
+      "sha256": "A2CB43E58FC48B8F8C6529CE39158A3D19951E2D183A7D65DC08CD4B8D0551DE",
+      "macro_area_id": "TOP9_CODICI_FREQUENTI_SET7_PARTE2",
+      "denominazione": "Settimo set di 9 codici - PARTE 2 di 2",
+      "codici_materia_originali": [
+        "211001",
+        "413051",
+        "142001",
+        "199001"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_SCIOGLIMENTO_SOCIETA_PERSONE_211001",
+        "GUIDA_TUTELA_MAGGIORE_GRAVE_HANDICAP_413051",
+        "GUIDA_RISOLUZIONE_MUTUO_DECADENZA_TERMINE_142001",
+        "GUIDA_OPPOSIZIONE_PRECETTO_199001"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "211001",
+          "codice_integrato": "GUIDA_SCIOGLIMENTO_SOCIETA_PERSONE_211001",
+          "codici_ufficiali_correlati_da_valutare": [
+            "152004",
+            "152999",
+            "455001",
+            "455999"
+          ],
+          "reason": "Il codice 211001 è ufficiale nel catalogo locale, ma riguarda sequestro conservativo in area lavoro; la scheda ricevuta riguarda scioglimento giudiziale di società di persone e resta interna."
+        },
+        {
+          "codice_originale": "413051",
+          "codice_integrato": "GUIDA_TUTELA_MAGGIORE_GRAVE_HANDICAP_413051",
+          "codici_ufficiali_correlati_da_valutare": [
+            "110001",
+            "110002",
+            "B02001",
+            "C15001"
+          ],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda viene conservata come guida interna per interdizione/inabilitazione e tutela del maggiore d'età."
+        },
+        {
+          "codice_originale": "142001",
+          "codice_integrato": "GUIDA_RISOLUZIONE_MUTUO_DECADENZA_TERMINE_142001",
+          "codici_ufficiali_correlati_da_valutare": [
+            "140038",
+            "140041",
+            "140999"
+          ],
+          "reason": "Il codice 142001 è ufficiale nel catalogo locale, ma riguarda prestazione d'opera intellettuale; la scheda ricevuta riguarda risoluzione del mutuo e decadenza dal beneficio del termine, quindi resta interna."
+        },
+        {
+          "codice_originale": "199001",
+          "codice_integrato": "GUIDA_OPPOSIZIONE_PRECETTO_199001",
+          "codici_ufficiali_correlati_da_valutare": [
+            "100001"
+          ],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; esiste il codice ufficiale 100001 per opposizione a precetto ex art. 615, primo comma, c.p.c., da usare per il deposito se confermato."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [],
+      "termini_processuali_raw": 15
+    }
+  ],
+  "records_received": 9,
+  "records_integrated": 9,
+  "official_depositable_kept": [
+    "011001",
+    "170001"
+  ],
+  "internal_non_depositable_aliases": [
+    "GUIDA_GARANZIA_VIZI_COSA_VENDUTA_140011",
+    "GUIDA_RESPONSABILITA_COSE_CUSTODIA_160021",
+    "GUIDA_DISTANZE_LEGALI_COSTRUZIONI_130011",
+    "GUIDA_SCIOGLIMENTO_SOCIETA_PERSONE_211001",
+    "GUIDA_TUTELA_MAGGIORE_GRAVE_HANDICAP_413051",
+    "GUIDA_RISOLUZIONE_MUTUO_DECADENZA_TERMINE_142001",
+    "GUIDA_OPPOSIZIONE_PRECETTO_199001"
+  ],
+  "termini_processuali_raw": 35
+}

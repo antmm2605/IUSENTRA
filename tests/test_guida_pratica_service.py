@@ -332,6 +332,53 @@ def test_top9_set6_integrates_guides_without_corrupting_official_codes():
     assert service.get_guidance("130121")["codice_deposito"]["depositabile"] is True
 
 
+def test_top9_set7_integrates_guides_without_corrupting_official_codes():
+    service = GuidaPraticaService(kb_path=FULL_KB)
+
+    official_codes = {
+        "011001": "Sequestro conservativo",
+        "170001": "Azione di nullità o decadenza di marchio",
+    }
+    for codice, expected_label in official_codes.items():
+        guida = service.get_guidance(codice)
+
+        assert guida["coverage"]["level"] == "curata"
+        assert guida["codice_deposito"]["depositabile"] is True
+        assert expected_label in guida["denominazione"]
+        assert any("kb_98_top9_set7" in source for source in (guida.get("_source_files") or []))
+        assert guida["atto_principale"]["campi_obbligatori"]
+
+    aliases = {
+        "GUIDA_GARANZIA_VIZI_COSA_VENDUTA_140011": "140011",
+        "GUIDA_RESPONSABILITA_COSE_CUSTODIA_160021": "160021",
+        "GUIDA_DISTANZE_LEGALI_COSTRUZIONI_130011": "130011",
+        "GUIDA_SCIOGLIMENTO_SOCIETA_PERSONE_211001": "211001",
+        "GUIDA_TUTELA_MAGGIORE_GRAVE_HANDICAP_413051": "413051",
+        "GUIDA_RISOLUZIONE_MUTUO_DECADENZA_TERMINE_142001": "142001",
+        "GUIDA_OPPOSIZIONE_PRECETTO_199001": "199001",
+    }
+    for alias, original_code in aliases.items():
+        guida = service.get_guidance(alias)
+        checklist = service.get_checklist(alias, {})
+
+        assert not looks_like_codice_oggetto_pst(alias)
+        assert codice_oggetto_pst_entry(alias) is None
+        assert guida["coverage"]["level"] == "curata"
+        assert guida["codice_deposito"]["depositabile"] is False
+        assert checklist["pronto_per_generazione"] is False
+        assert guida["guida_interna_non_depositabile"] is True
+        assert guida["depositabile"] is False
+        assert guida["codice_originale_ricevuto"] == original_code
+        assert any("kb_98_top9_set7" in source for source in (guida.get("_source_files") or []))
+
+    assert service.get_guidance("140011")["denominazione"] == "Vendita di cose immobili"
+    assert service.get_guidance("130011")["denominazione"] == "Superficie"
+    assert service.get_guidance("211001")["denominazione"].casefold() == "sequestro conservativo"
+    assert service.get_guidance("142001")["denominazione"] == "Prestazione d'opera intellettuale"
+    assert service.get_guidance("100001")["codice_deposito"]["depositabile"] is True
+    assert service.get_guidance("145013")["codice_deposito"]["depositabile"] is True
+
+
 def test_fascicolo_without_code_gets_practical_suggestion_from_object():
     service = GuidaPraticaService(kb_path=FULL_KB)
 

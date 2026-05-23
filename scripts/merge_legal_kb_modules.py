@@ -154,9 +154,9 @@ def merge(modules_dir: Path, output: Path) -> dict[str, Any]:
     combined: dict[str, Any] = {
         "$schema": "iusentra/legal-knowledge-base/v1",
         "name": "IUSENTRA Legal Knowledge Base completa",
-        "version": "4.0.3-kb-completa",
+        "version": "4.0.4-kb-completa",
         "ultimo_aggiornamento": "2026-05-23",
-        "description": "Knowledge base unificata dei moduli Guida Pratica con priorità top9, addendum, set6 e alias logici legacy.",
+        "description": "Knowledge base unificata dei moduli Guida Pratica con priorità top9, addendum, set7 e alias logici legacy.",
         "merge_policy": "deep_merge_with_high_priority_modules_overriding_sparse_base; no codice inventato per deposito; alias logici solo retrocompatibilità",
         "moduli": [],
         "codici_materia": [],

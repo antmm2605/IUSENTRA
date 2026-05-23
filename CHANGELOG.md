@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.248.25 - 2026-05-23
+
+- Integrato il TOP9 set7 della Guida Pratica: 2 codici ufficiali mantenuti depositabili, 7 schede trasformate in guide interne non depositabili e KB full aggiornato a 1.087 schede.
+- Estesi audit e conoscenza Lex: 63 schede utente controllate campo per campo, 0 perdite tra KB, servizio/API, UI e Lex, e report set7/termini processuali dedicati.
+
 ## 2.248.24 - 2026-05-23
 
 - Riparato un chunk React storico ripristinato con accento mojibake (`finché`) così il gate Governance resta verde senza rimuovere gli asset necessari alle sessioni browser già aperte.

@@ -1,9 +1,9 @@
 {
   "ok": true,
   "coverage": {
-    "curata": 1080
+    "curata": 1087
   },
-  "catalog_size": 1080,
+  "catalog_size": 1087,
   "official_catalog_size": 1018,
   "missing_required": [],
   "official_coverage": {
@@ -16,7 +16,7 @@
   "deposit_code_coherence": {
     "ok": true,
     "incoherent": [],
-    "aliases_or_internal_count": 62,
+    "aliases_or_internal_count": 69,
     "aliases_or_internal": [
       {
         "codice": "100002",
@@ -205,6 +205,12 @@
         "depositabile": false
       },
       {
+        "codice": "GUIDA_DISTANZE_LEGALI_COSTRUZIONI_130011",
+        "denominazione": "Distanze legali tra costruzioni (artt. 873 e ss. c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
         "codice": "GUIDA_EREDITA_GIACENTE_413021",
         "denominazione": "Eredità giacente (art. 528 c.c.) - nomina curatore e amministrazione",
         "coverage": "curata",
@@ -213,6 +219,12 @@
       {
         "codice": "GUIDA_ESCLUSIONE_SOCIO_SOCIETA_PERSONE_150010",
         "denominazione": "Esclusione del socio di società di persone (art. 2286 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_GARANZIA_VIZI_COSA_VENDUTA_140011",
+        "denominazione": "Garanzia per i vizi della cosa venduta (artt. 1490-1495 c.c.)",
         "coverage": "curata",
         "depositabile": false
       },
@@ -253,6 +265,12 @@
         "depositabile": false
       },
       {
+        "codice": "GUIDA_OPPOSIZIONE_PRECETTO_199001",
+        "denominazione": "Opposizione a precetto (art. 615 c. 1 c.p.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
         "codice": "GUIDA_OPPOSIZIONE_SANZIONE_AMMINISTRATIVA_240001",
         "denominazione": "Opposizione a sanzione amministrativa (L. 689/1981)",
         "coverage": "curata",
@@ -277,6 +295,12 @@
         "depositabile": false
       },
       {
+        "codice": "GUIDA_RESPONSABILITA_COSE_CUSTODIA_160021",
+        "denominazione": "Responsabilità da cose in custodia (art. 2051 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
         "codice": "GUIDA_RESPONSABILITA_NOTAIO_COMMERCIALISTA_143003",
         "denominazione": "Responsabilità professionale del notaio o del commercialista",
         "coverage": "curata",
@@ -291,6 +315,24 @@
       {
         "codice": "GUIDA_RISOLUZIONE_APPALTO_140001",
         "denominazione": "Risoluzione del contratto di appalto",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RISOLUZIONE_MUTUO_DECADENZA_TERMINE_142001",
+        "denominazione": "Risoluzione contratto di mutuo + decadenza dal beneficio del termine (art. 1186 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_SCIOGLIMENTO_SOCIETA_PERSONE_211001",
+        "denominazione": "Scioglimento giudiziale della società di persone (artt. 2272 e ss. c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_TUTELA_MAGGIORE_GRAVE_HANDICAP_413051",
+        "denominazione": "Procedimenti di tutela del maggiore d'età con grave handicap (interdizione/inabilitazione - controversie)",
         "coverage": "curata",
         "depositabile": false
       },

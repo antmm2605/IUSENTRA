@@ -8,6 +8,15 @@ Nota conservativa: resta confermato anche lo storico `Fase 7 backfill mirato PDF
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
+## Hotfix asset React storico 2.248.24 - 2026-05-23
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| Riparazione UTF-8 di `web/static/react/assets/ImpostazioniPage-D8t_3AdT.js` | OK | Corretto un accento alterato in `finché` dentro un chunk storico ripristinato; gli asset storici restano disponibili. |
+| `python tools\check_repo_governance.py`; `python -m pytest tests\test_react_asset_retention.py -q --tb=short`; `git diff --check` | OK | Governance verde, retention asset invariata e nessun errore whitespace. |
+| `python -m pytest tests\test_react_asset_retention.py tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_utf8_integrity.py -q --tb=short`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `tools\sync_packaging_files.py --check` | OK | 14/14 passati; OpenAPI, provider verification e packaging allineati a `2.248.24`. |
+| `node frontend\scripts\check-react-contracts.mjs`; `python -m pct.cli utf8-integrity --check-only ...` | OK | Contratti React verdi e testi aggiornati senza anomalie UTF-8. |
+
 ## Hotfix asset React storico 2.248.23 - 2026-05-23
 
 | Comando / verifica | Esito | Nota |

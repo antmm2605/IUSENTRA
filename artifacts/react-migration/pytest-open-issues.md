@@ -4,7 +4,7 @@ Aggiornato: 2026-05-23, Guida Pratica TOP9 set6 2.248.19, Sequenza preset global
 
 Aggiornamento corrente: 2026-05-23, notifiche legali guidate 2.248.21.
 
-Aggiornamento hotfix: 2026-05-23, asset React cache-safe storico 2.248.23.
+Aggiornamento hotfix: 2026-05-23, asset React cache-safe storico 2.248.24.
 
 ## Regola operativa
 
@@ -14,6 +14,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
+| CI post-push `1fd0999a` | `CI Quality Overlay / quality-gates` | Corretto in hotfix 2.248.24 | Il ripristino massivo degli asset storici ha incluso `ImpostazioniPage-D8t_3AdT.js` con una sequenza mojibake nel testo `finché`; governance ha fallito prima dei targeted shard. | Riparato il chunk storico, rilanciati `tools\check_repo_governance.py` e `tests\test_react_asset_retention.py`; monitorare il nuovo SHA fino a tutti i check-run completati. |
 | Produzione React dopo deploy `4df562fa` | `/agenda`, `/fascicoli`, `/global-search`, `/notifiche-legali` | Causa estesa e corretta in hotfix 2.248.23 | L'hotfix 2.248.22 manteneva il bundle del deploy immediatamente precedente, ma alcuni browser potevano avere ancora in memoria una shell React più vecchia. In quel caso qualunque route lazy, compresa `/agenda`, poteva richiedere chunk non più presenti e mostrare `Pagina temporaneamente non disponibile`. | Conservare gli asset hashati di più generazioni React e verificare tutti i bundle presenti con `tests/test_react_asset_retention.py`; dopo deploy verificare anche asset storici e `/agenda`. |
 | Produzione React dopo deploy `21bd31e7` | `/fascicoli`, `/global-search`, `/portali/pst/acquisizione` | Causa individuata e corretta in hotfix 2.248.22 | I browser autenticati con shell React già in cache potevano richiedere i vecchi chunk Vite cancellati dal deploy, ricevere 404 e mostrare il fallback `Pagina temporaneamente non disponibile`. | Non cancellare più `web/static/react` durante build Vite; mantenere gli asset hashati precedenti e presidiare con `tests/test_react_asset_retention.py`. |
 | `/notifiche-legali` | Pytest mirato, demo audit, typecheck e contratti React | Nessuna issue aperta nuova | La regressione segnalata era reale sul flusso manuale: la UI rendeva poco evidente il percorso automatico e consentiva di lavorare su un allegato manuale alla volta. Ora la pratica seleziona tutti i documenti, l'upload notifica accetta più allegati e l'esito mostra passaggi, verifiche e audit. | Per modifiche future a notifica/deposito prova rilanciare `tests/test_notifiche_legali.py`, demo audit, typecheck, build e browser su `/notifiche-legali`. |

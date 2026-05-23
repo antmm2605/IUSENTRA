@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.248.24 - 2026-05-23
+
+- Riparato un chunk React storico ripristinato con accento mojibake (`finché`) così il gate Governance resta verde senza rimuovere gli asset necessari alle sessioni browser già aperte.
+
 ## 2.248.23 - 2026-05-23
 
 - Esteso l'hotfix cache React agli asset hashati delle build precedenti: `/agenda`, `/fascicoli`, `/global-search`, `/notifiche-legali` e le altre route lazy restano caricabili anche se il browser dello studio aveva ancora in memoria una shell molto più vecchia.

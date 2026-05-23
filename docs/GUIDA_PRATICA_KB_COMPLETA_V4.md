@@ -1,18 +1,18 @@
 # Guida Pratica KB completa v4 - IUSENTRA
 
-## Stato consolidato 2.248.18
+## Stato consolidato 2.248.19
 
-La v4 caricata dall'utente è stata applicata e completata sul catalogo ufficiale presente in repository, che contiene 1.018 record validi. I moduli TOP9 set2, set3, set4 e set5 sono stati integrati mantenendo separati codici ufficiali e schede interne.
+La v4 caricata dall'utente è stata applicata e completata sul catalogo ufficiale presente in repository, che contiene 1.018 record validi. I moduli TOP9 set2, set3, set4, set5 e set6 sono stati integrati mantenendo separati codici ufficiali e schede interne.
 
 ## Numeri finali
 
-- Moduli KB caricati: 28.
-- Codici unificati nel KB full: 1.072.
+- Moduli KB caricati: 30.
+- Codici unificati nel KB full: 1.080.
 - Record ufficiali nel catalogo PST/XSD: 1.018.
 - Guide ufficiali curate: 1.018.
 - Codici ufficiali senza guida curata: 0.
-- Copertura finale: `{"curata": 1072}`.
-- Schede interne o alias non depositabili: 54.
+- Copertura finale: `{"curata": 1080}`.
+- Schede interne o alias non depositabili: 62.
 
 ## Curation Codex del completamento automatico
 
@@ -26,7 +26,7 @@ Risultato:
 - Lex riceve contesto conversazionale tramite `guida_operativa_curata.lex_context`;
 - i termini processuali sono stati reimportati nello scadenziario: 2.895 record, 832 template calcolabili e 2.017 presidi `manual_review`.
 - l'audit voce per voce del 22 maggio 2026 controlla i file utente fino al set4: 36 schede, 724 righe campo e 612 voci effettivamente presenti nel materiale ricevuto, con 0 perse nel KB full, 0 perse nel servizio/API, 0 non supportate da UI e 0 non leggibili da Lex;
-- i due moduli set5 del 23 maggio 2026 sono stati importati e validati strutturalmente con PowerShell; l'audit voce per voce completo va rilanciato in ambiente Python includendo `kb_98_top9_set5_parte1.json` e `kb_98_top9_set5_parte2.json`.
+- i due moduli set6 del 23 maggio 2026 sono stati importati e validati; l'audit voce per voce Python include ora set1, set2, set3, set4, set5 e set6, con presidio anche sulle sostituzioni scalar dei profili automatici.
 
 Report:
 
@@ -42,6 +42,9 @@ Report:
 - `artifacts/guida-pratica/kb-set5-parte1-import-report.json`;
 - `artifacts/guida-pratica/kb-set5-parte2-import-report.json`;
 - `artifacts/guida-pratica/kb-set5-structural-validation-report.json`.
+- `artifacts/guida-pratica/kb-set6-parte1-import-report.json`;
+- `artifacts/guida-pratica/kb-set6-parte2-import-report.json`;
+- `artifacts/guida-pratica/kb-set6-structural-validation-report.json`.
 
 ## Audit voce per voce del materiale utente
 
@@ -49,9 +52,9 @@ Il controllo obbligatorio `scripts/audit_guida_pratica_user_material_fields.py` 
 
 Risultato aggiornato al 23 maggio 2026:
 
-- file controllati: `kb_98_top9_codici_frequenti_dettaglio_massimo.json`, `kb_98_top9_set2_parte1.json`, `kb_98_top9_set2_parte2.json`, `kb_98_top9_set3_parte1.json`, `kb_98_top9_set3_parte2.json`, `kb_98_top9_set4_parte1.json`, `kb_98_top9_set4_parte2.json`, `kb_98_top9_set5_parte1.json`, `kb_98_top9_set5_parte2.json`;
-- 45 schede controllate;
-- audit voce per voce esteso ai due moduli set5;
+- file controllati: `kb_98_top9_codici_frequenti_dettaglio_massimo.json`, `kb_98_top9_set2_parte1.json`, `kb_98_top9_set2_parte2.json`, `kb_98_top9_set3_parte1.json`, `kb_98_top9_set3_parte2.json`, `kb_98_top9_set4_parte1.json`, `kb_98_top9_set4_parte2.json`, `kb_98_top9_set5_parte1.json`, `kb_98_top9_set5_parte2.json`, `kb_98_top9_set6_parte1.json`, `kb_98_top9_set6_parte2.json`;
+- 54 schede controllate;
+- audit voce per voce esteso ai due moduli set6;
 - voci presenti nei file ricevuti preservate nel KB full e nella sorgente Lex;
 - 0 voci presenti nel materiale utente perse nel KB completo;
 - 0 voci presenti nel materiale utente perse nel servizio/API;
@@ -76,7 +79,19 @@ Il set5 aggiunge cinque ulteriori guide interne non depositabili per codici asse
 - `GUIDA_CONSUMATORE_CLAUSOLE_VESSATORIE_180001`, ricevuta come `180001`;
 - `GUIDA_AZIONE_NEGATORIA_SERVITU_POSSESSORIA_130031`, ricevuta come `130031`.
 
-Nel CSV restano segnalate solo variazioni descrittive compatibili con il catalogo ufficiale locale per `111021`, `620001` e la competenza di `100011`; le voci operative, i termini, gli allegati, gli adempimenti e le sezioni specialistiche sono conservati.
+Il set6 aggiunge otto ulteriori guide interne non depositabili e un codice ufficiale mantenuto depositabile:
+
+- `GUIDA_PRELIMINARE_COMPRAVENDITA_2932_140002`, ricevuta come `140002`;
+- `GUIDA_IMPUGNAZIONE_DELIBERE_ASSEMBLEARI_155001`, ricevuta come `155001`;
+- `GUIDA_LICENZIAMENTO_DISCIPLINARE_220003`, ricevuta come `220003`;
+- `GUIDA_OPPOSIZIONE_CARTELLA_ESATTORIALE_191001`, ricevuta come `191001`;
+- `GUIDA_IMMISSIONI_INTOLLERABILI_130012`, ricevuta come `130012`;
+- `GUIDA_EREDITA_GIACENTE_413021`, ricevuta come `413021`;
+- `GUIDA_OPPOSIZIONE_SANZIONE_AMMINISTRATIVA_240001`, ricevuta come `240001`;
+- `GUIDA_DEMANSIONAMENTO_DEQUALIFICAZIONE_220030`, ricevuta come `220030`;
+- `111003`, mantenuto come codice ufficiale depositabile.
+
+Il CSV aggiornato non segnala più variazioni descrittive dei TOP9: le voci operative, i termini, gli allegati, gli adempimenti, le sezioni specialistiche e i valori scalar ricevuti sono conservati.
 
 ## Cosa cambia rispetto alla v3
 

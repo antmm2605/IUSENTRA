@@ -7,14 +7,15 @@
 3. Le guide curate coprono tutti i codici ufficiali depositabili.
 4. Gli alias interni non presenti nel catalogo ufficiale restano non depositabili.
 
-## Stato audit 2.248.18
+## Stato audit 2.248.19
 
 ```text
 record ufficiali PST/XSD: 1.018
 guide ufficiali curate: 1.018
 codici ufficiali senza guida curata: 0
 incoerenze deposito: 0
-schede interne o alias non depositabili: 54
+schede complessive nel KB full: 1.080
+schede interne o alias non depositabili: 62
 ```
 
 Il CSV dei mancanti è `artifacts/guida-pratica/codici-ufficiali-senza-guida-curata.csv` e contiene solo l'intestazione.
@@ -36,4 +37,4 @@ La guida può spiegare anche schede interne o alias storici, ma il deposito deve
 
 Quando il codice non è depositabile, il checklist mantiene il presidio `codice_deposito_non_ufficiale` per la generazione deposito, ma la guida resta un'opzione di consultazione e non blocca il lavoro ordinario sul fascicolo.
 
-Aggiornamento 23 maggio 2026: i moduli TOP9 set5 sono stati importati come KB operativa. I codici ufficiali non coerenti con la scheda ricevuta non vengono sovrascritti: la guida usa alias interni e il deposito resta vincolato al catalogo PST/XSD locale.
+Aggiornamento 23 maggio 2026: i moduli TOP9 set6 sono stati importati come KB operativa. I codici ufficiali non coerenti con la scheda ricevuta non vengono sovrascritti: la guida usa alias interni e il deposito resta vincolato al catalogo PST/XSD locale. L'audit ora fallisce anche se una scheda TOP9 viene sostituita da un profilo automatico più generico.

@@ -109,12 +109,10 @@ def deep_merge(left: Any, right: Any) -> Any:
 
 def module_priority(path: Path) -> int:
     name = path.name.lower()
-    if "top9_set5" in name:
-        return 960
     if "kb_99" in name or "completamento_codici_ufficiali" in name:
         return 950
     if "top9" in name:
-        return 900
+        return 980
     if "sfratti" in name or "kb_00" in name:
         return 800
     if "logiche_legacy" in name:
@@ -122,6 +120,14 @@ def module_priority(path: Path) -> int:
     if "addendum" in name or "kb_15" in name:
         return 650
     return 500
+
+
+def _drop_inherited_scaffold_for_curated_override(previous: dict[str, Any], path: Path, item: dict[str, Any]) -> dict[str, Any]:
+    if "top9" not in path.name.lower() or item.get("eredita_da"):
+        return previous
+    cleaned = deepcopy(previous)
+    cleaned.pop("differenze_rispetto_a_padre", None)
+    return cleaned
 
 
 def quality_hint(item: dict[str, Any]) -> str:
@@ -148,9 +154,9 @@ def merge(modules_dir: Path, output: Path) -> dict[str, Any]:
     combined: dict[str, Any] = {
         "$schema": "iusentra/legal-knowledge-base/v1",
         "name": "IUSENTRA Legal Knowledge Base completa",
-        "version": "4.0.2-kb-completa",
+        "version": "4.0.3-kb-completa",
         "ultimo_aggiornamento": "2026-05-23",
-        "description": "Knowledge base unificata dei moduli Guida Pratica con priorità top9, addendum, set5 e alias logici legacy.",
+        "description": "Knowledge base unificata dei moduli Guida Pratica con priorità top9, addendum, set6 e alias logici legacy.",
         "merge_policy": "deep_merge_with_high_priority_modules_overriding_sparse_base; no codice inventato per deposito; alias logici solo retrocompatibilità",
         "moduli": [],
         "codici_materia": [],
@@ -180,6 +186,7 @@ def merge(modules_dir: Path, output: Path) -> dict[str, Any]:
             item.setdefault("_quality_hint", quality_hint(item))
             if codice in by_code:
                 previous = by_code[codice]
+                previous = _drop_inherited_scaffold_for_curated_override(previous, path, item)
                 merged = deep_merge(previous, item)
                 sources = unique_list([*(previous.get("_source_files") or [previous.get("_source_file")]), path.name])
                 merged["_source_files"] = sources

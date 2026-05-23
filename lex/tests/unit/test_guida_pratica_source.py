@@ -38,11 +38,13 @@ def test_guida_pratica_source_legge_scheda_completa_da_codice_ufficiale():
     assert item.metadata["depositable"] is True
     assert item.metadata["full_guidance_available"] is True
     assert item.metadata["linguistic_profile"] == "conversazionale_avvocato"
+    assert item.metadata["operational_reasoning_available"] is True
     assert isinstance(item.metadata["guidance_payload"], dict)
     assert item.metadata["document_plan"]["enabled"] is True
     assert item.metadata["document_plan"]["import"]["enabled"] is True
     assert "Piano documento della guida" in item.content
     assert "import PDF/Word disponibile" in item.content
+    assert "Ragionamento operativo Lex da applicare" in item.content
 
 
 def test_guida_pratica_source_lex_legge_contesto_fascicolo_e_piano_documento():
@@ -102,6 +104,21 @@ def test_guida_pratica_source_non_forza_alias_su_codice_ministeriale_differente(
     assert alias.metadata["codice_originale_ricevuto"] == "413011"
     assert "guida interna non depositabile" in alias.content
     assert "413010" in alias.content or "B02041" in alias.content
+
+
+def test_guida_pratica_source_set6_porta_voci_specialistiche_a_lex():
+    source = GuidaPraticaSource()
+    request = _request("Guida pratica immissioni intollerabili art. 844")
+
+    item = source.search([request.query], request, {})[0]
+
+    assert item.source_id == "GUIDA_IMMISSIONI_INTOLLERABILI_130012"
+    assert item.metadata["depositable"] is False
+    assert item.metadata["operational_reasoning_available"] is True
+    assert "tipologie_di_immissioni_tutelabili" in item.metadata["specialized_fields"]
+    assert "Presupposti sostanziali art. 844 c.c." in item.content
+    assert "Criteri di tollerabilità" in item.content
+    assert "Rimedi disponibili" in item.content
 
 
 def test_source_router_espone_guida_pratica_a_lex_senza_fonti_esterne():

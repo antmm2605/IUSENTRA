@@ -101,7 +101,7 @@ def test_full_kb_inheritance_keeps_parent_fields_and_child_fields():
     field_ids = {field.get("id") for field in guida["atto_principale"]["campi_obbligatori"]}
 
     assert "precetto_estremi" in field_ids
-    assert "esecuzione_in_corso" in field_ids
+    assert "procedura_esecutiva_in_corso" in field_ids
     assert guida["coverage"]["level"] == "curata"
 
 
@@ -212,6 +212,21 @@ def test_top9_set2_part1_integrates_official_and_internal_guides():
             assert codice_oggetto_pst_entry(codice) is None
 
 
+def test_top9_priority_preserves_user_hyper_detailed_fields_over_generated_profiles():
+    service = GuidaPraticaService(kb_path=FULL_KB)
+
+    expected_labels = {
+        "111021": "Divorzio congiunto (su domanda di entrambi i coniugi)",
+        "620001": "Esecuzione esattoriale immobiliare / Espropriazione immobiliare ordinaria",
+        "220070": "Risarcimento danni da infortunio sul lavoro / malattia professionale",
+    }
+    for codice, expected_label in expected_labels.items():
+        guida = service.get_guidance(codice)
+
+        assert guida["denominazione"] == expected_label
+        assert any("top9" in source for source in (guida.get("_source_files") or []))
+
+
 def test_top9_set2_part2_integrates_without_corrupting_official_codes():
     service = GuidaPraticaService(kb_path=FULL_KB)
 
@@ -278,6 +293,43 @@ def test_top9_set5_integrates_guides_without_corrupting_official_codes():
     assert service.get_guidance("130031")["denominazione"] == "Usufrutto"
     assert service.get_guidance("130032")["denominazione"] == "Abitazione - Uso"
     assert "ordinanza-ingiunzione" in service.get_guidance("180001")["denominazione"].lower()
+
+
+def test_top9_set6_integrates_guides_without_corrupting_official_codes():
+    service = GuidaPraticaService(kb_path=FULL_KB)
+
+    separazione = service.get_guidance("111003")
+    assert separazione["coverage"]["level"] == "curata"
+    assert separazione["codice_deposito"]["depositabile"] is True
+    assert "Separazione consensuale" in separazione["denominazione"]
+    assert "kb_98_top9_set6_parte2.json" in (separazione.get("_source_files") or [])
+
+    aliases = {
+        "GUIDA_PRELIMINARE_COMPRAVENDITA_2932_140002": "140002",
+        "GUIDA_IMPUGNAZIONE_DELIBERE_ASSEMBLEARI_155001": "155001",
+        "GUIDA_LICENZIAMENTO_DISCIPLINARE_220003": "220003",
+        "GUIDA_OPPOSIZIONE_CARTELLA_ESATTORIALE_191001": "191001",
+        "GUIDA_IMMISSIONI_INTOLLERABILI_130012": "130012",
+        "GUIDA_EREDITA_GIACENTE_413021": "413021",
+        "GUIDA_OPPOSIZIONE_SANZIONE_AMMINISTRATIVA_240001": "240001",
+        "GUIDA_DEMANSIONAMENTO_DEQUALIFICAZIONE_220030": "220030",
+    }
+    for alias, original_code in aliases.items():
+        guida = service.get_guidance(alias)
+
+        assert not looks_like_codice_oggetto_pst(alias)
+        assert codice_oggetto_pst_entry(alias) is None
+        assert guida["coverage"]["level"] == "curata"
+        assert guida["codice_deposito"]["depositabile"] is False
+        assert guida["guida_interna_non_depositabile"] is True
+        assert guida["depositabile"] is False
+        assert guida["codice_originale_ricevuto"] == original_code
+        assert any("kb_98_top9_set6" in source for source in (guida.get("_source_files") or []))
+
+    assert service.get_guidance("140002")["denominazione"] == "Arbitraggio - Perizia contrattuale"
+    assert service.get_guidance("220003")["denominazione"] == "lavoro interinale"
+    assert service.get_guidance("220030")["denominazione"] == "trasferimento del lavoratore"
+    assert service.get_guidance("130121")["codice_deposito"]["depositabile"] is True
 
 
 def test_fascicolo_without_code_gets_practical_suggestion_from_object():

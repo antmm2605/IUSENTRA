@@ -31,6 +31,8 @@ USER_MODULE_PATTERNS = (
     "kb_98_top9_set4_parte2.json",
     "kb_98_top9_set5_parte1.json",
     "kb_98_top9_set5_parte2.json",
+    "kb_98_top9_set6_parte1.json",
+    "kb_98_top9_set6_parte2.json",
 )
 
 CONTROLLED_FIELDS: dict[str, list[list[str]]] = {
@@ -113,7 +115,11 @@ STANDARD_TOP_LEVEL = {
     "coverage",
     "catalogo_xsd",
     "codice_deposito",
+    "codice_deposito_automatico",
     "fascicolo_context",
+    "guida_interna_non_depositabile",
+    "depositabile",
+    "nota_integrazione_iusentra",
     "_source_file",
     "_source_files",
     "_macro_area_id",
@@ -147,6 +153,37 @@ def _as_list(value: Any) -> list[Any]:
 
 def _clean(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
+
+
+def _readable_label(value: Any) -> str:
+    raw = _clean(value)
+    if not raw:
+        return ""
+    explicit = {
+        "adempimenti_fiscali": "Adempimenti fiscali",
+        "alternative_extragiudiziali": "Alternative extragiudiziali",
+        "casistica_e_riparto_giurisdizione": "Casistica e riparto di giurisdizione",
+        "competenza_territoriale": "Competenza territoriale",
+        "criteri_di_tollerabilita": "Criteri di tollerabilità",
+        "differenza_da_altre_situazioni": "Differenza da altre situazioni",
+        "differenze_tra_procedimenti": "Differenze tra procedimenti",
+        "legittimati_a_chiedere_la_nomina": "Legittimati a chiedere la nomina",
+        "presupposti_sostanziali_art_844": "Presupposti sostanziali art. 844 c.c.",
+        "presupposti_sostanziali_per_validita_licenziamento_disciplinare": "Presupposti sostanziali per validità del licenziamento disciplinare",
+        "regime_post_dlgs_81_2015": "Regime dopo il D.Lgs. 81/2015",
+        "regimi_di_tutela_alternativi": "Regimi di tutela alternativi",
+        "rimedi_disponibili": "Rimedi disponibili",
+        "soglie_di_legittimazione_2377_c_3_spa": "Soglie di legittimazione art. 2377 c. 3 S.p.A.",
+        "strategie_alternative": "Strategie alternative",
+        "tipologie_di_danno_risarcibili": "Tipologie di danno risarcibili",
+        "tipologie_di_immissioni_tutelabili": "Tipologie di immissioni tutelabili",
+        "tipologie_di_invalidita": "Tipologie di invalidità",
+        "vizi_tipici_che_invalidano": "Vizi tipici che invalidano",
+        "vizi_tipici_impugnabili": "Vizi tipici impugnabili",
+    }
+    if raw in explicit:
+        return explicit[raw]
+    return raw.replace("_", " ").replace("-", " ").strip().capitalize()
 
 
 def _has_content(value: Any, *, key_exists: bool = True) -> bool:
@@ -280,7 +317,8 @@ def _audit_rows() -> tuple[list[dict[str, Any]], dict[str, Any]]:
                 if field == "avvertimenti_obbligatori":
                     lex_supported = "Avvertimenti obbligatori della guida" in lex_content or "Avvertimenti redazionali obbligatori" in lex_content
             elif field.startswith("specialistica:"):
-                lex_supported = source_present and service_present
+                key = field.split(":", 1)[1]
+                lex_supported = source_present and service_present and _readable_label(key) in lex_content
 
             lost = source_present and (not full_present or not service_present or bool(missing_steps))
             rows.append(
@@ -354,6 +392,8 @@ def main() -> int:
 
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     if args.fail_on_loss and summary["lost_from_software"]:
+        return 1
+    if args.fail_on_loss and summary["scalar_values_changed_in_service"]:
         return 1
     return 0
 

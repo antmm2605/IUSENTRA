@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.248.19 - 2026-05-23
+
+- Integrati i due moduli `kb_top9_set6_parte1.json` e `kb_top9_set6_parte2.json` nella Guida Pratica: knowledge base full aggiornata a 1.080 schede, con 1.018 codici ufficiali ancora separati dal deposito e 62 guide interne/facoltative.
+- Conservate come alias non depositabili otto schede set6 con codice assente o non coerente con il catalogo locale; `111003` resta l'unico codice set6 agganciato al deposito ufficiale.
+- Corretto il merge dei TOP9 già ricevuti: le schede iper-dettagliate non vengono più declassate dai profili automatici `kb_99`, e l'audit ora fallisce anche se un valore ricevuto viene sostituito nel servizio.
+- Estesa `GuidaPraticaSource` di Lex con ragionamento operativo e voci specialistiche della scheda, così Lex riceve anche strategie, criteri, regimi di tutela, casistiche e limiti pratici.
+- Ripulita la UI della Guida Pratica dagli alias interni `GUIDA_*`: nelle schede non depositabili l'avvocato vede un riferimento operativo interno, non l'identificativo tecnico.
+
 ## 2.248.18 - 2026-05-23
 
 - Integrati i due moduli `kb_top9_set5_parte1.json` e `kb_top9_set5_parte2.json` nella Guida Pratica: knowledge base full aggiornata a 1.072 schede, con 1.018 codici ufficiali ancora separati dal deposito e 54 guide interne/facoltative.

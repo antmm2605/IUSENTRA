@@ -1,0 +1,27 @@
+{
+  "checked_files": 8,
+  "error_files": 0,
+  "files": [],
+  "files_with_artifacts": 0,
+  "finished_at": "2026-05-23T15:30:00Z",
+  "no_backup_created": true,
+  "ok": true,
+  "repair_enabled": false,
+  "repaired_files": 0,
+  "roots": [
+    "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base.full.json",
+    "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set6_parte1.json",
+    "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set6_parte2.json",
+    "D:\\legale\\IUSENTRA\\artifacts\\guida-pratica\\kb-set6-parte1-import-report.json",
+    "D:\\legale\\IUSENTRA\\artifacts\\guida-pratica\\kb-set6-parte2-import-report.json",
+    "D:\\legale\\IUSENTRA\\docs\\LEX_AI_RESPONSE_PIPELINE.md",
+    "D:\\legale\\IUSENTRA\\docs\\LEX_PUBLIC_SOURCES_AND_STUDIO_DATA_AUDIT.md",
+    "D:\\legale\\IUSENTRA\\docs\\lex-operational-knowledge-map.md",
+    "D:\\legale\\IUSENTRA\\frontend\\src\\components\\GuidaPraticaSidebar.tsx",
+    "D:\\legale\\IUSENTRA\\lex\\retrieval\\sources\\guida_pratica.py"
+  ],
+  "schema_version": "iusentra.utf8_integrity.v1",
+  "skipped_large_files": 0,
+  "started_at": "2026-05-23T15:28:55Z",
+  "unresolved_replacement_files": 0
+}

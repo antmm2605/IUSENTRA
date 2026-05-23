@@ -161,6 +161,14 @@ function coverageLabel(value: unknown): string {
   return readableValue(raw, 'Da verificare')
 }
 
+function guidaCodeLabel(code: string, guida?: GuidaPratica): string {
+  if (!code) return ''
+  const internal = code.startsWith('GUIDA_') || guida?.guida_interna_non_depositabile
+  if (!internal) return `Scheda ${code}`
+  const original = text(guida?.codice_originale_ricevuto)
+  return original ? `Guida interna - riferimento ricevuto ${original}` : 'Guida interna non depositabile'
+}
+
 function Section({ title, icon, children }:{title:string; icon:ReactNode; children:ReactNode}) {
   return (
     <section className="iu-guida-section">
@@ -509,6 +517,7 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
   const guida = response.guida
   const suggestedMatch = response.matchedFromFascicolo
   const showOptionalEmpty = response.ok && response.guidaPraticaDisponibile === false
+  const effectiveCodeLabel = guidaCodeLabel(effectiveCode, guida)
   if (!fascicoloId && !codice) return null
   if (!expanded) {
     return (
@@ -516,7 +525,7 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
         <button type="button" className="iu-guida-collapsed-main" onClick={() => setExpanded(true)}>
           <span><BookOpen size={16}/> Guida pratica</span>
           <strong>{guida?.denominazione || fascicoloTitle || 'Piano assistito'}</strong>
-          <small>{effectiveCode ? `Scheda ${effectiveCode}` : response.message || 'Facoltativa: il fascicolo resta operativo.'}</small>
+          <small>{effectiveCodeLabel || response.message || 'Facoltativa: il fascicolo resta operativo.'}</small>
         </button>
         <div className="iu-guida-collapsed-actions">
           <Badge tone="neutral">Facoltativa</Badge>
@@ -532,7 +541,7 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
         <div>
           <span><BookOpen size={16}/> Guida pratica</span>
           <h2>{guida?.denominazione || fascicoloTitle || 'Guida per codice materia'}</h2>
-          <p>{effectiveCode ? `Scheda ${effectiveCode}` : response.message || 'Guida facoltativa non collegata.'}</p>
+          <p>{effectiveCodeLabel || response.message || 'Guida facoltativa non collegata.'}</p>
           {suggestedMatch?.confirmation_required ? <p className="iu-guida-suggested-note">Suggerimento facoltativo dal contesto fascicolo. Il codice ufficiale resta nella scheda fascicolo e la guida non blocca il lavoro.</p> : null}
         </div>
         <div className="iu-guida-header-actions">

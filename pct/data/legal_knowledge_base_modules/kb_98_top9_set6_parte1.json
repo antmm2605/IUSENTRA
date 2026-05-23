@@ -1,0 +1,3040 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET6_PARTE1",
+  "denominazione": "Sesto set di 9 codici - PARTE 1 di 2 (preliminare immobiliare/2932, impugnazione delibera, licenziamento disciplinare, opposizione cartella, immissioni 844)",
+  "registri": [
+    "SICID",
+    "SILP"
+  ],
+  "data_generazione": "2026-05-23",
+  "scopo": "Parte 1 del sesto set TOP9. Codici differenti dai 45 già forniti",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_PRELIMINARE_COMPRAVENDITA_2932_140002",
+      "denominazione": "Risoluzione del contratto preliminare di compravendita immobiliare + esecuzione specifica ex art. 2932 c.c.",
+      "categoria": "Contratti - preliminare immobiliare",
+      "sottocategoria": "Azione del promissario acquirente (o del promittente venditore) per esecuzione specifica o risoluzione del preliminare",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA (per la parte relativa ai diritti reali immobiliari ex art. 5 c. 1-bis D.Lgs. 28/2010 - prevalente in giurisprudenza)",
+      "competenza": "Tribunale del luogo dell'immobile (art. 21 c.p.c. - foro esclusivo per controversie su diritti reali immobiliari)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1351",
+          "descrizione": "Contratto preliminare - forma per relationem (= quella richiesta per il contratto definitivo)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1453",
+          "descrizione": "Risoluzione per inadempimento - norma generale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1454",
+          "descrizione": "Diffida ad adempiere - termine minimo 15 gg"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1455",
+          "descrizione": "Importanza dell'inadempimento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1456",
+          "descrizione": "Clausola risolutiva espressa"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1457",
+          "descrizione": "Termine essenziale per una delle parti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1385",
+          "descrizione": "Caparra confirmatoria - effetti su inadempimento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1386",
+          "descrizione": "Caparra penitenziale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1382",
+          "descrizione": "Clausola penale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2932",
+          "descrizione": "ESECUZIONE SPECIFICA dell'obbligo di concludere un contratto - sentenza costitutiva sostitutiva"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2645-bis",
+          "descrizione": "Trascrizione del preliminare di immobili e suoi effetti prenotativi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2652 n. 2",
+          "descrizione": "Trascrizione domanda 2932"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2825",
+          "descrizione": "Ipoteca a favore del promittente venditore"
+        },
+        {
+          "fonte": "Cass. SU 4628/2015",
+          "descrizione": "Preliminare di preliminare - validità e tutela"
+        },
+        {
+          "fonte": "Cass. SU 18672/2019",
+          "descrizione": "Trascrizione preliminare - efficacia prenotativa"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI UN CONTRATTO PRELIMINARE DI COMPRAVENDITA IMMOBILIARE",
+        "FORMA SCRITTA AD SUBSTANTIAM ex art. 1351 c.c. (relationem con art. 1350)",
+        "INDIVIDUAZIONE COMPLETA DELL'IMMOBILE e del PREZZO",
+        "ADEMPIMENTO PROPRIO della parte attrice (offerta reale del prezzo se promissario acquirente; offerta dell'atto di trasferimento se promittente venditore)",
+        "INADEMPIMENTO della parte convenuta:",
+        "- Per promittente venditore: rifiuto del rogito, nascondimento, indisponibilità",
+        "- Per promissario acquirente: mancato pagamento del prezzo residuo, rifiuto a presentarsi al rogito",
+        "Per 2932: VENDITA NON SOGGETTA A CONDIZIONI DA SODDISFARE prima della stipula (es. permessi non rilasciati)",
+        "Per RISOLUZIONE: importanza dell'inadempimento ex art. 1455"
+      ],
+      "strategie_alternative": {
+        "esecuzione_specifica_2932": "Pronuncia di SENTENZA COSTITUTIVA che PRODUCE GLI STESSI EFFETTI del contratto definitivo (trasferimento proprietà) - alternativa al rogito",
+        "risoluzione_1453": "Scioglimento del preliminare + restituzione caparra/acconti + eventuale risarcimento ex art. 1385",
+        "doppio_petito_in_subordine": "Domanda principale 2932 + subordinata di risoluzione - molto frequente"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010 (diritti reali)",
+        "natura": "condizione di procedibilità",
+        "estensione": "Anche se in apparenza è una controversia contrattuale, la giurisprudenza prevalente la include nella mediazione obbligatoria per la natura immobiliare"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione DEL PRELIMINARE E DOCUMENTAZIONE COLLATERALE",
+          "documenti": [
+            "Contratto preliminare in originale o copia autentica",
+            "Eventuale trascrizione del preliminare ex art. 2645-bis (per effetti prenotativi)",
+            "Ricevute degli acconti/caparra pagati",
+            "Eventuale modifica o appendice al preliminare",
+            "Corrispondenza intercorsa tra le parti"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DELL'IMMOBILE",
+          "documenti": [
+            "Atti di provenienza del promittente venditore",
+            "Visure catastali aggiornate",
+            "Ispezione Conservatoria (verifica gravami, sequestri, ipoteche sopravvenute)",
+            "Certificazione APE",
+            "Conformità urbanistica/edilizia (per validità definitivo)",
+            "Eventuali condoni edilizi"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "DOCUMENTAZIONE DELL'INADEMPIMENTO",
+          "casistica": [
+            "Per rifiuto rogito: convocazione presso notaio + verbale mancata comparizione",
+            "Per scoperti gravami: ipoteche/sequestri sopravvenuti",
+            "Per non conformità: discrepanza tra dichiarato e reale",
+            "Per mancato pagamento: solleciti + estratti conto"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "DIFFIDA AD ADEMPIERE ex art. 1454 c.c. (consigliata)",
+          "termine_minimo": 15,
+          "vantaggio_strategico": "Può portare a risoluzione automatica se inadempimento persiste"
+        },
+        {
+          "step": 5,
+          "descrizione": "Per 2932: OFFERTA REALE del prezzo residuo",
+          "modalita": "Tramite notaio - art. 1208 c.c. - per rendere il promissario adempiente alla propria obbligazione"
+        },
+        {
+          "step": 6,
+          "descrizione": "TRASCRIZIONE DOMANDA 2932 ex art. 2652 n. 2",
+          "vantaggio": "Opponibilità ai terzi acquirenti del bene"
+        },
+        {
+          "step": 7,
+          "descrizione": "ATTIVAZIONE MEDIAZIONE OBBLIGATORIA",
+          "luogo": "Organismo del luogo immobile"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_2932_o_risoluzione_preliminare",
+        "denominazione": "Atto di citazione per esecuzione specifica ex art. 2932 c.c. (in subordine: risoluzione del preliminare)",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del luogo immobile",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "label": "Attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "ruolo",
+                "type": "select",
+                "required": true,
+                "options": [
+                  "promissario_acquirente",
+                  "promittente_venditore"
+                ]
+              },
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "codice_fiscale",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "convenuto",
+            "label": "Convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "altri_promissari_se_pluralita",
+            "label": "Altri promissari (per pluralità parti) - LITISCONSORTI",
+            "type": "array_persone"
+          },
+          {
+            "id": "preliminare",
+            "label": "Contratto preliminare",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_stipula",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "forma",
+                "type": "select",
+                "options": [
+                  "scrittura_privata",
+                  "scrittura_privata_autenticata",
+                  "atto_pubblico"
+                ]
+              },
+              {
+                "id": "notaio_eventuale",
+                "type": "string"
+              },
+              {
+                "id": "data_pattuita_rogito",
+                "type": "date"
+              },
+              {
+                "id": "prezzo_pattuito",
+                "type": "currency",
+                "required": true
+              },
+              {
+                "id": "caparra_pagata",
+                "type": "currency"
+              },
+              {
+                "id": "acconti_versati",
+                "type": "currency"
+              },
+              {
+                "id": "prezzo_residuo",
+                "type": "currency"
+              },
+              {
+                "id": "trascrizione_preliminare_2645_bis",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "trascritto",
+                    "type": "boolean"
+                  },
+                  {
+                    "id": "data_trascrizione",
+                    "type": "date"
+                  },
+                  {
+                    "id": "ufficio_trascrizione",
+                    "type": "string"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "immobile",
+            "label": "Immobile oggetto del preliminare",
+            "type": "object_immobile",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "ubicazione_completa",
+                "type": "address"
+              },
+              {
+                "id": "dati_catastali",
+                "type": "object"
+              },
+              {
+                "id": "confini",
+                "type": "textarea"
+              },
+              {
+                "id": "descrizione_fisica",
+                "type": "textarea"
+              },
+              {
+                "id": "destinazione_d_uso",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "inadempimento_dedotto",
+            "label": "Inadempimento dedotto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_inadempimento",
+                "type": "select_multi",
+                "required": true,
+                "options": [
+                  "rifiuto_rogito_promittente_venditore",
+                  "indisponibilita_promittente_venditore",
+                  "scoperti_gravami_o_ipoteche_sopravvenute",
+                  "non_conformita_urbanistica",
+                  "abusi_edilizi_non_dichiarati",
+                  "discrepanza_immobile_descritto_vs_reale",
+                  "mancato_pagamento_promissario",
+                  "rifiuto_rogito_promissario",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 400
+              },
+              {
+                "id": "data_inadempimento_o_scoperta",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "gravita_e_importanza",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "adempimento_proprio_attore",
+            "label": "Adempimento proprio dell'attore",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "offerta_reale_prezzo",
+                "type": "boolean",
+                "rilevante_per_promissario": true
+              },
+              {
+                "id": "modalita_offerta",
+                "type": "string"
+              },
+              {
+                "id": "convocazione_notaio_avvenuta",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "diffida_ad_adempiere",
+            "label": "Diffida ad adempiere",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "inviata",
+                "type": "boolean"
+              },
+              {
+                "id": "data",
+                "type": "date"
+              },
+              {
+                "id": "termine_assegnato",
+                "type": "integer"
+              },
+              {
+                "id": "esito",
+                "type": "select"
+              }
+            ]
+          },
+          {
+            "id": "domande_principali",
+            "label": "Domanda principale",
+            "type": "select",
+            "required": true,
+            "options": [
+              "esecuzione_specifica_2932_sentenza_costitutiva",
+              "risoluzione_preliminare_per_inadempimento"
+            ]
+          },
+          {
+            "id": "domande_subordinate",
+            "label": "Domanda subordinata",
+            "type": "select_multi",
+            "options": [
+              "risoluzione_in_subordine",
+              "esecuzione_specifica_in_subordine",
+              "restituzione_caparra_doppia_1385",
+              "ritenzione_caparra_1385",
+              "restituzione_acconti_versati",
+              "risarcimento_danni_eventuali",
+              "indennita_per_riduzione_prezzo",
+              "spese_di_lite",
+              "trascrizione_domanda_2652_n_2"
+            ]
+          },
+          {
+            "id": "richiesta_trascrizione_domanda",
+            "label": "Richiesta trascrizione domanda ex art. 2652 n. 2",
+            "type": "boolean",
+            "default": true,
+            "critico_per_2932": true
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Per 2932: necessaria offerta reale prezzo residuo (se attore promissario acquirente)",
+          "TRASCRIZIONE DOMANDA EX ART. 2652 N. 2 c.c. obbligatoria per opponibilità a terzi",
+          "Per risoluzione: importanza inadempimento ex art. 1455 c.c.",
+          "Caparra confirmatoria: restituzione del doppio (se attore promissario), ritenzione (se attore promittente venditore inadempiente controparte)",
+          "Foro esclusivo del luogo immobile",
+          "Mediazione obbligatoria preventiva",
+          "Termine a comparire 120 gg post-Cartabia"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "preliminare_in_originale_o_copia_autentica",
+          "label": "Contratto preliminare in originale o copia autentica",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "ricevute_caparra_e_acconti",
+          "label": "Ricevute caparra e acconti",
+          "required": true
+        },
+        {
+          "id": "atti_provenienza_immobile",
+          "label": "Atti di provenienza dell'immobile",
+          "required": true
+        },
+        {
+          "id": "visure_catastali_e_ispezioni_conservatoria",
+          "label": "Visure catastali e ispezioni Conservatoria",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "trascrizione_preliminare_se_avvenuta",
+          "label": "Trascrizione preliminare 2645-bis (se avvenuta)",
+          "required_if": "preliminare_trascritto=true"
+        },
+        {
+          "id": "documentazione_inadempimento",
+          "label": "Documentazione dell'inadempimento",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "verbale_convocazione_notaio_e_mancata_comparizione",
+          "label": "Verbale di convocazione notaio e mancata comparizione (per rifiuto rogito)",
+          "required_if": "tipo=rifiuto_rogito"
+        },
+        {
+          "id": "diffida_ad_adempiere",
+          "label": "Diffida ad adempiere e relata di notifica",
+          "required_if": "diffida_inviata=true"
+        },
+        {
+          "id": "offerta_reale_prezzo",
+          "label": "Offerta reale del prezzo residuo (per 2932)",
+          "required_if": "azione=2932 AND attore=promissario",
+          "critico": true
+        },
+        {
+          "id": "documentazione_conformita_urbanistica",
+          "label": "Documentazione conformità urbanistica/edilizia",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbale_mediazione_negativa",
+          "label": "Verbale mediazione obbligatoria conclusa negativamente",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore dell'immobile o del prezzo",
+        "marca_bollo_forfettaria": 27.0,
+        "tasse_trascrizione_domanda": "Imposta ipotecaria fissa + tasse",
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ricorso_mediazione_obbligatoria",
+          "trigger": "Condizione procedibilità"
+        },
+        {
+          "tipo": "trascrizione_domanda_2652_n_2",
+          "trigger": "Opponibilità a terzi",
+          "critico_per_2932": true
+        },
+        {
+          "tipo": "offerta_reale_notarile",
+          "trigger": "Per 2932 - prezzo residuo",
+          "automatico": false
+        },
+        {
+          "tipo": "ctu_estimativa_e_urbanistica",
+          "trigger": "Disposta dal giudice",
+          "automatico": false
+        },
+        {
+          "tipo": "sentenza_costitutiva_2932",
+          "trigger": "Esito accoglimento azione 2932",
+          "norma": "art. 2932 c.c.",
+          "effetto": "Sostituisce il rogito + trascrizione"
+        },
+        {
+          "tipo": "sentenza_risoluzione",
+          "trigger": "Esito accoglimento risoluzione",
+          "automatico": false
+        },
+        {
+          "tipo": "azione_per_immissione_in_possesso",
+          "trigger": "Promissario acquirente non in possesso",
+          "automatico": false
+        },
+        {
+          "tipo": "esecuzione_per_consegna_immobile",
+          "trigger": "Inadempimento spontaneo",
+          "codice_correlato": "511012"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_2932_sentenza_costitutiva",
+          "descrizione": "Sentenza che produce gli effetti del contratto definitivo + trascrizione + trasferimento proprietà"
+        },
+        {
+          "esito": "accoglimento_risoluzione_e_restituzioni",
+          "descrizione": "Risoluzione + restituzione doppio caparra + acconti + eventuali danni"
+        },
+        {
+          "esito": "accoglimento_risoluzione_e_ritenzione_caparra",
+          "descrizione": "Risoluzione + ritenzione caparra (attore promittente venditore)"
+        },
+        {
+          "esito": "rigetto_per_assenza_inadempimento",
+          "descrizione": "Non sussiste inadempimento del convenuto"
+        },
+        {
+          "esito": "rigetto_per_mancato_adempimento_attore",
+          "descrizione": "L'attore non ha adempiuto la propria obbligazione (es. no offerta reale)"
+        },
+        {
+          "esito": "transazione_con_stipula_definitivo",
+          "descrizione": "Accordo - le parti stipulano comunque il definitivo"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione azione 2932 e risoluzione",
+          "anni": 10,
+          "decorrenza": "scadenza termine stipula",
+          "natura": "prescrizione",
+          "norma": "art. 2946 c.c."
+        },
+        {
+          "termine": "Efficacia prenotativa trascrizione preliminare",
+          "anni": 3,
+          "decorrenza": "trascrizione preliminare",
+          "natura": "termine sostanziale",
+          "norma": "art. 2645-bis c. 3 c.c."
+        },
+        {
+          "termine": "Diffida ad adempiere - termine minimo",
+          "giorni": 15,
+          "natura": "termine sostanziale",
+          "norma": "art. 1454 c.c."
+        },
+        {
+          "termine": "Mediazione obbligatoria - max",
+          "giorni": 90
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "140002",
+      "codici_ufficiali_correlati_da_valutare": [
+        "140011",
+        "140999"
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Il codice 140002 è ufficiale nel catalogo locale, ma riguarda arbitraggio/perizia contrattuale; la scheda ricevuta riguarda risoluzione del preliminare immobiliare ed esecuzione specifica ex art. 2932 c.c. e resta interna per non alterare il deposito."
+    },
+    {
+      "codice": "GUIDA_IMPUGNAZIONE_DELIBERE_ASSEMBLEARI_155001",
+      "denominazione": "Impugnazione di delibere assembleari di S.r.l. o S.p.a. (artt. 2377-2379 c.c.)",
+      "categoria": "Diritto societario - patologia degli atti societari",
+      "sottocategoria": "Annullabilità o nullità delle delibere assembleari - azione del socio o di altri legittimati",
+      "rito": "Rito ordinario di cognizione (sezione specializzata impresa per società di rilevanza significativa)",
+      "competenza": "TRIBUNALE SEZIONE SPECIALIZZATA IN MATERIA DI IMPRESA (D.L. 1/2012); foro della sede sociale (art. 19 c.p.c.)",
+      "uffici_destinatari": [
+        "SICID - sezione impresa"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2377",
+          "descrizione": "Annullabilità delibere SpA - cause + legittimazione + termine 90 gg"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2378",
+          "descrizione": "Procedimento di impugnazione SpA"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2379",
+          "descrizione": "Nullità delibere SpA - cause + termine 3 anni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2379-bis",
+          "descrizione": "Sanatoria della nullità"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2379-ter",
+          "descrizione": "Invalidità delibere su operazioni straordinarie"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2434-bis",
+          "descrizione": "Termini per impugnazione delibere di approvazione bilancio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2479-ter",
+          "descrizione": "Invalidità decisioni dei soci SRL"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2388 c. 4",
+          "descrizione": "Annullabilità delibere CDA - applicazione analogica"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2391",
+          "descrizione": "Conflitto di interessi amministratori"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2367",
+          "descrizione": "Convocazione dell'assemblea - omessa convocazione (causa nullità)"
+        },
+        {
+          "fonte": "D.L. 1/2012",
+          "descrizione": "Tribunale delle Imprese"
+        },
+        {
+          "fonte": "Cass. SU 17893/2013",
+          "descrizione": "Annullabilità vs nullità - criterio di distinzione"
+        }
+      ],
+      "tipologie_di_invalidita": {
+        "annullabilita_2377_spa_o_2479_ter_srl": [
+          "Delibere prese non in conformità alla legge o allo statuto",
+          "Vizi del procedimento (convocazione, quorum costitutivo, deliberativo)",
+          "Vizi del voto (conflitto di interessi - art. 2373; vizio di consenso)",
+          "Legittimazione: SOCI ASSENTI/DISSENZIENTI/ASTENUTI (in possesso di una soglia di azioni/quote), amministratori, sindaco, organo di controllo",
+          "TERMINE: 90 GIORNI dalla data di iscrizione delibera nel registro imprese OR dall'assemblea (se non sottoposta)"
+        ],
+        "nullita_2379_spa_o_2479_ter_srl": [
+          "OGGETTO ILLECITO O IMPOSSIBILE",
+          "OGGETTO CONTRARIO ALL'ORDINE PUBBLICO",
+          "OMESSA CONVOCAZIONE DELL'ASSEMBLEA (es. mancato avviso di convocazione)",
+          "MANCANZA DEL VERBALE",
+          "Legittimazione: CHIUNQUE VI HABIA INTERESSE",
+          "TERMINE: 3 ANNI dalla iscrizione nel registro imprese (salvo nullità per oggetto illecito - imprescrittibile)"
+        ]
+      },
+      "presupposti_sostanziali": [
+        "ESISTENZA DI UNA DELIBERA ASSEMBLEARE di SRL o SPA",
+        "UNA DELLE CAUSE DI INVALIDITÀ (annullabilità o nullità)",
+        "LEGITTIMAZIONE ATTIVA secondo la causa di invalidità",
+        "TERMINE PER L'IMPUGNAZIONE rispettato",
+        "INTERESSE AD AGIRE"
+      ],
+      "soglie_di_legittimazione_2377_c_3_spa": [
+        "Per società con azioni quotate: 1 per mille",
+        "Per società non quotate: 5%",
+        "L'atto costitutivo può ridurre o eliminare le soglie",
+        "I soci sotto soglia: solo risarcimento del danno (art. 2377 c. 4)",
+        "Per SRL: non ci sono soglie - ogni socio assente/dissenziente/astenuto può impugnare"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "tentativo_facoltativo": "Conciliazione presso CCIAA - facoltativa"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione DELLA DELIBERA E DELLA DOCUMENTAZIONE ASSEMBLEARE",
+          "documenti": [
+            "Verbale assembleare (con allegati: presenze, deleghe)",
+            "Avviso di convocazione",
+            "Documenti messi a disposizione dei soci prima dell'assemblea",
+            "Iscrizione delibera nel registro imprese (per verificare termine)",
+            "Statuto sociale vigente"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "VERIFICA DELLA QUALITÀ DI SOCIO E DELLA SOGLIA",
+          "elementi": [
+            "Iscrizione del socio al libro soci (per SRL - ora abolito ma rileva per legittimazione storica) o titoli azionari",
+            "Percentuale di possesso (per soglie SpA)",
+            "Status partecipativo all'assemblea: assente, dissenziente, astenuto"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "IDENTIFICAZIONE DEI VIZI",
+          "tipologie": [
+            "Vizi convocazione: omesso/tardivo avviso, mancata indicazione punti OdG, vizi di forma",
+            "Vizi quorum: costitutivo o deliberativo non raggiunti",
+            "Vizi voto: conflitto di interessi, vizi di consenso (errore, dolo, violenza)",
+            "Vizi sostanziali: oggetto contrario a legge/statuto, abuso di maggioranza",
+            "Vizi del verbale: mancanza, incompletezza, falsità"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "QUALIFICAZIONE COME ANNULLABILITÀ O NULLITÀ",
+          "criterio_cass_su_17893_2013": "Annullabilità è la regola - nullità solo nei casi tassativi 2379 c.c.",
+          "rilevanza": "Determinante per termine impugnazione (90 gg vs 3 anni)"
+        },
+        {
+          "step": 5,
+          "descrizione": "VERIFICA TERMINE PER L'IMPUGNAZIONE",
+          "decorrenza_annullabilita": "90 gg dalla iscrizione delibera nel registro imprese (per delibere soggette) OR dall'assemblea (per quelle non soggette)",
+          "decorrenza_nullita": "3 anni dall'iscrizione (salvo oggetto illecito)",
+          "criticita": "MASSIMA"
+        },
+        {
+          "step": 6,
+          "descrizione": "Valutazione richiesta SOSPENSIONE EFFICACIA DELIBERA ex art. 2378 c.c.",
+          "presupposti": "Gravi e fondate ragioni - sospensione cautelare",
+          "rilevanza": "Per delibere immediatamente esecutive (es. nomina amministratori, operazioni straordinarie)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_impugnazione_delibera_assembleare",
+        "denominazione": "Atto di citazione per impugnazione di delibera assembleare ex artt. 2377-2379 c.c. (o 2479-ter SRL)",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale - sezione specializzata impresa",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore_impugnante",
+            "label": "Attore impugnante",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "socio_assente",
+                  "socio_dissenziente",
+                  "socio_astenuto",
+                  "amministratore",
+                  "sindaco",
+                  "organo_di_controllo",
+                  "soggetto_interessato_nullita"
+                ]
+              },
+              {
+                "id": "percentuale_partecipazione",
+                "type": "percentage"
+              }
+            ]
+          },
+          {
+            "id": "societa_convenuta",
+            "label": "Società convenuta",
+            "type": "object_persona_giuridica",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_societa",
+                "type": "select",
+                "options": [
+                  "srl",
+                  "spa_non_quotata",
+                  "spa_quotata",
+                  "sapa",
+                  "altra"
+                ]
+              },
+              {
+                "id": "denominazione_sociale",
+                "type": "string"
+              },
+              {
+                "id": "codice_fiscale",
+                "type": "string"
+              },
+              {
+                "id": "sede_legale",
+                "type": "address"
+              },
+              {
+                "id": "capitale_sociale",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "delibera_impugnata",
+            "label": "Delibera impugnata",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_assemblea",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "tipo_assemblea",
+                "type": "select",
+                "options": [
+                  "ordinaria",
+                  "straordinaria",
+                  "totalitaria",
+                  "convocazione_seconda_terza"
+                ]
+              },
+              {
+                "id": "oggetto_delibera",
+                "type": "textarea",
+                "required": true
+              },
+              {
+                "id": "data_iscrizione_registro_imprese",
+                "type": "date",
+                "critico_per_termine": true
+              },
+              {
+                "id": "voto_attore",
+                "type": "select",
+                "options": [
+                  "assente",
+                  "dissenziente",
+                  "astenuto",
+                  "voto_favorevole_da_revocare_per_vizio"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "tipo_invalidita_dedotta",
+            "label": "Tipo di invalidità dedotta",
+            "type": "select",
+            "required": true,
+            "options": [
+              "annullabilita_2377_spa",
+              "annullabilita_2479_ter_srl",
+              "nullita_2379_spa",
+              "nullita_2479_ter_srl"
+            ]
+          },
+          {
+            "id": "cause_invalidita_dedotte",
+            "label": "Cause di invalidità dedotte",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "vizi_convocazione_omessa_avviso",
+              "vizi_convocazione_avviso_tardivo_o_incompleto",
+              "violazione_OdG",
+              "mancato_raggiungimento_quorum_costitutivo",
+              "mancato_raggiungimento_quorum_deliberativo",
+              "voto_in_conflitto_interessi_2373",
+              "vizi_di_consenso_errore_dolo_violenza",
+              "abuso_di_maggioranza",
+              "oggetto_contrario_a_legge_o_statuto",
+              "oggetto_illecito_o_impossibile_per_nullita",
+              "omessa_redazione_verbale",
+              "altra_violazione_di_legge_o_statuto"
+            ]
+          },
+          {
+            "id": "esposizione_dettagliata_vizi",
+            "label": "Esposizione dettagliata dei vizi",
+            "type": "textarea",
+            "required": true,
+            "min_length": 600
+          },
+          {
+            "id": "interesse_ad_agire",
+            "label": "Interesse ad agire",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "richiesta_sospensione_efficacia_2378",
+            "label": "Richiesta sospensione efficacia delibera ex art. 2378 c.c.",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "richiesta",
+                "type": "boolean",
+                "default": false
+              },
+              {
+                "id": "fumus_boni_iuris",
+                "type": "textarea",
+                "required_if": "richiesta=true"
+              },
+              {
+                "id": "periculum_in_mora",
+                "type": "textarea",
+                "required_if": "richiesta=true"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "annullamento_delibera",
+              "dichiarazione_nullita_delibera",
+              "sospensione_efficacia_2378",
+              "risarcimento_danni_se_sotto_soglia",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "TERMINE ANNULLABILITÀ: 90 GG dall'iscrizione delibera nel registro imprese (decadenziale)",
+          "TERMINE NULLITÀ: 3 ANNI dall'iscrizione (salvo oggetto illecito - imprescrittibile)",
+          "SOGLIE LEGITTIMAZIONE per SpA: 1 per mille (quotate) o 5% (non quotate) - sotto soglia: solo risarcimento",
+          "Per SRL: ogni socio assente/dissenziente/astenuto è legittimato",
+          "Sezione specializzata impresa (D.L. 1/2012)",
+          "Sospensione efficacia ex art. 2378 c.c. - rito cautelare incidentale"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "verbale_assemblea_impugnata",
+          "label": "Verbale dell'assemblea impugnata (con allegati)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "avviso_convocazione",
+          "label": "Avviso di convocazione",
+          "required": true,
+          "critico_per_vizi_convocazione": true
+        },
+        {
+          "id": "documentazione_iscrizione_registro_imprese",
+          "label": "Documentazione iscrizione delibera nel registro imprese",
+          "required": true,
+          "critico_per_termine": true
+        },
+        {
+          "id": "statuto_e_atto_costitutivo",
+          "label": "Atto costitutivo e statuto vigente",
+          "required": true
+        },
+        {
+          "id": "visura_camerale_aggiornata",
+          "label": "Visura camerale aggiornata",
+          "required": true
+        },
+        {
+          "id": "documentazione_qualita_socio",
+          "label": "Documentazione qualità di socio (per SRL: atti di trasferimento; per SpA: titoli o estratto libro soci)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_vizi_dedotti",
+          "label": "Documentazione specifica dei vizi dedotti",
+          "required": true
+        },
+        {
+          "id": "documenti_omessa_convocazione",
+          "label": "Documenti che provano omessa convocazione (per nullità)",
+          "required_if": "causa=omessa_convocazione",
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore (valore della delibera o del danno)",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "istanza_sospensione_efficacia_2378",
+          "trigger": "Tutela cautelare",
+          "automatico": false
+        },
+        {
+          "tipo": "comparsa_costituzione_societa",
+          "trigger": "Costituzione società",
+          "termine": "70 gg prima udienza"
+        },
+        {
+          "tipo": "ctu_su_aspetti_specifici",
+          "trigger": "Disposta dal giudice (es. quorum, conflitto interessi)",
+          "automatico": false
+        },
+        {
+          "tipo": "azione_responsabilita_amministratori",
+          "trigger": "Per delibere illegittime - parallela",
+          "codice_correlato": "151110"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "annullamento_delibera",
+          "descrizione": "Delibera annullata - effetti ex tunc, fatti salvi diritti dei terzi in buona fede (art. 2377 c. 7)"
+        },
+        {
+          "esito": "dichiarazione_nullita",
+          "descrizione": "Delibera nulla - effetti generalmente ex tunc, salvi diritti terzi (art. 2379 c. 3)"
+        },
+        {
+          "esito": "rigetto_per_assenza_vizi",
+          "descrizione": "Delibera conforme a legge e statuto"
+        },
+        {
+          "esito": "rigetto_per_decadenza_termine",
+          "descrizione": "Termine impugnazione scaduto"
+        },
+        {
+          "esito": "rigetto_per_assenza_legittimazione",
+          "descrizione": "Attore sotto soglia o non legittimato"
+        },
+        {
+          "esito": "sanatoria_2379_bis",
+          "descrizione": "Vizio sanato dalla società (per nullità sanabili)"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo - rara ma possibile"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "ANNULLABILITÀ",
+          "giorni": 90,
+          "decorrenza": "iscrizione delibera nel registro imprese o assemblea (se non soggetta)",
+          "natura": "DECADENZIALE",
+          "norma": "art. 2377 c. 6 c.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "NULLITÀ",
+          "anni": 3,
+          "decorrenza": "iscrizione delibera nel registro imprese",
+          "natura": "decadenziale",
+          "norma": "art. 2379 c. 2 c.c."
+        },
+        {
+          "termine": "NULLITÀ per oggetto illecito",
+          "natura": "imprescrittibile",
+          "norma": "art. 2379 c. 2 c.c."
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "155001",
+      "codici_ufficiali_correlati_da_valutare": [
+        "153112",
+        "154112",
+        "152003"
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda viene conservata come guida interna per impugnazione di delibere assembleari di società di capitali."
+    },
+    {
+      "codice": "GUIDA_LICENZIAMENTO_DISCIPLINARE_220003",
+      "denominazione": "Impugnazione del licenziamento disciplinare",
+      "categoria": "Lavoro - estinzione rapporto",
+      "sottocategoria": "Impugnazione del licenziamento per giusta causa o giustificato motivo soggettivo (motivi disciplinari)",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c. - rito ordinario o rito Fornero (legge 92/2012) a seconda dell'anzianità",
+      "competenza": "Tribunale del lavoro - foro del luogo sede di lavoro (art. 413 c.p.c.)",
+      "uffici_destinatari": [
+        "SICID-Lavoro / SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 604/1966",
+          "descrizione": "Disciplina dei licenziamenti individuali - requisiti di forma e sostanza"
+        },
+        {
+          "fonte": "L. 604/1966",
+          "articolo": "2",
+          "descrizione": "Forma scritta del licenziamento + motivazione"
+        },
+        {
+          "fonte": "L. 604/1966",
+          "articolo": "6",
+          "descrizione": "Impugnazione - 60 gg + 180 gg per ricorso"
+        },
+        {
+          "fonte": "L. 300/1970",
+          "articolo": "7",
+          "descrizione": "STATUTO LAVORATORI - PROCEDURA DISCIPLINARE OBBLIGATORIA"
+        },
+        {
+          "fonte": "L. 300/1970",
+          "articolo": "18",
+          "descrizione": "Tutela reale (per assunti pre 7/3/2015) - reintegra/indennità"
+        },
+        {
+          "fonte": "L. 92/2012 (Fornero)",
+          "descrizione": "Riforma art. 18 - graduazione tutele"
+        },
+        {
+          "fonte": "D.Lgs. 23/2015 (Jobs Act)",
+          "descrizione": "Tutele crescenti - per assunti dal 7/3/2015"
+        },
+        {
+          "fonte": "D.Lgs. 23/2015",
+          "articolo": "3",
+          "descrizione": "Licenziamento per giusta causa o GMS - tutele crescenti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2106",
+          "descrizione": "Sanzioni disciplinari - principio di proporzionalità"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2119",
+          "descrizione": "Giusta causa di recesso"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2118",
+          "descrizione": "Recesso con preavviso"
+        },
+        {
+          "fonte": "Corte Cost. 194/2018",
+          "descrizione": "Tutele crescenti - dichiarata illegittimità criterio anzianità per quantum indennità"
+        },
+        {
+          "fonte": "Corte Cost. 59/2021",
+          "descrizione": "Tutele crescenti - dichiarata illegittimità mancato riconoscimento reintegra per insussistenza fatto"
+        },
+        {
+          "fonte": "Cass. SU 30985/2017",
+          "descrizione": "Tempestività contestazione disciplinare"
+        }
+      ],
+      "presupposti_sostanziali_per_validita_licenziamento_disciplinare": [
+        "PROCEDURA EX ART. 7 L. 300/1970 (obbligatoria per tutti):",
+        "- CONTESTAZIONE DISCIPLINARE PER ISCRITTO e in modo specifico",
+        "- TERMINE A DIFESA 5 GIORNI MINIMO al lavoratore (art. 7 c. 5)",
+        "- DIFESA del lavoratore (anche orale)",
+        "- DECISIONE motivata della sanzione disciplinare entro un termine ragionevole",
+        "- PROPORZIONALITÀ della sanzione (art. 2106 c.c.)",
+        "GIUSTA CAUSA (art. 2119) o GIUSTIFICATO MOTIVO SOGGETTIVO (L. 604/1966 art. 3): fatto disciplinare grave",
+        "TEMPESTIVITÀ della contestazione (criterio elastico - Cass. SU 30985/2017)"
+      ],
+      "vizi_tipici_che_invalidano": [
+        "Procedura ex art. 7 omessa o tardiva (es. mancata contestazione formale)",
+        "Contestazione generica o non specifica",
+        "Non rispetto del termine 5 gg minimo a difesa",
+        "Tardività della contestazione",
+        "Insussistenza del fatto contestato",
+        "Difetto di proporzionalità (sanzione eccessiva rispetto al fatto)",
+        "Vizio di motivazione del licenziamento",
+        "Violazione di legge specifica (es. licenziamento ritorsivo, discriminatorio)"
+      ],
+      "regimi_di_tutela_alternativi": {
+        "tutela_reale_art_18_pre_2012": {
+          "applicazione": "Assunti pre 7 marzo 2015 in aziende > 15 dipendenti",
+          "rimedio": "REINTEGRA piena + indennità integrale (anche oltre 12 mensilità)",
+          "casi": "Licenziamento discriminatorio, ritorsivo, comunicato verbalmente, nullo"
+        },
+        "tutela_art_18_fornero": {
+          "applicazione": "Assunti pre 7 marzo 2015 in aziende > 15 dipendenti",
+          "rimedio_graduato": [
+            "Tutela reale piena (reintegra + retribuzioni): discriminatorio, ritorsivo, orale",
+            "Tutela reale attenuata (reintegra + max 12 mesi): insussistenza fatto o sproporzione + altri casi",
+            "Tutela indennitaria forte (12-24 mesi): GC/GMS insussistente",
+            "Tutela indennitaria debole (6-12 mesi): vizi formali/procedurali"
+          ]
+        },
+        "tutele_crescenti_jobs_act": {
+          "applicazione": "Assunti dal 7 marzo 2015",
+          "rimedio_pre_corte_cost_194_2018": "Indennità calcolata in base anzianità (2 mensilità per anno - min 4 - max 24 o 36)",
+          "rimedio_post_corte_cost_194_2018": "Indennità da min 6 a max 36 mensilità con valutazione equitativa giudice + per piccole imprese metà",
+          "rimedio_corte_cost_59_2021": "Per insussistenza del fatto: REINTEGRA possibile (modifica al D.Lgs. 23/2015 - introdotto tramite Corte Cost)"
+        }
+      },
+      "obbligo_mediazione_o_conciliazione": {
+        "obbligatoria": false,
+        "tentativo_facoltativo_itl": "Conciliazione presso ITL ex art. 410 c.p.c. - facoltativa",
+        "tentativo_conciliazione_jobs_act_dlgs_23_2015": "Procedura conciliativa specifica art. 6 D.Lgs. 23/2015 - se accolta dal datore, lavoratore riceve mensilità di anzianità (1 mese per anno, min 3 max 27) ma rinuncia ad ogni pretesa"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "IMPUGNAZIONE STRAGIUDIZIALE DEL LICENZIAMENTO",
+          "termine": "60 GIORNI dalla ricezione della lettera di licenziamento",
+          "modalita": "Lettera raccomandata A/R o PEC al datore di lavoro",
+          "criticita": "MASSIMA - decadenza preclude azione giudiziale",
+          "norma": "art. 6 c. 1 L. 604/1966"
+        },
+        {
+          "step": 2,
+          "descrizione": "DEPOSITO RICORSO GIUDIZIALE",
+          "termine": "180 GIORNI dall'impugnazione stragiudiziale",
+          "criticita": "MASSIMA - se non rispettato, impugnazione stragiudiziale diventa inefficace",
+          "norma": "art. 6 c. 2 L. 604/1966"
+        },
+        {
+          "step": 3,
+          "descrizione": "Acquisizione DOCUMENTAZIONE COMPLETA",
+          "documenti": [
+            "Contratto di lavoro (data assunzione critica per regime applicabile)",
+            "Lettera di contestazione disciplinare",
+            "Eventuali risposte/difese del lavoratore",
+            "Lettera di licenziamento con motivazione",
+            "CCNL applicato",
+            "Buste paga ultimi 12 mesi (per calcolo retribuzione utile)",
+            "Stato di famiglia + ISEE (per regime piccole imprese)",
+            "Eventuali verbali precedenti del lavoratore"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VERIFICA REGIME TUTELA APPLICABILE",
+          "criteri": [
+            "Data di assunzione (pre/post 7/3/2015) - Jobs Act vs ante",
+            "Dimensione aziendale (sopra o sotto 15 dipendenti) - tutela reale vs obbligatoria",
+            "Anzianità di servizio (rilevante per quantum)"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "ANALISI DEI VIZI DEL LICENZIAMENTO",
+          "checklist": [
+            "Forma scritta + motivazione (art. 2 L. 604/1966)",
+            "Procedura art. 7 L. 300/1970 rispettata in ogni passaggio",
+            "Tempestività contestazione",
+            "Specificità della contestazione",
+            "Termine 5 gg a difesa",
+            "Adesione decisione alla contestazione",
+            "Sussistenza del fatto contestato",
+            "Proporzionalità della sanzione (richiamo a CCNL e gradualità)",
+            "Eventuale carattere discriminatorio/ritorsivo"
+          ]
+        },
+        {
+          "step": 6,
+          "descrizione": "Quantificazione delle pretese economiche",
+          "voci": [
+            "Per reintegra: retribuzioni dal licenziamento alla reintegra effettiva",
+            "Per indennità tutele crescenti: in base ad anzianità e/o discrezionalità giudice",
+            "Per art. 18 Fornero: in base al regime applicabile",
+            "Contributi previdenziali e assicurativi nei periodi",
+            "Eventuali danni ulteriori (es. danno morale per licenziamento ingiurioso)"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_impugnazione_licenziamento_disciplinare",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per impugnazione licenziamento disciplinare",
+        "schema_xsd_ministeriale": "AttoLavoro.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del lavoro",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore",
+            "label": "Lavoratore ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_lavoro",
+            "label": "Datore di lavoro convenuto",
+            "type": "object_persona_giuridica",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "dimensione_aziendale",
+                "type": "select",
+                "required": true,
+                "options": [
+                  "fino_a_15_dipendenti",
+                  "oltre_15_dipendenti",
+                  "oltre_60_dipendenti"
+                ]
+              },
+              {
+                "id": "settore",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "rapporto_lavoro",
+            "label": "Rapporto di lavoro",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_assunzione",
+                "type": "date",
+                "required": true,
+                "critico_per_regime_applicabile": true
+              },
+              {
+                "id": "qualifica_e_livello",
+                "type": "string"
+              },
+              {
+                "id": "ccnl_applicato",
+                "type": "string"
+              },
+              {
+                "id": "retribuzione_globale_di_fatto",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "regime_tutela_applicabile",
+            "label": "Regime di tutela applicabile",
+            "type": "select",
+            "required": true,
+            "options": [
+              "art_18_originario_pre_fornero",
+              "art_18_fornero_post_2012",
+              "tutele_crescenti_jobs_act_post_7_3_2015",
+              "tutela_obbligatoria_l_604_per_piccole_imprese"
+            ]
+          },
+          {
+            "id": "licenziamento",
+            "label": "Licenziamento impugnato",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_comunicazione",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "data_ricezione_lavoratore",
+                "type": "date",
+                "required": true,
+                "critico_per_termini": true
+              },
+              {
+                "id": "tipologia",
+                "type": "select",
+                "options": [
+                  "giusta_causa_2119",
+                  "giustificato_motivo_soggettivo_604",
+                  "in_tronco_senza_preavviso"
+                ]
+              },
+              {
+                "id": "fatti_contestati",
+                "type": "textarea",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "procedura_disciplinare_art_7",
+            "label": "Procedura disciplinare ex art. 7 L. 300/1970",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "contestazione_avvenuta",
+                "type": "boolean"
+              },
+              {
+                "id": "data_contestazione",
+                "type": "date"
+              },
+              {
+                "id": "modalita_contestazione",
+                "type": "select",
+                "options": [
+                  "lettera_raccomandata",
+                  "PEC",
+                  "consegna_mano",
+                  "verbale"
+                ]
+              },
+              {
+                "id": "specificita_contestazione",
+                "type": "select",
+                "options": [
+                  "specifica",
+                  "generica",
+                  "tardiva"
+                ]
+              },
+              {
+                "id": "termine_5_gg_rispettato",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "difesa_lavoratore",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "presentata",
+                    "type": "boolean"
+                  },
+                  {
+                    "id": "data",
+                    "type": "date"
+                  },
+                  {
+                    "id": "modalita",
+                    "type": "select",
+                    "options": [
+                      "scritta",
+                      "orale_assistito_da_sindacato"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "decisione_motivata",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "data",
+                    "type": "date"
+                  },
+                  {
+                    "id": "tempestivita",
+                    "type": "boolean"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "vizi_dedotti",
+            "label": "Vizi dedotti",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "forma_orale",
+              "difetto_motivazione",
+              "omessa_contestazione_disciplinare",
+              "contestazione_generica",
+              "tardivita_contestazione",
+              "violazione_termine_5_gg_difesa",
+              "insussistenza_del_fatto_contestato",
+              "difetto_proporzionalita_2106",
+              "carattere_ritorsivo_o_discriminatorio",
+              "carattere_pretestuoso",
+              "violazione_codice_disciplinare_CCNL",
+              "altra_violazione_di_legge"
+            ]
+          },
+          {
+            "id": "impugnazione_stragiudiziale",
+            "label": "Impugnazione stragiudiziale",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "data_invio",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "modalita",
+                "type": "select",
+                "options": [
+                  "raccomandata_AR",
+                  "PEC"
+                ]
+              },
+              {
+                "id": "termine_60_gg_rispettato",
+                "type": "boolean",
+                "required": true,
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "dichiarazione_illegittimita_licenziamento",
+              "reintegra_nel_posto_di_lavoro",
+              "indennita_risarcitoria_art_18",
+              "indennita_tutele_crescenti",
+              "retribuzioni_dal_licenziamento_a_reintegra",
+              "indennita_sostitutiva_preavviso_se_dovuta",
+              "TFR_se_dovuto",
+              "contributi_previdenziali",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "TERMINE IMPUGNAZIONE STRAGIUDIZIALE: 60 GG dalla ricezione (decadenziale - art. 6 L. 604/1966)",
+          "TERMINE DEPOSITO RICORSO: 180 GG dall'impugnazione stragiudiziale (decadenziale)",
+          "Procedura disciplinare ex art. 7 L. 300/1970 obbligatoria + 5 gg termine difesa",
+          "Regime di tutela in base a data assunzione e dimensione azienda",
+          "Costituzione datore 10 gg prima udienza con decadenze (art. 416)",
+          "Onere prova giusta causa/GMS sul datore"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_lavoro",
+          "label": "Contratto di lavoro (con data assunzione)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "lettera_contestazione_disciplinare",
+          "label": "Lettera di contestazione disciplinare",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "eventuali_difese_lavoratore",
+          "label": "Eventuali difese scritte/verbali del lavoratore",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "lettera_licenziamento",
+          "label": "Lettera di licenziamento con motivazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "ccnl_con_codice_disciplinare",
+          "label": "CCNL applicato con codice disciplinare",
+          "required": true
+        },
+        {
+          "id": "buste_paga_12_mesi",
+          "label": "Buste paga ultimi 12 mesi",
+          "required": true
+        },
+        {
+          "id": "cud_3_anni",
+          "label": "CUD/CU degli ultimi 3 anni",
+          "required": true
+        },
+        {
+          "id": "impugnazione_stragiudiziale_e_relata",
+          "label": "Impugnazione stragiudiziale e prova di invio",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_dimensione_azienda",
+          "label": "Documentazione dimensione azienda (visura camerale, organico)",
+          "required": true
+        },
+        {
+          "id": "documentazione_smentita_fatti",
+          "label": "Documentazione che smentisce i fatti contestati",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "elenco_testimoni",
+          "label": "Elenco testimoni (colleghi)",
+          "required": false,
+          "rilevante": true
+        },
+        {
+          "id": "stato_famiglia_e_ISEE",
+          "label": "Stato di famiglia e ISEE (per regime applicabile e contributo unificato)",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per controversie individuali di lavoro per reddito sotto 3x soglia patrocinio a spese dello Stato",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "memoria_difensiva_datore",
+          "trigger": "Costituzione datore",
+          "termine": "10 gg prima udienza"
+        },
+        {
+          "tipo": "ctu_su_aspetti_specifici",
+          "trigger": "Disposta dal giudice (es. aspetti tecnici dei fatti contestati)",
+          "automatico": false
+        },
+        {
+          "tipo": "prove_testimoniali",
+          "trigger": "Sempre disposte in queste cause",
+          "automatico": false
+        },
+        {
+          "tipo": "esecuzione_per_reintegra",
+          "trigger": "Sentenza esecutiva di reintegra non eseguita spontaneamente",
+          "automatico": false,
+          "codice_correlato": "512020"
+        },
+        {
+          "tipo": "richiesta_indennita_supplementari_per_periodo_post_licenziamento",
+          "trigger": "Per il periodo successivo al licenziamento",
+          "automatico": false
+        },
+        {
+          "tipo": "azione_per_danni_da_demansionamento_precedente",
+          "trigger": "Se anche demansionamento precedente",
+          "codice_correlato": "220041"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "reintegra_e_retribuzioni_arretrate",
+          "descrizione": "Reintegra nel posto + retribuzioni dal licenziamento + contributi (tutela reale)"
+        },
+        {
+          "esito": "indennita_economica_senza_reintegra",
+          "descrizione": "Indennità calcolata secondo regime applicabile + contributi"
+        },
+        {
+          "esito": "rigetto_licenziamento_legittimo",
+          "descrizione": "Licenziamento confermato - rapporto definitivamente cessato"
+        },
+        {
+          "esito": "rigetto_per_decadenza",
+          "descrizione": "Termine 60/180 gg non rispettato"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo - molto frequente, con pagamento somma transattiva"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "IMPUGNAZIONE STRAGIUDIZIALE",
+          "giorni": 60,
+          "decorrenza": "ricezione lettera licenziamento",
+          "natura": "DECADENZIALE",
+          "norma": "art. 6 c. 1 L. 604/1966",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "DEPOSITO RICORSO GIUDIZIALE",
+          "giorni": 180,
+          "decorrenza": "impugnazione stragiudiziale",
+          "natura": "DECADENZIALE",
+          "norma": "art. 6 c. 2 L. 604/1966",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Costituzione datore",
+          "giorni": 10,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio",
+          "norma": "art. 416 c.p.c."
+        },
+        {
+          "termine": "Procedura art. 7 - termine difesa",
+          "giorni": 5,
+          "natura": "minimo legale",
+          "norma": "art. 7 c. 5 L. 300/1970"
+        },
+        {
+          "termine": "Appello",
+          "giorni": 30,
+          "decorrenza": "notifica sentenza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "220003",
+      "codici_ufficiali_correlati_da_valutare": [
+        "220102",
+        "220100",
+        "220111",
+        "220040"
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Il codice 220003 è ufficiale nel catalogo locale, ma riguarda lavoro interinale; la scheda ricevuta riguarda licenziamento disciplinare e resta interna per non alterare il deposito."
+    },
+    {
+      "codice": "GUIDA_OPPOSIZIONE_CARTELLA_ESATTORIALE_191001",
+      "denominazione": "Opposizione alla cartella di pagamento esattoriale",
+      "categoria": "Contenzioso tributario / esecutivo",
+      "sottocategoria": "Opposizione/impugnazione cartella esattoriale emessa da Agenzia Entrate Riscossione - rito differenziato in base alla natura del credito",
+      "rito": "RITO DIFFERENZIATO in base a natura credito: TRIBUTARIO (Corte Giustizia Tributaria), NON TRIBUTARIO (Tribunale ordinario civile/lavoro)",
+      "competenza": "CORTI DI GIUSTIZIA TRIBUTARIA per crediti tributari (D.Lgs. 545/1992, D.Lgs. 546/1992); TRIBUNALE ORDINARIO per crediti non tributari (contributi previdenziali, sanzioni stradali, ecc.)",
+      "uffici_destinatari": [
+        "SICID per non tributario",
+        "CGT per tributario - sistema separato"
+      ],
+      "normativa": [
+        {
+          "fonte": "DPR 602/1973",
+          "descrizione": "Disciplina della riscossione delle imposte sul reddito"
+        },
+        {
+          "fonte": "DPR 602/1973",
+          "articolo": "25",
+          "descrizione": "Notificazione della cartella di pagamento - termini decadenziali"
+        },
+        {
+          "fonte": "DPR 602/1973",
+          "articolo": "26",
+          "descrizione": "Modalità di notifica"
+        },
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "descrizione": "Disposizioni sul processo tributario"
+        },
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "articolo": "19",
+          "descrizione": "Atti impugnabili davanti alle CGT - elenco tassativo"
+        },
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "articolo": "21",
+          "descrizione": "Termine 60 gg per impugnazione"
+        },
+        {
+          "fonte": "D.Lgs. 545/1992",
+          "descrizione": "Ordinamento giurisdizione tributaria"
+        },
+        {
+          "fonte": "L. 130/2022",
+          "descrizione": "Riforma della giustizia tributaria (Corti di Giustizia Tributaria)"
+        },
+        {
+          "fonte": "L. 689/1981",
+          "descrizione": "Modifiche al sistema penale - disciplina sanzioni amministrative + opposizione"
+        },
+        {
+          "fonte": "L. 689/1981",
+          "articolo": "22",
+          "descrizione": "Opposizione a sanzioni amministrative - 30 gg"
+        },
+        {
+          "fonte": "Cass. SU 22080/2017",
+          "descrizione": "Riparto giurisdizione - opposizione cartella per crediti tributari/non tributari"
+        },
+        {
+          "fonte": "Cass. SU 16128/2014",
+          "descrizione": "Opposizione vizio formale cartella vs vizio sostanziale credito"
+        }
+      ],
+      "casistica_e_riparto_giurisdizione": {
+        "crediti_tributari": {
+          "esempi": [
+            "IRPEF",
+            "IVA",
+            "IRES",
+            "IRAP",
+            "ICI/IMU",
+            "Tasse di registro",
+            "Tributi locali"
+          ],
+          "giurisdizione": "CORTI DI GIUSTIZIA TRIBUTARIA (CGT) di primo grado",
+          "termine_ricorso": "60 giorni dalla notifica cartella",
+          "norma": "art. 21 D.Lgs. 546/1992",
+          "rito": "Processo tributario - rito speciale (D.Lgs. 546/1992)"
+        },
+        "crediti_previdenziali_inps_inail": {
+          "esempi": [
+            "Contributi INPS non versati",
+            "Premi INAIL",
+            "Sanzioni civili previdenziali"
+          ],
+          "giurisdizione": "TRIBUNALE DEL LAVORO",
+          "termine_ricorso": "40 giorni dalla notifica per opposizione iscrizione a ruolo (art. 24 D.Lgs. 46/1999)",
+          "rito": "Rito del lavoro"
+        },
+        "sanzioni_amministrative_codice_strada": {
+          "esempi": [
+            "Multe stradali",
+            "Sanzioni 689/1981"
+          ],
+          "giurisdizione": "GIUDICE DI PACE per sanzioni stradali, TRIBUNALE per altre sanzioni",
+          "termine_opposizione": "30 giorni dalla notifica",
+          "norma": "art. 22 L. 689/1981 / art. 204-bis c.d.s.",
+          "rito": "Rito sommario speciale ex art. 6 D.Lgs. 150/2011"
+        },
+        "vizi_formali_cartella_in_generale": {
+          "vizi": [
+            "Vizi notifica cartella",
+            "Difetto di motivazione",
+            "Errore identificazione contribuente"
+          ],
+          "giurisdizione": "Generalmente STESSO GIUDICE competente per il credito",
+          "termine": "Stesso termine"
+        }
+      },
+      "vizi_tipici_impugnabili": [
+        "Per credito TRIBUTARIO sostanziale: contestazione dell'esistenza/quantum del tributo, della motivazione dell'accertamento",
+        "VIZI FORMALI CARTELLA: difetto di motivazione, mancata indicazione termini ricorso, indicazione errata del soggetto, vizi di notifica",
+        "VIZI DI NOTIFICA: notifica nulla, irregolare, omessa",
+        "DECADENZA dei termini di notifica (art. 25 DPR 602/1973): la cartella deve essere notificata entro termini precisi (es. 3° anno successivo a quello di presentazione dichiarazione)",
+        "PRESCRIZIONE del credito sottostante (10 anni o 5 anni a seconda del tributo)",
+        "PAGAMENTO già effettuato del tributo",
+        "SOSPENSIONE/RATEAZIONE in corso non considerata",
+        "INTERVENUTA DEFINIZIONE AGEVOLATA (rottamazione, saldo e stralcio)"
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI UNA CARTELLA DI PAGAMENTO notificata dall'Agente della Riscossione (Agenzia Entrate Riscossione)",
+        "Una delle CAUSE DI OPPOSIZIONE",
+        "RISPETTO DEL TERMINE per l'impugnazione (variabile in base a natura credito)",
+        "LEGITTIMAZIONE: il contribuente destinatario"
+      ],
+      "obbligo_mediazione_o_reclamo": {
+        "per_credito_tributario": {
+          "obbligatorio": false,
+          "nota": "Il RECLAMO/MEDIAZIONE TRIBUTARIA ex art. 17-bis D.Lgs. 546/1992 era obbligatorio per controversie fino a 50.000 € MA è stato ABROGATO dalla L. 130/2022 dal 4 gennaio 2024"
+        },
+        "per_credito_non_tributario": "Nessun obbligo"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione DELLA CARTELLA E DELLA NOTIFICA",
+          "documenti": [
+            "Cartella di pagamento (originale o copia)",
+            "Avviso di ricevimento postale o relata di notifica",
+            "Eventuale avviso di accertamento prodromico",
+            "Eventuali atti già notificati (es. avvisi bonari)"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "IDENTIFICAZIONE NATURA DEL CREDITO",
+          "rilevanza": "Determinare il giudice competente e il rito applicabile",
+          "verifica": "Tipo di tributo/contributo + ente impositore + categoria nell'estratto di ruolo"
+        },
+        {
+          "step": 3,
+          "descrizione": "VERIFICA TERMINE DI IMPUGNAZIONE",
+          "termini_diversi": {
+            "credito_tributario": "60 gg dalla notifica - art. 21 D.Lgs. 546/1992",
+            "credito_INPS": "40 gg dalla notifica - art. 24 D.Lgs. 46/1999",
+            "sanzioni_amministrative": "30 gg dalla notifica - art. 22 L. 689/1981",
+            "altre_sanzioni_stradali": "30 gg dalla notifica - art. 204-bis c.d.s."
+          },
+          "criticita": "MASSIMA - decadenza preclude azione"
+        },
+        {
+          "step": 4,
+          "descrizione": "ANALISI DEI VIZI IMPUGNABILI",
+          "checklist": [
+            "Verifica termine di notifica cartella ex art. 25 DPR 602/1973 (decadenza)",
+            "Verifica prescrizione credito (10 anni / 5 anni)",
+            "Verifica regolarità notifica (anche dell'eventuale avviso di accertamento)",
+            "Verifica eventuali pagamenti già effettuati",
+            "Verifica adesione a rottamazione/saldo e stralcio",
+            "Verifica motivazione (per vizi formali)"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "VALUTAZIONE RICHIESTA SOSPENSIONE",
+          "presupposti": [
+            "Per processo tributario: art. 47 D.Lgs. 546/1992 - danno grave e irreparabile",
+            "Per processo civile: art. 615 c.p.c. e art. 624 c.p.c."
+          ],
+          "vantaggio": "Sospensione blocca eventuali pignoramenti o iscrizioni di ipoteca"
+        },
+        {
+          "step": 6,
+          "descrizione": "Predisposizione RICORSO/OPPOSIZIONE",
+          "destinatari": "Agenzia delle Entrate (per tributi) + Agenzia Entrate Riscossione (sempre) + eventuale ente impositore"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_opposizione_cartella_esattoriale",
+        "denominazione": "Ricorso/opposizione alla cartella esattoriale (CGT per tributario, Tribunale per altri crediti)",
+        "schema_xsd_ministeriale": "AttoTributario.xsd o AttoCitazione.xsd in base al rito",
+        "campi_chiave": [
+          {
+            "id": "giudice_competente",
+            "label": "Giudice competente",
+            "type": "select",
+            "required": true,
+            "options": [
+              "CGT_primo_grado_per_tributario",
+              "Tribunale_lavoro_per_INPS_INAIL",
+              "Giudice_di_Pace_per_sanzioni_stradali",
+              "Tribunale_ordinario_per_altre_sanzioni"
+            ]
+          },
+          {
+            "id": "contribuente_ricorrente",
+            "label": "Contribuente ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "agente_riscossione",
+            "label": "Agente della Riscossione (Agenzia Entrate Riscossione)",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "ente_impositore",
+            "label": "Ente impositore (es. Agenzia Entrate, INPS, Comune, ecc.)",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "cartella_impugnata",
+            "label": "Cartella impugnata",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "numero_cartella",
+                "type": "string",
+                "required": true
+              },
+              {
+                "id": "anno_iscrizione_ruolo",
+                "type": "string"
+              },
+              {
+                "id": "data_notifica",
+                "type": "date",
+                "required": true,
+                "critico_per_termini": true
+              },
+              {
+                "id": "importo_complessivo",
+                "type": "currency",
+                "required": true
+              },
+              {
+                "id": "importo_sorte_capitale",
+                "type": "currency"
+              },
+              {
+                "id": "importo_sanzioni",
+                "type": "currency"
+              },
+              {
+                "id": "importo_interessi",
+                "type": "currency"
+              },
+              {
+                "id": "aggio_riscossione",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "natura_credito",
+            "label": "Natura del credito",
+            "type": "select",
+            "required": true,
+            "options": [
+              "tributario_IRPEF_IRES_IRAP",
+              "tributario_IVA",
+              "tributario_ICI_IMU_TARI",
+              "tributario_registro_successioni",
+              "previdenziale_INPS",
+              "assicurativo_INAIL",
+              "sanzione_amministrativa_codice_strada",
+              "sanzione_amministrativa_altre",
+              "altro_credito"
+            ]
+          },
+          {
+            "id": "atto_prodromico",
+            "label": "Atto prodromico alla cartella (se applicabile)",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "presente",
+                "type": "boolean"
+              },
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "avviso_accertamento",
+                  "avviso_bonario",
+                  "ingiunzione_fiscale",
+                  "verbale_sanzione",
+                  "altro"
+                ]
+              },
+              {
+                "id": "data_notifica",
+                "type": "date"
+              },
+              {
+                "id": "regolare_notifica",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "vizi_dedotti",
+            "label": "Vizi dedotti",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "decadenza_termini_notifica_cartella_25_dpr_602",
+              "prescrizione_credito_sottostante",
+              "vizio_notifica_cartella",
+              "vizio_notifica_atto_prodromico",
+              "difetto_motivazione_cartella",
+              "errore_calcolo_credito_o_interessi",
+              "errore_identificazione_contribuente",
+              "pagamento_gia_effettuato",
+              "intervenuta_definizione_agevolata_rottamazione_o_saldo_stralcio",
+              "intervenuta_sospensione_o_rateazione",
+              "insussistenza_credito_sottostante_merito",
+              "violazione_norme_imposizione_tributaria",
+              "altro"
+            ]
+          },
+          {
+            "id": "esposizione_motivi",
+            "label": "Esposizione dettagliata dei motivi di opposizione",
+            "type": "textarea",
+            "required": true,
+            "min_length": 500
+          },
+          {
+            "id": "richiesta_sospensione",
+            "label": "Richiesta sospensione esecutività cartella",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "richiesta",
+                "type": "boolean",
+                "default": false
+              },
+              {
+                "id": "fumus_boni_iuris",
+                "type": "textarea",
+                "required_if": "richiesta=true"
+              },
+              {
+                "id": "periculum_in_mora_danno_grave_e_irreparabile",
+                "type": "textarea",
+                "required_if": "richiesta=true"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "annullamento_cartella_in_toto",
+              "annullamento_parziale",
+              "rideterminazione_importo",
+              "sospensione_esecutiva",
+              "rimborso_eventuali_somme_gia_pagate",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "data_proposizione_ricorso",
+            "label": "Data proposizione ricorso",
+            "type": "date",
+            "required": true,
+            "critico_per_termini": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "TERMINI DIVERSI in base a natura credito: 60 gg tributario / 40 gg INPS / 30 gg sanzioni",
+          "GIURISDIZIONE DIVERSA: CGT per tributario / Tribunale per altri",
+          "Decadenza notifica cartella ex art. 25 DPR 602/1973 (3° anno dichiarazione)",
+          "Prescrizione credito 10/5 anni a seconda del tributo (Cass. SU 23397/2016)",
+          "Costituzione del resistente: 60 gg per processo tributario, 70 gg/30 gg per civile"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "cartella_di_pagamento",
+          "label": "Cartella di pagamento impugnata",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "relata_notifica_cartella",
+          "label": "Relata di notifica della cartella (avviso ricevimento)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "atto_prodromico",
+          "label": "Atto prodromico (avviso accertamento, ingiunzione, ecc.)",
+          "required_if": "atto_prodromico_presente=true"
+        },
+        {
+          "id": "documentazione_pagamenti_effettuati",
+          "label": "Documentazione pagamenti già effettuati",
+          "required_if": "vizio=pagamento_effettuato",
+          "critico": true
+        },
+        {
+          "id": "documentazione_rottamazione_o_saldo_stralcio",
+          "label": "Documentazione adesione a definizione agevolata",
+          "required_if": "vizio=intervenuta_definizione_agevolata"
+        },
+        {
+          "id": "documentazione_rateazione_o_sospensione",
+          "label": "Documentazione rateazione/sospensione in corso",
+          "required_if": "vizio=rateazione_sospensione"
+        },
+        {
+          "id": "estratto_di_ruolo",
+          "label": "Estratto di ruolo (per verifica completezza)",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_specifica_vizi",
+          "label": "Documentazione specifica per i singoli vizi dedotti",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Per CGT: in base al valore della controversia (importo cartella) - tabella specifica D.Lgs. 546/1992",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio (sia per processo tributario - SIGIT - sia per civile)"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "istanza_sospensione_cartella",
+          "trigger": "Tutela cautelare",
+          "automatico": false
+        },
+        {
+          "tipo": "ricorso_avverso_atto_prodromico_se_non_definitivo",
+          "trigger": "Se atto prodromico non era stato impugnato e ancora termini aperti",
+          "automatico": false
+        },
+        {
+          "tipo": "istanza_autotutela_amministrazione",
+          "trigger": "Tentativo di soluzione amministrativa - parallela",
+          "automatico": false
+        },
+        {
+          "tipo": "memorie_difensive_AER_e_ente_impositore",
+          "trigger": "Costituzione resistenti",
+          "automatico": false
+        },
+        {
+          "tipo": "ricorso_per_pignoramento_eventuale",
+          "trigger": "Se AER procede a pignoramento",
+          "codice_correlato": "100011/100021"
+        },
+        {
+          "tipo": "appello_CGT_secondo_grado",
+          "trigger": "Sentenza CGT primo grado per tributario",
+          "termine": "60 gg",
+          "norma": "art. 51 D.Lgs. 546/1992"
+        },
+        {
+          "tipo": "appello_tribunale",
+          "trigger": "Sentenza tribunale per non tributario",
+          "termine": "30 gg"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "annullamento_cartella_intero",
+          "descrizione": "Cartella annullata + obbligo rimborso somme eventualmente pagate"
+        },
+        {
+          "esito": "annullamento_parziale_rideterminazione",
+          "descrizione": "Riduzione dell'importo dovuto"
+        },
+        {
+          "esito": "rigetto_per_legittimita_cartella",
+          "descrizione": "Cartella confermata valida"
+        },
+        {
+          "esito": "rigetto_per_decadenza_termini_ricorso",
+          "descrizione": "Termini di impugnazione superati"
+        },
+        {
+          "esito": "definizione_agevolata_in_corso_di_causa",
+          "descrizione": "Adesione a rottamazione - cessazione materia del contendere"
+        },
+        {
+          "esito": "autotutela_amministrazione",
+          "descrizione": "Amministrazione annulla la cartella in autotutela - cessazione materia del contendere"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "RICORSO CGT (tributario)",
+          "giorni": 60,
+          "decorrenza": "notifica cartella",
+          "natura": "DECADENZIALE",
+          "norma": "art. 21 D.Lgs. 546/1992",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "OPPOSIZIONE INPS (previdenziale)",
+          "giorni": 40,
+          "decorrenza": "notifica cartella",
+          "natura": "DECADENZIALE",
+          "norma": "art. 24 D.Lgs. 46/1999",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "OPPOSIZIONE SANZIONI L. 689/1981",
+          "giorni": 30,
+          "decorrenza": "notifica cartella",
+          "natura": "DECADENZIALE",
+          "norma": "art. 22 L. 689/1981",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "DECADENZA NOTIFICA CARTELLA",
+          "anni": "vedi DPR 602/1973 art. 25",
+          "natura": "decadenziale per AER"
+        },
+        {
+          "termine": "PRESCRIZIONE CREDITO",
+          "anni": "10 anni per tributari principali / 5 anni per accessori e sanzioni",
+          "natura": "prescrizione"
+        },
+        {
+          "termine": "Appello CGT",
+          "giorni": 60,
+          "decorrenza": "notifica sentenza",
+          "natura": "perentorio",
+          "norma": "art. 51 D.Lgs. 546/1992"
+        }
+      ],
+      "codice_originale_ricevuto": "191001",
+      "codici_ufficiali_correlati_da_valutare": [
+        "180021",
+        "520005",
+        "520006",
+        "620001"
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda viene conservata come guida interna per opposizione a cartella di pagamento esattoriale."
+    },
+    {
+      "codice": "GUIDA_IMMISSIONI_INTOLLERABILI_130012",
+      "denominazione": "Immissioni intollerabili (art. 844 c.c.)",
+      "categoria": "Diritti reali - rapporti di vicinato",
+      "sottocategoria": "Azione del proprietario per cessazione immissioni intollerabili dal fondo del vicino",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA ex art. 5 c. 1-bis D.Lgs. 28/2010 (diritti reali)",
+      "competenza": "Tribunale del luogo dell'immobile (art. 21 c.p.c. - foro esclusivo)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "844",
+          "descrizione": "Immissioni - tolleranza normale + contemperamento esigenze produzione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2043",
+          "descrizione": "Risarcimento danno extracontrattuale (per profili risarcitori)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2059",
+          "descrizione": "Danno non patrimoniale"
+        },
+        {
+          "fonte": "Cost.",
+          "articolo": "32",
+          "descrizione": "Diritto alla salute - rilevante per immissioni dannose"
+        },
+        {
+          "fonte": "Cost.",
+          "articolo": "9 e 41",
+          "descrizione": "Tutela ambiente / attività economica"
+        },
+        {
+          "fonte": "D.Lgs. 152/2006 (TU Ambientale)",
+          "descrizione": "Normativa ambientale - inquinamento acustico, atmosferico, ecc."
+        },
+        {
+          "fonte": "L. 447/1995",
+          "descrizione": "Legge quadro inquinamento acustico"
+        },
+        {
+          "fonte": "DPCM 14/11/1997",
+          "descrizione": "Valori limite delle sorgenti sonore"
+        },
+        {
+          "fonte": "Cass. SU 2611/2017",
+          "descrizione": "Immissioni acustiche - criteri di tollerabilità - giurisdizione GA/GO"
+        },
+        {
+          "fonte": "Cass. SU 7128/2017",
+          "descrizione": "Immissioni - prova della normale tollerabilità"
+        },
+        {
+          "fonte": "Cass. 14180/2020",
+          "descrizione": "Immissioni - tutela inibitoria e risarcitoria"
+        }
+      ],
+      "tipologie_di_immissioni_tutelabili": [
+        "RUMORI: dovuti a musica, attività commerciali, impianti, animali, traffico privato",
+        "FUMI E ESALAZIONI: combustioni, attività industriali, cucine commerciali, camini",
+        "VIBRAZIONI: macchinari industriali, traffico pesante",
+        "ODORI: allevamenti, attività industriali, rifiuti, fognature, cucine",
+        "GETTI DI MATERIA: polveri, sfridi, acque",
+        "CALORI: emissioni termiche, irraggiamento di calore",
+        "ALTRI: campi elettromagnetici, scuotimenti"
+      ],
+      "presupposti_sostanziali_art_844": [
+        "QUALITÀ DI PROPRIETARIO o titolare di diritto reale di godimento sull'immobile leso (anche locatario in alcuni casi)",
+        "IMMISSIONI provenienti dal fondo del vicino (o da fondo non confinante se le immissioni vi giungono)",
+        "SUPERAMENTO DELLA NORMALE TOLLERABILITÀ (criterio elastico):",
+        "- Per immissioni acustiche: confronto con valori limite normativi + criterio comparativo (rispetto al rumore di fondo) + criterio dei 3 dB - SUPERATO i criteri normativi",
+        "- Per immissioni di altro tipo: valutazione caso per caso, perizia tecnica",
+        "BILANCIAMENTO con esigenze della produzione (art. 844 c. 2): se l'attività ha valore economico-sociale, possibile contemperamento ma con misure tecniche",
+        "PRIORITÀ TEMPORALE: chi si è insediato prima ha argomento ma non titolo assoluto"
+      ],
+      "criteri_di_tollerabilita": {
+        "immissioni_acustiche": {
+          "criterio_comparativo_giurisprudenziale": "Aumento di 3 dB rispetto al rumore di fondo della zona (Cass. costante)",
+          "criterio_normativo": "Valori limite DPCM 14/11/1997 (sono solo indicativi - le immissioni possono essere intollerabili anche se sotto i valori)",
+          "criterio_orario": "Soglie diurne/notturne diverse"
+        },
+        "immissioni_di_altro_genere": "Valutazione comparativa e bilanciamento - perizia tecnica fondamentale"
+      },
+      "rimedi_disponibili": [
+        "INIBITORIA: ordine di cessazione delle immissioni",
+        "MISURE TECNICHE: imposizione di accorgimenti per ridurre le immissioni (insonorizzazione, filtri, ecc.)",
+        "RISARCIMENTO DANNI: danno patrimoniale (svalutazione immobile, spese sostenute) + danno non patrimoniale (salute, vita di relazione) per immissioni intollerabili",
+        "DEMOLIZIONE/RIMOZIONE di impianti causa delle immissioni",
+        "INDENNITÀ ex art. 844 c. 2: per immissioni di rilevanza economica tollerate per esigenze della produzione"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "DIRITTI REALI",
+        "natura": "condizione di procedibilità"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE TITOLO DI PROPRIETÀ/POSSESSO",
+          "documenti": [
+            "Atto di acquisto",
+            "Visure catastali",
+            "Per locatari: contratto di locazione"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DELLA FONTE DELLE IMMISSIONI",
+          "elementi": [
+            "Identificazione del fondo confinante e dell'attività causa delle immissioni",
+            "Identificazione del soggetto responsabile (proprietario, conduttore, ecc.)",
+            "Eventuali autorizzazioni amministrative dell'attività"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "RILIEVI TECNICI DELLE IMMISSIONI",
+          "tipologie": [
+            "Per RUMORI: rilievi fonometrici con tecnico abilitato (es. ARPA o tecnico privato accreditato) - SIA rumore con immissione SIA rumore di fondo (per criterio comparativo) - rilievi diurni E notturni",
+            "Per FUMI: analisi chimiche delle emissioni",
+            "Per VIBRAZIONI: rilievi vibrometrici",
+            "Per ODORI: questionari + valutazione olfattometrica",
+            "Per RADIAZIONI: rilievi elettromagnetici"
+          ],
+          "rilevanza": "PROVA CENTRALE - le immissioni si valutano oggettivamente"
+        },
+        {
+          "step": 4,
+          "descrizione": "RACCOLTA DOCUMENTAZIONE AGGIUNTIVA",
+          "elementi": [
+            "Foto/video dell'attività causa delle immissioni",
+            "Testimonianze di vicini",
+            "Eventuali esposti a ARPA, Polizia Municipale, ASL",
+            "Eventuali verbali di intervento delle autorità",
+            "Eventuali pareri medici (per danno alla salute)",
+            "Documentazione su trattamenti medici resi necessari"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "Quantificazione DANNI",
+          "voci": [
+            "Danno patrimoniale: svalutazione immobile (perizia), spese sostenute (es. trasferimento temporaneo), spese per misure di mitigazione",
+            "Danno non patrimoniale: pregiudizio alla salute (riposo, ansia, malesseri), danno alla vita di relazione (impossibilità di godere appieno dell'abitazione)"
+          ]
+        },
+        {
+          "step": 6,
+          "descrizione": "DIFFIDA FORMALE al proprietario del fondo causa immissioni",
+          "vantaggio": "Possibile soluzione amichevole - mette in mora"
+        },
+        {
+          "step": 7,
+          "descrizione": "ATTIVAZIONE MEDIAZIONE OBBLIGATORIA"
+        },
+        {
+          "step": 8,
+          "descrizione": "Valutazione AZIONE CAUTELARE EX ART. 700 c.p.c.",
+          "presupposti": "Periculum (immissioni gravi e immediate sulla salute) + fumus boni iuris",
+          "vantaggio": "Inibitoria immediata in attesa del merito",
+          "codice_correlato": "015011"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_immissioni_intollerabili",
+        "denominazione": "Atto di citazione per cessazione di immissioni intollerabili ex art. 844 c.c. + risarcimento danni",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del luogo immobile",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore_proprietario_leso",
+            "label": "Attore - proprietario fondo leso",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "proprietario_unico",
+                  "comproprietario",
+                  "titolare_diritto_reale",
+                  "locatario_se_legittimato"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "convenuto_fondo_emissioni",
+            "label": "Convenuto - proprietario/conduttore fondo emissioni",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "proprietario_fondo",
+                  "conduttore_locatario_attivita_commerciale",
+                  "esercente_attivita_industriale",
+                  "altro"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "litisconsorti",
+            "label": "Eventuali litisconsorti (proprietario E conduttore, ecc.)",
+            "type": "array_persone"
+          },
+          {
+            "id": "fondo_attore",
+            "label": "Fondo dell'attore (leso dalle immissioni)",
+            "type": "object_immobile",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "destinazione_d_uso",
+                "type": "select",
+                "options": [
+                  "abitazione",
+                  "ufficio_studio",
+                  "attivita_commerciale",
+                  "industriale",
+                  "agricola",
+                  "altro"
+                ]
+              },
+              {
+                "id": "uso_effettivo_da_parte_dell_attore",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "fondo_convenuto",
+            "label": "Fondo del convenuto (fonte immissioni)",
+            "type": "object_immobile",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "attivita_svolta",
+                "type": "string",
+                "required": true
+              },
+              {
+                "id": "autorizzazioni_amministrative",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "tipo_immissioni",
+            "label": "Tipo di immissioni",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "rumori",
+              "fumi_emissioni_atmosferiche",
+              "vibrazioni",
+              "odori",
+              "polveri_o_getti_di_materia",
+              "calore_irraggiamento",
+              "campi_elettromagnetici",
+              "scuotimenti",
+              "altro"
+            ]
+          },
+          {
+            "id": "descrizione_immissioni",
+            "label": "Descrizione dettagliata delle immissioni",
+            "type": "textarea",
+            "required": true,
+            "min_length": 500
+          },
+          {
+            "id": "periodi_e_frequenza",
+            "label": "Periodi e frequenza delle immissioni",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_inizio",
+                "type": "date"
+              },
+              {
+                "id": "orari_tipici",
+                "type": "string",
+                "options_esempi": "ore notturne, festivi, continuativo"
+              },
+              {
+                "id": "frequenza",
+                "type": "select",
+                "options": [
+                  "continuativa",
+                  "saltuaria_quotidiana",
+                  "settimanale",
+                  "stagionale"
+                ]
+              },
+              {
+                "id": "immissioni_in_corso",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "superamento_normale_tollerabilita",
+            "label": "Superamento normale tollerabilità",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "criterio_valutativo",
+                "type": "select",
+                "options": [
+                  "comparativo_3_dB_per_rumori",
+                  "valori_normativi_dpcm_447_95",
+                  "perizia_tecnica_per_altre_immissioni"
+                ]
+              },
+              {
+                "id": "rilievi_tecnici_di_parte",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "effettuati",
+                    "type": "boolean",
+                    "required": true,
+                    "critico": true
+                  },
+                  {
+                    "id": "data_rilievi",
+                    "type": "date"
+                  },
+                  {
+                    "id": "tecnico_redattore",
+                    "type": "string"
+                  },
+                  {
+                    "id": "risultati_sintetici",
+                    "type": "textarea"
+                  }
+                ]
+              },
+              {
+                "id": "esposti_arpa_polizia_asl",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "danno_subito",
+            "label": "Danno subito",
+            "type": "object_complesso",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "danno_patrimoniale",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "svalutazione_immobile",
+                    "type": "currency"
+                  },
+                  {
+                    "id": "spese_di_mitigazione",
+                    "type": "currency"
+                  },
+                  {
+                    "id": "altre_spese",
+                    "type": "currency"
+                  }
+                ]
+              },
+              {
+                "id": "danno_non_patrimoniale",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "pregiudizio_salute",
+                    "type": "currency"
+                  },
+                  {
+                    "id": "danno_vita_di_relazione",
+                    "type": "currency"
+                  },
+                  {
+                    "id": "sofferenze_morali",
+                    "type": "currency"
+                  }
+                ]
+              },
+              {
+                "id": "totale_richiesto",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "diffida_inviata",
+            "label": "Diffida inviata al convenuto",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "inviata",
+                "type": "boolean"
+              },
+              {
+                "id": "data",
+                "type": "date"
+              },
+              {
+                "id": "esito",
+                "type": "select"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_intollerabilita_immissioni",
+              "inibitoria_cessazione_immissioni",
+              "ordine_misure_tecniche_riduzione",
+              "ordine_demolizione_rimozione_impianti",
+              "risarcimento_danni_patrimoniali",
+              "risarcimento_danni_non_patrimoniali_salute",
+              "penalita_giornaliere_per_inosservanza",
+              "trascrizione_sentenza_eventuale",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "richiesta_provvedimento_urgente_700",
+            "label": "Richiesta provvedimento d'urgenza ex art. 700 (inibitoria immediata)",
+            "type": "boolean",
+            "default": false
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Criterio del 3 dB per rumori (giurisprudenza consolidata)",
+          "Valori normativi DPCM 14/11/1997 indicativi - non esaustivi",
+          "Bilanciamento con esigenze produzione ex art. 844 c. 2",
+          "Foro esclusivo del luogo immobile (art. 21 c.p.c.)",
+          "Mediazione obbligatoria preventiva (diritti reali)",
+          "Onere prova superamento tollerabilità sull'attore"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atti_proprieta_attore",
+          "label": "Atti di proprietà del fondo attore",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "visure_catastali_e_ispezioni",
+          "label": "Visure catastali e ispezioni Conservatoria",
+          "required": true
+        },
+        {
+          "id": "documentazione_attivita_convenuto",
+          "label": "Documentazione attività svolta nel fondo convenuto",
+          "required": true
+        },
+        {
+          "id": "rilievi_fonometrici_o_tecnici_di_parte",
+          "label": "Rilievi fonometrici/tecnici di parte (con relazione tecnica)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_fotografica_video",
+          "label": "Documentazione fotografica/video delle immissioni",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "esposti_arpa_polizia_municipale_asl",
+          "label": "Esposti a ARPA, Polizia Municipale, ASL + verbali di intervento",
+          "required": false,
+          "molto_rilevante": true
+        },
+        {
+          "id": "documentazione_medica_eventuale",
+          "label": "Documentazione medica (per danno salute)",
+          "required_if": "danno_salute_richiesto=true"
+        },
+        {
+          "id": "perizia_estimativa_svalutazione_immobile",
+          "label": "Perizia estimativa svalutazione immobile",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "elenco_testimoni_vicini",
+          "label": "Elenco testimoni (altri vicini)",
+          "required": true
+        },
+        {
+          "id": "diffida_e_relata",
+          "label": "Diffida e prova di invio",
+          "required_if": "diffida_inviata=true"
+        },
+        {
+          "id": "verbale_mediazione_negativa",
+          "label": "Verbale mediazione obbligatoria conclusa negativamente",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore del danno richiesto",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ricorso_mediazione_obbligatoria",
+          "trigger": "Condizione procedibilità"
+        },
+        {
+          "tipo": "ricorso_cautelare_700_per_inibitoria_immediata",
+          "trigger": "Per immissioni particolarmente gravi sulla salute",
+          "codice_correlato": "015011",
+          "automatico": false
+        },
+        {
+          "tipo": "esposto_amministrativo_ARPA_o_Polizia_municipale",
+          "trigger": "Tutela amministrativa parallela",
+          "automatico": false
+        },
+        {
+          "tipo": "denuncia_querela_disturbo_quiete_pubblica_659_cp",
+          "trigger": "Penale parallelo per casi gravi",
+          "automatico": false
+        },
+        {
+          "tipo": "ctu_fonometrica_o_tecnica",
+          "trigger": "Disposta dal giudice",
+          "automatico": false,
+          "centrale_per_decisione": true
+        },
+        {
+          "tipo": "ctu_medico_legale_per_danno_salute",
+          "trigger": "Se danno salute richiesto",
+          "automatico": false
+        },
+        {
+          "tipo": "sopralluogo_giudice",
+          "trigger": "Disposto dal giudice",
+          "automatico": false
+        },
+        {
+          "tipo": "esecuzione_per_misure_tecniche",
+          "trigger": "Se sentenza esecutiva non rispettata",
+          "codice_correlato": "512020"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "inibitoria_e_risarcimento_pieno",
+          "descrizione": "Ordine di cessazione + misure tecniche + risarcimento danni"
+        },
+        {
+          "esito": "solo_misure_tecniche_senza_risarcimento",
+          "descrizione": "Ordine di adottare accorgimenti tecnici senza danni"
+        },
+        {
+          "esito": "indennita_ex_art_844_c_2",
+          "descrizione": "Immissioni tollerate per esigenze produzione ma con indennità al fondo leso"
+        },
+        {
+          "esito": "rigetto_per_normale_tollerabilita",
+          "descrizione": "Immissioni rientranti nella tolleranza"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo - frequente con misure tecniche concordate"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione azione risarcitoria",
+          "anni": 5,
+          "decorrenza": "fatto illecito (per immissioni continuate: dalla cessazione)",
+          "natura": "prescrizione",
+          "norma": "art. 2947 c.c."
+        },
+        {
+          "termine": "AZIONE INIBITORIA - imprescrittibile",
+          "natura": "imprescrittibile finché immissioni in corso"
+        },
+        {
+          "termine": "Mediazione obbligatoria - max",
+          "giorni": 90
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        },
+        {
+          "termine": "Appello",
+          "giorni": 30,
+          "decorrenza": "notifica sentenza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "130012",
+      "codici_ufficiali_correlati_da_valutare": [
+        "130121"
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; esiste il codice ufficiale 130121 per controversie in materia di immissioni, quindi la scheda ricevuta resta guida interna da agganciare con scelta confermata del codice ministeriale."
+    }
+  ]
+}

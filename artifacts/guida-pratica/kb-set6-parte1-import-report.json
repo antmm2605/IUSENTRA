@@ -1,0 +1,74 @@
+{
+  "source": "C:\\Users\\HelpdeskCSC4\\Downloads\\files (1).zip::kb_top9_set6_parte1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set6_parte1.json",
+  "sha256": "551DE7054929FFBA02B4F9E65233DA654B6B8BE34C45C7B14DCDBBB40B676189",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET6_PARTE1",
+  "denominazione": "Sesto set di 9 codici - PARTE 1 di 2 (preliminare immobiliare/2932, impugnazione delibera, licenziamento disciplinare, opposizione cartella, immissioni 844)",
+  "codici_materia_originali": [
+    "140002",
+    "155001",
+    "220003",
+    "191001",
+    "130012"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_PRELIMINARE_COMPRAVENDITA_2932_140002",
+    "GUIDA_IMPUGNAZIONE_DELIBERE_ASSEMBLEARI_155001",
+    "GUIDA_LICENZIAMENTO_DISCIPLINARE_220003",
+    "GUIDA_OPPOSIZIONE_CARTELLA_ESATTORIALE_191001",
+    "GUIDA_IMMISSIONI_INTOLLERABILI_130012"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "140002",
+      "codice_integrato": "GUIDA_PRELIMINARE_COMPRAVENDITA_2932_140002",
+      "codici_ufficiali_correlati_da_valutare": [
+        "140011",
+        "140999"
+      ],
+      "reason": "Il codice 140002 è ufficiale nel catalogo locale, ma riguarda arbitraggio/perizia contrattuale; la scheda ricevuta riguarda risoluzione del preliminare immobiliare ed esecuzione specifica ex art. 2932 c.c. e resta interna per non alterare il deposito."
+    },
+    {
+      "codice_originale": "155001",
+      "codice_integrato": "GUIDA_IMPUGNAZIONE_DELIBERE_ASSEMBLEARI_155001",
+      "codici_ufficiali_correlati_da_valutare": [
+        "153112",
+        "154112",
+        "152003"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda viene conservata come guida interna per impugnazione di delibere assembleari di società di capitali."
+    },
+    {
+      "codice_originale": "220003",
+      "codice_integrato": "GUIDA_LICENZIAMENTO_DISCIPLINARE_220003",
+      "codici_ufficiali_correlati_da_valutare": [
+        "220102",
+        "220100",
+        "220111",
+        "220040"
+      ],
+      "reason": "Il codice 220003 è ufficiale nel catalogo locale, ma riguarda lavoro interinale; la scheda ricevuta riguarda licenziamento disciplinare e resta interna per non alterare il deposito."
+    },
+    {
+      "codice_originale": "191001",
+      "codice_integrato": "GUIDA_OPPOSIZIONE_CARTELLA_ESATTORIALE_191001",
+      "codici_ufficiali_correlati_da_valutare": [
+        "180021",
+        "520005",
+        "520006",
+        "620001"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda viene conservata come guida interna per opposizione a cartella di pagamento esattoriale."
+    },
+    {
+      "codice_originale": "130012",
+      "codice_integrato": "GUIDA_IMMISSIONI_INTOLLERABILI_130012",
+      "codici_ufficiali_correlati_da_valutare": [
+        "130121"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; esiste il codice ufficiale 130121 per controversie in materia di immissioni, quindi la scheda ricevuta resta guida interna da agganciare con scelta confermata del codice ministeriale."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 28
+}

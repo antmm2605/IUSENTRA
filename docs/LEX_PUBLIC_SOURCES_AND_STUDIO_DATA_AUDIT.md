@@ -2,6 +2,12 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.248.19 - 2026-05-23
+
+La Guida Pratica incorpora anche le due consegne TOP9 set6 ricevute dall'utente. La base completa sale a 1.080 schede: 1.018 codici ufficiali PST/XSD restano coperti e depositabili, mentre 62 schede sono guide interne non depositabili. `111003` resta codice ufficiale; gli altri codici set6 non coerenti o assenti sono conservati come alias interni con `codice_originale_ricevuto`.
+
+Lex riceve ora un blocco di ragionamento operativo per ogni guida: inquadramento, primo controllo, presupposti, atto, allegati, termini, esiti e distinzione tra guida interna e codice ministeriale. Le voci specialistiche dei set precedenti e del set6 entrano nel retrieval, non restano solo nel JSON o nella UI.
+
 ## Aggiornamento operativo 2.248.18 - 2026-05-23
 
 La Guida Pratica incorpora anche le due consegne TOP9 set5 ricevute dall'utente. La base completa sale a 1.072 schede: 1.018 codici ufficiali PST/XSD restano coperti e depositabili, mentre 54 schede sono guide interne non depositabili. I codici ricevuti in contrasto con il catalogo ministeriale (`130031`, `130032`, `180001`) o assenti dal catalogo (`120020`, `143003`) sono conservati come alias interni con il codice originale tracciato, senza sostituire il codice oggetto ufficiale del fascicolo.

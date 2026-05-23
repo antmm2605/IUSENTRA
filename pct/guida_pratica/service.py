@@ -11,13 +11,14 @@ e nei moduli `pct/data/legal_knowledge_base_modules/`.
 
 from __future__ import annotations
 
-from copy import deepcopy
-from dataclasses import dataclass
 import json
-from pathlib import Path
 import re
 import unicodedata
-from typing import Any, Iterable
+from collections.abc import Iterable
+from copy import deepcopy
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 
 class GuidaPraticaError(ValueError):
@@ -166,6 +167,14 @@ def _deep_merge(parent: dict[str, Any], child: dict[str, Any]) -> dict[str, Any]
     return result
 
 
+def _drop_inherited_scaffold_for_curated_override(previous: dict[str, Any], path: Path, item: dict[str, Any]) -> dict[str, Any]:
+    if "top9" not in path.name.lower() or item.get("eredita_da"):
+        return previous
+    cleaned = deepcopy(previous)
+    cleaned.pop("differenze_rispetto_a_padre", None)
+    return cleaned
+
+
 @dataclass(frozen=True)
 class GuidaPraticaCoverage:
     level: str
@@ -296,6 +305,7 @@ class GuidaPraticaService:
                 row.setdefault("_registro", meta["registro"])
                 if codice in by_code:
                     previous = by_code[codice]
+                    previous = _drop_inherited_scaffold_for_curated_override(previous, path, row)
                     row = _deep_merge(previous, row)
                     row["_source_files"] = _unique_by_json([*(previous.get("_source_files") or [previous.get("_source_file")]), path.name])
                     row["_source_file"] = path.name

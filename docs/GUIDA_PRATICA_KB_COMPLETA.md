@@ -9,13 +9,13 @@ La Guida Pratica vive fuori dal codice applicativo:
 
 Il merge dei moduli produce un knowledge base unico, ma il catalogo ufficiale PST/XSD resta separato in `pct/data/cataloghi/codici_oggetto_pst.json`.
 
-## Risultato operativo 2.248.18
+## Risultato operativo 2.248.19
 
-- Codici nel catalogo guida: 1.072.
+- Codici nel catalogo guida: 1.080.
 - Codici ufficiali PST/XSD: 1.018.
 - Codici ufficiali con guida curata: 1.018.
 - Codici ufficiali senza guida curata: 0.
-- Schede interne o alias non depositabili: 54.
+- Schede interne o alias non depositabili: 62.
 
 Le schede interne sono mantenute per continuità dei fascicoli, ricerca e guida operativa facoltativa, ma non vengono considerate codici di deposito.
 
@@ -57,3 +57,14 @@ Il set ricevuto il 23 maggio 2026 è integrato nei moduli:
 - `pct/data/legal_knowledge_base_modules/kb_98_top9_set5_parte2.json`.
 
 Le schede coerenti con codice ufficiale restano depositabili (`411601`, `102002`, `151110`, `220020`). Le schede con codice assente o diverso dal contenuto ministeriale sono guide interne facoltative: `GUIDA_REGOLAMENTO_CONFINI_130032`, `GUIDA_IMPUGNAZIONE_TESTAMENTO_120020`, `GUIDA_RESPONSABILITA_NOTAIO_COMMERCIALISTA_143003`, `GUIDA_CONSUMATORE_CLAUSOLE_VESSATORIE_180001`, `GUIDA_AZIONE_NEGATORIA_SERVITU_POSSESSORIA_130031`.
+
+## Aggiornamento TOP9 set6
+
+Il set ricevuto il 23 maggio 2026 è integrato nei moduli:
+
+- `pct/data/legal_knowledge_base_modules/kb_98_top9_set6_parte1.json`;
+- `pct/data/legal_knowledge_base_modules/kb_98_top9_set6_parte2.json`.
+
+Il codice `111003` resta agganciato al catalogo ufficiale. Le altre otto schede restano guide interne facoltative perché il codice ricevuto è assente o descrive nel catalogo locale una materia diversa: `GUIDA_PRELIMINARE_COMPRAVENDITA_2932_140002`, `GUIDA_IMPUGNAZIONE_DELIBERE_ASSEMBLEARI_155001`, `GUIDA_LICENZIAMENTO_DISCIPLINARE_220003`, `GUIDA_OPPOSIZIONE_CARTELLA_ESATTORIALE_191001`, `GUIDA_IMMISSIONI_INTOLLERABILI_130012`, `GUIDA_EREDITA_GIACENTE_413021`, `GUIDA_OPPOSIZIONE_SANZIONE_AMMINISTRATIVA_240001`, `GUIDA_DEMANSIONAMENTO_DEQUALIFICAZIONE_220030`.
+
+L'audit voce per voce controlla ora 11 moduli utente e 54 schede iper-dettagliate: nessun campo ricevuto è perso tra KB full, servizio/API, UI React e Lex, e nessuna denominazione/competenza/rito viene sostituita da profili automatici.

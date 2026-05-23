@@ -1,0 +1,2163 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET6_PARTE2",
+  "denominazione": "Sesto set di 9 codici - PARTE 2 di 2",
+  "registri": [
+    "SICID",
+    "SIVG",
+    "SILP"
+  ],
+  "data_generazione": "2026-05-23",
+  "scopo": "Parte 2 del sesto set TOP9: eredità giacente, opposizione sanzione amministrativa, separazione consensuale, demansionamento",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_EREDITA_GIACENTE_413021",
+      "denominazione": "Eredità giacente (art. 528 c.c.) - nomina curatore e amministrazione",
+      "categoria": "Volontaria giurisdizione - successioni - amministrazione patrimoni acefali",
+      "sottocategoria": "Procedimento di nomina del curatore dell'eredità giacente e amministrazione del patrimonio ereditario in attesa di accettazione",
+      "rito": "Procedimento camerale di volontaria giurisdizione",
+      "competenza": "Tribunale del luogo apertura successione (art. 22 c.p.c.) - sezione successioni o GT in alcuni tribunali",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "528",
+          "descrizione": "Eredità giacente - presupposti per nomina curatore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "529",
+          "descrizione": "Obblighi del curatore - inventario, gestione, conservazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "530",
+          "descrizione": "Poteri del curatore - pagamento debiti, restituzione legati, autorizzazione GT per alienazioni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "531",
+          "descrizione": "Cessazione della curatela"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "532",
+          "descrizione": "Conto della gestione del curatore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "459",
+          "descrizione": "Acquisto eredità per accettazione (riferimento)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "485",
+          "descrizione": "Possessore di beni ereditari (alternativo - obbligo inventario)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "490",
+          "descrizione": "Effetti accettazione con beneficio inventario (alternativa)"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "781-783",
+          "descrizione": "Procedimento per la nomina del curatore"
+        },
+        {
+          "fonte": "Cass. 19/2015",
+          "descrizione": "Requisiti per dichiarazione di giacenza"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "MORTE DEL DE CUIUS e apertura della successione",
+        "NESSUNO DEI CHIAMATI ha accettato l'eredità (nessuna accettazione pura, tacita, con beneficio inventario)",
+        "IL CHIAMATO NON È IN POSSESSO dei beni ereditari (se fosse possessore, ricadrebbe in art. 485 c.c.)",
+        "Eredità che richiede AMMINISTRAZIONE per conservazione patrimonio (presenza di beni da gestire, debiti da onorare, atti da compiere)",
+        "ASSENZA DI ESECUTORE TESTAMENTARIO che già amministra"
+      ],
+      "differenza_da_altre_situazioni": {
+        "eredità_giacente_528": "Chiamato NON in possesso e NON accettante - patrimonio acefalo richiede curatore",
+        "possessore_beni_485": "Chiamato IN POSSESSO - obbligo inventario 3 mesi + 40 gg accettazione",
+        "accettazione_beneficio_inventario": "Chiamato che dichiara di accettare con beneficio - amministra lui stesso",
+        "eredità_vacante": "Tutti i chiamati hanno rinunciato e nessun altro chiamato esiste - eredità devoluta allo Stato (art. 586)"
+      },
+      "legittimati_a_chiedere_la_nomina": [
+        "CHIUNQUE VI ABBIA INTERESSE: chiamati all'eredità, creditori del de cuius, creditori dei chiamati, legatari, contropromettenti, vicini",
+        "PM",
+        "GIUDICE D'UFFICIO può procedere alla nomina"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Procedimento di volontaria giurisdizione"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VERIFICA DEI PRESUPPOSTI",
+          "documenti": [
+            "Certificato di morte de cuius",
+            "Atti di famiglia (stato famiglia storico)",
+            "Eventuale testamento (per identificare chiamati)",
+            "Documentazione che attesta MANCATA accettazione dei chiamati",
+            "Documentazione che attesta che NESSUN chiamato è in possesso dei beni"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "IDENTIFICAZIONE DEI CHIAMATI ALL'EREDITÀ",
+          "elementi": [
+            "Per successione legittima: identificazione eredi per legge",
+            "Per successione testamentaria: identificazione eredi e legatari nel testamento",
+            "Per ciascun chiamato: verificare se ha accettato (espressamente o tacitamente), se è in possesso di beni"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "RICOSTRUZIONE DEL PATRIMONIO EREDITARIO",
+          "documenti": [
+            "Visure catastali per immobili intestati al de cuius",
+            "Visure CCIAA per partecipazioni societarie",
+            "Estratti conto bancari/postali alla data di morte",
+            "Inventario titoli e investimenti",
+            "Elenco mobili e gioielli di particolare valore",
+            "Documentazione debiti ereditari (mutui, finanziamenti, debiti commerciali, fiscali)"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "IDENTIFICAZIONE NECESSITÀ DI AMMINISTRAZIONE",
+          "elementi_che_giustificano_curatela": [
+            "Beni che richiedono atti di conservazione (immobili da manutenere)",
+            "Crediti da incassare",
+            "Debiti urgenti da pagare (mutui in scadenza, ipoteche)",
+            "Cause civili in corso che richiedono difesa",
+            "Pratiche amministrative da seguire",
+            "Locazioni in corso"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "IDENTIFICAZIONE CANDIDATO CURATORE",
+          "criteri": [
+            "Professionalità (notaio, avvocato, commercialista) - tipicamente preferito",
+            "Conoscenza del patrimonio del de cuius",
+            "Assenza di conflitto di interessi con eventuali chiamati",
+            "Disponibilità ad assumere l'incarico"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_nomina_curatore_eredita_giacente",
+        "denominazione": "Ricorso per nomina curatore dell'eredità giacente ex art. 528 c.c.",
+        "schema_xsd_ministeriale": "AttoVolontariaGiurisdizione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del luogo apertura successione",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "ricorrente",
+            "label": "Ricorrente",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "qualita_legittimante",
+                "type": "select",
+                "options": [
+                  "chiamato_eredita",
+                  "creditore_de_cuius",
+                  "creditore_chiamato",
+                  "legatario",
+                  "contropromettente_in_atti_in_corso",
+                  "altro_interessato",
+                  "PM"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "de_cuius",
+            "label": "De cuius",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "codice_fiscale",
+                "type": "string"
+              },
+              {
+                "id": "data_morte",
+                "type": "date"
+              },
+              {
+                "id": "ultimo_domicilio",
+                "type": "address"
+              }
+            ]
+          },
+          {
+            "id": "chiamati_all_eredita",
+            "label": "Chiamati all'eredità identificati",
+            "type": "array_persone",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "coniuge",
+                  "figlio",
+                  "ascendente",
+                  "fratello_sorella",
+                  "altro_legittimario",
+                  "erede_testamentario",
+                  "legatario"
+                ]
+              },
+              {
+                "id": "ha_accettato_eredita",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "in_possesso_beni_ereditari",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "ha_rinunciato_eredita",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "presupposti_della_giacenza",
+            "label": "Presupposti della giacenza",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "nessuna_accettazione_avvenuta",
+                "type": "boolean",
+                "required": true,
+                "critico": true
+              },
+              {
+                "id": "nessun_chiamato_in_possesso",
+                "type": "boolean",
+                "required": true,
+                "critico": true
+              },
+              {
+                "id": "patrimonio_richiede_amministrazione",
+                "type": "boolean",
+                "required": true
+              },
+              {
+                "id": "motivazione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 300
+              }
+            ]
+          },
+          {
+            "id": "patrimonio_ereditario",
+            "label": "Patrimonio ereditario",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "elenco_immobili",
+                "type": "array",
+                "sub_fields": [
+                  {
+                    "id": "ubicazione",
+                    "type": "address"
+                  },
+                  {
+                    "id": "dati_catastali",
+                    "type": "string"
+                  },
+                  {
+                    "id": "valore_stimato",
+                    "type": "currency"
+                  }
+                ]
+              },
+              {
+                "id": "rapporti_bancari_postali",
+                "type": "array"
+              },
+              {
+                "id": "partecipazioni_societarie",
+                "type": "array"
+              },
+              {
+                "id": "titoli_investimenti",
+                "type": "array"
+              },
+              {
+                "id": "altri_beni_mobili_di_valore",
+                "type": "textarea"
+              },
+              {
+                "id": "totale_attivo_stimato",
+                "type": "currency"
+              },
+              {
+                "id": "debiti_ereditari_noti",
+                "type": "array"
+              },
+              {
+                "id": "totale_passivo_stimato",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "necessita_di_amministrazione",
+            "label": "Necessità di amministrazione (atti urgenti da compiere)",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "candidato_curatore_proposto",
+            "label": "Candidato curatore proposto",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "qualifica_professionale",
+                "type": "select",
+                "options": [
+                  "avvocato",
+                  "notaio",
+                  "commercialista",
+                  "altro"
+                ]
+              },
+              {
+                "id": "studio_indirizzo",
+                "type": "address"
+              },
+              {
+                "id": "consenso_assunzione_incarico",
+                "type": "boolean"
+              },
+              {
+                "id": "assenza_conflitto_interessi",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "dichiarazione_eredita_giacente",
+              "nomina_curatore_eredita_giacente",
+              "autorizzazione_atti_urgenti_specifici",
+              "fissazione_compenso_curatore"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Procedimento di volontaria giurisdizione - rito camerale",
+          "Foro esclusivo del luogo apertura successione (art. 22 c.p.c.)",
+          "Curatore assume obblighi di inventario + conservazione + amministrazione + rendiconto",
+          "Autorizzazione GT obbligatoria per alienazioni (art. 530)",
+          "Cessazione automatica alla accettazione dell'eredità da parte di un chiamato (art. 531)",
+          "Reclamabilità del decreto in Corte d'Appello"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "certificato_morte_de_cuius",
+          "label": "Certificato di morte del de cuius",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "stato_famiglia_storico",
+          "label": "Stato di famiglia storico",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "testamento_pubblicato",
+          "label": "Testamento pubblicato (se applicabile)",
+          "required_if": "successione_testamentaria"
+        },
+        {
+          "id": "documentazione_mancata_accettazione",
+          "label": "Documentazione che i chiamati non hanno accettato (rinunce eventuali, dichiarazioni)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_assenza_possesso",
+          "label": "Documentazione che nessun chiamato è in possesso dei beni",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "visure_immobiliari_e_documenti_patrimoniali",
+          "label": "Visure immobiliari, CCIAA, dichiarazioni patrimoniali del de cuius",
+          "required": true
+        },
+        {
+          "id": "documentazione_debiti_ereditari",
+          "label": "Documentazione debiti ereditari (per ricorso creditori)",
+          "required_if": "ricorrente=creditore"
+        },
+        {
+          "id": "consenso_curatore_proposto",
+          "label": "Consenso scritto del curatore proposto + curriculum",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documenti_identita_ricorrente",
+          "label": "Documenti identità ricorrente",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente - VG successoria",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "decreto_nomina_curatore",
+          "trigger": "Esito procedimento",
+          "automatico": false
+        },
+        {
+          "tipo": "verbale_giuramento_curatore",
+          "trigger": "Insediamento curatore",
+          "automatico": false,
+          "obbligatoria_apertura_attivita": true
+        },
+        {
+          "tipo": "inventario_curatela",
+          "trigger": "Primo adempimento del curatore",
+          "norma": "art. 529 c.c.",
+          "obbligatorio": true
+        },
+        {
+          "tipo": "istanze_GT_per_autorizzazioni_alienazioni",
+          "trigger": "Necessità alienare beni",
+          "norma": "art. 530 c.c.",
+          "automatico": false
+        },
+        {
+          "tipo": "rendiconti_periodici_curatore",
+          "trigger": "Obbligo gestionale",
+          "norma": "art. 532 c.c.",
+          "automatico": false
+        },
+        {
+          "tipo": "decreto_cessazione_curatela",
+          "trigger": "Accettazione eredità da chiamato OR esaurimento attività",
+          "norma": "art. 531 c.c.",
+          "automatico": false
+        },
+        {
+          "tipo": "domanda_eredita_devoluta_allo_Stato_586",
+          "trigger": "Rinuncia di tutti i chiamati e impossibilità trovare eredi",
+          "automatico": false
+        },
+        {
+          "tipo": "reclamo_corte_appello",
+          "trigger": "Decreto di nomina o decisioni successive",
+          "termine": "10 gg"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "nomina_curatore_e_dichiarazione_giacenza",
+          "descrizione": "Decreto di nomina + apertura curatela"
+        },
+        {
+          "esito": "rigetto_per_insussistenza_presupposti",
+          "descrizione": "Es. chiamato in possesso, o accettazione tacita riscontrata"
+        },
+        {
+          "esito": "cessazione_giacenza_per_accettazione_in_corso_procedura",
+          "descrizione": "Chiamato accetta in corso di procedimento → estinzione"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Decisione del Tribunale",
+          "giorni": 60,
+          "decorrenza": "deposito ricorso",
+          "natura": "ordinatorio"
+        },
+        {
+          "termine": "Reclamo Corte d'Appello",
+          "giorni": 10,
+          "decorrenza": "comunicazione decreto",
+          "natura": "perentorio"
+        },
+        {
+          "termine": "Inventario del curatore",
+          "termine_assegnato_dal_giudice": "di norma 90 gg",
+          "natura": "obbligatorio"
+        },
+        {
+          "termine": "Cessazione automatica per accettazione",
+          "natura": "automatica al verificarsi",
+          "norma": "art. 531 c.c."
+        }
+      ],
+      "codice_originale_ricevuto": "413021",
+      "codici_ufficiali_correlati_da_valutare": [
+        "420302",
+        "420303"
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda viene conservata come guida interna per eredità giacente, con correlazione ai codici di volontaria giurisdizione successoria."
+    },
+    {
+      "codice": "GUIDA_OPPOSIZIONE_SANZIONE_AMMINISTRATIVA_240001",
+      "denominazione": "Opposizione a sanzione amministrativa (L. 689/1981)",
+      "categoria": "Diritto amministrativo - contenzioso sanzionatorio",
+      "sottocategoria": "Opposizione a verbale di accertamento di violazione amministrativa o ordinanza-ingiunzione",
+      "rito": "Rito del lavoro applicato ex art. 6 D.Lgs. 150/2011 (per opposizione a ordinanza-ingiunzione) o rito speciale del codice della strada (per CdS)",
+      "competenza": "GIUDICE DI PACE per la maggior parte delle sanzioni amministrative; TRIBUNALE per sanzioni particolari (es. valore alto, materie specifiche L. 689/81 art. 22-bis)",
+      "competenza_territoriale": "Foro del luogo della commissione dell'illecito o residenza dell'opponente (a scelta)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 689/1981",
+          "descrizione": "Modifiche al sistema penale - depenalizzazione + sanzioni amministrative"
+        },
+        {
+          "fonte": "L. 689/1981",
+          "articolo": "1-12",
+          "descrizione": "Principi generali sistema sanzionatorio"
+        },
+        {
+          "fonte": "L. 689/1981",
+          "articolo": "13-17",
+          "descrizione": "Accertamento e contestazione delle violazioni"
+        },
+        {
+          "fonte": "L. 689/1981",
+          "articolo": "18",
+          "descrizione": "Pagamento in misura ridotta"
+        },
+        {
+          "fonte": "L. 689/1981",
+          "articolo": "22",
+          "descrizione": "Opposizione contro l'ordinanza-ingiunzione - rito GdP"
+        },
+        {
+          "fonte": "L. 689/1981",
+          "articolo": "22-bis",
+          "descrizione": "Competenza Tribunale per sanzioni particolari"
+        },
+        {
+          "fonte": "L. 689/1981",
+          "articolo": "23",
+          "descrizione": "Procedimento davanti al giudice"
+        },
+        {
+          "fonte": "D.Lgs. 150/2011",
+          "articolo": "6",
+          "descrizione": "Controversie in materia di opposizione a ordinanza-ingiunzione - rito speciale"
+        },
+        {
+          "fonte": "D.Lgs. 150/2011",
+          "articolo": "7",
+          "descrizione": "Opposizione a verbale di accertamento di violazione del CdS - rito speciale"
+        },
+        {
+          "fonte": "D.Lgs. 285/1992 (CdS)",
+          "articolo": "204-205",
+          "descrizione": "Procedimento per le violazioni del Codice della Strada"
+        },
+        {
+          "fonte": "L. 120/2010",
+          "descrizione": "Modifiche al CdS - ricorso al Prefetto/GdP"
+        },
+        {
+          "fonte": "Cass. SU 23901/2019",
+          "descrizione": "Notificazioni e termini opposizione"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI UN PROVVEDIMENTO SANZIONATORIO:",
+        "- VERBALE di accertamento di violazione (per CdS o altre violazioni)",
+        "- ORDINANZA-INGIUNZIONE dell'autorità amministrativa (per sanzioni L. 689/81)",
+        "MOTIVI DI OPPOSIZIONE:",
+        "- VIZI FORMALI (notificazione tardiva, difetto motivazione, incompetenza)",
+        "- VIZI SOSTANZIALI (insussistenza fatto, errata qualificazione, prescrizione, ecc.)",
+        "- VIZI DI MERITO (errori sulla quantificazione, sull'individuazione del soggetto)",
+        "TEMPESTIVITÀ entro 30 gg (CdS al GdP) o 60 gg (L. 689/81)",
+        "PAGAMENTO O DEPOSITO della metà del massimo (in alcuni casi - particolari)"
+      ],
+      "differenze_tra_procedimenti": {
+        "opposizione_verbale_CdS_art_7_dlgs_150_2011": {
+          "termine": "30 gg dalla notifica del verbale",
+          "autorita_alternativa": "Ricorso al Prefetto in alternativa (60 gg)",
+          "competenza": "GdP del luogo di commissione",
+          "deposito": "Senza pagamento preventivo (salvo casi particolari)"
+        },
+        "opposizione_ordinanza_ingiunzione_art_6_dlgs_150_2011": {
+          "termine": "30 gg dalla notifica (60 se notifica all'estero)",
+          "competenza": "GdP o Tribunale a seconda del valore",
+          "deposito": "Eventuale pagamento metà sanzione (casi specifici)"
+        }
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Materia amministrativa sanzionatoria - non rientra"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione del PROVVEDIMENTO SANZIONATORIO",
+          "documenti": [
+            "Verbale di accertamento o ordinanza-ingiunzione",
+            "Relata di notifica (per verifica tempestività)",
+            "Eventuali allegati al verbale (es. fotografie autovelox, rilevazioni)",
+            "Atti istruttori dell'autorità amministrativa"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "VERIFICA TEMPESTIVITÀ DELL'OPPOSIZIONE",
+          "calcolo": [
+            "Per CdS: 30 gg dalla notifica del verbale (al GdP)",
+            "Per L. 689/81: 30 gg dalla notifica (60 se notifica all'estero)",
+            "Per ordinanza-prefettizia: 30 gg",
+            "Termini perentori - decadenza definitiva"
+          ],
+          "criticita": "MASSIMA"
+        },
+        {
+          "step": 3,
+          "descrizione": "IDENTIFICAZIONE DEI MOTIVI DI OPPOSIZIONE",
+          "tipologie": [
+            "VIZI FORMALI: notifica tardiva, vizi motivazionali, incompetenza autorità",
+            "VIZI SOSTANZIALI: insussistenza del fatto contestato, prescrizione (5 anni per L. 689/81), eccesso di potere, errore di diritto",
+            "VIZI DI MERITO: errata individuazione del soggetto responsabile, errori di quantificazione, doppia sanzione"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "RACCOLTA PROVE",
+          "documenti": [
+            "Testimonianze",
+            "Documenti che provano insussistenza del fatto",
+            "Foto/video del luogo e della situazione",
+            "Documentazione sanitaria (per emergenze)",
+            "Per autovelox: ricerca tarature, omologazioni",
+            "Per ZTL: verifica autorizzazioni",
+            "Per multe non notificate al proprietario: pratica trasferimento veicolo"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "Verifica eventuali EFFETTI ACCESSORI",
+          "elementi": [
+            "Decurtazione punti patente (per CdS)",
+            "Sospensione patente",
+            "Iscrizione a ruolo (per pagamento)",
+            "Ipoteca su immobili"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_opposizione_sanzione_amministrativa",
+        "denominazione": "Ricorso in opposizione a verbale/ordinanza-ingiunzione (L. 689/1981 o CdS)",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "ufficio_giudiziario",
+            "label": "Giudice di Pace o Tribunale",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "tipo_opposizione",
+            "label": "Tipo di opposizione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "opposizione_verbale_CdS_art_7_dlgs_150_2011",
+              "opposizione_ordinanza_ingiunzione_art_6_dlgs_150_2011",
+              "opposizione_ordinanza_prefettizia"
+            ]
+          },
+          {
+            "id": "opponente",
+            "label": "Opponente (sanzionato)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "autorita_amministrativa_resistente",
+            "label": "Autorità amministrativa resistente",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "denominazione",
+                "type": "string"
+              },
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "polizia_municipale",
+                  "polizia_stradale",
+                  "carabinieri",
+                  "guardia_di_finanza",
+                  "prefettura",
+                  "altra_autorita"
+                ]
+              },
+              {
+                "id": "indirizzo",
+                "type": "address"
+              }
+            ]
+          },
+          {
+            "id": "provvedimento_opposto",
+            "label": "Provvedimento opposto",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_atto",
+                "type": "select",
+                "options": [
+                  "verbale_accertamento",
+                  "ordinanza_ingiunzione",
+                  "ordinanza_prefettizia"
+                ]
+              },
+              {
+                "id": "numero",
+                "type": "string"
+              },
+              {
+                "id": "data_emissione",
+                "type": "date"
+              },
+              {
+                "id": "data_notifica",
+                "type": "date",
+                "critico_per_termini": true
+              },
+              {
+                "id": "importo_sanzione",
+                "type": "currency"
+              },
+              {
+                "id": "norma_violata_contestata",
+                "type": "string"
+              },
+              {
+                "id": "fatto_contestato",
+                "type": "textarea"
+              },
+              {
+                "id": "eventuali_sanzioni_accessorie",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "motivi_di_opposizione",
+            "label": "Motivi di opposizione",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "vizi_di_notifica",
+              "incompetenza_autorita_accertatrice",
+              "difetto_motivazione_atto",
+              "violazione_termini_perentori_accertamento",
+              "prescrizione_5_anni_diritto_riscuotere",
+              "insussistenza_del_fatto",
+              "errata_qualificazione_giuridica",
+              "errata_individuazione_responsabile",
+              "errori_quantificazione_sanzione",
+              "stato_necessita_o_forza_maggiore",
+              "doppia_sanzione_per_stesso_fatto",
+              "vizi_specifici_strumenti_di_rilevazione_autovelox_telelaser",
+              "vizi_su_eventuali_decurtazioni_punti",
+              "altro"
+            ]
+          },
+          {
+            "id": "esposizione_motivi",
+            "label": "Esposizione dettagliata dei motivi",
+            "type": "textarea",
+            "required": true,
+            "min_length": 300
+          },
+          {
+            "id": "elementi_di_prova",
+            "label": "Elementi di prova",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "testimoni",
+                "type": "array_persone"
+              },
+              {
+                "id": "documenti_a_supporto",
+                "type": "textarea"
+              },
+              {
+                "id": "richieste_istruttorie",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "richiesta_sospensione_efficacia",
+            "label": "Richiesta sospensione efficacia provvedimento ex art. 7 c. 8 D.Lgs. 150/2011",
+            "type": "boolean"
+          },
+          {
+            "id": "motivazione_sospensione",
+            "label": "Motivazione della sospensione (gravi motivi)",
+            "type": "textarea",
+            "required_if": "richiesta_sospensione=true"
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "annullamento_provvedimento_sanzionatorio",
+              "riduzione_importo_sanzione",
+              "annullamento_sanzioni_accessorie",
+              "sospensione_efficacia_in_attesa_decisione",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Udienza fissata dal giudice",
+            "type": "date"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "TERMINE PERENTORIO 30 gg dalla notifica (CdS al GdP)",
+          "TERMINE PERENTORIO 30 gg per L. 689/81 (60 se notifica all'estero)",
+          "Tempestività decisiva - decadenza preclude opposizione",
+          "Possibilità sospensione efficacia provvedimento (art. 7 c. 8 D.Lgs. 150/2011)",
+          "Rito del lavoro applicato (art. 6 D.Lgs. 150/2011)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "verbale_o_ordinanza_opposta",
+          "label": "Verbale o ordinanza opposta (con relata di notifica)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documenti_a_supporto_motivi",
+          "label": "Documenti a supporto dei motivi di opposizione",
+          "required": true
+        },
+        {
+          "id": "documentazione_relativa_a_strumenti_rilevazione",
+          "label": "Documentazione su strumenti di rilevazione (autovelox: tarature, omologazioni)",
+          "required_if": "motivi=vizi_strumenti"
+        },
+        {
+          "id": "documentazione_su_stato_necessita",
+          "label": "Documentazione su stato di necessità (sanitaria, ecc.)",
+          "required_if": "motivi=stato_necessita"
+        },
+        {
+          "id": "elenco_testimoni_e_recapiti",
+          "label": "Elenco testimoni e recapiti",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documenti_identita_opponente",
+          "label": "Documenti identità opponente",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti_o_difesa_personale",
+          "label": "Procura alle liti (o difesa personale per valori bassi)",
+          "required_if": "valore_oltre_soglia_difesa_obbligatoria"
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore (esenzione per opposizione CdS per importi minori)",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio per Tribunale (presso GdP regime variabile)"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ordinanza_di_sospensione_efficacia",
+          "trigger": "In pendenza di giudizio",
+          "automatico": false
+        },
+        {
+          "tipo": "memoria_costituzione_autorita_amministrativa",
+          "trigger": "Costituzione resistente",
+          "automatico": false
+        },
+        {
+          "tipo": "prova_testimoniale",
+          "trigger": "Disposta dal giudice",
+          "automatico": false
+        },
+        {
+          "tipo": "sentenza_su_opposizione",
+          "trigger": "Esito procedimento",
+          "automatico": false
+        },
+        {
+          "tipo": "appello_avverso_sentenza",
+          "trigger": "Per opposizione GdP sentenze appellabili in Tribunale",
+          "termine": "30 gg"
+        },
+        {
+          "tipo": "cartella_pagamento_se_rigetto",
+          "trigger": "Esecuzione coattiva dopo rigetto definitivo",
+          "codice_correlato": "191001"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_e_annullamento_sanzione",
+          "descrizione": "Annullamento totale del provvedimento - nessun pagamento dovuto"
+        },
+        {
+          "esito": "accoglimento_parziale_riduzione_sanzione",
+          "descrizione": "Riduzione dell'importo o annullamento parziale"
+        },
+        {
+          "esito": "rigetto_e_conferma_sanzione",
+          "descrizione": "Sanzione confermata - opponente paga + spese"
+        },
+        {
+          "esito": "rigetto_per_tardivita",
+          "descrizione": "Inammissibilità per superamento termini"
+        },
+        {
+          "esito": "estinzione_per_intervenuto_pagamento_o_transazione",
+          "descrizione": "Cessazione materia"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "OPPOSIZIONE A VERBALE CDS (al GdP)",
+          "giorni": 30,
+          "decorrenza": "notifica verbale",
+          "natura": "DECADENZIALE",
+          "norma": "art. 7 D.Lgs. 150/2011",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Ricorso al Prefetto (alternativa per CdS)",
+          "giorni": 60,
+          "decorrenza": "notifica verbale",
+          "natura": "decadenziale",
+          "norma": "art. 203 CdS"
+        },
+        {
+          "termine": "OPPOSIZIONE ORDINANZA-INGIUNZIONE",
+          "giorni": 30,
+          "decorrenza": "notifica ordinanza",
+          "natura": "DECADENZIALE",
+          "norma": "art. 6 D.Lgs. 150/2011"
+        },
+        {
+          "termine": "Opposizione con notifica all'estero",
+          "giorni": 60,
+          "decorrenza": "notifica",
+          "natura": "decadenziale"
+        },
+        {
+          "termine": "Prescrizione del diritto a riscuotere",
+          "anni": 5,
+          "decorrenza": "commissione violazione",
+          "natura": "prescrizione",
+          "norma": "art. 28 L. 689/81"
+        },
+        {
+          "termine": "Appello sentenza GdP (se appellabile)",
+          "giorni": 30,
+          "decorrenza": "notifica sentenza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "240001",
+      "codici_ufficiali_correlati_da_valutare": [
+        "180099",
+        "180002",
+        "180001"
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda viene conservata come guida interna per opposizione a sanzione amministrativa L. 689/1981."
+    },
+    {
+      "codice": "111003",
+      "denominazione": "Separazione consensuale dei coniugi (omologa)",
+      "categoria": "Persone e famiglia - separazione",
+      "sottocategoria": "Procedimento di omologa della separazione consensuale - rito unificato post-Cartabia",
+      "rito": "Rito unificato persone e famiglia ex artt. 473-bis.51 c.p.c. (procedimento congiunto - post-Cartabia)",
+      "competenza": "Tribunale ordinario - sezione famiglia (Tribunale per le persone, per i minorenni e per le famiglie ex D.Lgs. 149/2022)",
+      "competenza_territoriale": "Tribunale della residenza di uno dei coniugi (art. 473-bis.11 c.p.c.); per figli minori: residenza abituale del minore",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "150",
+          "descrizione": "Separazione personale dei coniugi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "156",
+          "descrizione": "Effetti della separazione - assegno mantenimento coniuge"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "158",
+          "descrizione": "Separazione consensuale - omologazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "337-bis - 337-octies",
+          "descrizione": "Disposizioni su figli post-separazione (anche per consensuale)"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.51",
+          "descrizione": "Procedimento congiunto per separazione/divorzio/affidamento - rito semplificato"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.52",
+          "descrizione": "Decreto di omologazione"
+        },
+        {
+          "fonte": "D.Lgs. 149/2022",
+          "descrizione": "Riforma Cartabia - introduzione rito unificato e congiunto"
+        },
+        {
+          "fonte": "D.L. 132/2014 (conv. L. 162/2014)",
+          "articolo": "6",
+          "descrizione": "Negoziazione assistita familiare - ALTERNATIVA EXTRA-GIUDIZIALE"
+        },
+        {
+          "fonte": "D.L. 132/2014",
+          "articolo": "12",
+          "descrizione": "Separazione/divorzio davanti all'Ufficiale Stato Civile (senza figli minori/incapaci/handicap)"
+        },
+        {
+          "fonte": "Cass. SU 32198/2021",
+          "descrizione": "Effetti assegno post-separazione su convivenze successive"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "MATRIMONIO valido tra i coniugi (anche unione civile per artt. coordinati)",
+        "ACCORDO COMPLETO tra i coniugi su:",
+        "- TIPO DI SEPARAZIONE (consensuale - non addebito)",
+        "- AFFIDAMENTO e collocamento dei figli minori",
+        "- REGIME VISITE/FREQUENTAZIONE",
+        "- ASSEGNO MANTENIMENTO per coniuge debole (se richiesto)",
+        "- ASSEGNO MANTENIMENTO per figli",
+        "- SPESE STRAORDINARIE (ripartizione)",
+        "- ASSEGNAZIONE CASA FAMILIARE",
+        "- RAPPORTI ECONOMICI POST-SEPARAZIONE (eventualmente divisione beni)",
+        "INTERESSE DEL MINORE rispettato (controllo del giudice)"
+      ],
+      "alternative_extragiudiziali": {
+        "negoziazione_assistita_art_6_DL_132_2014": [
+          "Accordo tra coniugi raggiunto con assistenza di almeno un avvocato per parte",
+          "Con figli minori: trasmissione al PM per autorizzazione",
+          "Trascrizione presso Comune - equivale alla sentenza di omologa"
+        ],
+        "separazione_innanzi_ufficiale_stato_civile_art_12": [
+          "Solo se ASSENZA figli minori, maggiorenni economicamente non autosufficienti, handicap grave",
+          "Accordo davanti all'ufficiale di stato civile del Comune",
+          "Patto di non trasferimento di beni",
+          "Modalità rapidissima"
+        ]
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Procedimento congiunto basato su accordo"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione DOCUMENTAZIONE DELLO STATO FAMIGLIA",
+          "documenti": [
+            "Estratto atto di matrimonio",
+            "Stato di famiglia",
+            "Atti di nascita dei figli minori e maggiorenni non autosufficienti"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "RACCOLTA DOCUMENTAZIONE ECONOMICA",
+          "documenti": [
+            "Dichiarazioni redditi ultimi 3 anni",
+            "Buste paga ultimi 12 mesi",
+            "Estratti conto correnti",
+            "Documentazione patrimoniale (immobili, investimenti, partecipazioni societarie)",
+            "Eventuali documenti su esigenze specifiche dei figli"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "REDAZIONE PIANO GENITORIALE",
+          "norma": "art. 473-bis.12 c. 3 c.p.c.",
+          "contenuto": [
+            "Attività scolastiche e formative",
+            "Attività extrascolastiche e sportive",
+            "Frequentazioni abituali",
+            "Vacanze e villeggiatura",
+            "Cure mediche",
+            "Festività e ricorrenze"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "REDAZIONE ACCORDO COMPLETO TRA I CONIUGI",
+          "elementi_da_pattuire": [
+            "Affidamento condiviso (regola) o esclusivo",
+            "Collocamento prevalente del minore",
+            "Regime visite con specifico calendario",
+            "Decisioni di comune accordo o singole",
+            "Assegno mantenimento coniuge (con eventuale revisione automatica ISTAT)",
+            "Assegno mantenimento figli + decorrenza",
+            "Spese straordinarie - ripartizione e modalità accordo",
+            "Assegnazione casa familiare",
+            "Mantenimento utenze, mobili",
+            "Eventuali trasferimenti immobiliari (con atto separato)"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "VALUTAZIONE STRATEGICA: scelta procedurale",
+          "alternative": [
+            "Ricorso congiunto al Tribunale (473-bis.51) - per casi complessi o con figli minori",
+            "Negoziazione assistita (DL 132/2014) - più veloce, ma stesso valore",
+            "Davanti all'ufficiale stato civile (solo se no figli minori)"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_congiunto_separazione_consensuale",
+        "denominazione": "Ricorso congiunto per omologa di separazione consensuale ex art. 473-bis.51 c.p.c.",
+        "schema_xsd_ministeriale": "AttoFamiglia.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "coniuge_1",
+            "label": "Coniuge 1 (ricorrente congiunto)",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "codice_fiscale",
+                "type": "string"
+              },
+              {
+                "id": "data_luogo_nascita",
+                "type": "object"
+              },
+              {
+                "id": "residenza",
+                "type": "address"
+              },
+              {
+                "id": "professione",
+                "type": "string"
+              },
+              {
+                "id": "reddito_annuo_lordo",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "coniuge_2",
+            "label": "Coniuge 2 (ricorrente congiunto)",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": "(stessa struttura)"
+          },
+          {
+            "id": "matrimonio",
+            "label": "Matrimonio",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_matrimonio",
+                "type": "date"
+              },
+              {
+                "id": "luogo_matrimonio",
+                "type": "string"
+              },
+              {
+                "id": "regime_patrimoniale",
+                "type": "select",
+                "options": [
+                  "comunione_legale",
+                  "separazione_beni",
+                  "fondo_patrimoniale",
+                  "altro"
+                ]
+              },
+              {
+                "id": "data_cessazione_convivenza",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "figli_minori",
+            "label": "Figli minori (se presenti)",
+            "type": "array_persone",
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "data_nascita",
+                "type": "date"
+              },
+              {
+                "id": "stato_scolastico_attuale",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "figli_maggiorenni_non_autosufficienti",
+            "label": "Figli maggiorenni non autosufficienti",
+            "type": "array_persone"
+          },
+          {
+            "id": "accordo_coniugi",
+            "label": "Accordo dei coniugi",
+            "type": "object_complesso",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "affidamento_figli",
+                "type": "select",
+                "options": [
+                  "condiviso_paritetico",
+                  "condiviso_collocazione_prevalente_coniuge_1",
+                  "condiviso_collocazione_prevalente_coniuge_2",
+                  "esclusivo_motivato"
+                ]
+              },
+              {
+                "id": "regime_visite_dettagliato",
+                "type": "textarea",
+                "required_if": "figli_minori_presenti"
+              },
+              {
+                "id": "decisioni_di_comune_accordo",
+                "type": "textarea"
+              },
+              {
+                "id": "assegno_mantenimento_coniuge",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "previsto",
+                    "type": "boolean"
+                  },
+                  {
+                    "id": "importo_mensile",
+                    "type": "currency"
+                  },
+                  {
+                    "id": "rivalutazione_istat",
+                    "type": "boolean"
+                  },
+                  {
+                    "id": "decorrenza",
+                    "type": "date"
+                  }
+                ]
+              },
+              {
+                "id": "assegno_mantenimento_figli",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "importo_mensile_per_figlio",
+                    "type": "currency"
+                  },
+                  {
+                    "id": "rivalutazione_istat",
+                    "type": "boolean"
+                  },
+                  {
+                    "id": "modalita_versamento",
+                    "type": "string"
+                  }
+                ]
+              },
+              {
+                "id": "ripartizione_spese_straordinarie",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "quota_coniuge_1",
+                    "type": "percentage"
+                  },
+                  {
+                    "id": "quota_coniuge_2",
+                    "type": "percentage"
+                  },
+                  {
+                    "id": "tipologie_richiedono_accordo_preventivo",
+                    "type": "array"
+                  }
+                ]
+              },
+              {
+                "id": "assegnazione_casa_familiare",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "assegnatario",
+                    "type": "select"
+                  },
+                  {
+                    "id": "indirizzo_immobile",
+                    "type": "address"
+                  },
+                  {
+                    "id": "titolo_godimento",
+                    "type": "string"
+                  },
+                  {
+                    "id": "ripartizione_spese_casa",
+                    "type": "string"
+                  }
+                ]
+              },
+              {
+                "id": "rapporti_patrimoniali_e_divisione_beni",
+                "type": "textarea"
+              },
+              {
+                "id": "eventuali_trasferimenti_immobiliari_concordati",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "piano_genitoriale",
+            "label": "Piano genitoriale (obbligatorio se figli minori)",
+            "type": "object_complesso",
+            "required_if": "figli_minori_presenti",
+            "sub_fields": [
+              {
+                "id": "attivita_scolastiche",
+                "type": "textarea"
+              },
+              {
+                "id": "attivita_extra_scolastiche_sportive",
+                "type": "textarea"
+              },
+              {
+                "id": "frequentazioni_abituali",
+                "type": "textarea"
+              },
+              {
+                "id": "vacanze_e_villeggiatura",
+                "type": "textarea"
+              },
+              {
+                "id": "cure_mediche",
+                "type": "textarea"
+              },
+              {
+                "id": "festivita_e_ricorrenze",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "omologa_separazione_consensuale",
+              "recepimento_accordo_su_figli",
+              "recepimento_accordi_economici",
+              "trascrizione_eventuali_trasferimenti_immobiliari",
+              "spese_di_lite_compensate"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Necessità di patrocinio di un avvocato per ciascun coniuge",
+          "Per figli minori: parere PM obbligatorio",
+          "Piano genitoriale obbligatorio per figli minori ex art. 473-bis.12 c. 3",
+          "Audizione minore obbligatoria se >12 anni o capace (art. 473-bis.22)",
+          "Possibilità di rifiuto omologa da parte giudice se accordo lesivo interesse minore",
+          "Alternativa più rapida: negoziazione assistita ex DL 132/2014 (stesso valore)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "estratto_atto_matrimonio",
+          "label": "Estratto dell'atto di matrimonio",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "stato_famiglia",
+          "label": "Stato di famiglia",
+          "required": true
+        },
+        {
+          "id": "atti_nascita_figli",
+          "label": "Atti di nascita dei figli",
+          "required_if": "figli_presenti"
+        },
+        {
+          "id": "dichiarazioni_redditi_3_anni_entrambi",
+          "label": "Dichiarazioni redditi ultimi 3 anni di entrambi i coniugi",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "buste_paga_recenti",
+          "label": "Buste paga ultimi 12 mesi (entrambi i coniugi)",
+          "required": true
+        },
+        {
+          "id": "documentazione_patrimoniale",
+          "label": "Documentazione patrimoniale (visure immobili/PRA/società)",
+          "required": true
+        },
+        {
+          "id": "estratti_conto_recenti",
+          "label": "Estratti conto correnti recenti",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "piano_genitoriale_firmato",
+          "label": "Piano genitoriale firmato da entrambi i coniugi",
+          "required_if": "figli_minori_presenti",
+          "critico": true
+        },
+        {
+          "id": "documenti_su_figli_se_significativi",
+          "label": "Documenti rilevanti sui figli (scolastici, sanitari, sportivi)",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "eventuali_accordi_separati_per_trasferimenti_immobiliari",
+          "label": "Eventuali atti notarili per trasferimenti immobiliari concordati",
+          "required_if": "trasferimenti_immobiliari_previsti"
+        },
+        {
+          "id": "procure_alle_liti_entrambi_avvocati",
+          "label": "Procure alle liti per entrambi i coniugi",
+          "required": true,
+          "critico": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per rapporti coniugali (art. 19 L. 74/1987)",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio - anonimizzazione dati minori"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "decreto_omologa_separazione_consensuale",
+          "trigger": "Esito procedimento",
+          "norma": "art. 473-bis.52 c.p.c."
+        },
+        {
+          "tipo": "annotazione_separazione_atto_matrimonio",
+          "trigger": "Decreto omologa",
+          "ufficio": "Comune"
+        },
+        {
+          "tipo": "trascrizione_eventuali_trasferimenti_immobiliari",
+          "trigger": "Se previsti nell'accordo",
+          "automatico": false
+        },
+        {
+          "tipo": "ricorso_modifica_condizioni_473_bis_29",
+          "trigger": "Eventuali sopravvenienze future",
+          "codice_correlato": "411601"
+        },
+        {
+          "tipo": "ricorso_divorzio_dopo_6_mesi",
+          "trigger": "Dopo 6 mesi dalla comparizione coniugi davanti al giudice",
+          "codice_correlato": "111021_divorzio_congiunto"
+        },
+        {
+          "tipo": "negoziazione_assistita_alternativa",
+          "trigger": "In alternativa al ricorso giudiziale",
+          "codice_correlato": "alternativa_extragiudiziale"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "decreto_omologa",
+          "descrizione": "Omologa con recepimento accordo nei termini proposti"
+        },
+        {
+          "esito": "decreto_omologa_con_modifiche_su_figli",
+          "descrizione": "Giudice apporta modifiche all'accordo se ritenuto contrario all'interesse minore"
+        },
+        {
+          "esito": "rifiuto_omologa_per_lesione_interesse_minore",
+          "descrizione": "Necessità rinegoziazione accordo - rinvio per modifiche"
+        },
+        {
+          "esito": "trasformazione_in_giudiziale_per_dissenso",
+          "descrizione": "Se in udienza emerge disaccordo - trasformazione del rito"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Termine per comparizione coniugi davanti al giudice",
+          "giorni": "fissato nel decreto di fissazione udienza",
+          "natura": "ordinatorio"
+        },
+        {
+          "termine": "Decisione del Tribunale",
+          "giorni": 60,
+          "decorrenza": "udienza",
+          "natura": "ordinatorio"
+        },
+        {
+          "termine": "Termine per divorzio breve consensuale",
+          "mesi": 6,
+          "decorrenza": "comparizione davanti al giudice",
+          "natura": "termine sostanziale",
+          "norma": "L. 55/2015"
+        },
+        {
+          "termine": "Trascrivibilità immediata accordo per parti economiche",
+          "natura": "immediato dopo omologa"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_DEMANSIONAMENTO_DEQUALIFICAZIONE_220030",
+      "denominazione": "Demansionamento / dequalificazione professionale (art. 2103 c.c. - lato passivo)",
+      "categoria": "Lavoro - tutela professionalità del lavoratore",
+      "sottocategoria": "Azione del lavoratore per illegittimo demansionamento e risarcimento danni",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro - foro della sede di lavoro (art. 413 c.p.c.)",
+      "uffici_destinatari": [
+        "SICID-Lavoro / SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2103",
+          "descrizione": "Mansioni del lavoratore - diritto al mantenimento di mansioni equivalenti (post D.Lgs. 81/2015: di pari livello e categoria legale - più flessibile)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2087",
+          "descrizione": "Tutela condizioni lavoro - tutela personalità lavoratore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2086",
+          "descrizione": "Potere direzionale del datore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1218",
+          "descrizione": "Responsabilità contrattuale (per inadempimento art. 2103)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2059",
+          "descrizione": "Danno non patrimoniale (per danno professionale)"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "3",
+          "descrizione": "Riforma art. 2103 - possibilità demansionamento conservativo legittimo"
+        },
+        {
+          "fonte": "Cass. SU 6572/2006",
+          "descrizione": "Onere prova danno da demansionamento - non in re ipsa"
+        },
+        {
+          "fonte": "Cass. SU 26972/2008 (San Martino)",
+          "descrizione": "Categoria unitaria danno non patrimoniale"
+        },
+        {
+          "fonte": "Cass. 21088/2010",
+          "descrizione": "Danno biologico da demansionamento - quantificazione"
+        },
+        {
+          "fonte": "Cass. 16461/2024",
+          "descrizione": "Demansionamento e diritto al mantenimento mansioni equivalenti"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "RAPPORTO DI LAVORO SUBORDINATO in corso o cessato",
+        "ASSEGNAZIONE A MANSIONI INFERIORI rispetto al livello contrattuale di inquadramento",
+        "ILLEGITTIMITÀ DEL DEMANSIONAMENTO (non rientrante nelle ipotesi consentite ex art. 2103 c.c. post-D.Lgs. 81/2015)",
+        "DANNO PROFESSIONALE/PATRIMONIALE/BIOLOGICO al lavoratore - DA PROVARE specificamente (non in re ipsa - Cass. SU 6572/2006)",
+        "NESSO CAUSALE tra demansionamento e danno"
+      ],
+      "regime_post_dlgs_81_2015": {
+        "principio_generale": "Diritto al mantenimento di mansioni di PARI LIVELLO E CATEGORIA LEGALE (non più 'equivalenti' come pre-riforma)",
+        "DEMANSIONAMENTO CONSERVATIVO LEGITTIMO": [
+          "Modifica degli assetti organizzativi aziendali che incide sulla posizione del lavoratore",
+          "Possibile assegnazione a mansioni inferiori (un livello sotto)",
+          "Rientranti nella stessa categoria legale",
+          "Mantenimento della retribuzione precedente (tutela retributiva)",
+          "Obbligo di formazione"
+        ],
+        "DEMANSIONAMENTO ILLEGITTIMO": [
+          "Assegnazione mansioni di categoria legale inferiore",
+          "Assegnazione mansioni inferiori per ritorsione o discriminazione",
+          "Assegnazione mansioni inferiori senza modifiche organizzative reali",
+          "Privazione totale di mansioni (svuotamento del ruolo)"
+        ]
+      },
+      "tipologie_di_danno_risarcibili": [
+        "DANNO PATRIMONIALE:",
+        "- Perdita di chance professionali (avanzamenti mancati, premi non percepiti)",
+        "- Perdita di valore professionale sul mercato del lavoro",
+        "- Eventuali differenze retributive (se inquadramento ridotto)",
+        "DANNO NON PATRIMONIALE:",
+        "- Danno biologico (lesione integrità psico-fisica - depressione, ansia, ecc.) - PROVA medica",
+        "- Danno morale (sofferenza interiore)",
+        "- Danno alla professionalità (perdita di skill, demotivazione)",
+        "- Danno all'immagine professionale"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "tentativo_facoltativo": "Conciliazione ITL ex art. 410 c.p.c. (facoltativa); per pubblico impiego obbligatoria art. 65 D.Lgs. 165/2001"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione DOCUMENTAZIONE DEL RAPPORTO DI LAVORO",
+          "documenti": [
+            "Contratto di lavoro originario + eventuali integrazioni",
+            "CCNL applicato (declaratorie dei livelli)",
+            "Buste paga",
+            "Eventuali precedenti promozioni/inquadramenti",
+            "Mansionario aziendale",
+            "Organigramma aziendale"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "RICOSTRUZIONE STORICA DELLE MANSIONI",
+          "elementi": [
+            "Mansioni svolte PRECEDENTEMENTE (al livello pieno)",
+            "Mansioni svolte ATTUALMENTE (presumibilmente inferiori)",
+            "Data del demansionamento",
+            "Modalità del demansionamento (atto formale, di fatto, comunicazioni)",
+            "Confronto con declaratorie CCNL"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "DOCUMENTAZIONE DEL DEMANSIONAMENTO",
+          "documenti": [
+            "Ordini di servizio, comunicazioni aziendali",
+            "Mail interne aziendali",
+            "Comunicazioni del lavoratore (lamentele, richieste di chiarimento)",
+            "Eventuali contestazioni disciplinari ricevute",
+            "Documenti su nuove assegnazioni",
+            "Testimoni colleghi"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "DOCUMENTAZIONE DEL DANNO",
+          "criticita": "MASSIMA - il danno NON è in re ipsa (Cass. SU 6572/2006)",
+          "elementi": [
+            "Per danno biologico: documentazione sanitaria (diagnosi depressione/ansia/stress lavoro-correlato), CTU medico-legale di parte",
+            "Per danno patrimoniale: perdita di premi, mancati avanzamenti documentati",
+            "Per danno alla professionalità: progressivo decadimento skill, difficoltà di reinserimento nel mercato"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "VERIFICA RAGIONI DEL DEMANSIONAMENTO",
+          "verifiche": [
+            "Esistenza di modifiche organizzative aziendali (per demansionamento conservativo)",
+            "Eventuali ragioni discriminatorie o ritorsive",
+            "Eventuali riorganizzazioni aziendali apparenti (per giustificare ritorsione)",
+            "Conformità alle norme sulle eventuali riorganizzazioni"
+          ]
+        },
+        {
+          "step": 6,
+          "descrizione": "TENTATIVO DI CONCILIAZIONE",
+          "possibilita": [
+            "Conciliazione ITL (facoltativa)",
+            "Tentativo stragiudiziale - lettera di diffida a ripristino mansioni"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_demansionamento",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per accertamento illegittimo demansionamento + ripristino mansioni + risarcimento danni",
+        "schema_xsd_ministeriale": "AttoLavoro.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del lavoro",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore",
+            "label": "Lavoratore ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_lavoro",
+            "label": "Datore di lavoro convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "rapporto_lavoro",
+            "label": "Rapporto di lavoro",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_contratto",
+                "type": "select"
+              },
+              {
+                "id": "data_assunzione",
+                "type": "date"
+              },
+              {
+                "id": "qualifica_e_livello_originario",
+                "type": "string",
+                "required": true
+              },
+              {
+                "id": "ccnl_applicato",
+                "type": "string",
+                "required": true
+              },
+              {
+                "id": "retribuzione_attuale",
+                "type": "currency"
+              },
+              {
+                "id": "rapporto_ancora_in_corso",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "mansioni_precedenti_pari_livello",
+            "label": "Mansioni precedenti (pari livello)",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "min_length": 400
+              },
+              {
+                "id": "periodo_svolgimento",
+                "type": "string"
+              },
+              {
+                "id": "responsabilita_e_autonomia",
+                "type": "textarea"
+              },
+              {
+                "id": "corrispondenza_a_declaratoria_ccnl",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "mansioni_attuali_dequalificate",
+            "label": "Mansioni attuali (dequalificate)",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "min_length": 400
+              },
+              {
+                "id": "data_inizio_demansionamento",
+                "type": "date",
+                "required": true,
+                "critico": true
+              },
+              {
+                "id": "modalita_demansionamento",
+                "type": "select",
+                "options": [
+                  "ordine_di_servizio_formale",
+                  "comunicazione_email",
+                  "demansionamento_di_fatto_senza_atto",
+                  "svuotamento_progressivo_del_ruolo",
+                  "altro"
+                ]
+              },
+              {
+                "id": "livello_corrispondente_secondo_ccnl",
+                "type": "string"
+              },
+              {
+                "id": "differenza_qualitativa",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "ragioni_dedotte_dal_datore",
+            "label": "Ragioni dedotte dal datore (se note)",
+            "type": "textarea"
+          },
+          {
+            "id": "illegittimita_dedotta",
+            "label": "Illegittimità del demansionamento - motivazioni",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "assegnazione_mansioni_categoria_legale_inferiore",
+              "demansionamento_ritorsivo_o_discriminatorio",
+              "assenza_modifiche_organizzative_reali",
+              "svuotamento_totale_ruolo",
+              "violazione_declaratorie_ccnl",
+              "violazione_obbligo_formazione",
+              "violazione_tutela_retributiva",
+              "altra"
+            ]
+          },
+          {
+            "id": "danni_subiti_da_demansionamento",
+            "label": "Danni subiti",
+            "type": "object_complesso",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "danno_biologico_psicofisico",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "diagnosi",
+                    "type": "textarea"
+                  },
+                  {
+                    "id": "percentuale_invalidita_stimata",
+                    "type": "percentage"
+                  },
+                  {
+                    "id": "documentazione_medica_allegata",
+                    "type": "boolean",
+                    "critico": true
+                  },
+                  {
+                    "id": "valore_stimato",
+                    "type": "currency"
+                  }
+                ]
+              },
+              {
+                "id": "danno_morale",
+                "type": "currency"
+              },
+              {
+                "id": "danno_alla_professionalita",
+                "type": "currency"
+              },
+              {
+                "id": "danno_patrimoniale_premi_e_avanzamenti_mancati",
+                "type": "currency"
+              },
+              {
+                "id": "danno_immagine_professionale",
+                "type": "currency"
+              },
+              {
+                "id": "totale_richiesto",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_illegittimo_demansionamento",
+              "condanna_ripristino_mansioni_originarie",
+              "condanna_risarcimento_danni",
+              "condanna_eventuali_differenze_retributive",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "DANNO NON IN RE IPSA - prova rigorosa necessaria (Cass. SU 6572/2006)",
+          "Documentazione medica necessaria per danno biologico",
+          "Regime post-D.Lgs. 81/2015: ammesso demansionamento conservativo legittimo (un livello sotto, con tutela retributiva)",
+          "Prescrizione quinquennale per crediti retributivi + 10 anni per danno",
+          "Costituzione datore 10 gg prima udienza con decadenze (art. 416 c.p.c.)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_lavoro",
+          "label": "Contratto individuale di lavoro",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "ccnl_con_declaratorie",
+          "label": "CCNL applicato con declaratorie",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "buste_paga",
+          "label": "Buste paga ultimi 24 mesi",
+          "required": true
+        },
+        {
+          "id": "documentazione_mansioni_pregresse",
+          "label": "Documentazione mansioni precedenti (organigrammi storici, mail, mansionari)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_mansioni_attuali_dequalificate",
+          "label": "Documentazione mansioni attuali (organigrammi, ordini di servizio)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_demansionamento_modalita",
+          "label": "Documentazione delle modalità del demansionamento (comunicazioni, mail, ordini)",
+          "required": true
+        },
+        {
+          "id": "documentazione_sanitaria_per_danno_biologico",
+          "label": "Documentazione sanitaria (per danno biologico)",
+          "required_if": "danno_biologico_richiesto",
+          "critico": true
+        },
+        {
+          "id": "perizia_medico_legale_di_parte",
+          "label": "Perizia medico-legale di parte (per danno biologico)",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "lettere_di_protesta_o_richieste_chiarimento",
+          "label": "Eventuali lettere di protesta inviate al datore",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "elenco_testimoni_colleghi",
+          "label": "Elenco testimoni colleghi",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per controversie individuali di lavoro per reddito sotto 3x soglia patrocinio a spese dello Stato",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "memoria_difensiva_datore",
+          "trigger": "Costituzione datore",
+          "termine": "10 gg prima udienza"
+        },
+        {
+          "tipo": "ctu_medico_legale",
+          "trigger": "Per danno biologico",
+          "automatico": false,
+          "frequente": true
+        },
+        {
+          "tipo": "ctu_aziendale_su_mansioni",
+          "trigger": "Per valutazione corrispondenza CCNL",
+          "automatico": false
+        },
+        {
+          "tipo": "prova_testimoniale",
+          "trigger": "Quasi sempre disposta",
+          "automatico": false,
+          "molto_frequente": true
+        },
+        {
+          "tipo": "azione_per_mansioni_superiori_220020",
+          "trigger": "Se profilo inverso",
+          "codice_correlato": "220020"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_pieno_ripristino_e_risarcimento",
+          "descrizione": "Ordine di ripristino mansioni + condanna risarcimento integrale"
+        },
+        {
+          "esito": "accoglimento_solo_risarcimento",
+          "descrizione": "Demansionamento confermato (es. rapporto cessato) - solo danni"
+        },
+        {
+          "esito": "accoglimento_solo_ripristino",
+          "descrizione": "Ripristino mansioni ma quantum danni non provato"
+        },
+        {
+          "esito": "rigetto_per_demansionamento_conservativo_legittimo",
+          "descrizione": "Demansionamento giustificato da modifiche organizzative"
+        },
+        {
+          "esito": "rigetto_per_assenza_prova_danno",
+          "descrizione": "Demansionamento accertato ma danno non provato"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo (es. nuova posizione + indennità)"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione crediti retributivi (per differenze)",
+          "anni": 5,
+          "natura": "prescrizione",
+          "norma": "art. 2948 n. 4 c.c."
+        },
+        {
+          "termine": "Prescrizione danni da demansionamento",
+          "anni": 10,
+          "decorrenza": "cessazione condotta dannosa",
+          "natura": "prescrizione",
+          "norma": "art. 2946 c.c."
+        },
+        {
+          "termine": "Costituzione datore",
+          "giorni": 10,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio",
+          "norma": "art. 416 c.p.c."
+        },
+        {
+          "termine": "Appello",
+          "giorni": 30,
+          "decorrenza": "notifica sentenza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "220030",
+      "codici_ufficiali_correlati_da_valutare": [
+        "220071",
+        "220021",
+        "220020"
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Il codice 220030 è ufficiale nel catalogo locale, ma riguarda trasferimento del lavoratore; la scheda ricevuta riguarda demansionamento/dequalificazione professionale e resta interna per non alterare il deposito."
+    }
+  ]
+}

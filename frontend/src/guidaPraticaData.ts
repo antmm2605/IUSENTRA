@@ -58,6 +58,11 @@ export type GuidaPratica = {
   registro_sicid?: string
   coverage: GuidaCoverage
   codice_deposito?: CodiceDepositoStatus
+  codice_originale_ricevuto?: string
+  codici_ufficiali_correlati_da_valutare?: string[]
+  guida_interna_non_depositabile?: boolean
+  depositabile?: boolean
+  codice_deposito_automatico?: boolean
   quick_help?: {
     titolo?: string
     prima_cosa_da_fare?: string

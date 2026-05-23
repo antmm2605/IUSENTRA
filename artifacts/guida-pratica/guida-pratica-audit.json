@@ -1,9 +1,9 @@
 {
   "ok": true,
   "coverage": {
-    "curata": 1072
+    "curata": 1080
   },
-  "catalog_size": 1072,
+  "catalog_size": 1080,
   "official_catalog_size": 1018,
   "missing_required": [],
   "official_coverage": {
@@ -16,7 +16,7 @@
   "deposit_code_coherence": {
     "ok": true,
     "incoherent": [],
-    "aliases_or_internal_count": 54,
+    "aliases_or_internal_count": 62,
     "aliases_or_internal": [
       {
         "codice": "100002",
@@ -199,8 +199,32 @@
         "depositabile": false
       },
       {
+        "codice": "GUIDA_DEMANSIONAMENTO_DEQUALIFICAZIONE_220030",
+        "denominazione": "Demansionamento / dequalificazione professionale (art. 2103 c.c. - lato passivo)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_EREDITA_GIACENTE_413021",
+        "denominazione": "Eredità giacente (art. 528 c.c.) - nomina curatore e amministrazione",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
         "codice": "GUIDA_ESCLUSIONE_SOCIO_SOCIETA_PERSONE_150010",
         "denominazione": "Esclusione del socio di società di persone (art. 2286 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_IMMISSIONI_INTOLLERABILI_130012",
+        "denominazione": "Immissioni intollerabili (art. 844 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_IMPUGNAZIONE_DELIBERE_ASSEMBLEARI_155001",
+        "denominazione": "Impugnazione di delibere assembleari di S.r.l. o S.p.a. (artt. 2377-2379 c.c.)",
         "coverage": "curata",
         "depositabile": false
       },
@@ -211,8 +235,32 @@
         "depositabile": false
       },
       {
+        "codice": "GUIDA_LICENZIAMENTO_DISCIPLINARE_220003",
+        "denominazione": "Impugnazione del licenziamento disciplinare",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
         "codice": "GUIDA_ONORARI_PROFESSIONALI_L794",
         "denominazione": "Procedimento sommario per onorari professionali ex L. 794/1942 (art. 14 D.Lgs. 150/2011)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_OPPOSIZIONE_CARTELLA_ESATTORIALE_191001",
+        "denominazione": "Opposizione alla cartella di pagamento esattoriale",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_OPPOSIZIONE_SANZIONE_AMMINISTRATIVA_240001",
+        "denominazione": "Opposizione a sanzione amministrativa (L. 689/1981)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_PRELIMINARE_COMPRAVENDITA_2932_140002",
+        "denominazione": "Risoluzione del contratto preliminare di compravendita immobiliare + esecuzione specifica ex art. 2932 c.c.",
         "coverage": "curata",
         "depositabile": false
       },

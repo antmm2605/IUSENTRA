@@ -1,0 +1,54 @@
+{
+  "source": "C:\\Users\\HelpdeskCSC4\\Downloads\\files (1).zip::kb_top9_set6_parte2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set6_parte2.json",
+  "sha256": "30A30AB394637494988A1D62361EC40754204B26733531409D66DC87660DD44A",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET6_PARTE2",
+  "denominazione": "Sesto set di 9 codici - PARTE 2 di 2",
+  "codici_materia_originali": [
+    "413021",
+    "240001",
+    "111003",
+    "220030"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_EREDITA_GIACENTE_413021",
+    "GUIDA_OPPOSIZIONE_SANZIONE_AMMINISTRATIVA_240001",
+    "111003",
+    "GUIDA_DEMANSIONAMENTO_DEQUALIFICAZIONE_220030"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "413021",
+      "codice_integrato": "GUIDA_EREDITA_GIACENTE_413021",
+      "codici_ufficiali_correlati_da_valutare": [
+        "420302",
+        "420303"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda viene conservata come guida interna per eredità giacente, con correlazione ai codici di volontaria giurisdizione successoria."
+    },
+    {
+      "codice_originale": "240001",
+      "codice_integrato": "GUIDA_OPPOSIZIONE_SANZIONE_AMMINISTRATIVA_240001",
+      "codici_ufficiali_correlati_da_valutare": [
+        "180099",
+        "180002",
+        "180001"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda viene conservata come guida interna per opposizione a sanzione amministrativa L. 689/1981."
+    },
+    {
+      "codice_originale": "220030",
+      "codice_integrato": "GUIDA_DEMANSIONAMENTO_DEQUALIFICAZIONE_220030",
+      "codici_ufficiali_correlati_da_valutare": [
+        "220071",
+        "220021",
+        "220020"
+      ],
+      "reason": "Il codice 220030 è ufficiale nel catalogo locale, ma riguarda trasferimento del lavoratore; la scheda ricevuta riguarda demansionamento/dequalificazione professionale e resta interna per non alterare il deposito."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [
+    "111003"
+  ],
+  "termini_processuali_raw": 18
+}

@@ -1,5 +1,9 @@
 # Lex AI Operational Knowledge Map
 
+Aggiornamento 2026-05-23, Guida Pratica TOP9 set6 2.248.19: Lex deve leggere anche le schede importate da `kb_top9_set6_parte1.json` e `kb_top9_set6_parte2.json`. Il knowledge base contiene 1.080 schede complessive, con 1.018 codici ufficiali depositabili e 62 guide interne non depositabili. Le 54 schede iper-dettagliate ricevute dall'utente sono controllate campo per campo: 0 perdite tra KB, servizio/API, UI e Lex, e 0 sostituzioni da profili automatici.
+
+Aggiornamento 2026-05-23, ragionamento operativo Guida Pratica 2.248.19: `GuidaPraticaSource` deve passare a Lex un ragionamento da usare nelle risposte: separare guida interna e codice ministeriale, verificare presupposti e condizioni di procedibilità, preparare l'atto, presidiare allegati e termini, distinguere fatti del fascicolo, norme e limiti. Le voci specialistiche della scheda sono conoscenza conversazionale e devono restare interrogabili.
+
 Aggiornamento 2026-05-23, Guida Pratica TOP9 set5 2.248.18: Lex deve leggere anche le schede importate da `kb_top9_set5_parte1.json` e `kb_top9_set5_parte2.json`. Il knowledge base contiene 1.072 schede complessive, con 1.018 codici ufficiali depositabili e 54 guide interne non depositabili. Le guide ricevute con codici ministeriali incoerenti o assenti restano alias interni con `codice_originale_ricevuto`, e non possono sostituire il codice oggetto PST/XSD del fascicolo o della busta.
 
 Aggiornamento 2026-05-22, Guida Pratica facoltativa e loader fascicoli 2.248.11: Lex deve arricchirsi sempre in modo conversazionale con le fonti curate dello studio. La Guida Pratica collegata al fascicolo è conoscenza operativa interrogabile, non un blocco: il dettaglio React e `GuidaPraticaSource` leggono lo stesso fascicolo reale anche in fallback JSON legacy, e la UI espone `Uso facoltativo` per chiarire all'avvocato che può usare la guida quando serve.

@@ -7,6 +7,12 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.248.19 - 23 maggio 2026
+
+La Guida Pratica TOP9 set6 è entrata nella sorgente `GuidaPraticaSource`. Lex deve leggere tutte le 54 schede iper-dettagliate ricevute dall'utente e non deve fermarsi ai campi standard: strategie, criteri, soglie, regimi di tutela, differenze tra procedimenti, casistiche, rimedi e danni risarcibili sono conoscenza operativa interrogabile.
+
+Per ogni scheda guida Lex riceve un ragionamento operativo esplicito: prima separa codice ufficiale e guida interna, poi verifica presupposti, competenza, condizioni di procedibilità, atto, allegati, termini ed esiti. Se la scheda è interna non depositabile, Lex può usarla per spiegare il lavoro ma non può promuoverla a codice oggetto del fascicolo.
+
 ## Aggiornamento operativo 2.248.11 - 22 maggio 2026
 
 Regola permanente di prodotto: arricchire Lex sempre in modo conversazionale con l'avvocato. Ogni guida pratica curata, matrice operativa, scheda di fascicolo o conoscenza linguistica dello studio deve diventare anche conoscenza interrogabile da Lex, non solo contenuto visibile in pagina. Lex deve leggerla integralmente quando è pertinente, usare un linguaggio naturale da assistente di studio, distinguere supporto pratico interno da dato ufficiale e non rendere la guida un blocco del lavoro.

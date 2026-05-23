@@ -61,6 +61,69 @@ _STOPWORDS = {
     "studio",
 }
 
+_STANDARD_GUIDANCE_KEYS = {
+    "codice",
+    "denominazione",
+    "categoria",
+    "sottocategoria",
+    "registro_sicid",
+    "coverage",
+    "codice_deposito",
+    "quick_help",
+    "normativa",
+    "tipologie_di_intervento",
+    "presupposti_sostanziali",
+    "presupposti_sostanziali_gmo",
+    "legittimati_attivi",
+    "obbligo_mediazione",
+    "obbligo_mediazione_o_negoziazione_assistita",
+    "richiesta_provvedimenti_urgenti",
+    "avvertimenti_obbligatori",
+    "adempimenti_propedeutici",
+    "atto_principale",
+    "allegati_obbligatori",
+    "avvertenze_redazionali",
+    "adempimenti_fiscali",
+    "adempimenti_fiscali_telematici",
+    "termini_processuali",
+    "atti_collegati",
+    "esiti_processuali_tipici",
+    "esiti_processuali_attesi",
+    "catalogo_xsd",
+    "macro_area",
+    "kb_version",
+    "ultimo_aggiornamento",
+    "fascicolo_context",
+    "codice_originale_ricevuto",
+    "codici_ufficiali_correlati_da_valutare",
+    "guida_interna_non_depositabile",
+    "depositabile",
+    "codice_deposito_automatico",
+    "nota_integrazione_iusentra",
+}
+
+_SPECIAL_FIELD_LABELS = {
+    "alternative_extragiudiziali": "Alternative extragiudiziali",
+    "casistica_e_riparto_giurisdizione": "Casistica e riparto di giurisdizione",
+    "competenza_territoriale": "Competenza territoriale",
+    "criteri_di_tollerabilita": "Criteri di tollerabilità",
+    "differenza_da_altre_situazioni": "Differenza da altre situazioni",
+    "differenze_tra_procedimenti": "Differenze tra procedimenti",
+    "legittimati_a_chiedere_la_nomina": "Legittimati a chiedere la nomina",
+    "presupposti_sostanziali_art_844": "Presupposti sostanziali art. 844 c.c.",
+    "presupposti_sostanziali_per_validita_licenziamento_disciplinare": "Presupposti sostanziali per validità del licenziamento disciplinare",
+    "regime_post_dlgs_81_2015": "Regime dopo il D.Lgs. 81/2015",
+    "regimi_di_tutela_alternativi": "Regimi di tutela alternativi",
+    "rimedi_disponibili": "Rimedi disponibili",
+    "soglie_di_legittimazione_2377_c_3_spa": "Soglie di legittimazione art. 2377 c. 3 S.p.A.",
+    "strategie_alternative": "Strategie alternative",
+    "tipologie_di_danno_risarcibili": "Tipologie di danno risarcibili",
+    "tipologie_di_immissioni_tutelabili": "Tipologie di immissioni tutelabili",
+    "tipologie_di_invalidita": "Tipologie di invalidità",
+    "vizi_tipici_che_invalidano": "Vizi tipici che invalidano",
+    "vizi_tipici_impugnabili": "Vizi tipici impugnabili",
+}
+
 
 def _clean(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
@@ -70,6 +133,20 @@ def _display(value: Any) -> str:
     if isinstance(value, bool):
         return "sì" if value else "no"
     return _clean(value)
+
+
+def _has_guidance_value(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return True
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, (int, float)):
+        return True
+    if isinstance(value, (list, tuple, set, dict)):
+        return bool(value)
+    return True
 
 
 def _as_dict(value: Any) -> dict[str, Any]:
@@ -216,6 +293,52 @@ def _item_to_text(value: Any) -> str:
     return _display(value)
 
 
+def _readable_label(value: Any) -> str:
+    raw = _clean(value)
+    if not raw:
+        return ""
+    if raw in _SPECIAL_FIELD_LABELS:
+        return _SPECIAL_FIELD_LABELS[raw]
+    return raw.replace("_", " ").replace("-", " ").strip().capitalize()
+
+
+def _flatten_guidance_value(value: Any, *, limit: int = 10) -> str:
+    if isinstance(value, dict):
+        parts: list[str] = []
+        for key, entry in value.items():
+            if not _has_guidance_value(entry):
+                continue
+            if isinstance(entry, list):
+                rendered = "; ".join(_item_to_text(item) for item in entry[:limit] if _item_to_text(item))
+            elif isinstance(entry, dict):
+                rendered = _flatten_guidance_value(entry, limit=limit)
+            else:
+                rendered = _display(entry)
+            if rendered:
+                parts.append(f"{_readable_label(key)}: {rendered}")
+            if len(parts) >= limit:
+                break
+        return "; ".join(parts)
+    if isinstance(value, list):
+        items = [_item_to_text(item) for item in value[:limit]]
+        items = [item for item in items if item]
+        suffix = f"; altri elementi presenti: {len(value) - limit}" if len(value) > limit else ""
+        return "; ".join(items) + suffix
+    return _display(value)
+
+
+def _specialized_sections(guidance: dict[str, Any]) -> list[str]:
+    sections: list[str] = []
+    for key, value in guidance.items():
+        if key.startswith("_") or key in _STANDARD_GUIDANCE_KEYS or not _has_guidance_value(value):
+            continue
+        label = _readable_label(key)
+        rendered = _flatten_guidance_value(value, limit=12)
+        if rendered:
+            sections.append(f"{label}: {rendered}.")
+    return sections[:18]
+
+
 def _section(label: str, values: Any, *, limit: int = 24) -> str:
     if isinstance(values, dict):
         flat: list[Any] = []
@@ -245,6 +368,31 @@ def _quick_line(guidance: dict[str, Any]) -> str:
         f"allegati obbligatori: {quick.get('totale_allegati_obbligatori')}" if quick.get("totale_allegati_obbligatori") is not None else "",
     ]
     return "; ".join(part for part in parts if part)
+
+
+def _operational_reasoning_content(guidance: dict[str, Any]) -> str:
+    atto = _as_dict(guidance.get("atto_principale"))
+    deposito = _as_dict(guidance.get("codice_deposito"))
+    adempimenti = _as_list(guidance.get("adempimenti_propedeutici"))
+    allegati = _as_list(guidance.get("allegati_obbligatori"))
+    termini = _as_list(guidance.get("termini_processuali"))
+    first_step = _item_to_text(adempimenti[0]) if adempimenti else "verificare competenza, rito, parti e documenti fondativi"
+    main_act = _clean(atto.get("denominazione") or atto.get("tipo_atto") or guidance.get("denominazione"))
+    deposit_rule = (
+        "usa il codice ministeriale ufficiale già collegato alla scheda"
+        if deposito.get("depositabile")
+        else "non usare questa guida come codice di deposito e chiedi il codice ministeriale corretto nel fascicolo"
+    )
+    parts = [
+        f"1. Inquadra la pratica come {_clean(guidance.get('denominazione'))} e {deposit_rule}",
+        f"2. Parti dal primo controllo operativo: {first_step}",
+        "3. Verifica presupposti, legittimazione, competenza e condizioni di procedibilità prima di redigere",
+        f"4. Prepara l'atto principale {main_act}" if main_act else "4. Prepara l'atto principale coerente con rito e ufficio",
+        f"5. Collega gli allegati obbligatori presenti in scheda ({len(allegati)} voci) e segnala quelli mancanti",
+        f"6. Usa termini processuali ed esiti tipici come controllo finale ({len(termini)} termini censiti)",
+        "7. Mantieni distinti fatti del fascicolo, guida interna, norme citate e limiti da verificare",
+    ]
+    return "Ragionamento operativo Lex da applicare: " + "; ".join(parts) + "."
 
 
 def _fascicolo_content(fascicolo: dict[str, Any]) -> str:
@@ -307,6 +455,7 @@ def _guidance_content(
         f"Copertura: {_clean(coverage.get('level'))} - {_clean(coverage.get('message'))}." if coverage else "",
         _fascicolo_content(fascicolo or {}),
         _document_plan_content(document_plan or {}),
+        _operational_reasoning_content(guidance),
         _quick_line(guidance),
         _section("Normativa letta dalla scheda", guidance.get("normativa"), limit=28),
         _section("Tipologie di intervento", guidance.get("tipologie_di_intervento"), limit=18),
@@ -327,6 +476,7 @@ def _guidance_content(
         _section("Atti collegati", guidance.get("atti_collegati"), limit=20),
         _section("Esiti processuali tipici", guidance.get("esiti_processuali_tipici"), limit=20),
         _section("Avvertenze redazionali", guidance.get("avvertenze_redazionali"), limit=24),
+        *(_specialized_sections(guidance)),
         f"Nota integrazione: {_clean(guidance.get('nota_integrazione_iusentra'))}." if _clean(guidance.get("nota_integrazione_iusentra")) else "",
     ]
     original = _clean(guidance.get("codice_originale_ricevuto"))
@@ -367,6 +517,12 @@ def _compact_metadata(guidance: dict[str, Any]) -> dict[str, Any]:
         "guida_pratica_facoltativa": True,
         "full_guidance_available": True,
         "linguistic_profile": "conversazionale_avvocato",
+        "operational_reasoning_available": True,
+        "specialized_fields": sorted(
+            key
+            for key, value in guidance.items()
+            if not key.startswith("_") and key not in _STANDARD_GUIDANCE_KEYS and _has_guidance_value(value)
+        ),
     }
 
 

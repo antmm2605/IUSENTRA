@@ -241,7 +241,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Clienti/anagrafiche | Backend | tests/test_clienti_workflow.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Clienti/anagrafiche | Frontend/UI | tests/test_clienti.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Clienti/anagrafiche | Frontend/UI | tests/test_clienti_route_filters.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
-| Comunicazioni | RBAC | tests/test_notifiche_legali.py | 403/RBAC | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Comunicazioni | RBAC | tests/test_notifiche_legali.py | 403/RBAC, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Comunicazioni | Security | tests/test_messaggi.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Comunicazioni | Tenant isolation | tests/test_email_attachment_dedup.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Comunicazioni | Tenant isolation | tests/test_email_client.py | 403/RBAC, tenant, feature flag, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |

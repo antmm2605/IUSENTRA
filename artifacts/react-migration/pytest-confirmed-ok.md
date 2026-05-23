@@ -22,6 +22,7 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | Chrome CDP headless su runtime Flask isolato `http://127.0.0.1:5057` | OK | 6/6 controlli browser verdi su `/notifiche-legali?id_fascicolo=...&fase=notifica` e `/fascicoli/<id>#relata-notifica` in desktop/tablet/mobile; click reale verso `/portali/pst/acquisizione` con fascicolo, RG e ufficio precompilati. |
 | `python -m py_compile ...`; `python -m pytest tests\test_assistente_competencies.py tests\test_notifiche_legali.py tests\test_topbar_operational_api.py::test_topbar_today_notifications_deadlines_recent_and_timer tests\test_react_shell.py::test_react_fascicolo_relata_notifica_monitorata_in_ui_e_payload -q --tb=short` | OK | Gate finale mirato 40/40: Lex AI, dominio notifiche, notifica di sistema e sezione fascicolo Relata notifica. |
 | `git diff --check` | OK | Nessun errore whitespace; resta solo warning CRLF noto su `docs/openapi.yaml`. |
+| `python scripts\react-migration\generate_app_v2_page_registry.py --check`; `python scripts\react-migration\generate_app_v2_test_docs.py --check`; `python scripts\smoke_app_v2_all.py --subset inventory`; `python -m pytest -q tests\test_app_v2_page_registry.py tests\test_app_v2_test_plan_phase10.py tests\test_ci_cd_gates_phase11.py --tb=short` | OK | Correzione post-push del gate App V2: `docs/test-inventory.md` riallineato dopo il nuovo test Lex; smoke inventory PASS=3 e pytest App V2/CI 13/13. |
 
 ## Hotfix fascicolo anagrafiche in nuova finestra 2.248.20 - 2026-05-23
 

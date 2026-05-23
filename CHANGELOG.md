@@ -6,6 +6,7 @@
 - Conservate come alias non depositabili le schede ricevute con codice assente o non coerente con il catalogo ministeriale locale: regolamento confini, impugnazione testamento, responsabilità notaio/commercialista, tutela consumatore e azione negatoria/possessoria.
 - Aggiunti presidi di regressione per impedire che i codici ufficiali `130031`, `130032` e `180001` vengano sovrascritti da schede pratiche non coincidenti.
 - Stabilizzato `CI Quality Overlay` sul branch gemello: il checkout usa `actions/checkout@v5` e lo SHA esatto del push, evitando failure di checkout durante la sincronizzazione concorrente dei branch `Codex`/`claude`.
+- Stabilizzato anche il workflow `CI`: gli shard Python, Coverage, smoke e Local Signer scaricano lo SHA esatto del push, evitando failure di checkout su ref mobile prima dell'esecuzione dei test.
 
 ## 2.248.17 - 2026-05-22
 

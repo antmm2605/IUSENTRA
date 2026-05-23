@@ -7,6 +7,7 @@
 - Corretto il merge dei TOP9 già ricevuti: le schede iper-dettagliate non vengono più declassate dai profili automatici `kb_99`, e l'audit ora fallisce anche se un valore ricevuto viene sostituito nel servizio.
 - Estesa `GuidaPraticaSource` di Lex con ragionamento operativo e voci specialistiche della scheda, così Lex riceve anche strategie, criteri, regimi di tutela, casistiche e limiti pratici.
 - Ripulita la UI della Guida Pratica dagli alias interni `GUIDA_*`: nelle schede non depositabili l'avvocato vede un riferimento operativo interno, non l'identificativo tecnico.
+- Riallineati i workflow GitHub Actions a `actions/checkout@v4`, già usato dai workflow stabili del repository, dopo failure non applicative nello step `Checkout` dei runner GitHub prima dell'esecuzione dei test.
 
 ## 2.248.18 - 2026-05-23
 

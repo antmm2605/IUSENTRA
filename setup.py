@@ -19,6 +19,7 @@ setup(
         "pct": [
             "data/*.json",
             "data/cataloghi/*.json",
+            "data/legal_knowledge_base_modules/*.json",
             "sql/*.sql",
             "template_atti_catalogo_data/*.json",
             "legal_rules/*.yml",

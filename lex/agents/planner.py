@@ -42,4 +42,3 @@ class WorkflowAgentPlanner:
         if request.fascicolo_id and not plan.fascicolo_id:
             plan.fascicolo_id = request.fascicolo_id
         return plan
-

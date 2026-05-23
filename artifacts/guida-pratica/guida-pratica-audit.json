@@ -1,9 +1,9 @@
 {
   "ok": true,
   "coverage": {
-    "curata": 1067
+    "curata": 1072
   },
-  "catalog_size": 1067,
+  "catalog_size": 1072,
   "official_catalog_size": 1018,
   "missing_required": [],
   "official_coverage": {
@@ -16,7 +16,7 @@
   "deposit_code_coherence": {
     "ok": true,
     "incoherent": [],
-    "aliases_or_internal_count": 49,
+    "aliases_or_internal_count": 54,
     "aliases_or_internal": [
       {
         "codice": "100002",
@@ -181,14 +181,32 @@
         "depositabile": false
       },
       {
+        "codice": "GUIDA_AZIONE_NEGATORIA_SERVITU_POSSESSORIA_130031",
+        "denominazione": "Azione negatoria di servitù (art. 949 c.c.) o azioni possessorie (artt. 1168-1170 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
         "codice": "GUIDA_COMPRAVENDITA_IMMOBILIARE_RISOLUZIONE",
         "denominazione": "Risoluzione del contratto di compravendita immobiliare per inadempimento",
         "coverage": "curata",
         "depositabile": false
       },
       {
+        "codice": "GUIDA_CONSUMATORE_CLAUSOLE_VESSATORIE_180001",
+        "denominazione": "Tutela del consumatore - clausole vessatorie e nullità contrattuali (D.Lgs. 206/2005 Codice del Consumo)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
         "codice": "GUIDA_ESCLUSIONE_SOCIO_SOCIETA_PERSONE_150010",
         "denominazione": "Esclusione del socio di società di persone (art. 2286 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_IMPUGNAZIONE_TESTAMENTO_120020",
+        "denominazione": "Impugnazione del testamento (nullità, annullabilità)",
         "coverage": "curata",
         "depositabile": false
       },
@@ -201,6 +219,18 @@
       {
         "codice": "GUIDA_RECESSO_SOCIO_SRL_150003",
         "denominazione": "Recesso del socio di S.r.l. e liquidazione della quota (artt. 2473 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_REGOLAMENTO_CONFINI_130032",
+        "denominazione": "Azione di regolamento dei confini (art. 950 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RESPONSABILITA_NOTAIO_COMMERCIALISTA_143003",
+        "denominazione": "Responsabilità professionale del notaio o del commercialista",
         "coverage": "curata",
         "depositabile": false
       },

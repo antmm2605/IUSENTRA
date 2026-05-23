@@ -9,13 +9,13 @@ La Guida Pratica vive fuori dal codice applicativo:
 
 Il merge dei moduli produce un knowledge base unico, ma il catalogo ufficiale PST/XSD resta separato in `pct/data/cataloghi/codici_oggetto_pst.json`.
 
-## Risultato operativo 2.248.10
+## Risultato operativo 2.248.18
 
-- Codici nel catalogo guida: 1.054.
+- Codici nel catalogo guida: 1.072.
 - Codici ufficiali PST/XSD: 1.018.
 - Codici ufficiali con guida curata: 1.018.
 - Codici ufficiali senza guida curata: 0.
-- Schede interne o alias non depositabili: 36.
+- Schede interne o alias non depositabili: 54.
 
 Le schede interne sono mantenute per continuità dei fascicoli, ricerca e guida operativa facoltativa, ma non vengono considerate codici di deposito.
 
@@ -48,3 +48,12 @@ python -m pytest tests\test_guida_pratica_service.py tests\test_guida_pratica_ap
 ```
 
 La copertura ufficiale deve rimanere al 100%. Se un codice ufficiale entra nel catalogo senza guida curata, il validatore deve fallire e il modulo guida va completato prima del rilascio.
+
+## Aggiornamento TOP9 set5
+
+Il set ricevuto il 23 maggio 2026 è integrato nei moduli:
+
+- `pct/data/legal_knowledge_base_modules/kb_98_top9_set5_parte1.json`;
+- `pct/data/legal_knowledge_base_modules/kb_98_top9_set5_parte2.json`.
+
+Le schede coerenti con codice ufficiale restano depositabili (`411601`, `102002`, `151110`, `220020`). Le schede con codice assente o diverso dal contenuto ministeriale sono guide interne facoltative: `GUIDA_REGOLAMENTO_CONFINI_130032`, `GUIDA_IMPUGNAZIONE_TESTAMENTO_120020`, `GUIDA_RESPONSABILITA_NOTAIO_COMMERCIALISTA_143003`, `GUIDA_CONSUMATORE_CLAUSOLE_VESSATORIE_180001`, `GUIDA_AZIONE_NEGATORIA_SERVITU_POSSESSORIA_130031`.

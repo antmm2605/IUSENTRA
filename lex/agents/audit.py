@@ -32,4 +32,3 @@ def record_agent_audit(event: str, *, actor: str = "", run_id: str = "", details
         except Exception:
             pass
     return digest
-

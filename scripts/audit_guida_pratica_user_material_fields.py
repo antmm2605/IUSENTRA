@@ -5,10 +5,9 @@ import csv
 import json
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -16,7 +15,6 @@ if str(ROOT) not in sys.path:
 
 from lex.retrieval.sources.guida_pratica import _guidance_content  # noqa: E402
 from pct.guida_pratica.service import GuidaPraticaService, normalize_codice_materia  # noqa: E402
-
 
 MODULES_DIR = ROOT / "pct" / "data" / "legal_knowledge_base_modules"
 DEFAULT_REPORT = ROOT / "artifacts" / "guida-pratica" / "guida-pratica-user-material-field-audit.json"
@@ -31,6 +29,8 @@ USER_MODULE_PATTERNS = (
     "kb_98_top9_set3_parte2.json",
     "kb_98_top9_set4_parte1.json",
     "kb_98_top9_set4_parte2.json",
+    "kb_98_top9_set5_parte1.json",
+    "kb_98_top9_set5_parte2.json",
 )
 
 CONTROLLED_FIELDS: dict[str, list[list[str]]] = {
@@ -132,7 +132,7 @@ class SourceItem:
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def _load_json(path: Path) -> dict[str, Any]:

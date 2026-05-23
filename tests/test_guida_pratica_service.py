@@ -249,6 +249,37 @@ def test_top9_set2_part2_integrates_without_corrupting_official_codes():
     assert "kb_98_top9_set2_parte2.json" in (compravendita_guida.get("_source_files") or [])
 
 
+def test_top9_set5_integrates_guides_without_corrupting_official_codes():
+    service = GuidaPraticaService(kb_path=FULL_KB)
+
+    for codice in ["411601", "102002", "151110", "220020"]:
+        guida = service.get_guidance(codice)
+        assert guida["coverage"]["level"] == "curata"
+        assert guida["codice_deposito"]["depositabile"] is True
+        assert any("kb_98_top9_set5" in source for source in (guida.get("_source_files") or []))
+        assert guida["atto_principale"]["campi_obbligatori"]
+
+    aliases = {
+        "GUIDA_REGOLAMENTO_CONFINI_130032": "130032",
+        "GUIDA_IMPUGNAZIONE_TESTAMENTO_120020": "120020",
+        "GUIDA_RESPONSABILITA_NOTAIO_COMMERCIALISTA_143003": "143003",
+        "GUIDA_CONSUMATORE_CLAUSOLE_VESSATORIE_180001": "180001",
+        "GUIDA_AZIONE_NEGATORIA_SERVITU_POSSESSORIA_130031": "130031",
+    }
+    for alias, original_code in aliases.items():
+        guida = service.get_guidance(alias)
+        assert guida["coverage"]["level"] == "curata"
+        assert guida["codice_deposito"]["depositabile"] is False
+        assert guida["guida_interna_non_depositabile"] is True
+        assert guida["depositabile"] is False
+        assert guida["codice_originale_ricevuto"] == original_code
+        assert any("kb_98_top9_set5" in source for source in (guida.get("_source_files") or []))
+
+    assert service.get_guidance("130031")["denominazione"] == "Usufrutto"
+    assert service.get_guidance("130032")["denominazione"] == "Abitazione - Uso"
+    assert "ordinanza-ingiunzione" in service.get_guidance("180001")["denominazione"].lower()
+
+
 def test_fascicolo_without_code_gets_practical_suggestion_from_object():
     service = GuidaPraticaService(kb_path=FULL_KB)
 

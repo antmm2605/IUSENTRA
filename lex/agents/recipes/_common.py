@@ -87,4 +87,3 @@ def plan(
         confidence=confidence,
         warnings=warnings or [],
     )
-

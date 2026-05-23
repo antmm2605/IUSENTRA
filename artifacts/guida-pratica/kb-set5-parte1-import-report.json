@@ -1,0 +1,41 @@
+{
+    "source":  "C:\\Users\\HelpdeskCSC4\\Downloads\\files.zip::kb_top9_set5_parte1.json",
+    "destination":  "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set5_parte1.json",
+    "sha256":  "EAF00B9A0B232DA05A59A86E28E62B6AB6353228B22670C6C6DB2218844B9632",
+    "macro_area_id":  "TOP9_CODICI_FREQUENTI_SET5_PARTE1",
+    "denominazione":  "Quinto set di 9 codici - PARTE 1 di 2 (modifica condizioni separazione/divorzio, revocatoria, regolamento confini, impugnazione testamento, responsabilità amministratori SRL)",
+    "codici_materia_originali":  [
+                                     "411601",
+                                     "102002",
+                                     "130032",
+                                     "120020",
+                                     "151110"
+                                 ],
+    "codici_materia_integrati":  [
+                                     "411601",
+                                     "102002",
+                                     "GUIDA_REGOLAMENTO_CONFINI_130032",
+                                     "GUIDA_IMPUGNAZIONE_TESTAMENTO_120020",
+                                     "151110"
+                                 ],
+    "conversioni_deposito":  [
+                                 {
+                                     "codice_originale":  "130032",
+                                     "codice_integrato":  "GUIDA_REGOLAMENTO_CONFINI_130032",
+                                     "codici_ufficiali_correlati_da_valutare":  [
+                                                                                    "130111",
+                                                                                    "130001"
+                                                                                ],
+                                     "reason":  "Il codice 130032 è ufficiale, ma nel catalogo locale riguarda Abitazione - Uso; la scheda ricevuta riguarda regolamento dei confini e resta interna per non alterare il deposito."
+                                 },
+                                 {
+                                     "codice_originale":  "120020",
+                                     "codice_integrato":  "GUIDA_IMPUGNAZIONE_TESTAMENTO_120020",
+                                     "codici_ufficiali_correlati_da_valutare":  [
+                                                                                    "120001"
+                                                                                ],
+                                     "reason":  "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda viene conservata come guida pratica interna per impugnazione del testamento."
+                                 }
+                             ],
+    "termini_processuali_raw":  25
+}

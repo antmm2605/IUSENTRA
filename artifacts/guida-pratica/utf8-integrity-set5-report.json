@@ -1,0 +1,23 @@
+{
+  "checked_files": 6,
+  "error_files": 0,
+  "files": [],
+  "files_with_artifacts": 0,
+  "finished_at": "2026-05-23T11:13:22Z",
+  "no_backup_created": true,
+  "ok": true,
+  "repair_enabled": false,
+  "repaired_files": 0,
+  "roots": [
+    "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base.full.json",
+    "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set5_parte1.json",
+    "D:\\legale\\IUSENTRA\\pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set5_parte2.json",
+    "D:\\legale\\IUSENTRA\\artifacts\\guida-pratica\\kb-set5-parte1-import-report.json",
+    "D:\\legale\\IUSENTRA\\artifacts\\guida-pratica\\kb-set5-parte2-import-report.json",
+    "D:\\legale\\IUSENTRA\\artifacts\\guida-pratica\\kb-set5-structural-validation-report.json"
+  ],
+  "schema_version": "iusentra.utf8_integrity.v1",
+  "skipped_large_files": 0,
+  "started_at": "2026-05-23T11:12:35Z",
+  "unresolved_replacement_files": 0
+}

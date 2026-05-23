@@ -34,4 +34,3 @@ def mark_rejected(proposal: AgentProposal, *, actor: str, reason: str = "") -> A
     proposal.rejected_at = utc_now_iso()
     proposal.reject_reason = reason
     return proposal
-

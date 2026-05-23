@@ -1,9 +1,9 @@
 {
   "$schema": "iusentra/legal-knowledge-base/v1",
   "name": "IUSENTRA Legal Knowledge Base completa",
-  "version": "4.0.1-kb-completa",
-  "ultimo_aggiornamento": "2026-05-22",
-  "description": "Knowledge base unificata dei moduli Guida Pratica con priorità top9, addendum e alias logici legacy.",
+  "version": "4.0.2-kb-completa",
+  "ultimo_aggiornamento": "2026-05-23",
+  "description": "Knowledge base unificata dei moduli Guida Pratica con priorità top9, addendum, set5 e alias logici legacy.",
   "merge_policy": "deep_merge_with_high_priority_modules_overriding_sparse_base; no codice inventato per deposito; alias logici solo retrocompatibilità",
   "moduli": [
     {
@@ -236,6 +236,24 @@
       "macro_area_id": "completamento_codici_ufficiali_pst_xsd",
       "denominazione": "Completamento codici ufficiali PST/XSD",
       "registro": "PST_XSD",
+      "rito_prevalente": "",
+      "competenza_prevalente": "",
+      "sezione": ""
+    },
+    {
+      "file": "kb_98_top9_set5_parte1.json",
+      "macro_area_id": "TOP9_CODICI_FREQUENTI_SET5_PARTE1",
+      "denominazione": "Quinto set di 9 codici - PARTE 1 di 2 (modifica condizioni separazione/divorzio, revocatoria, regolamento confini, impugnazione testamento, responsabilità amministratori SRL)",
+      "registro": "",
+      "rito_prevalente": "",
+      "competenza_prevalente": "",
+      "sezione": ""
+    },
+    {
+      "file": "kb_98_top9_set5_parte2.json",
+      "macro_area_id": "TOP9_CODICI_FREQUENTI_SET5_PARTE2",
+      "denominazione": "Quinto set di 9 codici - PARTE 2 di 2",
+      "registro": "",
       "rito_prevalente": "",
       "competenza_prevalente": "",
       "sezione": ""
@@ -21675,14 +21693,67 @@
     },
     {
       "codice": "102002",
-      "denominazione": "Azione revocatoria ordinaria ex art. 2901 c.c.",
-      "categoria": "Azioni a tutela del credito",
-      "rito": "Rito ordinario",
+      "denominazione": "Azione revocatoria ordinaria (art. 2901 c.c.)",
+      "categoria": "Tutela del credito - conservazione della garanzia patrimoniale",
+      "rito": "Rito ordinario di cognizione",
       "normativa": [
         {
           "fonte": "c.c.",
           "articolo": "2901-2904",
           "descrizione": "Azione revocatoria ordinaria"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2901",
+          "descrizione": "Condizioni dell'azione revocatoria"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2902",
+          "descrizione": "Effetti dell'azione - inefficacia relativa"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2903",
+          "descrizione": "Prescrizione - 5 anni dall'atto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2904",
+          "descrizione": "Effetti rispetto ai subacquirenti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2740",
+          "descrizione": "Responsabilità patrimoniale del debitore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2741",
+          "descrizione": "Concorso dei creditori e cause di prelazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2643",
+          "descrizione": "Atti soggetti a trascrizione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2652 n. 5",
+          "descrizione": "Trascrizione domanda revocatoria"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2645",
+          "descrizione": "Trascrizione sentenza"
+        },
+        {
+          "fonte": "Cass. SU 9440/2004",
+          "descrizione": "Eventus damni - sufficiente la maggiore difficoltà del soddisfacimento"
+        },
+        {
+          "fonte": "Cass. SU 19234/2018",
+          "descrizione": "Consilium fraudis e scientia damni - criteri probatori"
         }
       ],
       "presupposti_sostanziali": [
@@ -21691,7 +21762,7 @@
         "Consilium fraudis se l'atto è anteriore al sorgere del credito"
       ],
       "atto_principale": {
-        "tipo_atto": "atto_citazione_revocatoria",
+        "tipo_atto": "atto_citazione_revocatoria_ordinaria",
         "campi_chiave": [
           {
             "id": "credito_revocante",
@@ -21734,11 +21805,281 @@
             "label": "Esposizione scientia damni",
             "type": "textarea",
             "required": true
+          },
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "creditore_attore",
+            "label": "Creditore attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "debitore_convenuto",
+            "label": "Debitore convenuto (LITISCONSORTE NECESSARIO)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "terzo_acquirente_convenuto",
+            "label": "Terzo acquirente convenuto (LITISCONSORTE NECESSARIO)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "eventuali_subacquirenti",
+            "label": "Eventuali subacquirenti",
+            "type": "array_persone"
+          },
+          {
+            "id": "credito_attore",
+            "label": "Credito dell'attore",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "titolo_del_credito",
+                "type": "select",
+                "options": [
+                  "sentenza_esecutiva",
+                  "decreto_ingiuntivo",
+                  "contratto_definitivo",
+                  "fattura",
+                  "scrittura_privata",
+                  "atto_pubblico",
+                  "credito_in_corso_di_accertamento_separato"
+                ]
+              },
+              {
+                "id": "estremi_titolo",
+                "type": "string"
+              },
+              {
+                "id": "importo_credito",
+                "type": "currency"
+              },
+              {
+                "id": "data_credito",
+                "type": "date",
+                "rilevante_per_anteriorita_posteriorita": true
+              },
+              {
+                "id": "scadenza",
+                "type": "date"
+              },
+              {
+                "id": "credito_anteriore_o_posteriore_all_atto",
+                "type": "select",
+                "options": [
+                  "anteriore",
+                  "posteriore_con_dolosa_preordinazione"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "atto_dispositivo_impugnato",
+            "label": "Atto dispositivo impugnato",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_atto",
+                "type": "select",
+                "required": true,
+                "options": [
+                  "compravendita",
+                  "donazione",
+                  "permuta",
+                  "costituzione_fondo_patrimoniale",
+                  "costituzione_trust",
+                  "costituzione_vincolo_destinazione_2645_ter",
+                  "conferimento_in_societa",
+                  "cessione_di_quote_societarie",
+                  "cessione_credito",
+                  "costituzione_ipoteca_volontaria",
+                  "rinuncia_eredita",
+                  "fideiussione_o_garanzia_personale",
+                  "altro_atto_dispositivo"
+                ]
+              },
+              {
+                "id": "natura",
+                "type": "select",
+                "options": [
+                  "a_titolo_oneroso",
+                  "a_titolo_gratuito"
+                ]
+              },
+              {
+                "id": "data_atto",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "data_trascrizione_se_applicabile",
+                "type": "date"
+              },
+              {
+                "id": "notaio_rogante_estremi",
+                "type": "string"
+              },
+              {
+                "id": "oggetto_dell_atto",
+                "type": "textarea"
+              },
+              {
+                "id": "corrispettivo_pattuito",
+                "type": "currency"
+              },
+              {
+                "id": "valore_di_mercato_stimato",
+                "type": "currency"
+              },
+              {
+                "id": "indizio_simulazione_per_prezzo_simbolico",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "eventus_damni",
+            "label": "Eventus damni - pregiudizio del creditore",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "descrizione_pregiudizio",
+                "type": "textarea",
+                "required": true,
+                "min_length": 300
+              },
+              {
+                "id": "patrimonio_debitore_pre_atto",
+                "type": "currency"
+              },
+              {
+                "id": "patrimonio_debitore_post_atto",
+                "type": "currency"
+              },
+              {
+                "id": "altri_beni_pignorabili_residui",
+                "type": "textarea"
+              },
+              {
+                "id": "impossibilita_o_maggior_difficolta_soddisfacimento",
+                "type": "select",
+                "options": [
+                  "impossibilita_totale",
+                  "maggior_difficolta_significativa",
+                  "incertezza_residua"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "elemento_soggettivo",
+            "label": "Elemento soggettivo dedotto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "scientia_damni_debitore",
+                "type": "object",
+                "required": true,
+                "sub_fields": [
+                  {
+                    "id": "consapevolezza_pregiudizio",
+                    "type": "boolean"
+                  },
+                  {
+                    "id": "elementi_di_prova",
+                    "type": "textarea"
+                  }
+                ]
+              },
+              {
+                "id": "conscientia_damni_terzo",
+                "type": "object",
+                "required_if": "natura_atto=oneroso",
+                "sub_fields": [
+                  {
+                    "id": "partecipazione_consapevole",
+                    "type": "boolean"
+                  },
+                  {
+                    "id": "rapporti_terzo_con_debitore",
+                    "type": "select",
+                    "options": [
+                      "coniuge",
+                      "figlio",
+                      "altro_familiare",
+                      "socio_in_affari",
+                      "estraneo"
+                    ]
+                  },
+                  {
+                    "id": "indizi_di_consapevolezza",
+                    "type": "textarea"
+                  }
+                ]
+              },
+              {
+                "id": "dolosa_preordinazione_per_crediti_posteriori",
+                "type": "textarea",
+                "required_if": "credito_posteriore_all_atto=true"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_credito_attore",
+              "dichiarazione_inefficacia_atto_2902",
+              "trascrizione_domanda_2652_n_5",
+              "trascrizione_sentenza_2645",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "richiesta_trascrizione_domanda",
+            "label": "Richiesta trascrizione domanda ex art. 2652 n. 5",
+            "type": "boolean",
+            "default": true
+          },
+          {
+            "id": "richiesta_sequestro_conservativo_parallelo",
+            "label": "Sequestro conservativo parallelo",
+            "type": "boolean"
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
           }
         ],
         "avvertimenti_obbligatori": [
-          "Termine prescrizionale 5 anni ex art. 2903 c.c."
-        ]
+          "Termine prescrizionale 5 anni ex art. 2903 c.c.",
+          "PRESCRIZIONE 5 ANNI dalla data dell'atto (art. 2903 c.c.)",
+          "LITISCONSORZIO NECESSARIO debitore + terzo acquirente",
+          "Per atti gratuiti: NON necessaria prova consapevolezza terzo",
+          "Per atti onerosi: prova della consapevolezza del terzo (conscientia damni)",
+          "Effetto della sentenza: INEFFICACIA RELATIVA (solo verso il creditore attore) art. 2902",
+          "Trascrizione domanda ex art. 2652 n. 5 per opponibilità ai subacquirenti",
+          "Termine a comparire 120 gg post-Cartabia"
+        ],
+        "denominazione": "Atto di citazione per azione revocatoria ordinaria ex art. 2901 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd"
       },
       "termini_processuali": [
         {
@@ -21747,15 +22088,269 @@
           "decorrenza": "compimento atto",
           "natura": "prescrizione",
           "norma": "art. 2903 c.c."
+        },
+        {
+          "termine": "PRESCRIZIONE AZIONE REVOCATORIA",
+          "anni": 5,
+          "decorrenza": "data atto (o scoperta se occulto)",
+          "natura": "prescrizione",
+          "norma": "art. 2903 c.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio",
+          "norma": "art. 166 c.p.c."
+        },
+        {
+          "termine": "Appello",
+          "giorni": 30,
+          "decorrenza": "notifica sentenza",
+          "natura": "perentorio"
         }
       ],
-      "_source_file": "kb_02_opposizioni_impugnazioni.json",
-      "_macro_area_id": "02_OPPOSIZIONI_IMPUGNAZIONI_LODI",
-      "_macro_area_denominazione": "Opposizioni esecutive, impugnazioni straordinarie e arbitrato",
+      "_source_file": "kb_98_top9_set5_parte1.json",
+      "_macro_area_id": "TOP9_CODICI_FREQUENTI_SET5_PARTE1",
+      "_macro_area_denominazione": "Quinto set di 9 codici - PARTE 1 di 2 (modifica condizioni separazione/divorzio, revocatoria, regolamento confini, impugnazione testamento, responsabilità amministratori SRL)",
       "_registro": "SICID",
       "_quality_hint": "operativa_curata",
       "_source_files": [
-        "kb_02_opposizioni_impugnazioni.json"
+        "kb_02_opposizioni_impugnazioni.json",
+        "kb_98_top9_set5_parte1.json"
+      ],
+      "sottocategoria": "Azione del creditore per dichiarare inefficaci nei suoi confronti gli atti dispositivi del debitore che pregiudicano la garanzia",
+      "competenza": "Tribunale (per valore > 5.000 €) - foro generale del convenuto debitore (artt. 18-19 c.p.c.) o foro speciale dell'atto impugnato",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "presupposti_sostanziali_art_2901": [
+        "CREDITO dell'attore verso il debitore (anche anteriore o posteriore all'atto - per posteriore: dolosa preordinazione)",
+        "ATTO DISPOSITIVO del debitore (alienazione, costituzione di gravami, cessione di crediti, transazione gratuita, fideiussione, ecc.)",
+        "EVENTUS DAMNI: pregiudizio alle ragioni del creditore (l'atto rende più difficile o impossibile il soddisfacimento)",
+        "Per atti A TITOLO ONEROSO: CONSCIENTIA DAMNI nel terzo + SCIENTIA DAMNI nel debitore",
+        "Per atti A TITOLO GRATUITO: sufficiente la sola SCIENTIA DAMNI del debitore (nessuna prova sul terzo)",
+        "Per atti POSTERIORI al credito: dolosa preordinazione del debitore"
+      ],
+      "atti_tipici_revocabili": [
+        "Compravendita (specie per prezzo simbolico o tra parenti)",
+        "Donazione (atto gratuito - più facile da revocare)",
+        "Costituzione di fondo patrimoniale",
+        "Costituzione di trust",
+        "Conferimenti in società",
+        "Cessione di crediti",
+        "Costituzione di ipoteca volontaria (a favore di un creditore)",
+        "Rinuncia all'eredità",
+        "Cessione di quote societarie",
+        "Costituzione di vincoli di destinazione ex art. 2645-ter"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": "Solo se l'atto impugnato riguarda materie ex art. 5 c. 1-bis D.Lgs. 28/2010 (es. condominio, contratti bancari)",
+        "valutazione_caso_per_caso": true,
+        "in_generale": "Per revocatoria pura: non obbligatoria"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE DEL CREDITO",
+          "documenti": [
+            "Titolo del credito (sentenza, decreto ingiuntivo, contratto, fattura, atto pubblico)",
+            "Eventuale prescrizione del credito (verifica)",
+            "Data certa del credito (per stabilire se anteriore o posteriore all'atto)"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "INDIVIDUAZIONE DELL'ATTO DISPOSITIVO",
+          "documenti": [
+            "Atto notarile (rogito) di alienazione/donazione/costituzione gravami",
+            "Note di trascrizione",
+            "Visure catastali e ispezioni Conservatoria",
+            "Per cessioni di crediti: contratto di cessione + comunicazione al ceduto",
+            "Per atti societari: visure CCIAA + atti notarili"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "PROVA DELL'EVENTUS DAMNI",
+          "elementi": [
+            "Visura patrimoniale debitore PRE atto (per dimostrare consistenza)",
+            "Visura patrimoniale debitore POST atto (per dimostrare impoverimento)",
+            "Indagini patrimoniali (Sister Agenzia Entrate, anagrafe rapporti finanziari)",
+            "Sufficienza secondo Cass. SU 9440/2004: anche solo MAGGIORE DIFFICOLTÀ del soddisfacimento"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "PROVA DELL'ELEMENTO SOGGETTIVO",
+          "per_atti_onerosi": [
+            "Scientia damni del debitore (consapevolezza del pregiudizio)",
+            "Conscientia damni del terzo (partecipazione consapevole)",
+            "Elementi: rapporti familiari/economici tra le parti, prezzo simbolico, contestualità con manifestazione del credito"
+          ],
+          "per_atti_gratuiti": [
+            "Solo scientia damni del debitore",
+            "Il terzo non è tutelato neanche se in buona fede"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "VERIFICA TERMINE PRESCRIZIONALE 5 ANNI ex art. 2903",
+          "decorrenza": "Dalla data dell'atto (per atti pubblicati) o dalla scoperta (per atti occulti)",
+          "criticita": "MASSIMA"
+        },
+        {
+          "step": 6,
+          "descrizione": "TRASCRIZIONE DOMANDA EX ART. 2652 N. 5 c.c.",
+          "vantaggio": "Opponibilità a subacquirenti dell'atto impugnato"
+        },
+        {
+          "step": 7,
+          "descrizione": "Valutazione SEQUESTRO CONSERVATIVO ex art. 671 c.p.c. (parallelo)",
+          "presupposti": "Fumus + periculum sulla perdita garanzia patrimoniale",
+          "codice_correlato": "011001"
+        }
+      ],
+      "allegati_obbligatori": [
+        {
+          "id": "titolo_del_credito",
+          "label": "Titolo del credito (sentenza, DI, contratto, fattura)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "atto_dispositivo_impugnato",
+          "label": "Copia dell'atto dispositivo impugnato (rogito notarile)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "nota_trascrizione_atto",
+          "label": "Nota di trascrizione dell'atto (se applicabile)",
+          "required": true
+        },
+        {
+          "id": "visure_patrimoniali_debitore_pre_atto",
+          "label": "Visure patrimoniali del debitore PRE atto",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "visure_patrimoniali_debitore_post_atto",
+          "label": "Visure patrimoniali del debitore POST atto",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_indagini_492_bis",
+          "label": "Documentazione indagini ex art. 492-bis c.p.c. (anagrafe tributaria, rapporti finanziari)",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_rapporti_debitore_terzo",
+          "label": "Documentazione sui rapporti tra debitore e terzo acquirente",
+          "required_if": "atto_oneroso=true",
+          "critico_per_conscientia": true
+        },
+        {
+          "id": "perizia_estimativa_valore_oggetto_atto",
+          "label": "Perizia estimativa del valore dell'oggetto dell'atto",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "stato_famiglia_storico",
+          "label": "Stato di famiglia storico (per verificare rapporti familiari)",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore dell'atto impugnato o del credito (il maggiore)",
+        "marca_bollo_forfettaria": 27.0,
+        "tasse_trascrizione_domanda": "Imposta ipotecaria fissa + tasse",
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "trascrizione_domanda_2652_n_5",
+          "trigger": "Opponibilità a subacquirenti",
+          "norma": "art. 2652 n. 5 c.c."
+        },
+        {
+          "tipo": "ricorso_sequestro_conservativo_671",
+          "trigger": "Pericolo dispersione ulteriore",
+          "automatico": false,
+          "codice_correlato": "011001"
+        },
+        {
+          "tipo": "comparsa_costituzione_convenuti",
+          "trigger": "Costituzione convenuti",
+          "termine": "70 gg prima udienza"
+        },
+        {
+          "tipo": "ctu_estimativa_e_patrimoniale",
+          "trigger": "Disposta dal giudice",
+          "automatico": false
+        },
+        {
+          "tipo": "sentenza_dichiarativa_inefficacia",
+          "trigger": "Esito accoglimento",
+          "norma": "art. 2902 c.c."
+        },
+        {
+          "tipo": "pignoramento_su_bene_oggetto_atto_revocato",
+          "trigger": "Sentenza definitiva di accoglimento",
+          "automatico": false,
+          "codice_correlato": "510002/620001"
+        },
+        {
+          "tipo": "azione_revocatoria_concorsuale",
+          "trigger": "Eventuale parallela in procedura concorsuale",
+          "norma": "artt. 166 e ss. CCII"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_inefficacia_atto",
+          "descrizione": "Dichiarazione di inefficacia dell'atto verso il creditore + possibilità di esecuzione su bene"
+        },
+        {
+          "esito": "rigetto_per_assenza_eventus_damni",
+          "descrizione": "Patrimonio residuo del debitore sufficiente"
+        },
+        {
+          "esito": "rigetto_per_assenza_elemento_soggettivo",
+          "descrizione": "Non provata scientia/conscientia damni"
+        },
+        {
+          "esito": "rigetto_per_prescrizione_5_anni",
+          "descrizione": "Decorso termine quinquennale"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo (es. cessione bene al creditore o pagamento del credito)"
+        }
+      ],
+      "_duplicate_sources": [
+        "kb_98_top9_set5_parte1.json"
       ]
     },
     {
@@ -114777,9 +115372,9 @@
     },
     {
       "codice": "151110",
-      "denominazione": "Cause di responsabilità contro gli organi amministrativi e di controllo",
-      "categoria": "Responsabilità organi sociali",
-      "competenza": "Sezione specializzata in materia di impresa",
+      "denominazione": "Azione di responsabilità contro gli amministratori di S.r.l. (artt. 2476 c.c.)",
+      "categoria": "Diritto societario - responsabilità amministratori",
+      "competenza": "TRIBUNALE SEZIONE SPECIALIZZATA IN MATERIA DI IMPRESA (D.L. 1/2012); foro della sede sociale (art. 19 c.p.c.)",
       "normativa": [
         {
           "fonte": "c.c.",
@@ -114795,10 +115390,61 @@
           "fonte": "c.c.",
           "articolo": "2476",
           "descrizione": "Responsabilità amministratori S.r.l."
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2476",
+          "descrizione": "Responsabilità degli amministratori SRL - azione sociale (anche del singolo socio) + azione individuale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2392",
+          "descrizione": "Responsabilità verso la società (SPA - applicabile analogicamente)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2394",
+          "descrizione": "Responsabilità verso i creditori sociali (per SPA, applicabile estensivamente)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2476 c. 7",
+          "descrizione": "Responsabilità verso i creditori SRL (introdotta da CCII)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2475-ter",
+          "descrizione": "Operazioni in conflitto di interessi - SRL"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2477",
+          "descrizione": "Controlli e sindaco unico"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2486",
+          "descrizione": "Conservazione integrità patrimoniale - causa scioglimento"
+        },
+        {
+          "fonte": "D.Lgs. 14/2019 (CCII)",
+          "descrizione": "Codice della Crisi - introdotti art. 2476 c. 7 e modifiche"
+        },
+        {
+          "fonte": "D.L. 1/2012",
+          "descrizione": "Sezioni specializzate impresa"
+        },
+        {
+          "fonte": "Cass. SU 1641/2017",
+          "descrizione": "Onere prova in azione responsabilità amministratori - quantum"
+        },
+        {
+          "fonte": "Cass. 18762/2022",
+          "descrizione": "Quantificazione danno per perdita patrimoniale"
         }
       ],
       "atto_principale": {
-        "tipo_atto": "atto_citazione_responsabilita_amministratori",
+        "tipo_atto": "atto_citazione_responsabilita_amministratori_srl",
         "campi_chiave": [
           {
             "id": "societa",
@@ -114840,16 +115486,484 @@
             "id": "delibera_assemblea_autorizzazione",
             "label": "Delibera assembleare di esercizio azione (per 2393)",
             "type": "string"
+          },
+          {
+            "id": "tribunale",
+            "label": "Tribunale - sezione impresa",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "label": "Attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_attore",
+                "type": "select",
+                "options": [
+                  "singolo_socio_per_azione_sociale",
+                  "societa_su_delibera_assembleare",
+                  "singolo_socio_azione_individuale",
+                  "terzo_danneggiato_azione_individuale",
+                  "creditori_sociali_azione_2476_c_7"
+                ]
+              },
+              {
+                "id": "cognome_nome_o_denominazione",
+                "type": "string"
+              },
+              {
+                "id": "qualita_specifica",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "amministratori_convenuti",
+            "label": "Amministratori convenuti",
+            "type": "array_persone",
+            "required": true,
+            "min_items": 1,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "codice_fiscale",
+                "type": "string"
+              },
+              {
+                "id": "carica_ricoperta",
+                "type": "select",
+                "options": [
+                  "amministratore_unico",
+                  "presidente_cda",
+                  "amministratore_delegato",
+                  "membro_cda",
+                  "amministratore_di_fatto"
+                ]
+              },
+              {
+                "id": "data_inizio_carica",
+                "type": "date"
+              },
+              {
+                "id": "data_fine_carica",
+                "type": "date"
+              }
+            ]
+          },
+          {
+            "id": "societa_interessata",
+            "label": "Società S.r.l. (litisconsorte necessario nell'azione sociale)",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "eventuali_sindaci_revisori_convenuti",
+            "label": "Eventuali sindaci/revisori convenuti",
+            "type": "array_persone"
+          },
+          {
+            "id": "tipo_azione",
+            "label": "Tipo di azione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "sociale_2476_c_1_3_per_danni_alla_societa",
+              "individuale_2476_c_6_per_danni_diretti_al_socio_o_terzo",
+              "creditori_sociali_2476_c_7"
+            ]
+          },
+          {
+            "id": "condotte_dedotte",
+            "label": "Condotte di mala gestio dedotte",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipologie",
+                "type": "select_multi",
+                "required": true,
+                "options": [
+                  "distrazione_fondi_sociali",
+                  "operazioni_in_conflitto_interessi_non_dichiarate",
+                  "prelievi_indebiti_da_conto_societario",
+                  "omessa_convocazione_assemblea_perdita_capitale",
+                  "prosecuzione_attivita_in_violazione_2486",
+                  "violazioni_fiscali_con_danno_societa",
+                  "operazioni_straordinarie_dannose",
+                  "vendita_beni_sociali_a_prezzo_inferiore",
+                  "fideiussioni_o_garanzie_indebite",
+                  "omissione_cautele_conservazione_patrimonio",
+                  "violazione_obblighi_informativi",
+                  "altra_mala_gestio"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 800
+              },
+              {
+                "id": "periodo_condotte",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "data_inizio",
+                    "type": "date"
+                  },
+                  {
+                    "id": "data_fine",
+                    "type": "date"
+                  }
+                ]
+              },
+              {
+                "id": "norme_specifiche_violate",
+                "type": "array"
+              }
+            ]
+          },
+          {
+            "id": "danno_richiesto",
+            "label": "Danno richiesto",
+            "type": "object_complesso",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_danno",
+                "type": "select_multi",
+                "options": [
+                  "danno_emergente_distrazioni",
+                  "perdita_di_valore_societa",
+                  "differenziale_patrimoniale",
+                  "perdita_chance",
+                  "danno_da_prosecuzione_attivita_dannosa",
+                  "danno_reputazionale",
+                  "danno_da_sanzioni_fiscali_o_amministrative"
+                ]
+              },
+              {
+                "id": "quantificazione_dettagliata",
+                "type": "textarea",
+                "min_length": 300
+              },
+              {
+                "id": "metodo_calcolo",
+                "type": "select",
+                "options": [
+                  "analitico_per_singole_operazioni",
+                  "differenziale_patrimonio_pre_post",
+                  "perdite_incrementali_accumulate",
+                  "equitativa"
+                ]
+              },
+              {
+                "id": "totale_richiesto",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "richiesta_sequestro_conservativo_parallelo",
+            "label": "Richiesta sequestro conservativo parallelo",
+            "type": "boolean",
+            "fortemente_consigliato_per_efficacia": true
+          },
+          {
+            "id": "richiesta_revoca_giudiziale_amministratore_2476_c_3",
+            "label": "Richiesta di revoca giudiziale dell'amministratore ex art. 2476 c. 3",
+            "type": "boolean"
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
           }
+        ],
+        "denominazione": "Atto di citazione per azione di responsabilità contro amministratori S.r.l. ex art. 2476 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "avvertimenti_obbligatori": [
+          "AZIONE SOCIALE può essere esercitata dal SINGOLO SOCIO senza delibera assembleare",
+          "Litisconsorzio con la società in caso di azione sociale",
+          "Possibilità di richiesta REVOCA GIUDIZIALE amministratore ex 2476 c. 3 in via cautelare",
+          "Prescrizione: 5 anni dalla cessazione carica (analogia art. 2941 n. 7)",
+          "Onere prova del danno e nesso causale sull'attore (Cass. SU 1641/2017)",
+          "Sezione specializzata impresa (D.L. 1/2012)"
         ]
       },
-      "_source_file": "kb_06_societario_industriale_fallimentare.json",
-      "_macro_area_id": "06_SOCIETARIO_INDUSTRIALE_FALLIMENTARE",
-      "_macro_area_denominazione": "Diritto societario, industriale e procedure concorsuali - contenzioso",
+      "_source_file": "kb_98_top9_set5_parte1.json",
+      "_macro_area_id": "TOP9_CODICI_FREQUENTI_SET5_PARTE1",
+      "_macro_area_denominazione": "Quinto set di 9 codici - PARTE 1 di 2 (modifica condizioni separazione/divorzio, revocatoria, regolamento confini, impugnazione testamento, responsabilità amministratori SRL)",
       "_registro": "SICID",
       "_quality_hint": "operativa_curata",
       "_source_files": [
-        "kb_06_societario_industriale_fallimentare.json"
+        "kb_06_societario_industriale_fallimentare.json",
+        "kb_98_top9_set5_parte1.json"
+      ],
+      "sottocategoria": "Azione sociale e individuale del socio per danni causati dagli amministratori",
+      "rito": "Rito ordinario di cognizione",
+      "uffici_destinatari": [
+        "SICID - sezione impresa"
+      ],
+      "tipologie_di_azione": [
+        "AZIONE SOCIALE (art. 2476 c. 1-3): per danni causati al patrimonio della società - può essere esercitata anche dal SINGOLO SOCIO (in nome e per conto della società)",
+        "AZIONE INDIVIDUALE del socio o del terzo (art. 2476 c. 6): per danni diretti al patrimonio personale del socio/terzo (es. svalutazione quota)",
+        "AZIONE DEI CREDITORI (art. 2476 c. 7, post CCII): per inosservanza obblighi di conservazione integrità patrimoniale - in caso di insufficienza del patrimonio"
+      ],
+      "presupposti_sostanziali_azione_sociale": [
+        "QUALITÀ DI AMMINISTRATORE del convenuto al momento delle condotte (anche amministratori di fatto - Cass. costante)",
+        "INADEMPIMENTO degli obblighi di gestione: violazione di legge, dello statuto, dovere di diligenza, conflitto interessi",
+        "DANNO al patrimonio della società",
+        "NESSO DI CAUSALITÀ tra inadempimento e danno",
+        "LEGITTIMAZIONE ATTIVA: la SOCIETÀ stessa (su delibera di soci) o SINGOLO SOCIO (in proprio per conto della società)"
+      ],
+      "condotte_tipiche_responsabilita": [
+        "MALA GESTIO (gestione contraria a diligenza/correttezza): operazioni in conflitto, distrazioni di fondi, prelievi indebiti",
+        "OMESSA CONVOCAZIONE ASSEMBLEA per cause di scioglimento o perdita capitale",
+        "PROSECUZIONE ATTIVITÀ A DESTRA SOCIETARIA NON LIQUIDATA (in violazione 2486)",
+        "VIOLAZIONE OBBLIGHI INFORMATIVI verso soci e creditori",
+        "CONFLITTO DI INTERESSI non dichiarato (art. 2475-ter)",
+        "OPERAZIONI SUI BENI SOCIALI per utilità personale",
+        "VIOLAZIONI FISCALI con conseguenze sanzionatorie sulla società",
+        "OMESSE CAUTELE per la conservazione integrità patrimoniale (CCII)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "tentativo_facoltativo": "Conciliazione presso CCIAA o organismi specializzati - facoltativa"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VERIFICA QUALITÀ DI SOCIO o LEGITTIMAZIONE",
+          "documenti": [
+            "Visura camerale aggiornata",
+            "Atto costitutivo + statuto",
+            "Atti di acquisto della partecipazione (per soci)",
+            "Per azione individuale: documentazione del danno personale"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DELLE CONDOTTE DEGLI AMMINISTRATORI",
+          "fonti": [
+            "Bilanci ultimi anni (con eventuali poste anomale)",
+            "Verbali assemblee soci",
+            "Verbali consiglio di amministrazione",
+            "Documentazione bancaria/contabile",
+            "Eventuali relazioni del revisore o sindaco unico",
+            "Verbali ispezione GdF/Agenzia Entrate",
+            "Eventuali atti di indagine penale",
+            "Operazioni straordinarie compiute"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "QUANTIFICAZIONE DEL DANNO",
+          "metodologia": [
+            "Per distrazioni: somma sottratta + interessi",
+            "Per operazioni dannose: differenziale tra patrimonio prima e dopo",
+            "Per prosecuzione attività dannosa: perdite incrementali accumulate (criterio Cass. costante)",
+            "Eventuale perdita di chance",
+            "Danno reputazionale (più raro)"
+          ],
+          "criterio_cass_su_1641_2017": "Onere prova del danno e del quantum sull'attore - ammessa anche prova per presunzioni"
+        },
+        {
+          "step": 4,
+          "descrizione": "IDENTIFICAZIONE DEGLI AMMINISTRATORI RESPONSABILI",
+          "elementi": [
+            "Amministratore unico, presidente CDA, amministratori delegati",
+            "Eventuali amministratori di fatto",
+            "Periodi di carica (per imputazione condotte)",
+            "Eventuali sindaci o revisori (per profili di responsabilità connessa)"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "Per AZIONE SOCIALE: verificare se ESERCITARE in proprio (singolo socio) o sollecitare DELIBERAZIONE assembleare",
+          "vantaggi_azione_socio": "Non necessaria delibera assembleare - può essere proposta anche dal socio singolo (art. 2476 c. 3)"
+        },
+        {
+          "step": 6,
+          "descrizione": "Valutazione SEQUESTRO CONSERVATIVO ex art. 671 c.p.c.",
+          "presupposti": "Fumus + periculum - rilevante per garantire l'esecutività della sentenza",
+          "codice_correlato": "011001"
+        }
+      ],
+      "allegati_obbligatori": [
+        {
+          "id": "visura_camerale_societa_storica",
+          "label": "Visura camerale storica della società",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "atto_costitutivo_e_statuto",
+          "label": "Atto costitutivo e statuto",
+          "required": true
+        },
+        {
+          "id": "bilanci_ultimi_anni",
+          "label": "Bilanci ultimi 3-5 anni",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "verbali_assemblee_e_cda",
+          "label": "Verbali assemblee e CDA del periodo rilevante",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_bancaria_contabile",
+          "label": "Estratti conto societari, documentazione contabile",
+          "required": true
+        },
+        {
+          "id": "documentazione_specifica_condotte_dedotte",
+          "label": "Documentazione specifica delle condotte di mala gestio",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "eventuali_relazioni_sindaco_revisore",
+          "label": "Relazioni del sindaco/revisore",
+          "required": false,
+          "rilevante": true
+        },
+        {
+          "id": "eventuale_documentazione_indagini_penali_o_fiscali",
+          "label": "Documentazione di indagini penali/fiscali correlate",
+          "required": false,
+          "rilevante": true
+        },
+        {
+          "id": "atti_di_acquisto_partecipazione_attore",
+          "label": "Atti di acquisto partecipazione dell'attore (per legittimazione)",
+          "required_if": "attore=socio"
+        },
+        {
+          "id": "perizia_contabile_di_parte",
+          "label": "Perizia contabile di parte per quantificazione danno",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore del danno richiesto - scaglione ordinario + maggiorazione sezione impresa",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ricorso_revoca_giudiziale_amministratore_2476_c_3",
+          "trigger": "Tutela cautelare per evitare ulteriori condotte",
+          "automatico": false
+        },
+        {
+          "tipo": "ricorso_sequestro_conservativo_671",
+          "trigger": "Garanzia esecutività sentenza",
+          "codice_correlato": "011001"
+        },
+        {
+          "tipo": "ctu_contabile_aziendale",
+          "trigger": "Per quantificazione danno",
+          "automatico": false,
+          "centrale": true
+        },
+        {
+          "tipo": "comparsa_costituzione_amministratori",
+          "trigger": "Costituzione convenuti",
+          "termine": "70 gg prima udienza"
+        },
+        {
+          "tipo": "chiamata_in_garanzia_assicurazione_D_O",
+          "trigger": "Polizza Directors & Officers - copertura assicurativa",
+          "automatico": false
+        },
+        {
+          "tipo": "azione_responsabilita_sindaci_revisori",
+          "trigger": "Eventuale responsabilità connessa",
+          "automatico": false
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_pieno_e_condanna_amministratori",
+          "descrizione": "Condanna amministratori al pagamento del danno"
+        },
+        {
+          "esito": "accoglimento_parziale",
+          "descrizione": "Riconoscimento di parte delle condotte, riduzione del quantum"
+        },
+        {
+          "esito": "rigetto_per_assenza_mala_gestio",
+          "descrizione": "Condotte conformi al business judgement rule"
+        },
+        {
+          "esito": "rigetto_per_assenza_danno_o_nesso",
+          "descrizione": "Non provato quantum o causalità"
+        },
+        {
+          "esito": "rigetto_per_prescrizione",
+          "descrizione": "Decorso quinquennio dalla cessazione carica"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo - molto frequente specie con coinvolgimento assicurazione D&O"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione azione sociale",
+          "anni": 5,
+          "decorrenza": "cessazione carica (analogia 2941 n. 7) o conoscenza del danno",
+          "natura": "prescrizione"
+        },
+        {
+          "termine": "Prescrizione azione individuale 2476 c. 6",
+          "anni": 5,
+          "decorrenza": "atto pregiudizievole",
+          "natura": "prescrizione"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        },
+        {
+          "termine": "Appello",
+          "giorni": 30,
+          "decorrenza": "notifica sentenza",
+          "natura": "perentorio"
+        }
+      ],
+      "_duplicate_sources": [
+        "kb_98_top9_set5_parte1.json"
       ]
     },
     {
@@ -185708,25 +186822,27 @@
     },
     {
       "codice": "220020",
-      "denominazione": "categoria e qualifica",
-      "categoria": "Lavoro e previdenza",
-      "_source_file": "kb_99_completamento_codici_ufficiali.json",
-      "_macro_area_id": "completamento_codici_ufficiali_pst_xsd",
-      "_macro_area_denominazione": "Completamento codici ufficiali PST/XSD",
+      "denominazione": "Differenze retributive e riconoscimento qualifica superiore (mansioni superiori - art. 2103 c.c.)",
+      "categoria": "Lavoro - retribuzione e inquadramento",
+      "_source_file": "kb_98_top9_set5_parte2.json",
+      "_macro_area_id": "TOP9_CODICI_FREQUENTI_SET5_PARTE2",
+      "_macro_area_denominazione": "Quinto set di 9 codici - PARTE 2 di 2",
       "_registro": "PST_XSD",
       "_quality_hint": "operativa_curata",
       "_source_files": [
         "kb_13_lavoro_previdenza.json",
-        "kb_99_completamento_codici_ufficiali.json"
+        "kb_99_completamento_codici_ufficiali.json",
+        "kb_98_top9_set5_parte2.json"
       ],
       "denominazione_ufficiale_pst": "",
-      "sottocategoria": "Lavoro dipendente da privato",
-      "rito": "Rito del lavoro",
-      "competenza": "Da verificare in base a ufficio, valore, materia, foro speciale e fase processuale.",
+      "sottocategoria": "Azione del lavoratore per riconoscimento qualifica superiore e relative differenze retributive",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro - foro della sede di lavoro (art. 413 c.p.c.)",
       "uffici_destinatari": [
         "SICID",
         "CASSAZIONE",
-        "UNEP"
+        "UNEP",
+        "SICID-Lavoro / SILP"
       ],
       "catalogo_pst_xsd": {
         "codice": "220020",
@@ -185767,6 +186883,43 @@
           "articolo": "1 ss.",
           "descrizione": "Sospensione feriale dei termini processuali, salvo esclusioni o regimi speciali.",
           "source_registry_key": "normattiva_l742_1969"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2103",
+          "descrizione": "Mansioni del lavoratore - diritto al mantenimento mansioni equivalenti / promozione automatica mansioni superiori"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2099",
+          "descrizione": "Retribuzione - principio della corrispondenza alle mansioni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2126",
+          "descrizione": "Prestazione di fatto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2948 n. 4",
+          "descrizione": "Prescrizione quinquennale per crediti retributivi"
+        },
+        {
+          "fonte": "L. 533/1973",
+          "descrizione": "Disciplina controversie individuali di lavoro"
+        },
+        {
+          "fonte": "D.Lgs. 81/2015",
+          "articolo": "3",
+          "descrizione": "Modifica art. 2103 c.c. - flessibilità mansioni"
+        },
+        {
+          "fonte": "Cass. SU 25033/2006",
+          "descrizione": "Promozione automatica - termine 3 mesi (per i contratti pre D.Lgs. 81/2015)"
+        },
+        {
+          "fonte": "Cass. 5226/2024",
+          "descrizione": "Onere prova mansioni superiori - elementi qualitativi e quantitativi"
         }
       ],
       "presupposti_sostanziali": [
@@ -185784,7 +186937,13 @@
           "testo": "Prima dell'atto verificare prescrizione, decadenza, mediazione/negoziazione o altra condizione di procedibilità eventualmente applicabile.",
           "profilo": "lavoro_previdenza",
           "curato_da": "codex"
-        }
+        },
+        "RAPPORTO DI LAVORO SUBORDINATO in corso o cessato",
+        "ASSEGNAZIONE EFFETTIVA A MANSIONI SUPERIORI al livello contrattuale di inquadramento",
+        "CONTINUITÀ E SISTEMATICITÀ dello svolgimento delle mansioni superiori (non sporadiche o di mera sostituzione)",
+        "Per PROMOZIONE AUTOMATICA ex art. 2103 c.c. (post D.Lgs. 81/2015): mansioni superiori per oltre 6 MESI (salvo accordo individuale o diversa previsione CCNL) - DIRITTO ALL'INQUADRAMENTO SUPERIORE",
+        "Per DIFFERENZE RETRIBUTIVE: anche meno di 6 mesi, comunque diritto alla retribuzione delle mansioni superiori per il periodo svolto (art. 2103)",
+        "Identificazione del LIVELLO SUPERIORE secondo CCNL applicato + relativa retribuzione"
       ],
       "adempimenti_propedeutici": [
         {
@@ -185816,12 +186975,79 @@
           "azione": "Prima del deposito controllare busta, firma, DatiAtto.xml, contributo unificato e ricevute.",
           "obbligatorio": true,
           "profilo": "lavoro_previdenza"
+        },
+        {
+          "step": 1,
+          "descrizione": "Acquisizione DOCUMENTAZIONE DEL RAPPORTO DI LAVORO",
+          "documenti": [
+            "Contratto di lavoro originario + eventuali integrazioni",
+            "CCNL applicato (con declaratorie dei livelli)",
+            "Buste paga di tutto il periodo (per calcolo differenze)",
+            "Mansionario aziendale (se esistente)",
+            "Eventuali comunicazioni di cambio mansioni",
+            "Organigramma aziendale"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "RICOSTRUZIONE DELLE MANSIONI EFFETTIVAMENTE SVOLTE",
+          "elementi": [
+            "Descrizione dettagliata attività quotidiane",
+            "Responsabilità decisionali (autonomia, gestione persone, gestione risorse)",
+            "Periodo di assegnazione (date precise inizio mansioni superiori)",
+            "Continuità e sistematicità",
+            "Eventuali documenti che provano l'assegnazione: mail, organigrammi, ordini di servizio, deleghe, procure"
+          ],
+          "rilevanza": "PROVA CRITICA - dimostrazione concreta delle mansioni superiori"
+        },
+        {
+          "step": 3,
+          "descrizione": "CONFRONTO CON DECLARATORIE CCNL",
+          "metodologia": [
+            "Identificare il LIVELLO ATTUALE di inquadramento del lavoratore",
+            "Identificare il LIVELLO SUPERIORE rivendicato",
+            "Confrontare le DECLARATORIE CCNL (descrizioni qualitative di ciascun livello)",
+            "Dimostrare che le mansioni svolte rientrano nella declaratoria del livello superiore"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VERIFICA REQUISITI PER PROMOZIONE AUTOMATICA",
+          "criteri": [
+            "Durata: oltre 6 mesi continuativi (per regime post 2015)",
+            "Continuità: non interrotta da rientro alle mansioni originarie",
+            "Esclusioni: sostituzioni temporanee di altro lavoratore assente (ferie, malattia), assegnazioni dichiaratamente temporanee"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "QUANTIFICAZIONE DIFFERENZE RETRIBUTIVE",
+          "metodologia": [
+            "Per ciascun mese del periodo: differenza tra retribuzione livello superiore (CCNL) e retribuzione effettivamente percepita",
+            "Considerare tutti gli elementi retributivi (paga base + scatti + indennità + 13a/14a + TFR maturato)",
+            "Aggiungere interessi legali e rivalutazione monetaria (per crediti retributivi - art. 429 c.p.c.)",
+            "Calcolo del PERIODO PRESCRIZIONALE: 5 anni dalla maturazione di ciascuna mensilità (art. 2948 n. 4)"
+          ]
+        },
+        {
+          "step": 6,
+          "descrizione": "VERIFICA TERMINE PRESCRIZIONALE",
+          "regola_generale": "Prescrizione quinquennale per crediti retributivi (art. 2948 n. 4)",
+          "decorrenza": [
+            "Per lavoratore in stabilità reale (art. 18): prescrizione decorre dalla maturazione di ciascuna mensilità",
+            "Per lavoratore senza stabilità reale: prescrizione decorre dalla cessazione del rapporto (Cass. SU 7115/2022)"
+          ]
+        },
+        {
+          "step": 7,
+          "descrizione": "Tentativo di CONCILIAZIONE ITL (facoltativa)",
+          "vantaggio": "Risparmio costi e tempi, transazione retributiva con valore di titolo esecutivo"
         }
       ],
       "atto_principale": {
-        "tipo_atto": "ricorso_lavoro_previdenza",
-        "denominazione": "categoria e qualifica",
-        "schema_xsd_ministeriale": "XSD_SICI_20260116/XSD_SICI_20260116/Atti/sici/tipi-base.xsd",
+        "tipo_atto": "ricorso_riconoscimento_qualifica_superiore",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per riconoscimento di qualifica superiore e differenze retributive",
+        "schema_xsd_ministeriale": "AttoLavoro.xsd",
         "struttura_obbligatoria": [
           {
             "sezione": "Intestazione",
@@ -185926,7 +187152,202 @@
           "Usa i dati già acquisiti nel fascicolo; non duplicare cliente, parti, ufficio, valore, preventivo, incarico o parcella.",
           "Prima del deposito conferma codice oggetto PST/XSD, registro, rito, atto principale e allegati.",
           "Non usare il codice oggetto se il petitum o il registro del fascicolo non coincidono con la descrizione PST/XSD.",
-          "Verificare sempre eventuali prassi dell'ufficio e aggiornamenti ministeriali prima del deposito."
+          "Verificare sempre eventuali prassi dell'ufficio e aggiornamenti ministeriali prima del deposito.",
+          "Prescrizione quinquennale per crediti retributivi (art. 2948 n. 4 c.c.)",
+          "Promozione automatica: 6 mesi per regime post D.Lgs. 81/2015 (3 mesi per pre-riforma)",
+          "Costituzione datore 10 gg prima udienza con decadenze (art. 416)",
+          "Onere prova mansioni effettivamente svolte sul lavoratore",
+          "Rivalutazione monetaria e interessi automatici ex art. 429 c.p.c. per crediti di lavoro"
+        ],
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del lavoro",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore",
+            "label": "Lavoratore ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_lavoro",
+            "label": "Datore di lavoro convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "rapporto_lavoro",
+            "label": "Rapporto di lavoro",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_contratto",
+                "type": "select"
+              },
+              {
+                "id": "data_assunzione",
+                "type": "date"
+              },
+              {
+                "id": "data_cessazione_se_cessato",
+                "type": "date"
+              },
+              {
+                "id": "rapporto_ancora_in_corso",
+                "type": "boolean"
+              },
+              {
+                "id": "qualifica_e_livello_originario",
+                "type": "string"
+              },
+              {
+                "id": "ccnl_applicato",
+                "type": "string",
+                "required": true
+              },
+              {
+                "id": "retribuzione_attuale_o_ultima_globale",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "qualifica_superiore_rivendicata",
+            "label": "Qualifica superiore rivendicata",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "livello_superiore_secondo_ccnl",
+                "type": "string",
+                "required": true
+              },
+              {
+                "id": "declaratoria_ccnl_del_livello",
+                "type": "textarea",
+                "required": true
+              },
+              {
+                "id": "retribuzione_corrispondente",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "mansioni_effettivamente_svolte",
+            "label": "Mansioni effettivamente svolte (descrizione dettagliata)",
+            "type": "textarea",
+            "required": true,
+            "min_length": 800
+          },
+          {
+            "id": "periodo_mansioni_superiori",
+            "label": "Periodo di assegnazione a mansioni superiori",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "data_inizio",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "data_fine_se_cessato",
+                "type": "date"
+              },
+              {
+                "id": "durata_in_mesi",
+                "type": "integer"
+              },
+              {
+                "id": "continuativita",
+                "type": "boolean",
+                "required": true
+              },
+              {
+                "id": "eventuali_interruzioni",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "elementi_di_prova_mansioni_superiori",
+            "label": "Elementi di prova",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "organigramma_aziendale",
+              "mansionario",
+              "ordini_di_servizio",
+              "deleghe_e_procure",
+              "mail_e_comunicazioni_aziendali",
+              "testimoni_colleghi",
+              "documenti_pubblici_camere_commercio",
+              "altro"
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_svolgimento_mansioni_superiori",
+              "promozione_automatica_inquadramento_livello_superiore",
+              "condanna_pagamento_differenze_retributive",
+              "rivalutazione_e_interessi_429_cpc",
+              "contributi_previdenziali_su_differenze",
+              "tfr_su_differenze",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "differenze_retributive_calcolate",
+            "label": "Differenze retributive calcolate",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "periodo_calcolo",
+                "type": "string"
+              },
+              {
+                "id": "totale_differenze_lorde",
+                "type": "currency"
+              },
+              {
+                "id": "rivalutazione_e_interessi_stimati",
+                "type": "currency"
+              },
+              {
+                "id": "totale_richiesto",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "regime_applicabile",
+            "label": "Regime applicabile art. 2103",
+            "type": "select",
+            "required": true,
+            "options": [
+              "pre_dlgs_81_2015_promozione_3_mesi",
+              "post_dlgs_81_2015_promozione_6_mesi",
+              "regime_specifico_ccnl"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
         ]
       },
       "allegati_obbligatori": [
@@ -185954,6 +187375,52 @@
           "id": "atto_impugnato",
           "label": "Licenziamento, provvedimento INPS/INAIL o comunicazione contestata",
           "required": false
+        },
+        {
+          "id": "contratto_lavoro",
+          "label": "Contratto individuale di lavoro",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "ccnl_con_declaratorie",
+          "label": "CCNL applicato con declaratorie dei livelli",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "buste_paga_tutto_il_periodo",
+          "label": "Buste paga di tutto il periodo rivendicato",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "cud_anni_rilevanti",
+          "label": "CUD/CU degli anni rilevanti",
+          "required": true
+        },
+        {
+          "id": "documentazione_mansioni_svolte",
+          "label": "Documentazione mansioni effettivamente svolte (organigrammi, ordini di servizio, mail, deleghe)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "elenco_testimoni_colleghi",
+          "label": "Elenco testimoni (colleghi, superiori, ex dipendenti)",
+          "required": true
+        },
+        {
+          "id": "calcolo_dettagliato_differenze",
+          "label": "Calcolo dettagliato delle differenze retributive mese per mese",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "eventuali_comunicazioni_al_datore",
+          "label": "Eventuali comunicazioni precedenti al datore (richieste di inquadramento)",
+          "required": false,
+          "rilevante": true
         }
       ],
       "adempimenti_fiscali_telematici": {
@@ -186007,6 +187474,33 @@
           "fonte_verifica": "Normattiva/PST + catalogo PST/XSD locale",
           "curato_da": "codex",
           "richiede_verifica_avvocato": true
+        },
+        {
+          "termine": "PRESCRIZIONE CREDITI RETRIBUTIVI",
+          "anni": 5,
+          "decorrenza": "maturazione mensilità (o cessazione se senza stabilità reale)",
+          "natura": "prescrizione",
+          "norma": "art. 2948 n. 4 c.c.",
+          "criticita": "ALTA"
+        },
+        {
+          "termine": "Promozione automatica art. 2103 (post D.Lgs. 81/2015)",
+          "mesi": 6,
+          "decorrenza": "inizio mansioni superiori",
+          "natura": "termine sostanziale"
+        },
+        {
+          "termine": "Costituzione datore",
+          "giorni": 10,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio",
+          "norma": "art. 416 c.p.c."
+        },
+        {
+          "termine": "Appello",
+          "giorni": 30,
+          "decorrenza": "notifica sentenza",
+          "natura": "perentorio"
         }
       ],
       "controlli_deposito_telematico": [
@@ -186176,7 +187670,9 @@
       "obbligo_mediazione": {
         "stato": "di_regola_non_mediazione_obbligatoria",
         "fonte": "rito lavoro, conciliazione e procedure speciali applicabili",
-        "criterio": "verificare tentativi amministrativi, conciliazioni o decadenze speciali invece della sola mediazione civile"
+        "criterio": "verificare tentativi amministrativi, conciliazioni o decadenze speciali invece della sola mediazione civile",
+        "obbligatoria": false,
+        "tentativo_facoltativo": "Conciliazione ITL ex art. 410 c.p.c. (facoltativa per privato); per pubblico impiego obbligatoria ex art. 65 D.Lgs. 165/2001"
       },
       "richiesta_provvedimenti_urgenti": {
         "ammissibile": true,
@@ -186217,10 +187713,74 @@
           "esito": "decadenza_o_prescrizione",
           "descrizione": "Definizione per mancato rispetto dei termini speciali.",
           "frequenza": "da presidiare"
+        },
+        {
+          "esito": "accoglimento_promozione_e_differenze",
+          "descrizione": "Inquadramento al livello superiore + condanna pagamento differenze + rivalutazione e interessi"
+        },
+        {
+          "esito": "accoglimento_solo_differenze_no_promozione",
+          "descrizione": "Mansioni svolte ma non per durata sufficiente alla promozione - solo differenze per il periodo"
+        },
+        {
+          "esito": "rigetto_per_assenza_mansioni_superiori",
+          "descrizione": "Mansioni non riconosciute come superiori secondo declaratorie CCNL"
+        },
+        {
+          "esito": "rigetto_per_prescrizione",
+          "descrizione": "Prescrizione quinquennale almeno parziale (per le mensilità più vecchie)"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo (es. inquadramento + pagamento parziale arretrati)"
         }
       ],
       "_duplicate_sources": [
-        "kb_99_completamento_codici_ufficiali.json"
+        "kb_99_completamento_codici_ufficiali.json",
+        "kb_98_top9_set5_parte2.json"
+      ],
+      "differenza_2103_pre_e_post_dlgs_81_2015": {
+        "regime_pre_riforma": "Mansioni superiori per 3 MESI continuativi + altri requisiti = promozione automatica (Cass. SU 25033/2006)",
+        "regime_post_riforma_18_marzo_2016": "Mansioni superiori per 6 MESI continuativi + altri requisiti = promozione automatica (salvo CCNL diversi)",
+        "facolta_demansionamento_conservativo": "Il datore può oggi demansionare il lavoratore (1 livello inferiore) in caso di riorganizzazione - più flessibilità per il datore"
+      },
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per controversie individuali di lavoro per reddito sotto 3x soglia patrocinio a spese dello Stato",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "memoria_difensiva_datore",
+          "trigger": "Costituzione datore",
+          "termine": "10 gg prima udienza"
+        },
+        {
+          "tipo": "ctu_aziendale_su_mansioni_e_calcolo_differenze",
+          "trigger": "Disposta dal giudice",
+          "automatico": false,
+          "frequente": true
+        },
+        {
+          "tipo": "prova_testimoniale",
+          "trigger": "Sempre disposta in queste cause",
+          "automatico": false
+        },
+        {
+          "tipo": "azione_per_versamento_contributi_INPS",
+          "trigger": "Differenze retributive comportano contributi non versati",
+          "automatico": false
+        },
+        {
+          "tipo": "azione_per_demansionamento_dequalificazione",
+          "trigger": "Per il caso opposto - demansionamento illegittimo",
+          "codice_correlato": "220021"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
       ]
     },
     {
@@ -249420,9 +250980,9 @@
     },
     {
       "codice": "411601",
-      "denominazione": "Modifica delle condizioni di separazione",
-      "categoria": "Modifica provvedimenti separazione/divorzio",
-      "rito": "Rito camerale ex art. 710 c.p.c. (pre-Cartabia) - oggi rito unificato art. 473-bis.29 c.p.c.",
+      "denominazione": "Modifica delle condizioni di separazione/divorzio (art. 473-bis.29 c.p.c.)",
+      "categoria": "Persone e famiglia - revisione condizioni",
+      "rito": "Rito unificato persone e famiglia ex artt. 473-bis e ss. c.p.c. (post-Cartabia) - art. 473-bis.29 c.p.c.",
       "normativa": [
         {
           "fonte": "c.p.c.",
@@ -249433,14 +250993,63 @@
           "fonte": "c.p.c.",
           "articolo": "473-bis.29",
           "descrizione": "Procedimento di modifica (post-Cartabia)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "156 c. 7",
+          "descrizione": "Modifica condizioni separazione - sopravvenienze"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "337-quinquies",
+          "descrizione": "Revisione disposizioni concernenti l'affidamento dei figli"
+        },
+        {
+          "fonte": "L. 898/1970",
+          "articolo": "9",
+          "descrizione": "Modifica condizioni divorzio - sopravvenienze"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.29",
+          "descrizione": "Modifica delle condizioni della separazione, del divorzio o relative ai figli"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.30",
+          "descrizione": "Procedimento di modifica"
+        },
+        {
+          "fonte": "D.Lgs. 149/2022",
+          "descrizione": "Riforma Cartabia - unificazione rito"
+        },
+        {
+          "fonte": "Cass. SU 32198/2021",
+          "descrizione": "Assegno divorzile non automatica perdita per convivenza more uxorio"
+        },
+        {
+          "fonte": "Cass. SU 18287/2018",
+          "descrizione": "Funzione composita assegno divorzile (assistenziale + compensativa)"
+        },
+        {
+          "fonte": "Cass. 4892/2024",
+          "descrizione": "Sopravvenienze rilevanti per modifica - criterio rigoroso"
         }
       ],
       "presupposti_sostanziali": [
         "Sopravvenienza di fatti nuovi rispetto alla sentenza/decreto di separazione",
-        "Modifica circostanze economiche, di salute o relative ai figli"
+        "Modifica circostanze economiche, di salute o relative ai figli",
+        "ESISTENZA DI UN PROVVEDIMENTO PRECEDENTE che ha fissato le condizioni (sentenza/decreto omologa di separazione o divorzio, decreto su figli nati fuori dal matrimonio)",
+        "SOPRAVVENIENZA di FATTI NUOVI E RILEVANTI rispetto alla situazione esistente al momento del provvedimento originario:",
+        "- Mutamento significativo della situazione economica di una delle parti (perdita lavoro, riduzione reddito, miglioramento economico)",
+        "- Mutamento delle esigenze dei figli (crescita, nuove esigenze, autosufficienza raggiunta)",
+        "- Mutamento delle modalità di vita (nuova convivenza, nuovo matrimonio, trasferimento residenza)",
+        "- Inadempienze ai provvedimenti vigenti",
+        "RILEVANZA del mutamento (non sopravvenienze di scarsa entità)",
+        "Necessità di una NUOVA REGOLAMENTAZIONE delle condizioni"
       ],
       "atto_principale": {
-        "tipo_atto": "ricorso_modifica_separazione",
+        "tipo_atto": "ricorso_modifica_condizioni_473_bis_29",
         "campi_chiave": [
           {
             "id": "provvedimento_originario",
@@ -249465,16 +251074,527 @@
             "label": "Nuova documentazione economica",
             "type": "file_multi",
             "required": true
+          },
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente (foro residenza minore o convenuto)",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "ricorrente",
+            "label": "Coniuge/genitore ricorrente",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "codice_fiscale",
+                "type": "string"
+              },
+              {
+                "id": "residenza",
+                "type": "address"
+              },
+              {
+                "id": "professione",
+                "type": "string"
+              },
+              {
+                "id": "reddito_annuo_attuale",
+                "type": "currency"
+              },
+              {
+                "id": "reddito_annuo_al_momento_provvedimento_originario",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "resistente",
+            "label": "Coniuge/genitore resistente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "figli",
+            "label": "Figli (se rilevanti per la modifica)",
+            "type": "array_persone"
+          },
+          {
+            "id": "provvedimento_originario",
+            "label": "Provvedimento di cui si chiede la modifica",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_provvedimento",
+                "type": "select",
+                "options": [
+                  "sentenza_separazione_giudiziale",
+                  "decreto_omologa_separazione_consensuale",
+                  "sentenza_divorzio",
+                  "decreto_provvedimenti_figli_naturali",
+                  "precedente_decreto_modifica"
+                ]
+              },
+              {
+                "id": "tribunale_emittente",
+                "type": "string"
+              },
+              {
+                "id": "numero_RG",
+                "type": "string"
+              },
+              {
+                "id": "data_emissione",
+                "type": "date"
+              },
+              {
+                "id": "data_passaggio_giudicato",
+                "type": "date"
+              },
+              {
+                "id": "condizioni_attuali_in_essere",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "tipo_affidamento",
+                    "type": "select"
+                  },
+                  {
+                    "id": "collocamento_prevalente",
+                    "type": "string"
+                  },
+                  {
+                    "id": "regime_visite",
+                    "type": "textarea"
+                  },
+                  {
+                    "id": "assegno_mantenimento_coniuge",
+                    "type": "currency"
+                  },
+                  {
+                    "id": "assegno_mantenimento_figli",
+                    "type": "currency"
+                  },
+                  {
+                    "id": "spese_straordinarie_ripartizione",
+                    "type": "string"
+                  },
+                  {
+                    "id": "assegnazione_casa_familiare",
+                    "type": "string"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "sopravvenienze_dedotte",
+            "label": "Sopravvenienze dedotte",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipologie",
+                "type": "select_multi",
+                "required": true,
+                "options": [
+                  "riduzione_reddito_ricorrente",
+                  "aumento_reddito_resistente",
+                  "riduzione_reddito_resistente",
+                  "perdita_lavoro_di_una_parte",
+                  "malattia_grave_o_invalidita",
+                  "nuova_convivenza_more_uxorio_ricorrente",
+                  "nuova_convivenza_more_uxorio_resistente",
+                  "nuovo_matrimonio_di_una_parte",
+                  "trasferimento_residenza_significativo",
+                  "mutamento_esigenze_figli",
+                  "raggiungimento_autosufficienza_figli",
+                  "inadempimento_grave_a_provvedimento_vigente",
+                  "altro_mutamento_rilevante"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata_sopravvenienze",
+                "type": "textarea",
+                "required": true,
+                "min_length": 500
+              },
+              {
+                "id": "data_inizio_sopravvenienze",
+                "type": "date"
+              },
+              {
+                "id": "incidenza_economica_quantificata",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "modifiche_richieste",
+            "label": "Modifiche richieste",
+            "type": "object_complesso",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "modifica_affidamento",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "richiesta",
+                    "type": "boolean"
+                  },
+                  {
+                    "id": "nuovo_regime_proposto",
+                    "type": "select"
+                  }
+                ]
+              },
+              {
+                "id": "modifica_collocamento",
+                "type": "object"
+              },
+              {
+                "id": "modifica_regime_visite",
+                "type": "textarea"
+              },
+              {
+                "id": "modifica_assegno_coniuge",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "tipo_modifica",
+                    "type": "select",
+                    "options": [
+                      "aumento",
+                      "riduzione",
+                      "revoca",
+                      "nuova_attribuzione"
+                    ]
+                  },
+                  {
+                    "id": "importo_nuovo_proposto",
+                    "type": "currency"
+                  }
+                ]
+              },
+              {
+                "id": "modifica_assegno_figli",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "tipo_modifica",
+                    "type": "select"
+                  },
+                  {
+                    "id": "importo_nuovo_proposto",
+                    "type": "currency"
+                  },
+                  {
+                    "id": "decorrenza_proposta",
+                    "type": "date"
+                  }
+                ]
+              },
+              {
+                "id": "modifica_spese_straordinarie",
+                "type": "object"
+              },
+              {
+                "id": "modifica_assegnazione_casa",
+                "type": "object"
+              }
+            ]
+          },
+          {
+            "id": "piano_genitoriale_aggiornato",
+            "label": "Piano genitoriale aggiornato (per modifiche su figli minori)",
+            "type": "object_complesso",
+            "required_if": "modifiche_relative_a_minori=true"
+          },
+          {
+            "id": "richiesta_provvedimenti_urgenti_473_bis_15",
+            "label": "Richiesta provvedimenti urgenti indifferibili",
+            "type": "boolean",
+            "default": false
+          },
+          {
+            "id": "decorrenza_modifiche_richiesta",
+            "label": "Decorrenza delle modifiche richiesta",
+            "type": "select",
+            "options": [
+              "dalla_decisione",
+              "dalla_proposizione_ricorso",
+              "dalla_sopravvenienza_documentata",
+              "altra"
+            ]
           }
+        ],
+        "denominazione": "Ricorso ex art. 473-bis.29 c.p.c. per modifica delle condizioni di separazione/divorzio",
+        "schema_xsd_ministeriale": "AttoFamiglia.xsd",
+        "avvertimenti_obbligatori": [
+          "Le modifiche operano DI NORMA dalla data della decisione (non retroattive)",
+          "Costituzione resistente almeno 30 gg prima udienza ex art. 473-bis.16 c.p.c.",
+          "Obbligo produzione documentazione reddituale e patrimoniale aggiornata ex art. 473-bis.12 c. 5",
+          "Audizione minore obbligatoria se >12 anni (art. 473-bis.22)",
+          "Parere PM obbligatorio per figli minori",
+          "Possibilità di accordo congiunto ex art. 473-bis.51 (semplificato)"
         ]
       },
-      "_source_file": "kb_08_volontaria_giurisdizione_famiglia.json",
-      "_macro_area_id": "08_VOLONTARIA_GIURISDIZIONE_FAMIGLIA_PERSONE_MINORI",
-      "_macro_area_denominazione": "Volontaria giurisdizione - famiglia, persone, minori, tutele",
+      "_source_file": "kb_98_top9_set5_parte1.json",
+      "_macro_area_id": "TOP9_CODICI_FREQUENTI_SET5_PARTE1",
+      "_macro_area_denominazione": "Quinto set di 9 codici - PARTE 1 di 2 (modifica condizioni separazione/divorzio, revocatoria, regolamento confini, impugnazione testamento, responsabilità amministratori SRL)",
       "_registro": "SIVG (Volontaria Giurisdizione)",
       "_quality_hint": "operativa_curata",
       "_source_files": [
-        "kb_08_volontaria_giurisdizione_famiglia.json"
+        "kb_08_volontaria_giurisdizione_famiglia.json",
+        "kb_98_top9_set5_parte1.json"
+      ],
+      "sottocategoria": "Procedimento di revisione delle condizioni economiche o di affidamento per sopravvenienze",
+      "competenza": "Tribunale ordinario - sezione famiglia (Tribunale per le persone, per i minorenni e per le famiglie ex D.Lgs. 149/2022)",
+      "competenza_territoriale": "Tribunale della residenza abituale del minore o, in mancanza, dell'altro coniuge (art. 473-bis.11 c.p.c.)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "tipologie_di_modifica_richiedibili": [
+        "Modifica AFFIDAMENTO (da condiviso a esclusivo o viceversa)",
+        "Modifica COLLOCAMENTO prevalente del minore",
+        "Modifica REGIME VISITE/FREQUENTAZIONE",
+        "Modifica ASSEGNO DI MANTENIMENTO per il coniuge (aumento/riduzione/revoca)",
+        "Modifica ASSEGNO DI MANTENIMENTO per i figli",
+        "Modifica RIPARTIZIONE SPESE STRAORDINARIE",
+        "Modifica ASSEGNAZIONE casa familiare",
+        "REVOCA assegnazione casa familiare (per cessazione presupposti)",
+        "Decisione su nuove specifiche questioni emerse"
+      ],
+      "obbligo_mediazione_o_negoziazione": {
+        "obbligatoria": false,
+        "alternativa_facoltativa": "Negoziazione assistita familiare ex art. 6 D.L. 132/2014 - alternativa al ricorso giudiziale per modifiche condivise (con autorizzazione PM se figli minori)",
+        "modifica_concordata_473_bis_51": "Possibile ricorso congiunto con accordo tra le parti (procedura semplificata)"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione del PROVVEDIMENTO PRECEDENTE",
+          "documenti": [
+            "Sentenza di separazione/divorzio o decreto di omologa",
+            "Eventuali successive modifiche già intervenute",
+            "Verbali di accordi in mediazione familiare"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DELLE SOPRAVVENIENZE",
+          "casistica_tipica": [
+            "Per riduzione reddito: lettera di licenziamento, malattia, riduzione orario lavorativo",
+            "Per aumento reddito controparte: dichiarazioni redditi recenti, nuove buste paga, dati patrimoniali",
+            "Per nuova convivenza/matrimonio: stato di famiglia, eventuali atti pubblici di unione civile",
+            "Per nuove esigenze figli: documentazione scolastica, sanitaria, sportiva",
+            "Per autosufficienza figli maggiorenni: contratto lavoro figlio + redditi",
+            "Per inadempienze: documentazione mancato pagamento (estratti conto), comunicazioni inviate"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "RACCOLTA DOCUMENTAZIONE ECONOMICA AGGIORNATA",
+          "documenti": [
+            "Dichiarazioni redditi ultimi 3 anni (entrambe le parti se possibile)",
+            "Estratti conto correnti aggiornati",
+            "Documentazione patrimoniale recente",
+            "Buste paga ultimi 12 mesi"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "Aggiornamento PIANO GENITORIALE (se modifiche relative ai figli)",
+          "norma": "art. 473-bis.12 c. 3 c.p.c."
+        },
+        {
+          "step": 5,
+          "descrizione": "Tentativo di soluzione amichevole",
+          "vantaggio_strategico": "Ricorso congiunto ex art. 473-bis.51 più rapido e meno costoso"
+        },
+        {
+          "step": 6,
+          "descrizione": "Valutazione richiesta PROVVEDIMENTI URGENTI ex art. 473-bis.15",
+          "esempi": "Riduzione immediata assegno se reddito azzerato, cambio collocamento se pregiudizio per il minore"
+        }
+      ],
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_originario",
+          "label": "Sentenza/decreto omologa di separazione/divorzio originario",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "eventuali_modifiche_precedenti",
+          "label": "Eventuali precedenti decreti di modifica",
+          "required": false
+        },
+        {
+          "id": "documentazione_sopravvenienze",
+          "label": "Documentazione delle sopravvenienze dedotte",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "redditi_3_anni_aggiornati",
+          "label": "Dichiarazioni redditi aggiornate (ultimi 3 anni)",
+          "required": true
+        },
+        {
+          "id": "estratti_conto_recenti",
+          "label": "Estratti conto correnti recenti",
+          "required": true
+        },
+        {
+          "id": "documenti_patrimoniali_aggiornati",
+          "label": "Documenti patrimoniali aggiornati (visure immobiliari/PRA/societarie)",
+          "required": true
+        },
+        {
+          "id": "buste_paga_ultimi_12_mesi",
+          "label": "Buste paga ultimi 12 mesi",
+          "required": true
+        },
+        {
+          "id": "piano_genitoriale_aggiornato",
+          "label": "Piano genitoriale aggiornato (per modifiche su figli)",
+          "required_if": "modifiche_relative_a_minori=true"
+        },
+        {
+          "id": "documenti_su_esigenze_figli",
+          "label": "Documenti scolastici/sanitari/sportivi attuali dei figli",
+          "required_if": "modifiche_relative_a_figli"
+        },
+        {
+          "id": "documentazione_inadempienze",
+          "label": "Documentazione inadempienze al provvedimento vigente",
+          "required_if": "deduzione_inadempienze=true"
+        },
+        {
+          "id": "stato_famiglia_aggiornato",
+          "label": "Stato di famiglia aggiornato (per verifica nuove convivenze)",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per rapporti coniugali (art. 19 L. 74/1987)",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio - anonimizzazione dati sensibili minori"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "memoria_integrativa_473_bis_17",
+          "trigger": "Risposta a comparsa resistente",
+          "termine": "20 gg prima udienza"
+        },
+        {
+          "tipo": "ricorso_provvedimenti_urgenti_473_bis_15",
+          "trigger": "Necessità di tutela immediata",
+          "automatico": false
+        },
+        {
+          "tipo": "ricorso_congiunto_modifica_473_bis_51",
+          "trigger": "Accordo tra le parti - procedura semplificata",
+          "alternativo": true
+        },
+        {
+          "tipo": "ulteriore_ricorso_modifica_futura",
+          "trigger": "Ulteriori sopravvenienze in futuro",
+          "automatico": false,
+          "codice_correlato": "411601"
+        },
+        {
+          "tipo": "sequestro_beni_coniuge_inadempiente_156_c_c",
+          "trigger": "Mancato pagamento assegno",
+          "automatico": false
+        },
+        {
+          "tipo": "reclamo_provvedimenti_urgenti_473_bis_24",
+          "trigger": "Avverso provvedimenti indifferibili",
+          "termine": "30 gg"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "decreto_modifica_condizioni",
+          "descrizione": "Modifica delle condizioni nei termini richiesti o parzialmente"
+        },
+        {
+          "esito": "rigetto_per_assenza_sopravvenienze_rilevanti",
+          "descrizione": "Le sopravvenienze dedotte non sono rilevanti o non sono provate"
+        },
+        {
+          "esito": "modifica_diversa_da_quella_richiesta",
+          "descrizione": "Il giudice modifica in modo diverso (es. importo intermedio)"
+        },
+        {
+          "esito": "accordo_modifica_473_bis_51",
+          "descrizione": "Accordo tra le parti in corso di causa, recepito dal giudice"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Costituzione resistente",
+          "giorni": 30,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio",
+          "norma": "art. 473-bis.16 c.p.c."
+        },
+        {
+          "termine": "Memoria integrativa ricorrente",
+          "giorni": 20,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio",
+          "norma": "art. 473-bis.17 c.p.c."
+        },
+        {
+          "termine": "Memoria di replica resistente",
+          "giorni": 10,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        },
+        {
+          "termine": "Reclamo provvedimenti indifferibili",
+          "giorni": 30,
+          "decorrenza": "comunicazione/notifica",
+          "natura": "perentorio",
+          "norma": "art. 473-bis.24 c.p.c."
+        },
+        {
+          "termine": "Diritto al ricorso",
+          "natura": "imprescrittibile",
+          "nota": "Sempre possibile in presenza di sopravvenienze"
+        }
+      ],
+      "codici_ufficiali_correlati_da_valutare": [
+        "411602",
+        "111005",
+        "111010",
+        "111013",
+        "111014"
+      ],
+      "nota_integrazione_iusentra": "La scheda ricevuta tratta modifica delle condizioni di separazione e divorzio. Il codice 411601 resta ufficiale per la separazione; per il deposito su divorzio vanno valutati i codici ministeriali specifici.",
+      "verifica_pst_xsd_iusentra": {
+        "data": "2026-05-23",
+        "esito": "codice_ufficiale_con_nota_operativa",
+        "motivo": "La scheda ricevuta tratta modifica delle condizioni di separazione e divorzio. Il codice 411601 resta ufficiale per la separazione; per il deposito su divorzio vanno valutati i codici ministeriali specifici.",
+        "codice_originale": "411601"
+      },
+      "_duplicate_sources": [
+        "kb_98_top9_set5_parte1.json"
       ]
     },
     {
@@ -449211,6 +451331,501 @@
       ]
     },
     {
+      "codice": "GUIDA_AZIONE_NEGATORIA_SERVITU_POSSESSORIA_130031",
+      "denominazione": "Azione negatoria di servitù (art. 949 c.c.) o azioni possessorie (artt. 1168-1170 c.c.)",
+      "categoria": "Diritti reali - tutela della proprietà e del possesso",
+      "sottocategoria": "Negatoria servitutis + azioni di reintegrazione e manutenzione del possesso",
+      "rito": "Rito ordinario per negatoria (con mediazione obbligatoria diritti reali); rito sommario speciale per possessorie ex art. 703 c.p.c.",
+      "competenza": "Tribunale del luogo dell'immobile (art. 21 c.p.c. - foro esclusivo)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa_negatoria": [
+        {
+          "fonte": "c.c.",
+          "articolo": "949",
+          "descrizione": "Azione negatoria - imprescrittibile (salvo usucapione)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1027",
+          "descrizione": "Nozione di servitù prediale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1031",
+          "descrizione": "Costituzione delle servitù"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2697",
+          "descrizione": "Onere della prova - SULLA NEGATORIA: meno gravoso che per rivendicazione"
+        }
+      ],
+      "normativa_possessorie": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1140",
+          "descrizione": "Possesso"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1141",
+          "descrizione": "Mutamento della detenzione in possesso"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1168",
+          "descrizione": "Azione di reintegrazione (spoglio) - 1 anno dal spoglio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1169",
+          "descrizione": "Spoglio occulto e violento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1170",
+          "descrizione": "Azione di manutenzione (turbativa o molestia) - 1 anno dalla turbativa"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1171",
+          "descrizione": "Denuncia di nuova opera"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1172",
+          "descrizione": "Denuncia di danno temuto"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "703",
+          "descrizione": "Procedimento possessorio - rito speciale"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articoli": "704-705",
+          "descrizione": "Successivo giudizio di merito"
+        }
+      ],
+      "presupposti_negatoria_art_949": [
+        "QUALITÀ DI PROPRIETARIO dell'attore (prova meno rigorosa che per rivendicazione)",
+        "ESERCIZIO DA PARTE DI ALTRI di una servitù o di un diritto reale insussistente sul fondo dell'attore",
+        "Esempio: il vicino transita sul fondo, costruisce un acquedotto, scarica acque, ecc., senza che sussista alcuna servitù",
+        "AZIONE IMPRESCRITTIBILE (salvo usucapione)"
+      ],
+      "presupposti_azioni_possessorie": [
+        "POSSESSO O DETENZIONE QUALIFICATA dell'attore",
+        "Per REINTEGRAZIONE (1168): SPOGLIO con violenza o clandestinità (anche da detenzione qualificata)",
+        "Per MANUTENZIONE (1170): TURBATIVA O MOLESTIA del possesso continuato da oltre 1 anno (no clandestino/violento)",
+        "TERMINE PERENTORIO 1 ANNO dallo spoglio/turbativa"
+      ],
+      "differenze_tra_le_azioni": {
+        "negatoria_949": "Per il proprietario - contro chi pretende diritti reali insussistenti - prova proprietà meno gravosa - imprescrittibile",
+        "reintegrazione_1168": "Per chiunque possessore - contro lo spogliante - prova del possesso e dello spoglio - termine 1 anno",
+        "manutenzione_1170": "Per chi possiede da oltre 1 anno - contro turbative/molestie - prova possesso continuato - termine 1 anno",
+        "denuncia_nuova_opera_1171": "Contro opere in corso che possono danneggiare - termine 1 anno",
+        "denuncia_danno_temuto_1172": "Contro pericolo di danno da edificio/struttura altrui"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria_per_negatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010 (diritti reali)",
+        "obbligatoria_per_possessorie": false,
+        "motivo_esclusione": "Tutela cautelare/sommaria - urgenza"
+      },
+      "adempimenti_propedeutici_negatoria": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE DEL TITOLO DI PROPRIETÀ",
+          "documenti": [
+            "Atto di acquisto",
+            "Visure catastali",
+            "Ispezione Conservatoria (verificare assenza di servitù trascritte)"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DELL'ALTRUI PRETESA DI DIRITTI",
+          "elementi": [
+            "Tipo di esercizio: passaggio, acquedotto, scarico, vista, ecc.",
+            "Frequenza e modalità",
+            "Documentazione fotografica/video",
+            "Eventuali atti formali del controparte (es. ingiunzioni, lettere)"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "VERIFICA DELL'INESISTENZA DI UNA SERVITÙ",
+          "controlli": [
+            "Ispezione Conservatoria: assenza di trascrizione di servitù",
+            "Atti di provenienza: verificare clausole su servitù",
+            "Mappe catastali storiche",
+            "Eventuale storia del fondo"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "Valutazione USUCAPIONE DELLA SERVITÙ DA PARTE DEL CONVENUTO",
+          "rischio": "Se l'esercizio dura da oltre 20 anni - può configurare usucapione di servitù apparente",
+          "limite": "Le servitù apparenti possono essere usucapite (artt. 1061-1062); le non apparenti no"
+        },
+        {
+          "step": 5,
+          "descrizione": "ATTIVAZIONE MEDIAZIONE OBBLIGATORIA",
+          "luogo": "Organismo del luogo immobile"
+        }
+      ],
+      "adempimenti_propedeutici_possessorie": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE DELLO SPOGLIO O DELLA TURBATIVA",
+          "elementi": [
+            "Foto/video dell'accaduto",
+            "Verbali di Polizia/Carabinieri se intervenuti",
+            "Testimoni",
+            "Comunicazioni del controparte"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "VERIFICA TERMINE 1 ANNO",
+          "criticita": "MASSIMA - decadenza preclude azione"
+        },
+        {
+          "step": 3,
+          "descrizione": "Predisposizione RICORSO POSSESSORIO ex art. 703 c.p.c.",
+          "rito_speciale": "Rito sommario, contradditorio breve, decisione rapida (di norma con ordinanza)"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_negatoria_o_ricorso_possessorio",
+        "denominazione": "Atto di citazione per azione negatoria di servitù OR Ricorso possessorio ex art. 703 c.p.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del luogo immobile",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "tipo_azione",
+            "label": "Tipo di azione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "negatoria_servitu_949",
+              "reintegrazione_possesso_1168",
+              "manutenzione_possesso_1170",
+              "denuncia_nuova_opera_1171",
+              "denuncia_danno_temuto_1172"
+            ]
+          },
+          {
+            "id": "attore",
+            "label": "Attore (proprietario o possessore)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto",
+            "label": "Convenuto (preteso titolare servitù o autore spoglio/turbativa)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "fondo_attore",
+            "label": "Fondo dell'attore",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "fondo_convenuto",
+            "label": "Fondo del convenuto (se applicabile)",
+            "type": "object_immobile"
+          },
+          {
+            "id": "qualita_attore",
+            "label": "Qualità dell'attore",
+            "type": "select",
+            "required": true,
+            "options": [
+              "proprietario_per_negatoria",
+              "possessore_uti_dominus",
+              "detentore_qualificato_per_reintegrazione",
+              "possessore_anno_per_manutenzione"
+            ]
+          },
+          {
+            "id": "condotta_lesiva_o_servitu_pretesa",
+            "label": "Condotta lesiva o servitù pretesa",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 400
+              },
+              {
+                "id": "data_inizio_condotta_o_spoglio_turbativa",
+                "type": "date",
+                "required": true,
+                "critico_per_possessorie": true
+              },
+              {
+                "id": "modalita",
+                "type": "textarea"
+              },
+              {
+                "id": "frequenza",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "domande_per_negatoria",
+            "label": "Domande per negatoria",
+            "type": "select_multi",
+            "required_if": "tipo_azione=negatoria",
+            "options": [
+              "accertamento_inesistenza_servitu_o_diritto_reale",
+              "ordine_cessazione_attivita_lesiva",
+              "rimozione_eventuali_opere",
+              "risarcimento_danni",
+              "trascrizione_sentenza_2643"
+            ]
+          },
+          {
+            "id": "domande_per_possessorie",
+            "label": "Domande per possessorie",
+            "type": "select_multi",
+            "required_if": "tipo_azione LIKE possesso%",
+            "options": [
+              "reintegrazione_nel_possesso",
+              "rimozione_opere_eventuali",
+              "ordine_cessazione_turbativa",
+              "risarcimento_danni",
+              "fissazione_provvedimenti_cautelari"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Foro esclusivo del luogo immobile (art. 21 c.p.c.)",
+          "Per negatoria: mediazione obbligatoria + termine a comparire 120 gg",
+          "Per possessorie: termine perentorio 1 ANNO dallo spoglio/turbativa (art. 1168/1170 c.c.) - rito sommario art. 703 c.p.c.",
+          "Negatoria 949 imprescrittibile (salvo usucapione di servitù apparente)",
+          "Successivo giudizio di merito dopo provvedimento possessorio (artt. 704-705 c.p.c.)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atti_proprieta_per_negatoria",
+          "label": "Atti di proprietà del fondo (per negatoria)",
+          "required_if": "tipo_azione=negatoria",
+          "critico": true
+        },
+        {
+          "id": "visure_e_ispezioni_conservatoria",
+          "label": "Visure catastali e ispezioni Conservatoria",
+          "required": true
+        },
+        {
+          "id": "documentazione_fotografica_o_video",
+          "label": "Documentazione fotografica/video della condotta lesiva",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "verbali_FFOO_se_intervenute",
+          "label": "Verbali di FFOO (se intervenute per spoglio/turbativa)",
+          "required_if": "tipo_azione LIKE possesso%",
+          "consigliato": true
+        },
+        {
+          "id": "elenco_testimoni",
+          "label": "Elenco testimoni con recapiti",
+          "required": true
+        },
+        {
+          "id": "rilievo_topografico_se_rilevante",
+          "label": "Eventuale rilievo topografico",
+          "required": false,
+          "consigliato_se_servitu_passaggio": true
+        },
+        {
+          "id": "comunicazioni_intercorse",
+          "label": "Eventuali comunicazioni con il controparte",
+          "required": false
+        },
+        {
+          "id": "verbale_mediazione_per_negatoria",
+          "label": "Verbale mediazione obbligatoria conclusa negativamente (per negatoria)",
+          "required_if": "tipo_azione=negatoria",
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ricorso_mediazione_obbligatoria_per_negatoria",
+          "trigger": "Condizione procedibilità",
+          "automatico": false
+        },
+        {
+          "tipo": "ricorso_cautelare_700",
+          "trigger": "In alternativa o aggiunta a possessoria",
+          "automatico": false
+        },
+        {
+          "tipo": "ctu_tecnico_topografica",
+          "trigger": "Disposta dal giudice",
+          "automatico": false,
+          "frequente": true
+        },
+        {
+          "tipo": "sopralluogo_giudice",
+          "trigger": "Disposto dal giudice",
+          "automatico": false
+        },
+        {
+          "tipo": "ordinanza_possessoria",
+          "trigger": "Esito procedimento possessorio sommario",
+          "norma": "art. 703 c.p.c."
+        },
+        {
+          "tipo": "successivo_giudizio_di_merito_possessorio",
+          "trigger": "Dopo ordinanza possessoria",
+          "norma": "artt. 704-705 c.p.c.",
+          "termine": "60 gg"
+        },
+        {
+          "tipo": "domanda_riconvenzionale_usucapione_servitu_apparente",
+          "trigger": "Convenuto eccepisce usucapione",
+          "codice_correlato": "130033"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_negatoria",
+          "descrizione": "Accertamento inesistenza servitù + ordine cessazione attività + eventuale risarcimento"
+        },
+        {
+          "esito": "rigetto_per_intervenuta_usucapione_servitu",
+          "descrizione": "Convenuto ha usucapito servitù apparente"
+        },
+        {
+          "esito": "accoglimento_possessorio",
+          "descrizione": "Ordinanza di reintegrazione/manutenzione + cessazione condotta lesiva"
+        },
+        {
+          "esito": "rigetto_possessorio_per_tardivita",
+          "descrizione": "Decorso anno dallo spoglio/turbativa"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo (es. costituzione servitù volontaria con indennità)"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "NEGATORIA - imprescrittibile",
+          "natura": "imprescrittibile",
+          "eccezione": "salvo usucapione servitù apparente"
+        },
+        {
+          "termine": "REINTEGRAZIONE POSSESSO",
+          "anno": 1,
+          "decorrenza": "spoglio",
+          "natura": "DECADENZIALE",
+          "norma": "art. 1168 c.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "MANUTENZIONE POSSESSO",
+          "anno": 1,
+          "decorrenza": "turbativa",
+          "natura": "DECADENZIALE",
+          "norma": "art. 1170 c.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "DENUNCIA NUOVA OPERA",
+          "anno": 1,
+          "decorrenza": "inizio opera",
+          "natura": "decadenziale",
+          "norma": "art. 1171 c.c."
+        },
+        {
+          "termine": "Mediazione obbligatoria per negatoria - max",
+          "giorni": 90,
+          "norma": "art. 6 D.Lgs. 28/2010"
+        },
+        {
+          "termine": "Termine introduzione merito dopo possessorio",
+          "giorni": 60,
+          "decorrenza": "ordinanza possessoria",
+          "natura": "decadenziale",
+          "norma": "art. 704 c.p.c."
+        },
+        {
+          "termine": "Termine a comparire (negatoria)",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        }
+      ],
+      "codice_originale_ricevuto": "130031",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "guida_pratica_facoltativa": true,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Il codice 130031 è ufficiale, ma nel catalogo locale riguarda Usufrutto; la scheda ricevuta riguarda azione negatoria di servitù o azioni possessorie e resta interna.",
+      "codici_ufficiali_correlati_da_valutare": [
+        "130041",
+        "020001",
+        "020011",
+        "131001",
+        "131101"
+      ],
+      "codice_deposito": null,
+      "verifica_pst_xsd_iusentra": {
+        "data": "2026-05-23",
+        "esito": "guida_interna_non_depositabile",
+        "motivo": "Il codice 130031 è ufficiale, ma nel catalogo locale riguarda Usufrutto; la scheda ricevuta riguarda azione negatoria di servitù o azioni possessorie e resta interna.",
+        "codice_originale": "130031"
+      },
+      "_source_file": "kb_98_top9_set5_parte2.json",
+      "_macro_area_id": "TOP9_CODICI_FREQUENTI_SET5_PARTE2",
+      "_macro_area_denominazione": "Quinto set di 9 codici - PARTE 2 di 2",
+      "_registro": "",
+      "_quality_hint": "operativa_curata",
+      "_source_files": [
+        "kb_98_top9_set5_parte2.json"
+      ]
+    },
+    {
       "codice": "GUIDA_COMPRAVENDITA_IMMOBILIARE_RISOLUZIONE",
       "denominazione": "Risoluzione del contratto di compravendita immobiliare per inadempimento",
       "categoria": "Contratti - risoluzione per inadempimento",
@@ -449937,6 +452552,525 @@
       ]
     },
     {
+      "codice": "GUIDA_CONSUMATORE_CLAUSOLE_VESSATORIE_180001",
+      "denominazione": "Tutela del consumatore - clausole vessatorie e nullità contrattuali (D.Lgs. 206/2005 Codice del Consumo)",
+      "categoria": "Tutela del consumatore",
+      "sottocategoria": "Azione di nullità di clausole vessatorie + risarcimento danni o restituzione",
+      "rito": "Rito ordinario di cognizione (o sommario di cognizione ex art. 281-decies); foro speciale del consumatore",
+      "competenza": "FORO ESCLUSIVO DEL CONSUMATORE: residenza/domicilio del consumatore (art. 33 c. 2 lett. u D.Lgs. 206/2005 - INDEROGABILE)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 206/2005 (Codice del Consumo)",
+          "descrizione": "Disciplina dei rapporti consumatori - professionisti"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "3",
+          "descrizione": "Definizioni - consumatore vs professionista"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "33",
+          "descrizione": "Clausole vessatorie - presunzione di vessatorietà + foro del consumatore"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "34",
+          "descrizione": "Accertamento della vessatorietà"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "35",
+          "descrizione": "Forma e interpretazione"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "36",
+          "descrizione": "Nullità di protezione delle clausole vessatorie"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articoli": "37-37-bis",
+          "descrizione": "Inibitoria contro le clausole vessatorie - AGCM"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articoli": "45-67",
+          "descrizione": "Diritto di recesso nei contratti a distanza e fuori dei locali commerciali"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articoli": "128-135",
+          "descrizione": "Garanzia di conformità nella vendita di beni di consumo"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articoli": "20-27-quater",
+          "descrizione": "Pratiche commerciali scorrette - AGCM"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1469-bis",
+          "descrizione": "Norma di rinvio al Codice del Consumo"
+        },
+        {
+          "fonte": "Direttiva UE 93/13/CEE",
+          "descrizione": "Clausole abusive nei contratti consumatori"
+        },
+        {
+          "fonte": "Direttiva UE 2011/83/UE",
+          "descrizione": "Diritti dei consumatori - recepita 2014"
+        },
+        {
+          "fonte": "Cass. SU 23633/2022",
+          "descrizione": "Nullità di protezione - rilevabilità d'ufficio"
+        }
+      ],
+      "presupposti_sostanziali_clausole_vessatorie": [
+        "RAPPORTO CONSUMATORE - PROFESSIONISTA (art. 3 Cod. Consumo)",
+        "PRESENZA DI CLAUSOLE VESSATORIE nel contratto:",
+        "- Clausole che determinano significativo squilibrio dei diritti e obblighi a carico del consumatore (art. 33 c. 1)",
+        "- Clausole presunte vessatorie ex art. 33 c. 2 (elenco non tassativo)",
+        "- Foro convenzionale diverso dalla residenza consumatore (es. tipico)",
+        "ASSENZA DI TRATTATIVA INDIVIDUALE su tali clausole (art. 34 c. 4)",
+        "Conseguenza: NULLITÀ DI PROTEZIONE ex art. 36 - rilevabile anche d'ufficio (Cass. SU 23633/2022) - opera solo a favore del consumatore"
+      ],
+      "altre_tutele_codice_consumo": [
+        "DIRITTO DI RECESSO 14 giorni per contratti a distanza/fuori locali commerciali (art. 52)",
+        "GARANZIA DI CONFORMITÀ 24 mesi (artt. 128 e ss.)",
+        "PRATICHE COMMERCIALI SCORRETTE - AGCM (artt. 18-27-quater)",
+        "CLAUSOLE BANCARIE ABUSIVE - normativa specifica + Cod. Consumo"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": "Solo se materia rientra in art. 5 c. 1-bis D.Lgs. 28/2010 (es. contratti bancari/assicurativi/finanziari) - molto frequente",
+        "ADR_consumatori": "Per controversie consumeristiche è prevista anche risoluzione alternativa specifica ex D.Lgs. 130/2015 (ADR) - facoltativa"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VERIFICA QUALITÀ DI CONSUMATORE",
+          "elementi": [
+            "Persona FISICA che agisce per scopi ESTRANEI all'attività imprenditoriale/professionale (art. 3)",
+            "Documentazione: dati anagrafici + verifica assenza partita IVA collegata all'oggetto del contratto"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "ACQUISIZIONE DEL CONTRATTO INTEGRALE",
+          "elementi": [
+            "Contratto firmato dal consumatore",
+            "Eventuali allegati (condizioni generali, ecc.)",
+            "Modulistica del professionista (per dimostrare assenza di trattativa individuale)",
+            "Eventuali comunicazioni successive"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "IDENTIFICAZIONE CLAUSOLE VESSATORIE",
+          "categoria_da_art_33_c_2": [
+            "Esclusione/limitazione di responsabilità del professionista",
+            "Esclusione/limitazione del consumatore di sollevare eccezioni",
+            "Penali eccessive a carico del consumatore",
+            "Recesso unilaterale del professionista in qualsiasi momento",
+            "Clausole che impongono al consumatore arbitrato vincolante",
+            "Foro convenzionale diverso da residenza consumatore",
+            "Modificabilità unilaterale clausole essenziali",
+            "Trasferimento contratto a terzi senza consenso",
+            "Vincoli al consumatore non vincolanti per il professionista"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VERIFICA ASSENZA DI TRATTATIVA INDIVIDUALE",
+          "principio": "L'art. 34 c. 4 esclude la vessatorietà se clausola oggetto di trattativa individuale - ma onere prova sul professionista",
+          "ipotesi_tipiche": "Moduli prestampati, contratti di adesione, condizioni generali"
+        },
+        {
+          "step": 5,
+          "descrizione": "Quantificazione del DANNO o DELLE SOMME DA RESTITUIRE",
+          "voci": [
+            "Importi indebitamente pagati in virtù della clausola nulla (restituzione)",
+            "Eventuali danni emergenti",
+            "Spese sostenute",
+            "Eventuali danni morali per pratiche commerciali scorrette"
+          ]
+        },
+        {
+          "step": 6,
+          "descrizione": "DIFFIDA al professionista (raccomandata o PEC)",
+          "vantaggio": "Spesso porta a soluzioni stragiudiziali rapide"
+        },
+        {
+          "step": 7,
+          "descrizione": "Eventuale segnalazione AGCM per pratiche commerciali scorrette (parallela)",
+          "rilevanza": "Sanzione amministrativa pesante per il professionista - può facilitare transazione"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_tutela_consumatore",
+        "denominazione": "Atto di citazione per accertamento nullità clausole vessatorie + restituzione + risarcimento (Cod. Consumo)",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del foro del consumatore (INDEROGABILE)",
+            "type": "select",
+            "required": true,
+            "critico": true
+          },
+          {
+            "id": "consumatore_attore",
+            "label": "Consumatore attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "codice_fiscale",
+                "type": "string"
+              },
+              {
+                "id": "residenza",
+                "type": "address",
+                "rilevante_per_competenza": true
+              },
+              {
+                "id": "assenza_attivita_professionale_collegata",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "professionista_convenuto",
+            "label": "Professionista convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "contratto",
+            "label": "Contratto consumatore-professionista",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_contratto",
+                "type": "select",
+                "options": [
+                  "vendita_beni_consumo",
+                  "fornitura_servizi",
+                  "telefonia_internet_pay_tv",
+                  "energia_gas",
+                  "banca_credito_finanziario",
+                  "assicurativo",
+                  "leasing",
+                  "viaggi_turistici",
+                  "contratto_a_distanza",
+                  "fuori_locali_commerciali",
+                  "altro"
+                ]
+              },
+              {
+                "id": "data_stipula",
+                "type": "date"
+              },
+              {
+                "id": "modalita_conclusione",
+                "type": "select",
+                "options": [
+                  "modulo_prestampato_in_loco",
+                  "contratto_a_distanza_online_telefonico",
+                  "fuori_locali_commerciali_porta_a_porta",
+                  "trattativa_individuale"
+                ]
+              },
+              {
+                "id": "oggetto",
+                "type": "textarea"
+              },
+              {
+                "id": "corrispettivo_e_durata",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "clausole_vessatorie_contestate",
+            "label": "Clausole vessatorie contestate",
+            "type": "array",
+            "required": true,
+            "min_items": 1,
+            "sub_fields": [
+              {
+                "id": "numero_o_articolo_clausola",
+                "type": "string"
+              },
+              {
+                "id": "testo_letterale",
+                "type": "textarea"
+              },
+              {
+                "id": "tipologia_vessatorieta",
+                "type": "select",
+                "options": [
+                  "esclusione_limitazione_responsabilita_professionista",
+                  "penale_eccessiva_consumatore",
+                  "recesso_unilaterale_professionista",
+                  "arbitrato_vincolante",
+                  "foro_convenzionale_diverso_da_residenza",
+                  "modificabilita_unilaterale",
+                  "trasferimento_a_terzi_senza_consenso",
+                  "vincolo_consumatore_non_vincolante_professionista",
+                  "esclusione_diritti_garanzia_legale",
+                  "altra"
+                ]
+              },
+              {
+                "id": "presunzione_art_33_c_2",
+                "type": "boolean",
+                "rilevante": "vessatorietà presunta"
+              },
+              {
+                "id": "motivazione_vessatorieta",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "assenza_trattativa_individuale",
+            "label": "Assenza di trattativa individuale",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "presente",
+                "type": "boolean",
+                "required": true
+              },
+              {
+                "id": "motivazione",
+                "type": "textarea",
+                "examples": "Modulo prestampato, contratto di adesione, contratto online standard"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_qualita_consumatore",
+              "dichiarazione_nullita_clausole_vessatorie_36",
+              "restituzione_somme_indebitamente_pagate",
+              "risarcimento_danni_emergenti",
+              "esercizio_recesso_se_termini_aperti",
+              "esercizio_garanzia_conformita_128_135",
+              "inibitoria_uso_clausole_vessatorie",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "importi_restituzione",
+            "label": "Importi da restituire",
+            "type": "currency"
+          },
+          {
+            "id": "danni_richiesti",
+            "label": "Eventuali danni richiesti",
+            "type": "currency"
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "FORO ESCLUSIVO DEL CONSUMATORE (residenza) - INDEROGABILE ex art. 33 c. 2 lett. u",
+          "NULLITÀ DI PROTEZIONE rilevabile anche d'ufficio (Cass. SU 23633/2022)",
+          "Onere della prova della trattativa individuale sul professionista (art. 34 c. 5)",
+          "Termine a comparire 120 gg post-Cartabia"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_consumatore_professionista",
+          "label": "Contratto consumatore-professionista (originale o copia)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "condizioni_generali_e_allegati",
+          "label": "Condizioni generali di contratto e allegati",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_pagamenti_effettuati",
+          "label": "Documentazione pagamenti effettuati (per restituzione)",
+          "required_if": "richiesta_restituzione=true"
+        },
+        {
+          "id": "documentazione_modalita_conclusione",
+          "label": "Documentazione modalità di conclusione (screenshot online, fotografia luogo, ecc.)",
+          "required": false,
+          "rilevante_per_contratti_a_distanza": true
+        },
+        {
+          "id": "comunicazioni_intercorse",
+          "label": "Corrispondenza intercorsa con il professionista",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "eventuale_segnalazione_agcm",
+          "label": "Eventuale segnalazione AGCM (per pratiche commerciali scorrette parallele)",
+          "required": false
+        },
+        {
+          "id": "diffida_e_relata",
+          "label": "Diffida al professionista",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "diffida_stragiudiziale",
+          "trigger": "Tentativo soluzione bonaria"
+        },
+        {
+          "tipo": "procedimento_ADR_consumatori_dlgs_130_2015",
+          "trigger": "Risoluzione alternativa controversie consumatori",
+          "automatico": false
+        },
+        {
+          "tipo": "segnalazione_AGCM_per_pratiche_scorrette",
+          "trigger": "Procedimento amministrativo parallelo",
+          "automatico": false
+        },
+        {
+          "tipo": "comparsa_costituzione_professionista",
+          "trigger": "Costituzione convenuto",
+          "termine": "70 gg prima udienza"
+        },
+        {
+          "tipo": "azione_inibitoria_associazioni_consumatori_37",
+          "trigger": "Per tutela collettiva",
+          "automatico": false
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accertamento_nullita_e_restituzione",
+          "descrizione": "Dichiarazione nullità clausole vessatorie + condanna restituzione somme + eventuali danni"
+        },
+        {
+          "esito": "nullita_parziale_contratto",
+          "descrizione": "Nullità solo di alcune clausole, contratto sopravvive nelle altre parti"
+        },
+        {
+          "esito": "rigetto_per_assenza_vessatorieta",
+          "descrizione": "Clausole non riconosciute vessatorie (raro)"
+        },
+        {
+          "esito": "rigetto_per_trattativa_individuale_provata",
+          "descrizione": "Professionista prova la trattativa individuale"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo - molto frequente data la nullità di protezione"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Nullità di protezione - imprescrittibile",
+          "natura": "imprescrittibile",
+          "rilevabile_d_ufficio": true
+        },
+        {
+          "termine": "Azione di restituzione di indebito",
+          "anni": 10,
+          "decorrenza": "pagamento",
+          "natura": "prescrizione",
+          "norma": "art. 2033 c.c."
+        },
+        {
+          "termine": "Diritto di recesso (contratti a distanza/fuori locali)",
+          "giorni": 14,
+          "decorrenza": "consegna bene / conclusione contratto",
+          "natura": "decadenziale"
+        },
+        {
+          "termine": "Garanzia di conformità - denuncia difetto",
+          "mesi": 2,
+          "decorrenza": "scoperta",
+          "natura": "decadenziale",
+          "norma": "art. 132 Cod. Consumo (pre-2022) / oggi 26 mesi"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "180001",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "guida_pratica_facoltativa": true,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Il codice 180001 è ufficiale, ma nel catalogo locale riguarda l'opposizione a ordinanza-ingiunzione per assegni a vuoto; la scheda ricevuta riguarda tutela del consumatore e clausole vessatorie.",
+      "codici_ufficiali_correlati_da_valutare": [
+        "144031",
+        "140999",
+        "145021"
+      ],
+      "codice_deposito": null,
+      "verifica_pst_xsd_iusentra": {
+        "data": "2026-05-23",
+        "esito": "guida_interna_non_depositabile",
+        "motivo": "Il codice 180001 è ufficiale, ma nel catalogo locale riguarda l'opposizione a ordinanza-ingiunzione per assegni a vuoto; la scheda ricevuta riguarda tutela del consumatore e clausole vessatorie.",
+        "codice_originale": "180001"
+      },
+      "_source_file": "kb_98_top9_set5_parte2.json",
+      "_macro_area_id": "TOP9_CODICI_FREQUENTI_SET5_PARTE2",
+      "_macro_area_denominazione": "Quinto set di 9 codici - PARTE 2 di 2",
+      "_registro": "",
+      "_quality_hint": "operativa_curata",
+      "_source_files": [
+        "kb_98_top9_set5_parte2.json"
+      ]
+    },
+    {
       "codice": "GUIDA_ESCLUSIONE_SOCIO_SOCIETA_PERSONE_150010",
       "denominazione": "Esclusione del socio di società di persone (art. 2286 c.c.)",
       "categoria": "Diritto societario - vicende del socio",
@@ -450402,6 +453536,585 @@
       "_quality_hint": "operativa_curata",
       "_source_files": [
         "kb_98_top9_set4_parte2.json"
+      ]
+    },
+    {
+      "codice": "GUIDA_IMPUGNAZIONE_TESTAMENTO_120020",
+      "denominazione": "Impugnazione del testamento (nullità, annullabilità)",
+      "categoria": "Successioni - patologia delle disposizioni di ultima volontà",
+      "sottocategoria": "Azione di nullità o annullabilità del testamento - olografo, pubblico, segreto",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA ex art. 5 c. 1-bis D.Lgs. 28/2010 (materia successioni)",
+      "competenza": "Tribunale del luogo apertura successione (art. 22 c.p.c.) - foro esclusivo",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "587",
+          "descrizione": "Definizione del testamento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "591",
+          "descrizione": "Capacità di disporre per testamento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "601",
+          "descrizione": "Capacità di ricevere per testamento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "602",
+          "descrizione": "Testamento olografo - requisiti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "603",
+          "descrizione": "Testamento pubblico"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "604",
+          "descrizione": "Testamento segreto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "606",
+          "descrizione": "Nullità del testamento per difetto di forma"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "624",
+          "descrizione": "Annullamento del testamento per violenza, dolo, errore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "626",
+          "descrizione": "Motivo illecito determinante"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "628",
+          "descrizione": "Disposizioni a favore di persona incerta"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "634",
+          "descrizione": "Condizione illecita o impossibile - si considera non apposta"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1418",
+          "descrizione": "Nullità del contratto (applicabile in via analogica)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1425",
+          "descrizione": "Annullabilità per incapacità (richiamato)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2652 n. 6",
+          "descrizione": "Trascrizione della domanda di nullità/annullabilità testamento"
+        },
+        {
+          "fonte": "Cass. SU 27970/2019",
+          "descrizione": "Onere prova per nullità testamento olografo - chi contesta l'autenticità"
+        }
+      ],
+      "cause_nullita_testamento": [
+        "DIFETTO DI FORMA SOSTANZIALE (art. 606 c. 1):",
+        "- Olografo: mancanza di autografia integrale, di data, di sottoscrizione",
+        "- Pubblico: mancanza di redazione per iscritto da parte del notaio, di lettura ad alta voce, di testimoni",
+        "- Segreto: mancanza di sottoscrizione del testatore o di atto di ricevimento del notaio",
+        "DEFETTO DI CAPACITÀ DI DISPORRE: minore età, interdetto, incapace naturale al momento della redazione (art. 591)",
+        "DIFETTO DI CAPACITÀ DI RICEVERE: erede istituito non concepito o non determinabile",
+        "MOTIVO ILLECITO DETERMINANTE (art. 626 c.c.)",
+        "ESSENZIALI VIZI di altra natura (es. testamento congiuntivo - art. 589 c.c.)"
+      ],
+      "cause_annullabilita_testamento": [
+        "INCAPACITÀ NATURALE del testatore al momento della redazione - art. 591 c. 2 n. 3 (azione del legittimario o erede legittimario)",
+        "VIOLENZA, DOLO, ERRORE - art. 624 c.c.",
+        "DIFETTI FORMALI MINORI - art. 606 c. 2 (annullabilità: data sbagliata, errori non sostanziali)"
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI TESTAMENTO PUBBLICATO presso notaio",
+        "LEGITTIMAZIONE ATTIVA: chiunque vi abbia interesse (per nullità - assoluta); per annullabilità: chi ne è leso (legittimario, erede legittimo) - art. 1421 e 1442 c.c.",
+        "UNA DELLE CAUSE di nullità o annullabilità",
+        "TERMINE PRESCRIZIONALE: NULLITÀ imprescrittibile - ANNULLABILITÀ 5 anni dalla pubblicazione del testamento (art. 591 c. 3 c.c.)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "SUCCESSIONI EREDITARIE",
+        "natura": "condizione di procedibilità"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione TESTAMENTO PUBBLICATO E REGISTRATO",
+          "documenti": [
+            "Verbale di pubblicazione testamento presso notaio",
+            "Originale o copia conforme del testamento (per olografo: importante l'originale per perizia grafologica)",
+            "Registrazione presso Agenzia Entrate",
+            "Eventuale registro generale dei testamenti"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "IDENTIFICAZIONE PRECISA DEL VIZIO",
+          "verifica_critica": [
+            "Per OLOGRAFO: verifica autografia (perizia grafologica) - data - sottoscrizione",
+            "Per PUBBLICO: verifica protocollo notarile + presenza testimoni + lettura ad alta voce",
+            "Per SEGRETO: verifica modalità presentazione + atto di ricevimento",
+            "Per INCAPACITÀ: documentazione medica del testatore alla data della redazione",
+            "Per VIOLENZA/DOLO: documentazione dei comportamenti coercitivi/fraudolenti",
+            "Per MOTIVO ILLECITO: prove del motivo determinante (es. clausole discriminatorie)"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "Per testamento OLOGRAFO: PERIZIA GRAFOLOGICA DI PARTE",
+          "obiettivo": "Verifica autenticità della scrittura e della sottoscrizione",
+          "metodologia": "Confronto con scritture certe del testatore in epoca prossima alla redazione",
+          "rilevanza": "Spesso elemento centrale - può essere disposta CTU dal giudice"
+        },
+        {
+          "step": 4,
+          "descrizione": "Per INCAPACITÀ NATURALE: DOCUMENTAZIONE MEDICA DETTAGLIATA",
+          "elementi": [
+            "Diagnosi e prognosi alla data di redazione testamento",
+            "Cartelle cliniche dei mesi adiacenti",
+            "Eventuali certificazioni di demenza/Alzheimer/altre patologie psichiatriche",
+            "Testimonianze su stato mentale del testatore",
+            "Eventuali atti precedenti (es. AdS, interdizione)"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "Identificazione di TUTTI GLI EREDI E LEGATARI (litisconsorti necessari)",
+          "fonte": "Verbale di pubblicazione + atto notorio + ricerca eredi legittimi"
+        },
+        {
+          "step": 6,
+          "descrizione": "VERIFICA PRESCRIZIONE",
+          "nullita": "Imprescrittibile (rilevabile anche d'ufficio)",
+          "annullabilita": "5 anni dalla pubblicazione (art. 591 c. 3) - criticita massima"
+        },
+        {
+          "step": 7,
+          "descrizione": "ATTIVAZIONE MEDIAZIONE OBBLIGATORIA",
+          "luogo": "Organismo del luogo apertura successione"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_impugnazione_testamento",
+        "denominazione": "Atto di citazione per nullità/annullabilità del testamento",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del luogo apertura successione",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore_impugnante",
+            "label": "Attore impugnante",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "legittimario_leso",
+                  "erede_legittimo_pretermesso",
+                  "erede_testamentario_precedente",
+                  "soggetto_interessato_per_nullita"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "convenuti_eredi_testamentari_e_legatari",
+            "label": "Convenuti (eredi testamentari e legatari - LITISCONSORTI NECESSARI)",
+            "type": "array_persone",
+            "required": true,
+            "min_items": 1
+          },
+          {
+            "id": "de_cuius",
+            "label": "De cuius",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "testamento_impugnato",
+            "label": "Testamento impugnato",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_testamento",
+                "type": "select",
+                "required": true,
+                "options": [
+                  "olografo",
+                  "pubblico",
+                  "segreto",
+                  "speciale"
+                ]
+              },
+              {
+                "id": "data_redazione",
+                "type": "date"
+              },
+              {
+                "id": "data_pubblicazione",
+                "type": "date",
+                "critico_per_prescrizione_annullabilita": true
+              },
+              {
+                "id": "notaio_pubblicante",
+                "type": "string"
+              },
+              {
+                "id": "estremi_pubblicazione",
+                "type": "string"
+              },
+              {
+                "id": "contenuto_essenziale",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "tipo_impugnazione",
+            "label": "Tipo di impugnazione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "nullita",
+              "annullabilita",
+              "entrambe_in_subordine"
+            ]
+          },
+          {
+            "id": "causa_dedotta",
+            "label": "Causa dedotta",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "nullita_difetto_autografia_olografo",
+              "nullita_difetto_data_o_sottoscrizione",
+              "nullita_difetto_forma_testamento_pubblico",
+              "nullita_incapacita_disporre",
+              "nullita_motivo_illecito_determinante_626",
+              "nullita_testamento_congiuntivo_589",
+              "annullabilita_incapacita_naturale_591",
+              "annullabilita_violenza_624",
+              "annullabilita_dolo_captazione_624",
+              "annullabilita_errore_624",
+              "annullabilita_difetti_formali_minori_606_c_2"
+            ]
+          },
+          {
+            "id": "esposizione_motivi",
+            "label": "Esposizione dettagliata dei motivi di impugnazione",
+            "type": "textarea",
+            "required": true,
+            "min_length": 500
+          },
+          {
+            "id": "elementi_di_prova",
+            "label": "Elementi di prova",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "perizia_grafologica_disponibile",
+                "type": "boolean"
+              },
+              {
+                "id": "documentazione_medica_incapacita",
+                "type": "boolean"
+              },
+              {
+                "id": "testimoni_disponibili",
+                "type": "array_persone"
+              },
+              {
+                "id": "documenti_specifici",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "dichiarazione_nullita_testamento_integrale",
+              "dichiarazione_nullita_singole_disposizioni",
+              "annullamento_testamento",
+              "annullamento_singole_disposizioni",
+              "applicazione_successione_legittima_per_difetto_validita",
+              "trascrizione_domanda_2652_n_6",
+              "restituzione_beni_in_favore_eredi_legittimi",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "richiesta_trascrizione_domanda",
+            "label": "Richiesta trascrizione domanda ex art. 2652 n. 6",
+            "type": "boolean",
+            "default": true
+          },
+          {
+            "id": "richiesta_ctu_grafologica",
+            "label": "Richiesta CTU grafologica",
+            "type": "boolean",
+            "required_if": "tipo_testamento=olografo"
+          },
+          {
+            "id": "richiesta_ctu_medico_legale_per_capacita",
+            "label": "Richiesta CTU medico-legale per capacità",
+            "type": "boolean",
+            "required_if": "causa=incapacita_naturale"
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "NULLITÀ imprescrittibile - rilevabile anche d'ufficio",
+          "ANNULLABILITÀ 5 anni dalla pubblicazione (art. 591 c. 3 c.c.)",
+          "LITISCONSORZIO NECESSARIO con tutti gli eredi/legatari beneficiari",
+          "Foro esclusivo del luogo apertura successione (art. 22 c.p.c.)",
+          "Mediazione obbligatoria preventiva",
+          "Trascrizione domanda ex art. 2652 n. 6 per opponibilità",
+          "Onere della prova: chi contesta l'autenticità del testamento olografo (Cass. SU 27970/2019)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "testamento_pubblicato_originale_o_copia",
+          "label": "Testamento pubblicato (per olografo: originale o copia conforme dettagliata)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "verbale_pubblicazione_notarile",
+          "label": "Verbale di pubblicazione del testamento presso notaio",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "registrazione_AE",
+          "label": "Registrazione presso Agenzia Entrate",
+          "required": true
+        },
+        {
+          "id": "certificato_morte_de_cuius",
+          "label": "Certificato di morte del de cuius",
+          "required": true
+        },
+        {
+          "id": "stato_famiglia_storico",
+          "label": "Stato di famiglia storico",
+          "required": true
+        },
+        {
+          "id": "documentazione_qualita_di_attore",
+          "label": "Documenti che attestano la qualità di legittimario/erede legittimo",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_grafologica_di_parte",
+          "label": "Perizia grafologica di parte (per testamento olografo)",
+          "required_if": "tipo_testamento=olografo",
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "scritture_certe_de_cuius_per_confronto",
+          "label": "Scritture certe del de cuius per confronto grafologico",
+          "required_if": "tipo_testamento=olografo",
+          "critico": true
+        },
+        {
+          "id": "documentazione_medica_dettagliata",
+          "label": "Documentazione medica del testatore (per incapacità)",
+          "required_if": "causa=incapacita_naturale",
+          "critico": true
+        },
+        {
+          "id": "documentazione_su_violenza_o_dolo",
+          "label": "Documentazione su violenza, dolo, errore",
+          "required_if": "causa contiene violenza_dolo_errore"
+        },
+        {
+          "id": "verbale_mediazione_negativa",
+          "label": "Verbale mediazione obbligatoria conclusa negativamente",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore della massa ereditaria (o disposizioni impugnate)",
+        "marca_bollo_forfettaria": 27.0,
+        "tasse_trascrizione_domanda": "Imposta ipotecaria fissa + tasse",
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ricorso_mediazione_obbligatoria",
+          "trigger": "Condizione procedibilità"
+        },
+        {
+          "tipo": "trascrizione_domanda_2652_n_6",
+          "trigger": "Opponibilità terzi"
+        },
+        {
+          "tipo": "ctu_grafologica",
+          "trigger": "Per olografo - quasi sempre disposta",
+          "automatico": false,
+          "centrale": true
+        },
+        {
+          "tipo": "ctu_medico_legale_su_capacita",
+          "trigger": "Per incapacità naturale",
+          "automatico": false
+        },
+        {
+          "tipo": "prova_testimoniale",
+          "trigger": "Per dolo, violenza, errore, capacità",
+          "automatico": false
+        },
+        {
+          "tipo": "successione_legittima_o_testamento_precedente",
+          "trigger": "Se nullità testamento - apertura successione legittima o testamento precedente",
+          "automatico": false
+        },
+        {
+          "tipo": "azione_di_riduzione_legittima_separata",
+          "trigger": "Anche se testamento valido, lesione quota legittima",
+          "codice_correlato": "120030"
+        },
+        {
+          "tipo": "petizione_eredita_successiva",
+          "trigger": "Recupero beni dagli eredi testamentari",
+          "codice_correlato": "120010"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "dichiarazione_nullita_testamento",
+          "descrizione": "Testamento nullo - apertura successione legittima o di testamento precedente"
+        },
+        {
+          "esito": "annullamento_testamento",
+          "descrizione": "Testamento annullato - effetti analoghi a nullità"
+        },
+        {
+          "esito": "dichiarazione_nullita_singole_disposizioni",
+          "descrizione": "Nullità solo di alcune clausole, restano valide le altre"
+        },
+        {
+          "esito": "rigetto_per_validita_testamento",
+          "descrizione": "Testamento confermato valido"
+        },
+        {
+          "esito": "rigetto_per_prescrizione_annullabilita",
+          "descrizione": "Decorso quinquennio per annullabilità"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo tra parti (es. rinuncia all'impugnazione in cambio di parte dell'eredità)"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "NULLITÀ",
+          "natura": "imprescrittibile",
+          "norma": "art. 1421 c.c. (analogico)",
+          "rilevabile_anche_d_ufficio": true
+        },
+        {
+          "termine": "ANNULLABILITÀ",
+          "anni": 5,
+          "decorrenza": "pubblicazione testamento",
+          "natura": "prescrizione",
+          "norma": "art. 591 c. 3 c.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Mediazione obbligatoria - max",
+          "giorni": 90,
+          "norma": "art. 6 D.Lgs. 28/2010"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        },
+        {
+          "termine": "Appello",
+          "giorni": 30,
+          "decorrenza": "notifica sentenza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "120020",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "guida_pratica_facoltativa": true,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda viene conservata come guida pratica interna per impugnazione del testamento.",
+      "codici_ufficiali_correlati_da_valutare": [
+        "120001"
+      ],
+      "codice_deposito": null,
+      "verifica_pst_xsd_iusentra": {
+        "data": "2026-05-23",
+        "esito": "guida_interna_non_depositabile",
+        "motivo": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda viene conservata come guida pratica interna per impugnazione del testamento.",
+        "codice_originale": "120020"
+      },
+      "_source_file": "kb_98_top9_set5_parte1.json",
+      "_macro_area_id": "TOP9_CODICI_FREQUENTI_SET5_PARTE1",
+      "_macro_area_denominazione": "Quinto set di 9 codici - PARTE 1 di 2 (modifica condizioni separazione/divorzio, revocatoria, regolamento confini, impugnazione testamento, responsabilità amministratori SRL)",
+      "_registro": "",
+      "_quality_hint": "operativa_curata",
+      "_source_files": [
+        "kb_98_top9_set5_parte1.json"
       ]
     },
     {
@@ -451407,6 +455120,988 @@
       "_quality_hint": "operativa_curata",
       "_source_files": [
         "kb_98_top9_set3_parte2.json"
+      ]
+    },
+    {
+      "codice": "GUIDA_REGOLAMENTO_CONFINI_130032",
+      "denominazione": "Azione di regolamento dei confini (art. 950 c.c.)",
+      "categoria": "Diritti reali - tutela della proprietà",
+      "sottocategoria": "Accertamento giudiziale del confine tra fondi limitrofi",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA ex art. 5 c. 1-bis D.Lgs. 28/2010 (diritti reali)",
+      "competenza": "Tribunale del luogo dell'immobile (art. 21 c.p.c. - foro esclusivo)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "950",
+          "descrizione": "Azione di regolamento di confini - quando il confine è incerto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "951",
+          "descrizione": "Azione per apposizione di termini"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "948",
+          "descrizione": "Azione di rivendicazione (differente)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2697",
+          "descrizione": "Onere della prova - PER REGOLAMENTO CONFINI: nessuna parte ha onere prevalente"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "21",
+          "descrizione": "Foro esclusivo del luogo immobile"
+        },
+        {
+          "fonte": "Cass. SU 14393/2013",
+          "descrizione": "Differenze tra regolamento confini (950) e rivendicazione (948)"
+        },
+        {
+          "fonte": "Cass. 19256/2019",
+          "descrizione": "Mappe catastali - valore meramente probatorio sussidiario"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI FONDI LIMITROFI tra parti diverse",
+        "INCERTEZZA OBIETTIVA del confine (la linea divisoria reale non è chiara, non è coincidente con quella formale, o c'è contestazione tra i proprietari)",
+        "Le parti sono entrambe PROPRIETARI (non si discute il titolo - solo dove passa il confine)",
+        "Differenza da RIVENDICAZIONE: nel regolamento confini i titoli non sono in discussione, solo l'estensione fisica delle proprietà"
+      ],
+      "differenza_da_rivendicazione_e_apposizione_termini": {
+        "regolamento_confini_950": "Confine INCERTO da accertare giudizialmente - prova LIBERA (qualsiasi mezzo, anche mappe catastali) - giudice può procedere con CTU topografica",
+        "rivendicazione_948": "Confine CERTO ma proprietario rivendica BENE detenuto da altri - probatio diabolica",
+        "apposizione_termini_951": "Confine CERTO - si chiede solo la materiale collocazione/ripristino dei termini",
+        "petizione_eredità_533": "Universalità ereditaria - non singolo bene"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "DIRITTI REALI",
+        "natura": "condizione di procedibilità"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione DOCUMENTAZIONE CATASTALE E PROPRIETARIA",
+          "documenti": [
+            "Atti di provenienza ventennali dei fondi limitrofi",
+            "Visure catastali aggiornate (ENTRAMBI i fondi)",
+            "Mappe catastali (anche storiche se rilevanti)",
+            "Ispezioni Conservatoria",
+            "Eventuali frazionamenti precedenti",
+            "Eventuali atti di tipo (es. divisioni, lottizzazioni che hanno generato i due fondi)"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "RILIEVO TOPOGRAFICO DI PARTE",
+          "elementi": [
+            "Misurazione effettiva sul posto",
+            "Identificazione di eventuali termini, recinzioni, muri, alberi sul confine",
+            "Confronto con dati catastali",
+            "Confronto con misure indicate negli atti di provenienza",
+            "Identificazione di eventuali discrepanze"
+          ],
+          "raccomandato": "Affidare a tecnico abilitato (geometra, ingegnere, architetto)"
+        },
+        {
+          "step": 3,
+          "descrizione": "RICERCA DI ELEMENTI PROBATORI DEL CONFINE STORICO",
+          "elementi": [
+            "Termini, muri di confine, recinzioni storiche",
+            "Atti di acquisto con descrizione confini",
+            "Mappe storiche, foto aeree storiche, riprese satellitari",
+            "Testimonianze su confine storicamente riconosciuto",
+            "Atti di tipo (specie se i fondi derivano da divisione comune)"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "Tentativo di ACCORDO STRAGIUDIZIALE",
+          "modalita": [
+            "Negoziazione assistita ex D.L. 132/2014 (per accertamento confine)",
+            "Atto notarile di accertamento di confine consensuale (utile per evitare causa)"
+          ],
+          "vantaggio": "Risparmio costi e tempi"
+        },
+        {
+          "step": 5,
+          "descrizione": "ATTIVAZIONE MEDIAZIONE OBBLIGATORIA",
+          "luogo": "Organismo del luogo immobile",
+          "particolarita": "Spesso con mediatore con competenze tecniche/topografiche"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_regolamento_confini",
+        "denominazione": "Atto di citazione per regolamento di confini ex art. 950 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del luogo dell'immobile",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore_proprietario_1",
+            "label": "Attore - proprietario fondo 1",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "convenuto_proprietario_2",
+            "label": "Convenuto - proprietario fondo 2",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "fondo_attore",
+            "label": "Fondo dell'attore",
+            "type": "object_immobile",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "ubicazione",
+                "type": "address"
+              },
+              {
+                "id": "dati_catastali",
+                "type": "object"
+              },
+              {
+                "id": "superficie_secondo_atti",
+                "type": "string"
+              },
+              {
+                "id": "confini_secondo_atti",
+                "type": "textarea"
+              },
+              {
+                "id": "atto_di_provenienza",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "tipo",
+                    "type": "select"
+                  },
+                  {
+                    "id": "estremi",
+                    "type": "string"
+                  },
+                  {
+                    "id": "data",
+                    "type": "date"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "fondo_convenuto",
+            "label": "Fondo del convenuto",
+            "type": "object_immobile",
+            "required": true,
+            "sub_fields": "(stessa struttura)"
+          },
+          {
+            "id": "confine_contestato",
+            "label": "Confine contestato",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "lato_contestato",
+                "type": "select",
+                "options": [
+                  "nord",
+                  "sud",
+                  "est",
+                  "ovest",
+                  "altro"
+                ]
+              },
+              {
+                "id": "lunghezza_approssimativa",
+                "type": "string"
+              },
+              {
+                "id": "descrizione_situazione_attuale",
+                "type": "textarea",
+                "required": true,
+                "min_length": 300
+              },
+              {
+                "id": "elementi_fisici_sul_confine",
+                "type": "textarea",
+                "examples": "muro, recinzione, termine, fossato, siepe, alberi"
+              }
+            ]
+          },
+          {
+            "id": "tracciato_confine_proposto_attore",
+            "label": "Tracciato confine proposto dall'attore",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "descrizione_tracciato",
+                "type": "textarea"
+              },
+              {
+                "id": "argomentazioni_giuridiche_e_tecniche",
+                "type": "textarea",
+                "min_length": 200
+              },
+              {
+                "id": "rilievo_topografico_di_parte",
+                "type": "boolean",
+                "fortemente_consigliato": true
+              }
+            ]
+          },
+          {
+            "id": "elementi_probatori_disponibili",
+            "label": "Elementi probatori disponibili",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "atti_provenienza_con_descrizione_confini",
+              "mappe_catastali_storiche",
+              "mappe_catastali_attuali",
+              "foto_aeree_storiche",
+              "rilievo_topografico_di_parte",
+              "termini_o_recinzioni_storiche",
+              "testimonianze",
+              "altri_elementi"
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_confine_secondo_tracciato_attore",
+              "accertamento_confine_secondo_giudice_con_CTU",
+              "ordine_apposizione_termini_definitivi",
+              "ordine_rimozione_opere_su_proprieta_altrui",
+              "risarcimento_danni_eventuali",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "richiesta_ctu_topografica",
+            "label": "Richiesta CTU topografica",
+            "type": "boolean",
+            "default": true,
+            "fortemente_consigliato": true
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Foro esclusivo luogo immobile (art. 21 c.p.c.)",
+          "Mediazione obbligatoria preventiva (diritti reali)",
+          "PROVA LIBERA del confine (a differenza rivendicazione) - le mappe catastali hanno valore probatorio meramente sussidiario",
+          "Eventuale CTU topografica - prova principale del giudizio",
+          "Termine a comparire 120 gg post-Cartabia",
+          "Costituzione convenuto 70 gg prima udienza"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atti_di_provenienza_fondi",
+          "label": "Atti di provenienza dei due fondi",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "visure_catastali_attuali",
+          "label": "Visure catastali aggiornate",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "mappe_catastali",
+          "label": "Mappe catastali (anche storiche)",
+          "required": true
+        },
+        {
+          "id": "ispezioni_conservatoria",
+          "label": "Ispezioni Conservatoria",
+          "required": true
+        },
+        {
+          "id": "rilievo_topografico_di_parte",
+          "label": "Rilievo topografico effettuato da tecnico abilitato",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "documentazione_fotografica_e_satellitare",
+          "label": "Documentazione fotografica della situazione + eventuali foto aeree/satellitari",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "eventuale_perizia_storica_su_confine",
+          "label": "Eventuale perizia storica sul confine",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_termini_recinzioni_storiche",
+          "label": "Documentazione termini, muri, recinzioni storiche",
+          "required": false
+        },
+        {
+          "id": "verbale_mediazione_negativa",
+          "label": "Verbale mediazione obbligatoria conclusa negativamente",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore del bene in contestazione",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ricorso_mediazione_obbligatoria",
+          "trigger": "Condizione procedibilità preliminare"
+        },
+        {
+          "tipo": "ctu_topografica",
+          "trigger": "Disposta dal giudice",
+          "automatico": false,
+          "centrale_per_decisione": true
+        },
+        {
+          "tipo": "sopralluogo_del_giudice",
+          "trigger": "Disposto dal giudice",
+          "automatico": false
+        },
+        {
+          "tipo": "sentenza_dichiarativa_confine_e_apposizione_termini",
+          "trigger": "Esito accoglimento",
+          "automatico": false
+        },
+        {
+          "tipo": "esecuzione_per_rimozione_opere",
+          "trigger": "Mancato adempimento spontaneo",
+          "codice_correlato": "512020"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accertamento_confine_secondo_attore",
+          "descrizione": "Confine accertato secondo tracciato proposto dall'attore + apposizione termini"
+        },
+        {
+          "esito": "accertamento_confine_diverso_secondo_ctu",
+          "descrizione": "Il giudice accerta un confine diverso, di solito secondo CTU"
+        },
+        {
+          "esito": "rigetto_per_assenza_incertezza",
+          "descrizione": "Il confine non è incerto - rigetto"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo tra le parti su tracciato + atto notarile di accertamento"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "AZIONE IMPRESCRITTIBILE",
+          "natura": "imprescrittibile",
+          "nota": "Salvo usucapione di fascia di confine"
+        },
+        {
+          "termine": "Mediazione obbligatoria - max",
+          "giorni": 90,
+          "norma": "art. 6 D.Lgs. 28/2010"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        },
+        {
+          "termine": "Appello",
+          "giorni": 30,
+          "decorrenza": "notifica sentenza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "130032",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "guida_pratica_facoltativa": true,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Il codice 130032 è ufficiale, ma nel catalogo locale riguarda Abitazione - Uso; la scheda ricevuta riguarda regolamento dei confini e resta interna per non alterare il deposito.",
+      "codici_ufficiali_correlati_da_valutare": [
+        "130111",
+        "130001"
+      ],
+      "codice_deposito": null,
+      "verifica_pst_xsd_iusentra": {
+        "data": "2026-05-23",
+        "esito": "guida_interna_non_depositabile",
+        "motivo": "Il codice 130032 è ufficiale, ma nel catalogo locale riguarda Abitazione - Uso; la scheda ricevuta riguarda regolamento dei confini e resta interna per non alterare il deposito.",
+        "codice_originale": "130032"
+      },
+      "_source_file": "kb_98_top9_set5_parte1.json",
+      "_macro_area_id": "TOP9_CODICI_FREQUENTI_SET5_PARTE1",
+      "_macro_area_denominazione": "Quinto set di 9 codici - PARTE 1 di 2 (modifica condizioni separazione/divorzio, revocatoria, regolamento confini, impugnazione testamento, responsabilità amministratori SRL)",
+      "_registro": "",
+      "_quality_hint": "operativa_curata",
+      "_source_files": [
+        "kb_98_top9_set5_parte1.json"
+      ]
+    },
+    {
+      "codice": "GUIDA_RESPONSABILITA_NOTAIO_COMMERCIALISTA_143003",
+      "denominazione": "Responsabilità professionale del notaio o del commercialista",
+      "categoria": "Responsabilità civile - responsabilità professionale",
+      "sottocategoria": "Risarcimento danni da malpractice professionale di notai e commercialisti - responsabilità contrattuale per inadempimento mandato",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "Tribunale del luogo dell'esecuzione della prestazione (art. 20 c.p.c.) o residenza convenuto (artt. 18-19)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1218",
+          "descrizione": "Responsabilità contrattuale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1176 c. 2",
+          "descrizione": "Diligenza qualificata del professionista"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2236",
+          "descrizione": "Responsabilità del prestatore d'opera - limitazione a dolo o colpa grave per problemi tecnici di speciale difficoltà"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2230-2238",
+          "descrizione": "Prestazione d'opera intellettuale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2056",
+          "descrizione": "Valutazione danni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1223-1227",
+          "descrizione": "Risarcimento e concorso di colpa"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2946",
+          "descrizione": "Prescrizione decennale ordinaria"
+        },
+        {
+          "fonte": "L. 89/1913 (Legge Notarile)",
+          "descrizione": "Responsabilità del notaio"
+        },
+        {
+          "fonte": "L. 89/1913",
+          "articolo": "28",
+          "descrizione": "Atti vietati al notaio"
+        },
+        {
+          "fonte": "L. 89/1913",
+          "articolo": "76",
+          "descrizione": "Responsabilità penale e civile del notaio"
+        },
+        {
+          "fonte": "D.Lgs. 139/2005",
+          "descrizione": "Ordinamento commercialisti"
+        },
+        {
+          "fonte": "Cass. SU 15466/2014",
+          "descrizione": "Obblighi del notaio - controlli ipotecari obbligatori"
+        },
+        {
+          "fonte": "Cass. SU 9776/2020",
+          "descrizione": "Responsabilità del notaio - garanzia degli effetti tipici dell'atto"
+        },
+        {
+          "fonte": "L. 24/2017",
+          "articolo": "10",
+          "descrizione": "Estensione obbligo assicurazione a professionisti"
+        }
+      ],
+      "obblighi_specifici_del_notaio": [
+        "VISURE E CONTROLLI IPOTECARI prima della stipula (Cass. SU 15466/2014)",
+        "VERIFICA TITOLI DI PROVENIENZA (almeno ventennale per immobili)",
+        "VERIFICA CAPACITÀ DELLE PARTI",
+        "ACCERTAMENTO IDENTITÀ PARTI",
+        "CONSIGLIO TECNICO sulle scelte giuridiche più appropriate",
+        "ADEMPIMENTI FISCALI (registrazione, trascrizione, voltura catastale)",
+        "RISPETTO DI EVENTUALI DIVIETI EX ART. 28 LEGGE NOTARILE",
+        "ATTI CONFORMI ALLA VOLONTÀ DELLE PARTI",
+        "GARANZIA DEGLI EFFETTI TIPICI DELL'ATTO (Cass. SU 9776/2020)"
+      ],
+      "obblighi_specifici_del_commercialista": [
+        "TENUTA CONTABILE corretta secondo principi contabili",
+        "DICHIARAZIONI FISCALI tempestive e corrette",
+        "ASSISTENZA IN CONTENZIOSI TRIBUTARI",
+        "REDAZIONE BILANCIO conforme",
+        "CONSIGLIO TECNICO su scelte fiscali e contabili più appropriate",
+        "AVVERTIMENTO DEL CLIENTE su rischi e scadenze",
+        "RISPETTO TERMINI di adempimenti tributari"
+      ],
+      "tipologie_inadempimento_tipiche_notaio": [
+        "OMESSI/INSUFFICIENTI CONTROLLI IPOTECARI (immobile gravato da ipoteche non rilevate)",
+        "ERRORI NELLA REDAZIONE ATTI (clausole errate, omissioni)",
+        "OMESSA REGISTRAZIONE o TARDIVA REGISTRAZIONE (con sanzioni a carico cliente)",
+        "OMESSA TRASCRIZIONE (atto non opponibile a terzi)",
+        "OMESSA VOLTURA CATASTALE",
+        "VIOLAZIONE ART. 28 LEGGE NOTARILE (atto vietato)",
+        "INSUFFICIENTE CONSIGLIO TECNICO (mancata segnalazione di rischi)",
+        "ERRATA QUALIFICAZIONE GIURIDICA dell'atto"
+      ],
+      "tipologie_inadempimento_tipiche_commercialista": [
+        "OMESSE/TARDIVE DICHIARAZIONI FISCALI con conseguenti sanzioni",
+        "ERRORI NELLE DICHIARAZIONI (omessi redditi, errate detrazioni)",
+        "OMESSA TENUTA CONTABILITÀ regolare",
+        "MANCATO AVVERTIMENTO SCADENZE",
+        "ERRORI IN OPERAZIONI STRAORDINARIE (fusioni, scissioni, liquidazioni)",
+        "INSUFFICIENTE CONSULENZA FISCALE",
+        "OMESSA IMPUGNAZIONE accertamenti fiscali nei termini",
+        "ERRORE DI INQUADRAMENTO FISCALE OPERAZIONI"
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI UN MANDATO PROFESSIONALE (anche tacito - tipico per commercialista)",
+        "INADEMPIMENTO o INESATTO ADEMPIMENTO degli obblighi professionali",
+        "DILIGENZA QUALIFICATA come parametro (art. 1176 c. 2 c.c.)",
+        "DANNO al cliente (patrimoniale, da sanzioni fiscali, da perdita di chance)",
+        "NESSO DI CAUSALITÀ tra inadempimento e danno",
+        "Per problemi tecnici di speciale difficoltà: art. 2236 c.c. limita a dolo o colpa grave"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "tentativo_facoltativo": "Conciliazione presso ordini professionali - facoltativa"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione del MANDATO PROFESSIONALE",
+          "documenti": [
+            "Per notaio: rogito + eventuali atti precedenti + documentazione visure",
+            "Per commercialista: contratto di consulenza/mandato + corrispondenza + ricevute fatture"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "IDENTIFICAZIONE PRECISA DELL'INADEMPIMENTO",
+          "esempi": [
+            "Per notaio - omesse visure: ipoteca emersa successivamente all'atto",
+            "Per notaio - errore atto: clausola fraintesa o omessa",
+            "Per notaio - omessa registrazione: notifica accertamento tributario con sanzioni",
+            "Per commercialista - omessa dichiarazione: accertamento + sanzioni",
+            "Per commercialista - errore qualificazione: maggiore imposta + sanzioni"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "QUANTIFICAZIONE DEL DANNO",
+          "voci": [
+            "Per notaio: danno emergente (es. estinzione ipoteca a carico cliente), differenza di prezzo (se atto invalidato), spese sostenute, eventuale danno da perdita immobile",
+            "Per commercialista: sanzioni e interessi fiscali pagati per inadempimento del professionista, maggior imposta da rideterminazione, spese legali per contenziosi conseguenti"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "Acquisizione PARERE TECNICO di altro professionista",
+          "vantaggio": "Dimostra la violazione della diligenza qualificata - può essere CTP di parte"
+        },
+        {
+          "step": 5,
+          "descrizione": "RICHIESTA STRAGIUDIZIALE al professionista e all'ASSICURAZIONE",
+          "rilevanza": "L'obbligo di assicurazione consente azione diretta o transazione preventiva"
+        },
+        {
+          "step": 6,
+          "descrizione": "Eventuale RICORSO DISCIPLINARE all'Ordine professionale",
+          "rilevanza": "Procedimento parallelo - può fornire elementi probatori"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_responsabilita_notaio_commercialista",
+        "denominazione": "Atto di citazione per responsabilità professionale del notaio/commercialista",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "cliente_attore",
+            "label": "Cliente attore (danneggiato)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "professionista_convenuto",
+            "label": "Professionista convenuto",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_professionista",
+                "type": "select",
+                "required": true,
+                "options": [
+                  "notaio",
+                  "commercialista",
+                  "altro_professionista_intellettuale"
+                ]
+              },
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "codice_fiscale",
+                "type": "string"
+              },
+              {
+                "id": "albo_iscrizione",
+                "type": "string"
+              },
+              {
+                "id": "studio_indirizzo",
+                "type": "address"
+              }
+            ]
+          },
+          {
+            "id": "assicuratore_professionista",
+            "label": "Compagnia assicuratrice (azione diretta possibile)",
+            "type": "object_persona_giuridica"
+          },
+          {
+            "id": "mandato_professionale",
+            "label": "Mandato professionale",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_mandato",
+                "type": "select",
+                "options": [
+                  "rogito_specifico_notaio",
+                  "consulenza_continuativa_commercialista",
+                  "incarico_specifico_dichiarazioni_fiscali",
+                  "operazione_societaria_specifica",
+                  "altro"
+                ]
+              },
+              {
+                "id": "data_conferimento",
+                "type": "date"
+              },
+              {
+                "id": "oggetto",
+                "type": "textarea"
+              },
+              {
+                "id": "compenso_pattuito",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "tipo_inadempimento",
+            "label": "Tipo di inadempimento",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "omesse_visure_ipocatastali_notaio",
+              "errori_redazione_atto_notarile",
+              "omessa_o_tardiva_registrazione_atto",
+              "omessa_o_tardiva_trascrizione",
+              "omessa_voltura_catastale",
+              "violazione_art_28_legge_notarile",
+              "insufficiente_consiglio_tecnico_notaio",
+              "omesse_o_tardive_dichiarazioni_fiscali_commercialista",
+              "errori_dichiarazioni_fiscali",
+              "omessa_tenuta_contabilita",
+              "errori_operazioni_straordinarie_societarie",
+              "mancato_avvertimento_scadenze_commercialista",
+              "omessa_impugnazione_accertamento_tributario",
+              "altro"
+            ]
+          },
+          {
+            "id": "esposizione_inadempimento",
+            "label": "Esposizione dettagliata dell'inadempimento",
+            "type": "textarea",
+            "required": true,
+            "min_length": 500
+          },
+          {
+            "id": "diligenza_qualificata_violata",
+            "label": "Descrizione della diligenza qualificata violata",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "danno_subito",
+            "label": "Danno subito",
+            "type": "object_complesso",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "danno_emergente",
+                "type": "currency"
+              },
+              {
+                "id": "sanzioni_e_interessi_fiscali_pagati",
+                "type": "currency"
+              },
+              {
+                "id": "maggior_imposta_da_rideterminazione",
+                "type": "currency"
+              },
+              {
+                "id": "perdita_di_chance",
+                "type": "currency"
+              },
+              {
+                "id": "spese_legali_e_di_consulenza_per_riparazione",
+                "type": "currency"
+              },
+              {
+                "id": "altri_danni",
+                "type": "currency"
+              },
+              {
+                "id": "totale_richiesto",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "parere_tecnico_di_parte",
+            "label": "Parere tecnico di altro professionista (CTP di parte)",
+            "type": "boolean",
+            "fortemente_consigliato": true
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Diligenza qualificata ex art. 1176 c. 2 c.c. come parametro",
+          "Art. 2236 c.c. - limitazione a dolo/colpa grave solo per problemi tecnici di speciale difficoltà",
+          "Onere prova del cliente: inadempimento + danno + nesso causale",
+          "Prescrizione decennale (responsabilità contrattuale)",
+          "Termine a comparire 120 gg post-Cartabia",
+          "Per notai: applicabilità Cass. SU 15466/2014 (obbligo visure ipocatastali)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "mandato_o_atti_dell_incarico",
+          "label": "Mandato professionale o rogito (per notaio)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_inadempimento",
+          "label": "Documentazione dell'inadempimento (visure mancanti, atti errati, ecc.)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_danno",
+          "label": "Documentazione del danno (ipoteca emersa, sanzioni pagate, ecc.)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "corrispondenza_con_professionista",
+          "label": "Corrispondenza con il professionista",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "fatture_pagate_professionista",
+          "label": "Fatture pagate al professionista",
+          "required": false
+        },
+        {
+          "id": "parere_tecnico_di_parte",
+          "label": "Parere tecnico di altro professionista",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "documentazione_richiesta_stragiudiziale_e_riscontro",
+          "label": "Richiesta stragiudiziale al professionista/assicurazione",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_eventuale_procedimento_disciplinare",
+          "label": "Documentazione eventuale procedimento disciplinare",
+          "required": false
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore del danno richiesto",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "richiesta_stragiudiziale_assicurazione_professionista",
+          "trigger": "Tentativo transattivo",
+          "automatico": false
+        },
+        {
+          "tipo": "ricorso_disciplinare_ordine_professionale",
+          "trigger": "Procedimento parallelo",
+          "automatico": false
+        },
+        {
+          "tipo": "ctu_tecnica_su_diligenza_e_danno",
+          "trigger": "Disposta dal giudice",
+          "automatico": false,
+          "molto_frequente": true
+        },
+        {
+          "tipo": "chiamata_in_garanzia_assicurazione",
+          "trigger": "Domanda di garanzia del professionista",
+          "automatico": false
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_e_risarcimento",
+          "descrizione": "Condanna professionista (e/o assicurazione) al risarcimento integrale"
+        },
+        {
+          "esito": "accoglimento_parziale",
+          "descrizione": "Quantum inferiore o concorso di colpa del cliente"
+        },
+        {
+          "esito": "rigetto_per_assenza_inadempimento",
+          "descrizione": "Comportamento conforme alla diligenza qualificata"
+        },
+        {
+          "esito": "rigetto_per_assenza_nesso_causale",
+          "descrizione": "Inadempimento accertato ma danno non causalmente collegato"
+        },
+        {
+          "esito": "rigetto_per_2236_difficolta_tecnica",
+          "descrizione": "Problema di speciale difficoltà - colpa grave non provata"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo - molto frequente con coinvolgimento assicurazione"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione responsabilità contrattuale",
+          "anni": 10,
+          "decorrenza": "esaurimento prestazione o scoperta danno",
+          "natura": "prescrizione",
+          "norma": "art. 2946 c.c."
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        },
+        {
+          "termine": "Appello",
+          "giorni": 30,
+          "decorrenza": "notifica sentenza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "143003",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "guida_pratica_facoltativa": true,
+      "codice_deposito_automatico": false,
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda resta guida interna per responsabilità professionale di notaio o commercialista.",
+      "codici_ufficiali_correlati_da_valutare": [
+        "142002",
+        "143999"
+      ],
+      "codice_deposito": null,
+      "verifica_pst_xsd_iusentra": {
+        "data": "2026-05-23",
+        "esito": "guida_interna_non_depositabile",
+        "motivo": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda resta guida interna per responsabilità professionale di notaio o commercialista.",
+        "codice_originale": "143003"
+      },
+      "_source_file": "kb_98_top9_set5_parte2.json",
+      "_macro_area_id": "TOP9_CODICI_FREQUENTI_SET5_PARTE2",
+      "_macro_area_denominazione": "Quinto set di 9 codici - PARTE 2 di 2",
+      "_registro": "",
+      "_quality_hint": "operativa_curata",
+      "_source_files": [
+        "kb_98_top9_set5_parte2.json"
       ]
     },
     {
@@ -458977,7 +463672,7 @@
       ]
     }
   ],
-  "n_codici": 1067,
+  "n_codici": 1072,
   "duplicates_merged": {
     "010001": [
       "kb_98_top9_codici_frequenti_dettaglio_massimo.json"
@@ -459038,6 +463733,9 @@
     ],
     "101012": [
       "kb_99_completamento_codici_ufficiali.json"
+    ],
+    "102002": [
+      "kb_98_top9_set5_parte1.json"
     ],
     "102011": [
       "kb_99_completamento_codici_ufficiali.json"
@@ -459424,6 +464122,9 @@
     "150999": [
       "kb_99_completamento_codici_ufficiali.json"
     ],
+    "151110": [
+      "kb_98_top9_set5_parte1.json"
+    ],
     "151111": [
       "kb_99_completamento_codici_ufficiali.json"
     ],
@@ -459767,7 +464468,8 @@
       "kb_99_completamento_codici_ufficiali.json"
     ],
     "220020": [
-      "kb_99_completamento_codici_ufficiali.json"
+      "kb_99_completamento_codici_ufficiali.json",
+      "kb_98_top9_set5_parte2.json"
     ],
     "220021": [
       "kb_99_completamento_codici_ufficiali.json"
@@ -460078,6 +464780,9 @@
     ],
     "411510": [
       "kb_99_completamento_codici_ufficiali.json"
+    ],
+    "411601": [
+      "kb_98_top9_set5_parte1.json"
     ],
     "411610": [
       "kb_99_completamento_codici_ufficiali.json"
@@ -460458,5 +465163,5 @@
       "kb_99_completamento_codici_ufficiali.json"
     ]
   },
-  "n_duplicates_merged": 491
+  "n_duplicates_merged": 494
 }

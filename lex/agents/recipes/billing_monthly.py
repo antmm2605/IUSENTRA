@@ -67,4 +67,3 @@ def recipe() -> WorkflowRecipe:
         baseline_minutes=95,
         builder=build,
     )
-

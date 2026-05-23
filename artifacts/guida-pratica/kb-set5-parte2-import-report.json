@@ -1,0 +1,53 @@
+{
+    "source":  "C:\\Users\\HelpdeskCSC4\\Downloads\\files.zip::kb_top9_set5_parte2.json",
+    "destination":  "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set5_parte2.json",
+    "sha256":  "BC594B4709FD9DAB481897EB065FE82D3AE99839941BA606640C101AA6E89735",
+    "macro_area_id":  "TOP9_CODICI_FREQUENTI_SET5_PARTE2",
+    "denominazione":  "Quinto set di 9 codici - PARTE 2 di 2",
+    "codici_materia_originali":  [
+                                     "220020",
+                                     "143003",
+                                     "180001",
+                                     "130031"
+                                 ],
+    "codici_materia_integrati":  [
+                                     "220020",
+                                     "GUIDA_RESPONSABILITA_NOTAIO_COMMERCIALISTA_143003",
+                                     "GUIDA_CONSUMATORE_CLAUSOLE_VESSATORIE_180001",
+                                     "GUIDA_AZIONE_NEGATORIA_SERVITU_POSSESSORIA_130031"
+                                 ],
+    "conversioni_deposito":  [
+                                 {
+                                     "codice_originale":  "143003",
+                                     "codice_integrato":  "GUIDA_RESPONSABILITA_NOTAIO_COMMERCIALISTA_143003",
+                                     "codici_ufficiali_correlati_da_valutare":  [
+                                                                                    "142002",
+                                                                                    "143999"
+                                                                                ],
+                                     "reason":  "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda resta guida interna per responsabilità professionale di notaio o commercialista."
+                                 },
+                                 {
+                                     "codice_originale":  "180001",
+                                     "codice_integrato":  "GUIDA_CONSUMATORE_CLAUSOLE_VESSATORIE_180001",
+                                     "codici_ufficiali_correlati_da_valutare":  [
+                                                                                    "144031",
+                                                                                    "140999",
+                                                                                    "145021"
+                                                                                ],
+                                     "reason":  "Il codice 180001 è ufficiale, ma nel catalogo locale riguarda l\u0027opposizione a ordinanza-ingiunzione per assegni a vuoto; la scheda ricevuta riguarda tutela del consumatore e clausole vessatorie."
+                                 },
+                                 {
+                                     "codice_originale":  "130031",
+                                     "codice_integrato":  "GUIDA_AZIONE_NEGATORIA_SERVITU_POSSESSORIA_130031",
+                                     "codici_ufficiali_correlati_da_valutare":  [
+                                                                                    "130041",
+                                                                                    "020001",
+                                                                                    "020011",
+                                                                                    "131001",
+                                                                                    "131101"
+                                                                                ],
+                                     "reason":  "Il codice 130031 è ufficiale, ma nel catalogo locale riguarda Usufrutto; la scheda ricevuta riguarda azione negatoria di servitù o azioni possessorie e resta interna."
+                                 }
+                             ],
+    "termini_processuali_raw":  21
+}

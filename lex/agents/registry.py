@@ -61,4 +61,3 @@ class WorkflowRecipeRegistry:
         if not recipe:
             raise KeyError("Workflow agentico non registrato.")
         return recipe
-

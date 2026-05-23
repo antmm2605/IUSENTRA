@@ -96,4 +96,3 @@ def public_dict(value: Any) -> Any:
 
 def redact_for_audit(value: Any) -> Any:
     return redact_value(value)
-

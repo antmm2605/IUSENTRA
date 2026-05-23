@@ -1,5 +1,7 @@
 # Lex AI Operational Knowledge Map
 
+Aggiornamento 2026-05-23, Guida Pratica TOP9 set5 2.248.18: Lex deve leggere anche le schede importate da `kb_top9_set5_parte1.json` e `kb_top9_set5_parte2.json`. Il knowledge base contiene 1.072 schede complessive, con 1.018 codici ufficiali depositabili e 54 guide interne non depositabili. Le guide ricevute con codici ministeriali incoerenti o assenti restano alias interni con `codice_originale_ricevuto`, e non possono sostituire il codice oggetto PST/XSD del fascicolo o della busta.
+
 Aggiornamento 2026-05-22, Guida Pratica facoltativa e loader fascicoli 2.248.11: Lex deve arricchirsi sempre in modo conversazionale con le fonti curate dello studio. La Guida Pratica collegata al fascicolo è conoscenza operativa interrogabile, non un blocco: il dettaglio React e `GuidaPraticaSource` leggono lo stesso fascicolo reale anche in fallback JSON legacy, e la UI espone `Uso facoltativo` per chiarire all'avvocato che può usare la guida quando serve.
 
 Aggiornamento 2026-05-22, Guida Pratica facoltativa e TOP9 set2 2.248.10: la sorgente operativa `guida_pratica_pst_xsd` distingue oggetto pratica, oggetto guida e codice ministeriale. Quando codice e descrizione ministeriale coincidono, la scheda può essere collegata al fascicolo; quando non coincidono, la scheda resta guida interna facoltativa e non deve diventare codice deposito. Il fascicolo senza codice può ricevere una proposta da confermare, senza blocco operativo.

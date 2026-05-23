@@ -1,0 +1,50 @@
+{
+  "date": "2026-05-23",
+  "method": "PowerShell ConvertFrom-Json structural validation",
+  "kb_path": "pct/data/legal_knowledge_base.full.json",
+  "catalog_path": "pct/data/cataloghi/codici_oggetto_pst.json",
+  "kb_version": "4.0.2-kb-completa",
+  "kb_updated": "2026-05-23",
+  "declared_codes": 1072,
+  "actual_codes": 1072,
+  "official_catalog_codes": 1018,
+  "missing_official_codes": 0,
+  "internal_aliases": 54,
+  "set5_aliases_checked": [
+    "GUIDA_REGOLAMENTO_CONFINI_130032",
+    "GUIDA_IMPUGNAZIONE_TESTAMENTO_120020",
+    "GUIDA_RESPONSABILITA_NOTAIO_COMMERCIALISTA_143003",
+    "GUIDA_CONSUMATORE_CLAUSOLE_VESSATORIE_180001",
+    "GUIDA_AZIONE_NEGATORIA_SERVITU_POSSESSORIA_130031"
+  ],
+  "alias_failures": [],
+  "official_codes_preserved": [
+    "130031",
+    "130032",
+    "180001"
+  ],
+  "official_failures": [],
+  "utf8_checked_files": [
+    "pct/data/legal_knowledge_base_modules/kb_98_top9_set5_parte1.json",
+    "pct/data/legal_knowledge_base_modules/kb_98_top9_set5_parte2.json",
+    "artifacts/guida-pratica/kb-set5-parte1-import-report.json",
+    "artifacts/guida-pratica/kb-set5-parte2-import-report.json",
+    "pct/data/legal_knowledge_base.full.json"
+  ],
+  "utf8_failures": [],
+  "python_node_gates": [
+    "python py_compile ok",
+    "ruff ok",
+    "validate_guida_pratica ok",
+    "pytest guida_pratica_service ok",
+    "pytest guida_pratica_api ok",
+    "pytest lex guida_pratica_source ok",
+    "pytest import_guida_pratica_termini_processuali ok",
+    "pnpm frontend test ok",
+    "pnpm frontend typecheck ok",
+    "pnpm frontend build ok"
+  ],
+  "remaining_environment_limits": [
+    "docker unavailable locally on Windows without WSL/daemon; deploy must verify remote Docker on Hetzner"
+  ]
+}

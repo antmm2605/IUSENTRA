@@ -28,4 +28,3 @@ def test_modelli_agentici_serializzabili_e_redatti():
     assert "cliente@example.it" not in str(payload)
     assert "RSSMRA80A01H501U" not in str(payload)
     assert r"C:\data\studio" not in str(payload)
-

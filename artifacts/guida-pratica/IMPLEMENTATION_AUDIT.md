@@ -1,12 +1,14 @@
-# Audit implementazione Guida Pratica - 2026-05-22
+# Audit implementazione Guida Pratica - 2026-05-23
 
 ## Esito
 
 - Catalogo ufficiale PST/XSD mantenuto come fonte di deposito: 1.018 record.
 - Guide ufficiali curate: 1.018 su 1.018.
+- Schede complessive nel KB completo: 1.072.
 - Codici ufficiali senza guida curata: 0.
 - Incoerenze tra catalogo ufficiale e stato depositabile: 0.
-- Alias/schede interne non depositabili: 49, mantenute come guida interna e bloccate per la generazione deposito.
+- Alias/schede interne non depositabili: 54, mantenute come guida interna e bloccate per la generazione deposito.
+- TOP9 set5 integrato: cinque nuovi alias interni conservano il codice ricevuto senza sovrascrivere il catalogo ministeriale, mentre i codici ufficiali coerenti restano depositabili.
 - Guida Pratica disponibile anche a Lex come fonte interna conversazionale tramite `GuidaPraticaSource`, senza rendere la guida un requisito bloccante del fascicolo.
 - Vecchio blocco UI sperimentale rimosso dal servizio e dal componente React: non rientrano più le frasi `Scheda pratica suggerita...` / `Scheda pratica individuata...`, la progressione `0/16 requisiti` e il profilo immobiliare `Vendita di cose immobili / Scheda 140011` come pannello operativo.
 
@@ -20,6 +22,14 @@
 - `artifacts/guida-pratica/utf8-integrity-report.json`
 - `artifacts/guida-pratica/utf8-integrity-large-report.json`
 - `artifacts/guida-pratica/kb-set4-parte2-import-report.json`
+- `artifacts/guida-pratica/kb-set5-parte1-import-report.json`
+- `artifacts/guida-pratica/kb-set5-parte2-import-report.json`
+- `artifacts/guida-pratica/kb-set5-structural-validation-report.json`
+- `artifacts/guida-pratica/guida-pratica-user-material-field-audit-latest.json`
+- `artifacts/guida-pratica/guida-pratica-user-material-field-audit-latest.csv`
+- `artifacts/guida-pratica/termini-processuali-set5-dry-run-report.json`
+- `artifacts/guida-pratica/termini-processuali-set5-dry-run-audit.csv`
+- `artifacts/guida-pratica/utf8-integrity-set5-report.json`
 - `artifacts/guida-pratica/termini-processuali-set4-parte2-import-report.json`
 - `artifacts/guida-pratica/termini-processuali-set4-parte2-kb-audit.csv`
 
@@ -27,11 +37,21 @@
 
 | Comando / verifica | Esito | Nota |
 | --- | --- | --- |
+| Validazione PowerShell `ConvertFrom-Json` su `pct/data/legal_knowledge_base.full.json` e `pct/data/cataloghi/codici_oggetto_pst.json` | OK | JSON leggibile, 1.072 schede, 1.018 codici ufficiali coperti, 54 alias interni, `130031`, `130032` e `180001` preservati con significato ufficiale e guide set5 spostate su alias non depositabili. |
+| Controllo PowerShell UTF-8/BOM sui moduli e report set5 | OK | File scritti in UTF-8 senza BOM; nessun byte sostitutivo rilevato nei moduli `kb_98_top9_set5_parte1.json`, `kb_98_top9_set5_parte2.json` e nei due report di import. |
+| Runtime Python/Node locale | OK | Installati Python 3.12 e Node LTS in scope utente, creata `.venv` locale e sbloccati i gate mirati. Docker locale resta non disponibile su questa macchina Windows senza WSL/daemon, da coprire con deploy remoto e check GitHub. |
+| `python -m py_compile ...`; `python -m ruff check ...` | OK | Sintassi e Ruff verdi su merge KB, audit materiale utente, validatore e test servizio. |
+| `python scripts\validate_guida_pratica.py --require-official-curated --fail-on-generated ...` | OK | 1.072 schede curate, 1.018/1.018 codici ufficiali coperti, 0 mancanti, 0 incoerenze deposito, 54 alias interni non depositabili. |
+| `python scripts\audit_guida_pratica_user_material_fields.py --fail-on-loss ...` | OK | 9 moduli utente, 45 schede, 943 righe, 797 voci presenti e 0 perdite tra KB, servizio/API, UI e Lex. |
+| `python -m pytest tests\test_guida_pratica_service.py`; `tests\test_guida_pratica_api.py`; `lex\tests\unit\test_guida_pratica_source.py`; `tests\test_import_guida_pratica_termini_processuali.py` | OK | 37 test mirati passati sul perimetro Guida Pratica, API, Lex e import termini. |
+| `python scripts\import_guida_pratica_termini_processuali.py --dry-run ...` | OK | 2.941 termini letti dalla KB, 863 template calcolabili; nessuna scrittura runtime in `data/scadenziario`. |
+| `python -m pct.cli utf8-integrity --check-only ...`; `pnpm --filter @iusentra/studio test/typecheck/build` | OK | UTF-8 mirato verde su 6 file; contratti React, audit preset, UI coverage, TypeScript e build Vite completati. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_utf8_integrity.py -q --tb=short`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py` | OK | Packaging/readiness/UTF-8, contratti API, OpenAPI e provider verification riallineati alla versione `2.248.18`. |
 | `python scripts\validate_codici_oggetto_pst.py --min-records 1000` | OK | 1.018 record, duplicati 0, invalidi 0, descrizioni mancanti 0. |
 | `python scripts\verify_pst_xsd_catalog.py` | OK | Catalogo PST/XSD ufficiale integro: 1.018 record validi. |
-| `python scripts\validate_guida_pratica.py --require-official-curated --fail-on-generated ...` | OK | 1.018 codici ufficiali curati, 0 senza guida, coerenza deposito OK, 49 alias interni non depositabili. |
+| `python scripts\validate_guida_pratica.py --require-official-curated --fail-on-generated ...` | OK storico 2.248.11 | 1.018 codici ufficiali curati, 0 senza guida, coerenza deposito OK, 49 alias interni non depositabili prima dell'import set5; la verifica strutturale corrente sopra registra 54 alias. |
 | `python scripts\import_guida_pratica_termini_processuali.py --report artifacts\guida-pratica\termini-processuali-set4-parte2-import-report.json --csv artifacts\guida-pratica\termini-processuali-set4-parte2-kb-audit.csv` | OK | 2.895 termini importati, 832 template calcolabili e audit termini aggiornato. |
-| `python scripts\audit_guida_pratica_user_material_fields.py --fail-on-loss --report ...latest.json --csv ...latest.csv` | OK | 7 file utente, 36 schede, 724 righe, 0 voci perse tra file ricevuti, KB, servizio/API, UI e Lex. |
+| `python scripts\audit_guida_pratica_user_material_fields.py --fail-on-loss --report ...latest.json --csv ...latest.csv` | OK storico 2.248.11 | 7 file utente, 36 schede, 724 righe, 0 voci perse fino al set4; il set5 è registrato nei report di import e va incluso nel prossimo audit Python completo. |
 | `python -m pytest tests\test_guida_pratica_api.py::test_template_filtrato_da_guida_pratica_espone_anteprima_operativa tests\test_guida_pratica_api.py::test_guida_pratica_api_agganciata_al_fascicolo tests\test_react_shell.py::test_post_nuovo_fascicolo_con_cliente_apre_il_fascicolo -q --tb=short` | OK | Template filtrato dalla Guida Pratica, import documento, anteprima PDF, salvataggio nel fascicolo e redirect nuovo fascicolo verso fascicolo reale governati da test. |
 | `python -m pytest tests\test_template_atti_master_catalog.py tests\test_guida_pratica_api.py::test_template_filtrato_da_guida_pratica_espone_anteprima_operativa -q --tb=short` | OK | Il catalogo resta a 192 modelli operativi storici e gli alias core come `GDP_001` aprono il compilatore reale solo quando richiesti. |
 | Browser su `http://127.0.0.1:8080/fascicoli/nuovo` | OK | Pagina reale caricata, nessuna occorrenza del vecchio blocco `Vendita di cose immobili / Scheda 140011`, nessuna frase `Scheda pratica suggerita...` o `Scheda pratica individuata...`, zero errori console. |

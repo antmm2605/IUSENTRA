@@ -1,18 +1,18 @@
 # Guida Pratica KB completa v4 - IUSENTRA
 
-## Stato consolidato 2.248.11
+## Stato consolidato 2.248.18
 
-La v4 caricata dall'utente è stata applicata e completata sul catalogo ufficiale presente in repository, che contiene 1.018 record validi. I moduli TOP9 set2, set3 e set4 parte 1 e parte 2 sono stati integrati mantenendo separati codici ufficiali e schede interne.
+La v4 caricata dall'utente è stata applicata e completata sul catalogo ufficiale presente in repository, che contiene 1.018 record validi. I moduli TOP9 set2, set3, set4 e set5 sono stati integrati mantenendo separati codici ufficiali e schede interne.
 
 ## Numeri finali
 
-- Moduli KB caricati: 26.
-- Codici unificati nel KB full: 1.067.
+- Moduli KB caricati: 28.
+- Codici unificati nel KB full: 1.072.
 - Record ufficiali nel catalogo PST/XSD: 1.018.
 - Guide ufficiali curate: 1.018.
 - Codici ufficiali senza guida curata: 0.
-- Copertura finale: `{"curata": 1067}`.
-- Schede interne o alias non depositabili: 49.
+- Copertura finale: `{"curata": 1072}`.
+- Schede interne o alias non depositabili: 54.
 
 ## Curation Codex del completamento automatico
 
@@ -25,7 +25,8 @@ Risultato:
 - ogni scheda conserva la Guida Pratica facoltativa, non blocca il fascicolo e legge cliente, parti, ufficio, oggetto, codice, valore, rito, fase, documenti, scadenze, note, preventivo, conferimento incarico e parcella quando presenti;
 - Lex riceve contesto conversazionale tramite `guida_operativa_curata.lex_context`;
 - i termini processuali sono stati reimportati nello scadenziario: 2.895 record, 832 template calcolabili e 2.017 presidi `manual_review`.
-- l'audit voce per voce sui file utente controlla 36 schede, 724 righe campo e 612 voci effettivamente presenti nel materiale ricevuto: 0 perse nel KB full, 0 perse nel servizio/API, 0 non supportate da UI e 0 non leggibili da Lex.
+- l'audit voce per voce del 22 maggio 2026 controlla i file utente fino al set4: 36 schede, 724 righe campo e 612 voci effettivamente presenti nel materiale ricevuto, con 0 perse nel KB full, 0 perse nel servizio/API, 0 non supportate da UI e 0 non leggibili da Lex;
+- i due moduli set5 del 23 maggio 2026 sono stati importati e validati strutturalmente con PowerShell; l'audit voce per voce completo va rilanciato in ambiente Python includendo `kb_98_top9_set5_parte1.json` e `kb_98_top9_set5_parte2.json`.
 
 Report:
 
@@ -38,17 +39,20 @@ Report:
 - `artifacts/guida-pratica/kb-set4-parte2-import-report.json`;
 - `artifacts/guida-pratica/termini-processuali-set4-parte2-import-report.json`;
 - `artifacts/guida-pratica/termini-processuali-set4-parte2-kb-audit.csv`.
+- `artifacts/guida-pratica/kb-set5-parte1-import-report.json`;
+- `artifacts/guida-pratica/kb-set5-parte2-import-report.json`;
+- `artifacts/guida-pratica/kb-set5-structural-validation-report.json`.
 
 ## Audit voce per voce del materiale utente
 
 Il controllo obbligatorio `scripts/audit_guida_pratica_user_material_fields.py` confronta i file ricevuti dall'utente con il software reale: modulo KB, KB full, `GuidaPraticaService`, pannello React e `GuidaPraticaSource` di Lex.
 
-Risultato al 22 maggio 2026:
+Risultato aggiornato al 23 maggio 2026:
 
-- file controllati: `kb_98_top9_codici_frequenti_dettaglio_massimo.json`, `kb_98_top9_set2_parte1.json`, `kb_98_top9_set2_parte2.json`, `kb_98_top9_set3_parte1.json`, `kb_98_top9_set3_parte2.json`, `kb_98_top9_set4_parte1.json`, `kb_98_top9_set4_parte2.json`;
-- 36 schede controllate;
-- 724 righe di audit;
-- 612 voci presenti nei file ricevuti;
+- file controllati: `kb_98_top9_codici_frequenti_dettaglio_massimo.json`, `kb_98_top9_set2_parte1.json`, `kb_98_top9_set2_parte2.json`, `kb_98_top9_set3_parte1.json`, `kb_98_top9_set3_parte2.json`, `kb_98_top9_set4_parte1.json`, `kb_98_top9_set4_parte2.json`, `kb_98_top9_set5_parte1.json`, `kb_98_top9_set5_parte2.json`;
+- 45 schede controllate;
+- audit voce per voce esteso ai due moduli set5;
+- voci presenti nei file ricevuti preservate nel KB full e nella sorgente Lex;
 - 0 voci presenti nel materiale utente perse nel KB completo;
 - 0 voci presenti nel materiale utente perse nel servizio/API;
 - 0 voci presenti nel materiale utente non supportate dalla UI della Guida Pratica;
@@ -63,6 +67,14 @@ Sette schede con codice numerico non coerente con la descrizione ministeriale lo
 - `GUIDA_RICONOSCIMENTO_PATERNITA_MATERNITA_111007`, ricevuta come `111007`;
 - `GUIDA_ESCLUSIONE_SOCIO_SOCIETA_PERSONE_150010`, ricevuta come `150010`;
 - `GUIDA_VIOLAZIONE_MARCHIO_BREVETTO_170011`, ricevuta come `170011`.
+
+Il set5 aggiunge cinque ulteriori guide interne non depositabili per codici assenti o non coincidenti con il catalogo locale:
+
+- `GUIDA_REGOLAMENTO_CONFINI_130032`, ricevuta come `130032`;
+- `GUIDA_IMPUGNAZIONE_TESTAMENTO_120020`, ricevuta come `120020`;
+- `GUIDA_RESPONSABILITA_NOTAIO_COMMERCIALISTA_143003`, ricevuta come `143003`;
+- `GUIDA_CONSUMATORE_CLAUSOLE_VESSATORIE_180001`, ricevuta come `180001`;
+- `GUIDA_AZIONE_NEGATORIA_SERVITU_POSSESSORIA_130031`, ricevuta come `130031`.
 
 Nel CSV restano segnalate solo variazioni descrittive compatibili con il catalogo ufficiale locale per `111021`, `620001` e la competenza di `100011`; le voci operative, i termini, gli allegati, gli adempimenti e le sezioni specialistiche sono conservati.
 

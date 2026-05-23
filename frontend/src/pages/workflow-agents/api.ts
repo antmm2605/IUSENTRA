@@ -164,4 +164,3 @@ export function fetchWorkflowAgentMetrics(signal?: AbortSignal) {
     { signal },
   )
 }
-

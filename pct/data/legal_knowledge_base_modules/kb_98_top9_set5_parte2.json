@@ -1,0 +1,2001 @@
+{
+    "$schema":  "iusentra/legal-knowledge-base/v1",
+    "macro_area_id":  "TOP9_CODICI_FREQUENTI_SET5_PARTE2",
+    "denominazione":  "Quinto set di 9 codici - PARTE 2 di 2",
+    "registri":  [
+                     "SICID",
+                     "SILP"
+                 ],
+    "data_generazione":  "2026-05-23",
+    "scopo":  "Parte 2 del quinto set TOP9: differenze retributive e qualifica superiore, responsabilità notaio/commercialista, tutela consumatore clausole vessatorie, negatoria servitù",
+    "codici_materia":  [
+                           {
+                               "codice":  "220020",
+                               "denominazione":  "Differenze retributive e riconoscimento qualifica superiore (mansioni superiori - art. 2103 c.c.)",
+                               "categoria":  "Lavoro - retribuzione e inquadramento",
+                               "sottocategoria":  "Azione del lavoratore per riconoscimento qualifica superiore e relative differenze retributive",
+                               "rito":  "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+                               "competenza":  "Tribunale del lavoro - foro della sede di lavoro (art. 413 c.p.c.)",
+                               "uffici_destinatari":  [
+                                                          "SICID-Lavoro / SILP"
+                                                      ],
+                               "normativa":  [
+                                                 {
+                                                     "fonte":  "c.c.",
+                                                     "articolo":  "2103",
+                                                     "descrizione":  "Mansioni del lavoratore - diritto al mantenimento mansioni equivalenti / promozione automatica mansioni superiori"
+                                                 },
+                                                 {
+                                                     "fonte":  "c.c.",
+                                                     "articolo":  "2099",
+                                                     "descrizione":  "Retribuzione - principio della corrispondenza alle mansioni"
+                                                 },
+                                                 {
+                                                     "fonte":  "c.c.",
+                                                     "articolo":  "2126",
+                                                     "descrizione":  "Prestazione di fatto"
+                                                 },
+                                                 {
+                                                     "fonte":  "c.c.",
+                                                     "articolo":  "2948 n. 4",
+                                                     "descrizione":  "Prescrizione quinquennale per crediti retributivi"
+                                                 },
+                                                 {
+                                                     "fonte":  "L. 533/1973",
+                                                     "descrizione":  "Disciplina controversie individuali di lavoro"
+                                                 },
+                                                 {
+                                                     "fonte":  "D.Lgs. 81/2015",
+                                                     "articolo":  "3",
+                                                     "descrizione":  "Modifica art. 2103 c.c. - flessibilità mansioni"
+                                                 },
+                                                 {
+                                                     "fonte":  "Cass. SU 25033/2006",
+                                                     "descrizione":  "Promozione automatica - termine 3 mesi (per i contratti pre D.Lgs. 81/2015)"
+                                                 },
+                                                 {
+                                                     "fonte":  "Cass. 5226/2024",
+                                                     "descrizione":  "Onere prova mansioni superiori - elementi qualitativi e quantitativi"
+                                                 }
+                                             ],
+                               "presupposti_sostanziali":  [
+                                                               "RAPPORTO DI LAVORO SUBORDINATO in corso o cessato",
+                                                               "ASSEGNAZIONE EFFETTIVA A MANSIONI SUPERIORI al livello contrattuale di inquadramento",
+                                                               "CONTINUITÀ E SISTEMATICITÀ dello svolgimento delle mansioni superiori (non sporadiche o di mera sostituzione)",
+                                                               "Per PROMOZIONE AUTOMATICA ex art. 2103 c.c. (post D.Lgs. 81/2015): mansioni superiori per oltre 6 MESI (salvo accordo individuale o diversa previsione CCNL) - DIRITTO ALL\u0027INQUADRAMENTO SUPERIORE",
+                                                               "Per DIFFERENZE RETRIBUTIVE: anche meno di 6 mesi, comunque diritto alla retribuzione delle mansioni superiori per il periodo svolto (art. 2103)",
+                                                               "Identificazione del LIVELLO SUPERIORE secondo CCNL applicato + relativa retribuzione"
+                                                           ],
+                               "differenza_2103_pre_e_post_dlgs_81_2015":  {
+                                                                               "regime_pre_riforma":  "Mansioni superiori per 3 MESI continuativi + altri requisiti = promozione automatica (Cass. SU 25033/2006)",
+                                                                               "regime_post_riforma_18_marzo_2016":  "Mansioni superiori per 6 MESI continuativi + altri requisiti = promozione automatica (salvo CCNL diversi)",
+                                                                               "facolta_demansionamento_conservativo":  "Il datore può oggi demansionare il lavoratore (1 livello inferiore) in caso di riorganizzazione - più flessibilità per il datore"
+                                                                           },
+                               "obbligo_mediazione":  {
+                                                          "obbligatoria":  false,
+                                                          "tentativo_facoltativo":  "Conciliazione ITL ex art. 410 c.p.c. (facoltativa per privato); per pubblico impiego obbligatoria ex art. 65 D.Lgs. 165/2001"
+                                                      },
+                               "adempimenti_propedeutici":  [
+                                                                {
+                                                                    "step":  1,
+                                                                    "descrizione":  "Acquisizione DOCUMENTAZIONE DEL RAPPORTO DI LAVORO",
+                                                                    "documenti":  [
+                                                                                      "Contratto di lavoro originario + eventuali integrazioni",
+                                                                                      "CCNL applicato (con declaratorie dei livelli)",
+                                                                                      "Buste paga di tutto il periodo (per calcolo differenze)",
+                                                                                      "Mansionario aziendale (se esistente)",
+                                                                                      "Eventuali comunicazioni di cambio mansioni",
+                                                                                      "Organigramma aziendale"
+                                                                                  ]
+                                                                },
+                                                                {
+                                                                    "step":  2,
+                                                                    "descrizione":  "RICOSTRUZIONE DELLE MANSIONI EFFETTIVAMENTE SVOLTE",
+                                                                    "elementi":  [
+                                                                                     "Descrizione dettagliata attività quotidiane",
+                                                                                     "Responsabilità decisionali (autonomia, gestione persone, gestione risorse)",
+                                                                                     "Periodo di assegnazione (date precise inizio mansioni superiori)",
+                                                                                     "Continuità e sistematicità",
+                                                                                     "Eventuali documenti che provano l\u0027assegnazione: mail, organigrammi, ordini di servizio, deleghe, procure"
+                                                                                 ],
+                                                                    "rilevanza":  "PROVA CRITICA - dimostrazione concreta delle mansioni superiori"
+                                                                },
+                                                                {
+                                                                    "step":  3,
+                                                                    "descrizione":  "CONFRONTO CON DECLARATORIE CCNL",
+                                                                    "metodologia":  [
+                                                                                        "Identificare il LIVELLO ATTUALE di inquadramento del lavoratore",
+                                                                                        "Identificare il LIVELLO SUPERIORE rivendicato",
+                                                                                        "Confrontare le DECLARATORIE CCNL (descrizioni qualitative di ciascun livello)",
+                                                                                        "Dimostrare che le mansioni svolte rientrano nella declaratoria del livello superiore"
+                                                                                    ]
+                                                                },
+                                                                {
+                                                                    "step":  4,
+                                                                    "descrizione":  "VERIFICA REQUISITI PER PROMOZIONE AUTOMATICA",
+                                                                    "criteri":  [
+                                                                                    "Durata: oltre 6 mesi continuativi (per regime post 2015)",
+                                                                                    "Continuità: non interrotta da rientro alle mansioni originarie",
+                                                                                    "Esclusioni: sostituzioni temporanee di altro lavoratore assente (ferie, malattia), assegnazioni dichiaratamente temporanee"
+                                                                                ]
+                                                                },
+                                                                {
+                                                                    "step":  5,
+                                                                    "descrizione":  "QUANTIFICAZIONE DIFFERENZE RETRIBUTIVE",
+                                                                    "metodologia":  [
+                                                                                        "Per ciascun mese del periodo: differenza tra retribuzione livello superiore (CCNL) e retribuzione effettivamente percepita",
+                                                                                        "Considerare tutti gli elementi retributivi (paga base + scatti + indennità + 13a/14a + TFR maturato)",
+                                                                                        "Aggiungere interessi legali e rivalutazione monetaria (per crediti retributivi - art. 429 c.p.c.)",
+                                                                                        "Calcolo del PERIODO PRESCRIZIONALE: 5 anni dalla maturazione di ciascuna mensilità (art. 2948 n. 4)"
+                                                                                    ]
+                                                                },
+                                                                {
+                                                                    "step":  6,
+                                                                    "descrizione":  "VERIFICA TERMINE PRESCRIZIONALE",
+                                                                    "regola_generale":  "Prescrizione quinquennale per crediti retributivi (art. 2948 n. 4)",
+                                                                    "decorrenza":  [
+                                                                                       "Per lavoratore in stabilità reale (art. 18): prescrizione decorre dalla maturazione di ciascuna mensilità",
+                                                                                       "Per lavoratore senza stabilità reale: prescrizione decorre dalla cessazione del rapporto (Cass. SU 7115/2022)"
+                                                                                   ]
+                                                                },
+                                                                {
+                                                                    "step":  7,
+                                                                    "descrizione":  "Tentativo di CONCILIAZIONE ITL (facoltativa)",
+                                                                    "vantaggio":  "Risparmio costi e tempi, transazione retributiva con valore di titolo esecutivo"
+                                                                }
+                                                            ],
+                               "atto_principale":  {
+                                                       "tipo_atto":  "ricorso_riconoscimento_qualifica_superiore",
+                                                       "denominazione":  "Ricorso ex art. 414 c.p.c. per riconoscimento di qualifica superiore e differenze retributive",
+                                                       "schema_xsd_ministeriale":  "AttoLavoro.xsd",
+                                                       "campi_chiave":  [
+                                                                            {
+                                                                                "id":  "tribunale",
+                                                                                "label":  "Tribunale del lavoro",
+                                                                                "type":  "select",
+                                                                                "required":  true
+                                                                            },
+                                                                            {
+                                                                                "id":  "lavoratore",
+                                                                                "label":  "Lavoratore ricorrente",
+                                                                                "type":  "object_persona",
+                                                                                "required":  true
+                                                                            },
+                                                                            {
+                                                                                "id":  "datore_lavoro",
+                                                                                "label":  "Datore di lavoro convenuto",
+                                                                                "type":  "object_persona_giuridica",
+                                                                                "required":  true
+                                                                            },
+                                                                            {
+                                                                                "id":  "rapporto_lavoro",
+                                                                                "label":  "Rapporto di lavoro",
+                                                                                "type":  "object",
+                                                                                "required":  true,
+                                                                                "sub_fields":  [
+                                                                                                   {
+                                                                                                       "id":  "tipo_contratto",
+                                                                                                       "type":  "select"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "data_assunzione",
+                                                                                                       "type":  "date"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "data_cessazione_se_cessato",
+                                                                                                       "type":  "date"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "rapporto_ancora_in_corso",
+                                                                                                       "type":  "boolean"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "qualifica_e_livello_originario",
+                                                                                                       "type":  "string"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "ccnl_applicato",
+                                                                                                       "type":  "string",
+                                                                                                       "required":  true
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "retribuzione_attuale_o_ultima_globale",
+                                                                                                       "type":  "currency"
+                                                                                                   }
+                                                                                               ]
+                                                                            },
+                                                                            {
+                                                                                "id":  "qualifica_superiore_rivendicata",
+                                                                                "label":  "Qualifica superiore rivendicata",
+                                                                                "type":  "object",
+                                                                                "required":  true,
+                                                                                "sub_fields":  [
+                                                                                                   {
+                                                                                                       "id":  "livello_superiore_secondo_ccnl",
+                                                                                                       "type":  "string",
+                                                                                                       "required":  true
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "declaratoria_ccnl_del_livello",
+                                                                                                       "type":  "textarea",
+                                                                                                       "required":  true
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "retribuzione_corrispondente",
+                                                                                                       "type":  "currency",
+                                                                                                       "required":  true
+                                                                                                   }
+                                                                                               ]
+                                                                            },
+                                                                            {
+                                                                                "id":  "mansioni_effettivamente_svolte",
+                                                                                "label":  "Mansioni effettivamente svolte (descrizione dettagliata)",
+                                                                                "type":  "textarea",
+                                                                                "required":  true,
+                                                                                "min_length":  800
+                                                                            },
+                                                                            {
+                                                                                "id":  "periodo_mansioni_superiori",
+                                                                                "label":  "Periodo di assegnazione a mansioni superiori",
+                                                                                "type":  "object",
+                                                                                "required":  true,
+                                                                                "critico":  true,
+                                                                                "sub_fields":  [
+                                                                                                   {
+                                                                                                       "id":  "data_inizio",
+                                                                                                       "type":  "date",
+                                                                                                       "required":  true
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "data_fine_se_cessato",
+                                                                                                       "type":  "date"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "durata_in_mesi",
+                                                                                                       "type":  "integer"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "continuativita",
+                                                                                                       "type":  "boolean",
+                                                                                                       "required":  true
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "eventuali_interruzioni",
+                                                                                                       "type":  "textarea"
+                                                                                                   }
+                                                                                               ]
+                                                                            },
+                                                                            {
+                                                                                "id":  "elementi_di_prova_mansioni_superiori",
+                                                                                "label":  "Elementi di prova",
+                                                                                "type":  "select_multi",
+                                                                                "required":  true,
+                                                                                "options":  [
+                                                                                                "organigramma_aziendale",
+                                                                                                "mansionario",
+                                                                                                "ordini_di_servizio",
+                                                                                                "deleghe_e_procure",
+                                                                                                "mail_e_comunicazioni_aziendali",
+                                                                                                "testimoni_colleghi",
+                                                                                                "documenti_pubblici_camere_commercio",
+                                                                                                "altro"
+                                                                                            ]
+                                                                            },
+                                                                            {
+                                                                                "id":  "domande",
+                                                                                "label":  "Domande",
+                                                                                "type":  "select_multi",
+                                                                                "required":  true,
+                                                                                "options":  [
+                                                                                                "accertamento_svolgimento_mansioni_superiori",
+                                                                                                "promozione_automatica_inquadramento_livello_superiore",
+                                                                                                "condanna_pagamento_differenze_retributive",
+                                                                                                "rivalutazione_e_interessi_429_cpc",
+                                                                                                "contributi_previdenziali_su_differenze",
+                                                                                                "tfr_su_differenze",
+                                                                                                "spese_di_lite"
+                                                                                            ]
+                                                                            },
+                                                                            {
+                                                                                "id":  "differenze_retributive_calcolate",
+                                                                                "label":  "Differenze retributive calcolate",
+                                                                                "type":  "object",
+                                                                                "required":  true,
+                                                                                "sub_fields":  [
+                                                                                                   {
+                                                                                                       "id":  "periodo_calcolo",
+                                                                                                       "type":  "string"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "totale_differenze_lorde",
+                                                                                                       "type":  "currency"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "rivalutazione_e_interessi_stimati",
+                                                                                                       "type":  "currency"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "totale_richiesto",
+                                                                                                       "type":  "currency"
+                                                                                                   }
+                                                                                               ]
+                                                                            },
+                                                                            {
+                                                                                "id":  "regime_applicabile",
+                                                                                "label":  "Regime applicabile art. 2103",
+                                                                                "type":  "select",
+                                                                                "required":  true,
+                                                                                "options":  [
+                                                                                                "pre_dlgs_81_2015_promozione_3_mesi",
+                                                                                                "post_dlgs_81_2015_promozione_6_mesi",
+                                                                                                "regime_specifico_ccnl"
+                                                                                            ]
+                                                                            },
+                                                                            {
+                                                                                "id":  "udienza_comparizione",
+                                                                                "label":  "Prima udienza",
+                                                                                "type":  "date",
+                                                                                "required":  true
+                                                                            }
+                                                                        ],
+                                                       "avvertimenti_obbligatori":  [
+                                                                                        "Prescrizione quinquennale per crediti retributivi (art. 2948 n. 4 c.c.)",
+                                                                                        "Promozione automatica: 6 mesi per regime post D.Lgs. 81/2015 (3 mesi per pre-riforma)",
+                                                                                        "Costituzione datore 10 gg prima udienza con decadenze (art. 416)",
+                                                                                        "Onere prova mansioni effettivamente svolte sul lavoratore",
+                                                                                        "Rivalutazione monetaria e interessi automatici ex art. 429 c.p.c. per crediti di lavoro"
+                                                                                    ]
+                                                   },
+                               "allegati_obbligatori":  [
+                                                            {
+                                                                "id":  "contratto_lavoro",
+                                                                "label":  "Contratto individuale di lavoro",
+                                                                "required":  true,
+                                                                "critico":  true
+                                                            },
+                                                            {
+                                                                "id":  "ccnl_con_declaratorie",
+                                                                "label":  "CCNL applicato con declaratorie dei livelli",
+                                                                "required":  true,
+                                                                "critico":  true
+                                                            },
+                                                            {
+                                                                "id":  "buste_paga_tutto_il_periodo",
+                                                                "label":  "Buste paga di tutto il periodo rivendicato",
+                                                                "required":  true,
+                                                                "critico":  true
+                                                            },
+                                                            {
+                                                                "id":  "cud_anni_rilevanti",
+                                                                "label":  "CUD/CU degli anni rilevanti",
+                                                                "required":  true
+                                                            },
+                                                            {
+                                                                "id":  "documentazione_mansioni_svolte",
+                                                                "label":  "Documentazione mansioni effettivamente svolte (organigrammi, ordini di servizio, mail, deleghe)",
+                                                                "required":  true,
+                                                                "critico":  true
+                                                            },
+                                                            {
+                                                                "id":  "elenco_testimoni_colleghi",
+                                                                "label":  "Elenco testimoni (colleghi, superiori, ex dipendenti)",
+                                                                "required":  true
+                                                            },
+                                                            {
+                                                                "id":  "calcolo_dettagliato_differenze",
+                                                                "label":  "Calcolo dettagliato delle differenze retributive mese per mese",
+                                                                "required":  true,
+                                                                "critico":  true
+                                                            },
+                                                            {
+                                                                "id":  "eventuali_comunicazioni_al_datore",
+                                                                "label":  "Eventuali comunicazioni precedenti al datore (richieste di inquadramento)",
+                                                                "required":  false,
+                                                                "rilevante":  true
+                                                            },
+                                                            {
+                                                                "id":  "procura_alle_liti",
+                                                                "label":  "Procura alle liti",
+                                                                "required":  true
+                                                            }
+                                                        ],
+                               "adempimenti_fiscali":  {
+                                                           "contributo_unificato":  "Esenzione per controversie individuali di lavoro per reddito sotto 3x soglia patrocinio a spese dello Stato",
+                                                           "marca_bollo_forfettaria":  27.00,
+                                                           "deposito_telematico":  "Obbligatorio"
+                                                       },
+                               "atti_collegati":  [
+                                                      {
+                                                          "tipo":  "memoria_difensiva_datore",
+                                                          "trigger":  "Costituzione datore",
+                                                          "termine":  "10 gg prima udienza"
+                                                      },
+                                                      {
+                                                          "tipo":  "ctu_aziendale_su_mansioni_e_calcolo_differenze",
+                                                          "trigger":  "Disposta dal giudice",
+                                                          "automatico":  false,
+                                                          "frequente":  true
+                                                      },
+                                                      {
+                                                          "tipo":  "prova_testimoniale",
+                                                          "trigger":  "Sempre disposta in queste cause",
+                                                          "automatico":  false
+                                                      },
+                                                      {
+                                                          "tipo":  "azione_per_versamento_contributi_INPS",
+                                                          "trigger":  "Differenze retributive comportano contributi non versati",
+                                                          "automatico":  false
+                                                      },
+                                                      {
+                                                          "tipo":  "azione_per_demansionamento_dequalificazione",
+                                                          "trigger":  "Per il caso opposto - demansionamento illegittimo",
+                                                          "codice_correlato":  "220021"
+                                                      },
+                                                      {
+                                                          "tipo":  "appello",
+                                                          "trigger":  "Sentenza primo grado",
+                                                          "termine":  "30 gg notifica"
+                                                      }
+                                                  ],
+                               "esiti_processuali_tipici":  [
+                                                                {
+                                                                    "esito":  "accoglimento_promozione_e_differenze",
+                                                                    "descrizione":  "Inquadramento al livello superiore + condanna pagamento differenze + rivalutazione e interessi"
+                                                                },
+                                                                {
+                                                                    "esito":  "accoglimento_solo_differenze_no_promozione",
+                                                                    "descrizione":  "Mansioni svolte ma non per durata sufficiente alla promozione - solo differenze per il periodo"
+                                                                },
+                                                                {
+                                                                    "esito":  "rigetto_per_assenza_mansioni_superiori",
+                                                                    "descrizione":  "Mansioni non riconosciute come superiori secondo declaratorie CCNL"
+                                                                },
+                                                                {
+                                                                    "esito":  "rigetto_per_prescrizione",
+                                                                    "descrizione":  "Prescrizione quinquennale almeno parziale (per le mensilità più vecchie)"
+                                                                },
+                                                                {
+                                                                    "esito":  "transazione",
+                                                                    "descrizione":  "Accordo (es. inquadramento + pagamento parziale arretrati)"
+                                                                }
+                                                            ],
+                               "termini_processuali":  [
+                                                           {
+                                                               "termine":  "PRESCRIZIONE CREDITI RETRIBUTIVI",
+                                                               "anni":  5,
+                                                               "decorrenza":  "maturazione mensilità (o cessazione se senza stabilità reale)",
+                                                               "natura":  "prescrizione",
+                                                               "norma":  "art. 2948 n. 4 c.c.",
+                                                               "criticita":  "ALTA"
+                                                           },
+                                                           {
+                                                               "termine":  "Promozione automatica art. 2103 (post D.Lgs. 81/2015)",
+                                                               "mesi":  6,
+                                                               "decorrenza":  "inizio mansioni superiori",
+                                                               "natura":  "termine sostanziale"
+                                                           },
+                                                           {
+                                                               "termine":  "Costituzione datore",
+                                                               "giorni":  10,
+                                                               "decorrenza":  "prima udienza",
+                                                               "natura":  "perentorio",
+                                                               "norma":  "art. 416 c.p.c."
+                                                           },
+                                                           {
+                                                               "termine":  "Appello",
+                                                               "giorni":  30,
+                                                               "decorrenza":  "notifica sentenza",
+                                                               "natura":  "perentorio"
+                                                           }
+                                                       ]
+                           },
+                           {
+                               "codice":  "GUIDA_RESPONSABILITA_NOTAIO_COMMERCIALISTA_143003",
+                               "denominazione":  "Responsabilità professionale del notaio o del commercialista",
+                               "categoria":  "Responsabilità civile - responsabilità professionale",
+                               "sottocategoria":  "Risarcimento danni da malpractice professionale di notai e commercialisti - responsabilità contrattuale per inadempimento mandato",
+                               "rito":  "Rito ordinario di cognizione",
+                               "competenza":  "Tribunale del luogo dell\u0027esecuzione della prestazione (art. 20 c.p.c.) o residenza convenuto (artt. 18-19)",
+                               "uffici_destinatari":  [
+                                                          "SICID"
+                                                      ],
+                               "normativa":  [
+                                                 {
+                                                     "fonte":  "c.c.",
+                                                     "articolo":  "1218",
+                                                     "descrizione":  "Responsabilità contrattuale"
+                                                 },
+                                                 {
+                                                     "fonte":  "c.c.",
+                                                     "articolo":  "1176 c. 2",
+                                                     "descrizione":  "Diligenza qualificata del professionista"
+                                                 },
+                                                 {
+                                                     "fonte":  "c.c.",
+                                                     "articolo":  "2236",
+                                                     "descrizione":  "Responsabilità del prestatore d\u0027opera - limitazione a dolo o colpa grave per problemi tecnici di speciale difficoltà"
+                                                 },
+                                                 {
+                                                     "fonte":  "c.c.",
+                                                     "articolo":  "2230-2238",
+                                                     "descrizione":  "Prestazione d\u0027opera intellettuale"
+                                                 },
+                                                 {
+                                                     "fonte":  "c.c.",
+                                                     "articolo":  "2056",
+                                                     "descrizione":  "Valutazione danni"
+                                                 },
+                                                 {
+                                                     "fonte":  "c.c.",
+                                                     "articolo":  "1223-1227",
+                                                     "descrizione":  "Risarcimento e concorso di colpa"
+                                                 },
+                                                 {
+                                                     "fonte":  "c.c.",
+                                                     "articolo":  "2946",
+                                                     "descrizione":  "Prescrizione decennale ordinaria"
+                                                 },
+                                                 {
+                                                     "fonte":  "L. 89/1913 (Legge Notarile)",
+                                                     "descrizione":  "Responsabilità del notaio"
+                                                 },
+                                                 {
+                                                     "fonte":  "L. 89/1913",
+                                                     "articolo":  "28",
+                                                     "descrizione":  "Atti vietati al notaio"
+                                                 },
+                                                 {
+                                                     "fonte":  "L. 89/1913",
+                                                     "articolo":  "76",
+                                                     "descrizione":  "Responsabilità penale e civile del notaio"
+                                                 },
+                                                 {
+                                                     "fonte":  "D.Lgs. 139/2005",
+                                                     "descrizione":  "Ordinamento commercialisti"
+                                                 },
+                                                 {
+                                                     "fonte":  "Cass. SU 15466/2014",
+                                                     "descrizione":  "Obblighi del notaio - controlli ipotecari obbligatori"
+                                                 },
+                                                 {
+                                                     "fonte":  "Cass. SU 9776/2020",
+                                                     "descrizione":  "Responsabilità del notaio - garanzia degli effetti tipici dell\u0027atto"
+                                                 },
+                                                 {
+                                                     "fonte":  "L. 24/2017",
+                                                     "articolo":  "10",
+                                                     "descrizione":  "Estensione obbligo assicurazione a professionisti"
+                                                 }
+                                             ],
+                               "obblighi_specifici_del_notaio":  [
+                                                                     "VISURE E CONTROLLI IPOTECARI prima della stipula (Cass. SU 15466/2014)",
+                                                                     "VERIFICA TITOLI DI PROVENIENZA (almeno ventennale per immobili)",
+                                                                     "VERIFICA CAPACITÀ DELLE PARTI",
+                                                                     "ACCERTAMENTO IDENTITÀ PARTI",
+                                                                     "CONSIGLIO TECNICO sulle scelte giuridiche più appropriate",
+                                                                     "ADEMPIMENTI FISCALI (registrazione, trascrizione, voltura catastale)",
+                                                                     "RISPETTO DI EVENTUALI DIVIETI EX ART. 28 LEGGE NOTARILE",
+                                                                     "ATTI CONFORMI ALLA VOLONTÀ DELLE PARTI",
+                                                                     "GARANZIA DEGLI EFFETTI TIPICI DELL\u0027ATTO (Cass. SU 9776/2020)"
+                                                                 ],
+                               "obblighi_specifici_del_commercialista":  [
+                                                                             "TENUTA CONTABILE corretta secondo principi contabili",
+                                                                             "DICHIARAZIONI FISCALI tempestive e corrette",
+                                                                             "ASSISTENZA IN CONTENZIOSI TRIBUTARI",
+                                                                             "REDAZIONE BILANCIO conforme",
+                                                                             "CONSIGLIO TECNICO su scelte fiscali e contabili più appropriate",
+                                                                             "AVVERTIMENTO DEL CLIENTE su rischi e scadenze",
+                                                                             "RISPETTO TERMINI di adempimenti tributari"
+                                                                         ],
+                               "tipologie_inadempimento_tipiche_notaio":  [
+                                                                              "OMESSI/INSUFFICIENTI CONTROLLI IPOTECARI (immobile gravato da ipoteche non rilevate)",
+                                                                              "ERRORI NELLA REDAZIONE ATTI (clausole errate, omissioni)",
+                                                                              "OMESSA REGISTRAZIONE o TARDIVA REGISTRAZIONE (con sanzioni a carico cliente)",
+                                                                              "OMESSA TRASCRIZIONE (atto non opponibile a terzi)",
+                                                                              "OMESSA VOLTURA CATASTALE",
+                                                                              "VIOLAZIONE ART. 28 LEGGE NOTARILE (atto vietato)",
+                                                                              "INSUFFICIENTE CONSIGLIO TECNICO (mancata segnalazione di rischi)",
+                                                                              "ERRATA QUALIFICAZIONE GIURIDICA dell\u0027atto"
+                                                                          ],
+                               "tipologie_inadempimento_tipiche_commercialista":  [
+                                                                                      "OMESSE/TARDIVE DICHIARAZIONI FISCALI con conseguenti sanzioni",
+                                                                                      "ERRORI NELLE DICHIARAZIONI (omessi redditi, errate detrazioni)",
+                                                                                      "OMESSA TENUTA CONTABILITÀ regolare",
+                                                                                      "MANCATO AVVERTIMENTO SCADENZE",
+                                                                                      "ERRORI IN OPERAZIONI STRAORDINARIE (fusioni, scissioni, liquidazioni)",
+                                                                                      "INSUFFICIENTE CONSULENZA FISCALE",
+                                                                                      "OMESSA IMPUGNAZIONE accertamenti fiscali nei termini",
+                                                                                      "ERRORE DI INQUADRAMENTO FISCALE OPERAZIONI"
+                                                                                  ],
+                               "presupposti_sostanziali":  [
+                                                               "ESISTENZA DI UN MANDATO PROFESSIONALE (anche tacito - tipico per commercialista)",
+                                                               "INADEMPIMENTO o INESATTO ADEMPIMENTO degli obblighi professionali",
+                                                               "DILIGENZA QUALIFICATA come parametro (art. 1176 c. 2 c.c.)",
+                                                               "DANNO al cliente (patrimoniale, da sanzioni fiscali, da perdita di chance)",
+                                                               "NESSO DI CAUSALITÀ tra inadempimento e danno",
+                                                               "Per problemi tecnici di speciale difficoltà: art. 2236 c.c. limita a dolo o colpa grave"
+                                                           ],
+                               "obbligo_mediazione":  {
+                                                          "obbligatoria":  false,
+                                                          "tentativo_facoltativo":  "Conciliazione presso ordini professionali - facoltativa"
+                                                      },
+                               "adempimenti_propedeutici":  [
+                                                                {
+                                                                    "step":  1,
+                                                                    "descrizione":  "Acquisizione del MANDATO PROFESSIONALE",
+                                                                    "documenti":  [
+                                                                                      "Per notaio: rogito + eventuali atti precedenti + documentazione visure",
+                                                                                      "Per commercialista: contratto di consulenza/mandato + corrispondenza + ricevute fatture"
+                                                                                  ]
+                                                                },
+                                                                {
+                                                                    "step":  2,
+                                                                    "descrizione":  "IDENTIFICAZIONE PRECISA DELL\u0027INADEMPIMENTO",
+                                                                    "esempi":  [
+                                                                                   "Per notaio - omesse visure: ipoteca emersa successivamente all\u0027atto",
+                                                                                   "Per notaio - errore atto: clausola fraintesa o omessa",
+                                                                                   "Per notaio - omessa registrazione: notifica accertamento tributario con sanzioni",
+                                                                                   "Per commercialista - omessa dichiarazione: accertamento + sanzioni",
+                                                                                   "Per commercialista - errore qualificazione: maggiore imposta + sanzioni"
+                                                                               ]
+                                                                },
+                                                                {
+                                                                    "step":  3,
+                                                                    "descrizione":  "QUANTIFICAZIONE DEL DANNO",
+                                                                    "voci":  [
+                                                                                 "Per notaio: danno emergente (es. estinzione ipoteca a carico cliente), differenza di prezzo (se atto invalidato), spese sostenute, eventuale danno da perdita immobile",
+                                                                                 "Per commercialista: sanzioni e interessi fiscali pagati per inadempimento del professionista, maggior imposta da rideterminazione, spese legali per contenziosi conseguenti"
+                                                                             ]
+                                                                },
+                                                                {
+                                                                    "step":  4,
+                                                                    "descrizione":  "Acquisizione PARERE TECNICO di altro professionista",
+                                                                    "vantaggio":  "Dimostra la violazione della diligenza qualificata - può essere CTP di parte"
+                                                                },
+                                                                {
+                                                                    "step":  5,
+                                                                    "descrizione":  "RICHIESTA STRAGIUDIZIALE al professionista e all\u0027ASSICURAZIONE",
+                                                                    "rilevanza":  "L\u0027obbligo di assicurazione consente azione diretta o transazione preventiva"
+                                                                },
+                                                                {
+                                                                    "step":  6,
+                                                                    "descrizione":  "Eventuale RICORSO DISCIPLINARE all\u0027Ordine professionale",
+                                                                    "rilevanza":  "Procedimento parallelo - può fornire elementi probatori"
+                                                                }
+                                                            ],
+                               "atto_principale":  {
+                                                       "tipo_atto":  "atto_citazione_responsabilita_notaio_commercialista",
+                                                       "denominazione":  "Atto di citazione per responsabilità professionale del notaio/commercialista",
+                                                       "schema_xsd_ministeriale":  "AttoCitazione.xsd",
+                                                       "campi_chiave":  [
+                                                                            {
+                                                                                "id":  "tribunale",
+                                                                                "label":  "Tribunale competente",
+                                                                                "type":  "select",
+                                                                                "required":  true
+                                                                            },
+                                                                            {
+                                                                                "id":  "cliente_attore",
+                                                                                "label":  "Cliente attore (danneggiato)",
+                                                                                "type":  "object_persona",
+                                                                                "required":  true
+                                                                            },
+                                                                            {
+                                                                                "id":  "professionista_convenuto",
+                                                                                "label":  "Professionista convenuto",
+                                                                                "type":  "object_persona",
+                                                                                "required":  true,
+                                                                                "sub_fields":  [
+                                                                                                   {
+                                                                                                       "id":  "tipo_professionista",
+                                                                                                       "type":  "select",
+                                                                                                       "required":  true,
+                                                                                                       "options":  [
+                                                                                                                       "notaio",
+                                                                                                                       "commercialista",
+                                                                                                                       "altro_professionista_intellettuale"
+                                                                                                                   ]
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "cognome_nome",
+                                                                                                       "type":  "string"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "codice_fiscale",
+                                                                                                       "type":  "string"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "albo_iscrizione",
+                                                                                                       "type":  "string"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "studio_indirizzo",
+                                                                                                       "type":  "address"
+                                                                                                   }
+                                                                                               ]
+                                                                            },
+                                                                            {
+                                                                                "id":  "assicuratore_professionista",
+                                                                                "label":  "Compagnia assicuratrice (azione diretta possibile)",
+                                                                                "type":  "object_persona_giuridica"
+                                                                            },
+                                                                            {
+                                                                                "id":  "mandato_professionale",
+                                                                                "label":  "Mandato professionale",
+                                                                                "type":  "object",
+                                                                                "required":  true,
+                                                                                "sub_fields":  [
+                                                                                                   {
+                                                                                                       "id":  "tipo_mandato",
+                                                                                                       "type":  "select",
+                                                                                                       "options":  [
+                                                                                                                       "rogito_specifico_notaio",
+                                                                                                                       "consulenza_continuativa_commercialista",
+                                                                                                                       "incarico_specifico_dichiarazioni_fiscali",
+                                                                                                                       "operazione_societaria_specifica",
+                                                                                                                       "altro"
+                                                                                                                   ]
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "data_conferimento",
+                                                                                                       "type":  "date"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "oggetto",
+                                                                                                       "type":  "textarea"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "compenso_pattuito",
+                                                                                                       "type":  "currency"
+                                                                                                   }
+                                                                                               ]
+                                                                            },
+                                                                            {
+                                                                                "id":  "tipo_inadempimento",
+                                                                                "label":  "Tipo di inadempimento",
+                                                                                "type":  "select_multi",
+                                                                                "required":  true,
+                                                                                "options":  [
+                                                                                                "omesse_visure_ipocatastali_notaio",
+                                                                                                "errori_redazione_atto_notarile",
+                                                                                                "omessa_o_tardiva_registrazione_atto",
+                                                                                                "omessa_o_tardiva_trascrizione",
+                                                                                                "omessa_voltura_catastale",
+                                                                                                "violazione_art_28_legge_notarile",
+                                                                                                "insufficiente_consiglio_tecnico_notaio",
+                                                                                                "omesse_o_tardive_dichiarazioni_fiscali_commercialista",
+                                                                                                "errori_dichiarazioni_fiscali",
+                                                                                                "omessa_tenuta_contabilita",
+                                                                                                "errori_operazioni_straordinarie_societarie",
+                                                                                                "mancato_avvertimento_scadenze_commercialista",
+                                                                                                "omessa_impugnazione_accertamento_tributario",
+                                                                                                "altro"
+                                                                                            ]
+                                                                            },
+                                                                            {
+                                                                                "id":  "esposizione_inadempimento",
+                                                                                "label":  "Esposizione dettagliata dell\u0027inadempimento",
+                                                                                "type":  "textarea",
+                                                                                "required":  true,
+                                                                                "min_length":  500
+                                                                            },
+                                                                            {
+                                                                                "id":  "diligenza_qualificata_violata",
+                                                                                "label":  "Descrizione della diligenza qualificata violata",
+                                                                                "type":  "textarea",
+                                                                                "required":  true
+                                                                            },
+                                                                            {
+                                                                                "id":  "danno_subito",
+                                                                                "label":  "Danno subito",
+                                                                                "type":  "object_complesso",
+                                                                                "required":  true,
+                                                                                "sub_fields":  [
+                                                                                                   {
+                                                                                                       "id":  "danno_emergente",
+                                                                                                       "type":  "currency"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "sanzioni_e_interessi_fiscali_pagati",
+                                                                                                       "type":  "currency"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "maggior_imposta_da_rideterminazione",
+                                                                                                       "type":  "currency"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "perdita_di_chance",
+                                                                                                       "type":  "currency"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "spese_legali_e_di_consulenza_per_riparazione",
+                                                                                                       "type":  "currency"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "altri_danni",
+                                                                                                       "type":  "currency"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "totale_richiesto",
+                                                                                                       "type":  "currency"
+                                                                                                   }
+                                                                                               ]
+                                                                            },
+                                                                            {
+                                                                                "id":  "parere_tecnico_di_parte",
+                                                                                "label":  "Parere tecnico di altro professionista (CTP di parte)",
+                                                                                "type":  "boolean",
+                                                                                "fortemente_consigliato":  true
+                                                                            },
+                                                                            {
+                                                                                "id":  "udienza_comparizione",
+                                                                                "label":  "Prima udienza",
+                                                                                "type":  "date",
+                                                                                "required":  true
+                                                                            }
+                                                                        ],
+                                                       "avvertimenti_obbligatori":  [
+                                                                                        "Diligenza qualificata ex art. 1176 c. 2 c.c. come parametro",
+                                                                                        "Art. 2236 c.c. - limitazione a dolo/colpa grave solo per problemi tecnici di speciale difficoltà",
+                                                                                        "Onere prova del cliente: inadempimento + danno + nesso causale",
+                                                                                        "Prescrizione decennale (responsabilità contrattuale)",
+                                                                                        "Termine a comparire 120 gg post-Cartabia",
+                                                                                        "Per notai: applicabilità Cass. SU 15466/2014 (obbligo visure ipocatastali)"
+                                                                                    ]
+                                                   },
+                               "allegati_obbligatori":  [
+                                                            {
+                                                                "id":  "mandato_o_atti_dell_incarico",
+                                                                "label":  "Mandato professionale o rogito (per notaio)",
+                                                                "required":  true,
+                                                                "critico":  true
+                                                            },
+                                                            {
+                                                                "id":  "documentazione_inadempimento",
+                                                                "label":  "Documentazione dell\u0027inadempimento (visure mancanti, atti errati, ecc.)",
+                                                                "required":  true,
+                                                                "critico":  true
+                                                            },
+                                                            {
+                                                                "id":  "documentazione_danno",
+                                                                "label":  "Documentazione del danno (ipoteca emersa, sanzioni pagate, ecc.)",
+                                                                "required":  true,
+                                                                "critico":  true
+                                                            },
+                                                            {
+                                                                "id":  "corrispondenza_con_professionista",
+                                                                "label":  "Corrispondenza con il professionista",
+                                                                "required":  false,
+                                                                "consigliato":  true
+                                                            },
+                                                            {
+                                                                "id":  "fatture_pagate_professionista",
+                                                                "label":  "Fatture pagate al professionista",
+                                                                "required":  false
+                                                            },
+                                                            {
+                                                                "id":  "parere_tecnico_di_parte",
+                                                                "label":  "Parere tecnico di altro professionista",
+                                                                "required":  false,
+                                                                "fortemente_consigliato":  true
+                                                            },
+                                                            {
+                                                                "id":  "documentazione_richiesta_stragiudiziale_e_riscontro",
+                                                                "label":  "Richiesta stragiudiziale al professionista/assicurazione",
+                                                                "required":  false,
+                                                                "consigliato":  true
+                                                            },
+                                                            {
+                                                                "id":  "documentazione_eventuale_procedimento_disciplinare",
+                                                                "label":  "Documentazione eventuale procedimento disciplinare",
+                                                                "required":  false
+                                                            },
+                                                            {
+                                                                "id":  "procura_alle_liti",
+                                                                "label":  "Procura alle liti",
+                                                                "required":  true
+                                                            }
+                                                        ],
+                               "adempimenti_fiscali":  {
+                                                           "contributo_unificato":  "Determinato in base al valore del danno richiesto",
+                                                           "marca_bollo_forfettaria":  27.00,
+                                                           "deposito_telematico":  "Obbligatorio"
+                                                       },
+                               "atti_collegati":  [
+                                                      {
+                                                          "tipo":  "richiesta_stragiudiziale_assicurazione_professionista",
+                                                          "trigger":  "Tentativo transattivo",
+                                                          "automatico":  false
+                                                      },
+                                                      {
+                                                          "tipo":  "ricorso_disciplinare_ordine_professionale",
+                                                          "trigger":  "Procedimento parallelo",
+                                                          "automatico":  false
+                                                      },
+                                                      {
+                                                          "tipo":  "ctu_tecnica_su_diligenza_e_danno",
+                                                          "trigger":  "Disposta dal giudice",
+                                                          "automatico":  false,
+                                                          "molto_frequente":  true
+                                                      },
+                                                      {
+                                                          "tipo":  "chiamata_in_garanzia_assicurazione",
+                                                          "trigger":  "Domanda di garanzia del professionista",
+                                                          "automatico":  false
+                                                      },
+                                                      {
+                                                          "tipo":  "appello",
+                                                          "trigger":  "Sentenza primo grado",
+                                                          "termine":  "30 gg notifica"
+                                                      }
+                                                  ],
+                               "esiti_processuali_tipici":  [
+                                                                {
+                                                                    "esito":  "accoglimento_e_risarcimento",
+                                                                    "descrizione":  "Condanna professionista (e/o assicurazione) al risarcimento integrale"
+                                                                },
+                                                                {
+                                                                    "esito":  "accoglimento_parziale",
+                                                                    "descrizione":  "Quantum inferiore o concorso di colpa del cliente"
+                                                                },
+                                                                {
+                                                                    "esito":  "rigetto_per_assenza_inadempimento",
+                                                                    "descrizione":  "Comportamento conforme alla diligenza qualificata"
+                                                                },
+                                                                {
+                                                                    "esito":  "rigetto_per_assenza_nesso_causale",
+                                                                    "descrizione":  "Inadempimento accertato ma danno non causalmente collegato"
+                                                                },
+                                                                {
+                                                                    "esito":  "rigetto_per_2236_difficolta_tecnica",
+                                                                    "descrizione":  "Problema di speciale difficoltà - colpa grave non provata"
+                                                                },
+                                                                {
+                                                                    "esito":  "transazione",
+                                                                    "descrizione":  "Accordo - molto frequente con coinvolgimento assicurazione"
+                                                                }
+                                                            ],
+                               "termini_processuali":  [
+                                                           {
+                                                               "termine":  "Prescrizione responsabilità contrattuale",
+                                                               "anni":  10,
+                                                               "decorrenza":  "esaurimento prestazione o scoperta danno",
+                                                               "natura":  "prescrizione",
+                                                               "norma":  "art. 2946 c.c."
+                                                           },
+                                                           {
+                                                               "termine":  "Termine a comparire",
+                                                               "giorni":  120,
+                                                               "natura":  "minimo legale post-Cartabia"
+                                                           },
+                                                           {
+                                                               "termine":  "Costituzione convenuto",
+                                                               "giorni":  70,
+                                                               "decorrenza":  "prima udienza",
+                                                               "natura":  "perentorio"
+                                                           },
+                                                           {
+                                                               "termine":  "Appello",
+                                                               "giorni":  30,
+                                                               "decorrenza":  "notifica sentenza",
+                                                               "natura":  "perentorio"
+                                                           }
+                                                       ],
+                               "codice_originale_ricevuto":  "143003",
+                               "guida_interna_non_depositabile":  true,
+                               "depositabile":  false,
+                               "guida_pratica_facoltativa":  true,
+                               "codice_deposito_automatico":  false,
+                               "nota_integrazione_iusentra":  "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda resta guida interna per responsabilità professionale di notaio o commercialista.",
+                               "codici_ufficiali_correlati_da_valutare":  [
+                                                                              "142002",
+                                                                              "143999"
+                                                                          ],
+                               "codice_deposito":  null,
+                               "verifica_pst_xsd_iusentra":  {
+                                                                 "data":  "2026-05-23",
+                                                                 "esito":  "guida_interna_non_depositabile",
+                                                                 "motivo":  "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda resta guida interna per responsabilità professionale di notaio o commercialista.",
+                                                                 "codice_originale":  "143003"
+                                                             }
+                           },
+                           {
+                               "codice":  "GUIDA_CONSUMATORE_CLAUSOLE_VESSATORIE_180001",
+                               "denominazione":  "Tutela del consumatore - clausole vessatorie e nullità contrattuali (D.Lgs. 206/2005 Codice del Consumo)",
+                               "categoria":  "Tutela del consumatore",
+                               "sottocategoria":  "Azione di nullità di clausole vessatorie + risarcimento danni o restituzione",
+                               "rito":  "Rito ordinario di cognizione (o sommario di cognizione ex art. 281-decies); foro speciale del consumatore",
+                               "competenza":  "FORO ESCLUSIVO DEL CONSUMATORE: residenza/domicilio del consumatore (art. 33 c. 2 lett. u D.Lgs. 206/2005 - INDEROGABILE)",
+                               "uffici_destinatari":  [
+                                                          "SICID"
+                                                      ],
+                               "normativa":  [
+                                                 {
+                                                     "fonte":  "D.Lgs. 206/2005 (Codice del Consumo)",
+                                                     "descrizione":  "Disciplina dei rapporti consumatori - professionisti"
+                                                 },
+                                                 {
+                                                     "fonte":  "Cod. Consumo",
+                                                     "articolo":  "3",
+                                                     "descrizione":  "Definizioni - consumatore vs professionista"
+                                                 },
+                                                 {
+                                                     "fonte":  "Cod. Consumo",
+                                                     "articolo":  "33",
+                                                     "descrizione":  "Clausole vessatorie - presunzione di vessatorietà + foro del consumatore"
+                                                 },
+                                                 {
+                                                     "fonte":  "Cod. Consumo",
+                                                     "articolo":  "34",
+                                                     "descrizione":  "Accertamento della vessatorietà"
+                                                 },
+                                                 {
+                                                     "fonte":  "Cod. Consumo",
+                                                     "articolo":  "35",
+                                                     "descrizione":  "Forma e interpretazione"
+                                                 },
+                                                 {
+                                                     "fonte":  "Cod. Consumo",
+                                                     "articolo":  "36",
+                                                     "descrizione":  "Nullità di protezione delle clausole vessatorie"
+                                                 },
+                                                 {
+                                                     "fonte":  "Cod. Consumo",
+                                                     "articoli":  "37-37-bis",
+                                                     "descrizione":  "Inibitoria contro le clausole vessatorie - AGCM"
+                                                 },
+                                                 {
+                                                     "fonte":  "Cod. Consumo",
+                                                     "articoli":  "45-67",
+                                                     "descrizione":  "Diritto di recesso nei contratti a distanza e fuori dei locali commerciali"
+                                                 },
+                                                 {
+                                                     "fonte":  "Cod. Consumo",
+                                                     "articoli":  "128-135",
+                                                     "descrizione":  "Garanzia di conformità nella vendita di beni di consumo"
+                                                 },
+                                                 {
+                                                     "fonte":  "Cod. Consumo",
+                                                     "articoli":  "20-27-quater",
+                                                     "descrizione":  "Pratiche commerciali scorrette - AGCM"
+                                                 },
+                                                 {
+                                                     "fonte":  "c.c.",
+                                                     "articolo":  "1469-bis",
+                                                     "descrizione":  "Norma di rinvio al Codice del Consumo"
+                                                 },
+                                                 {
+                                                     "fonte":  "Direttiva UE 93/13/CEE",
+                                                     "descrizione":  "Clausole abusive nei contratti consumatori"
+                                                 },
+                                                 {
+                                                     "fonte":  "Direttiva UE 2011/83/UE",
+                                                     "descrizione":  "Diritti dei consumatori - recepita 2014"
+                                                 },
+                                                 {
+                                                     "fonte":  "Cass. SU 23633/2022",
+                                                     "descrizione":  "Nullità di protezione - rilevabilità d\u0027ufficio"
+                                                 }
+                                             ],
+                               "presupposti_sostanziali_clausole_vessatorie":  [
+                                                                                   "RAPPORTO CONSUMATORE - PROFESSIONISTA (art. 3 Cod. Consumo)",
+                                                                                   "PRESENZA DI CLAUSOLE VESSATORIE nel contratto:",
+                                                                                   "- Clausole che determinano significativo squilibrio dei diritti e obblighi a carico del consumatore (art. 33 c. 1)",
+                                                                                   "- Clausole presunte vessatorie ex art. 33 c. 2 (elenco non tassativo)",
+                                                                                   "- Foro convenzionale diverso dalla residenza consumatore (es. tipico)",
+                                                                                   "ASSENZA DI TRATTATIVA INDIVIDUALE su tali clausole (art. 34 c. 4)",
+                                                                                   "Conseguenza: NULLITÀ DI PROTEZIONE ex art. 36 - rilevabile anche d\u0027ufficio (Cass. SU 23633/2022) - opera solo a favore del consumatore"
+                                                                               ],
+                               "altre_tutele_codice_consumo":  [
+                                                                   "DIRITTO DI RECESSO 14 giorni per contratti a distanza/fuori locali commerciali (art. 52)",
+                                                                   "GARANZIA DI CONFORMITÀ 24 mesi (artt. 128 e ss.)",
+                                                                   "PRATICHE COMMERCIALI SCORRETTE - AGCM (artt. 18-27-quater)",
+                                                                   "CLAUSOLE BANCARIE ABUSIVE - normativa specifica + Cod. Consumo"
+                                                               ],
+                               "obbligo_mediazione":  {
+                                                          "obbligatoria":  "Solo se materia rientra in art. 5 c. 1-bis D.Lgs. 28/2010 (es. contratti bancari/assicurativi/finanziari) - molto frequente",
+                                                          "ADR_consumatori":  "Per controversie consumeristiche è prevista anche risoluzione alternativa specifica ex D.Lgs. 130/2015 (ADR) - facoltativa"
+                                                      },
+                               "adempimenti_propedeutici":  [
+                                                                {
+                                                                    "step":  1,
+                                                                    "descrizione":  "VERIFICA QUALITÀ DI CONSUMATORE",
+                                                                    "elementi":  [
+                                                                                     "Persona FISICA che agisce per scopi ESTRANEI all\u0027attività imprenditoriale/professionale (art. 3)",
+                                                                                     "Documentazione: dati anagrafici + verifica assenza partita IVA collegata all\u0027oggetto del contratto"
+                                                                                 ]
+                                                                },
+                                                                {
+                                                                    "step":  2,
+                                                                    "descrizione":  "ACQUISIZIONE DEL CONTRATTO INTEGRALE",
+                                                                    "elementi":  [
+                                                                                     "Contratto firmato dal consumatore",
+                                                                                     "Eventuali allegati (condizioni generali, ecc.)",
+                                                                                     "Modulistica del professionista (per dimostrare assenza di trattativa individuale)",
+                                                                                     "Eventuali comunicazioni successive"
+                                                                                 ]
+                                                                },
+                                                                {
+                                                                    "step":  3,
+                                                                    "descrizione":  "IDENTIFICAZIONE CLAUSOLE VESSATORIE",
+                                                                    "categoria_da_art_33_c_2":  [
+                                                                                                    "Esclusione/limitazione di responsabilità del professionista",
+                                                                                                    "Esclusione/limitazione del consumatore di sollevare eccezioni",
+                                                                                                    "Penali eccessive a carico del consumatore",
+                                                                                                    "Recesso unilaterale del professionista in qualsiasi momento",
+                                                                                                    "Clausole che impongono al consumatore arbitrato vincolante",
+                                                                                                    "Foro convenzionale diverso da residenza consumatore",
+                                                                                                    "Modificabilità unilaterale clausole essenziali",
+                                                                                                    "Trasferimento contratto a terzi senza consenso",
+                                                                                                    "Vincoli al consumatore non vincolanti per il professionista"
+                                                                                                ]
+                                                                },
+                                                                {
+                                                                    "step":  4,
+                                                                    "descrizione":  "VERIFICA ASSENZA DI TRATTATIVA INDIVIDUALE",
+                                                                    "principio":  "L\u0027art. 34 c. 4 esclude la vessatorietà se clausola oggetto di trattativa individuale - ma onere prova sul professionista",
+                                                                    "ipotesi_tipiche":  "Moduli prestampati, contratti di adesione, condizioni generali"
+                                                                },
+                                                                {
+                                                                    "step":  5,
+                                                                    "descrizione":  "Quantificazione del DANNO o DELLE SOMME DA RESTITUIRE",
+                                                                    "voci":  [
+                                                                                 "Importi indebitamente pagati in virtù della clausola nulla (restituzione)",
+                                                                                 "Eventuali danni emergenti",
+                                                                                 "Spese sostenute",
+                                                                                 "Eventuali danni morali per pratiche commerciali scorrette"
+                                                                             ]
+                                                                },
+                                                                {
+                                                                    "step":  6,
+                                                                    "descrizione":  "DIFFIDA al professionista (raccomandata o PEC)",
+                                                                    "vantaggio":  "Spesso porta a soluzioni stragiudiziali rapide"
+                                                                },
+                                                                {
+                                                                    "step":  7,
+                                                                    "descrizione":  "Eventuale segnalazione AGCM per pratiche commerciali scorrette (parallela)",
+                                                                    "rilevanza":  "Sanzione amministrativa pesante per il professionista - può facilitare transazione"
+                                                                }
+                                                            ],
+                               "atto_principale":  {
+                                                       "tipo_atto":  "atto_citazione_tutela_consumatore",
+                                                       "denominazione":  "Atto di citazione per accertamento nullità clausole vessatorie + restituzione + risarcimento (Cod. Consumo)",
+                                                       "schema_xsd_ministeriale":  "AttoCitazione.xsd",
+                                                       "campi_chiave":  [
+                                                                            {
+                                                                                "id":  "tribunale",
+                                                                                "label":  "Tribunale del foro del consumatore (INDEROGABILE)",
+                                                                                "type":  "select",
+                                                                                "required":  true,
+                                                                                "critico":  true
+                                                                            },
+                                                                            {
+                                                                                "id":  "consumatore_attore",
+                                                                                "label":  "Consumatore attore",
+                                                                                "type":  "object_persona",
+                                                                                "required":  true,
+                                                                                "sub_fields":  [
+                                                                                                   {
+                                                                                                       "id":  "cognome_nome",
+                                                                                                       "type":  "string"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "codice_fiscale",
+                                                                                                       "type":  "string"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "residenza",
+                                                                                                       "type":  "address",
+                                                                                                       "rilevante_per_competenza":  true
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "assenza_attivita_professionale_collegata",
+                                                                                                       "type":  "boolean",
+                                                                                                       "critico":  true
+                                                                                                   }
+                                                                                               ]
+                                                                            },
+                                                                            {
+                                                                                "id":  "professionista_convenuto",
+                                                                                "label":  "Professionista convenuto",
+                                                                                "type":  "object_persona_giuridica",
+                                                                                "required":  true
+                                                                            },
+                                                                            {
+                                                                                "id":  "contratto",
+                                                                                "label":  "Contratto consumatore-professionista",
+                                                                                "type":  "object",
+                                                                                "required":  true,
+                                                                                "sub_fields":  [
+                                                                                                   {
+                                                                                                       "id":  "tipo_contratto",
+                                                                                                       "type":  "select",
+                                                                                                       "options":  [
+                                                                                                                       "vendita_beni_consumo",
+                                                                                                                       "fornitura_servizi",
+                                                                                                                       "telefonia_internet_pay_tv",
+                                                                                                                       "energia_gas",
+                                                                                                                       "banca_credito_finanziario",
+                                                                                                                       "assicurativo",
+                                                                                                                       "leasing",
+                                                                                                                       "viaggi_turistici",
+                                                                                                                       "contratto_a_distanza",
+                                                                                                                       "fuori_locali_commerciali",
+                                                                                                                       "altro"
+                                                                                                                   ]
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "data_stipula",
+                                                                                                       "type":  "date"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "modalita_conclusione",
+                                                                                                       "type":  "select",
+                                                                                                       "options":  [
+                                                                                                                       "modulo_prestampato_in_loco",
+                                                                                                                       "contratto_a_distanza_online_telefonico",
+                                                                                                                       "fuori_locali_commerciali_porta_a_porta",
+                                                                                                                       "trattativa_individuale"
+                                                                                                                   ]
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "oggetto",
+                                                                                                       "type":  "textarea"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "corrispettivo_e_durata",
+                                                                                                       "type":  "string"
+                                                                                                   }
+                                                                                               ]
+                                                                            },
+                                                                            {
+                                                                                "id":  "clausole_vessatorie_contestate",
+                                                                                "label":  "Clausole vessatorie contestate",
+                                                                                "type":  "array",
+                                                                                "required":  true,
+                                                                                "min_items":  1,
+                                                                                "sub_fields":  [
+                                                                                                   {
+                                                                                                       "id":  "numero_o_articolo_clausola",
+                                                                                                       "type":  "string"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "testo_letterale",
+                                                                                                       "type":  "textarea"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "tipologia_vessatorieta",
+                                                                                                       "type":  "select",
+                                                                                                       "options":  [
+                                                                                                                       "esclusione_limitazione_responsabilita_professionista",
+                                                                                                                       "penale_eccessiva_consumatore",
+                                                                                                                       "recesso_unilaterale_professionista",
+                                                                                                                       "arbitrato_vincolante",
+                                                                                                                       "foro_convenzionale_diverso_da_residenza",
+                                                                                                                       "modificabilita_unilaterale",
+                                                                                                                       "trasferimento_a_terzi_senza_consenso",
+                                                                                                                       "vincolo_consumatore_non_vincolante_professionista",
+                                                                                                                       "esclusione_diritti_garanzia_legale",
+                                                                                                                       "altra"
+                                                                                                                   ]
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "presunzione_art_33_c_2",
+                                                                                                       "type":  "boolean",
+                                                                                                       "rilevante":  "vessatorietà presunta"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "motivazione_vessatorieta",
+                                                                                                       "type":  "textarea"
+                                                                                                   }
+                                                                                               ]
+                                                                            },
+                                                                            {
+                                                                                "id":  "assenza_trattativa_individuale",
+                                                                                "label":  "Assenza di trattativa individuale",
+                                                                                "type":  "object",
+                                                                                "required":  true,
+                                                                                "sub_fields":  [
+                                                                                                   {
+                                                                                                       "id":  "presente",
+                                                                                                       "type":  "boolean",
+                                                                                                       "required":  true
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "motivazione",
+                                                                                                       "type":  "textarea",
+                                                                                                       "examples":  "Modulo prestampato, contratto di adesione, contratto online standard"
+                                                                                                   }
+                                                                                               ]
+                                                                            },
+                                                                            {
+                                                                                "id":  "domande",
+                                                                                "label":  "Domande",
+                                                                                "type":  "select_multi",
+                                                                                "required":  true,
+                                                                                "options":  [
+                                                                                                "accertamento_qualita_consumatore",
+                                                                                                "dichiarazione_nullita_clausole_vessatorie_36",
+                                                                                                "restituzione_somme_indebitamente_pagate",
+                                                                                                "risarcimento_danni_emergenti",
+                                                                                                "esercizio_recesso_se_termini_aperti",
+                                                                                                "esercizio_garanzia_conformita_128_135",
+                                                                                                "inibitoria_uso_clausole_vessatorie",
+                                                                                                "spese_di_lite"
+                                                                                            ]
+                                                                            },
+                                                                            {
+                                                                                "id":  "importi_restituzione",
+                                                                                "label":  "Importi da restituire",
+                                                                                "type":  "currency"
+                                                                            },
+                                                                            {
+                                                                                "id":  "danni_richiesti",
+                                                                                "label":  "Eventuali danni richiesti",
+                                                                                "type":  "currency"
+                                                                            },
+                                                                            {
+                                                                                "id":  "udienza_comparizione",
+                                                                                "label":  "Prima udienza",
+                                                                                "type":  "date",
+                                                                                "required":  true
+                                                                            }
+                                                                        ],
+                                                       "avvertimenti_obbligatori":  [
+                                                                                        "FORO ESCLUSIVO DEL CONSUMATORE (residenza) - INDEROGABILE ex art. 33 c. 2 lett. u",
+                                                                                        "NULLITÀ DI PROTEZIONE rilevabile anche d\u0027ufficio (Cass. SU 23633/2022)",
+                                                                                        "Onere della prova della trattativa individuale sul professionista (art. 34 c. 5)",
+                                                                                        "Termine a comparire 120 gg post-Cartabia"
+                                                                                    ]
+                                                   },
+                               "allegati_obbligatori":  [
+                                                            {
+                                                                "id":  "contratto_consumatore_professionista",
+                                                                "label":  "Contratto consumatore-professionista (originale o copia)",
+                                                                "required":  true,
+                                                                "critico":  true
+                                                            },
+                                                            {
+                                                                "id":  "condizioni_generali_e_allegati",
+                                                                "label":  "Condizioni generali di contratto e allegati",
+                                                                "required":  false,
+                                                                "consigliato":  true
+                                                            },
+                                                            {
+                                                                "id":  "documentazione_pagamenti_effettuati",
+                                                                "label":  "Documentazione pagamenti effettuati (per restituzione)",
+                                                                "required_if":  "richiesta_restituzione=true"
+                                                            },
+                                                            {
+                                                                "id":  "documentazione_modalita_conclusione",
+                                                                "label":  "Documentazione modalità di conclusione (screenshot online, fotografia luogo, ecc.)",
+                                                                "required":  false,
+                                                                "rilevante_per_contratti_a_distanza":  true
+                                                            },
+                                                            {
+                                                                "id":  "comunicazioni_intercorse",
+                                                                "label":  "Corrispondenza intercorsa con il professionista",
+                                                                "required":  false,
+                                                                "consigliato":  true
+                                                            },
+                                                            {
+                                                                "id":  "eventuale_segnalazione_agcm",
+                                                                "label":  "Eventuale segnalazione AGCM (per pratiche commerciali scorrette parallele)",
+                                                                "required":  false
+                                                            },
+                                                            {
+                                                                "id":  "diffida_e_relata",
+                                                                "label":  "Diffida al professionista",
+                                                                "required":  false,
+                                                                "consigliato":  true
+                                                            },
+                                                            {
+                                                                "id":  "procura_alle_liti",
+                                                                "label":  "Procura alle liti",
+                                                                "required":  true
+                                                            }
+                                                        ],
+                               "adempimenti_fiscali":  {
+                                                           "contributo_unificato":  "Determinato in base al valore",
+                                                           "marca_bollo_forfettaria":  27.00,
+                                                           "deposito_telematico":  "Obbligatorio"
+                                                       },
+                               "atti_collegati":  [
+                                                      {
+                                                          "tipo":  "diffida_stragiudiziale",
+                                                          "trigger":  "Tentativo soluzione bonaria"
+                                                      },
+                                                      {
+                                                          "tipo":  "procedimento_ADR_consumatori_dlgs_130_2015",
+                                                          "trigger":  "Risoluzione alternativa controversie consumatori",
+                                                          "automatico":  false
+                                                      },
+                                                      {
+                                                          "tipo":  "segnalazione_AGCM_per_pratiche_scorrette",
+                                                          "trigger":  "Procedimento amministrativo parallelo",
+                                                          "automatico":  false
+                                                      },
+                                                      {
+                                                          "tipo":  "comparsa_costituzione_professionista",
+                                                          "trigger":  "Costituzione convenuto",
+                                                          "termine":  "70 gg prima udienza"
+                                                      },
+                                                      {
+                                                          "tipo":  "azione_inibitoria_associazioni_consumatori_37",
+                                                          "trigger":  "Per tutela collettiva",
+                                                          "automatico":  false
+                                                      },
+                                                      {
+                                                          "tipo":  "appello",
+                                                          "trigger":  "Sentenza primo grado",
+                                                          "termine":  "30 gg notifica"
+                                                      }
+                                                  ],
+                               "esiti_processuali_tipici":  [
+                                                                {
+                                                                    "esito":  "accertamento_nullita_e_restituzione",
+                                                                    "descrizione":  "Dichiarazione nullità clausole vessatorie + condanna restituzione somme + eventuali danni"
+                                                                },
+                                                                {
+                                                                    "esito":  "nullita_parziale_contratto",
+                                                                    "descrizione":  "Nullità solo di alcune clausole, contratto sopravvive nelle altre parti"
+                                                                },
+                                                                {
+                                                                    "esito":  "rigetto_per_assenza_vessatorieta",
+                                                                    "descrizione":  "Clausole non riconosciute vessatorie (raro)"
+                                                                },
+                                                                {
+                                                                    "esito":  "rigetto_per_trattativa_individuale_provata",
+                                                                    "descrizione":  "Professionista prova la trattativa individuale"
+                                                                },
+                                                                {
+                                                                    "esito":  "transazione",
+                                                                    "descrizione":  "Accordo - molto frequente data la nullità di protezione"
+                                                                }
+                                                            ],
+                               "termini_processuali":  [
+                                                           {
+                                                               "termine":  "Nullità di protezione - imprescrittibile",
+                                                               "natura":  "imprescrittibile",
+                                                               "rilevabile_d_ufficio":  true
+                                                           },
+                                                           {
+                                                               "termine":  "Azione di restituzione di indebito",
+                                                               "anni":  10,
+                                                               "decorrenza":  "pagamento",
+                                                               "natura":  "prescrizione",
+                                                               "norma":  "art. 2033 c.c."
+                                                           },
+                                                           {
+                                                               "termine":  "Diritto di recesso (contratti a distanza/fuori locali)",
+                                                               "giorni":  14,
+                                                               "decorrenza":  "consegna bene / conclusione contratto",
+                                                               "natura":  "decadenziale"
+                                                           },
+                                                           {
+                                                               "termine":  "Garanzia di conformità - denuncia difetto",
+                                                               "mesi":  2,
+                                                               "decorrenza":  "scoperta",
+                                                               "natura":  "decadenziale",
+                                                               "norma":  "art. 132 Cod. Consumo (pre-2022) / oggi 26 mesi"
+                                                           },
+                                                           {
+                                                               "termine":  "Termine a comparire",
+                                                               "giorni":  120,
+                                                               "natura":  "minimo legale post-Cartabia"
+                                                           },
+                                                           {
+                                                               "termine":  "Costituzione convenuto",
+                                                               "giorni":  70,
+                                                               "decorrenza":  "prima udienza",
+                                                               "natura":  "perentorio"
+                                                           }
+                                                       ],
+                               "codice_originale_ricevuto":  "180001",
+                               "guida_interna_non_depositabile":  true,
+                               "depositabile":  false,
+                               "guida_pratica_facoltativa":  true,
+                               "codice_deposito_automatico":  false,
+                               "nota_integrazione_iusentra":  "Il codice 180001 è ufficiale, ma nel catalogo locale riguarda l\u0027opposizione a ordinanza-ingiunzione per assegni a vuoto; la scheda ricevuta riguarda tutela del consumatore e clausole vessatorie.",
+                               "codici_ufficiali_correlati_da_valutare":  [
+                                                                              "144031",
+                                                                              "140999",
+                                                                              "145021"
+                                                                          ],
+                               "codice_deposito":  null,
+                               "verifica_pst_xsd_iusentra":  {
+                                                                 "data":  "2026-05-23",
+                                                                 "esito":  "guida_interna_non_depositabile",
+                                                                 "motivo":  "Il codice 180001 è ufficiale, ma nel catalogo locale riguarda l\u0027opposizione a ordinanza-ingiunzione per assegni a vuoto; la scheda ricevuta riguarda tutela del consumatore e clausole vessatorie.",
+                                                                 "codice_originale":  "180001"
+                                                             }
+                           },
+                           {
+                               "codice":  "GUIDA_AZIONE_NEGATORIA_SERVITU_POSSESSORIA_130031",
+                               "denominazione":  "Azione negatoria di servitù (art. 949 c.c.) o azioni possessorie (artt. 1168-1170 c.c.)",
+                               "categoria":  "Diritti reali - tutela della proprietà e del possesso",
+                               "sottocategoria":  "Negatoria servitutis + azioni di reintegrazione e manutenzione del possesso",
+                               "rito":  "Rito ordinario per negatoria (con mediazione obbligatoria diritti reali); rito sommario speciale per possessorie ex art. 703 c.p.c.",
+                               "competenza":  "Tribunale del luogo dell\u0027immobile (art. 21 c.p.c. - foro esclusivo)",
+                               "uffici_destinatari":  [
+                                                          "SICID"
+                                                      ],
+                               "normativa_negatoria":  [
+                                                           {
+                                                               "fonte":  "c.c.",
+                                                               "articolo":  "949",
+                                                               "descrizione":  "Azione negatoria - imprescrittibile (salvo usucapione)"
+                                                           },
+                                                           {
+                                                               "fonte":  "c.c.",
+                                                               "articolo":  "1027",
+                                                               "descrizione":  "Nozione di servitù prediale"
+                                                           },
+                                                           {
+                                                               "fonte":  "c.c.",
+                                                               "articolo":  "1031",
+                                                               "descrizione":  "Costituzione delle servitù"
+                                                           },
+                                                           {
+                                                               "fonte":  "c.c.",
+                                                               "articolo":  "2697",
+                                                               "descrizione":  "Onere della prova - SULLA NEGATORIA: meno gravoso che per rivendicazione"
+                                                           }
+                                                       ],
+                               "normativa_possessorie":  [
+                                                             {
+                                                                 "fonte":  "c.c.",
+                                                                 "articolo":  "1140",
+                                                                 "descrizione":  "Possesso"
+                                                             },
+                                                             {
+                                                                 "fonte":  "c.c.",
+                                                                 "articolo":  "1141",
+                                                                 "descrizione":  "Mutamento della detenzione in possesso"
+                                                             },
+                                                             {
+                                                                 "fonte":  "c.c.",
+                                                                 "articolo":  "1168",
+                                                                 "descrizione":  "Azione di reintegrazione (spoglio) - 1 anno dal spoglio"
+                                                             },
+                                                             {
+                                                                 "fonte":  "c.c.",
+                                                                 "articolo":  "1169",
+                                                                 "descrizione":  "Spoglio occulto e violento"
+                                                             },
+                                                             {
+                                                                 "fonte":  "c.c.",
+                                                                 "articolo":  "1170",
+                                                                 "descrizione":  "Azione di manutenzione (turbativa o molestia) - 1 anno dalla turbativa"
+                                                             },
+                                                             {
+                                                                 "fonte":  "c.c.",
+                                                                 "articolo":  "1171",
+                                                                 "descrizione":  "Denuncia di nuova opera"
+                                                             },
+                                                             {
+                                                                 "fonte":  "c.c.",
+                                                                 "articolo":  "1172",
+                                                                 "descrizione":  "Denuncia di danno temuto"
+                                                             },
+                                                             {
+                                                                 "fonte":  "c.p.c.",
+                                                                 "articolo":  "703",
+                                                                 "descrizione":  "Procedimento possessorio - rito speciale"
+                                                             },
+                                                             {
+                                                                 "fonte":  "c.p.c.",
+                                                                 "articoli":  "704-705",
+                                                                 "descrizione":  "Successivo giudizio di merito"
+                                                             }
+                                                         ],
+                               "presupposti_negatoria_art_949":  [
+                                                                     "QUALITÀ DI PROPRIETARIO dell\u0027attore (prova meno rigorosa che per rivendicazione)",
+                                                                     "ESERCIZIO DA PARTE DI ALTRI di una servitù o di un diritto reale insussistente sul fondo dell\u0027attore",
+                                                                     "Esempio: il vicino transita sul fondo, costruisce un acquedotto, scarica acque, ecc., senza che sussista alcuna servitù",
+                                                                     "AZIONE IMPRESCRITTIBILE (salvo usucapione)"
+                                                                 ],
+                               "presupposti_azioni_possessorie":  [
+                                                                      "POSSESSO O DETENZIONE QUALIFICATA dell\u0027attore",
+                                                                      "Per REINTEGRAZIONE (1168): SPOGLIO con violenza o clandestinità (anche da detenzione qualificata)",
+                                                                      "Per MANUTENZIONE (1170): TURBATIVA O MOLESTIA del possesso continuato da oltre 1 anno (no clandestino/violento)",
+                                                                      "TERMINE PERENTORIO 1 ANNO dallo spoglio/turbativa"
+                                                                  ],
+                               "differenze_tra_le_azioni":  {
+                                                                "negatoria_949":  "Per il proprietario - contro chi pretende diritti reali insussistenti - prova proprietà meno gravosa - imprescrittibile",
+                                                                "reintegrazione_1168":  "Per chiunque possessore - contro lo spogliante - prova del possesso e dello spoglio - termine 1 anno",
+                                                                "manutenzione_1170":  "Per chi possiede da oltre 1 anno - contro turbative/molestie - prova possesso continuato - termine 1 anno",
+                                                                "denuncia_nuova_opera_1171":  "Contro opere in corso che possono danneggiare - termine 1 anno",
+                                                                "denuncia_danno_temuto_1172":  "Contro pericolo di danno da edificio/struttura altrui"
+                                                            },
+                               "obbligo_mediazione":  {
+                                                          "obbligatoria_per_negatoria":  true,
+                                                          "fonte":  "art. 5 c. 1-bis D.Lgs. 28/2010 (diritti reali)",
+                                                          "obbligatoria_per_possessorie":  false,
+                                                          "motivo_esclusione":  "Tutela cautelare/sommaria - urgenza"
+                                                      },
+                               "adempimenti_propedeutici_negatoria":  [
+                                                                          {
+                                                                              "step":  1,
+                                                                              "descrizione":  "DOCUMENTAZIONE DEL TITOLO DI PROPRIETÀ",
+                                                                              "documenti":  [
+                                                                                                "Atto di acquisto",
+                                                                                                "Visure catastali",
+                                                                                                "Ispezione Conservatoria (verificare assenza di servitù trascritte)"
+                                                                                            ]
+                                                                          },
+                                                                          {
+                                                                              "step":  2,
+                                                                              "descrizione":  "DOCUMENTAZIONE DELL\u0027ALTRUI PRETESA DI DIRITTI",
+                                                                              "elementi":  [
+                                                                                               "Tipo di esercizio: passaggio, acquedotto, scarico, vista, ecc.",
+                                                                                               "Frequenza e modalità",
+                                                                                               "Documentazione fotografica/video",
+                                                                                               "Eventuali atti formali del controparte (es. ingiunzioni, lettere)"
+                                                                                           ]
+                                                                          },
+                                                                          {
+                                                                              "step":  3,
+                                                                              "descrizione":  "VERIFICA DELL\u0027INESISTENZA DI UNA SERVITÙ",
+                                                                              "controlli":  [
+                                                                                                "Ispezione Conservatoria: assenza di trascrizione di servitù",
+                                                                                                "Atti di provenienza: verificare clausole su servitù",
+                                                                                                "Mappe catastali storiche",
+                                                                                                "Eventuale storia del fondo"
+                                                                                            ]
+                                                                          },
+                                                                          {
+                                                                              "step":  4,
+                                                                              "descrizione":  "Valutazione USUCAPIONE DELLA SERVITÙ DA PARTE DEL CONVENUTO",
+                                                                              "rischio":  "Se l\u0027esercizio dura da oltre 20 anni - può configurare usucapione di servitù apparente",
+                                                                              "limite":  "Le servitù apparenti possono essere usucapite (artt. 1061-1062); le non apparenti no"
+                                                                          },
+                                                                          {
+                                                                              "step":  5,
+                                                                              "descrizione":  "ATTIVAZIONE MEDIAZIONE OBBLIGATORIA",
+                                                                              "luogo":  "Organismo del luogo immobile"
+                                                                          }
+                                                                      ],
+                               "adempimenti_propedeutici_possessorie":  [
+                                                                            {
+                                                                                "step":  1,
+                                                                                "descrizione":  "DOCUMENTAZIONE DELLO SPOGLIO O DELLA TURBATIVA",
+                                                                                "elementi":  [
+                                                                                                 "Foto/video dell\u0027accaduto",
+                                                                                                 "Verbali di Polizia/Carabinieri se intervenuti",
+                                                                                                 "Testimoni",
+                                                                                                 "Comunicazioni del controparte"
+                                                                                             ]
+                                                                            },
+                                                                            {
+                                                                                "step":  2,
+                                                                                "descrizione":  "VERIFICA TERMINE 1 ANNO",
+                                                                                "criticita":  "MASSIMA - decadenza preclude azione"
+                                                                            },
+                                                                            {
+                                                                                "step":  3,
+                                                                                "descrizione":  "Predisposizione RICORSO POSSESSORIO ex art. 703 c.p.c.",
+                                                                                "rito_speciale":  "Rito sommario, contradditorio breve, decisione rapida (di norma con ordinanza)"
+                                                                            }
+                                                                        ],
+                               "atto_principale":  {
+                                                       "tipo_atto":  "atto_citazione_negatoria_o_ricorso_possessorio",
+                                                       "denominazione":  "Atto di citazione per azione negatoria di servitù OR Ricorso possessorio ex art. 703 c.p.c.",
+                                                       "schema_xsd_ministeriale":  "AttoCitazione.xsd",
+                                                       "campi_chiave":  [
+                                                                            {
+                                                                                "id":  "tribunale",
+                                                                                "label":  "Tribunale del luogo immobile",
+                                                                                "type":  "select",
+                                                                                "required":  true
+                                                                            },
+                                                                            {
+                                                                                "id":  "tipo_azione",
+                                                                                "label":  "Tipo di azione",
+                                                                                "type":  "select",
+                                                                                "required":  true,
+                                                                                "options":  [
+                                                                                                "negatoria_servitu_949",
+                                                                                                "reintegrazione_possesso_1168",
+                                                                                                "manutenzione_possesso_1170",
+                                                                                                "denuncia_nuova_opera_1171",
+                                                                                                "denuncia_danno_temuto_1172"
+                                                                                            ]
+                                                                            },
+                                                                            {
+                                                                                "id":  "attore",
+                                                                                "label":  "Attore (proprietario o possessore)",
+                                                                                "type":  "object_persona",
+                                                                                "required":  true
+                                                                            },
+                                                                            {
+                                                                                "id":  "convenuto",
+                                                                                "label":  "Convenuto (preteso titolare servitù o autore spoglio/turbativa)",
+                                                                                "type":  "object_persona",
+                                                                                "required":  true
+                                                                            },
+                                                                            {
+                                                                                "id":  "fondo_attore",
+                                                                                "label":  "Fondo dell\u0027attore",
+                                                                                "type":  "object_immobile",
+                                                                                "required":  true
+                                                                            },
+                                                                            {
+                                                                                "id":  "fondo_convenuto",
+                                                                                "label":  "Fondo del convenuto (se applicabile)",
+                                                                                "type":  "object_immobile"
+                                                                            },
+                                                                            {
+                                                                                "id":  "qualita_attore",
+                                                                                "label":  "Qualità dell\u0027attore",
+                                                                                "type":  "select",
+                                                                                "required":  true,
+                                                                                "options":  [
+                                                                                                "proprietario_per_negatoria",
+                                                                                                "possessore_uti_dominus",
+                                                                                                "detentore_qualificato_per_reintegrazione",
+                                                                                                "possessore_anno_per_manutenzione"
+                                                                                            ]
+                                                                            },
+                                                                            {
+                                                                                "id":  "condotta_lesiva_o_servitu_pretesa",
+                                                                                "label":  "Condotta lesiva o servitù pretesa",
+                                                                                "type":  "object",
+                                                                                "required":  true,
+                                                                                "sub_fields":  [
+                                                                                                   {
+                                                                                                       "id":  "descrizione_dettagliata",
+                                                                                                       "type":  "textarea",
+                                                                                                       "required":  true,
+                                                                                                       "min_length":  400
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "data_inizio_condotta_o_spoglio_turbativa",
+                                                                                                       "type":  "date",
+                                                                                                       "required":  true,
+                                                                                                       "critico_per_possessorie":  true
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "modalita",
+                                                                                                       "type":  "textarea"
+                                                                                                   },
+                                                                                                   {
+                                                                                                       "id":  "frequenza",
+                                                                                                       "type":  "string"
+                                                                                                   }
+                                                                                               ]
+                                                                            },
+                                                                            {
+                                                                                "id":  "domande_per_negatoria",
+                                                                                "label":  "Domande per negatoria",
+                                                                                "type":  "select_multi",
+                                                                                "required_if":  "tipo_azione=negatoria",
+                                                                                "options":  [
+                                                                                                "accertamento_inesistenza_servitu_o_diritto_reale",
+                                                                                                "ordine_cessazione_attivita_lesiva",
+                                                                                                "rimozione_eventuali_opere",
+                                                                                                "risarcimento_danni",
+                                                                                                "trascrizione_sentenza_2643"
+                                                                                            ]
+                                                                            },
+                                                                            {
+                                                                                "id":  "domande_per_possessorie",
+                                                                                "label":  "Domande per possessorie",
+                                                                                "type":  "select_multi",
+                                                                                "required_if":  "tipo_azione LIKE possesso%",
+                                                                                "options":  [
+                                                                                                "reintegrazione_nel_possesso",
+                                                                                                "rimozione_opere_eventuali",
+                                                                                                "ordine_cessazione_turbativa",
+                                                                                                "risarcimento_danni",
+                                                                                                "fissazione_provvedimenti_cautelari"
+                                                                                            ]
+                                                                            },
+                                                                            {
+                                                                                "id":  "udienza_comparizione",
+                                                                                "label":  "Prima udienza",
+                                                                                "type":  "date",
+                                                                                "required":  true
+                                                                            }
+                                                                        ],
+                                                       "avvertimenti_obbligatori":  [
+                                                                                        "Foro esclusivo del luogo immobile (art. 21 c.p.c.)",
+                                                                                        "Per negatoria: mediazione obbligatoria + termine a comparire 120 gg",
+                                                                                        "Per possessorie: termine perentorio 1 ANNO dallo spoglio/turbativa (art. 1168/1170 c.c.) - rito sommario art. 703 c.p.c.",
+                                                                                        "Negatoria 949 imprescrittibile (salvo usucapione di servitù apparente)",
+                                                                                        "Successivo giudizio di merito dopo provvedimento possessorio (artt. 704-705 c.p.c.)"
+                                                                                    ]
+                                                   },
+                               "allegati_obbligatori":  [
+                                                            {
+                                                                "id":  "atti_proprieta_per_negatoria",
+                                                                "label":  "Atti di proprietà del fondo (per negatoria)",
+                                                                "required_if":  "tipo_azione=negatoria",
+                                                                "critico":  true
+                                                            },
+                                                            {
+                                                                "id":  "visure_e_ispezioni_conservatoria",
+                                                                "label":  "Visure catastali e ispezioni Conservatoria",
+                                                                "required":  true
+                                                            },
+                                                            {
+                                                                "id":  "documentazione_fotografica_o_video",
+                                                                "label":  "Documentazione fotografica/video della condotta lesiva",
+                                                                "required":  true,
+                                                                "critico":  true
+                                                            },
+                                                            {
+                                                                "id":  "verbali_FFOO_se_intervenute",
+                                                                "label":  "Verbali di FFOO (se intervenute per spoglio/turbativa)",
+                                                                "required_if":  "tipo_azione LIKE possesso%",
+                                                                "consigliato":  true
+                                                            },
+                                                            {
+                                                                "id":  "elenco_testimoni",
+                                                                "label":  "Elenco testimoni con recapiti",
+                                                                "required":  true
+                                                            },
+                                                            {
+                                                                "id":  "rilievo_topografico_se_rilevante",
+                                                                "label":  "Eventuale rilievo topografico",
+                                                                "required":  false,
+                                                                "consigliato_se_servitu_passaggio":  true
+                                                            },
+                                                            {
+                                                                "id":  "comunicazioni_intercorse",
+                                                                "label":  "Eventuali comunicazioni con il controparte",
+                                                                "required":  false
+                                                            },
+                                                            {
+                                                                "id":  "verbale_mediazione_per_negatoria",
+                                                                "label":  "Verbale mediazione obbligatoria conclusa negativamente (per negatoria)",
+                                                                "required_if":  "tipo_azione=negatoria",
+                                                                "critico":  true
+                                                            },
+                                                            {
+                                                                "id":  "procura_alle_liti",
+                                                                "label":  "Procura alle liti",
+                                                                "required":  true
+                                                            }
+                                                        ],
+                               "adempimenti_fiscali":  {
+                                                           "contributo_unificato":  "Determinato in base al valore",
+                                                           "marca_bollo_forfettaria":  27.00,
+                                                           "deposito_telematico":  "Obbligatorio"
+                                                       },
+                               "atti_collegati":  [
+                                                      {
+                                                          "tipo":  "ricorso_mediazione_obbligatoria_per_negatoria",
+                                                          "trigger":  "Condizione procedibilità",
+                                                          "automatico":  false
+                                                      },
+                                                      {
+                                                          "tipo":  "ricorso_cautelare_700",
+                                                          "trigger":  "In alternativa o aggiunta a possessoria",
+                                                          "automatico":  false
+                                                      },
+                                                      {
+                                                          "tipo":  "ctu_tecnico_topografica",
+                                                          "trigger":  "Disposta dal giudice",
+                                                          "automatico":  false,
+                                                          "frequente":  true
+                                                      },
+                                                      {
+                                                          "tipo":  "sopralluogo_giudice",
+                                                          "trigger":  "Disposto dal giudice",
+                                                          "automatico":  false
+                                                      },
+                                                      {
+                                                          "tipo":  "ordinanza_possessoria",
+                                                          "trigger":  "Esito procedimento possessorio sommario",
+                                                          "norma":  "art. 703 c.p.c."
+                                                      },
+                                                      {
+                                                          "tipo":  "successivo_giudizio_di_merito_possessorio",
+                                                          "trigger":  "Dopo ordinanza possessoria",
+                                                          "norma":  "artt. 704-705 c.p.c.",
+                                                          "termine":  "60 gg"
+                                                      },
+                                                      {
+                                                          "tipo":  "domanda_riconvenzionale_usucapione_servitu_apparente",
+                                                          "trigger":  "Convenuto eccepisce usucapione",
+                                                          "codice_correlato":  "130033"
+                                                      },
+                                                      {
+                                                          "tipo":  "appello",
+                                                          "trigger":  "Sentenza primo grado",
+                                                          "termine":  "30 gg notifica"
+                                                      }
+                                                  ],
+                               "esiti_processuali_tipici":  [
+                                                                {
+                                                                    "esito":  "accoglimento_negatoria",
+                                                                    "descrizione":  "Accertamento inesistenza servitù + ordine cessazione attività + eventuale risarcimento"
+                                                                },
+                                                                {
+                                                                    "esito":  "rigetto_per_intervenuta_usucapione_servitu",
+                                                                    "descrizione":  "Convenuto ha usucapito servitù apparente"
+                                                                },
+                                                                {
+                                                                    "esito":  "accoglimento_possessorio",
+                                                                    "descrizione":  "Ordinanza di reintegrazione/manutenzione + cessazione condotta lesiva"
+                                                                },
+                                                                {
+                                                                    "esito":  "rigetto_possessorio_per_tardivita",
+                                                                    "descrizione":  "Decorso anno dallo spoglio/turbativa"
+                                                                },
+                                                                {
+                                                                    "esito":  "transazione",
+                                                                    "descrizione":  "Accordo (es. costituzione servitù volontaria con indennità)"
+                                                                }
+                                                            ],
+                               "termini_processuali":  [
+                                                           {
+                                                               "termine":  "NEGATORIA - imprescrittibile",
+                                                               "natura":  "imprescrittibile",
+                                                               "eccezione":  "salvo usucapione servitù apparente"
+                                                           },
+                                                           {
+                                                               "termine":  "REINTEGRAZIONE POSSESSO",
+                                                               "anno":  1,
+                                                               "decorrenza":  "spoglio",
+                                                               "natura":  "DECADENZIALE",
+                                                               "norma":  "art. 1168 c.c.",
+                                                               "criticita":  "MASSIMA"
+                                                           },
+                                                           {
+                                                               "termine":  "MANUTENZIONE POSSESSO",
+                                                               "anno":  1,
+                                                               "decorrenza":  "turbativa",
+                                                               "natura":  "DECADENZIALE",
+                                                               "norma":  "art. 1170 c.c.",
+                                                               "criticita":  "MASSIMA"
+                                                           },
+                                                           {
+                                                               "termine":  "DENUNCIA NUOVA OPERA",
+                                                               "anno":  1,
+                                                               "decorrenza":  "inizio opera",
+                                                               "natura":  "decadenziale",
+                                                               "norma":  "art. 1171 c.c."
+                                                           },
+                                                           {
+                                                               "termine":  "Mediazione obbligatoria per negatoria - max",
+                                                               "giorni":  90,
+                                                               "norma":  "art. 6 D.Lgs. 28/2010"
+                                                           },
+                                                           {
+                                                               "termine":  "Termine introduzione merito dopo possessorio",
+                                                               "giorni":  60,
+                                                               "decorrenza":  "ordinanza possessoria",
+                                                               "natura":  "decadenziale",
+                                                               "norma":  "art. 704 c.p.c."
+                                                           },
+                                                           {
+                                                               "termine":  "Termine a comparire (negatoria)",
+                                                               "giorni":  120,
+                                                               "natura":  "minimo legale post-Cartabia"
+                                                           }
+                                                       ],
+                               "codice_originale_ricevuto":  "130031",
+                               "guida_interna_non_depositabile":  true,
+                               "depositabile":  false,
+                               "guida_pratica_facoltativa":  true,
+                               "codice_deposito_automatico":  false,
+                               "nota_integrazione_iusentra":  "Il codice 130031 è ufficiale, ma nel catalogo locale riguarda Usufrutto; la scheda ricevuta riguarda azione negatoria di servitù o azioni possessorie e resta interna.",
+                               "codici_ufficiali_correlati_da_valutare":  [
+                                                                              "130041",
+                                                                              "020001",
+                                                                              "020011",
+                                                                              "131001",
+                                                                              "131101"
+                                                                          ],
+                               "codice_deposito":  null,
+                               "verifica_pst_xsd_iusentra":  {
+                                                                 "data":  "2026-05-23",
+                                                                 "esito":  "guida_interna_non_depositabile",
+                                                                 "motivo":  "Il codice 130031 è ufficiale, ma nel catalogo locale riguarda Usufrutto; la scheda ricevuta riguarda azione negatoria di servitù o azioni possessorie e resta interna.",
+                                                                 "codice_originale":  "130031"
+                                                             }
+                           }
+                       ]
+}

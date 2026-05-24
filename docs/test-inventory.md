@@ -6,7 +6,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 394.
+- File pytest censiti: 395.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
@@ -20,7 +20,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | RBAC | 39 |
 | Security | 33 |
 | Smoke CLI | 6 |
-| Tenant isolation | 92 |
+| Tenant isolation | 93 |
 
 ## Fasi pytest governate
 
@@ -35,7 +35,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 29 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 136 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 65 |
+| 09-misc | Test non classificati dalle fasi principali | 66 |
 
 ## Suite CI aggiuntive
 
@@ -317,6 +317,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Frontend React | Tenant isolation | tests/test_react_legal_intelligence_search.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Tenant isolation | tests/test_studio_site_builder_api.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Tenant isolation | tests/test_studio_site_builder_blocks.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Frontend React | Tenant isolation | tests/test_ui_api_security_matrix.py | 401 anonimo, 403/RBAC, tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | Tenant isolation | tests/test_ui_coverage_phase9.py | 403/RBAC, tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Impostazioni | API contract | tests/test_ci_coverage_config.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Impostazioni | Backend | tests/test_config_studio.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |

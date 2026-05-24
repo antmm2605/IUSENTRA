@@ -46,6 +46,30 @@ def register_portali_acquisizione_routes(
     def _vista_classica_args() -> dict[str, str]:
         return {"_legacy": "1"} if _richiede_vista_classica() else {}
 
+    def _portale_public_error(portale: str, operation: str) -> str:
+        key = str(portale or "").strip().lower()
+        if operation == "search" and key == "pat":
+            return "Portale dell'Avvocato non disponibile. Verifica l'accesso ufficiale e riprova."
+        if operation == "search" and key == "ptt":
+            return "PTT / SIGIT non disponibile tramite Telecontenzioso. Verifica l'accesso ufficiale e riprova."
+        if operation == "search" and key == "pst":
+            return "Ricerca PST non completata: verifica il sotto-procedimento o riprova dal Local Signer del browser."
+        if operation == "preview":
+            return "Anteprima non completata tramite Local Signer del browser. Verifica selezione e sessione ufficiale."
+        if operation in {"import", "import_payload", "import_file"}:
+            return "Importazione non completata: non sono arrivati file reali, oppure sono presenti solo catalogo o metadati."
+        if operation == "assistant_start" and key == "pst":
+            return "PST usa il canale diretto interno: apri la ricerca guidata PST dallo stesso fascicolo."
+        if operation.startswith("assistant"):
+            return "Sessione assistita del portale non completata. Verifica l'accesso ufficiale e riprova."
+        if operation.startswith("deposito"):
+            return "Deposito assistito non completato. Verifica ricevute, documenti e sessione ufficiale."
+        if operation == "status":
+            return "Stato del portale non disponibile. Riprova tra poco."
+        if operation == "analyze":
+            return "Analisi importazione non completata. Verifica selezione e anteprima."
+        return "Operazione non completata. Verifica i dati e riprova."
+
     def _clean_query_value(name: str) -> str:
         return str(request.args.get(name) or "").strip()
 
@@ -187,7 +211,7 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, "status": _build_access_status_payload(portale)})
         except Exception as e:
             app.logger.exception("Errore api_portale_acquisizione_status(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e), "status": {}}), 200
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "status"), "status": {}}), 200
 
     @app.route("/api/portali/<portale>/acquisizione/search", methods=["POST"])
     def api_portale_acquisizione_search(portale: str):
@@ -204,7 +228,7 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, "results": risultati, "pst_session": pst_session})
         except Exception as e:
             app.logger.exception("Errore api_portale_acquisizione_search(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e), "results": []}), 200
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "search"), "results": []}), 200
 
     @app.route("/api/portali/<portale>/acquisizione/preview", methods=["POST"])
     def api_portale_acquisizione_preview(portale: str):
@@ -226,7 +250,7 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, "preview": preview, "pst_session": data.get("pst_session") or {}})
         except Exception as e:
             app.logger.exception("Errore api_portale_acquisizione_preview(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e), "preview": {}}), 200
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "preview"), "preview": {}}), 200
 
     @app.route("/api/portali/<portale>/acquisizione/analyze", methods=["POST"])
     def api_portale_acquisizione_analyze(portale: str):
@@ -243,7 +267,7 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, "analysis": analysis})
         except Exception as e:
             app.logger.exception("Errore api_portale_acquisizione_analyze(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e), "analysis": {}}), 200
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "analyze"), "analysis": {}}), 200
 
     @app.route("/api/portali/<portale>/acquisizione/import", methods=["POST"])
     def api_portale_acquisizione_import(portale: str):
@@ -269,7 +293,7 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, "result": result, "pst_session": data.get("pst_session") or {}, **result})
         except Exception as e:
             app.logger.exception("Errore api_portale_acquisizione_import(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e)}), 200
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "import")}), 200
 
     @app.route("/api/portali/<portale>/acquisizione/importa-payload", methods=["POST"])
     def api_portale_acquisizione_importa_payload(portale: str):
@@ -302,7 +326,7 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, "normalized": normalized, "result": result, **result})
         except Exception as e:
             app.logger.exception("Errore api_portale_acquisizione_importa_payload(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e)}), 200
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "import_payload")}), 200
 
     @app.route("/api/portali/<portale>/acquisizione/importa-file", methods=["POST"])
     def api_portale_acquisizione_importa_file(portale: str):
@@ -313,7 +337,7 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, "result": result, **result})
         except Exception as e:
             app.logger.exception("Errore api_portale_acquisizione_importa_file(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e)}), 200
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "import_file")}), 200
 
     @app.route("/api/portali/<portale>/assistant/start", methods=["POST"])
     def api_portale_assistant_start(portale: str):
@@ -323,7 +347,7 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, **result})
         except Exception as e:
             app.logger.exception("Errore api_portale_assistant_start(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e)}), 400
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "assistant_start")}), 400
 
     @app.route("/api/portali/<portale>/assistant/<session_id>/status", methods=["GET"])
     def api_portale_assistant_status(portale: str, session_id: str):
@@ -332,7 +356,7 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, **result})
         except Exception as e:
             app.logger.exception("Errore api_portale_assistant_status(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e)}), 404
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "assistant_status")}), 404
 
     @app.route("/api/portali/<portale>/assistant/<session_id>/open", methods=["POST"])
     def api_portale_assistant_open(portale: str, session_id: str):
@@ -341,7 +365,7 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, **result})
         except Exception as e:
             app.logger.exception("Errore api_portale_assistant_open(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e)}), 400
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "assistant_open")}), 400
 
     @app.route("/api/portali/<portale>/assistant/<session_id>/watch-downloads", methods=["POST"])
     def api_portale_assistant_watch_downloads(portale: str, session_id: str):
@@ -350,7 +374,7 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, **result})
         except Exception as e:
             app.logger.exception("Errore api_portale_assistant_watch_downloads(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e)}), 400
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "assistant_watch")}), 400
 
     @app.route("/api/portali/<portale>/assistant/<session_id>/collect", methods=["POST"])
     def api_portale_assistant_collect(portale: str, session_id: str):
@@ -360,7 +384,7 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, **result})
         except Exception as e:
             app.logger.exception("Errore api_portale_assistant_collect(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e)}), 400
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "assistant_collect")}), 400
 
     @app.route("/api/portali/<portale>/assistant/<session_id>/close", methods=["POST"])
     def api_portale_assistant_close(portale: str, session_id: str):
@@ -369,7 +393,7 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, **result})
         except Exception as e:
             app.logger.exception("Errore api_portale_assistant_close(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e)}), 400
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "assistant_close")}), 400
 
     @app.route("/api/portali/<portale>/assistant/<session_id>/cancel", methods=["POST"])
     def api_portale_assistant_cancel(portale: str, session_id: str):
@@ -378,7 +402,7 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, **result})
         except Exception as e:
             app.logger.exception("Errore api_portale_assistant_cancel(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e)}), 400
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "assistant_cancel")}), 400
 
     @app.route("/api/portali/<portale>/deposito/precheck", methods=["POST"])
     def api_portale_deposito_precheck(portale: str):
@@ -388,7 +412,7 @@ def register_portali_acquisizione_routes(
             return jsonify(result)
         except Exception as e:
             app.logger.exception("Errore api_portale_deposito_precheck(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e)}), 400
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "deposito_precheck")}), 400
 
     @app.route("/api/portali/<portale>/deposito/prepara", methods=["POST"])
     def api_portale_deposito_prepara(portale: str):
@@ -398,7 +422,7 @@ def register_portali_acquisizione_routes(
             return jsonify(result)
         except Exception as e:
             app.logger.exception("Errore api_portale_deposito_prepara(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e)}), 400
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "deposito_prepara")}), 400
 
     @app.route("/api/portali/<portale>/deposito/assistant/start", methods=["POST"])
     def api_portale_deposito_assistant_start(portale: str):
@@ -408,7 +432,7 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, **result})
         except Exception as e:
             app.logger.exception("Errore api_portale_deposito_assistant_start(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e)}), 400
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "deposito_assistant_start")}), 400
 
     @app.route("/api/portali/<portale>/deposito/importa-ricevute", methods=["POST"])
     def api_portale_deposito_importa_ricevute(portale: str):
@@ -418,7 +442,7 @@ def register_portali_acquisizione_routes(
             return jsonify(result)
         except Exception as e:
             app.logger.exception("Errore api_portale_deposito_importa_ricevute(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e)}), 400
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "deposito_importa_ricevute")}), 400
 
     @app.route("/api/portali/<portale>/deposito/finalizza", methods=["POST"])
     def api_portale_deposito_finalizza(portale: str):
@@ -428,4 +452,4 @@ def register_portali_acquisizione_routes(
             return jsonify(result)
         except Exception as e:
             app.logger.exception("Errore api_portale_deposito_finalizza(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e)}), 400
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "deposito_finalizza")}), 400

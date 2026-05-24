@@ -11,6 +11,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Iterable, Iterator
 
+from werkzeug.utils import safe_join as werkzeug_safe_join
+
 from .evidence_hash import canonical_json, chain_hash, sha256_bytes, sha256_file, utc_now
 from .ingestion_audit import build_audit_payload
 
@@ -1071,12 +1073,34 @@ def safe_tenant(tenant_id: str) -> str:
 
 def safe_join(root: str | Path, rel: str | Path) -> Path:
     root_path = Path(root).resolve()
-    target = root_path.joinpath(rel).resolve()
+    rel_text = _safe_relative_path_text(rel)
+    joined = werkzeug_safe_join(str(root_path), rel_text)
+    if not joined:
+        raise ValueError("Percorso probatorio non sicuro.")
+    target = Path(joined).resolve()
     try:
         target.relative_to(root_path)
     except ValueError as exc:
         raise ValueError("Percorso probatorio non sicuro.") from exc
     return target
+
+
+def _safe_relative_path_text(rel: str | Path) -> str:
+    raw = str(rel or "").replace("\\", "/").strip()
+    if not raw or "\x00" in raw or raw.startswith(("/", "//")) or re.match(r"^[A-Za-z]:", raw):
+        raise ValueError("Percorso probatorio non sicuro.")
+    parts: list[str] = []
+    for part in raw.split("/"):
+        if part in {"", "."}:
+            continue
+        if part == ".." or ":" in part or re.search(r"[\x00-\x1f]", part):
+            raise ValueError("Percorso probatorio non sicuro.")
+        if not re.fullmatch(r"[A-Za-z0-9._-]+", part):
+            raise ValueError("Percorso probatorio non sicuro.")
+        parts.append(part)
+    if not parts:
+        raise ValueError("Percorso probatorio non sicuro.")
+    return "/".join(parts)
 
 
 def _scalar(conn: sqlite3.Connection, sql: str, params: tuple[Any, ...] = ()) -> int:

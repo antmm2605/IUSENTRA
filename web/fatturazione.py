@@ -17,7 +17,7 @@ Routes:
 from __future__ import annotations
 
 import os
-from datetime import datetime, date
+from datetime import date
 from functools import wraps
 
 from flask import (
@@ -182,9 +182,6 @@ def scrivi():
 
     try:
         from pct.messaggi import GestioneMessaggi
-        from pct.config_studio import GestioneConfigStudio
-        cfg_path = current_app.config.get("STUDIO_CONFIG", "./config/studio.json")
-        cfg = GestioneConfigStudio(config_path=cfg_path).config
         db_path = current_app.config.get("MESSAGGI_DB", "./messaggi/storico.json")
         gm = GestioneMessaggi(
             config=None,
@@ -202,8 +199,8 @@ def scrivi():
         flash("Email inviata con successo.", "success")
         _audit("email.inviata", f"A: {destinatario} | Ogg: {oggetto[:60]}")
         return redirect(url_for("email_client.casella", cartella="INVIATI"))
-    except Exception as exc:
-        flash(f"Errore invio: {exc}", "danger")
+    except Exception:
+        flash("Invio email non riuscito. Verifica destinatario, allegati e configurazione.", "danger")
         return redirect(url_for("email_client.scrivi",
                                 a=destinatario, oggetto=oggetto))
 
@@ -305,8 +302,8 @@ def sincronizza():
             "errore": ris.get("errore", ""),
             "stats": ge.statistiche(),
         })
-    except Exception as exc:
-        return jsonify({"ok": False, "errore": str(exc)})
+    except Exception:
+        return jsonify({"ok": False, "errore": "Sincronizzazione fatturazione non completata. Verifica i dati e riprova."})
 
 
 @email_client.route("/auto-esiti", methods=["POST"])
@@ -364,8 +361,8 @@ def impostazioni():
             gs.salva(cfg)
             _audit("email.impostazioni_salvate")
             flash("Impostazioni email salvate.", "success")
-        except Exception as exc:
-            flash(f"Errore salvataggio: {exc}", "danger")
+        except Exception:
+            flash("Salvataggio impostazioni email non riuscito. Verifica i dati e riprova.", "danger")
 
         return redirect(url_for("email_client.impostazioni"))
 
@@ -409,8 +406,8 @@ def reset_smtp():
         gs.aggiorna(cfg)
         _audit("email.smtp_reset", "Configurazione SMTP azzerata dall'interfaccia web")
         return jsonify({"ok": True, "messaggio": "Configurazione SMTP azzerata. Inserisci le nuove credenziali e salva."})
-    except Exception as exc:
-        return jsonify({"ok": False, "errore": f"Errore durante il reset: {exc}"})
+    except Exception:
+        return jsonify({"ok": False, "errore": "Reset non completato. Verifica la configurazione e riprova."})
 
 
 # ─────────────────────────────────────────────────────────── Privati
@@ -419,9 +416,6 @@ def _sync_inviati(ge) -> None:
     """Importa le email inviate da messaggi.py nella casella inviati."""
     try:
         from pct.messaggi import GestioneMessaggi, CanaleMsggio
-        from pct.config_studio import GestioneConfigStudio
-        cfg_path = current_app.config.get("STUDIO_CONFIG", "./config/studio.json")
-        cfg = GestioneConfigStudio(config_path=cfg_path).config
         db_path = current_app.config.get("MESSAGGI_DB", "./messaggi/storico.json")
         gm = GestioneMessaggi(config=None, db_path=db_path)
         inviati = [
@@ -441,13 +435,13 @@ def _auto_esiti(ge) -> list:
         db_path = current_app.config.get("FASCICOLI_DB", "./fascicoli/fascicoli.json")
         gf = GestioneFascicoli(db_path=db_path)
         return aggiorna_esiti_da_email(ge, gf)
-    except Exception as exc:
-        return [f"Errore auto-esiti: {exc}"]
+    except Exception:
+        return ["Auto-esiti non completati. Verifica la casella PEC e riprova."]
 
 
 def _test_smtp(gs) -> "Response":
     """Test connessione SMTP (AJAX)."""
-    import smtplib, ssl as _ssl
+    import ssl as _ssl
     f = request.form
     host  = f.get("smtp_host", "").strip()
     port  = int(f.get("smtp_port") or 587)
@@ -467,8 +461,8 @@ def _test_smtp(gs) -> "Response":
         s.login(user, pwd)
         s.quit()
         return jsonify({"ok": True, "messaggio": f"Connessione SMTP a {host}:{port} OK."})
-    except Exception as e:
-        return jsonify({"ok": False, "errore": str(e)})
+    except Exception:
+        return jsonify({"ok": False, "errore": "Connessione SMTP non riuscita. Verifica host, porta, TLS e credenziali."})
 
 
 def _test_imap(gs, f) -> "Response":
@@ -489,5 +483,5 @@ def _test_imap(gs, f) -> "Response":
         m.login(user, pwd)
         m.logout()
         return jsonify({"ok": True, "messaggio": f"Connessione IMAP a {host}:{port} OK."})
-    except Exception as e:
-        return jsonify({"ok": False, "errore": str(e)})
+    except Exception:
+        return jsonify({"ok": False, "errore": "Connessione IMAP non riuscita. Verifica host, porta, SSL e credenziali."})

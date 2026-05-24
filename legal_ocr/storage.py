@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -76,15 +77,16 @@ class LegalOcrEvidenceStore:
         return snapshot
 
     def append_hil_correction(self, run_id: str, correction: dict[str, Any]) -> dict[str, Any]:
-        path = safe_join(self.root, Path("tenants") / self.tenant_id / "corrections" / f"{_safe_id(run_id)}.jsonl")
+        safe_run_id = _safe_id(run_id)
+        path = safe_join(self.root, Path("tenants") / self.tenant_id / "corrections" / f"{safe_run_id}.jsonl")
         path.parent.mkdir(parents=True, exist_ok=True)
         entry = dict(correction or {})
         entry.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
         entry.setdefault("user", "user")
-        entry.setdefault("run_id", run_id)
+        entry.setdefault("run_id", safe_run_id)
         with path.open("a", encoding="utf-8", newline="\n") as fh:
             fh.write(canonical_json(entry) + "\n")
-        self.append_audit(run_id, "ocr.hil_correction", entry)
+        self.append_audit(safe_run_id, "ocr.hil_correction", entry)
         return entry
 
     def load_evidence(self, run_id: str) -> dict[str, Any] | None:
@@ -143,4 +145,7 @@ def _merkle_root(hashes: list[str]) -> str:
 
 
 def _safe_id(value: str) -> str:
-    return "".join(ch if ch.isalnum() or ch in "._-" else "-" for ch in str(value or "run")).strip("._-") or "run"
+    raw = str(value or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", raw):
+        raise ValueError("Identificativo OCR non sicuro.")
+    return raw

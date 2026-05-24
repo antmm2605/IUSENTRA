@@ -19,7 +19,7 @@ from __future__ import annotations
 import mimetypes
 import os
 from io import BytesIO
-from datetime import date, datetime
+from datetime import date
 from functools import wraps
 from pathlib import Path
 from uuid import uuid4
@@ -363,9 +363,6 @@ def scrivi():
 
     try:
         from pct.messaggi import GestioneMessaggi
-        from pct.config_studio import GestioneConfigStudio
-        cfg_path = _studio_config_path()
-        cfg = GestioneConfigStudio(config_path=cfg_path).config
         db_path = _cfg_path("MESSAGGI_DB", "./messaggi/storico.json")
         gm = GestioneMessaggi(
             config=None,
@@ -387,10 +384,10 @@ def scrivi():
         if _wants_json_response():
             return jsonify({"ok": True, "message": "PEC inviata con successo.", "redirect": url_for("email_client.casella", cartella="INVIATI")})
         return redirect(url_for("email_client.casella", cartella="INVIATI"))
-    except Exception as exc:
+    except Exception:
         if _wants_json_response():
-            return jsonify({"ok": False, "message": f"Invio PEC non riuscito: {exc}"}), 400
-        flash(f"Errore invio: {exc}", "danger")
+            return jsonify({"ok": False, "message": "Invio PEC non riuscito. Verifica destinatario, allegati e configurazione."}), 400
+        flash("Invio PEC non riuscito. Verifica destinatario, allegati e configurazione.", "danger")
         return redirect(url_for("email_client.scrivi",
                                 a=destinatario, oggetto=oggetto))
 
@@ -447,8 +444,8 @@ def sincronizza():
     """AJAX — sincronizza la casella IMAP e aggiorna gli esiti PCT."""
     try:
         return jsonify(run_pec_mailbox_sync())
-    except TenantDataPathError as exc:
-        return jsonify({"ok": False, "errore": str(exc)}), 409
+    except TenantDataPathError:
+        return jsonify({"ok": False, "errore": "Archivio PEC non disponibile per questo studio."}), 409
 
 
 @email_client.route("/auto-esiti", methods=["POST"])
@@ -464,8 +461,9 @@ def auto_esiti():
 
         gf = _get_fascicoli()
         comm_report = aggiorna_comunicazioni_cancelleria_da_email(ge, gf)
-    except Exception as exc:
-        log.append(f"Errore comunicazioni cancelleria: {exc}")
+    except Exception:
+        current_app.logger.exception("Errore comunicazioni cancelleria durante auto-esiti.")
+        log.append("Comunicazioni di cancelleria non elaborate completamente.")
     warning = bool(comm_report.get("errori", 0) or auto_summary["errori"])
     if auto_summary["aggiornati"]:
         messaggio = f"{auto_summary['aggiornati']} esiti deposito aggiornati automaticamente."
@@ -539,8 +537,8 @@ def impostazioni():
             gs.salva(cfg)
             _audit("email.impostazioni_salvate")
             flash("Impostazioni email salvate.", "success")
-        except Exception as exc:
-            flash(f"Errore salvataggio: {exc}", "danger")
+        except Exception:
+            flash("Salvataggio impostazioni PEC non riuscito. Verifica i dati e riprova.", "danger")
 
         return redirect(url_for("email_client.impostazioni"))
 
@@ -584,8 +582,8 @@ def reset_smtp():
         gs.aggiorna(cfg)
         _audit("email.smtp_reset", "Configurazione SMTP azzerata dall'interfaccia web")
         return jsonify({"ok": True, "messaggio": "Configurazione SMTP azzerata. Inserisci le nuove credenziali e salva."})
-    except Exception as exc:
-        return jsonify({"ok": False, "errore": f"Errore durante il reset: {exc}"})
+    except Exception:
+        return jsonify({"ok": False, "errore": "Reset non completato. Verifica la configurazione e riprova."})
 
 
 
@@ -596,9 +594,6 @@ def _sync_inviati(ge) -> None:
     """Importa le email inviate da messaggi.py nella casella inviati."""
     try:
         from pct.messaggi import GestioneMessaggi, CanaleMsggio
-        from pct.config_studio import GestioneConfigStudio
-        cfg_path = _studio_config_path()
-        cfg = GestioneConfigStudio(config_path=cfg_path).config
         db_path = _cfg_path("MESSAGGI_DB", "./messaggi/storico.json")
         gm = GestioneMessaggi(config=None, db_path=db_path)
         inviati = [
@@ -616,8 +611,8 @@ def _auto_esiti(ge) -> list:
         from pct.email_client import aggiorna_esiti_da_email
         gf = _get_fascicoli()
         return aggiorna_esiti_da_email(ge, gf)
-    except Exception as exc:
-        return [f"Errore auto-esiti: {exc}"]
+    except Exception:
+        return ["Auto-esiti non completati. Verifica la casella PEC e riprova."]
 
 
 def _riassunto_auto_esiti_route(ge, log: list[str]) -> dict:
@@ -633,7 +628,7 @@ def _riassunto_auto_esiti_route(ge, log: list[str]) -> dict:
 
 def _test_smtp(gs) -> "Response":
     """Test connessione SMTP (AJAX)."""
-    import smtplib, ssl as _ssl
+    import ssl as _ssl
     f = request.form
     host  = f.get("smtp_host", "").strip()
     port  = int(f.get("smtp_port") or 587)
@@ -653,8 +648,8 @@ def _test_smtp(gs) -> "Response":
         s.login(user, pwd)
         s.quit()
         return jsonify({"ok": True, "messaggio": f"Connessione SMTP a {host}:{port} OK."})
-    except Exception as e:
-        return jsonify({"ok": False, "errore": str(e)})
+    except Exception:
+        return jsonify({"ok": False, "errore": "Connessione SMTP non riuscita. Verifica host, porta, TLS e credenziali."})
 
 
 def _test_imap(gs, f) -> "Response":
@@ -675,5 +670,5 @@ def _test_imap(gs, f) -> "Response":
         m.login(user, pwd)
         m.logout()
         return jsonify({"ok": True, "messaggio": f"Connessione IMAP a {host}:{port} OK."})
-    except Exception as e:
-        return jsonify({"ok": False, "errore": str(e)})
+    except Exception:
+        return jsonify({"ok": False, "errore": "Connessione IMAP non riuscita. Verifica host, porta, SSL e credenziali."})

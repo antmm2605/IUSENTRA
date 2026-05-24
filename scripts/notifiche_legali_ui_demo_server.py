@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# ruff: noqa: E402
+
 import argparse
 import hashlib
 import json
@@ -78,7 +80,13 @@ def _safe_demo_redirect_target(raw_target: str | None) -> str:
     target = str(raw_target or "/fascicoli").strip()
     if not target.startswith("/") or target.startswith("//") or "\\" in target:
         return "/fascicoli"
-    return target
+    if target == "/notifiche-legali":
+        return "/notifiche-legali"
+    if target == "/fascicoli":
+        return "/fascicoli"
+    if target == "/email":
+        return "/email"
+    return "/fascicoli"
 
 
 def _config(root: Path) -> dict:
@@ -302,7 +310,6 @@ def create_demo_app(root: Path, *, username: str, password: str) -> tuple[object
     def _open_demo_session():
         from flask import redirect, request, session
 
-        next_url = _safe_demo_redirect_target(request.args.get("next"))
         session.clear()
         session["user_id"] = user_id
         session["tenant_slug"] = tenant_slug
@@ -311,7 +318,12 @@ def create_demo_app(root: Path, *, username: str, password: str) -> tuple[object
         session["last_activity"] = datetime.now().isoformat()
         session["must_change_password"] = False
         session.permanent = True
-        return redirect(next_url)
+        target = _safe_demo_redirect_target(request.args.get("next"))
+        if target == "/notifiche-legali":
+            return redirect("/notifiche-legali")
+        if target == "/email":
+            return redirect("/email")
+        return redirect("/fascicoli")
 
     def _demo_login_before_request():
         from flask import request

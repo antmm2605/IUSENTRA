@@ -260,10 +260,10 @@ def scrivi():
         if _wants_json_response():
             return jsonify({"ok": True, "message": "Email ordinaria inviata con successo.", "redirect": url_for("email_ordinaria.casella", cartella="INVIATI")})
         return redirect(url_for("email_ordinaria.casella", cartella="INVIATI"))
-    except Exception as exc:
+    except Exception:
         if _wants_json_response():
-            return jsonify({"ok": False, "message": f"Invio email ordinaria non riuscito: {exc}"}), 400
-        flash(f"Errore invio email ordinaria: {exc}", "danger")
+            return jsonify({"ok": False, "message": "Invio email ordinaria non riuscito. Verifica destinatario, allegati e configurazione."}), 400
+        flash("Invio email ordinaria non riuscito. Verifica destinatario, allegati e configurazione.", "danger")
         return redirect(url_for("email_ordinaria.scrivi", a=destinatario, oggetto=oggetto))
 
 
@@ -398,5 +398,5 @@ def sincronizza():
     """Sincronizza la casella ordinaria usando i parametri IMAP del tab SMTP."""
     try:
         return jsonify(run_ordinary_mailbox_sync())
-    except TenantDataPathError as exc:
-        return jsonify({"ok": False, "errore": str(exc)}), 409
+    except TenantDataPathError:
+        return jsonify({"ok": False, "errore": "Archivio email non disponibile per questo studio."}), 409

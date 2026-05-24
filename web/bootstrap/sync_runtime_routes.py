@@ -76,7 +76,7 @@ def register_sync_runtime_routes(
             )
         except Exception as e:
             app.logger.exception("Errore api_sync_stato: %s", e)
-            return jsonify({"errore": str(e)})
+            return jsonify({"errore": "Stato sincronizzazione non disponibile. Riprova tra poco."})
 
     @app.route("/api/sync/broadcast", methods=["POST"])
     def api_sync_broadcast():
@@ -92,7 +92,7 @@ def register_sync_runtime_routes(
             return jsonify({"ok": True, "raggiunti": n})
         except Exception as e:
             app.logger.exception("Errore api_sync_broadcast: %s", e)
-            return jsonify({"ok": False, "errore": str(e)})
+            return jsonify({"ok": False, "errore": "Messaggio non inviato. Verifica i dati e riprova."})
 
     @app.route("/api/pec/poll-cancelleria", methods=["POST"])
     def api_pec_poll_cancelleria():
@@ -222,7 +222,7 @@ def register_sync_runtime_routes(
             )
         except Exception as e:
             app.logger.exception("Errore api_pec_poll_cancelleria: %s", e)
-            return jsonify({"ok": False, "errore": str(e)})
+            return jsonify({"ok": False, "errore": "Sincronizzazione PEC non completata. Verifica la configurazione e riprova."})
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/ocr", methods=["POST"])
     def ocr_documento(id_fasc, id_doc):

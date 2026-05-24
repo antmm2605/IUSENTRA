@@ -673,6 +673,13 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Inventario App V2 dopo test Guida Pratica `2.248.16` | GitHub `Lint + syntax` sul secondo push `55d89ea95` | Risolto | Il secondo push ha fatto emergere `docs/test-inventory.md` non aggiornato con i nuovi test della tranche. Gli aggregatori Pytest/Signer erano rossi per cascata dal blocco upstream. | Rigenerato `docs/test-inventory.md` e rilanciati localmente registry check, test docs check, smoke inventory e `tests/test_app_v2_page_registry.py tests/test_app_v2_test_plan_phase10.py tests/test_ci_cd_gates_phase11.py`. |
 | CodeQL su commit Guida Pratica `d062517d9` | Check `CodeQL` / code scanning results | Risolto localmente, da verificare sul nuovo SHA | CodeQL ha segnalato protocolli TLS obsoleti nei test SMTP/IMAP, `send_file` nell'export Word derivato dalla richiesta e messaggi API collegati a eccezioni. | Aggiunto TLS minimo 1.2, sostituito l'export Word con response bytes sicura, rimossi dettagli eccezione da payload/API e rilanciati compile, pytest mirati, OpenAPI, App V2 docs, Ruff e packaging prima del push successivo. |
 
+## Note OCR legal-grade CodeQL 2.248.31 - 2026-05-24
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| CodeQL OCR/storage e payload pubblici | Check `CodeQL` / code scanning results | Risolto localmente, da verificare sul nuovo SHA | Il primo SHA OCR legal-grade ha aperto finding su path expression controllata da input, redirect demo e dettagli eccezione in payload pubblici. | Validati percorsi probatori con `safe_join` basato su path relativo sicuro, reso stretto il `run_id` HIL, sostituiti dettagli eccezione con messaggi operativi e aggiunti test mirati. |
+| Test portali PDP diretto locale | `tests\test_polisweb.py::test_api_acquisizione_search_portali_p12_usa_backend_server` | Non regressione del fix OCR | Il rilancio locale aggregato del gruppo portali ha intercettato il policy gate PDP "portale ufficiale assistito salvo manifest diretto verificato" e ha fallito prima delle asserzioni PAT/PTT; i test direttamente legati ai messaggi sanitizzati PST/assistant sono verdi. | Per il perimetro OCR/security mantenere i gate mirati documentati in `pytest-confirmed-ok.md`; se si riapre PDP diretto, verificare la policy di integrazione portale separatamente. |
+
 ## Note Relata notifica PEC-first 2.248.28 - 2026-05-24
 
 | Area | Gate | Stato | Nota | Azione |

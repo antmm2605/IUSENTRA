@@ -10,6 +10,7 @@ from flask import Flask, g
 
 from legal_document_ingestion import LegalDocumentIngestionService, LegalDocumentRepository
 from legal_document_ingestion.archive_extractor import extract_zip_bytes
+from legal_document_ingestion.repository import safe_join
 from legal_document_ingestion.zip_safety import ZipSafetyConfig
 from web.blueprints.legal_documents_api import legal_documents_api
 
@@ -263,6 +264,16 @@ def test_multi_tenant_isolation_and_proof_bundle(tmp_path: Path):
     assert bundle["sha256"]
     with pytest.raises(KeyError):
         repository.create_proof_bundle("tenant-b", a["document"]["id"], actor="tester")
+
+
+def test_repository_safe_join_rifiuta_traversal_e_assoluti(tmp_path: Path):
+    root = tmp_path / "evidence"
+    inside = safe_join(root, "files/tenant-a/documento.txt")
+    assert inside == (root / "files" / "tenant-a" / "documento.txt").resolve()
+
+    for unsafe in ("../segreto.txt", "/tmp/segreto.txt", "C:/tmp/segreto.txt", "files/../segreto.txt"):
+        with pytest.raises(ValueError):
+            safe_join(root, unsafe)
 
 
 def test_api_upload_evidence_tree_and_lex(monkeypatch, tmp_path: Path):

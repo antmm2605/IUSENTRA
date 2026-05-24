@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.31 - 2026-05-24
+
+- Rafforzato il fix CodeQL post OCR legal-grade: join probatori solo su percorsi relativi validati, `run_id` HIL non manipolabile e test di regressione su traversal.
+- Rimossi dettagli di eccezione dai payload pubblici email, PEC, fatturazione, sync e portali telematici, mantenendo messaggi operativi utili per l'avvocato.
+- Chiuso il redirect demo notifiche su destinazioni locali esplicitamente ammesse, senza usare URL derivati dalla richiesta come sink diretto.
+
 ## 2.248.30 - 2026-05-24
 
 - Implementato OCR legal-grade end-to-end con ingest PDF/immagini/ZIP/P7M, pre-processing, router engine Tesseract/fallback locale, metriche QC, retry, HIL, storage evidenze append-only, chain hash e merkle giornaliero.

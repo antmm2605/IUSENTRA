@@ -82,3 +82,15 @@ def test_legal_ocr_pipeline_zip_parent_run_id_unico(tmp_path: Path):
     parent_ids = {item["parent_run_id"] for item in evidences}
     assert len(parent_ids) == 1
     assert all(item["document_id"] == "ZIP-1" for item in evidences)
+
+
+def test_legal_ocr_store_rifiuta_run_id_non_sicuri(tmp_path: Path):
+    store = LegalOcrEvidenceStore(tmp_path / "store", "tenant-a")
+
+    for unsafe in ("../altro", "/tmp/altro", "C:/tmp/altro", "run con spazi"):
+        try:
+            store.append_hil_correction(unsafe, {"from": "x", "to": "y"})
+        except ValueError as exc:
+            assert "Identificativo OCR" in str(exc)
+        else:  # pragma: no cover - rende esplicita la regressione di sicurezza
+            raise AssertionError(f"run_id non sicuro accettato: {unsafe}")

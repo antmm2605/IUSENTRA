@@ -203,7 +203,6 @@ export type PreventivoWizardPageData = {
   }
   actions: {
     back: string
-    legacy: string
     calculate: string
     create: string
   }
@@ -290,7 +289,6 @@ export const emptyPreventivoWizardPage: PreventivoWizardPageData = {
   },
   actions: {
     back: '/preventivi',
-    legacy: '/preventivi/wizard?_legacy=1',
     calculate: '/api/v1/ui/preventivi/wizard/calculate',
     create: '/api/v1/ui/preventivi/wizard/create',
   },
@@ -598,7 +596,6 @@ function normalisePage(raw: unknown): PreventivoWizardPageData {
     },
     actions: {
       back: text(actions.back) || '/preventivi',
-      legacy: text(actions.legacy) || '/preventivi/wizard?_legacy=1',
       calculate: text(actions.calculate) || '/api/v1/ui/preventivi/wizard/calculate',
       create: text(actions.create) || '/api/v1/ui/preventivi/wizard/create',
     },

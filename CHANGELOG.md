@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.36 - 2026-05-24
+
+- Chiusa la Fase 3 React full senza pagine finte: `/giurisprudenza/nuova` passa alla shell React governata con API JSON reali, stati loading/empty/error/success e salvataggio backend effettivo.
+- Promossi a `react_operational_full` anche `/preventivi/wizard`, `/scadenziario/:id/modifica` e `/sito-studio/redazione-ai`, eliminando l'azione primaria `?_legacy=1` dal wizard preventivi e rafforzando i gate anti-mascheramento.
+- Aggiornati manifest, contratti React, route gate, test mirati, documentazione App V2 e build Vite con asset statici coerenti alla nuova superficie.
+
 ## 2.248.35 - 2026-05-24
 
 - Rafforzata la Fase 2 file/PEC/ZIP/OCR: gli upload diretti rifiutano nomi file con path, drive Windows, UNC o traversal prima di scrivere nel repository probatorio.

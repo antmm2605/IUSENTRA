@@ -400,7 +400,7 @@ def _deve_mantenere_vista_classica() -> bool:
         return True
     if lower.startswith("/deposito/checklist/"):
         return True
-    if lower.startswith("/giurisprudenza/"):
+    if lower.startswith("/giurisprudenza/") and lower != "/giurisprudenza/nuova":
         return True
     # /legal-intelligence/fonte/<id>/scarica e /daily/ restano legacy (download file e rendering server-side).
     if lower.startswith("/legal-intelligence/") and lower not in {

@@ -492,7 +492,6 @@ def build_react_preventivo_wizard_payload(
         },
         "actions": {
             "back": "/preventivi",
-            "legacy": "/preventivi/wizard?_legacy=1",
             "calculate": "/api/v1/ui/preventivi/wizard/calculate",
             "create": "/api/v1/ui/preventivi/wizard/create",
         },
@@ -1042,7 +1041,7 @@ def build_react_preventivo_wizard_error_payload(message: str = "Preventivo guida
         "catalog": {},
         "options": {},
         "support": {},
-        "actions": {"back": "/preventivi", "legacy": "/preventivi/wizard?_legacy=1"},
+        "actions": {"back": "/preventivi"},
         "warnings": [_warning("preventivo_wizard_errore", message)],
     }
 

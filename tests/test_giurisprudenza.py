@@ -707,6 +707,65 @@ def test_blueprint_archivio_sentenze_renderizza_indice_e_salvataggio(tmp_path: P
     assert "Testo normalizzato e archivio redazionale" in detail_html
 
 
+def test_react_giurisprudenza_nuova_shell_json_e_salvataggio(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    _login_admin(cfg)
+    app = create_app(cfg)
+
+    with app.test_client() as client:
+        login = client.post(
+            "/login",
+            data={"username": "admin-giurisprudenza", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        assert login.status_code == 200
+
+        shell = client.get("/giurisprudenza/nuova", headers={"Accept": "text/html"}, follow_redirects=False)
+        legacy = client.get("/giurisprudenza/nuova?_legacy=1", headers={"Accept": "text/html"}, follow_redirects=False)
+        page = client.get("/api/v1/ui/giurisprudenza/nuova", headers={"Accept": "application/json"})
+        missing = client.post(
+            "/api/v1/ui/giurisprudenza/nuova",
+            json={"source_system": "manuale_interno", "massima": "Massima senza titolo."},
+            headers={"Accept": "application/json"},
+        )
+        saved = client.post(
+            "/api/v1/ui/giurisprudenza/nuova",
+            json={
+                "source_system": "manuale_interno",
+                "titolo": "Cassazione su consenso informato",
+                "giurisdizione": "Civile",
+                "area": "Civile",
+                "branca": "Responsabilita civile",
+                "numero_provvedimento": "1234/2026",
+                "massima": "La prova del consenso informato deve essere specifica e documentata.",
+                "uso_nel_software": "citabile in atto",
+            },
+            headers={"Accept": "application/json"},
+        )
+        saved_payload = saved.get_json()
+        archive = client.get(
+            f"/api/v1/ui/giurisprudenza?scheda={saved_payload['record']['id']}",
+            headers={"Accept": "application/json"},
+        )
+
+    assert shell.status_code == 200
+    assert "IUSENTRA - React Shell" in shell.get_data(as_text=True)
+    assert "IUSENTRA - React Shell" not in legacy.get_data(as_text=True)
+    assert page.status_code == 200
+    page_payload = page.get_json()
+    assert page_payload["contracts"]["writes"] == "json_api"
+    assert page_payload["defaults"]["source_system"] == "manuale_interno"
+    assert any(option["value"] == "manuale_interno" for option in page_payload["options"]["fonti"])
+    assert missing.status_code == 400
+    assert missing.get_json()["errors"]["titolo"]
+    assert saved.status_code == 201
+    assert saved_payload["ok"] is True
+    assert saved_payload["record"]["title"] == "Cassazione su consenso informato"
+    assert saved_payload["redirectHref"].startswith("/giurisprudenza?scheda=")
+    archive_payload = archive.get_json()
+    assert any(record["title"] == "Cassazione su consenso informato" for record in archive_payload["records"])
+
+
 def test_blueprint_importa_materiale_cliente(tmp_path: Path):
     cfg = _cfg_web(tmp_path)
     _login_admin(cfg)

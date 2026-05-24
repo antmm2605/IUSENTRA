@@ -2,6 +2,24 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-24T22:20:00+02:00: React full senza pagine finte
+2.248.36.
+Audit anti-mascheramento esteso a `/giurisprudenza/nuova`: la pagina usa shell
+React, API JSON, salvataggio backend, stati caricamento/errore/successo e
+test dedicato. I contratti impediscono che la rotta torni tra i fallback
+classici o venga dichiarata piena senza endpoint JSON di creazione.
+
+Audit di coerenza: `/preventivi/wizard`, `/scadenziario/:id/modifica` e
+`/sito-studio/redazione-ai` sono registrate come `react_operational_full`;
+il payload del wizard non propone più l'azione primaria classica. I gate
+`check-react-contracts`, `check-route-gate`, `check-full-react-route-contract`,
+`check-no-fake-react-full` e `audit-anti-mascheramento` sono stati verificati
+dopo le modifiche.
+
+Browser audit: login locale con operatore amministratore, form compilato,
+salvataggio confermato, zero overflow su desktop/tablet/mobile e nessun testo
+tecnico vietato rilevato con controllo a parola intera.
+
 Aggiornamento 2026-05-24T18:00:00+02:00: Relata notifica PEC-first
 2.248.28.
 Audit UI e dominio: la sezione `Relata notifica` non usa più i documenti già

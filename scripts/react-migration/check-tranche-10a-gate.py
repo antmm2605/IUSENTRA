@@ -51,6 +51,7 @@ def main() -> int:
 
             for path in (
                 "/giurisprudenza",
+                "/giurisprudenza/nuova",
                 "/legal-intelligence",
                 "/legal-intelligence/news",
                 "/legal-intelligence/mediazione",
@@ -66,7 +67,7 @@ def main() -> int:
 
             for path in (
                 "/giurisprudenza?_legacy=1",
-                "/giurisprudenza/nuova",
+                "/giurisprudenza/nuova?_legacy=1",
                 "/giurisprudenza/qualunque",
                 "/legal-intelligence?_legacy=1",
                 "/legal-intelligence/news?_legacy=1",
@@ -87,6 +88,7 @@ def main() -> int:
 
             for path in (
                 "/api/v1/ui/giurisprudenza",
+                "/api/v1/ui/giurisprudenza/nuova",
                 "/api/v1/ui/legal-intelligence",
                 "/api/v1/ui/legal-intelligence/news",
                 "/api/v1/ui/legal-intelligence/mediazione",
@@ -99,6 +101,24 @@ def main() -> int:
                     response.status_code == 200 and _is_json(response),
                     f"status={response.status_code}",
                 )
+
+            response = client.post(
+                "/api/v1/ui/giurisprudenza/nuova",
+                json={
+                    "titolo": "Cassazione su consenso informato",
+                    "source_system": "manuale_interno",
+                    "area": "Civile",
+                    "massima": "La prova del consenso informato deve essere specifica.",
+                },
+                headers={"Accept": "application/json"},
+            )
+            payload = response.get_json(silent=True) or {}
+            _record(
+                results,
+                "JSON POST /api/v1/ui/giurisprudenza/nuova",
+                response.status_code == 201 and payload.get("ok") is True and bool(payload.get("record", {}).get("id")),
+                f"status={response.status_code}",
+            )
 
             for path in (
                 "/giurisprudenza",

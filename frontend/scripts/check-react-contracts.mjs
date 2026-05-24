@@ -434,7 +434,7 @@ assertContains(tranche8aOpenDesignReport, 'Token creati', 'report Open Design 8A
 if (routeManifest.policy?.currentReleaseUnlocksRoutes !== true) {
   throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true nelle tranche di promozione')
 }
-const allowedGovernedUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/importa', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/:id/cartella', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/email', '/email-ordinaria', '/notifiche-legali', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profilo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/scadenziario/:id', '/scadenziario/:id/modifica', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/builder', '/sito-studio/contatti', '/sito-studio/redazione-ai', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
+const allowedGovernedUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/importa', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/:id/cartella', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/email', '/email-ordinaria', '/notifiche-legali', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/giurisprudenza/nuova', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profilo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/scadenziario/:id', '/scadenziario/:id/modifica', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/builder', '/sito-studio/contatti', '/sito-studio/redazione-ai', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
 const governedTelematicoGraphicalRoutes = ['/telematico', '/servizi-telematici', '/polisWeb', '/pdp', '/pat', '/sigit', '/tribunali', '/guida/firma-digitale']
 const governedTelematicoAcquisitionRoutes = ['/portali/pst/acquisizione', '/portali/pdp/acquisizione', '/portali/pat/acquisizione', '/portali/ptt/acquisizione', '/portali/sigit/acquisizione']
 for (const route of governedTelematicoGraphicalRoutes) allowedGovernedUnlocks.add(route)
@@ -464,6 +464,7 @@ const governedExpectedStatuses = new Map([
   ['/fatturazione', 'react_operational_full'],
   ['/fatturazione/nuova', 'react_operational_full'],
   ['/giurisprudenza', 'react_operational_full'],
+  ['/giurisprudenza/nuova', 'react_operational_full'],
   ['/global-search', 'react_operational_full'],
   ['/impostazioni', 'react_operational_full'],
   ['/impostazioni-studio', 'react_operational_full'],
@@ -481,7 +482,7 @@ const governedExpectedStatuses = new Map([
   ['/preventivi/conferimento/:id', 'react_operational_full'],
   ['/preventivi/conferimento/nuovo', 'react_operational_full'],
   ['/preventivi/nuovo', 'react_operational_full'],
-  ['/preventivi/wizard', 'react_operational_partial'],
+  ['/preventivi/wizard', 'react_operational_full'],
   ['/privacy/registro', 'react_operational_full'],
   ['/privacy/registro/nuovo', 'react_operational_full'],
   ['/profilo', 'react_operational_full'],
@@ -495,12 +496,12 @@ const governedExpectedStatuses = new Map([
   ['/scadenziario', 'react_operational_full'],
   ['/scadenziario/nuova', 'react_operational_full'],
   ['/scadenziario/:id', 'react_operational_full'],
-  ['/scadenziario/:id/modifica', 'react_operational_partial'],
+  ['/scadenziario/:id/modifica', 'react_operational_full'],
   ['/sincronizzazione-calendari', 'react_operational_full'],
   ['/sito-studio', 'react_operational_full'],
   ['/sito-studio/builder', 'react_operational_full'],
   ['/sito-studio/contatti', 'react_operational_full'],
-  ['/sito-studio/redazione-ai', 'react_operational_partial'],
+  ['/sito-studio/redazione-ai', 'react_operational_full'],
   ['/soggetti', 'react_operational_full'],
   ['/soggetti/nuovo', 'react_operational_full'],
   ['/statistiche', 'react_operational_full'],
@@ -550,9 +551,9 @@ for (const [route, status] of [
   ['/sito-studio', 'react_operational_full'],
   ['/sito-studio/builder', 'react_operational_full'],
   ['/sito-studio/contatti', 'react_operational_full'],
-  ['/sito-studio/redazione-ai', 'react_operational_partial'],
+  ['/sito-studio/redazione-ai', 'react_operational_full'],
   ['/fatturazione/nuova', 'react_operational_full'],
-  ['/preventivi/wizard', 'react_operational_partial'],
+  ['/preventivi/wizard', 'react_operational_full'],
   ['/tariffario', 'react_operational_full'],
   ['/giurisprudenza', 'react_operational_full'],
   ['/legal-intelligence', 'react_operational_full'],
@@ -598,7 +599,7 @@ for (const [route, status] of governedExpectedStatuses) {
   }
 }
 
-for (const route of ['/fatturazione/*', '/preventivi/*', '/compensi-forensi/*', '/tariffario/*', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti/*', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence/*', '/ricerca-legale/*']) {
+for (const route of ['/fatturazione/*', '/preventivi/*', '/compensi-forensi/*', '/tariffario/*', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti/*', '/giurisprudenza/*', '/legal-intelligence/*', '/ricerca-legale/*']) {
   const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
   if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
     throw new Error(`route manifest: ${route} deve restare legacy_operational con unlockFromGate=false`)
@@ -989,6 +990,10 @@ assertContains(tariffarioData, '/api/v1/ui/tariffario', 'tariffarioData usa endp
 assertContains(templateAttiData, '/api/v1/ui/template-atti', 'templateAttiData usa endpoint template atti')
 assertContains(templateAttiData, '/api/v1/ui/template-atti/catalogo', 'templateAttiData usa endpoint catalogo template atti')
 assertContains(redazioneAttiData, '/api/v1/ui/redazione-atti', 'redazioneAttiData usa endpoint redazione atti')
+assertContains(giurisprudenzaData, '/api/v1/ui/giurisprudenza/nuova', 'giurisprudenzaData usa endpoint nuova scheda')
+assertContains(giurisprudenzaData, 'apiPostJson', 'giurisprudenzaData salva schede con richiesta JSON')
+assertContains(giurisprudenzaPage, 'getGiurisprudenzaCreatePage', 'GiurisprudenzaPage carica nuova scheda React')
+assertContains(giurisprudenzaPage, 'createGiurisprudenzaRecord', 'GiurisprudenzaPage salva nuova scheda React')
 assertContains(statisticheBridge, '"route_owner": "react_shell"', 'bridge statistiche route_owner react_shell')
 assertContains(auditBridge, '"route_owner": "react_shell"', 'bridge audit route_owner react_shell')
 assertContains(utentiBridge, '"route_owner": "react_shell"', 'bridge utenti route_owner react_shell')
@@ -1041,6 +1046,9 @@ assertContains(apiBridge, '@api_v1_react.get("/tariffario")', 'endpoint UI tarif
 assertContains(apiBridge, '@api_v1_react.get("/template-atti")', 'endpoint UI template atti')
 assertContains(apiBridge, '@api_v1_react.get("/template-atti/catalogo")', 'endpoint UI catalogo template atti')
 assertContains(apiBridge, '@api_v1_react.get("/redazione-atti")', 'endpoint UI redazione atti')
+assertContains(apiBridge, '@api_v1_react.get("/giurisprudenza/nuova")', 'endpoint UI nuova scheda giurisprudenza')
+assertContains(apiBridge, '@api_v1_react.post("/giurisprudenza/nuova")', 'endpoint JSON nuova scheda giurisprudenza')
+assertContains(apiBridge, 'create_react_giurisprudenza_record', 'endpoint giurisprudenza salva tramite bridge React')
 assertContains(apiBridge, '@api_v1_react.get("/impostazioni")', 'endpoint UI impostazioni')
 assertContains(apiBridge, '@api_v1_react.get("/impostazioni-studio")', 'endpoint alias UI impostazioni studio')
 assertContains(apiBridge, '@api_v1_react.post("/impostazioni/<section>")', 'endpoint salvataggio impostazioni')
@@ -1096,7 +1104,7 @@ assertContains(reactRouteGate, 'lower.startswith("/profili/")', 'gate protegge n
 assertContains(reactRouteGate, 'lower.startswith("/backup/")', 'gate protegge subpath backup legacy')
 assertContains(reactRouteGate, '_SITO_STUDIO_REACT_SUBPATHS', 'gate usa allowlist sito studio migrata')
 assertContains(reactRouteGate, '"/sito-studio/builder"', 'gate consente builder sito studio React')
-assertContains(reactRouteGate, '"/sito-studio/redazione-ai"', 'gate consente redazione AI sito studio React parziale')
+assertContains(reactRouteGate, '"/sito-studio/redazione-ai"', 'gate consente redazione AI sito studio React full')
 assertContains(reactRouteGate, 'lower.startswith("/studio/")', 'gate protegge subpath studio legacy')
 assertContains(reactRouteGate, 'lower.startswith("/amministrazione/")', 'gate protegge subpath amministrazione legacy')
 assertContains(reactRouteGate, 'lower.startswith("/fatturazione/") and lower != "/fatturazione/nuova"', 'gate protegge subpath fatturazione legacy')
@@ -1125,7 +1133,7 @@ assertContains(reactRouteGate, 'lower.startswith("/deposito/checklist/")', 'gate
 assertNotContains(reactRouteGate, 'lower == "/deposito/checklist" or lower.startswith("/deposito/checklist/")', 'gate non blocca deposito checklist exact')
 assertContains(reactRouteGate, '_REACT_TELEMATICO_ACQUISITION_PATHS', 'gate allowlist acquisizioni telematiche React')
 assertContains(reactRouteGate, 'lower in _REACT_TELEMATICO_ACQUISITION_PATHS', 'gate sblocca acquisizioni PDP PAT PTT SIGIT exact')
-assertContains(reactRouteGate, 'lower.startswith("/giurisprudenza/")', 'gate protegge nested giurisprudenza legacy')
+assertContains(reactRouteGate, 'lower.startswith("/giurisprudenza/") and lower != "/giurisprudenza/nuova"', 'gate protegge nested giurisprudenza legacy')
 assertContains(reactRouteGate, 'lower.startswith("/legal-intelligence/") and lower not in {', 'gate protegge nested legal intelligence legacy')
 assertContains(reactRouteGate, '"/legal-intelligence/news"', 'gate consente legal intelligence news')
 assertContains(reactRouteGate, '"/legal-intelligence/mediazione"', 'gate consente legal intelligence mediazione')
@@ -1163,7 +1171,7 @@ assertContains(reactShellBlueprint, 'lower.startswith("/profili/")', 'shell prot
 assertContains(reactShellBlueprint, 'lower.startswith("/backup/")', 'shell protegge subpath backup legacy')
 assertContains(reactShellBlueprint, '_SITO_STUDIO_REACT_SUBPATHS', 'shell usa allowlist sito studio migrata')
 assertContains(reactShellBlueprint, '"/sito-studio/builder"', 'shell consente builder sito studio React')
-assertContains(reactShellBlueprint, '"/sito-studio/redazione-ai"', 'shell consente redazione AI sito studio React parziale')
+assertContains(reactShellBlueprint, '"/sito-studio/redazione-ai"', 'shell consente redazione AI sito studio React full')
 assertContains(reactShellBlueprint, 'lower.startswith("/studio/")', 'shell protegge subpath studio legacy')
 assertContains(reactShellBlueprint, 'lower.startswith("/amministrazione/")', 'shell protegge subpath amministrazione legacy')
 assertContains(reactShellBlueprint, 'lower.startswith("/fatturazione/") and lower != "/fatturazione/nuova"', 'shell protegge subpath fatturazione legacy')
@@ -1185,7 +1193,7 @@ assertContains(reactShellBlueprint, 'lower.startswith("/tariffario/")', 'shell p
 assertContains(reactShellBlueprint, 'lower == "/template-atti/nuovo"', 'shell protegge nuovo template atti legacy')
 assertContains(reactShellBlueprint, 'lower.startswith("/template-atti/") and lower != "/template-atti/catalogo"', 'shell protegge nested template atti legacy')
 assertContains(reactShellBlueprint, 'lower.startswith("/redazione-atti/")', 'shell protegge nested redazione atti legacy')
-assertContains(reactShellBlueprint, 'lower.startswith("/giurisprudenza/")', 'shell protegge nested giurisprudenza legacy')
+assertContains(reactShellBlueprint, 'lower.startswith("/giurisprudenza/") and lower != "/giurisprudenza/nuova"', 'shell protegge nested giurisprudenza legacy')
 assertContains(reactShellBlueprint, 'lower.startswith("/legal-intelligence/") and lower not in {', 'shell protegge nested legal intelligence legacy')
 assertContains(reactShellBlueprint, '"/legal-intelligence/news"', 'shell consente legal intelligence news')
 assertContains(reactShellBlueprint, '"/legal-intelligence/mediazione"', 'shell consente legal intelligence mediazione')
@@ -2081,7 +2089,7 @@ for (const snippet of [
   assertContains(reactRouteGate, snippet, `protezione route gate ${snippet}`)
 }
 assertManifestRoute('/giurisprudenza', 'react_operational_full', true)
-assertManifestRoute('/giurisprudenza/nuova', 'legacy_operational', false)
+assertManifestRoute('/giurisprudenza/nuova', 'react_operational_full', true)
 assertManifestRoute('/giurisprudenza/*', 'legacy_operational', false)
 assertManifestRoute('/legal-intelligence', 'react_operational_full', true)
 assertManifestRoute('/legal-intelligence/news', 'react_operational_full', true)

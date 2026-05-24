@@ -296,7 +296,7 @@ def _excluded(path: str) -> bool:
         return True
     if lower.startswith("/deposito/checklist/"):
         return True
-    if lower.startswith("/giurisprudenza/"):
+    if lower.startswith("/giurisprudenza/") and lower != "/giurisprudenza/nuova":
         return True
     if lower.startswith("/legal-intelligence/") and lower not in {
         "/legal-intelligence/mediazione",

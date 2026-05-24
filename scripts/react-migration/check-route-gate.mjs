@@ -65,7 +65,7 @@ function isBlockedBySpecialRule(path) {
     path === '/checklist' ||
     path.startsWith('/checklist/') ||
     path.startsWith('/deposito/checklist/') ||
-    path.startsWith('/giurisprudenza/') ||
+    (path.startsWith('/giurisprudenza/') && path !== '/giurisprudenza/nuova') ||
     (path.startsWith('/legal-intelligence/') && path !== '/legal-intelligence/news' && path !== '/legal-intelligence/mediazione') ||
     path.startsWith('/ricerca-legale/')
   )
@@ -86,7 +86,7 @@ const excludedPrefixes = extractTuple(gate, '_EXCLUDED_PREFIXES')
 const shellLegacyFirstPrefixes = extractTuple(reactShell, '_LEGACY_FIRST_PREFIXES')
 const allowedStatuses = new Set(['legacy_operational', 'react_shell', 'react_bridge', 'react_operational_partial', 'react_operational_full'])
 const allowedUnlockStatuses = new Set(['react_bridge', 'react_operational_partial', 'react_operational_full'])
-const allowedReactUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/importa', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/:id/cartella', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/email', '/email-ordinaria', '/notifiche-legali', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profilo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/scadenziario/:id', '/scadenziario/:id/modifica', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/builder', '/sito-studio/contatti', '/sito-studio/redazione-ai', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
+const allowedReactUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/importa', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/:id/cartella', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/email', '/email-ordinaria', '/notifiche-legali', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/giurisprudenza/nuova', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profilo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/scadenziario/:id', '/scadenziario/:id/modifica', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/builder', '/sito-studio/contatti', '/sito-studio/redazione-ai', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
 const reactTelematicoGraphicalPaths = new Set(['/telematico', '/servizi-telematici', '/polisweb', '/pdp', '/pat', '/sigit', '/tribunali', '/guida/firma-digitale'])
 const reactTelematicoAcquisitionPaths = new Set(['/portali/pst/acquisizione', '/portali/pdp/acquisizione', '/portali/pat/acquisizione', '/portali/ptt/acquisizione', '/portali/sigit/acquisizione'])
 for (const route of reactTelematicoGraphicalPaths) allowedReactUnlocks.add(route)
@@ -116,6 +116,7 @@ const expectedStatuses = new Map([
   ['/fatturazione', 'react_operational_full'],
   ['/fatturazione/nuova', 'react_operational_full'],
   ['/giurisprudenza', 'react_operational_full'],
+  ['/giurisprudenza/nuova', 'react_operational_full'],
   ['/global-search', 'react_operational_full'],
   ['/impostazioni', 'react_operational_full'],
   ['/impostazioni-studio', 'react_operational_full'],
@@ -133,7 +134,7 @@ const expectedStatuses = new Map([
   ['/preventivi/conferimento/:id', 'react_operational_full'],
   ['/preventivi/conferimento/nuovo', 'react_operational_full'],
   ['/preventivi/nuovo', 'react_operational_full'],
-  ['/preventivi/wizard', 'react_operational_partial'],
+  ['/preventivi/wizard', 'react_operational_full'],
   ['/privacy/registro', 'react_operational_full'],
   ['/privacy/registro/nuovo', 'react_operational_full'],
   ['/profilo', 'react_operational_full'],
@@ -147,12 +148,12 @@ const expectedStatuses = new Map([
   ['/scadenziario', 'react_operational_full'],
   ['/scadenziario/nuova', 'react_operational_full'],
   ['/scadenziario/:id', 'react_operational_full'],
-  ['/scadenziario/:id/modifica', 'react_operational_partial'],
+  ['/scadenziario/:id/modifica', 'react_operational_full'],
   ['/sincronizzazione-calendari', 'react_operational_full'],
   ['/sito-studio', 'react_operational_full'],
   ['/sito-studio/builder', 'react_operational_full'],
   ['/sito-studio/contatti', 'react_operational_full'],
-  ['/sito-studio/redazione-ai', 'react_operational_partial'],
+  ['/sito-studio/redazione-ai', 'react_operational_full'],
   ['/soggetti', 'react_operational_full'],
   ['/soggetti/nuovo', 'react_operational_full'],
   ['/statistiche', 'react_operational_full'],
@@ -180,7 +181,6 @@ const legacyRoutes = [
   '/template-atti/*',
   '/redazione-atti/*',
   '/checklist',
-  '/giurisprudenza/nuova',
   '/giurisprudenza/*',
   '/legal-intelligence/*',
   '/ricerca-legale/*',
@@ -316,7 +316,7 @@ for (const snippet of [
   'lower in _REACT_TELEMATICO_GRAPHICAL_PATHS',
   '_REACT_TELEMATICO_ACQUISITION_PATHS',
   'lower in _REACT_TELEMATICO_ACQUISITION_PATHS',
-  'lower.startswith("/giurisprudenza/")',
+  'lower.startswith("/giurisprudenza/") and lower != "/giurisprudenza/nuova"',
   'lower.startswith("/legal-intelligence/") and lower not in {',
   '"/legal-intelligence/news",',
   '"/legal-intelligence/mediazione",',

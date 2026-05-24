@@ -1,6 +1,6 @@
 {
   "summary": {
-    "generatedAt": "2026-05-15T12:13:18.530Z",
+    "generatedAt": "2026-05-24T21:03:12.832Z",
     "scannedFiles": [
       "frontend/src/adminDatabaseData.ts",
       "frontend/src/agendaData.ts",
@@ -54,6 +54,7 @@
       "frontend/src/components/FatturazionePage.tsx",
       "frontend/src/components/FloatingLex.tsx",
       "frontend/src/components/GiurisprudenzaPage.tsx",
+      "frontend/src/components/GuidaPraticaSidebar.tsx",
       "frontend/src/components/ImpostazioniPage.tsx",
       "frontend/src/components/IncassiPagamentiPage.tsx",
       "frontend/src/components/iusentra/index.ts",
@@ -65,6 +66,7 @@
       "frontend/src/components/iusentra/IusDataTableShell.tsx",
       "frontend/src/components/iusentra/IusDocumentStatusBadge.tsx",
       "frontend/src/components/iusentra/IusEmptyState.tsx",
+      "frontend/src/components/iusentra/IusentraPreset.tsx",
       "frontend/src/components/iusentra/IusErrorState.tsx",
       "frontend/src/components/iusentra/IusFormSection.tsx",
       "frontend/src/components/iusentra/IusLegalIcon.tsx",
@@ -256,6 +258,7 @@
       "frontend/src/features/telematico/TelematicoWorkspace.tsx",
       "frontend/src/formSubmit.ts",
       "frontend/src/giurisprudenzaData.ts",
+      "frontend/src/guidaPraticaData.ts",
       "frontend/src/hooks/useClickOutside.ts",
       "frontend/src/hooks/useGlobalSearch.ts",
       "frontend/src/hooks/useKeyboardShortcut.ts",
@@ -273,6 +276,12 @@
       "frontend/src/main.tsx",
       "frontend/src/messaggiData.ts",
       "frontend/src/notificheLegaliData.ts",
+      "frontend/src/pages/workflow-agents/AgentApprovalQueue.tsx",
+      "frontend/src/pages/workflow-agents/AgentMetricsPanel.tsx",
+      "frontend/src/pages/workflow-agents/AgentRunDetail.tsx",
+      "frontend/src/pages/workflow-agents/AgentRunPreview.tsx",
+      "frontend/src/pages/workflow-agents/api.ts",
+      "frontend/src/pages/workflow-agents/WorkflowAgentsHome.tsx",
       "frontend/src/preventiviData.ts",
       "frontend/src/preventivoWizardData.ts",
       "frontend/src/preventivoWizardUtils.ts",
@@ -377,6 +386,7 @@
       "web/services/react_fascicoli_bridge.py",
       "web/services/react_fatturazione_bridge.py",
       "web/services/react_giurisprudenza_bridge.py",
+      "web/services/react_guida_pratica_bridge.py",
       "web/services/react_impostazioni_bridge.py",
       "web/services/react_incassi_pagamenti_bridge.py",
       "web/services/react_legal_intelligence_bridge.py",
@@ -401,21 +411,21 @@
       "web/services/react_template_atti_bridge.py",
       "web/services/react_timesheet_bridge.py",
       "web/services/react_utenti_bridge.py",
-      "web/services/react_wizard_pro_bridge.py"
+      "web/services/react_wizard_pro_bridge.py",
+      "web/services/react_workflow_agents_bridge.py"
     ],
     "totals": {
       "routes": 106,
-      "legacyLinks": 81,
+      "legacyLinks": 77,
       "legacyPostForms": 0,
       "reactPostForms": 0,
       "bridgeLegacyWrites": 0,
       "deprecatedReactFull": 0,
-      "missingWriteApi": 1
+      "missingWriteApi": 0
     },
     "levels": {
-      "react_operational_full": 87,
-      "legacy_operational": 18,
-      "react_operational_partial": 1
+      "react_operational_full": 89,
+      "legacy_operational": 17
     }
   },
   "rows": [
@@ -1014,17 +1024,15 @@
       "legacyButtons": 1,
       "legacyPostForms": 0,
       "reactPostForms": 0,
-      "jsonWrites": false,
+      "jsonWrites": true,
       "jsonReads": true,
       "bridgeWritesLegacy": false,
       "blockingLegacyLinks": 0,
       "technicalRollback": false,
       "missingWriteApi": false,
       "missingErrorHandling": false,
-      "missingSuccessHandling": true,
-      "problems": [
-        "gestione successo non rilevata"
-      ],
+      "missingSuccessHandling": false,
+      "problems": [],
       "realLevel": "react_operational_full"
     },
     {
@@ -1038,17 +1046,15 @@
       "legacyButtons": 1,
       "legacyPostForms": 0,
       "reactPostForms": 0,
-      "jsonWrites": false,
+      "jsonWrites": true,
       "jsonReads": true,
       "bridgeWritesLegacy": false,
       "blockingLegacyLinks": 0,
       "technicalRollback": false,
       "missingWriteApi": false,
       "missingErrorHandling": false,
-      "missingSuccessHandling": true,
-      "problems": [
-        "gestione successo non rilevata"
-      ],
+      "missingSuccessHandling": false,
+      "problems": [],
       "realLevel": "legacy_operational"
     },
     {
@@ -1056,25 +1062,22 @@
       "component": "frontend/src/components/GiurisprudenzaPage.tsx",
       "dataClient": "frontend/src/giurisprudenzaData.ts",
       "bridge": "web/services/react_giurisprudenza_bridge.py",
-      "manifestStatus": "legacy_operational",
-      "unlockFromGate": false,
+      "manifestStatus": "react_operational_full",
+      "unlockFromGate": true,
       "legacyLinks": 0,
       "legacyButtons": 1,
       "legacyPostForms": 0,
       "reactPostForms": 0,
-      "jsonWrites": false,
+      "jsonWrites": true,
       "jsonReads": true,
       "bridgeWritesLegacy": false,
       "blockingLegacyLinks": 0,
       "technicalRollback": false,
-      "missingWriteApi": true,
+      "missingWriteApi": false,
       "missingErrorHandling": false,
-      "missingSuccessHandling": true,
-      "problems": [
-        "API JSON di salvataggio mancante",
-        "gestione successo non rilevata"
-      ],
-      "realLevel": "legacy_operational"
+      "missingSuccessHandling": false,
+      "problems": [],
+      "realLevel": "react_operational_full"
     },
     {
       "route": "/global-search",
@@ -1228,10 +1231,8 @@
       "technicalRollback": false,
       "missingWriteApi": false,
       "missingErrorHandling": false,
-      "missingSuccessHandling": true,
-      "problems": [
-        "gestione successo non rilevata"
-      ],
+      "missingSuccessHandling": false,
+      "problems": [],
       "realLevel": "react_operational_full"
     },
     {
@@ -1252,10 +1253,8 @@
       "technicalRollback": false,
       "missingWriteApi": false,
       "missingErrorHandling": false,
-      "missingSuccessHandling": true,
-      "problems": [
-        "gestione successo non rilevata"
-      ],
+      "missingSuccessHandling": false,
+      "problems": [],
       "realLevel": "legacy_operational"
     },
     {
@@ -1276,10 +1275,8 @@
       "technicalRollback": false,
       "missingWriteApi": false,
       "missingErrorHandling": false,
-      "missingSuccessHandling": true,
-      "problems": [
-        "gestione successo non rilevata"
-      ],
+      "missingSuccessHandling": false,
+      "problems": [],
       "realLevel": "react_operational_full"
     },
     {
@@ -1300,10 +1297,8 @@
       "technicalRollback": false,
       "missingWriteApi": false,
       "missingErrorHandling": false,
-      "missingSuccessHandling": true,
-      "problems": [
-        "gestione successo non rilevata"
-      ],
+      "missingSuccessHandling": false,
+      "problems": [],
       "realLevel": "react_operational_full"
     },
     {
@@ -1893,24 +1888,22 @@
       "component": "frontend/src/components/PreventivoWizardPage.tsx",
       "dataClient": "frontend/src/preventivoWizardData.ts",
       "bridge": "web/services/react_preventivo_wizard_bridge.py",
-      "manifestStatus": "react_operational_partial",
+      "manifestStatus": "react_operational_full",
       "unlockFromGate": true,
-      "legacyLinks": 4,
+      "legacyLinks": 0,
       "legacyButtons": 0,
       "legacyPostForms": 0,
       "reactPostForms": 0,
       "jsonWrites": true,
       "jsonReads": true,
       "bridgeWritesLegacy": false,
-      "blockingLegacyLinks": 4,
+      "blockingLegacyLinks": 0,
       "technicalRollback": false,
       "missingWriteApi": false,
       "missingErrorHandling": false,
       "missingSuccessHandling": false,
-      "problems": [
-        "4 link ?_legacy=1 primari o non governati"
-      ],
-      "realLevel": "react_operational_partial"
+      "problems": [],
+      "realLevel": "react_operational_full"
     },
     {
       "route": "/privacy/registro",
@@ -2132,10 +2125,8 @@
       "technicalRollback": false,
       "missingWriteApi": false,
       "missingErrorHandling": false,
-      "missingSuccessHandling": true,
-      "problems": [
-        "gestione successo non rilevata"
-      ],
+      "missingSuccessHandling": false,
+      "problems": [],
       "realLevel": "react_operational_full"
     },
     {
@@ -2156,10 +2147,8 @@
       "technicalRollback": false,
       "missingWriteApi": false,
       "missingErrorHandling": false,
-      "missingSuccessHandling": true,
-      "problems": [
-        "gestione successo non rilevata"
-      ],
+      "missingSuccessHandling": false,
+      "problems": [],
       "realLevel": "legacy_operational"
     },
     {
@@ -2257,7 +2246,7 @@
       "component": "frontend/src/components/NuovaScadenzaPage.tsx",
       "dataClient": "frontend/src/scadenziarioData.ts",
       "bridge": "web/services/react_scadenziario_bridge.py",
-      "manifestStatus": "react_operational_partial",
+      "manifestStatus": "react_operational_full",
       "unlockFromGate": true,
       "legacyLinks": 0,
       "legacyButtons": 0,
@@ -2391,7 +2380,7 @@
       "component": "frontend/src/components/SitoStudioRedazioneAiPage.tsx",
       "dataClient": "frontend/src/sitoStudioAiData.ts",
       "bridge": "web/services/react_sito_studio_ai_bridge.py",
-      "manifestStatus": "react_operational_partial",
+      "manifestStatus": "react_operational_full",
       "unlockFromGate": true,
       "legacyLinks": 0,
       "legacyButtons": 0,

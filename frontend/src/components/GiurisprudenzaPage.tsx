@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
+  AlertTriangle,
+  ArrowLeft,
   BookOpen,
   Bot,
   CheckCircle2,
@@ -9,6 +11,7 @@ import {
   Filter,
   Landmark,
   Link2,
+  Save,
   Search,
   ShieldCheck,
 } from 'lucide-react'
@@ -21,8 +24,14 @@ import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
 import { openDesignContract, openDesignLegalKnowledgeSurface } from '../ui/openDesign'
 import {
+  createGiurisprudenzaRecord,
   emptyGiurisprudenzaPage,
+  getGiurisprudenzaCreatePage,
   getGiurisprudenzaPage,
+  type GiurisprudenzaCreateDefaults,
+  type GiurisprudenzaCreateOption,
+  type GiurisprudenzaCreatePageData,
+  type GiurisprudenzaCreateResponse,
   type GiurisprudenzaPageData,
   type GiurisprudenzaRecord,
   type GiurisprudenzaSource,
@@ -508,12 +517,312 @@ function RecordDetail({ record }: { record?: GiurisprudenzaRecord }) {
   )
 }
 
+type CreateFieldName = keyof GiurisprudenzaCreateDefaults
+
+function CreateTextField({
+  id,
+  label,
+  value,
+  onChange,
+  type = 'text',
+  required = false,
+  error = '',
+  placeholder = '',
+}: {
+  id: CreateFieldName
+  label: string
+  value: string
+  onChange: (field: CreateFieldName, value: string) => void
+  type?: string
+  required?: boolean
+  error?: string
+  placeholder?: string
+}) {
+  const inputId = `giurisprudenza-create-${id}`
+  return (
+    <div className="iu-legal-create-field">
+      <label htmlFor={inputId}>{label}</label>
+      <input
+        id={inputId}
+        value={value}
+        type={type}
+        required={required}
+        placeholder={placeholder}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${inputId}-error` : undefined}
+        onChange={(event) => onChange(id, event.target.value)}
+      />
+      {error ? <small id={`${inputId}-error`}>{error}</small> : null}
+    </div>
+  )
+}
+
+function CreateSelectField({
+  id,
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  id: CreateFieldName
+  label: string
+  value: string
+  options: GiurisprudenzaCreateOption[]
+  onChange: (field: CreateFieldName, value: string) => void
+}) {
+  const inputId = `giurisprudenza-create-${id}`
+  return (
+    <div className="iu-legal-create-field">
+      <label htmlFor={inputId}>{label}</label>
+      <select id={inputId} value={value} onChange={(event) => onChange(id, event.target.value)}>
+        <option value="">Seleziona</option>
+        {options.map((option) => (
+          <option value={option.value} key={`${id}-${option.value}`}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
+function CreateTextAreaField({
+  id,
+  label,
+  value,
+  onChange,
+  rows = 4,
+  required = false,
+  error = '',
+  placeholder = '',
+}: {
+  id: CreateFieldName
+  label: string
+  value: string
+  onChange: (field: CreateFieldName, value: string) => void
+  rows?: number
+  required?: boolean
+  error?: string
+  placeholder?: string
+}) {
+  const inputId = `giurisprudenza-create-${id}`
+  return (
+    <div className="iu-legal-create-field iu-legal-create-field--wide">
+      <label htmlFor={inputId}>{label}</label>
+      <textarea
+        id={inputId}
+        value={value}
+        rows={rows}
+        required={required}
+        placeholder={placeholder}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${inputId}-error` : undefined}
+        onChange={(event) => onChange(id, event.target.value)}
+      />
+      {error ? <small id={`${inputId}-error`}>{error}</small> : null}
+    </div>
+  )
+}
+
+function CreateStatusPanel({ result }: { result: GiurisprudenzaCreateResponse | null }) {
+  if (!result) return null
+  if (result.ok) {
+    return (
+      <aside className="iu-legal-create-status iu-legal-create-status--success" aria-live="polite">
+        <CheckCircle2 size={18} aria-hidden="true" />
+        <div>
+          <strong>{result.message}</strong>
+          <span>La scheda è disponibile nell'archivio e può essere collegata al lavoro dello studio.</span>
+          {result.redirectHref ? (
+            <ButtonLink href={result.redirectHref} tone="neutral">
+              Leggi scheda salvata
+            </ButtonLink>
+          ) : null}
+        </div>
+      </aside>
+    )
+  }
+  return (
+    <aside className="iu-legal-create-status iu-legal-create-status--warning" aria-live="polite">
+      <AlertTriangle size={18} aria-hidden="true" />
+      <div>
+        <strong>{result.message}</strong>
+        {Object.values(result.errors).length ? <span>{Object.values(result.errors).join(' ')}</span> : null}
+      </div>
+    </aside>
+  )
+}
+
+function GiurisprudenzaCreatePage() {
+  const [page, setPage] = useState<GiurisprudenzaCreatePageData | null>(null)
+  const [form, setForm] = useState<GiurisprudenzaCreateDefaults | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [result, setResult] = useState<GiurisprudenzaCreateResponse | null>(null)
+
+  useEffect(() => {
+    let active = true
+    getGiurisprudenzaCreatePage()
+      .then((payload) => {
+        if (!active) return
+        setPage(payload)
+        setForm(payload.defaults)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const updateField = (field: CreateFieldName, value: string) => {
+    setResult(null)
+    setForm((current) => current ? { ...current, [field]: value } : current)
+  }
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!form || saving) return
+    setSaving(true)
+    try {
+      const response = await createGiurisprudenzaRecord(form)
+      setResult(response)
+      if (response.ok && response.record) {
+        setForm((current) => current ? { ...current, titolo: '', massima: '', principio_diritto: '', abstract: '', text_original: '' } : current)
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return <LoadingState title="Caricamento nuova scheda" message="Preparo campi, fonti e classificazioni dello studio." />
+  }
+
+  if (!page || !form) {
+    return (
+      <Page title="Nuova scheda giurisprudenza" subtitle="Inserimento governato delle informazioni giurisprudenziali dello studio.">
+        <EmptyState
+          title="Inserimento non disponibile"
+          message="La pagina non ha ricevuto i campi necessari per registrare una scheda."
+          action={<ButtonLink href="/giurisprudenza" tone="neutral">Torna all'archivio</ButtonLink>}
+        />
+      </Page>
+    )
+  }
+
+  const errors = result?.ok === false ? result.errors : {}
+  const options = page.options
+
+  return (
+    <Page
+      title="Nuova scheda giurisprudenza"
+      subtitle="Registra una decisione, una massima o un precedente interno con fonte, classificazione e controllo d'uso."
+      actions={(
+        <ButtonLink href="/giurisprudenza" tone="neutral">
+          <ArrowLeft size={16} aria-hidden="true" />
+          Archivio
+        </ButtonLink>
+      )}
+    >
+      <div className="iu-legal-page iu-legal-create-page">
+        <ContractStrip data={{ ...emptyGiurisprudenzaPage, sources: page.sources, warnings: page.warnings }} />
+        <WarningList data={{ ...emptyGiurisprudenzaPage, warnings: page.warnings }} />
+        <CreateStatusPanel result={result} />
+        <form className="iu-legal-create-form iu-od-source-card" onSubmit={submit}>
+          <section className="iu-legal-create-section">
+            <header className="iu-legal-section-head">
+              <BookOpen size={18} aria-hidden="true" />
+              <div>
+                <h2>Identificazione</h2>
+                <p>Dati essenziali per ritrovare e citare correttamente la scheda.</p>
+              </div>
+            </header>
+            <div className="iu-legal-create-grid">
+              <CreateTextField id="titolo" label="Titolo" value={form.titolo} onChange={updateField} required error={errors.titolo} />
+              <CreateSelectField id="source_system" label="Fonte" value={form.source_system} options={options.fonti || []} onChange={updateField} />
+              <CreateTextField id="organo_giudicante" label="Autorità" value={form.organo_giudicante || form.ufficio} onChange={updateField} placeholder="Corte, TAR, Tribunale" />
+              <CreateTextField id="numero_provvedimento" label="Numero" value={form.numero_provvedimento} onChange={updateField} placeholder="1234/2026" />
+              <CreateTextField id="data_decisione" label="Data decisione" value={form.data_decisione} type="date" onChange={updateField} />
+              <CreateTextField id="data_deposito" label="Data deposito" value={form.data_deposito} type="date" onChange={updateField} />
+            </div>
+          </section>
+
+          <section className="iu-legal-create-section">
+            <header className="iu-legal-section-head">
+              <Filter size={18} aria-hidden="true" />
+              <div>
+                <h2>Classificazione</h2>
+                <p>Area, branca e uso pratico aiutano ricerca, Lex e collegamento ai fascicoli.</p>
+              </div>
+            </header>
+            <div className="iu-legal-create-grid">
+              <CreateSelectField id="area" label="Area" value={form.area} options={options.aree || []} onChange={updateField} />
+              <CreateSelectField id="branca" label="Branca" value={form.branca} options={options.branche || []} onChange={updateField} />
+              <CreateSelectField id="sottobranca" label="Sottobranca" value={form.sottobranca} options={options.sottobranche || []} onChange={updateField} />
+              <CreateSelectField id="grado" label="Grado" value={form.grado} options={options.gradi || []} onChange={updateField} />
+              <CreateSelectField id="tipo_provvedimento" label="Tipo" value={form.tipo_provvedimento} options={options.tipi_provvedimento || []} onChange={updateField} />
+              <CreateSelectField id="orientamento" label="Orientamento" value={form.orientamento} options={options.orientamenti || []} onChange={updateField} />
+              <CreateTextField id="microtema" label="Microtema" value={form.microtema} onChange={updateField} />
+              <CreateTextField id="materia" label="Materia" value={form.materia} onChange={updateField} />
+            </div>
+          </section>
+
+          <section className="iu-legal-create-section">
+            <header className="iu-legal-section-head">
+              <FileText size={18} aria-hidden="true" />
+              <div>
+                <h2>Contenuto</h2>
+                <p>Inserisci il nucleo utile alla ricerca e alla valutazione professionale.</p>
+              </div>
+            </header>
+            <div className="iu-legal-create-grid">
+              <CreateTextAreaField id="massima" label="Massima" value={form.massima} onChange={updateField} required error={errors.contenuto} rows={5} />
+              <CreateTextAreaField id="principio_diritto" label="Principio di diritto" value={form.principio_diritto} onChange={updateField} rows={4} />
+              <CreateTextAreaField id="abstract" label="Sintesi" value={form.abstract} onChange={updateField} rows={4} />
+              <CreateTextAreaField id="text_original" label="Testo disponibile" value={form.text_original} onChange={updateField} rows={6} />
+              <CreateTextField id="norme_citate" label="Norme citate" value={form.norme_citate} onChange={updateField} placeholder="Articoli separati da virgola" />
+              <CreateTextField id="parole_chiave" label="Parole chiave" value={form.parole_chiave} onChange={updateField} placeholder="Termini separati da virgola" />
+            </div>
+          </section>
+
+          <section className="iu-legal-create-section">
+            <header className="iu-legal-section-head">
+              <ExternalLink size={18} aria-hidden="true" />
+              <div>
+                <h2>Fonte e uso</h2>
+                <p>Collega il riferimento originale e indica come usarlo nel lavoro dello studio.</p>
+              </div>
+            </header>
+            <div className="iu-legal-create-grid">
+              <CreateTextField id="url_pagina_ufficiale" label="Pagina fonte" value={form.url_pagina_ufficiale} type="url" onChange={updateField} />
+              <CreateTextField id="url_pdf_ufficiale" label="PDF fonte" value={form.url_pdf_ufficiale} type="url" onChange={updateField} />
+              <CreateTextField id="ecli" label="ECLI" value={form.ecli} onChange={updateField} />
+              <CreateSelectField id="uso_nel_software" label="Uso" value={form.uso_nel_software} options={options.usi || []} onChange={updateField} />
+              <CreateTextAreaField id="note_redazionali" label="Note interne" value={form.note_redazionali} onChange={updateField} rows={3} />
+            </div>
+          </section>
+
+          <footer className="iu-legal-create-actions">
+            <ButtonLink href="/giurisprudenza" tone="neutral">Annulla</ButtonLink>
+            <Button type="submit" tone="primary" disabled={saving}>
+              <Save size={16} aria-hidden="true" />
+              {saving ? 'Salvataggio' : 'Salva scheda'}
+            </Button>
+          </footer>
+        </form>
+      </div>
+    </Page>
+  )
+}
+
 function includesText(value: string, query: string) {
   if (!query.trim()) return true
   return value.toLocaleLowerCase('it-IT').includes(query.trim().toLocaleLowerCase('it-IT'))
 }
 
-export function GiurisprudenzaPage() {
+function GiurisprudenzaArchivePage() {
   const initialParams = new URLSearchParams(window.location.search)
   const [data, setData] = useState<GiurisprudenzaPageData>(emptyGiurisprudenzaPage)
   const [loading, setLoading] = useState(true)
@@ -646,4 +955,9 @@ export function GiurisprudenzaPage() {
       </div>
     </Page>
   )
+}
+
+export function GiurisprudenzaPage() {
+  const routePath = window.location.pathname.replace(/\/+$/, '') || '/'
+  return routePath === '/giurisprudenza/nuova' ? <GiurisprudenzaCreatePage /> : <GiurisprudenzaArchivePage />
 }

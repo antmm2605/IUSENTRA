@@ -1845,6 +1845,7 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
         "/legal-intelligence/news",
         "/legal-intelligence/mediazione",
         "/giurisprudenza",
+        "/giurisprudenza/nuova",
         "/deposito/checklist",
         "/strumenti-legali",
         "/strumenti-operativi",

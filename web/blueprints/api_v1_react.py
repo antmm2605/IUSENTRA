@@ -246,7 +246,9 @@ from web.services.react_redazione_atti_bridge import (
 )
 from web.services.react_giurisprudenza_bridge import (
     build_react_giurisprudenza_error_payload,
+    build_react_giurisprudenza_new_payload,
     build_react_giurisprudenza_payload,
+    create_react_giurisprudenza_record,
 )
 from web.services.react_legal_intelligence_bridge import (
     build_react_legal_intelligence_error_payload,
@@ -5825,6 +5827,53 @@ def giurisprudenza_page():
                 "Archivio giurisprudenza non disponibile dal runtime corrente."
             )
         ), 200
+
+
+@api_v1_react.get("/giurisprudenza/nuova")
+@_richiedi_auth
+def giurisprudenza_nuova_page():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify(build_react_giurisprudenza_error_payload("Sessione utente richiesta.")), 403
+    try:
+        return jsonify(
+            build_react_giurisprudenza_new_payload(
+                get_giurisprudenza=get_giurisprudenza,
+                query=dict(request.args),
+                config=dict(current_app.config),
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore Giurisprudenza nuova React bridge: %s", exc)
+        return jsonify(
+            build_react_giurisprudenza_error_payload(
+                "Inserimento giurisprudenza non disponibile nell'ambiente corrente."
+            )
+        ), 200
+
+
+@api_v1_react.post("/giurisprudenza/nuova")
+@_richiedi_auth
+def giurisprudenza_nuova_salva():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify({"ok": False, "errors": {"sessione": "Sessione utente richiesta."}, "warnings": []}), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result, status = create_react_giurisprudenza_record(
+        get_giurisprudenza=get_giurisprudenza,
+        payload=payload or {},
+    )
+    if result.get("ok") and isinstance(result.get("record"), dict):
+        record_id = str(result["record"].get("id") or "")
+        _audit_event(
+            "giurisprudenza.scheda.salva",
+            "giurisprudenza",
+            record_id,
+            "Scheda giurisprudenza salvata da superficie React.",
+        )
+    return _jsonify_redacted(result), status
 
 
 def _legal_intelligence_ui_payload(page: str, legacy_contract: str):

@@ -16,6 +16,7 @@ const apiAliasMarkers = new Map([
   ['/privacy/registro/nuovo', ['("/privacy/registro")', "('/privacy/registro')"]],
   ['/registro-gdpr', ['("/privacy/registro")', "('/privacy/registro')"]],
   ['/scadenziario/:id', ['("/scadenziario")', "('/scadenziario')"]],
+  ['/scadenziario/:id/modifica', ['("/scadenziario/nuova")', "('/scadenziario/nuova')"]],
   ['/impostazioni/calendario', ['("/impostazioni")', "('/impostazioni')"]],
   ['/impostazioni/pagamenti', ['("/impostazioni")', "('/impostazioni')"]],
   ['/notifiche', ['("/impostazioni")', "('/impostazioni')"]],

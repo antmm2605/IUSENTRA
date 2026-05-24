@@ -1,5 +1,13 @@
 # Migrazione progressiva Flask + React
 
+## React full senza pagine finte - 2026-05-24 - 2.248.36
+
+La Fase 3 chiude il residuo P0/P1 più visibile: `/giurisprudenza/nuova` non è più una rotta classica mascherata, ma una pagina React operativa alimentata da `/api/v1/ui/giurisprudenza/nuova`. Il backend restituisce contratti, default, opzioni, avvisi e salva la nuova scheda con validazioni reali; la UI espone caricamento, stato indisponibile, errori campo, conferma di salvataggio e azioni verso archivio/scheda senza dati demo.
+
+Il manifest App V2 promuove a `react_operational_full` anche `/preventivi/wizard`, `/scadenziario/:id/modifica` e `/sito-studio/redazione-ai`. Il wizard preventivi non espone più `?_legacy=1` come azione primaria nel payload React, mentre route gate, shell Flask, contratti frontend, test shell e gate anti-mascheramento impediscono il ritorno a fallback classici sulle route dichiarate piene.
+
+Verifiche locali di fase: contratti React, route gate, full-react-route-contract, no-fake React full, audit anti-mascheramento, pytest mirati su Giurisprudenza/React shell/Preventivi, test/typecheck/build Vite e rigenerazione della documentazione App V2.
+
 ## Sicurezza multi-studio API React - 2026-05-24 - 2.248.34
 
 La Fase 1 governance multi-studio rende eseguibile la matrice `/api/v1/ui/*`: `docs/backend-endpoint-security-map.md` elenca i gate 401, 403, 404 cross-tenant, 400 per contesto forzato, success tenant valido, audit denial e superfici file/upload/download/export/evidence.

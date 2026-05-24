@@ -64,6 +64,10 @@ def _warning(code: str, message: str) -> dict[str, str]:
     return {"code": code, "message": message}
 
 
+def _error_response(message: str, errors: Mapping[str, str] | None = None) -> dict[str, Any]:
+    return {"ok": False, "message": message, "errors": dict(errors or {}), "warnings": []}
+
+
 def _tone_from_status(value: Any) -> str:
     status = _text(value).lower().replace("_", " ")
     if not status:
@@ -125,7 +129,8 @@ def _count_section(sid: str, title: str, kind: str, values: list[str], empty: st
 
 def _safe_source(row: Mapping[str, Any]) -> dict[str, Any]:
     source_id = _text(row.get("id") or row.get("source_system") or row.get("nome"))
-    last_run = row.get("last_run") if isinstance(row.get("last_run"), dict) else {}
+    raw_last_run = row.get("last_run")
+    last_run: Mapping[str, Any] = raw_last_run if isinstance(raw_last_run, Mapping) else {}
     last_status = _text(last_run.get("status") or row.get("sync_status"))
     state_label, state_tone, resolution_note = _source_state(row, last_status)
     return {
@@ -243,6 +248,167 @@ def _safe_record(row: Mapping[str, Any], sources: Mapping[str, dict[str, Any]], 
         "officialSource": bool(row.get("fonte_ufficiale_confermata")),
         "fullTextAvailable": bool(row.get("testo_integrale") or row.get("testo_normalizzato")),
     }
+
+
+def _option(value: Any, label: Any = "") -> dict[str, str]:
+    cleaned = _text(value)
+    if not cleaned:
+        return {}
+    return {"value": cleaned, "label": _text(label) or cleaned}
+
+
+def _option_list(values: Any) -> list[dict[str, str]]:
+    out: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for value in _list(values):
+        option = _option(value)
+        if not option or option["value"] in seen:
+            continue
+        out.append(option)
+        seen.add(option["value"])
+    return out
+
+
+def _create_defaults(manager: Any, query: Mapping[str, Any]) -> dict[str, Any]:
+    source_id = _text(query.get("source") or query.get("source_system") or "manuale_interno") or "manuale_interno"
+    defaults = dict(manager.empty_record(source_id) or {})
+    for key in ("area", "branca", "sottobranca", "grado", "giurisdizione"):
+        incoming = _text(query.get(key))
+        if incoming:
+            defaults[key] = incoming
+    return {key: defaults.get(key, "") for key in _GIURISPRUDENZA_CREATE_FIELDS}
+
+
+def _create_options(manager: Any, sources: list[dict[str, Any]]) -> dict[str, Any]:
+    filters = manager.filtri()
+    return {
+        "fonti": [
+            _option(source.get("id"), source.get("label"))
+            for source in sources
+            if _text(source.get("id"))
+        ],
+        "aree": _option_list(filters.get("aree")),
+        "branche": _option_list(filters.get("branche")),
+        "sottobranche": _option_list(filters.get("sottobranche")),
+        "gradi": _option_list(filters.get("gradi")),
+        "organi": _option_list(filters.get("organi")),
+        "orientamenti": _option_list(filters.get("orientamenti")),
+        "usi": _option_list(filters.get("usi")),
+        "tipi_provvedimento": _option_list(filters.get("tipi_provvedimento")),
+    }
+
+
+_GIURISPRUDENZA_CREATE_FIELDS = (
+    "titolo",
+    "source_system",
+    "giurisdizione",
+    "ufficio",
+    "organo_giudicante",
+    "grado",
+    "sezione",
+    "numero_provvedimento",
+    "data_decisione",
+    "data_deposito",
+    "tipo_provvedimento",
+    "area",
+    "branca",
+    "sottobranca",
+    "microtema",
+    "rito",
+    "materia",
+    "norme_citate",
+    "parole_chiave",
+    "massima",
+    "principio_diritto",
+    "abstract",
+    "esito",
+    "orientamento",
+    "rilevanza_pratica",
+    "uso_nel_software",
+    "ecli",
+    "url_origine",
+    "url_pagina_ufficiale",
+    "url_pdf_ufficiale",
+    "text_original",
+    "note_redazionali",
+)
+
+
+def build_react_giurisprudenza_new_payload(
+    *,
+    get_giurisprudenza: Callable[[], Any],
+    query: Mapping[str, Any] | None = None,
+    config: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Costruisce la pagina React di inserimento scheda, senza dati dimostrativi."""
+
+    _ = config
+    query = query or {}
+    manager = get_giurisprudenza()
+    sources = [_safe_source(row) for row in _list(manager.catalogo_fonti()) if isinstance(row, dict)]
+    defaults = _create_defaults(manager, query)
+    return {
+        "source": "repository_reali",
+        "generated_at": _iso_now(),
+        "contracts": {
+            "mock_fallback": False,
+            "writes": "json_api",
+            "route_owner": "react_shell",
+            "external_fetch": False,
+            "ai_generation": False,
+            "canonical_source": "backend_storico",
+            "legacy_contract": "artifacts/react-migration/legacy-contracts/giurisprudenza__nuova.json",
+        },
+        "defaults": defaults,
+        "options": _create_options(manager, sources),
+        "sources": sources,
+        "actions": [
+            _action("archivio", "Archivio Giurisprudenza", "/giurisprudenza", "neutral"),
+            _action("ricerca_legale", "Ricerca legale", "/ricerca-legale", "primary"),
+        ],
+        "forms": [{"id": "giurisprudenza_nuova", "method": "POST", "endpoint": "/api/v1/ui/giurisprudenza/nuova"}],
+        "warnings": [],
+    }
+
+
+def create_react_giurisprudenza_record(
+    *,
+    get_giurisprudenza: Callable[[], Any],
+    payload: Mapping[str, Any],
+) -> tuple[dict[str, Any], int]:
+    manager = get_giurisprudenza()
+    cleaned = {field: _text(payload.get(field)) for field in _GIURISPRUDENZA_CREATE_FIELDS}
+    cleaned["source_system"] = cleaned.get("source_system") or "manuale_interno"
+    errors: dict[str, str] = {}
+    if not cleaned.get("titolo"):
+        errors["titolo"] = "Indica un titolo riconoscibile per la scheda."
+    if not any(
+        cleaned.get(field)
+        for field in ("massima", "principio_diritto", "abstract", "text_original", "url_origine", "url_pagina_ufficiale")
+    ):
+        errors["contenuto"] = "Aggiungi massima, principio, estratto, testo o fonte verificabile."
+    if errors:
+        return _error_response("Completa i campi richiesti prima di salvare.", errors), 400
+
+    try:
+        record = manager.salva_da_form(cleaned)
+    except Exception:
+        return _error_response(
+            "Salvataggio non riuscito. Controlla i dati e riprova.",
+            {"salvataggio": "La scheda non è stata registrata."},
+        ), 400
+
+    sources = [_safe_source(row) for row in _list(manager.catalogo_fonti()) if isinstance(row, dict)]
+    source_lookup = {source["id"]: source for source in sources if source.get("id")}
+    detailed = manager.get(_text(record.get("id"))) or record
+    public_record = _safe_record(detailed, source_lookup, 1)
+    return {
+        "ok": True,
+        "message": "Scheda giurisprudenza salvata.",
+        "record": public_record,
+        "redirectHref": f"/giurisprudenza?scheda={public_record['id']}",
+        "warnings": [],
+    }, 201
 
 
 def _empty_payload(source: str, message: str) -> dict[str, Any]:

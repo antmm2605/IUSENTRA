@@ -2,6 +2,25 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-24T22:20:00+02:00: React full senza pagine finte
+2.248.36.
+`/giurisprudenza/nuova` è stata ricostruita come superficie React completa:
+carica dati JSON reali, propone default e opzioni dal backend, valida i campi,
+salva la scheda tramite POST JSON e mostra esito operativo senza mock o dati
+demo. La rotta classica resta disponibile solo dietro `?_legacy=1` per
+compatibilità tecnica, non come percorso principale.
+
+Il manifest e i gate promuovono a `react_operational_full` anche
+`/preventivi/wizard`, `/scadenziario/:id/modifica` e
+`/sito-studio/redazione-ai`. Il wizard preventivi non pubblica più l'azione
+primaria `?_legacy=1`; contratti React, route gate, full-react-route-contract,
+no-fake React full e audit anti-mascheramento sono stati rilanciati sul
+perimetro modificato.
+
+Verifica browser reale locale: login operatore, apertura
+`/giurisprudenza/nuova`, compilazione della scheda, salvataggio confermato e
+controllo responsive desktop/tablet/mobile senza overflow orizzontale.
+
 Aggiornamento 2026-05-24T18:00:00+02:00: chiusura Relata notifica PEC-first
 2.248.28.
 `/notifiche-legali`, top bar, dettaglio fascicolo e Portale Servizi ora seguono

@@ -6,7 +6,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 391.
+- File pytest censiti: 392.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
@@ -14,13 +14,13 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | --- | --- |
 | API contract | 66 |
 | Backend | 41 |
-| E2E | 6 |
+| E2E | 7 |
 | Frontend static gate | 1 |
 | Frontend/UI | 115 |
 | RBAC | 39 |
 | Security | 33 |
 | Smoke CLI | 6 |
-| Tenant isolation | 92 |
+| Tenant isolation | 91 |
 
 ## Fasi pytest governate
 
@@ -116,6 +116,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | E2E | tests/e2e/test_studio_reale_flow.py | happy/edge path dominio | richiede ambiente/credenziali quando esce dal test client | censito |
 | Backend domain | E2E | tests/test_end_to_end_studio.py | tenant | richiede ambiente/credenziali quando esce dal test client | censito |
 | Backend domain | E2E | tests/test_golden_paths.py | tenant | richiede ambiente/credenziali quando esce dal test client | censito |
+| Backend domain | E2E | tests/test_pec_ocr_pipeline.py | tenant | richiede ambiente/credenziali quando esce dal test client | censito |
 | Backend domain | Frontend/UI | tests/test_ai_coverage_pipeline.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_applicazioni_repository.py | feature flag | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_assistente_competencies.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
@@ -283,7 +284,6 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | File/document security | Tenant isolation | tests/test_document_intelligence_service.py | 403/RBAC, tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_document_intelligence_versioning.py | tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_legal_document_ingestion.py | tenant, feature flag, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| File/document security | Tenant isolation | tests/test_pec_ocr_pipeline.py | PEC, WORM, antivirus, ZIP, dedup, OCR, Lex hook | script veritiero `scripts/test_pec_ocr_pipeline.py` copre smoke end-to-end locale | censito |
 | File/document security | Tenant isolation | tests/test_lex_document_tools_auto_index.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_lex_fascicolo_documents_tools.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | API contract | lex/tests/unit/test_guida_pratica_source.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |

@@ -10,6 +10,8 @@ Nessuna issue funzionale aperta prevista dalla patch. Verifiche locali mirate co
 
 Post-push `1f2a7fe8`: CI `Lint + syntax` ha fallito nel gate contratti perché `docs/openapi.yaml` era ancora alla versione `2.248.29`. Rigenerato OpenAPI/contratti, rilanciati `generate_api_contracts --check`, validazione OpenAPI, provider verification, smoke contratti e `tests/test_openapi_contracts_phase6.py`; correzione da includere nel commit di riallineamento.
 
+Post-push `f435826f`: CI `Lint + syntax` ha poi segnalato inventario/test plan App V2 non aggiornati per i nuovi test OCR. Rigenerati `docs/test-inventory.md` e `docs/test-plan-app-v2.md`, rilanciati check registry/test docs, smoke inventory e 13 test App V2/CI; correzione da includere nel commit di riallineamento successivo.
+
 Aggiornamento precedente: 2026-05-24, Relata notifica PEC-first 2.248.28.
 
 ## Note Relata notifica PEC-first 2.248.28 - 2026-05-24

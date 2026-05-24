@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.248.30 - 2026-05-24
+
+- Implementato OCR legal-grade end-to-end con ingest PDF/immagini/ZIP/P7M, pre-processing, router engine Tesseract/fallback locale, metriche QC, retry, HIL, storage evidenze append-only, chain hash e merkle giornaliero.
+- Aggiunto pack regex legale versionato per CF, N. RG, PEC, date e importi, con correzioni OCR solo deterministiche e cronologia completa delle correzioni.
+- Blindato l'abbinamento fascicolo-cliente: Lex e auto-match richiedono RG più identità cliente coerente, bloccando documenti con nome/cognome o codice fiscale incompatibili.
+- Collegati Documenti AI, notifiche avvocato e Lex di fascicolo: la UI mostra token fragili/campi obbligatori, consente apply fix tracciato e indicizza nel fascicolo solo documenti validati e coerenti.
+
 ## 2.248.29 - 2026-05-24
 
 - Integrati i pacchetti TOP9 set8 e set9 nella Guida Pratica, con KB full aggiornato a 1.101 schede: 1.018 codici ufficiali ancora coperti da guida curata e 83 guide interne/facoltative non depositabili.

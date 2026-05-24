@@ -152,6 +152,30 @@ export type LegalDocumentTreePayload = {
   data: LegalDocumentTree
 }
 
+export type LegalOcrReview = {
+  run_id: string
+  document_id: string
+  metrics: Record<string, unknown>
+  qc: Record<string, unknown>
+  engine_version: Record<string, unknown>
+  mandatory_fields: Array<Record<string, unknown>>
+  low_tokens: Array<{
+    token: string
+    confidence: number
+    bbox: unknown
+    page: number
+    line_id: string
+  }>
+  suggested_fixes: Array<Record<string, string>>
+  correction_history: Array<Record<string, unknown>>
+  lex_export: Record<string, unknown>
+}
+
+export type LegalOcrReviewPayload = {
+  ok: boolean
+  data: LegalOcrReview | Record<string, never>
+}
+
 export type LegalDocumentUploadPayload = {
   ok: boolean
   data: Array<{
@@ -250,6 +274,10 @@ export function fetchLegalDocumentTree(documentId: string): Promise<LegalDocumen
   return jsonRequest<LegalDocumentTreePayload>(`/api/documents/${encodeURIComponent(documentId)}/archive-tree`)
 }
 
+export function fetchLegalOcrReview(documentId: string): Promise<LegalOcrReviewPayload> {
+  return jsonRequest<LegalOcrReviewPayload>(`/api/documents/${encodeURIComponent(documentId)}/ocr-legal-review`)
+}
+
 export function uploadLegalDocument(fascicoloId: string, file: File): Promise<LegalDocumentUploadPayload> {
   const form = new FormData()
   form.append('file', file)
@@ -271,6 +299,23 @@ export function approveLegalDocument(documentId: string): Promise<{ok: boolean; 
 export function requestLegalDocumentLexIndex(documentId: string): Promise<{ok: boolean; data: Record<string, unknown>}> {
   return jsonRequest<{ok: boolean; data: Record<string, unknown>}>(`/api/documents/${encodeURIComponent(documentId)}/lex-index`, {
     method: 'POST',
+  })
+}
+
+export function requestFascicoloLexIndex(fascicoloId: string): Promise<{ok: boolean; data: Record<string, unknown>}> {
+  return jsonRequest<{ok: boolean; data: Record<string, unknown>}>(`/api/documents/fascicoli/${encodeURIComponent(fascicoloId)}/lex-index`, {
+    method: 'POST',
+  })
+}
+
+export function applyLegalOcrFix(
+  documentId: string,
+  fix: Record<string, string>,
+): Promise<{ok: boolean; data: {review: LegalOcrReview}}> {
+  return jsonRequest<{ok: boolean; data: {review: LegalOcrReview}}>(`/api/documents/${encodeURIComponent(documentId)}/ocr-legal-review/apply`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fix }),
   })
 }
 

@@ -1,5 +1,11 @@
 # Migrazione progressiva Flask + React
 
+## OCR legal-grade, HIL e Lex di fascicolo - 2026-05-24 - 2.248.30
+
+La superficie `Documenti AI` integra ora il presidio OCR legal-grade: evidenze immutabili, metriche QC, token fragili, campi obbligatori e applicazione di correzioni deterministiche sono visibili nel pannello di revisione. Il flusso produce notifiche operative quando rileva date, adempimenti o necessità HIL.
+
+Lex viene aggiornato sul singolo documento o sull'intero fascicolo solo dopo validazione e controllo di coerenza fascicolo-cliente. Il sistema non accetta più l'auto-associazione basata su soli metadati generici: servono R.G. e identità cliente coerente, altrimenti il documento resta in revisione e non entra nella conoscenza del fascicolo.
+
 ## Chiusura Relata notifica PEC-first - 2026-05-24 - 2.248.28
 
 Il presidio `Relata notifica` è ora agganciato al comportamento corretto: il provvedimento da notificare nasce dalla comunicazione PEC dell'ufficio giudiziario. I documenti già presenti in `Documenti e atti` non vengono duplicati e i metadati generici del portale non bastano più a creare un rilascio notificabile.

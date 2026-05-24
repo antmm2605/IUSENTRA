@@ -8,8 +8,10 @@ import type {
   LegalDocumentEvidence,
   LegalDocumentRecord,
   LegalDocumentTree,
+  LegalOcrReview,
 } from '../documentiAiData'
 import {
+  applyLegalOcrFix,
   approveLegalDocument,
   createLegalDocumentProofBundle,
   fetchDocumentAIDetail,
@@ -18,8 +20,10 @@ import {
   fetchLegalDocumentEvidence,
   fetchLegalDocuments,
   fetchLegalDocumentTree,
+  fetchLegalOcrReview,
   formatDocumentAIDate,
   formatDocumentAISize,
+  requestFascicoloLexIndex,
   requestLegalDocumentLexIndex,
   shortSha,
   uploadLegalDocument,
@@ -49,6 +53,7 @@ export function DocumentiAIPage({ fascicoloId }:{fascicoloId: string}) {
   const [selectedLegal, setSelectedLegal] = useState<LegalDocumentRecord | null>(null)
   const [legalEvidence, setLegalEvidence] = useState<LegalDocumentEvidence | null>(null)
   const [legalTree, setLegalTree] = useState<LegalDocumentTree | null>(null)
+  const [ocrReview, setOcrReview] = useState<LegalOcrReview | null>(null)
   const [legalMessage, setLegalMessage] = useState('')
 
   const documents = useMemo(() => payload?.documents || [], [payload])
@@ -130,14 +135,17 @@ export function DocumentiAIPage({ fascicoloId }:{fascicoloId: string}) {
     setSelectedLegal(document)
     setLegalEvidence(null)
     setLegalTree(null)
+    setOcrReview(null)
     setLegalError('')
     try {
-      const [evidencePayload, treePayload] = await Promise.all([
+      const [evidencePayload, treePayload, reviewPayload] = await Promise.all([
         fetchLegalDocumentEvidence(document.id),
         fetchLegalDocumentTree(document.id),
+        fetchLegalOcrReview(document.id),
       ])
       setLegalEvidence(evidencePayload.data)
       setLegalTree(treePayload.data)
+      setOcrReview('run_id' in reviewPayload.data ? reviewPayload.data as LegalOcrReview : null)
     } catch (loadError) {
       setLegalError(loadError instanceof Error ? loadError.message : 'Documento forense non disponibile.')
     }
@@ -181,6 +189,33 @@ export function DocumentiAIPage({ fascicoloId }:{fascicoloId: string}) {
     }
   }
 
+  const refreshFascicoloLex = async () => {
+    setLegalMessage('')
+    setLegalError('')
+    try {
+      const result = await requestFascicoloLexIndex(fascicoloId)
+      const included = Array.isArray(result.data?.included) ? result.data.included.length : 0
+      const skipped = Array.isArray(result.data?.skipped) ? result.data.skipped.length : 0
+      setLegalMessage(`Lex aggiornato con ${included} documenti validati. Esclusi ${skipped} documenti da verificare.`)
+      await loadLegalDocuments()
+    } catch (actionError) {
+      setLegalError(actionError instanceof Error ? actionError.message : 'Aggiornamento Lex non completato.')
+    }
+  }
+
+  const applyOcrFix = async (fix: Record<string, string>) => {
+    if (!selectedLegal) return
+    setLegalMessage('')
+    setLegalError('')
+    try {
+      const result = await applyLegalOcrFix(selectedLegal.id, fix)
+      setOcrReview(result.data.review)
+      setLegalMessage('Correzione registrata nella storia di revisione OCR.')
+    } catch (actionError) {
+      setLegalError(actionError instanceof Error ? actionError.message : 'Correzione OCR non registrata.')
+    }
+  }
+
   const focusUpload = () => uploadAnchor.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 
   return (
@@ -214,14 +249,17 @@ export function DocumentiAIPage({ fascicoloId }:{fascicoloId: string}) {
         selected={selectedLegal}
         evidence={legalEvidence}
         tree={legalTree}
+        ocrReview={ocrReview}
         loading={legalLoading}
         error={legalError}
         message={legalMessage}
         onRefresh={loadLegalDocuments}
+        onRefreshLex={refreshFascicoloLex}
         onOpen={openLegalDocument}
         onUpload={uploadForensicDocument}
         onApprove={approveSelectedLegal}
         onProofBundle={exportSelectedProof}
+        onApplyOcrFix={applyOcrFix}
       />
       {state === 'loading' ? <p className="iu-docai-muted">Caricamento documenti AI...</p> : null}
       {state !== 'loading' && !documents.length ? <DocumentAIEmptyState onUploadFocus={focusUpload} /> : null}
@@ -252,27 +290,33 @@ function ForensicDocumentsPanel({
   selected,
   evidence,
   tree,
+  ocrReview,
   loading,
   error,
   message,
   onRefresh,
+  onRefreshLex,
   onOpen,
   onUpload,
   onApprove,
   onProofBundle,
+  onApplyOcrFix,
 }:{
   documents: LegalDocumentRecord[]
   selected: LegalDocumentRecord | null
   evidence: LegalDocumentEvidence | null
   tree: LegalDocumentTree | null
+  ocrReview: LegalOcrReview | null
   loading: boolean
   error: string
   message: string
   onRefresh: () => void
+  onRefreshLex: () => void
   onOpen: (document: LegalDocumentRecord) => void
   onUpload: (file: File) => void
   onApprove: () => void
   onProofBundle: () => void
+  onApplyOcrFix: (fix: Record<string, string>) => void
 }) {
   const fileInput = useRef<HTMLInputElement | null>(null)
   const selectedValidation = String(evidence?.validation?.result || selected?.status || '')
@@ -301,6 +345,9 @@ function ForensicDocumentsPanel({
           </button>
           <button type="button" onClick={onRefresh} disabled={loading}>
             <RefreshCw size={15} aria-hidden="true" /> Aggiorna
+          </button>
+          <button type="button" onClick={onRefreshLex}>
+            <BrainCircuit size={15} aria-hidden="true" /> Aggiorna Lex
           </button>
         </div>
       </header>
@@ -349,6 +396,7 @@ function ForensicDocumentsPanel({
                 <Badge tone={tree?.children?.length ? 'warning' : 'neutral'}><Archive size={12} aria-hidden="true" /> {tree?.children?.length || 0} allegati</Badge>
               </div>
               <ArchiveTreeView nodes={tree?.children || []} />
+              <OcrReviewPanel review={ocrReview} onApplyFix={onApplyOcrFix} />
               <div className="iu-docai-forensic__actions">
                 <button type="button" onClick={onApprove}><ShieldCheck size={15} aria-hidden="true" /> Approva</button>
                 <button type="button" onClick={onProofBundle}><Archive size={15} aria-hidden="true" /> Pacchetto prova</button>
@@ -357,6 +405,58 @@ function ForensicDocumentsPanel({
           ) : null}
         </aside>
       </div>
+    </section>
+  )
+}
+
+function OcrReviewPanel({ review, onApplyFix }:{review: LegalOcrReview | null; onApplyFix: (fix: Record<string, string>) => void}) {
+  if (!review?.run_id) return null
+  const metrics = review.metrics || {}
+  const qc = review.qc || {}
+  const hilRequired = Boolean(qc.hil_required)
+  return (
+    <section className="iu-docai-ocr-review" aria-label="Revisione OCR">
+      <header>
+        <div>
+          <span><FileCheck2 size={14} aria-hidden="true" /> Revisione OCR</span>
+          <strong>{hilRequired ? 'Controllo umano richiesto' : 'Lettura affidabile'}</strong>
+        </div>
+        <Badge tone={hilRequired ? 'warning' : 'success'}>
+          confidenza {formatPercentLike(metrics.avg_confidence)}
+        </Badge>
+      </header>
+      <div className="iu-docai-ocr-review__metrics">
+        <span>Token bassi {formatPercentLike(metrics['pct_tokens_<0.75'])}</span>
+        <span>Campi {review.mandatory_fields.filter((field) => String(field.status || '') === 'ok').length}/{review.mandatory_fields.length}</span>
+        <span>Fragili Lex {String(review.lex_export?.fragile_count ?? 0)}</span>
+      </div>
+      {review.mandatory_fields.length ? (
+        <div className="iu-docai-ocr-review__fields">
+          {review.mandatory_fields.map((field, index) => (
+            <span key={`${String(field.id || 'campo')}-${index}`} className={String(field.status || '') === 'ok' ? 'is-ok' : 'is-ko'}>
+              {labelMandatoryField(String(field.id || 'campo'))}: {String(field.value || field.status || 'da verificare')}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {review.low_tokens.length ? (
+        <div className="iu-docai-ocr-review__tokens">
+          {review.low_tokens.slice(0, 24).map((token, index) => (
+            <mark key={`${token.token}-${index}`} title={`Confidenza ${formatPercentLike(token.confidence)}`}>
+              {token.token}
+            </mark>
+          ))}
+        </div>
+      ) : null}
+      {review.suggested_fixes.length ? (
+        <div className="iu-docai-ocr-review__fixes">
+          {review.suggested_fixes.slice(0, 6).map((fix) => (
+            <button key={`${fix.rule_id}-${fix.from}-${fix.to}`} type="button" onClick={() => onApplyFix(fix)}>
+              Applica {fix.to}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </section>
   )
 }
@@ -373,6 +473,25 @@ function ArchiveTreeView({ nodes }:{nodes: LegalDocumentTree['children']}) {
       ))}
     </ul>
   )
+}
+
+function formatPercentLike(value: unknown): string {
+  const number = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(number)) return 'n.d.'
+  const normalized = number <= 1 ? number * 100 : number
+  return `${new Intl.NumberFormat('it-IT', { maximumFractionDigits: 1 }).format(normalized)}%`
+}
+
+function labelMandatoryField(value: string): string {
+  const labels: Record<string, string> = {
+    cf_avvocato: 'Codice fiscale',
+    codice_fiscale: 'Codice fiscale',
+    n_rg: 'Numero RG',
+    pec: 'PEC',
+    date: 'Date',
+    importi: 'Importi',
+  }
+  return labels[value] || value.replaceAll('_', ' ')
 }
 
 function labelStatus(value: string): string {

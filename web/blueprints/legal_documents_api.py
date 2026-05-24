@@ -10,6 +10,7 @@ from flask import Blueprint, Response, current_app, g, jsonify, request
 from legal_document_ingestion import LegalDocumentIngestionError
 from web.services.feature_flags import feature_disabled_response, is_feature_enabled
 from web.services.legal_document_ingestion_runtime import (
+    build_legal_ocr_store,
     build_legal_document_repository,
     build_legal_document_service,
     legal_document_actor,
@@ -133,6 +134,109 @@ def _public_pec_result(result: Any) -> dict[str, Any]:
     }
 
 
+def _processed_document_ids(result: Any) -> list[str]:
+    ids: list[str] = []
+    if not isinstance(result, dict):
+        return ids
+    document = result.get("document")
+    if isinstance(document, dict) and document.get("id"):
+        ids.append(str(document["id"]))
+    for key in ("children", "processed", "attachments"):
+        for item in list(result.get(key) or []):
+            ids.extend(_processed_document_ids(item))
+    return list(dict.fromkeys(ids))
+
+
+def _public_ocr_review(evidence: Any) -> dict[str, Any]:
+    if not isinstance(evidence, dict):
+        return {}
+    low_tokens = [
+        {
+            "token": token.get("token"),
+            "confidence": token.get("confidence"),
+            "bbox": token.get("bbox"),
+            "page": token.get("page"),
+            "line_id": token.get("line_id"),
+        }
+        for token in list(evidence.get("token_index") or [])
+        if float(token.get("confidence") or 0.0) < 0.75
+    ][:500]
+    mandatory = list((evidence.get("regex_summary") or {}).get("mandatory_fields") or [])
+    return {
+        "run_id": evidence.get("run_id"),
+        "document_id": evidence.get("document_id"),
+        "metrics": evidence.get("metrics") or {},
+        "qc": evidence.get("qc") or {},
+        "engine_version": evidence.get("engine_version") or {},
+        "mandatory_fields": mandatory,
+        "low_tokens": low_tokens,
+        "suggested_fixes": evidence.get("hil_suggestions") or evidence.get("suggested_hil_fixes") or [],
+        "correction_history": evidence.get("correction_history_effective") or evidence.get("correction_history") or [],
+        "lex_export": {
+            "confidence_policy": (evidence.get("lex_export") or {}).get("confidence_policy"),
+            "fragile_count": (evidence.get("lex_export") or {}).get("fragile_count"),
+        },
+    }
+
+
+def _emit_ocr_notifications(document_ids: list[str]) -> int:
+    clean_ids = [item for item in dict.fromkeys(document_ids) if item]
+    if not clean_ids:
+        return 0
+    try:
+        pending: list[tuple[str, dict[str, Any], dict[str, Any]]] = []
+        store = build_legal_ocr_store(legal_document_tenant_id())
+        for document_id in clean_ids:
+            evidence = store.find_latest_for_document(document_id)
+            if not evidence:
+                continue
+            proposals = list(evidence.get("notification_proposals") or [])
+            mandatory = list((evidence.get("regex_summary") or {}).get("mandatory_fields") or [])
+            failed = [field for field in mandatory if str(field.get("status") or "") == "fail"]
+            if not proposals and ((evidence.get("qc") or {}).get("hil_required") or failed):
+                proposals = [
+                    {
+                        "id": "ocr-review",
+                        "title": "Documento da verificare",
+                        "body": "La lettura OCR richiede revisione prima dell'uso sul fascicolo.",
+                        "priority": "high",
+                        "href": f"/documenti?documento={document_id}",
+                    }
+                ]
+            for proposal in proposals:
+                pending.append((document_id, evidence, proposal))
+        if not pending:
+            return 0
+        from web.services.notifications_runtime import build_notification_service, current_tenant_id, current_user_id
+
+        service = build_notification_service()
+        tenant_id = current_tenant_id()
+        user_id = current_user_id() or legal_document_actor()
+        if not user_id:
+            return 0
+        emitted = 0
+        for document_id, evidence, proposal in pending:
+            run_id = str(evidence.get("run_id") or "")
+            service.create_notification(
+                tenant_id=tenant_id,
+                user_id=user_id,
+                type="ocr_documento",
+                priority=str(proposal.get("priority") or "high"),
+                title=str(proposal.get("title") or "Documento letto con OCR"),
+                body=str(proposal.get("body") or "È stata rilevata un'attività nel documento."),
+                href=str(proposal.get("href") or f"/documenti?documento={document_id}"),
+                source_type="legal_ocr",
+                source_id=run_id or document_id,
+                dedupe_key=f"legal-ocr:{run_id or document_id}:{proposal.get('id') or proposal.get('kind') or 'review'}",
+                payload_json={"document_id": document_id, "run_id": run_id, "fascicolo_id": evidence.get("fascicolo_id"), "proposal": proposal},
+            )
+            emitted += 1
+        return emitted
+    except Exception:
+        current_app.logger.exception("Notifica OCR legal-grade non completata.")
+        return 0
+
+
 def _richiedi_auth(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any):
@@ -201,6 +305,7 @@ def documents_upload():
                 fascicolo_id=fascicolo_id,
                 actor=actor,
             )
+            _emit_ocr_notifications(_processed_document_ids(result))
             return redacted_json_response({"ok": True, "data": [_public_ingestion_result(result)], "count": 1}, 201)
         except Exception as exc:
             return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
@@ -209,18 +314,16 @@ def documents_upload():
     results = []
     for item in uploaded:
         content = item.read()
-        results.append(
-            _public_ingestion_result(
-                service.ingest_bytes(
-                    tenant_id=tenant_id,
-                    filename=item.filename or "documento.bin",
-                    content=content,
-                    source_type="upload manuale",
-                    fascicolo_id=fascicolo_id,
-                    actor=actor,
-                )
-            )
+        raw_result = service.ingest_bytes(
+            tenant_id=tenant_id,
+            filename=item.filename or "documento.bin",
+            content=content,
+            source_type="upload manuale",
+            fascicolo_id=fascicolo_id,
+            actor=actor,
         )
+        _emit_ocr_notifications(_processed_document_ids(raw_result))
+        results.append(_public_ingestion_result(raw_result))
     return redacted_json_response({"ok": True, "data": results, "count": len(results)}, 201)
 
 
@@ -241,6 +344,7 @@ def pec_process_legal_documents(pec_id: str):
             actor=legal_document_actor(),
             fascicolo_id=str(payload.get("fascicolo_id") or ""),
         )
+        _emit_ocr_notifications(_processed_document_ids(result))
         return redacted_json_response({"ok": True, "data": _public_pec_result(result)})
     except Exception as exc:
         return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
@@ -253,6 +357,7 @@ def document_ocr(document_id: str):
         return feature_disabled_response("ocr_forensic")
     try:
         data = _service().run_ocr(legal_document_tenant_id(), document_id, actor=legal_document_actor())
+        _emit_ocr_notifications([document_id])
         return jsonify({"ok": True, "data": data})
     except Exception as exc:
         return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
@@ -329,6 +434,59 @@ def document_lex_index(document_id: str):
     try:
         data = _service().request_lex_index(legal_document_tenant_id(), document_id, actor=legal_document_actor())
         return jsonify({"ok": True, "data": data})
+    except Exception as exc:
+        return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
+
+
+@legal_documents_api.post("/documents/fascicoli/<fascicolo_id>/lex-index")
+@_richiedi_auth
+def fascicolo_lex_index(fascicolo_id: str):
+    if not _feature_required("lex_validated_documents_only"):
+        return feature_disabled_response("lex_validated_documents_only")
+    try:
+        data = _service().request_fascicolo_lex_index(legal_document_tenant_id(), fascicolo_id, actor=legal_document_actor())
+        return jsonify({"ok": True, "data": data})
+    except Exception as exc:
+        return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
+
+
+@legal_documents_api.get("/documents/<document_id>/ocr-legal-review")
+@_richiedi_auth
+def document_ocr_legal_review(document_id: str):
+    if not _feature_required("ocr_forensic"):
+        return feature_disabled_response("ocr_forensic")
+    try:
+        evidence = build_legal_ocr_store(legal_document_tenant_id()).find_latest_for_document(document_id)
+        if not evidence:
+            return jsonify({"ok": True, "data": {}})
+        return jsonify({"ok": True, "data": _public_ocr_review(evidence)})
+    except Exception as exc:
+        return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
+
+
+@legal_documents_api.post("/documents/<document_id>/ocr-legal-review/apply")
+@_richiedi_auth
+def document_ocr_legal_review_apply(document_id: str):
+    if not _feature_required("ocr_forensic"):
+        return feature_disabled_response("ocr_forensic")
+    payload = request.get_json(silent=True) or {}
+    try:
+        store = build_legal_ocr_store(legal_document_tenant_id())
+        evidence = store.find_latest_for_document(document_id)
+        if not evidence:
+            raise KeyError("Evidenza OCR non trovata.")
+        fix = payload.get("fix") if isinstance(payload.get("fix"), dict) else payload
+        correction = {
+            "user": legal_document_actor(),
+            "from": str(fix.get("from") or ""),
+            "to": str(fix.get("to") or ""),
+            "reason": str(fix.get("reason") or "Correzione confermata in revisione OCR."),
+            "rule_id": str(fix.get("rule_id") or "hil.manual"),
+            "document_id": document_id,
+        }
+        applied = store.append_hil_correction(str(payload.get("run_id") or evidence.get("run_id") or ""), correction)
+        refreshed = store.load_evidence_with_corrections(str(evidence.get("run_id") or "")) or evidence
+        return jsonify({"ok": True, "data": {"applied": applied, "review": _public_ocr_review(refreshed)}})
     except Exception as exc:
         return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
 

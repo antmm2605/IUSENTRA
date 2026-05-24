@@ -9,6 +9,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from email import policy
+from pathlib import Path
 from typing import Any, Iterable
 
 from .archive_extractor import ExtractedArchiveFile, extract_zip_bytes
@@ -32,6 +33,9 @@ class LegalDocumentIngestionConfig:
     enable_archive_extraction: bool = True
     lex_validated_documents_only: bool = True
     language: str = "ita"
+    legal_ocr_primary_engine: str = "tesseract"
+    legal_ocr_fallback_engine: str = "native-text-fallback"
+    legal_ocr_local_first_only: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -353,6 +357,15 @@ class LegalDocumentIngestionService:
                 fields={"validation": validation, "classification": classification},
                 actor=actor,
             )
+        if case_match.get("status") in {"suggested_match", "needs_manual_match"} or case_match.get("conflicts"):
+            self.repository.create_review_task(
+                tenant_id,
+                document_id,
+                task_type="case_identity",
+                reason="Abbinamento fascicolo da verificare: identità cliente o RG non pienamente coerenti.",
+                fields={"case_match": case_match, "document_fascicolo_id": (self.repository.get_document(tenant_id, document_id) or {}).get("fascicolo_id")},
+                actor=actor,
+            )
         return {
             "document": self.repository.get_document(tenant_id, document_id),
             "ocr": ocr,
@@ -371,6 +384,37 @@ class LegalDocumentIngestionService:
         extension = str(document.get("extension") or "").lstrip(".")
         started = utc_now()
         self._audit(tenant_id, actor, "ocr.started", document_id, {"engine": "iusentra-forensic-ocr", "mime_type": mime_type})
+        if self.config.enable_forensic_ocr and _legal_ocr_supported(mime_type, extension):
+            try:
+                from legal_ocr import LegalOcrConfig, LegalOcrEvidenceStore, LegalOcrPipeline
+
+                store = LegalOcrEvidenceStore(self.repository.storage_root / "legal_ocr", tenant_id)
+                pipeline = LegalOcrPipeline(
+                    LegalOcrConfig(
+                        tenant_id=tenant_id,
+                        primary_engine=self.config.legal_ocr_primary_engine,
+                        fallback_engine=self.config.legal_ocr_fallback_engine,
+                        language=self.config.language,
+                        local_first_only=self.config.legal_ocr_local_first_only,
+                    ),
+                    store,
+                )
+                evidences = pipeline.run_bytes(data, filename=str(document.get("original_filename") or "documento"), tenant_id=tenant_id, fascicolo_id=str(document.get("fascicolo_id") or ""), document_id=document_id, source_type=str(document.get("source_type") or "documento"))
+                if evidences:
+                    evidence = evidences[0]
+                    overlay = self._persist_legal_ocr_overlay(tenant_id, document_id, evidence, started=started, actor=actor)
+                    if evidence.get("qc", {}).get("hil_required"):
+                        self.repository.create_review_task(
+                            tenant_id,
+                            document_id,
+                            task_type="ocr_hil",
+                            reason="Lettura OCR da verificare prima dell'uso probatorio pieno.",
+                            fields={"run_id": evidence.get("run_id"), "metrics": evidence.get("metrics"), "regex_summary": evidence.get("regex_summary"), "reasons": evidence.get("qc", {}).get("hil_reasons") or []},
+                            actor=actor,
+                        )
+                    return overlay
+            except Exception as exc:
+                self._audit(tenant_id, actor, "ocr.legal_grade_fallback", document_id, {"reason": str(exc)})
         raw_text = ""
         warnings: list[str] = []
         errors: list[str] = []
@@ -422,6 +466,38 @@ class LegalDocumentIngestionService:
                 fields={"confidence_document": confidence, "warnings": warnings, "errors": errors},
                 actor=actor,
             )
+        return overlay
+
+    def _persist_legal_ocr_overlay(self, tenant_id: str, document_id: str, evidence: dict[str, Any], *, started: str, actor: str) -> dict[str, Any]:
+        token_rows: list[dict[str, Any]] = []
+        for token in list(evidence.get("token_index") or []):
+            bbox = token.get("bbox") or []
+            bbox_dict = {"x": bbox[0], "y": bbox[1], "w": bbox[2], "h": bbox[3]} if isinstance(bbox, (list, tuple)) and len(bbox) >= 4 else (bbox if isinstance(bbox, dict) else {})
+            confidence = float(token.get("confidence") or 0.0)
+            token_rows.append({"page_number": int(token.get("page") or token.get("page_number") or 1), "token_text": str(token.get("token") or token.get("token_text") or ""), "confidence": confidence, "bbox": bbox_dict, "warning": "parola_da_verificare" if confidence < self.config.token_review_threshold else ""})
+        errors: list[str] = []
+        warnings: list[str] = []
+        for attempt in list(evidence.get("qc", {}).get("engine_attempts") or []):
+            warnings.extend(str(item) for item in attempt.get("warnings") or [])
+            errors.extend(str(item) for item in attempt.get("errors") or [])
+        warnings.extend(str(item) for item in evidence.get("qc", {}).get("hil_reasons") or [])
+        metrics = evidence.get("metrics") or {}
+        run = {
+            "id": evidence.get("run_id"),
+            "engine": evidence.get("selected_engine") or "iusentra-legal-ocr",
+            "engine_version": str((evidence.get("engine_version") or {}).get("selected") or "2026.05.24"),
+            "language": self.config.language,
+            "started_at": started,
+            "completed_at": evidence.get("audit", {}).get("finish_ts") or utc_now(),
+            "page_count": len(evidence.get("pages") or []),
+            "confidence_document": float(metrics.get("avg_confidence") or 0.0),
+            "raw_text": _read_legal_ocr_text(self.repository.storage_root, evidence.get("raw_text_path")) or "",
+            "corrected_text": _read_legal_ocr_text(self.repository.storage_root, evidence.get("ocr_text_path")) or "",
+            "warnings": warnings,
+            "errors": errors,
+        }
+        overlay = self.repository.insert_ocr_run(tenant_id, document_id, run, token_rows, actor=actor)
+        self._audit(tenant_id, actor, "ocr.evidence_ready", document_id, {"run_id": evidence.get("run_id"), "avg_confidence": metrics.get("avg_confidence"), "banding": evidence.get("event", {}).get("banding"), "hil_required": evidence.get("qc", {}).get("hil_required"), "notification_proposals": len(evidence.get("notification_proposals") or [])})
         return overlay
 
     def classify_document(self, tenant_id: str, document_id: str, *, text: str | None = None, actor: str = "classifier") -> dict[str, Any]:
@@ -570,6 +646,17 @@ class LegalDocumentIngestionService:
     ) -> dict[str, Any]:
         document = self._require_document(tenant_id, document_id)
         if document.get("fascicolo_id"):
+            current_case = _find_case_by_id(_fascicoli_candidates(self.fascicoli_repository), str(document.get("fascicolo_id") or ""))
+            if current_case:
+                entity_values = _entity_map(entities or self.repository.list_entities(tenant_id, document_id))
+                score, signals, conflicts = _score_case(current_case, entity_values, _searchable(text))
+                if conflicts or (_document_mentions_party(text) and not _has_client_identity_signal(signals)):
+                    return self.repository.replace_case_match(
+                        tenant_id,
+                        document_id,
+                        {"matched_case_id": document["fascicolo_id"], "confidence": round(min(score, 0.74), 3), "matched_signals": signals, "conflicts": conflicts or ["Cliente del fascicolo non confermato nel documento."], "status": "needs_manual_match"},
+                        actor=actor,
+                    )
             return self.repository.replace_case_match(
                 tenant_id,
                 document_id,
@@ -593,7 +680,7 @@ class LegalDocumentIngestionService:
             match = {"matched_case_id": None, "confidence": 0.0, "matched_signals": [], "conflicts": [], "status": "no_match"}
         elif len(scores) > 1 and scores[0][0] - scores[1][0] < 0.16:
             match = {"matched_case_id": scores[0][1], "confidence": round(scores[0][0], 3), "matched_signals": scores[0][2], "conflicts": ["Più fascicoli compatibili"], "status": "suggested_match"}
-        elif scores[0][0] >= 0.78 and not scores[0][3]:
+        elif scores[0][0] >= 0.82 and not scores[0][3] and _has_client_identity_signal(scores[0][2]) and "NRG" in scores[0][2]:
             match = {"matched_case_id": scores[0][1], "confidence": round(scores[0][0], 3), "matched_signals": scores[0][2], "conflicts": [], "status": "auto_matched"}
         else:
             match = {"matched_case_id": scores[0][1], "confidence": round(scores[0][0], 3), "matched_signals": scores[0][2], "conflicts": scores[0][3], "status": "suggested_match" if scores[0][0] >= 0.45 else "needs_manual_match"}
@@ -627,7 +714,10 @@ class LegalDocumentIngestionService:
                 metadata={"document_id": document_id, "status": document.get("status"), "security_status": document.get("security_status")},
                 actor=actor,
             )
-        text = self.repository.latest_ocr_text(tenant_id, document_id)
+        case_match = self.repository.latest_case_match(tenant_id, document_id) or {}
+        if case_match.get("conflicts") or case_match.get("status") in {"suggested_match", "needs_manual_match"}:
+            return self.repository.create_lex_index_job(tenant_id, document_id, status="blocked", reason="Documento non indicizzato: abbinamento fascicolo-cliente da verificare.", chunks=[], metadata={"document_id": document_id, "case_match": case_match.get("status"), "conflicts": case_match.get("conflicts") or []}, actor=actor)
+        text = _latest_legal_ocr_lex_text(self.repository.storage_root, tenant_id, document_id) or self.repository.latest_ocr_text(tenant_id, document_id)
         chunks = _chunk_for_lex(text)
         metadata = _lex_metadata(document, self.repository.latest_classification(tenant_id, document_id) or {}, self.repository.list_entities(tenant_id, document_id), self.repository.get_ocr_overlay(tenant_id, document_id))
         return self.repository.create_lex_index_job(
@@ -639,6 +729,39 @@ class LegalDocumentIngestionService:
             metadata=metadata,
             actor=actor,
         )
+
+    def request_fascicolo_lex_index(self, tenant_id: str, fascicolo_id: str, *, actor: str = "lex-indexer") -> dict[str, Any]:
+        clean_fascicolo = str(fascicolo_id or "").strip()
+        if not clean_fascicolo:
+            raise LegalDocumentIngestionError("Fascicolo non indicato.")
+        included: list[dict[str, Any]] = []
+        skipped: list[dict[str, Any]] = []
+        for document in self.repository.list_documents(tenant_id, fascicolo_id=clean_fascicolo, limit=500):
+            document_id = str(document.get("id") or "")
+            validation = self.repository.latest_validation(tenant_id, document_id) or {}
+            case_match = self.repository.latest_case_match(tenant_id, document_id) or {}
+            if document.get("security_status") != "validated" or document.get("status") in {"needs_review", "rejected"}:
+                skipped.append({"document_id": document_id, "reason": "documento non validato o da revisione"})
+                continue
+            if self.config.lex_validated_documents_only and validation.get("result") != "valid":
+                skipped.append({"document_id": document_id, "reason": "validazione documentale non completata"})
+                continue
+            if case_match.get("conflicts") or case_match.get("status") in {"suggested_match", "needs_manual_match"}:
+                skipped.append({"document_id": document_id, "reason": "identità fascicolo-cliente da verificare"})
+                continue
+            text = _latest_legal_ocr_lex_text(self.repository.storage_root, tenant_id, document_id) or self.repository.latest_ocr_text(tenant_id, document_id)
+            chunks = _chunk_for_lex(text)
+            if not chunks:
+                skipped.append({"document_id": document_id, "reason": "testo non indicizzabile"})
+                continue
+            metadata = _lex_metadata(document, self.repository.latest_classification(tenant_id, document_id) or {}, self.repository.list_entities(tenant_id, document_id), self.repository.get_ocr_overlay(tenant_id, document_id))
+            metadata.update({"fascicolo_index": True, "source_document_id": document_id, "source_filename": document.get("original_filename")})
+            job = self.repository.create_lex_index_job(tenant_id, document_id, status="completed", reason="Documento validato indicizzato nella conoscenza del fascicolo.", chunks=[_chunk_with_document_metadata(chunk, document) for chunk in chunks], metadata=metadata, actor=actor)
+            included.append({"document_id": document_id, "filename": document.get("original_filename"), "chunks": len(chunks), "job_id": job.get("id") or job.get("job_id")})
+        with self.repository.connect() as conn:
+            self.repository.append_audit(conn, tenant_id=tenant_id, actor=actor, action="lex.fascicolo_index.completed", resource_type="fascicolo", resource_id=clean_fascicolo, payload={"included": len(included), "skipped": len(skipped)})
+            conn.commit()
+        return {"fascicolo_id": clean_fascicolo, "included": included, "skipped": skipped, "status": "completed" if included else "blocked", "reason": "Conoscenza del fascicolo aggiornata con documenti validati." if included else "Nessun documento del fascicolo pronto per Lex."}
 
     def review_document(self, tenant_id: str, document_id: str, decision: dict[str, Any], *, actor: str) -> dict[str, Any]:
         result = self.repository.complete_review(tenant_id, document_id, decision, actor=actor)
@@ -676,6 +799,48 @@ class LegalDocumentIngestionService:
             if archive_path and path.startswith(f"{archive_path}/"):
                 parent_id = document_id
         return parent_id
+
+
+def _legal_ocr_supported(mime_type: str, extension: str) -> bool:
+    ext = str(extension or "").lower().lstrip(".")
+    mime = str(mime_type or "").lower()
+    return ext in {"pdf", "png", "jpg", "jpeg", "tif", "tiff", "zip", "p7m"} or mime in {
+        "application/pdf",
+        "application/zip",
+        "application/x-pkcs7-mime",
+        "application/pkcs7-mime",
+        "image/png",
+        "image/jpeg",
+        "image/tiff",
+    }
+
+
+def _read_legal_ocr_text(storage_root: str | Path, rel_path: Any) -> str:
+    rel = str(rel_path or "").strip()
+    if not rel:
+        return ""
+    root = Path(storage_root)
+    for base in (root / "legal_ocr", root):
+        try:
+            candidate = (base / rel).resolve()
+            if candidate.exists() and candidate.is_file() and candidate.is_relative_to(base.resolve()):
+                return candidate.read_text(encoding="utf-8")
+        except Exception:
+            continue
+    return ""
+
+
+def _latest_legal_ocr_lex_text(storage_root: str | Path, tenant_id: str, document_id: str) -> str:
+    try:
+        from legal_ocr import LegalOcrEvidenceStore
+
+        evidence = LegalOcrEvidenceStore(Path(storage_root) / "legal_ocr", tenant_id).find_latest_for_document(document_id)
+    except Exception:
+        evidence = None
+    if not evidence:
+        return ""
+    lex_export = evidence.get("lex_export") or {}
+    return _read_legal_ocr_text(storage_root, lex_export.get("path") or evidence.get("ocr_text_path"))
 
 
 def _extract_native_document_text(data: bytes, filename: str, extension: str) -> tuple[str, int, str, list[str], list[str]]:
@@ -987,7 +1152,28 @@ def _fascicoli_candidates(repository: Any) -> list[dict[str, Any]]:
 def _object_to_case(item: Any) -> dict[str, Any]:
     if isinstance(item, dict):
         return dict(item)
-    keys = ("id", "numero", "numero_rg", "anno_rg", "ufficio", "oggetto", "nome_cliente", "id_cliente", "controparte", "parti", "pec", "codice_fiscale", "partita_iva", "numero_sentenza")
+    keys = (
+        "id",
+        "id_fascicolo",
+        "numero",
+        "numero_rg",
+        "anno_rg",
+        "ufficio",
+        "ufficio_giudiziario",
+        "oggetto",
+        "nome_cliente",
+        "cliente",
+        "nome",
+        "cognome",
+        "id_cliente",
+        "controparte",
+        "parti",
+        "pec",
+        "codice_fiscale",
+        "codice_fiscale_cliente",
+        "partita_iva",
+        "numero_sentenza",
+    )
     return {key: getattr(item, key, "") for key in keys}
 
 
@@ -995,16 +1181,33 @@ def _score_case(case: dict[str, Any], entity_values: dict[str, list[str]], hayst
     score = 0.0
     signals: list[str] = []
     conflicts: list[str] = []
-    rg_values = set(entity_values.get("NRG", []))
+    rg_values = set(entity_values.get("NRG", []) + entity_values.get("numero_ruolo", []))
     case_rg = str(case.get("numero_rg") or case.get("rg") or case.get("numero") or "")
     if case_rg and any(case_rg.replace(" ", "") in value.replace(" ", "") for value in rg_values):
-        score += 0.52
+        score += 0.46
         signals.append("NRG")
     office = _searchable(str(case.get("ufficio") or case.get("ufficio_giudiziario") or ""))
     if office and office in haystack:
-        score += 0.2
+        score += 0.12
         signals.append("ufficio")
-    for case_field, signal in (("nome_cliente", "cliente"), ("controparte", "controparte"), ("oggetto", "oggetto"), ("codice_fiscale", "codice fiscale"), ("partita_iva", "partita IVA"), ("pec", "PEC"), ("numero_sentenza", "numero sentenza")):
+    case_cf = _normalize_identity_code(str(case.get("codice_fiscale_cliente") or case.get("codice_fiscale") or ""))
+    text_cf_values = {_normalize_identity_code(value) for value in entity_values.get("codice_fiscale", []) if _normalize_identity_code(value)}
+    if case_cf and case_cf in haystack.upper().replace(" ", ""):
+        score += 0.38
+        signals.append("codice fiscale cliente")
+    elif case_cf and text_cf_values and case_cf not in text_cf_values:
+        conflicts.append("Codice fiscale cliente non coincidente")
+    client_names = _case_client_names(case)
+    for name in client_names:
+        searchable_name = _searchable(name)
+        if searchable_name and searchable_name in haystack:
+            score += 0.3 if "cliente" not in signals else 0.12
+            signals.append("cliente")
+            break
+    mentioned_name = _client_identity_from_text(haystack)
+    if client_names and mentioned_name and not any(_identity_tokens(name).issubset(_identity_tokens(mentioned_name)) or _identity_tokens(mentioned_name).issubset(_identity_tokens(name)) for name in client_names):
+        conflicts.append("Nome cliente non coincidente")
+    for case_field, signal in (("controparte", "controparte"), ("oggetto", "oggetto"), ("partita_iva", "partita IVA"), ("pec", "PEC"), ("numero_sentenza", "numero sentenza")):
         value = _searchable(str(case.get(case_field) or ""))
         if value and value in haystack:
             score += 0.12
@@ -1012,6 +1215,56 @@ def _score_case(case: dict[str, Any], entity_values: dict[str, list[str]], hayst
     if case_rg and rg_values and not any(case_rg.replace(" ", "") in value.replace(" ", "") for value in rg_values):
         conflicts.append("NRG non coincidente")
     return min(score, 0.99), signals, conflicts
+
+
+def _find_case_by_id(cases: Iterable[dict[str, Any]], case_id: str) -> dict[str, Any] | None:
+    wanted = str(case_id or "").strip()
+    if not wanted:
+        return None
+    for case in cases:
+        if str(case.get("id") or case.get("id_fascicolo") or "").strip() == wanted:
+            return dict(case)
+    return None
+
+
+def _has_client_identity_signal(signals: Iterable[str]) -> bool:
+    normalized = {_searchable(signal) for signal in signals or []}
+    return bool({"cliente", "codice fiscale cliente"} & normalized)
+
+
+def _document_mentions_party(text: str) -> bool:
+    return bool(re.search(r"\b(attore|convenuto|ricorrente|resistente|imputato|parte civile|cliente|assistit[oa])\b", str(text or ""), flags=re.IGNORECASE))
+
+
+def _client_identity_from_text(haystack: str) -> str:
+    for pattern in (
+        r"\b(?:cliente|assistit[oa]|ricorrente|attore|imputato)\s*[:\-]\s*([a-zà-ÿ' .-]{4,80})",
+        r"\b(?:sig\.?|signor[ae])\s+([a-zà-ÿ' .-]{4,80})",
+    ):
+        match = re.search(pattern, str(haystack or ""), flags=re.IGNORECASE)
+        if match:
+            return normalize_text(match.group(1))
+    return ""
+
+
+def _case_client_names(case: dict[str, Any]) -> list[str]:
+    values: list[str] = []
+    for key in ("nome_cliente", "cliente"):
+        value = normalize_text(str(case.get(key) or ""))
+        if value:
+            values.append(value)
+    combined = normalize_text(f"{case.get('nome') or ''} {case.get('cognome') or ''}")
+    if combined:
+        values.append(combined)
+    return list(dict.fromkeys(values))
+
+
+def _identity_tokens(value: str) -> set[str]:
+    return {part for part in re.split(r"[^a-z0-9à-ÿ]+", _searchable(value)) if len(part) >= 3}
+
+
+def _normalize_identity_code(value: str) -> str:
+    return re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
 
 
 def _chunk_for_lex(text: str) -> list[dict[str, Any]]:
@@ -1029,6 +1282,21 @@ def _chunk_for_lex(text: str) -> list[dict[str, Any]]:
         for offset in range(0, len(paragraph), 1500):
             chunks.append({"page_number": 1, "text": paragraph[offset : offset + 1500], "metadata": {"chunk_kind": "paragrafo", "ordinal": index}})
     return chunks
+
+
+def _chunk_with_document_metadata(chunk: dict[str, Any], document: dict[str, Any]) -> dict[str, Any]:
+    out = dict(chunk or {})
+    metadata = dict(out.get("metadata") or {})
+    metadata.update(
+        {
+            "document_id": document.get("id"),
+            "fascicolo_id": document.get("fascicolo_id"),
+            "filename": document.get("original_filename"),
+            "source_type": document.get("source_type"),
+        }
+    )
+    out["metadata"] = metadata
+    return out
 
 
 def _lex_metadata(document: dict[str, Any], classification: dict[str, Any], entities: list[dict[str, Any]], ocr: dict[str, Any]) -> dict[str, Any]:

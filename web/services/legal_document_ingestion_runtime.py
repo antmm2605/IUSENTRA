@@ -10,6 +10,7 @@ from flask import current_app, g, has_app_context, has_request_context, session
 from legal_document_ingestion import LegalDocumentIngestionService, LegalDocumentRepository
 from legal_document_ingestion.file_intake import LegalDocumentIngestionConfig
 from legal_document_ingestion.zip_safety import ZipSafetyConfig
+from legal_ocr import LegalOcrEvidenceStore
 from web.helpers import get_fascicoli
 from web.services.document_intelligence_runtime import fascicoli_db_path
 from web.services.tenant_paths import tenant_data_path
@@ -68,6 +69,11 @@ def build_legal_document_service() -> LegalDocumentIngestionService:
     return LegalDocumentIngestionService(build_legal_document_repository(), get_fascicoli(), config=config)
 
 
+def build_legal_ocr_store(tenant_id: str | None = None) -> LegalOcrEvidenceStore:
+    _db_path, storage_root = legal_documents_paths()
+    return LegalOcrEvidenceStore(storage_root / "legal_ocr", tenant_id or legal_document_tenant_id())
+
+
 def _config_from_app() -> LegalDocumentIngestionConfig:
     cfg = current_app.config if has_app_context() else {}
     zip_config = ZipSafetyConfig(
@@ -86,6 +92,9 @@ def _config_from_app() -> LegalDocumentIngestionConfig:
         enable_archive_extraction=bool(cfg.get("PEC_ZIP_OCR_ENABLED", True)),
         lex_validated_documents_only=bool(cfg.get("LEX_VALIDATED_DOCUMENTS_ONLY", True)),
         language=str(cfg.get("LEGAL_DOC_OCR_LANGUAGE") or "ita"),
+        legal_ocr_primary_engine=str(cfg.get("LEGAL_OCR_PRIMARY_ENGINE") or "tesseract"),
+        legal_ocr_fallback_engine=str(cfg.get("LEGAL_OCR_FALLBACK_ENGINE") or "native-text-fallback"),
+        legal_ocr_local_first_only=bool(cfg.get("LEGAL_OCR_LOCAL_FIRST_ONLY", True)),
     )
 
 
@@ -95,6 +104,7 @@ def legal_document_user_context() -> dict[str, Any]:
 
 
 __all__ = [
+    "build_legal_ocr_store",
     "build_legal_document_repository",
     "build_legal_document_service",
     "legal_document_actor",

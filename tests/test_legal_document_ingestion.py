@@ -10,7 +10,6 @@ from flask import Flask, g
 
 from legal_document_ingestion import LegalDocumentIngestionService, LegalDocumentRepository
 from legal_document_ingestion.archive_extractor import extract_zip_bytes
-from legal_document_ingestion.file_intake import LegalDocumentIngestionConfig
 from legal_document_ingestion.zip_safety import ZipSafetyConfig
 from web.blueprints.legal_documents_api import legal_documents_api
 
@@ -203,6 +202,55 @@ def test_case_matching_ambiguous_none_and_conflicts(tmp_path: Path):
     service_none, _ = _service(tmp_path / "none", [])
     no_match = service_none.ingest_bytes(tenant_id="tenant-a", filename="atto.txt", content=b"Diffida stragiudiziale senza fascicolo")
     assert no_match["processed"][0]["case_match"]["status"] == "no_match"
+
+
+def test_case_matching_non_auto_associa_se_cliente_non_coincide(tmp_path: Path):
+    service, _repository = _service(
+        tmp_path,
+        [
+            {
+                "id": "F-1234",
+                "numero_rg": "1234/2026",
+                "ufficio": "Tribunale di Milano",
+                "nome_cliente": "Mario Rossi",
+                "codice_fiscale_cliente": "RSSMRA80A01H501U",
+            }
+        ],
+    )
+
+    result = service.ingest_bytes(
+        tenant_id="tenant-a",
+        filename="atto.txt",
+        content=b"Tribunale di Milano Atto di citazione R.G. 1234/2026 attore: Luigi Bianchi PEC luigi.bianchi@pec.it",
+        fascicolo_id="F-1234",
+    )
+
+    match = result["processed"][0]["case_match"]
+    assert match["status"] == "needs_manual_match"
+    assert any("cliente" in conflict.lower() for conflict in match["conflicts"])
+
+
+def test_fascicolo_lex_index_include_solo_documenti_validati_e_identita_coerente(tmp_path: Path):
+    service, _repository = _service(tmp_path)
+    valid = service.ingest_bytes(
+        tenant_id="tenant-a",
+        filename="valido.txt",
+        content=b"Tribunale di Milano Atto di citazione R.G. 1234/2026 attore: Mario Rossi PEC mario.rossi@pec.it",
+        fascicolo_id="F-1234",
+    )
+    conflict = service.ingest_bytes(
+        tenant_id="tenant-a",
+        filename="conflitto.txt",
+        content=b"Tribunale di Milano Atto di citazione R.G. 1234/2026 attore: Luigi Bianchi PEC luigi.bianchi@pec.it",
+        fascicolo_id="F-1234",
+    )
+
+    result = service.request_fascicolo_lex_index("tenant-a", "F-1234", actor="tester")
+
+    included_ids = {item["document_id"] for item in result["included"]}
+    skipped_ids = {item["document_id"] for item in result["skipped"]}
+    assert valid["document"]["id"] in included_ids
+    assert conflict["document"]["id"] in skipped_ids
 
 
 def test_multi_tenant_isolation_and_proof_bundle(tmp_path: Path):

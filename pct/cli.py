@@ -1885,17 +1885,29 @@ def cmd_priv_elimina(id_trattamento, db):
 
 # ============================================================ OCR
 
-from .ocr import estrai_testo
+from .ocr import estrai_testo_da_percorso
 
 
-@cli.command("ocr")
+class _LegacyOcrGroup(click.Group):
+    def parse_args(self, ctx, args):
+        if args and args[0] not in self.commands and args[0] not in {"--help", "-h"}:
+            args.insert(0, "extract")
+        return super().parse_args(ctx, args)
+
+
+@cli.group("ocr", cls=_LegacyOcrGroup)
+def grp_ocr():
+    """OCR documentale e OCR legal-grade."""
+    pass
+
+
+@grp_ocr.command("extract")
 @click.argument("file", type=click.Path(exists=True))
-@click.option("--output", "-o", default="",
-              help="File di output (default: stdout)")
-def cmd_ocr(file, output):
-    """Estrae testo da un PDF o immagine tramite OCR."""
+@click.option("--output", "-o", default="", help="File di output (default: stdout)")
+def cmd_ocr_extract(file, output):
+    """Estrae testo semplice da un PDF o immagine."""
     try:
-        testo = estrai_testo(file)
+        testo = estrai_testo_da_percorso(file)
         if output:
             Path(output).write_text(testo, encoding="utf-8")
             click.echo(f"Testo estratto in: {output}")
@@ -1903,6 +1915,64 @@ def cmd_ocr(file, output):
             click.echo(testo)
     except Exception as e:
         click.echo(f"Errore OCR: {e}", err=True)
+
+
+@grp_ocr.command("run")
+@click.argument("target", type=click.Path(exists=True))
+@click.option("--tenant", required=True, help="Identificativo studio/tenant.")
+@click.option("--storage-root", default="./data/legal_document_evidence/legal_ocr_cli", show_default=True, help="Archivio evidenze OCR.")
+@click.option("--primary", default="tesseract", show_default=True, help="Engine OCR primario.")
+@click.option("--fallback", default="native-text-fallback", show_default=True, help="Engine OCR fallback.")
+@click.option("--allow-cloud", is_flag=True, default=False, help="Consente engine cloud configurati per il tenant.")
+@click.option("--document-id", default="", help="ID documento IUSENTRA da collegare all'evidenza.")
+@click.option("--fascicolo-id", default="", help="ID fascicolo da collegare all'evidenza.")
+@click.option("--report", is_flag=True, default=False, help="Stampa KPI sintetici e path evidenze.")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Stampa il report in JSON.")
+def cmd_ocr_run(target, tenant, storage_root, primary, fallback, allow_cloud, document_id, fascicolo_id, report, as_json):
+    """Esegue OCR legal-grade con QC, fallback, HIL e audit append-only."""
+    from legal_ocr import LegalOcrConfig, LegalOcrEvidenceStore, LegalOcrPipeline
+
+    pipeline = LegalOcrPipeline(
+        LegalOcrConfig(
+            tenant_id=tenant,
+            primary_engine=primary,
+            fallback_engine=fallback,
+            local_first_only=not allow_cloud,
+        ),
+        LegalOcrEvidenceStore(storage_root, tenant),
+    )
+    evidences = pipeline.run_path(target, tenant_id=tenant, fascicolo_id=fascicolo_id, document_id=document_id)
+    summary = {
+        "tenant_id": tenant,
+        "target": str(Path(target).resolve()),
+        "count": len(evidences),
+        "evidences": [
+            {
+                "run_id": item.get("run_id"),
+                "document_id": item.get("document_id"),
+                "selected_engine": item.get("selected_engine"),
+                "avg_confidence": (item.get("metrics") or {}).get("avg_confidence"),
+                "pct_tokens_<0.75": (item.get("metrics") or {}).get("pct_tokens_<0.75"),
+                "hil_required": (item.get("qc") or {}).get("hil_required"),
+                "evidence_path": item.get("evidence_path"),
+                "ocr_text_path": item.get("ocr_text_path"),
+                "lex_export_path": (item.get("lex_export") or {}).get("path"),
+                "notifications": len(item.get("notification_proposals") or []),
+            }
+            for item in evidences
+        ],
+    }
+    if as_json:
+        click.echo(json.dumps(summary, ensure_ascii=False, indent=2))
+    else:
+        click.echo(f"OCR legal-grade completato: {summary['count']} evidenze")
+        for item in summary["evidences"]:
+            click.echo(
+                f"- {item['run_id']} engine={item['selected_engine']} conf={item['avg_confidence']} "
+                f"HIL={item['hil_required']} evidence={item['evidence_path']}"
+            )
+            if report and item.get("notifications"):
+                click.echo(f"  notifiche proposte: {item['notifications']}")
 
 
 # ============================================================ REPORT PDF

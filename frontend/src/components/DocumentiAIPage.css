@@ -172,6 +172,68 @@
   color: var(--iu-muted, #65758b);
 }
 
+.iu-docai-ocr-review {
+  display: grid;
+  gap: .65rem;
+  border: 1px solid var(--iu-border, #d8e1ef);
+  border-radius: 8px;
+  padding: .8rem;
+  background: #fbfdff;
+}
+
+.iu-docai-ocr-review > header,
+.iu-docai-ocr-review > header > div,
+.iu-docai-ocr-review__metrics,
+.iu-docai-ocr-review__fields,
+.iu-docai-ocr-review__tokens,
+.iu-docai-ocr-review__fixes {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+.iu-docai-ocr-review > header {
+  justify-content: space-between;
+}
+
+.iu-docai-ocr-review > header span {
+  color: var(--iu-muted, #65758b);
+  font-size: .82rem;
+  font-weight: 700;
+}
+
+.iu-docai-ocr-review__metrics span,
+.iu-docai-ocr-review__fields span {
+  border-radius: 8px;
+  background: #eef6ff;
+  color: #234f7a;
+  padding: .35rem .5rem;
+  font-size: .82rem;
+  font-weight: 700;
+}
+
+.iu-docai-ocr-review__fields span.is-ko {
+  background: #fff2f2;
+  color: #8a1f1f;
+}
+
+.iu-docai-ocr-review__fields span.is-ok {
+  background: #eefbf2;
+  color: #196b38;
+}
+
+.iu-docai-ocr-review__tokens mark {
+  border-radius: 6px;
+  background: #fff1a8;
+  color: #533800;
+  padding: .15rem .28rem;
+}
+
+.iu-docai-ocr-review__fixes button {
+  min-height: 34px;
+}
+
 .iu-docai-upload {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

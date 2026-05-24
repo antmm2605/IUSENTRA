@@ -1,0 +1,27 @@
+{
+  "checked_files": 9,
+  "error_files": 0,
+  "files": [],
+  "files_with_artifacts": 0,
+  "finished_at": "2026-05-24T11:52:45Z",
+  "no_backup_created": true,
+  "ok": true,
+  "repair_enabled": false,
+  "repaired_files": 0,
+  "roots": [
+    "D:\\legale\\IUSENTRA\\CHANGELOG.md",
+    "D:\\legale\\IUSENTRA\\docs\\REACT_MIGRATION_MASTER_PLAN.md",
+    "D:\\legale\\IUSENTRA\\docs\\specs\\ministero\\README.md",
+    "D:\\legale\\IUSENTRA\\docs\\specs\\ministero\\notifiche_legali_directives.md",
+    "D:\\legale\\IUSENTRA\\artifacts\\react-migration\\pytest-confirmed-ok.md",
+    "D:\\legale\\IUSENTRA\\artifacts\\react-migration\\pytest-open-issues.md",
+    "D:\\legale\\IUSENTRA\\artifacts\\react-migration\\full-react-final-report.md",
+    "D:\\legale\\IUSENTRA\\artifacts\\react-migration\\full-react-audit.md",
+    "D:\\legale\\IUSENTRA\\artifacts\\notifiche-legali\\notifiche-legali-ui-demo-report.json",
+    "D:\\legale\\IUSENTRA\\scripts\\notifiche_legali_ui_demo_report.py"
+  ],
+  "schema_version": "iusentra.utf8_integrity.v1",
+  "skipped_large_files": 0,
+  "started_at": "2026-05-24T11:52:44Z",
+  "unresolved_replacement_files": 0
+}

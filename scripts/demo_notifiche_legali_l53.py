@@ -67,6 +67,10 @@ def _demo_notification_payload() -> dict[str, Any]:
         "acquisizione_portale_richiesta": True,
         "documento_ufficio_acquisito": True,
         "acquisizione_portale_completata": True,
+        "pec_ufficio_rilascio": True,
+        "pec_ufficio_eml_file": "pec-cancelleria-rilascio.eml",
+        "pec_ufficio_eml_sha256": "9" * 64,
+        "pec_ufficio_message_id": "<pec-cancelleria-rilascio@giustizia>",
         "portale_servizi": "PST",
         "portale_acquisizione_href": "/portali/pst/acquisizione?id_fasc=DEMO-L53&numero=1234&anno=2026&ufficio=Tribunale%20di%20Roma&focus=documenti#acquisizione-portale",
         "documenti": [

@@ -17,7 +17,7 @@ from urllib.parse import quote
 
 from pct.fascicoli import EsitoAttivita, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
 from pct.fascicolo_workspace import build_fascicolo_workspace
-from pct.notifiche_legali import released_office_documents_from_portal
+from pct.notifiche_legali import office_notification_evidence_from_pec
 from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry, codice_oggetto_pst_payload
 from web.services.react_practice_engine_bridge import build_react_practice_engine_payload
 
@@ -577,7 +577,13 @@ def _item(fascicolo: Any, *, scadenze_by_fasc: dict[str, list[Any]] | None = Non
     }
 
 
-def _item_light(fascicolo: Any, *, scadenze_by_fasc: dict[str, list[Any]] | None = None, archived: bool | None = None) -> dict[str, Any]:
+def _item_light(
+    fascicolo: Any,
+    *,
+    scadenze_by_fasc: dict[str, list[Any]] | None = None,
+    archived: bool | None = None,
+    office_pec_messages: list[Any] | None = None,
+) -> dict[str, Any]:
     fid = _text(getattr(fascicolo, "id", ""))
     stato = _enum_value(getattr(fascicolo, "stato", StatoFascicolo.APERTO.value))
     n_scadenza = _next_deadline(fascicolo, scadenze_by_fasc)
@@ -589,6 +595,35 @@ def _item_light(fascicolo: Any, *, scadenze_by_fasc: dict[str, list[Any]] | None
         alerts += 1
     if n_scadenza and _deadline_tone(n_scadenza) in {"danger", "warning"}:
         alerts += 1
+    relata_summary: dict[str, Any] = {}
+    if office_pec_messages is not None:
+        fid_for_relata = quote(fid)
+        pec_evidence = office_notification_evidence_from_pec(fascicolo, office_pec_messages)
+        pending_releases = [item for item in pec_evidence if not item.get("acquisito")]
+        acquired_releases = [item for item in pec_evidence if item.get("acquisito")]
+        if pending_releases:
+            first_release = pending_releases[0]
+            relata_summary = {
+                "relataStatus": "da_acquisire",
+                "relataStatusLabel": "Provvedimento da scaricare dal portale",
+                "relataTone": "warning",
+                "relataHref": f"/fascicoli/{fid_for_relata}#relata-notifica",
+                "relataPrimaryHref": _text(first_release.get("acquisitionHref")) or f"/fascicoli/{fid_for_relata}#relata-notifica",
+                "relataPrimaryLabel": "Scarica dal portale",
+                "relataReleaseDetected": True,
+                "relataCount": len(pending_releases),
+            }
+        elif acquired_releases:
+            relata_summary = {
+                "relataStatus": "da_preparare",
+                "relataStatusLabel": "Relata da preparare",
+                "relataTone": "warning",
+                "relataHref": f"/fascicoli/{fid_for_relata}#relata-notifica",
+                "relataPrimaryHref": f"/notifiche-legali?id_fascicolo={fid_for_relata}&fase=notifica#notifica",
+                "relataPrimaryLabel": "Prepara relata",
+                "relataReleaseDetected": False,
+                "relataCount": len(acquired_releases),
+            }
     return {
         "id": fid,
         "ref": _rg(fascicolo) if _rg(fascicolo) != "n.d." else _text(getattr(fascicolo, "numero", ""), fid),
@@ -617,6 +652,7 @@ def _item_light(fascicolo: Any, *, scadenze_by_fasc: dict[str, list[Any]] | None
         "archiveZipHref": f"/fascicoli/{fid}/archivio/scarica",
         "restoreAction": f"/fascicoli/{fid}/ripristina",
         "tone": _status_tone(stato),
+        **relata_summary,
     }
 
 
@@ -801,7 +837,8 @@ def build_react_fascicoli_payload(
     scadenze_by_fasc = _group_scadenze_by_fasc(scadenze_rows)
     fascicoli = _safe("fascicoli", lambda: gf.tutti(archiviati=False), [])
     archived = _safe("fascicoli_archivio", lambda: gf.tutti(stato=StatoFascicolo.ARCHIVIATO, archiviati=True), [])
-    light_items = [_item_light(fascicolo, scadenze_by_fasc=scadenze_by_fasc) for fascicolo in fascicoli]
+    office_pec_messages = _office_pec_messages()
+    light_items = [_item_light(fascicolo, scadenze_by_fasc=scadenze_by_fasc, office_pec_messages=office_pec_messages) for fascicolo in fascicoli]
     filtered = [
         item for item in light_items
         if _matches_list_filters(
@@ -1288,14 +1325,38 @@ def _notifica_portal_acquisition_href(fascicolo: Any, release: dict[str, Any] | 
         ("id_deposito", _text(release.get("idDepositoEsterno"))),
         ("id_documento", _text(release.get("documentoId") or release.get("riferimentoPortale"))),
         ("documento_portale", _text(release.get("nome"))),
+        ("single_document", "1"),
+        ("pec_id", _text(release.get("pecId"))),
+        ("hash", _text(release.get("hashSha256"))),
+        ("non_duplicare_documenti", "1"),
+        ("fase_successiva", "relata_notifica"),
     ]
     query = "&".join(f"{quote(key)}={quote(value)}" for key, value in params if value)
     return f"{base}?{query}#acquisizione-portale" if query else f"{base}#acquisizione-portale"
 
 
+def _normalise_office_document_name(value: Any) -> str:
+    raw = _text(value).lower()
+    if raw.endswith(".pdf.p7m"):
+        raw = raw[:-4]
+    elif raw.endswith(".p7m") and ".pdf" not in raw:
+        raw = raw[:-4]
+    return re.sub(r"[^a-z0-9]+", "", raw)
+
+
+def _office_pec_messages() -> list[Any]:
+    try:
+        from web.helpers import get_email_pec
+
+        return list(get_email_pec().tutte())[:500]
+    except Exception:
+        return []
+
+
 def _notification_relata(fascicolo: Any) -> dict[str, Any]:
     fid = _text(getattr(fascicolo, "id", ""))
-    pending_releases = released_office_documents_from_portal(fascicolo)
+    pec_evidence = office_notification_evidence_from_pec(fascicolo, _office_pec_messages())
+    pending_releases = [item for item in pec_evidence if not item.get("acquisito")]
     local_documents = list(getattr(fascicolo, "documenti", []) or [])
 
     def _doc_haystack(doc: Any) -> str:
@@ -1312,11 +1373,23 @@ def _notification_relata(fascicolo: Any) -> dict[str, Any]:
             )
         )
 
-    portal_documents = [
+    office_names = {
+        _normalise_office_document_name(item.get("nome"))
+        for item in pec_evidence
+        if item.get("acquisito")
+    }
+    office_hashes = {
+        _text(item.get("hashSha256")).lower()
+        for item in pec_evidence
+        if item.get("acquisito") and _text(item.get("hashSha256"))
+    }
+    office_documents = [
         doc
         for doc in local_documents
-        if _text(getattr(doc, "fonte_documento", "")).upper() in {"PORTALE_TELEMATICO", "PST", "POLISWEB", "PDP", "PAT", "PTT", "SIGIT"}
-        or _text(getattr(doc, "id_documento_portale", ""))
+        if _normalise_office_document_name(getattr(doc, "nome", "") or getattr(doc, "nome_originale", "") or getattr(doc, "nome_portale", "")) in office_names
+        or (_text(getattr(doc, "hash_sha256", "")).lower() in office_hashes if _text(getattr(doc, "hash_sha256", "")) else False)
+        or "comunicazione_cancelleria" in _doc_haystack(doc)
+        or ("notifica" in _doc_haystack(doc) and any(token in _doc_haystack(doc) for token in ("sentenza", "ordinanza", "decreto", "provvedimento")))
     ]
     relata_documents = [doc for doc in local_documents if "relata" in _doc_haystack(doc) and "notifica" in _doc_haystack(doc)]
     signed_relata = [
@@ -1336,11 +1409,11 @@ def _notification_relata(fascicolo: Any) -> dict[str, Any]:
     deposit_href = f"/notifiche-legali?id_fascicolo={quote(fid)}&fase=deposito#deposito" if fid else "/notifiche-legali#deposito"
     if pending_releases:
         status = "da_acquisire"
-        status_label = "Documento da scaricare dal portale"
+        status_label = "Provvedimento da scaricare dal portale"
         tone = "warning"
-        primary_href = acquisition_href
-        primary_label = "Collega e scarica"
-    elif portal_documents and not relata_documents:
+        primary_href = _text(first_release.get("acquisitionHref")) or acquisition_href
+        primary_label = "Scarica dal portale"
+    elif office_documents and not relata_documents:
         status = "da_preparare"
         status_label = "Relata da preparare"
         tone = "warning"
@@ -1368,27 +1441,27 @@ def _notification_relata(fascicolo: Any) -> dict[str, Any]:
         status = "monitoraggio"
         status_label = "Monitoraggio attivo"
         tone = "neutral"
-        primary_href = acquisition_href
-        primary_label = "Verifica portale"
+        primary_href = prepare_href
+        primary_label = "Apri notifica"
     primary_href = primary_href or prepare_href
     steps = [
         {
             "id": "rilascio_portale",
-            "label": "Rilascio documento ufficio",
-            "status": "da_acquisire" if pending_releases else "superato" if portal_documents else "monitorato",
-            "detail": f"{len(pending_releases)} documento/i da acquisire" if pending_releases else "Nessun documento d'ufficio pendente.",
+            "label": "PEC ufficio",
+            "status": "da_acquisire" if pending_releases else "superato" if office_documents else "monitorato",
+            "detail": f"{len(pending_releases)} documento/i comunicati via PEC da scaricare dal portale" if pending_releases else "Nessuna PEC d'ufficio pendente.",
         },
         {
             "id": "acquisizione",
-            "label": "Acquisizione Portale Servizi",
-            "status": "superato" if portal_documents else "da_completare",
-            "detail": f"{len(portal_documents)} documento/i già nel fascicolo." if portal_documents else "Collegamento pronto con fascicolo, RG e ufficio.",
+            "label": "Documento in atti",
+            "status": "superato" if office_documents else "da_completare",
+            "detail": f"{len(office_documents)} documento/i già nei Documenti e atti." if office_documents else "Integra solo il provvedimento indicato dalla PEC senza duplicare gli atti già presenti.",
         },
         {
             "id": "relata",
             "label": "Relata notifica",
-            "status": "superato" if relata_documents else "da_preparare" if portal_documents else "in_attesa",
-            "detail": f"{len(relata_documents)} relata/e nel fascicolo." if relata_documents else "La relata sarà generata dai dati della pratica e dai documenti acquisiti.",
+            "status": "superato" if relata_documents else "da_preparare" if office_documents else "in_attesa",
+            "detail": f"{len(relata_documents)} relata/e nel fascicolo." if relata_documents else "La relata sarà generata dai dati della pratica e dai documenti collegati.",
         },
         {
             "id": "firma",
@@ -1407,11 +1480,11 @@ def _notification_relata(fascicolo: Any) -> dict[str, Any]:
         {
             "id": _text(getattr(doc, "id", "")),
             "name": _text(getattr(doc, "nome", "") or getattr(doc, "nome_originale", ""), "Documento"),
-            "kind": "relata" if doc in relata_documents else "documento_portale" if doc in portal_documents else "prova",
+            "kind": "relata" if doc in relata_documents else "documento_ufficio" if doc in office_documents else "prova",
             "status": "firmato" if doc in signed_relata else "acquisito",
             "href": f"/fascicoli/{quote(fid)}/documenti/{quote(_text(getattr(doc, 'id', '')))}/visualizza" if fid and _text(getattr(doc, "id", "")) else "",
         }
-        for doc in (portal_documents + relata_documents + proof_documents)[:20]
+        for doc in (office_documents + relata_documents + proof_documents)[:20]
     ]
     return {
         "status": status,
@@ -1419,7 +1492,8 @@ def _notification_relata(fascicolo: Any) -> dict[str, Any]:
         "tone": tone,
         "releaseDetected": bool(pending_releases),
         "pendingPortalDocuments": len(pending_releases),
-        "portalDocuments": len(portal_documents),
+        "portalDocuments": len(office_documents),
+        "officeDocuments": len(office_documents),
         "relataDocuments": len(relata_documents),
         "signedRelataDocuments": len(signed_relata),
         "proofDocuments": len(proof_documents),
@@ -1429,7 +1503,7 @@ def _notification_relata(fascicolo: Any) -> dict[str, Any]:
         "primaryHref": primary_href,
         "primaryLabel": primary_label,
         "systemNotification": (
-            "Documento rilasciato dall'ufficio: scarica dal Portale Servizi prima della relata."
+            "PEC dell'ufficio ricevuta: scarica dal portale solo il provvedimento indicato e collegalo ai Documenti e atti prima della relata."
             if pending_releases
             else status_label
         ),

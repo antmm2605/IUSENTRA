@@ -6,13 +6,20 @@ from types import SimpleNamespace
 from pct.notifiche_legali import (
     LEGAL_NOTIFICATION_SUBJECT,
     build_client_communication,
+    build_notification_attachment_manifest,
     build_notification_normative_checks,
+    build_notification_send_plan,
+    build_notification_signature_plan,
+    build_notification_timing_plan,
     client_communication_templates_version,
     legal_notification_automation_payload,
     list_client_communication_templates,
     list_notification_templates,
+    notification_directive_matrix,
+    office_notification_evidence_from_pec,
     preview_legal_relata,
-    released_office_documents_from_portal,
+    prepare_pst_failed_notification_workflow,
+    released_office_documents_from_pec,
     template_catalog_version,
     validate_deposit_notification_proof,
     validate_legal_notification,
@@ -172,6 +179,8 @@ def test_notifica_l53_documento_ufficio_acquisito_dal_portale_supera_controllo()
     payload = _legal_payload()
     payload["documento_ufficio_rilasciato"] = True
     payload["acquisizione_portale_richiesta"] = True
+    payload["pec_ufficio_eml_file"] = "pec-cancelleria.eml"
+    payload["pec_ufficio_eml_sha256"] = "d" * 64
     payload["documenti"] = [
         {
             "nome_file": "ordinanza_da_notificare.pdf",
@@ -195,7 +204,7 @@ def test_notifica_l53_documento_ufficio_acquisito_dal_portale_supera_controllo()
     assert any(item["id"] == "documento_ufficio_acquisito" and item["status"] == "superato" for item in result.output_plan["normativeChecks"])
 
 
-def test_rilascio_documento_ufficio_da_metadati_portale_finche_non_acquisito():
+def test_rilascio_documento_ufficio_parte_da_pec_cancelleria_e_non_da_metadati_portale():
     fascicolo = SimpleNamespace(
         id="fasc-portal",
         numero="FASC-1",
@@ -226,14 +235,323 @@ def test_rilascio_documento_ufficio_da_metadati_portale_finche_non_acquisito():
         ],
     )
 
-    releases = released_office_documents_from_portal(fascicolo)
+    assert released_office_documents_from_pec(fascicolo, []) == []
+
+    pec = SimpleNamespace(
+        id="pec-cancelleria-1",
+        mittente="cancelleria.tribunale.roma@giustiziacert.it",
+        oggetto="Tribunale di Roma R.G. 1234/2026 - provvedimento da notificare",
+        data="2026-05-23T10:15:00",
+        corpo_testo="Si comunica il provvedimento ordinanza_da_notificare.pdf da notificare nel procedimento R.G. 1234/2026.",
+        allegati=[{"nome": "ordinanza_da_notificare.pdf", "sha256": "a" * 64}],
+        message_id="<pec-cancelleria-1@giustizia>",
+    )
+    releases = released_office_documents_from_pec(fascicolo, [pec])
 
     assert len(releases) == 1
     assert releases[0]["nome"] == "ordinanza_da_notificare.pdf"
+    assert releases[0]["fonteControllo"] == "pec_cancelleria"
     assert releases[0]["notificaRichiesta"] is True
+    assert "single_document=1" in releases[0]["acquisitionHref"]
+    assert "documento=ordinanza_da_notificare.pdf" in releases[0]["acquisitionHref"]
+    assert "non_duplicare_documenti=1" in releases[0]["acquisitionHref"]
 
-    fascicolo.documenti = [SimpleNamespace(id="doc-local", id_documento_portale="doc-rel-1", nome="ordinanza_da_notificare.pdf")]
-    assert released_office_documents_from_portal(fascicolo) == []
+    fascicolo.documenti = [SimpleNamespace(id="doc-local", id_documento_portale="doc-rel-1", nome="ordinanza_da_notificare.pdf", hash_sha256="a" * 64)]
+    assert released_office_documents_from_pec(fascicolo, [pec]) == []
+    evidence = office_notification_evidence_from_pec(fascicolo, [pec])
+    assert evidence[0]["acquisito"] is True
+
+    altro_fascicolo_stesso_anno = SimpleNamespace(
+        id="fasc-altro",
+        numero="FASC-ALTRO",
+        titolo="Altro fascicolo",
+        tribunale="Tribunale di Roma",
+        numero_rg="2026",
+        anno_rg=2026,
+        documenti=[],
+    )
+    assert released_office_documents_from_pec(altro_fascicolo_stesso_anno, [pec]) == []
+
+
+def test_matrice_notifica_blocca_registro_incoerente_per_destinatario():
+    payload = _legal_payload()
+    payload.update({
+        "ruolo_destinatario": "difensore",
+        "destinatario_parte_rappresentata": "Controparte S.p.A.",
+        "fonte_pec_destinatario": "registro_imprese",
+        "caso_notifica": "appello_impugnazione",
+        "provvedimento_tipo": "sentenza",
+        "provvedimento_data": "2026-05-20",
+    })
+
+    result = validate_legal_notification(payload)
+
+    assert result.ok is False
+    assert any("PEC_DESTINATARIO_REGISTRO_INCOERENTE" in item for item in result.blockers)
+
+
+def test_matrice_notifica_caso_e_destinatario_generano_output_governato():
+    payload = _legal_payload()
+    payload.update({
+        "ruolo_destinatario": "difensore",
+        "destinatario_parte_rappresentata": "Controparte S.p.A.",
+        "fonte_pec_destinatario": "reginde",
+        "caso_notifica": "appello_impugnazione",
+        "provvedimento_tipo": "sentenza",
+        "provvedimento_numero": "101",
+        "provvedimento_anno": "2026",
+        "provvedimento_ufficio_origine": "Tribunale di Roma",
+        "provvedimento_data": "2026-05-20",
+        "provvedimento_data_deposito": "2026-05-20",
+    })
+
+    result = validate_legal_notification(payload)
+
+    assert result.ok is True
+    assert result.template_id == "relata_appello_impugnazione"
+    directive = result.output_plan["notificationDirective"]
+    assert directive["role"] == "difensore"
+    assert directive["caseId"] == "appello_impugnazione"
+    assert "reginde" in directive["allowedRegisters"]
+    assert "difensore" in directive["allowedRecipientRoles"]
+    assert directive["recipientRule"]
+    assert directive["caseLegalBasis"]
+    delivery = result.output_plan["deliveryPlan"]
+    signature = result.output_plan["signaturePlan"]
+    assert delivery["ready"] is True
+    assert delivery["subject"] == LEGAL_NOTIFICATION_SUBJECT
+    assert delivery["recipients"][0]["role"] == "difensore"
+    assert any(item["id"] == "relata_firmata" for item in delivery["attachments"])
+    assert signature["requiredBeforeSend"][0]["id"] == "relata_notifica"
+    assert signature["requiredBeforeSend"][0]["sourceFile"] == "relata_notifica.pdf"
+    assert signature["requiredBeforeSend"][0]["signedFile"] == "relata_notifica.pdf.p7m"
+    assert delivery["signaturePlan"]["requiredBeforeSend"][0]["id"] == "relata_notifica"
+    assert any(item["id"] == "allegati_pec" and item["status"] == "superato" for item in delivery["sendChecks"])
+
+
+def test_piano_invio_prepara_pec_distinte_e_allegati_per_destinatario():
+    payload = _legal_payload()
+    payload.update({
+        "destinatari": [
+            {
+                "nome": "Controparte S.p.A.",
+                "pec": "controparte@example.pec.it",
+                "ruolo": "controparte",
+                "fonte_pec": "registro_imprese",
+            },
+            {
+                "nome": "Avv. Laura Bianchi",
+                "pec": "laura.bianchi@example.pec.it",
+                "ruolo": "difensore",
+                "fonte_pec": "reginde",
+                "parte_rappresentata": "Controparte S.p.A.",
+            },
+        ],
+        "documenti": [
+            {"nome_file": "ordinanza.pdf", "descrizione": "Ordinanza da notificare", "origine": "nativo_digitale", "hash_sha256": "a" * 64}
+        ],
+    })
+
+    plan = build_notification_send_plan(payload)
+
+    assert plan["ready"] is True
+    assert plan["separatePecRequired"] is True
+    assert plan["messagesCount"] == 2
+    assert {item["pec"] for item in plan["recipients"]} == {"controparte@example.pec.it", "laura.bianchi@example.pec.it"}
+    assert any(item["filename"] == "relata_notifica.pdf.p7m" for item in plan["attachments"])
+    assert any(item["filename"] == "ordinanza.pdf" for item in plan["attachments"])
+    assert "RAC per ogni destinatario" in plan["postSendEvidenceRequired"]
+
+
+def test_piano_firma_seleziona_relata_e_non_rifirma_provvedimento_portale():
+    payload = _legal_payload()
+    payload.update({
+        "documento_ufficio_rilasciato": True,
+        "acquisizione_portale_richiesta": True,
+        "pec_ufficio_eml_file": "pec-cancelleria.eml",
+        "pec_ufficio_eml_sha256": "d" * 64,
+        "documenti": [
+            {
+                "nome_file": "ordinanza_da_notificare.pdf",
+                "descrizione": "Ordinanza rilasciata dall'ufficio",
+                "origine": "copia_fascicolo_informatico",
+                "fonte_documento": "PORTALE_TELEMATICO",
+                "servizio_portale": "PST",
+                "riferimento_portale": "PST-REL-2026-0001",
+                "documento_ufficio": True,
+                "acquisito_da_portale": True,
+                "notifica_richiesta": True,
+                "hash_sha256": "a" * 64,
+            }
+        ],
+        "attestazione_multipla": True,
+    })
+
+    plan = build_notification_signature_plan(payload)
+
+    assert plan["localSignerRequired"] is True
+    assert plan["requiredBeforeSend"] == [
+        {
+            "id": "relata_notifica",
+            "label": "Relata di notificazione",
+            "sourceFile": "relata_notifica.pdf",
+            "signedFile": "relata_notifica.pdf.p7m",
+            "required": True,
+            "phase": "prima_invio_pec",
+            "format": "CADES",
+            "signer": "Mario Rossi",
+            "source": "L. 53/1994, art. 3-bis, comma 5; art. 56-bis disp. att. c.p.p. per il flusso penale",
+            "reason": "La normativa richiede la relazione di notificazione su documento informatico separato, sottoscritta dall'avvocato prima dell'invio PEC.",
+            "automaticSelection": True,
+        }
+    ]
+    assert plan["notToSign"][0]["filename"] == "ordinanza_da_notificare.pdf"
+    assert "relata firmata" in plan["notToSign"][0]["reason"]
+    assert any(item["id"] == "relata_firmata" and item["status"] == "superato" for item in plan["checks"])
+
+
+def test_piano_firma_include_solo_documento_marcato_come_atto_da_sottoscrivere():
+    payload = _legal_payload()
+    payload["documenti"] = [
+        {
+            "nome_file": "atto_principale.pdf",
+            "descrizione": "Atto principale da notificare",
+            "origine": "nativo_digitale",
+            "firma_digitale_richiesta": True,
+            "hash_sha256": "a" * 64,
+        },
+        {
+            "nome_file": "provvedimento.pdf.p7m",
+            "descrizione": "Provvedimento già firmato",
+            "origine": "firmato_digitalmente",
+            "hash_sha256": "b" * 64,
+        },
+    ]
+
+    plan = build_notification_signature_plan(payload)
+
+    assert [item["id"] for item in plan["requiredBeforeSend"]] == ["relata_notifica", "documento_1"]
+    assert plan["requiredBeforeSend"][1]["signedFile"] == "atto_principale.pdf.p7m"
+    assert plan["alreadySigned"] == [{"filename": "provvedimento.pdf.p7m", "reason": "Documento già firmato digitalmente o già in formato firmato."}]
+
+
+def test_piano_orario_applica_scissione_e_blocco_notturno():
+    serale = build_notification_timing_plan({"data_ora_invio_pec": "2026-05-24T21:30"})
+
+    assert serale["ready"] is True
+    assert serale["status"] == "fascia_serale_con_scissione"
+    assert "RAC" in serale["senderEffect"]
+    assert "07:00" in serale["recipientEffect"]
+    assert any(item["id"] == "corte_cost_75_2019" for item in serale["legalBasis"])
+
+    notturno = build_notification_timing_plan({"data_ora_invio_pec": "2026-05-24T06:30"})
+
+    assert notturno["ready"] is False
+    assert notturno["status"] == "fuori_fascia_destinatario"
+
+
+def test_area_web_pst_mancata_notifica_salva_art_3ter_e_avviso_eml():
+    payload = {
+        "pec_non_consegnata": True,
+        "causa_imputabile_destinatario": True,
+        "valutazione_avvocato": "Casella PEC satura risultante da avviso di mancata consegna.",
+        "avviso_mancata_consegna": "mancata-consegna.eml",
+        "atto_notificato": "atto.pdf",
+        "atto_notificato_sha256": "a" * 64,
+        "relata_firmata": "relata_notifica.pdf.p7m",
+        "relata_sha256": "b" * 64,
+        "pec_inviata": "notifica-inviata.eml",
+        "pec_inviata_sha256": "c" * 64,
+        "rac_file": "rac.eml",
+        "rac_sha256": "d" * 64,
+        "rdac_file": "rdac-completa.eml",
+        "rdac_sha256": "e" * 64,
+    }
+
+    result = prepare_pst_failed_notification_workflow(payload)
+
+    assert result.ok is True
+    assert result.output_plan["legalBasis"][0]["id"] == "l53_art3ter"
+    assert "Carica avviso di mancata consegna in formato EML" in result.output_plan["portalSteps"]
+
+
+def test_matrice_notifica_blocca_destinatario_incoerente_con_caso():
+    payload = _legal_payload()
+    payload.update({
+        "ruolo_destinatario": "controparte",
+        "fonte_pec_destinatario": "registro_imprese",
+        "caso_notifica": "chiamata_terzo",
+        "provvedimento_data": "2026-05-20",
+    })
+
+    result = validate_legal_notification(payload)
+
+    assert result.ok is False
+    assert any("DESTINATARIO_CASO_INCOERENTE" in item for item in result.blockers)
+
+    payload.update({
+        "ruolo_destinatario": "terzo",
+        "destinatario_nome": "Terzo Chiamato S.r.l.",
+        "destinatario_qualifica": "terzo destinatario",
+    })
+
+    valid = validate_legal_notification(payload)
+
+    assert valid.ok is True
+    assert valid.output_plan["notificationDirective"]["caseId"] == "chiamata_terzo"
+
+
+def test_matrice_notifica_esposta_per_ui_e_script():
+    matrix = notification_directive_matrix()
+
+    assert any(item["value"] == "difensore" and "reginde" in item["allowedRegisters"] for item in matrix["roles"])
+    assert any(item["value"] == "sentenza_termine_breve" and item["templateId"] == "relata_sentenza_termine_breve" for item in matrix["cases"])
+    assert all(item["legalBasis"] for item in matrix["roles"])
+    assert all(item["legalBasis"] and item["recipientRule"] and item["allowedRecipientRoles"] for item in matrix["cases"])
+    assert any(item["id"] == "l53_art3ter" for item in matrix["roles"][0]["legalBasis"])
+    provvedimento = next(item for item in matrix["cases"] if item["value"] == "provvedimento_giudice")
+    assert any(item["id"] == "dgsia_2024_art22" for item in provvedimento["legalBasis"])
+
+
+def test_allegati_notifica_ed_eml_pec_ufficio_sono_controllati():
+    payload = _legal_payload()
+    payload.update({
+        "caso_notifica": "provvedimento_giudice",
+        "provvedimento_data": "2026-05-23",
+        "documento_ufficio_rilasciato": True,
+        "pec_ufficio_rilascio": True,
+        "pec_ufficio_eml_file": "pec-cancelleria.eml",
+        "pec_ufficio_eml_sha256": "a" * 64,
+        "documenti": [
+            {
+                "nome_file": "ordinanza.pdf",
+                "descrizione": "Ordinanza comunicata dalla cancelleria",
+                "origine": "comunicazione_cancelleria",
+                "data_comunicazione_cancelleria": "2026-05-23",
+                "hash_sha256": "b" * 64,
+                "documento_ufficio": True,
+                "notifica_richiesta": True,
+                "acquisito_da_portale": True,
+                "riferimento_portale": "pst-doc-1",
+            }
+        ],
+        "attestazione_multipla": True,
+    })
+
+    manifest = build_notification_attachment_manifest(payload)
+    result = validate_legal_notification(payload)
+
+    assert result.ok is True
+    assert all(item["present"] for item in manifest if item["required"])
+    assert any(item["id"] == "eml_ufficio" and item["present"] for item in manifest)
+    assert any(item["id"] == "eml_pec_ufficio" and item["status"] == "superato" for item in build_notification_normative_checks(payload))
+
+    payload.pop("pec_ufficio_eml_file")
+    payload.pop("pec_ufficio_eml_sha256")
+    blocked = validate_legal_notification(payload)
+
+    assert blocked.ok is False
+    assert any("PEC_UFFICIO_EML_REQUIRED" in item for item in blocked.blockers)
 
 
 def test_notifica_l53_controllo_attestazioni_non_basta_per_un_solo_allegato():
@@ -538,6 +856,7 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     assert payload["modelliRelata"][0]["previewText"]
     assert payload["automazioneGuidata"]["notifica"][0]["source"].startswith("L. 53/1994")
     assert payload["automazioneGuidata"]["deposito"][0]["id"] == "atti"
+    assert any(item["id"] == "eml_ufficio" for item in payload["automazioneGuidata"]["allegati"])
     assert any(field["token"] == "{{ documenti_righe }}" for field in payload["campiDisponibili"])
     assert invalid_response.status_code == 400
     assert invalid_payload["ok"] is False
@@ -799,15 +1118,15 @@ def test_payload_react_notifiche_legali_precompila_da_dati_iusentra():
     assert documento_payload["origine"] == "copia_fascicolo_informatico"
     assert documento_payload["riferimentoPortale"] == "pst-doc-1"
     assert documento_payload["servizioPortale"] == "PST"
-    assert documento_payload["documentoUfficio"] is True
+    assert documento_payload["documentoUfficio"] is False
     assert documento_payload["acquisitoDaPortale"] is True
-    assert documento_payload["notificaRichiesta"] is True
+    assert documento_payload["notificaRichiesta"] is False
     assert documento_payload["necessitaAttestazione"] is True
     assert pratica["portaleAcquisizioneHref"].startswith("/portali/pst/acquisizione?")
-    assert pratica["documentoUfficioMonitor"]["stato"] == "acquisito"
+    assert pratica["documentoUfficioMonitor"]["stato"] == "da_verificare"
 
 
-def test_payload_react_notifiche_legali_segnala_documento_portale_da_acquisire():
+def test_payload_react_notifiche_legali_segnala_pec_ufficio_da_collegare(monkeypatch):
     fascicolo = SimpleNamespace(
         id="fascicolo-portale",
         numero="2026/002",
@@ -844,6 +1163,16 @@ def test_payload_react_notifiche_legali_segnala_documento_portale_da_acquisire()
             )
         ],
     )
+    pec = SimpleNamespace(
+        id="pec-cancelleria-5678",
+        mittente="cancelleria.tribunale.roma@giustiziacert.it",
+        oggetto="Tribunale di Roma R.G. 5678/2026 - ordinanza da notificare",
+        data="2026-05-23T10:15:00",
+        corpo_testo="Si comunica il provvedimento ordinanza_da_notificare.pdf da notificare nel procedimento R.G. 5678/2026.",
+        allegati=[{"nome": "ordinanza_da_notificare.pdf", "sha256": "b" * 64}],
+        message_id="<pec-cancelleria-5678@giustizia>",
+    )
+    monkeypatch.setattr("web.services.react_notifiche_legali_bridge._office_pec_messages", lambda: [pec])
 
     payload = build_react_notifiche_legali_payload(
         get_clienti=lambda: SimpleNamespace(tutti=lambda: []),
@@ -853,9 +1182,13 @@ def test_payload_react_notifiche_legali_segnala_documento_portale_da_acquisire()
 
     pratica = payload["precompilazione"]["pratiche"][0]
 
-    assert payload["contracts"]["officeDocumentPortalAcquisition"] is True
+    assert payload["contracts"]["officeDocumentPecEvidence"] is True
     assert pratica["documentoUfficioMonitor"]["stato"] == "da_acquisire"
     assert pratica["documentoUfficioMonitor"]["documentiDaAcquisire"] == 1
     assert pratica["documentoUfficioMonitor"]["documentiRilasciati"][0]["nome"] == "ordinanza_da_notificare.pdf"
+    assert pratica["documentoUfficioMonitor"]["documentiRilasciati"][0]["pecHref"] == "/email/messaggio/pec-cancelleria-5678"
+    assert "single_document=1" in pratica["documentoUfficioMonitor"]["documentiRilasciati"][0]["acquisitionHref"]
+    assert "documento=ordinanza_da_notificare.pdf" in pratica["documentoUfficioMonitor"]["documentiRilasciati"][0]["acquisitionHref"]
+    assert "non_duplicare_documenti=1" in pratica["documentoUfficioMonitor"]["documentiRilasciati"][0]["acquisitionHref"]
     assert "id_fasc=fascicolo-portale" in pratica["portaleAcquisizioneHref"]
     assert "numero=5678" in pratica["portaleAcquisizioneHref"]

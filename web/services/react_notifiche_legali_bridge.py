@@ -19,7 +19,8 @@ from pct.notifiche_legali import (
     legal_notification_automation_payload,
     normalise_custom_template,
     normalise_document_origin,
-    released_office_documents_from_portal,
+    notification_directive_matrix,
+    office_notification_evidence_from_pec,
     template_preview_text,
     template_catalog_version,
 )
@@ -154,7 +155,25 @@ def _portal_acquisition_href(fascicolo: Any, *, portale: str = "pst") -> str:
     return f"/portali/{portale}/acquisizione{f'?{query}' if query else ''}"
 
 
-def _document_notification_required(documento: Any, *, origin: str, acquired_from_portal: bool) -> bool:
+def _normalise_document_match(value: Any) -> str:
+    raw = _text(value).lower()
+    if raw.endswith(".pdf.p7m"):
+        raw = raw[:-4]
+    elif raw.endswith(".p7m") and ".pdf" not in raw:
+        raw = raw[:-4]
+    return re.sub(r"[^a-z0-9]+", "", raw)
+
+
+def _office_pec_messages() -> list[Any]:
+    try:
+        from web.helpers import get_email_pec
+
+        return list(get_email_pec().tutte())[:500]
+    except Exception:
+        return []
+
+
+def _document_notification_required(documento: Any, *, origin: str) -> bool:
     haystack = " ".join(
         _text(value).lower()
         for value in (
@@ -167,14 +186,19 @@ def _document_notification_required(documento: Any, *, origin: str, acquired_fro
             " ".join(str(item) for item in (getattr(documento, "tags", []) or [])),
         )
     )
-    if any(token in haystack for token in ("notifica", "notificare", "relata", "termine breve")):
+    if bool(getattr(documento, "notifica_richiesta", False)) or bool(getattr(documento, "notificaRichiesta", False)):
         return True
-    return acquired_from_portal and origin in {"copia_fascicolo_informatico", "comunicazione_cancelleria"} and any(
-        token in haystack for token in ("sentenza", "ordinanza", "decreto", "provvedimento")
+    return origin == "comunicazione_cancelleria" and any(
+        token in haystack for token in ("notifica", "notificare", "relata", "termine breve", "sentenza", "ordinanza", "decreto", "provvedimento")
     )
 
 
-def _document_from_fascicolo(documento: Any) -> dict[str, Any]:
+def _document_from_fascicolo(
+    documento: Any,
+    *,
+    office_names: set[str] | None = None,
+    office_hashes: set[str] | None = None,
+) -> dict[str, Any]:
     origin = normalise_document_origin(_infer_document_origin(documento))
     name = _first_attr(documento, "nome_originale", "nome_portale", "nome", "percorso")
     description = _first_attr(documento, "tipo_atto_portale", "classificazione_portale", "note") or name
@@ -186,8 +210,16 @@ def _document_from_fascicolo(documento: Any) -> dict[str, Any]:
         or source_name.upper() in {"PORTALE_TELEMATICO", "PST", "POLISWEB", "PDP", "PAT", "PTT", "SIGIT"}
         or portal_service.upper() in {"PST", "POLISWEB", "PDP", "PAT", "PTT", "SIGIT"}
     )
-    office_document = acquired_from_portal and origin in {"copia_fascicolo_informatico", "comunicazione_cancelleria"}
-    notification_required = _document_notification_required(documento, origin=origin, acquired_from_portal=acquired_from_portal)
+    name_key = _normalise_document_match(name)
+    sha_key = _text(getattr(documento, "hash_sha256", "")).lower()
+    pec_evidence = bool((name_key and name_key in (office_names or set())) or (sha_key and sha_key in (office_hashes or set())))
+    notification_required = pec_evidence or _document_notification_required(documento, origin=origin)
+    office_document = (
+        pec_evidence
+        or bool(getattr(documento, "documento_ufficio", False))
+        or bool(getattr(documento, "notifica_richiesta", False))
+        or origin == "comunicazione_cancelleria"
+    )
     return {
         "id": _text(getattr(documento, "id", "")) or name,
         "label": _document_label(documento) or _display_text(name),
@@ -216,7 +248,7 @@ def _cliente_option(cliente: Any) -> dict[str, Any]:
     }
 
 
-def _fascicolo_option(fascicolo: Any, *, cliente: Any = None, soggetti_repo: Any = None) -> dict[str, Any]:
+def _fascicolo_option(fascicolo: Any, *, cliente: Any = None, soggetti_repo: Any = None, pec_emails: list[Any] | None = None) -> dict[str, Any]:
     proceeding_present = bool(
         _text(getattr(fascicolo, "tribunale", ""))
         or _text(getattr(fascicolo, "numero_rg", ""))
@@ -241,8 +273,19 @@ def _fascicolo_option(fascicolo: Any, *, cliente: Any = None, soggetti_repo: Any
             )
             if recipient["nome"] or recipient["pec"]:
                 recipients.append(recipient)
+    pec_evidence = office_notification_evidence_from_pec(fascicolo, pec_emails or [])
+    office_names = {
+        _normalise_document_match(item.get("nome"))
+        for item in pec_evidence
+        if item.get("acquisito")
+    }
+    office_hashes = {
+        _text(item.get("hashSha256")).lower()
+        for item in pec_evidence
+        if item.get("acquisito") and _text(item.get("hashSha256"))
+    }
     documents = [
-        _document_from_fascicolo(documento)
+        _document_from_fascicolo(documento, office_names=office_names, office_hashes=office_hashes)
         for documento in (getattr(fascicolo, "documenti", []) or [])[:60]
     ]
     office_documents = [
@@ -250,8 +293,8 @@ def _fascicolo_option(fascicolo: Any, *, cliente: Any = None, soggetti_repo: Any
         for documento in documents
         if documento["documentoUfficio"] or documento["notificaRichiesta"]
     ]
-    acquired_office_documents = [documento for documento in office_documents if documento["acquisitoDaPortale"]]
-    pending_releases = released_office_documents_from_portal(fascicolo)
+    acquired_office_documents = [documento for documento in office_documents if documento["notificaRichiesta"] or documento["documentoUfficio"]]
+    pending_releases = [item for item in pec_evidence if not item.get("acquisito")]
     monitor_status = (
         "da_acquisire"
         if pending_releases
@@ -292,14 +335,14 @@ def _fascicolo_option(fascicolo: Any, *, cliente: Any = None, soggetti_repo: Any
             "documentiAcquisiti": len(acquired_office_documents),
             "documentiDaAcquisire": len(pending_releases),
             "documentiDaNotificare": len([documento for documento in office_documents if documento["notificaRichiesta"]]),
+            "documentiRilevati": pec_evidence[:20],
             "documentiRilasciati": pending_releases[:20],
             "messaggio": (
-                "Documento rilasciato dall'ufficio: acquisizione richiesta dal Portale Servizi."
+                "PEC dell'ufficio ricevuta: scarica dal portale solo il provvedimento indicato e collegalo ai Documenti e atti prima della relata."
                 if pending_releases
-                else
-                "Documento d'ufficio acquisito dal Portale Servizi."
+                else "Documento comunicato dall'ufficio già presente nei Documenti e atti."
                 if acquired_office_documents
-                else "Verifica sul Portale Servizi se l'ufficio ha rilasciato documenti da notificare."
+                else "Nessuna PEC dell'ufficio richiede oggi una relata su provvedimento da notificare."
                 if proceeding_present
                 else "Nessun procedimento telematico da controllare."
             ),
@@ -322,11 +365,13 @@ def _build_prefill_payload(*, get_clienti: Any = None, get_fascicoli: Any = None
     fascicoli = []
     if fascicoli_repo is not None:
         fascicoli = _safe_call("fascicoli", lambda: fascicoli_repo.tutti(archiviati=False), [])
+    pec_emails = _office_pec_messages()
     pratiche = [
         _fascicolo_option(
             fascicolo,
             cliente=clienti_by_id.get(_text(getattr(fascicolo, "id_cliente", ""))),
             soggetti_repo=soggetti_repo,
+            pec_emails=pec_emails,
         )
         for fascicolo in fascicoli[:80]
     ]
@@ -373,6 +418,8 @@ def build_react_notifiche_legali_payload(
             "depositProofWithOriginalReceipts": True,
             "parametricTemplateEngine": True,
             "officeDocumentPortalAcquisition": True,
+            "officeDocumentPecEvidence": True,
+            "recipientCaseMatrix": True,
         },
         "templateCatalogVersion": template_catalog_version(),
         "mandatorySubject": LEGAL_NOTIFICATION_SUBJECT,
@@ -390,6 +437,7 @@ def build_react_notifiche_legali_payload(
             {"value": key, "label": label}
             for key, label in PUBLIC_PEC_REGISTERS.items()
         ],
+        "matriceNotifica": notification_directive_matrix(),
         "ruoliDestinatario": [
             {"value": role, "label": _recipient_role_label(role)}
             for role in sorted(LEGAL_RECIPIENT_ROLES)

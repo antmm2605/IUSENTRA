@@ -2,6 +2,28 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-24T18:00:00+02:00: chiusura Relata notifica PEC-first
+2.248.28.
+`/notifiche-legali`, top bar, dettaglio fascicolo e Portale Servizi ora seguono
+la regola corretta: il provvedimento notificabile nasce dalla PEC dell'ufficio
+giudiziario. I documenti già presenti in `Documenti e atti` e i soli metadati
+del portale non generano più duplicati né pendenze di relata. Il link di
+acquisizione viene compilato con fascicolo, numero R.G., anno, ufficio, PEC e
+documento, con acquisizione mirata al singolo provvedimento e flag
+`non_duplicare_documenti=1`.
+
+La UI espone anche la matrice casi/destinatari governata dal backend, la lista
+Fascicoli mostra pagine ulteriori con controlli espliciti e Lex indicizza i
+`.pdf.p7m` come PDF leggibili salvando l'indice una sola volta. La chiusura
+richiede demo script, screenshot reali e guida PDF:
+`artifacts/notifiche-legali/notifiche-legali-demo-e2e.pdf` e
+`artifacts/notifiche-legali/notifiche-legali-guida-avvocato-screenshot.pdf`.
+La guida screenshot è stata rigenerata con font Unicode e viewport leggibili:
+8 pagine renderizzate, zero caratteri sostitutivi e 14/14 verifiche UI
+superate. Sono stati salvati anche gli XSD SICI PST del 12 maggio 2026 in
+`docs/specs/ministero/xsd/2026-05-12-sici/`, così il deposito prova resta
+ancorato agli schemi tecnici più recenti disponibili nel repository.
+
 Aggiornamento 2026-05-23T20:00:00+02:00: notifiche legali guidate
 2.248.21.
 `/notifiche-legali` mantiene la superficie React operativa e ora espone un

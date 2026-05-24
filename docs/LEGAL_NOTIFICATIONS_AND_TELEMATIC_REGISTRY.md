@@ -2,6 +2,95 @@
 
 Documento operativo per il modulo notifiche PEC ex L. 53/1994, comunicazioni cliente, deposito prova notifica e registry procedimenti telematici.
 
+## Direttive normative salvate
+
+Le regole normative, tecniche e ministeriali usate dal modulo notifiche non
+devono restare implicite. Ogni direttiva che incide su PEC, relata, firma,
+allegati, prova notifica, DatiAtto.xml, XSD/DTD o acquisizione da portale deve
+essere salvata in repository, citata nel codice quando diventa regola runtime e
+coperta da test di regressione.
+
+Fonti salvate per questa tranche:
+
+- Gazzetta Ufficiale, supplemento ordinario n. 38/L del 17 ottobre 2022,
+  D.Lgs. 149/2022, note all'art. 12: art. 3-bis L. 53/1994 vigente.
+  Regole applicate: PEC da pubblici elenchi, oggetto obbligatorio, atto
+  allegato, perfezionamento con RAC/RdAC, relata su documento informatico
+  separato firmato digitalmente e dati della relata.
+- Gazzetta Ufficiale, supplemento ordinario n. 38/L del 17 ottobre 2022,
+  art. 196-undecies disp. att. c.p.c. Regole applicate: attestazione di
+  conformità; se la copia informatica è destinata alla notifica,
+  l'attestazione va inserita nella relazione di notificazione.
+- Ministero della giustizia, Provvedimento DGSIA 16 aprile 2014 e testo
+  coordinato specifiche tecniche PCT. Fonte storica tenuta per compatibilità e
+  confronto, non usata come riferimento tecnico corrente quando il provvedimento
+  DGSIA 2024 disciplina lo stesso punto.
+- Ministero della giustizia, PST, Provvedimento DGSIA 7 agosto 2024 ex art. 34
+  D.M. 44/2011, efficace dal 30 settembre 2024, con rettifiche 16 settembre
+  2024 e 30 ottobre 2024. Regole applicate: art. 21 PEC dell'ufficio e
+  `Comunicazione.xml`, art. 22 avviso di disponibilità e area download, art.
+  25 rilascio copie, art. 26 notificazioni degli avvocati/RAC/RdAC/DatiAtto.xml
+  e art. 27 attestazione di conformità.
+- Gazzetta Ufficiale, supplemento straordinario n. 5 del 19 ottobre 2022,
+  art. 56-bis disp. att. c.p.p. Regola applicata per il penale: relazione di
+  notificazione del difensore su documento informatico separato, sottoscritto
+  con firma digitale o altra firma elettronica qualificata, con deposito di atto,
+  relazione e ricevute.
+- L. 53/1994, art. 3-ter, nota DGSIA 14 novembre 2024 e matrice FIIF/Ordine
+  Pavia salvate in `docs/specs/ministero/prassi_notifiche/`: area web PST solo
+  quando la mancata notifica è imputabile al destinatario, con atto/PEC,
+  relata, avviso di mancata consegna EML e certificazione.
+- D.L. 179/2012, art. 16-septies, D.P.R. 68/2005 artt. 6 e 8, Corte
+  costituzionale 75/2019. Regole applicate: RAC/RdAC, avviso di mancata
+  consegna e controllo orario della notifica PEC.
+
+Regola operativa attuale sulla firma:
+
+- il documento da firmare automaticamente prima dell'invio PEC è la
+  `relata_notifica.pdf`;
+- la firma produce `relata_notifica.pdf.p7m` in CAdES o
+  `relata_notifica_firmata.pdf` in PAdES, secondo configurazione;
+- il provvedimento scaricato dal portale viene allegato come atto notificato e
+  non viene rifirmato arbitrariamente dall'avvocato; l'eventuale attestazione di
+  conformità per copia/provvedimento acquisito è nella relata firmata;
+- un documento diverso dalla relata entra nella coda firma solo se una direttiva
+  normativa o una regola di workflow lo marca espressamente come atto da
+  sottoscrivere autonomamente;
+- l'invio PEC resta bloccato finché la relata separata non risulta firmata;
+- l'orario 00:00-06:59 è bloccato nel workflow automatico; la fascia
+  21:00-23:59 resta consentita con evidenza della scissione degli effetti
+  secondo Corte costituzionale 75/2019.
+
+## Provvedimento comunicato dall'ufficio giudiziario
+
+Quando l'ufficio giudiziario comunica via PEC il rilascio di un provvedimento
+che, secondo il caso concreto, deve essere notificato, IUSENTRA deve trattare la
+PEC come fonte del segnale operativo. I documenti già presenti nella sezione
+`Documenti e atti` del fascicolo e i soli metadati del portale non sono una
+prova sufficiente per generare una nuova notifica, perché potrebbero essere
+copie già disponibili o elementi già acquisiti.
+
+Il comportamento atteso è:
+
+- rilevare nella PEC ufficio, R.G., anno e, quando indicato, nome/hash del
+  provvedimento;
+- avvisare l'avvocato nella top bar, nel fascicolo e in `/notifiche-legali`;
+- generare un collegamento al Portale Servizi già compilato con fascicolo,
+  ufficio giudiziario, numero R.G., anno e documento;
+- scaricare/importare solo il provvedimento indicato, con assistenza
+  dell'avvocato e senza conservare credenziali, PIN, sessioni CNS/CIE/SPID o
+  password del portale;
+- collegare il documento ai `Documenti e atti` del fascicolo senza duplicare
+  file già presenti con stesso nome o hash;
+- abilitare la generazione della relata solo dopo che il provvedimento
+  comunicato dalla PEC risulta acquisito o collegato.
+
+Il link di acquisizione deve includere il vincolo operativo
+`single_document=1` e il presidio `non_duplicare_documenti=1`. Se la PEC non
+indica un documento specifico, il software deve mostrare un avviso
+professionale e lasciare all'avvocato la selezione del provvedimento nel
+portale, senza creare automaticamente duplicati.
+
 ## Principi fail-closed
 
 - Canale, portale, registro e procedimento devono essere espliciti e censiti.

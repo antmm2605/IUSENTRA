@@ -16,7 +16,7 @@ from pct.email_client import CartellaEmail, GestioneEmailRicevute
 from pct.fatturazione import StatoParcella
 from pct.global_search.repository import GlobalSearchRepository
 from pct.global_search.service import GlobalSearchService, default_global_search_db_path
-from pct.notifiche_legali import released_office_documents_from_portal
+from pct.notifiche_legali import released_office_documents_from_pec
 from pct.scadenziario import PrioritaTermine, StatoTermine
 from pct.notifications import NotificationRecord, NotificationServiceError
 from web.services.notifications_runtime import (
@@ -642,6 +642,10 @@ def _portal_acquisition_href_for_release(fascicolo: Any, release: dict[str, Any]
         ("id_deposito", _clean_text(release.get("idDepositoEsterno"))),
         ("id_documento", _clean_text(release.get("documentoId") or release.get("riferimentoPortale"))),
         ("documento_portale", _clean_text(release.get("nome"))),
+        ("single_document", "1"),
+        ("pec_id", _clean_text(release.get("pecId"))),
+        ("hash", _clean_text(release.get("hashSha256"))),
+        ("non_duplicare_documenti", "1"),
         ("fase_successiva", "relata_notifica"),
     ]
     query = "&".join(f"{quote(key)}={quote(value)}" for key, value in params if value)
@@ -721,8 +725,9 @@ def _notification_items(user: Any) -> list[dict[str, Any]]:
             current_app.logger.info("Top bar notifiche: PEC non disponibile", exc_info=True)
     if _has_perm(user, "telematico.leggi"):
         try:
+            office_emails = _email_manager().tutte()[:500]
             for fascicolo in get_fascicoli().tutti(archiviati=True):
-                for release in released_office_documents_from_portal(fascicolo)[:5]:
+                for release in released_office_documents_from_pec(fascicolo, office_emails)[:5]:
                     rg = "/".join(
                         part
                         for part in (
@@ -731,22 +736,22 @@ def _notification_items(user: Any) -> list[dict[str, Any]]:
                         )
                         if part
                     )
-                    source = _clean_text(release.get("fontePortale") or "Portale Servizi")
+                    source = _clean_text(release.get("fontePortale") or "PEC cancelleria")
                     document_name = _clean_text(release.get("nome") or release.get("tipo") or "Documento d'ufficio")
-                    detail = f"{document_name} rilasciato su {source}"
+                    detail = f"{document_name} comunicato da {source}"
                     if rg:
                         detail = f"{detail}, R.G. {rg}"
                     if release.get("notificaRichiesta"):
-                        detail = f"{detail}. Acquisizione richiesta prima della relata."
+                        detail = f"{detail}. Scarica dal portale solo questo provvedimento prima della relata."
                     items.append(
                         _notification(
-                            f"portal-office-release:{fascicolo.id}:{release.get('depositoId') or release.get('idDepositoEsterno')}:{release.get('documentoId') or document_name}",
+                            f"pec-office-release:{fascicolo.id}:{release.get('pecId') or release.get('riferimentoPortale')}:{release.get('documentoId') or document_name}",
                             "document",
-                            "Documento d'ufficio da scaricare",
+                            "Provvedimento da notificare",
                             detail,
                             _clean_text(release.get("dataDeposito")) or now.isoformat(),
                             "urgent" if release.get("notificaRichiesta") else "important",
-                            _portal_acquisition_href_for_release(fascicolo, release),
+                            _clean_text(release.get("acquisitionHref")) or _portal_acquisition_href_for_release(fascicolo, release),
                             "Scarica dal portale",
                         )
                     )

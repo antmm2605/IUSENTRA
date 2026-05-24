@@ -2,6 +2,26 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-24T18:00:00+02:00: Relata notifica PEC-first
+2.248.28.
+Audit UI e dominio: la sezione `Relata notifica` non usa più i documenti già
+presenti nel fascicolo né i soli metadati del portale come causa automatica di
+notifica. Il segnale nasce dalla PEC dell'ufficio giudiziario; il software
+avvisa l'avvocato, prepara il collegamento al Portale Servizi con fascicolo,
+R.G., ufficio e documento, filtra l'acquisizione sul singolo provvedimento e
+mantiene il vincolo anti-duplicazione.
+
+Controlli anti-mascheramento: nessun invio PEC reale, nessun salvataggio di
+credenziali o sessioni del portale, nessuno scraping HTML non autorizzato. La
+demo browser reale produce schermate per `/notifiche-legali`, Portale Servizi,
+fascicolo con sezione `Relata notifica` e paginazione Fascicoli; lo script
+end-to-end copre matrice normativa, PEC ufficio, Lex `.pdf.p7m` e paginazione.
+Il PDF guida `artifacts/notifiche-legali/notifiche-legali-guida-avvocato-screenshot.pdf`
+è stato renderizzato a PNG e controllato visivamente: screenshot leggibili,
+accenti italiani corretti e nessun blocco "Da completare" nell'esito finale.
+Le direttive includono gli XSD SICI PST del 12 maggio 2026 salvati offline,
+con nota fonte in `docs/specs/ministero/notifiche_legali_directives.md`.
+
 Aggiornamento 2026-05-23T20:00:00+02:00: notifiche legali guidate
 2.248.21.
 Audit `/notifiche-legali`: la pagina React non limita più la notifica a un solo

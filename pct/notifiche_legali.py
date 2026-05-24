@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote, urlencode
 from xml.sax.saxutils import escape
 
 
@@ -28,6 +29,10 @@ CLIENT_COMMUNICATION_OPERATION = "comunicazione_cliente_non_notifica"
 TEMPLATE_CATALOG_PATH = Path(__file__).with_name("data") / "notifiche_legali_templates.json"
 CLIENT_COMMUNICATION_CATALOG_PATH = Path(__file__).with_name("data") / "comunicazioni_cliente_templates.json"
 SHA256_HEX_RE = re.compile(r"^[a-fA-F0-9]{64}$")
+RG_PAIR_RE = re.compile(
+    r"\b(?:R\.?\s*G\.?|RG|REGISTRO\s+GENERALE)?\s*(?:N\.?|NR\.?)?\s*[:\-]?\s*0*(\d{1,8})\s*/\s*(\d{4})\b",
+    re.IGNORECASE,
+)
 
 PUBLIC_PEC_REGISTERS: dict[str, str] = {
     "reginde": "ReGIndE",
@@ -49,6 +54,419 @@ LEGAL_RECIPIENT_ROLES = {
 }
 
 CLIENT_RECIPIENT_ROLES = {"cliente", "assistito"}
+
+RECIPIENT_NOTIFICATION_DIRECTIVES: dict[str, dict[str, Any]] = {
+    "controparte": {
+        "label": "Controparte personalmente",
+        "allowed_registers": ("inad", "ini_pec", "registro_imprese", "registro_ppaa", "altro_pubblico_elenco"),
+        "template_id": "relata_pec_a_controparte_personalmente",
+        "required_fields": (),
+        "note": "Usa questo caso quando la notifica è diretta alla parte presso domicilio digitale da pubblico elenco.",
+    },
+    "difensore": {
+        "label": "Difensore costituito",
+        "allowed_registers": ("reginde", "ini_pec", "altro_pubblico_elenco"),
+        "template_id": "relata_pec_a_difensore_costituito",
+        "required_fields": ("destinatario.parte_rappresentata",),
+        "note": "Da usare quando la controparte è assistita da difensore costituito e la notifica va al procuratore.",
+    },
+    "impresa": {
+        "label": "Impresa o società",
+        "allowed_registers": ("registro_imprese", "ini_pec", "altro_pubblico_elenco"),
+        "template_id": "relata_pec_a_impresa_societa",
+        "required_fields": ("destinatario.codice_fiscale_piva",),
+        "note": "La PEC deve provenire da Registro Imprese o altro pubblico elenco ammesso.",
+    },
+    "professionista": {
+        "label": "Professionista",
+        "allowed_registers": ("ini_pec", "reginde", "altro_pubblico_elenco"),
+        "template_id": "relata_pec_a_professionista_inipec",
+        "required_fields": (),
+        "note": "Per avvocati e professionisti verifica l'elenco pubblico coerente con la qualifica.",
+    },
+    "pa": {
+        "label": "Pubblica amministrazione",
+        "allowed_registers": ("registro_ppaa", "altro_pubblico_elenco"),
+        "template_id": "relata_pec_a_pubblica_amministrazione",
+        "required_fields": (),
+        "note": "La PEC deve essere tratta dal registro pubblico delle PP.AA. o da fonte pubblica ammessa.",
+    },
+    "terzo": {
+        "label": "Terzo destinatario",
+        "allowed_registers": ("reginde", "ini_pec", "registro_imprese", "registro_ppaa", "inad", "altro_pubblico_elenco"),
+        "template_id": "relata_pec_base_l53",
+        "required_fields": (),
+        "note": "Caso residuale: richiede revisione professionale del ruolo prima dell'invio.",
+    },
+}
+
+NOTIFICATION_CASE_DIRECTIVES: dict[str, dict[str, Any]] = {
+    "ordinaria": {
+        "label": "Notifica ordinaria a mezzo PEC",
+        "template_id": "relata_pec_base_l53",
+        "required_fields": (),
+        "proceeding_required": False,
+        "note": "Atto o documento notificato con oggetto L. 53 e relata separata.",
+    },
+    "in_corso_di_causa": {
+        "label": "Notifica in corso di causa",
+        "template_id": "relata_pec_in_corso_di_causa",
+        "required_fields": ("procedimento.ufficio", "procedimento.numero_rg", "procedimento.anno_rg"),
+        "proceeding_required": True,
+        "note": "Richiede riferimenti del procedimento pendente.",
+    },
+    "provvedimento_giudice": {
+        "label": "Provvedimento del giudice",
+        "template_id": "relata_provvedimento_giudice",
+        "required_fields": ("procedimento.ufficio", "procedimento.numero_rg", "procedimento.anno_rg", "provvedimento.data"),
+        "proceeding_required": True,
+        "note": "Per provvedimenti comunicati o estratti dal fascicolo informatico.",
+    },
+    "sentenza_termine_breve": {
+        "label": "Sentenza o termine breve",
+        "template_id": "relata_sentenza_termine_breve",
+        "required_fields": ("provvedimento.tipo", "provvedimento.numero", "provvedimento.anno", "provvedimento.data_deposito"),
+        "proceeding_required": True,
+        "note": "Per la notifica finalizzata alla decorrenza dei termini di impugnazione.",
+    },
+    "decreto_ingiuntivo": {
+        "label": "Decreto ingiuntivo",
+        "template_id": "relata_decreto_ingiuntivo",
+        "required_fields": ("procedimento.ufficio", "procedimento.numero_rg", "procedimento.anno_rg"),
+        "proceeding_required": True,
+        "note": "Per decreto ingiuntivo e documenti collegati.",
+    },
+    "titolo_esecutivo_precetto": {
+        "label": "Titolo esecutivo e precetto",
+        "template_id": "relata_titolo_esecutivo_precetto",
+        "required_fields": ("esecuzione.debitore",),
+        "proceeding_required": False,
+        "note": "Per titolo, formula esecutiva e precetto.",
+    },
+    "atto_stragiudiziale": {
+        "label": "Atto stragiudiziale",
+        "template_id": "relata_atto_stragiudiziale",
+        "required_fields": (),
+        "proceeding_required": False,
+        "note": "Per atti non collegati a un procedimento pendente.",
+    },
+    "rinnovo_notifica": {
+        "label": "Rinnovo notificazione",
+        "template_id": "relata_rinnovo_notifica",
+        "required_fields": ("provvedimento_rinnovo.data",),
+        "proceeding_required": True,
+        "note": "Per rinnovo ordinato o necessario dopo esito non valido.",
+    },
+    "integrazione_contraddittorio": {
+        "label": "Integrazione del contraddittorio",
+        "template_id": "relata_integrazione_contraddittorio",
+        "required_fields": ("procedimento.ufficio", "procedimento.numero_rg", "procedimento.anno_rg"),
+        "proceeding_required": True,
+        "note": "Per integrazione nei confronti di litisconsorti o parti necessarie.",
+    },
+    "chiamata_terzo": {
+        "label": "Chiamata del terzo",
+        "template_id": "relata_chiamata_terzo",
+        "required_fields": ("procedimento.ufficio", "procedimento.numero_rg", "procedimento.anno_rg"),
+        "proceeding_required": True,
+        "note": "Per citazione o chiamata del terzo autorizzata o prevista.",
+    },
+    "riassunzione": {
+        "label": "Riassunzione",
+        "template_id": "relata_riassunzione",
+        "required_fields": ("riassunzione.causa", "procedimento.ufficio", "procedimento.numero_rg", "procedimento.anno_rg"),
+        "proceeding_required": True,
+        "note": "Per riassunzione dopo interruzione, sospensione o altra causa.",
+    },
+    "appello_impugnazione": {
+        "label": "Appello o impugnazione",
+        "template_id": "relata_appello_impugnazione",
+        "required_fields": ("procedimento.ufficio", "provvedimento.tipo", "provvedimento.data"),
+        "proceeding_required": True,
+        "note": "Per atti di impugnazione.",
+    },
+    "reclamo_cautelare": {
+        "label": "Reclamo cautelare",
+        "template_id": "relata_reclamo_cautelare",
+        "required_fields": ("procedimento.ufficio", "provvedimento.data"),
+        "proceeding_required": True,
+        "note": "Per reclamo contro provvedimenti cautelari.",
+    },
+    "sfratto_convalida": {
+        "label": "Sfratto e convalida",
+        "template_id": "relata_sfratto_convalida",
+        "required_fields": ("sfratto.immobile_indirizzo",),
+        "proceeding_required": False,
+        "note": "Per intimazione di sfratto e citazione per convalida.",
+    },
+    "pignoramento_presso_terzi": {
+        "label": "Pignoramento presso terzi",
+        "template_id": "relata_pignoramento_presso_terzi",
+        "required_fields": ("esecuzione.debitore", "esecuzione.terzo_pignorato"),
+        "proceeding_required": False,
+        "note": "Per notifiche esecutive verso debitore e terzo pignorato.",
+    },
+    "intervento_esecuzione": {
+        "label": "Intervento in esecuzione",
+        "template_id": "relata_intervento_esecuzione",
+        "required_fields": ("esecuzione.debitore",),
+        "proceeding_required": True,
+        "note": "Per intervento del creditore in procedura esecutiva.",
+    },
+    "opposizione_decreto_ingiuntivo": {
+        "label": "Opposizione a decreto ingiuntivo",
+        "template_id": "relata_opposizione_decreto_ingiuntivo",
+        "required_fields": ("procedimento.ufficio", "provvedimento.numero", "provvedimento.anno"),
+        "proceeding_required": True,
+        "note": "Per opposizione a decreto ingiuntivo.",
+    },
+    "opposizione_esecutiva": {
+        "label": "Opposizione esecutiva",
+        "template_id": "relata_opposizione_esecutiva",
+        "required_fields": ("procedimento.ufficio", "esecuzione.debitore"),
+        "proceeding_required": True,
+        "note": "Per opposizioni all'esecuzione o agli atti esecutivi.",
+    },
+    "famiglia_persone_minori": {
+        "label": "Famiglia, persone e minori",
+        "template_id": "relata_famiglia_persone_minori",
+        "required_fields": ("procedimento.ufficio",),
+        "proceeding_required": True,
+        "note": "Per procedimenti di famiglia, persone e minori.",
+    },
+    "provvedimento_urgente": {
+        "label": "Provvedimento urgente o cautelare",
+        "template_id": "relata_provvedimento_urgente",
+        "required_fields": ("procedimento.ufficio", "provvedimento.data"),
+        "proceeding_required": True,
+        "note": "Per provvedimenti cautelari o urgenti.",
+    },
+    "accordo_transazione_stragiudiziale": {
+        "label": "Accordo o transazione stragiudiziale",
+        "template_id": "relata_accordo_transazione_stragiudiziale",
+        "required_fields": (),
+        "proceeding_required": False,
+        "note": "Per accordi, transazioni o atti negoziali da notificare.",
+    },
+}
+
+LEGAL_NOTIFICATION_SOURCE_REFERENCES: tuple[dict[str, str], ...] = (
+    {
+        "id": "l53_art3bis",
+        "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+        "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione.",
+    },
+    {
+        "id": "l53_art3ter",
+        "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+        "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario.",
+    },
+    {
+        "id": "dl179_art16ter",
+        "label": "D.L. 18 ottobre 2012, n. 179, art. 16-ter",
+        "rule": "Individuazione dei pubblici elenchi utilizzabili per notificazioni e comunicazioni.",
+    },
+    {
+        "id": "dl179_art16septies",
+        "label": "D.L. 18 ottobre 2012, n. 179, art. 16-septies",
+        "rule": "Regole temporali delle notifiche telematiche, lette con Corte cost. 75/2019.",
+    },
+    {
+        "id": "corte_cost_75_2019",
+        "label": "Corte costituzionale, sentenza 75/2019",
+        "rule": "La notifica PEC tra le 21:00 e le 24:00 si perfeziona per il notificante alla generazione della RAC, restando la tutela oraria per il destinatario.",
+    },
+    {
+        "id": "dpr68_art6_8",
+        "label": "D.P.R. 11 febbraio 2005, n. 68, artt. 6 e 8",
+        "rule": "Ricevuta di accettazione, ricevuta di avvenuta consegna e avviso di mancata consegna PEC.",
+    },
+    {
+        "id": "dm44_art18",
+        "label": "D.M. 21 febbraio 2011, n. 44, art. 18",
+        "rule": "Notificazioni per via telematica eseguite dagli avvocati e ricevuta completa.",
+    },
+    {
+        "id": "dgsia_2024_art21",
+        "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 21",
+        "rule": "Comunicazioni e notificazioni provenienti dall'ufficio giudiziario, Comunicazione.xml e ricevute conservate nel fascicolo informatico.",
+    },
+    {
+        "id": "dgsia_2024_art22",
+        "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 22",
+        "rule": "Avviso di disponibilità, URL sicuro e area download quando la comunicazione/notificazione dell'ufficio contiene categorie particolari di dati personali.",
+    },
+    {
+        "id": "dgsia_2024_art25",
+        "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 25",
+        "rule": "Rilascio delle copie di atti e documenti via PEC o avviso di disponibilità con prelievo tramite servizi PST.",
+    },
+    {
+        "id": "dgsia_2024_art26",
+        "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+        "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml.",
+    },
+    {
+        "id": "dgsia_2024_art27",
+        "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 27",
+        "rule": "Attestazione di conformità su documento informatico separato e inserimento degli elementi nella relazione di notificazione quando la copia è destinata alla notifica.",
+    },
+    {
+        "id": "specifiche_19bis_storico",
+        "label": "Specifiche tecniche PCT 2014, art. 19-bis (storico)",
+        "rule": "Riferimento storico sostituito dalle specifiche DGSIA 2024 per atti notificati, ricevute e deposito prova.",
+    },
+    {
+        "id": "disp_att_cpp_56bis",
+        "label": "Art. 56-bis disp. att. c.p.p.",
+        "rule": "Nel penale la relazione di notificazione del difensore è documento informatico separato, sottoscritto con firma digitale o altra firma elettronica qualificata.",
+    },
+    {
+        "id": "disp_att_cpc_196undecies",
+        "label": "Art. 196-undecies disp. att. c.p.c.",
+        "rule": "Modalità dell'attestazione di conformità, anche su documento informatico separato secondo le specifiche tecniche DGSIA.",
+    },
+    {
+        "id": "cpc_170",
+        "label": "Art. 170 c.p.c.",
+        "rule": "Dopo la costituzione in giudizio le notificazioni e comunicazioni si fanno al procuratore costituito, salvo diversa disposizione.",
+    },
+    {
+        "id": "cpc_285",
+        "label": "Art. 285 c.p.c.",
+        "rule": "Modo di notificazione della sentenza ai fini processuali.",
+    },
+    {
+        "id": "cpc_330",
+        "label": "Art. 330 c.p.c.",
+        "rule": "Luogo della notificazione dell'impugnazione secondo difensore, domicilio eletto o residenza dichiarata.",
+    },
+    {
+        "id": "cpc_480",
+        "label": "Art. 480 c.p.c.",
+        "rule": "Precetto e destinatario del titolo esecutivo prima dell'esecuzione.",
+    },
+    {
+        "id": "cpc_543",
+        "label": "Art. 543 c.p.c.",
+        "rule": "Pignoramento presso terzi da notificare al terzo e al debitore.",
+    },
+    {
+        "id": "cpc_643",
+        "label": "Art. 643 c.p.c.",
+        "rule": "Notificazione del decreto ingiuntivo al debitore/ingiunto.",
+    },
+)
+
+LEGAL_NOTIFICATION_SOURCE_BY_ID = {item["id"]: item for item in LEGAL_NOTIFICATION_SOURCE_REFERENCES}
+
+
+def _legal_source_rows(*ids: str) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    for source_id in ids:
+        row = LEGAL_NOTIFICATION_SOURCE_BY_ID.get(source_id)
+        if row:
+            rows.append(dict(row))
+    return rows
+
+
+ROLE_DIRECTIVE_LEGAL_SOURCES: dict[str, tuple[str, ...]] = {
+    "controparte": ("l53_art3bis", "l53_art3ter", "dl179_art16ter", "dgsia_2024_art26"),
+    "difensore": ("l53_art3bis", "l53_art3ter", "dl179_art16ter", "cpc_170", "dgsia_2024_art26"),
+    "impresa": ("l53_art3bis", "l53_art3ter", "dl179_art16ter", "dgsia_2024_art26"),
+    "professionista": ("l53_art3bis", "l53_art3ter", "dl179_art16ter", "dgsia_2024_art26"),
+    "pa": ("l53_art3bis", "l53_art3ter", "dl179_art16ter", "dgsia_2024_art26"),
+    "terzo": ("l53_art3bis", "l53_art3ter", "dl179_art16ter", "dgsia_2024_art26"),
+}
+
+CASE_DIRECTIVE_LEGAL_SOURCES: dict[str, tuple[str, ...]] = {
+    "ordinaria": ("l53_art3bis", "l53_art3ter", "dm44_art18", "dgsia_2024_art26"),
+    "in_corso_di_causa": ("l53_art3bis", "l53_art3ter", "dm44_art18", "cpc_170", "dgsia_2024_art26"),
+    "provvedimento_giudice": (
+        "l53_art3bis",
+        "l53_art3ter",
+        "dm44_art18",
+        "dgsia_2024_art21",
+        "dgsia_2024_art22",
+        "dgsia_2024_art25",
+        "dgsia_2024_art26",
+        "dgsia_2024_art27",
+    ),
+    "sentenza_termine_breve": (
+        "l53_art3bis",
+        "l53_art3ter",
+        "dm44_art18",
+        "cpc_170",
+        "cpc_285",
+        "cpc_330",
+        "dgsia_2024_art26",
+    ),
+    "decreto_ingiuntivo": ("l53_art3bis", "l53_art3ter", "dm44_art18", "cpc_643", "dgsia_2024_art26"),
+    "titolo_esecutivo_precetto": ("l53_art3bis", "l53_art3ter", "dm44_art18", "cpc_480", "dgsia_2024_art26"),
+    "atto_stragiudiziale": ("l53_art3bis", "l53_art3ter", "dl179_art16ter", "dgsia_2024_art26"),
+    "rinnovo_notifica": ("l53_art3bis", "l53_art3ter", "dm44_art18", "dgsia_2024_art26"),
+    "integrazione_contraddittorio": ("l53_art3bis", "l53_art3ter", "dm44_art18", "cpc_170", "dgsia_2024_art26"),
+    "chiamata_terzo": ("l53_art3bis", "l53_art3ter", "dm44_art18", "dgsia_2024_art26"),
+    "riassunzione": ("l53_art3bis", "l53_art3ter", "dm44_art18", "cpc_170", "dgsia_2024_art26"),
+    "appello_impugnazione": ("l53_art3bis", "l53_art3ter", "dm44_art18", "cpc_330", "dgsia_2024_art26"),
+    "reclamo_cautelare": ("l53_art3bis", "l53_art3ter", "dm44_art18", "dgsia_2024_art26"),
+    "sfratto_convalida": ("l53_art3bis", "l53_art3ter", "dm44_art18", "dgsia_2024_art26"),
+    "pignoramento_presso_terzi": ("l53_art3bis", "l53_art3ter", "dm44_art18", "cpc_543", "dgsia_2024_art26"),
+    "intervento_esecuzione": ("l53_art3bis", "l53_art3ter", "dm44_art18", "dgsia_2024_art26"),
+    "opposizione_decreto_ingiuntivo": ("l53_art3bis", "l53_art3ter", "dm44_art18", "cpc_643", "dgsia_2024_art26"),
+    "opposizione_esecutiva": ("l53_art3bis", "l53_art3ter", "dm44_art18", "dgsia_2024_art26"),
+    "famiglia_persone_minori": ("l53_art3bis", "l53_art3ter", "dm44_art18", "cpc_170", "dgsia_2024_art26"),
+    "provvedimento_urgente": ("l53_art3bis", "l53_art3ter", "dm44_art18", "dgsia_2024_art26"),
+    "accordo_transazione_stragiudiziale": ("l53_art3bis", "l53_art3ter", "dl179_art16ter", "dgsia_2024_art26"),
+}
+
+CASE_ALLOWED_RECIPIENT_ROLES: dict[str, tuple[str, ...]] = {
+    "ordinaria": ("controparte", "difensore", "pa", "impresa", "professionista", "terzo"),
+    "in_corso_di_causa": ("controparte", "difensore", "pa", "impresa", "professionista", "terzo"),
+    "provvedimento_giudice": ("controparte", "difensore", "pa", "impresa", "professionista", "terzo"),
+    "sentenza_termine_breve": ("difensore", "controparte", "impresa", "professionista", "pa"),
+    "decreto_ingiuntivo": ("controparte", "impresa", "professionista", "pa"),
+    "titolo_esecutivo_precetto": ("controparte", "impresa", "professionista", "pa"),
+    "atto_stragiudiziale": ("controparte", "pa", "impresa", "professionista", "terzo"),
+    "rinnovo_notifica": ("controparte", "difensore", "pa", "impresa", "professionista", "terzo"),
+    "integrazione_contraddittorio": ("controparte", "difensore", "pa", "impresa", "professionista", "terzo"),
+    "chiamata_terzo": ("terzo",),
+    "riassunzione": ("controparte", "difensore", "pa", "impresa", "professionista", "terzo"),
+    "appello_impugnazione": ("difensore", "controparte", "impresa", "professionista", "pa"),
+    "reclamo_cautelare": ("controparte", "difensore", "pa", "impresa", "professionista", "terzo"),
+    "sfratto_convalida": ("controparte", "impresa", "professionista"),
+    "pignoramento_presso_terzi": ("controparte", "impresa", "professionista", "terzo"),
+    "intervento_esecuzione": ("controparte", "impresa", "professionista", "terzo"),
+    "opposizione_decreto_ingiuntivo": ("difensore", "controparte", "impresa", "professionista", "pa"),
+    "opposizione_esecutiva": ("controparte", "difensore", "pa", "impresa", "professionista", "terzo"),
+    "famiglia_persone_minori": ("controparte", "difensore", "pa", "terzo"),
+    "provvedimento_urgente": ("controparte", "difensore", "pa", "impresa", "professionista", "terzo"),
+    "accordo_transazione_stragiudiziale": ("controparte", "pa", "impresa", "professionista", "terzo"),
+}
+
+CASE_RECIPIENT_RULES: dict[str, str] = {
+    "ordinaria": "Il destinatario viene dalla pratica o dall'atto da notificare; il cliente resta fuori dal percorso di notifica.",
+    "in_corso_di_causa": "Usare il soggetto processuale della fase pendente: parte o difensore costituito se il rito e l'atto lo richiedono.",
+    "provvedimento_giudice": "Il provvedimento comunicato dall'ufficio si notifica al soggetto cui la parte intende far produrre gli effetti processuali, verificando costituzione e domicilio digitale.",
+    "sentenza_termine_breve": "Per far decorrere il termine breve verificare se la notifica va al difensore costituito o alla parte non costituita secondo il caso concreto.",
+    "decreto_ingiuntivo": "Destinatario ordinario è il debitore/ingiunto o il soggetto obbligato risultante dalla pratica.",
+    "titolo_esecutivo_precetto": "Destinatario è il debitore o soggetto obbligato indicato dal titolo e dal precetto.",
+    "atto_stragiudiziale": "Destinatario è il soggetto cui l'atto negoziale o stragiudiziale è rivolto.",
+    "rinnovo_notifica": "Ripetere il destinatario imposto dal provvedimento di rinnovo o dalla notifica non valida.",
+    "integrazione_contraddittorio": "Notificare ai soggetti da integrare o alle parti necessarie indicate dal provvedimento o dal rito.",
+    "chiamata_terzo": "La chiamata richiede il terzo indicato/autorizzato; non va indirizzata automaticamente alla controparte già presente.",
+    "riassunzione": "Destinatari sono le parti del processo da riassumere secondo provvedimento, evento interruttivo o norma applicabile.",
+    "appello_impugnazione": "Destinatario è la controparte dell'impugnazione; se costituita, verificare notifica al difensore.",
+    "reclamo_cautelare": "Destinatari sono le parti o i soggetti incisi dal provvedimento cautelare secondo il rito concreto.",
+    "sfratto_convalida": "Destinatario è l'intimato/conduttore o soggetto tenuto al rilascio/pagamento.",
+    "pignoramento_presso_terzi": "Il flusso deve distinguere debitore e terzo pignorato: entrambi possono essere destinatari necessari della notifica.",
+    "intervento_esecuzione": "Destinatari sono debitore, parti o terzi della procedura esecutiva secondo il provvedimento o l'atto.",
+    "opposizione_decreto_ingiuntivo": "Destinatario è la parte opposta o il difensore se costituito nel procedimento pertinente.",
+    "opposizione_esecutiva": "Destinatari sono le parti della procedura esecutiva e gli eventuali terzi coinvolti.",
+    "famiglia_persone_minori": "Destinatari e cautele dipendono dal provvedimento e dalla posizione processuale; richiede verifica professionale.",
+    "provvedimento_urgente": "Destinatari sono le parti o i soggetti incisi dal provvedimento urgente/cautelare.",
+    "accordo_transazione_stragiudiziale": "Destinatario è il soggetto obbligato o aderente indicato nell'accordo o nella pratica.",
+}
 
 DOCUMENT_ORIGIN_LABELS: dict[str, str] = {
     "nativo_digitale": "documento nativo digitale",
@@ -80,8 +498,8 @@ LEGAL_NOTIFICATION_AUTOMATION_STEPS: tuple[dict[str, str], ...] = (
     {
         "id": "documento_ufficio",
         "title": "Documento rilasciato dall'ufficio",
-        "body": "Quando il fascicolo segnala un documento d'ufficio da notificare, il percorso richiede l'acquisizione governata dal Portale Servizi prima di generare la relata.",
-        "source": "D.M. 44/2011, art. 18; specifiche tecniche art. 19-bis",
+        "body": "Quando la PEC dell'ufficio comunica un documento da notificare, il percorso controlla che quel documento sia gia' nei documenti e atti o chiede di collegarlo prima della relata.",
+        "source": "Specifiche tecniche DGSIA 7 agosto 2024, artt. 21, 22 e 25",
     },
     {
         "id": "pubblici_elenchi",
@@ -93,7 +511,7 @@ LEGAL_NOTIFICATION_AUTOMATION_STEPS: tuple[dict[str, str], ...] = (
         "id": "allegati",
         "title": "Preparazione allegati",
         "body": "Sono ammessi più documenti; per ciascun file vengono riportati nome, origine, eventuale attestazione e impronta SHA-256 quando disponibile.",
-        "source": "Specifiche tecniche D.M. 44/2011, art. 19-bis",
+        "source": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
     },
     {
         "id": "relata",
@@ -111,7 +529,7 @@ LEGAL_NOTIFICATION_AUTOMATION_STEPS: tuple[dict[str, str], ...] = (
         "id": "prova",
         "title": "Pacchetto prova e deposito",
         "body": "Dopo l'invio si conservano PEC inviata, RAC e RdAC complete in originale digitale e si prepara l'indicizzazione per il deposito.",
-        "source": "L. 53/1994, art. 9; Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5",
+        "source": "L. 53/1994, art. 9; Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
     },
 )
 
@@ -120,7 +538,7 @@ LEGAL_NOTIFICATION_DEPOSIT_STEPS: tuple[dict[str, str], ...] = (
         "id": "atti",
         "title": "Raccolta atti notificati",
         "body": "La prova può includere più atti o allegati notificati, con nome e impronta SHA-256.",
-        "source": "Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5",
+        "source": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
     },
     {
         "id": "ricevute",
@@ -132,13 +550,52 @@ LEGAL_NOTIFICATION_DEPOSIT_STEPS: tuple[dict[str, str], ...] = (
         "id": "dati_atto",
         "title": "Indicizzazione ricevute",
         "body": "I riferimenti delle ricevute sono preparati per il file DatiAtto.xml della busta telematica.",
-        "source": "Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5",
+        "source": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5; XSD DatiAtto.xml",
     },
     {
         "id": "audit",
         "title": "Audit e controllo finale",
         "body": "Il pacchetto prova registra file, impronte e controlli prima del deposito.",
         "source": "L. 53/1994, art. 9",
+    },
+)
+
+LEGAL_NOTIFICATION_ATTACHMENT_RULES: tuple[dict[str, str], ...] = (
+    {
+        "id": "atto_o_provvedimento",
+        "label": "Atto, provvedimento o documento da notificare",
+        "source": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+        "rule": "Va allegato alla PEC in formato PDF/PDF-A o come documento informatico firmato ammesso, senza elementi attivi quando si tratta di copia.",
+    },
+    {
+        "id": "relata_separata_firmata",
+        "label": "Relata di notificazione separata e firmata",
+        "source": "L. 53/1994, art. 3-bis, comma 5",
+        "rule": "La relata deve essere un documento informatico separato e sottoscritto con firma digitale prima dell'invio.",
+    },
+    {
+        "id": "procura",
+        "label": "Procura alle liti, se non gia' in atti o se necessaria",
+        "source": "D.M. 44/2011, art. 18, comma 5",
+        "rule": "Se la procura non e' gia' in atti e serve per la notifica, va allegata come documento informatico separato.",
+    },
+    {
+        "id": "attestazione_conformita",
+        "label": "Attestazione di conformita', quando richiesta",
+        "source": "L. 53/1994, art. 3-bis, comma 2; D.M. 44/2011, art. 18",
+        "rule": "Per copie da fascicolo, comunicazioni di cancelleria o scansioni analogiche l'attestazione deve essere presente, normalmente nella relata.",
+    },
+    {
+        "id": "ricevute_deposito",
+        "label": "PEC inviata, RAC e RdAC completa per il deposito prova",
+        "source": "L. 53/1994, art. 9; Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
+        "rule": "Non sono allegati della PEC di notifica: si conservano dopo l'invio e si depositano come prova della notifica.",
+    },
+    {
+        "id": "eml_ufficio",
+        "label": "EML della PEC dell'ufficio che comunica il rilascio",
+        "source": "Specifiche tecniche DGSIA 7 agosto 2024, artt. 21, 22 e 25",
+        "rule": "Quando il trigger nasce dalla cancelleria, l'EML originale della PEC d'ufficio va conservato come evidenza del rilascio e del documento da scaricare.",
     },
 )
 
@@ -312,6 +769,180 @@ def register_label(value: Any) -> str:
     return PUBLIC_PEC_REGISTERS.get(key, text(value))
 
 
+def notification_directive_matrix() -> dict[str, list[dict[str, Any]]]:
+    """Return the governed matrix used by UI, tests and validation."""
+
+    roles = []
+    for key, directive in RECIPIENT_NOTIFICATION_DIRECTIVES.items():
+        roles.append(
+            {
+                "value": key,
+                "label": text(directive.get("label")),
+                "allowedRegisters": list(directive.get("allowed_registers") or ()),
+                "templateId": text(directive.get("template_id")),
+                "requiredFields": list(directive.get("required_fields") or ()),
+                "note": text(directive.get("note")),
+                "legalBasis": _legal_source_rows(*ROLE_DIRECTIVE_LEGAL_SOURCES.get(key, ())),
+            }
+        )
+    cases = []
+    for key, directive in NOTIFICATION_CASE_DIRECTIVES.items():
+        cases.append(
+            {
+                "value": key,
+                "label": text(directive.get("label")),
+                "templateId": text(directive.get("template_id")),
+                "requiredFields": list(directive.get("required_fields") or ()),
+                "proceedingRequired": bool(directive.get("proceeding_required")),
+                "note": text(directive.get("note")),
+                "allowedRecipientRoles": list(CASE_ALLOWED_RECIPIENT_ROLES.get(key, LEGAL_RECIPIENT_ROLES)),
+                "recipientRule": text(CASE_RECIPIENT_RULES.get(key)),
+                "legalBasis": _legal_source_rows(*CASE_DIRECTIVE_LEGAL_SOURCES.get(key, ())),
+            }
+        )
+    return {"roles": roles, "cases": cases}
+
+
+def _normalise_notification_case(value: Any) -> str:
+    raw = text(value).lower().replace("-", "_").replace(" ", "_").replace("/", "_")
+    aliases = {
+        "": "ordinaria",
+        "base": "ordinaria",
+        "notifica_ordinaria": "ordinaria",
+        "l53": "ordinaria",
+        "l_53": "ordinaria",
+        "corso_causa": "in_corso_di_causa",
+        "procedimento": "in_corso_di_causa",
+        "provvedimento": "provvedimento_giudice",
+        "provvedimento_da_fascicolo": "provvedimento_giudice",
+        "provvedimento_ufficio": "provvedimento_giudice",
+        "termine_breve": "sentenza_termine_breve",
+        "sentenza": "sentenza_termine_breve",
+        "decreto": "decreto_ingiuntivo",
+        "di": "decreto_ingiuntivo",
+        "precetto": "titolo_esecutivo_precetto",
+        "titolo_precetto": "titolo_esecutivo_precetto",
+        "stragiudiziale": "atto_stragiudiziale",
+        "rinnovo": "rinnovo_notifica",
+        "integrazione": "integrazione_contraddittorio",
+        "contraddittorio": "integrazione_contraddittorio",
+        "chiamata": "chiamata_terzo",
+        "terzo": "chiamata_terzo",
+        "appello": "appello_impugnazione",
+        "impugnazione": "appello_impugnazione",
+        "reclamo": "reclamo_cautelare",
+        "sfratto": "sfratto_convalida",
+        "pignoramento": "pignoramento_presso_terzi",
+        "opposizione_di": "opposizione_decreto_ingiuntivo",
+        "opposizione_esecuzione": "opposizione_esecutiva",
+        "famiglia": "famiglia_persone_minori",
+        "minori": "famiglia_persone_minori",
+        "urgente": "provvedimento_urgente",
+        "cautelare": "provvedimento_urgente",
+        "accordo": "accordo_transazione_stragiudiziale",
+        "transazione": "accordo_transazione_stragiudiziale",
+    }
+    return aliases.get(raw, raw if raw in NOTIFICATION_CASE_DIRECTIVES else "ordinaria")
+
+
+def _explicit_notification_case(payload: dict[str, Any]) -> str:
+    return text(
+        _first(
+            payload,
+            "notifica.caso",
+            "notifica.tipo",
+            "caso_notifica",
+            "tipo_notifica",
+            "scenario_notifica",
+            "notifica_case",
+        )
+    )
+
+
+def notification_case_from_payload(payload: dict[str, Any]) -> str:
+    explicit = _explicit_notification_case(payload)
+    if explicit:
+        return _normalise_notification_case(explicit)
+    if boolish(payload.get("rinnovo_notifica")):
+        return "rinnovo_notifica"
+    if boolish(payload.get("integrazione_contraddittorio")):
+        return "integrazione_contraddittorio"
+    if boolish(payload.get("chiamata_terzo")):
+        return "chiamata_terzo"
+    if boolish(payload.get("riassunzione")) or text(_first(payload, "riassunzione.causa", "riassunzione_causa")):
+        return "riassunzione"
+    return "in_corso_di_causa" if boolish(payload.get("procedimento_pendente")) or boolish(_deep_get(payload, "procedimento.presente")) else "ordinaria"
+
+
+def resolve_legal_notification_directive(payload: dict[str, Any], context: dict[str, Any] | None = None) -> dict[str, Any]:
+    context = context or _build_context(payload, template=select_relata_template(payload))
+    role = normalise_role(_first(payload, "destinatario.tipo", "ruolo_destinatario")) or context["destinatario"]["tipo"]
+    case_id = notification_case_from_payload(payload)
+    role_directive = RECIPIENT_NOTIFICATION_DIRECTIVES.get(role, RECIPIENT_NOTIFICATION_DIRECTIVES["terzo"])
+    case_directive = NOTIFICATION_CASE_DIRECTIVES.get(case_id, NOTIFICATION_CASE_DIRECTIVES["ordinaria"])
+    required_fields = list(dict.fromkeys([*(role_directive.get("required_fields") or ()), *(case_directive.get("required_fields") or ())]))
+    allowed_case_roles = list(CASE_ALLOWED_RECIPIENT_ROLES.get(case_id, tuple(LEGAL_RECIPIENT_ROLES)))
+    return {
+        "role": role,
+        "roleLabel": text(role_directive.get("label")),
+        "caseId": case_id,
+        "caseLabel": text(case_directive.get("label")),
+        "allowedRegisters": list(role_directive.get("allowed_registers") or ()),
+        "allowedRecipientRoles": allowed_case_roles,
+        "requiredFields": required_fields,
+        "proceedingRequired": bool(case_directive.get("proceeding_required")),
+        "recommendedTemplateId": text(case_directive.get("template_id")) or text(role_directive.get("template_id")),
+        "roleTemplateId": text(role_directive.get("template_id")),
+        "caseTemplateId": text(case_directive.get("template_id")),
+        "recipientRule": text(CASE_RECIPIENT_RULES.get(case_id)),
+        "roleLegalBasis": _legal_source_rows(*ROLE_DIRECTIVE_LEGAL_SOURCES.get(role, ())),
+        "caseLegalBasis": _legal_source_rows(*CASE_DIRECTIVE_LEGAL_SOURCES.get(case_id, ())),
+        "attachmentRules": [dict(item) for item in LEGAL_NOTIFICATION_ATTACHMENT_RULES],
+        "notes": [text(role_directive.get("note")), text(case_directive.get("note"))],
+    }
+
+
+def _validate_notification_directive(
+    payload: dict[str, Any],
+    context: dict[str, Any],
+    template: dict[str, Any],
+    blockers: list[str],
+    warnings: list[str],
+) -> dict[str, Any]:
+    directive = resolve_legal_notification_directive(payload, context)
+    source_key = context["destinatario"]["fonte_pec_key"]
+    role = directive["role"]
+    if role in LEGAL_RECIPIENT_ROLES and source_key and source_key not in directive["allowedRegisters"]:
+        allowed = ", ".join(register_label(item) for item in directive["allowedRegisters"])
+        blockers.append(block("PEC_DESTINATARIO_REGISTRO_INCOERENTE", f"La fonte PEC selezionata non è coerente con {directive['roleLabel']}; usa {allowed}."))
+    if role in LEGAL_RECIPIENT_ROLES and role not in directive["allowedRecipientRoles"]:
+        allowed_roles = ", ".join(text(RECIPIENT_NOTIFICATION_DIRECTIVES.get(item, {}).get("label"), item) for item in directive["allowedRecipientRoles"])
+        blockers.append(block(
+            "DESTINATARIO_CASO_INCOERENTE",
+            f"Per il caso '{directive['caseLabel']}' il ruolo '{directive['roleLabel']}' non è tra i destinatari governati; verifica la casistica e seleziona: {allowed_roles}.",
+        ))
+    for path in directive["requiredFields"]:
+        if not text(_context_lookup(context, path)):
+            blockers.append(f"Completa il campo richiesto per il caso '{directive['caseLabel']}': {_field_label(template, path)}.")
+    if directive["proceedingRequired"]:
+        context["procedimento"]["presente"] = True
+        _validate_proceeding(context, blockers)
+    compatibility = template.get("compatibility") or {}
+    allowed_roles = set(compatibility.get("recipient_roles") or [])
+    if allowed_roles and role and role not in allowed_roles:
+        blockers.append(block("MODELLO_DESTINATARIO_INCOERENTE", f"Il modello scelto non è compatibile con il destinatario '{directive['roleLabel']}'."))
+    allowed_origins = set(compatibility.get("document_origins") or [])
+    if allowed_origins:
+        for document in context["documenti"]:
+            if document["origine"] not in allowed_origins:
+                blockers.append(block("MODELLO_DOCUMENTO_INCOERENTE", f"Il modello scelto non è compatibile con l'origine del documento {document['index']}."))
+    if role == "terzo":
+        warnings.append("Caso terzo destinatario: verifica espressamente titolo della notifica, ruolo e pubblico elenco prima dell'invio.")
+    if directive["caseId"] in {"famiglia_persone_minori", "provvedimento_giudice", "provvedimento_urgente"}:
+        warnings.append(f"Verifica professionale richiesta: {directive['recipientRule']}")
+    return directive
+
+
 def normalise_document_origin(value: Any) -> str:
     raw = text(value).lower().replace("-", "_").replace(" ", "_")
     return DOCUMENT_ORIGIN_ALIASES.get(raw, raw)
@@ -448,6 +1079,318 @@ def released_office_documents_from_portal(fascicolo: Any) -> list[dict[str, Any]
             })
     releases.sort(key=lambda item: (item.get("dataDeposito") or "", item.get("nome") or ""), reverse=True)
     return releases
+
+
+_OFFICE_EMAIL_HINTS = (
+    "cancelleria",
+    "tribunale",
+    "corte",
+    "ufficio giudiziario",
+    "giudice di pace",
+    "giustiziacert",
+    "giustiziapec",
+    "pst.giustizia",
+    "postacert.giustizia",
+)
+_OFFICE_DOCUMENT_HINTS = (
+    "sentenza",
+    "ordinanza",
+    "decreto",
+    "provvedimento",
+    "verbale",
+    "comunicazione",
+    "avviso",
+)
+_NOTIFICATION_REQUEST_HINTS = ("notific", "relata", "termine breve")
+_DOCUMENT_FILENAME_RE = re.compile(
+    r"(?P<name>[A-Za-z0-9][A-Za-z0-9._()\-]{1,180}\.(?:pdf(?:\.p7m)?|p7m|docx?|rtf))",
+    re.IGNORECASE,
+)
+
+
+def _mapping_or_attr(value: Any, *names: str) -> Any:
+    for name in names:
+        if isinstance(value, dict) and name in value:
+            return value.get(name)
+        if hasattr(value, name):
+            return getattr(value, name)
+    return ""
+
+
+def _email_text(email_obj: Any) -> str:
+    attachments = " ".join(
+        text(_mapping_or_attr(item, "nome", "nome_file", "filename", "name"))
+        for item in list(_mapping_or_attr(email_obj, "allegati") or [])
+    )
+    return " ".join(
+        text(value)
+        for value in (
+            _mapping_or_attr(email_obj, "mittente", "from"),
+            _mapping_or_attr(email_obj, "mittente_nome", "from_name"),
+            _mapping_or_attr(email_obj, "oggetto", "subject"),
+            _mapping_or_attr(email_obj, "corpo_testo", "text"),
+            _mapping_or_attr(email_obj, "corpo_html", "html"),
+            attachments,
+        )
+        if text(value)
+    )
+
+
+def _normalise_office_document_name(value: Any) -> str:
+    raw = Path(text(value)).name.casefold()
+    if raw.endswith(".pdf.p7m"):
+        raw = raw[:-4]
+    if raw.endswith(".p7m") and ".pdf" not in raw:
+        raw = raw[:-4]
+    return re.sub(r"[^a-z0-9]+", "", raw)
+
+
+def _normalise_rg_number(value: Any) -> str:
+    raw = re.sub(r"\D+", "", text(value))
+    return raw.lstrip("0") or raw
+
+
+def _rg_pairs_from_text(value: Any) -> set[tuple[str, str]]:
+    return {(_normalise_rg_number(match.group(1)), match.group(2)) for match in RG_PAIR_RE.finditer(text(value))}
+
+
+def _fascicolo_reference_tokens(fascicolo: Any) -> dict[str, str]:
+    numero_rg = text(getattr(fascicolo, "numero_rg", ""))
+    anno_rg = text(getattr(fascicolo, "anno_rg", ""))
+    return {
+        "id": text(getattr(fascicolo, "id", "")),
+        "numero": text(getattr(fascicolo, "numero", "")),
+        "titolo": text(getattr(fascicolo, "titolo", "")),
+        "ufficio": text(getattr(fascicolo, "tribunale", "")),
+        "numero_rg": numero_rg,
+        "anno_rg": anno_rg,
+        "rg": f"{numero_rg}/{anno_rg}" if numero_rg and anno_rg else "",
+    }
+
+
+def _email_matches_fascicolo(email_obj: Any, fascicolo: Any) -> bool:
+    refs = _fascicolo_reference_tokens(fascicolo)
+    explicit = text(
+        _mapping_or_attr(
+            email_obj,
+            "id_fascicolo",
+            "fascicolo_id",
+            "case_id",
+            "id_pratica",
+            "pratica_id",
+        )
+    )
+    if explicit and explicit == refs["id"]:
+        return True
+    haystack = _email_text(email_obj).casefold()
+    compact = re.sub(r"\s+", "", haystack)
+    if refs["rg"]:
+        email_rg_pairs = _rg_pairs_from_text(haystack)
+        if email_rg_pairs:
+            return (_normalise_rg_number(refs["numero_rg"]), refs["anno_rg"]) in email_rg_pairs
+        rg_compact = re.sub(r"\s+", "", refs["rg"].casefold())
+        if rg_compact in compact:
+            return True
+    if refs["numero"] and refs["numero"].casefold() in haystack:
+        return True
+    titolo = refs["titolo"].casefold()
+    ufficio = refs["ufficio"].casefold()
+    return bool(titolo and ufficio and titolo in haystack and ufficio in haystack)
+
+
+def _email_is_from_office(email_obj: Any) -> bool:
+    haystack = _email_text(email_obj).casefold()
+    return any(hint in haystack for hint in _OFFICE_EMAIL_HINTS)
+
+
+def _email_requests_notification(email_obj: Any) -> bool:
+    haystack = _email_text(email_obj).casefold()
+    has_request = any(hint in haystack for hint in _NOTIFICATION_REQUEST_HINTS)
+    has_document = any(hint in haystack for hint in _OFFICE_DOCUMENT_HINTS) or bool(_DOCUMENT_FILENAME_RE.search(haystack))
+    return bool(has_request and has_document)
+
+
+def _office_email_attachment_rows(email_obj: Any) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    for index, item in enumerate(list(_mapping_or_attr(email_obj, "allegati") or [])):
+        name = text(_mapping_or_attr(item, "nome", "nome_file", "filename", "name"))
+        if not name:
+            continue
+        lower = name.casefold()
+        if not lower.endswith((".pdf", ".pdf.p7m", ".p7m", ".doc", ".docx", ".rtf")):
+            continue
+        rows.append(
+            {
+                "name": name,
+                "sha256": text(_mapping_or_attr(item, "sha256", "hash_sha256")),
+                "mime": text(_mapping_or_attr(item, "mime", "content_type")),
+                "index": str(index),
+            }
+        )
+    return rows
+
+
+def _office_document_names_from_email(email_obj: Any) -> list[dict[str, str]]:
+    rows = _office_email_attachment_rows(email_obj)
+    seen = {_normalise_office_document_name(row["name"]) for row in rows}
+    haystack = _email_text(email_obj)
+    for match in _DOCUMENT_FILENAME_RE.finditer(haystack):
+        name = text(match.group("name"))
+        key = _normalise_office_document_name(name)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        rows.append({"name": name, "sha256": "", "mime": "", "index": str(len(rows))})
+    if not rows and _email_requests_notification(email_obj):
+        rows.append({"name": "Documento comunicato dalla cancelleria", "sha256": "", "mime": "", "index": "0"})
+    return rows
+
+
+def _office_portal_service_from_email(email_obj: Any) -> str:
+    haystack = _email_text(email_obj).casefold()
+    for label in ("PolisWeb", "PST", "PDP", "PAT", "PTT", "SIGIT"):
+        if label.casefold() in haystack:
+            return label
+    if "portale" in haystack:
+        return "Portale Servizi"
+    return ""
+
+
+def _office_portal_key_from_service(service: Any) -> str:
+    raw = text(service).casefold()
+    if "pdp" in raw or "penal" in raw:
+        return "pdp"
+    if "pat" in raw or "siga" in raw or "amministrativ" in raw:
+        return "pat"
+    if "ptt" in raw or "sigit" in raw or "tributar" in raw:
+        return "ptt"
+    return "pst"
+
+
+def _office_document_acquisition_href(
+    fascicolo: Any,
+    *,
+    document_name: str,
+    email_id: str,
+    service: str,
+    sha256: str = "",
+) -> str:
+    params = {
+        "id_fasc": text(getattr(fascicolo, "id", "")),
+        "numero": text(getattr(fascicolo, "numero_rg", "")),
+        "anno": text(getattr(fascicolo, "anno_rg", "")),
+        "ufficio": text(getattr(fascicolo, "tribunale", "")),
+        "focus": "documenti",
+        "mode": "update_existing",
+        "single_document": "1",
+        "documento": document_name,
+        "pec_id": email_id,
+        "hash": sha256,
+        "non_duplicare_documenti": "1",
+        "fase_successiva": "relata_notifica",
+    }
+    query = urlencode({key: value for key, value in params.items() if text(value)})
+    return f"/portali/{_office_portal_key_from_service(service)}/acquisizione?{query}"
+
+
+def _local_office_document_lookup(fascicolo: Any) -> tuple[dict[str, Any], dict[str, Any]]:
+    by_name: dict[str, Any] = {}
+    by_hash: dict[str, Any] = {}
+    for document in getattr(fascicolo, "documenti", []) or []:
+        for value in (
+            getattr(document, "nome", ""),
+            getattr(document, "nome_originale", ""),
+            getattr(document, "nome_portale", ""),
+            getattr(document, "percorso", ""),
+        ):
+            key = _normalise_office_document_name(value)
+            if key:
+                by_name.setdefault(key, document)
+        sha = text(getattr(document, "hash_sha256", "")).lower()
+        if sha:
+            by_hash.setdefault(sha, document)
+    return by_name, by_hash
+
+
+def office_notification_evidence_from_pec(fascicolo: Any, emails: list[Any] | tuple[Any, ...] | None) -> list[dict[str, Any]]:
+    """Return office-document notification evidence derived from PEC messages."""
+
+    by_name, by_hash = _local_office_document_lookup(fascicolo)
+    evidence: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    refs = _fascicolo_reference_tokens(fascicolo)
+    for email_obj in list(emails or []):
+        if not _email_matches_fascicolo(email_obj, fascicolo):
+            continue
+        if not _email_is_from_office(email_obj):
+            continue
+        if not _email_requests_notification(email_obj):
+            continue
+        email_id = text(_mapping_or_attr(email_obj, "id", "message_id", "uid_imap")) or text(_mapping_or_attr(email_obj, "message_id"))
+        email_date = text(_mapping_or_attr(email_obj, "data", "ricevuta_il", "timestamp"))[:10]
+        sender = text(_mapping_or_attr(email_obj, "mittente_nome")) or text(_mapping_or_attr(email_obj, "mittente"))
+        eml_file = text(_mapping_or_attr(email_obj, "eml_file", "pec_eml_file", "file_eml"))
+        eml_sha256 = text(_mapping_or_attr(email_obj, "eml_sha256", "pec_eml_sha256", "sha256_eml"))
+        message_id = text(_mapping_or_attr(email_obj, "message_id"))
+        service = _office_portal_service_from_email(email_obj)
+        for row in _office_document_names_from_email(email_obj):
+            name = text(row.get("name"))
+            key = _normalise_office_document_name(name) or f"pec-{email_id}-{row.get('index')}"
+            unique = (email_id, key)
+            if unique in seen:
+                continue
+            seen.add(unique)
+            sha = text(row.get("sha256")).lower()
+            acquired_doc = by_hash.get(sha) if sha else None
+            if acquired_doc is None:
+                acquired_doc = by_name.get(key)
+            document_id = text(getattr(acquired_doc, "id", ""))
+            acquisition_href = _office_document_acquisition_href(
+                fascicolo,
+                document_name=name,
+                email_id=email_id,
+                service=service,
+                sha256=sha,
+            )
+            evidence.append(
+                {
+                    "fascicoloId": refs["id"],
+                    "fascicoloNumero": refs["numero"],
+                    "fascicoloTitolo": refs["titolo"],
+                    "ufficio": refs["ufficio"],
+                    "numeroRg": refs["numero_rg"],
+                    "annoRg": refs["anno_rg"],
+                    "documentoId": f"pec:{email_id}:{row.get('index')}",
+                    "documentoLocaleId": document_id,
+                    "nome": name,
+                    "tipo": "Documento comunicato dall'ufficio",
+                    "dataDeposito": email_date,
+                    "mittente": sender,
+                    "fontePortale": "PEC cancelleria",
+                    "servizioPortale": service,
+                    "riferimentoPortale": text(_mapping_or_attr(email_obj, "message_id")) or email_id,
+                    "fonteControllo": "pec_cancelleria",
+                    "pecId": email_id,
+                    "pecMessageId": message_id,
+                    "pecEmlFile": eml_file,
+                    "pecEmlSha256": eml_sha256,
+                    "pecHref": f"/email/messaggio/{quote(email_id)}" if email_id else "/email/",
+                    "acquisitionHref": acquisition_href,
+                    "acquisitionActionLabel": "Scarica dal portale",
+                    "singleDocumentAcquisition": True,
+                    "notificaRichiesta": True,
+                    "acquisito": bool(acquired_doc),
+                    "hashSha256": sha,
+                }
+            )
+    evidence.sort(key=lambda item: (item.get("dataDeposito") or "", item.get("nome") or ""), reverse=True)
+    return evidence
+
+
+def released_office_documents_from_pec(fascicolo: Any, emails: list[Any] | tuple[Any, ...] | None) -> list[dict[str, Any]]:
+    """Return PEC-communicated office documents not yet represented in Documenti e atti."""
+
+    return [item for item in office_notification_evidence_from_pec(fascicolo, emails) if not item.get("acquisito")]
 
 
 def _document_attestation_declared(document: dict[str, Any], payload: dict[str, Any]) -> bool:
@@ -809,6 +1752,11 @@ def _documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
             "notifica_richiesta": payload.get("notifica_richiesta"),
             "acquisito_da_portale": payload.get("acquisito_da_portale"),
             "data_rilascio_portale": payload.get("data_rilascio_portale"),
+            "firma_digitale_richiesta": payload.get("firma_digitale_richiesta"),
+            "firma_richiesta": payload.get("firma_richiesta"),
+            "requires_signature": payload.get("requires_signature"),
+            "requiresSignature": payload.get("requiresSignature"),
+            "firmato_digitalmente": payload.get("firmato_digitalmente"),
         }
         if any(text(value) for value in single.values()):
             source = [single]
@@ -828,11 +1776,19 @@ def _documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
         )
         portal_source = source_name.upper() in PORTAL_DOCUMENT_SOURCES or portal_service.upper() in PORTAL_DOCUMENT_SOURCES
         acquired_from_portal = boolish(item.get("acquisito_da_portale") or item.get("acquisitoDaPortale")) or bool(portal_reference or portal_source)
-        office_document = boolish(item.get("documento_ufficio") or item.get("documentoUfficio")) or origin in {
-            "copia_fascicolo_informatico",
-            "comunicazione_cancelleria",
-        }
         notification_required = boolish(item.get("notifica_richiesta") or item.get("notificaRichiesta"))
+        signature_required = boolish(
+            item.get("firma_digitale_richiesta")
+            or item.get("firma_richiesta")
+            or item.get("requires_signature")
+            or item.get("requiresSignature")
+        )
+        digitally_signed = boolish(item.get("firmato_digitalmente") or item.get("digitallySigned"))
+        office_document = (
+            boolish(item.get("documento_ufficio") or item.get("documentoUfficio"))
+            or origin == "comunicazione_cancelleria"
+            or (origin == "copia_fascicolo_informatico" and notification_required)
+        )
         documents.append({
             "index": index,
             "nome_file": text(item.get("nome_file") or item.get("file")),
@@ -849,6 +1805,11 @@ def _documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
             "notifica_richiesta": notification_required,
             "acquisito_da_portale": acquired_from_portal,
             "data_rilascio_portale": _format_italian_date(item.get("data_rilascio_portale") or item.get("dataRilascioPortale")),
+            "firma_digitale_richiesta": signature_required,
+            "firma_richiesta": signature_required,
+            "requires_signature": signature_required,
+            "requiresSignature": signature_required,
+            "firmato_digitalmente": digitally_signed,
             "attestazione_conformita": multiline_text(item.get("attestazione_conformita")),
             "attestazione_conformita_presente": boolish(item.get("attestazione_conformita_presente") or item.get("attestazione_presente")),
             "data_comunicazione_cancelleria": _format_italian_date(
@@ -861,14 +1822,22 @@ def _documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
 
 def _office_document_acquisition_state(payload: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
     documents = context["documenti"]
-    portal_documents = [
+    office_documents = [
         document
         for document in documents
-        if document["acquisito_da_portale"] or document["riferimento_portale"] or text(document["fonte_documento"]).upper() in PORTAL_DOCUMENT_SOURCES
+        if document["documento_ufficio"]
+        and (
+            document["acquisito_da_portale"]
+            or document["riferimento_portale"]
+            or text(document["fonte_documento"]).upper() in PORTAL_DOCUMENT_SOURCES
+            or document["origine"] == "comunicazione_cancelleria"
+        )
     ]
     release_detected = (
         boolish(payload.get("documento_ufficio_rilasciato"))
         or boolish(payload.get("documentoUfficioRilasciato"))
+        or boolish(payload.get("pec_ufficio_rilascio"))
+        or boolish(_deep_get(payload, "pec_ufficio.rilascio_documento"))
         or any(document["notifica_richiesta"] and document["documento_ufficio"] for document in documents)
     )
     acquisition_required = release_detected or boolish(payload.get("acquisizione_portale_richiesta")) or boolish(
@@ -879,14 +1848,14 @@ def _office_document_acquisition_state(payload: dict[str, Any], context: dict[st
         or boolish(payload.get("documentoUfficioAcquisito"))
         or boolish(payload.get("acquisizione_portale_completata"))
         or boolish(payload.get("acquisizionePortaleCompletata"))
-        or bool(portal_documents)
+        or bool(office_documents)
     )
     return {
         "releaseDetected": bool(release_detected),
         "acquisitionRequired": bool(acquisition_required),
         "acquired": bool(acquired),
         "blocking": bool(acquisition_required and not acquired),
-        "documentsCount": len(portal_documents),
+        "documentsCount": len(office_documents),
         "documents": [
             {
                 "name": document["nome_file"],
@@ -897,8 +1866,436 @@ def _office_document_acquisition_state(payload: dict[str, Any], context: dict[st
                 "releasedAt": document["data_rilascio_portale"],
                 "notificationRequired": bool(document["notifica_richiesta"]),
             }
-            for document in portal_documents
+            for document in office_documents
         ],
+    }
+
+
+def _office_pec_eml_state(payload: dict[str, Any]) -> dict[str, Any]:
+    release_detected = (
+        boolish(payload.get("documento_ufficio_rilasciato"))
+        or boolish(payload.get("documentoUfficioRilasciato"))
+        or boolish(payload.get("pec_ufficio_rilascio"))
+        or boolish(_deep_get(payload, "pec_ufficio.rilascio_documento"))
+        or boolish(_deep_get(payload, "documento_ufficio.pec_rilascio"))
+    )
+    eml_file = text(
+        _first(
+            payload,
+            "pec_ufficio.eml_file",
+            "pec_ufficio.file_eml",
+            "pec_ufficio_eml",
+            "pec_ufficio_eml_file",
+            "eml_pec_ufficio",
+        )
+    )
+    eml_sha256 = text(_first(payload, "pec_ufficio.sha256", "pec_ufficio_eml_sha256", "eml_pec_ufficio_sha256"))
+    message_id = text(_first(payload, "pec_ufficio.message_id", "pec_ufficio_message_id", "message_id_pec_ufficio"))
+    return {
+        "required": release_detected,
+        "present": not release_detected or bool(eml_file or message_id),
+        "emlFile": eml_file,
+        "sha256": eml_sha256,
+        "messageId": message_id,
+    }
+
+
+def _has_procura_document(documents: list[dict[str, Any]]) -> bool:
+    for document in documents:
+        haystack = f"{document['nome_file']} {document['descrizione']}".lower()
+        if "procura" in haystack:
+            return True
+    return False
+
+
+def build_notification_attachment_manifest(
+    payload: dict[str, Any],
+    *,
+    context: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    context = context or _build_context(payload, template=select_relata_template(payload))
+    documents = context["documenti"]
+    attestation_required = any(document["necessita_attestazione"] for document in documents)
+    procura_required = boolish(_first(payload, "procura_necessaria", "procura.necessaria", fallback=False))
+    procura_in_atti = boolish(_first(payload, "procura_in_atti", "procura.in_atti", fallback=False))
+    procura_attached = _has_procura_document(documents) or boolish(_first(payload, "procura_allegata", "procura.allegata", fallback=False))
+    return [
+        {
+            "id": "atto_o_provvedimento",
+            "label": "Atto, provvedimento o documento da notificare",
+            "phase": "pec_notifica",
+            "required": True,
+            "present": bool(documents),
+            "detail": f"{len(documents)} documento/i selezionati.",
+            "source": "Specifiche tecniche DGSIA 7 agosto 2024, artt. 21, 22 e 25",
+        },
+        {
+            "id": "relata_separata_firmata",
+            "label": "Relata separata firmata digitalmente",
+            "phase": "pec_notifica",
+            "required": True,
+            "present": boolish(_first(payload, "notifica.relata_documento_separato", "relata_documento_separato"))
+            and boolish(_first(payload, "notifica.relata_firmata", "relata_firmata")),
+            "detail": "Documento informatico separato, firmato prima dell'invio.",
+            "source": "L. 53/1994, art. 3-bis, comma 5",
+        },
+        {
+            "id": "procura",
+            "label": "Procura alle liti",
+            "phase": "pec_notifica",
+            "required": procura_required and not procura_in_atti,
+            "present": (not procura_required) or procura_in_atti or procura_attached,
+            "detail": "Da allegare se necessaria e non gia' presente in atti.",
+            "source": "D.M. 44/2011, art. 18, comma 5",
+        },
+        {
+            "id": "attestazione_conformita",
+            "label": "Attestazione di conformita'",
+            "phase": "pec_notifica",
+            "required": attestation_required,
+            "present": not attestation_required
+            or all(_document_attestation_text_present(document, payload) for document in documents if document["necessita_attestazione"]),
+            "detail": "Richiesta per copie da fascicolo, cancelleria o scansioni analogiche.",
+            "source": "L. 53/1994, art. 3-bis, comma 2",
+        },
+        {
+            "id": "eml_ufficio",
+            "label": "EML PEC ufficio che comunica il rilascio",
+            "phase": "evidenza_pre_notifica",
+            **_office_pec_eml_state(payload),
+            "detail": "Serve a certificare il trigger PEC e il documento comunicato dall'ufficio.",
+            "source": "Specifiche tecniche DGSIA 7 agosto 2024, artt. 21, 22 e 25",
+        },
+        {
+            "id": "ricevute_deposito",
+            "label": "PEC inviata, RAC e RdAC completa",
+            "phase": "deposito_prova",
+            "required": False,
+            "present": boolish(payload.get("ricevuta_completa")),
+            "detail": "Si generano dopo l'invio e non vanno allegati alla PEC di notifica.",
+            "source": "L. 53/1994, art. 9; Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
+        },
+    ]
+
+
+def _delivery_recipients_from_payload(payload: dict[str, Any], context: dict[str, Any]) -> list[dict[str, Any]]:
+    raw_recipients = payload.get("destinatari")
+    rows: list[dict[str, Any]] = []
+    if isinstance(raw_recipients, list) and raw_recipients:
+        for index, item in enumerate(raw_recipients, start=1):
+            row = item if isinstance(item, dict) else {}
+            name = text(row.get("nome") or row.get("name") or row.get("destinatario_nome"))
+            pec = text(row.get("pec") or row.get("email") or row.get("destinatario_pec"))
+            role = normalise_role(row.get("ruolo") or row.get("role") or row.get("ruolo_destinatario") or context["destinatario"]["tipo"])
+            rows.append(
+                {
+                    "index": index,
+                    "name": name,
+                    "pec": pec,
+                    "role": role,
+                    "source": text(row.get("fonte_pec") or row.get("source") or row.get("fontePec") or context["destinatario"]["fonte_pec_key"]),
+                    "parteRappresentata": text(row.get("parte_rappresentata") or row.get("parteRappresentata")),
+                }
+            )
+    if not rows:
+        rows.append(
+            {
+                "index": 1,
+                "name": context["destinatario"]["nome_denominazione"],
+                "pec": context["destinatario"]["pec"],
+                "role": context["destinatario"]["tipo"],
+                "source": context["destinatario"]["fonte_pec_key"],
+                "parteRappresentata": context["destinatario"]["parte_rappresentata"],
+            }
+        )
+    return rows
+
+
+def _document_is_signed(document: dict[str, Any]) -> bool:
+    name = text(document.get("nome_file")).lower()
+    origin = text(document.get("origine")).lower()
+    return name.endswith((".p7m", ".sig")) or origin == "firmato_digitalmente" or boolish(document.get("firmato_digitalmente"))
+
+
+def _document_signature_required(document: dict[str, Any]) -> bool:
+    return boolish(
+        document.get("firma_digitale_richiesta")
+        or document.get("firma_richiesta")
+        or document.get("requires_signature")
+        or document.get("requiresSignature")
+    )
+
+
+def _parse_notification_datetime(value: Any) -> datetime | None:
+    raw = text(value)
+    if not raw:
+        return None
+    for pattern in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%d/%m/%Y %H:%M"):
+        try:
+            return datetime.strptime(raw[:19] if "T" in raw and len(raw) >= 19 else raw, pattern)
+        except ValueError:
+            continue
+    return None
+
+
+def build_notification_timing_plan(payload: dict[str, Any]) -> dict[str, Any]:
+    """Apply the PEC notification timing rules without hiding the lawyer review."""
+
+    raw_send_at = text(
+        _first(
+            payload,
+            "notifica.invio_programmato",
+            "notifica.data_ora_invio",
+            "invio_programmato",
+            "data_ora_invio_pec",
+            "pec_send_at",
+        )
+    )
+    planned_at = _parse_notification_datetime(raw_send_at)
+    if planned_at is None:
+        return {
+            "plannedAt": raw_send_at,
+            "ready": True,
+            "status": "da_pianificare",
+            "senderEffect": "La RAC determinerà il perfezionamento per il notificante.",
+            "recipientEffect": "La RdAC determinerà il perfezionamento per il destinatario, con verifica della fascia oraria.",
+            "warning": "",
+            "legalBasis": _legal_source_rows("l53_art3bis", "dl179_art16septies", "corte_cost_75_2019", "dpr68_art6_8"),
+        }
+
+    hour = planned_at.hour
+    if 0 <= hour < 7:
+        return {
+            "plannedAt": planned_at.strftime("%d/%m/%Y %H:%M"),
+            "ready": False,
+            "status": "fuori_fascia_destinatario",
+            "senderEffect": "Verifica professionale richiesta prima dell'invio.",
+            "recipientEffect": "La fascia 00:00-06:59 resta da evitare nel workflow automatico.",
+            "warning": "Invio bloccato: pianifica dalle 07:00 oppure conferma manuale fuori automatismo.",
+            "legalBasis": _legal_source_rows("l53_art3bis", "dl179_art16septies", "corte_cost_75_2019", "dpr68_art6_8"),
+        }
+    if 21 <= hour <= 23:
+        return {
+            "plannedAt": planned_at.strftime("%d/%m/%Y %H:%M"),
+            "ready": True,
+            "status": "fascia_serale_con_scissione",
+            "senderEffect": "Per il notificante vale il momento di generazione della RAC.",
+            "recipientEffect": "Per il destinatario resta il differimento alle ore 07:00 del giorno successivo.",
+            "warning": "Fascia serale: il software mostra la scissione degli effetti prima della conferma dell'avvocato.",
+            "legalBasis": _legal_source_rows("l53_art3bis", "dl179_art16septies", "corte_cost_75_2019", "dpr68_art6_8"),
+        }
+    return {
+        "plannedAt": planned_at.strftime("%d/%m/%Y %H:%M"),
+        "ready": True,
+        "status": "fascia_ordinaria",
+        "senderEffect": "Per il notificante vale il momento di generazione della RAC.",
+        "recipientEffect": "Per il destinatario vale il momento di generazione della RdAC.",
+        "warning": "",
+        "legalBasis": _legal_source_rows("l53_art3bis", "dpr68_art6_8"),
+    }
+
+
+def build_notification_signature_plan(
+    payload: dict[str, Any],
+    *,
+    context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Select the documents that must enter the signature queue before PEC send."""
+
+    context = context or _build_context(payload, template=select_relata_template(payload))
+    signature_format = text(_first(payload, "notifica.firma_tipo", "firma_tipo", fallback="CAdES")).upper()
+    signed_relata = "relata_notifica_firmata.pdf" if signature_format == "PADES" else "relata_notifica.pdf.p7m"
+    required: list[dict[str, Any]] = [
+        {
+            "id": "relata_notifica",
+            "label": "Relata di notificazione",
+            "sourceFile": "relata_notifica.pdf",
+            "signedFile": signed_relata,
+            "required": True,
+            "phase": "prima_invio_pec",
+            "format": signature_format,
+            "signer": context["avvocato"]["full_name"],
+            "source": "L. 53/1994, art. 3-bis, comma 5; art. 56-bis disp. att. c.p.p. per il flusso penale",
+            "reason": "La normativa richiede la relazione di notificazione su documento informatico separato, sottoscritta dall'avvocato prima dell'invio PEC.",
+            "automaticSelection": True,
+        }
+    ]
+    already_signed: list[dict[str, str]] = []
+    not_to_sign: list[dict[str, str]] = []
+    for document in context["documenti"]:
+        name = document["nome_file"]
+        if _document_signature_required(document) and not _document_is_signed(document):
+            required.append(
+                {
+                    "id": f"documento_{document['index']}",
+                    "label": document["descrizione"] or "Documento da notificare",
+                    "sourceFile": name,
+                    "signedFile": f"{name}.p7m" if not name.lower().endswith(".p7m") else name,
+                    "required": True,
+                    "phase": "prima_invio_pec",
+                    "format": "CAdES",
+                    "signer": context["avvocato"]["full_name"],
+                    "source": "Specifiche tecniche DGSIA 7 agosto 2024, artt. 16 e 26; regole dell'atto processuale applicabili al documento",
+                    "reason": "Il documento è marcato come atto da sottoscrivere autonomamente prima della notifica.",
+                    "automaticSelection": True,
+                }
+            )
+        elif _document_is_signed(document):
+            already_signed.append({"filename": name, "reason": "Documento già firmato digitalmente o già in formato firmato."})
+        else:
+            not_to_sign.append(
+                {
+                    "filename": name,
+                    "reason": "Resta allegato alla PEC come documento notificato; se è copia o provvedimento acquisito, l'eventuale attestazione è nella relata firmata.",
+                }
+            )
+    checks = [
+        _check_row(
+            id="relata_da_firmare",
+            label="Relata selezionata per firma",
+            source="L. 53/1994, art. 3-bis, comma 5",
+            passed=any(item["id"] == "relata_notifica" for item in required),
+            detail=f"Documento da firmare: relata_notifica.pdf -> {signed_relata}.",
+        ),
+        _check_row(
+            id="relata_firmata",
+            label="Relata firmata prima dell'invio",
+            source="L. 53/1994, art. 3-bis, comma 5",
+            passed=boolish(_first(payload, "notifica.relata_firmata", "relata_firmata")),
+            detail="Il workflow considera inviabile la PEC solo dopo la firma digitale della relata.",
+        ),
+    ]
+    return {
+        "mode": "local_signer",
+        "legalBasis": _legal_source_rows(
+            "l53_art3bis",
+            "disp_att_cpp_56bis",
+            "disp_att_cpc_196undecies",
+            "dm44_art18",
+            "dgsia_2024_art26",
+            "dgsia_2024_art27",
+        ),
+        "requiredBeforeSend": required,
+        "alreadySigned": already_signed,
+        "notToSign": not_to_sign,
+        "checks": checks,
+        "ready": all(item["status"] == "superato" for item in checks),
+        "localSignerRequired": True,
+    }
+
+
+def build_notification_send_plan(
+    payload: dict[str, Any],
+    *,
+    context: dict[str, Any] | None = None,
+    body: str = "",
+) -> dict[str, Any]:
+    """Return the controlled PEC-send plan after relata generation."""
+
+    context = context or _build_context(payload, template=select_relata_template(payload))
+    recipients = _delivery_recipients_from_payload(payload, context)
+    attachment_manifest = build_notification_attachment_manifest(payload, context=context)
+    signature_plan = build_notification_signature_plan(payload, context=context)
+    timing_plan = build_notification_timing_plan(payload)
+    signed_relata = text(
+        next(
+            (item.get("signedFile") for item in signature_plan.get("requiredBeforeSend", []) if item.get("id") == "relata_notifica"),
+            "relata_notifica.pdf.p7m",
+        )
+    )
+    documents = context["documenti"]
+    pec_attachments = [
+        {
+            "id": "relata_firmata",
+            "label": "Relata firmata digitalmente",
+            "filename": text(payload.get("relata_firmata_file") or payload.get("relata_firmata_nome"), signed_relata),
+            "required": True,
+            "phase": "pec_notifica",
+            "source": "L. 53/1994, art. 3-bis",
+        }
+    ]
+    for document in documents:
+        pec_attachments.append(
+            {
+                "id": f"documento_{document['index']}",
+                "label": document["descrizione"] or "Documento da notificare",
+                "filename": document["nome_file"],
+                "sha256": document["hash_sha256"],
+                "required": True,
+                "phase": "pec_notifica",
+                "source": "D.M. 44/2011, art. 18",
+            }
+        )
+    if any(item.get("id") == "procura" and item.get("required") for item in attachment_manifest):
+        pec_attachments.append(
+            {
+                "id": "procura",
+                "label": "Procura alle liti",
+                "filename": text(payload.get("procura_file") or payload.get("procura_nome")),
+                "required": True,
+                "phase": "pec_notifica",
+                "source": "D.M. 44/2011, art. 18",
+            }
+        )
+
+    checks = [
+        _check_row(
+            id="destinatari_pec",
+            label="Destinatari PEC",
+            source="D.L. 179/2012, art. 16-ter",
+            passed=bool(recipients) and all(item["pec"] for item in recipients),
+            detail="Ogni destinatario della notifica deve avere PEC tratta da pubblico elenco.",
+        ),
+        _check_row(
+            id="pec_distinte",
+            label="PEC distinte per destinatario",
+            source="Prassi operativa prudente L. 53/1994",
+            passed=True,
+            detail="Il sistema prepara un messaggio separato per ciascun destinatario, evitando commistioni tra destinatari.",
+        ),
+        _check_row(
+            id="allegati_pec",
+            label="Allegati PEC di notifica",
+            source="L. 53/1994, art. 3-bis; D.M. 44/2011, art. 18",
+            passed=bool(documents)
+            and all(item.get("filename") for item in pec_attachments if item.get("required"))
+            and boolish(_first(payload, "notifica.relata_firmata", "relata_firmata")),
+            detail="La PEC contiene relata firmata e documenti da notificare; RAC/RdAC si raccolgono dopo l'invio.",
+        ),
+        _check_row(
+            id="orario_notifica",
+            label="Orario notifica PEC",
+            source="D.L. 179/2012, art. 16-septies; Corte cost. 75/2019; D.P.R. 68/2005",
+            passed=bool(timing_plan.get("ready")),
+            detail=text(timing_plan.get("warning") or timing_plan.get("recipientEffect")),
+        ),
+        _check_row(
+            id="approvazione_avvocato",
+            label="Conferma dell'avvocato",
+            source="Controllo operativo IUSENTRA",
+            passed=boolish(payload.get("approvazione_avvocato")),
+            detail="Nessun invio parte senza conferma professionale finale.",
+        ),
+    ]
+    return {
+        "mode": "pec_l53_controllata",
+        "subject": LEGAL_NOTIFICATION_SUBJECT,
+        "body": body,
+        "recipients": recipients,
+        "messagesCount": len(recipients),
+        "separatePecRequired": True,
+        "attachments": pec_attachments,
+        "attachmentManifest": attachment_manifest,
+        "signaturePlan": signature_plan,
+        "timingPlan": timing_plan,
+        "sendChecks": checks,
+        "postSendEvidenceRequired": [
+            "PEC inviata in originale digitale .eml o .msg",
+            "RAC per ogni destinatario",
+            "RdAC completa per ogni destinatario",
+            "Riferimenti ricevute in DatiAtto.xml per il deposito prova",
+        ],
+        "ready": all(item["status"] == "superato" for item in checks),
     }
 
 
@@ -1072,17 +2469,24 @@ def select_relata_template(payload: dict[str, Any]) -> dict[str, Any]:
     role = normalise_role(_first(payload, "destinatario.tipo", "ruolo_destinatario"))
     documents = _documents(payload)
     origins = {document["origine"] for document in documents}
+    case_id = notification_case_from_payload(payload)
+    case_explicit = bool(_explicit_notification_case(payload))
 
     if role in {"cliente", "assistito"}:
         return get_notification_template("comunicazione_cliente_non_notifica") or list_notification_templates(kind="communication")[0]
-    if boolish(payload.get("rinnovo_notifica")):
-        return get_notification_template("relata_rinnovo_notifica") or get_notification_template("relata_pec_base_l53")
-    if boolish(payload.get("integrazione_contraddittorio")):
-        return get_notification_template("relata_integrazione_contraddittorio") or get_notification_template("relata_pec_base_l53")
-    if boolish(payload.get("chiamata_terzo")):
-        return get_notification_template("relata_chiamata_terzo") or get_notification_template("relata_pec_base_l53")
-    if boolish(payload.get("riassunzione")) or text(_first(payload, "riassunzione.causa", "riassunzione_causa")):
-        return get_notification_template("relata_riassunzione") or get_notification_template("relata_pec_base_l53")
+    if case_id and case_id != "ordinaria":
+        case_template = get_notification_template(text(NOTIFICATION_CASE_DIRECTIVES.get(case_id, {}).get("template_id")))
+        if case_template:
+            return case_template
+    if not case_explicit:
+        if boolish(payload.get("rinnovo_notifica")):
+            return get_notification_template("relata_rinnovo_notifica") or get_notification_template("relata_pec_base_l53")
+        if boolish(payload.get("integrazione_contraddittorio")):
+            return get_notification_template("relata_integrazione_contraddittorio") or get_notification_template("relata_pec_base_l53")
+        if boolish(payload.get("chiamata_terzo")):
+            return get_notification_template("relata_chiamata_terzo") or get_notification_template("relata_pec_base_l53")
+        if boolish(payload.get("riassunzione")) or text(_first(payload, "riassunzione.causa", "riassunzione_causa")):
+            return get_notification_template("relata_riassunzione") or get_notification_template("relata_pec_base_l53")
     if role == "difensore":
         return get_notification_template("relata_pec_a_difensore_costituito") or get_notification_template("relata_pec_base_l53")
     if role == "impresa":
@@ -1362,6 +2766,7 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
     role = context["destinatario"]["tipo"]
     documents = context["documenti"]
     office_acquisition = _office_document_acquisition_state(payload, context)
+    attachment_manifest = build_notification_attachment_manifest(payload, context=context)
     subject = LEGAL_NOTIFICATION_SUBJECT
     subject_input = text(payload.get("oggetto_pec") or payload.get("subject") or _deep_get(payload, "notifica.oggetto_pec"))
 
@@ -1376,6 +2781,7 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
         blockers.append(block("CLIENTE_NON_NOTIFICA", "Il cliente non va trattato come destinatario ordinario di una notifica: usa Comunicazione al cliente."))
     if role and role not in LEGAL_RECIPIENT_ROLES and role not in CLIENT_RECIPIENT_ROLES:
         warnings.append("Ruolo destinatario non ricondotto automaticamente: verifica che sia un soggetto notificabile.")
+    directive = _validate_notification_directive(payload, context, template, blockers, warnings)
 
     required_paths = [
         ("avvocato.full_name", "Indica l'avvocato notificante."),
@@ -1416,8 +2822,15 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
     if office_acquisition["blocking"]:
         blockers.append(block(
             "DOCUMENTO_UFFICIO_ACQUISIZIONE_REQUIRED",
-            "Acquisisci dal Portale Servizi il documento rilasciato dall'ufficio prima di preparare la notifica.",
+            "La PEC dell'ufficio comunica un documento da notificare: collegalo ai documenti e atti prima di preparare la relata.",
         ))
+    for attachment in attachment_manifest:
+        if not attachment.get("required") or attachment.get("present"):
+            continue
+        if attachment.get("id") == "procura":
+            blockers.append(block("PROCURA_ALLEGATO_REQUIRED", "La procura alle liti è necessaria e non risulta già in atti: allegala alla PEC di notifica."))
+        elif attachment.get("id") == "eml_ufficio":
+            blockers.append(block("PEC_UFFICIO_EML_REQUIRED", "Conserva l'EML originale della PEC dell'ufficio che comunica il provvedimento da notificare."))
 
     if not documents:
         blockers.append("Seleziona almeno un documento da notificare.")
@@ -1481,6 +2894,9 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
     selected_blocks = tuple(["procedimento"] if context["procedimento"]["presente"] else []) + tuple(
         f"attestazione:{document['origine']}" for document in context["documenti"] if document["necessita_attestazione"]
     )
+    output_plan = build_output_plan(payload)
+    output_plan["notificationDirective"] = directive
+    output_plan["deliveryPlan"] = build_notification_send_plan(payload, context=context, body=body)
     return LegalWorkflowResult(
         ok=True,
         blockers=[],
@@ -1500,7 +2916,7 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
         selected_blocks=selected_blocks,
         checklist_text=checklist,
         log_json=build_generation_log(payload, template=template, attestation_blocks=attestation_blocks),
-        output_plan=build_output_plan(payload),
+        output_plan=output_plan,
     )
 
 
@@ -1646,6 +3062,7 @@ def legal_notification_automation_payload() -> dict[str, list[dict[str, str]]]:
     return {
         "notifica": [dict(item) for item in LEGAL_NOTIFICATION_AUTOMATION_STEPS],
         "deposito": [dict(item) for item in LEGAL_NOTIFICATION_DEPOSIT_STEPS],
+        "allegati": [dict(item) for item in LEGAL_NOTIFICATION_ATTACHMENT_RULES],
     }
 
 
@@ -1680,6 +3097,9 @@ def build_notification_normative_checks(payload: dict[str, Any], *, context: dic
     context = context or _build_context(payload, template=select_relata_template(payload))
     documents = context["documenti"]
     office_acquisition = _office_document_acquisition_state(payload, context)
+    office_pec_eml = _office_pec_eml_state(payload)
+    directive = resolve_legal_notification_directive(payload, context)
+    attachment_manifest = build_notification_attachment_manifest(payload, context=context)
     attestation_required = any(document["necessita_attestazione"] for document in documents)
     attestation_present = not attestation_required or all(
         _document_attestation_text_present(document, payload)
@@ -1713,22 +3133,43 @@ def build_notification_normative_checks(payload: dict[str, Any], *, context: dic
             detail="Sono richiesti fonte pubblica, data e ora della verifica.",
         ),
         _check_row(
+            id="destinatario_casistica",
+            label="Destinatario coerente con il caso",
+            source="; ".join(item["label"] for item in directive.get("caseLegalBasis", [])) or "L. 53/1994",
+            passed=directive["role"] not in LEGAL_RECIPIENT_ROLES or directive["role"] in directive["allowedRecipientRoles"],
+            detail=directive.get("recipientRule") or "La casistica deve essere verificata prima dell'invio.",
+        ),
+        _check_row(
             id="allegati",
             label="Allegati della notifica",
-            source="Specifiche tecniche D.M. 44/2011, art. 19-bis",
-            passed=bool(documents),
-            detail=f"{len(documents)} documento/i indicati per la notifica.",
+            source="Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            passed=all(item.get("present") for item in attachment_manifest if item.get("phase") == "pec_notifica" and item.get("required")),
+            detail="; ".join(f"{item['label']}: {'presente' if item.get('present') else 'mancante'}" for item in attachment_manifest if item.get("phase") == "pec_notifica"),
+        ),
+        _check_row(
+            id="eml_pec_ufficio",
+            label="EML PEC ufficio",
+            source="Specifiche tecniche DGSIA 7 agosto 2024, artt. 21, 22 e 25",
+            passed=bool(office_pec_eml["present"]),
+            blocking=bool(office_pec_eml["required"]),
+            detail=(
+                "EML o Message-ID della PEC dell'ufficio conservato."
+                if office_pec_eml["present"] and office_pec_eml["required"]
+                else "Non richiesto se il trigger non nasce da PEC dell'ufficio."
+                if not office_pec_eml["required"]
+                else "Quando la PEC dell'ufficio comunica il rilascio, l'EML originale va conservato come evidenza."
+            ),
         ),
         _check_row(
             id="documento_ufficio_acquisito",
             label="Documento ufficio acquisito",
-            source="D.M. 44/2011, art. 18; specifiche tecniche art. 19-bis",
+            source="Specifiche tecniche DGSIA 7 agosto 2024, artt. 21, 22 e 25",
             passed=not office_acquisition["acquisitionRequired"] or office_acquisition["acquired"],
             blocking=bool(office_acquisition["blocking"]),
             detail=(
-                "Documento d'ufficio acquisito dal Portale Servizi e tracciato nel fascicolo."
+                "Documento comunicato dall'ufficio già collegato a Documenti e atti."
                 if office_acquisition["acquired"]
-                else "Se il portale segnala un documento d'ufficio da notificare, l'acquisizione è obbligatoria prima della relata."
+                else "Se la PEC dell'ufficio comunica un documento da notificare, quel documento deve essere collegato prima della relata."
             ),
         ),
         _check_row(
@@ -1792,6 +3233,10 @@ def build_notification_audit_trail(
             for document in documents
         ],
         "officeDocumentAcquisition": office_acquisition,
+        "attachmentManifest": build_notification_attachment_manifest(payload, context=context),
+        "notificationDirective": resolve_legal_notification_directive(payload, context),
+        "signaturePlan": build_notification_signature_plan(payload, context=context),
+        "timingPlan": build_notification_timing_plan(payload),
         "attestationsGenerated": attestation_blocks,
         "checks": build_notification_normative_checks(payload, context=context),
         "evidencePack": evidence_pack or {},
@@ -1819,7 +3264,13 @@ def build_output_plan(payload: dict[str, Any]) -> dict[str, Any]:
         "folder": folder,
         "files": files,
         "workflowSteps": [dict(item) for item in LEGAL_NOTIFICATION_AUTOMATION_STEPS],
+        "attachmentRules": [dict(item) for item in LEGAL_NOTIFICATION_ATTACHMENT_RULES],
+        "attachmentManifest": build_notification_attachment_manifest(payload, context=context),
+        "notificationDirective": resolve_legal_notification_directive(payload, context),
+        "signaturePlan": build_notification_signature_plan(payload, context=context),
+        "timingPlan": build_notification_timing_plan(payload),
         "normativeChecks": build_notification_normative_checks(payload, context=context),
+        "deliveryPlan": build_notification_send_plan(payload, context=context),
         "auditTrail": build_notification_audit_trail(payload, context=context),
     }
 
@@ -2062,6 +3513,15 @@ def build_notification_evidence_pack(payload: dict[str, Any]) -> dict[str, Any]:
             sha256=_payload_hash(payload, "pec_inviata_sha256", "pec_sha256"),
         ),
     ])
+    office_pec = _office_pec_eml_state(payload)
+    if office_pec["required"] or office_pec["emlFile"]:
+        items.append(_evidence_item(
+            kind="pec_ufficio_rilascio",
+            label="PEC ufficio rilascio provvedimento",
+            filename=office_pec["emlFile"] or office_pec["messageId"],
+            sha256=office_pec["sha256"],
+            required=bool(office_pec["required"]),
+        ))
 
     recipients = payload.get("destinatari")
     if not isinstance(recipients, list):
@@ -2179,7 +3639,7 @@ def prepare_pst_failed_notification_workflow(payload: dict[str, Any]) -> LegalWo
     if attributable:
         missing_notice = not text(payload.get("avviso_mancata_consegna"))
         if missing_notice:
-            blockers.append(block("AVVISO_MANCATA_CONSEGNA_REQUIRED", "Allega l'avviso di mancata consegna."))
+            blockers.append(block("AVVISO_MANCATA_CONSEGNA_REQUIRED", "Allega l'avviso di mancata consegna ex D.P.R. 68/2005."))
         blockers.extend(block("EVIDENCE_PACK_REQUIRED", item) for item in evidence_pack["missing"])
         blockers.extend(block("HASH_SHA256_INVALID", item) for item in evidence_pack.get("invalid_hashes", []))
 
@@ -2205,8 +3665,22 @@ def prepare_pst_failed_notification_workflow(payload: dict[str, Any]) -> LegalWo
             "Non considerare perfezionata la notifica.",
             "Scegli un canale alternativo o rinnova la notifica.",
         ),
-        output_plan={"evidencePack": evidence_pack},
-        log_json={"workflow": "pst_area_web_notifica_fallita", "evidencePack": evidence_pack},
+        output_plan={
+            "evidencePack": evidence_pack,
+            "legalBasis": _legal_source_rows("l53_art3ter", "dpr68_art6_8", "dgsia_2024_art26"),
+            "portalSteps": [
+                "Predisponi notifica nell'area riservata PST",
+                "Carica atto o PEC non perfezionata",
+                "Carica relata di notifica",
+                "Carica avviso di mancata consegna in formato EML",
+                "Scarica certificazione dopo il decorso previsto",
+            ],
+        },
+        log_json={
+            "workflow": "pst_area_web_notifica_fallita",
+            "evidencePack": evidence_pack,
+            "legalBasis": [item["id"] for item in _legal_source_rows("l53_art3ter", "dpr68_art6_8", "dgsia_2024_art26")],
+        },
     )
 
 
@@ -2232,7 +3706,7 @@ def build_deposit_normative_checks(payload: dict[str, Any], evidence_pack: dict[
         _check_row(
             id="atti_notificati",
             label="Atti notificati",
-            source="Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5",
+            source="Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
             passed=bool(payload.get("atti_notificati") or text(payload.get("atto_notificato"))),
             detail="L'atto notificato viene inserito nella busta con gli allegati necessari.",
         ),
@@ -2267,7 +3741,7 @@ def build_deposit_normative_checks(payload: dict[str, Any], evidence_pack: dict[
         _check_row(
             id="dati_atto",
             label="Riferimenti DatiAtto.xml",
-            source="Specifiche tecniche D.M. 44/2011, art. 19-bis, comma 5",
+            source="Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
             passed=bool(text(payload.get("dati_atto_ricevute"))),
             detail="I dati identificativi delle ricevute vanno indicizzati nel deposito.",
         ),

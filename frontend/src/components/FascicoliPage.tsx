@@ -167,6 +167,10 @@ function openDetailSectionById(id: string) {
   if (window.location.hash !== `#${id}`) window.history.replaceState(null, '', `#${id}`)
 }
 
+function relataListHref(item: FascicoloRow): string {
+  return item.relataHref || `${item.href}#relata-notifica`
+}
+
 function StatCard({ icon, label, value, note, tone = 'primary', href, onClick }:{icon:ReactNode; label:string; value:number|string; note:string; tone?:FascicoloRow['tone']; href?:string; onClick?:(event:MouseEvent<HTMLAnchorElement>)=>void}) {
   const body = (
     <>
@@ -384,6 +388,7 @@ function RowActions({ item, archive = false, onDeleted, onError }:{item:Fascicol
   return (
     <div className="iu-fas-actions" aria-label={`Azioni fascicolo ${item.ref}`}>
       <a href={item.href} aria-label="Apri fascicolo" title="Apri"><Eye size={15}/></a>
+      {item.relataStatusLabel ? <a href={relataListHref(item)} aria-label={`Apri Relata notifica ${item.ref}`} title="Relata notifica"><FileSignature size={15}/></a> : null}
       {!archive ? <a href={item.editHref} aria-label="Modifica fascicolo" title="Modifica"><PencilLine size={15}/></a> : null}
       <a href={item.exportPdfHref} aria-label="Esporta PDF fascicolo" title="PDF"><FileDown size={15}/></a>
       {archive && item.archive?.zipAvailable ? <a href={item.archiveZipHref} aria-label="Scarica ZIP archivio" title="ZIP"><FileArchive size={15}/></a> : null}
@@ -404,6 +409,13 @@ function DossierMobileCard({ item, checked, onToggle, archive = false, onDeleted
       </header>
       <a href={item.href} className="iu-fas-mobile-card__title">{item.title}</a>
       <p>{item.subtitle || item.court}</p>
+      {item.relataStatusLabel ? (
+        <a className={`iu-fas-relata-list-link iu-fas-relata-list-link--${item.relataTone}`} href={relataListHref(item)}>
+          <FileSignature size={15}/>
+          <span>Relata notifica</span>
+          <strong>{item.relataStatusLabel}</strong>
+        </a>
+      ) : null}
       <dl>
         <div><dt>Cliente</dt><dd>{item.client}</dd></div>
         <div><dt>Tipo</dt><dd>{formatFascicoloType(item.type)}</dd></div>
@@ -425,6 +437,11 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
   const total = pagination?.total ?? items.length
   const currentPage = pagination?.page ?? 1
   const totalPages = pagination?.pages ?? (items.length ? 1 : 0)
+  const pageNumbers = (() => {
+    const last = Math.max(1, totalPages)
+    const values = new Set<number>([1, currentPage - 1, currentPage, currentPage + 1, last])
+    return Array.from(values).filter((value) => value >= 1 && value <= last).sort((a, b) => a - b)
+  })()
   const pageSizeControl = onPageSizeChange ? (
     <label className="iu-fas-page-size">
       <span>Per pagina</span>
@@ -437,9 +454,25 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
   ) : null
   const paginationControls = onPageChange && pagination ? (
     <>
+      <button type="button" onClick={() => onPageChange(1)} disabled={currentPage <= 1}>Prima</button>
       <button type="button" onClick={() => onPageChange(currentPage - 1)} disabled={currentPage <= 1}>Precedente</button>
-      <span>Pagina {currentPage} di {Math.max(1, totalPages)}</span>
+      <span>Pagina {currentPage} di {Math.max(1, totalPages)} - {total} fascicoli</span>
+      <div className="iu-fas-page-jump" aria-label="Vai a pagina">
+        {pageNumbers.map((value, index) => (
+          <button
+            type="button"
+            className={value === currentPage ? 'is-current' : ''}
+            onClick={() => onPageChange(value)}
+            disabled={value === currentPage}
+            aria-current={value === currentPage ? 'page' : undefined}
+            key={value}
+          >
+            {index > 0 && value - pageNumbers[index - 1] > 1 ? `... ${value}` : value}
+          </button>
+        ))}
+      </div>
       <button type="button" onClick={() => onPageChange(currentPage + 1)} disabled={totalPages === 0 || currentPage >= totalPages}>Successiva</button>
+      <button type="button" onClick={() => onPageChange(Math.max(1, totalPages))} disabled={totalPages === 0 || currentPage >= totalPages}>Ultima</button>
     </>
   ) : null
   return (
@@ -474,7 +507,17 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
               <tr key={item.id}>
                 <td><input type="checkbox" checked={selected.has(item.id)} onChange={() => onToggle(item.id)} aria-label={`Seleziona ${item.ref}`}/></td>
                 <td><strong>{item.ref}</strong><span>{item.internalRef}</span></td>
-                <td className="iu-fas-title-cell"><a href={item.href}>{item.title}</a><span>{item.subtitle || item.court}</span></td>
+                <td className="iu-fas-title-cell">
+                  <a href={item.href}>{item.title}</a>
+                  <span>{item.subtitle || item.court}</span>
+                  {item.relataStatusLabel ? (
+                    <a className={`iu-fas-relata-list-link iu-fas-relata-list-link--${item.relataTone}`} href={relataListHref(item)}>
+                      <FileSignature size={14}/>
+                      <span>Relata notifica</span>
+                      <strong>{item.relataStatusLabel}</strong>
+                    </a>
+                  ) : null}
+                </td>
                 <td><Badge tone="neutral">{formatFascicoloType(item.type)}</Badge></td>
                 <td>{item.client}</td>
                 <td>{item.rg}</td>
@@ -2174,6 +2217,12 @@ function DetailPage({ id }:{id:string}) {
     }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [id])
+  useEffect(() => {
+    if (loading) return
+    const sectionId = decodeURIComponent(window.location.hash.replace(/^#/, ''))
+    if (!sectionId) return
+    window.setTimeout(() => openDetailSectionById(sectionId), 80)
+  }, [loading, data.fascicolo.id])
   const f = data.fascicolo
   const encodedId = encodeURIComponent(f.id || id)
   const operationalHref = f.operationalHref || `/fascicoli/${encodedId}`

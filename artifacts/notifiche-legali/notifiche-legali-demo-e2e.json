@@ -1,0 +1,4339 @@
+{
+  "generatedAt": "2026-05-24T11:44:59+00:00",
+  "ok": true,
+  "summary": {
+    "total": 157,
+    "passed": 157,
+    "failed": 0
+  },
+  "sections": [
+    {
+      "title": "Matrice casi e destinatari",
+      "results": [
+        {
+          "name": "Caso notifica: Notifica ordinaria a mezzo PEC",
+          "ok": true,
+          "detail": "Relata PEC base",
+          "data": {
+            "templateId": "relata_pec_base_l53"
+          }
+        },
+        {
+          "name": "Caso notifica: Notifica in corso di causa",
+          "ok": true,
+          "detail": "In corso di causa",
+          "data": {
+            "templateId": "relata_pec_in_corso_di_causa"
+          }
+        },
+        {
+          "name": "Caso notifica: Provvedimento del giudice",
+          "ok": true,
+          "detail": "Provvedimento del giudice",
+          "data": {
+            "templateId": "relata_provvedimento_giudice"
+          }
+        },
+        {
+          "name": "Caso notifica: Sentenza o termine breve",
+          "ok": true,
+          "detail": "Sentenza e termine breve",
+          "data": {
+            "templateId": "relata_sentenza_termine_breve"
+          }
+        },
+        {
+          "name": "Caso notifica: Decreto ingiuntivo",
+          "ok": true,
+          "detail": "Decreto ingiuntivo",
+          "data": {
+            "templateId": "relata_decreto_ingiuntivo"
+          }
+        },
+        {
+          "name": "Caso notifica: Titolo esecutivo e precetto",
+          "ok": true,
+          "detail": "Titolo esecutivo e precetto",
+          "data": {
+            "templateId": "relata_titolo_esecutivo_precetto"
+          }
+        },
+        {
+          "name": "Caso notifica: Atto stragiudiziale",
+          "ok": true,
+          "detail": "Atto stragiudiziale",
+          "data": {
+            "templateId": "relata_atto_stragiudiziale"
+          }
+        },
+        {
+          "name": "Caso notifica: Rinnovo notificazione",
+          "ok": true,
+          "detail": "Rinnovo notificazione",
+          "data": {
+            "templateId": "relata_rinnovo_notifica"
+          }
+        },
+        {
+          "name": "Caso notifica: Integrazione del contraddittorio",
+          "ok": true,
+          "detail": "Integrazione del contraddittorio",
+          "data": {
+            "templateId": "relata_integrazione_contraddittorio"
+          }
+        },
+        {
+          "name": "Caso notifica: Chiamata del terzo",
+          "ok": true,
+          "detail": "Chiamata in causa del terzo",
+          "data": {
+            "templateId": "relata_chiamata_terzo"
+          }
+        },
+        {
+          "name": "Caso notifica: Riassunzione",
+          "ok": true,
+          "detail": "Riassunzione",
+          "data": {
+            "templateId": "relata_riassunzione"
+          }
+        },
+        {
+          "name": "Caso notifica: Appello o impugnazione",
+          "ok": true,
+          "detail": "Appello o impugnazione",
+          "data": {
+            "templateId": "relata_appello_impugnazione"
+          }
+        },
+        {
+          "name": "Caso notifica: Reclamo cautelare",
+          "ok": true,
+          "detail": "Reclamo cautelare",
+          "data": {
+            "templateId": "relata_reclamo_cautelare"
+          }
+        },
+        {
+          "name": "Caso notifica: Sfratto e convalida",
+          "ok": true,
+          "detail": "Sfratto e convalida",
+          "data": {
+            "templateId": "relata_sfratto_convalida"
+          }
+        },
+        {
+          "name": "Caso notifica: Pignoramento presso terzi",
+          "ok": true,
+          "detail": "Pignoramento presso terzi",
+          "data": {
+            "templateId": "relata_pignoramento_presso_terzi"
+          }
+        },
+        {
+          "name": "Caso notifica: Intervento in esecuzione",
+          "ok": true,
+          "detail": "Intervento in esecuzione",
+          "data": {
+            "templateId": "relata_intervento_esecuzione"
+          }
+        },
+        {
+          "name": "Caso notifica: Opposizione a decreto ingiuntivo",
+          "ok": true,
+          "detail": "Opposizione a decreto ingiuntivo",
+          "data": {
+            "templateId": "relata_opposizione_decreto_ingiuntivo"
+          }
+        },
+        {
+          "name": "Caso notifica: Opposizione esecutiva",
+          "ok": true,
+          "detail": "Opposizione esecutiva",
+          "data": {
+            "templateId": "relata_opposizione_esecutiva"
+          }
+        },
+        {
+          "name": "Caso notifica: Famiglia, persone e minori",
+          "ok": true,
+          "detail": "Famiglia, persone e minori",
+          "data": {
+            "templateId": "relata_famiglia_persone_minori"
+          }
+        },
+        {
+          "name": "Caso notifica: Provvedimento urgente o cautelare",
+          "ok": true,
+          "detail": "Provvedimento urgente o cautelare",
+          "data": {
+            "templateId": "relata_provvedimento_urgente"
+          }
+        },
+        {
+          "name": "Caso notifica: Accordo o transazione stragiudiziale",
+          "ok": true,
+          "detail": "Accordo o transazione stragiudiziale",
+          "data": {
+            "templateId": "relata_accordo_transazione_stragiudiziale"
+          }
+        },
+        {
+          "name": "Destinatario: Controparte personalmente",
+          "ok": true,
+          "detail": "Relata PEC base",
+          "data": {
+            "templateId": "relata_pec_base_l53"
+          }
+        },
+        {
+          "name": "Destinatario: Difensore costituito",
+          "ok": true,
+          "detail": "A difensore costituito",
+          "data": {
+            "templateId": "relata_pec_a_difensore_costituito"
+          }
+        },
+        {
+          "name": "Destinatario: Impresa o società",
+          "ok": true,
+          "detail": "A impresa o societa'",
+          "data": {
+            "templateId": "relata_pec_a_impresa_societa"
+          }
+        },
+        {
+          "name": "Destinatario: Professionista",
+          "ok": true,
+          "detail": "A professionista INI-PEC",
+          "data": {
+            "templateId": "relata_pec_a_professionista_inipec"
+          }
+        },
+        {
+          "name": "Destinatario: Pubblica amministrazione",
+          "ok": true,
+          "detail": "A pubblica amministrazione",
+          "data": {
+            "templateId": "relata_pec_a_pubblica_amministrazione"
+          }
+        },
+        {
+          "name": "Destinatario: Terzo destinatario",
+          "ok": true,
+          "detail": "Relata PEC base",
+          "data": {
+            "templateId": "relata_pec_base_l53"
+          }
+        },
+        {
+          "name": "Blocco registro incoerente",
+          "ok": true,
+          "detail": "PEC_DESTINATARIO_REGISTRO_INCOERENTE: La fonte PEC selezionata non è coerente con Difensore costituito; usa ReGIndE, INI-PEC, Altro pubblico elenco ammesso.",
+          "data": {}
+        },
+        {
+          "name": "Blocco destinatario incoerente con la casistica",
+          "ok": true,
+          "detail": "DESTINATARIO_CASO_INCOERENTE: Per il caso 'Chiamata del terzo' il ruolo 'Controparte personalmente' non è tra i destinatari governati; verifica la casistica e seleziona: Terzo destinatario.",
+          "data": {}
+        },
+        {
+          "name": "Fonti normative esposte su tutta la matrice",
+          "ok": true,
+          "detail": "Ogni caso espone fonti, regola destinatario e ruoli ammessi; ogni ruolo espone registri e fonti.",
+          "data": {
+            "cases": 21,
+            "roles": 6
+          }
+        },
+        {
+          "name": "Allegati ed EML PEC ufficio governati",
+          "ok": true,
+          "detail": "Atto, provvedimento o documento da notificare: presente; Relata separata firmata digitalmente: presente; Attestazione di conformita': presente; EML PEC ufficio che comunica il rilascio: presente",
+          "data": {
+            "manifest": [
+              {
+                "id": "atto_o_provvedimento",
+                "label": "Atto, provvedimento o documento da notificare",
+                "phase": "pec_notifica",
+                "required": true,
+                "present": true,
+                "detail": "1 documento/i selezionati.",
+                "source": "Specifiche tecniche DGSIA 7 agosto 2024, artt. 21, 22 e 25"
+              },
+              {
+                "id": "relata_separata_firmata",
+                "label": "Relata separata firmata digitalmente",
+                "phase": "pec_notifica",
+                "required": true,
+                "present": true,
+                "detail": "Documento informatico separato, firmato prima dell'invio.",
+                "source": "L. 53/1994, art. 3-bis, comma 5"
+              },
+              {
+                "id": "procura",
+                "label": "Procura alle liti",
+                "phase": "pec_notifica",
+                "required": false,
+                "present": true,
+                "detail": "Da allegare se necessaria e non gia' presente in atti.",
+                "source": "D.M. 44/2011, art. 18, comma 5"
+              },
+              {
+                "id": "attestazione_conformita",
+                "label": "Attestazione di conformita'",
+                "phase": "pec_notifica",
+                "required": true,
+                "present": true,
+                "detail": "Richiesta per copie da fascicolo, cancelleria o scansioni analogiche.",
+                "source": "L. 53/1994, art. 3-bis, comma 2"
+              },
+              {
+                "id": "eml_ufficio",
+                "label": "EML PEC ufficio che comunica il rilascio",
+                "phase": "evidenza_pre_notifica",
+                "required": true,
+                "present": true,
+                "emlFile": "pec-cancelleria-provvedimento.eml",
+                "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                "messageId": "<pec-cancelleria-provvedimento@giustizia>",
+                "detail": "Serve a certificare il trigger PEC e il documento comunicato dall'ufficio.",
+                "source": "Specifiche tecniche DGSIA 7 agosto 2024, artt. 21, 22 e 25"
+              },
+              {
+                "id": "ricevute_deposito",
+                "label": "PEC inviata, RAC e RdAC completa",
+                "phase": "deposito_prova",
+                "required": false,
+                "present": true,
+                "detail": "Si generano dopo l'invio e non vanno allegati alla PEC di notifica.",
+                "source": "L. 53/1994, art. 9; Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Blocco EML PEC ufficio mancante",
+          "ok": true,
+          "detail": "PEC_UFFICIO_EML_REQUIRED: Conserva l'EML originale della PEC dell'ufficio che comunica il provvedimento da notificare.",
+          "data": {}
+        },
+        {
+          "name": "Blocco cliente nel percorso notifica",
+          "ok": true,
+          "detail": "CLIENTE_NON_NOTIFICA: Il cliente non va trattato come destinatario ordinario di una notifica: usa Comunicazione al cliente.",
+          "data": {}
+        }
+      ]
+    },
+    {
+      "title": "Flusso reale PEC, portale, fascicolo e relata",
+      "results": [
+        {
+          "name": "Lettura reale PEC dal database casella",
+          "ok": true,
+          "detail": "La PEC dell'ufficio è stata letta da GestioneEmailRicevute e l'EML originale è stato salvato automaticamente.",
+          "data": {
+            "emlFile": "eml/pec-cancelleria-1234.eml",
+            "emlSha256": "a02a47cb50b48dfc02046cf1c0d402380b3291b5e5ac111f559dcd9821457f17"
+          }
+        },
+        {
+          "name": "PEC abilita il provvedimento da scaricare",
+          "ok": true,
+          "detail": "/portali/pst/acquisizione?id_fasc=94D3B91B&numero=1234&anno=2026&ufficio=Tribunale+di+Roma&focus=documenti&mode=update_existing&single_document=1&documento=ordinanza_da_notificare.pdf&pec_id=pec-cancelleria-1234&hash=182ff50a22149e4e9ff22b13c97674b876b7f92a113f288c2004f0c0debc3472&non_duplicare_documenti=1&fase_successiva=relata_notifica",
+          "data": {
+            "evidence": {
+              "fascicoloId": "94D3B91B",
+              "fascicoloNumero": "2026/001",
+              "fascicoloTitolo": "Cliente S.r.l. / Controparte S.p.A. - provvedimento da notificare",
+              "ufficio": "Tribunale di Roma",
+              "numeroRg": "1234",
+              "annoRg": "2026",
+              "documentoId": "pec:pec-cancelleria-1234:0",
+              "documentoLocaleId": "",
+              "nome": "ordinanza_da_notificare.pdf",
+              "tipo": "Documento comunicato dall'ufficio",
+              "dataDeposito": "2026-05-23",
+              "mittente": "Cancelleria Tribunale di Roma",
+              "fontePortale": "PEC cancelleria",
+              "servizioPortale": "",
+              "riferimentoPortale": "<pec-cancelleria-1234@giustizia>",
+              "fonteControllo": "pec_cancelleria",
+              "pecId": "pec-cancelleria-1234",
+              "pecMessageId": "<pec-cancelleria-1234@giustizia>",
+              "pecEmlFile": "eml/pec-cancelleria-1234.eml",
+              "pecEmlSha256": "a02a47cb50b48dfc02046cf1c0d402380b3291b5e5ac111f559dcd9821457f17",
+              "pecHref": "/email/messaggio/pec-cancelleria-1234",
+              "acquisitionHref": "/portali/pst/acquisizione?id_fasc=94D3B91B&numero=1234&anno=2026&ufficio=Tribunale+di+Roma&focus=documenti&mode=update_existing&single_document=1&documento=ordinanza_da_notificare.pdf&pec_id=pec-cancelleria-1234&hash=182ff50a22149e4e9ff22b13c97674b876b7f92a113f288c2004f0c0debc3472&non_duplicare_documenti=1&fase_successiva=relata_notifica",
+              "acquisitionActionLabel": "Scarica dal portale",
+              "singleDocumentAcquisition": true,
+              "notificaRichiesta": true,
+              "acquisito": false,
+              "hashSha256": "182ff50a22149e4e9ff22b13c97674b876b7f92a113f288c2004f0c0debc3472"
+            }
+          }
+        },
+        {
+          "name": "Download portale e import nel fascicolo",
+          "ok": true,
+          "detail": "Scaricato ordinanza_da_notificare.pdf, SHA-256 182ff50a2214..., documenti fascicolo 1->2.",
+          "data": {}
+        },
+        {
+          "name": "Nessun duplicato dopo acquisizione",
+          "ok": true,
+          "detail": "Il documento scaricato risulta collegato; la pendenza PEC si chiude e non viene richiesto un secondo download.",
+          "data": {}
+        },
+        {
+          "name": "Lex legge il provvedimento appena acquisito",
+          "ok": true,
+          "detail": "Indice Lex salvato per ordinanza_da_notificare.pdf, file_type=pdf, indexed=1.",
+          "data": {}
+        },
+        {
+          "name": "Casistica relata determinata dopo acquisizione",
+          "ok": true,
+          "detail": "Provvedimento del giudice",
+          "data": {
+            "templateId": "relata_provvedimento_giudice",
+            "case": "provvedimento_giudice"
+          }
+        },
+        {
+          "name": "Provvedimento scaricato incluso negli allegati PEC",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "downloadedDocument": "ordinanza_da_notificare.pdf",
+            "portalSha256": "182ff50a22149e4e9ff22b13c97674b876b7f92a113f288c2004f0c0debc3472",
+            "deliveryAttachments": [
+              "relata_notifica.pdf.p7m",
+              "ordinanza_da_notificare.pdf"
+            ],
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "3249b4fa4ba62b49b62436cbedfb250deaed7c37a92107507ab9bab151946c46",
+                "messageId": "<notifica-l53-9761866196d08ce716@iusentra.example.test>"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Relata, invio demo e deposito prova completati",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "deposit": {
+              "ok": true,
+              "blockers": [],
+              "warnings": [],
+              "subject": "Deposito prova notifica",
+              "body": "Prova notifica pronta per il controllo: atto notificato, relata firmata, messaggio PEC inviato, RAC e RdAC originali per ciascun destinatario.",
+              "relataText": "",
+              "nextActions": [
+                "Inserisci atto notificato e ricevute nella busta telematica.",
+                "Controlla che RAC e RdAC restino in originale digitale.",
+                "Verifica i riferimenti ricevute in DatiAtto.xml."
+              ],
+              "templateId": "distinta_prova_notifica",
+              "templateLabel": "Distinta prova notifica",
+              "templateVersion": "2026.05.12",
+              "selectedBlocks": [],
+              "checklistText": "",
+              "logJson": {
+                "evento": "controllo_prova_notifica",
+                "evidencePack": {
+                  "items": [
+                    {
+                      "kind": "atto",
+                      "label": "Atto notificato",
+                      "filename": "ordinanza_da_notificare.pdf",
+                      "sha256": "182ff50a22149e4e9ff22b13c97674b876b7f92a113f288c2004f0c0debc3472",
+                      "required": true,
+                      "generated": false
+                    },
+                    {
+                      "kind": "relata_firmata",
+                      "label": "Relata firmata",
+                      "filename": "relata_notifica.pdf.p7m",
+                      "sha256": "f9fc8ae2baf996f22451c99846f744e34b52283b36bd297c05afe1d54bfdb38c",
+                      "required": true,
+                      "generated": false
+                    },
+                    {
+                      "kind": "pec_inviata",
+                      "label": "PEC inviata",
+                      "filename": "pec_inviata_1.eml",
+                      "sha256": "3249b4fa4ba62b49b62436cbedfb250deaed7c37a92107507ab9bab151946c46",
+                      "required": true,
+                      "generated": false
+                    },
+                    {
+                      "kind": "pec_ufficio_rilascio",
+                      "label": "PEC ufficio rilascio provvedimento",
+                      "filename": "eml/pec-cancelleria-1234.eml",
+                      "sha256": "a02a47cb50b48dfc02046cf1c0d402380b3291b5e5ac111f559dcd9821457f17",
+                      "required": true,
+                      "generated": false
+                    },
+                    {
+                      "kind": "rac",
+                      "label": "RAC Controparte S.p.A.",
+                      "filename": "rac_1.eml",
+                      "sha256": "b977d1b2d03dab75645fa58b2497f0f6e9ac264b36788f20bfef9a24a9f5ab88",
+                      "required": true,
+                      "generated": false
+                    },
+                    {
+                      "kind": "rdac_completa",
+                      "label": "RdAC completa Controparte S.p.A.",
+                      "filename": "rdac_completa_1.eml",
+                      "sha256": "bb61d28438d9de7bb1ef74549c2e9ceef4f7617cdc7c1640349218cc5c35f6b6",
+                      "required": true,
+                      "generated": false
+                    },
+                    {
+                      "kind": "log_json",
+                      "label": "Log JSON",
+                      "filename": "log_notifica.json",
+                      "sha256": "ecf70e086c5472decd410725add460f0d50a0fbce51ed61c798829c96378b2fa",
+                      "required": true,
+                      "generated": true
+                    },
+                    {
+                      "kind": "distinta_prova_notifica",
+                      "label": "Distinta prova notifica",
+                      "filename": "distinta_prova_notifica.pdf",
+                      "sha256": "8bddecd1bee6b74056c4b8bf7b679326ece99e8ce98ca03f18cfe07e2df61ed6",
+                      "required": true,
+                      "generated": true
+                    },
+                    {
+                      "kind": "scheda_esito",
+                      "label": "Scheda esito",
+                      "filename": "scheda_esito_notifica.pdf",
+                      "sha256": "149aa311f56ea4b7a42dbd4132cc7a65773b3d2b5d2c4c0c9810bb335b2e4d1d",
+                      "required": true,
+                      "generated": true
+                    }
+                  ],
+                  "missing": [],
+                  "invalid_hashes": [],
+                  "hashes": {
+                    "atto": "182ff50a22149e4e9ff22b13c97674b876b7f92a113f288c2004f0c0debc3472",
+                    "relata_firmata": "f9fc8ae2baf996f22451c99846f744e34b52283b36bd297c05afe1d54bfdb38c",
+                    "pec_inviata": "3249b4fa4ba62b49b62436cbedfb250deaed7c37a92107507ab9bab151946c46",
+                    "pec_ufficio_rilascio": "a02a47cb50b48dfc02046cf1c0d402380b3291b5e5ac111f559dcd9821457f17",
+                    "rac": "b977d1b2d03dab75645fa58b2497f0f6e9ac264b36788f20bfef9a24a9f5ab88",
+                    "rdac_completa": "bb61d28438d9de7bb1ef74549c2e9ceef4f7617cdc7c1640349218cc5c35f6b6",
+                    "log_json": "ecf70e086c5472decd410725add460f0d50a0fbce51ed61c798829c96378b2fa",
+                    "distinta_prova_notifica": "8bddecd1bee6b74056c4b8bf7b679326ece99e8ce98ca03f18cfe07e2df61ed6",
+                    "scheda_esito": "149aa311f56ea4b7a42dbd4132cc7a65773b3d2b5d2c4c0c9810bb335b2e4d1d"
+                  }
+                },
+                "audit": {
+                  "phase": "deposito_prova",
+                  "generatedAt": "2026-05-24T11:44:57+00:00",
+                  "documentsCount": 1,
+                  "recipients": [
+                    {
+                      "name": "Controparte S.p.A.",
+                      "racFile": "rac_1.eml",
+                      "rdacFile": "rdac_completa_1.eml"
+                    }
+                  ],
+                  "checks": [
+                    {
+                      "id": "atti_notificati",
+                      "label": "Atti notificati",
+                      "source": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
+                      "status": "superato",
+                      "detail": "L'atto notificato viene inserito nella busta con gli allegati necessari.",
+                      "blocking": true
+                    },
+                    {
+                      "id": "relata_firmata",
+                      "label": "Relata firmata",
+                      "source": "L. 53/1994, art. 3-bis, comma 5",
+                      "status": "superato",
+                      "detail": "La relata firmata digitalmente va conservata nel pacchetto prova.",
+                      "blocking": true
+                    },
+                    {
+                      "id": "pec_inviata",
+                      "label": "PEC inviata",
+                      "source": "L. 53/1994, art. 3-bis, comma 3",
+                      "status": "superato",
+                      "detail": "Il messaggio inviato resta allegato in originale digitale.",
+                      "blocking": true
+                    },
+                    {
+                      "id": "rac_rdac",
+                      "label": "RAC e RdAC originali",
+                      "source": "L. 53/1994, art. 9; D.M. 44/2011, art. 18, comma 6",
+                      "status": "superato",
+                      "detail": "RAC e RdAC completa devono restare file .eml o .msg per ogni destinatario.",
+                      "blocking": true
+                    },
+                    {
+                      "id": "hash",
+                      "label": "Impronte SHA-256",
+                      "source": "Audit interno IUSENTRA",
+                      "status": "superato",
+                      "detail": "Ogni file richiesto dal pacchetto prova deve avere impronta SHA-256 valida.",
+                      "blocking": true
+                    },
+                    {
+                      "id": "dati_atto",
+                      "label": "Riferimenti DatiAtto.xml",
+                      "source": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
+                      "status": "superato",
+                      "detail": "I dati identificativi delle ricevute vanno indicizzati nel deposito.",
+                      "blocking": true
+                    }
+                  ],
+                  "evidencePack": {
+                    "items": [
+                      {
+                        "kind": "atto",
+                        "label": "Atto notificato",
+                        "filename": "ordinanza_da_notificare.pdf",
+                        "sha256": "182ff50a22149e4e9ff22b13c97674b876b7f92a113f288c2004f0c0debc3472",
+                        "required": true,
+                        "generated": false
+                      },
+                      {
+                        "kind": "relata_firmata",
+                        "label": "Relata firmata",
+                        "filename": "relata_notifica.pdf.p7m",
+                        "sha256": "f9fc8ae2baf996f22451c99846f744e34b52283b36bd297c05afe1d54bfdb38c",
+                        "required": true,
+                        "generated": false
+                      },
+                      {
+                        "kind": "pec_inviata",
+                        "label": "PEC inviata",
+                        "filename": "pec_inviata_1.eml",
+                        "sha256": "3249b4fa4ba62b49b62436cbedfb250deaed7c37a92107507ab9bab151946c46",
+                        "required": true,
+                        "generated": false
+                      },
+                      {
+                        "kind": "pec_ufficio_rilascio",
+                        "label": "PEC ufficio rilascio provvedimento",
+                        "filename": "eml/pec-cancelleria-1234.eml",
+                        "sha256": "a02a47cb50b48dfc02046cf1c0d402380b3291b5e5ac111f559dcd9821457f17",
+                        "required": true,
+                        "generated": false
+                      },
+                      {
+                        "kind": "rac",
+                        "label": "RAC Controparte S.p.A.",
+                        "filename": "rac_1.eml",
+                        "sha256": "b977d1b2d03dab75645fa58b2497f0f6e9ac264b36788f20bfef9a24a9f5ab88",
+                        "required": true,
+                        "generated": false
+                      },
+                      {
+                        "kind": "rdac_completa",
+                        "label": "RdAC completa Controparte S.p.A.",
+                        "filename": "rdac_completa_1.eml",
+                        "sha256": "bb61d28438d9de7bb1ef74549c2e9ceef4f7617cdc7c1640349218cc5c35f6b6",
+                        "required": true,
+                        "generated": false
+                      },
+                      {
+                        "kind": "log_json",
+                        "label": "Log JSON",
+                        "filename": "log_notifica.json",
+                        "sha256": "ecf70e086c5472decd410725add460f0d50a0fbce51ed61c798829c96378b2fa",
+                        "required": true,
+                        "generated": true
+                      },
+                      {
+                        "kind": "distinta_prova_notifica",
+                        "label": "Distinta prova notifica",
+                        "filename": "distinta_prova_notifica.pdf",
+                        "sha256": "8bddecd1bee6b74056c4b8bf7b679326ece99e8ce98ca03f18cfe07e2df61ed6",
+                        "required": true,
+                        "generated": true
+                      },
+                      {
+                        "kind": "scheda_esito",
+                        "label": "Scheda esito",
+                        "filename": "scheda_esito_notifica.pdf",
+                        "sha256": "149aa311f56ea4b7a42dbd4132cc7a65773b3d2b5d2c4c0c9810bb335b2e4d1d",
+                        "required": true,
+                        "generated": true
+                      }
+                    ],
+                    "missing": [],
+                    "invalid_hashes": [],
+                    "hashes": {
+                      "atto": "182ff50a22149e4e9ff22b13c97674b876b7f92a113f288c2004f0c0debc3472",
+                      "relata_firmata": "f9fc8ae2baf996f22451c99846f744e34b52283b36bd297c05afe1d54bfdb38c",
+                      "pec_inviata": "3249b4fa4ba62b49b62436cbedfb250deaed7c37a92107507ab9bab151946c46",
+                      "pec_ufficio_rilascio": "a02a47cb50b48dfc02046cf1c0d402380b3291b5e5ac111f559dcd9821457f17",
+                      "rac": "b977d1b2d03dab75645fa58b2497f0f6e9ac264b36788f20bfef9a24a9f5ab88",
+                      "rdac_completa": "bb61d28438d9de7bb1ef74549c2e9ceef4f7617cdc7c1640349218cc5c35f6b6",
+                      "log_json": "ecf70e086c5472decd410725add460f0d50a0fbce51ed61c798829c96378b2fa",
+                      "distinta_prova_notifica": "8bddecd1bee6b74056c4b8bf7b679326ece99e8ce98ca03f18cfe07e2df61ed6",
+                      "scheda_esito": "149aa311f56ea4b7a42dbd4132cc7a65773b3d2b5d2c4c0c9810bb335b2e4d1d"
+                    }
+                  }
+                }
+              },
+              "outputPlan": {
+                "evidencePack": {
+                  "items": [
+                    {
+                      "kind": "atto",
+                      "label": "Atto notificato",
+                      "filename": "ordinanza_da_notificare.pdf",
+                      "sha256": "182ff50a22149e4e9ff22b13c97674b876b7f92a113f288c2004f0c0debc3472",
+                      "required": true,
+                      "generated": false
+                    },
+                    {
+                      "kind": "relata_firmata",
+                      "label": "Relata firmata",
+                      "filename": "relata_notifica.pdf.p7m",
+                      "sha256": "f9fc8ae2baf996f22451c99846f744e34b52283b36bd297c05afe1d54bfdb38c",
+                      "required": true,
+                      "generated": false
+                    },
+                    {
+                      "kind": "pec_inviata",
+                      "label": "PEC inviata",
+                      "filename": "pec_inviata_1.eml",
+                      "sha256": "3249b4fa4ba62b49b62436cbedfb250deaed7c37a92107507ab9bab151946c46",
+                      "required": true,
+                      "generated": false
+                    },
+                    {
+                      "kind": "pec_ufficio_rilascio",
+                      "label": "PEC ufficio rilascio provvedimento",
+                      "filename": "eml/pec-cancelleria-1234.eml",
+                      "sha256": "a02a47cb50b48dfc02046cf1c0d402380b3291b5e5ac111f559dcd9821457f17",
+                      "required": true,
+                      "generated": false
+                    },
+                    {
+                      "kind": "rac",
+                      "label": "RAC Controparte S.p.A.",
+                      "filename": "rac_1.eml",
+                      "sha256": "b977d1b2d03dab75645fa58b2497f0f6e9ac264b36788f20bfef9a24a9f5ab88",
+                      "required": true,
+                      "generated": false
+                    },
+                    {
+                      "kind": "rdac_completa",
+                      "label": "RdAC completa Controparte S.p.A.",
+                      "filename": "rdac_completa_1.eml",
+                      "sha256": "bb61d28438d9de7bb1ef74549c2e9ceef4f7617cdc7c1640349218cc5c35f6b6",
+                      "required": true,
+                      "generated": false
+                    },
+                    {
+                      "kind": "log_json",
+                      "label": "Log JSON",
+                      "filename": "log_notifica.json",
+                      "sha256": "ecf70e086c5472decd410725add460f0d50a0fbce51ed61c798829c96378b2fa",
+                      "required": true,
+                      "generated": true
+                    },
+                    {
+                      "kind": "distinta_prova_notifica",
+                      "label": "Distinta prova notifica",
+                      "filename": "distinta_prova_notifica.pdf",
+                      "sha256": "8bddecd1bee6b74056c4b8bf7b679326ece99e8ce98ca03f18cfe07e2df61ed6",
+                      "required": true,
+                      "generated": true
+                    },
+                    {
+                      "kind": "scheda_esito",
+                      "label": "Scheda esito",
+                      "filename": "scheda_esito_notifica.pdf",
+                      "sha256": "149aa311f56ea4b7a42dbd4132cc7a65773b3d2b5d2c4c0c9810bb335b2e4d1d",
+                      "required": true,
+                      "generated": true
+                    }
+                  ],
+                  "missing": [],
+                  "invalid_hashes": [],
+                  "hashes": {
+                    "atto": "182ff50a22149e4e9ff22b13c97674b876b7f92a113f288c2004f0c0debc3472",
+                    "relata_firmata": "f9fc8ae2baf996f22451c99846f744e34b52283b36bd297c05afe1d54bfdb38c",
+                    "pec_inviata": "3249b4fa4ba62b49b62436cbedfb250deaed7c37a92107507ab9bab151946c46",
+                    "pec_ufficio_rilascio": "a02a47cb50b48dfc02046cf1c0d402380b3291b5e5ac111f559dcd9821457f17",
+                    "rac": "b977d1b2d03dab75645fa58b2497f0f6e9ac264b36788f20bfef9a24a9f5ab88",
+                    "rdac_completa": "bb61d28438d9de7bb1ef74549c2e9ceef4f7617cdc7c1640349218cc5c35f6b6",
+                    "log_json": "ecf70e086c5472decd410725add460f0d50a0fbce51ed61c798829c96378b2fa",
+                    "distinta_prova_notifica": "8bddecd1bee6b74056c4b8bf7b679326ece99e8ce98ca03f18cfe07e2df61ed6",
+                    "scheda_esito": "149aa311f56ea4b7a42dbd4132cc7a65773b3d2b5d2c4c0c9810bb335b2e4d1d"
+                  }
+                },
+                "workflowSteps": [
+                  {
+                    "id": "atti",
+                    "title": "Raccolta atti notificati",
+                    "body": "La prova può includere più atti o allegati notificati, con nome e impronta SHA-256.",
+                    "source": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5"
+                  },
+                  {
+                    "id": "ricevute",
+                    "title": "Ricevute originali",
+                    "body": "Per ogni destinatario servono RAC e RdAC completa in formato originale digitale .eml o .msg.",
+                    "source": "L. 53/1994, art. 3-bis, comma 3; D.M. 44/2011, art. 18, comma 6"
+                  },
+                  {
+                    "id": "dati_atto",
+                    "title": "Indicizzazione ricevute",
+                    "body": "I riferimenti delle ricevute sono preparati per il file DatiAtto.xml della busta telematica.",
+                    "source": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5; XSD DatiAtto.xml"
+                  },
+                  {
+                    "id": "audit",
+                    "title": "Audit e controllo finale",
+                    "body": "Il pacchetto prova registra file, impronte e controlli prima del deposito.",
+                    "source": "L. 53/1994, art. 9"
+                  }
+                ],
+                "normativeChecks": [
+                  {
+                    "id": "atti_notificati",
+                    "label": "Atti notificati",
+                    "source": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
+                    "status": "superato",
+                    "detail": "L'atto notificato viene inserito nella busta con gli allegati necessari.",
+                    "blocking": true
+                  },
+                  {
+                    "id": "relata_firmata",
+                    "label": "Relata firmata",
+                    "source": "L. 53/1994, art. 3-bis, comma 5",
+                    "status": "superato",
+                    "detail": "La relata firmata digitalmente va conservata nel pacchetto prova.",
+                    "blocking": true
+                  },
+                  {
+                    "id": "pec_inviata",
+                    "label": "PEC inviata",
+                    "source": "L. 53/1994, art. 3-bis, comma 3",
+                    "status": "superato",
+                    "detail": "Il messaggio inviato resta allegato in originale digitale.",
+                    "blocking": true
+                  },
+                  {
+                    "id": "rac_rdac",
+                    "label": "RAC e RdAC originali",
+                    "source": "L. 53/1994, art. 9; D.M. 44/2011, art. 18, comma 6",
+                    "status": "superato",
+                    "detail": "RAC e RdAC completa devono restare file .eml o .msg per ogni destinatario.",
+                    "blocking": true
+                  },
+                  {
+                    "id": "hash",
+                    "label": "Impronte SHA-256",
+                    "source": "Audit interno IUSENTRA",
+                    "status": "superato",
+                    "detail": "Ogni file richiesto dal pacchetto prova deve avere impronta SHA-256 valida.",
+                    "blocking": true
+                  },
+                  {
+                    "id": "dati_atto",
+                    "label": "Riferimenti DatiAtto.xml",
+                    "source": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
+                    "status": "superato",
+                    "detail": "I dati identificativi delle ricevute vanno indicizzati nel deposito.",
+                    "blocking": true
+                  }
+                ],
+                "auditTrail": {
+                  "phase": "deposito_prova",
+                  "generatedAt": "2026-05-24T11:44:57+00:00",
+                  "documentsCount": 1,
+                  "recipients": [
+                    {
+                      "name": "Controparte S.p.A.",
+                      "racFile": "rac_1.eml",
+                      "rdacFile": "rdac_completa_1.eml"
+                    }
+                  ],
+                  "checks": [
+                    {
+                      "id": "atti_notificati",
+                      "label": "Atti notificati",
+                      "source": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
+                      "status": "superato",
+                      "detail": "L'atto notificato viene inserito nella busta con gli allegati necessari.",
+                      "blocking": true
+                    },
+                    {
+                      "id": "relata_firmata",
+                      "label": "Relata firmata",
+                      "source": "L. 53/1994, art. 3-bis, comma 5",
+                      "status": "superato",
+                      "detail": "La relata firmata digitalmente va conservata nel pacchetto prova.",
+                      "blocking": true
+                    },
+                    {
+                      "id": "pec_inviata",
+                      "label": "PEC inviata",
+                      "source": "L. 53/1994, art. 3-bis, comma 3",
+                      "status": "superato",
+                      "detail": "Il messaggio inviato resta allegato in originale digitale.",
+                      "blocking": true
+                    },
+                    {
+                      "id": "rac_rdac",
+                      "label": "RAC e RdAC originali",
+                      "source": "L. 53/1994, art. 9; D.M. 44/2011, art. 18, comma 6",
+                      "status": "superato",
+                      "detail": "RAC e RdAC completa devono restare file .eml o .msg per ogni destinatario.",
+                      "blocking": true
+                    },
+                    {
+                      "id": "hash",
+                      "label": "Impronte SHA-256",
+                      "source": "Audit interno IUSENTRA",
+                      "status": "superato",
+                      "detail": "Ogni file richiesto dal pacchetto prova deve avere impronta SHA-256 valida.",
+                      "blocking": true
+                    },
+                    {
+                      "id": "dati_atto",
+                      "label": "Riferimenti DatiAtto.xml",
+                      "source": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26, comma 5",
+                      "status": "superato",
+                      "detail": "I dati identificativi delle ricevute vanno indicizzati nel deposito.",
+                      "blocking": true
+                    }
+                  ],
+                  "evidencePack": {
+                    "items": [
+                      {
+                        "kind": "atto",
+                        "label": "Atto notificato",
+                        "filename": "ordinanza_da_notificare.pdf",
+                        "sha256": "182ff50a22149e4e9ff22b13c97674b876b7f92a113f288c2004f0c0debc3472",
+                        "required": true,
+                        "generated": false
+                      },
+                      {
+                        "kind": "relata_firmata",
+                        "label": "Relata firmata",
+                        "filename": "relata_notifica.pdf.p7m",
+                        "sha256": "f9fc8ae2baf996f22451c99846f744e34b52283b36bd297c05afe1d54bfdb38c",
+                        "required": true,
+                        "generated": false
+                      },
+                      {
+                        "kind": "pec_inviata",
+                        "label": "PEC inviata",
+                        "filename": "pec_inviata_1.eml",
+                        "sha256": "3249b4fa4ba62b49b62436cbedfb250deaed7c37a92107507ab9bab151946c46",
+                        "required": true,
+                        "generated": false
+                      },
+                      {
+                        "kind": "pec_ufficio_rilascio",
+                        "label": "PEC ufficio rilascio provvedimento",
+                        "filename": "eml/pec-cancelleria-1234.eml",
+                        "sha256": "a02a47cb50b48dfc02046cf1c0d402380b3291b5e5ac111f559dcd9821457f17",
+                        "required": true,
+                        "generated": false
+                      },
+                      {
+                        "kind": "rac",
+                        "label": "RAC Controparte S.p.A.",
+                        "filename": "rac_1.eml",
+                        "sha256": "b977d1b2d03dab75645fa58b2497f0f6e9ac264b36788f20bfef9a24a9f5ab88",
+                        "required": true,
+                        "generated": false
+                      },
+                      {
+                        "kind": "rdac_completa",
+                        "label": "RdAC completa Controparte S.p.A.",
+                        "filename": "rdac_completa_1.eml",
+                        "sha256": "bb61d28438d9de7bb1ef74549c2e9ceef4f7617cdc7c1640349218cc5c35f6b6",
+                        "required": true,
+                        "generated": false
+                      },
+                      {
+                        "kind": "log_json",
+                        "label": "Log JSON",
+                        "filename": "log_notifica.json",
+                        "sha256": "ecf70e086c5472decd410725add460f0d50a0fbce51ed61c798829c96378b2fa",
+                        "required": true,
+                        "generated": true
+                      },
+                      {
+                        "kind": "distinta_prova_notifica",
+                        "label": "Distinta prova notifica",
+                        "filename": "distinta_prova_notifica.pdf",
+                        "sha256": "8bddecd1bee6b74056c4b8bf7b679326ece99e8ce98ca03f18cfe07e2df61ed6",
+                        "required": true,
+                        "generated": true
+                      },
+                      {
+                        "kind": "scheda_esito",
+                        "label": "Scheda esito",
+                        "filename": "scheda_esito_notifica.pdf",
+                        "sha256": "149aa311f56ea4b7a42dbd4132cc7a65773b3d2b5d2c4c0c9810bb335b2e4d1d",
+                        "required": true,
+                        "generated": true
+                      }
+                    ],
+                    "missing": [],
+                    "invalid_hashes": [],
+                    "hashes": {
+                      "atto": "182ff50a22149e4e9ff22b13c97674b876b7f92a113f288c2004f0c0debc3472",
+                      "relata_firmata": "f9fc8ae2baf996f22451c99846f744e34b52283b36bd297c05afe1d54bfdb38c",
+                      "pec_inviata": "3249b4fa4ba62b49b62436cbedfb250deaed7c37a92107507ab9bab151946c46",
+                      "pec_ufficio_rilascio": "a02a47cb50b48dfc02046cf1c0d402380b3291b5e5ac111f559dcd9821457f17",
+                      "rac": "b977d1b2d03dab75645fa58b2497f0f6e9ac264b36788f20bfef9a24a9f5ab88",
+                      "rdac_completa": "bb61d28438d9de7bb1ef74549c2e9ceef4f7617cdc7c1640349218cc5c35f6b6",
+                      "log_json": "ecf70e086c5472decd410725add460f0d50a0fbce51ed61c798829c96378b2fa",
+                      "distinta_prova_notifica": "8bddecd1bee6b74056c4b8bf7b679326ece99e8ce98ca03f18cfe07e2df61ed6",
+                      "scheda_esito": "149aa311f56ea4b7a42dbd4132cc7a65773b3d2b5d2c4c0c9810bb335b2e4d1d"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "title": "Casistiche complete: relata, allegati, invio e deposito prova",
+      "results": [
+        {
+          "name": "Flusso completo: Notifica ordinaria a mezzo PEC verso controparte",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "ordinaria",
+            "role": "controparte",
+            "templateId": "relata_pec_base_l53",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "4705112cda5afa2688f154e9d2226fa7c4922ff8021f79b66d87829d6abe8cc5",
+                "messageId": "<notifica-l53-e5759a5bb4fa2dc0df@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "db266a63059c849c2d4478df4bfb34a3bb7b9dae5c73bf06a8317a1e5c047f2f"
+          }
+        },
+        {
+          "name": "Flusso completo: Notifica ordinaria a mezzo PEC verso difensore",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "ordinaria",
+            "role": "difensore",
+            "templateId": "relata_pec_a_difensore_costituito",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "d72b6fe4718b3fdc764b3f0f99d913e417a7376844a34660d4527fb04373bb2f",
+                "messageId": "<notifica-l53-63c4bfd9bc24c750fb@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "f5c873f5c7c948d605edc669945e45aef969bf0d957bda98fc1df407b7b47354"
+          }
+        },
+        {
+          "name": "Flusso completo: Notifica ordinaria a mezzo PEC verso pa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "ordinaria",
+            "role": "pa",
+            "templateId": "relata_pec_a_pubblica_amministrazione",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "76e42960a6e1871d32efb60dcd1168a13102c59afb9eae420d71ae284bfff714",
+                "messageId": "<notifica-l53-6c6344b37402793679@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "d562a955585af5696e9c594338e3bd84956801ad35137eeebdc96a220f793e1b"
+          }
+        },
+        {
+          "name": "Flusso completo: Notifica ordinaria a mezzo PEC verso impresa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "ordinaria",
+            "role": "impresa",
+            "templateId": "relata_pec_a_impresa_societa",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "28d4cc040376623cd08a9b878cae52a3f222b87cc441c7a89d977ea15fa24f89",
+                "messageId": "<notifica-l53-8396ec90811e96bba3@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "6cc0e0e0d21148e593cbec0d0e2601ee9ea74f29b5ead3305801bb737c32fbc3"
+          }
+        },
+        {
+          "name": "Flusso completo: Notifica ordinaria a mezzo PEC verso professionista",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "ordinaria",
+            "role": "professionista",
+            "templateId": "relata_pec_a_professionista_inipec",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "8b2839ce873515cd506e5639562481388d9d307533b9b0125860968000ab6c85",
+                "messageId": "<notifica-l53-ae9fda319780b62c11@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "66111ae6b680bed941d3db54d92bb1f52cc9fd9c37b0f587ac278acc55b3ea7e"
+          }
+        },
+        {
+          "name": "Flusso completo: Notifica ordinaria a mezzo PEC verso terzo",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "ordinaria",
+            "role": "terzo",
+            "templateId": "relata_pec_base_l53",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "b0455f1694b13d76ea73dd88aa8c3d423db066489df3eaf8caad9b4f4543fb27",
+                "messageId": "<notifica-l53-399defaf9b841fbe6d@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "a702c51affba11421d2662eb68eb769d579111f6147f05e612b6fcf936752de7"
+          }
+        },
+        {
+          "name": "Flusso completo: Notifica in corso di causa verso controparte",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "in_corso_di_causa",
+            "role": "controparte",
+            "templateId": "relata_pec_in_corso_di_causa",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "666d77a96819a7d35829eb520b066c0f5d9687c806cef43fb26d6a1ab7016fcc",
+                "messageId": "<notifica-l53-60892ea0ce2f58b609@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "211eb133920ba0753f5f624244d9b97a0333d9a96bcf913bc0e25be1676b8a93"
+          }
+        },
+        {
+          "name": "Flusso completo: Notifica in corso di causa verso difensore",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "in_corso_di_causa",
+            "role": "difensore",
+            "templateId": "relata_pec_in_corso_di_causa",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "0200d5114594fa711c562ef0c722096d60e38b036d12d706707ea097994885d8",
+                "messageId": "<notifica-l53-35b5b1a0b6d197fdfc@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "9ff30ea4257bf7318a72e0aecf9fd6c0fdcad44649566340c9b43d68dd4a60b1"
+          }
+        },
+        {
+          "name": "Flusso completo: Notifica in corso di causa verso pa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "in_corso_di_causa",
+            "role": "pa",
+            "templateId": "relata_pec_in_corso_di_causa",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "1329e96fc02d303d145318e97cc3532b9df389193f5d0b0b46756ce178ba7318",
+                "messageId": "<notifica-l53-c0dfb37664d6f0de1c@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "91b89556784853f43c0581a06723b1fff95a00b535f4ae1eac8c57e35209fdaa"
+          }
+        },
+        {
+          "name": "Flusso completo: Notifica in corso di causa verso impresa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "in_corso_di_causa",
+            "role": "impresa",
+            "templateId": "relata_pec_in_corso_di_causa",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "c672736ef1faacd1303040dd344623ef7eb32ff0c7c1bd40e7c19eebe3a5028c",
+                "messageId": "<notifica-l53-06e8ea6b615f20af01@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "2d43852c2548f191309bc151220ba0157b0196bfafd7e5308ad0a8440092068e"
+          }
+        },
+        {
+          "name": "Flusso completo: Notifica in corso di causa verso professionista",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "in_corso_di_causa",
+            "role": "professionista",
+            "templateId": "relata_pec_in_corso_di_causa",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "e181838383a2e555cf0bfbb1cbebd3227f1cb1d7c8b3f3bebe5b3676cdbcb6f5",
+                "messageId": "<notifica-l53-c309e29b9092a879db@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "6e16cf1f0cf4da58fb953b94ba0d90b91a6fcd39b8f65f0e71018a64693b72f6"
+          }
+        },
+        {
+          "name": "Flusso completo: Notifica in corso di causa verso terzo",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "in_corso_di_causa",
+            "role": "terzo",
+            "templateId": "relata_pec_in_corso_di_causa",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "1d2be886fb9698ac7a80edec0ab63c6e8b3d5d79ef58ce1018e768cb8e6f8e62",
+                "messageId": "<notifica-l53-9a23f8bf257f4b0036@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "28c2a5a99e9de1a89f15424acedd2ba00b0226be349f09df8bf743d5779a7069"
+          }
+        },
+        {
+          "name": "Flusso completo: Provvedimento del giudice verso controparte",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "provvedimento_giudice",
+            "role": "controparte",
+            "templateId": "relata_provvedimento_giudice",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "d5bc57e50a6dffd85ea5482387611d2bdb1b9555ec094e9365d04b6249594e7c",
+                "messageId": "<notifica-l53-42f473c61c43511111@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "d7d7fbbd89d4b92458ba6f6ec4f0bd8f3de6210574a4bb60ef515c452db6b224"
+          }
+        },
+        {
+          "name": "Flusso completo: Provvedimento del giudice verso difensore",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "provvedimento_giudice",
+            "role": "difensore",
+            "templateId": "relata_provvedimento_giudice",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "82bc5a552ca2b6e241c0849a6cfd79b5303d409eae56b3d1b461c2d855c42fc5",
+                "messageId": "<notifica-l53-c5bee3bbbe7d81b18b@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "ed1826d5c6135a3dd9e8d8ea2b8622abca20a16b9677a6ef18259cd4e124c3de"
+          }
+        },
+        {
+          "name": "Flusso completo: Provvedimento del giudice verso pa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "provvedimento_giudice",
+            "role": "pa",
+            "templateId": "relata_provvedimento_giudice",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "d8ba08a9c07b6fc8c7999ec8cb77ef8de37c7df98f8b2af83af310bef30560be",
+                "messageId": "<notifica-l53-efc16145beefabe20e@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "559924959e038ebc266f1e6d9eee7e9ed41b5810e657192cf64063ba2362dd40"
+          }
+        },
+        {
+          "name": "Flusso completo: Provvedimento del giudice verso impresa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "provvedimento_giudice",
+            "role": "impresa",
+            "templateId": "relata_provvedimento_giudice",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "27fa3f63e79f9c0c480670c6f058b9f46db2909de108deb253d6e434ae209494",
+                "messageId": "<notifica-l53-30469ededa5f4af32a@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "0e105b0e4625e85c23ba317e5deb2a89fa343cf69aa75e4fee885e036733107a"
+          }
+        },
+        {
+          "name": "Flusso completo: Provvedimento del giudice verso professionista",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "provvedimento_giudice",
+            "role": "professionista",
+            "templateId": "relata_provvedimento_giudice",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "a2b1ddeebb21f34942a24f4fa00934f8e195854ad4e1aed1ddd216c5561340ee",
+                "messageId": "<notifica-l53-c85f2f3c4bc51d778b@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "c1e8113a060df8d52b53a1471fa4f29a475251c8dbb14c1b53d7f387d9d54d25"
+          }
+        },
+        {
+          "name": "Flusso completo: Provvedimento del giudice verso terzo",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "provvedimento_giudice",
+            "role": "terzo",
+            "templateId": "relata_provvedimento_giudice",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "1aa6e0e8fd32566c06d9128ee7601be449019efff06526e31a161ca64f84842d",
+                "messageId": "<notifica-l53-70583839b7f392f7e8@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "0134d31f4209bd1a1ee3730f21e06a01f3eafd628350e09e2a0d5994ee938e2d"
+          }
+        },
+        {
+          "name": "Flusso completo: Sentenza o termine breve verso difensore",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "sentenza_termine_breve",
+            "role": "difensore",
+            "templateId": "relata_sentenza_termine_breve",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "ec75f7cba4f9504a0a82c3432fe9c9be0b117d8e1d1c0cc8fcb55a7f91eb76a3",
+                "messageId": "<notifica-l53-8f4d31af7b9c637ee8@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "865a375ffe0e8902a0a68316bdb76fd0bcb43ff659d6d8d7d72409381c0ff0c1"
+          }
+        },
+        {
+          "name": "Flusso completo: Sentenza o termine breve verso controparte",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "sentenza_termine_breve",
+            "role": "controparte",
+            "templateId": "relata_sentenza_termine_breve",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "b0e8c5b92fe478854b5acde86c66fb1458388c36d630ccf725fac79fb3e2ba5b",
+                "messageId": "<notifica-l53-51407b17129ff81041@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "979b2dded8d6a027134e8319250bc79b9ffb62d260dd6ca60155ad57bdf1110b"
+          }
+        },
+        {
+          "name": "Flusso completo: Sentenza o termine breve verso impresa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "sentenza_termine_breve",
+            "role": "impresa",
+            "templateId": "relata_sentenza_termine_breve",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "76b4082df0b2d70ee7a3c1b8288e8c04a1dd07e77f75a80fb61a07ab12f8f637",
+                "messageId": "<notifica-l53-cd4260a3954dcd28aa@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "e4590223691fcd786deaa0562f4e2c165fc9f73fc40e05dd0b0c34f4142699e2"
+          }
+        },
+        {
+          "name": "Flusso completo: Sentenza o termine breve verso professionista",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "sentenza_termine_breve",
+            "role": "professionista",
+            "templateId": "relata_sentenza_termine_breve",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "9122c346b1b438b69d269971e7d10ee3fc25a32aa9e8ef1e3d372a00e0101d73",
+                "messageId": "<notifica-l53-712cec2260e9159b7b@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "86fde1b56d9e2a5e2e122338438d79608eddd12c1edf569781df649c71df36b8"
+          }
+        },
+        {
+          "name": "Flusso completo: Sentenza o termine breve verso pa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "sentenza_termine_breve",
+            "role": "pa",
+            "templateId": "relata_sentenza_termine_breve",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "71b579324ef88ad00d12038c7ab37cb7a4b959ec72e5de1043a2f7174fee4bfa",
+                "messageId": "<notifica-l53-112ff36d028b414d86@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "a4ad81ddcc3304ebba6ed4386678856aa6a0325899f5279dd0a6a36d39e6a061"
+          }
+        },
+        {
+          "name": "Flusso completo: Decreto ingiuntivo verso controparte",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "decreto_ingiuntivo",
+            "role": "controparte",
+            "templateId": "relata_decreto_ingiuntivo",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "1ed417544b8ea39a841efbfc48693966ad8850577b6378b0cde17fbb1c9c3d2a",
+                "messageId": "<notifica-l53-80720e9b762fca93a3@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "7b4912be5473f6d53a3c27a99af146031f93840f4ddc812307a0def1153da808"
+          }
+        },
+        {
+          "name": "Flusso completo: Decreto ingiuntivo verso impresa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "decreto_ingiuntivo",
+            "role": "impresa",
+            "templateId": "relata_decreto_ingiuntivo",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "5feccaeb23f2e3a48a622548c28211db3f316a622916a0af48047399cfcc655a",
+                "messageId": "<notifica-l53-399516c04d117957b0@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "1756a3130a2a3f8248a7e8daacb83f96646e36ff1e547edc2dd23e0a1328ad3c"
+          }
+        },
+        {
+          "name": "Flusso completo: Decreto ingiuntivo verso professionista",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "decreto_ingiuntivo",
+            "role": "professionista",
+            "templateId": "relata_decreto_ingiuntivo",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "52cee83c8037df40e32eabba3e5ce3f2563a4f44c977cf7006454d2011f65e72",
+                "messageId": "<notifica-l53-0f83346bd93c04b988@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "8a0dfd1634638bf4f81869c8b58592d60f2cea1c019c4db33aa06128db1a8344"
+          }
+        },
+        {
+          "name": "Flusso completo: Decreto ingiuntivo verso pa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "decreto_ingiuntivo",
+            "role": "pa",
+            "templateId": "relata_decreto_ingiuntivo",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "82d5698519cc24d6ce32990d91684828de738b0bd54a8a3abfeb80709d98d13e",
+                "messageId": "<notifica-l53-f16ebb87e9d89ec7f2@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "d9745d218a3e7447ce019b0bb82f5c664f12e5921e4964790c5a3dfdba6c078c"
+          }
+        },
+        {
+          "name": "Flusso completo: Titolo esecutivo e precetto verso controparte",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "titolo_esecutivo_precetto",
+            "role": "controparte",
+            "templateId": "relata_titolo_esecutivo_precetto",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "19c125f9b78522e1d9c62bc8d4fa2910e5645455505629b0c55046236e4c0343",
+                "messageId": "<notifica-l53-01a3c10936aaa334ef@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "ce92c57ec7a7ac37d8a7edf6874c2486240cbc49097c6e4e6868fbb5b397fb1b"
+          }
+        },
+        {
+          "name": "Flusso completo: Titolo esecutivo e precetto verso impresa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "titolo_esecutivo_precetto",
+            "role": "impresa",
+            "templateId": "relata_titolo_esecutivo_precetto",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "6837b7463c02378b78cb8e430700bfae51e4df79d58b3855176526297a16621c",
+                "messageId": "<notifica-l53-b795359bdb426415de@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "1a1ba7e288d401e6abddd5d9fdde0fd63cf7811b79d4c707c529efc81df7e66e"
+          }
+        },
+        {
+          "name": "Flusso completo: Titolo esecutivo e precetto verso professionista",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "titolo_esecutivo_precetto",
+            "role": "professionista",
+            "templateId": "relata_titolo_esecutivo_precetto",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "9d9773f625c153c5d89c457e0fd48092cf9c632724b2820b22701085ed06d530",
+                "messageId": "<notifica-l53-fcfb5c8165657c6c83@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "a46493116f02460905b20142a993e93209eeab8289605549f9a53c9aba651cbf"
+          }
+        },
+        {
+          "name": "Flusso completo: Titolo esecutivo e precetto verso pa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "titolo_esecutivo_precetto",
+            "role": "pa",
+            "templateId": "relata_titolo_esecutivo_precetto",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "63ab5fdd3b90bba16aeee01eb151799081593cab504716f5b341ff7be27123a3",
+                "messageId": "<notifica-l53-1fe6d9e329b8888f8f@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "47430fc669a1221601ac5a6e9b8a39ea5b2477470e3978a16c612c95544dfe3d"
+          }
+        },
+        {
+          "name": "Flusso completo: Atto stragiudiziale verso controparte",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "atto_stragiudiziale",
+            "role": "controparte",
+            "templateId": "relata_atto_stragiudiziale",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "374d739f8c6c3ba0af4eebc1c77a81b90c6c84828fd548da214646ba4bc8a996",
+                "messageId": "<notifica-l53-2a75003923eb90c63d@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "093ce15e496d2907254ab2a64c6a07ec1f501af2711a1dd875fe7dc310bd8b22"
+          }
+        },
+        {
+          "name": "Flusso completo: Atto stragiudiziale verso pa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "atto_stragiudiziale",
+            "role": "pa",
+            "templateId": "relata_atto_stragiudiziale",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "4957deded8484088549175e958a7f9f0abdc85ddb3679d125c8b429173498a92",
+                "messageId": "<notifica-l53-6936889799cd7aeb35@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "ac559425cc4a3480c14504bafc74081761ed17201387f2180a3da238ce3a7e34"
+          }
+        },
+        {
+          "name": "Flusso completo: Atto stragiudiziale verso impresa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "atto_stragiudiziale",
+            "role": "impresa",
+            "templateId": "relata_atto_stragiudiziale",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "3502c6092800e0847da8312e3902777c40ed139880dbbe42a0d028dcb0d39569",
+                "messageId": "<notifica-l53-25569e1a76856fdeaa@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "e94fee3e54ded628979af5118f9ef0917069719a4b23eaa3b1e1705684fec816"
+          }
+        },
+        {
+          "name": "Flusso completo: Atto stragiudiziale verso professionista",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "atto_stragiudiziale",
+            "role": "professionista",
+            "templateId": "relata_atto_stragiudiziale",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "968c00d94156b7a5f62ad710611f6c79eedc229049720c1b645f01d2406bf55f",
+                "messageId": "<notifica-l53-bd580e833ebeef850a@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "690f9df9ba48144a69bf0bdb570a1184bb9fc1627115c45d9fc01a5252ff9e88"
+          }
+        },
+        {
+          "name": "Flusso completo: Atto stragiudiziale verso terzo",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "atto_stragiudiziale",
+            "role": "terzo",
+            "templateId": "relata_atto_stragiudiziale",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "53095f5343f984eda40fd5cb0336dc3ae303597722c2fb710592e52c88b8cebc",
+                "messageId": "<notifica-l53-249e4f1a0b70323a53@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "a1c00386dc3a602ca7acfd6eb06feec9ef7119c2b629e3b54779cae3b7eb5221"
+          }
+        },
+        {
+          "name": "Flusso completo: Rinnovo notificazione verso controparte",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "rinnovo_notifica",
+            "role": "controparte",
+            "templateId": "relata_rinnovo_notifica",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "a45880f8da066953aa43a94c6b637e4d0b418109bf3b14f376ba136a779c29ae",
+                "messageId": "<notifica-l53-2e89c0da3157f34651@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "ac2046d561f85f08ae351439f3f23ab73f0cbfec38b3b7cfba7604a6bbae1bdb"
+          }
+        },
+        {
+          "name": "Flusso completo: Rinnovo notificazione verso difensore",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "rinnovo_notifica",
+            "role": "difensore",
+            "templateId": "relata_rinnovo_notifica",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "534c74278c22118dbcbc21dc0abe8f6d122b2d65944d7a758ab3404288cf5a95",
+                "messageId": "<notifica-l53-bc60853f0b476b17f1@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "f60444a69f5292777a8f670f4bc104a35d74c97f4c73b6b56925f04a01395702"
+          }
+        },
+        {
+          "name": "Flusso completo: Rinnovo notificazione verso pa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "rinnovo_notifica",
+            "role": "pa",
+            "templateId": "relata_rinnovo_notifica",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "d399460ad9202075fd4ff2bc8fa916444953480c36b5ec56c37ff8d669025fd0",
+                "messageId": "<notifica-l53-447f78bf3990757e41@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "6b6507bf08b063a5849a48caeb0a52d175c41d501f3e2489375891ee5f349da7"
+          }
+        },
+        {
+          "name": "Flusso completo: Rinnovo notificazione verso impresa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "rinnovo_notifica",
+            "role": "impresa",
+            "templateId": "relata_rinnovo_notifica",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "e5b2a6924f30319be0e43c7708e09cc346959f83b67e985979032e273d2e8e5c",
+                "messageId": "<notifica-l53-343e62a9f3726ffec8@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "b55de2e0c268863ea9b06dfcc292fdb7b26e7c39c209265bb5722ecc2021197d"
+          }
+        },
+        {
+          "name": "Flusso completo: Rinnovo notificazione verso professionista",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "rinnovo_notifica",
+            "role": "professionista",
+            "templateId": "relata_rinnovo_notifica",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "aaf11ff68baa26a578c678689fda8e0f323bd0457e4e3b9eb13f8a5fc6aab583",
+                "messageId": "<notifica-l53-fb5fe6eea6a25edfdd@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "9d4fd5ad7daff22fb5d893de76f57ee30a5a81fc917bf9ae03c4ad1e1dd6baf8"
+          }
+        },
+        {
+          "name": "Flusso completo: Rinnovo notificazione verso terzo",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "rinnovo_notifica",
+            "role": "terzo",
+            "templateId": "relata_rinnovo_notifica",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "87daa6b0f7d57861b2727b62c070a337c30ab500aa9a9300577d18e4270dad1e",
+                "messageId": "<notifica-l53-df1a2cb08332ef4c91@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "0ab73ae02c6115a1b50dedf08f73779c78fc2f45f70c9d71f89c791e98d60f9f"
+          }
+        },
+        {
+          "name": "Flusso completo: Integrazione del contraddittorio verso controparte",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "integrazione_contraddittorio",
+            "role": "controparte",
+            "templateId": "relata_integrazione_contraddittorio",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "7f43e1dfab0b7ab74d6f006cc3cd539abc67df466884abe93bcc9a413ac61884",
+                "messageId": "<notifica-l53-f1df7b85faf0a86dcf@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "584579e6cfc1d0c4d0f4555ecc8e1c9668199f3af230a967fe8f07fae3875c04"
+          }
+        },
+        {
+          "name": "Flusso completo: Integrazione del contraddittorio verso difensore",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "integrazione_contraddittorio",
+            "role": "difensore",
+            "templateId": "relata_integrazione_contraddittorio",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "e8541dca9584c603e5ce9ae1b1b81bdd32b32428cf5f331c0559726992076956",
+                "messageId": "<notifica-l53-c32eaa7658f1d42f70@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "aea07e52f0315e69769d456ab0621b605c90b180686fb459d864768645672ccd"
+          }
+        },
+        {
+          "name": "Flusso completo: Integrazione del contraddittorio verso pa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "integrazione_contraddittorio",
+            "role": "pa",
+            "templateId": "relata_integrazione_contraddittorio",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "3772009ec0cd6c9e068575390f0fe4ae6fe9c5296101f8588769311da1b68407",
+                "messageId": "<notifica-l53-dd4862d31167e0db35@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "25ae64d5543ce749adf452d4f70a1c83895794f685c999c1f2d690ea264824fc"
+          }
+        },
+        {
+          "name": "Flusso completo: Integrazione del contraddittorio verso impresa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "integrazione_contraddittorio",
+            "role": "impresa",
+            "templateId": "relata_integrazione_contraddittorio",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "fb2d7ff4d03c91b9ecfb3cfde624007dd4ecf61639ad6dd5917c60e638782109",
+                "messageId": "<notifica-l53-9c665e40ff51ae133e@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "71b9061df8ab46f95c661eeae3359697789b949e96b1c7620aa66aecce6b22c7"
+          }
+        },
+        {
+          "name": "Flusso completo: Integrazione del contraddittorio verso professionista",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "integrazione_contraddittorio",
+            "role": "professionista",
+            "templateId": "relata_integrazione_contraddittorio",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "b1bcb8e218e42842644ac7d761cc71589a2bfdfd1cdae2d78485702a65ac431e",
+                "messageId": "<notifica-l53-19f3fde0876661415c@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "6b325fbb2d706c207af615ebcadce66fa82ac0df43221f15c7609b74fc6ba7c9"
+          }
+        },
+        {
+          "name": "Flusso completo: Integrazione del contraddittorio verso terzo",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "integrazione_contraddittorio",
+            "role": "terzo",
+            "templateId": "relata_integrazione_contraddittorio",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "f0cd143aafe973116192a93f323a9a78144b0d796e59e572ac4fb9c786cffe7f",
+                "messageId": "<notifica-l53-044b13fb776b28233a@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "7b466f756c762e432062f2ae6e5b9bb40f4e8c16a8c4dcfc4b1fb973188252cb"
+          }
+        },
+        {
+          "name": "Flusso completo: Chiamata del terzo verso terzo",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "chiamata_terzo",
+            "role": "terzo",
+            "templateId": "relata_chiamata_terzo",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "8e3ddeee3bf6e2b53ba86c2898efd99bab7e8a8aba79ee01e7ec0304fc07e8a8",
+                "messageId": "<notifica-l53-bc5a4b89fec3ad7099@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "a789070892fb03ffa5364825426f03f776943285b5a5b6e9e861bae02343f409"
+          }
+        },
+        {
+          "name": "Flusso completo: Riassunzione verso controparte",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "riassunzione",
+            "role": "controparte",
+            "templateId": "relata_riassunzione",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "56ac9265d6879843c80a7cd079e4419b9dbbeffb1cf63627a532180267d1427d",
+                "messageId": "<notifica-l53-b3f517f5360ca57c32@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "b1313f0f37d758549923f7f876b5dc2183863d4584335477ed77fc5e4239d7c6"
+          }
+        },
+        {
+          "name": "Flusso completo: Riassunzione verso difensore",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "riassunzione",
+            "role": "difensore",
+            "templateId": "relata_riassunzione",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "04ffe6899e649b25daea52f3f63f17818dc03b105c854406b9dd93833199557d",
+                "messageId": "<notifica-l53-82dae6a3df98cc7970@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "2060293a837c1f56177419c8a226eb8695099b674cc0f4ea53c507603ac0e4fb"
+          }
+        },
+        {
+          "name": "Flusso completo: Riassunzione verso pa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "riassunzione",
+            "role": "pa",
+            "templateId": "relata_riassunzione",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "4c29470411d45fa03e6932601ba60a5dbb1d8daf7f42e7682651e7346fac5d9b",
+                "messageId": "<notifica-l53-6ddb477f9d3522e358@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "57f0d5399a6bcc4c7ddc7acdb099e008854177758ef2a6af733f95aa52fcae0e"
+          }
+        },
+        {
+          "name": "Flusso completo: Riassunzione verso impresa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "riassunzione",
+            "role": "impresa",
+            "templateId": "relata_riassunzione",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "9e7b927e5c8fd071a7ebb2ddad94194abda9417197fc81663fe866cfabbbd8f6",
+                "messageId": "<notifica-l53-0fdba625245ea38bcf@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "f070b7dbe223c82d32637f3f9afb68a515d4fb5ae35a31206a6a5dd7bd4d2338"
+          }
+        },
+        {
+          "name": "Flusso completo: Riassunzione verso professionista",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "riassunzione",
+            "role": "professionista",
+            "templateId": "relata_riassunzione",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "5eb7a69046147dd9d4cb02227e17e9b7de0df4777e831acc141918fb91719e3a",
+                "messageId": "<notifica-l53-d1ae6e7c45ca0a5c77@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "5d3bb9cdb3fa0adb7921cac5fce4e4bc0e3eceab7ada0add1219d30649e41244"
+          }
+        },
+        {
+          "name": "Flusso completo: Riassunzione verso terzo",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "riassunzione",
+            "role": "terzo",
+            "templateId": "relata_riassunzione",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "de5ebaced18d60c0e50c32244bd78b29f40a2d359a4ccda3c5d6d4abcfd9c088",
+                "messageId": "<notifica-l53-9eb1106161ba1e3b90@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "3aa9d50272b6182d1b8a79cd7202ab9632539fdffa13fd068bcefe848103c0d3"
+          }
+        },
+        {
+          "name": "Flusso completo: Appello o impugnazione verso difensore",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "appello_impugnazione",
+            "role": "difensore",
+            "templateId": "relata_appello_impugnazione",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "3989619d2d5b491e3ff3e36036fa47072a35510998dfc0eadb368806a1dc398a",
+                "messageId": "<notifica-l53-94a7428e76d36cfe5a@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "98e57fd0e93e68b9882649607de6ca0388a207097b528a3ed863e777df5fe56e"
+          }
+        },
+        {
+          "name": "Flusso completo: Appello o impugnazione verso controparte",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "appello_impugnazione",
+            "role": "controparte",
+            "templateId": "relata_appello_impugnazione",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "281e4f2638f2b98e8f32333e90df777e83b8c1eadf7c2f5d822df06ec761b91d",
+                "messageId": "<notifica-l53-aeb4bfb78fb31c54bc@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "b8d872022f09048746a1b502494ac85454b247f0aac8833a206347e6a385c6bf"
+          }
+        },
+        {
+          "name": "Flusso completo: Appello o impugnazione verso impresa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "appello_impugnazione",
+            "role": "impresa",
+            "templateId": "relata_appello_impugnazione",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "0fdb269e10ba0840662e61d6fc3da466abfb3555be023c7b87d891cc91b74e20",
+                "messageId": "<notifica-l53-57836c7348265a648d@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "f0165905120c55044fe50b6110b71618120b2aa25326fd12d732005ca42131f8"
+          }
+        },
+        {
+          "name": "Flusso completo: Appello o impugnazione verso professionista",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "appello_impugnazione",
+            "role": "professionista",
+            "templateId": "relata_appello_impugnazione",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "520235a1f18f7c5327abb79c80a9ffbab451054f725010198070b9b58c8ba323",
+                "messageId": "<notifica-l53-ad94a0bf4de5af1de9@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "8ed58be7600cf4fc7d0c92506cacb5d693c10bed6729fe89e1560663ec16d595"
+          }
+        },
+        {
+          "name": "Flusso completo: Appello o impugnazione verso pa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "appello_impugnazione",
+            "role": "pa",
+            "templateId": "relata_appello_impugnazione",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "3f88e3b05f7eaf5fe31513163910e99bce010f5cf30ca840fc9d31883a1c4b6d",
+                "messageId": "<notifica-l53-671fe37f1c60674452@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "69102fa0bff4cf70246f82b804551d79d582d7b03182acc3cb9ae5c7aa23c8a1"
+          }
+        },
+        {
+          "name": "Flusso completo: Reclamo cautelare verso controparte",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "reclamo_cautelare",
+            "role": "controparte",
+            "templateId": "relata_reclamo_cautelare",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "8c0d22aeaff70763c5969938c57bbe98edcee486b4172d140aeceec922232a7b",
+                "messageId": "<notifica-l53-665424a8f8eb7ac597@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "4b946935ce1db7671ed0aeaee95834c80153134f6f5de4ec400d7959cb5760e4"
+          }
+        },
+        {
+          "name": "Flusso completo: Reclamo cautelare verso difensore",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "reclamo_cautelare",
+            "role": "difensore",
+            "templateId": "relata_reclamo_cautelare",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "6b198c85b55d754171062d6226dae32ee6069dded3b49fc533b16f08f47a2325",
+                "messageId": "<notifica-l53-dda65676cc2781b888@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "d1ec5849d81456ebc73a6eece7b29082f2b32bfbe7692cb9295f89308bfc0f12"
+          }
+        },
+        {
+          "name": "Flusso completo: Reclamo cautelare verso pa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "reclamo_cautelare",
+            "role": "pa",
+            "templateId": "relata_reclamo_cautelare",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "8e4004ab5fb1eb653a1c27cb959ef78423e1f511db7d8611225f5be4f798a7b6",
+                "messageId": "<notifica-l53-3e9b856184818db7b2@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "b8e075e060acb9ec0b8e42ed16dbc2ee513d0ec28fb6b9281d89e9cd0dfd78da"
+          }
+        },
+        {
+          "name": "Flusso completo: Reclamo cautelare verso impresa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "reclamo_cautelare",
+            "role": "impresa",
+            "templateId": "relata_reclamo_cautelare",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "1a79742dfe8f5bf7f223b169b8a1a50681787aa2a1f0b4fc3d73524d76fdeb27",
+                "messageId": "<notifica-l53-f5aca263b05c2f5b0a@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "9bcbfafec1c194fa53dfc09ba4c585bda2066596be8ef20097f493df1d487f15"
+          }
+        },
+        {
+          "name": "Flusso completo: Reclamo cautelare verso professionista",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "reclamo_cautelare",
+            "role": "professionista",
+            "templateId": "relata_reclamo_cautelare",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "69cf195e9408af92b0c50204fa635ee17408798c37494ebf08dd910cbefb888e",
+                "messageId": "<notifica-l53-7ba0340d73dbf7d117@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "5eac158dd0c9a40e3724afc2802708bc7e43b26a7d7c6a57e913de9760aa6878"
+          }
+        },
+        {
+          "name": "Flusso completo: Reclamo cautelare verso terzo",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "reclamo_cautelare",
+            "role": "terzo",
+            "templateId": "relata_reclamo_cautelare",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "2996bd8a6af2275c36df9865319f884a9660a1b1527489eaff32e81d8d2eabc4",
+                "messageId": "<notifica-l53-1db1fea46aa5223388@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "f970d50f0b1cc6456c94bc2cbe215f5a54f26d27aee22b3db59736aff276cf1e"
+          }
+        },
+        {
+          "name": "Flusso completo: Sfratto e convalida verso controparte",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "sfratto_convalida",
+            "role": "controparte",
+            "templateId": "relata_sfratto_convalida",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "688fc65e26349028b4f224b90132cba0a73efa88675eaf6969ae8e33e1680730",
+                "messageId": "<notifica-l53-7aa4a9a0329023de42@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "58f3dc5e51e664d938c3051322cc9bc7f76211f6fa0cd654ed3fab72442d3c73"
+          }
+        },
+        {
+          "name": "Flusso completo: Sfratto e convalida verso impresa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "sfratto_convalida",
+            "role": "impresa",
+            "templateId": "relata_sfratto_convalida",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "cd34c2428a6068171a74144c50064ee730f9fd255034efcc8c0be2be41639821",
+                "messageId": "<notifica-l53-24b16d29c40d91168b@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "c1ca7cbdfdc3ddda696e4f9f91a73822e9e4bc96a62e4f81d29d2eb455a43878"
+          }
+        },
+        {
+          "name": "Flusso completo: Sfratto e convalida verso professionista",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "sfratto_convalida",
+            "role": "professionista",
+            "templateId": "relata_sfratto_convalida",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "18595d75184bd85cb86ee71a4784e472f994df776b4d435b422da4e7b372e1d8",
+                "messageId": "<notifica-l53-ed2656a3fab560c60a@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "30f95b3009e98f8bfed8ba3fe073cd85321d89aa02e80ed98783e1b44d4cca3b"
+          }
+        },
+        {
+          "name": "Flusso completo: Pignoramento presso terzi verso controparte",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "pignoramento_presso_terzi",
+            "role": "controparte",
+            "templateId": "relata_pignoramento_presso_terzi",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "7b10738e3c371a593b2bc1606f9897ba2fe732bae7dfb396b56f34507d6182d3",
+                "messageId": "<notifica-l53-26a6cc5c783b26709e@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "e2804c5913789793a505eb48fdda990edb5151b5038ae92246c46910b265ab9a"
+          }
+        },
+        {
+          "name": "Flusso completo: Pignoramento presso terzi verso impresa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "pignoramento_presso_terzi",
+            "role": "impresa",
+            "templateId": "relata_pignoramento_presso_terzi",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "71c2e0f48c84d7159f4b8b7614e82c03231a6098e86f3e2f806a656c0c7e6a7e",
+                "messageId": "<notifica-l53-6529b880d06aa4a519@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "d1a7d36ebb9acd117b96d47e5fa6341296e06684f5ac657cc504f2fe6a985faa"
+          }
+        },
+        {
+          "name": "Flusso completo: Pignoramento presso terzi verso professionista",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "pignoramento_presso_terzi",
+            "role": "professionista",
+            "templateId": "relata_pignoramento_presso_terzi",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "7b0f88006f0b1206882c09d78c6a76621145359bd6fb738fa18ecd6916b0f025",
+                "messageId": "<notifica-l53-0ab1d8df612e05027a@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "703ad94ce96880af8632b498931a7d6e7c9f4ba848806a0c90de7f7c79912efe"
+          }
+        },
+        {
+          "name": "Flusso completo: Pignoramento presso terzi verso terzo",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "pignoramento_presso_terzi",
+            "role": "terzo",
+            "templateId": "relata_pignoramento_presso_terzi",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "a9cd5cadcd693e7c87f93f2dec7136d840bf577f220b0509460d0aa6a88a5557",
+                "messageId": "<notifica-l53-ad097bbe501c084da3@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "c6502d598af378ffe58e7843174ef7d2487527a20bd236f894a1029a39752355"
+          }
+        },
+        {
+          "name": "Flusso completo: Intervento in esecuzione verso controparte",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "intervento_esecuzione",
+            "role": "controparte",
+            "templateId": "relata_intervento_esecuzione",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "3c801d64987fc54b2b50e128a4bb946c0cd9e8b77badb9d50e450e73712179d0",
+                "messageId": "<notifica-l53-87174f1c82fd5266ee@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "69239612a9f392221b288df036774a45d0cc290bd54c3759c9ba331a2ba01181"
+          }
+        },
+        {
+          "name": "Flusso completo: Intervento in esecuzione verso impresa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "intervento_esecuzione",
+            "role": "impresa",
+            "templateId": "relata_intervento_esecuzione",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "7e217ef5ee661d4e02b1a4ba810f16c46058ca1c51033e0ca6bb6131625049ab",
+                "messageId": "<notifica-l53-ff905e87f0c3c4b95b@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "5d5d603729bfdabcc0bb8d35bd44bdcc09a7d163d5f00fbd6ee8d2adfe696180"
+          }
+        },
+        {
+          "name": "Flusso completo: Intervento in esecuzione verso professionista",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "intervento_esecuzione",
+            "role": "professionista",
+            "templateId": "relata_intervento_esecuzione",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "80227cd559727971e378dd9bd980b57c75108c7b7d02ae35ea085d6251a24016",
+                "messageId": "<notifica-l53-e4c5637f07ffd23ad9@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "0a902ab805709c0468e9441f5b409e208b54e4e97b3ee29aa61f215d3051e314"
+          }
+        },
+        {
+          "name": "Flusso completo: Intervento in esecuzione verso terzo",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "intervento_esecuzione",
+            "role": "terzo",
+            "templateId": "relata_intervento_esecuzione",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "6b92a05630daac5e0f1cd2e6c77dad2f63769e1d2c14df41976cbbb0d55e55a5",
+                "messageId": "<notifica-l53-3eecd7962cbab2f599@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "d950972a6fe7d4afbad60c352915301f2c956402931ff5ee64163c718f15e977"
+          }
+        },
+        {
+          "name": "Flusso completo: Opposizione a decreto ingiuntivo verso difensore",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "opposizione_decreto_ingiuntivo",
+            "role": "difensore",
+            "templateId": "relata_opposizione_decreto_ingiuntivo",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "c11970d968817c4c6dffafc3913e343d9974d930eea92847213c6b5afe495189",
+                "messageId": "<notifica-l53-2099ba48d2d9e3bf56@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "6ec01336a25c7b3c9c881741138c74bb84a3812bdfe89bf43fae517583c58f3d"
+          }
+        },
+        {
+          "name": "Flusso completo: Opposizione a decreto ingiuntivo verso controparte",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "opposizione_decreto_ingiuntivo",
+            "role": "controparte",
+            "templateId": "relata_opposizione_decreto_ingiuntivo",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "684709080e514f0cd666da733266988c4e78b3510650fb93e593f69742cf3f86",
+                "messageId": "<notifica-l53-8d259ad30a83d38682@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "593ee6028a05a1c1acbf495bb177f0575c9206a8e27e488de4e51fc06f117205"
+          }
+        },
+        {
+          "name": "Flusso completo: Opposizione a decreto ingiuntivo verso impresa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "opposizione_decreto_ingiuntivo",
+            "role": "impresa",
+            "templateId": "relata_opposizione_decreto_ingiuntivo",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "d3922b546210cdaf639b451b2f42ac5a9e1ab488b80250f903cef49c60e6a71d",
+                "messageId": "<notifica-l53-e812a74646bdaf1d8b@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "841a1a5dd81ff33dd716ed3c686530bcaddcb4348c17555fedf733925f81ebdf"
+          }
+        },
+        {
+          "name": "Flusso completo: Opposizione a decreto ingiuntivo verso professionista",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "opposizione_decreto_ingiuntivo",
+            "role": "professionista",
+            "templateId": "relata_opposizione_decreto_ingiuntivo",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "49c21dc4793e06cfea1fe6d4785d77b0e18377433e52b3b5eac44b171d6d9878",
+                "messageId": "<notifica-l53-81b46bbc147c602b25@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "d1d3293a9a1f28e25b5d4c1247ff5810e95058986484037fc912f055d5d04060"
+          }
+        },
+        {
+          "name": "Flusso completo: Opposizione a decreto ingiuntivo verso pa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "opposizione_decreto_ingiuntivo",
+            "role": "pa",
+            "templateId": "relata_opposizione_decreto_ingiuntivo",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "2b5e9b7ea6d6216d5416fa59570ed80369c21de5fba50bbcb30560c2b8af7b4d",
+                "messageId": "<notifica-l53-bebe4ea600282ab151@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "0c9d8c1165d07db83d74f7ce9b8755aa6d553fabf1c7539c3c934c7310fe4a1c"
+          }
+        },
+        {
+          "name": "Flusso completo: Opposizione esecutiva verso controparte",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "opposizione_esecutiva",
+            "role": "controparte",
+            "templateId": "relata_opposizione_esecutiva",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "1a40acef94307b8f409ff47629c40e5c0dcfe7bc236667c9a38c406d2c69b151",
+                "messageId": "<notifica-l53-ce039c906510e1e3fb@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "c065152bf4ee0c98271fb9a7147af06290d743ebea6e380258cd389b8c26ca69"
+          }
+        },
+        {
+          "name": "Flusso completo: Opposizione esecutiva verso difensore",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "opposizione_esecutiva",
+            "role": "difensore",
+            "templateId": "relata_opposizione_esecutiva",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "2c5244bf205ea2ead8103f76b5dd9e2b5fa2acf556ae41ca19777b9bfb155187",
+                "messageId": "<notifica-l53-b16c08089b35cec26d@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "b641cd8bd1973f3a17756e4052cece659dd670b80b631103e53e7adcca8d158d"
+          }
+        },
+        {
+          "name": "Flusso completo: Opposizione esecutiva verso pa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "opposizione_esecutiva",
+            "role": "pa",
+            "templateId": "relata_opposizione_esecutiva",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "69e3222d9e15ec72d34433f9c1e280c08b1876f64f26559c5d7601f59b56c9f3",
+                "messageId": "<notifica-l53-2b4e27237c119d81b6@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "2c27bdd51f1e37de9610a6f95823a7a4dc88c2bcf7fcd0b68d725ee0cf88872f"
+          }
+        },
+        {
+          "name": "Flusso completo: Opposizione esecutiva verso impresa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "opposizione_esecutiva",
+            "role": "impresa",
+            "templateId": "relata_opposizione_esecutiva",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "139341a6793e1ba2a993d65576fdfad435e703d95faf93fa4ea777e5e73d1bee",
+                "messageId": "<notifica-l53-6288e8f848602bbbdc@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "4cc721f463c3d1bf6fdb409fbf115222823b087f0abce4d9bea79563554d1353"
+          }
+        },
+        {
+          "name": "Flusso completo: Opposizione esecutiva verso professionista",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "opposizione_esecutiva",
+            "role": "professionista",
+            "templateId": "relata_opposizione_esecutiva",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "9f2edeae7f86d84ed5e91953041cdfa193c38208e56e4287124b0e492c401228",
+                "messageId": "<notifica-l53-5ba908eba1c0210f19@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "2e3ec54b4e3799641d0f8aca8d51a5126162148fb68e472a15538aa64bfe15d8"
+          }
+        },
+        {
+          "name": "Flusso completo: Opposizione esecutiva verso terzo",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "opposizione_esecutiva",
+            "role": "terzo",
+            "templateId": "relata_opposizione_esecutiva",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "14de05f5affbfcf40d4d36a1729ab80d66d0314bfe22e8e9fb8f6775caebf675",
+                "messageId": "<notifica-l53-7c7b7f1a61d8cdfb0e@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "71c8a58e2ef8fda46dcce5439b48e2401c981350406ae135631dee0c7e4b1ce2"
+          }
+        },
+        {
+          "name": "Flusso completo: Famiglia, persone e minori verso controparte",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "famiglia_persone_minori",
+            "role": "controparte",
+            "templateId": "relata_famiglia_persone_minori",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "a14787db32d04a366a26b011961baf5fd1398860dbd2558652c6ad051e782caf",
+                "messageId": "<notifica-l53-368841e709d26d4486@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "3c1fd7af51c98630b1ba917fa04662fd3569be7d5d034778ea8f5cb62f865f5a"
+          }
+        },
+        {
+          "name": "Flusso completo: Famiglia, persone e minori verso difensore",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "famiglia_persone_minori",
+            "role": "difensore",
+            "templateId": "relata_famiglia_persone_minori",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "065c409e697c90915e8fe59b42fc34b38bd6860792211cbbcf6e3f4c8b88f01b",
+                "messageId": "<notifica-l53-a4840fd2bd5dbe4f78@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "65138ffd38f363d68a43e6295abea51ee869dd9d336b080555a5393b2b1fe764"
+          }
+        },
+        {
+          "name": "Flusso completo: Famiglia, persone e minori verso pa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "famiglia_persone_minori",
+            "role": "pa",
+            "templateId": "relata_famiglia_persone_minori",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "858c5dfebe247fc118069b815831efebb764970712178a78854d85169d4a32b5",
+                "messageId": "<notifica-l53-c321072a9406dca6f0@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "b6b7d951cc8588ac89689079a4d369a99a8c3be4a72e007481fbc7416b3abe5d"
+          }
+        },
+        {
+          "name": "Flusso completo: Famiglia, persone e minori verso terzo",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "famiglia_persone_minori",
+            "role": "terzo",
+            "templateId": "relata_famiglia_persone_minori",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "58e4a218654808c0054831c673a8be60021b1c0635e876b8955adea45b9e3c88",
+                "messageId": "<notifica-l53-4a96a94d3254882cfd@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "5578efc860d02602363555fa693aab4598495dcf069f46a6c02100dcbed29e23"
+          }
+        },
+        {
+          "name": "Flusso completo: Provvedimento urgente o cautelare verso controparte",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "provvedimento_urgente",
+            "role": "controparte",
+            "templateId": "relata_provvedimento_urgente",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "7a05a627385d0596b42b69b1e3cf7987d54f769be9a50812a3790e66acc44cb3",
+                "messageId": "<notifica-l53-76ba96495f943f5fa4@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "1d3383ae8f69dff158784e000defbe9a47648b89b48a780c5c99a8d8ae2b56f6"
+          }
+        },
+        {
+          "name": "Flusso completo: Provvedimento urgente o cautelare verso difensore",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "provvedimento_urgente",
+            "role": "difensore",
+            "templateId": "relata_provvedimento_urgente",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "60e91716131d06cdff1d6e85c1d69c1c06fb847423ba4603fd13a6fa447ae19a",
+                "messageId": "<notifica-l53-0a1f876d923c47d5a0@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "e2f26af74ade89553d50680c9f571782e23c72b2bb31456fc8023ce83dd4301c"
+          }
+        },
+        {
+          "name": "Flusso completo: Provvedimento urgente o cautelare verso pa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "provvedimento_urgente",
+            "role": "pa",
+            "templateId": "relata_provvedimento_urgente",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "82f186f2f2c45cde74dfe41f338446b1cb660d81789ec4ab68405090c3b92a3e",
+                "messageId": "<notifica-l53-c295545d7c07fba3c5@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "07bf2ae31a2473f53ef424247f65d6b971431b224a4aca7f81764cdaaea55172"
+          }
+        },
+        {
+          "name": "Flusso completo: Provvedimento urgente o cautelare verso impresa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "provvedimento_urgente",
+            "role": "impresa",
+            "templateId": "relata_provvedimento_urgente",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "b12c763920ea064e06368730e9ebe499aef7049d24bdbff40927e7e568dde815",
+                "messageId": "<notifica-l53-4e1b32828dcd79c374@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "4dd85ae21e23d06e53ef7c821042c722759d7f419edc3a1c4fc492c22a09000e"
+          }
+        },
+        {
+          "name": "Flusso completo: Provvedimento urgente o cautelare verso professionista",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "provvedimento_urgente",
+            "role": "professionista",
+            "templateId": "relata_provvedimento_urgente",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "bc35ec2d6c96ee47ca3bfc0dc0755006f2dd19477e5fc8056a1c18266bf511d8",
+                "messageId": "<notifica-l53-e97b6a2bc8a23fc5be@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "9ec58f8fbde8eabb50b9dc533cde9a0e8a290e051f53471d8d55a669be220854"
+          }
+        },
+        {
+          "name": "Flusso completo: Provvedimento urgente o cautelare verso terzo",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "provvedimento_urgente",
+            "role": "terzo",
+            "templateId": "relata_provvedimento_urgente",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "9a833493445ce6003e572f2e9c532123d7db24cc67dbb3d5a4217d2403dc2fe2",
+                "messageId": "<notifica-l53-68928926ee20ae18f6@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "b9d4130d284f9d138851c58997ef0713b7d9535133be73d5e514c2bd06b851fd"
+          }
+        },
+        {
+          "name": "Flusso completo: Accordo o transazione stragiudiziale verso controparte",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "accordo_transazione_stragiudiziale",
+            "role": "controparte",
+            "templateId": "relata_accordo_transazione_stragiudiziale",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "87cce34186eb73e33a687867628efe5bb29b9aaa77275ab8e102057c221ecc26",
+                "messageId": "<notifica-l53-f20d6cde34a7537377@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "b5b8da091a5cb4e5ddddb7f0bf9a82e22ba85b3d6f613024cbd47146993bd17e"
+          }
+        },
+        {
+          "name": "Flusso completo: Accordo o transazione stragiudiziale verso pa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "accordo_transazione_stragiudiziale",
+            "role": "pa",
+            "templateId": "relata_accordo_transazione_stragiudiziale",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "ffeb722de95324caf91cc16e87a17fce35e0a23d202b349ba2fccbbe4f26a7f4",
+                "messageId": "<notifica-l53-3a9ad615002ff1385f@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "3ec3bcc10e2ac5930603d945097677334721284eb1a5e7104464976865bd608c"
+          }
+        },
+        {
+          "name": "Flusso completo: Accordo o transazione stragiudiziale verso impresa",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "accordo_transazione_stragiudiziale",
+            "role": "impresa",
+            "templateId": "relata_accordo_transazione_stragiudiziale",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "30bc6eae1a9bf2917653f9c2ef05eb769b47faedbdb26dbd5a4516c4c04fcd6d",
+                "messageId": "<notifica-l53-2aa4d413c59e63138d@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "d608155563307b1a26efff31cb288becb7a2cbae6ccca217e02456279ccf89ec"
+          }
+        },
+        {
+          "name": "Flusso completo: Accordo o transazione stragiudiziale verso professionista",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "accordo_transazione_stragiudiziale",
+            "role": "professionista",
+            "templateId": "relata_accordo_transazione_stragiudiziale",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "6a3dfe24a8f83e3b67b137e9767c9f3d1b47760c30c5a2977bc0a365a088cd37",
+                "messageId": "<notifica-l53-790de7b6a0f198f2d8@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "55cf66025de62bc161b535c945a10133e1ff2433d52dc11bd6faab7f11b9631a"
+          }
+        },
+        {
+          "name": "Flusso completo: Accordo o transazione stragiudiziale verso terzo",
+          "ok": true,
+          "detail": "Relata PDF generata, PEC demo 1, allegati 2, ricevute 2, deposito prova OK.",
+          "data": {
+            "caseId": "accordo_transazione_stragiudiziale",
+            "role": "terzo",
+            "templateId": "relata_accordo_transazione_stragiudiziale",
+            "pecFiles": [
+              {
+                "file": "pec_inviata_1.eml",
+                "sha256": "d21abccc01cc1d55580f9bf3a14fd14c364ac325ab93d9fbebf32cfe3e8918b8",
+                "messageId": "<notifica-l53-01fe4fb44630e1aa9c@iusentra.example.test>"
+              }
+            ],
+            "relataSha256": "88eee468c0953437292c6a53ce144eea8faa914c2015f90aedc5ff24d5a316d3"
+          }
+        },
+        {
+          "name": "Blocco registro incoerente",
+          "ok": true,
+          "detail": "PEC_DESTINATARIO_REGISTRO_INCOERENTE: La fonte PEC selezionata non è coerente con Difensore costituito; usa ReGIndE, INI-PEC, Altro pubblico elenco ammesso.",
+          "data": {}
+        },
+        {
+          "name": "Blocco destinatario incoerente con la casistica",
+          "ok": true,
+          "detail": "DESTINATARIO_CASO_INCOERENTE: Per il caso 'Chiamata del terzo' il ruolo 'Controparte personalmente' non è tra i destinatari governati; verifica la casistica e seleziona: Terzo destinatario.",
+          "data": {}
+        },
+        {
+          "name": "Blocco EML PEC ufficio mancante",
+          "ok": true,
+          "detail": "PEC_UFFICIO_EML_REQUIRED: Conserva l'EML originale della PEC dell'ufficio che comunica il provvedimento da notificare.",
+          "data": {}
+        },
+        {
+          "name": "Blocco cliente nel percorso notifica",
+          "ok": true,
+          "detail": "CLIENTE_NON_NOTIFICA: Il cliente non va trattato come destinatario ordinario di una notifica: usa Comunicazione al cliente.",
+          "data": {}
+        }
+      ]
+    },
+    {
+      "title": "Area web PST e orari PEC",
+      "results": [
+        {
+          "name": "Area web PST ex art. 3-ter con avviso EML",
+          "ok": true,
+          "detail": "Workflow predisposto con atto/PEC, relata firmata, avviso di mancata consegna EML, RAC/RdAC e certificazione PST.",
+          "data": {
+            "evidencePack": {
+              "items": [
+                {
+                  "kind": "atto",
+                  "label": "Atto notificato",
+                  "filename": "atto.pdf",
+                  "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "required": true,
+                  "generated": false
+                },
+                {
+                  "kind": "relata_firmata",
+                  "label": "Relata firmata",
+                  "filename": "relata_notifica.pdf.p7m",
+                  "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "required": true,
+                  "generated": false
+                },
+                {
+                  "kind": "pec_inviata",
+                  "label": "PEC inviata",
+                  "filename": "notifica-inviata.eml",
+                  "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                  "required": true,
+                  "generated": false
+                },
+                {
+                  "kind": "rac",
+                  "label": "RAC destinatario 1",
+                  "filename": "rac.eml",
+                  "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "required": true,
+                  "generated": false
+                },
+                {
+                  "kind": "rdac_completa",
+                  "label": "RdAC completa destinatario 1",
+                  "filename": "rdac-completa.eml",
+                  "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                  "required": true,
+                  "generated": false
+                },
+                {
+                  "kind": "avviso_errore",
+                  "label": "Avviso mancata consegna",
+                  "filename": "mancata-consegna.eml",
+                  "sha256": "",
+                  "required": false,
+                  "generated": false
+                },
+                {
+                  "kind": "log_json",
+                  "label": "Log JSON",
+                  "filename": "log_notifica.json",
+                  "sha256": "a5af6a36b57a9d203e7e1b61fe643f1938202a67b24a01a5105c5b704170c8bf",
+                  "required": true,
+                  "generated": true
+                },
+                {
+                  "kind": "distinta_prova_notifica",
+                  "label": "Distinta prova notifica",
+                  "filename": "distinta_prova_notifica.pdf",
+                  "sha256": "8bddecd1bee6b74056c4b8bf7b679326ece99e8ce98ca03f18cfe07e2df61ed6",
+                  "required": true,
+                  "generated": true
+                },
+                {
+                  "kind": "scheda_esito",
+                  "label": "Scheda esito",
+                  "filename": "scheda_esito_notifica.pdf",
+                  "sha256": "149aa311f56ea4b7a42dbd4132cc7a65773b3d2b5d2c4c0c9810bb335b2e4d1d",
+                  "required": true,
+                  "generated": true
+                }
+              ],
+              "missing": [],
+              "invalid_hashes": [],
+              "hashes": {
+                "atto": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "relata_firmata": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "pec_inviata": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "rac": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                "rdac_completa": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                "log_json": "a5af6a36b57a9d203e7e1b61fe643f1938202a67b24a01a5105c5b704170c8bf",
+                "distinta_prova_notifica": "8bddecd1bee6b74056c4b8bf7b679326ece99e8ce98ca03f18cfe07e2df61ed6",
+                "scheda_esito": "149aa311f56ea4b7a42dbd4132cc7a65773b3d2b5d2c4c0c9810bb335b2e4d1d"
+              }
+            },
+            "legalBasis": [
+              {
+                "id": "l53_art3ter",
+                "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+                "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+              },
+              {
+                "id": "dpr68_art6_8",
+                "label": "D.P.R. 11 febbraio 2005, n. 68, artt. 6 e 8",
+                "rule": "Ricevuta di accettazione, ricevuta di avvenuta consegna e avviso di mancata consegna PEC."
+              },
+              {
+                "id": "dgsia_2024_art26",
+                "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+                "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+              }
+            ],
+            "portalSteps": [
+              "Predisponi notifica nell'area riservata PST",
+              "Carica atto o PEC non perfezionata",
+              "Carica relata di notifica",
+              "Carica avviso di mancata consegna in formato EML",
+              "Scarica certificazione dopo il decorso previsto"
+            ]
+          }
+        },
+        {
+          "name": "Orario PEC: scissione 21:00-24:00 e blocco notturno",
+          "ok": true,
+          "detail": "Serale=fascia_serale_con_scissione notificante=Per il notificante vale il momento di generazione della RAC.; notturno=fuori_fascia_destinatario.",
+          "data": {
+            "evening": {
+              "plannedAt": "24/05/2026 21:30",
+              "ready": true,
+              "status": "fascia_serale_con_scissione",
+              "senderEffect": "Per il notificante vale il momento di generazione della RAC.",
+              "recipientEffect": "Per il destinatario resta il differimento alle ore 07:00 del giorno successivo.",
+              "warning": "Fascia serale: il software mostra la scissione degli effetti prima della conferma dell'avvocato.",
+              "legalBasis": [
+                {
+                  "id": "l53_art3bis",
+                  "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+                  "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+                },
+                {
+                  "id": "dl179_art16septies",
+                  "label": "D.L. 18 ottobre 2012, n. 179, art. 16-septies",
+                  "rule": "Regole temporali delle notifiche telematiche, lette con Corte cost. 75/2019."
+                },
+                {
+                  "id": "corte_cost_75_2019",
+                  "label": "Corte costituzionale, sentenza 75/2019",
+                  "rule": "La notifica PEC tra le 21:00 e le 24:00 si perfeziona per il notificante alla generazione della RAC, restando la tutela oraria per il destinatario."
+                },
+                {
+                  "id": "dpr68_art6_8",
+                  "label": "D.P.R. 11 febbraio 2005, n. 68, artt. 6 e 8",
+                  "rule": "Ricevuta di accettazione, ricevuta di avvenuta consegna e avviso di mancata consegna PEC."
+                }
+              ]
+            },
+            "night": {
+              "plannedAt": "24/05/2026 06:30",
+              "ready": false,
+              "status": "fuori_fascia_destinatario",
+              "senderEffect": "Verifica professionale richiesta prima dell'invio.",
+              "recipientEffect": "La fascia 00:00-06:59 resta da evitare nel workflow automatico.",
+              "warning": "Invio bloccato: pianifica dalle 07:00 oppure conferma manuale fuori automatismo.",
+              "legalBasis": [
+                {
+                  "id": "l53_art3bis",
+                  "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+                  "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+                },
+                {
+                  "id": "dl179_art16septies",
+                  "label": "D.L. 18 ottobre 2012, n. 179, art. 16-septies",
+                  "rule": "Regole temporali delle notifiche telematiche, lette con Corte cost. 75/2019."
+                },
+                {
+                  "id": "corte_cost_75_2019",
+                  "label": "Corte costituzionale, sentenza 75/2019",
+                  "rule": "La notifica PEC tra le 21:00 e le 24:00 si perfeziona per il notificante alla generazione della RAC, restando la tutela oraria per il destinatario."
+                },
+                {
+                  "id": "dpr68_art6_8",
+                  "label": "D.P.R. 11 febbraio 2005, n. 68, artt. 6 e 8",
+                  "rule": "Ricevuta di accettazione, ricevuta di avvenuta consegna e avviso di mancata consegna PEC."
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "title": "PEC ufficio e acquisizione mirata",
+      "results": [
+        {
+          "name": "Portale senza PEC non decide la notifica",
+          "ok": true,
+          "detail": "Nessun provvedimento da notificare viene creato partendo solo dai metadati del portale.",
+          "data": {}
+        },
+        {
+          "name": "PEC cancelleria genera avviso e link mirato",
+          "ok": true,
+          "detail": "/portali/pst/acquisizione?id_fasc=fasc-demo-relata&numero=1234&anno=2026&ufficio=Tribunale+di+Roma&focus=documenti&mode=update_existing&single_document=1&documento=ordinanza_da_notificare.pdf&pec_id=pec-cancelleria-1234&hash=cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc&non_duplicare_documenti=1&fase_successiva=relata_notifica",
+          "data": {
+            "release": {
+              "fascicoloId": "fasc-demo-relata",
+              "fascicoloNumero": "2026/001",
+              "fascicoloTitolo": "Cliente S.r.l. / Controparte S.p.A.",
+              "ufficio": "Tribunale di Roma",
+              "numeroRg": "1234",
+              "annoRg": "2026",
+              "documentoId": "pec:pec-cancelleria-1234:0",
+              "documentoLocaleId": "",
+              "nome": "ordinanza_da_notificare.pdf",
+              "tipo": "Documento comunicato dall'ufficio",
+              "dataDeposito": "2026-05-23",
+              "mittente": "cancelleria.tribunale.roma@giustiziacert.it",
+              "fontePortale": "PEC cancelleria",
+              "servizioPortale": "",
+              "riferimentoPortale": "<pec-cancelleria-1234@giustizia>",
+              "fonteControllo": "pec_cancelleria",
+              "pecId": "pec-cancelleria-1234",
+              "pecMessageId": "<pec-cancelleria-1234@giustizia>",
+              "pecEmlFile": "",
+              "pecEmlSha256": "",
+              "pecHref": "/email/messaggio/pec-cancelleria-1234",
+              "acquisitionHref": "/portali/pst/acquisizione?id_fasc=fasc-demo-relata&numero=1234&anno=2026&ufficio=Tribunale+di+Roma&focus=documenti&mode=update_existing&single_document=1&documento=ordinanza_da_notificare.pdf&pec_id=pec-cancelleria-1234&hash=cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc&non_duplicare_documenti=1&fase_successiva=relata_notifica",
+              "acquisitionActionLabel": "Scarica dal portale",
+              "singleDocumentAcquisition": true,
+              "notificaRichiesta": true,
+              "acquisito": false,
+              "hashSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            }
+          }
+        },
+        {
+          "name": "Documento già presente non viene duplicato",
+          "ok": true,
+          "detail": "Il documento locale con stesso nome/hash chiude la pendenza e non genera nuovo download.",
+          "data": {}
+        }
+      ]
+    },
+    {
+      "title": "Indicizzazione Lex .pdf.p7m",
+      "results": [
+        {
+          "name": "Lex legge .pdf.p7m come PDF indicizzabile",
+          "ok": true,
+          "detail": "file_type=pdf, safe_filename=Documento_33584995.pdf.p7m",
+          "data": {}
+        },
+        {
+          "name": "Indicizzazione automatica una sola volta",
+          "ok": true,
+          "detail": "prima indicizzati=1; seconda indicizzati=0, saltati=1",
+          "data": {}
+        },
+        {
+          "name": "Indice pronto prevale su vecchio errore stesso hash",
+          "ok": true,
+          "detail": "ready=1, errors=0, warnings=0",
+          "data": {}
+        }
+      ]
+    },
+    {
+      "title": "Paginazione fascicoli",
+      "results": [
+        {
+          "name": "Lista fascicoli con pagine ulteriori visibili",
+          "ok": true,
+          "detail": "Controlli Prima/Precedente/pagine/Successiva/Ultima presenti nella tabella React.",
+          "data": {}
+        }
+      ]
+    }
+  ],
+  "artifacts": {
+    "json": "D:\\legale\\IUSENTRA\\artifacts\\notifiche-legali\\notifiche-legali-demo-e2e.json",
+    "pdf": "D:\\legale\\IUSENTRA\\artifacts\\notifiche-legali\\notifiche-legali-demo-e2e.pdf"
+  },
+  "directiveMatrix": {
+    "roles": [
+      {
+        "value": "controparte",
+        "label": "Controparte personalmente",
+        "allowedRegisters": [
+          "inad",
+          "ini_pec",
+          "registro_imprese",
+          "registro_ppaa",
+          "altro_pubblico_elenco"
+        ],
+        "templateId": "relata_pec_a_controparte_personalmente",
+        "requiredFields": [],
+        "note": "Usa questo caso quando la notifica è diretta alla parte presso domicilio digitale da pubblico elenco.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dl179_art16ter",
+            "label": "D.L. 18 ottobre 2012, n. 179, art. 16-ter",
+            "rule": "Individuazione dei pubblici elenchi utilizzabili per notificazioni e comunicazioni."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "difensore",
+        "label": "Difensore costituito",
+        "allowedRegisters": [
+          "reginde",
+          "ini_pec",
+          "altro_pubblico_elenco"
+        ],
+        "templateId": "relata_pec_a_difensore_costituito",
+        "requiredFields": [
+          "destinatario.parte_rappresentata"
+        ],
+        "note": "Da usare quando la controparte è assistita da difensore costituito e la notifica va al procuratore.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dl179_art16ter",
+            "label": "D.L. 18 ottobre 2012, n. 179, art. 16-ter",
+            "rule": "Individuazione dei pubblici elenchi utilizzabili per notificazioni e comunicazioni."
+          },
+          {
+            "id": "cpc_170",
+            "label": "Art. 170 c.p.c.",
+            "rule": "Dopo la costituzione in giudizio le notificazioni e comunicazioni si fanno al procuratore costituito, salvo diversa disposizione."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "impresa",
+        "label": "Impresa o società",
+        "allowedRegisters": [
+          "registro_imprese",
+          "ini_pec",
+          "altro_pubblico_elenco"
+        ],
+        "templateId": "relata_pec_a_impresa_societa",
+        "requiredFields": [
+          "destinatario.codice_fiscale_piva"
+        ],
+        "note": "La PEC deve provenire da Registro Imprese o altro pubblico elenco ammesso.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dl179_art16ter",
+            "label": "D.L. 18 ottobre 2012, n. 179, art. 16-ter",
+            "rule": "Individuazione dei pubblici elenchi utilizzabili per notificazioni e comunicazioni."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "professionista",
+        "label": "Professionista",
+        "allowedRegisters": [
+          "ini_pec",
+          "reginde",
+          "altro_pubblico_elenco"
+        ],
+        "templateId": "relata_pec_a_professionista_inipec",
+        "requiredFields": [],
+        "note": "Per avvocati e professionisti verifica l'elenco pubblico coerente con la qualifica.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dl179_art16ter",
+            "label": "D.L. 18 ottobre 2012, n. 179, art. 16-ter",
+            "rule": "Individuazione dei pubblici elenchi utilizzabili per notificazioni e comunicazioni."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "pa",
+        "label": "Pubblica amministrazione",
+        "allowedRegisters": [
+          "registro_ppaa",
+          "altro_pubblico_elenco"
+        ],
+        "templateId": "relata_pec_a_pubblica_amministrazione",
+        "requiredFields": [],
+        "note": "La PEC deve essere tratta dal registro pubblico delle PP.AA. o da fonte pubblica ammessa.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dl179_art16ter",
+            "label": "D.L. 18 ottobre 2012, n. 179, art. 16-ter",
+            "rule": "Individuazione dei pubblici elenchi utilizzabili per notificazioni e comunicazioni."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "terzo",
+        "label": "Terzo destinatario",
+        "allowedRegisters": [
+          "reginde",
+          "ini_pec",
+          "registro_imprese",
+          "registro_ppaa",
+          "inad",
+          "altro_pubblico_elenco"
+        ],
+        "templateId": "relata_pec_base_l53",
+        "requiredFields": [],
+        "note": "Caso residuale: richiede revisione professionale del ruolo prima dell'invio.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dl179_art16ter",
+            "label": "D.L. 18 ottobre 2012, n. 179, art. 16-ter",
+            "rule": "Individuazione dei pubblici elenchi utilizzabili per notificazioni e comunicazioni."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      }
+    ],
+    "cases": [
+      {
+        "value": "ordinaria",
+        "label": "Notifica ordinaria a mezzo PEC",
+        "templateId": "relata_pec_base_l53",
+        "requiredFields": [],
+        "proceedingRequired": false,
+        "note": "Atto o documento notificato con oggetto L. 53 e relata separata.",
+        "allowedRecipientRoles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "recipientRule": "Il destinatario viene dalla pratica o dall'atto da notificare; il cliente resta fuori dal percorso di notifica.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dm44_art18",
+            "label": "D.M. 21 febbraio 2011, n. 44, art. 18",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati e ricevuta completa."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "in_corso_di_causa",
+        "label": "Notifica in corso di causa",
+        "templateId": "relata_pec_in_corso_di_causa",
+        "requiredFields": [
+          "procedimento.ufficio",
+          "procedimento.numero_rg",
+          "procedimento.anno_rg"
+        ],
+        "proceedingRequired": true,
+        "note": "Richiede riferimenti del procedimento pendente.",
+        "allowedRecipientRoles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "recipientRule": "Usare il soggetto processuale della fase pendente: parte o difensore costituito se il rito e l'atto lo richiedono.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dm44_art18",
+            "label": "D.M. 21 febbraio 2011, n. 44, art. 18",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati e ricevuta completa."
+          },
+          {
+            "id": "cpc_170",
+            "label": "Art. 170 c.p.c.",
+            "rule": "Dopo la costituzione in giudizio le notificazioni e comunicazioni si fanno al procuratore costituito, salvo diversa disposizione."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "provvedimento_giudice",
+        "label": "Provvedimento del giudice",
+        "templateId": "relata_provvedimento_giudice",
+        "requiredFields": [
+          "procedimento.ufficio",
+          "procedimento.numero_rg",
+          "procedimento.anno_rg",
+          "provvedimento.data"
+        ],
+        "proceedingRequired": true,
+        "note": "Per provvedimenti comunicati o estratti dal fascicolo informatico.",
+        "allowedRecipientRoles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "recipientRule": "Il provvedimento comunicato dall'ufficio si notifica al soggetto cui la parte intende far produrre gli effetti processuali, verificando costituzione e domicilio digitale.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dm44_art18",
+            "label": "D.M. 21 febbraio 2011, n. 44, art. 18",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati e ricevuta completa."
+          },
+          {
+            "id": "dgsia_2024_art21",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 21",
+            "rule": "Comunicazioni e notificazioni provenienti dall'ufficio giudiziario, Comunicazione.xml e ricevute conservate nel fascicolo informatico."
+          },
+          {
+            "id": "dgsia_2024_art22",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 22",
+            "rule": "Avviso di disponibilità, URL sicuro e area download quando la comunicazione/notificazione dell'ufficio contiene categorie particolari di dati personali."
+          },
+          {
+            "id": "dgsia_2024_art25",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 25",
+            "rule": "Rilascio delle copie di atti e documenti via PEC o avviso di disponibilità con prelievo tramite servizi PST."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          },
+          {
+            "id": "dgsia_2024_art27",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 27",
+            "rule": "Attestazione di conformità su documento informatico separato e inserimento degli elementi nella relazione di notificazione quando la copia è destinata alla notifica."
+          }
+        ]
+      },
+      {
+        "value": "sentenza_termine_breve",
+        "label": "Sentenza o termine breve",
+        "templateId": "relata_sentenza_termine_breve",
+        "requiredFields": [
+          "provvedimento.tipo",
+          "provvedimento.numero",
+          "provvedimento.anno",
+          "provvedimento.data_deposito"
+        ],
+        "proceedingRequired": true,
+        "note": "Per la notifica finalizzata alla decorrenza dei termini di impugnazione.",
+        "allowedRecipientRoles": [
+          "difensore",
+          "controparte",
+          "impresa",
+          "professionista",
+          "pa"
+        ],
+        "recipientRule": "Per far decorrere il termine breve verificare se la notifica va al difensore costituito o alla parte non costituita secondo il caso concreto.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dm44_art18",
+            "label": "D.M. 21 febbraio 2011, n. 44, art. 18",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati e ricevuta completa."
+          },
+          {
+            "id": "cpc_170",
+            "label": "Art. 170 c.p.c.",
+            "rule": "Dopo la costituzione in giudizio le notificazioni e comunicazioni si fanno al procuratore costituito, salvo diversa disposizione."
+          },
+          {
+            "id": "cpc_285",
+            "label": "Art. 285 c.p.c.",
+            "rule": "Modo di notificazione della sentenza ai fini processuali."
+          },
+          {
+            "id": "cpc_330",
+            "label": "Art. 330 c.p.c.",
+            "rule": "Luogo della notificazione dell'impugnazione secondo difensore, domicilio eletto o residenza dichiarata."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "decreto_ingiuntivo",
+        "label": "Decreto ingiuntivo",
+        "templateId": "relata_decreto_ingiuntivo",
+        "requiredFields": [
+          "procedimento.ufficio",
+          "procedimento.numero_rg",
+          "procedimento.anno_rg"
+        ],
+        "proceedingRequired": true,
+        "note": "Per decreto ingiuntivo e documenti collegati.",
+        "allowedRecipientRoles": [
+          "controparte",
+          "impresa",
+          "professionista",
+          "pa"
+        ],
+        "recipientRule": "Destinatario ordinario è il debitore/ingiunto o il soggetto obbligato risultante dalla pratica.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dm44_art18",
+            "label": "D.M. 21 febbraio 2011, n. 44, art. 18",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati e ricevuta completa."
+          },
+          {
+            "id": "cpc_643",
+            "label": "Art. 643 c.p.c.",
+            "rule": "Notificazione del decreto ingiuntivo al debitore/ingiunto."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "titolo_esecutivo_precetto",
+        "label": "Titolo esecutivo e precetto",
+        "templateId": "relata_titolo_esecutivo_precetto",
+        "requiredFields": [
+          "esecuzione.debitore"
+        ],
+        "proceedingRequired": false,
+        "note": "Per titolo, formula esecutiva e precetto.",
+        "allowedRecipientRoles": [
+          "controparte",
+          "impresa",
+          "professionista",
+          "pa"
+        ],
+        "recipientRule": "Destinatario è il debitore o soggetto obbligato indicato dal titolo e dal precetto.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dm44_art18",
+            "label": "D.M. 21 febbraio 2011, n. 44, art. 18",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati e ricevuta completa."
+          },
+          {
+            "id": "cpc_480",
+            "label": "Art. 480 c.p.c.",
+            "rule": "Precetto e destinatario del titolo esecutivo prima dell'esecuzione."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "atto_stragiudiziale",
+        "label": "Atto stragiudiziale",
+        "templateId": "relata_atto_stragiudiziale",
+        "requiredFields": [],
+        "proceedingRequired": false,
+        "note": "Per atti non collegati a un procedimento pendente.",
+        "allowedRecipientRoles": [
+          "controparte",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "recipientRule": "Destinatario è il soggetto cui l'atto negoziale o stragiudiziale è rivolto.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dl179_art16ter",
+            "label": "D.L. 18 ottobre 2012, n. 179, art. 16-ter",
+            "rule": "Individuazione dei pubblici elenchi utilizzabili per notificazioni e comunicazioni."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "rinnovo_notifica",
+        "label": "Rinnovo notificazione",
+        "templateId": "relata_rinnovo_notifica",
+        "requiredFields": [
+          "provvedimento_rinnovo.data"
+        ],
+        "proceedingRequired": true,
+        "note": "Per rinnovo ordinato o necessario dopo esito non valido.",
+        "allowedRecipientRoles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "recipientRule": "Ripetere il destinatario imposto dal provvedimento di rinnovo o dalla notifica non valida.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dm44_art18",
+            "label": "D.M. 21 febbraio 2011, n. 44, art. 18",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati e ricevuta completa."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "integrazione_contraddittorio",
+        "label": "Integrazione del contraddittorio",
+        "templateId": "relata_integrazione_contraddittorio",
+        "requiredFields": [
+          "procedimento.ufficio",
+          "procedimento.numero_rg",
+          "procedimento.anno_rg"
+        ],
+        "proceedingRequired": true,
+        "note": "Per integrazione nei confronti di litisconsorti o parti necessarie.",
+        "allowedRecipientRoles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "recipientRule": "Notificare ai soggetti da integrare o alle parti necessarie indicate dal provvedimento o dal rito.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dm44_art18",
+            "label": "D.M. 21 febbraio 2011, n. 44, art. 18",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati e ricevuta completa."
+          },
+          {
+            "id": "cpc_170",
+            "label": "Art. 170 c.p.c.",
+            "rule": "Dopo la costituzione in giudizio le notificazioni e comunicazioni si fanno al procuratore costituito, salvo diversa disposizione."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "chiamata_terzo",
+        "label": "Chiamata del terzo",
+        "templateId": "relata_chiamata_terzo",
+        "requiredFields": [
+          "procedimento.ufficio",
+          "procedimento.numero_rg",
+          "procedimento.anno_rg"
+        ],
+        "proceedingRequired": true,
+        "note": "Per citazione o chiamata del terzo autorizzata o prevista.",
+        "allowedRecipientRoles": [
+          "terzo"
+        ],
+        "recipientRule": "La chiamata richiede il terzo indicato/autorizzato; non va indirizzata automaticamente alla controparte già presente.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dm44_art18",
+            "label": "D.M. 21 febbraio 2011, n. 44, art. 18",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati e ricevuta completa."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "riassunzione",
+        "label": "Riassunzione",
+        "templateId": "relata_riassunzione",
+        "requiredFields": [
+          "riassunzione.causa",
+          "procedimento.ufficio",
+          "procedimento.numero_rg",
+          "procedimento.anno_rg"
+        ],
+        "proceedingRequired": true,
+        "note": "Per riassunzione dopo interruzione, sospensione o altra causa.",
+        "allowedRecipientRoles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "recipientRule": "Destinatari sono le parti del processo da riassumere secondo provvedimento, evento interruttivo o norma applicabile.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dm44_art18",
+            "label": "D.M. 21 febbraio 2011, n. 44, art. 18",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati e ricevuta completa."
+          },
+          {
+            "id": "cpc_170",
+            "label": "Art. 170 c.p.c.",
+            "rule": "Dopo la costituzione in giudizio le notificazioni e comunicazioni si fanno al procuratore costituito, salvo diversa disposizione."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "appello_impugnazione",
+        "label": "Appello o impugnazione",
+        "templateId": "relata_appello_impugnazione",
+        "requiredFields": [
+          "procedimento.ufficio",
+          "provvedimento.tipo",
+          "provvedimento.data"
+        ],
+        "proceedingRequired": true,
+        "note": "Per atti di impugnazione.",
+        "allowedRecipientRoles": [
+          "difensore",
+          "controparte",
+          "impresa",
+          "professionista",
+          "pa"
+        ],
+        "recipientRule": "Destinatario è la controparte dell'impugnazione; se costituita, verificare notifica al difensore.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dm44_art18",
+            "label": "D.M. 21 febbraio 2011, n. 44, art. 18",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati e ricevuta completa."
+          },
+          {
+            "id": "cpc_330",
+            "label": "Art. 330 c.p.c.",
+            "rule": "Luogo della notificazione dell'impugnazione secondo difensore, domicilio eletto o residenza dichiarata."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "reclamo_cautelare",
+        "label": "Reclamo cautelare",
+        "templateId": "relata_reclamo_cautelare",
+        "requiredFields": [
+          "procedimento.ufficio",
+          "provvedimento.data"
+        ],
+        "proceedingRequired": true,
+        "note": "Per reclamo contro provvedimenti cautelari.",
+        "allowedRecipientRoles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "recipientRule": "Destinatari sono le parti o i soggetti incisi dal provvedimento cautelare secondo il rito concreto.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dm44_art18",
+            "label": "D.M. 21 febbraio 2011, n. 44, art. 18",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati e ricevuta completa."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "sfratto_convalida",
+        "label": "Sfratto e convalida",
+        "templateId": "relata_sfratto_convalida",
+        "requiredFields": [
+          "sfratto.immobile_indirizzo"
+        ],
+        "proceedingRequired": false,
+        "note": "Per intimazione di sfratto e citazione per convalida.",
+        "allowedRecipientRoles": [
+          "controparte",
+          "impresa",
+          "professionista"
+        ],
+        "recipientRule": "Destinatario è l'intimato/conduttore o soggetto tenuto al rilascio/pagamento.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dm44_art18",
+            "label": "D.M. 21 febbraio 2011, n. 44, art. 18",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati e ricevuta completa."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "pignoramento_presso_terzi",
+        "label": "Pignoramento presso terzi",
+        "templateId": "relata_pignoramento_presso_terzi",
+        "requiredFields": [
+          "esecuzione.debitore",
+          "esecuzione.terzo_pignorato"
+        ],
+        "proceedingRequired": false,
+        "note": "Per notifiche esecutive verso debitore e terzo pignorato.",
+        "allowedRecipientRoles": [
+          "controparte",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "recipientRule": "Il flusso deve distinguere debitore e terzo pignorato: entrambi possono essere destinatari necessari della notifica.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dm44_art18",
+            "label": "D.M. 21 febbraio 2011, n. 44, art. 18",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati e ricevuta completa."
+          },
+          {
+            "id": "cpc_543",
+            "label": "Art. 543 c.p.c.",
+            "rule": "Pignoramento presso terzi da notificare al terzo e al debitore."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "intervento_esecuzione",
+        "label": "Intervento in esecuzione",
+        "templateId": "relata_intervento_esecuzione",
+        "requiredFields": [
+          "esecuzione.debitore"
+        ],
+        "proceedingRequired": true,
+        "note": "Per intervento del creditore in procedura esecutiva.",
+        "allowedRecipientRoles": [
+          "controparte",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "recipientRule": "Destinatari sono debitore, parti o terzi della procedura esecutiva secondo il provvedimento o l'atto.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dm44_art18",
+            "label": "D.M. 21 febbraio 2011, n. 44, art. 18",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati e ricevuta completa."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "opposizione_decreto_ingiuntivo",
+        "label": "Opposizione a decreto ingiuntivo",
+        "templateId": "relata_opposizione_decreto_ingiuntivo",
+        "requiredFields": [
+          "procedimento.ufficio",
+          "provvedimento.numero",
+          "provvedimento.anno"
+        ],
+        "proceedingRequired": true,
+        "note": "Per opposizione a decreto ingiuntivo.",
+        "allowedRecipientRoles": [
+          "difensore",
+          "controparte",
+          "impresa",
+          "professionista",
+          "pa"
+        ],
+        "recipientRule": "Destinatario è la parte opposta o il difensore se costituito nel procedimento pertinente.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dm44_art18",
+            "label": "D.M. 21 febbraio 2011, n. 44, art. 18",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati e ricevuta completa."
+          },
+          {
+            "id": "cpc_643",
+            "label": "Art. 643 c.p.c.",
+            "rule": "Notificazione del decreto ingiuntivo al debitore/ingiunto."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "opposizione_esecutiva",
+        "label": "Opposizione esecutiva",
+        "templateId": "relata_opposizione_esecutiva",
+        "requiredFields": [
+          "procedimento.ufficio",
+          "esecuzione.debitore"
+        ],
+        "proceedingRequired": true,
+        "note": "Per opposizioni all'esecuzione o agli atti esecutivi.",
+        "allowedRecipientRoles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "recipientRule": "Destinatari sono le parti della procedura esecutiva e gli eventuali terzi coinvolti.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dm44_art18",
+            "label": "D.M. 21 febbraio 2011, n. 44, art. 18",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati e ricevuta completa."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "famiglia_persone_minori",
+        "label": "Famiglia, persone e minori",
+        "templateId": "relata_famiglia_persone_minori",
+        "requiredFields": [
+          "procedimento.ufficio"
+        ],
+        "proceedingRequired": true,
+        "note": "Per procedimenti di famiglia, persone e minori.",
+        "allowedRecipientRoles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "terzo"
+        ],
+        "recipientRule": "Destinatari e cautele dipendono dal provvedimento e dalla posizione processuale; richiede verifica professionale.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dm44_art18",
+            "label": "D.M. 21 febbraio 2011, n. 44, art. 18",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati e ricevuta completa."
+          },
+          {
+            "id": "cpc_170",
+            "label": "Art. 170 c.p.c.",
+            "rule": "Dopo la costituzione in giudizio le notificazioni e comunicazioni si fanno al procuratore costituito, salvo diversa disposizione."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "provvedimento_urgente",
+        "label": "Provvedimento urgente o cautelare",
+        "templateId": "relata_provvedimento_urgente",
+        "requiredFields": [
+          "procedimento.ufficio",
+          "provvedimento.data"
+        ],
+        "proceedingRequired": true,
+        "note": "Per provvedimenti cautelari o urgenti.",
+        "allowedRecipientRoles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "recipientRule": "Destinatari sono le parti o i soggetti incisi dal provvedimento urgente/cautelare.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dm44_art18",
+            "label": "D.M. 21 febbraio 2011, n. 44, art. 18",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati e ricevuta completa."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      },
+      {
+        "value": "accordo_transazione_stragiudiziale",
+        "label": "Accordo o transazione stragiudiziale",
+        "templateId": "relata_accordo_transazione_stragiudiziale",
+        "requiredFields": [],
+        "proceedingRequired": false,
+        "note": "Per accordi, transazioni o atti negoziali da notificare.",
+        "allowedRecipientRoles": [
+          "controparte",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "recipientRule": "Destinatario è il soggetto obbligato o aderente indicato nell'accordo o nella pratica.",
+        "legalBasis": [
+          {
+            "id": "l53_art3bis",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-bis",
+            "rule": "Notifica a mezzo PEC, oggetto obbligatorio, relata, pubblico elenco e dati essenziali della relazione."
+          },
+          {
+            "id": "l53_art3ter",
+            "label": "L. 21 gennaio 1994, n. 53, art. 3-ter",
+            "rule": "Obbligo di notifica telematica quando ricorrono i presupposti e area web PST nei casi di mancata notifica imputabile al destinatario."
+          },
+          {
+            "id": "dl179_art16ter",
+            "label": "D.L. 18 ottobre 2012, n. 179, art. 16-ter",
+            "rule": "Individuazione dei pubblici elenchi utilizzabili per notificazioni e comunicazioni."
+          },
+          {
+            "id": "dgsia_2024_art26",
+            "label": "Specifiche tecniche DGSIA 7 agosto 2024, art. 26",
+            "rule": "Notificazioni per via telematica eseguite dagli avvocati, formato degli atti, ricevute RAC/RdAC e inserimento dati in DatiAtto.xml."
+          }
+        ]
+      }
+    ]
+  }
+}

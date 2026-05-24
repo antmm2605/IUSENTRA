@@ -185,6 +185,8 @@ class EmailRicevuta:
     message_id: str     = ""       # Message-ID header originale
     uid_imap: str       = ""       # UID IMAP per evitare duplicati
     origine: str        = "IMAP"   # IMAP | INVIATA | BOZZA
+    eml_file: str       = ""       # percorso relativo dell'EML originale salvato
+    eml_sha256: str     = ""       # impronta SHA-256 dell'EML originale
 
     # Correlazione PCT
     id_deposito_pct: str = ""      # se riconosciuta come risposta PST
@@ -302,6 +304,20 @@ class GestioneEmailRicevute:
             "nome_file": target.name,
             "sha256": sha256,
         }
+
+    def _salva_eml_originale(self, email_id: str, contenuto: bytes) -> dict[str, str]:
+        if not contenuto:
+            return {}
+        folder = self.db_path.parent / "eml"
+        folder.mkdir(parents=True, exist_ok=True)
+        safe_id = self._sanifica_nome_allegato(email_id, fallback=uuid.uuid4().hex)
+        safe_id = re.sub(r"\.eml$", "", safe_id, flags=re.IGNORECASE)
+        target = folder / f"{safe_id}.eml"
+        sha256 = content_sha256(contenuto)
+        if not target.exists() or not files_are_same_content(target, contenuto, expected_sha256=sha256):
+            target.write_bytes(contenuto)
+        rel = target.relative_to(self.db_path.parent)
+        return {"eml_file": str(rel).replace("\\", "/"), "eml_sha256": sha256}
 
     def _archive_member_for_sha(self, sha256: str) -> str:
         safe_hash = re.sub(r"[^a-fA-F0-9]", "", str(sha256 or "").lower())
@@ -1417,6 +1433,7 @@ class GestioneEmailRicevute:
                                 uid_str,
                                 cartella_imap,
                                 email_id=email_esistente.id if email_esistente else None,
+                                raw_bytes=raw,
                             )
                             if em:
                                 if not email_esistente:
@@ -1438,6 +1455,9 @@ class GestioneEmailRicevute:
                                     risultato["allegati_salvati"] += salvati
                                     if self._merge_testo_migliore(email_esistente, em):
                                         risultato["testi_corretti"] += 1
+                                    if not email_esistente.eml_file and em.eml_file:
+                                        email_esistente.eml_file = em.eml_file
+                                        email_esistente.eml_sha256 = em.eml_sha256
                                 else:
                                     # Auto-rileva risposte PST
                                     self._analizza_pst(em)
@@ -1645,6 +1665,7 @@ class GestioneEmailRicevute:
         cartella_imap: str,
         *,
         email_id: str | None = None,
+        raw_bytes: bytes | None = None,
     ) -> Optional[EmailRicevuta]:
         """Converte un messaggio IMAP in EmailRicevuta."""
         try:
@@ -1673,6 +1694,7 @@ class GestioneEmailRicevute:
             corpo_testo = ""
             corpo_html  = ""
             allegati    = []
+            eml_info = self._salva_eml_originale(em_id, raw_bytes or b"") if raw_bytes else {}
 
             if msg.is_multipart():
                 for part in msg.walk():
@@ -1719,6 +1741,8 @@ class GestioneEmailRicevute:
                 message_id=msg.get("Message-ID", "").strip(),
                 uid_imap=uid_str,
                 origine="IMAP" if cartella_interna == CartellaEmail.INBOX else cartella_interna,
+                eml_file=eml_info.get("eml_file", ""),
+                eml_sha256=eml_info.get("eml_sha256", ""),
             )
         except Exception:
             return None

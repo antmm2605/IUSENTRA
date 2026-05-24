@@ -131,6 +131,16 @@ type AcquisitionMapping = {
   grado: string
 }
 
+type AcquisitionTargetDocument = {
+  singleDocument: boolean
+  documento: string
+  idDocumento: string
+  hash: string
+  pecId: string
+  nonDuplicare: boolean
+  faseSuccessiva: string
+}
+
 const acquisitionMappingModes: Array<[AcquisitionMapping['mode'], string, string]> = [
   ['create_new', 'Crea nuova pratica', 'Precompila area, procedimento, RG e parti dal portale.'],
   ['attach_existing', 'Collega a pratica esistente', "Mantieni il fascicolo locale come primario e collega l'origine telematica."],
@@ -338,6 +348,50 @@ function acquisitionInitialFascicoloId(): string {
     || params.get('fascicolo_id')
     || params.get('target_fascicolo_id'),
   )
+}
+
+function acquisitionInitialQuery(): AcquisitionQuery {
+  const params = new URLSearchParams(window.location.search)
+  const documento = asText(params.get('documento') || params.get('documento_portale'))
+  return {
+    ufficio: asText(params.get('ufficio')),
+    ufficioCodice: asText(params.get('ufficio_codice')),
+    ufficioNome: asText(params.get('ufficio')),
+    numero: asText(params.get('numero')),
+    anno: asText(params.get('anno'), String(new Date().getFullYear())),
+    assistito: asText(params.get('assistito')),
+    controparte: asText(params.get('controparte')),
+    cf: asText(params.get('cf') || params.get('codice_fiscale')),
+    oggetto: asText(params.get('oggetto') || documento),
+  }
+}
+
+function acquisitionTargetDocument(): AcquisitionTargetDocument {
+  const params = new URLSearchParams(window.location.search)
+  const singleRaw = asText(params.get('single_document')).toLowerCase()
+  const noDuplicateRaw = asText(params.get('non_duplicare_documenti')).toLowerCase()
+  return {
+    singleDocument: ['1', 'true', 'si', 'sì'].includes(singleRaw),
+    documento: asText(params.get('documento') || params.get('documento_portale')),
+    idDocumento: asText(params.get('id_documento')),
+    hash: asText(params.get('hash')).toLowerCase(),
+    pecId: asText(params.get('pec_id')),
+    nonDuplicare: ['1', 'true', 'si', 'sì'].includes(noDuplicateRaw),
+    faseSuccessiva: asText(params.get('fase_successiva')),
+  }
+}
+
+function acquisitionTargetPayload(target: AcquisitionTargetDocument): JsonRecord {
+  if (!target.singleDocument) return {}
+  return {
+    singleDocument: target.singleDocument,
+    documento: target.documento,
+    idDocumento: target.idDocumento,
+    hash: target.hash,
+    pecId: target.pecId,
+    nonDuplicare: target.nonDuplicare,
+    faseSuccessiva: target.faseSuccessiva,
+  }
 }
 
 function acquisitionInitialMappingMode(targetFascicoloId = acquisitionInitialFascicoloId()): AcquisitionMapping['mode'] {
@@ -1124,17 +1178,9 @@ function AcquisitionWizard({
   const [busy, setBusy] = useState('')
   const [message, setMessage] = useState('')
   const [status, setStatus] = useState<JsonRecord>({})
-  const [query, setQuery] = useState<AcquisitionQuery>({
-    ufficio: '',
-    ufficioCodice: '',
-    ufficioNome: '',
-    numero: '',
-    anno: String(new Date().getFullYear()),
-    assistito: '',
-    controparte: '',
-    cf: '',
-    oggetto: '',
-  })
+  const targetDocument = useMemo(() => acquisitionTargetDocument(), [])
+  const targetDocumentPayload = useMemo(() => acquisitionTargetPayload(targetDocument), [targetDocument])
+  const [query, setQuery] = useState<AcquisitionQuery>(() => acquisitionInitialQuery())
   const [results, setResults] = useState<AcquisitionResult[]>([])
   const [selection, setSelection] = useState<AcquisitionResult | null>(null)
   const [preview, setPreview] = useState<JsonRecord>({})
@@ -1446,6 +1492,7 @@ function AcquisitionWizard({
     materia: query.oggetto,
     registro: '',
     quick_filter: '',
+    target_document: targetDocumentPayload,
   })
 
   const runSearch = async () => {
@@ -1591,9 +1638,10 @@ function AcquisitionWizard({
           snapshot,
           documenti,
           pst_session: pstSessionPayload,
+          target_document: targetDocumentPayload,
         })
       } else {
-        payload = await portalJson(portal, 'preview', { selection: selection.raw })
+        payload = await portalJson(portal, 'preview', { selection: selection.raw, target_document: targetDocumentPayload })
       }
       if (payload.ok === false) throw new Error(asText(payload.errore, 'Anteprima non completata.'))
       setPreview(asRecord(payload.preview))
@@ -1641,6 +1689,7 @@ function AcquisitionWizard({
         preview,
         options,
         mapping,
+        target_document: targetDocumentPayload,
       })
       if (payload.ok === false) throw new Error(asText(payload.errore, 'Analisi non completata.'))
       setAnalysis(asRecord(payload.analysis))
@@ -1736,6 +1785,7 @@ function AcquisitionWizard({
             mapping,
             fascicolo_locale_id: mapping.target_fascicolo_id,
             downloaded_files: downloadedFiles,
+            target_document: targetDocumentPayload,
           })
       } else if (portalUsesOfficialAssistant && downloadedFiles.length) {
         payload = await portalJson(portal, 'importa-file', {
@@ -1743,6 +1793,7 @@ function AcquisitionWizard({
           assistant_session_id: assistantSession?.session_id || '',
           downloaded_files: downloadedFiles,
           options,
+          target_document: targetDocumentPayload,
           mapping: {
             ...mapping,
             mode: mapping.mode === 'create_new' ? 'update_existing' : mapping.mode,
@@ -1759,6 +1810,7 @@ function AcquisitionWizard({
             mapping,
             downloaded_files: downloadedFiles,
             pst_session: isRecord(activeSelection.pst_session) ? activeSelection.pst_session : {},
+            target_document: targetDocumentPayload,
           })
       }
       if (payload.ok === false) throw new Error(asText(payload.errore, 'Importazione non completata.'))
@@ -1948,6 +2000,25 @@ function AcquisitionWizard({
       </div>
 
       {message ? <div className="iu-tel-acquisition__message"><AlertTriangle size={17}/>{message}</div> : null}
+
+      {targetDocument.singleDocument ? (
+        <div className="iu-tel-acquisition__target">
+          <FileText size={18}/>
+          <div>
+            <strong>Acquisizione mirata da PEC dell'ufficio</strong>
+            <span>
+              La PEC ha indicato il provvedimento
+              {targetDocument.documento ? <b> {targetDocument.documento}</b> : ' da notificare'}.
+              Il portale è già compilato con ufficio, R.G. e fascicolo: procedi con l'avvocato allo scaricamento del solo documento e collegalo ai Documenti e atti.
+            </span>
+            <small>
+              {targetDocument.pecId ? `PEC: ${targetDocument.pecId}. ` : ''}
+              {targetDocument.hash ? `Hash comunicato: ${targetDocument.hash.slice(0, 12)}... ` : ''}
+              {targetDocument.nonDuplicare ? 'IUSENTRA evita duplicati già presenti nel fascicolo.' : 'Controlla i documenti già presenti prima di importare.'}
+            </small>
+          </div>
+        </div>
+      ) : null}
 
       <div className="iu-tel-acquisition__grid">
         <div className="iu-tel-acquisition__main">

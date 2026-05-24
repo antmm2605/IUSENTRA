@@ -9,6 +9,7 @@ import {
   FileText,
   FolderOpen,
   Inbox,
+  Info,
   LockKeyhole,
   Mail,
   PencilLine,
@@ -36,6 +37,7 @@ import {
   saveLegalRelataTemplate,
   type LegalAutomationStep,
   type LegalDocumentSuggestion,
+  type LegalNotificationDirective,
   type LegalRelataPreviewResult,
   type LegalPracticeSuggestion,
   type LegalRecipientSuggestion,
@@ -310,6 +312,108 @@ function auditText(value: unknown) {
   return String(value || '').trim()
 }
 
+function deliveryPlan(outputPlan: Record<string, unknown>) {
+  return isRecord(outputPlan.deliveryPlan) ? outputPlan.deliveryPlan : null
+}
+
+function signaturePlan(outputPlan: Record<string, unknown>) {
+  if (isRecord(outputPlan.signaturePlan)) return outputPlan.signaturePlan
+  const delivery = deliveryPlan(outputPlan)
+  return isRecord(delivery?.signaturePlan) ? delivery.signaturePlan : null
+}
+
+function timingPlan(outputPlan: Record<string, unknown>) {
+  if (isRecord(outputPlan.timingPlan)) return outputPlan.timingPlan
+  const delivery = deliveryPlan(outputPlan)
+  return isRecord(delivery?.timingPlan) ? delivery.timingPlan : null
+}
+
+function timingBasis(plan: Record<string, unknown> | null) {
+  const rows = plan && Array.isArray(plan.legalBasis) ? plan.legalBasis : []
+  return rows.map((item) => {
+    const row = isRecord(item) ? item : {}
+    return String(row.label || '').trim()
+  }).filter(Boolean)
+}
+
+function signatureRequired(plan: Record<string, unknown> | null) {
+  const required = plan && Array.isArray(plan.requiredBeforeSend) ? plan.requiredBeforeSend : []
+  return required.map((item) => {
+    const row = isRecord(item) ? item : {}
+    return {
+      id: String(row.id || '').trim(),
+      label: String(row.label || '').trim(),
+      sourceFile: String(row.sourceFile || '').trim(),
+      signedFile: String(row.signedFile || '').trim(),
+      format: String(row.format || '').trim(),
+      reason: String(row.reason || '').trim(),
+      source: String(row.source || '').trim(),
+    }
+  }).filter((item) => item.id && (item.sourceFile || item.signedFile))
+}
+
+function signatureNotToSign(plan: Record<string, unknown> | null) {
+  const rows = plan && Array.isArray(plan.notToSign) ? plan.notToSign : []
+  return rows.map((item) => {
+    const row = isRecord(item) ? item : {}
+    return {
+      filename: String(row.filename || '').trim(),
+      reason: String(row.reason || '').trim(),
+    }
+  }).filter((item) => item.filename)
+}
+
+function signatureChecks(plan: Record<string, unknown> | null) {
+  const rows = plan && Array.isArray(plan.checks) ? plan.checks : []
+  return rows.map((item) => {
+    const row = isRecord(item) ? item : {}
+    return {
+      id: String(row.id || '').trim(),
+      label: String(row.label || '').trim(),
+      status: String(row.status || '').trim(),
+      detail: String(row.detail || '').trim(),
+      source: String(row.source || '').trim(),
+    }
+  }).filter((item) => item.id && item.label)
+}
+
+function deliveryRecipients(plan: Record<string, unknown> | null) {
+  const recipients = plan && Array.isArray(plan.recipients) ? plan.recipients : []
+  return recipients.map((item) => {
+    const row = isRecord(item) ? item : {}
+    return {
+      name: String(row.name || '').trim(),
+      pec: String(row.pec || '').trim(),
+      role: String(row.role || '').trim(),
+    }
+  }).filter((item) => item.name || item.pec)
+}
+
+function deliveryAttachments(plan: Record<string, unknown> | null) {
+  const attachments = plan && Array.isArray(plan.attachments) ? plan.attachments : []
+  return attachments.map((item) => {
+    const row = isRecord(item) ? item : {}
+    return {
+      label: String(row.label || '').trim(),
+      filename: String(row.filename || '').trim(),
+      source: String(row.source || '').trim(),
+    }
+  }).filter((item) => item.label || item.filename)
+}
+
+function deliveryChecks(plan: Record<string, unknown> | null) {
+  const checks = plan && Array.isArray(plan.sendChecks) ? plan.sendChecks : []
+  return checks.map((item) => {
+    const row = isRecord(item) ? item : {}
+    return {
+      id: String(row.id || '').trim(),
+      label: String(row.label || '').trim(),
+      status: String(row.status || '').trim(),
+      detail: String(row.detail || '').trim(),
+    }
+  }).filter((item) => item.id && item.label)
+}
+
 function ResultPanel({ result }: { result: LegalWorkflowResult }) {
   if (!result.message && !result.blockers.length && !result.warnings.length && !result.relataText && !result.body) {
     return (
@@ -386,6 +490,85 @@ function ResultPanel({ result }: { result: LegalWorkflowResult }) {
           </div>
         </div>
       ) : null}
+      {signaturePlan(result.outputPlan) ? (
+        <div className="iu-legal-output">
+          <span>Firma digitale automatica</span>
+          <div className="iu-legal-signature-summary">
+            <div className="iu-legal-signature-summary__heading">
+              <FileSignature size={17} />
+              <strong>Relata da firmare prima dell'invio PEC</strong>
+            </div>
+            <div className="iu-legal-evidence-grid">
+              {signatureRequired(signaturePlan(result.outputPlan)).map((item) => (
+                <strong key={item.id}>
+                  {item.label}{item.sourceFile ? ` - ${item.sourceFile}` : ''}{item.signedFile ? ` -> ${item.signedFile}` : ''}{item.format ? ` - ${item.format}` : ''}
+                </strong>
+              ))}
+            </div>
+            {signatureRequired(signaturePlan(result.outputPlan)).map((item) => (
+              <small key={`${item.id}-reason`}>{item.reason}{item.source ? ` Fonte: ${item.source}.` : ''}</small>
+            ))}
+            {signatureNotToSign(signaturePlan(result.outputPlan)).length ? (
+              <div className="iu-legal-signature-summary__not-to-sign">
+                <strong>Allegati da non rifirmare automaticamente</strong>
+                {signatureNotToSign(signaturePlan(result.outputPlan)).map((item) => (
+                  <small key={item.filename}>{item.filename}: {item.reason}</small>
+                ))}
+              </div>
+            ) : null}
+            <div className="iu-legal-check-grid">
+              {signatureChecks(signaturePlan(result.outputPlan)).map((item) => (
+                <article className={`is-${item.status.replace(/\s+/g, '-')}`} key={item.id}>
+                  <strong>{item.label}</strong>
+                  <em>{item.status}</em>
+                  <p>{item.detail}</p>
+                  {item.source ? <small>{item.source}</small> : null}
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {deliveryPlan(result.outputPlan) ? (
+        <div className="iu-legal-output">
+          <span>Invio PEC controllato</span>
+          <div className="iu-legal-delivery-summary">
+            <strong>{auditText(deliveryPlan(result.outputPlan)?.subject) || 'notificazione ai sensi della legge n. 53 del 1994'}</strong>
+            <small>{deliveryRecipients(deliveryPlan(result.outputPlan)).length} PEC distinta/e da preparare</small>
+            {timingPlan(result.outputPlan) ? (
+              <div className="iu-legal-timing-summary">
+                <strong>Orario PEC e perfezionamento</strong>
+                <small>{auditText(timingPlan(result.outputPlan)?.plannedAt) || 'Da pianificare'}</small>
+                <small>{auditText(timingPlan(result.outputPlan)?.senderEffect)}</small>
+                <small>{auditText(timingPlan(result.outputPlan)?.recipientEffect)}</small>
+                {auditText(timingPlan(result.outputPlan)?.warning) ? <small>{auditText(timingPlan(result.outputPlan)?.warning)}</small> : null}
+                {timingBasis(timingPlan(result.outputPlan)).length ? (
+                  <small>Fonti: {timingBasis(timingPlan(result.outputPlan)).join('; ')}</small>
+                ) : null}
+              </div>
+            ) : null}
+            <div className="iu-legal-evidence-grid">
+              {deliveryRecipients(deliveryPlan(result.outputPlan)).map((item) => (
+                <strong key={`${item.pec}-${item.role}`}>{item.name || 'Destinatario'}{item.pec ? ` - ${item.pec}` : ''}{item.role ? ` - ${item.role}` : ''}</strong>
+              ))}
+            </div>
+            <div className="iu-legal-evidence-grid">
+              {deliveryAttachments(deliveryPlan(result.outputPlan)).map((item) => (
+                <strong key={`${item.label}-${item.filename}`}>{item.label}{item.filename ? ` - ${item.filename}` : ''}</strong>
+              ))}
+            </div>
+            <div className="iu-legal-check-grid">
+              {deliveryChecks(deliveryPlan(result.outputPlan)).map((item) => (
+                <article className={`is-${item.status.replace(/\s+/g, '-')}`} key={item.id}>
+                  <strong>{item.label}</strong>
+                  <em>{item.status}</em>
+                  <p>{item.detail}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
       {auditTrail(result.outputPlan) ? (
         <div className="iu-legal-output">
           <span>Audit</span>
@@ -441,6 +624,7 @@ export function NotificheLegaliPage() {
 
   const [notifica, setNotifica] = useState({
     template_id: 'relata_pec_base_l53',
+    caso_notifica: 'ordinaria',
     pratica_codice: '',
     avvocato_nome: '',
     avvocato_cf: '',
@@ -565,6 +749,14 @@ export function NotificheLegaliPage() {
 
   const selectedTemplate = useMemo(() => data.modelliRelata.find((item) => item.value === notifica.template_id), [data.modelliRelata, notifica.template_id])
   const selectedClientTemplate = useMemo(() => data.modelliComunicazioneCliente.find((item) => item.value === cliente.template_id), [data.modelliComunicazioneCliente, cliente.template_id])
+  const selectedCaseDirective = useMemo<LegalNotificationDirective | undefined>(
+    () => data.matriceNotifica.cases.find((item) => item.value === notifica.caso_notifica),
+    [data.matriceNotifica.cases, notifica.caso_notifica],
+  )
+  const selectedRoleDirective = useMemo<LegalNotificationDirective | undefined>(
+    () => data.matriceNotifica.roles.find((item) => item.value === notifica.ruolo_destinatario),
+    [data.matriceNotifica.roles, notifica.ruolo_destinatario],
+  )
   const templateFieldGroups = useMemo(() => {
     const groups = new Map<string, LegalTemplateFieldToken[]>()
     data.campiDisponibili.forEach((field) => {
@@ -592,14 +784,17 @@ export function NotificheLegaliPage() {
     [documentSuggestions, selectedDepositDocumentIds],
   )
   const officeDocuments = useMemo(
-    () => documentSuggestions.filter((item) => item.documentoUfficio || item.acquisitoDaPortale || item.notificaRichiesta),
+    () => documentSuggestions.filter((item) => item.documentoUfficio || item.notificaRichiesta),
     [documentSuggestions],
   )
   const officeMonitor = selectedPractice?.documentoUfficioMonitor
+  const officeEvidenceReleases = officeMonitor?.documentiRilevati || []
   const pendingOfficeReleases = officeMonitor?.documentiRilasciati || []
-  const officeAcquisitionHref = selectedPractice?.portaleAcquisizioneHref || data.portaleServizi.acquisizioneHref
+  const officeProofRelease = officeEvidenceReleases[0] || pendingOfficeReleases[0]
+  const officeAcquisitionHref = pendingOfficeReleases[0]?.acquisitionHref || selectedPractice?.portaleAcquisizioneHref || data.portaleServizi.acquisizioneHref
+  const officePecHref = pendingOfficeReleases[0]?.pecHref || ''
   const officeAcquisitionRequired = Boolean(officeMonitor?.documentiDaAcquisire || officeMonitor?.stato === 'da_acquisire')
-  const officeAcquisitionCompleted = officeDocuments.some((item) => item.acquisitoDaPortale)
+  const officeAcquisitionCompleted = officeDocuments.length > 0
   const selectedOrigin = useMemo(() => data.originiDocumento.find((item) => item.value === notifica.origine_documento), [data.originiDocumento, notifica.origine_documento])
   const originNeedsAttestazione = (origin: string) => Boolean(
     data.originiDocumento.find((item) => item.value === origin)?.needsAttestazione
@@ -611,7 +806,7 @@ export function NotificheLegaliPage() {
     || manualNotificationDocuments.some((item) => originNeedsAttestazione(item.origine)),
   )
   const guidedAutomationSteps = tab === 'notifica'
-    ? data.automazioneGuidata.notifica
+    ? [...data.automazioneGuidata.notifica, ...data.automazioneGuidata.allegati]
     : tab === 'deposito'
       ? data.automazioneGuidata.deposito
       : []
@@ -624,7 +819,7 @@ export function NotificheLegaliPage() {
     notifica.nome_file,
     selectedNotificationDocuments.length,
     notifica.ufficio_giudiziario,
-    officeAcquisitionCompleted ? 'documento_portale_acquisito' : '',
+    officeAcquisitionCompleted ? 'documento_ufficio_collegato' : '',
   ].filter(Boolean).length
 
   const localDateTime = () => {
@@ -941,8 +1136,16 @@ export function NotificheLegaliPage() {
   const applyPractice = (practice: LegalPracticeSuggestion) => {
     setSelectedPracticeId(practice.id)
     const unicoDestinatario = practice.destinatari.length === 1 ? practice.destinatari[0] : null
-    const documentIds = practice.documenti.map((documento) => documento.id).filter(Boolean)
-    const primoDocumento = practice.documenti[0] || null
+    const officeNotificationDocumentIds = practice.documenti
+      .filter((documento) => documento.notificaRichiesta || documento.documentoUfficio)
+      .map((documento) => documento.id)
+      .filter(Boolean)
+    const documentIds = officeNotificationDocumentIds.length
+      ? officeNotificationDocumentIds
+      : practice.documenti.map((documento) => documento.id).filter(Boolean)
+    const primoDocumento = documentIds.length
+      ? practice.documenti.find((documento) => documento.id === documentIds[0]) || practice.documenti[0] || null
+      : practice.documenti[0] || null
     const hasFascicoloDocument = practice.documenti.some((documento) => ['copia_fascicolo_informatico', 'comunicazione_cancelleria'].includes(documento.origine))
     const hasScansioneDocument = practice.documenti.some((documento) => documento.origine === 'scansione_analogico')
     setSelectedRecipientId(unicoDestinatario?.id || '')
@@ -1011,7 +1214,7 @@ export function NotificheLegaliPage() {
   }, [data.precompilazione.pratiche, selectedPracticeId])
 
   const buildNotificaPayload = (includeDraft: boolean): Record<string, unknown> => {
-    const selectedOfficeAcquired = selectedNotificationDocuments.some((documento) => documento.acquisitoDaPortale)
+    const selectedOfficeAcquired = selectedNotificationDocuments.some((documento) => documento.documentoUfficio || documento.notificaRichiesta)
     const documentOfficeAcquired = selectedOfficeAcquired || officeAcquisitionCompleted
     const payload: Record<string, unknown> = {
       ...notifica,
@@ -1026,6 +1229,10 @@ export function NotificheLegaliPage() {
       acquisizione_portale_completata: documentOfficeAcquired,
       portale_servizi: data.portaleServizi.defaultPortal,
       portale_acquisizione_href: officeAcquisitionHref,
+      pec_ufficio_rilascio: Boolean(officeEvidenceReleases.length || pendingOfficeReleases.length),
+      pec_ufficio_eml_file: officeProofRelease?.pecEmlFile || '',
+      pec_ufficio_eml_sha256: officeProofRelease?.pecEmlSha256 || '',
+      pec_ufficio_message_id: officeProofRelease?.pecMessageId || officeProofRelease?.pecId || '',
     }
     if (includeDraft && relataDraftDirty && relataDraftText.trim()) {
       payload.relata_override_text = relataDraftText.trim()
@@ -1121,6 +1328,26 @@ export function NotificheLegaliPage() {
   }
 
   const changeNotifica = (key: keyof typeof notifica, value: string | boolean) => setNotifica((current) => ({ ...current, [key]: value }))
+  const changeNotificationCase = (value: string) => {
+    const directive = data.matriceNotifica.cases.find((item) => item.value === value)
+    setNotifica((current) => ({
+      ...current,
+      caso_notifica: value,
+      template_id: directive?.templateId || current.template_id,
+      procedimento_pendente: directive?.proceedingRequired ? true : current.procedimento_pendente,
+    }))
+  }
+  const changeRecipientRole = (value: string) => {
+    const directive = data.matriceNotifica.roles.find((item) => item.value === value)
+    setNotifica((current) => ({
+      ...current,
+      ruolo_destinatario: value,
+      template_id: current.caso_notifica === 'ordinaria' && directive?.templateId ? directive.templateId : current.template_id,
+      fonte_pec_destinatario: directive?.allowedRegisters.includes(current.fonte_pec_destinatario)
+        ? current.fonte_pec_destinatario
+        : directive?.allowedRegisters[0] || current.fonte_pec_destinatario,
+    }))
+  }
   const refreshDepositReference = (current: typeof deposito, next: typeof deposito) => {
     const previousReference = depositReference(current)
     const reference = depositReference(next)
@@ -1265,7 +1492,7 @@ export function NotificheLegaliPage() {
                     <div className="iu-legal-template-preview__header">
                       <div>
                         <strong>Documenti da notificare</strong>
-                        <span>{documentSuggestions.length ? "La pratica seleziona automaticamente tutti i documenti; puoi togliere solo quelli non da notificare." : "Seleziona una pratica con documenti per compilare l'elenco."}</span>
+                        <span>{documentSuggestions.length ? "La pratica seleziona automaticamente solo i documenti da notificare; gli altri atti restano nel fascicolo e non entrano nella relata." : "Seleziona una pratica con documenti per compilare l'elenco."}</span>
                       </div>
                       {documentSuggestions.length ? (
                         <div className="iu-legal-picker-actions">
@@ -1328,13 +1555,14 @@ export function NotificheLegaliPage() {
                   <div className={`iu-legal-office-monitor iu-legal-office-monitor--${officeMonitor?.stato || 'monitoraggio'} iu-legal-field--wide`}>
                     <div className="iu-legal-office-monitor__head">
                       <div>
-                        <strong>{officeAcquisitionRequired ? "Documento d'ufficio da acquisire" : officeAcquisitionCompleted ? "Documento d'ufficio acquisito" : 'Controllo Portale Servizi pronto'}</strong>
-                        <span>{officeMonitor?.messaggio || 'IUSENTRA prepara il collegamento con fascicolo, numero RG e ufficio. L’avvocato accede al portale e conferma il documento scaricato.'}</span>
+                        <strong>{officeAcquisitionRequired ? "Provvedimento da scaricare dal portale" : officeAcquisitionCompleted ? "Documento d'ufficio già in atti" : 'Controllo PEC ufficio pronto'}</strong>
+                        <span>{officeMonitor?.messaggio || "IUSENTRA controlla le PEC dell'ufficio, apre l'acquisizione mirata e collega solo il provvedimento comunicato per la notifica."}</span>
                       </div>
-                      <a href={officeAcquisitionHref}><FileDown size={15}/> {officeAcquisitionRequired ? 'Acquisisci dal Portale Servizi' : 'Apri Portale Servizi'}</a>
+                      <a href={officeAcquisitionHref}><FileDown size={15}/> {officeAcquisitionRequired ? 'Scarica dal portale' : 'Documenti e atti'}</a>
+                      {officeAcquisitionRequired && officePecHref ? <a href={officePecHref}><Inbox size={15}/> Apri PEC</a> : null}
                     </div>
                     {pendingOfficeReleases.length ? (
-                      <div className="iu-legal-office-monitor__list" aria-label="Documenti rilasciati dal portale">
+                      <div className="iu-legal-office-monitor__list" aria-label="Documenti comunicati dall'ufficio">
                         {pendingOfficeReleases.map((release, index) => (
                           <span key={release.documentoId || release.riferimentoPortale || `${release.nome}-${index}`}>
                             <Inbox size={15}/>
@@ -1350,7 +1578,7 @@ export function NotificheLegaliPage() {
                           <span key={documento.id}>
                             <FileText size={15}/>
                             <em>{documento.label || documento.nomeFile}</em>
-                            <small>{documento.acquisitoDaPortale ? 'Acquisito dal Portale Servizi' : documento.notificaRichiesta ? 'Da notificare' : 'Da verificare'}</small>
+                            <small>{documento.notificaRichiesta ? 'Da notificare' : 'Da verificare'}</small>
                           </span>
                         ))}
                       </div>
@@ -1376,6 +1604,21 @@ export function NotificheLegaliPage() {
                     {data.modelliRelata.map((item) => <option value={item.value} key={item.value}>{item.code ? `${item.code} - ${item.label}` : item.label}</option>)}
                   </select>
                 </Field>
+                <Field label="Caso notifica" wide hint={selectedCaseDirective?.note || 'Scegli il caso operativo: destinatario, modello e campi richiesti vengono controllati insieme.'}>
+                  <select value={notifica.caso_notifica} onChange={(event) => changeNotificationCase(event.currentTarget.value)}>
+                    {(data.matriceNotifica.cases.length ? data.matriceNotifica.cases : [{ value: 'ordinaria', label: 'Notifica ordinaria a mezzo PEC', templateId: 'relata_pec_base_l53', requiredFields: [], allowedRegisters: [], allowedRecipientRoles: [], proceedingRequired: false, recipientRule: '', legalBasis: [], note: '' }]).map((item) => (
+                      <option value={item.value} key={item.value}>{item.label}</option>
+                    ))}
+                  </select>
+                </Field>
+                {(selectedCaseDirective || selectedRoleDirective) ? (
+                  <div className="iu-legal-directive-box iu-legal-field--wide">
+                    {selectedCaseDirective ? <span><ClipboardCheck size={15}/> {selectedCaseDirective.label}{selectedCaseDirective.requiredFields.length ? `: ${selectedCaseDirective.requiredFields.length} dati obbligatori` : ''}</span> : null}
+                    {selectedRoleDirective ? <span><ShieldCheck size={15}/> {selectedRoleDirective.label}: {selectedRoleDirective.allowedRegisters.length ? selectedRoleDirective.allowedRegisters.join(', ') : 'pubblico elenco da verificare'}</span> : null}
+                    {selectedCaseDirective?.recipientRule ? <span><Info size={15}/> {selectedCaseDirective.recipientRule}</span> : null}
+                    {selectedCaseDirective?.legalBasis.length ? <span><Scale size={15}/> Fonti: {selectedCaseDirective.legalBasis.map((item) => item.label).join('; ')}</span> : null}
+                  </div>
+                ) : null}
                 <div className="iu-legal-template-preview iu-legal-field--wide">
                   <div className="iu-legal-template-preview__header">
                     <div>
@@ -1509,7 +1752,7 @@ export function NotificheLegaliPage() {
                 <Field label="Parte assistita"><input value={notifica.assistito_nome} onChange={(event) => changeNotifica('assistito_nome', event.currentTarget.value)} /></Field>
                 <Field label="C.F. / P. IVA assistito"><input value={notifica.assistito_cf} onChange={(event) => changeNotifica('assistito_cf', event.currentTarget.value.toUpperCase())} /></Field>
                 <Field label="Ruolo destinatario">
-                  <select value={notifica.ruolo_destinatario} onChange={(event) => changeNotifica('ruolo_destinatario', event.currentTarget.value)}>
+                  <select value={notifica.ruolo_destinatario} onChange={(event) => changeRecipientRole(event.currentTarget.value)}>
                     {data.ruoliDestinatario.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
                     <option value="cliente">Cliente (da bloccare come notifica ordinaria)</option>
                   </select>

@@ -37,6 +37,14 @@ export type FascicoloRow = {
   archiveZipHref: string
   restoreAction: string
   tone: Tone
+  relataStatus: string
+  relataStatusLabel: string
+  relataTone: Tone
+  relataHref: string
+  relataPrimaryHref: string
+  relataPrimaryLabel: string
+  relataReleaseDetected: boolean
+  relataCount: number
   archive?: {
     outcome: string
     archivedAt: string
@@ -598,6 +606,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
     id: '', ref: 'n.d.', internalRef: 'n.d.', title: 'Fascicolo non trovato', subtitle: '', type: 'altro', client: 'n.d.', court: 'n.d.', rg: 'n.d.',
     nextDeadline: 'n.d.', nextDeadlineIso: '', status: 'aperto', documents: 0, unreadCommunications: 0, alerts: 0, openedAt: '', closedAt: '', updatedAt: '',
     href: '/fascicoli', operationalHref: '/fascicoli', editHref: '/fascicoli', operationalEditHref: '/fascicoli', exportPdfHref: '', deleteHref: '', archiveZipHref: '', restoreAction: '', tone: 'neutral',
+    relataStatus: '', relataStatusLabel: '', relataTone: 'warning', relataHref: '', relataPrimaryHref: '', relataPrimaryLabel: '', relataReleaseDetected: false, relataCount: 0,
     clientId: '', object: '', counterparty: '', counterpartyTaxCode: '', judge: '', section: '', leadLawyer: '', dominus: '', value: '', quotedValue: '', agreedFee: '',
     procedureType: '', practiceId: '', practiceArea: '', proceduraOperativaCodice: '', codiceOggettoPst: '', codiceGuidaPratica: '', fonteCodiceOggetto: '', fileFonteCodiceOggetto: '',
     riferimentoCartaceo: '', attorePrincipale: '', istruttorePmGip: '', cancelliere: '', ctu: '', ctp: '',
@@ -741,6 +750,14 @@ export function normalizeItem(value: unknown, index: number): FascicoloRow {
     archiveZipHref: text(item.archiveZipHref ?? item.archive_zip_href, `/fascicoli/${encodeURIComponent(id)}/archivio/scarica`),
     restoreAction: text(item.restoreAction ?? item.restore_action, `/fascicoli/${encodeURIComponent(id)}/ripristina`),
     tone: (text(item.tone) as Tone) || statusTone(status),
+    relataStatus: text(item.relataStatus ?? item.relata_status, ''),
+    relataStatusLabel: text(item.relataStatusLabel ?? item.relata_status_label, ''),
+    relataTone: (text(item.relataTone ?? item.relata_tone, 'warning') as Tone) || 'warning',
+    relataHref: text(item.relataHref ?? item.relata_href, ''),
+    relataPrimaryHref: text(item.relataPrimaryHref ?? item.relata_primary_href, ''),
+    relataPrimaryLabel: text(item.relataPrimaryLabel ?? item.relata_primary_label, ''),
+    relataReleaseDetected: bool(item.relataReleaseDetected ?? item.relata_release_detected),
+    relataCount: number(item.relataCount ?? item.relata_count),
     archive: normalizeArchive(item.archive ?? item.archivio),
   }
 }

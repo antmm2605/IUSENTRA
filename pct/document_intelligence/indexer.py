@@ -16,6 +16,14 @@ _INDEXING = "indexing"
 _QUEUED = "queued"
 _STALE = "stale"
 _ARCHIVED = "archived"
+_STATE_PRIORITY = {
+    "not_indexed": 0,
+    _ERROR: 1,
+    _ARCHIVED: 2,
+    _QUEUED: 3,
+    _INDEXING: 4,
+    _READY: 5,
+}
 
 
 @dataclass(slots=True)
@@ -120,19 +128,8 @@ def _state_for_source(source: DocumentAISource, records: list[Any]) -> str:
         return "not_indexed"
     same_hash = [record for record in records if str(getattr(record, "sha256", "") or "") == source.sha256]
     if same_hash:
-        best = same_hash[0]
-        status = str(getattr(best, "status", "") or "").strip()
-        if status == "ready":
-            return _READY
-        if status == "processing":
-            return _INDEXING
-        if status == "uploaded":
-            return _QUEUED
-        if status == "archived":
-            return _ARCHIVED
-        if status == "error":
-            return _ERROR
-        return "not_indexed"
+        states = [_state_from_record(record) for record in same_hash]
+        return max(states, key=lambda state: _STATE_PRIORITY.get(state, 0))
     source_names = {source.filename.casefold(), source.safe_filename.casefold()}
     for record in records:
         names = {
@@ -142,6 +139,21 @@ def _state_for_source(source: DocumentAISource, records: list[Any]) -> str:
         if source_names & names:
             return _STALE
     return _QUEUED
+
+
+def _state_from_record(record: Any) -> str:
+    status = str(getattr(record, "status", "") or "").strip()
+    if status == "ready":
+        return _READY
+    if status == "processing":
+        return _INDEXING
+    if status == "uploaded":
+        return _QUEUED
+    if status == "archived":
+        return _ARCHIVED
+    if status == "error":
+        return _ERROR
+    return "not_indexed"
 
 
 def _last_ready_update(records: list[Any]) -> str | None:

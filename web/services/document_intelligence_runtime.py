@@ -111,7 +111,27 @@ def build_lex_indexing_summary_payload(
         )
         return result.summary.to_dict()
     summary: LexIndexingSummary = service.build_lex_indexing_summary(tenant_id, fascicolo_id, sources, context)
+    if _lex_summary_needs_automatic_processing(summary, sources):
+        result = service.process_lex_indexing_sources(
+            tenant_id,
+            fascicolo_id,
+            sources,
+            context,
+            retry_errors=True,
+        )
+        return result.summary.to_dict()
     return summary.to_dict()
+
+
+def _lex_summary_needs_automatic_processing(summary: LexIndexingSummary, sources: list[DocumentAISource]) -> bool:
+    if summary.queued or summary.stale or summary.not_indexed:
+        return True
+    if not summary.errors:
+        return False
+    return any(
+        source.supported and str(source.filename or "").lower().endswith(".p7m")
+        for source in sources
+    )
 
 
 __all__ = [

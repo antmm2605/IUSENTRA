@@ -4,6 +4,28 @@ export type LegalOption = {
   needsAttestazione?: boolean
 }
 
+export type LegalSourceReference = {
+  id: string
+  label: string
+  rule: string
+}
+
+export type LegalNotificationDirective = {
+  value: string
+  label: string
+  allowedRegisters: string[]
+  allowedRecipientRoles: string[]
+  templateId: string
+  requiredFields: string[]
+  proceedingRequired: boolean
+  recipientRule: string
+  legalBasis: LegalSourceReference[]
+  roleLegalBasis?: LegalSourceReference[]
+  caseLegalBasis?: LegalSourceReference[]
+  attachmentRules?: LegalSourceReference[]
+  note: string
+}
+
 export type LegalTemplateField = {
   name: string
   label: string
@@ -71,6 +93,15 @@ export type LegalOfficeRelease = {
   servizioPortale: string
   riferimentoPortale: string
   notificaRichiesta: boolean
+  pecId?: string
+  pecHref?: string
+  pecMessageId?: string
+  pecEmlFile?: string
+  pecEmlSha256?: string
+  acquisitionHref?: string
+  acquisitionActionLabel?: string
+  singleDocumentAcquisition?: boolean
+  acquisito?: boolean
 }
 
 export type LegalRecipientSuggestion = {
@@ -114,6 +145,7 @@ export type LegalPracticeSuggestion = {
     documentiAcquisiti: number
     documentiDaAcquisire: number
     documentiDaNotificare: number
+    documentiRilevati: LegalOfficeRelease[]
     documentiRilasciati: LegalOfficeRelease[]
     messaggio: string
   }
@@ -178,6 +210,8 @@ export type NotificheLegaliData = {
     depositProofWithOriginalReceipts: boolean
     parametricTemplateEngine: boolean
     officeDocumentPortalAcquisition: boolean
+    officeDocumentPecEvidence: boolean
+    recipientCaseMatrix: boolean
   }
   templateCatalogVersion: string
   mandatorySubject: string
@@ -192,6 +226,10 @@ export type NotificheLegaliData = {
     fontePecMittente: string
   }
   registriPec: LegalOption[]
+  matriceNotifica: {
+    roles: LegalNotificationDirective[]
+    cases: LegalNotificationDirective[]
+  }
   ruoliDestinatario: LegalOption[]
   originiDocumento: LegalOption[]
   modelliRelata: LegalTemplateOption[]
@@ -208,6 +246,7 @@ export type NotificheLegaliData = {
   automazioneGuidata: {
     notifica: LegalAutomationStep[]
     deposito: LegalAutomationStep[]
+    allegati: LegalAutomationStep[]
   }
   portaleServizi: {
     defaultPortal: string
@@ -259,6 +298,8 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
     depositProofWithOriginalReceipts: true,
     parametricTemplateEngine: true,
     officeDocumentPortalAcquisition: true,
+    officeDocumentPecEvidence: true,
+    recipientCaseMatrix: true,
   },
   templateCatalogVersion: '',
   mandatorySubject: 'notificazione ai sensi della legge n. 53 del 1994',
@@ -273,6 +314,10 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
     fontePecMittente: 'ReGIndE',
   },
   registriPec: [],
+  matriceNotifica: {
+    roles: [],
+    cases: [],
+  },
   ruoliDestinatario: [],
   originiDocumento: [],
   modelliRelata: [],
@@ -289,6 +334,7 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
   automazioneGuidata: {
     notifica: [],
     deposito: [],
+    allegati: [],
   },
   portaleServizi: {
     defaultPortal: 'pst',
@@ -386,6 +432,40 @@ function fieldTokens(value: unknown): LegalTemplateFieldToken[] {
   }).filter((item) => item.label && item.token)
 }
 
+function legalSources(value: unknown): LegalSourceReference[] {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => {
+    const row = isRecord(item) ? item : {}
+    return {
+      id: text(row.id),
+      label: text(row.label),
+      rule: text(row.rule),
+    }
+  }).filter((item) => item.id && item.label)
+}
+
+function notificationDirectives(value: unknown): LegalNotificationDirective[] {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => {
+    const row = isRecord(item) ? item : {}
+    return {
+      value: text(row.value),
+      label: text(row.label, text(row.value)),
+      allowedRegisters: Array.isArray(row.allowedRegisters) ? row.allowedRegisters.map((entry) => text(entry)).filter(Boolean) : [],
+      allowedRecipientRoles: Array.isArray(row.allowedRecipientRoles) ? row.allowedRecipientRoles.map((entry) => text(entry)).filter(Boolean) : [],
+      templateId: text(row.templateId),
+      requiredFields: Array.isArray(row.requiredFields) ? row.requiredFields.map((entry) => text(entry)).filter(Boolean) : [],
+      proceedingRequired: bool(row.proceedingRequired),
+      recipientRule: text(row.recipientRule),
+      legalBasis: legalSources(row.legalBasis),
+      roleLegalBasis: legalSources(row.roleLegalBasis),
+      caseLegalBasis: legalSources(row.caseLegalBasis),
+      attachmentRules: legalSources(row.attachmentRules),
+      note: text(row.note),
+    }
+  }).filter((item) => item.value && item.label)
+}
+
 function documentSuggestions(value: unknown): LegalDocumentSuggestion[] {
   if (!Array.isArray(value)) return []
   return value.map((item) => {
@@ -432,6 +512,15 @@ function officeReleases(value: unknown): LegalOfficeRelease[] {
       servizioPortale: text(row.servizioPortale),
       riferimentoPortale: text(row.riferimentoPortale),
       notificaRichiesta: bool(row.notificaRichiesta),
+      pecId: text(row.pecId),
+      pecHref: text(row.pecHref),
+      pecMessageId: text(row.pecMessageId),
+      pecEmlFile: text(row.pecEmlFile),
+      pecEmlSha256: text(row.pecEmlSha256),
+      acquisitionHref: text(row.acquisitionHref),
+      acquisitionActionLabel: text(row.acquisitionActionLabel),
+      singleDocumentAcquisition: bool(row.singleDocumentAcquisition),
+      acquisito: bool(row.acquisito),
     }
   }).filter((item) => item.nome || item.documentoId)
 }
@@ -489,6 +578,7 @@ function practiceSuggestions(value: unknown): LegalPracticeSuggestion[] {
         documentiAcquisiti: Number(monitor.documentiAcquisiti || 0),
         documentiDaAcquisire: Number(monitor.documentiDaAcquisire || 0),
         documentiDaNotificare: Number(monitor.documentiDaNotificare || 0),
+        documentiRilevati: officeReleases(monitor.documentiRilevati),
         documentiRilasciati: officeReleases(monitor.documentiRilasciati),
         messaggio: text(monitor.messaggio),
       },
@@ -576,6 +666,8 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
       depositProofWithOriginalReceipts: bool(contracts.depositProofWithOriginalReceipts),
       parametricTemplateEngine: bool(contracts.parametricTemplateEngine),
       officeDocumentPortalAcquisition: bool(contracts.officeDocumentPortalAcquisition),
+      officeDocumentPecEvidence: bool(contracts.officeDocumentPecEvidence),
+      recipientCaseMatrix: bool(contracts.recipientCaseMatrix),
     },
     templateCatalogVersion: text(payload.templateCatalogVersion),
     mandatorySubject: text(payload.mandatorySubject, emptyNotificheLegaliData.mandatorySubject),
@@ -590,6 +682,10 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
       fontePecMittente: text(defaults.fontePecMittente, 'ReGIndE'),
     },
     registriPec: options(payload.registriPec),
+    matriceNotifica: {
+      roles: notificationDirectives(isRecord(payload.matriceNotifica) ? payload.matriceNotifica.roles : []),
+      cases: notificationDirectives(isRecord(payload.matriceNotifica) ? payload.matriceNotifica.cases : []),
+    },
     ruoliDestinatario: options(payload.ruoliDestinatario),
     originiDocumento: options(payload.originiDocumento),
     modelliRelata: templateOptions(payload.modelliRelata),
@@ -606,6 +702,7 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
     automazioneGuidata: {
       notifica: automationSteps(automazioneGuidata.notifica),
       deposito: automationSteps(automazioneGuidata.deposito),
+      allegati: automationSteps(automazioneGuidata.allegati),
     },
     portaleServizi: {
       defaultPortal: text(portaleServizi.defaultPortal, emptyNotificheLegaliData.portaleServizi.defaultPortal),

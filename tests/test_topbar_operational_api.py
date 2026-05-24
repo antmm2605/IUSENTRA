@@ -168,10 +168,11 @@ def _seed_domain(app) -> tuple[str, str]:
         EmailRicevuta(
             id="pec-1",
             stato=StatoEmail.NON_LETTA,
-            oggetto="Comunicazione cancelleria",
-            mittente="cancelleria@example.it",
+            oggetto="Tribunale di Roma R.G. 1234/2026 - ordinanza da notificare",
+            mittente="cancelleria.tribunale.roma@giustiziacert.it",
             data=datetime.now().isoformat(),
-            corpo_testo="Avviso operativo reale",
+            corpo_testo="La cancelleria comunica ordinanza_da_notificare.pdf da notificare nel procedimento R.G. 1234/2026.",
+            allegati=[{"nome": "ordinanza_da_notificare.pdf", "sha256": "a" * 64, "mime": "application/pdf"}],
         )
     )
     return cliente.id, fascicolo.id
@@ -237,9 +238,10 @@ def test_topbar_today_notifications_deadlines_recent_and_timer(tmp_path: Path):
         assert notifications["unreadCount"] >= 1
         portal_item = next(item for item in notifications["items"] if item.get("actionLabel") == "Scarica dal portale")
         assert "ordinanza_da_notificare.pdf" in portal_item["message"]
-        assert "id_fasc=" in portal_item["href"]
-        assert "numero=1234" in portal_item["href"]
-        assert "ufficio=Tribunale%20di%20Roma" in portal_item["href"]
+        assert portal_item["href"].startswith("/portali/pst/acquisizione?")
+        assert "single_document=1" in portal_item["href"]
+        assert "documento=ordinanza_da_notificare.pdf" in portal_item["href"]
+        assert "non_duplicare_documenti=1" in portal_item["href"]
         first_id = notifications["items"][0]["id"]
         read_response = client.patch(f"/api/notifications/{quote(first_id, safe='')}/read")
         assert read_response.status_code == 200

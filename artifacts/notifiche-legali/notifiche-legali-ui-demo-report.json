@@ -1,0 +1,138 @@
+{
+  "generatedAt": "2026-05-24T11:40:17.171571+00:00",
+  "environment": {
+    "baseUrl": "http://127.0.0.1:5067",
+    "fascicoloId": "A4FD9245",
+    "tenant": "studio-verifica",
+    "mode": "demo end-to-end reale senza invio PEC esterno"
+  },
+  "summary": {
+    "total": 14,
+    "passed": 14,
+    "failed": 0,
+    "missingScreenshots": []
+  },
+  "checks": [
+    {
+      "ok": true,
+      "name": "PEC ufficio rilevata",
+      "detail": "La comunicazione dell'ufficio è conservata con EML, Message-ID e impronta SHA-256."
+    },
+    {
+      "ok": true,
+      "name": "Link PST precompilato",
+      "detail": "Il link contiene ufficio, numero R.G., anno, fascicolo e documento rilasciato."
+    },
+    {
+      "ok": true,
+      "name": "Acquisizione singolo provvedimento",
+      "detail": "Lo script importa ordinanza_da_notificare.pdf dal portale demo e lo aggancia al fascicolo."
+    },
+    {
+      "ok": true,
+      "name": "Nessun duplicato documentale",
+      "detail": "La relata seleziona solo il provvedimento da notificare e lascia fuori atto_gia_presente.pdf."
+    },
+    {
+      "ok": true,
+      "name": "Relata separata",
+      "detail": "Il file da produrre è relata_notifica.pdf come documento informatico separato."
+    },
+    {
+      "ok": true,
+      "name": "Firma digitale automatica",
+      "detail": "Il piano firma seleziona la relata e produce relata_notifica.pdf.p7m o PAdES equivalente."
+    },
+    {
+      "ok": true,
+      "name": "Invio PEC controllato",
+      "detail": "L'oggetto L. 53/1994 è bloccato e viene preparata una PEC distinta per destinatario."
+    },
+    {
+      "ok": true,
+      "name": "Pubblico elenco PEC",
+      "detail": "Il flusso richiede fonte pubblica e data/ora di verifica PEC del destinatario."
+    },
+    {
+      "ok": true,
+      "name": "Allegati corretti",
+      "detail": "La PEC contiene relata firmata e ordinanza_da_notificare.pdf come provvedimento notificato."
+    },
+    {
+      "ok": true,
+      "name": "RAC e RdAC",
+      "detail": "Il piano prova conserva ricevuta di accettazione e ricevuta di avvenuta consegna complete."
+    },
+    {
+      "ok": true,
+      "name": "DatiAtto.xml",
+      "detail": "Il deposito prova include i riferimenti alle ricevute e agli allegati in DatiAtto.xml."
+    },
+    {
+      "ok": true,
+      "name": "Orario e perfezionamento",
+      "detail": "Il piano distingue fascia ordinaria, fascia 21:00-23:59 e blocco automatico 00:00-06:59."
+    },
+    {
+      "ok": true,
+      "name": "Casistiche normative",
+      "detail": "Lo script backend copre ordinaria, corso causa, sentenza/termine breve, decreto ingiuntivo, appello, PA, impresa, professionista, terzo e cliente bloccato."
+    },
+    {
+      "ok": true,
+      "name": "Lex pdf.p7m permanente",
+      "detail": "La demo indicizza .pdf.p7m come PDF e salva l'indice una sola volta, aggiungendo solo nuovi documenti."
+    }
+  ],
+  "steps": [
+    {
+      "title": "Lista fascicoli e paginazione",
+      "description": "La lista dei fascicoli mostra più pagine e permette di raggiungere il fascicolo che contiene la comunicazione PEC dell'ufficio. Questo verifica il problema UI segnalato sulla visibilità di tutti i fascicoli.",
+      "lawyerAction": "Apre Fascicoli e, se serve, passa alla pagina successiva senza perdere la sezione operativa.",
+      "systemCheck": "La pagina mostra la paginazione e non ferma l'avvocato alla sola prima lista.",
+      "screenshot": "01-fascicoli-lista-paginazione.png"
+    },
+    {
+      "title": "Seconda pagina fascicoli con pratica da notificare",
+      "description": "La demo verifica che il fascicolo con provvedimento comunicato dall'ufficio sia raggiungibile anche nelle pagine successive.",
+      "lawyerAction": "Seleziona il fascicolo interessato dalla comunicazione PEC.",
+      "systemCheck": "Il fascicolo resta nella lista reale e viene aperto senza duplicazioni o percorsi separati.",
+      "screenshot": "01b-fascicoli-pagina-2-relata.png"
+    },
+    {
+      "title": "Sezione Relata notifica nel fascicolo",
+      "description": "Nel fascicolo è presente la sezione Relata notifica: il software segnala la PEC dell'ufficio e il provvedimento da acquisire, mantenendo separati gli atti già presenti.",
+      "lawyerAction": "Controlla l'avviso e apre il percorso di notifica solo quando la PEC dell'ufficio richiede il provvedimento.",
+      "systemCheck": "Il trigger nasce dalla PEC ufficio e non dalla semplice presenza di documenti in Documenti e atti.",
+      "screenshot": "02-fascicolo-dettaglio-relata.png"
+    },
+    {
+      "title": "Notifica aperta dalla PEC dell'ufficio",
+      "description": "La pagina Notifiche legali mostra il documento rilasciato dall'ufficio, il messaggio PEC originale e il collegamento al Portale Servizi precompilato.",
+      "lawyerAction": "Rivede la comunicazione e conferma di proseguire verso il portale per scaricare il singolo provvedimento.",
+      "systemCheck": "Sono presenti fascicolo, R.G., ufficio giudiziario, documento e prova EML/SHA della PEC ufficio.",
+      "screenshot": "03-notifiche-legali-pec-provvedimento.png"
+    },
+    {
+      "title": "Portale Servizi precompilato e acquisizione mirata",
+      "description": "Il link al Portale Servizi è già compilato con numero fascicolo, R.G., ufficio giudiziario e documento. La demo importa un solo PDF, cioè il provvedimento indicato dalla PEC.",
+      "lawyerAction": "Accede con i propri strumenti al portale e scarica il solo provvedimento richiesto.",
+      "systemCheck": "L'importazione aggancia il documento al fascicolo esistente e non duplica gli atti già presenti.",
+      "screenshot": "04-portale-acquisizione-mirata.png"
+    },
+    {
+      "title": "Relata completa, firma, invio PEC e prova",
+      "description": "Dopo l'acquisizione il software compila la relata, allega il provvedimento, richiede firma digitale della relata, prepara invio PEC, RAC/RdAC e deposito prova con DatiAtto.xml.",
+      "lawyerAction": "Verifica dati, spunta le conferme professionali, firma digitalmente la relata e procede all'invio PEC assistito.",
+      "systemCheck": "Il controllo finale è superato: nessun blocco pendente, nessun duplicato, documento ufficio allegato, relata firmata e prova pronta.",
+      "screenshot": "05-relata-controllata-firma-invio.png"
+    }
+  ],
+  "normativeSources": [
+    "L. 21 gennaio 1994, n. 53, art. 3-bis e art. 3-ter",
+    "D.P.R. 11 febbraio 2005, n. 68, artt. 6 e 8",
+    "D.L. 179/2012, art. 16-septies e Corte costituzionale 75/2019",
+    "Specifiche tecniche DGSIA 7 agosto 2024, artt. 21, 22, 25, 26 e 27",
+    "DGSIA/PST 12 maggio 2026, XSD SICI salvati offline"
+  ]
+}

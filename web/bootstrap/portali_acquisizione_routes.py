@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import date
+import re
 from typing import Any
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
@@ -45,6 +46,56 @@ def register_portali_acquisizione_routes(
     def _vista_classica_args() -> dict[str, str]:
         return {"_legacy": "1"} if _richiede_vista_classica() else {}
 
+    def _clean_query_value(name: str) -> str:
+        return str(request.args.get(name) or "").strip()
+
+    def _normalise_document_match(value: Any) -> str:
+        raw = str(value or "").strip().lower()
+        if raw.endswith(".pdf.p7m"):
+            raw = raw[:-4]
+        elif raw.endswith(".p7m") and ".pdf" not in raw:
+            raw = raw[:-4]
+        return re.sub(r"[^a-z0-9]+", "", raw)
+
+    def _target_document_from_payload(payload: dict[str, Any] | None) -> dict[str, Any]:
+        body = payload if isinstance(payload, dict) else {}
+        target = body.get("target_document") if isinstance(body.get("target_document"), dict) else {}
+        return {
+            "singleDocument": bool(target.get("singleDocument") or target.get("single_document")),
+            "documento": str(target.get("documento") or target.get("nome") or target.get("documento_portale") or "").strip(),
+            "idDocumento": str(target.get("idDocumento") or target.get("id_documento") or "").strip(),
+            "hash": str(target.get("hash") or target.get("sha256") or "").strip().lower(),
+            "pecId": str(target.get("pecId") or target.get("pec_id") or "").strip(),
+        }
+
+    def _filter_target_document_rows(documenti: list[dict[str, Any]], target: dict[str, Any]) -> list[dict[str, Any]]:
+        if not target.get("singleDocument"):
+            return documenti
+        name_key = _normalise_document_match(target.get("documento"))
+        id_key = str(target.get("idDocumento") or "").strip()
+        sha_key = str(target.get("hash") or "").strip().lower()
+        filtered = []
+        for row in documenti:
+            if not isinstance(row, dict):
+                continue
+            row_names = {
+                _normalise_document_match(row.get("nome")),
+                _normalise_document_match(row.get("nome_documento")),
+                _normalise_document_match(row.get("filename")),
+                _normalise_document_match(row.get("name")),
+            }
+            row_ids = {
+                str(row.get("id_documento") or "").strip(),
+                str(row.get("id_documento_portale") or "").strip(),
+                str(row.get("id_cat") or "").strip(),
+                str(row.get("id_repeatto") or "").strip(),
+                str(row.get("msg_id") or "").strip(),
+            }
+            row_hash = str(row.get("sha256") or row.get("hash_sha256") or "").strip().lower()
+            if (name_key and name_key in row_names) or (id_key and id_key in row_ids) or (sha_key and sha_key == row_hash):
+                filtered.append(row)
+        return filtered
+
     @app.route("/portali/<portale>/acquisizione", methods=["GET"])
     def portale_acquisizione_wizard(portale: str):
         try:
@@ -81,6 +132,22 @@ def register_portali_acquisizione_routes(
         wizard_initial_mapping = (
             {"mode": initial_mode, "target_fascicolo_id": initial_target_id}
         )
+        wizard_initial_query = {
+            "ufficio": _clean_query_value("ufficio"),
+            "ufficioCodice": _clean_query_value("ufficio_codice"),
+            "numero": _clean_query_value("numero"),
+            "anno": _clean_query_value("anno"),
+            "assistito": _clean_query_value("assistito"),
+            "controparte": _clean_query_value("controparte"),
+            "oggetto": _clean_query_value("oggetto") or _clean_query_value("documento") or _clean_query_value("documento_portale"),
+        }
+        wizard_target_document = {
+            "singleDocument": _clean_query_value("single_document") in {"1", "true", "si", "sì"},
+            "documento": _clean_query_value("documento") or _clean_query_value("documento_portale"),
+            "idDocumento": _clean_query_value("id_documento"),
+            "hash": _clean_query_value("hash"),
+            "pecId": _clean_query_value("pec_id"),
+        }
         return render_template(
             "portale/acquisizione_wizard.html",
             spec=spec,
@@ -92,6 +159,8 @@ def register_portali_acquisizione_routes(
             wizard_return_url=wizard_return_url,
             wizard_return_label=wizard_return_label,
             wizard_initial_mapping=wizard_initial_mapping,
+            wizard_initial_query=wizard_initial_query,
+            wizard_target_document=wizard_target_document,
             wizard_focus=wizard_focus,
             oggi=date.today(),
         )
@@ -152,6 +221,7 @@ def register_portali_acquisizione_routes(
             documenti = data.get("documenti")
             if not isinstance(documenti, list):
                 documenti = _preview_documenti_portale_server(portale, selection)
+            documenti = _filter_target_document_rows(documenti, _target_document_from_payload(data))
             preview = _build_portale_preview(portale, selection, documenti)
             return jsonify({"ok": True, "preview": preview, "pst_session": data.get("pst_session") or {}})
         except Exception as e:

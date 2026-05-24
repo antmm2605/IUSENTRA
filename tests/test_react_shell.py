@@ -4446,6 +4446,10 @@ def test_react_fascicolo_relata_notifica_monitorata_in_ui_e_payload():
 
     assert "Relata notifica" in page_source
     assert "NotificationRelataMonitor" in page_source
+    assert "relataListHref" in page_source
+    assert "openDetailSectionById(sectionId)" in page_source
     assert "notificationRelata" in data_source
+    assert "relataStatusLabel" in data_source
     assert '"notificationRelata": notification_relata' in bridge_source
+    assert '"relataStatusLabel": "Provvedimento da scaricare dal portale"' in bridge_source
     assert '"relata_notifica": relata_count' in bridge_source

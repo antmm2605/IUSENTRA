@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.248.28 - 2026-05-24
+
+- Chiuso il flusso `Relata notifica` sul comportamento corretto: il provvedimento da notificare viene rilevato solo dalla PEC dell'ufficio giudiziario, non dai documenti già presenti nel fascicolo o dai metadati generici del portale.
+- La top bar, il dettaglio fascicolo e `/notifiche-legali` generano un collegamento Portale Servizi precompilato con fascicolo, R.G., ufficio e documento quando la PEC lo indica; l'acquisizione è mirata al singolo provvedimento e usa `non_duplicare_documenti=1`.
+- Rafforzata la matrice casi/destinatari delle notifiche: ruoli destinatario, registri PEC ammessi, casi processuali, modelli relata compatibili e blocchi normativi vengono esposti alla UI e testati end-to-end.
+- Stabilizzata l'indicizzazione Lex dei file `.pdf.p7m`: il sorgente viene trattato come PDF indicizzabile, l'indice automatico viene salvato una sola volta e un vecchio errore sullo stesso hash non prevale più su un record pronto.
+- Ripristinata la paginazione completa nella lista fascicoli con comandi `Prima`, `Precedente`, numeri pagina, `Successiva` e `Ultima`.
+- Aggiunto lo script veritiero `scripts/notifiche_legali_demo_e2e.py` con report JSON e PDF in `artifacts/notifiche-legali/`, coprendo matrice normativa, PEC ufficio, acquisizione mirata senza duplicati, Lex `.pdf.p7m` e paginazione fascicoli.
+- Aggiunta la demo UI reale `scripts/notifiche_legali_ui_demo_server.py` con guida PDF screenshot `artifacts/notifiche-legali/notifiche-legali-guida-avvocato-screenshot.pdf`: 14/14 controlli su lista fascicoli, sezione Relata, PEC ufficio, link PST precompilato, scaricamento mirato, relata, firma, invio PEC, RAC/RdAC e `DatiAtto.xml`.
+- Salvati offline gli XSD SICI PST del 12 maggio 2026 in `docs/specs/ministero/xsd/2026-05-12-sici/` e registrata la fonte nelle direttive notifiche per mantenere normativa, schemi e test agganciati a file verificabili.
+
 ## 2.248.27 - 2026-05-24
 
 - Rafforzata la disciplina operativa di repository: la worktree deve restare pulita prima di nuovi task, commit/push e report finali; le modifiche non collegate vanno completate e committate solo se utili, altrimenti ripristinate o rimosse subito.

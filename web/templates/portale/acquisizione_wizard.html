@@ -62,6 +62,18 @@
 </div>
 {% endif %}
 
+{% if wizard_target_document.singleDocument %}
+<div class="alert alert-warning border rounded-4 mb-4">
+  <div class="fw-semibold mb-1"><i class="bi bi-file-earmark-arrow-down me-1"></i>Acquisizione mirata da PEC dell'ufficio</div>
+  <div class="small">
+    La PEC ha indicato un documento da notificare. Il wizard è già compilato con fascicolo,
+    R.G. e ufficio giudiziario: procedi con l'assistenza dell'avvocato allo scaricamento del solo documento
+    {% if wizard_target_document.documento %}<strong>{{ wizard_target_document.documento }}</strong>{% else %}indicato dalla comunicazione{% endif %}
+    e importalo nei <strong>Documenti e atti</strong> prima di preparare la relata.
+  </div>
+</div>
+{% endif %}
+
 {% if spec.assistant_required %}
 <div class="alert alert-{{ spec.color }}-subtle border border-{{ spec.color }}-subtle rounded-4 mb-4">
   <div class="d-flex flex-column flex-xl-row justify-content-between align-items-start gap-3">
@@ -330,6 +342,8 @@ const AW_BOOT = {{ {
     "workflow_url": linked_workflow_url,
   } if linked_fascicolo else None),
   "initialMapping": wizard_initial_mapping,
+  "initialQuery": wizard_initial_query,
+  "targetDocument": wizard_target_document,
   "focus": wizard_focus,
 }|tojson }};
 const AW_STATE = {
@@ -705,6 +719,40 @@ function awCurrentQuery() {
     registro: AW_STATE.quick || '',
     quick_filter: AW_STATE.quick || '',
   };
+}
+function awCurrentTargetDocument() {
+  const target = AW_BOOT.targetDocument || {};
+  return {
+    singleDocument: !!target.singleDocument,
+    documento: String(target.documento || '').trim(),
+    idDocumento: String(target.idDocumento || '').trim(),
+    hash: String(target.hash || '').trim(),
+    pecId: String(target.pecId || '').trim(),
+  };
+}
+function awApplyInitialQueryFromNotification() {
+  const query = AW_BOOT.initialQuery || {};
+  const target = awCurrentTargetDocument();
+  const officeText = String(query.ufficio || '').trim();
+  const officeCode = String(query.ufficioCodice || officeText).trim();
+  const officeInput = document.getElementById('awOfficeInput');
+  const officeValue = document.getElementById('awOfficeValue');
+  if (officeText && officeInput) officeInput.value = officeText;
+  if (officeCode && officeValue) officeValue.value = officeCode;
+  const values = {
+    awNumero: query.numero,
+    awAnno: query.anno,
+    awAssistito: query.assistito,
+    awControparte: query.controparte,
+    awOggetto: query.oggetto || target.documento,
+  };
+  Object.entries(values).forEach(([id, value]) => {
+    const node = document.getElementById(id);
+    if (node && String(value || '').trim()) node.value = String(value || '').trim();
+  });
+  if (officeCode || query.numero || query.anno || target.singleDocument) {
+    awGoStep(2);
+  }
 }
 function awOfficialPortalUrl() {
   const urls = {
@@ -2156,7 +2204,7 @@ async function awSelectResult(index, jumpPreview, options = {}) {
   awRenderSidebar();
   try {
     if (!AW_STATE.status.demo_mode) await awRefreshStatus({ force: true, probeSigner: true, light: true });
-    const payload = { selection };
+    const payload = { selection, target_document: awCurrentTargetDocument() };
     if (Array.isArray(options.documenti)) {
       payload.documenti = options.documenti;
     } else if (awShouldLoadPreviewViaLocalSigner(selection, options)) {
@@ -2189,7 +2237,7 @@ async function awSelectResult(index, jumpPreview, options = {}) {
               selection = awStoreSelection(index, awClearManualSelection(selection));
               const recovered = await awJson(AW_BOOT.previewUrl, {
                 method: 'POST',
-                body: JSON.stringify({ selection, documenti: browserDocuments }),
+                body: JSON.stringify({ selection, documenti: browserDocuments, target_document: awCurrentTargetDocument() }),
               });
               if (!recovered.ok) throw new Error(recovered.errore || 'Anteprima non disponibile');
               AW_STATE.preview = recovered.preview || null;
@@ -2744,6 +2792,7 @@ async function awStartImport() {
         downloaded_files: downloadedFiles,
         pst_session: awCurrentPstSessionPayload(),
         snapshot: AW_STATE.pstSnapshot || null,
+        target_document: awCurrentTargetDocument(),
       }
     : {
         selection: AW_STATE.selection,
@@ -2753,6 +2802,7 @@ async function awStartImport() {
         downloaded_files: downloadedFiles,
         pst_session: awCurrentPstSessionPayload(),
         snapshot: AW_STATE.pstSnapshot || null,
+        target_document: awCurrentTargetDocument(),
       };
   if (manualAuthorizedPayload) {
     state.innerHTML = 'Normalizzazione del payload autorizzato e importazione nel fascicolo in corso...<br><small class="text-muted">Il contenuto verra smistato in documenti, attivita, udienze, comunicazioni e istanze.</small>';
@@ -3066,6 +3116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     awRenderSidebar();
     awBindQuickFilters();
     awInitOfficeAutocomplete();
+    awApplyInitialQueryFromNotification();
   } catch (err) {
     awRenderInitFallback(err);
   }
@@ -3080,4 +3131,3 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 {% endblock %}
-

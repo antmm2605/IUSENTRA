@@ -2,6 +2,18 @@
 
 Aggiornato: 2026-05-24, PEC OCR pipeline compatta 2.248.26, Guida Pratica TOP9 set6 2.248.19, Sequenza preset globale IUSENTRA 2.248.13, Preset grafico globale IUSENTRA 2.248.12, Guida Pratica facoltativa e loader fascicoli 2.248.11, Guida Pratica Lex conversazionale e TOP9 set2 2.248.10, Guida Pratica fascicolo e codici PST/XSD 2.248.9, CodeQL context canonico 2.248.8, CodeQL follow-up definitivo 2.248.7, CodeQL PR diff cleanup 2.247.6, CodeQL PR annotations closure 2.247.5, CodeQL PR security sweep 2.247.4, CodeQL PR security sweep 2.247.3, Regia Agentica Studio hardening 2.247.2, hotfix CodeQL URL Cassazione 2.247.1, PEC notifiche automatiche 2.246.4, hotfix PEC UI/Lex 2.246.3, PEC audit-grade e notifiche giudiziarie 2.246.2, Procedure Lifecycle Knowledge Pipeline 2.246.1, Lex Studio Reasoner linguaggio/date 99%, conversazionale e web/RAG 99% 2.245.63, Lex Unified Chat operativa 2.245.61, Lex Studio Reasoner fase 3 2.245.60, Lex Studio Reasoner fase 2 2.245.59, Lex Studio Reasoner fase 1 2.245.58, Lex editor/dettatura/documenti caricati 2.245.57, hotfix Lex companion locale 2.245.56, Lex contesto studio/Web libero/documenti caricati 2.245.55, Lex Studio Database 2.245.54, Fase 11.5 chiusura buchi residui fonti legali 2.245.53, Fase 10 audit finale aggiornamenti legali 2.245.51, Fase 9 fonti verdi estese 2.245.50, Fase 8 scheduler progressivo 2.245.49, Fase 7 backfill mirato PDF/OCR/riferimenti/domande 2.245.48, Fase 6 normativa e archivi base 2.245.47, Fase 5 fonti verdi Aggiornamenti legali 2.245.46, strumenti sicuri canary/backfill Aggiornamenti legali 2.245.42, capability registry/parser fixture Aggiornamenti legali 2.245.41, collegamento Lex/Ricerca Legale per Corte Costituzionale n. 50/2026, UI Intelligence Ricerca Legale/Giurisprudenza/AI, Auto-fetch governato fonti legali, Tool Registry e Model Routing Lex, Job queue fonti legali, TokenJuice Lex, Memory Tree Lex corpus, CI pnpm/route Impostazioni, Web libero manuale Lex, Cassazione QSP50194/OCR allegati legali, rientro backfill e ranking allegati, Lex bozze, editor professionale, AI mobile produzione, dati studio, Documenti AI txt/eml, backup Hetzner e Docker pnpm.
 
+Aggiornamento corrente: 2026-05-24, Relata notifica PEC-first 2.248.28.
+
+## Note Relata notifica PEC-first 2.248.28 - 2026-05-24
+
+Nessuna issue funzionale aperta prevista dalla patch. La verifica reale ha però
+segnalato una regressione UI intercettata durante il test browser: il link da
+`/notifiche-legali` conteneva correttamente `single_document=1`, documento, PEC,
+R.G. e ufficio, ma la superficie React del Portale Servizi non valorizzava ancora
+il pannello di acquisizione mirata. Il difetto è stato corretto in
+`frontend/src/components/TelematicoSurfacePage.tsx` e va confermato con nuove
+schermate prima della chiusura definitiva.
+
 Aggiornamento corrente: 2026-05-24, PEC OCR pipeline compatta 2.248.26: nessuna issue aperta locale; test mirati e script veritiero spostati in `pytest-confirmed-ok.md`.
 
 Aggiornamento corrente: 2026-05-23, notifiche legali guidate 2.248.21.
@@ -650,3 +662,11 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | OpenAPI dopo editor guida `2.248.16` | GitHub `Lint + syntax` sul primo push `7ad4f80c1` | Risolto | Il primo push della tranche editor ha fatto emergere `docs/openapi.yaml` non allineato alla versione `2.248.16`; gli aggregatori Pytest/Signer erano rossi per cascata dal blocco upstream. | Rigenerato `docs/openapi.yaml` e rilanciati localmente generate check, validazione OpenAPI, provider verification, smoke contratti e `tests/test_openapi_contracts_phase6.py`. |
 | Inventario App V2 dopo test Guida Pratica `2.248.16` | GitHub `Lint + syntax` sul secondo push `55d89ea95` | Risolto | Il secondo push ha fatto emergere `docs/test-inventory.md` non aggiornato con i nuovi test della tranche. Gli aggregatori Pytest/Signer erano rossi per cascata dal blocco upstream. | Rigenerato `docs/test-inventory.md` e rilanciati localmente registry check, test docs check, smoke inventory e `tests/test_app_v2_page_registry.py tests/test_app_v2_test_plan_phase10.py tests/test_ci_cd_gates_phase11.py`. |
 | CodeQL su commit Guida Pratica `d062517d9` | Check `CodeQL` / code scanning results | Risolto localmente, da verificare sul nuovo SHA | CodeQL ha segnalato protocolli TLS obsoleti nei test SMTP/IMAP, `send_file` nell'export Word derivato dalla richiesta e messaggi API collegati a eccezioni. | Aggiunto TLS minimo 1.2, sostituito l'export Word con response bytes sicura, rimossi dettagli eccezione da payload/API e rilanciati compile, pytest mirati, OpenAPI, App V2 docs, Ruff e packaging prima del push successivo. |
+
+## Note Relata notifica PEC-first 2.248.28 - 2026-05-24
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Flusso completo notifica provvedimento ufficio | Script demo end-to-end, browser reale, PDF guida | Nessuna issue aperta nuova | Il flusso ora parte dalla PEC dell'ufficio, apre il link PST precompilato, acquisisce un solo provvedimento, non duplica gli atti già presenti, compila relata, firma, invio PEC, RAC/RdAC e deposito prova. | Per modifiche future rilanciare `tests/test_notifiche_legali.py`, lo script `scripts/notifiche_legali_demo_e2e.py`, la demo UI e il PDF screenshot. |
+| Limite operativo portale reale | Browser demo e regole telematiche | Governato, non blocco | Il software non automatizza login, CNS/CIE/SPID, PIN o sessioni del Portale Servizi e non esegue scraping HTML non autorizzato; prepara il link e assiste l'avvocato nello scaricamento del singolo documento. | Mantenere sempre l'assistenza guidata: l'avvocato autentica e scarica, IUSENTRA importa e controlla il documento. |
+| PDF guida screenshot | Render PyMuPDF e controllo UTF-8 | Risolto | Il primo rendering aveva immagini full-page troppo piccole e caratteri accentati non leggibili nella tabella; il report ora usa font Unicode e screenshot viewport leggibili. | Ogni modifica alla procedura visibile deve rigenerare `notifiche-legali-guida-avvocato-screenshot.pdf` e renderizzare le pagine. |

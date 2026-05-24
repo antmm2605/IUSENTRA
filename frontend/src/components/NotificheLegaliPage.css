@@ -279,6 +279,26 @@
   margin-top: 3px;
 }
 
+.iu-legal-directive-box {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #dbe7f5;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.iu-legal-directive-box span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  color: #16324f;
+  font-size: 12px;
+  font-weight: 850;
+}
+
 .iu-legal-submit {
   display: inline-flex;
   align-items: center;
@@ -360,6 +380,67 @@
   display: block;
   overflow-wrap: anywhere;
   font-size: .82rem;
+  line-height: 1.35;
+}
+
+.iu-legal-delivery-summary {
+  display: grid;
+  gap: 9px;
+}
+
+.iu-legal-signature-summary {
+  display: grid;
+  gap: 9px;
+}
+
+.iu-legal-signature-summary__heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.iu-legal-signature-summary > small,
+.iu-legal-signature-summary__not-to-sign small {
+  color: var(--iu-slate-600, #526173);
+  font-size: .8rem;
+  line-height: 1.4;
+}
+
+.iu-legal-signature-summary__not-to-sign {
+  display: grid;
+  gap: 5px;
+  padding: 8px 10px;
+  border: 1px solid rgba(31, 93, 153, .16);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, .74);
+}
+
+.iu-legal-signature-summary__not-to-sign strong {
+  font-size: .82rem;
+}
+
+.iu-legal-delivery-summary > small {
+  color: var(--iu-slate-600, #526173);
+  font-size: .8rem;
+  font-weight: 700;
+}
+
+.iu-legal-timing-summary {
+  display: grid;
+  gap: 4px;
+  padding: 9px 10px;
+  border: 1px solid rgba(31, 93, 153, .18);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, .76);
+}
+
+.iu-legal-timing-summary strong {
+  font-size: .84rem;
+}
+
+.iu-legal-timing-summary small {
+  color: var(--iu-slate-600, #526173);
+  font-size: .8rem;
   line-height: 1.35;
 }
 

@@ -2,7 +2,9 @@ import io
 from pathlib import Path
 
 from pct.document_intelligence.extraction import ExtractionResult
-from pct.document_intelligence.models import DocumentAIPageText
+from pct.document_intelligence.indexer import build_lex_indexing_summary
+from pct.document_intelligence.models import DocumentAIPageText, DocumentAIRecord, utc_now
+from pct.document_intelligence.sources import source_from_uploaded_document
 from pct.document_intelligence.security import DocumentAIPermissionDenied
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from tests.test_applicazioni import _cfg_web, _crea_operatore, _login
@@ -99,6 +101,69 @@ def test_document_ai_api_stato_indicizzazione_lex_segnala_file_non_letti(tmp_pat
     assert payload["lex_indexing"]["status"] == "error"
     assert payload["lex_indexing"]["errors"] == 1
     assert "allegato.exe: formato non supportato per indicizzazione Lex." in payload["lex_indexing"]["warnings"]
+
+
+def test_document_ai_api_indicizza_pdf_p7m_automaticamente_e_una_sola_volta(tmp_path: Path, monkeypatch):
+    _patch_extraction(monkeypatch, "Provvedimento leggibile da PDF firmato.")
+    app = _app(tmp_path)
+    fascicolo_id = _crea_fascicolo(app)
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicoli.aggiungi_documento(fascicolo_id, "Documento_33584995.pdf.p7m", TipoDocumento.ALTRO, b"%PDF-1.4\nprovvedimento")
+
+    with app.test_client() as client:
+        _login(client)
+        first = client.get(f"/api/v1/ui/fascicoli/{fascicolo_id}/lex-indexing")
+        second = client.get(f"/api/v1/ui/fascicoli/{fascicolo_id}/lex-indexing")
+        documents = client.get(f"/api/v1/ui/fascicoli/{fascicolo_id}/documenti-ai")
+
+    assert first.status_code == 200
+    assert first.get_json()["lex_indexing"]["ready"] == 1
+    assert first.get_json()["lex_indexing"]["errors"] == 0
+    assert second.get_json()["lex_indexing"]["ready"] == 1
+    indexed = documents.get_json()["documents"]
+    assert len(indexed) == 1
+    assert indexed[0]["original_filename"] == "Documento_33584995.pdf.p7m"
+
+
+def test_lex_summary_preferisce_record_ready_a_vecchi_errori_stesso_hash():
+    content = b"%PDF-1.4\natto"
+    source = source_from_uploaded_document(
+        tenant_id="tenant-a",
+        fascicolo_id="fas-1",
+        document_id="doc-fasc",
+        filename="ScrittiDifensivi_29334341.pdf.p7m",
+        content=content,
+        source_type="documenti_fascicolo",
+    )
+    base = {
+        "tenant_id": "tenant-a",
+        "fascicolo_id": "fas-1",
+        "original_filename": source.filename,
+        "safe_filename": source.safe_filename,
+        "file_type": source.file_type,
+        "mime_type": source.mime_type or "application/pdf",
+        "size_bytes": source.size_bytes,
+        "sha256": source.sha256,
+        "current_version_id": "ver-1",
+        "page_count": 1,
+        "created_by": "test",
+        "created_at": utc_now(),
+        "updated_at": utc_now(),
+    }
+    records = [
+        DocumentAIRecord(id="old-error", status="error", **base),
+        DocumentAIRecord(id="new-ready", status="ready", **base),
+    ]
+
+    summary = build_lex_indexing_summary(sources=[source], records=records)
+
+    assert summary.ready == 1
+    assert summary.errors == 0
+    assert summary.warnings == []
 
 
 def test_document_ai_api_upload_validazioni(tmp_path: Path):

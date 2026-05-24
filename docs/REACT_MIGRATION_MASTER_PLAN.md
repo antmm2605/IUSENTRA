@@ -1,5 +1,22 @@
 # Migrazione progressiva Flask + React
 
+## Chiusura Relata notifica PEC-first - 2026-05-24 - 2.248.28
+
+Il presidio `Relata notifica` è ora agganciato al comportamento corretto: il provvedimento da notificare nasce dalla comunicazione PEC dell'ufficio giudiziario. I documenti già presenti in `Documenti e atti` non vengono duplicati e i metadati generici del portale non bastano più a creare un rilascio notificabile.
+
+Quando la PEC dell'ufficio comunica un provvedimento, IUSENTRA avvisa l'avvocato nella top bar e nel fascicolo, costruisce un link `/portali/<canale>/acquisizione` già compilato con fascicolo, numero R.G., anno, ufficio, PEC e documento, e imposta l'acquisizione su un solo documento con `single_document=1` e `non_duplicare_documenti=1`. La procedura resta assistita dall'avvocato: il software prepara il percorso, filtra il documento indicato e blocca la relata finché quel provvedimento non risulta collegato ai Documenti e atti del fascicolo.
+
+La pagina `/notifiche-legali` espone anche la matrice casi/destinatari: destinatario, registro PEC ammesso, caso processuale, modello relata compatibile e blocchi normativi sono governati dal backend. Lex indicizza automaticamente i `.pdf.p7m` come PDF leggibili, salva l'indice una sola volta e aggiunge solo i nuovi documenti quando arrivano. La lista Fascicoli mostra di nuovo tutte le pagine disponibili con comandi di navigazione espliciti.
+
+Report demo e prova end-to-end: `artifacts/notifiche-legali/notifiche-legali-demo-e2e.json` e `artifacts/notifiche-legali/notifiche-legali-demo-e2e.pdf`.
+La verifica browser reale produce anche la guida operativa con screenshot
+`artifacts/notifiche-legali/notifiche-legali-guida-avvocato-screenshot.pdf`:
+14/14 controlli superati su lista fascicoli/paginazione, sezione Relata,
+PEC ufficio, link PST già compilato, acquisizione del singolo provvedimento,
+relata, firma digitale, invio PEC, RAC/RdAC, `DatiAtto.xml` e piano orario.
+Le direttive normative e tecniche includono ora anche gli XSD SICI PST del
+12 maggio 2026 salvati offline in `docs/specs/ministero/xsd/2026-05-12-sici/`.
+
 ## Revisione notifiche legali guidate - 2026-05-23 - 2.248.21
 
 La pagina `/notifiche-legali` è stata rifinita come percorso operativo guidato: quando si sceglie una pratica vengono selezionati automaticamente tutti i documenti notificabili, restando modificabili uno per uno; gli allegati esterni accettano selezione multipla, calcolo SHA-256 nel browser e aggiunta manuale progressiva senza limitarsi a un solo file.

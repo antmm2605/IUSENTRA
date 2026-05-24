@@ -514,6 +514,41 @@
   gap:10px;
   font-weight:800;
 }
+.iu-tel-acquisition__target{
+  margin-bottom:14px;
+  border:1px solid rgba(37,99,235,.24);
+  border-radius:16px;
+  background:linear-gradient(180deg,rgba(239,246,255,.96),#fff);
+  color:var(--iu-slate-800);
+  padding:13px 14px;
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+}
+.iu-tel-acquisition__target svg{
+  flex:0 0 auto;
+  color:var(--iu-blue-700);
+}
+.iu-tel-acquisition__target strong{
+  display:block;
+  color:var(--iu-slate-950);
+  font-weight:950;
+}
+.iu-tel-acquisition__target span,
+.iu-tel-acquisition__target small{
+  display:block;
+  margin-top:4px;
+  font-size:13px;
+  font-weight:750;
+  line-height:1.45;
+}
+.iu-tel-acquisition__target b{
+  color:var(--iu-blue-800);
+}
+.iu-tel-acquisition__target small{
+  color:var(--iu-slate-500);
+  font-size:12px;
+}
 .iu-tel-acquisition__grid{
   display:grid;
   grid-template-columns:minmax(0,1fr) 320px;

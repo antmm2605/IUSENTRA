@@ -8,13 +8,15 @@ Questa è la checklist operativa da usare ogni volta che Codex prepara un commit
 
 Prima di dichiarare concluso un lavoro:
 
-1. eseguire i test mirati locali sul perimetro toccato;
-2. aggiornare changelog, versione e report pertinenti;
-3. committare e pushare il branch di sviluppo;
-4. sincronizzare il branch gemello allo stesso commit;
-5. controllare i gate GitHub del push e, quando esiste una PR, anche della PR;
-6. registrare esiti verdi e problemi nei report di stato;
-7. fare deploy Hetzner quando richiesto dal flusso corrente e verificare `/api/pronto`.
+1. verificare `git status --short` e classificare subito ogni modifica non collegata: completare, testare e includere solo le implementazioni utili; ripristinare o rimuovere artefatti runtime/generati e modifiche non necessarie;
+2. eseguire i test mirati locali sul perimetro toccato;
+3. aggiornare changelog, versione e report pertinenti;
+4. committare e pushare il branch di sviluppo;
+5. sincronizzare il branch gemello allo stesso commit;
+6. controllare i gate GitHub del push e, quando esiste una PR, anche della PR;
+7. registrare esiti verdi e problemi nei report di stato;
+8. fare deploy Hetzner quando richiesto dal flusso corrente e verificare `/api/pronto`;
+9. ripetere `git status --short` prima del report finale: la consegna è vietata se la worktree non è pulita.
 
 ### Regola anti-recidiva CI/Deploy/CodeQL
 

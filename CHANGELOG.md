@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.248.27 - 2026-05-24
+
+- Rafforzata la disciplina operativa di repository: la worktree deve restare pulita prima di nuovi task, commit/push e report finali; le modifiche non collegate vanno completate e committate solo se utili, altrimenti ripristinate o rimosse subito.
+- Ripuliti artefatti runtime locali generati da sincronizzazioni email/PEC, audit scheduler, directory tenant e file temporanei SQLite, senza includere dati operativi nel repository.
+
 ## 2.248.26 - 2026-05-24
 
 - Introdotta la pipeline compatta `pct.pec_ocr_pipeline` per PEC -> analisi -> OCR -> risultati: WORM locale write-once, antivirus inline, verifica strutturale firme `.p7m`, ZIP sicuro fino a profondità 3, whitelist MIME, raw blob deduplicati per SHA-256, scheduling small-first/FIFO e topic `mail.ingest`, `mail.unzip`, `ocr.task`, `ocr.result`, `document.indexed`, `lex.ingest.doc`.

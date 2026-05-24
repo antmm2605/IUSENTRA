@@ -18,6 +18,7 @@
 
 - Sulla macchina locale deve esistere **una sola copia attiva del progetto**: `D:\legale\IUSENTRA`.
 - **Worktree, cartelle duplicate, cloni temporanei e versioni parallele** del repository devono essere rimossi a fine lavoro.
+- **Worktree pulita obbligatoria e non negoziabile:** prima di iniziare una nuova implementazione, prima di ogni commit/push e prima di ogni report finale eseguire sempre `git status --short`. Se esistono modifiche non collegate al task corrente, classificarle subito: le implementazioni utili al miglioramento del software vanno completate, testate e committate; gli artefatti runtime/generati o le modifiche non necessarie vanno ripristinati o rimossi. È vietato lasciare worktree sporca, file appesi o modifiche "da vedere dopo".
 - I **soli branch locali ammessi** sono:
   - `Codex/legal-electronic-filing-kIxcV`
   - `claude/legal-electronic-filing-kIxcV`
@@ -38,7 +39,7 @@
   - `artifacts/react-migration/pytest-open-issues.md` per failure reali, timeout isolati, workaround, fix applicati e verifiche ancora da rilanciare;
   - i report `artifacts/react-migration/*final-report*` e `*audit*` quando cambia lo stato di una route o di un gate architetturale.
 - Non rilanciare a vuoto test o shard già documentati come OK: prima consultare `pytest-confirmed-ok.md` e `pytest-open-issues.md`; ripetere solo se sono stati toccati file collegati o come gate finale dichiarato.
-- Se un test o un avvio locale modifica file runtime/dati (`data/`, `email/`, `output/`, `intelligence/`, cache o database generati), registrare l'evento se rilevante e ripulire la worktree prima di proseguire. Non committare artefatti runtime salvo richiesta esplicita e motivata.
+- Se un test o un avvio locale modifica file runtime/dati (`data/`, `email/`, `output/`, `intelligence/`, cache o database generati), registrare l'evento se rilevante e ripulire la worktree prima di proseguire. Non committare artefatti runtime salvo richiesta esplicita e motivata. Prima di proseguire verso un altro task, la worktree deve tornare pulita oppure contenere solo modifiche intenzionali già spiegate, completate e pronte per commit.
 - Caso già diagnosticato: `email/ordinaria.json` non deve mai essere ricreato nel repository durante Docker/local runtime. In multi-studio la posta ordinaria e PEC devono puntare solo a path tenant-aware sotto `/data/tenants/<studio>/email`; `/data/email/*` resta compatibile solo per single-tenant/legacy e non deve essere usato da sync, scheduler o route multi-studio.
 - Gli allegati PEC/email devono usare il lettore compresso quando disponibile: `IUSENTRA_EMAIL_ATTACHMENT_STORAGE=archive` salva i nuovi allegati in `archivio-allegati.zip` dentro la cartella runtime della casella e download/anteprime devono continuare a funzionare tramite `GestioneEmailRicevute.leggi_allegato()`. Non cambiare il formato senza mantenere lettura retrocompatibile dei file sciolti.
 - Gli aggiornamenti legali massivi non devono piu' girare come unico ciclo bloccante: scheduler, console admin e CLI devono usare job per fonte/pubblicazione con timeout per elemento (`IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS`) cosi' una verifica web esterna lenta non ferma il processo notturno.

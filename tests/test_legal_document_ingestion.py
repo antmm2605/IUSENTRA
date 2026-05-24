@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+import json
 from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
-from zipfile import ZIP_DEFLATED, ZipFile
+from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 import pytest
 from flask import Flask, g
 
-from legal_document_ingestion import LegalDocumentIngestionService, LegalDocumentRepository
+from legal_document_ingestion import LegalDocumentIngestionError, LegalDocumentIngestionService, LegalDocumentRepository
 from legal_document_ingestion.archive_extractor import extract_zip_bytes
 from legal_document_ingestion.repository import safe_join
 from legal_document_ingestion.zip_safety import ZipSafetyConfig
@@ -112,6 +113,32 @@ def test_zip_security_negative_cases_are_blocked(tmp_path: Path):
 
     corrupt = extract_zip_bytes(b"non uno zip", filename="rotto.zip", parent_document_id="root", root_document_id="root", config=config)
     assert corrupt.blocked and corrupt.blocked[0]["security_status"] == "needs_review"
+
+    signed_exe = extract_zip_bytes(
+        _zip({"programma.exe.p7m": b"\x30\x82firma"}),
+        filename="signed.zip",
+        parent_document_id="root",
+        root_document_id="root",
+        config=config,
+    )
+    assert signed_exe.blocked and signed_exe.blocked[0]["security_status"] == "quarantined"
+
+    signed_pdf = extract_zip_bytes(
+        _zip({"atto.pdf.p7m": b"\x30\x82firma"}),
+        filename="signed-ok.zip",
+        parent_document_id="root",
+        root_document_id="root",
+        config=config,
+    )
+    assert signed_pdf.files and signed_pdf.files[0].security_status == "validated"
+
+    symlink_payload = BytesIO()
+    with ZipFile(symlink_payload, "w", ZIP_DEFLATED) as archive:
+        info = ZipInfo("link.txt")
+        info.external_attr = 0o120777 << 16
+        archive.writestr(info, "target")
+    symlink = extract_zip_bytes(symlink_payload.getvalue(), filename="symlink.zip", parent_document_id="root", root_document_id="root", config=config)
+    assert symlink.blocked and symlink.blocked[0]["security_status"] == "unsafe_file"
 
 
 def test_zip_bomb_duplicate_and_magic_without_extension(tmp_path: Path):
@@ -276,6 +303,13 @@ def test_repository_safe_join_rifiuta_traversal_e_assoluti(tmp_path: Path):
             safe_join(root, unsafe)
 
 
+def test_ingest_bytes_rifiuta_filename_diretto_con_path(tmp_path: Path):
+    service, _repository = _service(tmp_path)
+    for unsafe_name in ("../atto.pdf", "cartella/atto.pdf", "C:/tmp/atto.pdf", "\\\\server\\share\\atto.pdf"):
+        with pytest.raises(LegalDocumentIngestionError):
+            service.ingest_bytes(tenant_id="tenant-a", filename=unsafe_name, content=b"%PDF-1.7")
+
+
 def test_api_upload_evidence_tree_and_lex(monkeypatch, tmp_path: Path):
     service, repository = _service(tmp_path)
     app = Flask(__name__)
@@ -304,7 +338,27 @@ def test_api_upload_evidence_tree_and_lex(monkeypatch, tmp_path: Path):
         root_id = upload.get_json()["data"][0]["document"]["id"]
         tree = client.get(f"/api/documents/{root_id}/archive-tree")
         assert tree.status_code == 200
+        assert "stored_uri" not in json.dumps(tree.get_json(), ensure_ascii=False)
         child_id = tree.get_json()["data"]["children"][0]["document"]["id"]
+        listing = client.get("/api/documents")
+        assert listing.status_code == 200
+        assert "stored_uri" not in json.dumps(listing.get_json(), ensure_ascii=False)
         evidence = client.get(f"/api/documents/{child_id}/evidence")
         assert evidence.status_code == 200
+        assert "stored_uri" not in json.dumps(evidence.get_json(), ensure_ascii=False)
         assert evidence.get_json()["data"]["lex_index"]["status"] == "completed"
+        bundle = client.post(f"/api/documents/{child_id}/proof-bundle")
+        assert bundle.status_code == 201
+        bundle_payload = bundle.get_json()["data"]
+        assert "stored_uri" not in json.dumps(bundle_payload, ensure_ascii=False)
+        assert bundle_payload["manifest"]["chain_of_custody"]["storage_paths_exposed"] is False
+        download = client.get(f"/api/documents/{child_id}/proof-bundle/{bundle_payload['id']}")
+        assert download.status_code == 200
+        with ZipFile(BytesIO(download.data)) as archive:
+            names = set(archive.namelist())
+            assert {"manifest.json", "evidence.json", "chain/audit.json", "chain/hash-chain.json", "hashes.sha256"}.issubset(names)
+            manifest = json.loads(archive.read("manifest.json"))
+            evidence_export = json.loads(archive.read("evidence.json"))
+        serialized = json.dumps({"manifest": manifest, "evidence": evidence_export}, ensure_ascii=False)
+        assert "stored_uri" not in serialized
+        assert manifest["chain_of_custody"]["storage_paths_exposed"] is False

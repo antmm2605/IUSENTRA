@@ -13,7 +13,7 @@ from typing import Any, Iterable, Iterator
 
 from werkzeug.utils import safe_join as werkzeug_safe_join
 
-from .evidence_hash import canonical_json, chain_hash, sha256_bytes, sha256_file, utc_now
+from .evidence_hash import canonical_json, chain_hash, sha256_bytes, sha256_file, sha256_text, utc_now
 from .ingestion_audit import build_audit_payload
 
 
@@ -914,16 +914,54 @@ class LegalDocumentRepository:
         rel = Path("proof_bundles") / safe_tenant(tenant_id) / f"{bundle_id}.zip"
         target = safe_join(self.storage_root, rel)
         target.parent.mkdir(parents=True, exist_ok=True)
-        manifest = {"created_at": utc_now(), "bundle_id": bundle_id, "document_id": document_id, "evidence": evidence}
+        sanitized_evidence = sanitize_evidence_export(evidence)
+        custody = _chain_of_custody_summary(tenant_id, document_id, sanitized_evidence)
+        manifest = {
+            "created_at": utc_now(),
+            "bundle_id": bundle_id,
+            "tenant_id": tenant_id,
+            "document_id": document_id,
+            "chain_of_custody": custody,
+            "files": [
+                {
+                    "original_filename": item.get("original_filename"),
+                    "normalized_filename": item.get("normalized_filename"),
+                    "sha256": item.get("sha256"),
+                    "size": item.get("size"),
+                    "mime_type": item.get("mime_type"),
+                    "security_status": item.get("security_status"),
+                    "extraction_path_virtuale": item.get("extraction_path_virtuale"),
+                }
+                for item in list(sanitized_evidence.get("files") or [])
+                if isinstance(item, dict)
+            ],
+        }
+        evidence_json = canonical_json(sanitized_evidence)
+        manifest_json = canonical_json(manifest)
+        audit_json = canonical_json(sanitized_evidence.get("audit") or [])
+        chain_json = canonical_json(sanitized_evidence.get("hash_chain") or [])
         with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-            archive.writestr("manifest.json", canonical_json(manifest))
+            hash_rows = [
+                f"{sha256_text(manifest_json)}  manifest.json",
+                f"{sha256_text(evidence_json)}  evidence.json",
+                f"{sha256_text(audit_json)}  chain/audit.json",
+                f"{sha256_text(chain_json)}  chain/hash-chain.json",
+            ]
+            archive.writestr("manifest.json", manifest_json)
+            archive.writestr("evidence.json", evidence_json)
+            archive.writestr("chain/audit.json", audit_json)
+            archive.writestr("chain/hash-chain.json", chain_json)
             document = evidence["document"]
             stored_uri = str(document.get("stored_uri") or "")
             if stored_uri:
                 try:
-                    archive.writestr(f"originale/{Path(stored_uri).name}", self.read_file(stored_uri))
+                    original = self.read_file(stored_uri)
+                    archive_name = f"originale/{sha256_bytes(original)[:12]}-{sanitize_filename(str(document.get('normalized_filename') or document.get('original_filename') or 'documento.bin'))}"
+                    archive.writestr(archive_name, original)
+                    hash_rows.append(f"{sha256_bytes(original)}  {archive_name}")
                 except OSError:
                     pass
+            archive.writestr("hashes.sha256", "\n".join(hash_rows) + "\n")
         digest = sha256_file(target)
         with self.connect() as conn:
             conn.execute(
@@ -931,7 +969,7 @@ class LegalDocumentRepository:
                 INSERT INTO proof_bundles (id, tenant_id, document_id, stored_uri, sha256, created_by, created_at, manifest_json)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (bundle_id, tenant_id, document_id, rel.as_posix(), digest, actor, utc_now(), canonical_json(manifest)),
+                (bundle_id, tenant_id, document_id, rel.as_posix(), digest, actor, utc_now(), manifest_json),
             )
             self.append_audit(conn, tenant_id=tenant_id, actor=actor, action="proof_bundle.created", resource_type="document", resource_id=document_id, payload={"bundle_id": bundle_id, "sha256": digest})
             conn.commit()
@@ -1069,6 +1107,58 @@ def sanitize_filename(filename: str) -> str:
 
 def safe_tenant(tenant_id: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]+", "-", str(tenant_id or "default")).strip("._-") or "default"
+
+
+_EVIDENCE_STORAGE_KEYS = {
+    "absolute_path",
+    "base_path",
+    "directory",
+    "file_path",
+    "filesystem_path",
+    "local_path",
+    "root_path",
+    "storage_path",
+    "stored_uri",
+}
+
+
+def sanitize_evidence_export(value: Any) -> Any:
+    if isinstance(value, dict):
+        out: dict[str, Any] = {}
+        for key, item in value.items():
+            if str(key) in _EVIDENCE_STORAGE_KEYS:
+                continue
+            out[str(key)] = sanitize_evidence_export(item)
+        return out
+    if isinstance(value, list):
+        return [sanitize_evidence_export(item) for item in value]
+    return value
+
+
+def _chain_of_custody_summary(tenant_id: str, document_id: str, evidence: dict[str, Any]) -> dict[str, Any]:
+    document_value = evidence.get("document")
+    document: dict[str, Any] = document_value if isinstance(document_value, dict) else {}
+    audit = list(evidence.get("audit") or [])
+    chain = list(evidence.get("hash_chain") or [])
+    latest_chain_hash = ""
+    if chain and isinstance(chain[-1], dict):
+        latest_chain_hash = str(chain[-1].get("current_hash") or "")
+    return {
+        "tenant_id": tenant_id,
+        "document_id": document_id,
+        "root_document_id": document.get("root_document_id") or document_id,
+        "root_pec_id": document.get("root_pec_id") or "",
+        "source_type": document.get("source_type") or "",
+        "original_filename": document.get("original_filename") or "",
+        "mime_type": document.get("mime_type") or "",
+        "file_size": document.get("file_size") or 0,
+        "original_sha256": document.get("sha256") or "",
+        "evidence_sha256": sha256_text(canonical_json(evidence)),
+        "latest_chain_hash": latest_chain_hash,
+        "audit_entries": len(audit),
+        "hash_chain_entries": len(chain),
+        "storage_paths_exposed": False,
+    }
 
 
 def safe_join(root: str | Path, rel: str | Path) -> Path:

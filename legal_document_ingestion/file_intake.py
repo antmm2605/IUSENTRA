@@ -7,9 +7,9 @@ import re
 import unicodedata
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from email import policy
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any, Iterable
 
 from .archive_extractor import ExtractedArchiveFile, extract_zip_bytes
@@ -141,6 +141,7 @@ class LegalDocumentIngestionService:
         data = bytes(content or b"")
         if not data:
             raise LegalDocumentIngestionError("File vuoto o non leggibile.")
+        _require_direct_filename(filename)
         mime = detect_mime(data, filename, allowed_extensions=self.config.zip_safety.allowed_extensions)
         document_id = uuid.uuid4().hex
         root_id = root_document_id or document_id
@@ -229,7 +230,8 @@ class LegalDocumentIngestionService:
         if root:
             self._audit(tenant_id, actor, "pec.received", root["id"], {"subject": subject, "source_message_id": pec_id})
         for part in message.iter_attachments():
-            payload = part.get_payload(decode=True) or b""
+            raw_payload = part.get_payload(decode=True)
+            payload = bytes(raw_payload) if isinstance(raw_payload, (bytes, bytearray)) else b""
             name = part.get_filename() or f"allegato-{len(attachments) + 1}.bin"
             child = self.ingest_bytes(
                 tenant_id=tenant_id,
@@ -676,6 +678,7 @@ class LegalDocumentIngestionService:
             if score > 0:
                 scores.append((score, case_id, signals, conflicts))
         scores.sort(reverse=True, key=lambda item: item[0])
+        match: dict[str, Any]
         if not scores:
             match = {"matched_case_id": None, "confidence": 0.0, "matched_signals": [], "conflicts": [], "status": "no_match"}
         elif len(scores) > 1 and scores[0][0] - scores[1][0] < 0.16:
@@ -1084,7 +1087,7 @@ def _future_document_date_issue(text: str) -> str:
     return ""
 
 
-def _parse_date(value: str) -> datetime.date | None:
+def _parse_date(value: str) -> date | None:
     clean = str(value or "").replace(".", "/").replace("-", "/")
     try:
         return datetime.strptime(clean, "%d/%m/%Y").date()
@@ -1109,9 +1112,9 @@ def _extract_events(text: str) -> list[dict[str, Any]]:
         ("deposito_rifiutato", "Deposito rifiutato", r"\bdeposito rifiutato\b|\besito negativo\b", 0.9),
     )
     for event_type, title, pattern, confidence in simple_patterns:
-        match = re.search(pattern, source, flags=re.IGNORECASE)
-        if match:
-            events.append(_event(event_type, title, "", match.group(0), confidence))
+        simple_match = re.search(pattern, source, flags=re.IGNORECASE)
+        if simple_match:
+            events.append(_event(event_type, title, "", simple_match.group(0), confidence))
     return events
 
 
@@ -1265,6 +1268,20 @@ def _identity_tokens(value: str) -> set[str]:
 
 def _normalize_identity_code(value: str) -> str:
     return re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
+
+
+def _require_direct_filename(filename: str) -> None:
+    raw = str(filename or "").strip()
+    folded = raw.replace("\\", "/")
+    if not raw or "\x00" in raw:
+        raise LegalDocumentIngestionError("Nome file non sicuro.")
+    if folded.startswith(("/", "//")) or re.match(r"^[A-Za-z]:", folded):
+        raise LegalDocumentIngestionError("Nome file non sicuro.")
+    if PureWindowsPath(raw).drive or str(PureWindowsPath(raw)).startswith("\\\\"):
+        raise LegalDocumentIngestionError("Nome file non sicuro.")
+    parts = [part for part in folded.split("/") if part]
+    if len(parts) != 1 or any(part in {".", ".."} for part in parts):
+        raise LegalDocumentIngestionError("Nome file non sicuro.")
 
 
 def _chunk_for_lex(text: str) -> list[dict[str, Any]]:

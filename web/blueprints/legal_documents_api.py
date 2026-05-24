@@ -78,6 +78,121 @@ def _public_document(row: Any) -> dict[str, Any] | None:
     return payload or None
 
 
+def _public_file(row: Any) -> dict[str, Any]:
+    return _pick_public(
+        row,
+        (
+            "id",
+            "tenant_id",
+            "document_id",
+            "original_filename",
+            "normalized_filename",
+            "mime_type",
+            "extension",
+            "size",
+            "sha256",
+            "parent_document_id",
+            "root_pec_id",
+            "extraction_path_virtuale",
+            "extraction_depth",
+            "security_status",
+            "processing_status",
+            "created_at",
+        ),
+    )
+
+
+def _public_hash_chain(row: Any) -> dict[str, Any]:
+    return _pick_public(row, ("resource_type", "resource_id", "prev_hash", "current_hash", "payload_sha256", "created_at"))
+
+
+def _public_audit(row: Any) -> dict[str, Any]:
+    if not isinstance(row, dict):
+        return {}
+    return {
+        "occurred_at": row.get("occurred_at"),
+        "actor": row.get("actor"),
+        "action": row.get("action"),
+        "resource_type": row.get("resource_type"),
+        "resource_id": row.get("resource_id"),
+        "payload": _public_audit_payload(row.get("payload") or {}),
+        "prev_hash": row.get("prev_hash"),
+        "entry_hash": row.get("entry_hash"),
+    }
+
+
+def _public_audit_payload(payload: Any) -> Any:
+    if isinstance(payload, dict):
+        return {
+            str(key): _public_audit_payload(value)
+            for key, value in payload.items()
+            if str(key) not in {"stored_uri", "storage_path", "filesystem_path", "file_path", "absolute_path", "root_path"}
+        }
+    if isinstance(payload, list):
+        return [_public_audit_payload(item) for item in payload]
+    return payload
+
+
+def _public_evidence_payload(payload: Any) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        return {}
+    return {
+        "document": _public_document(payload.get("document")),
+        "files": [_public_file(item) for item in list(payload.get("files") or []) if isinstance(item, dict)],
+        "classification": _pick_public(payload.get("classification"), _PUBLIC_CLASSIFICATION_FIELDS),
+        "entities": payload.get("entities") if isinstance(payload.get("entities"), list) else [],
+        "validation": _pick_public(payload.get("validation"), _PUBLIC_VALIDATION_FIELDS),
+        "case_match": _pick_public(payload.get("case_match"), _PUBLIC_CASE_MATCH_FIELDS),
+        "events": payload.get("events") if isinstance(payload.get("events"), list) else [],
+        "lex_index": _pick_public(payload.get("lex_index"), _PUBLIC_LEX_FIELDS),
+        "audit": [_public_audit(item) for item in list(payload.get("audit") or []) if isinstance(item, dict)],
+        "hash_chain": [_public_hash_chain(item) for item in list(payload.get("hash_chain") or []) if isinstance(item, dict)],
+    }
+
+
+def _public_archive_tree(payload: Any) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        return {}
+    return {
+        "link": _pick_public(
+            payload.get("link"),
+            (
+                "id",
+                "tenant_id",
+                "parent_document_id",
+                "child_document_id",
+                "root_document_id",
+                "root_pec_id",
+                "extraction_path_virtuale",
+                "extraction_depth",
+                "security_status",
+                "created_at",
+            ),
+        ),
+        "document": _public_document(payload.get("document")),
+        "children": [_public_archive_tree(item) for item in list(payload.get("children") or []) if isinstance(item, dict)],
+    }
+
+
+def _public_proof_bundle(payload: Any) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        return {}
+    manifest_value = payload.get("manifest")
+    manifest: dict[str, Any] = manifest_value if isinstance(manifest_value, dict) else {}
+    return {
+        "id": payload.get("id"),
+        "sha256": payload.get("sha256"),
+        "manifest": {
+            "created_at": manifest.get("created_at"),
+            "bundle_id": manifest.get("bundle_id"),
+            "tenant_id": manifest.get("tenant_id"),
+            "document_id": manifest.get("document_id"),
+            "chain_of_custody": manifest.get("chain_of_custody") or {},
+            "files": manifest.get("files") or [],
+        },
+    }
+
+
 def _public_blocked(row: Any) -> dict[str, Any]:
     if not isinstance(row, dict):
         return {"status": "blocked", "reason": "Elemento bloccato."}
@@ -93,8 +208,10 @@ def _public_blocked(row: Any) -> dict[str, Any]:
 def _public_processed(row: Any) -> dict[str, Any]:
     if not isinstance(row, dict):
         return {}
-    events = row.get("events") if isinstance(row.get("events"), list) else []
-    entities = row.get("entities") if isinstance(row.get("entities"), list) else []
+    events_value = row.get("events")
+    entities_value = row.get("entities")
+    events: list[Any] = events_value if isinstance(events_value, list) else []
+    entities: list[Any] = entities_value if isinstance(entities_value, list) else []
     return {
         "document": _public_document(row.get("document")),
         "classification": _pick_public(row.get("classification"), _PUBLIC_CLASSIFICATION_FIELDS),
@@ -281,7 +398,7 @@ def documents_list():
     fascicolo_id = str(request.args.get("fascicolo_id") or "").strip()
     limit = int(request.args.get("limit") or 100)
     rows = _repo().list_documents(tenant_id, fascicolo_id=fascicolo_id, limit=limit)
-    return jsonify({"ok": True, "data": rows, "count": len(rows)})
+    return jsonify({"ok": True, "data": [_public_document(row) for row in rows], "count": len(rows)})
 
 
 @legal_documents_api.post("/documents/upload")
@@ -475,7 +592,8 @@ def document_ocr_legal_review_apply(document_id: str):
         evidence = store.find_latest_for_document(document_id)
         if not evidence:
             raise KeyError("Evidenza OCR non trovata.")
-        fix = payload.get("fix") if isinstance(payload.get("fix"), dict) else payload
+        fix_value = payload.get("fix") if isinstance(payload, dict) else {}
+        fix: dict[str, Any] = fix_value if isinstance(fix_value, dict) else (payload if isinstance(payload, dict) else {})
         correction = {
             "user": legal_document_actor(),
             "from": str(fix.get("from") or ""),
@@ -497,7 +615,7 @@ def document_evidence(document_id: str):
     if not _feature_required("legal_document_understanding"):
         return feature_disabled_response("legal_document_understanding")
     try:
-        return jsonify({"ok": True, "data": _repo().evidence_payload(legal_document_tenant_id(), document_id)})
+        return jsonify({"ok": True, "data": _public_evidence_payload(_repo().evidence_payload(legal_document_tenant_id(), document_id))})
     except Exception as exc:
         return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
 
@@ -508,7 +626,7 @@ def document_archive_tree(document_id: str):
     if not _feature_required("legal_document_understanding"):
         return feature_disabled_response("legal_document_understanding")
     try:
-        return jsonify({"ok": True, "data": _repo().archive_tree(legal_document_tenant_id(), document_id)})
+        return jsonify({"ok": True, "data": _public_archive_tree(_repo().archive_tree(legal_document_tenant_id(), document_id))})
     except Exception as exc:
         return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
 
@@ -531,7 +649,7 @@ def document_proof_bundle(document_id: str):
         return feature_disabled_response("legal_document_understanding")
     try:
         data = _repo().create_proof_bundle(legal_document_tenant_id(), document_id, actor=legal_document_actor())
-        return jsonify({"ok": True, "data": data}), 201
+        return jsonify({"ok": True, "data": _public_proof_bundle(data)}), 201
     except Exception as exc:
         return _json_error(not_found=isinstance(exc, KeyError), ingestion_error=isinstance(exc, LegalDocumentIngestionError))
 

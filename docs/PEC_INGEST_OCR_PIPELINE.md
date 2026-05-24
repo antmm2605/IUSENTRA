@@ -23,8 +23,10 @@ Il modulo è `pct/pec_ocr_pipeline.py`; non sostituisce `pct/pec_pipeline.py`, m
 - Il MIME originale viene scritto una sola volta: una seconda scrittura con checksum diverso solleva `WormViolation`.
 - I log della pipeline sono append-only in SQLite, con trigger anti-update/anti-delete e hash chain per evento.
 - I file ZIP sono aperti solo dopo antivirus e firma, con blocco di traversal, zip bomb, profondità e formati non ammessi.
+- Gli ZIP bloccano anche membri cifrati, link simbolici e firme `.p7m` applicate a estensioni interne non ammesse; i percorsi interni restano virtuali e non diventano mai path filesystem.
 - I membri duplicati per SHA-256 riusano il blob esistente e non generano un nuovo OCR.
 - Gli allegati non sicuri o non leggibili generano `needs_attention`, senza assumere termini legali o validità processuale.
+- Gli evidence pack espongono manifest, catena audit, catena hash e `hashes.sha256` senza `stored_uri` o path di storage; il download avviene solo da route backend autenticata.
 
 ## Scheduling
 

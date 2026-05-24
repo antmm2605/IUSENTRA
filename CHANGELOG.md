@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.35 - 2026-05-24
+
+- Rafforzata la Fase 2 file/PEC/ZIP/OCR: gli upload diretti rifiutano nomi file con path, drive Windows, UNC o traversal prima di scrivere nel repository probatorio.
+- Gli ZIP bloccano membri cifrati, link simbolici e firme `.p7m` su formati interni non ammessi; `.pdf.p7m`, `.xml.p7m` e gli altri wrapper firmati consentiti restano gestiti.
+- Le API documentali non espongono più `stored_uri`/path di storage in lista documenti, evidence, archive tree e creazione evidence pack; il download passa solo dalla route backend sicura e il proof bundle contiene manifest, evidence, audit chain, hash chain e `hashes.sha256` senza percorsi filesystem.
+
 ## 2.248.34 - 2026-05-24
 
 - Rafforzata la sicurezza multi-studio delle API React `/api/v1/ui/*`: la mappa generata ora contiene la matrice esecutiva 401/403/404 cross-tenant/400 tenant forzato/success e il conteggio delle superfici file.

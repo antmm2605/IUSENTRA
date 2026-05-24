@@ -11,6 +11,25 @@ from zipfile import ZipInfo
 
 from .mime_detector import SUPPORTED_EXTENSIONS
 
+_DANGEROUS_SIGNED_INNER_EXTENSIONS = {
+    ".bat",
+    ".cmd",
+    ".com",
+    ".dll",
+    ".exe",
+    ".hta",
+    ".jar",
+    ".js",
+    ".jse",
+    ".lnk",
+    ".msi",
+    ".ps1",
+    ".scr",
+    ".sh",
+    ".vbs",
+    ".wsf",
+}
+
 
 @dataclass(slots=True)
 class ZipSafetyConfig:
@@ -74,6 +93,10 @@ def validate_member(
     virtual_path = normalize_virtual_path(info.filename)
     if is_path_traversal(info.filename):
         return ZipMemberSafety(False, "unsafe_file", "Percorso interno ZIP non sicuro.", virtual_path)
+    if _is_encrypted(info):
+        return ZipMemberSafety(False, "needs_review", "Membro ZIP cifrato: verifica manuale necessaria.", virtual_path)
+    if _is_symlink(info):
+        return ZipMemberSafety(False, "unsafe_file", "Link simbolico dentro ZIP non consentito.", virtual_path)
     if info.is_dir():
         return ZipMemberSafety(True, "directory", "Cartella interna saltata.", virtual_path)
     if depth > config.max_depth:
@@ -91,6 +114,19 @@ def validate_member(
     suffixes = [suffix.lower() for suffix in PurePosixPath(virtual_path).suffixes]
     ext = suffixes[-1] if suffixes else ""
     allowed = {str(item).lower() for item in (allowed_extensions or config.allowed_extensions)}
+    if ext == ".p7m" and len(suffixes) >= 2:
+        inner_ext = suffixes[-2]
+        if inner_ext in _DANGEROUS_SIGNED_INNER_EXTENSIONS or inner_ext not in allowed:
+            return ZipMemberSafety(False, "quarantined", "Firma P7M su formato interno non ammesso.", virtual_path)
     if ext and ext not in allowed:
         return ZipMemberSafety(False, "quarantined", "Formato interno non ammesso.", virtual_path)
     return ZipMemberSafety(True, "validated", "File interno ZIP validato.", virtual_path)
+
+
+def _is_encrypted(info: ZipInfo) -> bool:
+    return bool(int(getattr(info, "flag_bits", 0) or 0) & 0x1)
+
+
+def _is_symlink(info: ZipInfo) -> bool:
+    mode = (int(getattr(info, "external_attr", 0) or 0) >> 16) & 0o170000
+    return mode == 0o120000

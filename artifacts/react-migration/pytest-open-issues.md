@@ -8,6 +8,8 @@ Aggiornamento corrente: 2026-05-24, React full senza pagine finte 2.248.36.
 
 Nessuna issue funzionale aperta prevista dalla Fase 3. La verifica mirata su `/giurisprudenza/nuova` è verde con shell React, JSON GET/POST e salvataggio reale. Il rilancio ampio non selettivo `python -m pytest -q tests\test_giurisprudenza.py tests\test_react_shell.py tests\test_react_preventivo_wizard_console.py --tb=short` ha intercettato sette aspettative storiche/stale in `tests/test_react_shell.py` non introdotte dal perimetro di fase: import shell in `auth_management_routes`, redirect legacy di `/legal-intelligence/news`, testo `Ctrl K`, chiamata `scrollIntoView`, matrice route ampia, stringa accentata `autorità giudiziaria` e messaggio JSON fascicolo veloce. La chiusura della Fase 3 usa i gate mirati e i required checks GitHub sullo SHA corrente.
 
+Post-push `ed4d0679`: `Lint + syntax` ha fallito nel test `test_mappa_sicurezza_backend_generata_e_allineata` perché `docs/backend-endpoint-security-map.md` non era stato rigenerato dopo i nuovi endpoint React. Rigenerata la mappa sicurezza backend e rilanciato il test mirato; correzione inclusa nel commit di riallineamento successivo.
+
 Aggiornamento corrente: 2026-05-24, hardening file PEC ZIP OCR evidence pack 2.248.35.
 
 ## Note hardening file PEC ZIP OCR evidence pack 2.248.35 - 2026-05-24

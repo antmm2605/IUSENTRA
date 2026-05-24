@@ -276,7 +276,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | File/document security | Backend | tests/test_document_intelligence_pdf_quality.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Frontend/UI | tests/test_document_management.py | feature flag | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | File/document security | Frontend/UI | tests/test_lex_document_context.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
-| File/document security | Security | tests/test_document_intelligence_api.py | 403/RBAC, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| File/document security | Security | tests/test_document_intelligence_api.py | 403/RBAC, tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Security | tests/test_document_intelligence_frontend.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_document_intelligence_auto_indexing.py | 403/RBAC, tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_document_intelligence_repository.py | tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |

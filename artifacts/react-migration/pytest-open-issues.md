@@ -8,6 +8,8 @@ Aggiornamento corrente: 2026-05-24, OCR legal-grade e Lex fascicolo 2.248.30.
 
 Nessuna issue funzionale aperta prevista dalla patch. Verifiche locali mirate completate e registrate in `pytest-confirmed-ok.md`; restano commit, push branch gemelli, check-run GitHub e deploy Hetzner senza backup.
 
+Post-push `1f2a7fe8`: CI `Lint + syntax` ha fallito nel gate contratti perché `docs/openapi.yaml` era ancora alla versione `2.248.29`. Rigenerato OpenAPI/contratti, rilanciati `generate_api_contracts --check`, validazione OpenAPI, provider verification, smoke contratti e `tests/test_openapi_contracts_phase6.py`; correzione da includere nel commit di riallineamento.
+
 Aggiornamento precedente: 2026-05-24, Relata notifica PEC-first 2.248.28.
 
 ## Note Relata notifica PEC-first 2.248.28 - 2026-05-24

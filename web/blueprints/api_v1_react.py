@@ -588,6 +588,10 @@ def _audit_event(action: str, resource_type: str = "", resource_id: str = "", de
         audit(action, resource_type, resource_id, details)
 
 
+def _jsonify_domain_payload(payload: dict[str, Any]):
+    return jsonify(payload), 404 if payload.get("notFound") else 200
+
+
 @api_v1_react.before_request
 def _phase5_backend_security_guard():
     if not (g.get("utente_corrente") or _api_key_valida()):
@@ -2790,7 +2794,7 @@ def fascicolo_react_documento_editor(id_fasc: str, id_doc: str):
 @api_v1_react.get("/fascicoli/<id_fasc>")
 @_richiedi_auth
 def fascicolo_react_dettaglio(id_fasc: str):
-    return jsonify(build_react_fascicolo_detail_payload(
+    return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
         get_fascicoli=get_fascicoli,
         get_clienti=get_clienti,
         get_agenda=get_agenda,
@@ -2810,7 +2814,7 @@ def fascicolo_react_dettaglio(id_fasc: str):
 @api_v1_react.get("/fascicoli/<id_fasc>/documenti")
 @_richiedi_auth
 def fascicolo_react_documenti(id_fasc: str):
-    return jsonify(build_react_fascicolo_detail_payload(
+    return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
         get_fascicoli=get_fascicoli,
         get_clienti=get_clienti,
         get_agenda=get_agenda,
@@ -2830,7 +2834,7 @@ def fascicolo_react_documenti(id_fasc: str):
 @api_v1_react.get("/fascicoli/<id_fasc>/attivita")
 @_richiedi_auth
 def fascicolo_react_attivita(id_fasc: str):
-    return jsonify(build_react_fascicolo_detail_payload(
+    return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
         get_fascicoli=get_fascicoli,
         get_clienti=get_clienti,
         get_agenda=get_agenda,
@@ -2850,7 +2854,7 @@ def fascicolo_react_attivita(id_fasc: str):
 @api_v1_react.get("/fascicoli/<id_fasc>/scadenze")
 @_richiedi_auth
 def fascicolo_react_scadenze(id_fasc: str):
-    return jsonify(build_react_fascicolo_detail_payload(
+    return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
         get_fascicoli=get_fascicoli,
         get_clienti=get_clienti,
         get_agenda=get_agenda,
@@ -2870,7 +2874,7 @@ def fascicolo_react_scadenze(id_fasc: str):
 @api_v1_react.get("/fascicoli/<id_fasc>/depositi")
 @_richiedi_auth
 def fascicolo_react_depositi(id_fasc: str):
-    return jsonify(build_react_fascicolo_detail_payload(
+    return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
         get_fascicoli=get_fascicoli,
         get_clienti=get_clienti,
         get_agenda=get_agenda,

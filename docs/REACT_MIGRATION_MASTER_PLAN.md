@@ -1,5 +1,11 @@
 # Migrazione progressiva Flask + React
 
+## Sicurezza multi-studio API React - 2026-05-24 - 2.248.34
+
+La Fase 1 governance multi-studio rende eseguibile la matrice `/api/v1/ui/*`: `docs/backend-endpoint-security-map.md` elenca i gate 401, 403, 404 cross-tenant, 400 per contesto forzato, success tenant valido, audit denial e superfici file/upload/download/export/evidence.
+
+I dettagli fascicolo React ora rispondono con 404 controllato quando la pratica non appartiene al tenant corrente o non è presente nel repository del tenant attivo. Il nuovo test `tests/test_ui_api_security_matrix.py` usa due studi reali con API key separate e verifica che `tenant_id`, root/path e risorse di altro studio non espongano valori, titoli, path o payload sensibili.
+
 ## OCR legal-grade, HIL e Lex di fascicolo - 2026-05-24 - 2.248.30
 
 La superficie `Documenti AI` integra ora il presidio OCR legal-grade: evidenze immutabili, metriche QC, token fragili, campi obbligatori e applicazione di correzioni deterministiche sono visibili nel pannello di revisione. Il flusso produce notifiche operative quando rileva date, adempimenti o necessità HIL.

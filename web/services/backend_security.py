@@ -24,18 +24,34 @@ UNSAFE_BACKEND_CONTROL_KEYS = frozenset(
         "access_token",
         "api_key",
         "apikey",
+        "absolute_path",
         "authorization",
+        "base_path",
+        "basepath",
         "data_root",
         "dataroot",
+        "directory",
+        "dir_path",
+        "download_path",
+        "file_path",
+        "filepath",
+        "filesystem_path",
+        "fs_path",
         "id_token",
         "is_admin",
         "isadmin",
+        "local_path",
         "next",
+        "preview_path",
         "redirect",
+        "redirect_url",
         "refresh_token",
+        "root",
+        "root_dir",
         "return_url",
         "returnurl",
         "root_path",
+        "rootdir",
         "rootpath",
         "studio",
         "studio_id",
@@ -49,9 +65,23 @@ UNSAFE_BACKEND_CONTROL_KEYS = frozenset(
         "tenantid",
         "tenantslug",
         "token",
+        "upload_path",
         "user_id",
         "userid",
     }
+)
+
+CONTEXTUAL_FILESYSTEM_PATH_KEYS = frozenset({"path"})
+FILESYSTEM_PATH_PREFIXES = (
+    "/data/",
+    "\\data\\",
+    "/opt/",
+    "/var/",
+    "/home/",
+    "/root/",
+    "/tmp/",
+    "~",
+    "\\\\",
 )
 
 
@@ -73,6 +103,26 @@ def is_unsafe_backend_control_key(key: Any) -> bool:
     return normalise_control_key(key) in UNSAFE_BACKEND_CONTROL_KEYS
 
 
+def _looks_like_filesystem_path(value: Any) -> bool:
+    if isinstance(value, (list, tuple)):
+        return any(_looks_like_filesystem_path(item) for item in value)
+    raw = str(value or "").strip()
+    lowered = raw.lower().replace("\\", "/")
+    if not raw:
+        return False
+    if ".." in lowered:
+        return True
+    if ":/" in lowered or ":\\" in raw:
+        return True
+    if lowered.endswith((".json", ".db", ".sqlite", ".sqlite3", ".pdf", ".p7m", ".eml", ".zip")):
+        return True
+    return any(lowered.startswith(prefix.replace("\\", "/")) for prefix in FILESYSTEM_PATH_PREFIXES)
+
+
+def is_contextual_filesystem_path_key(key: Any, value: Any) -> bool:
+    return normalise_control_key(key) in CONTEXTUAL_FILESYSTEM_PATH_KEYS and _looks_like_filesystem_path(value)
+
+
 def collect_backend_control_violations(
     value: Any,
     *,
@@ -90,7 +140,15 @@ def collect_backend_control_violations(
                 key = str(raw_key)
                 child_path = f"{path}.{key}" if path else key
                 if is_unsafe_backend_control_key(key):
-                    violations.append(BackendSecurityViolation(source=source, key=normalise_control_key(key), path=child_path))
+                    violations.append(
+                        BackendSecurityViolation(source=source, key=normalise_control_key(key), path=child_path)
+                    )
+                    if len(violations) >= limit:
+                        return
+                elif is_contextual_filesystem_path_key(key, raw_value):
+                    violations.append(
+                        BackendSecurityViolation(source=source, key=normalise_control_key(key), path=child_path)
+                    )
                     if len(violations) >= limit:
                         return
                 visit(raw_value, child_path)
@@ -110,7 +168,10 @@ def backend_control_violations_for_request(req: Any) -> list[BackendSecurityViol
     violations: list[BackendSecurityViolation] = []
     args = getattr(req, "args", None)
     if args is not None:
-        query_payload = {key: True for key in args.keys()}
+        query_payload = {
+            key: args.getlist(key) if len(args.getlist(key)) > 1 else args.get(key)
+            for key in args.keys()
+        }
         violations.extend(collect_backend_control_violations(query_payload, source="query"))
 
     if len(violations) >= MAX_SECURITY_VIOLATIONS:
@@ -129,7 +190,10 @@ def backend_control_violations_for_request(req: Any) -> list[BackendSecurityViol
     else:
         form = getattr(req, "form", None)
         if form is not None:
-            form_payload = {key: True for key in form.keys()}
+            form_payload = {
+                key: form.getlist(key) if len(form.getlist(key)) > 1 else form.get(key)
+                for key in form.keys()
+            }
             violations.extend(
                 collect_backend_control_violations(
                     form_payload,

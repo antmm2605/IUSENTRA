@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.34 - 2026-05-24
+
+- Rafforzata la sicurezza multi-studio delle API React `/api/v1/ui/*`: la mappa generata ora contiene la matrice esecutiva 401/403/404 cross-tenant/400 tenant forzato/success e il conteggio delle superfici file.
+- I dettagli fascicolo React restituiscono 404 controllato quando la risorsa non è nel tenant corrente, evitando che un cross-tenant resti un 200 mascherato.
+- Aggiunto un test end-to-end multi-tenant con due studi e API key separate: verifica auth mancante, API key di altro studio, `tenant_id` forzato, path/root in upload, 404 cross-tenant, success tenant valido e audit denial senza valori sensibili.
+
 ## 2.248.33 - 2026-05-24
 
 - Bloccato il deploy Hetzner automatico finché i required checks dello SHA corrente non risultano verdi tramite `tools/check_github_required_gates.py`, con artifact `deploy-required-gates`.

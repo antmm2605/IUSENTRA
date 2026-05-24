@@ -33,13 +33,19 @@ class Endpoint:
 
 AREA_RULES = (
     ("/admin/database", "Amministrazione database", "utenti.leggi", "P0", "dati tecnici e path redatti"),
+    ("/amministrazione", "Amministrazione", "utenti.leggi", "P0", "riepilogo governance studio"),
     ("/audit", "Registro attivita", "audit.leggi", "P0", "PII e log operativi redatti"),
     ("/registro-attivita", "Registro attivita", "audit.leggi", "P0", "PII e log operativi redatti"),
     ("/utenti", "Utenti", "utenti.leggi/scrivi", "P0", "account, ruoli, credenziali temporanee"),
     ("/profili", "Profili e permessi", "utenti.leggi/scrivi", "P0", "matrice permessi e override"),
+    ("/profilo", "Profilo utente", "sessione/API tenant-aware", "P1", "dati profilo e permessi correnti"),
     ("/backup", "Backup", "backup.leggi/esegui", "P0", "archivi e verifiche integrita"),
+    ("/bootstrap", "Bootstrap React", "sessione/API tenant-aware", "P0", "menu, feature flag e contesto studio"),
+    ("/feature-flags", "Feature flag", "sessione/API tenant-aware", "P0", "capability studio e abilitazioni"),
     ("/impostazioni", "Impostazioni", "admin.configura", "P0", "segreti redatti e configurazioni studio"),
+    ("/impostazioni-studio", "Impostazioni", "admin.configura", "P0", "configurazioni studio redatte"),
     ("/calendari", "Sincronizzazione calendari", "admin.configura", "P0", "account calendari e feed tenant"),
+    ("/cartelle-condivise", "Cartelle condivise", "sessione/API tenant-aware", "P1", "condivisioni cliente e permessi"),
     ("/email", "Email PEC", "sessione/API tenant-aware", "P0", "messaggi, allegati e destinatari"),
     ("/email-ordinaria", "Email ordinaria", "sessione/API tenant-aware", "P0", "messaggi, allegati e destinatari"),
     ("/fascicoli", "Fascicoli e documenti", "sessione/API tenant-aware", "P0", "fascicoli, documenti e depositi"),
@@ -52,6 +58,7 @@ AREA_RULES = (
     ("/tariffario", "Tariffario", "fatturazione.leggi", "P1", "calcoli tariffari"),
     ("/sito-studio", "Sito Studio", "admin.configura per scritture", "P1", "contenuti pubblici e richieste contatto"),
     ("/notifiche-legali", "Notifiche legali", "sessione/API tenant-aware", "P1", "relate, destinatari e bozze"),
+    ("/global-search", "Ricerca Studio", "sessione/API tenant-aware", "P1", "indici ricerca tenant-aware"),
     ("/scadenziario", "Scadenziario", "sessione/API tenant-aware", "P1", "termini e audit calcolo"),
     ("/agenda", "Agenda", "sessione/API tenant-aware", "P1", "appuntamenti e calendario"),
     ("/messaggi", "Messaggi", "sessione/API tenant-aware", "P1", "SMS/WhatsApp e log invio"),
@@ -64,7 +71,51 @@ AREA_RULES = (
     ("/ricerca-legale", "Ricerca legale", "sessione/API tenant-aware", "P1", "fonti e cronologia ricerca"),
     ("/giurisprudenza", "Giurisprudenza", "sessione/API tenant-aware", "P1", "archivio giurisprudenza"),
     ("/dashboard", "Panoramica", "sessione/API tenant-aware", "P1", "metriche aggregate studio"),
+    ("/workflow-agents", "Regia Agentica", "permesso agentico dedicato", "P1", "piani, approvazioni e audit agentico"),
 )
+
+
+EXECUTABLE_MATRIX_ROWS = (
+    (
+        "401 senza sessione o API key",
+        "Tutti gli endpoint `/api/v1/ui/*` registrati da Flask.",
+        "401 JSON senza valori sensibili.",
+        "tests/test_ui_api_security_matrix.py::test_all_ui_api_endpoints_enforce_auth_tenant_denials_and_forbidden_context_keys",
+    ),
+    (
+        "403 API key di altro studio",
+        "Tutti gli endpoint `/api/v1/ui/*` con API key valida ma slug non corrispondente.",
+        "403 fail-closed, senza eco di chiavi o path runtime.",
+        "tests/test_ui_api_security_matrix.py::test_all_ui_api_endpoints_enforce_auth_tenant_denials_and_forbidden_context_keys",
+    ),
+    (
+        "404 cross-tenant su risorsa",
+        "Dettaglio fascicolo richiesto da un altro tenant.",
+        "404 con `notFound=true`, senza titolo o dati della pratica esterna.",
+        "tests/test_ui_api_security_matrix.py::test_ui_api_security_matrix_copre_auth_tenant_cross_tenant_success_e_audit_denial",
+    ),
+    (
+        "400 tenant_id o contesto forzato",
+        "Tutti gli endpoint `/api/v1/ui/*` con tenant/studio/user/token/redirect/root/path filesystem.",
+        "400 `backend_security_control_param` e audit `policy_denied.backend_security`.",
+        "tests/test_backend_security_phase5.py; tests/test_ui_api_security_matrix.py",
+    ),
+    (
+        "200 success con tenant valido",
+        "Lista e dettaglio fascicoli con API key e slug coerenti.",
+        "Payload reale del tenant attivo, nessun mock/fallback cross-studio.",
+        "tests/test_ui_api_security_matrix.py::test_ui_api_security_matrix_copre_auth_tenant_cross_tenant_success_e_audit_denial",
+    ),
+    (
+        "Upload/download tenant-safe",
+        "Endpoint di upload/export/evidence pack e allegati serviti da backend.",
+        "Nessun path/root accettato dal client; file route autenticate e tenant-aware.",
+        "tests/test_ui_api_security_matrix.py; fase 2 file security",
+    ),
+)
+
+
+FILE_TRANSFER_MARKERS = ("upload", "download", "export", "evidence-pack", "documenti", "assets", "allegat")
 
 
 def _decorator_text(node: ast.AST) -> str:
@@ -126,7 +177,6 @@ def _manifest_summary() -> tuple[int, int, int]:
     routes = [row for row in payload.get("routes", []) if isinstance(row, dict)]
     p0 = sum(1 for row in routes if str(row.get("risk", "")).lower() == "critical")
     p1 = sum(1 for row in routes if str(row.get("risk", "")).lower() == "high")
-    full = sum(1 for row in routes if row.get("status") == "react_operational_full" and row.get("unlockFromGate") is True)
     return len(routes), p0, p1 + p0 if p0 else p1
 
 
@@ -135,10 +185,16 @@ def render(report_date: str | None = None) -> str:
     total_manifest, critical_manifest, high_manifest = _manifest_summary()
     auth_count = sum(1 for row in rows if row.auth)
     unsafe_methods = sum(1 for row in rows if row.method != "GET")
+    transfer_count = sum(
+        1
+        for row in rows
+        if any(marker in row.full_path.casefold() for marker in FILE_TRANSFER_MARKERS)
+    )
     today = report_date or os.getenv("IUSENTRA_REPORT_DATE") or date.today().isoformat()
     control_keys = (
         "`tenant_id`, `tenant_slug`, `studio_id`, `studio_slug`, `user_id`, "
-        "`api_key`, `token`, `access_token`, `refresh_token`, `redirect`, `return_url`, `next`"
+        "`api_key`, `token`, `access_token`, `refresh_token`, `redirect`, "
+        "`redirect_url`, `return_url`, `next`, path filesystem"
     )
 
     lines = [
@@ -148,13 +204,14 @@ def render(report_date: str | None = None) -> str:
         "",
         "## Fase 5 Backend Security Review",
         "",
-        "La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presidio minimo: autenticazione, RBAC, isolamento tenant, redazione PII e audit denial. La fase 5 aggiunge un guardrail centrale in `web/services/backend_security.py` e `web/blueprints/api_v1_react.py` che blocca parametri client riservati al controllo server.",
+        "La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presidio minimo: autenticazione, RBAC, isolamento tenant, redazione PII e audit denial. La fase 5 aggiunge un guardrail centrale in `web/services/backend_security.py`, applicato dal runtime tenant a tutto il prefisso `/api/v1/ui/*`, che blocca parametri client riservati al controllo server.",
         "",
         "## Sommario",
         "",
         f"- Endpoint React API censiti: {len(rows)}.",
         f"- Endpoint con `_richiedi_auth`: {auth_count}/{len(rows)}.",
         f"- Endpoint con metodo di scrittura o cancellazione: {unsafe_methods}.",
+        f"- Endpoint con superficie file/upload/download/export/evidence: {transfer_count}.",
         f"- Route manifest censite: {total_manifest}; critical: {critical_manifest}; high/P1: {high_manifest}.",
         f"- Parametri controllo bloccati: {control_keys}.",
         "- Denial log: `policy_denied.backend_security` e warning applicativo `policy_denied backend_security_control_param` senza valori sensibili.",
@@ -170,11 +227,23 @@ def render(report_date: str | None = None) -> str:
         "| PII | Payload redatti dove necessario | Audit e segreti impostazioni non espongono password/token salvati. |",
         "| File/download | Solo endpoint dominio autenticati | Path runtime sotto tenant, download e allegati restano su route specifiche. |",
         "",
-        "## Endpoint",
+        "## Matrice Esecutiva Fase 1",
         "",
-        "| Metodo | Endpoint | Area | Priorita | Permesso atteso | Dati sensibili | Presidi |",
-        "| --- | --- | --- | --- | --- | --- | --- |",
+        "| Caso | Perimetro | Esito atteso | Gate |",
+        "| --- | --- | --- | --- |",
     ]
+    for label, scope, expected, gate in EXECUTABLE_MATRIX_ROWS:
+        lines.append(f"| {label} | {scope} | {expected} | `{gate}` |")
+
+    lines.extend(
+        [
+            "",
+            "## Endpoint",
+            "",
+            "| Metodo | Endpoint | Area | Priorita | Permesso atteso | Dati sensibili | Presidi |",
+            "| --- | --- | --- | --- | --- | --- | --- |",
+        ]
+    )
     for row in rows:
         area, permission, priority, data = classify(row.path)
         presidi = [

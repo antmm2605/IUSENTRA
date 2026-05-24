@@ -8,6 +8,10 @@ from typing import Any
 from flask import Flask, current_app, g, has_app_context, has_request_context, jsonify, request, session
 
 from pct.tenant import GestioneTenant
+from web.services.backend_security import (
+    backend_control_violations_for_request,
+    backend_security_error_response,
+)
 from web.services.tenant_api_auth import attach_api_tenant_context_from_headers
 
 
@@ -345,9 +349,88 @@ def _error_response(error: TenantIsolationError):
         _text(request.path) or "-",
         _tenant_slug_from_context() or "-",
     )
+    _audit_tenant_denial(error, status=status)
     if _request_wants_json():
         return jsonify({"ok": False, "errore": error.public_message, "codice": error.code}), status
     return current_app.response_class(error.public_message, status=status, mimetype="text/plain")
+
+
+def _audit_tenant_denial(error: TenantIsolationError, *, status: int) -> None:
+    """Registra denial tenant senza valori client, token o path filesystem."""
+
+    try:
+        from pct.auth import GestioneUtenti
+
+        paths = getattr(g, "data_paths", {}) or {}
+        auth_path = _text(paths.get("AUTH_DB")) or _text(current_app.config.get("AUTH_DB"))
+        audit_path = _text(paths.get("AUDIT_DB")) or _text(current_app.config.get("AUDIT_DB"))
+        if not auth_path or not audit_path:
+            return
+
+        manager = GestioneUtenti(
+            db_path=auth_path,
+            audit_path=audit_path,
+            secret_key=_text(current_app.secret_key),
+            crea_admin_se_vuoto=False,
+        )
+        user = g.get("utente_corrente") if has_request_context() else None
+        manager.registra_evento(
+            "policy_denied.tenant_isolation",
+            id_utente=_text(getattr(user, "id", "")),
+            username=_text(getattr(user, "username", "")) or "anonimo",
+            risorsa_tipo="api",
+            risorsa_id=_text(request.path) if has_request_context() else "",
+            dettagli=f"codice={error.code}; status={status}",
+            ip=_text(request.remote_addr) if has_request_context() else "",
+            esito="DENIED",
+        )
+    except Exception as exc:  # pragma: no cover - audit best-effort
+        current_app.logger.warning("Audit denial tenant non registrato: %s", exc.__class__.__name__)
+
+
+def _authenticated_for_backend_security() -> bool:
+    if not has_request_context():
+        return False
+    if g.get("utente_corrente"):
+        return True
+    if not _text(request.headers.get("X-API-Key")):
+        return False
+    context = attach_api_tenant_context_from_headers()
+    return bool(getattr(context, "valid", False))
+
+
+def _audit_backend_security_denial(violations: list[Any]) -> None:
+    """Registra denial backend senza valori client, token o path filesystem."""
+
+    try:
+        from pct.auth import GestioneUtenti
+
+        paths = getattr(g, "data_paths", {}) or {}
+        auth_path = _text(paths.get("AUTH_DB")) or _text(current_app.config.get("AUTH_DB"))
+        audit_path = _text(paths.get("AUDIT_DB")) or _text(current_app.config.get("AUDIT_DB"))
+        if not auth_path or not audit_path:
+            return
+
+        keys = ",".join(sorted({_text(getattr(violation, "key", "")) for violation in violations if _text(getattr(violation, "key", ""))}))
+        manager = GestioneUtenti(
+            db_path=auth_path,
+            audit_path=audit_path,
+            secret_key=_text(current_app.secret_key),
+            crea_admin_se_vuoto=False,
+        )
+        user = g.get("utente_corrente") if has_request_context() else None
+        manager.registra_evento(
+            "policy_denied.backend_security",
+            id_utente=_text(getattr(user, "id", "")),
+            username=_text(getattr(user, "username", "")) or "api",
+            risorsa_tipo="api_ui",
+            risorsa_id=_text(request.endpoint) or _text(request.path),
+            dettagli=f"Parametri riservati bloccati: {keys}.",
+            ip=_text(request.remote_addr) if has_request_context() else "",
+            esito="DENIED",
+        )
+    except Exception as exc:  # pragma: no cover - audit best-effort
+        current_app.logger.warning("Audit denial backend non registrato: %s", exc.__class__.__name__)
 
 
 def register_tenant_isolation_runtime(app: Flask) -> None:
@@ -360,6 +443,29 @@ def register_tenant_isolation_runtime(app: Flask) -> None:
         except TenantIsolationError as exc:
             return _error_response(exc)
         return None
+
+    @app.before_request
+    def enforce_ui_api_backend_security_runtime():
+        if request.method == "OPTIONS":
+            return None
+        if not _text(request.path).lower().startswith("/api/v1/ui/"):
+            return None
+        if not _authenticated_for_backend_security():
+            return None
+
+        violations = backend_control_violations_for_request(request)
+        if not violations:
+            return None
+
+        keys = ",".join(sorted({violation.key for violation in violations}))
+        current_app.logger.warning(
+            "policy_denied backend_security_control_param path=%s method=%s keys=%s",
+            _text(request.path) or "-",
+            _text(request.method) or "-",
+            keys or "-",
+        )
+        _audit_backend_security_denial(violations)
+        return backend_security_error_response(violations)
 
 
 __all__ = [

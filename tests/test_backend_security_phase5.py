@@ -89,6 +89,15 @@ def test_guardrail_non_blocca_ruolo_o_chiavi_provider_legittime():
     assert collect_backend_control_violations(payload, source="json") == []
 
 
+def test_guardrail_blocca_path_filesystem_ma_non_path_applicativo():
+    lecito = {"path": "/privacy/registro"}
+    bloccato = {"path": "C:/studio-b/segreto.pdf"}
+
+    assert collect_backend_control_violations(lecito, source="query") == []
+    violazioni = collect_backend_control_violations(bloccato, source="query")
+    assert {violazione.key for violazione in violazioni} == {"path"}
+
+
 def test_tutte_le_api_react_hanno_decorator_auth():
     source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
     tree = ast.parse(source)

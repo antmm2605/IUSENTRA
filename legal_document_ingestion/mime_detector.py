@@ -17,6 +17,8 @@ SUPPORTED_EXTENSIONS = {
     ".tiff",
     ".doc",
     ".docx",
+    ".xlsx",
+    ".pptx",
     ".xml",
     ".p7m",
     ".eml",
@@ -34,6 +36,8 @@ EXTENSION_BY_MIME = {
     "image/tiff": ".tiff",
     "application/zip": ".zip",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx",
     "application/msword": ".doc",
     "application/xml": ".xml",
     "text/xml": ".xml",
@@ -90,8 +94,9 @@ def detect_mime(data: bytes, filename: str = "", *, allowed_extensions: Iterable
     elif raw.startswith((b"II*\x00", b"MM\x00*")):
         mime, ext = "image/tiff", ".tiff"
     elif raw.startswith(b"PK\x03\x04") or raw.startswith(b"PK\x05\x06") or raw.startswith(b"PK\x07\x08"):
-        if _looks_like_docx(raw):
-            mime, ext = "application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx"
+        office_mime, office_ext = _office_openxml_type(raw, suffix)
+        if office_mime:
+            mime, ext = office_mime, office_ext
         else:
             mime, ext = "application/zip", ".zip"
     elif raw.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"):
@@ -133,9 +138,17 @@ def normalized_extension(filename: str, mime_type: str = "") -> str:
     return EXTENSION_BY_MIME.get(str(mime_type or "").lower(), "")
 
 
-def _looks_like_docx(raw: bytes) -> bool:
+def _office_openxml_type(raw: bytes, suffix: str = "") -> tuple[str, str]:
     sample = raw[:200000]
-    return b"[Content_Types].xml" in sample and b"word/" in sample
+    if b"[Content_Types].xml" not in sample:
+        return "", ""
+    if b"word/" in sample or suffix == ".docx":
+        return "application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx"
+    if b"xl/" in sample or suffix == ".xlsx":
+        return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ".xlsx"
+    if b"ppt/" in sample or suffix == ".pptx":
+        return "application/vnd.openxmlformats-officedocument.presentationml.presentation", ".pptx"
+    return "", ""
 
 
 def _looks_like_email(raw: bytes) -> bool:

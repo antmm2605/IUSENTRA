@@ -2,6 +2,12 @@
 
 Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
 
+## Aggiornamento operativo 2.248.26 - 2026-05-24
+
+I risultati della nuova pipeline `PEC -> analisi -> OCR -> Lex` restano dati interni dello studio, non fonti pubbliche. L'evento `lex.ingest.doc` arriva solo dopo catena di custodia WORM, controllo antivirus, verifica firma, estrazione ZIP governata, dedup SHA-256 e `ocr.result`; il payload deve conservare citazione, checksum, confidenza OCR, `run_id`, tenant e candidato fascicolo.
+
+Quando un allegato è duplicato, bloccato, in quarantena o da revisionare, Lex deve usare lo stato tecnico come limite probatorio e chiedere verifica dell'avvocato. La risposta su una PEC o sui suoi allegati deve partire da queste evidenze interne e non da fonti web o cataloghi generici.
+
 ## Aggiornamento operativo 2.248.25 - 2026-05-23
 
 La Guida Pratica incorpora anche le due consegne TOP9 set7 ricevute dall'utente. La base completa sale a 1.087 schede: 1.018 codici ufficiali PST/XSD restano coperti e depositabili, mentre 69 schede sono guide interne non depositabili. `011001` e `170001` restano codici ufficiali; gli altri codici set7 non coerenti o assenti sono conservati come alias interni con `codice_originale_ricevuto`.

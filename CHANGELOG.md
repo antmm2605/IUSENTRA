@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.248.26 - 2026-05-24
+
+- Introdotta la pipeline compatta `pct.pec_ocr_pipeline` per PEC -> analisi -> OCR -> risultati: WORM locale write-once, antivirus inline, verifica strutturale firme `.p7m`, ZIP sicuro fino a profondità 3, whitelist MIME, raw blob deduplicati per SHA-256, scheduling small-first/FIFO e topic `mail.ingest`, `mail.unzip`, `ocr.task`, `ocr.result`, `document.indexed`, `lex.ingest.doc`.
+- Aggiunti test mirati e script veritiero `scripts/test_pec_ocr_pipeline.py`, con copertura su WORM, dedup, OCR, hook Lex, ZIP non sicuro, antivirus positivo e blocco di riscrittura WORM con checksum diverso.
+
 ## 2.248.25 - 2026-05-23
 
 - Integrato il TOP9 set7 della Guida Pratica: 2 codici ufficiali mantenuti depositabili, 7 schede trasformate in guide interne non depositabili e KB full aggiornato a 1.087 schede.

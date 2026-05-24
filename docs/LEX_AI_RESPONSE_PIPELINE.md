@@ -7,6 +7,12 @@ un riferimento ufficiale nel database. Ogni passaggio deve essere verificabile:
 se un punto non funziona, Lex deve dire quale punto è saltato, non rispondere
 con un finto completamento.
 
+## Aggiornamento operativo 2.248.26 - 24 maggio 2026
+
+La pipeline compatta `pct.pec_ocr_pipeline` emette `lex.ingest.doc` solo dopo WORM, antivirus, verifica firma, estrazione ZIP sicura, dedup SHA-256 e `ocr.result`. Lex deve trattare questi documenti come evidenze operative interne: citare `mail_id`, `doc_id`, checksum, `run_id`, confidenza OCR e candidato fascicolo/R.G. quando presente, senza trasformare il risultato OCR in parere legale conclusivo.
+
+Se la pipeline produce `needs_attention`, `mail.member.blocked`, `mail.unzip.blocked`, antivirus positivo, firma non valida o OCR con errori, Lex deve esporre la lacuna e proporre riconciliazione o verifica dell'avvocato. I duplicati saltati per SHA-256 non sono nuovi documenti: Lex deve riusare la citazione del blob esistente e non inventare una seconda lettura.
+
 ## Aggiornamento operativo 2.248.25 - 23 maggio 2026
 
 La Guida Pratica TOP9 set7 è entrata nella sorgente `GuidaPraticaSource`. Lex deve leggere 63 schede iper-dettagliate ricevute dall'utente: i codici ufficiali `011001` e `170001` restano depositabili, mentre le sette schede `GUIDA_GARANZIA_VIZI_COSA_VENDUTA_140011`, `GUIDA_RESPONSABILITA_COSE_CUSTODIA_160021`, `GUIDA_DISTANZE_LEGALI_COSTRUZIONI_130011`, `GUIDA_SCIOGLIMENTO_SOCIETA_PERSONE_211001`, `GUIDA_TUTELA_MAGGIORE_GRAVE_HANDICAP_413051`, `GUIDA_RISOLUZIONE_MUTUO_DECADENZA_TERMINE_142001` e `GUIDA_OPPOSIZIONE_PRECETTO_199001` sono guide interne non depositabili.

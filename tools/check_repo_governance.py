@@ -631,6 +631,8 @@ def main() -> int:
     codeql_workflow = _read_text(".github/workflows/codeql.yml")
     dependency_review = _read_text(".github/workflows/dependency-review.yml")
     security_supply_chain = _read_text(".github/workflows/security-supply-chain.yml")
+    ci_required_gates = _read_text(".github/workflows/ci-required-gates.yml")
+    required_checks = _read_text(".github/required-checks.json")
     for snippet in (
         "name: CodeQL",
         "github/codeql-action/analyze",
@@ -643,10 +645,26 @@ def main() -> int:
         _check(snippet in dependency_review, f"Workflow dependency review incompleto: '{snippet}'.", failures)
     for snippet in (
         "name: Security Supply Chain",
+        "push:",
         "pip-audit",
         "sbom",
     ):
         _check(snippet in security_supply_chain, f"Workflow security supply chain incompleto: '{snippet}'.", failures)
+    for snippet in (
+        "name: CI Required Gates",
+        "CI reale eseguita sul commit corrente",
+        "tools/check_github_required_gates.py",
+        "current-sha-required-gates",
+    ):
+        _check(snippet in ci_required_gates, f"Workflow required gates incompleto: '{snippet}'.", failures)
+    for snippet in (
+        '"final_gate_check": "CI reale eseguita sul commit corrente"',
+        '"Vercel"',
+        '"Deploy su Hetzner CPX42"',
+        '"Review dipendenze in ingresso"',
+        '"CodeQL"',
+    ):
+        _check(snippet in required_checks, f"Config required checks incompleta: '{snippet}'.", failures)
 
     readme = _read_text("README.md")
     _check("Governance repo" in readme, "README non documenta il job di governance repo.", failures)

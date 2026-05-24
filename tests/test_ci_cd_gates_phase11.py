@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import importlib.util
+import json
+import sys
 from pathlib import Path
+from types import ModuleType
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -8,6 +12,16 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 def _read(relative: str) -> str:
     return (REPO_ROOT / relative).read_text(encoding="utf-8")
+
+
+def _load_required_gates_module() -> ModuleType:
+    path = REPO_ROOT / "tools" / "check_github_required_gates.py"
+    spec = importlib.util.spec_from_file_location("iusentra_required_gates", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_phase11_ci_gates_documented() -> None:
@@ -62,11 +76,74 @@ def test_smoke_staging_workflow_is_manual_and_secret_safe() -> None:
 def test_security_supply_chain_blocks_critical_dependency_regressions() -> None:
     workflow = _read(".github/workflows/security-supply-chain.yml")
 
+    assert "push:" in workflow
     assert "pip-audit -r requirements.txt --format json --output pip-audit.json" in workflow
     assert "pnpm/action-setup@v4" in workflow
     assert "pnpm --filter @iusentra/studio audit --audit-level=critical --prod --json" in workflow
     assert "pip-audit-report" in workflow
     assert "frontend-pnpm-audit-report" in workflow
+
+
+def test_ci_required_gates_blocks_missing_skipped_and_external_drift() -> None:
+    config = json.loads(_read(".github/required-checks.json"))
+    workflow = _read(".github/workflows/ci-required-gates.yml")
+    frontend_workflow = _read(".github/workflows/frontend-ci.yml")
+    module = _load_required_gates_module()
+
+    contexts = module.branch_protection_contexts(config)
+    assert "CI reale eseguita sul commit corrente" in contexts
+    assert "Lint + syntax" in contexts
+    assert "CodeQL" in contexts
+    assert "Analyze (python)" in contexts
+    assert "Review dipendenze in ingresso" in contexts
+    assert "Frontend React contratti" in contexts
+    assert "Frontend React typecheck" in contexts
+    assert "Frontend React build" in contexts
+    assert "Security Supply Chain" not in contexts
+    assert "Deploy su Hetzner CPX42" not in contexts
+    assert "Vercel" not in contexts
+    assert "Vercel Preview Comments" not in contexts
+    assert "sync-peer-branch" not in contexts
+    assert len(contexts) >= 80
+
+    pull_request_checks = {check.name for check in module.expand_required_checks(config, event="pull_request")}
+    push_checks = {check.name for check in module.expand_required_checks(config, event="push")}
+    assert "Review dipendenze in ingresso" in pull_request_checks
+    assert "Review dipendenze in ingresso" not in push_checks
+
+    codeql = [check for check in module.expand_required_checks(config) if check.name == "CodeQL"][0]
+    assert codeql.accepted_conclusions == ("success", "neutral")
+
+    rows = module.evaluate_required_checks(
+        config,
+        [
+            {"name": "Lint + syntax", "status": "completed", "conclusion": "success"},
+            {"name": "Governance repo", "status": "completed", "conclusion": "skipped"},
+            {"name": "CodeQL", "status": "completed", "conclusion": "neutral"},
+        ],
+        "push",
+    )
+    by_name = {row.name: row for row in rows}
+    assert by_name["Lint + syntax"].state == "ok"
+    assert by_name["Governance repo"].state == "failed"
+    assert by_name["CodeQL"].state == "ok"
+    assert by_name["Smoke test Flask"].state == "missing"
+
+    statuses = module.evaluate_statuses(
+        config,
+        [
+            {"context": "Vercel", "state": "failure", "target_url": "https://vercel.example"},
+            {"context": "Altro provider", "state": "failure", "target_url": "https://example.test"},
+        ],
+    )
+    status_by_name = {row.name: row for row in statuses}
+    assert status_by_name["Vercel"].state == "ignored"
+    assert status_by_name["Altro provider"].state == "failed"
+
+    assert "python tools/check_github_required_gates.py" in workflow
+    assert "--wait" in workflow
+    assert "current-sha-required-gates.md" in workflow
+    assert "paths:" not in frontend_workflow
 
 
 def test_phase11_test_plan_mentions_ci_workflows() -> None:

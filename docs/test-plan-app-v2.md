@@ -108,13 +108,14 @@ La fase 11 ha inserito i comandi candidati nei workflow reali, mantenendo blocca
 
 `docs/ci-cd-gates.md` e' il registro operativo dei workflow. Il workflow principale `.github/workflows/ci.yml` esegue i gate App V2 bloccanti su push, pull request e manuale: API contract/provider verification, registry e piano test generati, smoke inventory senza credenziali, test RBAC/tenant/feature flag/routing, frontend test/typecheck/build, shard pytest, coverage critica ed E2E smoke Python.
 
-Le esecuzioni GitHub Actions restano da verificare dopo ogni push: localmente si validano i comandi equivalenti, mentre GitHub conferma runner, cache, artifact e protezioni branch. `.github/workflows/security-supply-chain.yml` mantiene CodeQL/dependency review separati e aggiunge audit dipendenze Python/frontend con artifact. `.github/workflows/smoke-staging.yml` resta manuale, usa environment `staging`, non gira su pull request e richiede secrets solo quando viene selezionato `require_credentials`.
+Le esecuzioni GitHub Actions restano da verificare dopo ogni push: localmente si validano i comandi equivalenti, mentre GitHub conferma runner, cache, artifact e protezioni branch. `.github/workflows/ci-required-gates.yml` attende i required checks dello SHA corrente e produce un report automatico. `.github/workflows/security-supply-chain.yml` mantiene CodeQL/dependency review separati e aggiunge audit dipendenze Python/frontend con artifact. `.github/workflows/smoke-staging.yml` resta manuale, usa environment `staging`, non gira su pull request e richiede secrets solo quando viene selezionato `require_credentials`.
 
 | Workflow | Gate | Bloccante | Nota |
 | --- | --- | --- | --- |
 | .github/workflows/ci.yml | backend, frontend, contracts, registry, coverage-critical, e2e-smoke | si | Gate PR/push principali |
-| .github/workflows/frontend-ci.yml | frontend test/typecheck/build per path frontend | si | Shard rapido dedicato al frontend |
+| .github/workflows/frontend-ci.yml | frontend test/typecheck/build sempre eseguiti | si | Shard rapido dedicato al frontend |
 | .github/workflows/security-supply-chain.yml | pip-audit, pnpm audit critical, SBOM | si per audit; artifact sempre | Nessun segreto richiesto |
+| .github/workflows/ci-required-gates.yml | required checks sullo SHA corrente | si | Report automatico Markdown/JSON |
 | .github/workflows/codeql.yml | CodeQL Python | si | Code scanning GitHub |
 | .github/workflows/e2e-nightly.yml | E2E full suite | nightly/manual | Non sostituisce i gate PR |
 | .github/workflows/smoke-staging.yml | smoke ambiente e autenticati da secrets | manuale/post-deploy | Usare prima di rollout oltre pilota |

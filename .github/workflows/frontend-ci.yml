@@ -2,13 +2,8 @@ name: Frontend React CI
 
 on:
   pull_request:
-    paths:
-      - "frontend/**"
-      - ".github/workflows/frontend-ci.yml"
   push:
-    paths:
-      - "frontend/**"
-      - ".github/workflows/frontend-ci.yml"
+  workflow_dispatch:
 
 jobs:
   frontend-checks:

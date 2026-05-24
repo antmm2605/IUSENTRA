@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.32 - 2026-05-24
+
+- Codificati i required checks GitHub in `.github/required-checks.json` e aggiunto il gate `CI reale eseguita sul commit corrente`, con report Markdown/JSON generato da `tools/check_github_required_gates.py`.
+- Rimossi i filtri path dal workflow Frontend React e abilitati gli audit supply chain anche su `push`, così i check richiesti non restano mancanti sullo SHA corrente.
+- Versionata l'applicazione/verifica branch protection per i due branch operativi, mantenendo Vercel come status esterno separato e il deploy Hetzner come controllo post-push, non come sostituto della CI.
+
 ## 2.248.31 - 2026-05-24
 
 - Rafforzato il fix CodeQL post OCR legal-grade: join probatori solo su percorsi relativi validati, `run_id` HIL non manipolabile e test di regressione su traversal.

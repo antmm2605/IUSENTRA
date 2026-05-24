@@ -1,0 +1,162 @@
+{
+  "version": 1,
+  "branches": [
+    "claude/legal-electronic-filing-kIxcV",
+    "Codex/legal-electronic-filing-kIxcV"
+  ],
+  "final_gate_check": "CI reale eseguita sul commit corrente",
+  "ignored_status_contexts": [
+    "Vercel"
+  ],
+  "ignored_check_runs": [
+    "Deploy su Hetzner CPX42",
+    "sync-peer-branch",
+    "Vercel Preview Comments"
+  ],
+  "branch_protection": {
+    "strict": true,
+    "enforce_admins": true,
+    "required_linear_history": true,
+    "required_conversation_resolution": true,
+    "allow_force_pushes": false,
+    "allow_deletions": false
+  },
+  "required_checks": [
+    {
+      "name": "Lint + syntax",
+      "events": ["push", "pull_request"]
+    },
+    {
+      "name": "Governance repo",
+      "events": ["push", "pull_request"]
+    },
+    {
+      "name": "Smoke test Flask",
+      "events": ["push", "pull_request"]
+    },
+    {
+      "name": "Smoke scheduler worker",
+      "events": ["push", "pull_request"]
+    },
+    {
+      "name": "Pytest core",
+      "events": ["push", "pull_request"]
+    },
+    {
+      "name": "E2E smoke",
+      "events": ["push", "pull_request"]
+    },
+    {
+      "name": "Local Signer e PKCS#11",
+      "events": ["push", "pull_request"]
+    },
+    {
+      "name": "Frontend React contratti",
+      "events": ["push", "pull_request"]
+    },
+    {
+      "name": "Frontend React typecheck",
+      "events": ["push", "pull_request"]
+    },
+    {
+      "name": "Frontend React build",
+      "events": ["push", "pull_request"]
+    },
+    {
+      "name": "Frontend React CI",
+      "events": ["push", "pull_request"]
+    },
+    {
+      "name": "quality-gates",
+      "events": ["push", "pull_request"]
+    },
+    {
+      "name": "Targeted tests",
+      "events": ["push", "pull_request"]
+    },
+    {
+      "name": "Analyze (python)",
+      "events": ["push", "pull_request"]
+    },
+    {
+      "name": "CodeQL",
+      "events": ["push", "pull_request"],
+      "accepted_conclusions": ["success", "neutral"]
+    },
+    {
+      "name": "Review dipendenze in ingresso",
+      "events": ["pull_request"]
+    },
+    {
+      "name": "Audit dipendenze Python",
+      "events": ["push", "pull_request"]
+    },
+    {
+      "name": "Audit dipendenze frontend",
+      "events": ["push", "pull_request"]
+    },
+    {
+      "name": "Generate SBOM",
+      "events": ["push", "pull_request"]
+    }
+  ],
+  "required_ranges": [
+    {
+      "template": "Coverage moduli critici parte {i}/12",
+      "start": 1,
+      "end": 12,
+      "events": ["push", "pull_request"]
+    },
+    {
+      "template": "Targeted tests parte {i}/3",
+      "start": 1,
+      "end": 3,
+      "events": ["push", "pull_request"]
+    },
+    {
+      "template": "Pytest core fase {i}/10",
+      "values": [1, 2, 3, 4, 10],
+      "events": ["push", "pull_request"]
+    },
+    {
+      "template": "Pytest core fase 5/10 parte {i}/6",
+      "start": 1,
+      "end": 6,
+      "events": ["push", "pull_request"]
+    },
+    {
+      "template": "Pytest core fase 6/10 parte {i}/16",
+      "start": 1,
+      "end": 16,
+      "events": ["push", "pull_request"]
+    },
+    {
+      "template": "Pytest core fase 7/10 observability parte {i}/3",
+      "start": 1,
+      "end": 3,
+      "events": ["push", "pull_request"]
+    },
+    {
+      "template": "Pytest core fase 8/10 OCR parte {i}/3",
+      "start": 1,
+      "end": 3,
+      "events": ["push", "pull_request"]
+    },
+    {
+      "template": "Pytest core fase 9/10 parte {i}/6",
+      "start": 1,
+      "end": 6,
+      "events": ["push", "pull_request"]
+    }
+  ],
+  "required_matrices": [
+    {
+      "template": "Local Signer e PKCS#11 ({os}) parte {shard}/4",
+      "axes": {
+        "os": ["macos-latest", "ubuntu-latest", "windows-latest"],
+        "shard": [1, 2, 3, 4]
+      },
+      "events": ["push", "pull_request"]
+    }
+  ]
+}

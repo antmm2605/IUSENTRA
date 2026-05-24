@@ -1,6 +1,6 @@
 # CI/CD gates IUSENTRA
 
-Aggiornato: 2026-05-21, pipeline lifecycle procedurale.
+Aggiornato: 2026-05-24, branch protection e verifica CI reale sullo SHA corrente.
 
 ## Obiettivo
 
@@ -22,15 +22,16 @@ ambiente esterno o credenziali smoke.
 | `.github/workflows/ci.yml` | push, pull_request, workflow_dispatch | `Coverage moduli critici parte */12` | `run_pytest_phases.py --suite coverage-critical --suite-shard ...` | si | required | Le 12 parti sono il gate richiesto; il vecchio aggregatore senza `parte` non è required. Artifact coverage shard. |
 | `.github/workflows/ci.yml` | push, pull_request, workflow_dispatch | `E2E smoke` | `python scripts/run_pytest_phases.py --suite e2e-smoke` | si | required | Smoke Python stabile, non browser esterno. |
 | `.github/workflows/ci.yml` | push, pull_request, workflow_dispatch | `Local Signer e PKCS#11` | `run_pytest_phases.py --suite signer` su Linux/Windows/macOS | si | required | Matrice cross-platform. |
-| `.github/workflows/frontend-ci.yml` | push/pull_request su `frontend/**` | `Frontend React contratti/typecheck/build` | `pnpm install --frozen-lockfile`, `pnpm --filter @iusentra/studio test`, `pnpm --filter @iusentra/studio typecheck`, `pnpm --filter @iusentra/studio build:vite` | si | required | Shard rapido dedicato al frontend. |
+| `.github/workflows/frontend-ci.yml` | push, pull_request, workflow_dispatch | `Frontend React contratti/typecheck/build` | `pnpm install --frozen-lockfile`, `pnpm --filter @iusentra/studio test`, `pnpm --filter @iusentra/studio typecheck`, `pnpm --filter @iusentra/studio build:vite` | si | required | Shard rapido dedicato al frontend, senza path filter: il check richiesto non può mancare. |
 | `.github/workflows/ci_quality_overlay.yml` | push, pull_request, workflow_dispatch | `quality-gates` | governance, packaging, python baseline, Local Signer boundaries, Lex gates, performance budget | si | required | Overlay qualita mirato. |
 | `.github/workflows/ci_quality_overlay.yml` | push, pull_request, workflow_dispatch | `targeted-tests` | `run_pytest_phases.py --suite quality-overlay` | si | required | Shard overlay. |
+| `.github/workflows/ci-required-gates.yml` | push, pull_request, workflow_dispatch | `CI reale eseguita sul commit corrente` | `python tools/check_github_required_gates.py --wait ...` | si | required | Attende i check dello SHA corrente, fallisce su mancanti, in corso, failure, skipped/cancelled non ammessi e produce report JSON/Markdown automatico. |
 | `.github/workflows/ci_release_overlay.yml` | workflow_dispatch | `release-readiness` | `tools/check_release_readiness.py`, `run_pytest_phases.py --suite release-readiness` | manuale | optional/manual | Da eseguire prima di tag o deploy operativo. |
 | `.github/workflows/codeql.yml` | push, pull_request, schedule | `Analyze (python)` | CodeQL init/autobuild/analyze | si | required | SAST GitHub, policy High/Critical su code scanning. |
 | `.github/workflows/dependency-review.yml` | pull_request | `Review dipendenze in ingresso` | `actions/dependency-review-action@v4` | si | required | Blocca dependency review configurata da GitHub. |
-| `.github/workflows/security-supply-chain.yml` | pull_request, workflow_dispatch, schedule | `Audit dipendenze Python` | `pip-audit -r requirements.txt --format json --output pip-audit.json` | si | required | Report artifact, nessun segreto. |
-| `.github/workflows/security-supply-chain.yml` | pull_request, workflow_dispatch, schedule | `Audit dipendenze frontend` | `pnpm --filter @iusentra/studio audit --audit-level=critical --prod --json` | si | required | Fallisce su critical production dependency. |
-| `.github/workflows/security-supply-chain.yml` | pull_request, workflow_dispatch, schedule | `Generate SBOM` | `anchore/sbom-action@v0` | si | required | Artifact SBOM SPDX. |
+| `.github/workflows/security-supply-chain.yml` | push, pull_request, workflow_dispatch, schedule | `Audit dipendenze Python` | `pip-audit -r requirements.txt --format json --output pip-audit.json` | si | required | Report artifact, nessun segreto. |
+| `.github/workflows/security-supply-chain.yml` | push, pull_request, workflow_dispatch, schedule | `Audit dipendenze frontend` | `pnpm --filter @iusentra/studio audit --audit-level=critical --prod --json` | si | required | Fallisce su critical production dependency. |
+| `.github/workflows/security-supply-chain.yml` | push, pull_request, workflow_dispatch, schedule | `Generate SBOM` | `anchore/sbom-action@v0` | si | required | Artifact SBOM SPDX. |
 | `.github/workflows/e2e-nightly.yml` | schedule, workflow_dispatch | `E2E full suite` | `run_pytest_phases.py --suite e2e-nightly` | no PR | nightly/manual | Verifica ampia non sostitutiva. |
 | `.github/workflows/performance-nightly.yml` | schedule, workflow_dispatch | `Benchmark runtime leggero` | `tools/performance_smoke.py --strict` | no PR | nightly/manual | Artifact performance JSON. |
 | `.github/workflows/smoke-staging.yml` | workflow_dispatch | `Smoke ambiente` | `smoke_app_v2_all.py --suite post-deploy --read-only --json-output artifacts/smoke/smoke-report.json` su ambiente indicato | manuale/post-deploy | optional/manual | Usa environment `staging`; credenziali solo da secrets se richieste; artifact JSON redatto. |
@@ -39,10 +40,12 @@ ambiente esterno o credenziali smoke.
 ## Gate bloccanti
 
 - Il processo operativo da seguire prima di dichiarare chiusa una consegna è in `docs/COMMIT_PUSH_REQUIRED_GATES.md`. La checklist comprende CodeQL, code scanning, dependency review, supply chain, governance, lint, smoke, Frontend React, Coverage 12/12, Pytest core shardato, Local Signer/PKCS#11 su macOS/Ubuntu/Windows e CI Quality Overlay su `push` e, quando esiste una PR, su `pull_request`.
+- La fonte versionata dei required checks è `.github/required-checks.json`; `tools/check_github_required_gates.py` la usa sia per il report automatico sia per applicare/verificare branch protection sui due branch operativi.
+- Il gate `CI Required Gates / CI reale eseguita sul commit corrente` non sostituisce gli shard: li attende e fallisce se un required check è assente, ancora in corso, fallito, skipped/cancelled o non eseguito sullo SHA corrente.
 - Gli aggregatori ancora presenti, come `CI / Pytest core` e `CI / Local Signer e PKCS#11`, sono riepiloghi: la diagnosi primaria è lo shard reale. Se qualcosa è `Skipped`, controllare prima `Lint + syntax`, `Governance repo` e smoke upstream.
 - Il check aggregatore storico `CI / Coverage moduli critici` senza `parte` è stato eliminato e non deve essere reintrodotto come blocco PR, riepilogo canonico o required check: la coverage critica è governata dalle 12 parti `Coverage moduli critici parte */12`.
 - Se un aggregatore legacy resta visibile per compatibilità di dashboard o storico GitHub, è solo advisory: va annotato nella memoria operativa con lo stato degli shard reali e non può guidare da solo diagnosi, branch protection o chiusura della consegna.
-- Lo status esterno `Vercel` non è un gate di qualità IUSENTRA per questi branch: il deploy reale è Hetzner. Se Vercel resta `failure` come status provider, non dichiarare comunque “CI tutto verde” senza distinguere GitHub Actions reali, CodeQL/security e quello status esterno fuori processo.
+- Lo status esterno `Vercel` non è un gate di qualità IUSENTRA per questi branch: il deploy reale è Hetzner. Il report generato lo classifica come status esterno ignorato, separato dai check GitHub Actions e CodeQL/security. Se Vercel resta `failure`, non usare il combined status GitHub come diagnosi grezza senza questa separazione.
 
 - Backend: install ripetibile Python, import/syntax, lint fatal, smoke Flask, scheduler worker, shard core pytest.
 - Sicurezza backend: `tests/test_auth.py`, `tests/test_backend_security_phase5.py`, `tests/test_tenant_isolation_runtime.py`, `tests/test_app_v2_feature_flags.py`, `tests/test_app_v2_routing.py`.
@@ -69,6 +72,7 @@ ambiente esterno o credenziali smoke.
 | `pip-audit-report` | `security-supply-chain.yml` | report JSON audit Python | 14 giorni | Nessun segreto. |
 | `frontend-pnpm-audit-report` | `security-supply-chain.yml` | report JSON audit pnpm production deps | 14 giorni | Nessun segreto. |
 | `sbom` | `security-supply-chain.yml` | SBOM SPDX JSON | default GitHub | Inventario dipendenze, non contiene credenziali. |
+| `current-sha-required-gates` | `ci-required-gates.yml` | Report Markdown/JSON dei required checks sullo SHA corrente | 14 giorni | Nomi check, esiti e URL GitHub; nessun dato cliente. |
 | `performance-smoke` | `performance-nightly.yml` | tempi benchmark runtime leggero | default GitHub | Nessun dato cliente. |
 | `smoke-staging-reports` | `smoke-staging.yml` | log sanitizzati e `smoke-report.json` ambiente | 14 giorni | Password/token redatti da `smoke_lib.py`; nessun contenuto documento o payload completo. |
 
@@ -121,6 +125,7 @@ Rollback entro 2 ore:
 
 ## Recommended Required Checks
 
+- `CI Required Gates / CI reale eseguita sul commit corrente`
 - `CI / Lint + syntax`
 - `CI / Governance repo`
 - `CI / Smoke test Flask`
@@ -129,9 +134,18 @@ Rollback entro 2 ore:
 - `CI / Coverage moduli critici parte 1/12` fino a `parte 12/12`
 - `CI / E2E smoke`
 - `CI / Local Signer e PKCS#11`
+- `CI / Local Signer e PKCS#11 (macos-latest) parte 1/4` fino a `parte 4/4`
+- `CI / Local Signer e PKCS#11 (ubuntu-latest) parte 1/4` fino a `parte 4/4`
+- `CI / Local Signer e PKCS#11 (windows-latest) parte 1/4` fino a `parte 4/4`
+- `Frontend React CI / Frontend React contratti`
+- `Frontend React CI / Frontend React typecheck`
+- `Frontend React CI / Frontend React build`
 - `Frontend React CI / Frontend React CI`
+- `CI Quality Overlay / quality-gates`
+- `CI Quality Overlay / Targeted tests parte 1/3` fino a `parte 3/3`
 - `CI Quality Overlay / Targeted tests`
 - `CodeQL / Analyze (python)`
+- `Code scanning results / CodeQL`
 - `Dependency Review / Review dipendenze in ingresso`
 - `Security Supply Chain / Audit dipendenze Python`
 - `Security Supply Chain / Audit dipendenze frontend`
@@ -152,9 +166,8 @@ coverage-critical e dependency critical.
 
 1. Storybook è presente come infrastruttura, ma non è copertura visuale completa; VRT resta gap documentato, non gate fittizio.
 2. Smoke autenticati richiedono secrets GitHub dedicati e account smoke reali.
-3. Branch protection non e' codificata come IaC nel repository; i required checks vanno impostati in GitHub.
-4. `pip-audit` non ha baseline legacy: il job e' bloccante su stato corrente e puo' richiedere triage se emergono CVE transitive.
-5. Deploy produzione resta manuale/operativo: non viene introdotto CD automatico distruttivo.
+3. `pip-audit` non ha baseline legacy: il job è bloccante su stato corrente e può richiedere triage se emergono CVE transitive.
+4. Deploy produzione resta operativo post-push: non è un sostituto dei gate qualità e viene verificato dopo che lo SHA ha superato i check GitHub.
 
 ## Fase 12 - Documentazione e handover
 

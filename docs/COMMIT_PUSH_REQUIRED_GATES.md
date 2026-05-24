@@ -13,7 +13,7 @@ Prima di dichiarare concluso un lavoro:
 3. aggiornare changelog, versione e report pertinenti;
 4. committare e pushare il branch di sviluppo;
 5. sincronizzare il branch gemello allo stesso commit;
-6. controllare i gate GitHub del push e, quando esiste una PR, anche della PR;
+6. controllare i gate GitHub del push con `tools/check_github_required_gates.py` e, quando esiste una PR, anche della PR;
 7. registrare esiti verdi e problemi nei report di stato;
 8. fare deploy Hetzner quando richiesto dal flusso corrente e verificare `/api/pronto`;
 9. ripetere `git status --short` prima del report finale: la consegna è vietata se la worktree non è pulita.
@@ -25,6 +25,8 @@ Segnalazione utente del 22 maggio 2026: non deve più ricapitare la situazione i
 Quindi, dopo ogni push, la consegna è vietata finché non sono vere tutte queste condizioni:
 
 - lo SHA corrente è identico su `Codex/legal-electronic-filing-kIxcV`, `claude/legal-electronic-filing-kIxcV` e remoti;
+- i required checks sono quelli versionati in `.github/required-checks.json` e applicati in branch protection sui due branch operativi;
+- il check `CI Required Gates / CI reale eseguita sul commit corrente` è verde e il relativo artifact `current-sha-required-gates` è generato dallo script, non scritto a mano;
 - tutti i check-run GitHub dello SHA corrente sono `completed`;
 - non esistono check-run con `conclusion` diversa da `success` o da uno `skipped` esplicitamente non richiesto;
 - `CodeQL / Analyze (python)` e il check separato `CodeQL` / `Code scanning results / CodeQL` sono verificati sullo SHA corrente;
@@ -45,6 +47,7 @@ foreach ($p in 1..4) {
 $runs | Group-Object status,conclusion
 $runs | Where-Object { $_.conclusion -and $_.conclusion -ne 'success' -and $_.conclusion -ne 'skipped' } |
   Select-Object name,status,conclusion,details_url
+python tools\check_github_required_gates.py --event push --wait --check-branch-protection --report-md artifacts\ci\current-sha-required-gates.md --report-json artifacts\ci\current-sha-required-gates.json
 ```
 
 Se CodeQL resta rosso, non usare annotazioni di commit precedenti: aprire solo le annotazioni del check-run CodeQL dello SHA corrente e correggere quel flusso prima di qualunque dichiarazione finale.
@@ -109,6 +112,11 @@ Quality overlay:
 - `CI Quality Overlay / Targeted tests` su `push` e `pull_request`;
 - `CI Quality Overlay / Targeted tests parte 1/3` fino a `parte 3/3`, su `push` e `pull_request`;
 - `CI Quality Overlay / quality-gates` su `push` e `pull_request`.
+
+Verifica finale:
+
+- `CI Required Gates / CI reale eseguita sul commit corrente` su `push` e `pull_request`, con report automatico Markdown/JSON e status esterni come `Vercel` separati dai gate IUSENTRA;
+- `Deploy su Hetzner CPX42` resta post-push operativo e non sostituisce i gate qualità: si verifica solo dopo che lo SHA ha superato i check GitHub richiesti.
 
 ## Dove registrare
 

@@ -35,6 +35,10 @@ USER_MODULE_PATTERNS = (
     "kb_98_top9_set6_parte2.json",
     "kb_98_top9_set7_parte1.json",
     "kb_98_top9_set7_parte2.json",
+    "kb_98_top9_set8_parte1.json",
+    "kb_98_top9_set8_parte2.json",
+    "kb_98_top9_set9_parte1.json",
+    "kb_98_top9_set9_parte2.json",
 )
 
 CONTROLLED_FIELDS: dict[str, list[list[str]]] = {
@@ -56,6 +60,8 @@ CONTROLLED_FIELDS: dict[str, list[list[str]]] = {
     "esiti_processuali_tipici": [["esiti_processuali_tipici"], ["esiti_processuali_attesi"]],
     "normativa": [["normativa"]],
     "atto_principale": [["atto_principale"]],
+    "fonti_verifica_web": [["fonti_verifica_web"]],
+    "presidi_operativi_integrativi": [["presidi_operativi_integrativi"]],
 }
 
 SCALAR_VALUE_FIELDS = {"denominazione", "categoria", "sottocategoria", "rito", "competenza"}
@@ -79,6 +85,8 @@ FIELD_LABELS_FOR_LEX = {
     "esiti_processuali_tipici": "Esiti processuali tipici",
     "normativa": "Normativa letta dalla scheda",
     "atto_principale": "Atto principale",
+    "fonti_verifica_web": "Fonti ufficiali web collegate alla guida",
+    "presidi_operativi_integrativi": "Presidi operativi integrativi",
 }
 
 STANDARD_TOP_LEVEL = {
@@ -122,6 +130,9 @@ STANDARD_TOP_LEVEL = {
     "guida_interna_non_depositabile",
     "depositabile",
     "nota_integrazione_iusentra",
+    "fonti_verifica_web",
+    "presidi_operativi_integrativi",
+    "arricchimento_iusentra",
     "_source_file",
     "_source_files",
     "_macro_area_id",
@@ -266,6 +277,10 @@ def _field_ui_supported(field: str, component_text: str) -> bool:
         return True
     if field in {"normativa", "atto_principale"}:
         return True
+    if field == "fonti_verifica_web":
+        return "Fonti ufficiali verificate" in component_text and "fonti_verifica_web" in component_text
+    if field == "presidi_operativi_integrativi":
+        return "Presidi operativi integrativi" in component_text and "presidi_operativi_integrativi" in component_text
     if field == "obbligo_mediazione":
         return "obbligo_mediazione" in component_text or "obbligo_mediazione_o_negoziazione_assistita" in component_text
     return field in component_text
@@ -316,6 +331,10 @@ def _audit_rows() -> tuple[list[dict[str, Any]], dict[str, Any]]:
             if field in FIELD_LABELS_FOR_LEX:
                 label = FIELD_LABELS_FOR_LEX[field]
                 lex_supported = label in lex_content or (field == "obbligo_mediazione" and "Obbligo mediazione o negoziazione" in lex_content)
+                if field == "fonti_verifica_web":
+                    lex_supported = "Fonti ufficiali web collegate alla guida" in lex_content
+                if field == "presidi_operativi_integrativi":
+                    lex_supported = "Presidi operativi integrativi" in lex_content
                 if field == "avvertimenti_obbligatori":
                     lex_supported = "Avvertimenti obbligatori della guida" in lex_content or "Avvertimenti redazionali obbligatori" in lex_content
             elif field.startswith("specialistica:"):

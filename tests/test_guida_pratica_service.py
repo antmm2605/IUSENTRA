@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -377,6 +378,128 @@ def test_top9_set7_integrates_guides_without_corrupting_official_codes():
     assert service.get_guidance("142001")["denominazione"] == "Prestazione d'opera intellettuale"
     assert service.get_guidance("100001")["codice_deposito"]["depositabile"] is True
     assert service.get_guidance("145013")["codice_deposito"]["depositabile"] is True
+
+
+def test_top9_set8_set9_integrates_guides_without_corrupting_official_codes():
+    service = GuidaPraticaService(kb_path=FULL_KB)
+
+    official_codes = {
+        "510001": "Espropriazione mobiliare presso il debitore",
+        "015011": "Provvedimento d'urgenza",
+        "170002": "Azione di nullità o decadenza del brevetto",
+        "511012": "Esecuzione per consegna o rilascio",
+    }
+    for codice, expected_label in official_codes.items():
+        guida = service.get_guidance(codice)
+
+        assert guida["coverage"]["level"] == "curata"
+        assert guida["codice_deposito"]["depositabile"] is True
+        assert expected_label in guida["denominazione"]
+        assert any(("kb_98_top9_set8" in source or "kb_98_top9_set9" in source) for source in (guida.get("_source_files") or []))
+        assert guida["atto_principale"]["campi_obbligatori"]
+
+    aliases = {
+        "GUIDA_DIVISIONE_COMUNIONE_ORDINARIA_130070": "130070",
+        "GUIDA_NULLITA_CLAUSOLE_BANCARIE_ANATOCISMO_USURA_142005": "142005",
+        "GUIDA_MOBBING_STRAINING_DANNO_LAVORATORE_220050": "220050",
+        "GUIDA_ASSICURAZIONE_INDENNIZZO_RISOLUZIONE_140030": "140030",
+        "GUIDA_COLLAZIONE_EREDITARIA_121005": "121005",
+        "GUIDA_RESPONSABILITA_MEDICO_SANITARIA_160040": "160040",
+        "GUIDA_APPALTO_VIZI_DIFFORMITA_GARANZIA_143005": "143005",
+        "GUIDA_SERVITU_PREDIALI_130013": "130013",
+        "GUIDA_VOLONTARIA_GIURISDIZIONE_MINORI_AUTORIZZAZIONI_414001": "414001",
+        "GUIDA_DIFETTO_CONFORMITA_BENI_CONSUMO_140005": "140005",
+        "GUIDA_LICENZIAMENTO_GMO_220005": "220005",
+        "GUIDA_ESECUZIONE_OBBLIGHI_FARE_NON_FARE_511020": "511020",
+        "GUIDA_ADOZIONE_MAGGIORENNE_412001": "412001",
+        "GUIDA_PETIZIONE_RECLAMO_STATO_FAMILIARE_123001": "123001",
+    }
+    for alias, original_code in aliases.items():
+        guida = service.get_guidance(alias)
+        checklist = service.get_checklist(alias, {})
+
+        assert not looks_like_codice_oggetto_pst(alias)
+        assert codice_oggetto_pst_entry(alias) is None
+        assert guida["coverage"]["level"] == "curata"
+        assert guida["codice_deposito"]["depositabile"] is False
+        assert checklist["pronto_per_generazione"] is False
+        assert guida["guida_interna_non_depositabile"] is True
+        assert guida["depositabile"] is False
+        assert guida["codice_originale_ricevuto"] == original_code
+        assert any(("kb_98_top9_set8" in source or "kb_98_top9_set9" in source) for source in (guida.get("_source_files") or []))
+
+    assert "retribuzione" in service.get_guidance("220050")["denominazione"].casefold()
+    assert service.get_guidance("220101")["codice_deposito"]["depositabile"] is True
+    assert service.get_guidance("512020")["codice_deposito"]["depositabile"] is True
+
+
+def test_web_enrichment_extends_all_existing_guides_without_changing_deposit_code():
+    service = GuidaPraticaService(kb_path=FULL_KB)
+
+    cases = {
+        "010001": ("Portale Servizi Telematici", "Codice di procedura civile"),
+        "GUIDA_NULLITA_CLAUSOLE_BANCARIE_ANATOCISMO_USURA_142005": ("Arbitro Bancario Finanziario", "mediazione"),
+        "GUIDA_ASSICURAZIONE_INDENNIZZO_RISOLUZIONE_140030": ("Arbitro Assicurativo", "negoziazione assistita"),
+        "GUIDA_RESPONSABILITA_MEDICO_SANITARIA_160040": ("responsabilità sanitaria", "mediazione"),
+        "GUIDA_LICENZIAMENTO_GMO_220005": ("licenziamenti individuali", "Statuto dei lavoratori"),
+        "GUIDA_VOLONTARIA_GIURISDIZIONE_MINORI_AUTORIZZAZIONI_414001": ("Tribunale per i Minorenni", "Codice civile"),
+    }
+    for codice, expected_fragments in cases.items():
+        guida = service.get_guidance(codice)
+        sources_text = json.dumps(guida.get("fonti_verifica_web"), ensure_ascii=False)
+
+        assert guida["coverage"]["level"] == "curata"
+        assert guida["fonti_verifica_web"]
+        assert guida["presidi_operativi_integrativi"]["deposito"]["regola"].startswith("Il codice deposito resta sempre")
+        assert guida["arricchimento_iusentra"]["non_bloccante"] is True
+        for expected in expected_fragments:
+            assert expected in sources_text
+
+    official = service.get_guidance("010001")
+    internal = service.get_guidance("GUIDA_NULLITA_CLAUSOLE_BANCARIE_ANATOCISMO_USURA_142005")
+
+    assert official["codice_deposito"]["depositabile"] is True
+    assert internal["codice_deposito"]["depositabile"] is False
+
+
+def test_rinvio_dettagli_materializza_la_scheda_riferita(tmp_path: Path):
+    kb_path = tmp_path / "kb.json"
+    kb_path.write_text(
+        json.dumps(
+            {
+                "codici_materia": [
+                    {
+                        "codice": "111111",
+                        "denominazione": "Scheda completa richiamata",
+                        "atto_principale": {
+                            "denominazione": "Ricorso completo",
+                            "campi_obbligatori": [{"id": "fatto", "label": "Fatto", "required": True}],
+                        },
+                        "allegati_obbligatori": [{"id": "documento_base", "label": "Documento base", "required": True}],
+                        "adempimenti_propedeutici": [{"step": 1, "azione": "Verificare il presupposto"}],
+                    },
+                    {
+                        "codice": "222222",
+                        "denominazione": "Scheda con rinvio",
+                        "rinvio_dettagli": "Vedi kb_01 codice 111111",
+                        "atto_principale": {"denominazione": "Ricorso specializzato"},
+                    },
+                ]
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    service = GuidaPraticaService(kb_path=kb_path, catalog_records=[])
+
+    guida = service.get_guidance("222222")
+
+    assert guida["codice"] == "222222"
+    assert guida["denominazione"] == "Scheda con rinvio"
+    assert guida["_rinvio_dettagli_risolto"]["codice"] == "111111"
+    assert guida["atto_principale"]["denominazione"] == "Ricorso specializzato"
+    assert any(field["id"] == "fatto" for field in guida["atto_principale"]["campi_obbligatori"])
+    assert any(item["id"] == "documento_base" for item in guida["allegati_obbligatori"])
 
 
 def test_fascicolo_without_code_gets_practical_suggestion_from_object():

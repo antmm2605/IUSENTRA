@@ -1215,8 +1215,28 @@ export default function App() {
   const [loading,setLoading]=useState(!effectiveStandalonePage)
   const [mailSyncing,setMailSyncing]=useState(false)
   const [sidebarCollapsed,setSidebarCollapsed]=useState(false)
+  const [guidePanelExpanded,setGuidePanelExpanded]=useState(false)
   const [mobileMenuOpen,setMobileMenuOpen]=useState(false)
   const [mobileNavCollapsed,setMobileNavCollapsed]=useState(false)
+  useEffect(()=>{
+    const onGuidePanel = (event: Event) => {
+      const detail = (event as CustomEvent<{ expanded?: boolean }>).detail
+      setGuidePanelExpanded(Boolean(detail?.expanded))
+    }
+    window.addEventListener('iusentra:guida-pratica-panel', onGuidePanel)
+    return()=>window.removeEventListener('iusentra:guida-pratica-panel', onGuidePanel)
+  },[])
+  useEffect(()=>{
+    if(!isFascicoliPage){
+      setGuidePanelExpanded(false)
+      return
+    }
+    if(guidePanelExpanded){
+      setSidebarCollapsed(true)
+    } else {
+      setSidebarCollapsed(false)
+    }
+  },[guidePanelExpanded,isFascicoliPage])
   useEffect(()=>{
     if(effectiveStandalonePage){
       setLoading(false)
@@ -1254,7 +1274,7 @@ export default function App() {
   }
   return (
     <AppErrorBoundary>
-      <div className={`iu-shell ${sidebarCollapsed?'iu-shell--collapsed':''} ${isPresetExcludedPage?'iusentra-preset-excluded':'iusentra-preset-active'}`} data-iusentra-preset-root={isPresetExcludedPage?'excluded':'active'}>
+      <div className={`iu-shell ${sidebarCollapsed?'iu-shell--collapsed':''} ${guidePanelExpanded && isFascicoliPage?'iu-shell--guide-open':''} ${isPresetExcludedPage?'iusentra-preset-excluded':'iusentra-preset-active'}`} data-iusentra-preset-root={isPresetExcludedPage?'excluded':'active'}>
         <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileMenuOpen} activePath={activePath} onToggle={()=>setSidebarCollapsed(v=>!v)} onCloseMobile={()=>setMobileMenuOpen(false)} bootstrap={shellBootstrap} appV2Navigation={appV2FlagProtectedPath}/>
         {mobileMenuOpen?<button className="iu-sidebar-scrim" type="button" aria-label="Chiudi menu" onClick={()=>setMobileMenuOpen(false)}/>:null}
         <div className="iu-main">

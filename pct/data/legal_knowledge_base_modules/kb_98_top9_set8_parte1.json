@@ -1,0 +1,2973 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET8_PARTE1",
+  "denominazione": "Ottavo set di 9 codici - PARTE 1 di 2",
+  "registri": [
+    "SICID",
+    "SIECIC",
+    "SILP"
+  ],
+  "data_generazione": "2026-05-23",
+  "scopo": "Parte 1 dell'ottavo set TOP9: divisione comunione ordinaria, espropriazione mobiliare presso debitore, nullità clausole bancarie/anatocismo/usura, mobbing/straining, provvedimento d'urgenza 700",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_DIVISIONE_COMUNIONE_ORDINARIA_130070",
+      "denominazione": "Divisione giudiziale di comunione ordinaria (artt. 1111-1116 c.c. + 784-791 c.p.c.)",
+      "categoria": "Diritti reali - comunione",
+      "sottocategoria": "Scioglimento giudiziale della comunione ordinaria su beni - differente dalla divisione ereditaria",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA ex art. 5 c. 1-bis D.Lgs. 28/2010",
+      "competenza": "Tribunale del luogo dell'immobile (art. 21 c.p.c. - foro esclusivo per immobili); per altri beni: foro generale convenuto",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1100",
+          "descrizione": "Comunione - definizione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1101",
+          "descrizione": "Quote dei partecipanti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1102",
+          "descrizione": "Uso della cosa comune"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1103",
+          "descrizione": "Disposizione della quota"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1104",
+          "descrizione": "Obblighi dei partecipanti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1108",
+          "descrizione": "Innovazioni e altri atti eccedenti ordinaria amministrazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1109",
+          "descrizione": "Impugnazione delle deliberazioni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1111",
+          "descrizione": "Scioglimento della comunione - sempre richiedibile"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1112",
+          "descrizione": "Cose indivisibili - vendita all'incanto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1113",
+          "descrizione": "Intervento dei creditori e degli aventi causa"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1114",
+          "descrizione": "Divisione in natura"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1115",
+          "descrizione": "Obbligazioni divisibili - pagamento debiti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1116",
+          "descrizione": "Norme applicabili - rinvio a divisione ereditaria"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "713-768",
+          "descrizione": "Divisione ereditaria - norme applicabili per rinvio"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "784-791",
+          "descrizione": "Procedimento di divisione giudiziale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2825",
+          "descrizione": "Ipoteca su quota indivisa"
+        },
+        {
+          "fonte": "Cass. SU 25021/2019",
+          "descrizione": "Divisione - differenza con divisione ereditaria"
+        }
+      ],
+      "differenza_da_divisione_ereditaria_121003": {
+        "divisione_ereditaria": "Scioglimento comunione ereditaria - presuppone successione - foro luogo apertura successione (art. 22) - collazione obbligatoria - cause specifiche dell'eredità",
+        "divisione_comunione_ordinaria": "Scioglimento comunione su beni acquistati in vita (compravendita, donazione, costituzione) - foro luogo immobile (art. 21) - solo regole codicistiche 1111-1116",
+        "norme_comuni": "Per molti aspetti procedurali si applicano per rinvio le norme della divisione ereditaria (art. 1116 c.c.)"
+      },
+      "presupposti_sostanziali": [
+        "ESISTENZA DI COMUNIONE ORDINARIA su beni (immobili, mobili, partecipazioni, crediti)",
+        "DIRITTO POTESTATIVO ALLO SCIOGLIMENTO ex art. 1111 c. 1 c.c. - SEMPRE richiedibile (salvo patto di indivisione max 10 anni)",
+        "LITISCONSORZIO NECESSARIO con tutti gli altri comproprietari",
+        "Eventuale presenza di CREDITORI/AVENTI CAUSA da chiamare ex art. 1113",
+        "Per beni indivisibili: vendita all'incanto ex art. 1112"
+      ],
+      "tipologie_di_comunione_oggetto": [
+        "Beni acquistati in COMPROPRIETÀ tra due o più persone (compravendita pro indiviso)",
+        "Beni ricevuti in DONAZIONE a più persone",
+        "Beni costituiti tramite ATTI DI COMUNIONE volontaria",
+        "Comunione di azienda (es. tra ex conviventi)",
+        "Comunione di partecipazioni societarie",
+        "Comunione di crediti",
+        "Comunione tra ex coniugi su beni acquistati durante il matrimonio (al cessare del regime comunione legale)"
+      ],
+      "modalita_di_divisione": [
+        "DIVISIONE IN NATURA (preferita ex art. 1114 c.c.) - assegnazione di porzioni materiali",
+        "ATTRIBUZIONE INTERA con CONGUAGLIO in denaro a favore degli altri",
+        "PER BENI INDIVISIBILI: VENDITA ALL'INCANTO con ripartizione del ricavato (art. 1112)",
+        "DIVISIONE MISTA: alcuni beni in natura + altri venduti"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "DIRITTI REALI / DIVISIONE",
+        "natura": "condizione di procedibilità"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE DELLA COMUNIONE",
+          "documenti": [
+            "Atto/atti di acquisto in compropriéta",
+            "Visure catastali (per immobili)",
+            "Ispezioni Conservatoria",
+            "Note di trascrizione",
+            "Eventuali atti di divisione parziali pregressi",
+            "Quote di proprietà di ciascun comproprietario"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "IDENTIFICAZIONE COMPROPRIETARI",
+          "elementi": [
+            "Elenco completo di tutti i comproprietari (litisconsorzio necessario)",
+            "Per ciascuno: quota di proprietà",
+            "Identificazione eventuali deceduti + eredi (in tal caso litisconsorzio anche con eredi)",
+            "Eventuali atti di trasferimento delle quote individuali (art. 1103)"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "STIMA DEI BENI",
+          "elementi": [
+            "Perizia estimativa di parte (consigliata)",
+            "Valori di mercato attuali",
+            "Eventuali peculiarità (vincoli, gravami, ipoteche)",
+            "Stima di eventuali miglioramenti apportati"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "INDIVIDUAZIONE EVENTUALI CREDITORI/AVENTI CAUSA da chiamare",
+          "norma": "art. 1113 c.c.",
+          "elementi": [
+            "Creditori dei singoli comproprietari (ipotecari/pignoranti)",
+            "Aventi causa dai comproprietari per atti antecedenti la divisione"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "VALUTAZIONE MODALITÀ DIVISIONE",
+          "criteri": [
+            "Divisibilità tecnica del bene (per immobili: frazionamento possibile?)",
+            "Esistenza di accordi tra le parti su attribuzione",
+            "Eventuali peculiarità del bene (es. azienda funzionante che si vuole mantenere)",
+            "Convenienza economica delle diverse opzioni"
+          ]
+        },
+        {
+          "step": 6,
+          "descrizione": "ATTIVAZIONE MEDIAZIONE OBBLIGATORIA",
+          "vantaggio_strategico": "In materia di divisione spesso porta ad accordi - notevole risparmio di tempo"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_divisione_giudiziale_comunione_ordinaria",
+        "denominazione": "Atto di citazione per scioglimento di comunione ordinaria ex art. 1111 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del luogo immobile (per immobili)",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore_richiedente_divisione",
+            "label": "Attore richiedente divisione",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "comproprietari_convenuti",
+            "label": "Comproprietari convenuti (LITISCONSORTI NECESSARI)",
+            "type": "array_persone",
+            "required": true,
+            "min_items": 1,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "codice_fiscale",
+                "type": "string"
+              },
+              {
+                "id": "residenza",
+                "type": "address"
+              },
+              {
+                "id": "quota_di_proprieta",
+                "type": "fraction",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "creditori_e_aventi_causa",
+            "label": "Creditori e aventi causa da chiamare (art. 1113)",
+            "type": "array_persone"
+          },
+          {
+            "id": "beni_in_comunione",
+            "label": "Beni in comunione",
+            "type": "array",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_bene",
+                "type": "select",
+                "options": [
+                  "immobile",
+                  "azienda",
+                  "mobili_di_valore",
+                  "partecipazioni_societarie",
+                  "crediti",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione",
+                "type": "textarea"
+              },
+              {
+                "id": "ubicazione_se_immobile",
+                "type": "address"
+              },
+              {
+                "id": "dati_catastali_se_immobile",
+                "type": "object"
+              },
+              {
+                "id": "valore_stimato",
+                "type": "currency"
+              },
+              {
+                "id": "atto_di_provenienza",
+                "type": "string"
+              },
+              {
+                "id": "eventuali_gravami_o_ipoteche",
+                "type": "textarea"
+              },
+              {
+                "id": "divisibile_in_natura",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "origine_della_comunione",
+            "label": "Origine della comunione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "acquisto_in_comproprieta_inter_vivos",
+              "donazione_a_piu_persone",
+              "atto_di_costituzione_comunione",
+              "comunione_post_scioglimento_regime_comunione_legale",
+              "comunione_di_azienda_tra_ex_conviventi",
+              "altro"
+            ]
+          },
+          {
+            "id": "modalita_divisione_proposta",
+            "label": "Modalità divisione proposta",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_divisione",
+                "type": "select",
+                "options": [
+                  "divisione_in_natura_1114",
+                  "attribuzione_intera_con_conguaglio",
+                  "vendita_all_incanto_per_indivisibilita_1112",
+                  "divisione_mista"
+                ]
+              },
+              {
+                "id": "progetto_di_divisione_proposto",
+                "type": "textarea"
+              },
+              {
+                "id": "eventuali_conguagli_proposti",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "dichiarazione_scioglimento_comunione",
+              "divisione_in_natura_dei_beni",
+              "vendita_all_incanto_per_beni_indivisibili",
+              "attribuzione_di_singoli_beni_con_conguaglio",
+              "determinazione_dei_conguagli_in_denaro",
+              "nomina_notaio_per_redazione_atto_divisionale",
+              "regolamento_dei_frutti",
+              "rendiconto_amministrazione_pregressa",
+              "spese_di_lite_da_ripartire_per_quote"
+            ]
+          },
+          {
+            "id": "richiesta_ctu_estimativa",
+            "label": "Richiesta CTU estimativa",
+            "type": "boolean",
+            "default": true,
+            "fortemente_consigliato": true
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "DIRITTO POTESTATIVO ALLO SCIOGLIMENTO - sempre richiedibile (art. 1111)",
+          "LITISCONSORZIO NECESSARIO con tutti i comproprietari",
+          "Chiamata creditori/aventi causa ex art. 1113 (opponibilità divisione)",
+          "Foro esclusivo del luogo immobile (art. 21 c.p.c.)",
+          "Mediazione obbligatoria preventiva (materia diritti reali)",
+          "Divisione in natura preferita ex art. 1114 c.c.",
+          "Vendita all'incanto solo per beni indivisibili (art. 1112)",
+          "Patto di indivisione massimo 10 anni - oltre, nullo"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atto_di_acquisto_in_comproprieta",
+          "label": "Atto di acquisto in comproprietà",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "visure_catastali_attuali",
+          "label": "Visure catastali aggiornate",
+          "required": true
+        },
+        {
+          "id": "ispezioni_conservatoria_complete",
+          "label": "Ispezioni Conservatoria complete",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_estimativa_di_parte",
+          "label": "Perizia estimativa di parte",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "documentazione_proprieta_di_tutti_comproprietari",
+          "label": "Documentazione delle quote di tutti i comproprietari",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documenti_su_eventuali_atti_dispositivi_delle_quote",
+          "label": "Documenti su eventuali atti dispositivi delle quote",
+          "required": false
+        },
+        {
+          "id": "documenti_su_eredi_di_comproprietari_deceduti",
+          "label": "Documentazione su eredi di comproprietari deceduti",
+          "required_if": "comproprietari_deceduti"
+        },
+        {
+          "id": "rilievi_topografici_per_divisione_in_natura",
+          "label": "Rilievi topografici per progetto divisione in natura",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbale_mediazione_negativa",
+          "label": "Verbale mediazione obbligatoria conclusa negativamente",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore della massa da dividere",
+        "marca_bollo_forfettaria": 27.0,
+        "tasse_di_registro_per_atto_divisionale": "Imposta di registro fissa o proporzionale a seconda di conguagli",
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ricorso_mediazione_obbligatoria",
+          "trigger": "Condizione procedibilità preliminare"
+        },
+        {
+          "tipo": "ctu_estimativa_immobiliare_e_progetto_divisionale",
+          "trigger": "Disposta dal giudice",
+          "automatico": false,
+          "centrale_per_decisione": true
+        },
+        {
+          "tipo": "vendita_all_incanto_per_beni_indivisibili",
+          "trigger": "Per beni non divisibili in natura",
+          "norma": "art. 1112 c.c."
+        },
+        {
+          "tipo": "intervento_creditori_ex_1113",
+          "trigger": "Chiamata creditori",
+          "automatico": false,
+          "obbligatorio": true
+        },
+        {
+          "tipo": "atto_notarile_divisionale",
+          "trigger": "Recepimento sentenza",
+          "automatico": false
+        },
+        {
+          "tipo": "trascrizione_atto_divisionale",
+          "trigger": "Per immobili",
+          "norma": "art. 2646 c.c."
+        },
+        {
+          "tipo": "azione_di_garanzia_dopo_divisione",
+          "trigger": "Vizi/evizione dei beni divisi",
+          "norma": "artt. 758 e ss. c.c. (per rinvio 1116)"
+        },
+        {
+          "tipo": "rescissione_per_lesione_oltre_quarto",
+          "trigger": "Lesione oltre 1/4 ex art. 763 c.c.",
+          "termine": "2 anni"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "sentenza_divisionale_in_natura",
+          "descrizione": "Assegnazione porzioni materiali con eventuali conguagli"
+        },
+        {
+          "esito": "sentenza_di_attribuzione_con_conguaglio",
+          "descrizione": "Bene intero a un comproprietario + conguaglio in denaro agli altri"
+        },
+        {
+          "esito": "vendita_all_incanto_dei_beni_indivisibili",
+          "descrizione": "Per beni non divisibili - ripartizione ricavato"
+        },
+        {
+          "esito": "transazione_e_atto_divisionale_consensuale",
+          "descrizione": "Accordo tra le parti - molto frequente"
+        },
+        {
+          "esito": "estinzione_per_alienazione_di_quote_a_uno",
+          "descrizione": "Uno acquisisce tutte le quote - cessa la comunione"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "DIRITTO POTESTATIVO ALLO SCIOGLIMENTO",
+          "natura": "imprescrittibile",
+          "norma": "art. 1111 c. 1 c.c."
+        },
+        {
+          "termine": "Patto di indivisione - max",
+          "anni": 10,
+          "norma": "art. 1111 c. 2 c.c."
+        },
+        {
+          "termine": "Rescissione per lesione oltre 1/4",
+          "anni": 2,
+          "decorrenza": "divisione",
+          "natura": "decadenziale",
+          "norma": "art. 763 c.c."
+        },
+        {
+          "termine": "Mediazione obbligatoria - max",
+          "giorni": 90
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "130070",
+      "codice_logico": "GUIDA_DIVISIONE_COMUNIONE_ORDINARIA_130070",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [
+        "131011",
+        "130001",
+        "120011"
+      ],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda riguarda la divisione della comunione ordinaria, mentre il deposito va scelto tra i codici ufficiali di divisione/diritti reali pertinenti.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130070"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130070"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130070"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 4 marzo 2010, n. 28, art. 5 - mediazione civile e commerciale",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;28~art5=",
+          "ambito": "condizione di procedibilità e materie soggette a mediazione",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130070"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 28 ottobre 1940, n. 1443 - Codice di procedura civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=multivigenza",
+          "ambito": "rito civile, cautelari, opposizioni, esecuzioni, famiglia, volontaria giurisdizione e impugnazioni",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130070"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 16 marzo 1942, n. 262 - Codice civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=multivigenza",
+          "ambito": "famiglia, successioni, diritti reali, contratti, responsabilità, società e persone",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130070"
+        }
+      ]
+    },
+    {
+      "codice": "510001",
+      "denominazione": "Espropriazione mobiliare presso il debitore (artt. 513-542 c.p.c.)",
+      "categoria": "Esecuzioni forzate - espropriazione mobiliare",
+      "sottocategoria": "Pignoramento e vendita di beni mobili presso il debitore esecutato",
+      "rito": "Procedura esecutiva ex artt. 513-542 c.p.c. davanti al Giudice dell'Esecuzione",
+      "competenza": "GIUDICE DELL'ESECUZIONE del luogo in cui si trovano i beni mobili (art. 26 c.p.c.)",
+      "uffici_destinatari": [
+        "SIECIC"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "474",
+          "descrizione": "Titoli esecutivi"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "480",
+          "descrizione": "Precetto"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "513",
+          "descrizione": "Pignoramento mobiliare presso il debitore - cose pignorabili"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "514",
+          "descrizione": "Cose mobili assolutamente impignorabili (suppellettili strettamente necessarie, alimenti)"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "515",
+          "descrizione": "Cose relativamente impignorabili (strumenti necessari per professione - pignorabili max 1/5)"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "516",
+          "descrizione": "Modo del pignoramento"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "518",
+          "descrizione": "Forma del processo verbale"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "519",
+          "descrizione": "Custodia delle cose pignorate"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "521",
+          "descrizione": "Nomina del custode"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "525",
+          "descrizione": "Istanza di vendita o assegnazione"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "530-532",
+          "descrizione": "Vendita all'incanto"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "534-bis",
+          "descrizione": "Vendita senza incanto / con commissionario"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "541-542",
+          "descrizione": "Distribuzione del ricavato"
+        },
+        {
+          "fonte": "L. 3/2012",
+          "descrizione": "Sovraindebitamento - protezione patrimonio impignorabile (modifiche art. 514-515)"
+        },
+        {
+          "fonte": "Cass. SU 4628/2022",
+          "descrizione": "Pignoramento beni in studio professionale - limiti"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI TITOLO ESECUTIVO valido (sentenza, DI definitivo, scrittura privata autenticata, ecc.)",
+        "NOTIFICA DEL TITOLO al debitore (se richiesta - art. 479)",
+        "NOTIFICA DEL PRECETTO al debitore (art. 480)",
+        "DECORSO 10 GG DAL PRECETTO senza pagamento (art. 482)",
+        "TERMINE 90 GG dal precetto per inizio esecuzione (art. 481) - oltre, precetto perde efficacia",
+        "IDENTIFICAZIONE BENI MOBILI PRESSO IL DEBITORE potenzialmente pignorabili"
+      ],
+      "beni_pignorabili_e_impignorabili": {
+        "beni_assolutamente_impignorabili_514": [
+          "Suppellettili strettamente necessarie alla vita (letto, frigo, lavatrice, mobili essenziali, abiti)",
+          "Provviste alimentari per 1 mese",
+          "Strumenti, oggetti e libri indispensabili per la professione",
+          "Decorazioni, medaglie, ricordi personali",
+          "Animali da compagnia"
+        ],
+        "beni_relativamente_impignorabili_515": [
+          "Strumenti per professione/arte/mestiere - pignorabili nella misura di 1/5 (salvo titolo esecutivo per acquisto stesso)",
+          "Cose mobili ubicate in chiesa o luoghi di culto - per debiti diversi da debiti per esse"
+        ],
+        "beni_tipicamente_pignorabili": [
+          "Veicoli (auto, moto, ecc.)",
+          "Oggetti di pregio (gioielli, opere d'arte, oggetti antichi)",
+          "Mobili di particolare valore",
+          "Apparecchiature elettroniche di pregio (oltre l'essenziale)",
+          "Denaro contante e valori",
+          "Macchinari industriali",
+          "Merci e magazzino"
+        ]
+      },
+      "fasi_della_procedura": [
+        "1. ISTANZA DI PIGNORAMENTO all'Ufficiale Giudiziario",
+        "2. ACCESSO DELL'UFFICIALE GIUDIZIARIO presso il debitore",
+        "3. PIGNORAMENTO FISICO - apposizione di vincolo sui beni",
+        "4. VERBALE DI PIGNORAMENTO (art. 518)",
+        "5. CUSTODIA DEI BENI (al debitore stesso o altro custode)",
+        "6. ISCRIZIONE A RUOLO DELLA PROCEDURA presso il Tribunale",
+        "7. ISTANZA DI VENDITA entro 45 gg dall'iscrizione",
+        "8. VENDITA all'incanto o senza incanto",
+        "9. ASSEGNAZIONE eventuale al creditore",
+        "10. DISTRIBUZIONE DEL RICAVATO ai creditori"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Procedura esecutiva - non rientra in mediazione"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione TITOLO ESECUTIVO E PRECETTO",
+          "documenti": [
+            "Titolo esecutivo in forma esecutiva (con formula di esecutorietà)",
+            "Notifica del titolo al debitore (se richiesta)",
+            "Precetto notificato al debitore",
+            "Decorrenza 10 gg dal precetto"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "INDAGINI SUI BENI MOBILI DEL DEBITORE",
+          "modalita": [
+            "Indagini ex art. 492-bis c.p.c. (anagrafe rapporti finanziari, PRA, banche dati)",
+            "Eventuali sopralluoghi precedenti",
+            "Informazioni da terzi (creditori, partner commerciali)",
+            "Per veicoli: visure PRA",
+            "Per beni in studio professionale: limiti specifici"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "VERIFICA DI CONVENIENZA",
+          "elementi": [
+            "Valore stimato dei beni vs spese procedura",
+            "Probabilità di vendita effettiva",
+            "Eventuale presenza altri creditori",
+            "Stato di occupazione/possesso dei beni"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "RICHIESTA ALL'UFFICIALE GIUDIZIARIO",
+          "elementi": [
+            "Indicazione precisa beni da pignorare (se noti)",
+            "Indirizzo completo del debitore",
+            "Eventuali orari di accesso preferibili",
+            "Anticipazione spese UNEP"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "istanza_pignoramento_mobiliare_presso_debitore",
+        "denominazione": "Istanza di pignoramento mobiliare presso il debitore ex art. 513 c.p.c.",
+        "schema_xsd_ministeriale": "AttoEsecuzione.xsd",
+        "campi_chiave": [
+          {
+            "id": "ufficiale_giudiziario_unep",
+            "label": "Ufficiale Giudiziario competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "creditore_procedente",
+            "label": "Creditore procedente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "debitore_esecutato",
+            "label": "Debitore esecutato",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "codice_fiscale",
+                "type": "string"
+              },
+              {
+                "id": "residenza_o_sede_legale",
+                "type": "address"
+              },
+              {
+                "id": "eventuale_attivita_professionale",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "titolo_esecutivo",
+            "label": "Titolo esecutivo",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_titolo",
+                "type": "select"
+              },
+              {
+                "id": "estremi",
+                "type": "string"
+              },
+              {
+                "id": "data_notifica_titolo",
+                "type": "date"
+              },
+              {
+                "id": "formula_esecutoria",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "precetto",
+            "label": "Precetto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_notifica_precetto",
+                "type": "date",
+                "required": true,
+                "critico_per_termine_90_gg": true
+              },
+              {
+                "id": "importo_intimato",
+                "type": "currency"
+              },
+              {
+                "id": "decorrenza_10_gg_rispettata",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "credito_totale_da_recuperare",
+            "label": "Credito totale da recuperare",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "capitale",
+                "type": "currency"
+              },
+              {
+                "id": "interessi_legali_o_di_mora",
+                "type": "currency"
+              },
+              {
+                "id": "spese_e_competenze",
+                "type": "currency"
+              },
+              {
+                "id": "totale",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "luogo_di_pignoramento",
+            "label": "Luogo di pignoramento",
+            "type": "address",
+            "required": true
+          },
+          {
+            "id": "beni_da_pignorare_se_individuati",
+            "label": "Beni da pignorare (se già individuati)",
+            "type": "array",
+            "sub_fields": [
+              {
+                "id": "descrizione",
+                "type": "textarea"
+              },
+              {
+                "id": "valore_stimato",
+                "type": "currency"
+              },
+              {
+                "id": "ubicazione_specifica",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "richieste_specifiche",
+            "label": "Richieste specifiche",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "richiesta_custodia_presso_debitore_o_terzi",
+                "type": "select"
+              },
+              {
+                "id": "richiesta_inventario_dettagliato",
+                "type": "boolean"
+              }
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "TERMINE 90 GG dal precetto per inizio esecuzione (art. 481)",
+          "Decorrenza 10 gg dal precetto prima di iniziare (art. 482)",
+          "Cose IMPIGNORABILI ex art. 514-515 - rispetto rigoroso",
+          "Iscrizione a ruolo entro termine assegnato",
+          "Istanza di vendita entro 45 gg dall'iscrizione"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "titolo_esecutivo_in_originale_o_copia_esecutiva",
+          "label": "Titolo esecutivo in originale o copia esecutiva",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "notifica_titolo_esecutivo",
+          "label": "Notifica del titolo esecutivo al debitore",
+          "required_if": "richiesta_da_art_479"
+        },
+        {
+          "id": "precetto_e_relata_notifica",
+          "label": "Precetto e relata di notifica",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "anticipazione_spese_unep",
+          "label": "Anticipazione spese UNEP",
+          "required": true
+        },
+        {
+          "id": "eventuali_indagini_patrimoniali_492_bis",
+          "label": "Eventuali risultati di indagini ex art. 492-bis",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "elenco_beni_individuati_e_loro_localizzazione",
+          "label": "Elenco dei beni eventualmente già individuati",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore del credito",
+        "marca_bollo_forfettaria": 27.0,
+        "spese_unep": "A carico del creditore - anticipate",
+        "deposito_telematico": "Obbligatorio per iscrizione a ruolo procedura"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "verbale_pignoramento_unep",
+          "trigger": "Esecuzione pignoramento",
+          "automatico": false
+        },
+        {
+          "tipo": "iscrizione_a_ruolo_procedura_siecic",
+          "trigger": "Dopo verbale pignoramento",
+          "automatico": false,
+          "obbligatorio": true
+        },
+        {
+          "tipo": "istanza_di_vendita_525",
+          "trigger": "Entro 45 gg da iscrizione",
+          "automatico": false,
+          "critico": true
+        },
+        {
+          "tipo": "stima_dei_beni_pignorati_518",
+          "trigger": "Dopo pignoramento",
+          "automatico": false
+        },
+        {
+          "tipo": "vendita_con_o_senza_incanto",
+          "trigger": "Esecuzione vendita",
+          "automatico": false
+        },
+        {
+          "tipo": "distribuzione_ricavato_541_542",
+          "trigger": "Dopo vendita - eventuale stato di graduazione",
+          "automatico": false
+        },
+        {
+          "tipo": "opposizione_esecuzione_615_c_2",
+          "trigger": "Debitore contesta merito",
+          "codice_correlato": "100011"
+        },
+        {
+          "tipo": "opposizione_atti_esecutivi_617",
+          "trigger": "Per vizi formali",
+          "termine": "20 gg"
+        },
+        {
+          "tipo": "opposizione_terzo_619",
+          "trigger": "Bene di proprietà di terzo",
+          "automatico": false
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "soddisfacimento_integrale_del_credito",
+          "descrizione": "Vendita beni copre integralmente credito + spese"
+        },
+        {
+          "esito": "soddisfacimento_parziale",
+          "descrizione": "Ricavato insufficiente - parte residua del credito"
+        },
+        {
+          "esito": "pignoramento_negativo",
+          "descrizione": "Nessun bene pignorabile rinvenuto - chiusura procedura"
+        },
+        {
+          "esito": "estinzione_per_pagamento_in_corso_procedura",
+          "descrizione": "Debitore paga - estinzione esecuzione"
+        },
+        {
+          "esito": "rinuncia_del_creditore",
+          "descrizione": "Convenienza non più sussistente"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "10 GG dal precetto prima di iniziare",
+          "giorni": 10,
+          "decorrenza": "notifica precetto",
+          "natura": "termine sospensivo",
+          "norma": "art. 482 c.p.c."
+        },
+        {
+          "termine": "INIZIO ESECUZIONE dopo precetto",
+          "giorni": 90,
+          "decorrenza": "notifica precetto",
+          "natura": "DECADENZIALE",
+          "norma": "art. 481 c.p.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Iscrizione a ruolo dopo pignoramento",
+          "giorni": 15,
+          "natura": "decadenziale"
+        },
+        {
+          "termine": "Istanza di vendita",
+          "giorni": 45,
+          "decorrenza": "iscrizione a ruolo",
+          "natura": "decadenziale",
+          "norma": "art. 525 c.p.c."
+        },
+        {
+          "termine": "Opposizione 617 vizi formali",
+          "giorni": 20,
+          "natura": "decadenziale"
+        }
+      ],
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "510001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "510001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "510001"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 28 ottobre 1940, n. 1443 - Codice di procedura civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=multivigenza",
+          "ambito": "rito civile, cautelari, opposizioni, esecuzioni, famiglia, volontaria giurisdizione e impugnazioni",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "510001"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_NULLITA_CLAUSOLE_BANCARIE_ANATOCISMO_USURA_142005",
+      "denominazione": "Nullità clausole bancarie / anatocismo / usura / azione restitutoria",
+      "categoria": "Diritto bancario - contenzioso clausole abusive",
+      "sottocategoria": "Azione del cliente bancario per nullità clausole + restituzione di indebito",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA",
+      "competenza": "Tribunale - foro residenza convenuto banca o foro consumatore (se cliente consumatore)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1283",
+          "descrizione": "Anatocismo - divieto di interessi su interessi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1284",
+          "descrizione": "Saggio interessi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1418",
+          "descrizione": "Nullità del contratto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2033",
+          "descrizione": "Ripetizione dell'indebito"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2034",
+          "descrizione": "Obbligazioni naturali"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2935",
+          "descrizione": "Inizio della prescrizione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2946",
+          "descrizione": "Prescrizione ordinaria decennale"
+        },
+        {
+          "fonte": "TUB D.Lgs. 385/1993",
+          "articolo": "117",
+          "descrizione": "Forma e contenuto dei contratti bancari - nullità violazione forma scritta"
+        },
+        {
+          "fonte": "TUB",
+          "articolo": "118",
+          "descrizione": "Modifica unilaterale condizioni - jus variandi"
+        },
+        {
+          "fonte": "TUB",
+          "articolo": "120",
+          "descrizione": "Capitalizzazione interessi - regole post-CICR 2000 e 2016"
+        },
+        {
+          "fonte": "TUB",
+          "articolo": "122",
+          "descrizione": "Credito al consumo"
+        },
+        {
+          "fonte": "TUB",
+          "articolo": "127",
+          "descrizione": "Nullità di protezione - rilevabilità nel solo interesse cliente"
+        },
+        {
+          "fonte": "L. 108/1996",
+          "descrizione": "Disciplina usura - tasso soglia, indici di rilevazione"
+        },
+        {
+          "fonte": "L. 24/2017",
+          "descrizione": "Anatocismo - art. 120 TUB modificato"
+        },
+        {
+          "fonte": "Delibera CICR 9/2/2000",
+          "descrizione": "Anatocismo nelle operazioni bancarie - oggi superata"
+        },
+        {
+          "fonte": "Delibera CICR 343/2016",
+          "descrizione": "Modalità capitalizzazione interessi post L. 24/2017"
+        },
+        {
+          "fonte": "Cass. SU 24675/2017",
+          "descrizione": "Usura SOPRAVVENUTA - non determina nullità (orientamento confermato)"
+        },
+        {
+          "fonte": "Cass. SU 19597/2020",
+          "descrizione": "Anatocismo bancario - inammissibilità capitalizzazione trimestrale (pre 2000)"
+        },
+        {
+          "fonte": "Cass. SU 4498/2024",
+          "descrizione": "Interessi di mora - inclusione nel calcolo TEG e tasso soglia usura"
+        },
+        {
+          "fonte": "Cass. SU 23445/2024",
+          "descrizione": "Prescrizione restituzione - rimesse solutorie e rimesse ripristinatorie"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI UN RAPPORTO BANCARIO (conto corrente, mutuo, leasing, credito al consumo, ecc.)",
+        "PRESENZA DI CLAUSOLE NULLE o CALCOLI INDEBITI:",
+        "- ANATOCISMO illegittimo (capitalizzazione interessi non conforme normativa)",
+        "- USURA originaria o sopravvenuta (taglio soglia superato)",
+        "- COMMISSIONI ILLEGITTIME (massimo scoperto, ecc.)",
+        "- VIOLAZIONE TRASPARENZA TUB (mancanza forma scritta, omessa indicazione condizioni)",
+        "- CLAUSOLE VESSATORIE per consumatori",
+        "DIRITTO ALLA RESTITUZIONE DELL'INDEBITO ex art. 2033 c.c.",
+        "TERMINE PRESCRIZIONALE 10 ANNI dal pagamento (con regole peculiari per conto corrente)"
+      ],
+      "tipologie_di_contestazione_tipiche": {
+        "anatocismo": [
+          "Capitalizzazione trimestrale interessi su conto corrente - illegittima per pre-Delibera CICR 9/2/2000",
+          "Capitalizzazione errata post 2000 in violazione regole",
+          "Anatocismo su mutui - in violazione norme specifiche"
+        ],
+        "usura": [
+          "TASSO SOGLIA SUPERATO (con interessi di mora inclusi - Cass. SU 4498/2024)",
+          "TEG calcolato in modo conforme alle istruzioni Banca d'Italia",
+          "USURA ORIGINARIA: contratto nullo da art. 1815 c.c. comma 2 - interessi non dovuti",
+          "USURA SOPRAVVENUTA: non causa nullità (Cass. SU 24675/2017) ma può rilevare diversamente"
+        ],
+        "commissioni_illegittime": [
+          "Commissioni di massimo scoperto (oggi modificate per legge - commissioni di affidamento)",
+          "Commissioni di istruttoria",
+          "Spese tenuta conto non concordate o eccessive",
+          "Spese di chiusura conto"
+        ],
+        "violazioni_tub_117": [
+          "Mancanza di forma scritta nel contratto",
+          "Omessa indicazione delle condizioni economiche",
+          "Jus variandi (modifica unilaterale) non rispettoso art. 118",
+          "Determinazione tasso 'usi su piazza' (nullità per indeterminatezza)"
+        ]
+      },
+      "calcolo_dell_indebito": {
+        "metodologia": [
+          "RIELABORAZIONE COMPLETA del rapporto bancario dal suo inizio",
+          "RICALCOLO degli interessi conformi al tasso legale (per il periodo anteriore al contratto valido) o al tasso pattuito (per il periodo successivo a contratto valido)",
+          "DEDUZIONE delle voci illegittime (anatocismo, usura, commissioni nulle)",
+          "DETERMINAZIONE del saldo a debito o credito effettivo",
+          "QUANTIFICAZIONE delle somme da restituire alla banca o (più spesso) da banca a cliente"
+        ],
+        "perizia_econometrica_tipica": "Quasi sempre disposta CTU contabile - elemento centrale del giudizio"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "CONTRATTI BANCARI E FINANZIARI",
+        "natura": "condizione di procedibilità",
+        "alternativa_abf": "Possibile ricorso ABF (Arbitro Bancario Finanziario) per controversie sotto 200.000 €"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione DOCUMENTAZIONE COMPLETA RAPPORTO BANCARIO",
+          "documenti": [
+            "Contratto bancario originario (per verifica forma scritta e clausole)",
+            "Eventuali modifiche/integrazioni successive",
+            "Estratti conto di TUTTO il rapporto (idealmente dall'inizio)",
+            "Comunicazioni di modifica condizioni (jus variandi)",
+            "Foglio informativo / informativa precontrattuale (per TUB)",
+            "Avvisi di tasso/condizioni di volta in volta applicati"
+          ],
+          "criticita": "L'estratto conto completo dall'inizio è CRUCIALE per il ricalcolo"
+        },
+        {
+          "step": 2,
+          "descrizione": "RICHIESTA EX ART. 119 TUB",
+          "norma": "art. 119 c. 4 TUB - cliente ha diritto a ottenere copia documentazione contabile relativa a singole operazioni degli ultimi 10 anni",
+          "modalita": "Richiesta scritta alla banca - termine 90 gg per consegna",
+          "vantaggio": "Acquisizione documentazione anche se cliente non l'ha conservata"
+        },
+        {
+          "step": 3,
+          "descrizione": "PERIZIA ECONOMETRICA DI PARTE",
+          "rilevanza": "FONDAMENTALE - quantifica precisamente l'indebito",
+          "contenuto": [
+            "Ricalcolo del rapporto operazione per operazione",
+            "Identificazione clausole illegittime",
+            "Calcolo dell'indebito eventualmente pagato",
+            "Confronto con tassi soglia usura (TEG)",
+            "Verifica capitalizzazione interessi"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VERIFICA TERMINE PRESCRIZIONALE",
+          "regole_complesse": [
+            "Per CREDITO RESTITUTORIO da rapporto chiuso: 10 anni dalla chiusura",
+            "Per CONTO CORRENTE APERTO: distinzione rimesse solutorie vs ripristinatorie (Cass. SU 24418/2010 e successive)",
+            "Cass. SU 23445/2024: chiarimento sul regime prescrizionale",
+            "Rimesse solutorie: prescrizione decorre dalla singola annotazione",
+            "Rimesse ripristinatorie: prescrizione decorre dalla chiusura conto"
+          ],
+          "criticita": "MASSIMA - calcolo prescrizione complesso"
+        },
+        {
+          "step": 5,
+          "descrizione": "ATTIVAZIONE MEDIAZIONE OBBLIGATORIA",
+          "alternativa": "Possibile ABF prima/parallelamente"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_nullita_clausole_bancarie",
+        "denominazione": "Atto di citazione per nullità clausole bancarie + ripetizione dell'indebito ex art. 2033 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "cliente_attore",
+            "label": "Cliente attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "consumatore",
+                  "imprenditore",
+                  "professionista",
+                  "ente"
+                ]
+              },
+              {
+                "id": "cognome_nome_o_denominazione",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "banca_convenuta",
+            "label": "Banca convenuta",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "rapporto_bancario",
+            "label": "Rapporto bancario",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_rapporto",
+                "type": "select",
+                "options": [
+                  "conto_corrente",
+                  "mutuo_ordinario",
+                  "mutuo_fondiario",
+                  "leasing",
+                  "credito_al_consumo",
+                  "carta_revolving",
+                  "scoperto_di_conto",
+                  "anticipi_fatture",
+                  "altro"
+                ]
+              },
+              {
+                "id": "numero_rapporto",
+                "type": "string"
+              },
+              {
+                "id": "data_apertura",
+                "type": "date"
+              },
+              {
+                "id": "data_eventuale_chiusura",
+                "type": "date"
+              },
+              {
+                "id": "saldo_finale_secondo_banca",
+                "type": "currency"
+              },
+              {
+                "id": "saldo_secondo_ricalcolo_attore",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "vizi_dedotti",
+            "label": "Vizi dedotti",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "anatocismo_illegittimo",
+              "usura_originaria",
+              "usura_sopravvenuta",
+              "commissioni_di_massimo_scoperto_illegittime",
+              "altre_commissioni_non_pattuite",
+              "violazione_forma_scritta_117_TUB",
+              "indeterminatezza_tasso_o_clausola",
+              "modifica_unilaterale_condizioni_in_violazione_118",
+              "spese_tenuta_conto_eccessive",
+              "altro"
+            ]
+          },
+          {
+            "id": "esposizione_dettagliata_vizi",
+            "label": "Esposizione dettagliata dei vizi",
+            "type": "textarea",
+            "required": true,
+            "min_length": 500
+          },
+          {
+            "id": "perizia_econometrica_di_parte",
+            "label": "Perizia econometrica di parte",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "perito_di_parte",
+                "type": "string"
+              },
+              {
+                "id": "data_perizia",
+                "type": "date"
+              },
+              {
+                "id": "metodo_di_ricalcolo",
+                "type": "textarea"
+              },
+              {
+                "id": "indebito_quantificato",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "indebito_richiesto",
+            "label": "Indebito richiesto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "totale_indebito_pagato_dal_cliente",
+                "type": "currency"
+              },
+              {
+                "id": "interessi_di_legge_sull_indebito",
+                "type": "currency"
+              },
+              {
+                "id": "totale_richiesto",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "verifica_prescrizione",
+            "label": "Verifica prescrizione",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "rapporto_chiuso_o_aperto",
+                "type": "select"
+              },
+              {
+                "id": "data_inizio_decorso_prescrizione",
+                "type": "date"
+              },
+              {
+                "id": "atti_interruttivi_prescrizione",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_nullita_clausole_bancarie",
+              "accertamento_anatocismo_illegittimo",
+              "accertamento_usura",
+              "accertamento_indebito_pagato_dal_cliente",
+              "condanna_banca_restituzione_indebito_2033",
+              "rideterminazione_saldo_rapporto",
+              "interessi_legali_su_indebito",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Mediazione obbligatoria preventiva (contratti bancari)",
+          "Possibile ricorso ABF in alternativa (per controversie < 200.000 €)",
+          "Perizia econometrica di parte ESSENZIALE",
+          "CTU contabile quasi sempre disposta",
+          "Regime prescrizionale complesso (Cass. SU 24418/2010 e 23445/2024)",
+          "Per consumatori: foro speciale residenza consumatore",
+          "Interessi di mora rilevano per usura (Cass. SU 4498/2024)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_bancario_originario",
+          "label": "Contratto bancario originario",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "estratti_conto_dall_inizio_rapporto",
+          "label": "Estratti conto dall'inizio del rapporto",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "modifiche_e_comunicazioni_jus_variandi",
+          "label": "Comunicazioni di modifica condizioni (jus variandi)",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "perizia_econometrica_di_parte",
+          "label": "Perizia econometrica di parte",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "richiesta_119_TUB_e_riscontro",
+          "label": "Eventuale richiesta documenti ex art. 119 TUB",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_pagamenti_indebiti",
+          "label": "Documentazione pagamenti indebiti",
+          "required": true
+        },
+        {
+          "id": "tassi_soglia_usura_storici",
+          "label": "Tassi soglia usura storici (per verifica)",
+          "required_if": "usura_dedotta"
+        },
+        {
+          "id": "verbale_mediazione_negativa",
+          "label": "Verbale mediazione obbligatoria conclusa negativamente",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "eventuale_decisione_ABF",
+          "label": "Eventuale decisione ABF (se attivata prima)",
+          "required_if": "abf_attivato"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ricorso_abf_alternativo_o_preventivo",
+          "trigger": "Strategia alternativa",
+          "automatico": false
+        },
+        {
+          "tipo": "richiesta_documenti_119_TUB",
+          "trigger": "Acquisizione documentazione contabile",
+          "automatico": false
+        },
+        {
+          "tipo": "ricorso_mediazione_obbligatoria",
+          "trigger": "Condizione procedibilità",
+          "automatico": false
+        },
+        {
+          "tipo": "ctu_contabile_econometrica",
+          "trigger": "Disposta dal giudice",
+          "automatico": false,
+          "centrale_per_decisione": true
+        },
+        {
+          "tipo": "comparsa_costituzione_banca",
+          "trigger": "Costituzione convenuta",
+          "termine": "70 gg prima udienza"
+        },
+        {
+          "tipo": "domanda_riconvenzionale_per_saldo_a_debito_cliente",
+          "trigger": "Strategia difensiva banca",
+          "automatico": false
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_pieno_e_restituzione_integrale",
+          "descrizione": "Accertamento nullità clausole + condanna restituzione integrale indebito"
+        },
+        {
+          "esito": "accoglimento_parziale_per_specifiche_voci",
+          "descrizione": "Solo alcune voci di indebito riconosciute (es. solo anatocismo, non usura)"
+        },
+        {
+          "esito": "rigetto_per_assenza_vizi",
+          "descrizione": "Conferma legittimità dei calcoli bancari"
+        },
+        {
+          "esito": "rigetto_per_prescrizione_parziale_o_totale",
+          "descrizione": "Decorso termine - particolarmente rilevante per rapporti datati"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo - molto frequente per rapporti con indebiti modesti o di medie dimensioni"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione restituzione indebito",
+          "anni": 10,
+          "decorrenza": "complessa - vedi Cass. SU 24418/2010 e 23445/2024",
+          "natura": "prescrizione",
+          "norma": "art. 2946 c.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Termine 119 TUB per consegna documenti",
+          "giorni": 90,
+          "decorrenza": "richiesta",
+          "norma": "art. 119 c. 4 TUB"
+        },
+        {
+          "termine": "Mediazione obbligatoria - max",
+          "giorni": 90
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "142005",
+      "codice_logico": "GUIDA_NULLITA_CLAUSOLE_BANCARIE_ANATOCISMO_USURA_142005",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [
+        "140041",
+        "143131",
+        "010006",
+        "050001"
+      ],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda resta guida interna per contenzioso bancario, anatocismo, usura e restituzioni, senza sostituire i codici ufficiali bancari o finanziari.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "142005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "142005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "142005"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 4 marzo 2010, n. 28, art. 5 - mediazione civile e commerciale",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;28~art5=",
+          "ambito": "condizione di procedibilità e materie soggette a mediazione",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "142005"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.L. 12 settembre 2014, n. 132, art. 3 - negoziazione assistita",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014;132~art3=",
+          "ambito": "risarcimento da circolazione e domande di pagamento entro soglia, fuori dai casi di mediazione",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "142005"
+        },
+        {
+          "ente": "Banca d'Italia",
+          "titolo": "Arbitro Bancario Finanziario",
+          "url": "https://www.bancaditalia.it/compiti/tutela-educazione/abf/index.html",
+          "ambito": "ADR per controversie bancarie e finanziarie con intermediari vigilati",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "142005"
+        },
+        {
+          "ente": "CONSOB",
+          "titolo": "Arbitro per le Controversie Finanziarie",
+          "url": "https://www.consob.it/web/area-pubblica/arbitro-per-le-controversie-finanziarie",
+          "ambito": "ADR per controversie finanziarie tra investitori e intermediari",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "142005"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 16 marzo 1942, n. 262 - Codice civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=multivigenza",
+          "ambito": "famiglia, successioni, diritti reali, contratti, responsabilità, società e persone",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "142005"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_MOBBING_STRAINING_DANNO_LAVORATORE_220050",
+      "denominazione": "Mobbing e straining - danni al lavoratore da condotte vessatorie",
+      "categoria": "Lavoro - tutela dignità lavoratore",
+      "sottocategoria": "Azione del lavoratore per risarcimento danni da condotte mobbizzanti o straining",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c.",
+      "competenza": "Tribunale del lavoro - foro della sede di lavoro (art. 413 c.p.c.)",
+      "uffici_destinatari": [
+        "SICID-Lavoro / SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2087",
+          "descrizione": "Tutela condizioni lavoro - tutela personalità e integrità psico-fisica del lavoratore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2103",
+          "descrizione": "Mansioni - tutela professionalità (collegato al mobbing per demansionamento)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1218",
+          "descrizione": "Responsabilità contrattuale (qualificazione preferita)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2049",
+          "descrizione": "Responsabilità del datore per fatto dei dipendenti (per mobbing orizzontale)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2059",
+          "descrizione": "Danno non patrimoniale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2043",
+          "descrizione": "Responsabilità extracontrattuale (alternativa)"
+        },
+        {
+          "fonte": "Cost.",
+          "articolo": "32",
+          "descrizione": "Diritto alla salute"
+        },
+        {
+          "fonte": "Cost.",
+          "articolo": "35-36",
+          "descrizione": "Tutela del lavoro"
+        },
+        {
+          "fonte": "Cost.",
+          "articolo": "41",
+          "descrizione": "Iniziativa economica privata - limiti per dignità umana"
+        },
+        {
+          "fonte": "D.Lgs. 81/2008",
+          "articolo": "28",
+          "descrizione": "Valutazione rischio stress lavoro-correlato"
+        },
+        {
+          "fonte": "Cass. SU 18927/2012",
+          "descrizione": "Mobbing - definizione e prova"
+        },
+        {
+          "fonte": "Cass. SU 24641/2018",
+          "descrizione": "Distinzione mobbing vs straining - rilevanza autonoma straining"
+        },
+        {
+          "fonte": "Cass. 18164/2024",
+          "descrizione": "Mobbing - elementi costitutivi confermati"
+        },
+        {
+          "fonte": "Direttiva UE 89/391/CEE",
+          "descrizione": "Sicurezza e salute sul lavoro"
+        }
+      ],
+      "definizioni_mobbing_vs_straining": {
+        "mobbing_definizione_cass_su_18927_2012": [
+          "PLURALITÀ di condotte vessatorie/persecutorie",
+          "CARATTERE SISTEMATICO E CONTINUATIVO (almeno 6 mesi di durata - elaborazione giurisprudenziale)",
+          "DIREZIONE FINALISTICA: emarginazione, denigrazione, esclusione del lavoratore",
+          "DANNO ALLA SALUTE del lavoratore (biologico, morale)",
+          "NESSO CAUSALE tra condotte e danno",
+          "ELEMENTO SOGGETTIVO: intenzionalità (dolo o quanto meno colpa qualificata)"
+        ],
+        "straining_definizione_cass_24641_2018": [
+          "Singola condotta o serie di condotte non sistematiche",
+          "Non richiede continuità o reiterazione",
+          "Effetto stressante sul lavoratore",
+          "Può essere isolato ma di particolare gravità",
+          "Es: demansionamento, cambio sede ostile, isolamento improvviso",
+          "Rileva AUTONOMAMENTE rispetto al mobbing"
+        ],
+        "categorie_tipiche": [
+          "MOBBING VERTICALE DISCENDENTE: dal superiore al sottoposto",
+          "MOBBING ORIZZONTALE: tra colleghi (datore risponde ex art. 2049)",
+          "MOBBING VERTICALE ASCENDENTE: dai sottoposti al superiore (raro)",
+          "STRAINING: condotte stressanti senza necessità di sistematicità"
+        ]
+      },
+      "presupposti_sostanziali": [
+        "RAPPORTO DI LAVORO subordinato (preferito - 2087) o assimilato",
+        "CONDOTTE VESSATORIE/STRESSANTI documentate:",
+        "- Per MOBBING: pluralità sistematica di condotte per almeno 6 mesi",
+        "- Per STRAINING: anche singole condotte particolarmente stressanti",
+        "INTENZIONALITÀ delle condotte (dolo o colpa qualificata)",
+        "DANNO ALLA SALUTE del lavoratore - DA PROVARE con documentazione medica",
+        "NESSO CAUSALE tra condotte e danno (perizia medico-legale)"
+      ],
+      "condotte_tipiche_di_mobbing": [
+        "DEMANSIONAMENTO progressivo (vedi anche codice 220030)",
+        "ISOLAMENTO professionale (esclusione da riunioni, comunicazioni)",
+        "PRIVAZIONE di strumenti di lavoro",
+        "TRASFERIMENTO PUNITIVO a sedi disagiate",
+        "ATTRIBUZIONE di compiti umilianti o inutili",
+        "VESSAZIONI VERBALI continuate, urla, offese",
+        "CONTROLLI ESACERBATI e ingiustificati",
+        "FALSE ACCUSE DISCIPLINARI sistematiche",
+        "DISCRIMINAZIONI nelle valutazioni e promozioni",
+        "ESCLUSIONE da formazione e aggiornamento"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "tentativo_facoltativo": "Conciliazione ITL ex art. 410 c.p.c. (facoltativa per privato); per pubblico impiego obbligatoria"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE DELLE CONDOTTE NEL TEMPO",
+          "elementi": [
+            "DIARIO DETTAGLIATO degli eventi (data, ora, luogo, presenti)",
+            "Mail, messaggi, comunicazioni aziendali",
+            "Ordini di servizio (per demansionamento progressivo)",
+            "Eventuali contestazioni disciplinari subite",
+            "Documenti su trasferimenti, cambi di mansioni",
+            "Comunicazioni di esclusione da riunioni/eventi",
+            "Eventuali registrazioni audio (con cautele legali)"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE MEDICA DEL DANNO ALLA SALUTE",
+          "elementi": [
+            "Cartelle cliniche di accessi PS, ricoveri",
+            "Diagnosi specialistiche (psichiatra, psicologo, neurologo)",
+            "Certificazioni di malattia con specificazione causa",
+            "Visite mediche legate allo stress lavorativo",
+            "Eventuali pratiche INAIL per stress lavoro-correlato",
+            "Documentazione di assunzione di farmaci (ansiolitici, antidepressivi)"
+          ],
+          "criticita": "MASSIMA - senza danno alla salute non c'è mobbing risarcibile"
+        },
+        {
+          "step": 3,
+          "descrizione": "PERIZIA MEDICO-LEGALE DI PARTE",
+          "rilevanza": "FONDAMENTALE per stabilire nesso causale tra condotte e danno",
+          "contenuto": [
+            "Diagnosi della patologia (es. disturbo dell'adattamento, depressione, PTSD lavorativo)",
+            "Quantificazione invalidità biologica permanente",
+            "Quantificazione invalidità temporanea",
+            "Valutazione nesso causale con condotte lavorative",
+            "Esclusione di altre concause"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "IDENTIFICAZIONE TESTIMONI",
+          "elementi": [
+            "Colleghi a conoscenza delle condotte",
+            "Ex dipendenti che possono testimoniare",
+            "Familiari per testimoniare effetti sulla vita personale",
+            "Eventuali RSU/RSA con segnalazioni",
+            "RSPP o medico competente aziendale (per stress lavoro-correlato)"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "RICOSTRUZIONE SISTEMATICA E TEMPORALE",
+          "obiettivo": "Dimostrare per il MOBBING la sistematicità e continuità (almeno 6 mesi)",
+          "per_lo_STRAINING": "Sufficiente dimostrare gravità della condotta anche isolata"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_mobbing_straining",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per risarcimento danni da mobbing/straining",
+        "schema_xsd_ministeriale": "AttoLavoro.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del lavoro",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore",
+            "label": "Lavoratore ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_lavoro_convenuto",
+            "label": "Datore di lavoro convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "co_convenuti_persone_fisiche",
+            "label": "Eventuali co-convenuti (mobber individuati - dirigenti, capi)",
+            "type": "array_persone"
+          },
+          {
+            "id": "rapporto_lavoro",
+            "label": "Rapporto di lavoro",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_contratto",
+                "type": "select"
+              },
+              {
+                "id": "data_assunzione",
+                "type": "date"
+              },
+              {
+                "id": "data_eventuale_cessazione",
+                "type": "date"
+              },
+              {
+                "id": "qualifica",
+                "type": "string"
+              },
+              {
+                "id": "ccnl_applicato",
+                "type": "string"
+              },
+              {
+                "id": "retribuzione",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "tipo_fattispecie",
+            "label": "Tipo di fattispecie dedotta",
+            "type": "select",
+            "required": true,
+            "options": [
+              "mobbing_verticale_discendente",
+              "mobbing_orizzontale_tra_colleghi",
+              "mobbing_verticale_ascendente",
+              "straining_singola_condotta_grave",
+              "mobbing_e_straining_in_subordine"
+            ]
+          },
+          {
+            "id": "condotte_vessatorie_dedotte",
+            "label": "Condotte vessatorie dedotte",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipologie",
+                "type": "select_multi",
+                "options": [
+                  "demansionamento_progressivo",
+                  "isolamento_professionale",
+                  "privazione_strumenti_di_lavoro",
+                  "trasferimento_punitivo",
+                  "compiti_umilianti_o_inutili",
+                  "vessazioni_verbali_urla_offese",
+                  "controlli_esacerbati_ingiustificati",
+                  "false_accuse_disciplinari",
+                  "discriminazioni_in_valutazioni_promozioni",
+                  "esclusione_da_formazione",
+                  "altre"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata_cronologica",
+                "type": "textarea",
+                "required": true,
+                "min_length": 1000
+              },
+              {
+                "id": "data_inizio_condotte",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "data_fine_condotte_se_cessate",
+                "type": "date"
+              },
+              {
+                "id": "durata_complessiva",
+                "type": "string",
+                "critico_per_mobbing_6_mesi": true
+              },
+              {
+                "id": "sistematicita_e_continuita",
+                "type": "textarea"
+              },
+              {
+                "id": "presunti_autori_delle_condotte",
+                "type": "array"
+              }
+            ]
+          },
+          {
+            "id": "intenzionalita_dolo_o_colpa_qualificata",
+            "label": "Intenzionalità (dolo o colpa qualificata)",
+            "type": "textarea",
+            "required": true
+          },
+          {
+            "id": "danno_alla_salute",
+            "label": "Danno alla salute",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "patologia_diagnosticata",
+                "type": "select_multi",
+                "options": [
+                  "disturbo_dell_adattamento",
+                  "depressione_reattiva",
+                  "ansia_generalizzata",
+                  "disturbo_post_traumatico_stress",
+                  "burnout",
+                  "patologie_cardiovascolari_psicogene",
+                  "altro"
+                ]
+              },
+              {
+                "id": "invalidita_permanente_stimata",
+                "type": "percentage"
+              },
+              {
+                "id": "periodo_invalidita_temporanea",
+                "type": "string"
+              },
+              {
+                "id": "ricoveri_psichiatrici",
+                "type": "boolean"
+              },
+              {
+                "id": "terapie_farmacologiche_in_corso",
+                "type": "textarea"
+              },
+              {
+                "id": "perizia_medico_legale_di_parte",
+                "type": "boolean",
+                "fortemente_consigliato": true
+              }
+            ]
+          },
+          {
+            "id": "nesso_causale",
+            "label": "Nesso causale tra condotte e danno",
+            "type": "textarea",
+            "required": true,
+            "min_length": 300
+          },
+          {
+            "id": "danni_richiesti",
+            "label": "Danni richiesti",
+            "type": "object_complesso",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "danno_biologico",
+                "type": "currency"
+              },
+              {
+                "id": "danno_morale_e_sofferenza",
+                "type": "currency"
+              },
+              {
+                "id": "danno_alla_professionalita",
+                "type": "currency"
+              },
+              {
+                "id": "danno_esistenziale_alla_vita_di_relazione",
+                "type": "currency"
+              },
+              {
+                "id": "danno_patrimoniale_spese_mediche",
+                "type": "currency"
+              },
+              {
+                "id": "lucro_cessante",
+                "type": "currency"
+              },
+              {
+                "id": "totale_richiesto",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_condotta_mobbing_o_straining",
+              "condanna_risarcimento_danni",
+              "ordine_cessazione_condotte_se_in_corso",
+              "ordine_reintegro_in_mansioni_originarie",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Per MOBBING: prova della sistematicità e continuità almeno 6 mesi",
+          "Per STRAINING: anche singole condotte ma gravi",
+          "Danno alla salute è elemento COSTITUTIVO - prova rigorosa",
+          "Responsabilità contrattuale ex 2087 c.c. (preferita)",
+          "Prescrizione 10 anni per contrattuale (5 per extracontrattuale)",
+          "Onere prova del nesso causale sul lavoratore"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_di_lavoro_e_ccnl",
+          "label": "Contratto di lavoro + CCNL",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "diario_dettagliato_eventi_vessatori",
+          "label": "Diario dettagliato degli eventi vessatori",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "mail_e_comunicazioni_aziendali",
+          "label": "Mail, messaggi, comunicazioni aziendali probatorie",
+          "required": true
+        },
+        {
+          "id": "documentazione_demansionamento_o_altre_condotte_specifiche",
+          "label": "Documentazione delle condotte specifiche",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_sanitaria_completa",
+          "label": "Documentazione sanitaria completa (cartelle, diagnosi, terapie)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_medico_legale_di_parte",
+          "label": "Perizia medico-legale di parte",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "eventuali_pratiche_inail_stress_lavoro_correlato",
+          "label": "Eventuali pratiche INAIL per stress lavoro-correlato",
+          "required": false
+        },
+        {
+          "id": "elenco_testimoni_colleghi_familiari",
+          "label": "Elenco testimoni (colleghi, ex dipendenti, familiari)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "eventuali_segnalazioni_rsu_o_medico_competente",
+          "label": "Eventuali segnalazioni a RSU/medico competente",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "buste_paga_e_documentazione_economica",
+          "label": "Buste paga per dimostrare retribuzione e demansionamento",
+          "required": false
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per controversie individuali di lavoro per reddito sotto 3x soglia patrocinio a spese dello Stato",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "memoria_difensiva_datore",
+          "trigger": "Costituzione datore",
+          "termine": "10 gg prima udienza"
+        },
+        {
+          "tipo": "ctu_medico_legale",
+          "trigger": "Per danno biologico",
+          "automatico": false,
+          "critico": true
+        },
+        {
+          "tipo": "prova_testimoniale_estensiva",
+          "trigger": "Sempre disposta in queste cause",
+          "automatico": false,
+          "molto_frequente": true
+        },
+        {
+          "tipo": "ctu_psichiatrica_o_psicologica",
+          "trigger": "Per accertamento patologie psicogene",
+          "automatico": false
+        },
+        {
+          "tipo": "azione_per_demansionamento_concorrente",
+          "trigger": "Se mobbing include demansionamento",
+          "codice_correlato": "220030"
+        },
+        {
+          "tipo": "azione_INAIL_per_stress_lavoro_correlato",
+          "trigger": "Parallela presso INAIL",
+          "automatico": false
+        },
+        {
+          "tipo": "denuncia_penale_per_eventuali_reati",
+          "trigger": "Se condotte integrano reati (es. maltrattamenti)",
+          "automatico": false
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_pieno_e_risarcimento",
+          "descrizione": "Accertamento mobbing/straining + condanna datore al risarcimento integrale"
+        },
+        {
+          "esito": "riqualificazione_da_mobbing_a_straining",
+          "descrizione": "Sistematicità non provata ma condotte rilevano come straining"
+        },
+        {
+          "esito": "accoglimento_solo_per_demansionamento_o_altre_voci_minori",
+          "descrizione": "Mobbing non provato ma riconosciute altre violazioni"
+        },
+        {
+          "esito": "rigetto_per_assenza_sistematicita_o_intenzionalita",
+          "descrizione": "Episodi sporadici non integranti fattispecie"
+        },
+        {
+          "esito": "rigetto_per_assenza_danno_alla_salute_o_nesso",
+          "descrizione": "Condotte accertate ma danno non provato"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo (spesso con cessazione rapporto + indennizzo)"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione responsabilità contrattuale 2087",
+          "anni": 10,
+          "decorrenza": "cessazione condotte o consolidamento danno",
+          "natura": "prescrizione",
+          "norma": "art. 2946 c.c.",
+          "criticita": "ALTA"
+        },
+        {
+          "termine": "Prescrizione responsabilità extracontrattuale",
+          "anni": 5,
+          "decorrenza": "fatto/scoperta",
+          "norma": "art. 2947 c.c."
+        },
+        {
+          "termine": "Costituzione datore",
+          "giorni": 10,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio",
+          "norma": "art. 416 c.p.c."
+        },
+        {
+          "termine": "Appello",
+          "giorni": 30,
+          "decorrenza": "notifica sentenza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "220050",
+      "codice_logico": "GUIDA_MOBBING_STRAINING_DANNO_LAVORATORE_220050",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [
+        "220070",
+        "220071",
+        "220072",
+        "220999"
+      ],
+      "nota_integrazione_iusentra": "Il codice 220050 è ufficiale nel catalogo locale per retribuzione; la scheda ricevuta riguarda mobbing/straining e danni al lavoratore, quindi resta guida interna per non alterare il deposito.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220050"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220050"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220050"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 15 luglio 1966, n. 604 - licenziamenti individuali",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=066U0604&atto.dataPubblicazioneGazzetta=1966-08-06",
+          "ambito": "licenziamento, motivazione, impugnazione e giustificato motivo",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220050"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 20 maggio 1970, n. 300 - Statuto dei lavoratori",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1970;300~art35-com=",
+          "ambito": "tutele del lavoratore e rinvii alla disciplina reintegratoria/organizzativa",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220050"
+        }
+      ]
+    },
+    {
+      "codice": "015011",
+      "denominazione": "Provvedimento d'urgenza ex art. 700 c.p.c. (atipico)",
+      "categoria": "Procedimenti cautelari atipici",
+      "sottocategoria": "Tutela cautelare atipica per situazioni non disciplinate da altre misure tipiche",
+      "rito": "Procedimento cautelare uniforme ex artt. 669-bis e ss. c.p.c. + 700",
+      "competenza": "Giudice della causa di merito (se in corso) o Tribunale del foro del merito (ante causam) ex art. 669-ter c.p.c.",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "700",
+          "descrizione": "Provvedimenti d'urgenza - cautelare atipica residuale"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-bis",
+          "descrizione": "Ambito procedimento cautelare uniforme"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-ter",
+          "descrizione": "Competenza ante causam"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-quater",
+          "descrizione": "Competenza in corso di causa"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-sexies",
+          "descrizione": "Procedimento - contraddittorio o inaudita altera parte"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-octies",
+          "descrizione": "Termine 60 gg per inizio causa di merito"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-novies",
+          "descrizione": "Inefficacia del provvedimento"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-decies",
+          "descrizione": "Revoca e modifica"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-undecies",
+          "descrizione": "Cauzione"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-terdecies",
+          "descrizione": "Reclamo cautelare 15 gg"
+        },
+        {
+          "fonte": "Cass. SU 14228/2024",
+          "descrizione": "Misure cautelari atipiche - presupposti rigorosi"
+        },
+        {
+          "fonte": "Cass. 22708/2023",
+          "descrizione": "Strumentalità del cautelare 700 - residualità"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "FUMUS BONI IURIS: probabilità di esistenza del diritto vantato (prova sommaria)",
+        "PERICULUM IN MORA: pregiudizio IMMINENTE E IRREPARABILE che il diritto possa subire durante il tempo della causa di merito",
+        "RESIDUALITÀ: la tutela non è ottenibile con altri provvedimenti cautelari tipici (es. sequestro 671, 670, ecc.)",
+        "STRUMENTALITÀ rispetto alla causa di merito (il 700 anticipa l'effetto della futura sentenza)"
+      ],
+      "casi_tipici_di_applicazione": [
+        "TUTELA DELLA PERSONALITÀ E DEI DIRITTI ASSOLUTI:",
+        "- Diffamazione (anche online) - ordine di rimozione contenuti",
+        "- Diritto all'immagine, alla riservatezza, al nome",
+        "- Diritto all'oblio",
+        "RAPPORTI DI LAVORO E CONTRATTUALI:",
+        "- Reintegro nel posto di lavoro",
+        "- Inibizione di trasferimenti illegittimi",
+        "- Esecuzione contratto",
+        "DIRITTI REALI:",
+        "- Reintegrazione possesso (alternativa a 1168)",
+        "- Cessazione immissioni intollerabili",
+        "DIRITTI SOCIETARI:",
+        "- Sospensione delibere assembleari (alternativa a 2378)",
+        "- Reintegro socio escluso",
+        "DIRITTI DI FAMIGLIA:",
+        "- Provvedimenti su minori in casi gravi non già disciplinati",
+        "ALTRI:",
+        "- Sospensione esecutività atti amministrativi (in materie civilistiche)",
+        "- Inibizione concorrenza sleale (alternativa a 700 per IP)",
+        "- Tutela urgente in qualsiasi materia non coperta da specifico cautelare"
+      ],
+      "elementi_critici": {
+        "irreparabilita_del_pregiudizio": "Non semplice danno economico (risarcibile in moneta) ma pregiudizio definitivo o difficilmente risanabile",
+        "imminenza_del_pregiudizio": "Non basta pregiudizio remoto - deve essere prossimo nel tempo",
+        "residualita_rispetto_a_cautelari_tipici": "Se esiste cautelare tipica (sequestro, denuncia opera, possessoria), va usata quella",
+        "non_anticipazione_indebita_del_merito": "Il 700 non deve esaurire l'oggetto del merito (ma a volte è inevitabile - cautelare anticipatorio)"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Procedura cautelare - urgenza esclude mediazione preventiva"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE DEL DIRITTO (FUMUS)",
+          "elementi": [
+            "Documenti probatori del diritto vantato",
+            "Contratti, atti, sentenze pertinenti",
+            "Eventuale procedimento di merito già pendente",
+            "Eventuali pronunce parziali a favore del ricorrente"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DEL PERICULUM IN MORA",
+          "elementi": [
+            "Documenti che attestano imminenza e gravità del pregiudizio",
+            "Comportamenti del controparte che minacciano il diritto",
+            "Eventuali precedenti minacce/intimidazioni",
+            "Documentazione di danni già subiti e progressivi",
+            "Per diffamazione: screenshot, link, copia degli scritti"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "VERIFICA RESIDUALITÀ",
+          "criterio": [
+            "Confronto con cautelari tipiche disponibili",
+            "Verifica che la richiesta non rientri in 671 (sequestro), 670 (giudiziario), 700 specifici",
+            "Motivazione sulla atipicità della tutela richiesta"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VALUTAZIONE OPPORTUNITÀ INAUDITA ALTERA PARTE",
+          "presupposti": "Convocazione del controparte può vanificare misura + estrema urgenza",
+          "vantaggio": "Esecuzione immediata"
+        },
+        {
+          "step": 5,
+          "descrizione": "QUANTIFICAZIONE DELL'INIBITORIA O DELL'ORDINE",
+          "elementi": [
+            "Specificazione precisa di cosa il giudice deve ordinare",
+            "Modalità di esecuzione",
+            "Eventuale richiesta di penali giornaliere per inadempimento",
+            "Termini di adempimento ragionevoli"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_provvedimento_urgenza_700",
+        "denominazione": "Ricorso per provvedimento d'urgenza ex art. 700 c.p.c.",
+        "schema_xsd_ministeriale": "AttoCautelare.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "tipo_procedura",
+            "label": "Tipo di procedura",
+            "type": "select",
+            "required": true,
+            "options": [
+              "ante_causam_669_ter",
+              "in_corso_di_causa_669_quater"
+            ]
+          },
+          {
+            "id": "ricorrente",
+            "label": "Ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "resistente",
+            "label": "Resistente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "diritto_vantato",
+            "label": "Diritto vantato (FUMUS)",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_diritto",
+                "type": "select",
+                "options": [
+                  "personalita_riservatezza_immagine",
+                  "diritto_oblio",
+                  "rapporto_lavoro",
+                  "rapporto_contrattuale_specifico",
+                  "diritto_reale",
+                  "diritto_societario",
+                  "diritto_di_famiglia",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 400
+              },
+              {
+                "id": "argomentazioni_giuridiche",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "periculum_in_mora",
+            "label": "Periculum in mora",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_pregiudizio",
+                "type": "select_multi",
+                "options": [
+                  "pregiudizio_alla_dignita_o_reputazione",
+                  "perdita_definitiva_di_opportunita",
+                  "danno_irreversibile_alla_salute",
+                  "danno_alla_professionalita",
+                  "perdita_di_clientela_o_avviamento",
+                  "altri_danni_difficilmente_risanabili"
+                ]
+              },
+              {
+                "id": "imminenza_del_pregiudizio",
+                "type": "textarea",
+                "required": true
+              },
+              {
+                "id": "irreparabilita_o_irreversibilita",
+                "type": "textarea",
+                "required": true
+              },
+              {
+                "id": "documentazione_a_supporto",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "residualita_rispetto_a_cautelari_tipici",
+            "label": "Motivazione sulla residualità del 700",
+            "type": "textarea",
+            "required": true,
+            "min_length": 200
+          },
+          {
+            "id": "misura_cautelare_richiesta",
+            "label": "Misura cautelare richiesta",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_misura",
+                "type": "select_multi",
+                "options": [
+                  "inibitoria_di_specifica_condotta",
+                  "ordine_di_fare_o_compiere_atto",
+                  "ordine_di_rimozione_o_cessazione",
+                  "sospensione_di_efficacia_di_atto",
+                  "reintegro_o_ripristino_situazione",
+                  "consegna_o_rilascio_di_bene",
+                  "altro"
+                ]
+              },
+              {
+                "id": "specificazione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 200
+              },
+              {
+                "id": "richiesta_penali_giornaliere_per_inadempimento",
+                "type": "boolean"
+              },
+              {
+                "id": "importo_penale_giornaliera",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "modalita_procedura",
+            "label": "Modalità procedura",
+            "type": "select",
+            "required": true,
+            "options": [
+              "contraddittorio_normale",
+              "inaudita_altera_parte_per_estrema_urgenza"
+            ]
+          },
+          {
+            "id": "motivazione_inaudita_altera_parte",
+            "label": "Motivazione inaudita altera parte",
+            "type": "textarea",
+            "required_if": "modalita=inaudita_altera_parte"
+          },
+          {
+            "id": "causa_di_merito_pendente_o_da_introdurre",
+            "label": "Causa di merito pendente o da introdurre",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "gia_pendente",
+                "type": "boolean"
+              },
+              {
+                "id": "estremi_se_pendente",
+                "type": "string"
+              },
+              {
+                "id": "oggetto_se_da_introdurre",
+                "type": "textarea"
+              }
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "FUMUS + PERICULUM IRREPARABILE presupposti cumulativi",
+          "RESIDUALITÀ rispetto a cautelari tipici",
+          "Termine 60 GG per inizio causa di merito (se ante causam) ex art. 669-octies",
+          "Reclamo cautelare 15 gg ex art. 669-terdecies",
+          "Eventuale cauzione disposta dal giudice ex art. 669-undecies",
+          "Inefficacia se non viene iniziata causa di merito nei termini (art. 669-novies)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documenti_probatori_del_diritto",
+          "label": "Documenti probatori del diritto vantato",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_del_pregiudizio_imminente",
+          "label": "Documentazione del pregiudizio imminente e irreparabile",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_comportamento_controparte",
+          "label": "Documentazione comportamento minaccioso del controparte",
+          "required": true
+        },
+        {
+          "id": "perizia_o_relazione_tecnica_di_parte_se_utile",
+          "label": "Eventuale perizia/relazione tecnica di parte",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documenti_giudizio_di_merito_se_pendente",
+          "label": "Documenti del giudizio di merito (se pendente)",
+          "required_if": "merito_pendente"
+        },
+        {
+          "id": "screenshot_o_documentazione_per_diffamazione_online",
+          "label": "Screenshot/copia contenuti per casi di diffamazione online",
+          "required_if": "diffamazione_online"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore - ridotto per cautelare",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ordinanza_cautelare_700",
+          "trigger": "Esito procedimento",
+          "automatico": false
+        },
+        {
+          "tipo": "esecuzione_dell_ordinanza",
+          "trigger": "Dopo concessione",
+          "automatico": false
+        },
+        {
+          "tipo": "causa_di_merito_obbligatoria_se_ante_causam_e_misura_non_anticipatoria",
+          "trigger": "Termine 60 gg da ordinanza",
+          "norma": "art. 669-octies c.p.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "tipo": "reclamo_cautelare",
+          "trigger": "Avverso ordinanza",
+          "termine": "15 gg",
+          "norma": "art. 669-terdecies c.p.c."
+        },
+        {
+          "tipo": "revoca_modifica_ordinanza",
+          "trigger": "Mutamento circostanze",
+          "norma": "art. 669-decies"
+        },
+        {
+          "tipo": "esecuzione_di_obblighi_di_fare_o_non_fare",
+          "trigger": "Sentenza esecutiva non eseguita spontaneamente",
+          "codice_correlato": "512020"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_ordinanza_inibitoria_o_di_fare",
+          "descrizione": "Concessione misura cautelare richiesta"
+        },
+        {
+          "esito": "accoglimento_con_cauzione",
+          "descrizione": "Subordinato a cauzione del ricorrente"
+        },
+        {
+          "esito": "accoglimento_parziale",
+          "descrizione": "Misura concessa in forma più limitata"
+        },
+        {
+          "esito": "rigetto_per_assenza_fumus",
+          "descrizione": "Diritto non sufficientemente provato"
+        },
+        {
+          "esito": "rigetto_per_assenza_periculum_irreparabile",
+          "descrizione": "Danno risarcibile in moneta - 700 non concedibile"
+        },
+        {
+          "esito": "rigetto_per_disponibilita_cautelare_tipica",
+          "descrizione": "Doveva usarsi altra misura (701, 671, ecc.)"
+        },
+        {
+          "esito": "transazione_in_corso_di_procedura",
+          "descrizione": "Accordo tra le parti"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "INIZIO CAUSA DI MERITO POST CAUTELARE ANTE CAUSAM (NON anticipatorio)",
+          "giorni": 60,
+          "decorrenza": "ordinanza concessoria",
+          "natura": "DECADENZIALE",
+          "norma": "art. 669-octies c.p.c.",
+          "criticita": "MASSIMA",
+          "eccezione": "Per cautelari ANTICIPATORI non opera obbligo merito"
+        },
+        {
+          "termine": "Reclamo cautelare",
+          "giorni": 15,
+          "decorrenza": "ordinanza",
+          "natura": "perentorio",
+          "norma": "art. 669-terdecies c.p.c."
+        },
+        {
+          "termine": "Revoca/modifica",
+          "natura": "richiedibile in qualsiasi momento per mutamento circostanze",
+          "norma": "art. 669-decies"
+        }
+      ],
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "015011"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "015011"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "015011"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 28 ottobre 1940, n. 1443 - Codice di procedura civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=multivigenza",
+          "ambito": "rito civile, cautelari, opposizioni, esecuzioni, famiglia, volontaria giurisdizione e impugnazioni",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "015011"
+        }
+      ]
+    }
+  ]
+}

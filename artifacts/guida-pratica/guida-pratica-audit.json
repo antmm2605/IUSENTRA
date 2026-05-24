@@ -1,9 +1,9 @@
 {
   "ok": true,
   "coverage": {
-    "curata": 1087
+    "curata": 1101
   },
-  "catalog_size": 1087,
+  "catalog_size": 1101,
   "official_catalog_size": 1018,
   "missing_required": [],
   "official_coverage": {
@@ -16,7 +16,7 @@
   "deposit_code_coherence": {
     "ok": true,
     "incoherent": [],
-    "aliases_or_internal_count": 69,
+    "aliases_or_internal_count": 83,
     "aliases_or_internal": [
       {
         "codice": "100002",
@@ -175,14 +175,38 @@
         "depositabile": false
       },
       {
+        "codice": "GUIDA_ADOZIONE_MAGGIORENNE_412001",
+        "denominazione": "Adozione di maggiorenne (artt. 291-314 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
         "codice": "GUIDA_ADS_MODIFICA_REVOCA_413062",
         "denominazione": "Modifica o revoca del decreto di nomina dell'amministratore di sostegno",
         "coverage": "curata",
         "depositabile": false
       },
       {
+        "codice": "GUIDA_APPALTO_VIZI_DIFFORMITA_GARANZIA_143005",
+        "denominazione": "Risoluzione contratto di appalto per vizi/difformità + garanzia (artt. 1667-1669 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_ASSICURAZIONE_INDENNIZZO_RISOLUZIONE_140030",
+        "denominazione": "Risoluzione contratto di assicurazione e azione per indennizzo (artt. 1882-1932 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
         "codice": "GUIDA_AZIONE_NEGATORIA_SERVITU_POSSESSORIA_130031",
         "denominazione": "Azione negatoria di servitù (art. 949 c.c.) o azioni possessorie (artt. 1168-1170 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_COLLAZIONE_EREDITARIA_121005",
+        "denominazione": "Collazione ereditaria (art. 737 c.c.)",
         "coverage": "curata",
         "depositabile": false
       },
@@ -205,8 +229,20 @@
         "depositabile": false
       },
       {
+        "codice": "GUIDA_DIFETTO_CONFORMITA_BENI_CONSUMO_140005",
+        "denominazione": "Difetto di conformità nella vendita di beni di consumo (artt. 128-135 Cod. Consumo)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
         "codice": "GUIDA_DISTANZE_LEGALI_COSTRUZIONI_130011",
         "denominazione": "Distanze legali tra costruzioni (artt. 873 e ss. c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_DIVISIONE_COMUNIONE_ORDINARIA_130070",
+        "denominazione": "Divisione giudiziale di comunione ordinaria (artt. 1111-1116 c.c. + 784-791 c.p.c.)",
         "coverage": "curata",
         "depositabile": false
       },
@@ -219,6 +255,12 @@
       {
         "codice": "GUIDA_ESCLUSIONE_SOCIO_SOCIETA_PERSONE_150010",
         "denominazione": "Esclusione del socio di società di persone (art. 2286 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_ESECUZIONE_OBBLIGHI_FARE_NON_FARE_511020",
+        "denominazione": "Esecuzione di obblighi di fare e di non fare (artt. 612-614 c.p.c.)",
         "coverage": "curata",
         "depositabile": false
       },
@@ -253,6 +295,24 @@
         "depositabile": false
       },
       {
+        "codice": "GUIDA_LICENZIAMENTO_GMO_220005",
+        "denominazione": "Licenziamento per giustificato motivo oggettivo (GMO economico/organizzativo)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_MOBBING_STRAINING_DANNO_LAVORATORE_220050",
+        "denominazione": "Mobbing e straining - danni al lavoratore da condotte vessatorie",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_NULLITA_CLAUSOLE_BANCARIE_ANATOCISMO_USURA_142005",
+        "denominazione": "Nullità clausole bancarie / anatocismo / usura / azione restitutoria",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
         "codice": "GUIDA_ONORARI_PROFESSIONALI_L794",
         "denominazione": "Procedimento sommario per onorari professionali ex L. 794/1942 (art. 14 D.Lgs. 150/2011)",
         "coverage": "curata",
@@ -277,6 +337,12 @@
         "depositabile": false
       },
       {
+        "codice": "GUIDA_PETIZIONE_RECLAMO_STATO_FAMILIARE_123001",
+        "denominazione": "Petizione di stato / reclamo di stato familiare (artt. 239-249 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
         "codice": "GUIDA_PRELIMINARE_COMPRAVENDITA_2932_140002",
         "denominazione": "Risoluzione del contratto preliminare di compravendita immobiliare + esecuzione specifica ex art. 2932 c.c.",
         "coverage": "curata",
@@ -297,6 +363,12 @@
       {
         "codice": "GUIDA_RESPONSABILITA_COSE_CUSTODIA_160021",
         "denominazione": "Responsabilità da cose in custodia (art. 2051 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_RESPONSABILITA_MEDICO_SANITARIA_160040",
+        "denominazione": "Responsabilità medico-sanitaria (L. 24/2017 Gelli-Bianco)",
         "coverage": "curata",
         "depositabile": false
       },
@@ -331,6 +403,12 @@
         "depositabile": false
       },
       {
+        "codice": "GUIDA_SERVITU_PREDIALI_130013",
+        "denominazione": "Servitù prediali - costituzione, accertamento, modifiche (artt. 1027-1099 c.c.)",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
         "codice": "GUIDA_TUTELA_MAGGIORE_GRAVE_HANDICAP_413051",
         "denominazione": "Procedimenti di tutela del maggiore d'età con grave handicap (interdizione/inabilitazione - controversie)",
         "coverage": "curata",
@@ -345,6 +423,12 @@
       {
         "codice": "GUIDA_VIOLAZIONE_MARCHIO_BREVETTO_170011",
         "denominazione": "Risarcimento danni da violazione di marchio o brevetto",
+        "coverage": "curata",
+        "depositabile": false
+      },
+      {
+        "codice": "GUIDA_VOLONTARIA_GIURISDIZIONE_MINORI_AUTORIZZAZIONI_414001",
+        "denominazione": "Volontaria giurisdizione su minori - autorizzazioni atti rappresentanti legali",
         "coverage": "curata",
         "depositabile": false
       },

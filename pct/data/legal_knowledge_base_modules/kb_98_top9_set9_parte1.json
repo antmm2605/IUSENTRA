@@ -1,0 +1,3420 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET9_PARTE1",
+  "denominazione": "Nono set di 9 codici - PARTE 1 di 2",
+  "registri": [
+    "SICID",
+    "SIVG"
+  ],
+  "data_generazione": "2026-05-24",
+  "scopo": "Parte 1 del nono set TOP9: responsabilità medico-sanitaria Gelli-Bianco, risoluzione appalto per vizi, servitù prediali, VG minori, difetto conformità beni consumo",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_RESPONSABILITA_MEDICO_SANITARIA_160040",
+      "denominazione": "Responsabilità medico-sanitaria (L. 24/2017 Gelli-Bianco)",
+      "categoria": "Responsabilità civile - sanitaria",
+      "sottocategoria": "Azione di risarcimento per danni da malasanità: doppio binario (struttura contrattuale ex 1218 vs medico extracontrattuale ex 2043)",
+      "rito": "Rito ordinario di cognizione preceduto da CONSULENZA TECNICA PREVENTIVA OBBLIGATORIA ex art. 696-bis c.p.c. (alternativa a mediazione, scelta del danneggiato)",
+      "competenza": "Tribunale - foro luogo struttura sanitaria (art. 19 c.p.c.) o residenza paziente (per consumatore)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 24/2017 (Gelli-Bianco)",
+          "descrizione": "Disposizioni in materia di sicurezza delle cure e responsabilità professionale degli esercenti le professioni sanitarie"
+        },
+        {
+          "fonte": "L. 24/2017",
+          "articolo": "5",
+          "descrizione": "Buone pratiche clinico-assistenziali e raccomandazioni linee guida (esimente)"
+        },
+        {
+          "fonte": "L. 24/2017",
+          "articolo": "7",
+          "descrizione": "Responsabilità della struttura sanitaria - CONTRATTUALE ex 1218 c.c."
+        },
+        {
+          "fonte": "L. 24/2017",
+          "articolo": "7 c. 3",
+          "descrizione": "Responsabilità dell'esercente la professione sanitaria - EXTRACONTRATTUALE ex 2043 (salvo contratto diretto)"
+        },
+        {
+          "fonte": "L. 24/2017",
+          "articolo": "8",
+          "descrizione": "Tentativo OBBLIGATORIO di conciliazione - CTP ex 696-bis c.p.c."
+        },
+        {
+          "fonte": "L. 24/2017",
+          "articolo": "9",
+          "descrizione": "Azione di rivalsa o responsabilità amministrativa - struttura → medico"
+        },
+        {
+          "fonte": "L. 24/2017",
+          "articolo": "10",
+          "descrizione": "Obbligo assicurativo per strutture e professionisti"
+        },
+        {
+          "fonte": "L. 24/2017",
+          "articolo": "12",
+          "descrizione": "Azione diretta del paziente verso compagnia assicuratrice"
+        },
+        {
+          "fonte": "L. 24/2017",
+          "articolo": "13",
+          "descrizione": "Termine di prescrizione - 10 anni contrattuale, 5 anni extracontrattuale"
+        },
+        {
+          "fonte": "L. 24/2017",
+          "articolo": "15",
+          "descrizione": "Nomina dei CTU - albo specialistico"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1218",
+          "descrizione": "Responsabilità contrattuale - inversione onere prova (per struttura)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2043",
+          "descrizione": "Responsabilità extracontrattuale (per medico)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2236",
+          "descrizione": "Responsabilità del prestatore d'opera intellettuale - colpa grave per problemi tecnici di particolare difficoltà"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2059",
+          "descrizione": "Danno non patrimoniale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2947",
+          "descrizione": "Prescrizione 5 anni extracontrattuale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2946",
+          "descrizione": "Prescrizione 10 anni contrattuale"
+        },
+        {
+          "fonte": "Cass. SU 28811/2008 (San Martino bis)",
+          "descrizione": "Categoria unitaria danno non patrimoniale - applicazione sanitaria"
+        },
+        {
+          "fonte": "Cass. SU 6651/2024",
+          "descrizione": "Tabelle uniformi liquidazione danno biologico"
+        },
+        {
+          "fonte": "Cass. SU 28987/2019",
+          "descrizione": "Nesso causale - regola del 'più probabile che non' in ambito sanitario"
+        },
+        {
+          "fonte": "Cass. SU 3475/2023",
+          "descrizione": "Consenso informato - danno autonomo da omessa informazione"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "PRESTAZIONE SANITARIA effettuata da struttura o professionista",
+        "DANNO ALLA PERSONA del paziente (lesione integrità psico-fisica, morte, ecc.)",
+        "INADEMPIMENTO/NEGLIGENZA/IMPERIZIA/IMPRUDENZA del sanitario o organizzativa della struttura",
+        "NESSO DI CAUSALITÀ tra condotta e danno (regola del 'più probabile che non' - Cass. SU 28987/2019)",
+        "RILEVANTE distinzione tra:",
+        "- RESPONSABILITÀ DELLA STRUTTURA: CONTRATTUALE ex 1218 - prescrizione 10 anni - inversione onere prova",
+        "- RESPONSABILITÀ DEL MEDICO: EXTRACONTRATTUALE ex 2043 (salvo contratto diretto) - prescrizione 5 anni - onere prova attore"
+      ],
+      "doppio_binario_responsabilita_l_24_2017": {
+        "struttura_sanitaria_art_7_c_1_2": [
+          "Responsabilità CONTRATTUALE ex 1218 c.c.",
+          "Inversione onere prova (struttura prova adempimento o impossibilità non imputabile)",
+          "Prescrizione 10 ANNI",
+          "Foro speciale consumatore se paziente è consumatore",
+          "Comprende: ospedali pubblici/privati, case di cura, RSA, ambulatori convenzionati"
+        ],
+        "esercente_professione_sanitaria_art_7_c_3": [
+          "Responsabilità EXTRACONTRATTUALE ex 2043 c.c. (REGOLA POST-GELLI-BIANCO)",
+          "Onere prova sul paziente",
+          "Prescrizione 5 ANNI",
+          "ECCEZIONE: contratto diretto medico-paziente → contrattuale 1218",
+          "ECCEZIONE: linee guida e buone pratiche rispettate → esimente parziale art. 5"
+        ]
+      },
+      "elementi_critici_della_responsabilita": [
+        "NESSO CAUSALE (Cass. SU 28987/2019): regola del 'più probabile che non' - non certezza scientifica ma probabilità qualificata",
+        "CONSENSO INFORMATO (Cass. SU 3475/2023): danno autonomo da omessa/inadeguata informazione - indipendente da esito intervento",
+        "LINEE GUIDA E BUONE PRATICHE (art. 5): rispetto è esimente parziale, ma residua responsabilità per colpa grave nei profili tecnici particolarmente difficili (2236 c.c.)",
+        "ASSICURAZIONE OBBLIGATORIA (art. 10) per strutture e professionisti",
+        "AZIONE DIRETTA del paziente verso compagnia (art. 12)"
+      ],
+      "tipologie_di_danni_risarcibili": [
+        "DANNO BIOLOGICO PERMANENTE (tabelle Milano/uniformi Cass. SU 6651/2024)",
+        "DANNO BIOLOGICO TEMPORANEO",
+        "DANNO MORALE E DA SOFFERENZA",
+        "DANNO ESISTENZIALE E ALLA VITA DI RELAZIONE",
+        "DANNO PARENTALE per familiari (in caso di morte o lesioni gravi)",
+        "DANNO PATRIMONIALE: spese mediche aggiuntive, mancato guadagno, assistenza futura",
+        "DANNO DA OMESSO/INADEGUATO CONSENSO INFORMATO (autonomo - Cass. SU 3475/2023)",
+        "PERSONALIZZAZIONE fino al 30% delle tabelle"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 8 L. 24/2017 + art. 5 c. 1-bis D.Lgs. 28/2010",
+        "alternativa_ctp_696_bis": "Il paziente può SCEGLIERE tra mediazione obbligatoria O Consulenza Tecnica Preventiva ex art. 696-bis (raccomandata - acquisisce CTU)",
+        "natura": "condizione di procedibilità",
+        "vantaggio_strategico_ctp": "La CTP acquisisce già la CTU specialistica, decisiva per il merito"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "ACQUISIZIONE COMPLETA CARTELLA CLINICA",
+          "criticita": "MASSIMA",
+          "documenti": [
+            "Cartella clinica completa con tutti i diari, esami, terapie",
+            "Eventuali consensi informati firmati",
+            "Esami diagnostici (immagini radiologiche su CD, referti)",
+            "Lettere di dimissione",
+            "Cartella infermieristica",
+            "Eventuali registrazioni interventi chirurgici"
+          ],
+          "modalita_richiesta": "Diritto al rilascio entro 7-30 gg ex normativa regionale - se rifiuto: ricorso Garante Privacy"
+        },
+        {
+          "step": 2,
+          "descrizione": "PERIZIA MEDICO-LEGALE DI PARTE",
+          "rilevanza": "ESSENZIALE - elemento di partenza dell'azione",
+          "contenuto": [
+            "Anamnesi del paziente",
+            "Descrizione della prestazione sanitaria contestata",
+            "Identificazione errori, omissioni, negligenze",
+            "Valutazione della corrispondenza alle linee guida",
+            "Quantificazione del danno biologico (% invalidità)",
+            "Valutazione del nesso causale (regola 'più probabile che non')"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "IDENTIFICAZIONE SOGGETTI RESPONSABILI",
+          "verifiche": [
+            "Struttura sanitaria (pubblica o privata)",
+            "Singoli medici (eventuale azione contro singolo o solidale)",
+            "Compagnia assicuratrice (per azione diretta art. 12 L. 24/2017)",
+            "Eventuale équipe (responsabilità solidale 2055)"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VALUTAZIONE STRATEGICA: MEDIAZIONE o CTP 696-bis",
+          "alternative": [
+            "MEDIAZIONE: più rapida, ma generica",
+            "CTP 696-bis: acquisisce subito CTU specialistica - più costosa ma molto efficace"
+          ],
+          "consigliato": "CTP 696-bis nella maggioranza dei casi - dà già il quadro tecnico"
+        },
+        {
+          "step": 5,
+          "descrizione": "RICHIESTA STRAGIUDIZIALE A STRUTTURA E ASSICURAZIONE",
+          "vantaggio": "Interrompe prescrizione + spesso porta a transazione + obbligo di risposta delle compagnie"
+        },
+        {
+          "step": 6,
+          "descrizione": "QUANTIFICAZIONE DETTAGLIATA DEI DANNI",
+          "voci": [
+            "Danno biologico (tabelle Milano 2024 o uniformi Cass. SU 6651/2024)",
+            "Danno morale (criterio equitativo + personalizzazione)",
+            "Danno patrimoniale (spese mediche, lucro cessante)",
+            "Eventuale danno parentale (per morti o lesioni gravi)",
+            "Personalizzazione fino al 30%",
+            "Danno da consenso informato (se applicabile)"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_responsabilita_medico_sanitaria_l_24_2017",
+        "denominazione": "Atto di citazione per risarcimento danni da responsabilità medico-sanitaria (L. 24/2017)",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "paziente_attore",
+            "label": "Paziente attore (o eredi se decesso)",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "altri_attori_familiari",
+            "label": "Altri attori - familiari per danno parentale",
+            "type": "array_persone"
+          },
+          {
+            "id": "struttura_sanitaria_convenuta",
+            "label": "Struttura sanitaria convenuta",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "denominazione",
+                "type": "string"
+              },
+              {
+                "id": "tipo_struttura",
+                "type": "select",
+                "options": [
+                  "ospedale_pubblico",
+                  "ospedale_privato_accreditato",
+                  "casa_di_cura_privata",
+                  "rsa",
+                  "ambulatorio_pubblico",
+                  "ambulatorio_privato",
+                  "studio_medico_singolo"
+                ]
+              },
+              {
+                "id": "sede",
+                "type": "address"
+              }
+            ]
+          },
+          {
+            "id": "esercenti_professione_sanitaria_convenuti",
+            "label": "Eventuali esercenti la professione sanitaria convenuti",
+            "type": "array_persone",
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "qualifica",
+                "type": "select",
+                "options": [
+                  "medico_chirurgo",
+                  "specialista",
+                  "anestesista",
+                  "infermiere",
+                  "ostetrica",
+                  "fisioterapista",
+                  "altro_sanitario"
+                ]
+              },
+              {
+                "id": "rapporto_con_struttura",
+                "type": "select",
+                "options": [
+                  "dipendente_pubblico",
+                  "dipendente_privato",
+                  "libero_professionista_in_struttura",
+                  "libero_professionista_in_studio_privato",
+                  "convenzionato_ssn"
+                ]
+              },
+              {
+                "id": "contratto_diretto_con_paziente",
+                "type": "boolean",
+                "critico_per_qualificazione_responsabilita": true
+              }
+            ]
+          },
+          {
+            "id": "compagnia_assicuratrice_eventuale",
+            "label": "Compagnia assicuratrice (per azione diretta art. 12)",
+            "type": "object_persona_giuridica"
+          },
+          {
+            "id": "prestazione_sanitaria_contestata",
+            "label": "Prestazione sanitaria contestata",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_prestazione",
+                "type": "select",
+                "options": [
+                  "intervento_chirurgico",
+                  "diagnosi_e_terapia_medica",
+                  "parto_e_ostetricia",
+                  "trattamento_oncologico",
+                  "anestesia",
+                  "trattamento_riabilitativo",
+                  "diagnostica_per_immagini",
+                  "trattamento_emergenza_urgenza",
+                  "ricovero_e_assistenza",
+                  "altro"
+                ]
+              },
+              {
+                "id": "data_prestazione_o_periodo",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "data_inizio",
+                    "type": "date",
+                    "required": true
+                  },
+                  {
+                    "id": "data_fine",
+                    "type": "date"
+                  }
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 500
+              },
+              {
+                "id": "indicazione_clinica_iniziale",
+                "type": "textarea"
+              },
+              {
+                "id": "trattamento_effettuato",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "condotta_contestata",
+            "label": "Condotta contestata",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipologia_errore",
+                "type": "select_multi",
+                "options": [
+                  "errore_diagnostico",
+                  "errore_terapeutico",
+                  "imperizia_tecnica_in_intervento",
+                  "negligenza_organizzativa_della_struttura",
+                  "errore_di_monitoraggio_post_intervento",
+                  "omessa_o_tardiva_diagnosi",
+                  "scelta_terapeutica_inadeguata",
+                  "omessa_o_inadeguata_consenso_informato",
+                  "violazione_linee_guida",
+                  "infezione_nosocomiale",
+                  "altro"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 600
+              },
+              {
+                "id": "linee_guida_violate_se_applicabili",
+                "type": "textarea"
+              },
+              {
+                "id": "elemento_soggettivo",
+                "type": "select",
+                "options": [
+                  "negligenza",
+                  "imprudenza",
+                  "imperizia",
+                  "colpa_grave_per_problemi_di_particolare_difficolta_2236",
+                  "dolo"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "danno_subito",
+            "label": "Danno subito",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_evento",
+                "type": "select",
+                "options": [
+                  "lesione_personale_con_invalidita_permanente",
+                  "lesione_personale_temporanea",
+                  "morte_del_paziente",
+                  "danno_da_omesso_consenso_informato_autonomo",
+                  "altri_danni"
+                ]
+              },
+              {
+                "id": "diagnosi_finale",
+                "type": "textarea"
+              },
+              {
+                "id": "percentuale_invalidita_permanente",
+                "type": "percentage"
+              },
+              {
+                "id": "giorni_invalidita_temporanea",
+                "type": "integer"
+              },
+              {
+                "id": "perizia_medico_legale_di_parte",
+                "type": "boolean",
+                "fortemente_consigliato": true,
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "nesso_causale",
+            "label": "Nesso causale (regola 'più probabile che non')",
+            "type": "textarea",
+            "required": true,
+            "min_length": 400
+          },
+          {
+            "id": "qualificazione_giuridica_responsabilita",
+            "label": "Qualificazione giuridica della responsabilità",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "struttura_contrattuale_1218_e_l_24",
+                "type": "boolean"
+              },
+              {
+                "id": "medico_extracontrattuale_2043_e_l_24",
+                "type": "boolean"
+              },
+              {
+                "id": "medico_contrattuale_per_contratto_diretto_1218",
+                "type": "boolean"
+              },
+              {
+                "id": "responsabilita_solidale_2055",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "danni_richiesti",
+            "label": "Danni richiesti",
+            "type": "object_complesso",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "danno_biologico_permanente",
+                "type": "currency"
+              },
+              {
+                "id": "danno_biologico_temporaneo",
+                "type": "currency"
+              },
+              {
+                "id": "danno_morale_e_sofferenza",
+                "type": "currency"
+              },
+              {
+                "id": "personalizzazione",
+                "type": "currency"
+              },
+              {
+                "id": "danno_parentale_familiari",
+                "type": "currency"
+              },
+              {
+                "id": "spese_mediche",
+                "type": "currency"
+              },
+              {
+                "id": "spese_assistenza_futura",
+                "type": "currency"
+              },
+              {
+                "id": "lucro_cessante",
+                "type": "currency"
+              },
+              {
+                "id": "danno_da_omesso_consenso_informato",
+                "type": "currency"
+              },
+              {
+                "id": "totale_richiesto",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "atp_o_mediazione_pregressa",
+            "label": "ATP/CTP 696-bis o mediazione pregressa",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_tentativo",
+                "type": "select",
+                "options": [
+                  "ctp_696_bis",
+                  "mediazione_obbligatoria"
+                ]
+              },
+              {
+                "id": "esito",
+                "type": "select",
+                "options": [
+                  "esito_negativo",
+                  "esito_parziale"
+                ]
+              },
+              {
+                "id": "documenti_acquisiti",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_responsabilita_struttura",
+              "accertamento_responsabilita_medico",
+              "condanna_risarcimento_integrale_danni",
+              "condanna_pagamento_da_compagnia_assicuratrice_azione_diretta",
+              "rivalutazione_e_interessi",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Doppio binario: struttura CONTRATTUALE (10 anni) / medico EXTRACONTRATTUALE (5 anni)",
+          "Condizione di procedibilità: CTP 696-bis O mediazione obbligatoria (art. 8 L. 24/2017)",
+          "Nesso causale: regola 'più probabile che non' (Cass. SU 28987/2019)",
+          "Consenso informato: danno autonomo (Cass. SU 3475/2023)",
+          "Linee guida (art. 5): esimente parziale per medico",
+          "Azione diretta verso assicurazione possibile (art. 12)",
+          "CTU nominata da albo specialistico (art. 15)",
+          "Tabelle Milano 2024 o uniformi Cass. SU 6651/2024 per danno biologico"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "cartella_clinica_completa",
+          "label": "Cartella clinica completa",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "consensi_informati_firmati",
+          "label": "Consensi informati firmati",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "esami_diagnostici_immagini_referti",
+          "label": "Esami diagnostici, immagini, referti",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "lettere_dimissione",
+          "label": "Lettere di dimissione e di ricovero",
+          "required": true
+        },
+        {
+          "id": "perizia_medico_legale_di_parte",
+          "label": "Perizia medico-legale di parte",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_spese_mediche_e_assistenziali",
+          "label": "Documentazione spese mediche e assistenziali",
+          "required_if": "danni_patrimoniali_richiesti"
+        },
+        {
+          "id": "documentazione_redditi_per_lucro_cessante",
+          "label": "Documentazione redditi (per lucro cessante)",
+          "required_if": "lucro_cessante_richiesto"
+        },
+        {
+          "id": "verbale_ctp_696_bis_o_mediazione",
+          "label": "Verbale CTP 696-bis o mediazione obbligatoria",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "richiesta_stragiudiziale_a_struttura_e_assicurazione_con_riscontri",
+          "label": "Richiesta stragiudiziale a struttura/assicurazione + riscontri",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "documentazione_familiari_per_danno_parentale",
+          "label": "Documentazione familiari (per danno parentale)",
+          "required_if": "danno_parentale_richiesto"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore dei danni richiesti",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ctp_696_bis_pregressa_o_mediazione",
+          "trigger": "Condizione procedibilità (alternativa)",
+          "automatico": false,
+          "critico": true
+        },
+        {
+          "tipo": "ctu_medico_legale_specialistica",
+          "trigger": "Sempre disposta dal giudice (albo specialistico art. 15)",
+          "automatico": false,
+          "molto_frequente": true,
+          "critico": true
+        },
+        {
+          "tipo": "chiamata_in_garanzia_assicurazione",
+          "trigger": "Convenuti chiamano propria assicurazione",
+          "automatico": false
+        },
+        {
+          "tipo": "azione_diretta_paziente_verso_compagnia_art_12",
+          "trigger": "Alternativa o cumulata",
+          "norma": "art. 12 L. 24/2017"
+        },
+        {
+          "tipo": "azione_di_rivalsa_struttura_verso_medico_art_9",
+          "trigger": "Dopo pagamento da struttura",
+          "norma": "art. 9 L. 24/2017"
+        },
+        {
+          "tipo": "azione_penale_parallela_per_lesioni_o_omicidio_colposo",
+          "trigger": "Eventuale denuncia/querela paziente o eredi",
+          "automatico": false
+        },
+        {
+          "tipo": "domanda_riconvenzionale_concorso_colpa_paziente",
+          "trigger": "Eccezione struttura/medico",
+          "automatico": false
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_pieno_con_condanna_solidale",
+          "descrizione": "Struttura e medici condannati al risarcimento integrale"
+        },
+        {
+          "esito": "accoglimento_parziale",
+          "descrizione": "Responsabilità solo struttura o solo medico, oppure quantum ridotto"
+        },
+        {
+          "esito": "accoglimento_solo_per_omesso_consenso_informato",
+          "descrizione": "Errore tecnico non provato ma danno autonomo da consenso (Cass. SU 3475/2023)"
+        },
+        {
+          "esito": "rigetto_per_assenza_nesso_causale",
+          "descrizione": "Non provato 'più probabile che non' tra condotta e danno"
+        },
+        {
+          "esito": "rigetto_per_rispetto_linee_guida_e_buone_pratiche",
+          "descrizione": "Esimente art. 5 L. 24/2017 applicabile"
+        },
+        {
+          "esito": "rigetto_per_prescrizione",
+          "descrizione": "Decorso quinquennio (medico) o decennio (struttura)"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo con assicurazione - MOLTO frequente"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE CONTRATTUALE STRUTTURA",
+          "anni": 10,
+          "decorrenza": "fatto o scoperta",
+          "natura": "prescrizione",
+          "norma": "art. 2946 c.c.",
+          "criticita": "ALTA"
+        },
+        {
+          "termine": "PRESCRIZIONE EXTRACONTRATTUALE MEDICO",
+          "anni": 5,
+          "decorrenza": "fatto o scoperta",
+          "natura": "prescrizione",
+          "norma": "art. 2947 c.c.",
+          "criticita": "ALTA"
+        },
+        {
+          "termine": "PRESCRIZIONE LUNGA SE REATO",
+          "anni": "secondo prescrizione reato",
+          "decorrenza": "fatto",
+          "norma": "art. 2947 c. 3 c.c."
+        },
+        {
+          "termine": "CTP 696-bis o mediazione",
+          "giorni": "max 90-120 gg",
+          "natura": "condizione di procedibilità"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "160040",
+      "codice_logico": "GUIDA_RESPONSABILITA_MEDICO_SANITARIA_160040",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [
+        "012002",
+        "142002",
+        "145999"
+      ],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda resta guida interna per responsabilità medico-sanitaria, da agganciare al codice ufficiale coerente con rito e domanda.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160040"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160040"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160040"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 4 marzo 2010, n. 28, art. 5 - mediazione civile e commerciale",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;28~art5=",
+          "ambito": "condizione di procedibilità e materie soggette a mediazione",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160040"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.L. 12 settembre 2014, n. 132, art. 3 - negoziazione assistita",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014;132~art3=",
+          "ambito": "risarcimento da circolazione e domande di pagamento entro soglia, fuori dai casi di mediazione",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160040"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 8 marzo 2017, n. 24 - responsabilità sanitaria",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2017-03-08;24~art10-com2=",
+          "ambito": "responsabilità sanitaria, assicurazione, rivalsa e regresso",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "160040"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_APPALTO_VIZI_DIFFORMITA_GARANZIA_143005",
+      "denominazione": "Risoluzione contratto di appalto per vizi/difformità + garanzia (artt. 1667-1669 c.c.)",
+      "categoria": "Contratti - appalto - patologia",
+      "sottocategoria": "Azione del committente per vizi, difformità o gravi difetti dell'opera appaltata",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA per appalti edilizi (rientranti in 'contratti'); ATP 696-bis molto utile",
+      "competenza": "Tribunale - foro residenza convenuto o luogo esecuzione opera (art. 20 c.p.c.)",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1655",
+          "descrizione": "Nozione di appalto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1662",
+          "descrizione": "Variazioni necessarie - opere o materiali in corso"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1665",
+          "descrizione": "Verifica e accettazione dell'opera"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1666",
+          "descrizione": "Verifica per parti separate"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1667",
+          "descrizione": "Difformità e vizi dell'opera - garanzia 2 anni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1668",
+          "descrizione": "Effetti della garanzia - eliminazione, riduzione prezzo, risoluzione, danni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1669",
+          "descrizione": "Rovina e gravi difetti di edifici - 10 anni - immobili"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1671",
+          "descrizione": "Recesso unilaterale committente"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1672",
+          "descrizione": "Impossibilità di esecuzione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1676",
+          "descrizione": "Diritti degli ausiliari dell'appaltatore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1677",
+          "descrizione": "Prestazione continuativa o periodica di servizi"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2946",
+          "descrizione": "Prescrizione 10 anni"
+        },
+        {
+          "fonte": "Cass. SU 27435/2019",
+          "descrizione": "Distinzione vizi 1667 vs gravi difetti 1669"
+        },
+        {
+          "fonte": "Cass. SU 7756/2017",
+          "descrizione": "Gravi difetti edificio - applicabile anche a ristrutturazioni"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "CONTRATTO DI APPALTO valido tra committente e appaltatore",
+        "OPERA EFFETTUATA (o in corso di completamento)",
+        "PRESENZA DI VIZI o DIFFORMITÀ:",
+        "- VIZI/DIFFORMITÀ ex 1667: tutte le opere - garanzia 2 anni dalla consegna",
+        "- GRAVI DIFETTI ex 1669: edifici e opere destinate a durare - garanzia 10 anni",
+        "DENUNCIA TEMPESTIVA del vizio:",
+        "- 60 giorni dalla scoperta per 1667",
+        "- 1 anno dalla scoperta per 1669",
+        "AZIONE proposta entro:",
+        "- 2 anni dalla consegna per 1667",
+        "- 1 anno dalla denuncia per 1669"
+      ],
+      "differenza_critica_1667_vs_1669": {
+        "garanzia_per_difformita_e_vizi_1667": [
+          "Applicabile a TUTTE le opere appaltate (mobili e immobili)",
+          "VIZI: difetti che rendono opera inidonea all'uso o ne diminuiscono il valore",
+          "DIFFORMITÀ: discordanza con progetto/capitolato",
+          "Denuncia: 60 giorni dalla scoperta",
+          "Azione: 2 anni dalla consegna",
+          "Decadenze più strette"
+        ],
+        "garanzia_decennale_per_gravi_difetti_1669": [
+          "Solo per edifici e opere immobili destinate a durare",
+          "GRAVI DIFETTI: rovina totale o parziale, pericolo di rovina, gravi difetti incidenti su stabilità o godimento",
+          "Estesa a RISTRUTTURAZIONI rilevanti (Cass. SU 7756/2017)",
+          "Denuncia: 1 anno dalla scoperta",
+          "Azione: 1 anno dalla denuncia",
+          "Responsabilità di ordine pubblico - non rinunciabile",
+          "Si applica anche al direttore lavori e progettista"
+        ]
+      },
+      "rimedi_disponibili_1668": [
+        "ELIMINAZIONE DEI VIZI a spese appaltatore",
+        "RIDUZIONE DEL PREZZO proporzionale ai vizi",
+        "RISOLUZIONE DEL CONTRATTO se vizi gravi che rendano opera inadatta",
+        "RISARCIMENTO DANNI cumulabile con ogni rimedio"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": "Per appalti rientranti tra 'contratti' nel D.Lgs. 28/2010: prudenza valuta",
+        "tipicamente_sì_per_appalti_edilizi_significativi": true,
+        "ATP_696_bis_alternativa": "Frequente per accertamento vizi tecnici - acquisisce CTU specialistica"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione CONTRATTO DI APPALTO e relativi documenti",
+          "documenti": [
+            "Contratto di appalto + eventuali integrazioni",
+            "Capitolato d'appalto",
+            "Progetto esecutivo",
+            "Computo metrico estimativo",
+            "Programma lavori",
+            "Eventuali SAL (stati avanzamento lavori)",
+            "Eventuali verbali di consegna parziali o finali"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DEI VIZI / GRAVI DIFETTI",
+          "elementi": [
+            "Fotografie/video dettagliate dei vizi (con date)",
+            "Eventuali perizie tecniche di parte",
+            "Eventuali ordinanze sindacali (per edifici pericolanti)",
+            "Documentazione di danni subiti",
+            "Eventuali interventi di riparazione già fatti (per documentare necessità)"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "DENUNCIA TEMPESTIVA DEI VIZI",
+          "termine_1667": "60 GIORNI dalla scoperta (art. 1667 c. 1)",
+          "termine_1669": "1 ANNO dalla scoperta (art. 1669 c. 1)",
+          "modalita": "Raccomandata A/R o PEC dettagliata indicando vizi specifici",
+          "criticita": "MASSIMA - decadenza preclude azione"
+        },
+        {
+          "step": 4,
+          "descrizione": "QUALIFICAZIONE GIURIDICA",
+          "criterio": [
+            "Verificare se ricade in 1667 (vizi/difformità) o 1669 (gravi difetti)",
+            "Per immobili: spesso applicabile 1669 (più favorevole)",
+            "Per gravità: analizzare incidenza su stabilità e godimento"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "VALUTAZIONE STRATEGICA ATP 696-bis",
+          "vantaggio": "Acquisisce CTU tecnica preliminarmente - fondamentale per vizi edilizi",
+          "alternative": "Mediazione obbligatoria - più rapida ma meno tecnica"
+        },
+        {
+          "step": 6,
+          "descrizione": "QUANTIFICAZIONE",
+          "voci": [
+            "Costo di eliminazione vizi (preventivi)",
+            "Riduzione del prezzo (proporzionale)",
+            "Danni emergenti (riparazioni urgenti già fatte)",
+            "Lucro cessante (se opera commerciale)",
+            "Spese tecniche di accertamento"
+          ]
+        },
+        {
+          "step": 7,
+          "descrizione": "IDENTIFICAZIONE DEI CONVENUTI",
+          "tipologie": [
+            "APPALTATORE (sempre)",
+            "DIRETTORE DEI LAVORI (per 1669)",
+            "PROGETTISTA (per 1669)",
+            "Eventuali subappaltatori (solidale)"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_risoluzione_appalto_vizi",
+        "denominazione": "Atto di citazione per risoluzione/garanzia appalto ex artt. 1667-1669 c.c.",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "committente_attore",
+            "label": "Committente attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "appaltatore_convenuto",
+            "label": "Appaltatore convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "direttore_lavori_convenuto_eventuale",
+            "label": "Direttore lavori (per 1669)",
+            "type": "object_persona"
+          },
+          {
+            "id": "progettista_convenuto_eventuale",
+            "label": "Progettista (per 1669)",
+            "type": "object_persona"
+          },
+          {
+            "id": "contratto_appalto",
+            "label": "Contratto di appalto",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_appalto",
+                "type": "select",
+                "options": [
+                  "costruzione_edificio",
+                  "ristrutturazione_edilizia",
+                  "installazione_impianti",
+                  "appalto_industriale",
+                  "altro_appalto_di_opera",
+                  "appalto_di_servizi"
+                ]
+              },
+              {
+                "id": "data_stipula",
+                "type": "date"
+              },
+              {
+                "id": "importo_appalto",
+                "type": "currency"
+              },
+              {
+                "id": "oggetto",
+                "type": "textarea"
+              },
+              {
+                "id": "termine_consegna_pattuito",
+                "type": "date"
+              },
+              {
+                "id": "data_effettiva_consegna",
+                "type": "date",
+                "required": true,
+                "critico_per_decorrenza_termini": true
+              },
+              {
+                "id": "capitolato_e_progetto_allegati",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "vizi_o_difetti_riscontrati",
+            "label": "Vizi o gravi difetti riscontrati",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "qualificazione",
+                "type": "select",
+                "required": true,
+                "options": [
+                  "vizi_difformita_1667",
+                  "gravi_difetti_1669",
+                  "entrambe_le_qualificazioni_alternativamente"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 600
+              },
+              {
+                "id": "data_scoperta",
+                "type": "date",
+                "required": true,
+                "critico_per_denuncia_60_gg_o_1_anno": true
+              },
+              {
+                "id": "perizia_tecnica_di_parte",
+                "type": "boolean",
+                "fortemente_consigliato": true
+              },
+              {
+                "id": "gravità_incidenza_su_stabilità_o_godimento_per_1669",
+                "type": "textarea",
+                "required_if": "qualificazione=1669"
+              }
+            ]
+          },
+          {
+            "id": "denuncia_dei_vizi",
+            "label": "Denuncia dei vizi",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "data_denuncia",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "rispetto_termine_60_gg_o_1_anno",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "modalita",
+                "type": "select",
+                "options": [
+                  "raccomandata_AR",
+                  "PEC"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "rimedio_richiesto",
+            "label": "Rimedio richiesto",
+            "type": "select",
+            "required": true,
+            "options": [
+              "eliminazione_vizi_a_spese_appaltatore",
+              "riduzione_proporzionale_del_prezzo",
+              "risoluzione_contratto_per_vizi_gravi",
+              "risarcimento_danni"
+            ]
+          },
+          {
+            "id": "quantificazione_danni",
+            "label": "Quantificazione danni",
+            "type": "object_complesso",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "costo_eliminazione_vizi",
+                "type": "currency"
+              },
+              {
+                "id": "riduzione_prezzo_proposta",
+                "type": "currency"
+              },
+              {
+                "id": "danni_emergenti_riparazioni_gia_fatte",
+                "type": "currency"
+              },
+              {
+                "id": "lucro_cessante",
+                "type": "currency"
+              },
+              {
+                "id": "spese_tecniche_di_accertamento",
+                "type": "currency"
+              },
+              {
+                "id": "totale_richiesto",
+                "type": "currency",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "atp_696_bis_pregresso",
+            "label": "ATP 696-bis pregresso",
+            "type": "boolean",
+            "fortemente_consigliato": true
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_vizi_difformita_o_gravi_difetti",
+              "condanna_eliminazione_vizi",
+              "riduzione_prezzo_proporzionale",
+              "risoluzione_contratto",
+              "risarcimento_danni_integrale",
+              "condanna_solidale_appaltatore_direttore_lavori_progettista",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "TERMINI DI DENUNCIA: 60 gg per 1667 / 1 anno per 1669 - DECADENZIALI",
+          "TERMINI DI AZIONE: 2 anni dalla consegna per 1667 / 1 anno dalla denuncia per 1669",
+          "1669: applicabile a edifici + ristrutturazioni rilevanti (Cass. SU 7756/2017)",
+          "1669: estende responsabilità a direttore lavori e progettista",
+          "1669: norma di ordine pubblico - irrinunciabile",
+          "ATP 696-bis molto utile per accertamento tecnico preliminare"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contratto_appalto",
+          "label": "Contratto di appalto",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "capitolato_e_progetto",
+          "label": "Capitolato d'appalto + progetto esecutivo",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "verbale_consegna_opera",
+          "label": "Verbale di consegna dell'opera",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "denuncia_vizi_e_relata_invio",
+          "label": "Denuncia dei vizi con prova invio nei termini",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_fotografica_vizi",
+          "label": "Documentazione fotografica/video dei vizi",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_tecnica_di_parte",
+          "label": "Perizia tecnica di parte",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "preventivi_eliminazione_vizi",
+          "label": "Preventivi per eliminazione vizi",
+          "required_if": "rimedio=eliminazione_o_riduzione_prezzo"
+        },
+        {
+          "id": "documentazione_danni_emergenti",
+          "label": "Documentazione danni emergenti (riparazioni già fatte)",
+          "required_if": "danni_emergenti_richiesti"
+        },
+        {
+          "id": "eventuali_sal_e_pagamenti",
+          "label": "Eventuali SAL e pagamenti effettuati",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbale_mediazione_o_atp",
+          "label": "Verbale mediazione o ATP 696-bis",
+          "required_if": "mediazione_obbligatoria_o_atp"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "atp_696_bis_per_accertamento_vizi",
+          "trigger": "Accertamento tecnico preliminare",
+          "automatico": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "tipo": "mediazione_obbligatoria_se_applicabile",
+          "trigger": "Condizione procedibilità",
+          "automatico": false
+        },
+        {
+          "tipo": "ctu_tecnica_edilizia_o_industriale",
+          "trigger": "Disposta dal giudice",
+          "automatico": false,
+          "centrale_per_decisione": true
+        },
+        {
+          "tipo": "chiamata_in_garanzia_subappaltatori",
+          "trigger": "Per appalti con subappalti",
+          "automatico": false
+        },
+        {
+          "tipo": "chiamata_in_garanzia_assicurazione_postuma_decennale_per_1669",
+          "trigger": "Polizza decennale postuma",
+          "norma": "obbligatoria per costruttore"
+        },
+        {
+          "tipo": "domanda_riconvenzionale_pagamento_saldo",
+          "trigger": "Appaltatore reclama saldo dovuto",
+          "automatico": false,
+          "molto_frequente": true
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_pieno",
+          "descrizione": "Accertamento vizi + condanna eliminazione/risoluzione + danni"
+        },
+        {
+          "esito": "accoglimento_parziale_riduzione_prezzo",
+          "descrizione": "Riduzione proporzionale del prezzo"
+        },
+        {
+          "esito": "riqualificazione_da_1669_a_1667",
+          "descrizione": "Non integranti gravi difetti ma vizi semplici - decadenze più strette"
+        },
+        {
+          "esito": "rigetto_per_decadenza_denuncia_60_gg_o_1_anno",
+          "descrizione": "Denuncia tardiva"
+        },
+        {
+          "esito": "rigetto_per_assenza_vizi_o_per_responsabilita_di_diverso_soggetto",
+          "descrizione": "Vizi non provati o imputabili a committente/terzi"
+        },
+        {
+          "esito": "transazione_con_eliminazione_o_indennizzo",
+          "descrizione": "Accordo - molto frequente"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "DENUNCIA VIZI 1667",
+          "giorni": 60,
+          "decorrenza": "scoperta",
+          "natura": "DECADENZIALE",
+          "norma": "art. 1667 c. 1 c.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "DENUNCIA GRAVI DIFETTI 1669",
+          "anno": 1,
+          "decorrenza": "scoperta",
+          "natura": "DECADENZIALE",
+          "norma": "art. 1669 c. 1 c.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "AZIONE PER VIZI 1667",
+          "anni": 2,
+          "decorrenza": "consegna opera",
+          "natura": "DECADENZIALE",
+          "norma": "art. 1667 c. 2 c.c."
+        },
+        {
+          "termine": "AZIONE PER GRAVI DIFETTI 1669",
+          "anno": 1,
+          "decorrenza": "denuncia",
+          "natura": "DECADENZIALE",
+          "norma": "art. 1669 c. 1 c.c."
+        },
+        {
+          "termine": "GARANZIA DECENNALE 1669",
+          "anni": 10,
+          "decorrenza": "compimento opera",
+          "natura": "termine sostanziale",
+          "norma": "art. 1669 c. 1 c.c."
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "143005",
+      "codice_logico": "GUIDA_APPALTO_VIZI_DIFFORMITA_GARANZIA_143005",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [
+        "140022",
+        "140021",
+        "010025",
+        "010026"
+      ],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda riguarda appalto, vizi e garanzie, e resta separata dai codici ufficiali di appalto.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143005"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 4 marzo 2010, n. 28, art. 5 - mediazione civile e commerciale",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;28~art5=",
+          "ambito": "condizione di procedibilità e materie soggette a mediazione",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143005"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.L. 12 settembre 2014, n. 132, art. 3 - negoziazione assistita",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014;132~art3=",
+          "ambito": "risarcimento da circolazione e domande di pagamento entro soglia, fuori dai casi di mediazione",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143005"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 16 marzo 1942, n. 262 - Codice civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=multivigenza",
+          "ambito": "famiglia, successioni, diritti reali, contratti, responsabilità, società e persone",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "143005"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_SERVITU_PREDIALI_130013",
+      "denominazione": "Servitù prediali - costituzione, accertamento, modifiche (artt. 1027-1099 c.c.)",
+      "categoria": "Diritti reali - servitù",
+      "sottocategoria": "Azioni relative all'esistenza, contenuto, esercizio o estinzione di servitù prediali",
+      "rito": "Rito ordinario di cognizione preceduto da MEDIAZIONE OBBLIGATORIA (diritti reali)",
+      "competenza": "Tribunale del luogo immobile (art. 21 c.p.c.) - foro esclusivo",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1027",
+          "descrizione": "Nozione di servitù prediale - peso sul fondo servente per utilità fondo dominante"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1028",
+          "descrizione": "Utilità della servitù"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1029",
+          "descrizione": "Servitù per vantaggio futuro"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1031",
+          "descrizione": "Modi di costituzione delle servitù"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1032",
+          "descrizione": "Costituzione per contratto o testamento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1033",
+          "descrizione": "Servitù coattive - imposte dalla legge"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1051",
+          "descrizione": "Servitù coattiva di passaggio - per fondo intercluso"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1052",
+          "descrizione": "Servitù coattiva di passaggio - per cause varie"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1056",
+          "descrizione": "Servitù coattive di acquedotto"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1061",
+          "descrizione": "Servitù apparenti e non apparenti - prescrizione acquisitiva"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1062",
+          "descrizione": "Costituzione per destinazione del padre di famiglia"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1063-1067",
+          "descrizione": "Esercizio della servitù"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1068",
+          "descrizione": "Estensione e divieti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1073",
+          "descrizione": "Prescrizione acquisitiva - 20 anni per servitù apparenti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1074",
+          "descrizione": "Non uso ventennale - estinzione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1078",
+          "descrizione": "Estinzione per confusione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1079",
+          "descrizione": "Azione confessoria - tutela servitù"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1080",
+          "descrizione": "Azione negatoria - libertà del fondo"
+        },
+        {
+          "fonte": "Cass. SU 25021/2019",
+          "descrizione": "Servitù prediali e tutela petitoria"
+        },
+        {
+          "fonte": "Cass. SU 14123/2022",
+          "descrizione": "Servitù di passaggio - presupposti interclusione"
+        }
+      ],
+      "tipologie_di_azioni_relative_a_servitu": [
+        "AZIONE CONFESSORIA (art. 1079): accertamento esistenza servitù + tutela contro turbative",
+        "AZIONE NEGATORIA (art. 1080): negare esistenza servitù altrui + tutela libertà fondo",
+        "AZIONE DI COSTITUZIONE servitù coattiva (artt. 1051-1057): es. passaggio per fondo intercluso",
+        "AZIONE DI ACCERTAMENTO di servitù per usucapione (1061-1062)",
+        "AZIONE DI ESTINZIONE servitù (per non uso ventennale, confusione, ecc.)",
+        "AZIONE PER MODIFICA dell'esercizio della servitù",
+        "AZIONE PER REGOLAMENTO dei rapporti tra fondo dominante e servente"
+      ],
+      "modalita_di_costituzione_servitu": {
+        "servitù_volontarie_1031_1032": [
+          "Contratto (atto pubblico per immobili - art. 1350)",
+          "Testamento",
+          "Destinazione del padre di famiglia (1062)"
+        ],
+        "servitù_coattive_1033_1099": [
+          "Imposte dalla legge in casi specifici",
+          "Passaggio per fondo intercluso (1051)",
+          "Passaggio in altri casi (1052)",
+          "Acquedotto coattivo (1056)",
+          "Elettrodotto, gasdotto (norme speciali)"
+        ],
+        "servitù_per_usucapione_1061": [
+          "SOLO per servitù APPARENTI (visibili - es. passaggio, acquedotto visibile, vedute)",
+          "20 anni di possesso continuato (1073)",
+          "10 anni se possesso in buona fede + titolo astrattamente idoneo + trascrizione"
+        ]
+      },
+      "presupposti_sostanziali": [
+        "Esistenza di DUE FONDI distinti (servente e dominante)",
+        "FONDI APPARTENENTI A PROPRIETARI DIVERSI",
+        "RAPPORTO DI SERVIZIO tra fondi (peso sul servente a favore del dominante)",
+        "UTILITÀ OGGETTIVA della servitù per il fondo dominante",
+        "Per azione confessoria: titolo di servitù o usucapione provata",
+        "Per azione negatoria: titolo del proprietario + esistenza di turbativa"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "DIRITTI REALI",
+        "natura": "condizione di procedibilità"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE PROPRIETÀ E CONFINI",
+          "documenti": [
+            "Atti di proprietà dei fondi servente e dominante",
+            "Visure catastali aggiornate",
+            "Mappe catastali",
+            "Ispezioni Conservatoria",
+            "Eventuali atti costitutivi di servitù precedenti",
+            "Eventuali piani di lottizzazione"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE TITOLO O USUCAPIONE",
+          "per_servitu_volontaria": [
+            "Atto notarile costitutivo + trascrizione",
+            "Eventuali testamenti",
+            "Atti di destinazione del padre di famiglia (1062)"
+          ],
+          "per_usucapione": [
+            "Documentazione possesso ventennale continuato",
+            "Apparenza della servitù",
+            "Tracce visibili (es. percorso di passaggio, tubazioni, fili elettrici)",
+            "Testimonianze di lungo periodo"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "DOCUMENTAZIONE TURBATIVE O CONTESTAZIONI",
+          "per_confessoria": [
+            "Atti che impediscono l'esercizio della servitù",
+            "Comportamenti del proprietario del fondo servente",
+            "Eventuali ostruzioni fisiche del passaggio",
+            "Comunicazioni del controparte"
+          ],
+          "per_negatoria": [
+            "Atti del vicino che pretende servitù inesistente",
+            "Eventuali atti di esercizio asserita di servitù",
+            "Documentazione invocata dal preteso titolare"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "RILIEVO TOPOGRAFICO",
+          "rilevanza": "Molto utile per identificare con precisione il tracciato della servitù",
+          "elementi": [
+            "Confini esatti dei fondi",
+            "Localizzazione del peso di servitù",
+            "Eventuali manufatti coinvolti"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "PER SERVITÙ COATTIVA DI PASSAGGIO",
+          "presupposti": [
+            "INTERCLUSIONE del fondo (assenza accesso a via pubblica)",
+            "O accesso INADEGUATO alle necessità (Cass. SU 14123/2022)",
+            "Tracciato di MINOR PREGIUDIZIO per fondo servente",
+            "Determinazione INDENNITÀ"
+          ]
+        },
+        {
+          "step": 6,
+          "descrizione": "ATTIVAZIONE MEDIAZIONE OBBLIGATORIA"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_servitu_prediale",
+        "denominazione": "Atto di citazione per servitù prediale (confessoria/negatoria/coattiva/usucapione)",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del luogo immobile",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "label": "Attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "proprietario_fondo_dominante_per_confessoria",
+                  "proprietario_fondo_che_subisce_pretesa_per_negatoria",
+                  "proprietario_fondo_intercluso_per_coattiva",
+                  "altro"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "convenuto",
+            "label": "Convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "fondo_dominante",
+            "label": "Fondo dominante (a favore del quale la servitù opera o si chiede)",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "fondo_servente",
+            "label": "Fondo servente (su cui grava o graverà la servitù)",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "tipo_azione",
+            "label": "Tipo di azione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "azione_confessoria_1079",
+              "azione_negatoria_1080",
+              "azione_costituzione_servitu_coattiva",
+              "azione_accertamento_per_usucapione_1061",
+              "azione_estinzione_per_non_uso_ventennale_1074",
+              "azione_modifica_esercizio",
+              "altra"
+            ]
+          },
+          {
+            "id": "tipo_servitu_dedotta",
+            "label": "Tipo di servitù dedotta",
+            "type": "select",
+            "required": true,
+            "options": [
+              "passaggio_pedonale",
+              "passaggio_carrabile",
+              "passaggio_di_acque_acquedotto",
+              "elettrodotto_o_altre_condutture",
+              "veduta_o_luce",
+              "non_aedificandi_o_non_altius_tollendi",
+              "pascolo_legnatico",
+              "altra"
+            ]
+          },
+          {
+            "id": "titolo_della_servitu",
+            "label": "Titolo della servitù",
+            "type": "object",
+            "required_if": "azione=confessoria_o_usucapione",
+            "sub_fields": [
+              {
+                "id": "tipo_titolo",
+                "type": "select",
+                "options": [
+                  "atto_notarile_costitutivo",
+                  "testamento",
+                  "destinazione_padre_famiglia_1062",
+                  "usucapione_20_anni_servitu_apparente",
+                  "usucapione_10_anni_titolo_buona_fede",
+                  "imposizione_di_legge_coattiva"
+                ]
+              },
+              {
+                "id": "estremi",
+                "type": "string"
+              },
+              {
+                "id": "data",
+                "type": "date"
+              },
+              {
+                "id": "trascrizione",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "presupposti_per_servitu_coattiva",
+            "label": "Presupposti per servitù coattiva (se applicabile)",
+            "type": "object",
+            "required_if": "azione=coattiva",
+            "sub_fields": [
+              {
+                "id": "interclusione_assoluta_o_relativa",
+                "type": "select"
+              },
+              {
+                "id": "documentazione_interclusione",
+                "type": "textarea"
+              },
+              {
+                "id": "tracciato_proposto_minor_pregiudizio",
+                "type": "textarea"
+              },
+              {
+                "id": "indennita_proposta",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "turbative_o_contestazioni_dedotte",
+            "label": "Turbative o contestazioni dedotte",
+            "type": "textarea",
+            "required_if": "azione_di_tutela"
+          },
+          {
+            "id": "rilievo_topografico_di_parte",
+            "label": "Rilievo topografico di parte",
+            "type": "boolean",
+            "fortemente_consigliato": true
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_esistenza_servitu",
+              "accertamento_inesistenza_servitu",
+              "costituzione_servitu_coattiva_di_passaggio",
+              "costituzione_altra_servitu_coattiva",
+              "ordine_cessazione_turbative",
+              "rimozione_ostruzioni",
+              "determinazione_tracciato_e_modalita_esercizio",
+              "determinazione_indennita_per_servitu_coattiva",
+              "estinzione_per_non_uso_ventennale",
+              "trascrizione_sentenza",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Foro esclusivo del luogo immobile (art. 21 c.p.c.)",
+          "Mediazione obbligatoria preventiva (diritti reali)",
+          "Usucapione: solo servitù APPARENTI (1061)",
+          "Per servitù coattiva: presupposti rigorosi (Cass. SU 14123/2022)",
+          "Estinzione per non uso: 20 anni (1074)",
+          "Trascrizione della servitù essenziale per opponibilità (2643)",
+          "Rilievo topografico molto importante"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atti_proprieta_fondi",
+          "label": "Atti di proprietà dei due fondi",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "visure_catastali_e_mappe",
+          "label": "Visure catastali e mappe",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "ispezioni_conservatoria",
+          "label": "Ispezioni Conservatoria",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "atto_costitutivo_servitu_se_volontaria",
+          "label": "Atto costitutivo della servitù (se volontaria)",
+          "required_if": "servitu_volontaria"
+        },
+        {
+          "id": "documentazione_usucapione",
+          "label": "Documentazione per usucapione (testimoni, foto storiche, atti)",
+          "required_if": "azione_usucapione"
+        },
+        {
+          "id": "rilievo_topografico",
+          "label": "Rilievo topografico con identificazione servitù",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "documentazione_fotografica_situazione_fondi",
+          "label": "Documentazione fotografica dei fondi",
+          "required": true
+        },
+        {
+          "id": "perizia_tecnica_di_parte",
+          "label": "Perizia tecnica di parte",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_interclusione_per_coattiva",
+          "label": "Documentazione interclusione (per servitù coattiva)",
+          "required_if": "azione_coattiva",
+          "critico": true
+        },
+        {
+          "id": "verbale_mediazione_negativa",
+          "label": "Verbale mediazione obbligatoria conclusa negativamente",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "tasse_trascrizione_per_sentenza_costitutiva": "Imposta di registro proporzionale + ipotecaria",
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ricorso_mediazione_obbligatoria",
+          "trigger": "Condizione procedibilità"
+        },
+        {
+          "tipo": "ctu_topografica_e_estimativa",
+          "trigger": "Disposta dal giudice",
+          "automatico": false,
+          "molto_frequente": true
+        },
+        {
+          "tipo": "sopralluogo_giudice",
+          "trigger": "Disposto dal giudice",
+          "automatico": false
+        },
+        {
+          "tipo": "trascrizione_sentenza_costitutiva",
+          "trigger": "Per servitù di nuova costituzione",
+          "norma": "art. 2643 c.c."
+        },
+        {
+          "tipo": "azione_possessoria_alternativa_o_complementare",
+          "trigger": "Se anche profili possessori",
+          "codice_correlato": "130031"
+        },
+        {
+          "tipo": "azione_per_negatoria_riconvenzionale",
+          "trigger": "Strategia difensiva convenuto",
+          "automatico": false
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_confessoria_accertamento_servitu",
+          "descrizione": "Servitù accertata + ordine cessazione turbative"
+        },
+        {
+          "esito": "accoglimento_negatoria_inesistenza_servitu",
+          "descrizione": "Inesistenza servitù + libertà del fondo"
+        },
+        {
+          "esito": "accoglimento_costituzione_coattiva",
+          "descrizione": "Servitù coattiva costituita + determinazione indennità"
+        },
+        {
+          "esito": "accertamento_usucapione_servitu",
+          "descrizione": "Servitù acquistata per usucapione - costituzione retroattiva"
+        },
+        {
+          "esito": "rigetto_per_assenza_titolo_o_usucapione",
+          "descrizione": "Mancata prova della servitù"
+        },
+        {
+          "esito": "rigetto_per_decorso_non_uso_ventennale",
+          "descrizione": "Servitù estinta"
+        },
+        {
+          "esito": "transazione_con_costituzione_volontaria_o_acquisto_strisce",
+          "descrizione": "Accordo - es. acquisto piccola porzione di terreno"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "USUCAPIONE SERVITÙ APPARENTE",
+          "anni": 20,
+          "decorrenza": "inizio possesso",
+          "natura": "termine sostanziale",
+          "norma": "art. 1073 c.c."
+        },
+        {
+          "termine": "ESTINZIONE PER NON USO",
+          "anni": 20,
+          "decorrenza": "ultimo atto di esercizio",
+          "natura": "decadenziale",
+          "norma": "art. 1074 c.c."
+        },
+        {
+          "termine": "Azione confessoria/negatoria",
+          "natura": "imprescrittibile per durata della servitù"
+        },
+        {
+          "termine": "Mediazione obbligatoria - max",
+          "giorni": 90
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "130013",
+      "codice_logico": "GUIDA_SERVITU_PREDIALI_130013",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [
+        "130041",
+        "130001"
+      ],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda riguarda servitù prediali e deve restare distinta dai codici ufficiali di diritti reali selezionabili nel fascicolo.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130013"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130013"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130013"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 4 marzo 2010, n. 28, art. 5 - mediazione civile e commerciale",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;28~art5=",
+          "ambito": "condizione di procedibilità e materie soggette a mediazione",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130013"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 16 marzo 1942, n. 262 - Codice civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=multivigenza",
+          "ambito": "famiglia, successioni, diritti reali, contratti, responsabilità, società e persone",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "130013"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_VOLONTARIA_GIURISDIZIONE_MINORI_AUTORIZZAZIONI_414001",
+      "denominazione": "Volontaria giurisdizione su minori - autorizzazioni atti rappresentanti legali",
+      "categoria": "Volontaria giurisdizione - protezione minore",
+      "sottocategoria": "Autorizzazioni del Giudice Tutelare per atti dei rappresentanti legali (genitori esercenti potestà o tutori) eccedenti l'ordinaria amministrazione",
+      "rito": "Procedimento camerale di volontaria giurisdizione davanti al GIUDICE TUTELARE",
+      "competenza": "GIUDICE TUTELARE del luogo di residenza del minore",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "316",
+          "descrizione": "Responsabilità genitoriale - esercizio comune"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "317-bis",
+          "descrizione": "Esercizio responsabilità nei casi di separazione/divorzio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "318-319",
+          "descrizione": "Diritti del minore - educazione, mantenimento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "320",
+          "descrizione": "Rappresentanza e amministrazione - autorizzazioni necessarie del GT"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "321",
+          "descrizione": "Nomina del curatore speciale - conflitto interessi genitori/minore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "322",
+          "descrizione": "Atti nulli per mancanza autorizzazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "324",
+          "descrizione": "Usufrutto legale dei genitori"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "343 e ss.",
+          "descrizione": "Tutela del minore - per assenza/incapacità genitori"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "374",
+          "descrizione": "Atti del tutore che richiedono autorizzazione GT"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "375",
+          "descrizione": "Atti del tutore che richiedono autorizzazione TRIBUNALE"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "344",
+          "descrizione": "Procedimento davanti al GT - rito camerale"
+        },
+        {
+          "fonte": "L. 218/2015",
+          "descrizione": "Riforma filiazione - parità figli"
+        },
+        {
+          "fonte": "Cass. SU 21188/2014",
+          "descrizione": "Reclamabilità decreti GT alla Corte d'Appello"
+        }
+      ],
+      "atti_che_richiedono_autorizzazione_GT_art_320_374": [
+        "ALIENAZIONE DI BENI del minore (eccetto frutti e prodotti)",
+        "COSTITUZIONE DI PEGNO O IPOTECA su beni del minore",
+        "CONCESSIONE DI LOCAZIONI ULTRANOVENNALI",
+        "ACCETTAZIONE DI EREDITÀ con beneficio di inventario per il minore",
+        "RINUNCIA A EREDITÀ a favore del minore",
+        "ACCETTAZIONE DI DONAZIONI O LEGATI con oneri",
+        "TRANSAZIONI o COMPROMESSI in arbitrato",
+        "PROMUOVERE GIUDIZI o accettare contestazioni (salvo possessori e cautelari)",
+        "AMMINISTRAZIONE DI BENI di particolare rilevanza",
+        "OPERAZIONI BANCARIE rilevanti (apertura conti, gestione titoli)",
+        "RICONOSCIMENTO DI DEBITI"
+      ],
+      "atti_che_richiedono_autorizzazione_TRIBUNALE_art_375": [
+        "ALIENAZIONE BENI IMMOBILI del minore",
+        "COSTITUZIONE DI IPOTECA volontaria",
+        "ASSUNZIONE DI OBBLIGAZIONI di particolare rilevanza",
+        "ALIENAZIONE DI AZIENDE o quote di particolare rilevanza"
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI MINORE rappresentato da genitori o tutore",
+        "ATTO da compiere che ECCEDE L'ORDINARIA AMMINISTRAZIONE",
+        "L'atto rientra in quelli SOGGETTI AD AUTORIZZAZIONE ex artt. 320, 374, 375",
+        "INTERESSE DEL MINORE da valutare (criterio centrale)",
+        "Assenza di conflitto di interessi genitori-minore (altrimenti CURATORE SPECIALE 321)"
+      ],
+      "legittimati_attivi": [
+        "GENITORI esercenti la responsabilità genitoriale (uno o entrambi)",
+        "TUTORE legalmente nominato",
+        "PROTUTORE (in caso di conflitto del tutore)",
+        "CURATORE SPECIALE se nominato per conflitto interessi (art. 321)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Procedimento di volontaria giurisdizione - protezione"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE STATUS MINORE",
+          "documenti": [
+            "Atto di nascita del minore",
+            "Stato di famiglia",
+            "Documenti di entrambi i genitori (o eventuale tutore + verbale giuramento)",
+            "Eventuali sentenze di separazione/divorzio incidenti su responsabilità genitoriale"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DESCRIZIONE DETTAGLIATA DELL'ATTO",
+          "elementi": [
+            "Tipologia dell'atto (alienazione, accettazione eredità, ecc.)",
+            "Oggetto specifico dell'atto",
+            "Controparte (se compravendita)",
+            "Termini economici (prezzo, condizioni)",
+            "Eventuali contratti preliminari già stipulati salvo conferma GT"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "DIMOSTRAZIONE DELL'INTERESSE DEL MINORE",
+          "criticita": "CENTRALE - il GT decide nell'interesse del minore",
+          "elementi": [
+            "Per vendita immobili: necessità (mantenimento, studi, salute) + reinvestimento del ricavato",
+            "Per accettazione con beneficio: protezione dai debiti ereditari",
+            "Per rinuncia eredità: gravosità eccessiva dell'eredità",
+            "Per locazioni: redditività + adeguatezza condizioni",
+            "Sempre: valutazione economica vantaggiosa per il minore"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "PERIZIE E DOCUMENTAZIONE A SUPPORTO",
+          "elementi": [
+            "Per immobili: perizia estimativa",
+            "Per quote societarie: bilanci e valutazioni",
+            "Per accettazioni eredità: documentazione successione + stima eredità",
+            "Per investimenti: documentazione di reimpiego"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "VERIFICA ASSENZA CONFLITTO DI INTERESSI",
+          "norma": "art. 321 c.c.",
+          "elementi": [
+            "Verificare se l'atto coinvolge interessi anche dei genitori (es. divisione ereditaria con genitore co-erede)",
+            "In caso di conflitto: necessaria nomina CURATORE SPECIALE prima dell'autorizzazione"
+          ]
+        },
+        {
+          "step": 6,
+          "descrizione": "EVENTUALE AUDIZIONE DEL MINORE",
+          "soglia": "Audizione obbligatoria se minore >12 anni o capace di discernimento (art. 336-bis)",
+          "modalita": "GT può procedere a colloquio anche informale"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_autorizzazione_GT_atti_minore",
+        "denominazione": "Ricorso al Giudice Tutelare per autorizzazione atti su beni del minore",
+        "schema_xsd_ministeriale": "AttoVolontariaGiurisdizione.xsd",
+        "campi_chiave": [
+          {
+            "id": "giudice_tutelare",
+            "label": "Giudice Tutelare del luogo residenza minore",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "ricorrente",
+            "label": "Ricorrente",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "entrambi_i_genitori",
+                  "genitore_esercente_esclusivo",
+                  "tutore",
+                  "protutore",
+                  "curatore_speciale"
+                ]
+              },
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "data_luogo_nascita",
+                "type": "object"
+              },
+              {
+                "id": "residenza",
+                "type": "address"
+              }
+            ]
+          },
+          {
+            "id": "altro_genitore_se_eserciziocomune",
+            "label": "Altro genitore (se esercizio comune)",
+            "type": "object_persona",
+            "required_if": "esercizio_comune"
+          },
+          {
+            "id": "minore",
+            "label": "Minore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "data_nascita",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "luogo_nascita",
+                "type": "string"
+              },
+              {
+                "id": "residenza_abituale",
+                "type": "address"
+              },
+              {
+                "id": "scuola_frequentata",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "tipo_atto_da_autorizzare",
+            "label": "Tipo di atto da autorizzare",
+            "type": "select",
+            "required": true,
+            "options": [
+              "alienazione_immobile",
+              "alienazione_mobili_o_quote_societarie",
+              "costituzione_pegno_o_ipoteca",
+              "accettazione_eredita_con_beneficio_inventario",
+              "rinuncia_eredita",
+              "accettazione_donazione_o_legato_con_oneri",
+              "transazione_o_compromesso_arbitrale",
+              "promuovere_giudizio_o_accettare_contestazione",
+              "operazione_bancaria_rilevante",
+              "locazione_ultranovennale",
+              "altro"
+            ]
+          },
+          {
+            "id": "competenza_GT_o_tribunale",
+            "label": "Competenza GT (320, 374) o Tribunale (375)",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "descrizione_dettagliata_atto",
+            "label": "Descrizione dettagliata dell'atto",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "oggetto_specifico",
+                "type": "textarea",
+                "required": true,
+                "min_length": 300
+              },
+              {
+                "id": "controparte_se_applicabile",
+                "type": "object_persona"
+              },
+              {
+                "id": "termini_economici",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "prezzo_o_valore",
+                    "type": "currency"
+                  },
+                  {
+                    "id": "modalita_pagamento",
+                    "type": "string"
+                  },
+                  {
+                    "id": "garanzie",
+                    "type": "textarea"
+                  }
+                ]
+              },
+              {
+                "id": "contratto_preliminare_gia_stipulato_salvo_autorizzazione",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "interesse_del_minore",
+            "label": "Interesse del minore - motivazione",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "necessita_dell_atto",
+                "type": "textarea",
+                "required": true,
+                "min_length": 300
+              },
+              {
+                "id": "vantaggio_economico_per_minore",
+                "type": "textarea"
+              },
+              {
+                "id": "destinazione_del_ricavato_se_alienazione",
+                "type": "textarea",
+                "required_if": "atto=alienazione",
+                "critico": true
+              },
+              {
+                "id": "tutela_da_rischi",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "verifica_conflitto_interessi",
+            "label": "Verifica conflitto interessi",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "presenza_conflitto",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "necessita_curatore_speciale",
+                "type": "boolean"
+              },
+              {
+                "id": "descrizione_se_conflitto",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "richiesta_audizione_minore",
+            "label": "Audizione del minore (obbligatoria >12 anni)",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "richiesta",
+                "type": "boolean"
+              },
+              {
+                "id": "modalita_proposta",
+                "type": "select"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "autorizzazione_a_compiere_atto_descritto",
+              "eventuale_nomina_curatore_speciale_in_caso_conflitto",
+              "determinazione_modalita_e_garanzie",
+              "vincolo_di_reimpiego_del_ricavato"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Procedimento di volontaria giurisdizione",
+          "Foro del luogo residenza minore",
+          "Interesse del minore criterio CENTRALE",
+          "Eventuali atti compiuti senza autorizzazione sono NULLI (art. 322)",
+          "Per minori >12 anni: audizione obbligatoria (art. 336-bis)",
+          "In caso di conflitto interessi: curatore speciale obbligatorio (art. 321)",
+          "Reclamabilità del decreto in Corte d'Appello (Cass. SU 21188/2014)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atto_nascita_minore",
+          "label": "Atto di nascita del minore",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "stato_famiglia",
+          "label": "Stato di famiglia",
+          "required": true
+        },
+        {
+          "id": "documenti_identita_genitori_o_tutore",
+          "label": "Documenti identità genitori/tutore",
+          "required": true
+        },
+        {
+          "id": "atti_su_responsabilita_genitoriale_se_separati",
+          "label": "Atti su responsabilità genitoriale (separati/divorziati)",
+          "required_if": "genitori_separati"
+        },
+        {
+          "id": "documentazione_dell_atto_da_autorizzare",
+          "label": "Documentazione dell'atto (preliminare, perizia, ecc.)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_estimativa_se_alienazione",
+          "label": "Perizia estimativa (per alienazione immobili o beni rilevanti)",
+          "required_if": "atto=alienazione",
+          "critico": true
+        },
+        {
+          "id": "documentazione_destinazione_ricavato",
+          "label": "Documentazione destinazione del ricavato",
+          "required_if": "atto=alienazione",
+          "critico": true
+        },
+        {
+          "id": "documentazione_interesse_minore",
+          "label": "Documentazione interesse del minore (es. spese mediche, studi)",
+          "required": true
+        },
+        {
+          "id": "documentazione_situazione_economica_genitori_o_minore",
+          "label": "Documentazione situazione economica",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "verbale_giuramento_tutore_se_applicabile",
+          "label": "Verbale giuramento tutore (se applicabile)",
+          "required_if": "ricorrente=tutore"
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente - VG protettiva",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "audizione_del_minore_336_bis",
+          "trigger": "Per minori >12 anni o capaci di discernimento",
+          "obbligatoria": true
+        },
+        {
+          "tipo": "nomina_curatore_speciale",
+          "trigger": "In caso di conflitto interessi",
+          "norma": "art. 321 c.c."
+        },
+        {
+          "tipo": "decreto_autorizzativo",
+          "trigger": "Esito procedimento",
+          "automatico": false
+        },
+        {
+          "tipo": "atto_notarile_di_alienazione_o_altro",
+          "trigger": "Esecuzione dell'autorizzazione",
+          "automatico": false
+        },
+        {
+          "tipo": "rendiconto_periodico_amministrazione",
+          "trigger": "Per tutori - obbligo gestionale",
+          "norma": "art. 380 c.c."
+        },
+        {
+          "tipo": "vincoli_di_reimpiego_su_libretti_o_titoli",
+          "trigger": "Spesso disposti dal GT",
+          "automatico": false
+        },
+        {
+          "tipo": "reclamo_corte_appello",
+          "trigger": "Decreto GT",
+          "termine": "30 gg",
+          "norma": "art. 720-bis c.p.c."
+        },
+        {
+          "tipo": "azione_nullita_atti_compiuti_senza_autorizzazione",
+          "trigger": "Atti compiuti senza GT",
+          "norma": "art. 322 c.c."
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "decreto_autorizzativo",
+          "descrizione": "Autorizzazione concessa - atto può essere compiuto"
+        },
+        {
+          "esito": "autorizzazione_con_vincoli_di_reimpiego",
+          "descrizione": "Autorizzazione subordinata a vincoli (es. deposito su libretto vincolato a maggiore età)"
+        },
+        {
+          "esito": "autorizzazione_parziale_o_modificata",
+          "descrizione": "Modifica delle condizioni (es. prezzo minimo, garanzie aggiuntive)"
+        },
+        {
+          "esito": "rigetto_per_interesse_non_provato",
+          "descrizione": "Interesse del minore non sufficientemente dimostrato"
+        },
+        {
+          "esito": "rinvio_per_nomina_curatore_speciale",
+          "descrizione": "Necessità preliminare di nomina curatore per conflitto"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Decisione del GT",
+          "giorni": 30,
+          "decorrenza": "deposito ricorso",
+          "natura": "ordinatorio"
+        },
+        {
+          "termine": "Reclamo Corte d'Appello",
+          "giorni": 30,
+          "decorrenza": "comunicazione decreto",
+          "natura": "perentorio",
+          "norma": "art. 720-bis c.p.c."
+        }
+      ],
+      "codice_originale_ricevuto": "414001",
+      "codice_logico": "GUIDA_VOLONTARIA_GIURISDIZIONE_MINORI_AUTORIZZAZIONI_414001",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [
+        "413001",
+        "413013",
+        "413014",
+        "B02031",
+        "B02039",
+        "B02041"
+      ],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda viene conservata come guida interna per autorizzazioni e atti nell'interesse di minori.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "414001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "414001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "414001"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 16 marzo 1942, n. 262 - Codice civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=multivigenza",
+          "ambito": "famiglia, successioni, diritti reali, contratti, responsabilità, società e persone",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "414001"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_DIFETTO_CONFORMITA_BENI_CONSUMO_140005",
+      "denominazione": "Difetto di conformità nella vendita di beni di consumo (artt. 128-135 Cod. Consumo)",
+      "categoria": "Contratti - vendita - tutela consumatore",
+      "sottocategoria": "Azione del consumatore per difetto di conformità con i diritti gerarchici (riparazione/sostituzione/riduzione prezzo/risoluzione)",
+      "rito": "Rito ordinario di cognizione (di norma davanti al Giudice di Pace per valori bassi - frequente uso ADR)",
+      "competenza": "FORO SPECIALE DEL CONSUMATORE (Cass. SU 23633/2022) - residenza del consumatore",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 206/2005 (Cod. Consumo)",
+          "descrizione": "Codice del Consumo"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "3",
+          "descrizione": "Definizioni - consumatore e professionista"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "128",
+          "descrizione": "Ambito di applicazione - vendita beni di consumo professionista-consumatore"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "129",
+          "descrizione": "Conformità al contratto - requisiti soggettivi e oggettivi"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "130",
+          "descrizione": "RESPONSABILITÀ del venditore - garanzia legale 24 mesi"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "131",
+          "descrizione": "Diritti del consumatore - GERARCHIA dei rimedi"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "132",
+          "descrizione": "Termini e modalità per esercizio diritti"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "133",
+          "descrizione": "Garanzie commerciali aggiuntive"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "134",
+          "descrizione": "Carattere imperativo - irrinunciabilità"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "135",
+          "descrizione": "Tutela in base ad altre disposizioni - cumulo"
+        },
+        {
+          "fonte": "Cod. Consumo",
+          "articolo": "135-bis - 135-vicies septies",
+          "descrizione": "Disciplina vendita beni con elementi digitali (post D.Lgs. 170/2021)"
+        },
+        {
+          "fonte": "D.Lgs. 170/2021",
+          "descrizione": "Recepimento Direttiva UE 2019/771 - difetto conformità"
+        },
+        {
+          "fonte": "Direttiva UE 2019/771",
+          "descrizione": "Beni di consumo - conformità"
+        },
+        {
+          "fonte": "Cass. SU 23633/2022",
+          "descrizione": "Foro speciale consumatore - irrinunciabile"
+        },
+        {
+          "fonte": "Cass. SU 12678/2024",
+          "descrizione": "Inversione onere prova primi 12 mesi"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "QUALITÀ DI CONSUMATORE dell'acquirente (persona fisica che acquista per scopi non professionali)",
+        "QUALITÀ DI PROFESSIONISTA del venditore",
+        "OGGETTO: bene mobile di consumo (esclusi immobili, beni venduti in esecuzione forzata)",
+        "DIFETTO DI CONFORMITÀ ex art. 129:",
+        "- NON CORRISPONDE alla descrizione/qualità promesse",
+        "- NON IDONEO ALL'USO ABITUALE dei beni dello stesso tipo",
+        "- NON IDONEO ALL'USO PARTICOLARE voluto e portato a conoscenza del venditore",
+        "- NON POSSIEDE le qualità ragionevolmente attese (Cass. SU 12678/2024)",
+        "MANIFESTAZIONE del difetto entro la GARANZIA LEGALE di 24 MESI (132)"
+      ],
+      "differenze_critiche_vs_garanzia_civilistica_1490": {
+        "garanzia_civilistica_1490_1495_codice_140011": [
+          "Tutti i compratori (incluso B2B)",
+          "Vizi tradizionali (redibitori) e mancanza qualità",
+          "Termini brevi: 8 gg denuncia + 1 anno azione",
+          "Onere prova compratore",
+          "Redibitoria/estimatoria/danni"
+        ],
+        "garanzia_di_conformita_consumo_128_135_codice_140005": [
+          "Solo consumatori (B2C)",
+          "Difetto di conformità (concetto ampio)",
+          "Garanzia 24 MESI dalla consegna",
+          "INVERSIONE ONERE PROVA primi 12 mesi (presunzione preesistenza difetto)",
+          "GERARCHIA RIMEDI: riparazione/sostituzione → riduzione/risoluzione",
+          "Foro esclusivo consumatore",
+          "Norma IRRINUNCIABILE (134)"
+        ]
+      },
+      "gerarchia_dei_rimedi_art_131": {
+        "primo_livello_rimedi_specifici": [
+          "RIPARAZIONE del bene (senza spese per consumatore)",
+          "SOSTITUZIONE del bene",
+          "Diritto di scelta del consumatore tra i due (salvo impossibilità o sproporzione)"
+        ],
+        "secondo_livello_rimedi_economici_solo_se_primo_livello_impossibile": [
+          "RIDUZIONE PROPORZIONALE del prezzo",
+          "RISOLUZIONE del contratto",
+          "Si applicano se: riparazione/sostituzione impossibili o sproporzionate, oppure non effettuate in tempi ragionevoli, oppure difetto significativo"
+        ],
+        "diritti_aggiuntivi": [
+          "Rimborso spese aggiuntive eventualmente sostenute",
+          "Danni cumulabili ex art. 135 (per regole civilistiche)"
+        ]
+      },
+      "inversione_onere_prova_critica": {
+        "primi_12_mesi_post_D_Lgs_170_2021": "Si presume che il difetto manifestatosi entro 12 mesi dalla consegna esistesse già al momento della consegna (salvo prova contraria del venditore)",
+        "dopo_12_mesi": "Onere prova torna sul consumatore (deve provare che il difetto è precedente alla consegna)",
+        "regime_ante_2022": "Inversione era di 6 mesi - oggi 12 mesi (D.Lgs. 170/2021)"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "ma": "Frequente ricorso a procedure ADR consumatori (es. ConciliaWeb, RisolviOnline) - efficacia stragiudiziale + spesso più rapida"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE DELLA VENDITA",
+          "documenti": [
+            "Scontrino fiscale, fattura, ricevuta",
+            "Eventuale ordine online (con conferma)",
+            "Documenti di consegna (DDT, ricevute corriere)",
+            "Eventuali condizioni generali di vendita",
+            "Materiale pubblicitario / descrizione del bene"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "VERIFICA QUALITÀ DI CONSUMATORE",
+          "elementi": [
+            "Acquisto per scopi personali, non professionali",
+            "Acquirente persona fisica",
+            "Eventuali doppi usi (consumeristici e professionali): solo se uso non professionale è prevalente"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "DOCUMENTAZIONE DEL DIFETTO",
+          "elementi": [
+            "Descrizione dettagliata del difetto",
+            "Data di scoperta del difetto",
+            "Fotografie/video del difetto",
+            "Eventuali perizie tecniche di parte",
+            "Comunicazione al venditore (data e modalità)"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "RICHIESTA AL VENDITORE - RIMEDIO DI PRIMO LIVELLO",
+          "modalita": "Raccomandata A/R o PEC al venditore richiedendo riparazione o sostituzione",
+          "termine_di_risposta": "Tempo ragionevole - di norma 30 gg",
+          "criticita": "OBBLIGATORIA prima di poter richiedere rimedi di secondo livello"
+        },
+        {
+          "step": 5,
+          "descrizione": "VERIFICA TERMINI",
+          "termine_garanzia": "24 MESI dalla consegna (132)",
+          "criticità_inversione_prova": "Primi 12 mesi: facilitato; dopo 12 mesi: prova a carico consumatore"
+        },
+        {
+          "step": 6,
+          "descrizione": "VALUTAZIONE RIMEDI DI SECONDO LIVELLO",
+          "presupposti": [
+            "Impossibilità o sproporzione riparazione/sostituzione",
+            "Mancato adempimento del venditore in tempi ragionevoli",
+            "Difetto di particolare gravità"
+          ],
+          "alternative": [
+            "RIDUZIONE PREZZO (proporzionale al difetto)",
+            "RISOLUZIONE CONTRATTO + restituzione prezzo"
+          ]
+        },
+        {
+          "step": 7,
+          "descrizione": "VALUTAZIONE ADR ALTERNATIVA",
+          "vantaggio": "ConciliaWeb / RisolviOnline / Co.re.com / Camera arbitrale consumatori - rapide e gratuite"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_difetto_conformita_consumo",
+        "denominazione": "Atto di citazione per difetto di conformità ex artt. 128-135 Cod. Consumo",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale_o_gdp",
+            "label": "Tribunale o GdP - FORO RESIDENZA CONSUMATORE",
+            "type": "select",
+            "required": true,
+            "critico": true
+          },
+          {
+            "id": "consumatore_attore",
+            "label": "Consumatore attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita_di_consumatore_dimostrata",
+                "type": "textarea",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "professionista_venditore_convenuto",
+            "label": "Professionista venditore convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "vendita",
+            "label": "Vendita",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_vendita",
+                "type": "select",
+                "options": [
+                  "vendita_in_negozio",
+                  "vendita_online_e_commerce",
+                  "vendita_per_corrispondenza",
+                  "vendita_a_distanza",
+                  "altro"
+                ]
+              },
+              {
+                "id": "data_acquisto",
+                "type": "date"
+              },
+              {
+                "id": "data_consegna",
+                "type": "date",
+                "required": true,
+                "critico_per_termini": true
+              },
+              {
+                "id": "prezzo_pagato",
+                "type": "currency"
+              },
+              {
+                "id": "descrizione_bene",
+                "type": "textarea"
+              },
+              {
+                "id": "modello_e_codice_prodotto",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "difetto_di_conformita",
+            "label": "Difetto di conformità",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_difetto",
+                "type": "select_multi",
+                "options": [
+                  "non_corrispondenza_descrizione",
+                  "non_idoneita_uso_abituale",
+                  "non_idoneita_uso_particolare_dichiarato",
+                  "qualita_ragionevolmente_attese_assenti",
+                  "difetto_elementi_digitali"
+                ]
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 300
+              },
+              {
+                "id": "data_scoperta_difetto",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "manifestazione_entro_24_mesi",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "manifestazione_entro_12_mesi_inversione_prova",
+                "type": "boolean",
+                "rilevante_per_prova": true
+              }
+            ]
+          },
+          {
+            "id": "richieste_pregresse_al_venditore",
+            "label": "Richieste pregresse al venditore",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_richiesta_riparazione_o_sostituzione",
+                "type": "date",
+                "required": true,
+                "critico": true
+              },
+              {
+                "id": "modalita_richiesta",
+                "type": "select"
+              },
+              {
+                "id": "esito",
+                "type": "select",
+                "options": [
+                  "rifiuto_del_venditore",
+                  "tentativo_riparazione_non_riuscito",
+                  "ritardo_eccessivo",
+                  "sproporzione_dichiarata",
+                  "altro"
+                ]
+              },
+              {
+                "id": "documentazione_richieste_pregresse",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "rimedio_richiesto_principale",
+            "label": "Rimedio richiesto",
+            "type": "select",
+            "required": true,
+            "options": [
+              "riparazione_a_spese_venditore",
+              "sostituzione_bene",
+              "riduzione_proporzionale_prezzo",
+              "risoluzione_contratto_e_restituzione_prezzo"
+            ]
+          },
+          {
+            "id": "rimedio_subordinato",
+            "label": "Rimedio subordinato",
+            "type": "select"
+          },
+          {
+            "id": "danni_aggiuntivi",
+            "label": "Danni aggiuntivi richiesti ex art. 135",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "spese_sostenute_per_il_difetto",
+                "type": "currency"
+              },
+              {
+                "id": "altri_danni",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_difetto_conformita",
+              "condanna_riparazione_o_sostituzione",
+              "riduzione_prezzo_proporzionale",
+              "risoluzione_contratto_e_restituzione_prezzo",
+              "risarcimento_danni_aggiuntivi",
+              "spese_di_lite_secondo_consumatore"
+            ]
+          },
+          {
+            "id": "importo_totale_richiesto",
+            "label": "Importo totale richiesto",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "FORO ESCLUSIVO DEL CONSUMATORE - residenza (Cass. SU 23633/2022)",
+          "Garanzia legale 24 MESI dalla consegna",
+          "INVERSIONE ONERE PROVA primi 12 mesi (D.Lgs. 170/2021)",
+          "GERARCHIA RIMEDI: riparazione/sostituzione prima, riduzione/risoluzione dopo",
+          "Norme IRRINUNCIABILI (art. 134)",
+          "Cumulo possibile con altre azioni civilistiche (art. 135)",
+          "ADR consumatori spesso rapide ed efficaci"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documento_acquisto_scontrino_fattura",
+          "label": "Documento di acquisto (scontrino/fattura/ricevuta)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documento_consegna",
+          "label": "Documento di consegna del bene",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_difetto",
+          "label": "Documentazione del difetto (foto, video, descrizione)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "perizia_tecnica_di_parte",
+          "label": "Perizia tecnica di parte (se utile)",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "richieste_pregresse_al_venditore_con_riscontri",
+          "label": "Richieste pregresse al venditore con prove di invio e riscontri",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "tentativi_riparazione_documentati",
+          "label": "Documentazione di eventuali tentativi di riparazione effettuati dal venditore",
+          "required_if": "rimedio_subordinato"
+        },
+        {
+          "id": "documentazione_qualita_consumatore",
+          "label": "Documentazione qualità di consumatore",
+          "required": false,
+          "consigliato_in_caso_dubbio": true
+        },
+        {
+          "id": "eventuale_decisione_adr_pregressa",
+          "label": "Eventuale decisione ADR pregressa",
+          "required_if": "adr_attivata"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio per Tribunale (presso GdP regime variabile)"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "procedure_adr_consumatori_pregressa",
+          "trigger": "Alternativa stragiudiziale - frequente",
+          "automatico": false
+        },
+        {
+          "tipo": "ctu_tecnica_per_accertamento_difetto",
+          "trigger": "Disposta dal giudice",
+          "automatico": false,
+          "frequente": true
+        },
+        {
+          "tipo": "domanda_in_subordine_per_rimedio_alternativo",
+          "trigger": "Strategia processuale",
+          "automatico": false
+        },
+        {
+          "tipo": "azione_civilistica_140011_in_subordine_se_consumatore_non_provato",
+          "trigger": "Se qualità consumatore contestata",
+          "codice_correlato": "140011"
+        },
+        {
+          "tipo": "azione_per_clausole_vessatorie",
+          "trigger": "Eventuale collegata",
+          "codice_correlato": "clausole_vessatorie"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_riparazione_o_sostituzione",
+          "descrizione": "Condanna del venditore a riparare/sostituire + spese"
+        },
+        {
+          "esito": "accoglimento_risoluzione_e_restituzione_prezzo",
+          "descrizione": "Risoluzione contratto + restituzione integrale prezzo"
+        },
+        {
+          "esito": "accoglimento_riduzione_prezzo",
+          "descrizione": "Riduzione proporzionale del prezzo + restituzione parziale"
+        },
+        {
+          "esito": "rigetto_per_assenza_difetto_o_uso_improprio_del_consumatore",
+          "descrizione": "Difetto non provato o causato da uso improprio"
+        },
+        {
+          "esito": "rigetto_per_decorso_24_mesi",
+          "descrizione": "Garanzia legale scaduta"
+        },
+        {
+          "esito": "transazione_con_sostituzione_o_indennizzo",
+          "descrizione": "Accordo - molto frequente"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "GARANZIA LEGALE",
+          "mesi": 24,
+          "decorrenza": "consegna bene",
+          "natura": "termine sostanziale",
+          "norma": "art. 132 c. 1 Cod. Consumo",
+          "criticita": "ALTA"
+        },
+        {
+          "termine": "INVERSIONE ONERE PROVA - primi 12 mesi",
+          "mesi": 12,
+          "decorrenza": "consegna",
+          "natura": "presunzione legale",
+          "norma": "art. 132 c. 3 Cod. Consumo"
+        },
+        {
+          "termine": "Prescrizione azione",
+          "anni": 5,
+          "decorrenza": "consegna",
+          "natura": "prescrizione",
+          "norma": "art. 132 c. 2 Cod. Consumo (lex specialis)"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "140005",
+      "codice_logico": "GUIDA_DIFETTO_CONFORMITA_BENI_CONSUMO_140005",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [
+        "140011",
+        "140012",
+        "145021",
+        "140999"
+      ],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda resta guida interna per garanzia legale di conformità e vendita di beni di consumo.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140005"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 4 marzo 2010, n. 28, art. 5 - mediazione civile e commerciale",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;28~art5=",
+          "ambito": "condizione di procedibilità e materie soggette a mediazione",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140005"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.L. 12 settembre 2014, n. 132, art. 3 - negoziazione assistita",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014;132~art3=",
+          "ambito": "risarcimento da circolazione e domande di pagamento entro soglia, fuori dai casi di mediazione",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140005"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 6 settembre 2005, n. 206 - Codice del consumo",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2005;206!vig=",
+          "ambito": "garanzia legale, difetto di conformità, clausole e tutele consumeristiche",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140005"
+        },
+        {
+          "ente": "AGCOM",
+          "titolo": "ConciliaWeb",
+          "url": "https://www.agcom.it/agcom-per-te/i-miei-diritti/contenzioso-tra-utenti-e-operatori",
+          "ambito": "conciliazione e definizione controversie utenti/operatori comunicazioni elettroniche",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140005"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 16 marzo 1942, n. 262 - Codice civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=multivigenza",
+          "ambito": "famiglia, successioni, diritti reali, contratti, responsabilità, società e persone",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140005"
+        }
+      ]
+    }
+  ]
+}

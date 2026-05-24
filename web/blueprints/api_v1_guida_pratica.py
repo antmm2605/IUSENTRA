@@ -23,6 +23,7 @@ except Exception:  # pragma: no cover
 
 
 api_v1_guida_pratica = Blueprint("api_v1_guida_pratica", __name__)
+api_guida_pratica = Blueprint("api_guida_pratica", __name__)
 
 
 def _api_key_valida() -> bool:
@@ -117,6 +118,18 @@ def guida_pratica_codice(codice: str):
         return jsonify(guida_pratica_error_payload(exc)), 404
 
 
+@api_guida_pratica.get("/api/guida/<codice>")
+def guida_pratica_rest_codice(codice: str):
+    denied = _ensure_read_access()
+    if denied:
+        return denied
+    try:
+        return jsonify(build_react_guida_pratica_payload(codice=codice, service=_service()))
+    except Exception as exc:
+        current_app.logger.exception("Errore Guida Pratica REST codice %s: %s", codice, exc)
+        return jsonify(guida_pratica_error_payload(exc)), 404
+
+
 @api_v1_guida_pratica.post("/guida-pratica/<codice>/checklist")
 def guida_pratica_checklist(codice: str):
     denied = _ensure_read_access()
@@ -129,6 +142,21 @@ def guida_pratica_checklist(codice: str):
         return jsonify(build_react_guida_pratica_checklist_payload(codice=codice, dati=dati, service=_service()))
     except Exception as exc:
         current_app.logger.exception("Errore checklist Guida Pratica codice %s: %s", codice, exc)
+        return jsonify(guida_pratica_error_payload(exc)), 400
+
+
+@api_guida_pratica.post("/api/guida/<codice>/checklist")
+def guida_pratica_rest_checklist(codice: str):
+    denied = _ensure_read_access()
+    if denied:
+        return denied
+    dati = request.get_json(silent=True) or {}
+    if not isinstance(dati, dict):
+        dati = {}
+    try:
+        return jsonify(build_react_guida_pratica_checklist_payload(codice=codice, dati=dati, service=_service()))
+    except Exception as exc:
+        current_app.logger.exception("Errore checklist Guida Pratica REST codice %s: %s", codice, exc)
         return jsonify(guida_pratica_error_payload(exc)), 400
 
 

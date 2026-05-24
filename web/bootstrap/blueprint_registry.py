@@ -43,6 +43,12 @@ BLUEPRINT_REGISTRY: tuple[BlueprintRegistration, ...] = (
         "api_v1_guida_pratica",
         "/api/v1/ui",
     ),
+    BlueprintRegistration(
+        "api_guida_pratica",
+        "web.blueprints.api_v1_guida_pratica",
+        "api_guida_pratica",
+        "",
+    ),
     BlueprintRegistration("pec_pipeline_api", "web.blueprints.pec_pipeline_api", "pec_pipeline_api", "/api/pec"),
     BlueprintRegistration("legal_documents_api", "web.blueprints.legal_documents_api", "legal_documents_api", "/api"),
     BlueprintRegistration(

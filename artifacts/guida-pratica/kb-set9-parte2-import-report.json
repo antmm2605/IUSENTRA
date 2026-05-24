@@ -1,0 +1,67 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (5).zip::kb_top9_set9_parte2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set9_parte2.json",
+  "sha256": "9A75EB6A16874A13F5E316C5C35CF38B5E902EF3F5576E889CC3F9DBBE064800",
+  "changed": true,
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET9_PARTE2",
+  "denominazione": "Nono set di 9 codici - PARTE 2 di 2",
+  "codici_materia_originali": [
+    "220005",
+    "511020",
+    "412001",
+    "123001"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_LICENZIAMENTO_GMO_220005",
+    "GUIDA_ESECUZIONE_OBBLIGHI_FARE_NON_FARE_511020",
+    "GUIDA_ADOZIONE_MAGGIORENNE_412001",
+    "GUIDA_PETIZIONE_RECLAMO_STATO_FAMILIARE_123001"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "220005",
+      "codice_integrato": "GUIDA_LICENZIAMENTO_GMO_220005",
+      "codici_ufficiali_correlati_da_valutare": [
+        "220101",
+        "220111",
+        "220999"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; il licenziamento per giustificato motivo oggettivo ha codice ufficiale dedicato 220101 da valutare nel fascicolo."
+    },
+    {
+      "codice_originale": "511020",
+      "codice_integrato": "GUIDA_ESECUZIONE_OBBLIGHI_FARE_NON_FARE_511020",
+      "codici_ufficiali_correlati_da_valutare": [
+        "512020",
+        "512021",
+        "512022"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda riguarda l'esecuzione di obblighi di fare/non fare, che nel catalogo locale ricade nell'area 512."
+    },
+    {
+      "codice_originale": "412001",
+      "codice_integrato": "GUIDA_ADOZIONE_MAGGIORENNE_412001",
+      "codici_ufficiali_correlati_da_valutare": [
+        "111404",
+        "411620",
+        "411683"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; l'adozione di maggiorenne resta guida interna e il deposito va collegato al codice ufficiale coerente con ufficio e registro."
+    },
+    {
+      "codice_originale": "123001",
+      "codice_integrato": "GUIDA_PETIZIONE_RECLAMO_STATO_FAMILIARE_123001",
+      "codici_ufficiali_correlati_da_valutare": [
+        "111101",
+        "111102",
+        "111402",
+        "110999",
+        "400240",
+        "411681"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda riguarda stato familiare e filiazione e resta guida interna non depositabile."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 16
+}

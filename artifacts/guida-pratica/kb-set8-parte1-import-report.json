@@ -1,0 +1,61 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (4).zip::kb_top9_set8_parte1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set8_parte1.json",
+  "sha256": "E0E8177873A24EDC400BEC1013D41D3E1F9E837DFDF1C1FD5537ACDA5C7B958B",
+  "changed": true,
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET8_PARTE1",
+  "denominazione": "Ottavo set di 9 codici - PARTE 1 di 2",
+  "codici_materia_originali": [
+    "130070",
+    "510001",
+    "142005",
+    "220050",
+    "015011"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_DIVISIONE_COMUNIONE_ORDINARIA_130070",
+    "510001",
+    "GUIDA_NULLITA_CLAUSOLE_BANCARIE_ANATOCISMO_USURA_142005",
+    "GUIDA_MOBBING_STRAINING_DANNO_LAVORATORE_220050",
+    "015011"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "130070",
+      "codice_integrato": "GUIDA_DIVISIONE_COMUNIONE_ORDINARIA_130070",
+      "codici_ufficiali_correlati_da_valutare": [
+        "131011",
+        "130001",
+        "120011"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda riguarda la divisione della comunione ordinaria, mentre il deposito va scelto tra i codici ufficiali di divisione/diritti reali pertinenti."
+    },
+    {
+      "codice_originale": "142005",
+      "codice_integrato": "GUIDA_NULLITA_CLAUSOLE_BANCARIE_ANATOCISMO_USURA_142005",
+      "codici_ufficiali_correlati_da_valutare": [
+        "140041",
+        "143131",
+        "010006",
+        "050001"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda resta guida interna per contenzioso bancario, anatocismo, usura e restituzioni, senza sostituire i codici ufficiali bancari o finanziari."
+    },
+    {
+      "codice_originale": "220050",
+      "codice_integrato": "GUIDA_MOBBING_STRAINING_DANNO_LAVORATORE_220050",
+      "codici_ufficiali_correlati_da_valutare": [
+        "220070",
+        "220071",
+        "220072",
+        "220999"
+      ],
+      "reason": "Il codice 220050 è ufficiale nel catalogo locale per retribuzione; la scheda ricevuta riguarda mobbing/straining e danni al lavoratore, quindi resta guida interna per non alterare il deposito."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [
+    "510001",
+    "015011"
+  ],
+  "termini_processuali_raw": 23
+}

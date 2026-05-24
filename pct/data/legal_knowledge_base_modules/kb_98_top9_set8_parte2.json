@@ -1,0 +1,2372 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET8_PARTE2",
+  "denominazione": "Ottavo set di 9 codici - PARTE 2 di 2",
+  "registri": [
+    "SICID",
+    "SIECIC"
+  ],
+  "data_generazione": "2026-05-23",
+  "scopo": "Parte 2 dell'ottavo set TOP9: risoluzione assicurazione, collazione ereditaria, brevetto nullità, esecuzione consegna/rilascio",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_ASSICURAZIONE_INDENNIZZO_RISOLUZIONE_140030",
+      "denominazione": "Risoluzione contratto di assicurazione e azione per indennizzo (artt. 1882-1932 c.c.)",
+      "categoria": "Contratti - assicurazioni",
+      "sottocategoria": "Azione dell'assicurato per indennizzo o per risoluzione contrattuale + danni",
+      "rito": "Rito ordinario di cognizione preceduto da NEGOZIAZIONE ASSISTITA obbligatoria per RC veicoli ex D.L. 132/2014; mediazione facoltativa per altre assicurazioni",
+      "competenza": "Tribunale - foro residenza convenuto compagnia / foro speciale residenza assicurato consumatore",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1882",
+          "descrizione": "Nozione del contratto di assicurazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1888",
+          "descrizione": "Forma del contratto - polizza"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1891",
+          "descrizione": "Assicurazione per conto di chi spetta"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1892",
+          "descrizione": "Dichiarazioni inesatte e reticenze con dolo o colpa grave - annullabilità"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1893",
+          "descrizione": "Dichiarazioni inesatte e reticenze senza dolo o colpa grave - diritto recesso o riduzione indennizzo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1898",
+          "descrizione": "Aggravamento del rischio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1900",
+          "descrizione": "Sinistri cagionati con dolo o colpa grave"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1901",
+          "descrizione": "Mancato pagamento del premio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1905",
+          "descrizione": "Limiti del risarcimento - assicurazione contro i danni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1907",
+          "descrizione": "Assicurazione parziale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1910",
+          "descrizione": "Assicurazione multipla - obblighi assicurato"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1914",
+          "descrizione": "Obbligo di salvataggio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1915",
+          "descrizione": "Mancato avviso del sinistro - decadenza diritto indennità"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1916",
+          "descrizione": "Surrogazione dell'assicuratore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1917",
+          "descrizione": "Assicurazione della responsabilità civile"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1918",
+          "descrizione": "Esclusioni"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1919-1927",
+          "descrizione": "Assicurazione sulla vita"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2952",
+          "descrizione": "Prescrizione 2 anni per diritti derivanti dal contratto assicurativo"
+        },
+        {
+          "fonte": "Cod. Ass. D.Lgs. 209/2005",
+          "descrizione": "Codice delle Assicurazioni Private"
+        },
+        {
+          "fonte": "Cod. Ass.",
+          "articolo": "144",
+          "descrizione": "Azione diretta del danneggiato verso assicuratore RC veicoli"
+        },
+        {
+          "fonte": "Cod. Ass.",
+          "articolo": "148",
+          "descrizione": "Termine per formulare offerta o motivare il rifiuto - 60/90 gg"
+        },
+        {
+          "fonte": "D.L. 132/2014",
+          "articolo": "3",
+          "descrizione": "Negoziazione assistita obbligatoria per RC veicoli e crediti < 50.000 €"
+        },
+        {
+          "fonte": "Cass. SU 23725/2008",
+          "descrizione": "Contratti di assicurazione - vessatorietà clausole limitative"
+        },
+        {
+          "fonte": "Cass. SU 9140/2016",
+          "descrizione": "Clausole claims made - validità e limiti"
+        },
+        {
+          "fonte": "Cass. SU 22437/2018",
+          "descrizione": "Claims made - condizioni di operatività"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI CONTRATTO ASSICURATIVO valido (polizza)",
+        "PAGAMENTO DEL PREMIO da parte dell'assicurato",
+        "VERIFICARSI DEL SINISTRO (evento dedotto in contratto)",
+        "Per AZIONE DI INDENNIZZO:",
+        "- Tempestivo AVVISO DEL SINISTRO ex art. 1913 (entro 3 giorni - salvo polizza)",
+        "- Mancato pagamento o pagamento insufficiente dell'indennizzo",
+        "Per RISOLUZIONE per inadempimento della compagnia:",
+        "- Mancato pagamento indennizzo",
+        "- Violazione obblighi contrattuali",
+        "Per AZIONE DIRETTA RC VEICOLI ex art. 144 Cod. Ass.:",
+        "- Sinistro stradale",
+        "- Identificazione dell'assicuratore RC del responsabile"
+      ],
+      "tipologie_di_contestazioni_tipiche": [
+        "RIFIUTO INDENNIZZO da parte della compagnia (per esclusioni, franchigie, clausole)",
+        "INDENNIZZO INSUFFICIENTE rispetto al danno",
+        "RITARDO INGIUSTIFICATO nell'erogazione",
+        "CONTESTAZIONE SULLE DICHIARAZIONI INIZIALI dell'assicurato (1892-1893)",
+        "CLAUSOLE VESSATORIE limitative del rischio (claims made, limiti di copertura, esclusioni)",
+        "USCITA DELL'ASSICURATORE per mancato pagamento premio (1901)",
+        "AGGRAVAMENTO DEL RISCHIO non comunicato",
+        "INTERPRETAZIONE DEL CONTRATTO favorevole all'assicurato (interpretatio contra proferentem)"
+      ],
+      "termini_critici": {
+        "avviso_del_sinistro_1913": "Entro 3 giorni dalla conoscenza (salvo termine pattuito) - decadenza diritto indennizzo",
+        "obbligo_di_salvataggio_1914": "Adottare misure per evitare/diminuire il danno - violazione causa riduzione indennizzo",
+        "termine_pagamento_compagnia_148_Cod_Ass": "60 gg da richiesta per danni a cose / 90 gg per danni alla persona",
+        "prescrizione_diritti_assicurativi": "2 ANNI ex art. 2952 c.c. - decorrenza dalla conoscenza dei diritti",
+        "prescrizione_indennizzo_RC_per_terzo_danneggiato": "Stessa del diritto risarcitorio (5 anni / 10 anni se reato)"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria_solo_in_casi_specifici": "Per RC sanitaria sì (art. 5 D.Lgs. 28/2010); per altri rami no",
+        "negoziazione_assistita_obbligatoria_RC_veicoli": "Sì ex D.L. 132/2014",
+        "alternative": "Eventuale Ivass / Arbitro Assicurativo"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione DOCUMENTAZIONE DEL CONTRATTO",
+          "documenti": [
+            "Polizza assicurativa originale con condizioni generali e particolari",
+            "Eventuali appendici/integrazioni",
+            "Quietanze di pagamento premi",
+            "Comunicazioni intercorse con compagnia",
+            "Documentazione del precontratto (per verifica trasparenza)"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DEL SINISTRO",
+          "elementi": [
+            "Avviso del sinistro inviato alla compagnia (data e modalità)",
+            "Documentazione del fatto (verbali, foto, video, testimoni)",
+            "Documentazione del danno (perizie, fatture, preventivi)",
+            "Per sinistri stradali: CID o constatazione amichevole",
+            "Per RC: documentazione del fatto e identificazione del danneggiato"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "RICOSTRUZIONE PRATICA DI INDENNIZZO",
+          "elementi": [
+            "Cronologia delle comunicazioni con compagnia",
+            "Eventuali offerte formulate dalla compagnia",
+            "Eventuali rifiuti motivati o non motivati",
+            "Calcoli e ricostruzioni del danno"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VERIFICA TERMINI PRESCRIZIONALI",
+          "criticita": "MASSIMA - prescrizione BIENNALE molto breve (art. 2952 c.c.)",
+          "decorrenza": "Dalla conoscenza dei propri diritti - eventuale interruzione con messa in mora"
+        },
+        {
+          "step": 5,
+          "descrizione": "Per RC VEICOLI: NEGOZIAZIONE ASSISTITA OBBLIGATORIA",
+          "norma": "D.L. 132/2014 art. 3",
+          "termine_richiesta_offerta_148_Cod_Ass": "60 gg per danni a cose / 90 gg per danni alla persona"
+        },
+        {
+          "step": 6,
+          "descrizione": "QUANTIFICAZIONE COMPLETA DELLE DOMANDE",
+          "voci": [
+            "Indennizzo principale richiesto",
+            "Interessi legali (e di mora se applicabili)",
+            "Rivalutazione monetaria",
+            "Eventuali danni per ritardo nell'indennizzo",
+            "Spese legali e di consulenza"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_indennizzo_o_risoluzione_assicurazione",
+        "denominazione": "Atto di citazione per indennizzo assicurativo (o risoluzione contratto + danni)",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "label": "Attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "assicurato",
+                  "beneficiario_polizza_vita",
+                  "terzo_danneggiato_azione_diretta_RC",
+                  "erede"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "compagnia_assicurativa_convenuta",
+            "label": "Compagnia assicurativa convenuta",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "contratto_assicurativo",
+            "label": "Contratto assicurativo",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_polizza",
+                "type": "select",
+                "options": [
+                  "RC_veicoli",
+                  "RC_professionale",
+                  "RC_capofamiglia",
+                  "incendio_e_furto_immobile",
+                  "vita",
+                  "infortuni",
+                  "malattia",
+                  "vita_unit_linked",
+                  "assicurazione_credito",
+                  "altra"
+                ]
+              },
+              {
+                "id": "numero_polizza",
+                "type": "string"
+              },
+              {
+                "id": "data_stipula",
+                "type": "date"
+              },
+              {
+                "id": "premio_annuale",
+                "type": "currency"
+              },
+              {
+                "id": "massimale_garanzia",
+                "type": "currency"
+              },
+              {
+                "id": "franchigie_o_scoperti",
+                "type": "string"
+              },
+              {
+                "id": "clausole_particolari_rilevanti",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "sinistro",
+            "label": "Sinistro",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "data_sinistro",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "luogo_sinistro",
+                "type": "address"
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 400
+              },
+              {
+                "id": "data_avviso_alla_compagnia",
+                "type": "date",
+                "required": true,
+                "critico_per_termine_3_gg": true
+              },
+              {
+                "id": "modalita_avviso",
+                "type": "select"
+              },
+              {
+                "id": "danni_subiti",
+                "type": "textarea"
+              },
+              {
+                "id": "valore_stimato_danni",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "pratica_indennizzo",
+            "label": "Pratica di indennizzo",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_definizione_compagnia",
+                "type": "select",
+                "options": [
+                  "rifiuto_motivato",
+                  "rifiuto_non_motivato",
+                  "offerta_insufficiente",
+                  "ritardo_oltre_termine_148_codass",
+                  "silenzio_della_compagnia",
+                  "altro"
+                ]
+              },
+              {
+                "id": "data_richiesta_indennizzo",
+                "type": "date"
+              },
+              {
+                "id": "data_eventuale_offerta_compagnia",
+                "type": "date"
+              },
+              {
+                "id": "importo_offerto_dalla_compagnia",
+                "type": "currency"
+              },
+              {
+                "id": "motivazione_rifiuto_o_riduzione",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "contestazioni_su_clausole",
+            "label": "Eventuali contestazioni su clausole",
+            "type": "select_multi",
+            "options": [
+              "vessatorieta_clausole_limitative",
+              "claims_made_inadeguata",
+              "interpretazione_in_favore_assicurato",
+              "esclusioni_non_chiare",
+              "limitazioni_non_pattuite"
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "condanna_pagamento_indennizzo_integrale",
+              "accertamento_inadempimento_compagnia",
+              "risoluzione_contratto_per_inadempimento",
+              "accertamento_invalidita_clausole_vessatorie",
+              "interessi_legali_e_rivalutazione",
+              "risarcimento_danni_da_ritardo_indennizzo",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "importo_richiesto_totale",
+            "label": "Importo totale richiesto",
+            "type": "currency",
+            "required": true
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "PRESCRIZIONE BIENNALE ex art. 2952 c.c. - MOLTO BREVE",
+          "Per RC veicoli: NEGOZIAZIONE ASSISTITA obbligatoria preventiva",
+          "Avviso sinistro entro 3 giorni ex art. 1913 (salvo polizza)",
+          "Termine compagnia per offerta: 60 gg cose / 90 gg persone (art. 148 Cod. Ass.)",
+          "Per RC sanitaria: mediazione obbligatoria",
+          "Possibilità di azione diretta per RC veicoli ex art. 144 Cod. Ass."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "polizza_assicurativa_originale",
+          "label": "Polizza assicurativa originale con condizioni generali e particolari",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "quietanze_pagamento_premio",
+          "label": "Quietanze di pagamento premio",
+          "required": true
+        },
+        {
+          "id": "documentazione_avviso_sinistro",
+          "label": "Documentazione dell'avviso del sinistro alla compagnia",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_del_sinistro",
+          "label": "Documentazione del sinistro (foto, verbali, testimoni)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_quantificazione_danni",
+          "label": "Documentazione per quantificazione danni (fatture, perizie)",
+          "required": true
+        },
+        {
+          "id": "perizia_di_parte",
+          "label": "Perizia di parte (per quantificazione)",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "corrispondenza_con_compagnia",
+          "label": "Corrispondenza intercorsa con la compagnia",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "eventuale_offerta_della_compagnia",
+          "label": "Eventuale offerta della compagnia",
+          "required_if": "offerta_formulata"
+        },
+        {
+          "id": "verbale_negoziazione_assistita_per_RC_veicoli",
+          "label": "Verbale negoziazione assistita (per RC veicoli)",
+          "required_if": "tipo_polizza=RC_veicoli",
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "negoziazione_assistita_RC_veicoli",
+          "trigger": "Obbligatoria per RC veicoli",
+          "automatico": false,
+          "critico": true
+        },
+        {
+          "tipo": "richiesta_intervento_ivass",
+          "trigger": "Reclamo presso IVASS per violazioni compagnia",
+          "automatico": false
+        },
+        {
+          "tipo": "ctu_tecnica_o_medico_legale",
+          "trigger": "Per quantificazione danni",
+          "automatico": false,
+          "molto_frequente": true
+        },
+        {
+          "tipo": "comparsa_costituzione_compagnia",
+          "trigger": "Costituzione convenuta",
+          "termine": "70 gg prima udienza"
+        },
+        {
+          "tipo": "domanda_riconvenzionale_compagnia",
+          "trigger": "Per recupero indebitamente pagato o altre eccezioni",
+          "automatico": false
+        },
+        {
+          "tipo": "surrogazione_assicuratore_1916",
+          "trigger": "Compagnia agisce contro terzo responsabile post-indennizzo",
+          "norma": "art. 1916 c.c."
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_indennizzo_integrale",
+          "descrizione": "Condanna compagnia al pagamento integrale + interessi + spese"
+        },
+        {
+          "esito": "accoglimento_parziale",
+          "descrizione": "Indennizzo riconosciuto in misura inferiore (franchigie, scoperti, ecc.)"
+        },
+        {
+          "esito": "rigetto_per_clausole_di_esclusione_legittime",
+          "descrizione": "Polizza non copre il sinistro per specifiche esclusioni"
+        },
+        {
+          "esito": "rigetto_per_prescrizione_biennale",
+          "descrizione": "Decorso biennio - particolare attenzione"
+        },
+        {
+          "esito": "rigetto_per_mancato_avviso_sinistro_o_dichiarazioni_false",
+          "descrizione": "Decadenza ex 1913 o annullamento ex 1892-1893"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo (molto frequente in assicurazioni)"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "PRESCRIZIONE BIENNALE DIRITTI ASSICURATIVI",
+          "anni": 2,
+          "decorrenza": "conoscenza dei diritti",
+          "natura": "prescrizione",
+          "norma": "art. 2952 c.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Avviso sinistro",
+          "giorni": 3,
+          "decorrenza": "conoscenza",
+          "natura": "decadenziale (salvo polizza)",
+          "norma": "art. 1913 c.c."
+        },
+        {
+          "termine": "Termine compagnia per offerta - danni a cose",
+          "giorni": 60,
+          "decorrenza": "richiesta completa",
+          "norma": "art. 148 Cod. Ass."
+        },
+        {
+          "termine": "Termine compagnia per offerta - danni a persona",
+          "giorni": 90,
+          "decorrenza": "richiesta completa",
+          "norma": "art. 148 Cod. Ass."
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "140030",
+      "codice_logico": "GUIDA_ASSICURAZIONE_INDENNIZZO_RISOLUZIONE_140030",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [
+        "140051",
+        "140052",
+        "010009",
+        "140999"
+      ],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda riguarda controversie assicurative e indennizzo e viene collegata ai codici ufficiali assicurativi pertinenti.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140030"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140030"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 4 marzo 2010, n. 28, art. 5 - mediazione civile e commerciale",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;28~art5=",
+          "ambito": "condizione di procedibilità e materie soggette a mediazione",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140030"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.L. 12 settembre 2014, n. 132, art. 3 - negoziazione assistita",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014;132~art3=",
+          "ambito": "risarcimento da circolazione e domande di pagamento entro soglia, fuori dai casi di mediazione",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140030"
+        },
+        {
+          "ente": "IVASS",
+          "titolo": "Arbitro Assicurativo",
+          "url": "https://www.ivass.it/consumatori/aas/index.html",
+          "ambito": "ricorso assicurativo dopo reclamo all'impresa o all'intermediario",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140030"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 16 marzo 1942, n. 262 - Codice civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=multivigenza",
+          "ambito": "famiglia, successioni, diritti reali, contratti, responsabilità, società e persone",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "140030"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_COLLAZIONE_EREDITARIA_121005",
+      "denominazione": "Collazione ereditaria (art. 737 c.c.)",
+      "categoria": "Successioni - divisione",
+      "sottocategoria": "Conferimento alla massa ereditaria di donazioni ricevute in vita dal de cuius - per assicurare parità tra coeredi",
+      "rito": "Rito ordinario - generalmente cumulabile con divisione ereditaria (121003) o azione di riduzione (120030)",
+      "competenza": "Tribunale del luogo apertura successione (art. 22 c.p.c.) - foro esclusivo",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "737",
+          "descrizione": "Soggetti tenuti alla collazione - coniuge, figli e discendenti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "738",
+          "descrizione": "Dispensa dalla collazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "739",
+          "descrizione": "Donazioni soggette a collazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "740",
+          "descrizione": "Spese di mantenimento ed educazione - non soggette"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "741",
+          "descrizione": "Spese per dote, matrimonio, sistemazione - soggette"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "742",
+          "descrizione": "Spese ordinarie e regalie - non soggette"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "743",
+          "descrizione": "Donazione fatta agli ascendenti del coerede"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "744",
+          "descrizione": "Donazione fatta al coniuge del coerede"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "746-747",
+          "descrizione": "Collazione di immobili - in natura o per imputazione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "748-750",
+          "descrizione": "Collazione di mobili - per imputazione al valore"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "751",
+          "descrizione": "Collazione di denaro"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "752-755",
+          "descrizione": "Modalità di collazione - imputazione, calcoli, frutti"
+        },
+        {
+          "fonte": "Cass. SU 9282/2011",
+          "descrizione": "Differenza tra collazione e riduzione - presupposti distinti"
+        },
+        {
+          "fonte": "Cass. SU 12506/2018",
+          "descrizione": "Collazione automatica nella divisione ereditaria"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "APERTURA DI SUCCESSIONE (legittima o testamentaria)",
+        "PRESENZA DI PIÙ COEREDI con i seguenti rapporti col de cuius (art. 737):",
+        "- CONIUGE",
+        "- FIGLI e loro DISCENDENTI (per rappresentazione)",
+        "DONAZIONE FATTA IN VITA dal de cuius a uno dei coeredi soggetti a collazione",
+        "DONAZIONE NON ESPLICITAMENTE DISPENSATA dalla collazione (art. 738) - ma comunque entro limiti della disponibile",
+        "DIVISIONE EREDITARIA in corso o richiesta (la collazione presuppone divisione)"
+      ],
+      "differenza_da_riduzione_legittima_120030": {
+        "collazione_737": "OPERA tra COEREDI specifici (coniuge, figli, discendenti) - per garantire parità nella divisione - opera anche se la quota di legittima non è violata - donazione non lesiva ma da apportare",
+        "riduzione_553": "OPERA solo per LEGITTIMARI LESI nella quota di legittima - colpisce solo l'eccedenza rispetto alla disponibile - presuppone lesione della legittima",
+        "rapporto": "Possono coesistere o essere alternative a seconda della situazione (Cass. SU 9282/2011)"
+      },
+      "soggetti_tenuti_alla_collazione_737": [
+        "CONIUGE del de cuius",
+        "FIGLI legittimi, naturali, adottivi",
+        "DISCENDENTI di figli premorti (per rappresentazione)",
+        "NON tenuti: fratelli, ascendenti, altri parenti"
+      ],
+      "donazioni_soggette_a_collazione": [
+        "DONAZIONI DIRETTE (atto pubblico notarile)",
+        "DONAZIONI INDIRETTE (es. acquisto di immobile con prezzo pagato dal de cuius - cd. donazione indiretta)",
+        "DONAZIONI DI MODICO VALORE? CONTROVERSO - di norma SÌ se eccedono i limiti di liberalità d'uso",
+        "SPESE PER DOTE, MATRIMONIO, SISTEMAZIONE (art. 741)",
+        "NON SOGGETTE: spese di mantenimento ed educazione (740), spese ordinarie e regalie (742)"
+      ],
+      "modalita_di_collazione": {
+        "per_immobili_746_747": [
+          "COLLAZIONE IN NATURA: restituzione del bene alla massa - scelta del donatario",
+          "COLLAZIONE PER IMPUTAZIONE: imputazione del valore alla quota del donatario",
+          "Valore: quello alla data di apertura della successione"
+        ],
+        "per_mobili_748_750": [
+          "Sempre per IMPUTAZIONE al valore",
+          "Valore: alla data della donazione (di norma)"
+        ],
+        "per_denaro_751": [
+          "Per imputazione del valore nominale + adeguamenti",
+          "Valutazione complessa con eventuale rivalutazione"
+        ]
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": true,
+        "fonte": "art. 5 c. 1-bis D.Lgs. 28/2010",
+        "materia": "SUCCESSIONI EREDITARIE",
+        "natura": "condizione di procedibilità"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "DOCUMENTAZIONE SUCCESSORIA",
+          "documenti": [
+            "Certificato di morte de cuius",
+            "Testamento (se applicabile)",
+            "Stato di famiglia storico",
+            "Dichiarazione di successione",
+            "Elenco completo dei coeredi"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "RICOSTRUZIONE DONAZIONI IN VITA DEL DE CUIUS",
+          "documenti": [
+            "Atti notarili di donazione",
+            "Atti di acquisto intestati ai figli/coniuge ma pagati dal de cuius (DONAZIONI INDIRETTE)",
+            "Bonifici tracciabili a favore di coeredi",
+            "Documentazione spese per dote, matrimonio, sistemazione (art. 741)",
+            "Eventuali clausole di dispensa dalla collazione (art. 738)"
+          ],
+          "criticita": "Le donazioni indirette sono spesso difficili da provare - richiedono ricerca patrimoniale approfondita"
+        },
+        {
+          "step": 3,
+          "descrizione": "IDENTIFICAZIONE COEREDI TENUTI ALLA COLLAZIONE",
+          "elementi": [
+            "Verifica qualità di coniuge, figlio o discendente",
+            "Esclusione di altri parenti (non tenuti)",
+            "Per coeredi premorti: verifica successione per rappresentazione"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VALUTAZIONE DELLE DONAZIONI",
+          "metodologia": [
+            "Per immobili: valore alla data di apertura successione",
+            "Per mobili e denaro: valore alla data della donazione + eventuali rivalutazioni",
+            "Perizia estimativa di parte consigliata",
+            "Considerazione di eventuali miglioramenti apportati dal donatario"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "VERIFICA EVENTUALI DISPENSE DALLA COLLAZIONE",
+          "art_738": "Dispensa espressa nell'atto di donazione - vale entro limiti della disponibile",
+          "rilevanza": "Anche dispensata, donazione resta soggetta a RIDUZIONE per lesione legittima"
+        },
+        {
+          "step": 6,
+          "descrizione": "STRATEGIA DI AZIONE",
+          "alternative": [
+            "Azione di COLLAZIONE pura - se non c'è lesione legittima ma serve riequilibrio",
+            "Azione di RIDUZIONE + COLLAZIONE in subordine - se c'è anche lesione legittima",
+            "Cumulo con DIVISIONE EREDITARIA - la collazione opera nell'ambito della divisione"
+          ]
+        },
+        {
+          "step": 7,
+          "descrizione": "ATTIVAZIONE MEDIAZIONE OBBLIGATORIA"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_collazione",
+        "denominazione": "Atto di citazione per collazione ereditaria ex art. 737 c.c. (di norma cumulato con divisione ereditaria)",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del luogo apertura successione",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "coerede_attore",
+            "label": "Coerede attore",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "coeredi_donatari_convenuti",
+            "label": "Coeredi donatari convenuti",
+            "type": "array_persone",
+            "required": true,
+            "min_items": 1,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "qualita",
+                "type": "select",
+                "options": [
+                  "coniuge_de_cuius",
+                  "figlio",
+                  "discendente_per_rappresentazione"
+                ]
+              },
+              {
+                "id": "donazioni_ricevute",
+                "type": "array"
+              }
+            ]
+          },
+          {
+            "id": "altri_coeredi_litisconsorti",
+            "label": "Altri coeredi (litisconsorti necessari)",
+            "type": "array_persone"
+          },
+          {
+            "id": "de_cuius",
+            "label": "De cuius",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "successione",
+            "label": "Successione",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo",
+                "type": "select",
+                "options": [
+                  "legittima",
+                  "testamentaria",
+                  "mista"
+                ]
+              },
+              {
+                "id": "data_apertura",
+                "type": "date"
+              },
+              {
+                "id": "asse_ereditario_descritto",
+                "type": "textarea"
+              },
+              {
+                "id": "valore_complessivo_eredita",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "donazioni_soggette_a_collazione",
+            "label": "Donazioni soggette a collazione",
+            "type": "array",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "donatario",
+                "type": "string"
+              },
+              {
+                "id": "tipo_donazione",
+                "type": "select",
+                "options": [
+                  "donazione_diretta_atto_pubblico",
+                  "donazione_indiretta_acquisto_intestato_pagato_da_de_cuius",
+                  "spese_dote_matrimonio_sistemazione_741",
+                  "altro"
+                ]
+              },
+              {
+                "id": "data_donazione",
+                "type": "date"
+              },
+              {
+                "id": "oggetto_donazione",
+                "type": "textarea"
+              },
+              {
+                "id": "valore_alla_data_donazione",
+                "type": "currency"
+              },
+              {
+                "id": "valore_attuale_alla_apertura_successione",
+                "type": "currency"
+              },
+              {
+                "id": "presenza_clausola_dispensa_collazione",
+                "type": "boolean"
+              },
+              {
+                "id": "modalita_collazione_richiesta",
+                "type": "select",
+                "options": [
+                  "in_natura_solo_immobili_746",
+                  "per_imputazione_al_valore"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "richiesta_di_divisione_cumulata",
+            "label": "Richiesta di divisione ereditaria cumulata",
+            "type": "boolean",
+            "consigliato": true
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_donazioni_soggette_a_collazione",
+              "ordine_di_conferimento_in_natura_o_per_imputazione",
+              "rideterminazione_della_massa_ereditaria_inclusa_collazione",
+              "redistribuzione_quote_tra_coeredi",
+              "divisione_della_massa_ricostituita",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Solo CONIUGE, FIGLI, DISCENDENTI tenuti alla collazione (art. 737)",
+          "Distinzione netta tra collazione (riequilibrio) e riduzione (lesione legittima)",
+          "Donazioni indirette spesso difficili da provare - oneroso il riconoscimento",
+          "Per immobili: valore alla data di apertura successione",
+          "Per mobili: valore alla data della donazione",
+          "Foro esclusivo del luogo apertura successione (art. 22 c.p.c.)",
+          "Mediazione obbligatoria preventiva (successioni)",
+          "Litisconsorzio necessario con tutti i coeredi"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "certificato_morte_de_cuius",
+          "label": "Certificato di morte del de cuius",
+          "required": true
+        },
+        {
+          "id": "stato_famiglia_storico",
+          "label": "Stato di famiglia storico",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "testamento_se_presente",
+          "label": "Testamento (se applicabile)",
+          "required_if": "successione_testamentaria"
+        },
+        {
+          "id": "dichiarazione_successione_ae",
+          "label": "Dichiarazione di successione AE",
+          "required": true
+        },
+        {
+          "id": "atti_di_donazione_diretta",
+          "label": "Atti notarili di donazione diretta",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_donazioni_indirette",
+          "label": "Documentazione donazioni indirette (atti di acquisto + tracciabilità pagamenti)",
+          "required": false,
+          "critico_se_dedotte": true
+        },
+        {
+          "id": "documentazione_spese_per_dote_matrimonio_sistemazione",
+          "label": "Documentazione spese ex art. 741",
+          "required_if": "rilevanti"
+        },
+        {
+          "id": "perizia_estimativa_dei_beni_donati",
+          "label": "Perizia estimativa dei beni donati",
+          "required": false,
+          "fortemente_consigliato": true
+        },
+        {
+          "id": "verbale_mediazione_negativa",
+          "label": "Verbale mediazione obbligatoria conclusa negativamente",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ricorso_mediazione_obbligatoria",
+          "trigger": "Condizione procedibilità"
+        },
+        {
+          "tipo": "azione_di_divisione_ereditaria_cumulata",
+          "trigger": "Frequente cumulo",
+          "codice_correlato": "121003"
+        },
+        {
+          "tipo": "azione_di_riduzione_separata_o_cumulata",
+          "trigger": "Se c'è anche lesione legittima",
+          "codice_correlato": "120030"
+        },
+        {
+          "tipo": "ctu_estimativa",
+          "trigger": "Per valutazione donazioni",
+          "automatico": false,
+          "molto_frequente": true
+        },
+        {
+          "tipo": "indagini_su_donazioni_indirette",
+          "trigger": "Indagini patrimoniali sui beni del de cuius",
+          "automatico": false
+        },
+        {
+          "tipo": "azione_petizione_eredita_per_recupero_beni",
+          "trigger": "Eventuale",
+          "codice_correlato": "120010"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_pieno_collazione",
+          "descrizione": "Donazioni conferite alla massa - rideterminazione quote tra coeredi"
+        },
+        {
+          "esito": "accoglimento_parziale",
+          "descrizione": "Solo alcune donazioni soggette a collazione"
+        },
+        {
+          "esito": "rigetto_per_dispensa_da_collazione_valida",
+          "descrizione": "Donazioni dispensate (art. 738)"
+        },
+        {
+          "esito": "rigetto_per_assenza_qualita_soggetti_tenuti",
+          "descrizione": "Donatari non sono tra i soggetti tenuti (737)"
+        },
+        {
+          "esito": "rigetto_per_carattere_non_donazione_dei_trasferimenti",
+          "descrizione": "Trasferimenti qualificati come spese di mantenimento (740) o regalie (742)"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo (es. compensazione o riequilibrio consensuale)"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione azione collazione",
+          "anni": 10,
+          "decorrenza": "apertura successione",
+          "natura": "prescrizione",
+          "norma": "art. 2946 c.c."
+        },
+        {
+          "termine": "Mediazione obbligatoria - max",
+          "giorni": 90
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "121005",
+      "codice_logico": "GUIDA_COLLAZIONE_EREDITARIA_121005",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [
+        "120011",
+        "120001"
+      ],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la collazione ereditaria viene conservata come guida interna collegata alla divisione ereditaria e alle impugnazioni successorie pertinenti.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "121005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "121005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "121005"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 4 marzo 2010, n. 28, art. 5 - mediazione civile e commerciale",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010;28~art5=",
+          "ambito": "condizione di procedibilità e materie soggette a mediazione",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "121005"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 16 marzo 1942, n. 262 - Codice civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=multivigenza",
+          "ambito": "famiglia, successioni, diritti reali, contratti, responsabilità, società e persone",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "121005"
+        }
+      ]
+    },
+    {
+      "codice": "170002",
+      "denominazione": "Azione di nullità o decadenza del brevetto (CPI artt. 45-81)",
+      "categoria": "Diritto industriale - proprietà industriale",
+      "sottocategoria": "Azione di nullità o decadenza di brevetto per invenzione, modello di utilità, modello/disegno",
+      "rito": "Rito ordinario di cognizione",
+      "competenza": "TRIBUNALE SEZIONE SPECIALIZZATA IN MATERIA DI IMPRESA - foro speciale ex art. 120 CPI",
+      "uffici_destinatari": [
+        "SICID - sezione specializzata impresa"
+      ],
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 30/2005 (CPI)",
+          "descrizione": "Codice della proprietà industriale"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "45",
+          "descrizione": "Oggetto del brevetto - invenzioni industriali"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "46",
+          "descrizione": "Novità - requisito"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "48",
+          "descrizione": "Attività inventiva - requisito"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "49",
+          "descrizione": "Industrialità - requisito"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "50",
+          "descrizione": "Liceità"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "51",
+          "descrizione": "Sufficienza della descrizione"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "54-55",
+          "descrizione": "Diritto al brevetto - inventore"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "60",
+          "descrizione": "Durata del brevetto - 20 anni dal deposito"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "63-64",
+          "descrizione": "Invenzioni del dipendente"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "66",
+          "descrizione": "Diritto di esclusiva del titolare"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "70-71",
+          "descrizione": "Cause di NULLITÀ del brevetto"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "75-76",
+          "descrizione": "Cause di DECADENZA"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "77",
+          "descrizione": "Decadenza per mancato pagamento tasse di mantenimento"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "82-84",
+          "descrizione": "Modelli di utilità"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "120",
+          "descrizione": "Foro speciale industria"
+        },
+        {
+          "fonte": "CPI",
+          "articolo": "121",
+          "descrizione": "Onere della prova"
+        },
+        {
+          "fonte": "Convenzione Brevetto Europeo (CBE)",
+          "descrizione": "Brevetti europei e nullità"
+        },
+        {
+          "fonte": "Cass. SU 14122/2022",
+          "descrizione": "Nullità brevetto - presupposti rigorosi"
+        }
+      ],
+      "cause_di_nullita_brevetto_art_70_71": [
+        "MANCANZA DI NOVITÀ: l'invenzione era già nota prima del deposito (stato della tecnica - art. 46)",
+        "MANCANZA DI ATTIVITÀ INVENTIVA: ovvietà dell'invenzione per il tecnico del ramo (art. 48)",
+        "MANCANZA DI INDUSTRIALITÀ: non applicabilità o riproducibilità industriale (art. 49)",
+        "MANCANZA DI LICEITÀ: contrarietà ad ordine pubblico/buon costume (art. 50)",
+        "INSUFFICIENTE DESCRIZIONE: il brevetto non consente al tecnico di realizzare l'invenzione (art. 51)",
+        "OGGETTO NON BREVETTABILE: scoperte, teorie scientifiche, metodi matematici, opere letterarie, programmi (eccetto se associati a soluzioni tecniche)",
+        "DIRITTO AL BREVETTO non spettante al richiedente (es. usurpazione - art. 54)",
+        "AMPLIAMENTO DELL'OGGETTO oltre il deposito originario"
+      ],
+      "cause_di_decadenza_brevetto_artt_75_77": [
+        "MANCATO PAGAMENTO TASSE DI MANTENIMENTO annuali",
+        "NULLA ATTUAZIONE DEL BREVETTO entro 3 anni dal rilascio (art. 69 - facoltà di concedere licenza obbligatoria)",
+        "MANCATA RINUNCIA volontaria del titolare",
+        "PERDITA DEL DIRITTO per altre cause"
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI BREVETTO RILASCIATO da UIBM (nazionale), EPO (europeo), OMPI (internazionale)",
+        "LEGITTIMAZIONE ATTIVA:",
+        "- Nullità: CHIUNQUE vi abbia interesse (operatori del settore, concorrenti)",
+        "- Decadenza per mancato pagamento: chiunque vi abbia interesse",
+        "- Decadenza per usurpazione/diritto: solo titolare del diritto al brevetto",
+        "ONERE PROVA generalmente a carico dell'attore (con eccezioni)"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione DOCUMENTAZIONE DEL BREVETTO CONTESTATO",
+          "documenti": [
+            "Attestato di rilascio brevetto (UIBM, EPO, OMPI)",
+            "Specifica + rivendicazioni",
+            "Disegni allegati",
+            "Storia delle rinnovazioni/pagamenti tasse mantenimento",
+            "Eventuali successive modifiche o limitazioni"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "DOCUMENTAZIONE DELLA CAUSA SPECIFICA",
+          "per_nullita_mancanza_novita": [
+            "RICERCA NELLO STATO DELLA TECNICA: ricerche brevettuali, articoli scientifici, prodotti commercializzati prima del deposito",
+            "Eventuali altri brevetti anteriori con stessa soluzione",
+            "Documentazione di divulgazioni anteriori"
+          ],
+          "per_nullita_mancanza_attivita_inventiva": [
+            "Documenti che mostrano ovvietà per tecnico medio del settore",
+            "Combinazione di elementi noti senza elemento inventivo",
+            "Perizia tecnica di parte"
+          ],
+          "per_decadenza_mancato_pagamento_tasse": [
+            "Estratto registro brevetti UIBM/EPO che attesta mancato pagamento",
+            "Calcolo scadenze tasse"
+          ],
+          "per_nullita_descrizione_insufficiente": [
+            "Perizia tecnica che dimostra impossibilità di realizzazione",
+            "Tentativi di realizzazione falliti"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "PERIZIA TECNICA DI PARTE",
+          "rilevanza": "FONDAMENTALE per brevetti - elemento centrale",
+          "contenuto": [
+            "Analisi tecnica delle rivendicazioni",
+            "Confronto con stato della tecnica anteriore",
+            "Valutazione attività inventiva",
+            "Valutazione industrialità e sufficienza descrizione"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VERIFICA INTERESSE AD AGIRE",
+          "elementi": [
+            "Per nullità: anche solo interesse economico al libero uso della tecnologia",
+            "Per decadenza: interesse economico al libero uso",
+            "Tipicamente: competitor che vuole utilizzare l'invenzione"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "VALUTAZIONE STRATEGICA: PROCEDIMENTO AMMINISTRATIVO O GIUDIZIALE",
+          "alternative": [
+            "Per brevetti italiani: opposizione/limitazione presso UIBM",
+            "Per brevetti europei: opposizione presso EPO entro 9 mesi dal rilascio",
+            "Giudizio ordinario - sempre disponibile dopo i termini amministrativi"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "atto_citazione_nullita_decadenza_brevetto",
+        "denominazione": "Atto di citazione per nullità/decadenza di brevetto (CPI artt. 70-77)",
+        "schema_xsd_ministeriale": "AttoCitazione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale - sezione specializzata impresa",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "attore",
+            "label": "Attore",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita_legittimante",
+                "type": "select",
+                "options": [
+                  "competitor_operatore_settore",
+                  "operatore_che_vuole_utilizzare_tecnologia",
+                  "titolare_del_diritto_al_brevetto_per_usurpazione",
+                  "altro_soggetto_interessato"
+                ]
+              },
+              {
+                "id": "denominazione_o_nome",
+                "type": "string"
+              },
+              {
+                "id": "interesse_ad_agire_descritto",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "titolare_brevetto_convenuto",
+            "label": "Titolare del brevetto convenuto",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "brevetto_oggetto_della_causa",
+            "label": "Brevetto oggetto della causa",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "tipo_brevetto",
+                "type": "select",
+                "options": [
+                  "invenzione_industriale_nazionale",
+                  "invenzione_brevetto_europeo_validato_italia",
+                  "invenzione_brevetto_internazionale_pct",
+                  "modello_di_utilita",
+                  "modello_disegno_brevettato"
+                ]
+              },
+              {
+                "id": "numero_brevetto",
+                "type": "string",
+                "required": true
+              },
+              {
+                "id": "ufficio_rilascio",
+                "type": "select",
+                "options": [
+                  "UIBM_Italia",
+                  "EPO_Europeo",
+                  "OMPI_PCT"
+                ]
+              },
+              {
+                "id": "data_di_deposito",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "data_di_rilascio_concessione",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "data_di_pubblicazione",
+                "type": "date"
+              },
+              {
+                "id": "data_scadenza_naturale",
+                "type": "date"
+              },
+              {
+                "id": "titolo_dell_invenzione",
+                "type": "string"
+              },
+              {
+                "id": "rivendicazioni_principali",
+                "type": "textarea"
+              },
+              {
+                "id": "classificazione_internazionale_ipc",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "tipo_azione_richiesta",
+            "label": "Tipo di azione richiesta",
+            "type": "select",
+            "required": true,
+            "options": [
+              "nullita_per_mancanza_novita",
+              "nullita_per_mancanza_attivita_inventiva",
+              "nullita_per_mancanza_industrialita",
+              "nullita_per_descrizione_insufficiente",
+              "nullita_per_oggetto_non_brevettabile",
+              "nullita_per_usurpazione_o_difetto_diritto_brevetto",
+              "decadenza_per_mancato_pagamento_tasse",
+              "decadenza_per_altre_cause"
+            ]
+          },
+          {
+            "id": "esposizione_dettagliata_causa",
+            "label": "Esposizione dettagliata della causa di nullità/decadenza",
+            "type": "textarea",
+            "required": true,
+            "min_length": 800
+          },
+          {
+            "id": "stato_della_tecnica_anteriore",
+            "label": "Stato della tecnica anteriore (per mancanza novità)",
+            "type": "object",
+            "required_if": "azione_includ_mancanza_novita",
+            "sub_fields": [
+              {
+                "id": "documenti_brevettuali_anteriori",
+                "type": "array"
+              },
+              {
+                "id": "letteratura_scientifica_anteriore",
+                "type": "array"
+              },
+              {
+                "id": "prodotti_commercializzati_anteriormente",
+                "type": "array"
+              },
+              {
+                "id": "divulgazioni_anteriori",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "perizia_tecnica_di_parte",
+            "label": "Perizia tecnica di parte",
+            "type": "boolean",
+            "fortemente_consigliato": true,
+            "critico": true
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "dichiarazione_nullita_brevetto_totale",
+              "dichiarazione_nullita_parziale_di_alcune_rivendicazioni",
+              "dichiarazione_decadenza_brevetto",
+              "ordine_cancellazione_dal_registro_uibm_epo",
+              "trascrizione_sentenza_uibm_epo",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Competenza esclusiva sezione specializzata impresa (D.Lgs. 168/2003)",
+          "Foro speciale art. 120 CPI",
+          "Perizia tecnica di parte ESSENZIALE - i brevetti sono materia tecnica complessa",
+          "CTU tecnica quasi sempre disposta dal giudice",
+          "Per brevetto europeo: opposizione EPO entro 9 mesi dal rilascio (procedimento amministrativo alternativo)",
+          "Sentenza retroagisce al momento del deposito (per nullità)",
+          "Comunicazione obbligatoria sentenza definitiva all'UIBM/EPO per cancellazione"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "attestato_brevetto_oggetto_causa",
+          "label": "Attestato del brevetto oggetto della causa + documenti tecnici",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "ricerca_brevettuale_anteriorita",
+          "label": "Ricerca brevettuale di anteriorità",
+          "required_if": "mancanza_novita",
+          "critico": true
+        },
+        {
+          "id": "letteratura_scientifica_anteriore",
+          "label": "Letteratura scientifica anteriore",
+          "required_if": "mancanza_novita_o_attivita_inventiva"
+        },
+        {
+          "id": "documentazione_prodotti_commercializzati_anteriori",
+          "label": "Documentazione prodotti commercializzati anteriormente",
+          "required_if": "anteriorita_commerciale"
+        },
+        {
+          "id": "perizia_tecnica_di_parte",
+          "label": "Perizia tecnica di parte specialistica",
+          "required": false,
+          "fortemente_consigliato": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_mancato_pagamento_tasse",
+          "label": "Documentazione mancato pagamento tasse (per decadenza)",
+          "required_if": "decadenza_non_pagamento"
+        },
+        {
+          "id": "documentazione_interesse_ad_agire",
+          "label": "Documentazione dell'interesse ad agire",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Tariffa speciale sezione impresa",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "opposizione_amministrativa_uibm_o_epo",
+          "trigger": "Alternativa per brevetti europei entro 9 mesi dal rilascio",
+          "automatico": false
+        },
+        {
+          "tipo": "ctu_tecnica_specialistica",
+          "trigger": "Quasi sempre disposta dal giudice",
+          "automatico": false,
+          "critico": true
+        },
+        {
+          "tipo": "comparsa_costituzione_titolare_brevetto",
+          "trigger": "Costituzione convenuto",
+          "termine": "70 gg prima udienza"
+        },
+        {
+          "tipo": "domanda_riconvenzionale_di_contraffazione_da_attore",
+          "trigger": "Strategia difensiva titolare",
+          "codice_correlato": "170011"
+        },
+        {
+          "tipo": "limitazione_volontaria_del_brevetto_durante_giudizio",
+          "trigger": "Titolare può limitare rivendicazioni",
+          "automatico": false
+        },
+        {
+          "tipo": "comunicazione_sentenza_uibm_epo",
+          "trigger": "Sentenza definitiva",
+          "obbligatoria": true
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "dichiarazione_nullita_totale",
+          "descrizione": "Brevetto dichiarato nullo + cancellazione dal Registro"
+        },
+        {
+          "esito": "dichiarazione_nullita_parziale",
+          "descrizione": "Solo alcune rivendicazioni nulle, altre valide"
+        },
+        {
+          "esito": "dichiarazione_decadenza",
+          "descrizione": "Brevetto decaduto per cause specifiche"
+        },
+        {
+          "esito": "rigetto_per_validita_brevetto",
+          "descrizione": "Conferma validità brevetto"
+        },
+        {
+          "esito": "limitazione_volontaria_e_compromesso",
+          "descrizione": "Titolare limita brevetto - estinzione causa"
+        },
+        {
+          "esito": "transazione_con_licenza_o_coesistenza",
+          "descrizione": "Accordo con licenza all'attore o coesistenza"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Azione nullità - imprescrittibile",
+          "natura": "imprescrittibile"
+        },
+        {
+          "termine": "Opposizione amministrativa EPO",
+          "mesi": 9,
+          "decorrenza": "rilascio brevetto europeo",
+          "natura": "decadenziale alternativa"
+        },
+        {
+          "termine": "Durata massima brevetto invenzione",
+          "anni": 20,
+          "decorrenza": "deposito",
+          "natura": "termine sostanziale",
+          "norma": "art. 60 CPI"
+        },
+        {
+          "termine": "Durata massima modello utilità",
+          "anni": 10,
+          "decorrenza": "deposito"
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "170002"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "170002"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "170002"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 10 febbraio 2005, n. 30 - Codice della proprietà industriale",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=005G0055&atto.dataPubblicazioneGazzetta=2005-03-04&tipoDettaglio=vigente",
+          "ambito": "marchi, brevetti, disegni, modelli, inibitoria, descrizione e sequestro CPI",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "170002"
+        }
+      ]
+    },
+    {
+      "codice": "511012",
+      "denominazione": "Esecuzione per consegna o rilascio (artt. 605-611 c.p.c.)",
+      "categoria": "Esecuzioni forzate - obblighi di consegna o rilascio",
+      "sottocategoria": "Esecuzione forzata per consegna di beni mobili o rilascio di immobili",
+      "rito": "Procedura esecutiva ex artt. 605-611 c.p.c. con Ufficiale Giudiziario sotto vigilanza GE",
+      "competenza": "GIUDICE DELL'ESECUZIONE del luogo in cui si trova il bene (art. 26 c.p.c.)",
+      "uffici_destinatari": [
+        "SIECIC"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "474",
+          "descrizione": "Titoli esecutivi"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "475",
+          "descrizione": "Spedizione in forma esecutiva"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "479",
+          "descrizione": "Notifica titolo esecutivo"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "480",
+          "descrizione": "Precetto"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "481",
+          "descrizione": "Termine 90 gg dal precetto"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "605",
+          "descrizione": "Esecuzione per consegna - oggetto"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "606",
+          "descrizione": "Esecuzione per rilascio - immobili"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "608",
+          "descrizione": "Procedimento di rilascio - intervento ufficiale giudiziario"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "608-bis",
+          "descrizione": "Modalità del rilascio - sgombero forzoso"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "610",
+          "descrizione": "Difficoltà in corso di esecuzione"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "611",
+          "descrizione": "Spese dell'esecuzione"
+        },
+        {
+          "fonte": "L. 431/1998",
+          "articolo": "6",
+          "descrizione": "Esecuzione sfratti per locazione abitativa - graduazione"
+        },
+        {
+          "fonte": "Cass. SU 14228/2020",
+          "descrizione": "Esecuzione rilascio - regole post-Cartabia"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI TITOLO ESECUTIVO che obblighi a consegna o rilascio:",
+        "- SENTENZA di condanna a consegna/rilascio",
+        "- ORDINANZA DI CONVALIDA DI SFRATTO",
+        "- VERBALE DI CONCILIAZIONE",
+        "- TITOLO STRAGIUDIZIALE (atto pubblico per consegna)",
+        "NOTIFICA DEL TITOLO ESECUTIVO (se richiesta)",
+        "NOTIFICA DEL PRECETTO con specifico avviso di consegna/rilascio entro termine",
+        "DECORSO 10 GG DAL PRECETTO senza adempimento spontaneo",
+        "Per immobile: NOTIFICA AVVISO DI RILASCIO (preavviso UNEP)"
+      ],
+      "differenze_consegna_vs_rilascio": {
+        "consegna_605": [
+          "Riguarda BENI MOBILI",
+          "Esecuzione: UNEP preleva i beni e li consegna al creditore",
+          "Procedura più semplice"
+        ],
+        "rilascio_606": [
+          "Riguarda IMMOBILI",
+          "Esecuzione: sgombero forzoso dell'occupante + immissione del creditore nel possesso",
+          "Più complessa - richiede preavviso, eventuale intervento forza pubblica",
+          "Ipotesi tipiche: post-sfratto, post-rivendicazione, post-divisione"
+        ]
+      },
+      "fasi_della_procedura_di_rilascio": [
+        "1. NOTIFICA PRECETTO con avviso di rilascio entro termine",
+        "2. DECORSO 10 GG dal precetto (482 c.p.c.)",
+        "3. ISTANZA ALL'UFFICIALE GIUDIZIARIO per esecuzione",
+        "4. NOTIFICA DELL'AVVISO DI RILASCIO al debitore - PRIMO accesso UNEP",
+        "5. EVENTUALI RINVII (1-2 di solito) per consentire reperimento alloggio (specie per famiglie)",
+        "6. ACCESSO DEFINITIVO con sgombero forzoso",
+        "7. EVENTUALE INTERVENTO FORZA PUBBLICA se resistenza",
+        "8. IMMISSIONE DEL CREDITORE NEL POSSESSO",
+        "9. VERBALE DI ESECUZIONE",
+        "10. EVENTUALE DEPOSITO BENI MOBILI dell'occupante"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Procedura esecutiva"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione TITOLO ESECUTIVO",
+          "documenti": [
+            "Sentenza di condanna in forma esecutiva (con formula esecutoria)",
+            "Per sfratto: ordinanza di convalida ex art. 663 c.p.c.",
+            "Atto pubblico contenente obbligo consegna",
+            "Eventuali sentenze di appello che hanno confermato/modificato"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "NOTIFICA TITOLO ESECUTIVO (se richiesta)",
+          "obbligatorio": "Per alcuni titoli non già notificati"
+        },
+        {
+          "step": 3,
+          "descrizione": "PREDISPOSIZIONE PRECETTO",
+          "elementi": [
+            "Intimazione di consegna/rilascio entro 10 gg",
+            "Avvertimento di esecuzione forzata in caso di inadempimento",
+            "Indicazione del giudice competente per eventuale opposizione",
+            "Per immobile: specifica del bene da rilasciare"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VERIFICA OCCUPAZIONE DELL'IMMOBILE",
+          "elementi": [
+            "Chi occupa effettivamente l'immobile (debitore stesso, familiari, terzi)",
+            "Eventuali soggetti deboli (anziani, bambini, disabili) - rilevante per gestione tempi",
+            "Eventuali sub-conduttori",
+            "Stato dell'immobile"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "ISTANZA UNEP",
+          "elementi": [
+            "Indicazione precisa indirizzo immobile",
+            "Anticipazione spese",
+            "Eventuali necessità specifiche (es. fabbro per cambio serratura)",
+            "Richiesta forza pubblica se necessario"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "istanza_esecuzione_per_rilascio_o_consegna",
+        "denominazione": "Istanza di esecuzione per consegna/rilascio ex artt. 605-611 c.p.c.",
+        "schema_xsd_ministeriale": "AttoEsecuzione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale - GE competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "ufficiale_giudiziario_unep",
+            "label": "Ufficiale Giudiziario competente",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "creditore_procedente",
+            "label": "Creditore procedente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "debitore_o_occupante",
+            "label": "Debitore/occupante",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "altri_occupanti_eventuali",
+            "label": "Altri occupanti dell'immobile (per rilascio)",
+            "type": "array_persone"
+          },
+          {
+            "id": "tipo_esecuzione",
+            "label": "Tipo di esecuzione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "consegna_di_bene_mobile_605",
+              "rilascio_di_immobile_606"
+            ]
+          },
+          {
+            "id": "titolo_esecutivo",
+            "label": "Titolo esecutivo",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_titolo",
+                "type": "select",
+                "options": [
+                  "sentenza_di_condanna_consegna_rilascio",
+                  "ordinanza_convalida_sfratto",
+                  "verbale_conciliazione",
+                  "atto_pubblico",
+                  "altra_pronuncia"
+                ]
+              },
+              {
+                "id": "estremi_titolo",
+                "type": "string"
+              },
+              {
+                "id": "autorita_emittente",
+                "type": "string"
+              },
+              {
+                "id": "data_emissione",
+                "type": "date"
+              },
+              {
+                "id": "data_eventuale_notifica_titolo",
+                "type": "date"
+              },
+              {
+                "id": "spedizione_in_forma_esecutiva",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "precetto",
+            "label": "Precetto notificato",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_notifica",
+                "type": "date",
+                "required": true,
+                "critico_per_termine_90_gg": true
+              },
+              {
+                "id": "termine_assegnato_per_adempimento",
+                "type": "integer"
+              },
+              {
+                "id": "decorrenza_termine_rispettata",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "bene_oggetto_esecuzione",
+            "label": "Bene oggetto dell'esecuzione",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "descrizione",
+                "type": "textarea",
+                "required": true
+              },
+              {
+                "id": "ubicazione_se_immobile",
+                "type": "address"
+              },
+              {
+                "id": "dati_catastali_se_immobile",
+                "type": "object"
+              },
+              {
+                "id": "stato_attuale_se_noto",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "occupazione_attuale_dell_immobile",
+            "label": "Occupazione attuale dell'immobile (per rilascio)",
+            "type": "object",
+            "required_if": "tipo=rilascio",
+            "sub_fields": [
+              {
+                "id": "occupanti_identificati",
+                "type": "array"
+              },
+              {
+                "id": "presenza_soggetti_deboli",
+                "type": "boolean"
+              },
+              {
+                "id": "eventuali_sub_conduttori",
+                "type": "boolean"
+              },
+              {
+                "id": "previsto_consenso_o_resistenza",
+                "type": "select"
+              }
+            ]
+          },
+          {
+            "id": "richieste_specifiche_al_unep",
+            "label": "Richieste specifiche all'UNEP",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "richiesta_forza_pubblica",
+                "type": "boolean"
+              },
+              {
+                "id": "richiesta_fabbro_per_cambio_serratura",
+                "type": "boolean"
+              },
+              {
+                "id": "richiesta_deposito_beni_mobili",
+                "type": "boolean"
+              },
+              {
+                "id": "preferenza_orari_o_giorni",
+                "type": "string"
+              }
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "TERMINE 90 GG dal precetto per inizio esecuzione (art. 481)",
+          "Decorrenza 10 gg dal precetto prima di iniziare (art. 482)",
+          "Per rilascio: notifica AVVISO DI RILASCIO al debitore",
+          "Eventuali rinvii per soggetti deboli o motivi gravi",
+          "Possibilità di intervento forza pubblica in caso di resistenza"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "titolo_esecutivo_in_forma_esecutiva",
+          "label": "Titolo esecutivo in forma esecutiva (con formula esecutoria)",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "notifica_titolo_esecutivo_se_necessaria",
+          "label": "Notifica titolo esecutivo (se richiesta)",
+          "required_if": "richiesta_da_art_479"
+        },
+        {
+          "id": "precetto_e_relata_notifica",
+          "label": "Precetto e relata di notifica",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "anticipazione_spese_unep",
+          "label": "Anticipazione spese UNEP",
+          "required": true
+        },
+        {
+          "id": "documentazione_qualita_dell_immobile_e_occupanti",
+          "label": "Documentazione qualità immobile e occupanti",
+          "required_if": "rilascio"
+        },
+        {
+          "id": "eventuali_documenti_su_soggetti_deboli",
+          "label": "Eventuali documenti su soggetti deboli (per gestione tempi)",
+          "required": false,
+          "rilevante": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "spese_unep": "A carico del creditore - anticipate",
+        "deposito_telematico": "Obbligatorio per iscrizione a ruolo procedura"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "avviso_di_rilascio_unep",
+          "trigger": "Primo passo procedura rilascio",
+          "automatico": false
+        },
+        {
+          "tipo": "verbali_di_accesso_unep_successivi",
+          "trigger": "Eventuali rinvii",
+          "automatico": false
+        },
+        {
+          "tipo": "richiesta_forza_pubblica",
+          "trigger": "In caso di resistenza",
+          "automatico": false
+        },
+        {
+          "tipo": "verbale_di_immissione_in_possesso",
+          "trigger": "Esito finale dell'esecuzione",
+          "automatico": false
+        },
+        {
+          "tipo": "deposito_beni_mobili_dell_occupante",
+          "trigger": "Beni mobili rinvenuti nell'immobile",
+          "automatico": false
+        },
+        {
+          "tipo": "opposizione_esecuzione_615_c_2",
+          "trigger": "Debitore contesta merito durante esecuzione",
+          "codice_correlato": "100011"
+        },
+        {
+          "tipo": "opposizione_atti_esecutivi_617",
+          "trigger": "Per vizi formali",
+          "termine": "20 gg"
+        },
+        {
+          "tipo": "opposizione_terzo_619",
+          "trigger": "Terzo si dichiara possessore legittimo",
+          "automatico": false
+        },
+        {
+          "tipo": "difficolta_in_corso_esecuzione_610",
+          "trigger": "Eventuali ricorsi al GE per difficoltà",
+          "norma": "art. 610 c.p.c."
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "rilascio_o_consegna_completata",
+          "descrizione": "Bene consegnato/immobile rilasciato e immesso creditore"
+        },
+        {
+          "esito": "rilascio_dopo_diversi_accessi_e_rinvii",
+          "descrizione": "Esecuzione protratta nel tempo - comune"
+        },
+        {
+          "esito": "estinzione_per_rilascio_spontaneo_in_corso",
+          "descrizione": "Occupante rilascia spontaneamente"
+        },
+        {
+          "esito": "sospensione_per_opposizione",
+          "descrizione": "Pendente opposizione esecutiva"
+        },
+        {
+          "esito": "difficolta_di_esecuzione",
+          "descrizione": "Es. terzo possessore - rinvio al GE ex art. 610"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo (es. uscita volontaria + indennità)"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "10 GG dal precetto prima di iniziare",
+          "giorni": 10,
+          "decorrenza": "notifica precetto",
+          "natura": "sospensivo",
+          "norma": "art. 482 c.p.c."
+        },
+        {
+          "termine": "INIZIO ESECUZIONE dopo precetto",
+          "giorni": 90,
+          "decorrenza": "notifica precetto",
+          "natura": "DECADENZIALE",
+          "norma": "art. 481 c.p.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Opposizione 617 vizi formali",
+          "giorni": 20,
+          "natura": "decadenziale"
+        }
+      ],
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "511012"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "511012"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "511012"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 28 ottobre 1940, n. 1443 - Codice di procedura civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=multivigenza",
+          "ambito": "rito civile, cautelari, opposizioni, esecuzioni, famiglia, volontaria giurisdizione e impugnazioni",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "511012"
+        }
+      ]
+    }
+  ]
+}

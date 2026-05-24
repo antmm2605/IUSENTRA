@@ -46,6 +46,9 @@ const STANDARD_GUIDA_KEYS = new Set([
   'termini_processuali',
   'esiti_processuali_tipici',
   'esiti_processuali_attesi',
+  'fonti_verifica_web',
+  'presidi_operativi_integrativi',
+  'arricchimento_iusentra',
   'catalogo_xsd',
   'macro_area',
   'kb_version',
@@ -55,6 +58,25 @@ const STANDARD_GUIDA_KEYS = new Set([
 
 function text(value: unknown, fallback = ''): string {
   return String(value ?? fallback).trim()
+}
+
+function formatItalianDate(value: unknown): string {
+  const raw = text(value)
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T)/)
+  if (!match) return raw
+  const [, year, month, day] = match
+  return `${day}/${month}/${year}`
+}
+
+function displayScalar(value: unknown, key = ''): string {
+  if (typeof value === 'boolean') return value ? 'Sì' : 'No'
+  const raw = text(value)
+  if (!raw) return ''
+  const keyLower = key.toLowerCase()
+  if (keyLower.includes('data') || keyLower.includes('date') || keyLower.includes('verificato')) {
+    return formatItalianDate(raw)
+  }
+  return formatItalianDate(raw)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -71,19 +93,35 @@ function hasDisplayContent(value: unknown): boolean {
 function firstReadable(value: Record<string, unknown>, keys: string[]): string {
   for (const key of keys) {
     const raw = value[key]
-    if (typeof raw === 'boolean') return raw ? 'Sì' : 'No'
-    const current = text(raw)
+    if (typeof raw === 'boolean') return displayScalar(raw, key)
+    const current = displayScalar(raw, key)
     if (current) return current
   }
   return ''
 }
 
 function compactRecord(value: Record<string, unknown>): string {
-  return Object.entries(value)
-    .filter(([, entry]) => !Array.isArray(entry) && !isRecord(entry) && text(entry))
+  const rows = Object.entries(value)
+    .filter(([, entry]) => !Array.isArray(entry) && !isRecord(entry) && hasDisplayContent(entry))
     .slice(0, 4)
-    .map(([key, entry]) => `${readableValue(key)}: ${typeof entry === 'boolean' ? (entry ? 'sì' : 'no') : text(entry)}`)
-    .join(' · ')
+    .map(([key, entry]) => `${readableValue(key)}: ${displayScalar(entry, key)}`)
+  return rows.join('; ')
+}
+
+function renderStructuredValue(entry: unknown): string {
+  if (Array.isArray(entry)) return entry.map((item) => itemTitle(item)).filter(Boolean).join(', ')
+  if (typeof entry === 'boolean') return displayScalar(entry)
+  if (isRecord(entry)) {
+    const compact = compactRecord(entry)
+    if (compact) return compact
+    const nested = Object.entries(entry)
+      .filter(([, value]) => hasDisplayContent(value))
+      .slice(0, 5)
+      .map(([key, value]) => `${readableValue(key)}: ${renderStructuredValue(value)}`)
+      .filter(Boolean)
+    return nested.join(' · ')
+  }
+  return displayScalar(entry)
 }
 
 function itemTitle(value: unknown, fallback = 'Voce'): string {
@@ -195,6 +233,7 @@ function StructuredList({ items, prefix, empty = 'Voce da completare.' }:{items?
 function StructuredBlock({ value, empty = 'Voce da completare.' }:{value: unknown; empty?: string}) {
   if (Array.isArray(value)) return <StructuredList items={value} prefix="structured-block" empty={empty}/>
   if (!value && value !== false) return <p className="iu-empty">{empty}</p>
+  if (typeof value === 'boolean') return <p className="iu-guida-lead">{displayScalar(value)}</p>
   if (typeof value === 'boolean') return <p className="iu-guida-lead">{value ? 'Sì' : 'No'}</p>
   if (isRecord(value)) {
     return (
@@ -204,7 +243,7 @@ function StructuredBlock({ value, empty = 'Voce da completare.' }:{value: unknow
           .map(([key, entry]) => (
             <div key={key}>
               <dt>{readableValue(key)}</dt>
-              <dd>{Array.isArray(entry) ? entry.map((item) => itemTitle(item)).join(', ') : typeof entry === 'boolean' ? (entry ? 'Sì' : 'No') : text(entry)}</dd>
+              <dd>{renderStructuredValue(entry)}</dd>
             </div>
           ))}
       </dl>
@@ -357,6 +396,7 @@ function ChecklistTab({ response }:{response:GuidaPraticaResponse}) {
 function NormativaTab({ guida }:{guida?:GuidaPratica}) {
   const primari = guida?.normativa?.riferimenti_primari || []
   const secondari = guida?.normativa?.riferimenti_secondari || []
+  const fontiWeb = guida?.fonti_verifica_web || []
   return (
     <div className="iu-guida-tab-panel">
       <Section title="Riferimenti primari" icon={<Landmark size={16}/> }>
@@ -372,6 +412,22 @@ function NormativaTab({ guida }:{guida?:GuidaPratica}) {
             const detail = itemDetail(item)
             return <li key={itemKey('presupposto', index, title)}><strong>{title}</strong>{detail ? <span>{detail}</span> : null}</li>
           })}</ol>
+        </Section>
+      ) : null}
+      {fontiWeb.length ? (
+        <Section title="Fonti ufficiali verificate" icon={<ShieldCheck size={16}/> }>
+          <ul className="iu-guida-source-list">
+            {fontiWeb.map((fonte, index) => {
+              const title = text(fonte.titolo || fonte.ente, 'Fonte ufficiale')
+              return (
+                <li key={itemKey('fonte-web', index, title)}>
+                  <strong>{title}</strong>
+                  <span>{[fonte.ente, fonte.ambito, fonte.verificato_il ? `verificata il ${formatItalianDate(fonte.verificato_il)}` : ''].filter(Boolean).join(' · ')}</span>
+                  {fonte.url ? <a href={fonte.url} target="_blank" rel="noreferrer">Apri fonte</a> : null}
+                </li>
+              )
+            })}
+          </ul>
         </Section>
       ) : null}
     </div>
@@ -403,6 +459,11 @@ function ContestoTab({ response }:{response:GuidaPraticaResponse}) {
           </div>
         </div>
       </Section>
+      {guida?.presidi_operativi_integrativi ? (
+        <Section title="Presidi operativi integrativi" icon={<ShieldCheck size={16}/> }>
+          <StructuredBlock value={guida.presidi_operativi_integrativi}/>
+        </Section>
+      ) : null}
       <Section title="Esiti processuali tipici" icon={<TimerReset size={16}/> }>
         <StructuredList items={guida?.esiti_processuali_tipici} prefix="esito" empty="Esiti tipici da completare."/>
       </Section>
@@ -514,6 +575,48 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
     window.addEventListener('hashchange', openFromHash)
     return () => window.removeEventListener('hashchange', openFromHash)
   }, [])
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('iusentra:guida-pratica-panel', { detail: { expanded } }))
+    return () => {
+      window.dispatchEvent(new CustomEvent('iusentra:guida-pratica-panel', { detail: { expanded: false } }))
+    }
+  }, [expanded])
+  useEffect(() => {
+    if (expanded || typeof window === 'undefined') return
+    const panel = document.getElementById('guida-pratica')
+    const rail = panel?.closest('.iu-fas-guide-column')
+    if (!panel || !rail) return
+    let frame = 0
+    const updatePinnedState = () => {
+      frame = 0
+      const button = panel.querySelector<HTMLElement>('.iu-guida-collapsed-main')
+      if (!button) return
+      const railRect = rail.getBoundingClientRect()
+      const buttonRect = button.getBoundingClientRect()
+      const pinTop = 96
+      const pinActive = railRect.top <= pinTop && railRect.bottom >= pinTop + buttonRect.height
+      panel.classList.toggle('iu-guida-pratica--viewport-pinned', pinActive)
+      if (pinActive) {
+        panel.style.setProperty('--iu-guida-pin-left', `${Math.round(railRect.left + 8)}px`)
+      } else {
+        panel.style.removeProperty('--iu-guida-pin-left')
+      }
+    }
+    const requestUpdate = () => {
+      if (frame) return
+      frame = window.requestAnimationFrame(updatePinnedState)
+    }
+    updatePinnedState()
+    window.addEventListener('scroll', requestUpdate, { passive: true })
+    window.addEventListener('resize', requestUpdate)
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame)
+      panel.classList.remove('iu-guida-pratica--viewport-pinned')
+      panel.style.removeProperty('--iu-guida-pin-left')
+      window.removeEventListener('scroll', requestUpdate)
+      window.removeEventListener('resize', requestUpdate)
+    }
+  }, [expanded])
   const guida = response.guida
   const suggestedMatch = response.matchedFromFascicolo
   const showOptionalEmpty = response.ok && response.guidaPraticaDisponibile === false

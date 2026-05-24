@@ -100,6 +100,9 @@ _STANDARD_GUIDANCE_KEYS = {
     "depositabile",
     "codice_deposito_automatico",
     "nota_integrazione_iusentra",
+    "fonti_verifica_web",
+    "presidi_operativi_integrativi",
+    "arricchimento_iusentra",
 }
 
 _SPECIAL_FIELD_LABELS = {
@@ -423,6 +426,33 @@ def _document_plan_content(document_plan: dict[str, Any]) -> str:
     return "Piano documento della guida: " + "; ".join(part for part in parts if part) + "." if any(parts) else ""
 
 
+def _official_sources_content(guidance: dict[str, Any]) -> str:
+    sources = _as_list(guidance.get("fonti_verifica_web"))
+    if not sources:
+        return ""
+    items: list[str] = []
+    for source in sources[:16]:
+        if not isinstance(source, dict):
+            continue
+        title = _clean(source.get("titolo") or source.get("ente"))
+        ambito = _clean(source.get("ambito"))
+        verified = _clean(source.get("verificato_il"))
+        url = _clean(source.get("url"))
+        parts = [title, ambito, f"verificata il {verified}" if verified else "", url]
+        rendered = " - ".join(part for part in parts if part)
+        if rendered:
+            items.append(rendered)
+    suffix = f"; altre fonti presenti: {len(sources) - 16}" if len(sources) > 16 else ""
+    return "Fonti ufficiali web collegate alla guida: " + "; ".join(items) + suffix + "."
+
+
+def _integrative_presidi_content(guidance: dict[str, Any]) -> str:
+    presidi = _as_dict(guidance.get("presidi_operativi_integrativi"))
+    if not presidi:
+        return ""
+    return "Presidi operativi integrativi: " + _flatten_guidance_value(presidi, limit=16) + "."
+
+
 def _document_plan_for(guidance: dict[str, Any], fascicolo: dict[str, Any]) -> dict[str, Any]:
     try:
         from web.services.react_guida_pratica_bridge import build_document_plan_for_guida
@@ -455,6 +485,8 @@ def _guidance_content(
         f"Copertura: {_clean(coverage.get('level'))} - {_clean(coverage.get('message'))}." if coverage else "",
         _fascicolo_content(fascicolo or {}),
         _document_plan_content(document_plan or {}),
+        _official_sources_content(guidance),
+        _integrative_presidi_content(guidance),
         _operational_reasoning_content(guidance),
         _quick_line(guidance),
         _section("Normativa letta dalla scheda", guidance.get("normativa"), limit=28),
@@ -514,6 +546,8 @@ def _compact_metadata(guidance: dict[str, Any]) -> dict[str, Any]:
         "codici_ufficiali_correlati_da_valutare": [
             _clean(item) for item in _as_list(guidance.get("codici_ufficiali_correlati_da_valutare")) if _clean(item)
         ],
+        "fonti_verifica_web_count": len(_as_list(guidance.get("fonti_verifica_web"))),
+        "presidi_operativi_integrativi": bool(guidance.get("presidi_operativi_integrativi")),
         "guida_pratica_facoltativa": True,
         "full_guidance_available": True,
         "linguistic_profile": "conversazionale_avvocato",

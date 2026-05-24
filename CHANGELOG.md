@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.248.29 - 2026-05-24
+
+- Integrati i pacchetti TOP9 set8 e set9 nella Guida Pratica, con KB full aggiornato a 1.101 schede: 1.018 codici ufficiali ancora coperti da guida curata e 83 guide interne/facoltative non depositabili.
+- Esteso l'arricchimento web professionale a tutte le schede: servizio, API `/api/guida/<codice>`, UI Guida Pratica e Lex espongono fonti ufficiali verificate, presidi operativi e direttive software senza modificare il `codice_oggetto_pst` del fascicolo.
+- Importati e normalizzati 3.106 record di termini processuali dai moduli Guida Pratica, con 975 template calcolabili e presidi `manual_review` mantenuti quando il termine non è calcolabile con sicurezza.
+- Aggiunti audit dedicati per arricchimento web e materiale utente: 1.101/1.101 schede arricchite, 0 contaminazioni deposito, 81 schede utente controllate voce per voce e 0 perdite tra KB, servizio/API, UI e Lex.
+- Salvate in repository le direttive normative/software usate dalla Guida Pratica in `docs/specs/ministero/GUIDA_PRATICA_FONTI_WEB_E_DIRETTIVE_SOFTWARE.md`, così fonti e regole restano versionate e verificabili.
+
 ## 2.248.28 - 2026-05-24
 
 - Chiuso il flusso `Relata notifica` sul comportamento corretto: il provvedimento da notificare viene rilevato solo dalla PEC dell'ufficio giudiziario, non dai documenti già presenti nel fascicolo o dai metadati generici del portale.

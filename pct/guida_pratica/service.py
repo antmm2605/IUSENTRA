@@ -20,6 +20,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .web_enrichment import enrich_guidance_with_web_sources
+
 
 class GuidaPraticaError(ValueError):
     """Errore applicativo del modulo Guida Pratica."""
@@ -590,7 +592,7 @@ class GuidaPraticaService:
             payload = self._generate_from_catalog(codice)
             coverage = self._coverage_for(codice, guida_curata=False)
         payload = self._normalise_guidance_payload(payload, codice=codice, coverage=coverage, fascicolo=fascicolo or {})
-        return payload
+        return enrich_guidance_with_web_sources(payload)
 
     def _coverage_for(self, codice: str, *, guida_curata: bool) -> GuidaPraticaCoverage:
         if guida_curata:
@@ -653,7 +655,33 @@ class GuidaPraticaService:
             item = _deep_merge(parent, item)
             item = self._apply_differences(item, _as_dict(self._kb_index[codice].get("differenze_rispetto_a_padre")))
             item["eredita_da"] = parent_code
+        item = self._apply_rinvio_dettagli(codice=codice, payload=item, seen=seen)
         return item
+
+    def _rinvio_target_code(self, value: Any, *, current_code: str) -> str:
+        text = _text(value)
+        if not text:
+            return ""
+        candidates = re.findall(r"\bcodice\s+([A-Za-z]?\d{5,6}|[A-Za-z][A-Za-z0-9_-]{4,})\b", text, flags=re.IGNORECASE)
+        for raw in candidates:
+            codice = normalize_codice_materia(raw)
+            if codice and codice != current_code and codice in self._kb_index:
+                return codice
+        return ""
+
+    def _apply_rinvio_dettagli(self, *, codice: str, payload: dict[str, Any], seen: set[str]) -> dict[str, Any]:
+        rinvio = payload.get("rinvio_dettagli") or payload.get("rinvio")
+        target_code = self._rinvio_target_code(rinvio, current_code=codice)
+        if not target_code or target_code in seen:
+            return payload
+        referenced = self._resolve_curated(target_code, set(seen))
+        merged = _deep_merge(referenced, payload)
+        merged["_rinvio_dettagli_risolto"] = {
+            "codice": target_code,
+            "denominazione": _text(referenced.get("denominazione")),
+            "rinvio": _text(rinvio),
+        }
+        return merged
 
     def _apply_differences(self, payload: dict[str, Any], differences: dict[str, Any]) -> dict[str, Any]:
         """Applica le differenze semantiche usate nel KB iniziale."""

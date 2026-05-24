@@ -1,0 +1,422 @@
+{
+  "generated_at": "2026-05-24T13:24:25Z",
+  "sources": [
+    "C:\\Users\\antmm\\Downloads\\files (3).zip",
+    "C:\\Users\\antmm\\Downloads\\files (4).zip",
+    "C:\\Users\\antmm\\Downloads\\files (5).zip"
+  ],
+  "files": [
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (3).zip::kb_top9_set7_parte1.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set7_parte1.json",
+      "sha256": "65EF8DC63818515AD7E952BF02FC8C52B38B964EC388A2026F4E6244C573B994",
+      "changed": true,
+      "macro_area_id": "TOP9_CODICI_FREQUENTI_SET7_PARTE1",
+      "denominazione": "Settimo set di 9 codici - PARTE 1 di 2 (sequestro conservativo, marchio nullità, vizi cosa venduta, cose in custodia, distanze legali)",
+      "codici_materia_originali": [
+        "011001",
+        "170001",
+        "140011",
+        "160021",
+        "130011"
+      ],
+      "codici_materia_integrati": [
+        "011001",
+        "170001",
+        "GUIDA_GARANZIA_VIZI_COSA_VENDUTA_140011",
+        "GUIDA_RESPONSABILITA_COSE_CUSTODIA_160021",
+        "GUIDA_DISTANZE_LEGALI_COSTRUZIONI_130011"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "140011",
+          "codice_integrato": "GUIDA_GARANZIA_VIZI_COSA_VENDUTA_140011",
+          "codici_ufficiali_correlati_da_valutare": [
+            "140011",
+            "140012",
+            "140999"
+          ],
+          "reason": "Il codice 140011 è ufficiale nel catalogo locale per vendita di cose immobili; la scheda ricevuta riguarda la garanzia per vizi della cosa venduta in senso più ampio. Resta guida interna per non sostituire la denominazione ministeriale del deposito."
+        },
+        {
+          "codice_originale": "160021",
+          "codice_integrato": "GUIDA_RESPONSABILITA_COSE_CUSTODIA_160021",
+          "codici_ufficiali_correlati_da_valutare": [
+            "145013",
+            "145999"
+          ],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda viene conservata come guida interna per responsabilità da cose in custodia e collegata ai codici di responsabilità extracontrattuale pertinenti."
+        },
+        {
+          "codice_originale": "130011",
+          "codice_integrato": "GUIDA_DISTANZE_LEGALI_COSTRUZIONI_130011",
+          "codici_ufficiali_correlati_da_valutare": [
+            "130001",
+            "130041",
+            "130111",
+            "130131"
+          ],
+          "reason": "Il codice 130011 è ufficiale nel catalogo locale, ma riguarda la superficie; la scheda ricevuta riguarda distanze legali tra costruzioni e rapporti di vicinato, quindi resta interna per non alterare il deposito."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [
+        "011001",
+        "170001"
+      ],
+      "termini_processuali_raw": 20
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (3).zip::kb_top9_set7_parte2.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set7_parte2.json",
+      "sha256": "A2CB43E58FC48B8F8C6529CE39158A3D19951E2D183A7D65DC08CD4B8D0551DE",
+      "changed": true,
+      "macro_area_id": "TOP9_CODICI_FREQUENTI_SET7_PARTE2",
+      "denominazione": "Settimo set di 9 codici - PARTE 2 di 2",
+      "codici_materia_originali": [
+        "211001",
+        "413051",
+        "142001",
+        "199001"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_SCIOGLIMENTO_SOCIETA_PERSONE_211001",
+        "GUIDA_TUTELA_MAGGIORE_GRAVE_HANDICAP_413051",
+        "GUIDA_RISOLUZIONE_MUTUO_DECADENZA_TERMINE_142001",
+        "GUIDA_OPPOSIZIONE_PRECETTO_199001"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "211001",
+          "codice_integrato": "GUIDA_SCIOGLIMENTO_SOCIETA_PERSONE_211001",
+          "codici_ufficiali_correlati_da_valutare": [
+            "152004",
+            "152999",
+            "455001",
+            "455999"
+          ],
+          "reason": "Il codice 211001 è ufficiale nel catalogo locale, ma riguarda sequestro conservativo in area lavoro; la scheda ricevuta riguarda scioglimento giudiziale di società di persone e resta interna."
+        },
+        {
+          "codice_originale": "413051",
+          "codice_integrato": "GUIDA_TUTELA_MAGGIORE_GRAVE_HANDICAP_413051",
+          "codici_ufficiali_correlati_da_valutare": [
+            "110001",
+            "110002",
+            "B02001",
+            "C15001"
+          ],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda viene conservata come guida interna per interdizione, inabilitazione e tutela del maggiore d'età."
+        },
+        {
+          "codice_originale": "142001",
+          "codice_integrato": "GUIDA_RISOLUZIONE_MUTUO_DECADENZA_TERMINE_142001",
+          "codici_ufficiali_correlati_da_valutare": [
+            "140038",
+            "140041",
+            "140999"
+          ],
+          "reason": "Il codice 142001 è ufficiale nel catalogo locale, ma riguarda prestazione d'opera intellettuale; la scheda ricevuta riguarda risoluzione del mutuo e decadenza dal beneficio del termine, quindi resta interna."
+        },
+        {
+          "codice_originale": "199001",
+          "codice_integrato": "GUIDA_OPPOSIZIONE_PRECETTO_199001",
+          "codici_ufficiali_correlati_da_valutare": [
+            "100001"
+          ],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; esiste il codice ufficiale 100001 per opposizione a precetto ex art. 615, primo comma, c.p.c., da usare per il deposito se confermato."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [],
+      "termini_processuali_raw": 15
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (4).zip::kb_top9_set8_parte1.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set8_parte1.json",
+      "sha256": "E0E8177873A24EDC400BEC1013D41D3E1F9E837DFDF1C1FD5537ACDA5C7B958B",
+      "changed": true,
+      "macro_area_id": "TOP9_CODICI_FREQUENTI_SET8_PARTE1",
+      "denominazione": "Ottavo set di 9 codici - PARTE 1 di 2",
+      "codici_materia_originali": [
+        "130070",
+        "510001",
+        "142005",
+        "220050",
+        "015011"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_DIVISIONE_COMUNIONE_ORDINARIA_130070",
+        "510001",
+        "GUIDA_NULLITA_CLAUSOLE_BANCARIE_ANATOCISMO_USURA_142005",
+        "GUIDA_MOBBING_STRAINING_DANNO_LAVORATORE_220050",
+        "015011"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "130070",
+          "codice_integrato": "GUIDA_DIVISIONE_COMUNIONE_ORDINARIA_130070",
+          "codici_ufficiali_correlati_da_valutare": [
+            "131011",
+            "130001",
+            "120011"
+          ],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda riguarda la divisione della comunione ordinaria, mentre il deposito va scelto tra i codici ufficiali di divisione/diritti reali pertinenti."
+        },
+        {
+          "codice_originale": "142005",
+          "codice_integrato": "GUIDA_NULLITA_CLAUSOLE_BANCARIE_ANATOCISMO_USURA_142005",
+          "codici_ufficiali_correlati_da_valutare": [
+            "140041",
+            "143131",
+            "010006",
+            "050001"
+          ],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda resta guida interna per contenzioso bancario, anatocismo, usura e restituzioni, senza sostituire i codici ufficiali bancari o finanziari."
+        },
+        {
+          "codice_originale": "220050",
+          "codice_integrato": "GUIDA_MOBBING_STRAINING_DANNO_LAVORATORE_220050",
+          "codici_ufficiali_correlati_da_valutare": [
+            "220070",
+            "220071",
+            "220072",
+            "220999"
+          ],
+          "reason": "Il codice 220050 è ufficiale nel catalogo locale per retribuzione; la scheda ricevuta riguarda mobbing/straining e danni al lavoratore, quindi resta guida interna per non alterare il deposito."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [
+        "510001",
+        "015011"
+      ],
+      "termini_processuali_raw": 23
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (4).zip::kb_top9_set8_parte2.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set8_parte2.json",
+      "sha256": "E8145BAC2E46F624F5EC2267E72824467D3C703813BACDCB6B67934C7A6733E4",
+      "changed": true,
+      "macro_area_id": "TOP9_CODICI_FREQUENTI_SET8_PARTE2",
+      "denominazione": "Ottavo set di 9 codici - PARTE 2 di 2",
+      "codici_materia_originali": [
+        "140030",
+        "121005",
+        "170002",
+        "511012"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_ASSICURAZIONE_INDENNIZZO_RISOLUZIONE_140030",
+        "GUIDA_COLLAZIONE_EREDITARIA_121005",
+        "170002",
+        "511012"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "140030",
+          "codice_integrato": "GUIDA_ASSICURAZIONE_INDENNIZZO_RISOLUZIONE_140030",
+          "codici_ufficiali_correlati_da_valutare": [
+            "140051",
+            "140052",
+            "010009",
+            "140999"
+          ],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda riguarda controversie assicurative e indennizzo e viene collegata ai codici ufficiali assicurativi pertinenti."
+        },
+        {
+          "codice_originale": "121005",
+          "codice_integrato": "GUIDA_COLLAZIONE_EREDITARIA_121005",
+          "codici_ufficiali_correlati_da_valutare": [
+            "120011",
+            "120001"
+          ],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la collazione ereditaria viene conservata come guida interna collegata alla divisione ereditaria e alle impugnazioni successorie pertinenti."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [
+        "170002",
+        "511012"
+      ],
+      "termini_processuali_raw": 19
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (5).zip::kb_top9_set9_parte1.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set9_parte1.json",
+      "sha256": "3D9788250727CDB27778B556BD7064759CE03E83B841D2D908D3235B12EA483C",
+      "changed": true,
+      "macro_area_id": "TOP9_CODICI_FREQUENTI_SET9_PARTE1",
+      "denominazione": "Nono set di 9 codici - PARTE 1 di 2",
+      "codici_materia_originali": [
+        "160040",
+        "143005",
+        "130013",
+        "414001",
+        "140005"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_RESPONSABILITA_MEDICO_SANITARIA_160040",
+        "GUIDA_APPALTO_VIZI_DIFFORMITA_GARANZIA_143005",
+        "GUIDA_SERVITU_PREDIALI_130013",
+        "GUIDA_VOLONTARIA_GIURISDIZIONE_MINORI_AUTORIZZAZIONI_414001",
+        "GUIDA_DIFETTO_CONFORMITA_BENI_CONSUMO_140005"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "160040",
+          "codice_integrato": "GUIDA_RESPONSABILITA_MEDICO_SANITARIA_160040",
+          "codici_ufficiali_correlati_da_valutare": [
+            "012002",
+            "142002",
+            "145999"
+          ],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda resta guida interna per responsabilità medico-sanitaria, da agganciare al codice ufficiale coerente con rito e domanda."
+        },
+        {
+          "codice_originale": "143005",
+          "codice_integrato": "GUIDA_APPALTO_VIZI_DIFFORMITA_GARANZIA_143005",
+          "codici_ufficiali_correlati_da_valutare": [
+            "140022",
+            "140021",
+            "010025",
+            "010026"
+          ],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda riguarda appalto, vizi e garanzie, e resta separata dai codici ufficiali di appalto."
+        },
+        {
+          "codice_originale": "130013",
+          "codice_integrato": "GUIDA_SERVITU_PREDIALI_130013",
+          "codici_ufficiali_correlati_da_valutare": [
+            "130041",
+            "130001"
+          ],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda riguarda servitù prediali e deve restare distinta dai codici ufficiali di diritti reali selezionabili nel fascicolo."
+        },
+        {
+          "codice_originale": "414001",
+          "codice_integrato": "GUIDA_VOLONTARIA_GIURISDIZIONE_MINORI_AUTORIZZAZIONI_414001",
+          "codici_ufficiali_correlati_da_valutare": [
+            "413001",
+            "413013",
+            "413014",
+            "B02031",
+            "B02039",
+            "B02041"
+          ],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda viene conservata come guida interna per autorizzazioni e atti nell'interesse di minori."
+        },
+        {
+          "codice_originale": "140005",
+          "codice_integrato": "GUIDA_DIFETTO_CONFORMITA_BENI_CONSUMO_140005",
+          "codici_ufficiali_correlati_da_valutare": [
+            "140011",
+            "140012",
+            "145021",
+            "140999"
+          ],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda resta guida interna per garanzia legale di conformità e vendita di beni di consumo."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [],
+      "termini_processuali_raw": 26
+    },
+    {
+      "source": "C:\\Users\\antmm\\Downloads\\files (5).zip::kb_top9_set9_parte2.json",
+      "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set9_parte2.json",
+      "sha256": "9A75EB6A16874A13F5E316C5C35CF38B5E902EF3F5576E889CC3F9DBBE064800",
+      "changed": true,
+      "macro_area_id": "TOP9_CODICI_FREQUENTI_SET9_PARTE2",
+      "denominazione": "Nono set di 9 codici - PARTE 2 di 2",
+      "codici_materia_originali": [
+        "220005",
+        "511020",
+        "412001",
+        "123001"
+      ],
+      "codici_materia_integrati": [
+        "GUIDA_LICENZIAMENTO_GMO_220005",
+        "GUIDA_ESECUZIONE_OBBLIGHI_FARE_NON_FARE_511020",
+        "GUIDA_ADOZIONE_MAGGIORENNE_412001",
+        "GUIDA_PETIZIONE_RECLAMO_STATO_FAMILIARE_123001"
+      ],
+      "conversioni_deposito": [
+        {
+          "codice_originale": "220005",
+          "codice_integrato": "GUIDA_LICENZIAMENTO_GMO_220005",
+          "codici_ufficiali_correlati_da_valutare": [
+            "220101",
+            "220111",
+            "220999"
+          ],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; il licenziamento per giustificato motivo oggettivo ha codice ufficiale dedicato 220101 da valutare nel fascicolo."
+        },
+        {
+          "codice_originale": "511020",
+          "codice_integrato": "GUIDA_ESECUZIONE_OBBLIGHI_FARE_NON_FARE_511020",
+          "codici_ufficiali_correlati_da_valutare": [
+            "512020",
+            "512021",
+            "512022"
+          ],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda riguarda l'esecuzione di obblighi di fare/non fare, che nel catalogo locale ricade nell'area 512."
+        },
+        {
+          "codice_originale": "412001",
+          "codice_integrato": "GUIDA_ADOZIONE_MAGGIORENNE_412001",
+          "codici_ufficiali_correlati_da_valutare": [
+            "111404",
+            "411620",
+            "411683"
+          ],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; l'adozione di maggiorenne resta guida interna e il deposito va collegato al codice ufficiale coerente con ufficio e registro."
+        },
+        {
+          "codice_originale": "123001",
+          "codice_integrato": "GUIDA_PETIZIONE_RECLAMO_STATO_FAMILIARE_123001",
+          "codici_ufficiali_correlati_da_valutare": [
+            "111101",
+            "111102",
+            "111402",
+            "110999",
+            "400240",
+            "411681"
+          ],
+          "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda riguarda stato familiare e filiazione e resta guida interna non depositabile."
+        }
+      ],
+      "codici_ufficiali_mantenuti_depositabili": [],
+      "termini_processuali_raw": 16
+    }
+  ],
+  "records_received": 27,
+  "records_integrated": 27,
+  "official_depositable_kept": [
+    "011001",
+    "015011",
+    "170001",
+    "170002",
+    "510001",
+    "511012"
+  ],
+  "internal_non_depositable_aliases": [
+    "GUIDA_ADOZIONE_MAGGIORENNE_412001",
+    "GUIDA_APPALTO_VIZI_DIFFORMITA_GARANZIA_143005",
+    "GUIDA_ASSICURAZIONE_INDENNIZZO_RISOLUZIONE_140030",
+    "GUIDA_COLLAZIONE_EREDITARIA_121005",
+    "GUIDA_DIFETTO_CONFORMITA_BENI_CONSUMO_140005",
+    "GUIDA_DISTANZE_LEGALI_COSTRUZIONI_130011",
+    "GUIDA_DIVISIONE_COMUNIONE_ORDINARIA_130070",
+    "GUIDA_ESECUZIONE_OBBLIGHI_FARE_NON_FARE_511020",
+    "GUIDA_GARANZIA_VIZI_COSA_VENDUTA_140011",
+    "GUIDA_LICENZIAMENTO_GMO_220005",
+    "GUIDA_MOBBING_STRAINING_DANNO_LAVORATORE_220050",
+    "GUIDA_NULLITA_CLAUSOLE_BANCARIE_ANATOCISMO_USURA_142005",
+    "GUIDA_OPPOSIZIONE_PRECETTO_199001",
+    "GUIDA_PETIZIONE_RECLAMO_STATO_FAMILIARE_123001",
+    "GUIDA_RESPONSABILITA_COSE_CUSTODIA_160021",
+    "GUIDA_RESPONSABILITA_MEDICO_SANITARIA_160040",
+    "GUIDA_RISOLUZIONE_MUTUO_DECADENZA_TERMINE_142001",
+    "GUIDA_SCIOGLIMENTO_SOCIETA_PERSONE_211001",
+    "GUIDA_SERVITU_PREDIALI_130013",
+    "GUIDA_TUTELA_MAGGIORE_GRAVE_HANDICAP_413051",
+    "GUIDA_VOLONTARIA_GIURISDIZIONE_MINORI_AUTORIZZAZIONI_414001"
+  ],
+  "termini_processuali_raw": 119
+}

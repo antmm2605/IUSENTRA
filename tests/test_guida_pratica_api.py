@@ -23,21 +23,32 @@ def test_guida_pratica_api_catalogo_codice_e_checklist(tmp_path: Path):
     with app.test_client() as client:
         catalogo = client.get("/api/v1/ui/guida-pratica/catalogo", headers=headers)
         codice = client.get("/api/v1/ui/guida-pratica/B02001", headers=headers)
+        codice_rest = client.get("/api/guida/B02001", headers=headers)
         checklist_alias = client.post("/api/v1/ui/guida-pratica/ESEC_MOB_001/checklist", json={}, headers=headers)
+        checklist_rest = client.post("/api/guida/ESEC_MOB_001/checklist", json={}, headers=headers)
 
     catalogo_payload = catalogo.get_json()
     codice_payload = codice.get_json()
+    codice_rest_payload = codice_rest.get_json()
     alias_payload = checklist_alias.get_json()
+    checklist_rest_payload = checklist_rest.get_json()
 
     assert catalogo.status_code == 200
     assert catalogo_payload["summary"]["catalogoSize"] >= 1058
     assert catalogo_payload["summary"]["coverage"]["curata"] == catalogo_payload["summary"]["catalogoSize"]
     assert codice.status_code == 200
+    assert codice_rest.status_code == 200
     assert codice_payload["guida"]["coverage"]["level"] == "curata"
+    assert codice_rest_payload["guida"]["codice"] == codice_payload["guida"]["codice"]
     assert codice_payload["guida"]["codice_deposito"]["depositabile"] is True
+    assert codice_payload["guida"]["fonti_verifica_web"]
+    assert codice_payload["guida"]["presidi_operativi_integrativi"]["deposito"]["depositabile_dalla_scheda"] is True
+    assert codice_payload["guida"]["arricchimento_iusentra"]["non_bloccante"] is True
     assert codice_payload["checklist"]["codice_deposito"]["depositabile"] is True
     assert checklist_alias.status_code == 200
+    assert checklist_rest.status_code == 200
     assert alias_payload["checklist"]["codice_deposito"]["depositabile"] is False
+    assert checklist_rest_payload["checklist"]["codice_deposito"]["depositabile"] is False
     assert alias_payload["checklist"]["pronto_per_generazione"] is False
     assert any(blocker["type"] == "codice_deposito_non_ufficiale" for blocker in alias_payload["checklist"]["blockers"])
 
@@ -383,6 +394,8 @@ def test_guida_pratica_api_fascicolo_senza_codice_propone_scheda_facoltativa_da_
     assert "Scheda pratica suggerita dall'oggetto del fascicolo" not in ui_source
     assert "Scheda pratica individuata dall'oggetto del fascicolo" not in ui_source
     assert "'Ora'" in ui_source
+    assert "Fonti ufficiali verificate" in ui_source
+    assert "Presidi operativi integrativi" in ui_source
 
 
 def test_guida_pratica_ui_fascicolo_restante_nel_rail_operativo():
@@ -400,7 +413,10 @@ def test_guida_pratica_ui_fascicolo_restante_nel_rail_operativo():
     assert detail_grid_pos < guide_column_pos < guida_pos < main_pos < rail_pos < gestione_pos
     assert ".iu-fas-guide-column > .iu-guida-pratica" in sidebar_css
     assert ".iu-fas-detail-grid--with-guide .iu-fas-detail-side > .iu-guida-pratica" in layout_css
-    assert "grid-template-columns:minmax(330px,390px) minmax(0,1fr) !important" in layout_css
+    assert "grid-template-columns:64px minmax(0,1fr) !important" in layout_css
+    assert "grid-template-columns:minmax(700px,760px) minmax(0,1fr) !important" in layout_css
+    assert "iu-guida-pratica--viewport-pinned" in layout_css
+    assert "iu-shell--guide-open" in Path("frontend/src/App.tsx").read_text(encoding="utf-8")
 
 
 def test_guida_pratica_api_fascicolo_associa_guida_per_codice_separato_non_deposito(tmp_path: Path):

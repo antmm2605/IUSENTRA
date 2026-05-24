@@ -207,6 +207,7 @@ Queste regole sono operative e non vanno semplificate nelle tranche successive:
 - l'associazione testuale dall'oggetto del fascicolo è solo fallback per proporre una scheda e deve salvare/mostrare il codice guida separato appena disponibile, così l'avvocato non dipende da frasi o titoli;
 - i match `guide_only` non devono mai essere esposti come `codice_oggetto_pst_suggerito`: devono restare `codice_guida_pratica_suggerito`, senza effetti sul deposito.
 - nella pagina reale del fascicolo la Guida Pratica non deve essere un blocco di fondo pagina: deve stare nel rail operativo del fascicolo, in alto, prima di `Gestione fascicolo`, come pannello compatto facoltativo apribile in verticale.
+- comportamento grafico definitivo del rail fascicolo: quando la Guida Pratica è chiusa la sidebar principale resta aperta e la guida resta come linguetta verticale leggibile agganciata alla colonna operativa dal `Quadro intelligente` fino a `Soggetti e parti`; quando la Guida Pratica viene aperta la sidebar principale si collassa per dare spazio al pannello; quando la Guida Pratica viene richiusa la sidebar principale si riapre automaticamente.
 
 ### Aggiornamento operativo: rimozione del vecchio contesto UI
 
@@ -661,6 +662,19 @@ Questo inventario deve essere la fonte comune per:
 - quadro fascicolo;
 - controlli campi mancanti.
 
+### Collegamento del contesto nella UI Guida Pratica
+
+La UI della Guida Pratica non deve ricevere un contesto parziale costruito solo per il pannello. Deve leggere lo stesso `inventario_contesto_fascicolo` usato da Lex, compilatore atti, catalogo template e controlli, così non compaiono falsi campi mancanti quando il dato esiste già in fascicolo, preventivo, conferimento, parcella, documenti, scadenze o attività.
+
+Il pannello Guida Pratica deve esporre il contesto in modo compatto:
+
+- tab `Contesto`: dati letti dal fascicolo e dai moduli collegati, più `presidi_operativi_integrativi`;
+- tab `Normativa`: riferimenti primari/secondari della scheda e `fonti_verifica_web`;
+- tab `Atto`: template suggerito, modello filtrato, documento importato o bozza generata;
+- tab `Adempimenti`: allegati, termini, passaggi operativi, esiti e avvertimenti.
+
+Le sezioni devono essere consultabili, non bloccanti. Se un dato manca davvero, la guida lo segnala come presidio o promemoria; se il dato è già nell'inventario, non deve essere richiesto di nuovo al momento della redazione.
+
 ### Fonti da aggregare nell'inventario
 
 L'inventario deve leggere il fascicolo e tutti i moduli collegati tramite `id_fascicolo`, `id_cliente`, pratiche collegate o riferimenti già presenti:
@@ -991,6 +1005,43 @@ Ogni scheda arricchita deve passare un controllo:
 - guida facoltativa;
 - Lex aggiornato;
 - testo italiano corretto con accenti validi.
+
+## Aggiornamento 24 maggio 2026 - import set7/set8/set9 e arricchimento web globale
+
+La Guida Pratica integra anche i pacchetti `files (3).zip`, `files (4).zip` e `files (5).zip`, con moduli TOP9 set7, set8 e set9 separati dal codice applicativo. La pipeline di import deve continuare a distinguere:
+
+- codice ufficiale PST/XSD depositabile, quando il codice ricevuto coincide con il catalogo locale;
+- guida interna facoltativa, quando il codice ricevuto non coincide con il catalogo locale o rappresenta un alias operativo;
+- termini processuali, che vengono normalizzati nel repository termini e non lasciati solo come testo libero della scheda.
+
+Stato certificato della tranche:
+
+- 1.101 schede totali nel KB full;
+- 1.018 codici ufficiali presenti nel catalogo PST/XSD locale;
+- 1.018 codici ufficiali coperti da guida curata;
+- 0 codici ufficiali senza guida;
+- 83 guide interne o alias non depositabili;
+- 3.106 record termini processuali importati;
+- 975 template termini calcolabili;
+- 1.101 schede arricchite con fonti web ufficiali e presidi operativi;
+- 0 contaminazioni del `codice_oggetto_pst`.
+
+L'arricchimento web non deve essere duplicato a mano scheda per scheda quando è una regola generale: `pct.guida_pratica.web_enrichment` collega fonti ufficiali, direttive software e presidi operativi a ogni scheda restituita da `GuidaPraticaService`. I campi obbligatori prodotti sono:
+
+- `fonti_verifica_web`;
+- `presidi_operativi_integrativi`;
+- `arricchimento_iusentra`.
+
+Questi campi devono arrivare a:
+
+- endpoint storico `/api/v1/ui/guida-pratica/<codice>`;
+- endpoint operativo `/api/guida/<codice>`;
+- pannello React `GuidaPraticaSidebar`;
+- sorgente Lex `GuidaPraticaSource`;
+- audit voce per voce del materiale utente;
+- audit globale `guida-pratica-web-enrichment-audit`.
+
+Le direttive normative e software usate per l'arricchimento sono salvate in `docs/specs/ministero/GUIDA_PRATICA_FONTI_WEB_E_DIRETTIVE_SOFTWARE.md`. Nessuna fonte o regola usata dal software deve restare solo nella memoria della chat.
 
 ## Deposito e Guida Pratica
 

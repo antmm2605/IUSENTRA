@@ -1,0 +1,27 @@
+{
+  "checked_files": 3,
+  "error_files": 0,
+  "files": [],
+  "files_with_artifacts": 0,
+  "finished_at": "2026-05-24T13:38:42Z",
+  "no_backup_created": true,
+  "ok": true,
+  "repair_enabled": false,
+  "repaired_files": 0,
+  "roots": [
+    "D:\\legale\\IUSENTRA\\docs\\GUIDA_PRATICA_PIANO_OPERATIVO.md",
+    "D:\\legale\\IUSENTRA\\docs\\GUIDA_PRATICA_KB_COMPLETA_V4.md",
+    "D:\\legale\\IUSENTRA\\docs\\specs\\ministero\\GUIDA_PRATICA_FONTI_WEB_E_DIRETTIVE_SOFTWARE.md",
+    "D:\\legale\\IUSENTRA\\frontend\\src\\components\\GuidaPraticaSidebar.tsx",
+    "D:\\legale\\IUSENTRA\\frontend\\src\\guidaPraticaData.ts",
+    "D:\\legale\\IUSENTRA\\lex\\retrieval\\sources\\guida_pratica.py",
+    "D:\\legale\\IUSENTRA\\pct\\guida_pratica",
+    "D:\\legale\\IUSENTRA\\scripts\\import_guida_pratica_user_kb_modules.py",
+    "D:\\legale\\IUSENTRA\\scripts\\audit_guida_pratica_web_enrichment.py",
+    "D:\\legale\\IUSENTRA\\scripts\\audit_guida_pratica_user_material_fields.py"
+  ],
+  "schema_version": "iusentra.utf8_integrity.v1",
+  "skipped_large_files": 0,
+  "started_at": "2026-05-24T13:38:42Z",
+  "unresolved_replacement_files": 0
+}

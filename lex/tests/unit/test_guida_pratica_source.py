@@ -44,6 +44,10 @@ def test_guida_pratica_source_legge_scheda_completa_da_codice_ufficiale():
     assert item.metadata["document_plan"]["import"]["enabled"] is True
     assert "Piano documento della guida" in item.content
     assert "import PDF/Word disponibile" in item.content
+    assert "Fonti ufficiali web collegate alla guida" in item.content
+    assert "Presidi operativi integrativi" in item.content
+    assert item.metadata["fonti_verifica_web_count"] > 0
+    assert item.metadata["presidi_operativi_integrativi"] is True
     assert "Ragionamento operativo Lex da applicare" in item.content
 
 

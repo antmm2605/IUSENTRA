@@ -19,6 +19,16 @@ export type GuidaNormativa = {
   descrizione?: string
 }
 
+export type GuidaFonteWeb = {
+  ente?: string
+  titolo?: string
+  url?: string
+  ambito?: string
+  verificato_il?: string
+  metodo?: string
+  matched_by?: string
+}
+
 export type GuidaCampo = {
   id: string
   label: string
@@ -99,6 +109,9 @@ export type GuidaPratica = {
   termini_processuali?: Array<Record<string, unknown>>
   esiti_processuali_tipici?: Array<string | Record<string, unknown>>
   esiti_processuali_attesi?: Array<Record<string, unknown>>
+  fonti_verifica_web?: GuidaFonteWeb[]
+  presidi_operativi_integrativi?: Record<string, unknown>
+  arricchimento_iusentra?: Record<string, unknown>
 }
 
 export type GuidaChecklist = {

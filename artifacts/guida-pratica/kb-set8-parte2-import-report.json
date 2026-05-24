@@ -1,0 +1,47 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (4).zip::kb_top9_set8_parte2.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set8_parte2.json",
+  "sha256": "E8145BAC2E46F624F5EC2267E72824467D3C703813BACDCB6B67934C7A6733E4",
+  "changed": true,
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET8_PARTE2",
+  "denominazione": "Ottavo set di 9 codici - PARTE 2 di 2",
+  "codici_materia_originali": [
+    "140030",
+    "121005",
+    "170002",
+    "511012"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_ASSICURAZIONE_INDENNIZZO_RISOLUZIONE_140030",
+    "GUIDA_COLLAZIONE_EREDITARIA_121005",
+    "170002",
+    "511012"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "140030",
+      "codice_integrato": "GUIDA_ASSICURAZIONE_INDENNIZZO_RISOLUZIONE_140030",
+      "codici_ufficiali_correlati_da_valutare": [
+        "140051",
+        "140052",
+        "010009",
+        "140999"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda riguarda controversie assicurative e indennizzo e viene collegata ai codici ufficiali assicurativi pertinenti."
+    },
+    {
+      "codice_originale": "121005",
+      "codice_integrato": "GUIDA_COLLAZIONE_EREDITARIA_121005",
+      "codici_ufficiali_correlati_da_valutare": [
+        "120011",
+        "120001"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la collazione ereditaria viene conservata come guida interna collegata alla divisione ereditaria e alle impugnazioni successorie pertinenti."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [
+    "170002",
+    "511012"
+  ],
+  "termini_processuali_raw": 19
+}

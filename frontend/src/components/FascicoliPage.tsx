@@ -2295,6 +2295,7 @@ function DetailPage({ id }:{id:string}) {
         <aside className="iu-fas-guide-column" aria-label="Guida pratica facoltativa del fascicolo">
           <GuidaPraticaSidebar fascicoloId={f.id || id} codice={f.codiceOggettoPst} fascicoloTitle={f.title}/>
         </aside>
+        <div className="iu-fas-detail-content-column">
         <div className="iu-fas-detail-main">
       <section className="iu-fas-ai-board" aria-label="Quadro intelligente AI del fascicolo">
         <div><span><Sparkles size={16}/> Quadro intelligente AI</span><strong>{prossimaAzione}</strong><p>Analisi del fascicolo, documenti, scadenze, attività e prossime azioni usando i dati reali della pratica.</p></div>
@@ -2410,6 +2411,7 @@ function DetailPage({ id }:{id:string}) {
           <DetailSection id="cliente" title="Cliente" icon={<UserRound size={17}/>} count={data.client ? 1 : 0}>{data.client ? <KvGrid items={[{ label: 'Nome', value: data.client.name, href: data.client.href }, { label: 'Codice fiscale', value: data.client.taxCode, mono: true }, { label: 'P. IVA', value: data.client.vat, mono: true }, { label: 'Email', value: data.client.email }, { label: 'PEC', value: data.client.pec }, { label: 'Telefono', value: data.client.phone }, { label: 'Indirizzo', value: data.client.address }]}/> : <p className="iu-empty">Cliente non collegato.</p>}</DetailSection>
           <DetailSection id="soggetti" title="Soggetti e parti" icon={<UsersRound size={17}/>} count={data.parties.length}><div className="iu-fas-party-list">{data.parties.map((party) => <a href={party.href} key={party.id}><strong>{party.name}</strong><span>{party.role || 'Soggetto'} · {party.taxCode || 'C.F. n.d.'}</span><small>{party.email || party.pec || party.phone}</small></a>)}{!data.parties.length ? <p className="iu-empty">Nessun soggetto collegato.</p> : null}</div><a className="iu-fas-inline-link" href={`/soggetti/nuovo?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuovo soggetto</a></DetailSection>
         </aside>
+        </div>
       </section>
       <PdfPreviewModal preview={previewDoc} onClose={() => setPreviewDoc(null)}/>
       <a className="iu-fas-back-top" href="#fascicolo-top" aria-label="Torna su" title="Torna su"><ChevronUp size={18}/></a>

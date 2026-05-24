@@ -1,0 +1,80 @@
+{
+  "source": "C:\\Users\\antmm\\Downloads\\files (5).zip::kb_top9_set9_parte1.json",
+  "destination": "pct\\data\\legal_knowledge_base_modules\\kb_98_top9_set9_parte1.json",
+  "sha256": "3D9788250727CDB27778B556BD7064759CE03E83B841D2D908D3235B12EA483C",
+  "changed": true,
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET9_PARTE1",
+  "denominazione": "Nono set di 9 codici - PARTE 1 di 2",
+  "codici_materia_originali": [
+    "160040",
+    "143005",
+    "130013",
+    "414001",
+    "140005"
+  ],
+  "codici_materia_integrati": [
+    "GUIDA_RESPONSABILITA_MEDICO_SANITARIA_160040",
+    "GUIDA_APPALTO_VIZI_DIFFORMITA_GARANZIA_143005",
+    "GUIDA_SERVITU_PREDIALI_130013",
+    "GUIDA_VOLONTARIA_GIURISDIZIONE_MINORI_AUTORIZZAZIONI_414001",
+    "GUIDA_DIFETTO_CONFORMITA_BENI_CONSUMO_140005"
+  ],
+  "conversioni_deposito": [
+    {
+      "codice_originale": "160040",
+      "codice_integrato": "GUIDA_RESPONSABILITA_MEDICO_SANITARIA_160040",
+      "codici_ufficiali_correlati_da_valutare": [
+        "012002",
+        "142002",
+        "145999"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda resta guida interna per responsabilità medico-sanitaria, da agganciare al codice ufficiale coerente con rito e domanda."
+    },
+    {
+      "codice_originale": "143005",
+      "codice_integrato": "GUIDA_APPALTO_VIZI_DIFFORMITA_GARANZIA_143005",
+      "codici_ufficiali_correlati_da_valutare": [
+        "140022",
+        "140021",
+        "010025",
+        "010026"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda riguarda appalto, vizi e garanzie, e resta separata dai codici ufficiali di appalto."
+    },
+    {
+      "codice_originale": "130013",
+      "codice_integrato": "GUIDA_SERVITU_PREDIALI_130013",
+      "codici_ufficiali_correlati_da_valutare": [
+        "130041",
+        "130001"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda riguarda servitù prediali e deve restare distinta dai codici ufficiali di diritti reali selezionabili nel fascicolo."
+    },
+    {
+      "codice_originale": "414001",
+      "codice_integrato": "GUIDA_VOLONTARIA_GIURISDIZIONE_MINORI_AUTORIZZAZIONI_414001",
+      "codici_ufficiali_correlati_da_valutare": [
+        "413001",
+        "413013",
+        "413014",
+        "B02031",
+        "B02039",
+        "B02041"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda viene conservata come guida interna per autorizzazioni e atti nell'interesse di minori."
+    },
+    {
+      "codice_originale": "140005",
+      "codice_integrato": "GUIDA_DIFETTO_CONFORMITA_BENI_CONSUMO_140005",
+      "codici_ufficiali_correlati_da_valutare": [
+        "140011",
+        "140012",
+        "145021",
+        "140999"
+      ],
+      "reason": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda resta guida interna per garanzia legale di conformità e vendita di beni di consumo."
+    }
+  ],
+  "codici_ufficiali_mantenuti_depositabili": [],
+  "termini_processuali_raw": 26
+}

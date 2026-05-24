@@ -1,0 +1,2531 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TOP9_CODICI_FREQUENTI_SET9_PARTE2",
+  "denominazione": "Nono set di 9 codici - PARTE 2 di 2",
+  "registri": [
+    "SICID",
+    "SIVG",
+    "SILP"
+  ],
+  "data_generazione": "2026-05-24",
+  "scopo": "Parte 2 del nono set TOP9: licenziamento per GMO, esecuzione obblighi fare/non fare 612-614, adozione maggiorenne, petizione/reclamo di stato",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_LICENZIAMENTO_GMO_220005",
+      "denominazione": "Licenziamento per giustificato motivo oggettivo (GMO economico/organizzativo)",
+      "categoria": "Lavoro - cessazione rapporto",
+      "sottocategoria": "Impugnazione di licenziamento per ragioni economiche, organizzative o produttive (art. 3 L. 604/1966)",
+      "rito": "Rito del lavoro ex artt. 409 e ss. c.p.c. - rito speciale per tutele crescenti",
+      "competenza": "Tribunale del lavoro - foro della sede di lavoro (art. 413 c.p.c.)",
+      "uffici_destinatari": [
+        "SICID-Lavoro / SILP"
+      ],
+      "normativa": [
+        {
+          "fonte": "L. 604/1966",
+          "articolo": "3",
+          "descrizione": "Giustificato motivo oggettivo - ragioni inerenti l'attività produttiva, l'organizzazione del lavoro o il regolare funzionamento"
+        },
+        {
+          "fonte": "L. 604/1966",
+          "articolo": "6",
+          "descrizione": "Termini di impugnazione - 60 + 180 gg"
+        },
+        {
+          "fonte": "L. 604/1966",
+          "articolo": "8",
+          "descrizione": "Tutele in caso di licenziamento illegittimo (per piccole imprese)"
+        },
+        {
+          "fonte": "L. 300/1970 (Statuto Lavoratori)",
+          "articolo": "18",
+          "descrizione": "Tutele - sistema modificato da Fornero L. 92/2012"
+        },
+        {
+          "fonte": "L. 92/2012 (Fornero)",
+          "descrizione": "Riforma sistema sanzionatorio licenziamenti - tutele differenziate"
+        },
+        {
+          "fonte": "D.Lgs. 23/2015 (tutele crescenti)",
+          "descrizione": "Disciplina per assunti dopo 7 marzo 2015 - tutele basate su anzianità"
+        },
+        {
+          "fonte": "D.Lgs. 23/2015",
+          "articolo": "3",
+          "descrizione": "Licenziamento per GMO - sanzioni"
+        },
+        {
+          "fonte": "L. 223/1991",
+          "descrizione": "Licenziamenti collettivi - distinto da individuale GMO"
+        },
+        {
+          "fonte": "Cass. SU 14490/2019",
+          "descrizione": "GMO - nesso causale tra ragione organizzativa e soppressione posto"
+        },
+        {
+          "fonte": "Cass. SU 11530/2018",
+          "descrizione": "Obbligo di repechage - ricerca alternative occupazionali"
+        },
+        {
+          "fonte": "Cass. SU 15206/2024",
+          "descrizione": "GMO - prova rigorosa delle ragioni e dell'impossibilità di reimpiego"
+        },
+        {
+          "fonte": "Corte Cost. 194/2018",
+          "descrizione": "Tutele crescenti - dichiarata incostituzionalità criterio rigido anzianità"
+        },
+        {
+          "fonte": "Corte Cost. 22/2024",
+          "descrizione": "Tutele crescenti - intervento su determinazione indennità"
+        }
+      ],
+      "presupposti_sostanziali_GMO_art_3_L_604_1966": [
+        "RAGIONE INERENTE l'attività produttiva, l'organizzazione del lavoro o il regolare funzionamento",
+        "RAGIONE EFFETTIVA E CONCRETA (non strumentale o pretestuosa)",
+        "NESSO CAUSALE tra ragione e SOPPRESSIONE DEL POSTO o della funzione (Cass. SU 14490/2019)",
+        "IMPOSSIBILITÀ DI REPECHAGE: assenza di posti alternativi a cui ricollocare il lavoratore (Cass. SU 11530/2018)",
+        "CRITERI DI SCELTA OBIETTIVI se più posti analoghi (analogia con licenziamenti collettivi)"
+      ],
+      "tipologie_di_ragioni_GMO_legittime": [
+        "CRISI AZIENDALE documentata (calo fatturato, perdite, ristrutturazione)",
+        "RIORGANIZZAZIONE AZIENDALE con soppressione effettiva di funzioni",
+        "ESTERNALIZZAZIONE di servizi (con documentazione contratti)",
+        "CESSAZIONE DI ATTIVITÀ o di settore",
+        "RIDUZIONE DEL PERSONALE per ragioni economiche",
+        "INNOVAZIONI TECNOLOGICHE che rendono ridondante il posto",
+        "SOPPRAVVENUTA INIDONEITÀ FISICA del lavoratore con impossibilità di reimpiego"
+      ],
+      "tipologie_di_ragioni_NON_legittime": [
+        "INSUFFICIENTE PRODUTTIVITÀ del singolo (rientra in motivi disciplinari)",
+        "RAGIONI DISCRIMINATORIE (sesso, razza, religione, sindacato) - NULLO",
+        "RAGIONI RITORSIVE - NULLO",
+        "GMO ASSERITO MA CONTRADDETTO da assunzioni successive nello stesso ruolo",
+        "GMO per malattia o gravidanza - NULLO"
+      ],
+      "tutele_post_2015_per_assunti_dopo_7_marzo_2015": {
+        "regime_tutele_crescenti_D_Lgs_23_2015": [
+          "Per dipendenti assunti dal 7 marzo 2015",
+          "GMO ILLEGITTIMO: INDENNITÀ economica (variabile per Corte Cost. 194/2018 e 22/2024)",
+          "GMO MANIFESTAMENTE INSUSSISTENTE: REINTEGRAZIONE + indennità",
+          "GMO DISCRIMINATORIO o RITORSIVO: REINTEGRAZIONE + risarcimento integrale (tutela reale piena)",
+          "VIZI FORMALI: solo indennità ridotta"
+        ],
+        "regime_art_18_post_Fornero_per_assunti_prima_7_marzo_2015": [
+          "REINTEGRAZIONE per GMO manifestamente insussistente",
+          "REINTEGRAZIONE per discriminazione/ritorsione",
+          "INDENNITÀ economica per GMO non manifestamente insussistente"
+        ],
+        "piccole_imprese_L_604_1966_art_8": [
+          "Datori sotto 15 dipendenti (o 60 totali)",
+          "Tutela INDENNITARIA - non reintegratoria",
+          "Indennità 2,5-6 mensilità (max 14 in casi particolari)"
+        ]
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "tentativo_facoltativo": "Conciliazione ITL ex art. 410 c.p.c."
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "ACQUISIZIONE LETTERA DI LICENZIAMENTO E DOCUMENTAZIONE",
+          "documenti": [
+            "Lettera di licenziamento (con motivazione)",
+            "Contratto di lavoro + CCNL applicato",
+            "Buste paga (per ricostruzione anzianità e retribuzione)",
+            "Eventuale comunicazione preventiva ITL",
+            "TFR + ultima retribuzione"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "VERIFICA TEMPESTIVITÀ IMPUGNAZIONE",
+          "primo_termine_60_gg": "Impugnazione stragiudiziale (raccomandata/PEC) entro 60 gg dalla comunicazione",
+          "secondo_termine_180_gg": "Deposito ricorso giudiziale entro 180 gg dall'impugnazione stragiudiziale",
+          "criticita": "MASSIMA - decadenza preclude ogni tutela"
+        },
+        {
+          "step": 3,
+          "descrizione": "INDIVIDUAZIONE REGIME APPLICABILE",
+          "criterio": [
+            "DATA ASSUNZIONE: prima/dopo 7 marzo 2015 → regime art. 18 o tutele crescenti",
+            "DIMENSIONE AZIENDALE: sopra/sotto 15 dipendenti → tutela reale o indennitaria"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "ANALISI DELLA MOTIVAZIONE DEL LICENZIAMENTO",
+          "verifiche": [
+            "Specificità e concretezza della motivazione (Cass. SU 15206/2024)",
+            "Nesso causale tra ragione dichiarata e soppressione posto",
+            "Effettività della ragione (non strumentale)",
+            "Documentazione di crisi/riorganizzazione"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "VERIFICA REPECHAGE",
+          "norma": "Obbligo del datore di provare l'impossibilità di reimpiego (Cass. SU 11530/2018)",
+          "verifiche": [
+            "Posizioni vacanti in azienda al momento del licenziamento",
+            "Eventuali assunzioni successive nello stesso ruolo",
+            "Posizioni equivalenti in altre sedi/aziende del gruppo"
+          ]
+        },
+        {
+          "step": 6,
+          "descrizione": "VERIFICA EVENTUALE DISCRIMINAZIONE O RITORSIONE",
+          "elementi": [
+            "Coincidenza temporale con eventi personali (gravidanza, malattia)",
+            "Vicinanza temporale a contestazioni del lavoratore",
+            "Attività sindacale precedente"
+          ]
+        },
+        {
+          "step": 7,
+          "descrizione": "QUANTIFICAZIONE DOMANDE",
+          "voci": [
+            "Per reintegrazione: ricostituzione rapporto + indennità periodo intermedio",
+            "Per indennità tutele crescenti: 6-36 mensilità (Corte Cost. 22/2024)",
+            "Per piccole imprese: 2,5-6 mensilità",
+            "Eventuali differenze retributive e TFR"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_impugnazione_licenziamento_GMO",
+        "denominazione": "Ricorso ex art. 414 c.p.c. per impugnazione licenziamento per GMO",
+        "schema_xsd_ministeriale": "AttoLavoro.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del lavoro",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "lavoratore",
+            "label": "Lavoratore ricorrente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "datore_lavoro_convenuto",
+            "label": "Datore di lavoro convenuto",
+            "type": "object_persona_giuridica",
+            "required": true
+          },
+          {
+            "id": "rapporto_lavoro",
+            "label": "Rapporto di lavoro",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "data_assunzione",
+                "type": "date",
+                "required": true,
+                "critico_per_regime": true
+              },
+              {
+                "id": "regime_applicabile",
+                "type": "select",
+                "required": true,
+                "options": [
+                  "art_18_st_lav_post_fornero_pre_7_marzo_2015",
+                  "tutele_crescenti_dlgs_23_2015_post_7_marzo_2015",
+                  "tutela_indennitaria_piccole_imprese"
+                ]
+              },
+              {
+                "id": "tipo_contratto",
+                "type": "select"
+              },
+              {
+                "id": "qualifica_e_livello",
+                "type": "string"
+              },
+              {
+                "id": "ccnl_applicato",
+                "type": "string"
+              },
+              {
+                "id": "retribuzione_mensile_lorda",
+                "type": "currency"
+              },
+              {
+                "id": "anzianita_di_servizio",
+                "type": "string",
+                "critico": true
+              },
+              {
+                "id": "dimensione_aziendale_sopra_15_dipendenti",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "licenziamento",
+            "label": "Licenziamento",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "data_comunicazione_licenziamento",
+                "type": "date",
+                "required": true,
+                "critico_per_termine_60_gg": true
+              },
+              {
+                "id": "data_effettiva_cessazione_rapporto",
+                "type": "date"
+              },
+              {
+                "id": "tipo_motivazione_dedotta",
+                "type": "select",
+                "options": [
+                  "crisi_aziendale",
+                  "riorganizzazione_aziendale",
+                  "esternalizzazione",
+                  "cessazione_attivita",
+                  "riduzione_personale_economica",
+                  "innovazione_tecnologica",
+                  "inidoneita_fisica_sopravvenuta",
+                  "altra"
+                ]
+              },
+              {
+                "id": "motivazione_letterale_del_datore",
+                "type": "textarea",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "impugnazione_stragiudiziale",
+            "label": "Impugnazione stragiudiziale",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "data_invio",
+                "type": "date",
+                "required": true,
+                "critico": true
+              },
+              {
+                "id": "rispetto_termine_60_gg",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "modalita",
+                "type": "select",
+                "options": [
+                  "raccomandata_AR",
+                  "PEC",
+                  "consegna_a_mani"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "censure_al_licenziamento",
+            "label": "Censure al licenziamento",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "assenza_o_insussistenza_della_ragione_GMO",
+              "manifesta_insussistenza_del_GMO",
+              "violazione_obbligo_di_repechage",
+              "ragione_dedotta_pretestuosa_o_strumentale",
+              "discriminazione_dedotta",
+              "ritorsione_dedotta",
+              "violazione_criteri_di_scelta_obbiettivi",
+              "vizi_formali_di_motivazione",
+              "altro"
+            ]
+          },
+          {
+            "id": "esposizione_dettagliata_censure",
+            "label": "Esposizione dettagliata delle censure",
+            "type": "textarea",
+            "required": true,
+            "min_length": 600
+          },
+          {
+            "id": "documentazione_repechage_e_alternative",
+            "label": "Documentazione su repechage e alternative",
+            "type": "textarea"
+          },
+          {
+            "id": "indizi_discriminazione_o_ritorsione",
+            "label": "Indizi di discriminazione o ritorsione",
+            "type": "textarea",
+            "required_if": "censura_discriminazione_o_ritorsione"
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_illegittimita_licenziamento",
+              "reintegrazione_nel_posto_di_lavoro",
+              "condanna_indennita_risarcitoria",
+              "condanna_pagamento_retribuzioni_periodo_intermedio",
+              "condanna_indennita_tutele_crescenti",
+              "condanna_indennita_piccole_imprese_l_604",
+              "risarcimento_danni_per_discriminazione_o_ritorsione",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "quantificazione_indennita_o_retribuzioni",
+            "label": "Quantificazione indennità richieste",
+            "type": "object",
+            "sub_fields": [
+              {
+                "id": "mensilita_richieste",
+                "type": "integer"
+              },
+              {
+                "id": "importo_complessivo",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "TERMINE 60 GG impugnazione stragiudiziale - decadenziale",
+          "TERMINE 180 GG ricorso giudiziale - decadenziale",
+          "Onere prova GMO sul datore (Cass. SU 14490/2019, 11530/2018, 15206/2024)",
+          "Obbligo di REPECHAGE essenziale",
+          "Regime applicabile dipende da data assunzione (7/3/2015) e dimensione aziendale",
+          "Per discriminazione/ritorsione: tutela reale anche in tutele crescenti",
+          "Corte Cost. 194/2018 e 22/2024 hanno modificato criteri tutele crescenti"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "lettera_licenziamento",
+          "label": "Lettera di licenziamento con motivazione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "contratto_lavoro_e_ccnl",
+          "label": "Contratto di lavoro + CCNL",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "buste_paga_recenti",
+          "label": "Buste paga ultimi 12 mesi",
+          "required": true
+        },
+        {
+          "id": "documentazione_anzianita",
+          "label": "Documentazione anzianità e storia rapporto",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "impugnazione_stragiudiziale_e_prova_invio",
+          "label": "Impugnazione stragiudiziale e prova invio",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_dimensione_aziendale",
+          "label": "Documentazione dimensione aziendale",
+          "required": true
+        },
+        {
+          "id": "documentazione_su_assunzioni_successive",
+          "label": "Documentazione su eventuali assunzioni successive",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_situazione_aziendale",
+          "label": "Documentazione situazione aziendale",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_su_discriminazione",
+          "label": "Documentazione su discriminazione/ritorsione",
+          "required_if": "discriminazione_dedotta",
+          "critico": true
+        },
+        {
+          "id": "tfr_e_ultima_retribuzione",
+          "label": "TFR e ultima retribuzione",
+          "required": true
+        },
+        {
+          "id": "elenco_testimoni",
+          "label": "Elenco testimoni",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esenzione per controversie individuali di lavoro per reddito sotto 3x soglia",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "impugnazione_stragiudiziale_obbligatoria",
+          "trigger": "Condizione tempestività",
+          "critico": true
+        },
+        {
+          "tipo": "memoria_difensiva_datore",
+          "trigger": "Costituzione datore",
+          "termine": "10 gg prima udienza"
+        },
+        {
+          "tipo": "documentazione_aziendale_e_organigrammi",
+          "trigger": "Necessaria per prova repechage"
+        },
+        {
+          "tipo": "prova_testimoniale",
+          "trigger": "Sempre disposta",
+          "molto_frequente": true
+        },
+        {
+          "tipo": "ctu_situazione_economica_azienda",
+          "trigger": "Per contestazioni crisi documentata"
+        },
+        {
+          "tipo": "ricorso_aspi_o_naspi",
+          "trigger": "Parallela domanda disoccupazione INPS"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "reintegrazione_per_manifesta_insussistenza_GMO",
+          "descrizione": "GMO insussistente in modo manifesto - reintegrazione + indennità"
+        },
+        {
+          "esito": "reintegrazione_per_discriminazione_o_ritorsione",
+          "descrizione": "Tutela reale piena anche per assunti post 2015"
+        },
+        {
+          "esito": "indennita_economica_per_GMO_illegittimo",
+          "descrizione": "Tutela indennitaria 6-36 mensilità post Corte Cost."
+        },
+        {
+          "esito": "indennita_ridotta_piccole_imprese",
+          "descrizione": "2,5-6 mensilità L. 604"
+        },
+        {
+          "esito": "rigetto_per_legittimita_GMO",
+          "descrizione": "GMO provato e repechage adempiuto"
+        },
+        {
+          "esito": "rigetto_per_decadenza_termini",
+          "descrizione": "Tempestività non rispettata"
+        },
+        {
+          "esito": "transazione",
+          "descrizione": "Accordo (dimissioni incentivate, indennità transattiva)"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "IMPUGNAZIONE STRAGIUDIZIALE",
+          "giorni": 60,
+          "decorrenza": "comunicazione licenziamento",
+          "natura": "DECADENZIALE",
+          "norma": "art. 6 L. 604/1966",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "DEPOSITO RICORSO GIUDIZIALE",
+          "giorni": 180,
+          "decorrenza": "impugnazione stragiudiziale",
+          "natura": "DECADENZIALE",
+          "norma": "art. 6 L. 604/1966",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Costituzione datore",
+          "giorni": 10,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio",
+          "norma": "art. 416 c.p.c."
+        },
+        {
+          "termine": "Appello",
+          "giorni": 30,
+          "decorrenza": "notifica sentenza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "220005",
+      "codice_logico": "GUIDA_LICENZIAMENTO_GMO_220005",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [
+        "220101",
+        "220111",
+        "220999"
+      ],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; il licenziamento per giustificato motivo oggettivo ha codice ufficiale dedicato 220101 da valutare nel fascicolo.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220005"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220005"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 15 luglio 1966, n. 604 - licenziamenti individuali",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=066U0604&atto.dataPubblicazioneGazzetta=1966-08-06",
+          "ambito": "licenziamento, motivazione, impugnazione e giustificato motivo",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220005"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "Legge 20 maggio 1970, n. 300 - Statuto dei lavoratori",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1970;300~art35-com=",
+          "ambito": "tutele del lavoratore e rinvii alla disciplina reintegratoria/organizzativa",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "220005"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_ESECUZIONE_OBBLIGHI_FARE_NON_FARE_511020",
+      "denominazione": "Esecuzione di obblighi di fare e di non fare (artt. 612-614 c.p.c.)",
+      "categoria": "Esecuzioni forzate - obblighi infungibili",
+      "sottocategoria": "Esecuzione forzata per obblighi di fare/non fare - astreintes per infungibili",
+      "rito": "Procedura esecutiva ex artt. 612-614 c.p.c. davanti al Giudice dell'Esecuzione",
+      "competenza": "GIUDICE DELL'ESECUZIONE del luogo dove deve essere eseguito l'obbligo (art. 26 c.p.c.)",
+      "uffici_destinatari": [
+        "SIECIC"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "474",
+          "descrizione": "Titoli esecutivi"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "480",
+          "descrizione": "Precetto"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "481",
+          "descrizione": "Termine 90 gg dal precetto"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "612",
+          "descrizione": "Esecuzione obblighi di fare - autorizzazione del giudice a far eseguire da terzi a spese debitore"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "613",
+          "descrizione": "Esecuzione obblighi di non fare - distruzione di quanto fatto in violazione"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "614",
+          "descrizione": "Spese dell'esecuzione"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "614-bis",
+          "descrizione": "ASTREINTES - misure di coercizione indiretta per obblighi infungibili"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1218",
+          "descrizione": "Responsabilità contrattuale - risarcimento per inadempimento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2933",
+          "descrizione": "Esecuzione in forma specifica obbligo di fare"
+        },
+        {
+          "fonte": "Cass. SU 13029/2023",
+          "descrizione": "Astreintes - presupposti applicazione e quantificazione"
+        },
+        {
+          "fonte": "Cass. SU 21487/2021",
+          "descrizione": "Esecuzione obblighi di fare - limiti fungibilità"
+        }
+      ],
+      "distinzioni_critiche_obblighi": {
+        "obblighi_di_fare_FUNGIBILI": [
+          "Possono essere eseguiti da terzi al posto del debitore",
+          "Esempi: lavori edili, riparazioni, demolizioni, rimozioni materiali",
+          "Procedura: art. 612 - giudice autorizza esecuzione a spese del debitore",
+          "Spese a carico del debitore (art. 614)"
+        ],
+        "obblighi_di_fare_INFUNGIBILI": [
+          "Possono essere compiuti SOLO dal debitore (personalissimi)",
+          "Esempi: prestazioni artistiche, scuse pubbliche, consenso a trasferimenti",
+          "Procedura: art. 614-bis - ASTREINTES (penalità per giorno di inadempimento)",
+          "Conversione in risarcimento se inadempimento persiste"
+        ],
+        "obblighi_di_NON_fare": [
+          "Inadempimento già verificatosi: distruzione di quanto fatto + risarcimento (art. 613)",
+          "Inadempimento futuro temuto: astreintes (614-bis) preventive"
+        ]
+      },
+      "astreintes_art_614_bis": {
+        "natura": "Misura di coercizione indiretta - somma di denaro per ogni giorno di ritardo o per ogni violazione",
+        "presupposti": [
+          "Obbligo di fare INFUNGIBILE o di non fare",
+          "Presente nel titolo esecutivo (o richiesta in fase esecutiva)",
+          "Richiesta della parte",
+          "Determinabilità della misura coercitiva"
+        ],
+        "quantificazione_cass_su_13029_2023": [
+          "Importo determinato dal giudice secondo criteri di proporzionalità",
+          "Tiene conto: valore controversia, gravità inadempimento, gravità danno, ricchezza debitore",
+          "Sanzione coercitiva, non risarcitoria (cumulabile con danno)"
+        ]
+      },
+      "esempi_pratici": [
+        "Sentenza ordina DEMOLIZIONE di muro abusivo → 612 (fungibile)",
+        "Sentenza ordina al medico di SCUSARSI pubblicamente → 614-bis (infungibile)",
+        "Sentenza ordina di NON SUONARE STRUMENTI dopo le 22 → 614-bis preventive + 613 se violato",
+        "Sentenza ordina rimozione di lavori abusivi → 612 (fungibile)",
+        "Sentenza ordina cessazione di concorrenza sleale → 614-bis + 613",
+        "Sentenza ordina pubblicazione di rettifica → fungibile con esecuzione mediata + astreintes"
+      ],
+      "presupposti_sostanziali": [
+        "ESISTENZA DI TITOLO ESECUTIVO contenente OBBLIGO DI FARE o NON FARE specifico",
+        "NOTIFICA del titolo al debitore",
+        "NOTIFICA DEL PRECETTO con intimazione adempimento entro termine",
+        "DECORSO 10 GG DAL PRECETTO senza adempimento",
+        "Per obblighi infungibili: titolo deve già contenere astreintes (614-bis) o eventuale richiesta successiva al GE"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Procedura esecutiva"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione TITOLO ESECUTIVO E PRECETTO",
+          "documenti": [
+            "Titolo esecutivo in forma esecutiva",
+            "Verifica della specificità dell'obbligo (chiaro e determinato)",
+            "Notifica del titolo",
+            "Precetto già notificato con intimazione adempimento"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "QUALIFICAZIONE DELL'OBBLIGO",
+          "criterio": [
+            "FUNGIBILE → art. 612 (esecuzione mediata)",
+            "INFUNGIBILE → art. 614-bis (astreintes)",
+            "OBBLIGO DI NON FARE → art. 613 (per distruzione) + eventuale 614-bis"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "VERIFICA ESISTENZA ASTREINTES NEL TITOLO",
+          "norma": "art. 614-bis c.p.c.",
+          "elementi": [
+            "Se astreintes già nel titolo: si attiva direttamente l'esecuzione",
+            "Se assenti: si può richiedere al GE in fase esecutiva",
+            "Importo, periodicità, criteri"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "PER OBBLIGHI FUNGIBILI EX 612",
+          "elementi": [
+            "Identificazione di terzo esecutore (impresa, professionista)",
+            "Preventivo per esecuzione",
+            "Documentazione tecnica necessaria",
+            "Eventuali permessi/autorizzazioni"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "PER OBBLIGHI DI NON FARE GIÀ VIOLATI EX 613",
+          "documenti": [
+            "Documentazione della violazione (foto, video, perizie)",
+            "Descrizione di quanto da distruggere/rimuovere",
+            "Preventivi di intervento"
+          ]
+        },
+        {
+          "step": 6,
+          "descrizione": "ISTANZA AL GE",
+          "contenuto": [
+            "Identificazione titolo e obbligo",
+            "Qualificazione dell'obbligo",
+            "Richiesta specifica (autorizzazione 612 / astreintes 614-bis / distruzione 613)",
+            "Documentazione tecnica e preventivi se 612"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "istanza_esecuzione_obblighi_fare_non_fare",
+        "denominazione": "Istanza di esecuzione di obblighi di fare/non fare ex artt. 612-614 c.p.c.",
+        "schema_xsd_ministeriale": "AttoEsecuzione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale - Giudice dell'Esecuzione",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "creditore_procedente",
+            "label": "Creditore procedente",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "debitore_obbligato",
+            "label": "Debitore obbligato",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "tipo_esecuzione",
+            "label": "Tipo di esecuzione",
+            "type": "select",
+            "required": true,
+            "options": [
+              "esecuzione_obbligo_fare_fungibile_612",
+              "esecuzione_obbligo_fare_infungibile_con_astreintes_614_bis",
+              "esecuzione_obbligo_non_fare_violato_613",
+              "applicazione_astreintes_per_obbligo_non_fare_614_bis"
+            ]
+          },
+          {
+            "id": "titolo_esecutivo",
+            "label": "Titolo esecutivo",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipo_titolo",
+                "type": "select",
+                "options": [
+                  "sentenza_di_condanna_a_fare",
+                  "sentenza_di_condanna_a_non_fare",
+                  "ordinanza_cautelare",
+                  "decreto_ingiuntivo_a_fare",
+                  "altro"
+                ]
+              },
+              {
+                "id": "estremi_titolo",
+                "type": "string"
+              },
+              {
+                "id": "obbligo_specifico_nel_titolo",
+                "type": "textarea",
+                "required": true,
+                "min_length": 200
+              },
+              {
+                "id": "presenza_astreintes_nel_titolo",
+                "type": "boolean",
+                "critico_per_614_bis": true
+              },
+              {
+                "id": "importo_astreintes_se_presente",
+                "type": "currency"
+              }
+            ]
+          },
+          {
+            "id": "precetto",
+            "label": "Precetto notificato",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "data_notifica",
+                "type": "date",
+                "required": true,
+                "critico_per_termine_90_gg": true
+              },
+              {
+                "id": "termine_assegnato",
+                "type": "integer"
+              },
+              {
+                "id": "decorrenza_10_gg_rispettata",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "qualificazione_obbligo",
+            "label": "Qualificazione dell'obbligo",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "fungibile_o_infungibile",
+                "type": "select",
+                "options": [
+                  "fungibile_eseguibile_da_terzi",
+                  "infungibile_personalissimo"
+                ]
+              },
+              {
+                "id": "motivazione_qualificazione",
+                "type": "textarea",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "esecuzione_richiesta_se_612",
+            "label": "Esecuzione mediata richiesta (per 612)",
+            "type": "object",
+            "required_if": "tipo=612",
+            "sub_fields": [
+              {
+                "id": "terzo_esecutore_proposto",
+                "type": "object_persona"
+              },
+              {
+                "id": "preventivo_costi_esecuzione",
+                "type": "currency"
+              },
+              {
+                "id": "tempistica_proposta",
+                "type": "string"
+              },
+              {
+                "id": "documentazione_tecnica",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "obbligo_non_fare_gia_violato_613",
+            "label": "Obbligo di non fare già violato (per 613)",
+            "type": "object",
+            "required_if": "tipo=613",
+            "sub_fields": [
+              {
+                "id": "descrizione_violazione",
+                "type": "textarea"
+              },
+              {
+                "id": "elemento_da_distruggere_rimuovere",
+                "type": "textarea"
+              },
+              {
+                "id": "documentazione_violazione",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "astreintes_richiesta_se_614_bis",
+            "label": "Astreintes richiesta (per 614-bis)",
+            "type": "object",
+            "required_if": "tipo=614_bis",
+            "sub_fields": [
+              {
+                "id": "importo_giornaliero_richiesto",
+                "type": "currency"
+              },
+              {
+                "id": "criteri_di_quantificazione",
+                "type": "textarea"
+              },
+              {
+                "id": "durata_proposta",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "autorizzazione_esecuzione_a_spese_debitore_612",
+              "esecuzione_distruzione_di_quanto_violato_613",
+              "determinazione_e_applicazione_astreintes_614_bis",
+              "condanna_alle_spese_di_esecuzione"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "TERMINE 90 GG dal precetto per inizio esecuzione (art. 481)",
+          "Distinzione critica: fungibile (612) vs infungibile (614-bis)",
+          "Astreintes idealmente presenti nel titolo (art. 614-bis)",
+          "Per obblighi di non fare violati: 613 (distruzione) + eventuale astreintes per persistenza",
+          "Spese sempre a carico del debitore (art. 614)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "titolo_esecutivo_in_forma_esecutiva",
+          "label": "Titolo esecutivo in forma esecutiva",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "precetto_e_relata_notifica",
+          "label": "Precetto e relata di notifica",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_obbligo_specifico",
+          "label": "Documentazione che identifica obbligo specifico",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "preventivo_terzo_esecutore_se_612",
+          "label": "Preventivo del terzo esecutore (per 612)",
+          "required_if": "tipo=612"
+        },
+        {
+          "id": "documentazione_violazione_se_613",
+          "label": "Documentazione della violazione (per 613)",
+          "required_if": "tipo=613",
+          "critico": true
+        },
+        {
+          "id": "documentazione_inadempimento_614_bis",
+          "label": "Documentazione inadempimento persistente (per 614-bis)",
+          "required_if": "tipo=614_bis"
+        },
+        {
+          "id": "documentazione_tecnica_necessaria",
+          "label": "Documentazione tecnica per esecuzione",
+          "required_if": "necessaria"
+        },
+        {
+          "id": "anticipazione_spese",
+          "label": "Anticipazione spese",
+          "required_if": "necessaria"
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Determinato in base al valore",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "decreto_autorizzativo_esecuzione_612",
+          "trigger": "Esito istanza fungibile"
+        },
+        {
+          "tipo": "ordinanza_di_astreintes_614_bis",
+          "trigger": "Esito istanza infungibile"
+        },
+        {
+          "tipo": "ordinanza_distruzione_613",
+          "trigger": "Esito istanza non fare violato"
+        },
+        {
+          "tipo": "esecuzione_materiale_da_terzo",
+          "trigger": "Dopo autorizzazione"
+        },
+        {
+          "tipo": "azione_recupero_costi_dal_debitore",
+          "trigger": "Dopo esecuzione a spese"
+        },
+        {
+          "tipo": "esecuzione_per_riscossione_astreintes_maturate",
+          "trigger": "Astreintes diventano credito esecutivo"
+        },
+        {
+          "tipo": "opposizione_esecuzione_615_c_2",
+          "trigger": "Debitore contesta",
+          "codice_correlato": "100011"
+        },
+        {
+          "tipo": "opposizione_atti_esecutivi_617",
+          "trigger": "Per vizi formali",
+          "termine": "20 gg"
+        },
+        {
+          "tipo": "conversione_in_risarcimento_se_inadempimento_persistente",
+          "trigger": "Quando astreintes non sortiscono effetto",
+          "norma": "art. 2933 c.c."
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "autorizzazione_esecuzione_mediata_612",
+          "descrizione": "Terzo esegue obbligo a spese debitore"
+        },
+        {
+          "esito": "applicazione_astreintes_614_bis_e_adempimento_indotto",
+          "descrizione": "Penalità inducono debitore ad adempiere"
+        },
+        {
+          "esito": "distruzione_di_quanto_fatto_in_violazione_613",
+          "descrizione": "Eliminazione materiale dell'inadempimento"
+        },
+        {
+          "esito": "inadempimento_persistente_e_conversione_in_risarcimento",
+          "descrizione": "Risarcimento per equivalente"
+        },
+        {
+          "esito": "estinzione_per_adempimento_spontaneo",
+          "descrizione": "Debitore adempie in corso di procedura"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "10 GG dal precetto prima di iniziare",
+          "giorni": 10,
+          "decorrenza": "notifica precetto",
+          "natura": "sospensivo",
+          "norma": "art. 482 c.p.c."
+        },
+        {
+          "termine": "INIZIO ESECUZIONE",
+          "giorni": 90,
+          "decorrenza": "notifica precetto",
+          "natura": "DECADENZIALE",
+          "norma": "art. 481 c.p.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "Opposizione 617",
+          "giorni": 20,
+          "natura": "decadenziale"
+        }
+      ],
+      "codice_originale_ricevuto": "511020",
+      "codice_logico": "GUIDA_ESECUZIONE_OBBLIGHI_FARE_NON_FARE_511020",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [
+        "512020",
+        "512021",
+        "512022"
+      ],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda riguarda l'esecuzione di obblighi di fare/non fare, che nel catalogo locale ricade nell'area 512.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "511020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "511020"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "511020"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 28 ottobre 1940, n. 1443 - Codice di procedura civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=040U1443&atto.dataPubblicazioneGazzetta=1940-10-28&tipoDettaglio=multivigenza",
+          "ambito": "rito civile, cautelari, opposizioni, esecuzioni, famiglia, volontaria giurisdizione e impugnazioni",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "511020"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 10 ottobre 2022, n. 149 - modifica art. 614-bis c.p.c.",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.articolo.numero=3&atto.articolo.sottoArticolo=1&atto.articolo.tipoArticolo=0&atto.codiceRedazionale=22G00158&atto.dataPubblicazioneGazzetta=2022-10-17",
+          "ambito": "misure di coercizione indiretta e obblighi diversi dal pagamento di somme",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "511020"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_ADOZIONE_MAGGIORENNE_412001",
+      "denominazione": "Adozione di maggiorenne (artt. 291-314 c.c.)",
+      "categoria": "Persone e famiglia - filiazione e adozione",
+      "sottocategoria": "Procedimento di adozione di persona maggiore d'età - finalità successorie e trasmissione cognome",
+      "rito": "Procedimento camerale ex artt. 311-314 c.c. davanti al TRIBUNALE ORDINARIO",
+      "competenza": "Tribunale del luogo di residenza dell'adottante",
+      "uffici_destinatari": [
+        "SIVG"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "291",
+          "descrizione": "Adozione di maggiorenni - presupposti generali"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "292",
+          "descrizione": "Diritti di successione dell'adottato"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "294",
+          "descrizione": "Età di chi adotta - minimo 35 anni (eccezionalmente 30)"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "295",
+          "descrizione": "Differenza di età - 18 anni almeno"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "296",
+          "descrizione": "Eccezioni alla differenza di età"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "297",
+          "descrizione": "Consenso dell'adottante e dell'adottato"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "298",
+          "descrizione": "Assenso dei genitori dell'adottato e del coniuge dell'adottante"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "299",
+          "descrizione": "Cognome - aggiunta del cognome dell'adottante"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "300",
+          "descrizione": "Effetti adozione - mantenimento legami con famiglia di origine"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "301",
+          "descrizione": "Diritti successori dell'adottato e dei suoi discendenti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "302",
+          "descrizione": "Diritti successori dell'adottante - solo nella linea adottiva"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "311",
+          "descrizione": "Procedimento davanti al tribunale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "312",
+          "descrizione": "Indagini del tribunale"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "313",
+          "descrizione": "Sentenza di adozione"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "314",
+          "descrizione": "Annotazione nei registri di stato civile"
+        },
+        {
+          "fonte": "L. 184/1983 (Adozione minori)",
+          "descrizione": "Norme distinte per minori - non applicabili qui"
+        },
+        {
+          "fonte": "Cass. SU 21163/2018",
+          "descrizione": "Adozione persona maggiore età - estesa anche al figlio del coniuge"
+        },
+        {
+          "fonte": "Corte Cost. 79/2022",
+          "descrizione": "Adozione maggiorenne - effetti più ampi sui legami familiari"
+        }
+      ],
+      "presupposti_sostanziali": [
+        "ADOTTANTE che abbia compiuto 35 ANNI (eccezionalmente 30 - art. 294)",
+        "DIFFERENZA DI ETÀ tra adottante e adottato di almeno 18 ANNI (art. 295, eccezioni ex 296)",
+        "ASSENZA DI DISCENDENTI dell'adottante viventi e maggiorenni (presupposto stringente)",
+        "CONSENSO dell'ADOTTANTE e dell'ADOTTATO (art. 297) - personalissimi",
+        "ASSENSO (art. 298) di:",
+        "- GENITORI dell'adottato (se viventi)",
+        "- CONIUGE dell'adottante",
+        "- CONIUGE dell'adottato",
+        "FINALITÀ DI RAPPORTO FAMILIARE giustificante (anche solo successoria)",
+        "ASSENZA DI MOTIVI OSTATIVI di ordine pubblico"
+      ],
+      "finalita_tipiche": [
+        "TRASMISSIONE COGNOME (si aggiunge, non sostituisce)",
+        "PIANIFICAZIONE SUCCESSORIA (adottato acquista diritti su adottante)",
+        "RICONOSCIMENTO DI LEGAMI AFFETTIVI CONSOLIDATI (figliastri, figli di amici di famiglia)",
+        "RIDISTRIBUZIONE PATRIMONIALE",
+        "REGOLARIZZAZIONE DI SITUAZIONI DI FATTO"
+      ],
+      "effetti_giuridici_principali": [
+        "L'ADOTTATO ACQUISTA DIRITTI SUCCESSORI sull'adottante (art. 301)",
+        "L'ADOTTATO NON DIVENTA FIGLIO LEGITTIMO (mantiene legami con famiglia di origine)",
+        "L'ADOTTATO MANTIENE PIENI DIRITTI nella famiglia di origine",
+        "AGGIUNTA DEL COGNOME dell'adottante (art. 299)",
+        "L'ADOTTANTE NON ACQUISTA DIRITTI SUCCESSORI sull'adottato (art. 302 - asimmetria)",
+        "I DISCENDENTI DELL'ADOTTATO subentrano per rappresentazione"
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Volontaria giurisdizione"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "VERIFICA PRESUPPOSTI",
+          "documenti": [
+            "Atto di nascita dell'adottante",
+            "Atto di nascita dell'adottato",
+            "Stati di famiglia di entrambi",
+            "Documentazione assenza discendenti adottante",
+            "Eventuali atti matrimoniali"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "ACQUISIZIONE CONSENSI E ASSENSI",
+          "consensi_personalissimi": [
+            "CONSENSO ADOTTANTE - in udienza",
+            "CONSENSO ADOTTATO - in udienza"
+          ],
+          "assensi_necessari_298": [
+            "Genitori adottato (se viventi)",
+            "Coniuge adottante",
+            "Coniuge adottato",
+            "Possibilità superamento giudiziale per rifiuto immotivato"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "DOCUMENTAZIONE LEGAMI E FINALITÀ",
+          "elementi": [
+            "Documentazione rapporti adottante-adottato",
+            "Eventuali convivenze documentate",
+            "Eventuali rapporti familiari pre-esistenti (figliastro)",
+            "Motivazioni dell'adozione",
+            "Documentazione patrimoniale"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "VERIFICA ASSENZA MOTIVI OSTATIVI",
+          "elementi": [
+            "Casellario giudiziale adottante",
+            "Capacità di adottante",
+            "Assenza scopi simulatori",
+            "Valutazione del tribunale sull'opportunità (art. 312)"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "PREDISPOSIZIONE RICORSO CONGIUNTO",
+          "modalita": "Solitamente ricorso congiunto adottante + adottato - facilita procedura"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_adozione_maggiorenne",
+        "denominazione": "Ricorso per adozione di persona maggiore d'età ex artt. 291 e ss. c.c.",
+        "schema_xsd_ministeriale": "AttoVolontariaGiurisdizione.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale del luogo residenza adottante",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "adottante",
+            "label": "Adottante",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "data_nascita",
+                "type": "date",
+                "required": true,
+                "critico_per_35_anni": true
+              },
+              {
+                "id": "eta",
+                "type": "integer",
+                "critico": true
+              },
+              {
+                "id": "stato_civile",
+                "type": "select"
+              },
+              {
+                "id": "residenza",
+                "type": "address"
+              },
+              {
+                "id": "professione_e_situazione_economica",
+                "type": "string"
+              },
+              {
+                "id": "discendenti_viventi_maggiorenni",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "adottato",
+            "label": "Adottato (maggiorenne)",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "data_nascita",
+                "type": "date",
+                "required": true
+              },
+              {
+                "id": "eta",
+                "type": "integer",
+                "required": true,
+                "critico_per_maggiore_eta": true
+              },
+              {
+                "id": "stato_civile",
+                "type": "select"
+              },
+              {
+                "id": "residenza",
+                "type": "address"
+              }
+            ]
+          },
+          {
+            "id": "verifica_presupposti",
+            "label": "Verifica presupposti",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "differenza_eta_almeno_18_anni",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "assenza_discendenti_adottante",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "eta_minima_adottante_35_anni",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "eventuali_eccezioni_ex_296",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "consensi",
+            "label": "Consensi (personalissimi)",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "consenso_adottante",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "consenso_adottato",
+                "type": "boolean",
+                "critico": true
+              },
+              {
+                "id": "modalita_da_prestare_in_udienza",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "assensi_art_298",
+            "label": "Assensi ex art. 298",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "genitori_adottato_viventi",
+                "type": "boolean"
+              },
+              {
+                "id": "assenso_genitori_adottato",
+                "type": "boolean",
+                "critico_se_viventi": true
+              },
+              {
+                "id": "coniuge_adottante",
+                "type": "boolean"
+              },
+              {
+                "id": "assenso_coniuge_adottante",
+                "type": "boolean",
+                "critico_se_coniugato": true
+              },
+              {
+                "id": "coniuge_adottato",
+                "type": "boolean"
+              },
+              {
+                "id": "assenso_coniuge_adottato",
+                "type": "boolean",
+                "critico_se_coniugato": true
+              },
+              {
+                "id": "eventuali_rifiuti_di_assenso",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "rapporti_tra_adottante_e_adottato",
+            "label": "Rapporti tra adottante e adottato",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "natura_del_rapporto",
+                "type": "select",
+                "options": [
+                  "figliastro_di_coniuge",
+                  "convivenza_di_lunga_durata",
+                  "rapporto_di_fatto_genitore_figlio",
+                  "rapporto_di_amicizia_famiglia",
+                  "altro"
+                ]
+              },
+              {
+                "id": "durata_rapporto",
+                "type": "string"
+              },
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 400
+              }
+            ]
+          },
+          {
+            "id": "finalita_adozione",
+            "label": "Finalità dell'adozione",
+            "type": "object",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "tipologie",
+                "type": "select_multi",
+                "options": [
+                  "trasmissione_cognome",
+                  "successione",
+                  "riconoscimento_legami_affettivi",
+                  "ridistribuzione_patrimoniale",
+                  "altro"
+                ]
+              },
+              {
+                "id": "motivazione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 300
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "adozione_di_persona_maggiorenne",
+              "aggiunta_cognome_adottante",
+              "annotazione_nei_registri_stato_civile",
+              "eventuali_disposizioni_su_assensi"
+            ]
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Adottante minimo 35 ANNI (eccezionalmente 30)",
+          "Differenza età almeno 18 ANNI",
+          "Adottante senza discendenti viventi (salvo eccezioni)",
+          "Consensi PERSONALISSIMI in udienza",
+          "Assensi possono essere superati per rifiuto immotivato",
+          "Adottato MANTIENE legami con famiglia di origine",
+          "Solo ADOTTATO acquista diritti successori, NON adottante",
+          "Aggiunta (non sostituzione) del cognome"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atto_nascita_adottante",
+          "label": "Atto di nascita dell'adottante",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "atto_nascita_adottato",
+          "label": "Atto di nascita dell'adottato",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "stati_famiglia",
+          "label": "Stati di famiglia di adottante e adottato",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "atti_matrimonio_per_assensi",
+          "label": "Atti di matrimonio (per assensi coniugali)",
+          "required_if": "coniugi_presenti"
+        },
+        {
+          "id": "documentazione_assensi_genitori_adottato",
+          "label": "Documentazione assensi genitori adottato",
+          "required_if": "genitori_viventi"
+        },
+        {
+          "id": "documentazione_assenza_discendenti",
+          "label": "Documentazione assenza discendenti dell'adottante",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "casellario_giudiziale_adottante",
+          "label": "Casellario giudiziale dell'adottante",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_rapporto_consolidato",
+          "label": "Documentazione del rapporto consolidato",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documentazione_economica_adottante",
+          "label": "Documentazione economica dell'adottante",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documenti_identita",
+          "label": "Documenti identità di tutti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "udienza_di_consensi_personali",
+          "trigger": "Adempimento procedurale",
+          "obbligatoria": true
+        },
+        {
+          "tipo": "indagini_del_tribunale_ex_312",
+          "trigger": "Su finalità e opportunità"
+        },
+        {
+          "tipo": "parere_pm_obbligatorio",
+          "trigger": "Procedura camerale",
+          "obbligatoria": true
+        },
+        {
+          "tipo": "eventuali_provvedimenti_su_assensi",
+          "trigger": "Per superamento rifiuti immotivati"
+        },
+        {
+          "tipo": "sentenza_di_adozione_313",
+          "trigger": "Esito procedimento"
+        },
+        {
+          "tipo": "annotazione_registri_stato_civile_314",
+          "trigger": "Sentenza definitiva",
+          "obbligatoria": true
+        },
+        {
+          "tipo": "aggiornamento_documenti_identita_adottato",
+          "trigger": "Post sentenza per nuovo cognome"
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "sentenza_di_adozione",
+          "descrizione": "Adozione disposta + aggiunta cognome + annotazione stato civile"
+        },
+        {
+          "esito": "rigetto_per_assenza_presupposti",
+          "descrizione": "Mancanza differenza età, presenza discendenti, mancanza consensi"
+        },
+        {
+          "esito": "rigetto_per_finalita_simulatorie",
+          "descrizione": "Adozione strumentale a scopi non legittimi"
+        },
+        {
+          "esito": "rinvio_per_acquisizione_assensi_mancanti",
+          "descrizione": "Necessità superamento giudiziale assensi negati"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Decisione del tribunale",
+          "giorni": 90,
+          "decorrenza": "deposito ricorso",
+          "natura": "ordinatorio"
+        },
+        {
+          "termine": "Appello",
+          "giorni": 30,
+          "decorrenza": "notifica sentenza",
+          "natura": "perentorio"
+        },
+        {
+          "termine": "Annotazione stato civile",
+          "giorni": 30,
+          "decorrenza": "sentenza definitiva",
+          "natura": "ordinatorio"
+        }
+      ],
+      "codice_originale_ricevuto": "412001",
+      "codice_logico": "GUIDA_ADOZIONE_MAGGIORENNE_412001",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [
+        "111404",
+        "411620",
+        "411683"
+      ],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; l'adozione di maggiorenne resta guida interna e il deposito va collegato al codice ufficiale coerente con ufficio e registro.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "412001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "412001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "412001"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 16 marzo 1942, n. 262 - Codice civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=multivigenza",
+          "ambito": "famiglia, successioni, diritti reali, contratti, responsabilità, società e persone",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "412001"
+        }
+      ]
+    },
+    {
+      "codice": "GUIDA_PETIZIONE_RECLAMO_STATO_FAMILIARE_123001",
+      "denominazione": "Petizione di stato / reclamo di stato familiare (artt. 239-249 c.c.)",
+      "categoria": "Persone e famiglia - filiazione e stato",
+      "sottocategoria": "Azioni per accertamento/riconoscimento dello stato di figlio (legittimo o naturale) - status familiare",
+      "rito": "Rito unificato persone e famiglia ex artt. 473-bis e ss. c.p.c. (post-Cartabia)",
+      "competenza": "Tribunale ordinario - sezione famiglia (Tribunale per le persone, i minorenni e per le famiglie ex D.Lgs. 149/2022); per minori: residenza abituale minore",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "231-232",
+          "descrizione": "Presunzione di paternità del marito"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "233",
+          "descrizione": "Indicazioni nell'atto di nascita"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "237",
+          "descrizione": "Possesso di stato"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "239",
+          "descrizione": "Reclamo di stato di figlio nato nel matrimonio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "240",
+          "descrizione": "Legittimazione attiva al reclamo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "243-bis",
+          "descrizione": "Disconoscimento di paternità - presupposti"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "244",
+          "descrizione": "Disconoscimento - termini"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "246",
+          "descrizione": "Contestazione dello stato di figlio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "248",
+          "descrizione": "Imprescrittibilità"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "250-251",
+          "descrizione": "Riconoscimento di figlio nato fuori dal matrimonio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "263",
+          "descrizione": "Impugnazione del riconoscimento per difetto di veridicità"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "269",
+          "descrizione": "Dichiarazione giudiziale di paternità o maternità"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "276",
+          "descrizione": "Effetti del riconoscimento - retroattivi"
+        },
+        {
+          "fonte": "L. 219/2012",
+          "descrizione": "Riforma filiazione - unicità status di figlio"
+        },
+        {
+          "fonte": "D.Lgs. 154/2013",
+          "descrizione": "Attuazione riforma filiazione"
+        },
+        {
+          "fonte": "D.Lgs. 149/2022 (Cartabia)",
+          "descrizione": "Riforma processo persone e famiglia"
+        },
+        {
+          "fonte": "Cass. SU 21161/2013",
+          "descrizione": "Disconoscimento paternità - prova DNA"
+        },
+        {
+          "fonte": "Cass. SU 16574/2019",
+          "descrizione": "Imprescrittibilità azioni di stato per chi ne ha titolo"
+        },
+        {
+          "fonte": "Cass. SU 6478/2024",
+          "descrizione": "Dichiarazione giudiziale paternità - presupposti probatori"
+        }
+      ],
+      "tipologie_di_azioni_di_stato": {
+        "reclamo_dello_stato_di_figlio_nel_matrimonio_239_240": [
+          "Per accertare stato di figlio nato nel matrimonio NON formalmente riconosciuto",
+          "Legittimati: figlio (anche dopo morte), suoi discendenti",
+          "Imprescrittibile per il figlio (Cass. SU 16574/2019)"
+        ],
+        "contestazione_dello_stato_246": [
+          "Per contestare lo stato di figlio risultante dall'atto di nascita",
+          "Es: figlio supposto, non vero"
+        ],
+        "disconoscimento_paternita_243_bis": [
+          "Per negare la paternità del marito presunto",
+          "Termini decadenziali: 1 ANNO genitori, 5 ANNI figlio (art. 244)",
+          "Prova DNA centrale (Cass. SU 21161/2013)"
+        ],
+        "dichiarazione_giudiziale_paternita_o_maternita_269": [
+          "Per accertare paternità/maternità di figlio NATO FUORI MATRIMONIO non riconosciuto",
+          "Imprescrittibile per il figlio",
+          "Prova: anche presuntiva (Cass. SU 6478/2024)"
+        ],
+        "impugnazione_del_riconoscimento_263": [
+          "Per difetto di veridicità del riconoscimento già fatto",
+          "Termini decadenziali specifici per autore del riconoscimento"
+        ]
+      },
+      "presupposti_sostanziali": [
+        "ESISTENZA DI UNO STATO FAMILIARE da accertare, riconoscere o contestare",
+        "LEGITTIMAZIONE differenziata per tipologia azione:",
+        "- Reclamo 239: figlio e suoi discendenti",
+        "- Disconoscimento 243-bis: marito, madre, figlio",
+        "- Dichiarazione giudiziale 269: figlio, suoi discendenti, rappresentante legale per minori",
+        "- Contestazione 246: chiunque vi abbia interesse legittimo",
+        "PROVA del rapporto biologico (anche presuntiva o tramite DNA)",
+        "RISPETTO DEI TERMINI DECADENZIALI per le azioni con termine"
+      ],
+      "valore_probatorio_del_DNA": {
+        "centralita_dna_nelle_azioni_di_stato": "Test DNA è centrale - dirimente nella maggior parte dei casi",
+        "rifiuto_di_sottoporsi_al_test": [
+          "Costituisce ARGOMENTO DI PROVA contro la parte che rifiuta",
+          "Cass. SU 21161/2013: rifiuto può essere decisivo",
+          "Il giudice può trarre presunzioni dal rifiuto"
+        ],
+        "test_post_mortem": "Possibile su materiale biologico conservato o esumazione (casi specifici)"
+      },
+      "obbligo_mediazione": {
+        "obbligatoria": false,
+        "motivo": "Materia di stato familiare - non rientra in mediazione"
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "descrizione": "Acquisizione DOCUMENTAZIONE DI STATO CIVILE",
+          "documenti": [
+            "Atto di nascita dell'interessato",
+            "Stati di famiglia storici",
+            "Atto di matrimonio dei genitori (se applicabile)",
+            "Eventuali atti di riconoscimento già fatti",
+            "Eventuali sentenze su stato familiare"
+          ]
+        },
+        {
+          "step": 2,
+          "descrizione": "INDIVIDUAZIONE TIPO DI AZIONE",
+          "criteri": [
+            "Reclamo 239: per figlio nato nel matrimonio non riconosciuto",
+            "Disconoscimento 243-bis: per smentire paternità presunta",
+            "Dichiarazione giudiziale 269: per fuori matrimonio non riconosciuto",
+            "Contestazione 246: per stato risultante ma non vero",
+            "Impugnazione riconoscimento 263: per difetto veridicità"
+          ]
+        },
+        {
+          "step": 3,
+          "descrizione": "VERIFICA TERMINI DECADENZIALI",
+          "criticita": "Per disconoscimento e impugnazione riconoscimento sono brevi e perentori",
+          "elementi": [
+            "Disconoscimento marito: 1 anno (244)",
+            "Disconoscimento madre: 1 anno",
+            "Disconoscimento figlio: 5 anni",
+            "Impugnazione riconoscimento (autore): 1 anno",
+            "Reclamo/dichiarazione/contestazione: IMPRESCRITTIBILI (Cass. SU 16574/2019)"
+          ]
+        },
+        {
+          "step": 4,
+          "descrizione": "RACCOLTA ELEMENTI PROBATORI",
+          "elementi": [
+            "TEST DNA (centrale - eseguito o richiesto in causa)",
+            "Documentazione del possesso di stato (art. 237)",
+            "Testimonianze (parenti, conoscenti)",
+            "Documenti che attestano relazioni",
+            "Fotografie e corrispondenza dell'epoca del concepimento",
+            "Eventuali documenti medici (gravidanza, parto)"
+          ]
+        },
+        {
+          "step": 5,
+          "descrizione": "IDENTIFICAZIONE DEI LITISCONSORTI NECESSARI",
+          "elementi": [
+            "Per disconoscimento: madre, marito, figlio",
+            "Per dichiarazione giudiziale: presunto padre/madre (o eredi)",
+            "Per reclamo: genitori (o eredi)",
+            "Curatore speciale per minore se conflitto interessi"
+          ]
+        },
+        {
+          "step": 6,
+          "descrizione": "VALUTAZIONE PROFILI SUCCESSORI",
+          "elementi": [
+            "Effetti retroattivi del riconoscimento (276)",
+            "Eventuali diritti su eredità del presunto padre/madre",
+            "Cognome e suoi effetti"
+          ]
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_azione_di_stato",
+        "denominazione": "Ricorso per azione di stato (reclamo/contestazione/disconoscimento/dichiarazione giudiziale)",
+        "schema_xsd_ministeriale": "AttoFamiglia.xsd",
+        "campi_chiave": [
+          {
+            "id": "tribunale",
+            "label": "Tribunale - sezione famiglia",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "tipo_azione",
+            "label": "Tipo di azione di stato",
+            "type": "select",
+            "required": true,
+            "options": [
+              "reclamo_di_stato_di_figlio_nel_matrimonio_239",
+              "contestazione_di_stato_246",
+              "disconoscimento_di_paternita_243_bis",
+              "dichiarazione_giudiziale_di_paternita_o_maternita_269",
+              "impugnazione_riconoscimento_per_difetto_di_veridicita_263"
+            ]
+          },
+          {
+            "id": "attore_ricorrente",
+            "label": "Attore ricorrente",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "qualita_legittimante",
+                "type": "select",
+                "options": [
+                  "figlio_che_reclama_proprio_stato",
+                  "discendente_del_figlio",
+                  "marito_o_madre_per_disconoscimento",
+                  "figlio_per_disconoscimento",
+                  "presunto_padre_o_madre",
+                  "interessato_per_contestazione",
+                  "autore_del_riconoscimento",
+                  "curatore_speciale_di_minore"
+                ]
+              },
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              }
+            ]
+          },
+          {
+            "id": "convenuti",
+            "label": "Convenuti (LITISCONSORTI NECESSARI)",
+            "type": "array_persone",
+            "required": true
+          },
+          {
+            "id": "soggetto_oggetto_dell_azione",
+            "label": "Soggetto oggetto dell'azione (di cui si discute lo stato)",
+            "type": "object_persona",
+            "required": true,
+            "sub_fields": [
+              {
+                "id": "cognome_nome",
+                "type": "string"
+              },
+              {
+                "id": "data_nascita",
+                "type": "date"
+              },
+              {
+                "id": "stato_attuale_atti",
+                "type": "select",
+                "options": [
+                  "figlio_di_genitore_unito_in_matrimonio",
+                  "figlio_riconosciuto_fuori_matrimonio",
+                  "figlio_non_riconosciuto",
+                  "altro"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "presunto_genitore_o_genitori",
+            "label": "Presunto genitore/i",
+            "type": "array_persone",
+            "required_if": "azione=disconoscimento_o_dichiarazione"
+          },
+          {
+            "id": "fatti_dedotti",
+            "label": "Fatti dedotti",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "descrizione_dettagliata",
+                "type": "textarea",
+                "required": true,
+                "min_length": 600
+              },
+              {
+                "id": "periodo_concepimento",
+                "type": "object"
+              },
+              {
+                "id": "relazione_tra_presunti_genitori",
+                "type": "textarea"
+              },
+              {
+                "id": "possesso_di_stato_237",
+                "type": "textarea"
+              }
+            ]
+          },
+          {
+            "id": "verifica_tempestivita_se_termini_applicabili",
+            "label": "Verifica tempestività (per disconoscimento/impugnazione)",
+            "type": "object",
+            "required_if": "azione_con_termini",
+            "sub_fields": [
+              {
+                "id": "data_conoscenza_dei_fatti",
+                "type": "date"
+              },
+              {
+                "id": "rispetto_termine",
+                "type": "boolean",
+                "critico": true
+              }
+            ]
+          },
+          {
+            "id": "elementi_probatori_disponibili",
+            "label": "Elementi probatori disponibili",
+            "type": "object",
+            "required": true,
+            "critico": true,
+            "sub_fields": [
+              {
+                "id": "test_dna_disponibile_o_richiesto",
+                "type": "object",
+                "sub_fields": [
+                  {
+                    "id": "gia_effettuato",
+                    "type": "boolean"
+                  },
+                  {
+                    "id": "esito_se_effettuato",
+                    "type": "textarea"
+                  },
+                  {
+                    "id": "richiesta_in_causa",
+                    "type": "boolean"
+                  }
+                ]
+              },
+              {
+                "id": "possesso_di_stato_documentato",
+                "type": "textarea"
+              },
+              {
+                "id": "testimonianze_disponibili",
+                "type": "array"
+              },
+              {
+                "id": "documenti_a_supporto",
+                "type": "textarea"
+              },
+              {
+                "id": "fotografie_e_corrispondenza_dell_epoca",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "audizione_minore",
+            "label": "Audizione del minore",
+            "type": "object",
+            "required_if": "minore_coinvolto",
+            "sub_fields": [
+              {
+                "id": "eta_minore",
+                "type": "integer"
+              },
+              {
+                "id": "audizione_obbligatoria_se_oltre_12_anni",
+                "type": "boolean"
+              },
+              {
+                "id": "necessita_curatore_speciale",
+                "type": "boolean"
+              }
+            ]
+          },
+          {
+            "id": "domande",
+            "label": "Domande",
+            "type": "select_multi",
+            "required": true,
+            "options": [
+              "accertamento_stato_di_figlio",
+              "disconoscimento_paternita",
+              "dichiarazione_giudiziale_di_paternita_o_maternita",
+              "impugnazione_riconoscimento_per_difetto_veridicita",
+              "contestazione_stato_di_figlio",
+              "ordine_di_annotazione_atti_stato_civile",
+              "eventuali_provvedimenti_su_cognome",
+              "eventuali_provvedimenti_su_responsabilita_genitoriale_e_mantenimento",
+              "spese_di_lite"
+            ]
+          },
+          {
+            "id": "udienza_comparizione",
+            "label": "Prima udienza",
+            "type": "date",
+            "required": true
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Verifica TERMINI DECADENZIALI per disconoscimento (244) e impugnazione riconoscimento (263)",
+          "Reclamo, contestazione, dichiarazione giudiziale: IMPRESCRITTIBILI per chi ne ha titolo (Cass. SU 16574/2019)",
+          "TEST DNA centrale - rifiuto è argomento di prova (Cass. SU 21161/2013)",
+          "LITISCONSORZIO NECESSARIO con tutti i soggetti coinvolti",
+          "Per minori: audizione obbligatoria >12 anni + eventuale curatore speciale",
+          "Parere PM obbligatorio",
+          "Effetti retroattivi del riconoscimento (276)"
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "atto_nascita_soggetto",
+          "label": "Atto di nascita del soggetto oggetto dell'azione",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "stati_famiglia_storici",
+          "label": "Stati di famiglia storici",
+          "required": true,
+          "critico": true
+        },
+        {
+          "id": "atto_matrimonio_genitori_se_applicabile",
+          "label": "Atto di matrimonio dei genitori",
+          "required_if": "azione_paternita_matrimoniale"
+        },
+        {
+          "id": "eventuali_atti_di_riconoscimento_pregressi",
+          "label": "Eventuali atti di riconoscimento pregressi",
+          "required_if": "azione_impugnazione_riconoscimento"
+        },
+        {
+          "id": "test_dna_se_effettuato",
+          "label": "Test DNA (se già effettuato)",
+          "required": false,
+          "fortemente_consigliato": true,
+          "critico": true
+        },
+        {
+          "id": "documentazione_possesso_stato",
+          "label": "Documentazione del possesso di stato (foto, lettere, testimoni)",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "elenco_testimoni",
+          "label": "Elenco testimoni",
+          "required": true
+        },
+        {
+          "id": "documentazione_relazione_tra_genitori",
+          "label": "Documentazione relazione tra presunti genitori",
+          "required_if": "azione_paternita_extramatrimoniale"
+        },
+        {
+          "id": "documentazione_medica_gravidanza_parto",
+          "label": "Documentazione medica gravidanza/parto",
+          "required": false,
+          "consigliato": true
+        },
+        {
+          "id": "documenti_identita_di_tutti_coinvolti",
+          "label": "Documenti identità",
+          "required": true
+        },
+        {
+          "id": "procura_alle_liti",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_fiscali": {
+        "contributo_unificato": "Esente per azioni di stato",
+        "marca_bollo_forfettaria": 27.0,
+        "deposito_telematico": "Obbligatorio - anonimizzazione dati minori"
+      },
+      "atti_collegati": [
+        {
+          "tipo": "ctu_genetica_dna",
+          "trigger": "Disposta dal giudice - centrale",
+          "automatico": false,
+          "molto_frequente": true,
+          "critico": true
+        },
+        {
+          "tipo": "nomina_curatore_speciale_minore",
+          "trigger": "Conflitto interessi",
+          "automatico": false
+        },
+        {
+          "tipo": "audizione_del_minore_336_bis",
+          "trigger": ">12 anni o capace discernimento",
+          "obbligatoria": true
+        },
+        {
+          "tipo": "parere_pm_obbligatorio",
+          "trigger": "Sempre",
+          "obbligatoria": true
+        },
+        {
+          "tipo": "prova_testimoniale",
+          "trigger": "Spesso disposta",
+          "automatico": false
+        },
+        {
+          "tipo": "annotazione_sentenza_stato_civile",
+          "trigger": "Sentenza definitiva",
+          "obbligatoria": true
+        },
+        {
+          "tipo": "eventuali_azioni_successive_su_eredita",
+          "trigger": "Effetti successori dopo riconoscimento",
+          "automatico": false
+        },
+        {
+          "tipo": "eventuali_provvedimenti_responsabilita_genitoriale_e_mantenimento",
+          "trigger": "Per minori",
+          "automatico": false
+        },
+        {
+          "tipo": "appello",
+          "trigger": "Sentenza primo grado",
+          "termine": "30 gg notifica"
+        }
+      ],
+      "esiti_processuali_tipici": [
+        {
+          "esito": "accoglimento_reclamo_o_dichiarazione_giudiziale",
+          "descrizione": "Accertato lo stato di figlio + annotazione + effetti successori retroattivi"
+        },
+        {
+          "esito": "accoglimento_disconoscimento",
+          "descrizione": "Paternità disconosciuta - cessazione effetti"
+        },
+        {
+          "esito": "accoglimento_contestazione_o_impugnazione_riconoscimento",
+          "descrizione": "Stato risultante caducato"
+        },
+        {
+          "esito": "rigetto_per_assenza_prova_biologica",
+          "descrizione": "DNA negativo o non sufficienti elementi presuntivi"
+        },
+        {
+          "esito": "rigetto_per_decadenza_termini",
+          "descrizione": "Disconoscimento o impugnazione fuori termine"
+        },
+        {
+          "esito": "transazione_o_riconoscimento_volontario",
+          "descrizione": "Riconoscimento in corso di causa - estinzione"
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "RECLAMO E DICHIARAZIONE GIUDIZIALE",
+          "natura": "IMPRESCRITTIBILE per il figlio",
+          "norma": "art. 248 c.c. + Cass. SU 16574/2019",
+          "criticita": "RILEVANTE"
+        },
+        {
+          "termine": "DISCONOSCIMENTO PATERNITÀ - MARITO",
+          "anno": 1,
+          "decorrenza": "nascita o conoscenza adulterio",
+          "natura": "DECADENZIALE",
+          "norma": "art. 244 c.c.",
+          "criticita": "MASSIMA"
+        },
+        {
+          "termine": "DISCONOSCIMENTO - FIGLIO",
+          "anni": 5,
+          "decorrenza": "maggiore età o conoscenza",
+          "natura": "decadenziale",
+          "norma": "art. 244 c.c."
+        },
+        {
+          "termine": "IMPUGNAZIONE RICONOSCIMENTO - autore",
+          "anno": 1,
+          "decorrenza": "annotazione riconoscimento",
+          "natura": "DECADENZIALE",
+          "norma": "art. 263 c.c."
+        },
+        {
+          "termine": "Termine a comparire",
+          "giorni": 120,
+          "natura": "minimo legale post-Cartabia"
+        },
+        {
+          "termine": "Costituzione convenuto",
+          "giorni": 70,
+          "decorrenza": "prima udienza",
+          "natura": "perentorio"
+        }
+      ],
+      "codice_originale_ricevuto": "123001",
+      "codice_logico": "GUIDA_PETIZIONE_RECLAMO_STATO_FAMILIARE_123001",
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "codici_ufficiali_correlati_da_valutare": [
+        "111101",
+        "111102",
+        "111402",
+        "110999",
+        "400240",
+        "411681"
+      ],
+      "nota_integrazione_iusentra": "Codice ricevuto non presente nel catalogo PST/XSD ufficiale locale; la scheda riguarda stato familiare e filiazione e resta guida interna non depositabile.",
+      "fonti_verifica_web": [
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Download file ufficiali del Processo Civile Telematico",
+          "url": "https://pst.giustizia.it/PST/it/download.page",
+          "ambito": "XSD SICI, XSD Giudici di pace, XSD Cassazione e file ufficiali PCT",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "123001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "XSD SICI e codici oggetto migrazione famiglia - 23 gennaio 2024",
+          "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3094",
+          "ambito": "schemi XSD SICI, tipi-base.xsd e codici oggetto PST",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "123001"
+        },
+        {
+          "ente": "Portale Servizi Telematici - Ministero della Giustizia",
+          "titolo": "Provvedimento 16 aprile 2014 - specifiche tecniche ex art. 34 D.M. 44/2011",
+          "url": "https://servizipst.giustizia.it/PST/it/pst_26_1.wp?contentId=DOC416&previousPage=pst_1_0",
+          "ambito": "regole tecniche deposito telematico e rinvio ai file XSD ufficiali",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "123001"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "R.D. 16 marzo 1942, n. 262 - Codice civile",
+          "url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=042U0262&atto.dataPubblicazioneGazzetta=1942-04-04&tipoDettaglio=multivigenza",
+          "ambito": "famiglia, successioni, diritti reali, contratti, responsabilità, società e persone",
+          "verificato_il": "2026-05-24",
+          "metodo": "ricerca web su fonte ufficiale",
+          "codice_originale_guida": "123001"
+        }
+      ]
+    }
+  ]
+}

@@ -21,6 +21,8 @@
 .iu-fas-guide-column > .iu-guida-pratica:not(.iu-guida-pratica--collapsed) {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
+  min-height: inherit;
+  max-height: inherit;
 }
 
 .iu-fas-detail-side > .iu-guida-pratica + .iu-fas-detail-section {
@@ -67,6 +69,25 @@
   font-weight: 950;
   text-transform: uppercase;
   letter-spacing: 0;
+}
+
+.iu-fas-guide-column > .iu-guida-pratica--collapsed .iu-guida-collapsed-main span {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  line-height: 1;
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.iu-fas-guide-column > .iu-guida-pratica--collapsed .iu-guida-collapsed-main span svg {
+  transform: rotate(90deg);
+}
+
+.iu-fas-guide-column > .iu-guida-pratica--collapsed .iu-guida-collapsed-main strong,
+.iu-fas-guide-column > .iu-guida-pratica--collapsed .iu-guida-collapsed-main small {
+  display: none;
 }
 
 .iu-guida-collapsed-main strong {
@@ -196,7 +217,7 @@
   border-bottom: 1px solid var(--iu-slate-200, #d8dee8);
   display: grid;
   gap: 6px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   padding: 10px;
 }
 
@@ -236,17 +257,21 @@
 
 .iu-fas-guide-column > .iu-guida-pratica .iu-guida-tab-panel {
   gap: 9px;
-  max-height: calc(100vh - 360px);
+  min-height: 0;
+  max-height: none;
   overflow: auto;
+  overflow-x: hidden;
   padding: 11px;
   scrollbar-width: thin;
 }
 
 .iu-guida-section {
+  min-width: 0;
   border: 1px solid var(--iu-slate-100, #edf2f7);
   border-radius: 8px;
   padding: 12px;
   background: rgba(248, 250, 252, .76);
+  overflow-wrap: anywhere;
 }
 
 .iu-guida-section h4 {
@@ -284,6 +309,7 @@
 
 .iu-guida-checklist,
 .iu-guida-law-list,
+.iu-guida-source-list,
 .iu-guida-fields,
 .iu-guida-warning-list,
 .iu-guida-ordered {
@@ -302,13 +328,16 @@
 .iu-guida-checklist li,
 .iu-guida-fields li,
 .iu-guida-law-list li,
+.iu-guida-source-list li,
 .iu-guida-warning-list li {
   display: grid;
   gap: 3px;
+  min-width: 0;
   border: 1px solid var(--iu-slate-100, #edf2f7);
   border-radius: 8px;
   padding: 10px;
   background: #fff;
+  overflow-wrap: anywhere;
 }
 
 .iu-guida-checklist li {
@@ -323,12 +352,21 @@
 
 .iu-guida-fields span,
 .iu-guida-law-list span,
+.iu-guida-source-list span,
 .iu-guida-ordered span,
 .iu-guida-fields em,
 .iu-guida-ordered em {
   color: var(--iu-slate-600, #475569);
   font-size: .92rem;
   font-style: normal;
+}
+
+.iu-guida-source-list a {
+  justify-self: flex-start;
+  color: var(--iu-blue-700, #1d4ed8);
+  font-size: .82rem;
+  font-weight: 900;
+  text-decoration: none;
 }
 
 .iu-guida-ok,
@@ -522,7 +560,7 @@
 
 .iu-guida-context-kv {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 8px;
   margin: 0;
 }
@@ -568,6 +606,7 @@
   display: grid;
   grid-template-columns: 120px 1fr;
   gap: 8px;
+  min-width: 0;
 }
 
 .iu-guida-mini-kv dt {
@@ -577,19 +616,39 @@
 .iu-guida-mini-kv dd {
   margin: 0;
   font-weight: 650;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.iu-fas-guide-column > .iu-guida-pratica .iu-guida-mini-kv div {
+  grid-template-columns: 1fr;
+  gap: 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(226, 232, 240, .72);
+}
+
+.iu-fas-guide-column > .iu-guida-pratica .iu-guida-mini-kv div:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.iu-fas-guide-column > .iu-guida-pratica .iu-guida-split {
+  grid-template-columns: 1fr;
 }
 
 .iu-guida-split {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
 }
 
 .iu-guida-split > div {
+  min-width: 0;
   border: 1px solid var(--iu-slate-100, #edf2f7);
   border-radius: 8px;
   background: #fff;
   padding: 10px;
+  overflow-wrap: anywhere;
 }
 
 .iu-guida-split > div > strong {

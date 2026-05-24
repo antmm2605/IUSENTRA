@@ -54,7 +54,7 @@ def _write_studio_config(path: Path) -> None:
                 },
                 "pec": {
                     "indirizzo": "studio.verifica@pec.example.it",
-                    "password": "segreta",
+                    "password": "",
                     "smtp_host": "smtp.pec.example.it",
                     "smtp_port": 465,
                     "imap_host": "imap.pec.example.it",
@@ -72,6 +72,13 @@ def _write_studio_config(path: Path) -> None:
         ),
         encoding="utf-8",
     )
+
+
+def _safe_demo_redirect_target(raw_target: str | None) -> str:
+    target = str(raw_target or "/fascicoli").strip()
+    if not target.startswith("/") or target.startswith("//") or "\\" in target:
+        return "/fascicoli"
+    return target
 
 
 def _config(root: Path) -> dict:
@@ -295,7 +302,7 @@ def create_demo_app(root: Path, *, username: str, password: str) -> tuple[object
     def _open_demo_session():
         from flask import redirect, request, session
 
-        next_url = request.args.get("next") or "/fascicoli"
+        next_url = _safe_demo_redirect_target(request.args.get("next"))
         session.clear()
         session["user_id"] = user_id
         session["tenant_slug"] = tenant_slug
@@ -323,7 +330,6 @@ def create_demo_app(root: Path, *, username: str, password: str) -> tuple[object
         "tenantSlug": tenant_slug,
         "userId": user_id,
         "username": username,
-        "password": password,
         "fascicoloId": fascicolo_id,
     }
 

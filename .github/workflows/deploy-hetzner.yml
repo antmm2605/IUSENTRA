@@ -65,6 +65,36 @@ jobs:
           fi
           echo "Secrets verificati."
 
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Attendi CI richiesta dello SHA corrente
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/ci
+          python tools/check_github_required_gates.py \
+            --repo "${GITHUB_REPOSITORY}" \
+            --sha "${GITHUB_SHA}" \
+            --event push \
+            --wait \
+            --timeout-seconds 5400 \
+            --poll-seconds 30 \
+            --report-md artifacts/ci/deploy-required-gates.md \
+            --report-json artifacts/ci/deploy-required-gates.json
+
+      - name: Upload report CI pre-deploy
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-required-gates
+          path: artifacts/ci/deploy-required-gates.*
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Setup chiave SSH e known_hosts
         env:
           HETZNER_SSH_PRIVATE_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}

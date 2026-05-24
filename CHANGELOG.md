@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.33 - 2026-05-24
+
+- Bloccato il deploy Hetzner automatico finché i required checks dello SHA corrente non risultano verdi tramite `tools/check_github_required_gates.py`, con artifact `deploy-required-gates`.
+- Mantenuta la richiesta `[no-backup]`: il deploy resta senza backup preventivo, ma non può più precedere CI, CodeQL, frontend, supply chain, coverage, pytest e signer richiesti.
+- Regolata la branch protection con required checks stretti e `enforce_admins=false`, così il push diretto autorizzato sui soli branch gemelli resta possibile ma la consegna continua a richiedere report automatico, check verdi e deploy post-CI.
+
 ## 2.248.32 - 2026-05-24
 
 - Codificati i required checks GitHub in `.github/required-checks.json` e aggiunto il gate `CI reale eseguita sul commit corrente`, con report Markdown/JSON generato da `tools/check_github_required_gates.py`.

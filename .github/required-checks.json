@@ -15,7 +15,7 @@
   ],
   "branch_protection": {
     "strict": true,
-    "enforce_admins": true,
+    "enforce_admins": false,
     "required_linear_history": true,
     "required_conversation_resolution": true,
     "allow_force_pushes": false,

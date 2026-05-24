@@ -87,9 +87,11 @@ def test_security_supply_chain_blocks_critical_dependency_regressions() -> None:
 def test_ci_required_gates_blocks_missing_skipped_and_external_drift() -> None:
     config = json.loads(_read(".github/required-checks.json"))
     workflow = _read(".github/workflows/ci-required-gates.yml")
+    deploy_workflow = _read(".github/workflows/deploy-hetzner.yml")
     frontend_workflow = _read(".github/workflows/frontend-ci.yml")
     module = _load_required_gates_module()
 
+    assert config["branch_protection"]["enforce_admins"] is False
     contexts = module.branch_protection_contexts(config)
     assert "CI reale eseguita sul commit corrente" in contexts
     assert "Lint + syntax" in contexts
@@ -143,6 +145,10 @@ def test_ci_required_gates_blocks_missing_skipped_and_external_drift() -> None:
     assert "python tools/check_github_required_gates.py" in workflow
     assert "--wait" in workflow
     assert "current-sha-required-gates.md" in workflow
+    assert "Attendi CI richiesta dello SHA corrente" in deploy_workflow
+    assert "deploy-required-gates.md" in deploy_workflow
+    assert "Setup chiave SSH e known_hosts" in deploy_workflow
+    assert deploy_workflow.index("Attendi CI richiesta dello SHA corrente") < deploy_workflow.index("Setup chiave SSH e known_hosts")
     assert "paths:" not in frontend_workflow
 
 

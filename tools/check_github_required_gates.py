@@ -331,6 +331,7 @@ def apply_branch_protection(repo: str, config: dict[str, Any]) -> list[GateRow]:
 def check_branch_protection(repo: str, config: dict[str, Any]) -> list[GateRow]:
     expected = set(branch_protection_contexts(config))
     forbidden = set(config.get("ignored_status_contexts", [])) | set(config.get("ignored_check_runs", []))
+    expected_enforce_admins = bool(config.get("branch_protection", {}).get("enforce_admins", True))
     rows: list[GateRow] = []
     for branch in config.get("branches", []):
         encoded = quote(str(branch), safe="")
@@ -341,9 +342,10 @@ def check_branch_protection(repo: str, config: dict[str, Any]) -> list[GateRow]:
             continue
         checks = payload.get("required_status_checks") or {}
         contexts = set(checks.get("contexts") or [])
+        enforce_admins = bool((payload.get("enforce_admins") or {}).get("enabled", False))
         missing = sorted(expected - contexts)
         forbidden_present = sorted(forbidden & contexts)
-        if missing or forbidden_present or not checks.get("strict"):
+        if missing or forbidden_present or not checks.get("strict") or enforce_admins != expected_enforce_admins:
             details = []
             if missing:
                 details.append(f"missing={len(missing)}")
@@ -351,6 +353,8 @@ def check_branch_protection(repo: str, config: dict[str, Any]) -> list[GateRow]:
                 details.append("forbidden=" + ",".join(forbidden_present))
             if not checks.get("strict"):
                 details.append("strict=false")
+            if enforce_admins != expected_enforce_admins:
+                details.append(f"enforce_admins={str(enforce_admins).lower()}")
             rows.append(GateRow(str(branch), "configured", "; ".join(details), "failed"))
         else:
             rows.append(GateRow(str(branch), "configured", f"contexts={len(contexts)}", "ok"))

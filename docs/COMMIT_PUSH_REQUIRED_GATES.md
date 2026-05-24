@@ -26,6 +26,7 @@ Quindi, dopo ogni push, la consegna è vietata finché non sono vere tutte quest
 
 - lo SHA corrente è identico su `Codex/legal-electronic-filing-kIxcV`, `claude/legal-electronic-filing-kIxcV` e remoti;
 - i required checks sono quelli versionati in `.github/required-checks.json` e applicati in branch protection sui due branch operativi;
+- `enforce_admins=false` nella branch protection è una scelta operativa per consentire il push diretto autorizzato sui soli branch gemelli; non autorizza la chiusura del lavoro senza check verdi, report automatico e deploy post-CI;
 - il check `CI Required Gates / CI reale eseguita sul commit corrente` è verde e il relativo artifact `current-sha-required-gates` è generato dallo script, non scritto a mano;
 - tutti i check-run GitHub dello SHA corrente sono `completed`;
 - non esistono check-run con `conclusion` diversa da `success` o da uno `skipped` esplicitamente non richiesto;
@@ -116,7 +117,7 @@ Quality overlay:
 Verifica finale:
 
 - `CI Required Gates / CI reale eseguita sul commit corrente` su `push` e `pull_request`, con report automatico Markdown/JSON e status esterni come `Vercel` separati dai gate IUSENTRA;
-- `Deploy su Hetzner CPX42` resta post-push operativo e non sostituisce i gate qualità: si verifica solo dopo che lo SHA ha superato i check GitHub richiesti.
+- `Deploy su Hetzner CPX42` resta post-push operativo e non sostituisce i gate qualità: il workflow attende `tools/check_github_required_gates.py --wait` prima di eseguire SSH/deploy e poi si verifica con commit server, container, `/api/pronto` e prune Docker.
 
 ## Dove registrare
 

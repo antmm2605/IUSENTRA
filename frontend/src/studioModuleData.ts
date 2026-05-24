@@ -393,7 +393,7 @@ export const studioModules: StudioModuleConfig[] = [
   },
   {
     id: 'sito-studio',
-    routes: ['/sito-studio', '/sito-studio/builder', '/sito-studio/redazione-ai', '/sito-studio/contatti'],
+    routes: ['/sito-studio', '/sito-studio/builder', '/sito-studio/redazione-ai', '/sito-studio/articoli/:id/modifica', '/sito-studio/contatti'],
     title: 'Sito Studio',
     section: 'Presenza digitale',
     subtitle: 'Pannello operativo per sito pubblico, contenuti, servizi, professionisti, sedi, richieste e prenotazioni.',

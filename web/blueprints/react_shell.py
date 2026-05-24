@@ -195,6 +195,13 @@ def _scadenziario_react_allowed(lower: str) -> bool:
     return False
 
 
+def _sito_studio_react_allowed(lower: str) -> bool:
+    if lower in _SITO_STUDIO_REACT_SUBPATHS:
+        return True
+    parts = [part for part in lower.strip("/").split("/") if part]
+    return len(parts) == 4 and parts[0] == "sito-studio" and parts[1] == "articoli" and parts[2].isdigit() and parts[3] == "modifica"
+
+
 def _collect_manifest_assets(manifest: dict[str, Any], key: str) -> dict[str, list[str]]:
     seen: set[str] = set()
     js: list[str] = []
@@ -361,7 +368,7 @@ def _deve_mantenere_vista_classica() -> bool:
     if lower == "/scadenziario" or lower.startswith("/scadenziario/"):
         if not _scadenziario_react_allowed(lower):
             return True
-    if lower.startswith("/sito-studio/") and lower not in _SITO_STUDIO_REACT_SUBPATHS:
+    if lower.startswith("/sito-studio/") and not _sito_studio_react_allowed(lower):
         return True
     if lower.startswith("/studio/"):
         return True

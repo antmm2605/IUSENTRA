@@ -1,5 +1,13 @@
 # Migrazione progressiva Flask + React
 
+## Sito Studio modifica articolo React full - 2026-05-24 - 2.248.37
+
+La rotta `/sito-studio/articoli/:id/modifica`, richiesta dalla verifica su produzione, è stata promossa a `react_operational_full`. La pagina Flask serve la shell React per il percorso principale e conserva il rendering classico solo dietro `?_legacy=1`; il gate ammette la sola modifica articolo esatta e mantiene protetti download, allegati, export e workflow tecnici non parificati.
+
+Il backend espone `GET/POST /api/v1/ui/sito-studio/articoli/<id>/modifica` con dati reali del sito studio corrente, validazioni, blocco dei campi di contesto forzato, salvataggio JSON e audit. La UI React mostra loading, assenza articolo, errori campo, successo, anteprima pubblica, stato editoriale e azioni redazionali senza demo/mock. I campi modificabili conservano il testo digitato dall'avvocato; la normalizzazione dei testi resta applicata solo a etichette operative e azioni.
+
+Verifiche locali: contratti React, route gate, full-react-route-contract, no-fake React full, tranche Sito Studio API/operational, typecheck/build/test Vite, pytest mirati su shell e API builder, browser desktop/tablet/mobile su `/sito-studio/articoli/2/modifica` e rigenerazione dei report App V2/backend security.
+
 ## React full senza pagine finte - 2026-05-24 - 2.248.36
 
 La Fase 3 chiude il residuo P0/P1 più visibile: `/giurisprudenza/nuova` non è più una rotta classica mascherata, ma una pagina React operativa alimentata da `/api/v1/ui/giurisprudenza/nuova`. Il backend restituisce contratti, default, opzioni, avvisi e salva la nuova scheda con validazioni reali; la UI espone caricamento, stato indisponibile, errori campo, conferma di salvataggio e azioni verso archivio/scheda senza dati demo.

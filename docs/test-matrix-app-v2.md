@@ -11,7 +11,7 @@ La matrice incrocia pagine, ruoli, tenant, feature flag e tipi test. `tested` in
 | blocked | 3 |
 | partial | 37 |
 | pending | 14 |
-| tested | 52 |
+| tested | 53 |
 
 ## Matrice
 
@@ -83,6 +83,7 @@ La matrice incrocia pagine, ruoli, tenant, feature flag e tipi test. `tested` in
 | studio | /notifiche | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.settings.notifications | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
 | studio | /notifiche-whatsapp | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.settings.notifications | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
 | studio | /sincronizzazione-calendari | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.settings.calendarSync | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
+| studio | /sito-studio/articoli/:id/modifica | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.studio.site | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
 | studio | /sito-studio/builder | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.studio.siteBuilder | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
 | studio | /sito-studio/redazione-ai | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.studio.siteDrafting | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
 | studio | /strumenti-legali | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.studio.modules | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |

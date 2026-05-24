@@ -1703,6 +1703,7 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
             "/notifiche-whatsapp",
             "/backup",
             "/sincronizzazione-calendari",
+            "/sito-studio/articoli/1/modifica",
         ):
             response = client.get(path)
             html = response.get_data(as_text=True)
@@ -1820,6 +1821,7 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
         "/sito-studio",
         "/sito-studio/builder",
         "/sito-studio/redazione-ai",
+        "/sito-studio/articoli/2/modifica",
         "/scadenziario",
         "/scadenziario/nuova",
         "/scadenziario/scad-react",
@@ -1856,6 +1858,7 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
     assert _excluded(_normalise_path("/scadenziario/export.ics"))
     assert _excluded(_normalise_path("/scadenziario/bulk-completa"))
     assert _excluded(_normalise_path("/scadenziario/scad-react/completa"))
+    assert not _excluded(_normalise_path("/sito-studio/articoli/2/modifica"))
     assert _excluded(_normalise_path("/sito-studio/articoli/art-1/modifica"))
 
 

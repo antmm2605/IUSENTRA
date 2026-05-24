@@ -69,6 +69,81 @@ def test_api_builder_isolamento_tenant_su_pagina(tmp_path: Path):
         assert response.get_json()["ok"] is False
 
 
+def test_sito_studio_modifica_articolo_react_full_salva_json_e_blocca_tenant_id(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    studio, tenant_admin = _seed_tenant_admin(app)
+
+    with app.test_client() as client:
+        _login_tenant_admin(client, studio.slug, username=tenant_admin.username)
+        client.get("/sito-studio/")
+        with app.app_context():
+            site = studio_site_repository().get_site_by_tenant_slug(studio.slug)
+            article = studio_site_repository().save_article(
+                int(site["id"]),
+                {
+                    "title": "Articolo React",
+                    "slug": "articolo-react",
+                    "excerpt": "Sommario iniziale.",
+                    "category": "Famiglia",
+                    "tags_csv": "famiglia, studio",
+                    "author_name": "Studio",
+                    "body_json": [{"type": "rich_text", "title": "Contenuto", "text": "Testo iniziale."}],
+                    "status": "draft",
+                    "seo_title": "Articolo React",
+                    "seo_description": "Descrizione iniziale.",
+                },
+            )
+
+        shell = client.get(f"/sito-studio/articoli/{article['id']}/modifica")
+        assert shell.status_code == 200
+        shell_html = shell.get_data(as_text=True)
+        assert '<html lang="it" class="react-shell-document">' in shell_html
+        assert "studio_site/content_form.html" not in shell_html
+
+        payload = client.get(f"/api/v1/ui/sito-studio/articoli/{article['id']}/modifica")
+        assert payload.status_code == 200
+        data = payload.get_json()
+        assert data["ok"] is True
+        assert data["article"]["title"] == "Articolo React"
+        assert data["contracts"]["writes"] == "json_api"
+
+        forbidden = client.post(
+            f"/api/v1/ui/sito-studio/articoli/{article['id']}/modifica",
+            json={"tenant_id": "studio-due", "title": "Forzato"},
+        )
+        assert forbidden.status_code == 400
+
+        saved = client.post(
+            f"/api/v1/ui/sito-studio/articoli/{article['id']}/modifica",
+            json={
+                "title": "Articolo React aggiornato",
+                "slug": "articolo-react-aggiornato",
+                "excerpt": "Sommario aggiornato.",
+                "category": "Famiglia",
+                "tagsCsv": "famiglia, aggiornato",
+                "authorName": "Studio Legale",
+                "bodyJsonText": '[{"type":"rich_text","title":"Contenuto","text":"Testo aggiornato."}]',
+                "status": "published",
+                "publishedAt": "2026-05-24",
+                "seoTitle": "Articolo React aggiornato",
+                "seoDescription": "Descrizione aggiornata.",
+            },
+        )
+        assert saved.status_code == 200
+        result = saved.get_json()
+        assert result["ok"] is True
+        assert result["item"]["status"] == "published"
+
+        with app.app_context():
+            site = studio_site_repository().get_site_by_tenant_slug(studio.slug)
+            updated = studio_site_repository().get_article(int(site["id"]), int(article["id"]))
+            assert updated["title"] == "Articolo React aggiornato"
+            assert updated["slug"] == "articolo-react-aggiornato"
+            assert updated["status"] == "published"
+            assert updated["body_json"][0]["text"] == "Testo aggiornato."
+
+
 def test_api_react_builder_salva_setup_seo_e_duplica_pagina(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))

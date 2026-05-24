@@ -1,6 +1,6 @@
 {
   "summary": {
-    "generatedAt": "2026-05-24T21:03:12.832Z",
+    "generatedAt": "2026-05-24T22:29:24.574Z",
     "scannedFiles": [
       "frontend/src/adminDatabaseData.ts",
       "frontend/src/agendaData.ts",
@@ -415,8 +415,8 @@
       "web/services/react_workflow_agents_bridge.py"
     ],
     "totals": {
-      "routes": 106,
-      "legacyLinks": 77,
+      "routes": 107,
+      "legacyLinks": 86,
       "legacyPostForms": 0,
       "reactPostForms": 0,
       "bridgeLegacyWrites": 0,
@@ -424,7 +424,7 @@
       "missingWriteApi": 0
     },
     "levels": {
-      "react_operational_full": 89,
+      "react_operational_full": 90,
       "legacy_operational": 17
     }
   },
@@ -2336,7 +2336,7 @@
       "bridge": "web/services/react_sito_studio_bridge.py",
       "manifestStatus": "react_operational_full",
       "unlockFromGate": true,
-      "legacyLinks": 3,
+      "legacyLinks": 5,
       "legacyButtons": 0,
       "legacyPostForms": 0,
       "reactPostForms": 0,
@@ -2398,13 +2398,37 @@
       "realLevel": "react_operational_full"
     },
     {
+      "route": "/sito-studio/articoli/:id/modifica",
+      "component": "frontend/src/components/SitoStudioPage.tsx",
+      "dataClient": "frontend/src/sitoStudioData.ts",
+      "bridge": "web/services/react_sito_studio_bridge.py",
+      "manifestStatus": "react_operational_full",
+      "unlockFromGate": true,
+      "legacyLinks": 5,
+      "legacyButtons": 0,
+      "legacyPostForms": 0,
+      "reactPostForms": 0,
+      "jsonWrites": true,
+      "jsonReads": true,
+      "bridgeWritesLegacy": false,
+      "blockingLegacyLinks": 0,
+      "technicalRollback": true,
+      "missingWriteApi": false,
+      "missingErrorHandling": false,
+      "missingSuccessHandling": false,
+      "problems": [
+        "fallback legacy tecnico non primario"
+      ],
+      "realLevel": "react_operational_full"
+    },
+    {
       "route": "/sito-studio/contatti",
       "component": "frontend/src/components/SitoStudioPage.tsx",
       "dataClient": "frontend/src/sitoStudioData.ts",
       "bridge": "web/services/react_sito_studio_bridge.py",
       "manifestStatus": "react_operational_full",
       "unlockFromGate": true,
-      "legacyLinks": 3,
+      "legacyLinks": 5,
       "legacyButtons": 0,
       "legacyPostForms": 0,
       "reactPostForms": 0,

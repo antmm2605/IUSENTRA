@@ -8,6 +8,7 @@ Route full/partial principali: amministrazione, studio, backup, sito studio, fat
 
 ## Miglioramenti applicati
 
+- 2026-05-24: `/sito-studio/articoli/2/modifica` 2.248.37 verificato con browser headless/CDP in desktop 1440x1000, tablet 1024x768 e mobile 390x844. La pagina React mostra form editoriale, pannello laterale, azioni di salvataggio e anteprima senza overflow orizzontale; i campi titolo e corpo restano leggibili e non vengono alterati dalla normalizzazione dei testi di interfaccia.
 - Aggiunte classi responsive per stati, skeleton, wizard stepper, compliance panel, channel card, message list e LexPanel in `iusentra-design-system.css`.
 - Le nuove route promosse evitano hero/action bar con CTA legacy primaria e mantengono filtri/card/lista in layout flessibile.
 - LexPanel e liste comunicazioni hanno breakpoint mobile con colonna singola e azioni raggiungibili.

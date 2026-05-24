@@ -1165,7 +1165,8 @@ export default function App() {
   const isSitoStudioBuilderPage = routeKey === '/sito-studio/builder'
   const isPresetExcludedPage = isSitoStudioBuilderPage || isEmailPage || isEmailOrdinariaPage
   const isSitoStudioRedazioneAiPage = routeKey === '/sito-studio/redazione-ai'
-  const isSitoStudioPage = routeKey === '/sito-studio' || routeKey === '/sito-studio/contatti'
+  const isSitoStudioArticleEditPage = /^\/sito-studio\/articoli\/\d+\/modifica$/.test(routeKey)
+  const isSitoStudioPage = routeKey === '/sito-studio' || routeKey === '/sito-studio/contatti' || isSitoStudioArticleEditPage
   const isStudioPage = routeKey === '/studio'
   const isAmministrazionePage = routeKey === '/amministrazione'
   const isFatturazionePage = routeKey === '/fatturazione' || routeKey === '/fatturazione/nuova'

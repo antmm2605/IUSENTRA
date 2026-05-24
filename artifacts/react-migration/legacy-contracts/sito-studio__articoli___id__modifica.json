@@ -1,0 +1,24 @@
+{
+  "route": "/sito-studio/articoli/:id/modifica",
+  "legacyTemplates": [
+    "studio_site/content_form.html"
+  ],
+  "reactComponent": "frontend/src/components/SitoStudioPage.tsx",
+  "reactData": "frontend/src/sitoStudioData.ts",
+  "reactBridge": "web/services/react_sito_studio_bridge.py",
+  "api": [
+    "GET /api/v1/ui/sito-studio/articoli/<id>/modifica",
+    "POST /api/v1/ui/sito-studio/articoli/<id>/modifica"
+  ],
+  "status": "react_operational_full",
+  "writes": "json_api",
+  "mustPreserve": [
+    "lettura articolo dal repository del tenant corrente",
+    "validazione titolo/stato/contenuto prima del salvataggio",
+    "salvataggio articolo tramite repository Sito Studio",
+    "audit azione di aggiornamento",
+    "stati loading, errore, non trovato e successo",
+    "nessuna CTA classica primaria"
+  ],
+  "recoveryPath": "/sito-studio/articoli/<id>/modifica?_legacy=1"
+}

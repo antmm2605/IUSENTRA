@@ -137,7 +137,8 @@ for (const config of [
 
 const sitoRow = routeRow('/sito-studio')
 const sitoContattiRow = routeRow('/sito-studio/contatti')
-if (sitoRow?.manifestStatus === 'react_operational_full' || sitoContattiRow?.manifestStatus === 'react_operational_full') {
+const sitoArticoloRow = routeRow('/sito-studio/articoli/:id/modifica')
+if (sitoRow?.manifestStatus === 'react_operational_full' || sitoContattiRow?.manifestStatus === 'react_operational_full' || sitoArticoloRow?.manifestStatus === 'react_operational_full') {
   const component = read('frontend/src/components/SitoStudioPage.tsx')
   const data = read('frontend/src/sitoStudioData.ts')
   const bridge = read('web/services/react_sito_studio_bridge.py')
@@ -158,6 +159,20 @@ if (sitoRow?.manifestStatus === 'react_operational_full' || sitoContattiRow?.man
   }
   if (!apiSource.includes('@api_v1_react.post("/sito-studio/contatti/<id_contatto>/collega")')) {
     violations.push('/sito-studio/contatti: manca endpoint POST JSON collegamento cliente supportato.')
+  }
+  if (sitoArticoloRow?.manifestStatus === 'react_operational_full') {
+    if (!data.includes('/api/v1/ui/sito-studio/articoli/') || !/saveSitoArticle/.test(data)) {
+      violations.push('/sito-studio/articoli/:id/modifica: data client deve leggere e salvare con endpoint JSON.')
+    }
+    if (!/ArticleEditContent|bodyTextToBlocks/.test(component)) {
+      violations.push('/sito-studio/articoli/:id/modifica: componente deve esporre form React operativo.')
+    }
+    if (!apiSource.includes('@api_v1_react.get("/sito-studio/articoli/<int:article_id>/modifica")') || !apiSource.includes('@api_v1_react.post("/sito-studio/articoli/<int:article_id>/modifica")')) {
+      violations.push('/sito-studio/articoli/:id/modifica: mancano endpoint GET/POST JSON articolo.')
+    }
+    if (!/def update_react_sito_articolo/.test(bridge) || !/sito_studio\.aggiorna_articolo/.test(bridge)) {
+      violations.push('/sito-studio/articoli/:id/modifica: bridge deve salvare e auditare articolo.')
+    }
   }
   if (!/["']writes["']\s*:\s*["']json_api["']|writes\s*=\s*["']json_api["']/.test(bridge)) {
     violations.push('/sito-studio/contatti: bridge operativo deve dichiarare writes json_api.')

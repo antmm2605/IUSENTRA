@@ -257,6 +257,13 @@ def _scadenziario_react_allowed(lower: str) -> bool:
     return False
 
 
+def _sito_studio_react_allowed(lower: str) -> bool:
+    if lower in _SITO_STUDIO_REACT_SUBPATHS:
+        return True
+    parts = [part for part in lower.strip("/").split("/") if part]
+    return len(parts) == 4 and parts[0] == "sito-studio" and parts[1] == "articoli" and parts[2].isdigit() and parts[3] == "modifica"
+
+
 def _excluded(path: str) -> bool:
     lower = path.lower()
     if lower == "/scadenziario" or lower.startswith("/scadenziario/"):
@@ -268,7 +275,7 @@ def _excluded(path: str) -> bool:
         return True
     if lower.startswith("/backup/"):
         return True
-    if lower.startswith("/sito-studio/") and lower not in _SITO_STUDIO_REACT_SUBPATHS:
+    if lower.startswith("/sito-studio/") and not _sito_studio_react_allowed(lower):
         return True
     if lower.startswith("/studio/"):
         return True
@@ -442,7 +449,7 @@ def register_react_route_gate(app: Flask) -> None:
         if raw_lower.rstrip("/") in _CANONICAL_ALIAS_PATHS:
             return None
         sito_path = raw_lower.rstrip("/") or "/"
-        if raw_lower.startswith("/sito-studio/") and sito_path not in {"/sito-studio"} | _SITO_STUDIO_REACT_SUBPATHS:
+        if raw_lower.startswith("/sito-studio/") and not _sito_studio_react_allowed(sito_path):
             return None
         path = _normalise_path(request.path)
         if _excluded(path) or not _is_react_route(path):

@@ -39,6 +39,7 @@ const apiAliasMarkers = new Map([
   ['/portali/sigit/acquisizione', ['("/telematico/surface/<surface>")', "('/telematico/surface/<surface>')"]],
   ['/servizi-telematici', ['("/telematico")', "('/telematico')"]],
   ['/preventivi/conferimento/:id', ['("/preventivi/conferimento/<id_conferimento>")', "('/preventivi/conferimento/<id_conferimento>')"]],
+  ['/sito-studio/articoli/:id/modifica', ['("/sito-studio/articoli/<int:article_id>/modifica")', "('/sito-studio/articoli/<int:article_id>/modifica')"]],
 ])
 
 for (const route of fullRoutes()) {

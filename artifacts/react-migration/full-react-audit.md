@@ -2,6 +2,20 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-24T23:55:00+02:00: Sito Studio modifica articolo
+2.248.37.
+Audit anti-mascheramento esteso a `/sito-studio/articoli/:id/modifica`: la
+pagina usa shell React, API JSON, form controllato, salvataggio backend,
+validazioni campo, successo visibile e audit tenant-aware. Il bridge non
+accetta `tenant_id`, `studio_id`, `user_id`, token o path dal client e la rotta
+classica resta raggiungibile solo con `?_legacy=1` come compatibilità tecnica.
+
+Audit UI: i campi redazionali dell'articolo conservano il testo reale digitato
+dall'avvocato, mentre etichette, stati e azioni passano dal guardrail di testo
+visibile. Browser desktop 1440, tablet 1024 e mobile 390 hanno confermato zero
+overflow orizzontale, nessun errore console, titolo e corpo preservati e nessun
+testo tecnico vietato nel contenuto visibile.
+
 Aggiornamento 2026-05-24T22:20:00+02:00: React full senza pagine finte
 2.248.36.
 Audit anti-mascheramento esteso a `/giurisprudenza/nuova`: la pagina usa shell

@@ -6,6 +6,7 @@ from flask import Blueprint, flash, jsonify, redirect, render_template, request,
 
 from pct.studio_site import BLOCK_TYPES, WEEKDAY_LABELS, normalize_hex_color
 from pct.studio_site_blocks import block_presets
+from web.blueprints.react_shell import render_react_shell_response
 from web.services.studio_site_runtime import (
     ALLOWED_SITE_IMAGE_EXTENSIONS,
     approve_booking_request_for_current_site,
@@ -34,6 +35,10 @@ def site_admin_required(fn):
 
 def _site_id() -> int:
     return int(get_site_for_current_tenant()["id"])
+
+
+def _legacy_requested() -> bool:
+    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
 def _redirect_dashboard(anchor: str = ""):
@@ -334,6 +339,8 @@ def create_article():
 @studio_site.get("/articoli/<int:article_id>/modifica")
 @site_admin_required
 def edit_article_form(article_id: int):
+    if not _legacy_requested():
+        return render_react_shell_response(f"sito-studio/articoli/{article_id}/modifica")
     item = studio_site_repository().get_article(_site_id(), article_id)
     if item is None:
         flash("Articolo non trovato.", "warning")

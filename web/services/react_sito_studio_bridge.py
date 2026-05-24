@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from typing import Any, Callable
 
@@ -58,7 +59,7 @@ def _tone_for_status(status: str) -> str:
 
 
 def _contracts(route: str, *, writes: str) -> dict[str, Any]:
-    name = route.strip("/").replace("/", "__") or "root"
+    name = _frontend_route_contract_name(route)
     contract = {
         "mock_fallback": False,
         "writes": writes,
@@ -73,6 +74,10 @@ def _contracts(route: str, *, writes: str) -> dict[str, Any]:
     return contract
 
 
+def _frontend_route_contract_name(route: str) -> str:
+    return route.strip("/").replace("/", "__").replace(":", "_") or "root"
+
+
 def _metric(metric_id: str, label: str, value: Any, note: str, tone: str = "neutral") -> dict[str, Any]:
     return {"id": metric_id, "label": label, "value": value, "note": note, "tone": tone}
 
@@ -85,6 +90,141 @@ def _action(action_id: str, label: str, href: str, tone: str = "neutral", *, pro
         "method": "GET",
         "tone": tone,
         "protected": protected,
+    }
+
+
+def _article_route(article_id: int | str = ":id") -> str:
+    return f"/sito-studio/articoli/{article_id}/modifica"
+
+
+def _article_status_label(status: str) -> str:
+    return {
+        "draft": "Bozza",
+        "published": "Pubblicato",
+        "archived": "Archiviato",
+    }.get(status.lower(), status or "Bozza")
+
+
+def _article_public_href(site: dict[str, Any], article: dict[str, Any]) -> str:
+    public_slug = _text(site.get("public_slug"))
+    slug = _text(article.get("slug"))
+    if not public_slug or not slug:
+        return ""
+    return f"/web/{public_slug}/articoli/{slug}"
+
+
+def _body_json_text(value: Any) -> str:
+    if isinstance(value, str):
+        return value
+    return json.dumps(value or [], ensure_ascii=False, indent=2)
+
+
+def _body_plain_text(value: Any) -> str:
+    blocks = value if isinstance(value, list) else []
+    parts: list[str] = []
+    for block in blocks:
+        if not isinstance(block, dict):
+            continue
+        title = _text(block.get("title"))
+        text = str(block.get("text") or "").strip()
+        if title and title not in parts:
+            parts.append(title)
+        if text:
+            parts.append(text)
+    return "\n\n".join(parts)
+
+
+def _article_item(site: dict[str, Any], article: dict[str, Any]) -> dict[str, Any]:
+    status = _text(article.get("status") or "draft")
+    return {
+        "id": str(_int(article.get("id"))),
+        "title": _text(article.get("title"), 220),
+        "slug": _text(article.get("slug")),
+        "excerpt": _text(article.get("excerpt"), 800),
+        "coverUrl": _text(article.get("cover_url")),
+        "category": _text(article.get("category"), 120),
+        "tagsCsv": _text(article.get("tags_csv"), 260),
+        "authorName": _text(article.get("author_name"), 160),
+        "bodyJsonText": _body_json_text(article.get("body_json")),
+        "bodyText": _body_plain_text(article.get("body_json")),
+        "status": status,
+        "statusLabel": _article_status_label(status),
+        "statusTone": _tone_for_status(status),
+        "publishedAt": _text(article.get("published_at")),
+        "updatedAt": _text(article.get("updated_at") or article.get("created_at")),
+        "seoTitle": _text(article.get("seo_title"), 220),
+        "seoDescription": _text(article.get("seo_description"), 320),
+        "publicHref": _article_public_href(site, article),
+    }
+
+
+def _article_form_payload(payload: dict[str, Any], current: dict[str, Any] | None = None) -> dict[str, Any]:
+    allowed = {
+        "title",
+        "slug",
+        "excerpt",
+        "cover_url",
+        "coverUrl",
+        "category",
+        "tags_csv",
+        "tagsCsv",
+        "author_name",
+        "authorName",
+        "body_json",
+        "bodyJsonText",
+        "status",
+        "published_at",
+        "publishedAt",
+        "seo_title",
+        "seoTitle",
+        "seo_description",
+        "seoDescription",
+    }
+    unknown = sorted(set(payload) - allowed)
+    if unknown:
+        raise ValueError(f"Campi non ammessi: {', '.join(unknown)}.")
+
+    title = _text(payload.get("title"))
+    if not title:
+        raise ValueError("Titolo articolo richiesto.")
+
+    status = _text(payload.get("status") or (current or {}).get("status") or "draft").lower()
+    if status not in {"draft", "published", "archived"}:
+        raise ValueError("Stato articolo non ammesso.")
+
+    body_json = payload.get("body_json", payload.get("bodyJsonText", (current or {}).get("body_json", [])))
+    if isinstance(body_json, str):
+        try:
+            parsed = json.loads(body_json or "[]")
+        except json.JSONDecodeError as exc:
+            raise ValueError("Contenuto articolo non leggibile: controlla il formato dei blocchi.") from exc
+        body_json = parsed
+
+    if not isinstance(body_json, list):
+        raise ValueError("Il contenuto articolo deve essere una lista di blocchi.")
+
+    def field(name: str, *aliases: str) -> str:
+        for key in (name, *aliases):
+            if key in payload:
+                value = str(payload.get(key) or "")
+                return value if value else " "
+        if current is not None:
+            return str(current.get(name) or "")
+        return " "
+
+    return {
+        "title": title,
+        "slug": _text(payload.get("slug")) if "slug" in payload else str((current or {}).get("slug") or ""),
+        "excerpt": field("excerpt"),
+        "cover_url": field("cover_url", "coverUrl"),
+        "category": field("category"),
+        "tags_csv": field("tags_csv", "tagsCsv"),
+        "author_name": field("author_name", "authorName"),
+        "body_json": body_json,
+        "status": status,
+        "published_at": field("published_at", "publishedAt"),
+        "seo_title": field("seo_title", "seoTitle"),
+        "seo_description": field("seo_description", "seoDescription"),
     }
 
 
@@ -444,6 +584,93 @@ def update_react_sito_booking_status(id_prenotazione: str, payload: dict[str, An
         "message": "Prenotazione aggiornata.",
         "errors": {},
         "item": _booking(updated or {}),
+    }
+
+
+def build_react_sito_articolo_modifica_payload(article_id: int) -> dict[str, Any]:
+    site = get_site_for_current_tenant()
+    repo = studio_site_repository()
+    site_id = int(site["id"])
+    article = repo.get_article(site_id, int(article_id))
+    route = _article_route(":id")
+    if article is None:
+        return {
+            "ok": False,
+            "notFound": True,
+            "source": "repository_reali",
+            "generated_at": _iso_now(),
+            "contracts": _contracts(route, writes="json_api"),
+            "site": _site_summary(site, ""),
+            "article": None,
+            "statuses": [],
+            "actions": {
+                "dashboard": "/sito-studio",
+                "redazioneAi": "/sito-studio/redazione-ai",
+                "saveEndpoint": "",
+                "publicPreview": "",
+                "rollback": {"label": "Percorso di recupero", "href": f"{_article_route(article_id)}?_legacy=1", "method": "GET"},
+            },
+            "warnings": [{"code": "articolo", "message": "Articolo non trovato nel sito dello studio corrente."}],
+        }
+    public_href = _article_public_href(site, article)
+    return {
+        "ok": True,
+        "notFound": False,
+        "source": "repository_reali",
+        "generated_at": _iso_now(),
+        "contracts": _contracts(route, writes="json_api"),
+        "site": _site_summary(site, ""),
+        "article": _article_item(site, article),
+        "statuses": [
+            {"value": "draft", "label": "Bozza", "tone": "warning"},
+            {"value": "published", "label": "Pubblicato", "tone": "success"},
+            {"value": "archived", "label": "Archiviato", "tone": "neutral"},
+        ],
+        "actions": {
+            "dashboard": "/sito-studio",
+            "redazioneAi": "/sito-studio/redazione-ai",
+            "saveEndpoint": f"/api/v1/ui/sito-studio/articoli/{int(article_id)}/modifica",
+            "publicPreview": public_href,
+            "rollback": {"label": "Percorso di recupero", "href": f"{_article_route(article_id)}?_legacy=1", "method": "GET"},
+        },
+        "warnings": [],
+    }
+
+
+def update_react_sito_articolo(article_id: int, payload: dict[str, Any]) -> dict[str, Any]:
+    site = get_site_for_current_tenant()
+    repo = studio_site_repository()
+    site_id = int(site["id"])
+    current = repo.get_article(site_id, int(article_id))
+    if current is None:
+        return {
+            "ok": False,
+            "message": "Articolo non trovato nel sito dello studio corrente.",
+            "errors": {"article": "Articolo non trovato."},
+            "payload": build_react_sito_articolo_modifica_payload(article_id),
+        }
+    try:
+        clean_payload = _article_form_payload(payload, current)
+    except ValueError as exc:
+        return {
+            "ok": False,
+            "message": str(exc),
+            "errors": {"form": str(exc)},
+            "payload": build_react_sito_articolo_modifica_payload(article_id),
+        }
+
+    updated = repo.save_article(site_id, clean_payload, article_id=int(article_id))
+    audit_studio_site_action(
+        "sito_studio.aggiorna_articolo",
+        resource_id=str(article_id),
+        details=f"Articolo {article_id} aggiornato dal percorso React Sito Studio.",
+    )
+    return {
+        "ok": True,
+        "message": "Articolo aggiornato.",
+        "errors": {},
+        "item": _article_item(site, updated),
+        "payload": build_react_sito_articolo_modifica_payload(article_id),
     }
 
 

@@ -1,6 +1,6 @@
 # Audit anti-mascheramento React
 
-Generato: 2026-05-24T21:03:12.832Z
+Generato: 2026-05-24T22:29:24.574Z
 
 ## Regole operative Parte 12A
 
@@ -12,8 +12,8 @@ Generato: 2026-05-24T21:03:12.832Z
 
 ## Sintesi
 
-- Route censite: 106
-- Link `?_legacy=1`: 77
+- Route censite: 107
+- Link `?_legacy=1`: 86
 - LegacyPostForm: 0
 - Form POST HTML React: 0
 - Bridge con scritture legacy: 0
@@ -109,10 +109,11 @@ Generato: 2026-05-24T21:03:12.832Z
 | /sigit | frontend/src/components/TelematicoSurfacePage.tsx | frontend/src/telematicoSurfacesData.ts | web/services/react_telematico_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /sigp | frontend/src/components/SigpPage.tsx | frontend/src/sigpData.ts | web/services/react_telematico_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
 | /sincronizzazione-calendari | frontend/src/features/impostazioni/ImpostazioniPage.tsx | frontend/src/features/impostazioni/api.ts | web/services/react_impostazioni_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
-| /sito-studio | frontend/src/components/SitoStudioPage.tsx | frontend/src/sitoStudioData.ts | web/services/react_sito_studio_bridge.py | react_operational_full | 3 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
+| /sito-studio | frontend/src/components/SitoStudioPage.tsx | frontend/src/sitoStudioData.ts | web/services/react_sito_studio_bridge.py | react_operational_full | 5 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
 | /sito-studio/builder | frontend/src/components/SitoStudioBuilderPage.tsx | frontend/src/sitoStudioBuilderData.ts | web/services/react_sito_studio_builder_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /sito-studio/redazione-ai | frontend/src/components/SitoStudioRedazioneAiPage.tsx | frontend/src/sitoStudioAiData.ts | web/services/react_sito_studio_ai_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
-| /sito-studio/contatti | frontend/src/components/SitoStudioPage.tsx | frontend/src/sitoStudioData.ts | web/services/react_sito_studio_bridge.py | react_operational_full | 3 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
+| /sito-studio/articoli/:id/modifica | frontend/src/components/SitoStudioPage.tsx | frontend/src/sitoStudioData.ts | web/services/react_sito_studio_bridge.py | react_operational_full | 5 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
+| /sito-studio/contatti | frontend/src/components/SitoStudioPage.tsx | frontend/src/sitoStudioData.ts | web/services/react_sito_studio_bridge.py | react_operational_full | 5 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
 | /soggetti | frontend/src/components/SoggettiPage.tsx | frontend/src/soggettiData.ts | web/services/react_soggetti_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /soggetti/nuovo | frontend/src/components/NuovoClientePage.tsx | frontend/src/clientiNuovoData.ts | web/services/react_clienti_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /statistiche | frontend/src/components/StatistichePage.tsx | frontend/src/statisticheData.ts | web/services/react_statistiche_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |

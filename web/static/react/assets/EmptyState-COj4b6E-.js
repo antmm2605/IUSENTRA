@@ -1,0 +1,1 @@
+import{aU as a}from"./index-CvvGQuoz.js";import{I as r}from"./IusEmptyState-ClD7f12j.js";/* empty css           */function i({title:t,message:m,action:s}){return a.jsx(r,{title:t,message:m,action:s,className:"iu-empty-state"})}export{i as E};

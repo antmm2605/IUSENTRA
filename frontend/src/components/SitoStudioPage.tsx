@@ -1,12 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Bot, CalendarDays, CheckCircle2, ExternalLink, Globe2, Link2, Mail, PenLine, RefreshCw, XCircle } from 'lucide-react'
+import type { FormEvent, ReactNode } from 'react'
+import { ArrowLeft, Bot, CalendarDays, CheckCircle2, ExternalLink, FileText, Globe2, ImagePlus, Link2, Mail, PenLine, RefreshCw, Save, XCircle } from 'lucide-react'
 import {
+  emptySitoArticleEditPage,
   emptySitoStudioContattiPage,
   emptySitoStudioPage,
+  getSitoArticleEditPage,
   getSitoStudioContattiPage,
   getSitoStudioPage,
   linkSitoContatto,
+  saveSitoArticle,
   updateSitoBookingStatus,
+  type SitoArticleEditPageData,
+  type SitoArticleSavePayload,
   type SitoBookingRow,
   type SitoContattoRow,
   type SitoStudioContattiPageData,
@@ -37,6 +43,39 @@ function formatDate(value: string): string {
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return value.replace('T', ' ').slice(0, 16)
   return new Intl.DateTimeFormat('it-IT', { dateStyle: 'short', timeStyle: 'short' }).format(parsed)
+}
+
+function bodyTextToBlocks(value: string): string {
+  const paragraphs = value
+    .split(/\n{2,}/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+  const blocks = paragraphs.length
+    ? paragraphs.map((text, index) => ({
+        type: 'rich_text',
+        title: index === 0 ? 'Contenuto' : '',
+        text,
+      }))
+    : []
+  return JSON.stringify(blocks)
+}
+
+function articleToForm(article: SitoArticleEditPageData['article']): SitoArticleSavePayload {
+  return {
+    title: article?.title || '',
+    slug: article?.slug || '',
+    excerpt: article?.excerpt || '',
+    coverUrl: article?.coverUrl || '',
+    category: article?.category || '',
+    tagsCsv: article?.tagsCsv || '',
+    authorName: article?.authorName || '',
+    bodyJsonText: article?.bodyJsonText || '[]',
+    bodyText: article?.bodyText || '',
+    status: article?.status || 'draft',
+    publishedAt: article?.publishedAt || '',
+    seoTitle: article?.seoTitle || '',
+    seoDescription: article?.seoDescription || '',
+  }
 }
 
 function WarningList({ warnings }: { warnings: SitoStudioPageData['warnings'] }) {
@@ -530,7 +569,259 @@ function ContactsContent({ data, reload }: { data: SitoStudioContattiPageData; r
   )
 }
 
-function ContractPanel({ data }: { data: SitoStudioPageData | SitoStudioContattiPageData }) {
+function ArticleField({
+  label,
+  children,
+  wide = false,
+  help,
+}: {
+  label: string
+  children: ReactNode
+  wide?: boolean
+  help?: string
+}) {
+  return (
+    <label className={`iu-sito-form-field ${wide ? 'is-wide' : ''}`.trim()}>
+      <span>{label}</span>
+      {children}
+      {help ? <small>{help}</small> : null}
+    </label>
+  )
+}
+
+function ArticleEditContent({ data, reload }: { data: SitoArticleEditPageData; reload: () => void }) {
+  const [form, setForm] = useState<SitoArticleSavePayload>(() => articleToForm(data.article))
+  const [saving, setSaving] = useState(false)
+  const [success, setSuccess] = useState('')
+  const [error, setError] = useState('')
+  const [validation, setValidation] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    setForm(articleToForm(data.article))
+    setError('')
+    setValidation({})
+  }, [data.article])
+
+  function updateField(name: keyof SitoArticleSavePayload, value: string) {
+    setForm((current) => ({ ...current, [name]: value }))
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!data.article) return
+    if (!form.title.trim()) {
+      setValidation({ title: 'Indica il titolo dell’articolo.' })
+      return
+    }
+    setSaving(true)
+    setSuccess('')
+    setError('')
+    setValidation({})
+    const bodyChanged = form.bodyText.trim() !== (data.article.bodyText || '').trim()
+    const result = await saveSitoArticle(data.article.id, {
+      ...form,
+      bodyJsonText: bodyChanged ? bodyTextToBlocks(form.bodyText) : form.bodyJsonText,
+    })
+    setSaving(false)
+    if (result.ok) {
+      setSuccess(result.message)
+      if (result.payload) {
+        setForm(articleToForm(result.payload.article))
+      }
+      reload()
+      return
+    }
+    setError(result.message)
+    setValidation(result.errors)
+  }
+
+  if (data.notFound || !data.article) {
+    return (
+      <>
+        <WarningList warnings={data.warnings} />
+        <EmptyState
+          title="Articolo non trovato"
+          message="Il contenuto richiesto non risulta nel sito dello studio corrente."
+          action={<ButtonLink href={data.actions.dashboard} tone="primary">Cruscotto sito</ButtonLink>}
+        />
+      </>
+    )
+  }
+
+  return (
+    <>
+      <section className="iu-sito-banner" aria-label="Modifica articolo">
+        <strong>Modifica articolo Sito Studio</strong>
+        <span>La scheda salva titolo, stato, contenuto, immagine, categoria e dati di pubblicazione sull’archivio reale dello studio.</span>
+      </section>
+      <WarningList warnings={data.warnings} />
+      {success ? <div className="iu-sito-flash iu-sito-flash--success">{success}</div> : null}
+      {error ? <div className="iu-sito-flash iu-sito-flash--danger">{error}</div> : null}
+      {Object.keys(validation).length ? (
+        <div className="iu-sito-flash iu-sito-flash--warning">
+          {Object.entries(validation).map(([key, message]) => <span key={key}>{message}</span>)}
+        </div>
+      ) : null}
+      <div className="iu-sito-article-layout">
+        <Panel title="Contenuto articolo" subtitle={`Ultimo aggiornamento: ${formatDate(data.article.updatedAt)}`}>
+          <form className="iu-sito-article-form" onSubmit={submit}>
+            <ArticleField label="Titolo" wide>
+              <input
+                className="iu-sito-input"
+                value={form.title}
+                onChange={(event) => updateField('title', event.currentTarget.value)}
+                required
+              />
+            </ArticleField>
+            <ArticleField label="Indirizzo pagina" help="Lascia vuoto per rigenerarlo dal titolo.">
+              <input
+                className="iu-sito-input"
+                value={form.slug}
+                onChange={(event) => updateField('slug', event.currentTarget.value)}
+              />
+            </ArticleField>
+            <ArticleField label="Stato">
+              <select
+                className="iu-sito-select"
+                value={form.status}
+                onChange={(event) => updateField('status', event.currentTarget.value)}
+              >
+                {data.statuses.map((option) => (
+                  <option value={option.value} key={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </ArticleField>
+            <ArticleField label="Categoria">
+              <input
+                className="iu-sito-input"
+                value={form.category}
+                onChange={(event) => updateField('category', event.currentTarget.value)}
+              />
+            </ArticleField>
+            <ArticleField label="Parole chiave">
+              <input
+                className="iu-sito-input"
+                value={form.tagsCsv}
+                onChange={(event) => updateField('tagsCsv', event.currentTarget.value)}
+              />
+            </ArticleField>
+            <ArticleField label="Autore">
+              <input
+                className="iu-sito-input"
+                value={form.authorName}
+                onChange={(event) => updateField('authorName', event.currentTarget.value)}
+              />
+            </ArticleField>
+            <ArticleField label="Pubblicazione">
+              <input
+                className="iu-sito-input"
+                value={form.publishedAt}
+                onChange={(event) => updateField('publishedAt', event.currentTarget.value)}
+                placeholder="AAAA-MM-GG"
+              />
+            </ArticleField>
+            <ArticleField label="Immagine copertina" wide help="Usa un indirizzo immagine già approvato o generato dalla redazione assistita.">
+              <input
+                className="iu-sito-input"
+                value={form.coverUrl}
+                onChange={(event) => updateField('coverUrl', event.currentTarget.value)}
+              />
+            </ArticleField>
+            <ArticleField label="Sommario" wide>
+              <textarea
+                className="iu-sito-textarea"
+                rows={4}
+                value={form.excerpt}
+                onChange={(event) => updateField('excerpt', event.currentTarget.value)}
+              />
+            </ArticleField>
+            <ArticleField label="Testo principale" wide help="Se modifichi questo testo, viene salvato come sezioni editoriali del sito.">
+              <textarea
+                className="iu-sito-textarea iu-sito-textarea--article"
+                rows={12}
+                value={form.bodyText}
+                onChange={(event) => updateField('bodyText', event.currentTarget.value)}
+              />
+            </ArticleField>
+            <ArticleField label="Titolo per motori di ricerca" wide>
+              <input
+                className="iu-sito-input"
+                value={form.seoTitle}
+                onChange={(event) => updateField('seoTitle', event.currentTarget.value)}
+              />
+            </ArticleField>
+            <ArticleField label="Descrizione per motori di ricerca" wide>
+              <textarea
+                className="iu-sito-textarea"
+                rows={3}
+                value={form.seoDescription}
+                onChange={(event) => updateField('seoDescription', event.currentTarget.value)}
+              />
+            </ArticleField>
+            <div className="iu-sito-article-submit">
+              <Button tone="primary" type="submit" disabled={saving}>
+                <Save size={16} />
+                {saving ? 'Salvataggio' : 'Salva articolo'}
+              </Button>
+              <Button tone="neutral" type="button" disabled={saving} onClick={reload}>
+                <RefreshCw size={16} />
+                Ricarica
+              </Button>
+            </div>
+          </form>
+        </Panel>
+        <aside className="iu-sito-article-side" aria-label="Stato articolo">
+          <Panel title="Stato e azioni">
+            <div className="iu-sito-article-status">
+              <Badge tone={data.article.statusTone}>{data.article.statusLabel}</Badge>
+              <span>{data.site.siteName || data.site.studioName || 'Sito Studio'}</span>
+              <strong>{data.article.title || 'Articolo senza titolo'}</strong>
+            </div>
+            <div className="iu-sito-actions iu-sito-actions--stacked">
+              <ButtonLink href={data.actions.dashboard} tone="neutral">
+                <ArrowLeft size={15} />
+                Cruscotto sito
+              </ButtonLink>
+              <ButtonLink href={data.actions.redazioneAi} tone="primary">
+                <FileText size={15} />
+                Redazione assistita
+              </ButtonLink>
+              {data.actions.publicPreview ? (
+                <ButtonLink href={data.actions.publicPreview} tone="success" target="_blank" rel="noopener">
+                  <Globe2 size={15} />
+                  Anteprima pubblica
+                </ButtonLink>
+              ) : null}
+            </div>
+          </Panel>
+          <Panel title="Copertina">
+            {form.coverUrl ? (
+              <img className="iu-sito-article-cover" src={form.coverUrl} alt="Copertina articolo" />
+            ) : (
+              <EmptyState title="Copertina non indicata" message="Aggiungi un’immagine dall’archivio o dalla redazione assistita." />
+            )}
+            <div className="iu-sito-actions iu-sito-actions--stacked">
+              <ButtonLink href={data.actions.redazioneAi} tone="neutral">
+                <ImagePlus size={15} />
+                Prepara immagine
+              </ButtonLink>
+            </div>
+          </Panel>
+          {data.actions.rollback ? (
+            <Panel title="Percorso di recupero" subtitle="Disponibile solo come uscita controllata se serve confrontare il dato.">
+              <ButtonLink href={data.actions.rollback.href} tone="neutral">
+                <ExternalLink size={15} />
+                {data.actions.rollback.label}
+              </ButtonLink>
+            </Panel>
+          ) : null}
+        </aside>
+      </div>
+    </>
+  )
+}
+
+function ContractPanel({ data }: { data: SitoStudioPageData | SitoStudioContattiPageData | SitoArticleEditPageData }) {
   return (
     <Panel title="Stato dati" subtitle="Dati e azioni disponibili per questa pagina.">
       <div className="iu-sito-contract">
@@ -545,9 +836,14 @@ function ContractPanel({ data }: { data: SitoStudioPageData | SitoStudioContatti
 }
 
 export function SitoStudioPage() {
-  const contactsRoute = routeKey() === '/sito-studio/contatti'
+  const currentRoute = routeKey()
+  const contactsRoute = currentRoute === '/sito-studio/contatti'
+  const articleMatch = currentRoute.match(/^\/sito-studio\/articoli\/(\d+)\/modifica$/)
+  const articleId = articleMatch?.[1] || ''
+  const articleRoute = Boolean(articleId)
   const [dashboardData, setDashboardData] = useState<SitoStudioPageData>(emptySitoStudioPage)
   const [contactsData, setContactsData] = useState<SitoStudioContattiPageData>(emptySitoStudioContattiPage)
+  const [articleData, setArticleData] = useState<SitoArticleEditPageData>(emptySitoArticleEditPage)
   const [loading, setLoading] = useState(true)
   const [reloadCounter, setReloadCounter] = useState(0)
   const [error, setError] = useState('')
@@ -556,10 +852,20 @@ export function SitoStudioPage() {
     let active = true
     setLoading(true)
     setError('')
-    const loader = contactsRoute ? getSitoStudioContattiPage : getSitoStudioPage
+    const loader = articleRoute
+      ? () => getSitoArticleEditPage(articleId)
+      : contactsRoute
+        ? getSitoStudioContattiPage
+        : getSitoStudioPage
     loader()
       .then((payload) => {
         if (!active) return
+        if (articleRoute) {
+          const articlePayload = payload as SitoArticleEditPageData
+          setArticleData(articlePayload)
+          setError(articlePayload.ok || articlePayload.notFound ? '' : articlePayload.warnings[0]?.message || 'Articolo Sito Studio non disponibile.')
+          return
+        }
         if (contactsRoute) {
           const contactsPayload = payload as SitoStudioContattiPageData
           setContactsData(contactsPayload)
@@ -571,7 +877,7 @@ export function SitoStudioPage() {
         setError(dashboardPayload.ok ? '' : dashboardPayload.warnings[0]?.message || 'Sito Studio non disponibile.')
       })
       .catch(() => {
-        if (active) setError(contactsRoute ? 'Contatti Sito Studio non disponibili.' : 'Sito Studio non disponibile.')
+        if (active) setError(articleRoute ? 'Articolo Sito Studio non disponibile.' : contactsRoute ? 'Contatti Sito Studio non disponibili.' : 'Sito Studio non disponibile.')
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -579,21 +885,26 @@ export function SitoStudioPage() {
     return () => {
       active = false
     }
-  }, [contactsRoute, reloadCounter])
+  }, [articleId, articleRoute, contactsRoute, reloadCounter])
 
   const dashboardHasData = dashboardData.metrics.length > 0 || dashboardData.pages.length > 0
-  const hasData = contactsRoute ? contactsData.ok : dashboardHasData
-  const pageTitle = contactsRoute ? 'Contatti Sito Studio' : 'Sito Studio'
+  const hasData = articleRoute ? (articleData.ok || articleData.notFound) : contactsRoute ? contactsData.ok : dashboardHasData
+  const pageTitle = articleRoute ? 'Modifica articolo Sito Studio' : contactsRoute ? 'Contatti Sito Studio' : 'Sito Studio'
+  const pageSubtitle = articleRoute
+    ? 'Revisione e pubblicazione del contenuto editoriale collegato al sito dello studio.'
+    : contactsRoute
+      ? 'Richieste contatto e prenotazioni gestite con servizi sicuri.'
+      : 'Cruscotto operativo del sito pubblico dello studio.'
 
   return (
     <Page
       title={pageTitle}
-      subtitle={contactsRoute ? 'Richieste contatto e prenotazioni gestite con servizi sicuri.' : 'Cruscotto operativo del sito pubblico dello studio.'}
+      subtitle={pageSubtitle}
       actions={
         <>
-          <ButtonLink href={contactsRoute ? '/sito-studio' : '/sito-studio/contatti'} tone="primary">
-            {contactsRoute ? <Globe2 size={16} /> : <Mail size={16} />}
-            {contactsRoute ? 'Cruscotto sito' : 'Contatti sito'}
+          <ButtonLink href={articleRoute || contactsRoute ? '/sito-studio' : '/sito-studio/contatti'} tone="primary">
+            {articleRoute || contactsRoute ? <Globe2 size={16} /> : <Mail size={16} />}
+            {articleRoute || contactsRoute ? 'Cruscotto sito' : 'Contatti sito'}
           </ButtonLink>
           <Button tone="neutral" onClick={() => setReloadCounter((value) => value + 1)}>
             <RefreshCw size={16} />
@@ -605,12 +916,12 @@ export function SitoStudioPage() {
       {loading ? <LoadingState title="Caricamento Sito Studio" message="Lettura dei dati reali del sito in corso." /> : null}
       {!loading && error ? (
         <EmptyState
-          title={contactsRoute ? 'Contatti non disponibili' : 'Sito Studio non disponibile'}
+          title={articleRoute ? 'Articolo non disponibile' : contactsRoute ? 'Contatti non disponibili' : 'Sito Studio non disponibile'}
           message={error}
-          action={<ButtonLink href={contactsRoute ? '/sito-studio' : '/sito-studio/contatti'} tone="primary">{contactsRoute ? 'Cruscotto sito' : 'Contatti sito'}</ButtonLink>}
+          action={<ButtonLink href={articleRoute || contactsRoute ? '/sito-studio' : '/sito-studio/contatti'} tone="primary">{articleRoute || contactsRoute ? 'Cruscotto sito' : 'Contatti sito'}</ButtonLink>}
         />
       ) : null}
-      {!loading && !error && !contactsRoute && !hasData ? (
+      {!loading && !error && !contactsRoute && !articleRoute && !hasData ? (
         <EmptyState
           title="Nessun dato Sito Studio disponibile"
           message="Il sito non espone ancora contenuti o indicatori visualizzabili."
@@ -618,11 +929,13 @@ export function SitoStudioPage() {
         />
       ) : null}
       {!loading && !error && hasData ? (
-        contactsRoute
+        articleRoute
+          ? <ArticleEditContent data={articleData} reload={() => setReloadCounter((value) => value + 1)} />
+          : contactsRoute
           ? <ContactsContent data={contactsData} reload={() => setReloadCounter((value) => value + 1)} />
           : <DashboardContent data={dashboardData} />
       ) : null}
-      {!loading && !error && hasData ? <ContractPanel data={contactsRoute ? contactsData : dashboardData} /> : null}
+      {!loading && !error && hasData ? <ContractPanel data={articleRoute ? articleData : contactsRoute ? contactsData : dashboardData} /> : null}
     </Page>
   )
 }

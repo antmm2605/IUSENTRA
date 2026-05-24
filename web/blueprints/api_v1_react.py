@@ -124,10 +124,12 @@ from web.services.react_backup_bridge import (
     verify_react_backup_integrity,
 )
 from web.services.react_sito_studio_bridge import (
+    build_react_sito_articolo_modifica_payload,
     build_react_sito_contatti_payload,
     build_react_sito_studio_error_payload,
     build_react_sito_studio_payload,
     link_react_sito_contatto,
+    update_react_sito_articolo,
     update_react_sito_booking_status,
 )
 from web.services.react_sito_studio_builder_bridge import (
@@ -4175,6 +4177,37 @@ def sito_studio_redazione_ai_pubblica(article_id: int):
         current_app.logger.exception("Errore pubblicazione Redazione AI React: %s", exc)
         result = {"ok": False, "message": "Pubblicazione articolo non riuscita."}
     return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.get("/sito-studio/articoli/<int:article_id>/modifica")
+@_richiedi_auth
+def sito_studio_articolo_modifica_page(article_id: int):
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    try:
+        payload = build_react_sito_articolo_modifica_payload(article_id)
+    except Exception as exc:
+        current_app.logger.exception("Errore modifica articolo Sito Studio React bridge: %s", exc)
+        return jsonify(build_react_sito_studio_error_payload("Articolo Sito Studio non disponibile dal runtime corrente.")), 200
+    return _jsonify_domain_payload(payload)
+
+
+@api_v1_react.post("/sito-studio/articoli/<int:article_id>/modifica")
+@_richiedi_auth
+def sito_studio_articolo_modifica_salva(article_id: int):
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    try:
+        result = update_react_sito_articolo(article_id, payload or {})
+    except Exception as exc:
+        current_app.logger.exception("Errore salvataggio articolo Sito Studio React: %s", exc)
+        result = {"ok": False, "message": "Salvataggio articolo non riuscito.", "errors": {"form": "Riprova tra poco."}}
+    return _jsonify_redacted(result), 200 if result.get("ok") else 400
 
 
 @api_v1_react.get("/sito-studio/contatti")

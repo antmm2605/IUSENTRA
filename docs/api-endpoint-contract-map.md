@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 205.
-- Endpoint P0/P1 contrattualizzati: 190.
+- Endpoint React API contrattualizzati: 207.
+- Endpoint P0/P1 contrattualizzati: 192.
 - Endpoint con provider verification 200 rappresentativa: 28.
-- Endpoint con provider verification auth-error: 205.
+- Endpoint con provider verification auth-error: 207.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
 
 | Area | Endpoint | Metodo | Pagina | Priorita | OpenAPI | Provider Test | RBAC | Flag | Tenant | Stato |
@@ -163,6 +163,8 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Scadenziario | `/api/v1/ui/scadenziario/termini/templates` | `GET` | Scadenziario | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Scadenziario | `/api/v1/ui/scadenziario/termini/validate` | `POST` | Scadenziario | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Sito Studio | `/api/v1/ui/sito-studio` | `GET` | Sito Studio | P1 | complete | auth-error | `admin.configura per scritture` | `n/a` | current_tenant | complete-auth-error |
+| Sito Studio | `/api/v1/ui/sito-studio/articoli/{article_id}/modifica` | `GET` | Sito Studio | P1 | complete | auth-error | `admin.configura per scritture` | `n/a` | current_tenant | complete-auth-error |
+| Sito Studio | `/api/v1/ui/sito-studio/articoli/{article_id}/modifica` | `POST` | Sito Studio | P1 | complete | auth-error | `admin.configura per scritture` | `n/a` | current_tenant | complete-auth-error |
 | Sito Studio | `/api/v1/ui/sito-studio/builder` | `GET` | Sito Studio | P1 | complete | auth-error | `admin.configura per scritture` | `n/a` | current_tenant | complete-auth-error |
 | Sito Studio | `/api/v1/ui/sito-studio/builder/assets/{asset_id}` | `DELETE` | Sito Studio | P1 | complete | auth-error | `admin.configura per scritture` | `n/a` | current_tenant | complete-auth-error |
 | Sito Studio | `/api/v1/ui/sito-studio/builder/assets/upload` | `POST` | Sito Studio | P1 | complete | auth-error | `admin.configura per scritture` | `n/a` | current_tenant | complete-auth-error |

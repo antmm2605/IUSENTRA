@@ -8,11 +8,11 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 205.
-- Endpoint con `_richiedi_auth`: 205/205.
-- Endpoint con metodo di scrittura o cancellazione: 99.
+- Endpoint React API censiti: 207.
+- Endpoint con `_richiedi_auth`: 207/207.
+- Endpoint con metodo di scrittura o cancellazione: 100.
 - Endpoint con superficie file/upload/download/export/evidence: 6.
-- Route manifest censite: 106; critical: 18; high/P1: 68.
+- Route manifest censite: 107; critical: 18; high/P1: 69.
 - Parametri controllo bloccati: `tenant_id`, `tenant_slug`, `studio_id`, `studio_slug`, `user_id`, `api_key`, `token`, `access_token`, `refresh_token`, `redirect`, `redirect_url`, `return_url`, `next`, path filesystem.
 - Denial log: `policy_denied.backend_security` e warning applicativo `policy_denied backend_security_control_param` senza valori sensibili.
 
@@ -189,6 +189,8 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `GET` | `/api/v1/ui/scadenziario/termini/templates` | Scadenziario | P1 | `sessione/API tenant-aware` | termini e audit calcolo | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/scadenziario/termini/validate` | Scadenziario | P1 | `sessione/API tenant-aware` | termini e audit calcolo | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/sito-studio` | Sito Studio | P1 | `admin.configura per scritture` | contenuti pubblici e richieste contatto | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/sito-studio/articoli/<int:article_id>/modifica` | Sito Studio | P1 | `admin.configura per scritture` | contenuti pubblici e richieste contatto | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/sito-studio/articoli/<int:article_id>/modifica` | Sito Studio | P1 | `admin.configura per scritture` | contenuti pubblici e richieste contatto | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/sito-studio/builder` | Sito Studio | P1 | `admin.configura per scritture` | contenuti pubblici e richieste contatto | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `DELETE` | `/api/v1/ui/sito-studio/builder/assets/<int:asset_id>` | Sito Studio | P1 | `admin.configura per scritture` | contenuti pubblici e richieste contatto | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/sito-studio/builder/assets/upload` | Sito Studio | P1 | `admin.configura per scritture` | contenuti pubblici e richieste contatto | auth, tenant-aware, RBAC dominio, guardrail fase 5 |

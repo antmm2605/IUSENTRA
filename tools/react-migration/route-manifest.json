@@ -1758,7 +1758,27 @@
         "redazione sito React con API reali",
         "generazione e pubblicazione governate",
         "stati errore e successo visibili",
-        "modifica articolo legacy solo come passaggio secondario motivato"
+        "modifica articolo React full collegata alle bozze generate"
+      ]
+    },
+    {
+      "workspaceTarget": "/app/amministrazione?tab=studio-redazione-ai",
+      "route": "/sito-studio/articoli/:id/modifica",
+      "family": "studio",
+      "status": "react_operational_full",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/SitoStudioPage.tsx",
+      "targetData": "frontend/src/sitoStudioData.ts",
+      "targetBridge": "web/services/react_sito_studio_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/sito-studio__articoli___id__modifica.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "modifica articolo React full",
+        "lettura articolo tenant-aware",
+        "salvataggio JSON auditato",
+        "stati loading empty error not-found success",
+        "nessun dato demo",
+        "percorso di recupero solo tecnico"
       ]
     },
     {

@@ -126,6 +126,80 @@ export type SitoContattoMutationResult = {
   item?: SitoContattoRow | SitoBookingRow | null
 }
 
+export type SitoArticleEditItem = {
+  id: string
+  title: string
+  slug: string
+  excerpt: string
+  coverUrl: string
+  category: string
+  tagsCsv: string
+  authorName: string
+  bodyJsonText: string
+  bodyText: string
+  status: string
+  statusLabel: string
+  statusTone: AdminTone
+  publishedAt: string
+  updatedAt: string
+  seoTitle: string
+  seoDescription: string
+  publicHref: string
+}
+
+export type SitoArticleStatusOption = {
+  value: string
+  label: string
+  tone: AdminTone
+}
+
+export type SitoArticleEditPageData = {
+  ok: boolean
+  notFound: boolean
+  source: string
+  generated_at: string
+  contracts: ReactOperationalContract
+  site: SitoStudioSite
+  article: SitoArticleEditItem | null
+  statuses: SitoArticleStatusOption[]
+  actions: {
+    dashboard: string
+    redazioneAi: string
+    saveEndpoint: string
+    publicPreview: string
+    rollback?: {
+      label: string
+      href: string
+      method: 'GET'
+    }
+  }
+  warnings: WarningItem[]
+}
+
+export type SitoArticleSavePayload = {
+  title: string
+  slug: string
+  excerpt: string
+  coverUrl: string
+  category: string
+  tagsCsv: string
+  authorName: string
+  bodyJsonText: string
+  bodyText: string
+  status: string
+  publishedAt: string
+  seoTitle: string
+  seoDescription: string
+}
+
+export type SitoArticleMutationResult = {
+  ok: boolean
+  message: string
+  errors: Record<string, string>
+  item?: SitoArticleEditItem | null
+  payload?: SitoArticleEditPageData
+}
+
 export type SitoStudioPageData = {
   ok: boolean
   source: string
@@ -242,6 +316,31 @@ export const emptySitoStudioContattiPage: SitoStudioContattiPageData = {
     canLinkMatter: false,
     canUpdateBookingStatus: false,
     unsupportedReason: '',
+  },
+  warnings: [],
+}
+
+export const emptySitoArticleEditPage: SitoArticleEditPageData = {
+  ok: false,
+  notFound: false,
+  source: '',
+  generated_at: '',
+  contracts: {
+    mock_fallback: false,
+    writes: 'json_api',
+    route_owner: 'react_shell',
+    operational: true,
+    notifications: 'legacy_protected',
+    automation: 'legacy_protected',
+  },
+  site: emptySitoStudioPage.site,
+  article: null,
+  statuses: [],
+  actions: {
+    dashboard: '/sito-studio',
+    redazioneAi: '/sito-studio/redazione-ai',
+    saveEndpoint: '',
+    publicPreview: '',
   },
   warnings: [],
 }
@@ -422,6 +521,30 @@ function normaliseBooking(raw: unknown): SitoBookingRow {
   }
 }
 
+function normaliseArticle(raw: unknown): SitoArticleEditItem {
+  const item = asRecord(raw)
+  return {
+    id: text(item.id),
+    title: text(item.title),
+    slug: text(item.slug),
+    excerpt: text(item.excerpt),
+    coverUrl: text(item.coverUrl),
+    category: text(item.category),
+    tagsCsv: text(item.tagsCsv),
+    authorName: text(item.authorName),
+    bodyJsonText: text(item.bodyJsonText, '[]'),
+    bodyText: text(item.bodyText),
+    status: text(item.status) || 'draft',
+    statusLabel: display(item.statusLabel) || 'Bozza',
+    statusTone: tone(item.statusTone),
+    publishedAt: text(item.publishedAt),
+    updatedAt: text(item.updatedAt),
+    seoTitle: text(item.seoTitle),
+    seoDescription: text(item.seoDescription),
+    publicHref: text(item.publicHref),
+  }
+}
+
 function normaliseStatus(raw: unknown): SitoContattoStatus {
   const item = asRecord(raw)
   return {
@@ -436,6 +559,15 @@ function normaliseOption(raw: unknown): { id: string; label: string } {
   return {
     id: text(item.id),
     label: display(item.label),
+  }
+}
+
+function normaliseArticleStatus(raw: unknown): SitoArticleStatusOption {
+  const item = asRecord(raw)
+  return {
+    value: text(item.value),
+    label: display(item.label),
+    tone: tone(item.tone),
   }
 }
 
@@ -520,6 +652,49 @@ function normaliseSitoContattiPage(raw: unknown): SitoStudioContattiPageData {
   }
 }
 
+function normaliseArticleActions(raw: unknown): SitoArticleEditPageData['actions'] {
+  const item = asRecord(raw)
+  const rollback = asRecord(item.rollback)
+  return {
+    dashboard: text(item.dashboard) || '/sito-studio',
+    redazioneAi: text(item.redazioneAi) || '/sito-studio/redazione-ai',
+    saveEndpoint: text(item.saveEndpoint),
+    publicPreview: text(item.publicPreview),
+    rollback: text(rollback.href)
+      ? { label: display(rollback.label) || 'Percorso di recupero', href: text(rollback.href), method: 'GET' }
+      : undefined,
+  }
+}
+
+function normaliseSitoArticleEditPage(raw: unknown): SitoArticleEditPageData {
+  const page = asRecord(sanitizePayload(raw))
+  const article = page.article ? normaliseArticle(page.article) : null
+  return {
+    ok: bool(page.ok),
+    notFound: bool(page.notFound),
+    source: text(page.source),
+    generated_at: text(page.generated_at),
+    contracts: normaliseContract(page.contracts, 'json_api'),
+    site: normaliseSite(page.site),
+    article,
+    statuses: list(page.statuses).map(normaliseArticleStatus).filter((item) => item.value),
+    actions: normaliseArticleActions(page.actions),
+    warnings: list(page.warnings).map(normaliseWarning),
+  }
+}
+
+function normaliseArticleMutation(raw: unknown): SitoArticleMutationResult {
+  const item = asRecord(sanitizePayload(raw))
+  const payload = item.payload ? normaliseSitoArticleEditPage(item.payload) : undefined
+  return {
+    ok: bool(item.ok),
+    message: display(item.message) || (bool(item.ok) ? 'Articolo aggiornato.' : 'Salvataggio non completato.'),
+    errors: Object.fromEntries(Object.entries(asRecord(item.errors)).map(([key, entry]) => [key, display(entry)])),
+    item: item.item ? normaliseArticle(item.item) : null,
+    payload,
+  }
+}
+
 export async function getSitoStudioPage(): Promise<SitoStudioPageData> {
   const payload = await apiJson<unknown>('/api/v1/ui/sito-studio', emptySitoStudioPage)
   return normaliseSitoStudioPage(payload)
@@ -528,6 +703,40 @@ export async function getSitoStudioPage(): Promise<SitoStudioPageData> {
 export async function getSitoStudioContattiPage(): Promise<SitoStudioContattiPageData> {
   const payload = await apiJson<unknown>('/api/v1/ui/sito-studio/contatti', emptySitoStudioContattiPage)
   return normaliseSitoContattiPage(payload)
+}
+
+export async function getSitoArticleEditPage(articleId: string): Promise<SitoArticleEditPageData> {
+  const payload = await apiJson<unknown>(
+    `/api/v1/ui/sito-studio/articoli/${encodeURIComponent(articleId)}/modifica`,
+    emptySitoArticleEditPage,
+  )
+  return normaliseSitoArticleEditPage(payload)
+}
+
+export async function saveSitoArticle(
+  articleId: string,
+  payload: SitoArticleSavePayload,
+): Promise<SitoArticleMutationResult> {
+  const safePayload = {
+    title: payload.title,
+    slug: payload.slug,
+    excerpt: payload.excerpt,
+    coverUrl: payload.coverUrl,
+    category: payload.category,
+    tagsCsv: payload.tagsCsv,
+    authorName: payload.authorName,
+    bodyJsonText: payload.bodyJsonText,
+    status: payload.status,
+    publishedAt: payload.publishedAt,
+    seoTitle: payload.seoTitle,
+    seoDescription: payload.seoDescription,
+  }
+  const result = await apiPostJson<unknown>(
+    `/api/v1/ui/sito-studio/articoli/${encodeURIComponent(articleId)}/modifica`,
+    safePayload,
+    { ok: false, message: 'Salvataggio non completato.', errors: { form: 'Riprova tra poco.' }, item: null },
+  )
+  return normaliseArticleMutation(result)
 }
 
 export async function updateSitoContattoStatus(): Promise<SitoContattoMutationResult> {

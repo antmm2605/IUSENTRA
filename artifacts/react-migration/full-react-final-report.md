@@ -2,6 +2,24 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-24T23:55:00+02:00: Sito Studio modifica articolo
+2.248.37.
+`/sito-studio/articoli/:id/modifica` è ora una pagina React operativa completa:
+la route Flask serve la shell React, il payload arriva da
+`/api/v1/ui/sito-studio/articoli/<id>/modifica`, il form salva sul backend
+reale via JSON, blocca i campi di contesto forzato e registra audit
+tenant-aware. La pagina mostra caricamento, assenza articolo, errori campo,
+successo di salvataggio, anteprima pubblica e azioni editoriali senza mock o
+dati demo.
+
+Il gate React ammette solo la rotta esatta di modifica articolo e mantiene
+protetti i percorsi tecnici non ricostruiti. Manifest, contratti legacy,
+route-gate, full-react-route-contract, no-fake React full, test frontend e
+pytest mirati impediscono il ritorno a fallback classici. La verifica browser
+desktop/tablet/mobile ha confermato titolo e corpo editabili preservati,
+nessun overflow orizzontale, nessun errore console e nessun testo tecnico
+vietato visibile.
+
 Aggiornamento 2026-05-24T22:20:00+02:00: React full senza pagine finte
 2.248.36.
 `/giurisprudenza/nuova` è stata ricostruita come superficie React completa:

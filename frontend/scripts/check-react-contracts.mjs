@@ -434,7 +434,7 @@ assertContains(tranche8aOpenDesignReport, 'Token creati', 'report Open Design 8A
 if (routeManifest.policy?.currentReleaseUnlocksRoutes !== true) {
   throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true nelle tranche di promozione')
 }
-const allowedGovernedUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/importa', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/:id/cartella', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/email', '/email-ordinaria', '/notifiche-legali', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/giurisprudenza/nuova', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profilo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/scadenziario/:id', '/scadenziario/:id/modifica', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/builder', '/sito-studio/contatti', '/sito-studio/redazione-ai', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
+const allowedGovernedUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/importa', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/:id/cartella', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/email', '/email-ordinaria', '/notifiche-legali', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/giurisprudenza/nuova', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profilo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/scadenziario/:id', '/scadenziario/:id/modifica', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/articoli/:id/modifica', '/sito-studio/builder', '/sito-studio/contatti', '/sito-studio/redazione-ai', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
 const governedTelematicoGraphicalRoutes = ['/telematico', '/servizi-telematici', '/polisWeb', '/pdp', '/pat', '/sigit', '/tribunali', '/guida/firma-digitale']
 const governedTelematicoAcquisitionRoutes = ['/portali/pst/acquisizione', '/portali/pdp/acquisizione', '/portali/pat/acquisizione', '/portali/ptt/acquisizione', '/portali/sigit/acquisizione']
 for (const route of governedTelematicoGraphicalRoutes) allowedGovernedUnlocks.add(route)
@@ -499,6 +499,7 @@ const governedExpectedStatuses = new Map([
   ['/scadenziario/:id/modifica', 'react_operational_full'],
   ['/sincronizzazione-calendari', 'react_operational_full'],
   ['/sito-studio', 'react_operational_full'],
+  ['/sito-studio/articoli/:id/modifica', 'react_operational_full'],
   ['/sito-studio/builder', 'react_operational_full'],
   ['/sito-studio/contatti', 'react_operational_full'],
   ['/sito-studio/redazione-ai', 'react_operational_full'],
@@ -549,6 +550,7 @@ for (const [route, status] of [
   ['/studio', 'react_operational_full'],
   ['/amministrazione', 'react_operational_full'],
   ['/sito-studio', 'react_operational_full'],
+  ['/sito-studio/articoli/:id/modifica', 'react_operational_full'],
   ['/sito-studio/builder', 'react_operational_full'],
   ['/sito-studio/contatti', 'react_operational_full'],
   ['/sito-studio/redazione-ai', 'react_operational_full'],
@@ -605,7 +607,7 @@ for (const route of ['/fatturazione/*', '/preventivi/*', '/compensi-forensi/*', 
     throw new Error(`route manifest: ${route} deve restare legacy_operational con unlockFromGate=false`)
   }
 }
-for (const route of ['/utenti', '/profilo', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche-legali', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/sito-studio/redazione-ai', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/documenti', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/legal-intelligence/*', '/ricerca-legale', '/ricerca-legale/*', '/deposito/checklist', '/strumenti-legali', '/strumenti-operativi', '/telematico', '/servizi-telematici', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/tribunali', '/guida/firma-digitale', '/portali/pst/acquisizione', '/portali/*']) {
+for (const route of ['/utenti', '/profilo', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche-legali', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/articoli/:id/modifica', '/sito-studio/contatti', '/sito-studio/builder', '/sito-studio/redazione-ai', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/documenti', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/legal-intelligence/*', '/ricerca-legale', '/ricerca-legale/*', '/deposito/checklist', '/strumenti-legali', '/strumenti-operativi', '/telematico', '/servizi-telematici', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/tribunali', '/guida/firma-digitale', '/portali/pst/acquisizione', '/portali/*']) {
   if (!(routeManifest.routes ?? []).some((entry) => entry.route === route)) {
     throw new Error(`route manifest: manca ${route}`)
   }
@@ -974,6 +976,8 @@ assertContains(backupData, '/api/v1/ui/backup', 'backupData usa endpoint backup'
 assertContains(backupData, 'apiPostJson', 'backupData usa apiPostJson per azioni backup')
 assertContains(sitoStudioData, '/api/v1/ui/sito-studio', 'sitoStudioData usa endpoint sito studio')
 assertContains(sitoStudioData, '/api/v1/ui/sito-studio/contatti', 'sitoStudioData usa endpoint contatti sito studio')
+assertContains(sitoStudioData, '/api/v1/ui/sito-studio/articoli/', 'sitoStudioData usa endpoint modifica articolo sito studio')
+assertContains(sitoStudioData, 'saveSitoArticle', 'sitoStudioData salva articoli con richiesta JSON')
 assertContains(studioData, '/api/v1/ui/studio', 'studioData usa endpoint studio')
 assertContains(amministrazioneData, '/api/v1/ui/amministrazione', 'amministrazioneData usa endpoint amministrazione')
 assertContains(fatturazioneData, '/api/v1/ui/fatturazione', 'fatturazioneData usa endpoint fatturazione')
@@ -1030,6 +1034,8 @@ assertContains(apiBridge, '@api_v1_react.post("/backup/crea")', 'endpoint JSON c
 assertContains(apiBridge, '@api_v1_react.post("/backup/verifica")', 'endpoint JSON verifica backup')
 assertContains(apiBridge, '@api_v1_react.get("/sito-studio")', 'endpoint UI sito studio')
 assertContains(apiBridge, '@api_v1_react.get("/sito-studio/contatti")', 'endpoint UI contatti sito studio')
+assertContains(apiBridge, '@api_v1_react.get("/sito-studio/articoli/<int:article_id>/modifica")', 'endpoint UI modifica articolo sito studio')
+assertContains(apiBridge, '@api_v1_react.post("/sito-studio/articoli/<int:article_id>/modifica")', 'endpoint JSON salva articolo sito studio')
 assertContains(apiBridge, '@api_v1_react.get("/studio")', 'endpoint UI studio')
 assertContains(apiBridge, '@api_v1_react.get("/amministrazione")', 'endpoint UI amministrazione')
 assertContains(apiBridge, '@api_v1_react.get("/fatturazione")', 'endpoint UI fatturazione')
@@ -1105,6 +1111,7 @@ assertContains(reactRouteGate, 'lower.startswith("/backup/")', 'gate protegge su
 assertContains(reactRouteGate, '_SITO_STUDIO_REACT_SUBPATHS', 'gate usa allowlist sito studio migrata')
 assertContains(reactRouteGate, '"/sito-studio/builder"', 'gate consente builder sito studio React')
 assertContains(reactRouteGate, '"/sito-studio/redazione-ai"', 'gate consente redazione AI sito studio React full')
+assertContains(reactRouteGate, 'def _sito_studio_react_allowed', 'gate consente modifica articolo sito studio React full per pattern')
 assertContains(reactRouteGate, 'lower.startswith("/studio/")', 'gate protegge subpath studio legacy')
 assertContains(reactRouteGate, 'lower.startswith("/amministrazione/")', 'gate protegge subpath amministrazione legacy')
 assertContains(reactRouteGate, 'lower.startswith("/fatturazione/") and lower != "/fatturazione/nuova"', 'gate protegge subpath fatturazione legacy')
@@ -1172,6 +1179,7 @@ assertContains(reactShellBlueprint, 'lower.startswith("/backup/")', 'shell prote
 assertContains(reactShellBlueprint, '_SITO_STUDIO_REACT_SUBPATHS', 'shell usa allowlist sito studio migrata')
 assertContains(reactShellBlueprint, '"/sito-studio/builder"', 'shell consente builder sito studio React')
 assertContains(reactShellBlueprint, '"/sito-studio/redazione-ai"', 'shell consente redazione AI sito studio React full')
+assertContains(reactShellBlueprint, 'def _sito_studio_react_allowed', 'shell consente modifica articolo sito studio React full per pattern')
 assertContains(reactShellBlueprint, 'lower.startswith("/studio/")', 'shell protegge subpath studio legacy')
 assertContains(reactShellBlueprint, 'lower.startswith("/amministrazione/")', 'shell protegge subpath amministrazione legacy')
 assertContains(reactShellBlueprint, 'lower.startswith("/fatturazione/") and lower != "/fatturazione/nuova"', 'shell protegge subpath fatturazione legacy')
@@ -1766,6 +1774,7 @@ for (const route of [
   '/timesheet',
   '/cartelle-condivise',
   '/sito-studio',
+  '/sito-studio/articoli/:id/modifica',
   '/sito-studio/builder',
   '/sito-studio/contatti',
   '/sito-studio/redazione-ai',
@@ -2097,6 +2106,7 @@ assertManifestRoute('/legal-intelligence/mediazione', 'react_operational_full', 
 assertManifestRoute('/legal-intelligence/*', 'legacy_operational', false)
 assertManifestRoute('/ricerca-legale', 'react_operational_full', true)
 assertManifestRoute('/ricerca-legale/*', 'legacy_operational', false)
+assertManifestRoute('/sito-studio/articoli/:id/modifica', 'react_operational_full', true)
 assertManifestRoute('/deposito/checklist', 'react_operational_full', true)
 assertManifestRoute('/strumenti-legali', 'react_operational_full', true)
 assertManifestRoute('/strumenti-operativi', 'react_operational_full', true)

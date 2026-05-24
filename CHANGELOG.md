@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.248.37 - 2026-05-24
+
+- Promossa `/sito-studio/articoli/:id/modifica` a React full: la pagina ora passa dalla shell React, legge l’articolo dal repository del tenant corrente e salva via API JSON reale.
+- Aggiunti form operativo, stati loading/errore/non trovato/successo, anteprima pubblica, collegamento alla redazione assistita e percorso di recupero solo tecnico con `_legacy=1`.
+- Rafforzati manifest, contratti, route gate, test shell/API e gate anti-mascheramento per impedire che la modifica articolo torni tra le eccezioni classiche.
+- Corretto il normalizzatore della pagina articolo: i campi modificabili conservano i valori reali dell'articolo e non applicano traduzioni dei testi tecnici destinate solo alle etichette di interfaccia.
+
 ## 2.248.36 - 2026-05-24
 
 - Chiusa la Fase 3 React full senza pagine finte: `/giurisprudenza/nuova` passa alla shell React governata con API JSON reali, stati loading/empty/error/success e salvataggio backend effettivo.

@@ -1741,6 +1741,42 @@ def test_costruisce_body_qbuilder_ricerca_per_tipo():
     assert '<entry property="ANNORUOLO, NUMERORUOLO" mode="asc"/>' in xml
 
 
+def test_qbuilder_siecic_usa_servizi_catalogo_ministeriale():
+    module = _load_local_signer()
+    base_url = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC"
+
+    ricerca_xml = module._soap_ricerca_fascicoli_body(
+        base_url=base_url,
+        codice_ufficio="0800570094",
+        numero_rg="3441",
+        anno_rg=2025,
+        cf_avvocato="MNTRRT64L01L063H",
+    )
+    profilo_xml = module._soap_profilo_fascicolo_body(
+        base_url=base_url,
+        codice_ufficio="0800570094",
+        numero_rg="3441",
+        anno_rg=2025,
+    )
+    documenti_xml = module._soap_documenti_body(
+        base_url=base_url,
+        codice_ufficio="0800570094",
+        numero_rg="3441",
+        anno_rg=2025,
+    )
+
+    assert '<execute xmlns="urn:CONS-SIECIC-BE">' in ricerca_xml
+    assert "<name>InfoFascicolo</name>" in ricerca_xml
+    assert "<name>ProfiloFascicolo</name>" in profilo_xml
+    assert "<name>ElencoDocumenti</name>" in documenti_xml
+    for xml in (ricerca_xml, profilo_xml, documenti_xml):
+        assert '<value name="idUfficio" type="string">0800570094</value>' in xml
+        assert '<value name="numeroRuolo" type="string">3441</value>' in xml
+        assert '<value name="annoRuolo" type="integer">2025</value>' in xml
+        assert "<name>RicercaInformazioniFascicoloPerTipo</name>" not in xml
+        assert "<name>DocumentiFascicolo</name>" not in xml
+
+
 def test_costruisce_body_legacy_ricerca_esatta_senza_filtri_parte():
     module = _load_local_signer()
 
@@ -1972,6 +2008,27 @@ def test_parse_qbuilder_fascicoli_xml_supporta_codiceufficio_e_date_estese():
     assert fascicoli[0]["sezione"] == "CIVILE"
 
 
+def test_parse_qbuilder_siecic_supporta_nomi_catalogo_camel_case():
+    module = _load_local_signer()
+
+    xml = """<?xml version='1.0' encoding='UTF-8'?>
+<SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+<SOAP-ENV:Body>
+<ns1:executeResponse xmlns:ns1="urn:CONS-SIECIC-BE"><return available="1" xmlns:ns2="urn:qbuilder-types" xsi:type="ns2:rowListType"><ns2:row class="InfoFascicolo"><ns2:property name="idFascicolo" type="string">FASC-3441</ns2:property><ns2:property name="idUfficio" type="string">0800570094</ns2:property><ns2:property name="annoRuolo" type="integer">2025</ns2:property><ns2:property name="numeroRuolo" type="string">3441</ns2:property><ns2:property name="descrRito" type="string">Esecuzioni immobiliari</ns2:property><ns2:property name="dataUdienza" type="date">12/06/2026</ns2:property><ns2:property name="giudice" type="string">GIUDICE TEST</ns2:property><ns2:property name="creditori" type="string">Creditore Test</ns2:property><ns2:property name="debitori" type="string">Debitore Test</ns2:property></ns2:row></return></ns1:executeResponse>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+
+    fascicoli = module._parse_fascicoli_xml(xml)
+
+    assert len(fascicoli) == 1
+    assert fascicoli[0]["id_fascicolo"] == "FASC-3441"
+    assert fascicoli[0]["numero_rg"] == "3441"
+    assert fascicoli[0]["anno_rg"] == 2025
+    assert fascicoli[0]["codice_ufficio"] == "0800570094"
+    assert fascicoli[0]["ruolo"] == "Esecuzioni immobiliari"
+    assert fascicoli[0]["data_udienza"] == "2026-06-12"
+
+
 def test_parse_qbuilder_documenti_xml():
     module = _load_local_signer()
 
@@ -1990,6 +2047,26 @@ def test_parse_qbuilder_documenti_xml():
     assert documenti[0]["tipo_atto"] == "SentenzaDefinitiva"
     assert documenti[0]["id_deposito"] == ""
     assert documenti[0]["mittente"] == "GIOVANNELLA MARIA ELENA"
+
+
+def test_parse_qbuilder_siecic_documenti_elenco_documenti():
+    module = _load_local_signer()
+
+    xml = """<?xml version='1.0' encoding='UTF-8'?>
+<SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+<SOAP-ENV:Body>
+<ns1:executeResponse xmlns:ns1="urn:CONS-SIECIC-BE"><return available="1" xmlns:ns2="urn:qbuilder-types" xsi:type="ns2:rowListType"><ns2:row class="ElencoDocumenti"><ns2:property name="idDoc" type="string">DOC-3441</ns2:property><ns2:property name="tipoDocumento" type="string">Istanza</ns2:property><ns2:property name="dataDeposito" type="date">15/05/2026</ns2:property><ns2:property name="provenienza" type="string">Cancelleria</ns2:property><ns2:property name="decodeAttivo" type="string">Si</ns2:property></ns2:row></return></ns1:executeResponse>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+
+    documenti = module._parse_documenti_xml(xml)
+
+    assert len(documenti) == 1
+    assert documenti[0]["id_documento"] == "DOC-3441"
+    assert documenti[0]["tipo"] == "Istanza"
+    assert documenti[0]["data_deposito"] == "2026-05-15"
+    assert documenti[0]["mittente"] == "Cancelleria"
+    assert documenti[0]["disponibile"] is True
 
 
 def test_parse_documenti_xml_supporta_container_annidato():
@@ -4242,7 +4319,7 @@ def test_pst_ricerca_snapshot_batcha_ricerca_e_documenti_senza_preflight():
     assert captured["payload"]["documenti"][0]["id_documento"] == "DOC-1"
     assert captured["payload"]["snapshot"]["fascicolo"]["numero"] == "274"
     assert captured["session_ids"] == ["SID-STALENESS-FROM-BROWSER", ""]
-    assert len(captured["batch"]["requests"]) == 6
+    assert len(captured["batch"]["requests"]) == 9
     assert captured["batch"]["kwargs"]["cert_thumbprint"] == "AABBCC11"
     assert captured["batch"]["kwargs"]["prefer_cookie_only"] is False
 
@@ -4351,6 +4428,101 @@ def test_pst_ricerca_snapshot_fault_client_su_sicid_passa_a_siecic(monkeypatch):
     assert captured["payload"]["ok"] is True
     assert captured["payload"]["fascicoli"][0]["numero_rg"] == "274"
     assert captured["payload"]["documenti"][0]["id_documento"] == "DOC-SIECIC"
+
+
+def test_pst_ricerca_snapshot_prova_codice_ufficio_ufficiale_se_diverso(monkeypatch):
+    module = _load_local_signer()
+    captured = {}
+    monkeypatch.setenv("HACS_SIGNER_PST_REGISTER_FALLBACK", "0")
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "tribunale": "0910011",
+                "numero_rg": "3441",
+                "anno_rg": "2025",
+                "cert_thumbprint": "AABBCC11",
+                "cf_avvocato": "RSSMRA80A01H501Z",
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    monkeypatch.setattr(module, "_curl_disponibile", lambda: True)
+    monkeypatch.setattr(
+        module,
+        "_risolvi_base_pst_runtime",
+        lambda tribunale: "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+    )
+    monkeypatch.setattr(module, "_risolvi_codice_ufficio_pst", lambda tribunale: "0800570094")
+    monkeypatch.setattr(module, "_require_certificato_pst", lambda thumbprint: "AABBCC11")
+    monkeypatch.setattr(module, "_cf_avvocato_pst", lambda cf, thumbprint: "RSSMRA80A01H501Z")
+    monkeypatch.setattr(module, "_risolvi_ufficio_da_snapshot", lambda codice: {"nome": "Tribunale di Palmi"})
+    monkeypatch.setattr(
+        module,
+        "_ensure_pst_session_entry",
+        lambda *args, **kwargs: (
+            {
+                "session_id": "SID-PALMI",
+                "cookie_file": "C:\\temp\\pst.cookies",
+                "auth_ready": False,
+                "cf_avvocato": "RSSMRA80A01H501Z",
+            },
+            True,
+        ),
+    )
+    monkeypatch.setattr(module, "_pst_preflight_auth_curl", lambda *args, **kwargs: pytest.fail("preflight vietato"))
+
+    def _fake_best_effort(requests, **kwargs):
+        captured["requests"] = list(requests)
+        bodies = [
+            b"<primary-search/>",
+            b"<primary-profile/>",
+            b"<primary-docs/>",
+            b"<official-search/>",
+            b"<official-profile/>",
+            b"<official-docs/>",
+        ]
+        return [
+            {"body_bytes": body, "headers_text": "HTTP/1.1 200 OK\r\n", "status_code": 200, "error": ""}
+            for body in bodies
+        ]
+
+    monkeypatch.setattr(module, "_soap_call_pst_session_batch_raw_best_effort", _fake_best_effort)
+    monkeypatch.setattr(module, "_estrai_fault_soap", lambda xml: None)
+    monkeypatch.setattr(
+        module,
+        "_parse_fascicoli_xml",
+        lambda xml: [
+            {
+                "numero_rg": "3441",
+                "anno_rg": 2025,
+                "codice_ufficio": "0910011",
+                "nome_ufficio": "Tribunale di Palmi",
+                "oggetto": "Fascicolo reale",
+            }
+        ]
+        if "official-search" in str(xml)
+        else [],
+    )
+    monkeypatch.setattr(
+        module,
+        "_parse_documenti_xml",
+        lambda xml: [{"id_documento": "DOC-PALMI", "nome": "Atto.pdf"}] if "official-docs" in str(xml) else [],
+    )
+    monkeypatch.setattr(module, "_update_pst_session", lambda *args, **kwargs: None)
+    monkeypatch.setattr(module, "_get_pst_session", lambda *args, **kwargs: None)
+
+    module._Handler._pst_ricerca_snapshot(_FakeHandler())
+
+    assert captured["status"] == 200
+    assert len(captured["requests"]) == 6
+    assert any('group="0910011"' in request["soap_body"] for request in captured["requests"])
+    assert captured["payload"]["ok"] is True
+    assert captured["payload"]["fascicoli"][0]["numero_rg"] == "3441"
+    assert captured["payload"]["snapshot"]["fascicolo"]["ufficio_codice"] == "0910011"
+    assert captured["payload"]["documenti"][0]["id_documento"] == "DOC-PALMI"
 
 
 def test_pst_ricerca_snapshot_sigp_include_ricerca_atti_nel_batch_visualizzazione():

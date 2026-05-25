@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.43
+IUSENTRA Local Signer - v1.6.44
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -111,7 +111,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.43"
+VERSION = "1.6.44"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -792,6 +792,17 @@ def _pst_base_varianti_ricerca_esatta(codice_o_nome: str, base_url: str) -> list
         if variante and variante not in varianti:
             varianti.append(variante)
     return varianti or ([base_url.rstrip("/")] if base_url else [])
+
+
+def _pst_codici_ufficio_ricerca_esatta(codice_pst: str, codice_richiesto: str) -> list[str]:
+    codici: list[str] = []
+    for index, codice in enumerate((codice_pst, codice_richiesto)):
+        value = str(codice or "").strip()
+        if index > 0 and value and not value.isdigit():
+            continue
+        if value and value not in codici:
+            codici.append(value)
+    return codici
 
 
 def _cerca_lib_registro_windows() -> Optional[str]:
@@ -2604,6 +2615,10 @@ def _pst_namespace_qbuilder(base_url: str) -> str:
 
 def _pst_servizio_sigp(base_url: str) -> bool:
     return _pst_servizio_proxy(base_url) == "JPW_SIGP"
+
+
+def _pst_servizio_siecic(base_url: str) -> bool:
+    return _pst_servizio_proxy(base_url) == "JPW_SIECIC"
 
 
 def _pst_tipo_ricerca_qbuilder(base_url: str) -> str:
@@ -4513,6 +4528,19 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
     if namespace:
         if numero_rg and anno_rg:
             numero_value = str(int(str(numero_rg).strip())) if str(numero_rg).strip().isdigit() else str(numero_rg).strip()
+            if _pst_servizio_siecic(base_url):
+                return _soap_qbuilder_execute_body(
+                    namespace,
+                    "InfoFascicolo",
+                    [
+                        ("idUfficio", "string", codice_ufficio),
+                        ("numeroRuolo", "string", numero_value),
+                        ("annoRuolo", "integer", str(anno_rg)),
+                    ],
+                    role="AVV",
+                    group=codice_ufficio,
+                    order_entries=[("annoRuolo, numeroRuolo", "asc")],
+                )
             values = [
                 ("idUfficio", "string", codice_ufficio),
                 ("tipo", "string", _pst_tipo_ricerca_qbuilder(base_url)),
@@ -4588,6 +4616,19 @@ def _soap_documenti_body(base_url: str, codice_ufficio: str, numero_rg: str,
     namespace = _pst_namespace_qbuilder(base_url)
     if namespace:
         numero_value = str(int(str(numero_rg).strip())) if str(numero_rg).strip().isdigit() else str(numero_rg).strip()
+        if _pst_servizio_siecic(base_url):
+            return _soap_qbuilder_execute_body(
+                namespace,
+                "ElencoDocumenti",
+                [
+                    ("idUfficio", "string", codice_ufficio),
+                    ("numeroRuolo", "string", numero_value),
+                    ("annoRuolo", "integer", str(anno_rg)),
+                ],
+                role="AVV",
+                group=codice_ufficio,
+                order_entries=[("dataDeposito", "desc")],
+            )
         values = [
             ("idUfficio", "string", codice_ufficio),
             ("anno", "string", str(anno_rg)),
@@ -4645,19 +4686,27 @@ def _soap_profilo_fascicolo_body(base_url: str, codice_ufficio: str, numero_rg: 
     if not namespace:
         return ""
     numero_value = str(int(str(numero_rg).strip())) if str(numero_rg).strip().isdigit() else str(numero_rg).strip()
-    values = [
-        ("idUfficio", "string", codice_ufficio),
-        ("anno", "string", str(anno_rg)),
-        ("numero", "string", numero_value),
-        ("fascPrecedente", "boolean", "false"),
-        ("scadTermini", "boolean", "false"),
-    ]
-    if _pst_servizio_sigp(base_url):
-        sigp_subpro = _pst_subpro_sigp(sub_procedimento)
-        if sigp_subpro:
-            values.append(("subpro", "string", sigp_subpro))
-    elif sub_procedimento:
-        values.append(("subProc", "string", sub_procedimento))
+    if _pst_servizio_siecic(base_url):
+        values = [
+            ("idUfficio", "string", codice_ufficio),
+            ("numeroRuolo", "string", numero_value),
+            ("annoRuolo", "integer", str(anno_rg)),
+            ("scadTermini", "boolean", "false"),
+        ]
+    else:
+        values = [
+            ("idUfficio", "string", codice_ufficio),
+            ("anno", "string", str(anno_rg)),
+            ("numero", "string", numero_value),
+            ("fascPrecedente", "boolean", "false"),
+            ("scadTermini", "boolean", "false"),
+        ]
+        if _pst_servizio_sigp(base_url):
+            sigp_subpro = _pst_subpro_sigp(sub_procedimento)
+            if sigp_subpro:
+                values.append(("subpro", "string", sigp_subpro))
+        elif sub_procedimento:
+            values.append(("subProc", "string", sub_procedimento))
     return _soap_qbuilder_execute_body(
         namespace,
         "ProfiloFascicolo",
@@ -4701,6 +4750,25 @@ def _parse_qbuilder_row_list(xml_str: str) -> list[dict]:
     return righe
 
 
+def _qbuilder_value(row: dict, *names: str) -> str:
+    wanted = {str(name or "").strip().upper() for name in names if str(name or "").strip()}
+    for key, value in row.items():
+        if str(key).strip().upper() in wanted:
+            text = str(value or "").strip()
+            if text:
+                return text
+    return ""
+
+
+def _qbuilder_subrows(row: dict, class_name: str) -> list[dict]:
+    wanted = str(class_name or "").strip().upper()
+    subrows = row.get("__subrows") if isinstance(row.get("__subrows"), dict) else {}
+    for key, rows in subrows.items():
+        if str(key).strip().upper() == wanted and isinstance(rows, list):
+            return rows
+    return []
+
+
 def _qbuilder_numero_rg(valore: str) -> str:
     testo = (valore or "").strip()
     if not testo:
@@ -4724,17 +4792,17 @@ def _qbuilder_tipo_documento(valore: str) -> str:
 
 def _qbuilder_parti_dettaglio(row: dict) -> list[dict]:
     dettaglio = []
-    for parte in (row.get("__subrows") or {}).get("InfoParte", []):
+    for parte in _qbuilder_subrows(row, "InfoParte"):
         nome = " ".join(
-            chunk for chunk in [str(parte.get("COGNOME") or "").strip(), str(parte.get("NOME") or "").strip()]
+            chunk for chunk in [_qbuilder_value(parte, "COGNOME"), _qbuilder_value(parte, "NOME")]
             if chunk
         )
         dettaglio.append({
             "nome": nome,
-            "tipo": str(parte.get("TIPO") or "").strip(),
-            "codice_fiscale": str(parte.get("CODICEFISCALEPARTE") or "").strip(),
-            "avvocato": str(parte.get("AVVOCATO") or "").strip(),
-            "cf_avvocato": str(parte.get("CODICEFISCALEAVVOCATO") or "").strip(),
+            "tipo": _qbuilder_value(parte, "TIPO"),
+            "codice_fiscale": _qbuilder_value(parte, "CODICEFISCALEPARTE", "codiceFiscaleParte"),
+            "avvocato": _qbuilder_value(parte, "AVVOCATO"),
+            "cf_avvocato": _qbuilder_value(parte, "CODICEFISCALEAVVOCATO", "codiceFiscaleAvvocato"),
         })
     return dettaglio
 
@@ -4755,52 +4823,42 @@ def _normalizza_data_pst(valore: str) -> str:
 
 def _map_qbuilder_fascicolo(row: dict) -> dict:
     parti_dettaglio = _qbuilder_parti_dettaglio(row)
-    codice_ufficio = str(
-        row.get("IDUFFICIO")
-        or row.get("CODICEUFFICIO")
-        or row.get("UFFICIO")
-        or ""
-    ).strip()
+    codice_ufficio = _qbuilder_value(row, "IDUFFICIO", "idUfficio", "CODICEUFFICIO", "codiceUfficio", "UFFICIO")
     ufficio = _risolvi_ufficio_da_snapshot(codice_ufficio)
     return {
-        "id_fascicolo": str(row.get("IDFASCICOLO") or "").strip(),
-        "numero_rg": _qbuilder_numero_rg(str(row.get("NUMERORUOLO") or row.get("NUMERO") or "")),
-        "anno_rg": int(str(row.get("ANNORUOLO") or row.get("ANNO") or 0) or 0),
-        "ruolo": str(row.get("RUOLODESCRIZIONE") or row.get("RUOLO") or row.get("DESCRUOLO") or row.get("RITO") or "").strip(),
-        "stato": str(row.get("STATOFASCICOLODESCRIZIONE") or row.get("STATOFASCICOLO") or row.get("DESCSTATO") or row.get("STATO") or "").strip(),
-        "oggetto": str(row.get("OGGETTOFASCICOLO") or row.get("OGGETTO") or row.get("DESCOGGETTO") or "").strip(),
-        "sezione": str(row.get("SEZIONE") or row.get("DESCRIZIONESEZIONE") or row.get("DESCSEZIONE") or "").strip(),
-        "giudice": str(row.get("GIUDICE") or row.get("MAGISTRATO") or "").strip(),
-        "data_iscrizione": _normalizza_data_pst(str(row.get("DATAISCRIZIONERUOLO") or row.get("DATAISCRIZIONE") or "").strip()),
-        "data_udienza": _normalizza_data_pst(str(row.get("DATAPROSSIMAUDIENZA") or row.get("DATAUDIENZA") or row.get("DATAPRIMACOMPARIZIONE") or row.get("DATAULTIMAUDIENZA") or "").strip()),
+        "id_fascicolo": _qbuilder_value(row, "IDFASCICOLO", "idFascicolo", "IDDFA", "idDfa"),
+        "numero_rg": _qbuilder_numero_rg(_qbuilder_value(row, "NUMERORUOLO", "numeroRuolo", "NUMERO", "numero")),
+        "anno_rg": int(_qbuilder_value(row, "ANNORUOLO", "annoRuolo", "ANNO", "anno") or 0),
+        "ruolo": _qbuilder_value(row, "RUOLODESCRIZIONE", "ruoloDescrizione", "DESCRRITO", "descrRito", "RUOLO", "DESCRUOLO", "RITO"),
+        "stato": _qbuilder_value(row, "STATOFASCICOLODESCRIZIONE", "statoFascicoloDescrizione", "STATOFASCICOLO", "DESCSTATO", "descStato", "STATO"),
+        "oggetto": _qbuilder_value(row, "OGGETTOFASCICOLO", "oggettoFascicolo", "DESCOGGETTO", "descOggetto", "OGGETTO"),
+        "sezione": _qbuilder_value(row, "SEZIONE", "DESCRIZIONESEZIONE", "DESCSEZIONE", "descSezione"),
+        "giudice": _qbuilder_value(row, "GIUDICE", "MAGISTRATO", "magistrato"),
+        "data_iscrizione": _normalizza_data_pst(_qbuilder_value(row, "DATAISCRIZIONERUOLO", "DATAISCRIZIONE", "DataIscrizione", "dataIscrizione")),
+        "data_udienza": _normalizza_data_pst(_qbuilder_value(row, "DATAPROSSIMAUDIENZA", "DATAUDIENZA", "dataUdienza", "DATAPRIMACOMPARIZIONE", "DATAULTIMAUDIENZA", "dataUltimaUdienza")),
         "codice_ufficio": codice_ufficio,
         "nome_ufficio": str((ufficio or {}).get("nome") or "").strip(),
-        "sub_procedimento": str(row.get("SUBPROCEDIMENTO") or "").strip(),
+        "sub_procedimento": _qbuilder_value(row, "SUBPROCEDIMENTO", "subProcedimento"),
         "parti": [parte["nome"] for parte in parti_dettaglio if parte.get("nome")],
         "parti_dettaglio": parti_dettaglio,
     }
 
 
 def _map_qbuilder_documento(row: dict) -> dict:
-    tipo = _qbuilder_tipo_documento(str(row.get("TIPO") or ""))
-    id_cat = str(row.get("IDCAT") or row.get("IDCATEGORIA") or "").strip()
-    id_documento = str(
-        row.get("IDDOCUMENTO")
-        or row.get("NUMERODOCUMENTO")
-        or row.get("IDDOCMITTENTE")
-        or ""
-    ).strip()
-    numero_documento = str(row.get("NUMERODOCUMENTO") or "").strip()
-    id_doc_mittente = str(row.get("IDDOCMITTENTE") or "").strip()
+    tipo = _qbuilder_tipo_documento(_qbuilder_value(row, "TIPO", "tipo", "TIPODOCUMENTO", "tipoDocumento", "TIPOATTO", "tipoAtto"))
+    id_cat = _qbuilder_value(row, "IDCAT", "idCat", "IDCATEGORIA", "idCategoria")
+    id_documento = _qbuilder_value(row, "IDDOCUMENTO", "IdDocumento", "idDocumento", "NUMERODOCUMENTO", "numeroDocumento", "IDDOC", "idDoc", "IDATTO", "idAtto", "IDDOCMITTENTE", "idDocMittente")
+    numero_documento = _qbuilder_value(row, "NUMERODOCUMENTO", "numeroDocumento")
+    id_doc_mittente = _qbuilder_value(row, "IDDOCMITTENTE", "idDocMittente")
     if id_doc_mittente.startswith("#"):
         id_doc_mittente = ""
-    id_repeatto = str(row.get("IDREPEATTO") or row.get("ID_REPEATTO") or "").strip()
-    msg_id = str(row.get("MSGID") or row.get("MSG_ID") or "").strip()
+    id_repeatto = _qbuilder_value(row, "IDREPEATTO", "ID_REPEATTO", "idRepeatTo", "idrepeatto")
+    msg_id = _qbuilder_value(row, "MSGID", "MSG_ID", "msgId", "msgid")
     numero_doc = _qbuilder_numero_rg(numero_documento or id_documento)
     id_deposito = id_doc_mittente
     id_documento_candidates: list[str] = []
     for candidate in (
-        str(row.get("IDDOCUMENTO") or "").strip(),
+        _qbuilder_value(row, "IDDOCUMENTO", "IdDocumento", "idDocumento", "IDATTO", "idAtto", "IDDOC", "idDoc"),
         numero_documento,
         id_doc_mittente,
     ):
@@ -4814,14 +4872,14 @@ def _map_qbuilder_documento(row: dict) -> dict:
         "id_documento": id_documento,
         "nome": f"{tipo}_{numero_doc}.pdf" if numero_doc else tipo,
         "tipo": tipo,
-        "data_deposito": str(row.get("DATADEPOSITO") or "").strip(),
-        "mittente": str(row.get("AUTORE") or "").strip(),
+        "data_deposito": _normalizza_data_pst(_qbuilder_value(row, "DATADEPOSITO", "dataDeposito")),
+        "mittente": _qbuilder_value(row, "AUTORE", "autore", "MITTENTE", "mittente", "PROVENIENZA", "provenienza"),
         "dimensione_bytes": 0,
         "id_deposito": id_deposito,
         "tipo_atto": tipo,
-        "disponibile": str(row.get("STATO") or "").strip().lower() != "non_disponibile",
-        "stato": str(row.get("STATO") or "").strip(),
-        "sub_procedimento": str(row.get("SUBPROCEDIMENTO") or "").strip(),
+        "disponibile": _qbuilder_value(row, "STATO", "stato", "DECODEATTIVO", "decodeAttivo").lower() not in {"non_disponibile", "no", "false", "0"},
+        "stato": _qbuilder_value(row, "STATO", "stato", "DECODEATTIVO", "decodeAttivo"),
+        "sub_procedimento": _qbuilder_value(row, "SUBPROCEDIMENTO", "subProcedimento"),
         "numero_documento": numero_documento,
         "id_doc_mittente": id_doc_mittente,
         "id_repeatto": id_repeatto,
@@ -4851,7 +4909,14 @@ def _parse_fascicoli_xml(xml_str: str) -> list[dict]:
     """Parsa la risposta SOAP RicercaFascicoliRegistro o qbuilder."""
     try:
         xml_clean = _normalizza_xml_pst(xml_str)
-        if "rowListType" in xml_clean or "InfoFascicoloExt" in xml_clean or "ProfiloFascicolo" in xml_clean:
+        if (
+            "rowListType" in xml_clean
+            or "InfoFascicoloExt" in xml_clean
+            or "InfoFascicolo" in xml_clean
+            or "ProfiloFascicolo" in xml_clean
+            or "RicercaArchivioPC" in xml_clean
+            or "RicercaArchivioEI" in xml_clean
+        ):
             return [_map_qbuilder_fascicolo(row) for row in _parse_qbuilder_row_list(xml_clean)]
 
         root = _strip_namespaces(ET.fromstring(xml_clean))
@@ -4885,7 +4950,12 @@ def _parse_documenti_xml(xml_str: str) -> list[dict]:
     """Parsa la risposta SOAP ConsultazioneAvanzataDocumenti o qbuilder."""
     try:
         xml_clean = _normalizza_xml_pst(xml_str)
-        if "rowListType" in xml_clean or "DocumentoFascicolo" in xml_clean:
+        if (
+            "rowListType" in xml_clean
+            or "DocumentoFascicolo" in xml_clean
+            or "ElencoDocumenti" in xml_clean
+            or "DocumentoUtente" in xml_clean
+        ):
             return [_map_qbuilder_documento(row) for row in _parse_qbuilder_row_list(xml_clean)]
 
         root = _strip_namespaces(ET.fromstring(xml_clean))
@@ -7278,21 +7348,38 @@ class _Handler(BaseHTTPRequestHandler):
                     })
                 fallback_batches = []
                 if _pst_namespace_qbuilder(base_url):
+                    fallback_targets: list[tuple[str, str]] = []
+                    for codice_alternativo in _pst_codici_ufficio_ricerca_esatta(codice_pst, tribunale)[1:]:
+                        fallback_targets.append((base_url, codice_alternativo))
                     for fallback_base_url in _pst_base_varianti_ricerca_esatta(codice_pst or tribunale, base_url)[1:]:
-                        if fallback_base_url == base_url or not _pst_namespace_qbuilder(fallback_base_url):
+                        fallback_targets.append((fallback_base_url, codice_pst))
+
+                    seen_fallback_targets: set[tuple[str, str]] = set()
+                    for fallback_base_url, fallback_codice in fallback_targets:
+                        fallback_base_url = fallback_base_url.rstrip("/")
+                        fallback_codice = str(fallback_codice or codice_pst or tribunale).strip()
+                        key = (fallback_base_url, fallback_codice)
+                        if key in seen_fallback_targets:
+                            continue
+                        seen_fallback_targets.add(key)
+                        if (
+                            (fallback_base_url == base_url.rstrip("/") and fallback_codice == codice_pst)
+                            or not _pst_namespace_qbuilder(fallback_base_url)
+                        ):
                             continue
                         fallback_url_ricerca = _pst_url_ricerca(fallback_base_url)
                         fallback_url_documenti = _pst_url_documenti(fallback_base_url)
                         fallback_extra_headers = [f"X-WASP-User: {cf_avvocato}"]
                         fallback_soap_profilo = _soap_profilo_fascicolo_body(
                             base_url=fallback_base_url,
-                            codice_ufficio=codice_pst,
+                            codice_ufficio=fallback_codice,
                             numero_rg=numero_rg,
                             anno_rg=anno_rg,
                             sub_procedimento=sub_procedimento,
                         )
                         fallback_info = {
                             "base_url": fallback_base_url,
+                            "codice_ufficio": fallback_codice,
                             "url_ricerca": fallback_url_ricerca,
                             "url_documenti": fallback_url_documenti,
                             "ricerca_index": len(batch_requests),
@@ -7304,7 +7391,7 @@ class _Handler(BaseHTTPRequestHandler):
                             "url": fallback_url_ricerca,
                             "soap_body": _soap_ricerca_fascicoli_body(
                                 base_url=fallback_base_url,
-                                codice_ufficio=codice_pst,
+                                codice_ufficio=fallback_codice,
                                 numero_rg=numero_rg,
                                 anno_rg=anno_rg,
                                 nome_parte=None,
@@ -7330,7 +7417,7 @@ class _Handler(BaseHTTPRequestHandler):
                             "url": fallback_url_documenti,
                             "soap_body": _soap_documenti_body(
                                 base_url=fallback_base_url,
-                                codice_ufficio=codice_pst,
+                                codice_ufficio=fallback_codice,
                                 numero_rg=numero_rg,
                                 anno_rg=anno_rg,
                                 cf_avvocato=cf_avvocato,
@@ -7344,7 +7431,7 @@ class _Handler(BaseHTTPRequestHandler):
                             fallback_info["sigp_atti_index"] = len(batch_requests)
                             batch_requests.append({
                                 "url": fallback_url_documenti,
-                                "soap_body": _soap_sigp_ricerca_atti_body(codice_pst, numero_rg, anno_rg),
+                                "soap_body": _soap_sigp_ricerca_atti_body(fallback_codice, numero_rg, anno_rg),
                                 "extra_headers": fallback_extra_headers,
                                 "soap_action": "ricercaAtti",
                                 "cookie_file": cookie_file,
@@ -7447,6 +7534,7 @@ class _Handler(BaseHTTPRequestHandler):
             if not fascicoli and _pst_namespace_qbuilder(base_url):
                 for fallback_info in fallback_batches:
                     fallback_base_url = str(fallback_info.get("base_url") or "")
+                    fallback_codice = str(fallback_info.get("codice_ufficio") or codice_pst or tribunale).strip()
                     try:
                         fallback_ricerca_index = int(fallback_info.get("ricerca_index"))
                         fallback_documenti_index = int(fallback_info.get("documenti_index"))
@@ -7492,6 +7580,17 @@ class _Handler(BaseHTTPRequestHandler):
                             fallback_xml_sigp_atti = ""
 
                         fallback_fascicoli = _parse_fascicoli_xml(fallback_xml_ricerca)
+                        fallback_profili = _parse_fascicoli_xml(fallback_xml_profilo) if fallback_xml_profilo else []
+                        if fallback_profili:
+                            profilo = fallback_profili[0]
+                            if fallback_fascicoli:
+                                fallback_fascicoli[0].update({
+                                    key: value
+                                    for key, value in profilo.items()
+                                    if value not in (None, "", [])
+                                })
+                            else:
+                                fallback_fascicoli = [profilo]
                         fallback_documenti = _parse_documenti_xml(fallback_xml_documenti)
                         if fallback_xml_sigp_atti:
                             fallback_documenti = _sigp_merge_documenti_con_profili(
@@ -7507,9 +7606,10 @@ class _Handler(BaseHTTPRequestHandler):
                             _pst_servizio_proxy(fallback_base_url),
                             numero_rg,
                             anno_rg,
-                            codice_pst,
+                            fallback_codice,
                         )
                         base_url = fallback_base_url
+                        codice_pst = fallback_codice
                         url_ricerca = str(fallback_info.get("url_ricerca") or _pst_url_ricerca(fallback_base_url))
                         url_documenti = str(
                             fallback_info.get("url_documenti") or _pst_url_documenti(fallback_base_url)

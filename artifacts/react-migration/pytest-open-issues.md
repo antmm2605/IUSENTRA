@@ -1,6 +1,12 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornamento corrente: 2026-05-25, batch snapshot PST non bloccante 2.248.49.
+Aggiornamento corrente: 2026-05-25, matrice SIECIC ministeriale Local Signer 1.6.44 2.248.50.
+
+## Note matrice SIECIC ministeriale Local Signer 1.6.44 2.248.50 - 2026-05-25
+
+Il test reale con Local Signer `1.6.43` ha confermato che il batch non si ferma più sulla prima SOAP Fault, ma il registro parallelo SIECIC riceveva ancora nomi servizio SICID: `RicercaInformazioniFascicoloPerTipo` e `DocumentiFascicolo`, entrambi restituiti dal PST come `Service ... non trovato`. La correzione `1.6.44` usa su SIECIC i nomi del catalogo ministeriale locale (`InfoFascicolo`, `ProfiloFascicolo`, `ElencoDocumenti`), estende il parser alle proprietà camel case del catalogo SIECIC e prova anche il codice ufficio ufficiale `0910011` nello stesso batch quando è diverso dalla traduzione PST interna `0800570094`. Resta da eseguire il test reale dal PC cliente dopo installazione del Local Signer `1.6.44`; il log atteso non deve più contenere `Service 'RicercaInformazioniFascicoloPerTipo' non trovato` su SIECIC e deve salvare diagnostica server con `local_signer_version=1.6.44`.
+
+Nota gate: dopo il passaggio verde di `tests/test_packaging_consistency.py tests/test_release_readiness.py`, è stato richiamato per errore il selettore non esistente `tests/test_release_readiness.py::test_versioni_distribuzione_allineate`. Non è un failure funzionale né una regressione: la suite release readiness completa è già registrata verde.
 
 ## Note batch snapshot PST non bloccante 2.248.49 - 2026-05-25
 

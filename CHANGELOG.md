@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.50 - 2026-05-25
+
+- Aggiornato Local Signer alla versione `1.6.44`: il fallback SIECIC della ricerca snapshot PST usa i servizi del catalogo ministeriale (`InfoFascicolo`, `ProfiloFascicolo`, `ElencoDocumenti`) invece dei nomi SICID che sul test reale Palmi rispondevano `Service ... non trovato`.
+- Rafforzato il ripristino del comportamento certificato: se il browser o la cache hanno il codice ufficiale `0910011` e il Local Signer traduce in `0800570094`, la snapshot prova anche il codice ufficiale nello stesso batch, senza preflight e senza chiedere PIN aggiuntivi.
+- Estesi parser e test Local Signer per risposte qbuilder SIECIC con proprietà camel case, metadati fascicolo e catalogo documenti, preservando la visualizzazione fascicolo prima del download intero.
+
 ## 2.248.49 - 2026-05-25
 
 - Aggiornato Local Signer alla versione `1.6.43`: la ricerca snapshot PST usa il batch non bloccante, così una SOAP Fault del primo registro non interrompe più il tentativo sul registro parallelo SIECIC.

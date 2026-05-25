@@ -98,6 +98,10 @@ def test_build_windows_ps1_include_versione_e_script_originale():
     assert "Find-PythonCommand" in contenuto
     assert "FORCE_RESTART" in contenuto
     assert "iusentra-local-signer://restart" in contenuto
+    assert "Copy-OrDownloadFile" not in contenuto
+    assert 'Copy-Item (Join-Path $toolsDir "local_signer.py") $pythonScript -Force' in contenuto
+    assert 'Copy-Item (Join-Path $toolsDir "local_ai_host_bridge.py") $aiBridgeScript -Force' in contenuto
+    assert 'Copy-Item (Join-Path $toolsDir "lex_document_context.py") $lexContextScript -Force' in contenuto
     assert "/polisWeb/local-signer/download/local-signer-mod/" in contenuto
     assert "reportlab" in contenuto
     assert "Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272" in contenuto
@@ -105,6 +109,22 @@ def test_build_windows_ps1_include_versione_e_script_originale():
     assert "Disinstallo la vecchia versione locale prima di installare quella nuova" in contenuto
     assert "Unregister-ScheduledTask -TaskName $taskName" in contenuto
     assert '$preserve = @("data", "installer.log", "local_signer.out.log", "local_signer.err.log")' in contenuto
+
+
+def test_build_windows_exe_profile_resta_iexpress_1_6_35():
+    builder = (Path(__file__).resolve().parents[1] / "tools" / "build_local_signer_windows_exe.ps1").read_text(
+        encoding="utf-8"
+    )
+
+    assert '$iexpressExe = Join-Path $env:SystemRoot "System32\\iexpress.exe"' in builder
+    assert "Class=IEXPRESS" in builder
+    assert "InsideCompressed=0" in builder
+    assert "HideExtractAnimation=1" in builder
+    assert "AppLaunched=powershell.exe -NoProfile -ExecutionPolicy Bypass -File installa_local_signer_locale.ps1" in builder
+    assert "FILE0=installa_local_signer_locale.ps1" in builder
+    assert "FILE1=local_signer.py" in builder
+    assert "FILE6=uffici_ministero.json" in builder
+    assert "FILE13=local_signer_mod__server_bootstrap.py" in builder
 
 
 def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_path):

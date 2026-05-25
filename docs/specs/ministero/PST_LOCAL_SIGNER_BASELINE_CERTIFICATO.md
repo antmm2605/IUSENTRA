@@ -18,6 +18,7 @@ Questo documento registra le regole funzionali certificate con test reale su PST
 - Su Windows, mentre `curl` attende il certificato client del PST, il Local Signer deve provare in modo best-effort a portare in primo piano la finestra PIN/Sicurezza Windows/smart card/CNS/CIE/Bit4id/Aruba/token, senza cambiare il numero di PIN richiesti e senza salvare PIN o chiavi.
 - Il comportamento certificato resta: un PIN per visualizzare il fascicolo e un PIN separato solo per scaricare l'intero fascicolo.
 - Il download dell'intero fascicolo usa `/pst/download-documenti-batch` e `preflight_auth: false`; non deve tornare al download singolo ripetuto come flusso principale React.
+- Il pacchetto Windows del Local Signer resta blindato sul profilo certificato `SetupLocalSigner-1.6.35.exe`: builder nativo IExpress, SED `Class=IEXPRESS` / `InsideCompressed=0`, file pubblico solo `SetupLocalSigner-<versione>.exe` con alias `SetupLocalSigner.exe`, avvio `powershell.exe -NoProfile -ExecutionPolicy Bypass -File installa_local_signer_locale.ps1` e file principali copiati dal CAB locale. Non si introducono PyInstaller, NSIS, zip autoestraenti, download pubblico `.ps1` o download dinamici dei file principali durante l'installazione Windows senza nuova certificazione reale e test aggiornati.
 - Il Local Signer non deve salvare PIN, credenziali CNS/CIE/SPID o sessioni portale nel cloud.
 - Il tenant dello studio resta separato: i fascicoli interni di uno studio non devono essere usati come fallback per un altro studio.
 

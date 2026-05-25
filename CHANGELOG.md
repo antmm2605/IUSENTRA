@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.42 - 2026-05-25
+
+- Corretto il payload PST/PolisWeb della ricerca esatta RG/anno: IUSENTRA non invia più il codice fiscale avvocato configurato nel tenant, così il Local Signer determina l'identità dall'effettivo certificato selezionato sul PC del cliente.
+- Verificato dai log di produzione che la ricerca reale non passa dal server applicativo ma dal Local Signer locale; il server registra pagina, status e asset, mentre la risposta "nessun fascicolo trovato" va diagnosticata sul client.
+- Confermati i gate mirati su wizard React, wizard classico e typecheck TypeScript.
+
 ## 2.248.41 - 2026-05-25
 
 - Corretto il flusso PST/PolisWeb con Local Signer: quando la ricerca è esatta per numero e anno di ruolo, IUSENTRA non invia più parte assistita, controparte o codice fiscale come filtri aggiuntivi.

@@ -3424,6 +3424,7 @@ def test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita
     assert "const exactByRg = !!(String(query.numero || '').trim() && String(query.anno || '').trim());" in template
     assert "nome_parte: exactByRg ? '' : (query.assistito || query.controparte || '')" in template
     assert "cf_parte: exactByRg ? '' : (query.cf || '')" in template
+    assert "cf_avvocato: exactByRg ? '' : (AW_STATE.status.codice_fiscale_avvocato || '')" in template
     assert "AW_PST_IMPORT_SESSION?.session_id" not in template
     assert "Importazione interrotta: non salvo il fascicolo solo come metadati" in template
     assert "function awCanProceedWithPartialPstDownload" in template

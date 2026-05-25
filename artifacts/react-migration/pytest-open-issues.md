@@ -1,6 +1,10 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornamento corrente: 2026-05-25, hotfix PST ricerca esatta e baseline Local Signer 2.248.41.
+Aggiornamento corrente: 2026-05-25, hotfix PST CF tenant non vincolante 2.248.42.
+
+## Note hotfix PST CF tenant non vincolante 2.248.42 - 2026-05-25
+
+Il nuovo test reale sul cliente continuava a restituire "Nessun fascicolo trovato" dopo il fix dei filtri parte/CF. Dai log Hetzner risulta che il server serve correttamente pagina, status e asset React, ma la richiesta ministeriale vera parte dal Local Signer sul PC del cliente e non compare nei log server. Per ridurre il rischio tenant/certificato non allineati, la ricerca esatta RG/anno non passa più `cf_avvocato` dal tenant IUSENTRA: il Local Signer lo ricava dal certificato selezionato sul client. Restano da verificare sul PC cliente versione Local Signer attiva e log/risposta locale della chiamata `127.0.0.1:27272`.
 
 ## Note hotfix PST ricerca esatta e baseline Local Signer 2.248.41 - 2026-05-25
 

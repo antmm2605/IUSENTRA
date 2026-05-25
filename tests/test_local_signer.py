@@ -2484,7 +2484,7 @@ def _cfg_web(tmp_path):
     }
 
 
-def test_installer_local_signer_windows_legacy_restituisce_ps1_senza_login(tmp_path):
+def test_installer_local_signer_windows_legacy_restituisce_exe_senza_login(tmp_path):
     from web.app import create_app
 
     version = _local_signer_version()
@@ -2493,12 +2493,10 @@ def test_installer_local_signer_windows_legacy_restituisce_ps1_senza_login(tmp_p
         r = c.get("/polisWeb/local-signer/installa-windows")
 
     assert r.status_code == 200
-    assert (
-        f'attachment; filename=InstallaLocalSigner-{version}.ps1'
-        in r.headers.get("Content-Disposition", "")
-    )
-    assert b"Copy-OrDownloadFile" in r.data
-    assert b"/polisWeb/local-signer/download" in r.data
+    disposition = r.headers.get("Content-Disposition", "")
+    assert f"SetupLocalSigner-{version}.exe" in disposition
+    assert ".ps1" not in disposition
+    assert ".cmd" not in disposition
 
 
 def test_api_portale_acquisizione_preview_pst_espone_id_documento_come_idcat(tmp_path):
@@ -2685,9 +2683,9 @@ def test_installer_local_signer_windows_setup_route_e_pubblica(tmp_path):
     assert r.status_code == 200
     disposition = r.headers.get("Content-Disposition", "")
     assert "attachment;" in disposition
-    assert f"InstallaLocalSigner-{version}.ps1" in disposition
+    assert f"SetupLocalSigner-{version}.exe" in disposition
     assert ".cmd" not in disposition
-    assert ".exe" not in disposition
+    assert ".ps1" not in disposition
 
 
 def test_installer_local_signer_windows_exe_route_se_bundle_presente(tmp_path):

@@ -668,7 +668,7 @@ def _surface_links(surface_id: str, portal: str = "") -> list[dict[str, Any]]:
     if surface_id == "firma":
         links.extend(
             [
-                {"label": "Installer Windows PowerShell", "href": "/polisWeb/local-signer/setup/windows", "kind": "download"},
+                {"label": "Installer Windows EXE", "href": "/polisWeb/local-signer/setup/windows", "kind": "download"},
                 {"label": "Installer macOS", "href": "/polisWeb/local-signer/setup/macos", "kind": "download"},
                 {"label": "Installer Linux", "href": "/polisWeb/local-signer/setup/linux", "kind": "download"},
                 {"label": "Impostazioni firma", "href": "/impostazioni?tab=firma", "kind": "operativo"},
@@ -751,7 +751,7 @@ def build_react_telematico_surface_payload(
             _surface_card(
                 "windows",
                 "Pacchetto Windows",
-                "Scarica l'installer PowerShell versionato per avviare Local Signer sul PC dell'avvocato.",
+                "Scarica l'installer EXE versionato per avviare Local Signer sul PC dell'avvocato.",
                 tone="primary",
                 icon="download",
                 actions=[_surface_action("windows", "Scarica installer Windows", "/polisWeb/local-signer/setup/windows", tone="primary")],

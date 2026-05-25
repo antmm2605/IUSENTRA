@@ -20,7 +20,7 @@ export function DocumentUploadPanel({
     const file = inputRef.current?.files?.[0]
     if (!file) {
       setState('error')
-      setMessage('Seleziona un file PDF, DOCX o DOC.')
+      setMessage('Seleziona un file PDF, DOCX, DOC, TXT o EML.')
       return
     }
     setState('loading')
@@ -50,9 +50,9 @@ export function DocumentUploadPanel({
           id="document-ai-file"
           name="file"
           type="file"
-          accept=".pdf,.docx,.doc,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          accept=".pdf,.docx,.doc,.txt,.eml,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,message/rfc822"
         />
-        <small>Formati ammessi: PDF, DOCX, DOC. Il limite e' configurato dallo studio.</small>
+        <small>Formati ammessi: PDF, DOCX, DOC, TXT, EML. Il limite è configurato dallo studio.</small>
       </div>
       <button type="submit" disabled={state === 'loading'}>
         <UploadCloud size={16} aria-hidden="true" />

@@ -5,11 +5,13 @@ export type DocumentAIStatus =
   | 'error'
   | 'archived'
 
+export type DocumentAIFileType = 'pdf' | 'docx' | 'doc' | 'txt' | 'eml'
+
 export type DocumentAIRecord = {
   id: string
   original_filename: string
   safe_filename: string
-  file_type: 'pdf' | 'docx' | 'doc'
+  file_type: DocumentAIFileType
   mime_type: string | null
   size_bytes: number
   sha256: string

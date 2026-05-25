@@ -35,6 +35,7 @@ import { DocumentListPanel } from './DocumentListPanel'
 import { DocumentUploadPanel } from './DocumentUploadPanel'
 import './DocumentiAIPage.css'
 
+// Governance React: react_operational_partial.
 type LoadingState = 'idle' | 'loading' | 'success' | 'error'
 
 export function DocumentiAIPage({ fascicoloId }:{fascicoloId: string}) {

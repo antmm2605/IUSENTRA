@@ -13,6 +13,7 @@ def test_documenti_ai_frontend_componenti_e_contratti():
     assert "react_operational_partial" in page
     assert "/api/v1/ui/fascicoli/" in data
     assert "mock_fallback: false" in data
+    assert "DocumentAIFileType = 'pdf' | 'docx' | 'doc' | 'txt' | 'eml'" in data
     assert "DocumentiAIPage" not in fascicoli
     assert 'id="documenti-ai"' not in fascicoli
     assert 'href="#documenti-ai"' not in fascicoli
@@ -36,3 +37,11 @@ def test_documenti_ai_frontend_senza_href_placeholder():
     for filename in files:
         source = (FRONTEND / "components" / filename).read_text(encoding="utf-8")
         assert 'href="#"' not in source
+
+
+def test_documenti_ai_upload_accetta_txt_ed_eml():
+    upload = (FRONTEND / "components" / "DocumentUploadPanel.tsx").read_text(encoding="utf-8")
+
+    assert ".txt" in upload
+    assert ".eml" in upload
+    assert "TXT, EML" in upload

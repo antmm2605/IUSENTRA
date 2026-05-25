@@ -79,6 +79,44 @@ def preview_eml_html(
     return html, 200, {"Content-Type": "text/html; charset=utf-8"}
 
 
+def preview_text_html(
+    *,
+    nome_documento: str,
+    text: str,
+    scarica_url: str,
+) -> tuple[str, int, dict[str, str]]:
+    paragraphs = []
+    current: list[str] = []
+    for line in str(text or "").splitlines():
+        if line.strip():
+            current.append(escape(line))
+            continue
+        if current:
+            paragraphs.append("<p>" + "<br>".join(current) + "</p>")
+            current = []
+    if current:
+        paragraphs.append("<p>" + "<br>".join(current) + "</p>")
+    body = "\n".join(paragraphs) if paragraphs else "<p><em>Documento di testo vuoto.</em></p>"
+    html = (
+        '<!DOCTYPE html><html><head><meta charset="utf-8">'
+        "<style>"
+        "body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f7f8fb;color:#172033}"
+        ".wrap{max-width:980px;margin:24px auto;padding:0 18px}"
+        ".toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px}"
+        ".toolbar a{background:#17324d;color:#fff;text-decoration:none;padding:9px 13px;border-radius:8px;font-size:14px}"
+        ".card{background:#fff;border:1px solid #dde3ec;border-radius:8px;padding:22px;box-shadow:0 8px 22px rgba(23,50,77,.08)}"
+        "h1{font-size:22px;margin:0 0 14px}.meta{color:#5d6b82;font-size:13px}p{line-height:1.55;white-space:normal}"
+        "</style></head><body><main class=\"wrap\">"
+        '<div class="toolbar">'
+        f"<div><strong>{escape(nome_documento)}</strong><div class=\"meta\">Documento TXT leggibile nel fascicolo</div></div>"
+        f'<a href="{escape(scarica_url, quote=True)}">Scarica TXT</a>'
+        "</div>"
+        f'<section class="card"><h1>Documento di testo</h1>{body}</section>'
+        "</main></body></html>"
+    )
+    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
 def preview_error_html(scarica_url: str) -> tuple[str, int, dict[str, str]]:
     html = (
         '<!DOCTYPE html><html><head><meta charset="utf-8">'

@@ -219,6 +219,42 @@ def test_document_ai_api_upload_testo_e_ricerca(tmp_path: Path, monkeypatch):
     assert not any(str(tmp_path) in value for value in _walk_strings(upload_payload))
 
 
+def test_document_ai_api_upload_txt_ed_eml_indicizzabili(tmp_path: Path):
+    app = _app(tmp_path)
+    fascicolo_id = _crea_fascicolo(app)
+
+    with app.test_client() as client:
+        _login(client)
+        txt_upload = client.post(
+            f"/api/v1/ui/fascicoli/{fascicolo_id}/documenti-ai/upload",
+            data={"file": (io.BytesIO("Nota interna per Lex".encode("utf-8")), "nota.txt")},
+            content_type="multipart/form-data",
+        )
+        eml_upload = client.post(
+            f"/api/v1/ui/fascicoli/{fascicolo_id}/documenti-ai/upload",
+            data={
+                "file": (
+                    io.BytesIO(b"Subject: PEC prova\r\nFrom: cancelleria@example.test\r\n\r\nCorpo messaggio"),
+                    "ricevuta.eml",
+                )
+            },
+            content_type="multipart/form-data",
+        )
+        txt_text = client.get(
+            f"/api/v1/ui/fascicoli/{fascicolo_id}/documenti-ai/{txt_upload.get_json()['document']['id']}/testo"
+        )
+        eml_text = client.get(
+            f"/api/v1/ui/fascicoli/{fascicolo_id}/documenti-ai/{eml_upload.get_json()['document']['id']}/testo"
+        )
+
+    assert txt_upload.status_code == 201
+    assert eml_upload.status_code == 201
+    assert txt_upload.get_json()["document"]["file_type"] == "txt"
+    assert eml_upload.get_json()["document"]["file_type"] == "eml"
+    assert "Nota interna per Lex" in txt_text.get_json()["text"]
+    assert "PEC prova" in eml_text.get_json()["text"]
+
+
 def test_document_ai_api_documento_inesistente_e_query_vuota(tmp_path: Path):
     app = _app(tmp_path)
     fascicolo_id = _crea_fascicolo(app)

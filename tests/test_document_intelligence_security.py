@@ -21,9 +21,18 @@ def test_document_ai_rifiuta_estensione_non_ammessa():
         validate_document_file_type("script.exe", "application/octet-stream")
 
 
-@pytest.mark.parametrize("filename", ["atto.pdf", "memoria.docx", "bozza.doc"])
-def test_document_ai_accetta_formati_mvp(filename):
-    assert validate_document_file_type(filename, None) in {"pdf", "docx", "doc"}
+@pytest.mark.parametrize(
+    ("filename", "expected"),
+    [
+        ("atto.pdf", "pdf"),
+        ("memoria.docx", "docx"),
+        ("bozza.doc", "doc"),
+        ("nota.txt", "txt"),
+        ("ricevuta.eml", "eml"),
+    ],
+)
+def test_document_ai_accetta_formati_leggibili_da_lex(filename, expected):
+    assert validate_document_file_type(filename, None) == expected
 
 
 def test_document_ai_sanitize_filename_blocca_path_traversal():

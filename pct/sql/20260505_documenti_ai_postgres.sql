@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS fascicolo_documenti_ai (
     fascicolo_id TEXT NOT NULL,
     original_filename TEXT NOT NULL,
     safe_filename TEXT NOT NULL,
-    file_type TEXT NOT NULL CHECK (file_type IN ('pdf', 'docx', 'doc')),
+    file_type TEXT NOT NULL CHECK (file_type IN ('pdf', 'docx', 'doc', 'txt', 'eml')),
     mime_type TEXT,
     size_bytes BIGINT NOT NULL DEFAULT 0,
     sha256 TEXT NOT NULL,
@@ -83,3 +83,23 @@ CREATE INDEX IF NOT EXISTS idx_fascicolo_documenti_ai_audit_doc
     ON fascicolo_documenti_ai_audit (tenant_id, fascicolo_id, document_id);
 CREATE INDEX IF NOT EXISTS idx_fascicolo_documenti_ai_audit_evento
     ON fascicolo_documenti_ai_audit (event_type, created_at);
+
+DO $$
+DECLARE
+    check_name TEXT;
+BEGIN
+    FOR check_name IN
+        SELECT con.conname
+        FROM pg_constraint con
+        JOIN pg_class rel ON rel.oid = con.conrelid
+        WHERE rel.relname = 'fascicolo_documenti_ai'
+          AND con.contype = 'c'
+          AND pg_get_constraintdef(con.oid) LIKE '%file_type%'
+    LOOP
+        EXECUTE format('ALTER TABLE fascicolo_documenti_ai DROP CONSTRAINT IF EXISTS %I', check_name);
+    END LOOP;
+
+    ALTER TABLE fascicolo_documenti_ai
+        ADD CONSTRAINT fascicolo_documenti_ai_file_type_check
+        CHECK (file_type IN ('pdf', 'docx', 'doc', 'txt', 'eml'));
+END $$;

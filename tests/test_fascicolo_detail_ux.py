@@ -140,6 +140,61 @@ def test_elimina_documento_resta_nella_sezione_documenti(fascicolo_ux):
     ).get(fascicolo.id).documenti
 
 
+def test_documenti_eml_e_txt_si_visualizzano_e_si_eliminano(fascicolo_ux):
+    from web.app import create_app
+
+    cfg, fascicolo = fascicolo_ux
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    eml = gf.aggiungi_documento(
+        fascicolo.id,
+        "pec_a29623d7158e1c9232ce3182.eml",
+        TipoDocumento.COMUNICAZIONE,
+        b"Subject: PEC prova\r\nFrom: cancelleria@example.test\r\n\r\nCorpo messaggio",
+    )
+    txt = gf.aggiungi_documento(
+        fascicolo.id,
+        "nota_lex.txt",
+        TipoDocumento.ALLEGATO,
+        "Promemoria leggibile da Lex".encode("utf-8"),
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _login(client)
+        eml_preview = client.get(f"/fascicoli/{fascicolo.id}/documenti/{eml.id}/visualizza")
+        txt_preview = client.get(f"/fascicoli/{fascicolo.id}/documenti/{txt.id}/visualizza")
+        eml_delete = client.post(
+            f"/fascicoli/{fascicolo.id}/documenti/{eml.id}/elimina",
+            headers={"X-Requested-With": "XMLHttpRequest"},
+            follow_redirects=False,
+        )
+        txt_delete = client.post(
+            f"/fascicoli/{fascicolo.id}/documenti/{txt.id}/elimina",
+            headers={"X-Requested-With": "XMLHttpRequest"},
+            follow_redirects=False,
+        )
+
+    assert eml_preview.status_code == 200
+    assert txt_preview.status_code == 200
+    assert "Email PEC / EML" in eml_preview.data.decode("utf-8")
+    assert "PEC prova" in eml_preview.data.decode("utf-8")
+    assert "Documento di testo" in txt_preview.data.decode("utf-8")
+    assert "Promemoria leggibile da Lex" in txt_preview.data.decode("utf-8")
+    assert eml_delete.status_code == 200
+    assert txt_delete.status_code == 200
+    assert eml_delete.get_json()["ok"] is True
+    assert txt_delete.get_json()["ok"] is True
+    assert not GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    ).get(fascicolo.id).documenti
+
+
 def test_elimina_documenti_multipli_rimuove_senza_flash_ripetuti(fascicolo_ux):
     from web.app import create_app
 

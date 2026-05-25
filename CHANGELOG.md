@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.248.56 - 2026-05-25
+
+- Allineato Document Intelligence ai documenti reali del fascicolo: gli archivi SQL accettano anche `.txt` ed `.eml`, con migrazione SQLite/PostgreSQL del vincolo storico e anteprima/cancellazione fascicolo per EML/TXT.
+
 ## 2.248.55 - 2026-05-25
 
 - Aggiornato Local Signer a `1.6.48`: su Windows, durante preflight, ricerca e download PST, il processo prova a portare in primo piano la finestra PIN/Sicurezza Windows/smart card/Bit4id mentre `curl` attende il certificato, così l'avvocato non deve cercarla nella barra delle applicazioni.

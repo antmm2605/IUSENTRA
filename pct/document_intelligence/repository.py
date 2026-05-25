@@ -24,6 +24,7 @@ from .security import DocumentAIValidationError, safe_join_under_root
 STORE_KEYS = ("documents", "versions", "texts", "audit_events")
 SQLITE_SCHEMA_DOCUMENTI_AI = Path(__file__).resolve().parents[1] / "sql" / "20260505_documenti_ai.sql"
 POSTGRES_SCHEMA_DOCUMENTI_AI = Path(__file__).resolve().parents[1] / "sql" / "20260505_documenti_ai_postgres.sql"
+SQL_DOCUMENT_AI_FILE_TYPES = ("pdf", "docx", "doc", "txt", "eml")
 
 
 def _postgres_backend_type() -> type[Any] | None:
@@ -131,6 +132,8 @@ class DocumentAIRepository:
         if self._backend == "sqlite":
             conn = self.structured_db.conn
             conn.executescript(self._migration_sql("20260505_documenti_ai.sql"))
+            self._ensure_sqlite_file_type_constraint(conn)
+            conn.executescript(self._migration_sql("20260505_documenti_ai.sql"))
             conn.commit()
         elif self._backend == "postgresql":
             raw_conn = getattr(self.structured_db, "raw_conn", None)
@@ -145,6 +148,68 @@ class DocumentAIRepository:
             conn = connection()
             conn.executescript(self._migration_sql("20260505_documenti_ai_postgres.sql"))
             conn.commit()
+
+    def _ensure_sqlite_file_type_constraint(self, conn: sqlite3.Connection) -> None:
+        row = conn.execute(
+            """
+            SELECT sql
+            FROM sqlite_master
+            WHERE type = 'table' AND name = 'fascicolo_documenti_ai'
+            """
+        ).fetchone()
+        create_sql = str(row[0] if row else "")
+        if all(f"'{file_type}'" in create_sql for file_type in SQL_DOCUMENT_AI_FILE_TYPES):
+            return
+
+        conn.commit()
+        file_types_sql = ", ".join(f"'{file_type}'" for file_type in SQL_DOCUMENT_AI_FILE_TYPES)
+        conn.execute("PRAGMA foreign_keys=OFF")
+        try:
+            conn.execute("BEGIN")
+            conn.execute(
+                f"""
+                CREATE TABLE fascicolo_documenti_ai__file_type_migration (
+                    id TEXT PRIMARY KEY,
+                    tenant_id TEXT NOT NULL,
+                    fascicolo_id TEXT NOT NULL,
+                    original_filename TEXT NOT NULL,
+                    safe_filename TEXT NOT NULL,
+                    file_type TEXT NOT NULL CHECK (file_type IN ({file_types_sql})),
+                    mime_type TEXT,
+                    size_bytes INTEGER NOT NULL DEFAULT 0,
+                    sha256 TEXT NOT NULL,
+                    status TEXT NOT NULL CHECK (status IN ('uploaded', 'processing', 'ready', 'error', 'archived')),
+                    current_version_id TEXT,
+                    page_count INTEGER,
+                    created_by TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+            conn.execute(
+                """
+                INSERT INTO fascicolo_documenti_ai__file_type_migration (
+                    id, tenant_id, fascicolo_id, original_filename, safe_filename, file_type,
+                    mime_type, size_bytes, sha256, status, current_version_id, page_count,
+                    created_by, created_at, updated_at
+                )
+                SELECT
+                    id, tenant_id, fascicolo_id, original_filename, safe_filename, file_type,
+                    mime_type, size_bytes, sha256, status, current_version_id, page_count,
+                    created_by, created_at, updated_at
+                FROM fascicolo_documenti_ai
+                """
+            )
+            conn.execute("DROP TABLE fascicolo_documenti_ai")
+            conn.execute("ALTER TABLE fascicolo_documenti_ai__file_type_migration RENAME TO fascicolo_documenti_ai")
+            conn.execute("COMMIT")
+        except Exception:
+            if conn.in_transaction:
+                conn.execute("ROLLBACK")
+            raise
+        finally:
+            conn.execute("PRAGMA foreign_keys=ON")
 
     def _empty(self) -> dict[str, Any]:
         return {key: [] for key in STORE_KEYS}

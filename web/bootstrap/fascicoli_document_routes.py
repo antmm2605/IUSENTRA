@@ -440,6 +440,24 @@ def register_fascicoli_document_routes(
                     scarica_url=scarica_url,
                 )
 
+            if documento.nome.lower().endswith(".txt"):
+                from pct.document_intelligence.extraction import extract_text_from_document
+                from web.bootstrap.fascicoli_document_helpers import preview_text_html
+
+                extraction = extract_text_from_document(data, documento.nome, "txt")
+                scarica_url = url_for("scarica_documento", id_fasc=id_fasc, id_doc=id_doc)
+                audit(
+                    "fascicoli.documento.visualizza",
+                    "fascicolo",
+                    id_fasc,
+                    dettagli=f"doc {id_doc} - {documento.nome}",
+                )
+                return preview_text_html(
+                    nome_documento=documento.nome,
+                    text=extraction.text,
+                    scarica_url=scarica_url,
+                )
+
             if documento.nome.lower().endswith(".p7m"):
                 contenuto_estratto = estrai_contenuto_p7m_per_preview(firma_payload)
                 if contenuto_estratto:

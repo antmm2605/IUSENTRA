@@ -259,6 +259,16 @@ def _response_ref(name: str) -> dict[str, str]:
     return {"$ref": f"#/components/responses/{name}"}
 
 
+def _is_multipart_request(endpoint: Endpoint) -> bool:
+    return "upload" in endpoint.path or endpoint.path.endswith("/documento/leggi")
+
+
+def _response_schema(endpoint: Endpoint, info: ContractInfo) -> str:
+    if endpoint.path.endswith("/documento/leggi"):
+        return "ClientDocumentReadResponse"
+    return info.response_schema
+
+
 def _operation(endpoint: Endpoint, frontend_links: dict[str, tuple[str, str]]) -> dict[str, Any]:
     info = classify(endpoint.path)
     frontend = frontend_links.get(endpoint.openapi_path) or frontend_links.get(endpoint.full_path)
@@ -279,7 +289,7 @@ def _operation(endpoint: Endpoint, frontend_links: dict[str, tuple[str, str]]) -
         "responses": {
             "200": {
                 "description": f"Payload operativo {info.area} nel tenant corrente.",
-                "content": {"application/json": {"schema": _schema_ref(info.response_schema)}},
+                "content": {"application/json": {"schema": _schema_ref(_response_schema(endpoint, info))}},
             },
             "400": _response_ref("BadRequest"),
             "401": _response_ref("Unauthorized"),
@@ -299,7 +309,7 @@ def _operation(endpoint: Endpoint, frontend_links: dict[str, tuple[str, str]]) -
         "x-contract-status": "verified" if provider == "success+auth-error" else "complete",
     }
     if endpoint.method in {"POST", "PUT", "PATCH", "DELETE"}:
-        media_type = "multipart/form-data" if "upload" in endpoint.path else "application/json"
+        media_type = "multipart/form-data" if _is_multipart_request(endpoint) else "application/json"
         schema = "DocumentUploadRequest" if media_type == "multipart/form-data" else "MutationRequest"
         operation["requestBody"] = {
             "required": endpoint.method in {"POST", "PUT", "PATCH"},
@@ -385,6 +395,48 @@ def _components() -> dict[str, Any]:
                 "metadata": _schema_ref("DomainRecord"),
             },
             "required": ["file"],
+            "additionalProperties": True,
+        },
+        "ClientDocumentReadResponse": {
+            "type": "object",
+            "description": "Esito lettura OCR/MRZ documento cliente. Non salva il file caricato e non inventa dati assenti.",
+            "properties": {
+                "ok": {"type": "boolean"},
+                "message": {"type": "string"},
+                "source": {"type": "string", "example": "lettore_documento_cliente"},
+                "filename": {"type": "string"},
+                "mime_type": {"type": "string"},
+                "patch": {
+                    "type": "object",
+                    "description": "Campi anagrafici affidabili pronti per la compilazione automatica.",
+                    "additionalProperties": {"type": "string"},
+                },
+                "fields": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                            "label": {"type": "string"},
+                            "value": {"type": "string"},
+                            "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                            "source": {"type": "string"},
+                            "status": {"type": "string", "enum": ["affidabile", "da verificare"]},
+                        },
+                        "additionalProperties": True,
+                    },
+                },
+                "missing": {"type": "array", "items": {"type": "string"}},
+                "warnings": {"type": "array", "items": {"type": "string"}},
+                "mrz": {
+                    "type": "object",
+                    "properties": {
+                        "detected": {"type": "boolean"},
+                        "type": {"type": "string"},
+                    },
+                    "additionalProperties": True,
+                },
+            },
             "additionalProperties": True,
         },
         "ErrorResponse": {

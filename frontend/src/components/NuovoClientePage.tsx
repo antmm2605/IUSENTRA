@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode, type RefObject } from 'react'
 import {
   ArrowLeft,
+  AlertTriangle,
   BadgeCheck,
   BriefcaseBusiness,
   Building2,
@@ -11,11 +12,13 @@ import {
   FileText,
   Home,
   Landmark,
+  Loader2,
   Mail,
   Phone,
   ScanLine,
   ShieldCheck,
   Sparkles,
+  UploadCloud,
   UserCheck,
   UserPlus,
   UserRound,
@@ -132,8 +135,8 @@ function initialTab(): Tab {
   return (params.get('tab') || params.get('tipo')) === 'soggetto' ? 'soggetto' : 'cliente'
 }
 
-function text(value: unknown): string {
-  return String(value ?? '').trim()
+function text(value: unknown, fallback = ''): string {
+  return String(value ?? fallback).trim()
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -155,10 +158,26 @@ function asInputValue(value: string | boolean | undefined): string {
 
 type ClientDocumentField = keyof typeof initialClient
 type ClientDocumentPatch = Partial<Record<ClientDocumentField, string>>
+type ClientDocumentReaderPhase = 'idle' | 'selected' | 'reading' | 'success' | 'warning' | 'danger'
+type ClientDocumentRecognizedField = {
+  name: string
+  label: string
+  value: string
+  confidence: number
+  source: string
+  status: string
+}
 type ClientDocumentAutofillState = {
-  tone: 'neutral' | 'success' | 'danger'
+  phase: ClientDocumentReaderPhase
+  tone: 'neutral' | 'success' | 'warning' | 'danger'
   message: string
   fields: string[]
+  applied: string[]
+  skipped: string[]
+  missing: string[]
+  warnings: string[]
+  recognized: ClientDocumentRecognizedField[]
+  filename: string
 }
 type ClientDocumentAutofillResult = {
   ok: boolean
@@ -176,9 +195,16 @@ declare global {
 }
 
 const emptyDocumentAutofillState: ClientDocumentAutofillState = {
+  phase: 'idle',
   tone: 'neutral',
-  message: 'In attesa dei dati dal lettore documento.',
+  message: 'Carica un PDF, JPG o PNG del documento per leggere dati anagrafici e MRZ.',
   fields: [],
+  applied: [],
+  skipped: [],
+  missing: [],
+  warnings: [],
+  recognized: [],
+  filename: '',
 }
 
 const clientDocumentFieldLabels: Partial<Record<ClientDocumentField, string>> = {
@@ -421,14 +447,105 @@ function canAutofillClientField(field: ClientDocumentField, currentValue: string
   return !text(current) || current === defaultValue
 }
 
-function DocumentAutofillPanel({ state }:{ state: ClientDocumentAutofillState }) {
+function recognizedDocumentFields(payload: unknown): ClientDocumentRecognizedField[] {
+  if (!isRecord(payload)) return []
+  const explicitRows = Array.isArray(payload.fields)
+    ? payload.fields.filter(isRecord).map((item) => ({
+      name: text(item.name),
+      label: text(item.label ?? item.name),
+      value: text(item.value),
+      confidence: Number(item.confidence ?? 0),
+      source: text(item.source),
+      status: text(item.status, 'da verificare'),
+    })).filter((item) => item.name && item.value)
+    : []
+  if (explicitRows.length) return explicitRows
+  if (!isRecord(payload.patch)) return []
+  return Object.entries(payload.patch).map(([name, value]) => ({
+    name,
+    label: clientDocumentFieldLabels[name as ClientDocumentField] || name,
+    value: text(value),
+    confidence: 0.9,
+    source: 'documento',
+    status: 'affidabile',
+  })).filter((item) => item.value)
+}
+
+function stringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.map((item) => text(item)).filter(Boolean) : []
+}
+
+function confidenceLabel(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return 'da verificare'
+  return `${Math.round(value * 100)}%`
+}
+
+function DocumentAutofillPanel({
+  state,
+  selectedFile,
+  inputRef,
+  onChooseFile,
+  onReadFile,
+  onFileChange,
+}:{
+  state: ClientDocumentAutofillState
+  selectedFile: File | null
+  inputRef: RefObject<HTMLInputElement | null>
+  onChooseFile: () => void
+  onReadFile: () => void
+  onFileChange: (event: ChangeEvent<HTMLInputElement>) => void
+}) {
+  const isReading = state.phase === 'reading'
   return (
-    <div className={`iu-cln-doc-hook iu-cln-doc-hook--${state.tone}`} role={state.tone === 'danger' ? 'alert' : 'status'}>
-      <Camera size={17}/>
-      <div>
-        <strong>Lettura documento pronta</strong>
-        <span>{state.message}</span>
-        {state.fields.length ? <small>{state.fields.join(', ')}</small> : null}
+    <div className={`iu-cln-doc-reader iu-cln-doc-reader--${state.phase}`} role={state.tone === 'danger' ? 'alert' : 'status'}>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+        hidden
+        onChange={onFileChange}
+      />
+      <div className="iu-cln-doc-reader__icon">
+        {isReading ? <Loader2 className="iu-spin" size={20}/> : <ScanLine size={20}/>}
+      </div>
+      <div className="iu-cln-doc-reader__main">
+        <div className="iu-cln-doc-reader__head">
+          <div>
+            <strong>Lettore documento</strong>
+            <span>{selectedFile ? selectedFile.name : 'PDF, JPG o PNG di carta identità, passaporto o documento compatibile'}</span>
+          </div>
+          <div className="iu-cln-doc-reader__actions">
+            <button type="button" className="iu-cln-doc-reader__button" onClick={onChooseFile} disabled={isReading}>
+              <UploadCloud size={15}/> Carica documento
+            </button>
+            <button type="button" className="iu-cln-doc-reader__button iu-cln-doc-reader__button--primary" onClick={onReadFile} disabled={isReading}>
+              <Camera size={15}/> {isReading ? 'Lettura in corso...' : 'Leggi documento / MRZ'}
+            </button>
+          </div>
+        </div>
+        <p>{state.message}</p>
+        {state.recognized.length ? (
+          <div className="iu-cln-doc-reader__fields" aria-label="Dati letti dal documento">
+            <strong>Dati letti dal documento</strong>
+            <div>
+              {state.recognized.map((field) => (
+                <span className={field.status === 'affidabile' ? 'is-ok' : 'is-check'} key={`${field.name}-${field.value}`}>
+                  <b>{field.label}</b>
+                  <i>{field.value}</i>
+                  <em>{confidenceLabel(field.confidence)}</em>
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        {state.applied.length ? <small className="iu-cln-doc-reader__ok"><CheckCircle2 size={13}/> Applicati: {state.applied.join(', ')}</small> : null}
+        {state.skipped.length ? <small className="iu-cln-doc-reader__skip"><AlertTriangle size={13}/> Già compilati: {state.skipped.join(', ')}</small> : null}
+        {state.missing.length ? <small className="iu-cln-doc-reader__skip"><AlertTriangle size={13}/> Da completare a mano: {state.missing.join(', ')}</small> : null}
+        {state.warnings.length ? (
+          <ul className="iu-cln-doc-reader__warnings">
+            {state.warnings.map((warning) => <li key={warning}>{warning}</li>)}
+          </ul>
+        ) : null}
       </div>
     </div>
   )
@@ -615,9 +732,11 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
   const [cfStatus, setCfStatus] = useState('')
   const [submitState, setSubmitState] = useState<SubmitState>(() => emptySubmitState())
   const [autofillState, setAutofillState] = useState<ClientDocumentAutofillState>(() => emptyDocumentAutofillState)
+  const [selectedDocumentFile, setSelectedDocumentFile] = useState<File | null>(null)
   const [touchedFields, setTouchedFields] = useState<Set<string>>(() => new Set())
   const valuesRef = useRef(values)
   const touchedFieldsRef = useRef(touchedFields)
+  const documentFileInputRef = useRef<HTMLInputElement | null>(null)
   const action = data.actions.operationalClientForm
   const isPhysical = values.tipo === 'PERSONA_FISICA'
   const nextUrl = data.query.nextUrl
@@ -692,14 +811,14 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
   const applyDocumentPayload = useCallback((payload: unknown): ClientDocumentAutofillResult => {
     if (!isPhysical) {
       const result = { ok: false, applied: [], skipped: [], message: 'La lettura documento è disponibile per le persone fisiche.' }
-      setAutofillState({ tone: 'neutral', message: result.message, fields: [] })
+      setAutofillState({ ...emptyDocumentAutofillState, phase: 'warning', tone: 'neutral', message: result.message, filename: selectedDocumentFile?.name || '' })
       return result
     }
     const patch = normalizeClientDocumentScan(payload)
     const entries = Object.entries(patch).filter(([, value]) => text(value))
     if (!entries.length) {
       const result = { ok: false, applied: [], skipped: [], message: 'Nessun dato anagrafico riconosciuto dal documento.' }
-      setAutofillState({ tone: 'danger', message: result.message, fields: [] })
+      setAutofillState({ ...emptyDocumentAutofillState, phase: 'danger', tone: 'danger', message: result.message, filename: selectedDocumentFile?.name || '' })
       return result
     }
     const currentValues = valuesRef.current
@@ -720,16 +839,111 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
     if (applied.length) {
       setValues(nextValues)
       setAutofillState({
+        phase: 'success',
         tone: 'success',
         message: skipped.length ? 'Dati documento applicati. Alcuni campi già compilati sono stati lasciati invariati.' : 'Dati documento applicati alla nuova anagrafica.',
         fields: applied,
+        applied,
+        skipped,
+        missing: [],
+        warnings: [],
+        recognized: recognizedDocumentFields(payload),
+        filename: selectedDocumentFile?.name || '',
       })
       return { ok: true, applied, skipped, message: 'Dati documento applicati.' }
     }
     const result = { ok: false, applied, skipped, message: 'I campi riconosciuti erano già compilati.' }
-    setAutofillState({ tone: 'neutral', message: result.message, fields: skipped })
+    setAutofillState({
+      ...emptyDocumentAutofillState,
+      phase: 'warning',
+      tone: 'warning',
+      message: result.message,
+      fields: skipped,
+      skipped,
+      recognized: recognizedDocumentFields(payload),
+      filename: selectedDocumentFile?.name || '',
+    })
     return result
-  }, [isPhysical])
+  }, [isPhysical, selectedDocumentFile])
+
+  const chooseDocumentFile = () => {
+    documentFileInputRef.current?.click()
+  }
+
+  const handleDocumentFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0] || null
+    setSelectedDocumentFile(file)
+    if (!file) {
+      setAutofillState(emptyDocumentAutofillState)
+      return
+    }
+    setAutofillState({
+      ...emptyDocumentAutofillState,
+      phase: 'selected',
+      tone: 'neutral',
+      filename: file.name,
+      message: 'Documento caricato. Premi Leggi documento / MRZ per compilare i dati riconosciuti.',
+    })
+  }
+
+  const readSelectedDocumentFile = async () => {
+    if (!selectedDocumentFile) {
+      setAutofillState({
+        ...emptyDocumentAutofillState,
+        phase: 'warning',
+        tone: 'warning',
+        message: 'Carica prima un PDF, JPG o PNG del documento.',
+      })
+      documentFileInputRef.current?.click()
+      return
+    }
+    setAutofillState({
+      ...emptyDocumentAutofillState,
+      phase: 'reading',
+      tone: 'neutral',
+      filename: selectedDocumentFile.name,
+      message: 'Lettura OCR/MRZ in corso...',
+    })
+    try {
+      const formData = new FormData()
+      formData.append('file', selectedDocumentFile)
+      const response = await fetch(data.actions.documentReader, {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: formData,
+        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      })
+      const payload = await safeJson(response)
+      const recognized = recognizedDocumentFields(payload)
+      const missing = stringList(payload.missing)
+      const warnings = stringList(payload.warnings)
+      if (!response.ok && !recognized.length) {
+        throw new Error(text(payload.message ?? payload.errore, `Lettura documento non riuscita: HTTP ${response.status}`))
+      }
+      const result = applyDocumentPayload(payload)
+      const phase: ClientDocumentReaderPhase = result.ok ? 'success' : recognized.length ? 'warning' : 'danger'
+      setAutofillState({
+        phase,
+        tone: result.ok ? 'success' : recognized.length ? 'warning' : 'danger',
+        message: text(payload.message, result.message),
+        fields: result.applied,
+        applied: result.applied,
+        skipped: result.skipped,
+        missing,
+        warnings,
+        recognized,
+        filename: selectedDocumentFile.name,
+      })
+    } catch (error) {
+      setAutofillState({
+        ...emptyDocumentAutofillState,
+        phase: 'danger',
+        tone: 'danger',
+        filename: selectedDocumentFile.name,
+        message: error instanceof Error ? error.message : 'Lettura documento non riuscita.',
+      })
+    }
+  }
 
   useEffect(() => {
     const api = { applicaDatiDocumento: applyDocumentPayload }
@@ -797,7 +1011,14 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
       <Card title={isPhysical ? 'Dati persona fisica' : 'Dati persona giuridica'} icon={isPhysical ? <UserRound size={18}/> : <Building2 size={18}/>} note="Campi coerenti con l'anagrafica dello studio">
         {isPhysical ? (
           <div className="iu-cln-grid">
-            <DocumentAutofillPanel state={autofillState}/>
+            <DocumentAutofillPanel
+              state={autofillState}
+              selectedFile={selectedDocumentFile}
+              inputRef={documentFileInputRef}
+              onChooseFile={chooseDocumentFile}
+              onReadFile={readSelectedDocumentFile}
+              onFileChange={handleDocumentFileChange}
+            />
             <Field label="Cognome" name="cognome" value={asInputValue(values.cognome)} required placeholder="Rossi" onChange={change}/>
             <Field label="Nome" name="nome" value={asInputValue(values.nome)} required placeholder="Mario" onChange={change}/>
             <SelectField label="Sesso" name="sesso" value={asInputValue(values.sesso)} required onChange={change} options={[{value: '', label: '-'}, {value: 'M', label: 'Maschile'}, {value: 'F', label: 'Femminile'}]}/>

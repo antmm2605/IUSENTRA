@@ -75,6 +75,7 @@ from web.services.react_clienti_bridge import (
     build_react_clienti_payload,
     build_react_soggetto_modifica_payload,
 )
+from web.services.client_document_reader import ClientDocumentReaderError, read_client_document_upload
 from web.services.react_condivisioni_bridge import build_react_condivisioni_payload
 from web.services.mailbox_sync_runtime import sync_mailboxes_for_current_context
 from web.services.react_dashboard_cache import (
@@ -1762,6 +1763,23 @@ def clienti_react_nuovo():
         get_soggetti=get_soggetti,
         query=request.args,
     ))
+
+
+@api_v1_react.post("/clienti/nuovo/documento/leggi")
+@_richiedi_auth
+def clienti_react_nuovo_documento_leggi():
+    try:
+        result = read_client_document_upload(request.files.get("file"))
+        return jsonify(result), 200 if result.get("ok") else 422
+    except ClientDocumentReaderError as exc:
+        return jsonify({
+            "ok": False,
+            "message": str(exc),
+            "patch": {},
+            "fields": [],
+            "missing": [],
+            "warnings": [str(exc)],
+        }), exc.status_code
 
 
 @api_v1_react.get("/clienti/<id_cliente>/cartella")

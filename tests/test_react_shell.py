@@ -4362,11 +4362,16 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert "/api/cf/calcola" in new_page
     assert "/api/cf/decodifica" in new_page
     assert "Genera CF" in new_page
-    assert "Lettura documento pronta" in new_page
+    assert "Lettore documento" in new_page
+    assert "Carica documento" in new_page
+    assert "Leggi documento / MRZ" in new_page
+    assert "Dati letti dal documento" in new_page
+    assert "selectedDocumentFile" in new_page
     assert "IUSENTRA_CLIENTE_NUOVO" in new_page
     assert "applicaDatiDocumento" in new_page
     assert "iusentra:cliente-documento-rilevato" in new_page
     assert "normalizeClientDocumentScan" in new_page
+    assert "data.actions.documentReader" in new_page
     assert "target === 'data_nascita'" in new_page
     assert "doc_data_scadenza" in new_page
     assert 'name="provincia_nascita"' in new_page
@@ -4378,6 +4383,8 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert "SoggettiPage" in soggetti_page
     assert 'context="soggetti"' in soggetti_page
     assert '@api_v1_react.get("/clienti/nuovo")' in api_source
+    assert '@api_v1_react.post("/clienti/nuovo/documento/leggi")' in api_source
+    assert "read_client_document_upload" in api_source
     assert '@api_v1_react.get("/clienti/<id_cliente>/modifica")' in api_source
     assert '@api_v1_react.get("/soggetti/<id_soggetto>/modifica")' in api_source
     assert '@api_v1_react.get("/soggetti")' in api_source
@@ -4385,7 +4392,7 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert "provincia_nascita: str = \"\"" in soggetti_model
     assert ".iu-clienti-new-page" in new_css
     assert ".iu-cln-process-grid" in new_css
-    assert ".iu-cln-doc-hook" in new_css
+    assert ".iu-cln-doc-reader" in new_css
     assert ".iu-soggetti-page" in soggetti_css
     assert ".iu-sogg-table" in soggetti_css
     assert "@media(max-width:760px)" in new_css

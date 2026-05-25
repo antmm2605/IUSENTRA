@@ -736,6 +736,7 @@ def build_react_clienti_nuovo_payload(
             "subjectsList": "/soggetti",
             "operationalClientForm": "/clienti/nuovo",
             "operationalSubjectForm": "/soggetti/nuovo",
+            "documentReader": "/api/v1/ui/clienti/nuovo/documento/leggi",
         },
         "query": {
             "tab": _text(query.get("tab") or query.get("tipo")),

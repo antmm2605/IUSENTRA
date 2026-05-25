@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.61 - 2026-05-26
+
+- Completato su `/clienti/nuovo` il lettore documento reale: caricamento PDF/JPG/PNG, lettura OCR/MRZ via API, pannello di conferma, stati di caricamento/errore/incertezza e compilazione automatica dei campi anagrafici affidabili.
+- Aggiunto parser documento in memoria per codice fiscale, nome, cognome, sesso, nascita, nazionalità, documento, rilascio/scadenza, indirizzo e recapiti, senza inventare dati mancanti e senza sovrascrivere campi già compilati dall'utente.
+- Coperti parser MRZ, OCR/testo simulato, API upload e regressione React della pagina Nuovo Cliente; verificata la pagina nel browser reale desktop/mobile con lettore visibile e API su PDF reale.
+
 ## 2.248.60 - 2026-05-26
 
 - Corretto il dettaglio Email PEC: il messaggio completo usa il corpo MIME estratto, le finestre lista/lettura sono allineate con scroll coerente e le azioni `Apri MIME`, `Esegui controllo`, `Salva nel fascicolo` e `Scadenza automatica` sono disponibili nella testata della PEC.

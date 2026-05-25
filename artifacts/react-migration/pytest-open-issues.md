@@ -856,6 +856,14 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | `/clienti/nuovo` lettura documento | Typecheck, pytest mirato, gate frontend, build e browser desktop/mobile | Nessuna issue aperta nuova | L'hook prepara il collegamento del parser OCR/MRZ e compila solo campi vuoti o rimasti ai valori predefiniti, preservando i campi già modificati dall'utente. | Quando verrà collegato il parser reale, inviare payload all'evento `iusentra:cliente-documento-rilevato` o a `window.IUSENTRA_CLIENTE_NUOVO.applicaDatiDocumento(payload)` e rilanciare il pytest mirato più browser desktop/mobile. |
 | Contratti API dopo bump `2.248.59` | GitHub `Lint + syntax` sul push `bc6be7ae3` | Risolto localmente, da verificare sul nuovo SHA | Il primo push ha evidenziato `docs/openapi.yaml` non allineato alla versione nuova; gli aggregatori Pytest/Signer sono stati rossi o saltati per cascata dal blocco `Lint + syntax`. | Rigenerati `docs/openapi.yaml`, `docs/api-contracts.md` e `docs/api-endpoint-contract-map.md`; rilanciati generate check, validazione OpenAPI, provider verification, smoke contratti e test OpenAPI prima del nuovo push. |
 
+## Note lettore documento Nuovo Cliente 2.248.61 - 2026-05-26
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| `/clienti/nuovo` lettore documento reale | Pytest parser/API, typecheck, build e browser | Nessuna issue aperta nuova | Il vecchio hook passivo è stato sostituito da upload PDF/JPG/PNG, chiamata API reale, parser OCR/MRZ in memoria, pannello dati letti e compilazione automatica solo dei campi affidabili e non già compilati dall'utente. | Per modifiche future rilanciare `tests/test_client_document_reader.py`, i due test React shell su nuovo cliente, typecheck/build frontend e prova browser desktop/mobile. |
+| Verifica file picker nel browser in-app | Browser in-app e POST HTTP reale | Governato | Il browser in-app ha verificato la pagina, gli stati visibili e il layout responsive; l'ambiente di automazione non espone selezione file nativa affidabile, quindi il caricamento documento è stato provato con `POST` reale multipart su PDF generato e API autenticata. | Se si usa Playwright completo o browser manuale, ripetere la selezione file end-to-end; l'endpoint e il parser sono già coperti da test automatici e upload reale. |
+| Dati non presenti o incerti nel documento | Parser e pannello conferma | Governato | Il servizio non inventa CF, indirizzo, luogo nascita o recapiti se non compaiono nel testo/MRZ; i campi sotto soglia restano visibili come `da verificare` e non entrano nel `patch` automatico. | Mantenere la soglia di affidabilità e non trasformare dati incerti in compilazioni silenziose. |
+
 ## Note PEC MIME/fascicolo 2.248.60 - 2026-05-26
 
 | Area | Gate | Stato | Nota | Azione |

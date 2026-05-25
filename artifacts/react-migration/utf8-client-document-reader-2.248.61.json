@@ -1,0 +1,23 @@
+{
+  "checked_files": 3,
+  "error_files": 0,
+  "files": [],
+  "files_with_artifacts": 0,
+  "finished_at": "2026-05-25T23:55:23Z",
+  "no_backup_created": true,
+  "ok": true,
+  "repair_enabled": false,
+  "repaired_files": 0,
+  "roots": [
+    "D:\\legale\\IUSENTRA\\CHANGELOG.md",
+    "D:\\legale\\IUSENTRA\\artifacts\\react-migration\\pytest-confirmed-ok.md",
+    "D:\\legale\\IUSENTRA\\artifacts\\react-migration\\pytest-open-issues.md",
+    "D:\\legale\\IUSENTRA\\web\\services\\client_document_reader.py",
+    "D:\\legale\\IUSENTRA\\frontend\\src\\components\\NuovoClientePage.tsx",
+    "D:\\legale\\IUSENTRA\\docs\\openapi.yaml"
+  ],
+  "schema_version": "iusentra.utf8_integrity.v1",
+  "skipped_large_files": 0,
+  "started_at": "2026-05-25T23:55:22Z",
+  "unresolved_replacement_files": 0
+}

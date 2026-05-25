@@ -54,6 +54,7 @@ export type ClientiNuovoData = {
     subjectsList: string
     operationalClientForm: string
     operationalSubjectForm: string
+    documentReader: string
   }
   query: {
     tab: string
@@ -189,6 +190,7 @@ export const emptyClientiNuovoData: ClientiNuovoData = {
     subjectsList: '/soggetti',
     operationalClientForm: '/clienti/nuovo',
     operationalSubjectForm: '/soggetti/nuovo',
+    documentReader: '/api/v1/ui/clienti/nuovo/documento/leggi',
   },
   query: { tab: '', nextUrl: '', idCliente: '', idSoggetto: '' },
   initialClient: {},
@@ -282,6 +284,7 @@ function mergePayload(payload: unknown): ClientiNuovoData {
         subjectsList: text(payload.actions.subjectsList ?? payload.actions.subjects_list, emptyClientiNuovoData.actions.subjectsList),
         operationalClientForm: text(payload.actions.operationalClientForm ?? payload.actions.operational_client_form, emptyClientiNuovoData.actions.operationalClientForm),
         operationalSubjectForm: text(payload.actions.operationalSubjectForm ?? payload.actions.operational_subject_form, emptyClientiNuovoData.actions.operationalSubjectForm),
+        documentReader: text(payload.actions.documentReader ?? payload.actions.document_reader, emptyClientiNuovoData.actions.documentReader),
       }
       : emptyClientiNuovoData.actions,
     query: isRecord(payload.query)

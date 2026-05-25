@@ -2,6 +2,12 @@
 
 Aggiornamento corrente: 2026-05-25, hotfix preset grafico operativo 2.248.56.
 
+## Note uffici competenti per Comune 2.248.58 - 2026-05-25
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Ricerca uffici da Giustizia Map | Parser, API React, typecheck e build | Nessuna issue aperta nuova | La funzione è read-only, non scrive cache runtime e non modifica procedure telematiche. I test usano fixture HTML/XML e non dipendono dalla disponibilità live della fonte ministeriale. | Se la struttura di Giustizia Map cambia, aggiornare `docs/specs/ministero/GIUSTIZIA_MAP_UFFICI_COMPETENTI.md`, parser e fixture prima di cambiare la UI. |
+
 ## Note hotfix preset grafico operativo 2.248.56 - 2026-05-25
 
 Nessuna issue aperta nuova sul perimetro corretto. La prima euristica di audit
@@ -828,6 +834,14 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
 | Finestra PIN in barra Windows | Suite Local Signer, packaging e boundary check | Governato come best-effort Windows | Durante preflight, ricerca e download PST il Local Signer prova a riportare davanti le finestre con titolo coerente con PIN, Sicurezza Windows, smart card, CNS/CIE, Bit4id, Aruba o token. Windows può comunque applicare restrizioni di focus su finestre protette, ma il flusso non resta più passivo mentre `curl` attende il certificato. | Se un driver mostra un titolo diverso, aggiungerlo a `_WINDOWS_PIN_FOREGROUND_KEYWORDS` e rilanciare `test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows`, suite Local Signer e build dist. |
+## Note preset amministrazione e Sito Studio 2.248.56 - 2026-05-25
+
+## Note PEC MIME/fascicolo 2.248.58 - 2026-05-25
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Azioni PEC e salvataggio MIME nel fascicolo | Test PEC, typecheck, build | Nessuna issue aperta nuova | Il flusso `Salva nel fascicolo` chiede nome e cognome cliente, propone solo fascicoli aperti e salva il MIME originale dopo conferma. La pagina mostra `Apri MIME`, `Esegui controllo`, `Salva nel fascicolo`, `Scadenza automatica`, usa il testo completo estratto dal MIME e tiene lista/dettaglio allineati. | Per modifiche future rilanciare `tests\test_pec_audit_pipeline.py`, typecheck/build React e browser reale su `/email/`. Il flusso resta interno a PEC/clienti/fascicoli: non introdurre Local Signer o servizi telematici. |
+
 ## Note preset amministrazione e Sito Studio 2.248.56 - 2026-05-25
 
 | Area | Gate | Stato | Nota | Azione |

@@ -348,9 +348,9 @@
 }
 .iu-mail-layout{
   display:grid;
-  grid-template-columns:minmax(340px,430px) minmax(0,1fr) minmax(280px,340px);
+  grid-template-columns:minmax(340px,420px) minmax(0,1fr);
   gap:14px;
-  align-items:start;
+  align-items:stretch;
 }
 .iu-mail-list-card,
 .iu-mail-preview-card,
@@ -361,6 +361,9 @@
   box-shadow:var(--iu-shadow-soft);
 }
 .iu-mail-list-card{
+  height:clamp(620px,calc(100vh - 330px),980px);
+  display:flex;
+  flex-direction:column;
   overflow:hidden;
 }
 .iu-mail-list-card>header{
@@ -400,8 +403,8 @@
   font-weight:900;
 }
 .iu-mail-list{
-  max-height:calc(100vh - 380px);
-  min-height:420px;
+  flex:1 1 auto;
+  min-height:0;
   overflow:auto;
   padding:8px;
 }
@@ -568,7 +571,12 @@
   font-weight:700;
 }
 .iu-mail-preview-card{
-  min-height:520px;
+  height:clamp(620px,calc(100vh - 330px),980px);
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  overflow:auto;
+  scrollbar-gutter:stable;
   padding:18px;
 }
 .iu-mail-preview-card>header{
@@ -602,6 +610,40 @@
   gap:6px;
   flex-wrap:wrap;
   justify-content:flex-end;
+}
+.iu-pec-primary-actions{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  padding:10px 0 0;
+}
+.iu-pec-primary-actions button,
+.iu-pec-primary-actions a{
+  min-height:38px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  padding:0 10px;
+  border:1px solid rgba(37,99,235,.18);
+  border-radius:8px;
+  background:#fff;
+  color:#0f172a;
+  font-size:12px;
+  font-weight:900;
+  text-decoration:none;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.iu-pec-primary-actions button:hover,
+.iu-pec-primary-actions a:hover{
+  border-color:rgba(37,99,235,.3);
+  background:#eff6ff;
+}
+.iu-pec-primary-actions button:disabled{
+  color:#94a3b8;
+  background:#f8fafc;
+  cursor:not-allowed;
 }
 .iu-mail-meta{
   display:grid;
@@ -696,7 +738,9 @@
   line-height:1.5;
 }
 .iu-mail-inspector{
+  grid-column:1 / -1;
   display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
   gap:12px;
 }
 .iu-mail-briefing{
@@ -1119,7 +1163,10 @@
   white-space:pre-wrap;
 }
 .iu-mail-full-detail{
+  min-height:0;
+  flex:1 1 auto;
   display:grid;
+  grid-template-rows:auto minmax(360px,1fr) auto;
   gap:10px;
   margin-top:12px;
   padding-top:12px;
@@ -1135,13 +1182,16 @@
 .iu-mail-full-detail header span{font-size:12px;font-weight:750;color:var(--iu-slate-500)}
 .iu-mail-full-detail iframe{
   width:100%;
-  min-height:320px;
+  min-height:360px;
+  height:100%;
   border:1px solid rgba(148,163,184,.34);
   border-radius:14px;
   background:#fff;
 }
 .iu-mail-full-detail pre{
-  max-height:420px;
+  height:100%;
+  max-height:none;
+  min-height:360px;
   overflow:auto;
   margin:0;
   padding:14px;
@@ -1391,11 +1441,145 @@
 .iu-mail-preview-card>.iu-pec-audit-panel>footer{
   display:none;
 }
+.iu-pec-save-dialog{
+  max-width:560px!important;
+  border-radius:14px!important;
+  background:#fff!important;
+}
+.iu-pec-save-dialog [data-slot="dialog-title"]{
+  color:#0f172a;
+  font-size:18px;
+  font-weight:950;
+}
+.iu-pec-save-dialog [data-slot="dialog-description"]{
+  color:#475569;
+  font-size:13px;
+  font-weight:700;
+  line-height:1.45;
+}
+.iu-pec-save-form,
+.iu-pec-save-confirm{
+  display:grid;
+  gap:12px;
+}
+.iu-pec-save-form p,
+.iu-pec-save-confirm p{
+  margin:0;
+  color:#334155;
+  font-size:13px;
+  font-weight:750;
+  line-height:1.45;
+}
+.iu-pec-save-form>div{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.iu-pec-save-form label,
+.iu-pec-save-confirm label{
+  display:grid;
+  gap:6px;
+  color:var(--iu-slate-600);
+  font-size:11px;
+  font-weight:900;
+  text-transform:uppercase;
+}
+.iu-pec-save-form input,
+.iu-pec-save-confirm select{
+  width:100%;
+  min-height:42px;
+  border:1px solid var(--iu-border);
+  border-radius:10px;
+  padding:0 11px;
+  background:#fff;
+  color:#0f172a;
+  font:inherit;
+  font-weight:750;
+}
+.iu-pec-save-candidate{
+  display:grid;
+  gap:5px;
+  padding:12px;
+  border:1px solid rgba(37,99,235,.18);
+  border-radius:10px;
+  background:#eff6ff;
+}
+.iu-pec-save-candidate strong{
+  color:#0f172a;
+  font-size:14px;
+}
+.iu-pec-save-candidate span,
+.iu-pec-save-candidate small{
+  color:#475569;
+  font-size:12px;
+  font-weight:750;
+}
+.iu-pec-save-done{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  gap:10px;
+  padding:12px;
+  border:1px solid rgba(16,185,129,.22);
+  border-radius:10px;
+  background:#ecfdf5;
+  color:#047857;
+}
+.iu-pec-save-done strong,
+.iu-pec-save-done span{
+  display:block;
+}
+.iu-pec-save-done span{
+  margin-top:3px;
+  color:#334155;
+  font-size:12px;
+  font-weight:750;
+}
+.iu-pec-save-done p{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:8px 0 0;
+}
+.iu-pec-save-done a{
+  color:#0f766e;
+  font-size:12px;
+  font-weight:900;
+}
+.iu-pec-save-error{
+  margin:0;
+  padding:9px 10px;
+  border:1px solid rgba(239,68,68,.22);
+  border-radius:10px;
+  background:#fef2f2;
+  color:#b91c1c;
+  font-size:12px;
+  font-weight:850;
+}
+.iu-pec-save-dialog [data-slot="dialog-footer"] button{
+  min-height:38px;
+  border:1px solid transparent;
+  border-radius:10px;
+  padding:0 14px;
+  background:var(--iu-navy-900);
+  color:#fff;
+  font-size:12px;
+  font-weight:900;
+  cursor:pointer;
+}
+.iu-pec-save-dialog [data-slot="dialog-footer"] .iu-pec-save-secondary{
+  border-color:var(--iu-border);
+  background:#fff;
+  color:#0f172a;
+}
+.iu-pec-save-dialog [data-slot="dialog-footer"] button:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
 
 @media(max-width:1540px){
   .iu-mail-stats{grid-template-columns:repeat(4,minmax(0,1fr))}
   .iu-mail-layout{grid-template-columns:minmax(320px,390px) minmax(0,1fr)}
-  .iu-mail-inspector{grid-column:1 / -1;grid-template-columns:repeat(4,minmax(0,1fr))}
+  .iu-mail-inspector{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
 @media(max-width:1120px){
   .iu-mail-hero{flex-direction:column}
@@ -1405,6 +1589,7 @@
   .iu-mail-toolbar{grid-template-columns:1fr auto auto}
   .iu-mail-folders{grid-column:1 / -1;overflow:auto}
   .iu-mail-layout{grid-template-columns:1fr}
+  .iu-mail-list-card,.iu-mail-preview-card{height:auto;overflow:visible}
   .iu-mail-list{max-height:none;min-height:auto}
   .iu-mail-inspector{grid-template-columns:1fr 1fr}
 }
@@ -1445,6 +1630,8 @@
   .iu-mail-preview-card>header{display:grid;gap:8px}
   .iu-mail-preview-card h2{font-size:17px}
   .iu-mail-preview-status{justify-content:flex-start}
+  .iu-pec-primary-actions{grid-template-columns:1fr 1fr}
+  .iu-pec-primary-actions button,.iu-pec-primary-actions a{width:100%}
   .iu-mail-meta{grid-template-columns:1fr 1fr;gap:8px;padding:10px 0}
   .iu-mail-meta div{min-height:56px;padding:8px}
   .iu-mail-body-preview{min-height:120px;margin:10px 0;padding:12px;font-size:12.5px}
@@ -1465,6 +1652,7 @@
   .iu-mail-compose-form footer{display:grid;grid-template-columns:1fr}
   .iu-mail-compose-form footer button,.iu-mail-compose-form footer a{width:100%}
   .iu-mail-quick-actions,.iu-mail-integrations{grid-template-columns:1fr}
+  .iu-pec-save-form>div{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){
   .iu-mail-row,.iu-mail-hero__actions>button,.iu-mail-preview-card footer>button{transition:none!important}

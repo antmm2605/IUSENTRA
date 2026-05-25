@@ -27,6 +27,7 @@ import {
 import { Badge, Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
 import { JsonPostForm } from './JsonPostForm'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import {
   emptyEmailOrdinariaPage,
@@ -51,6 +52,52 @@ import './EmailPecPage.css'
 type MailboxMode = 'pec' | 'ordinaria'
 type SortKey = 'recenti' | 'mittente' | 'oggetto' | 'pct'
 type JsonRecord = Record<string, unknown>
+type SaveMatterStep = 'cliente' | 'conferma' | 'salvato'
+
+type PecSaveMatterCandidate = {
+  id: string
+  title: string
+  number: string
+  clientName: string
+  state: string
+  rg: string
+  court: string
+  score: number
+  reasons: string[]
+  href: string
+}
+
+type SaveMatterDialogState = {
+  open: boolean
+  actionUrl: string
+  subject: string
+  nome: string
+  cognome: string
+  step: SaveMatterStep
+  candidates: PecSaveMatterCandidate[]
+  selectedId: string
+  message: string
+  error: string
+  busy: boolean
+  savedHref: string
+  documentHref: string
+}
+
+const emptySaveMatterDialog: SaveMatterDialogState = {
+  open: false,
+  actionUrl: '',
+  subject: '',
+  nome: '',
+  cognome: '',
+  step: 'cliente',
+  candidates: [],
+  selectedId: '',
+  message: '',
+  error: '',
+  busy: false,
+  savedHref: '',
+  documentHref: '',
+}
 
 const LOCAL_SIGNER_BASE_URL = 'http://127.0.0.1:27272'
 const LEGAL_NOTIFICATION_SUBJECT = 'notificazione ai sensi della legge n. 53 del 1994'
@@ -230,6 +277,28 @@ function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
 }
 
+function numericValue(value: unknown): number {
+  const parsed = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function candidateFromPayload(value: unknown): PecSaveMatterCandidate {
+  const item = record(value)
+  const reasons = Array.isArray(item.reasons) ? item.reasons.map((reason) => text(reason)).filter(Boolean) : []
+  return {
+    id: text(item.id),
+    title: text(item.title ?? item.titolo) || 'Fascicolo senza titolo',
+    number: text(item.number ?? item.numero),
+    clientName: text(item.clientName ?? item.client_name ?? item.nome_cliente),
+    state: text(item.state ?? item.stato),
+    rg: text(item.rg),
+    court: text(item.court ?? item.tribunale),
+    score: numericValue(item.score),
+    reasons,
+    href: text(item.href),
+  }
+}
+
 function firstText(recordValue: Record<string, unknown>, keys: string[]): string {
   for (const key of keys) {
     const value = text(recordValue[key])
@@ -388,6 +457,43 @@ function PecAuditBadges({ audit }: { audit?: PecAuditSummary }) {
   )
 }
 
+function PecAuditActionBar({
+  audit,
+  onAction,
+}: {
+  audit?: PecAuditSummary
+  onAction: (url: string, label: string) => void
+}) {
+  if (!audit) return null
+  const unavailableTitle = 'Disponibile dopo l\'acquisizione del MIME originale'
+  const actionButton = (url: string, label: string, icon: ReactNode) => (
+    <button
+      type="button"
+      disabled={!url}
+      title={url ? label : unavailableTitle}
+      onClick={() => {
+        if (url) onAction(url, label)
+      }}
+    >
+      {icon}<span>{label}</span>
+    </button>
+  )
+  return (
+    <div className="iu-pec-primary-actions" aria-label="Azioni MIME PEC">
+      {audit.quickActions.openMime ? (
+        <a href={audit.quickActions.openMime} target="_blank" rel="noreferrer" title="Apri MIME">
+          <Download size={15} /><span>Apri MIME</span>
+        </a>
+      ) : (
+        actionButton('', 'Apri MIME', <Download size={15} />)
+      )}
+      {actionButton(audit.quickActions.runAudit, 'Esegui controllo', <ShieldCheck size={15} />)}
+      {actionButton(audit.quickActions.saveMatter, 'Salva nel fascicolo', <FileCheck2 size={15} />)}
+      {actionButton(audit.quickActions.scheduleDeadline, 'Scadenza automatica', <Clock3 size={15} />)}
+    </div>
+  )
+}
+
 function auditOutcomeText(audit?: PecAuditSummary): string {
   if (!audit) return ''
   if (audit.persisted === false) {
@@ -538,8 +644,8 @@ function PecAuditInlineNotice({
         </div>
         <footer>
           {audit.quickActions.runAudit ? (
-            <button type="button" onClick={() => onAction(audit.quickActions.runAudit, 'Esegui controllo audit-grade')}>
-              <ShieldCheck size={15} /> Esegui controllo audit-grade
+            <button type="button" onClick={() => onAction(audit.quickActions.runAudit, 'Esegui controllo')}>
+              <ShieldCheck size={15} /> Esegui controllo
             </button>
           ) : null}
           {actionButton(audit.quickActions.saveMatter, 'Salva nel fascicolo', <FileCheck2 size={15} />)}
@@ -632,7 +738,7 @@ function PecAuditSidebarPanel({
           ) : null}
           <div className="iu-pec-sidebar-actions">
             {audit.quickActions.runAudit ? (
-              <button type="button" onClick={() => onAction(audit.quickActions.runAudit, 'Esegui controllo audit-grade')}>
+              <button type="button" onClick={() => onAction(audit.quickActions.runAudit, 'Esegui controllo')}>
                 <ShieldCheck size={15} /> Esegui controllo
               </button>
             ) : null}
@@ -676,6 +782,123 @@ async function postMailAction(url: string, label: string): Promise<string> {
     if (nuove || allegati) return `${label} completata: ${nuove} nuovi messaggi, ${allegati} allegati recuperati.`
   }
   return payload.messaggio || `${label}: operazione eseguita.`
+}
+
+async function postMailJsonAction(url: string, label: string, body: JsonRecord): Promise<JsonRecord> {
+  if (!url) throw new Error(`${label}: percorso operativo non configurato`)
+  const token = csrfToken()
+  const response = await fetch(url, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      ...(token ? { 'X-CSRFToken': token } : {}),
+    },
+    body: JSON.stringify(body),
+  })
+  const payload = await response.json().catch(() => ({})) as JsonRecord
+  const message = text(payload.message ?? payload.messaggio ?? payload.errore) || `${label}: operazione non completata`
+  if (!response.ok) {
+    throw new Error(message)
+  }
+  return payload
+}
+
+function PecSaveMatterDialog({
+  state,
+  onOpenChange,
+  onChange,
+  onPrepare,
+  onConfirm,
+}: {
+  state: SaveMatterDialogState
+  onOpenChange: (open: boolean) => void
+  onChange: (patch: Partial<SaveMatterDialogState>) => void
+  onPrepare: () => void
+  onConfirm: () => void
+}) {
+  const selected = state.candidates.find((item) => item.id === state.selectedId) || state.candidates[0]
+  return (
+    <Dialog open={state.open} onOpenChange={onOpenChange}>
+      <DialogContent className="iu-pec-save-dialog">
+        <DialogHeader>
+          <DialogTitle>Salva MIME nel fascicolo</DialogTitle>
+          <DialogDescription>
+            {state.subject ? state.subject : 'Indica il cliente e conferma il fascicolo aperto proposto da IUSENTRA.'}
+          </DialogDescription>
+        </DialogHeader>
+        {state.step === 'cliente' ? (
+          <div className="iu-pec-save-form">
+            <p>Inserisci nome e cognome del cliente. IUSENTRA cercherà solo fascicoli aperti dello studio.</p>
+            <div>
+              <label>
+                <span>Nome cliente</span>
+                <input value={state.nome} onChange={(event) => onChange({ nome: event.target.value, error: '' })} autoFocus />
+              </label>
+              <label>
+                <span>Cognome cliente</span>
+                <input value={state.cognome} onChange={(event) => onChange({ cognome: event.target.value, error: '' })} />
+              </label>
+            </div>
+          </div>
+        ) : null}
+        {state.step === 'conferma' && selected ? (
+          <div className="iu-pec-save-confirm">
+            <p>{state.message || 'Conferma il fascicolo aperto in cui salvare il MIME originale.'}</p>
+            {state.candidates.length > 1 ? (
+              <label>
+                <span>Fascicolo proposto</span>
+                <select value={state.selectedId} onChange={(event) => onChange({ selectedId: event.target.value, error: '' })}>
+                  {state.candidates.map((item) => (
+                    <option value={item.id} key={item.id}>
+                      {[item.number, item.title, item.clientName].filter(Boolean).join(' - ')}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            <article className="iu-pec-save-candidate">
+              <strong>{selected.number ? `${selected.number} · ${selected.title}` : selected.title}</strong>
+              <span>{selected.clientName || 'Cliente non indicato'}{selected.state ? ` · ${selected.state}` : ''}</span>
+              {selected.rg || selected.court ? <small>{[selected.rg, selected.court].filter(Boolean).join(' · ')}</small> : null}
+              {selected.reasons.length ? <small>{selected.reasons.join(', ')}</small> : null}
+            </article>
+          </div>
+        ) : null}
+        {state.step === 'salvato' ? (
+          <div className="iu-pec-save-done">
+            <CheckCircle2 size={22} />
+            <div>
+              <strong>{state.message || 'MIME PEC salvato nel fascicolo.'}</strong>
+              <span>Il file originale è stato inserito come comunicazione del fascicolo confermato.</span>
+              <p>
+                {state.savedHref ? <a href={state.savedHref}>Apri fascicolo</a> : null}
+                {state.documentHref ? <a href={state.documentHref}>Vai al documento</a> : null}
+              </p>
+            </div>
+          </div>
+        ) : null}
+        {state.error ? <p className="iu-pec-save-error">{state.error}</p> : null}
+        <DialogFooter>
+          <button type="button" className="iu-pec-save-secondary" onClick={() => onOpenChange(false)} disabled={state.busy}>
+            Chiudi
+          </button>
+          {state.step === 'cliente' ? (
+            <button type="button" onClick={onPrepare} disabled={state.busy}>
+              {state.busy ? 'Ricerca...' : 'Cerca fascicolo'}
+            </button>
+          ) : null}
+          {state.step === 'conferma' ? (
+            <button type="button" onClick={onConfirm} disabled={state.busy || !state.selectedId}>
+              {state.busy ? 'Salvataggio...' : 'Conferma e salva'}
+            </button>
+          ) : null}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
 }
 
 function routeEmailId(mode: MailboxMode): string {
@@ -835,6 +1058,7 @@ function EmailPreview({
   }
   const person = rowPerson(item)
   const hasTelematicBanner = copy.includeTelematic && (item.pctStatus || item.isPst)
+  const audit = detail?.pecAudit ?? item.pecAudit
   return (
     <section className="iu-mail-preview-card">
       <header>
@@ -845,9 +1069,10 @@ function EmailPreview({
         <div className="iu-mail-preview-status">
           {item.unread ? <Badge tone="primary">Non letta</Badge> : <Badge tone="success">Letta</Badge>}
           {copy.includeTelematic && item.isPst ? <Badge tone="primary"><ShieldCheck size={12} /> PST</Badge> : null}
-          {copy.includeTelematic ? <PecAuditBadges audit={detail?.pecAudit ?? item.pecAudit} /> : null}
+          {copy.includeTelematic ? <PecAuditBadges audit={audit} /> : null}
         </div>
       </header>
+      {copy.includeTelematic ? <PecAuditActionBar audit={audit} onAction={onAction} /> : null}
       <div className="iu-mail-meta">
         <div><span>{item.folder === 'INVIATI' ? 'A' : 'Da'}</span><strong>{person}</strong></div>
         <div><span>{item.folder === 'INVIATI' ? 'Mittente' : 'Destinatari'}</span><strong>{item.folder === 'INVIATI' ? (item.sender || '-') : (item.recipients || '-')}</strong></div>
@@ -864,7 +1089,7 @@ function EmailPreview({
         </div>
       ) : null}
       <p className="iu-mail-body-preview">{item.preview || 'Nessuna anteprima testuale disponibile. Apri la vista completa per leggere HTML e allegati.'}</p>
-      {copy.includeTelematic ? <PecAuditInlineNotice audit={detail?.pecAudit ?? item.pecAudit} onAction={onAction} /> : null}
+      {copy.includeTelematic ? <PecAuditInlineNotice audit={audit} onAction={onAction} /> : null}
       <footer>
         <Button variant="primary" href={item.detailHref}><Eye size={15} /> Apri</Button>
         {item.folder !== 'CESTINO' ? <Button href={item.replyHref}><Reply size={15} /> Rispondi</Button> : null}
@@ -1095,6 +1320,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
   const [detailReloadKey, setDetailReloadKey] = useState(0)
   const [statusLine, setStatusLine] = useState('')
   const [bulkWorking, setBulkWorking] = useState(false)
+  const [saveMatterDialog, setSaveMatterDialog] = useState<SaveMatterDialogState>(emptySaveMatterDialog)
 
   const fetchPage = mode === 'ordinaria' ? getEmailOrdinariaPage : getEmailPecPage
   const fetchParams = {
@@ -1186,7 +1412,97 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
     return () => { active = false }
   }, [mode, selectedId, detailReloadKey])
 
+  const updateSaveMatterDialog = (patch: Partial<SaveMatterDialogState>) => {
+    setSaveMatterDialog((current) => ({ ...current, ...patch }))
+  }
+
+  const openSaveMatterDialog = (url: string) => {
+    setSaveMatterDialog({
+      ...emptySaveMatterDialog,
+      open: true,
+      actionUrl: url,
+      subject: selected?.subject || '',
+    })
+  }
+
+  const prepareSaveMatter = () => {
+    const nome = saveMatterDialog.nome.trim()
+    const cognome = saveMatterDialog.cognome.trim()
+    if (!nome || !cognome) {
+      updateSaveMatterDialog({ error: 'Indica nome e cognome del cliente.' })
+      return
+    }
+    updateSaveMatterDialog({ busy: true, error: '', message: '' })
+    postMailJsonAction(saveMatterDialog.actionUrl, 'Salva nel fascicolo', {
+      prepara: true,
+      cliente_nome: nome,
+      cliente_cognome: cognome,
+    })
+      .then((payload) => {
+        const rawCandidates = Array.isArray(payload.candidates) ? payload.candidates : []
+        const candidates = rawCandidates.map(candidateFromPayload).filter((item) => item.id)
+        const proposed = candidateFromPayload(payload.fascicolo)
+        const finalCandidates = candidates.length ? candidates : proposed.id ? [proposed] : []
+        if (!finalCandidates.length) {
+          updateSaveMatterDialog({
+            busy: false,
+            error: text(payload.message ?? payload.messaggio) || 'Nessun fascicolo aperto trovato per questo cliente.',
+            candidates: [],
+            selectedId: '',
+          })
+          return
+        }
+        updateSaveMatterDialog({
+          busy: false,
+          step: 'conferma',
+          candidates: finalCandidates,
+          selectedId: finalCandidates[0].id,
+          message: text(payload.message ?? payload.messaggio),
+        })
+      })
+      .catch((error) => updateSaveMatterDialog({
+        busy: false,
+        error: error instanceof Error ? error.message : 'Ricerca fascicolo non completata.',
+      }))
+  }
+
+  const confirmSaveMatter = () => {
+    if (!saveMatterDialog.selectedId) {
+      updateSaveMatterDialog({ error: 'Seleziona il fascicolo in cui salvare il MIME.' })
+      return
+    }
+    updateSaveMatterDialog({ busy: true, error: '' })
+    postMailJsonAction(saveMatterDialog.actionUrl, 'Salva nel fascicolo', {
+      conferma: true,
+      fascicolo_id: saveMatterDialog.selectedId,
+      cliente_nome: saveMatterDialog.nome.trim(),
+      cliente_cognome: saveMatterDialog.cognome.trim(),
+      })
+      .then((payload) => {
+        if (payload.ok === false) throw new Error(text(payload.message ?? payload.messaggio) || 'Salvataggio nel fascicolo non completato.')
+        const message = text(payload.message ?? payload.messaggio) || 'MIME PEC salvato nel fascicolo.'
+        updateSaveMatterDialog({
+          busy: false,
+          step: 'salvato',
+          message,
+          savedHref: text(payload.fascicolo_href),
+          documentHref: text(payload.document_href),
+        })
+        setStatusLine(message)
+        load()
+        setDetailReloadKey((value) => value + 1)
+      })
+      .catch((error) => updateSaveMatterDialog({
+        busy: false,
+        error: error instanceof Error ? error.message : 'Salvataggio nel fascicolo non completato.',
+      }))
+  }
+
   const runAction = (url: string, label: string) => {
+    if (copy.includeTelematic && label === 'Salva nel fascicolo') {
+      openSaveMatterDialog(url)
+      return
+    }
     setStatusLine(`${label} in corso...`)
     postMailAction(url, label)
       .then((message) => {
@@ -1366,6 +1682,14 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
           </div>
         </Panel>
       </section>
+
+      <PecSaveMatterDialog
+        state={saveMatterDialog}
+        onOpenChange={(open) => setSaveMatterDialog((current) => open ? { ...current, open } : { ...emptySaveMatterDialog })}
+        onChange={updateSaveMatterDialog}
+        onPrepare={prepareSaveMatter}
+        onConfirm={confirmSaveMatter}
+      />
 
       <FloatingLex
         context={copy.lexContext}

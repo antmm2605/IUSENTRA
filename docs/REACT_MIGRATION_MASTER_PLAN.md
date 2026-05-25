@@ -1,5 +1,21 @@
 # Migrazione progressiva Flask + React
 
+## Strumenti Forensi - uffici competenti per Comune - 2026-05-25 - 2.248.58
+
+La pagina `Strumenti Forensi` espone ora la funzione `Uffici competenti per Comune`.
+La ricerca usa Giustizia Map del Ministero della Giustizia in modalità read-only,
+senza cache locale e senza scritture sui dati runtime. Il risultato viene
+mostrato nella scheda React già esistente con uffici principali, recapiti,
+assistenza depositi telematici quando pubblicata dalla fonte, copia rapida dei
+contatti e collegamenti operativi verso fascicoli/notifiche.
+
+La modifica non tocca il codice delle procedure telematiche: il flusso deposito
+resta invariato e la nuova funzione fornisce soltanto consultazione e contesto
+operativo per l'avvocato.
+
+Verifiche locali: parser ministeriale, endpoint `/api/v1/ui/strumenti-legali/uffici_competenti`,
+contratti React degli Strumenti Forensi, typecheck e build Vite.
+
 ## Hotfix preset grafico operativo - 2026-05-25 - 2.248.56
 
 La verifica richiesta sulle pagine Studio ha corretto le regressioni visive
@@ -1557,6 +1573,22 @@ sviluppatore in nessuna scheda operativa e completa i dettagli email indicati:
 - Gate confermati: `npm run typecheck`, `npm test`, `npm run build`, route
   gate, full-react contract, no-fake React full, pytest mirati email/React,
   packaging/release readiness, Docker no-cache e readiness locale 2.214.0.
+
+### Aggiornamento PEC MIME/fascicolo 2.248.58 - 2026-05-25
+
+- La pagina React PEC mantiene lista messaggi e dettaglio allineati in due
+  colonne operative, senza spazi morti laterali, con area di lettura completa
+  più alta e scroll interno esteso sul corpo messaggio.
+- La scheda PEC espone in alto le azioni `Apri MIME`, `Esegui controllo`,
+  `Salva nel fascicolo` e `Scadenza automatica`, coerenti con la richiesta
+  visuale dell'utente.
+- Il salvataggio nel fascicolo resta un flusso interno IUSENTRA: chiede nome e
+  cognome cliente, cerca fascicoli aperti tenant-aware, propone il fascicolo,
+  richiede conferma e salva il MIME originale come comunicazione. Non usa Local
+  Signer, PST, PolisWeb o servizi telematici.
+- Per le PEC audit-grade il dettaglio legge il corpo da `parsed.body.text` o
+  `parsed.body.html_text`, così il messaggio completo estratto dal MIME non
+  viene degradato a preview troncata.
 
 ## Stato tranche 2026-05-09 - Pagine operative richieste full React 2.213.0
 

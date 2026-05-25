@@ -23,6 +23,7 @@ from pct.tariffario import (
     tutte_le_materie,
     tutti_i_gradi,
 )
+from pct.uffici_competenti import ricerca_uffici_competenti as ricerca_uffici_competenti_ministero
 
 
 def _today() -> date:
@@ -75,7 +76,7 @@ def _safe_bool(value: Any, default: bool = False) -> bool:
         return default
     if isinstance(value, bool):
         return value
-    return str(value).strip().lower() in {"1", "true", "on", "si", "s", "yes"}
+    return str(value).strip().lower() in {"1", "true", "on", "si", "sì", "s", "yes"}
 
 
 def _getlist(payload: Mapping[str, Any], key: str) -> List[str]:
@@ -135,6 +136,7 @@ class GestioneStrumentiLegali:
 
     def catalogo_moduli(self) -> List[Dict[str, str]]:
         return [
+            {"id": "uffici_competenti", "title": "Uffici competenti per Comune", "subtitle": "Ricerca ministeriale per Tribunale, Giudice di Pace, Procura, UNEP e Corte d'Appello.", "icon": "bi-geo-alt", "categoria": "Competenza"},
             {"id": "contributo_unificato", "title": "Contributo unificato", "subtitle": "Civile, amministrativo e tributario con basi ufficiali e note operative.", "icon": "bi-bank", "categoria": "Fiscale"},
             {"id": "interessi", "title": "Interessi legali e moratori", "subtitle": "Art. 1284 c.c. e D.Lgs. 231/2002 con segmentazione per periodo.", "icon": "bi-percent", "categoria": "Credito"},
             {"id": "nota_credito", "title": "Nota di precisazione del credito", "subtitle": "Bozza professionale con capitale, interessi, spese, CPA, IVA e residuo.", "icon": "bi-file-earmark-ruled", "categoria": "Credito"},
@@ -156,6 +158,12 @@ class GestioneStrumentiLegali:
             {"id": "indennita_licenziamento", "title": "Indennita Licenziamento", "subtitle": "Tutele crescenti, piccole imprese e stima mensilita riconoscibili.", "icon": "bi-person-x", "categoria": "Lavoro"},
             {"id": "piano_ammortamento", "title": "Piano di Ammortamento", "subtitle": "Metodo francese o italiano, rata, interessi e sviluppo rateale completo.", "icon": "bi-table", "categoria": "Finanza"},
         ]
+
+    def ricerca_uffici_competenti(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        return ricerca_uffici_competenti_ministero(
+            _clean_text(payload.get("comune")),
+            includi_speciali=_safe_bool(payload.get("includi_speciali")),
+        )
 
     def build_prefill(
         self,

@@ -13,7 +13,7 @@ import re
 from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, Mapping
 from urllib.parse import urlencode
 
 from flask import Blueprint, current_app, g, jsonify, request, send_file, session, url_for
@@ -54,6 +54,7 @@ from pct.termini_processuali import (
     LEGAL_SOURCES,
     calculate_and_audit,
 )
+from pct.uffici_competenti import ricerca_uffici_competenti
 from pct.timesheet import StatoTimesheet
 from pct.workspace_intelligente import WorkspaceIntelligenteService
 from pct.workflow_commerciale import apri_fascicolo_automatico
@@ -2717,6 +2718,55 @@ def _gestore_strumenti_legali_react() -> GestioneStrumentiLegali:
     )
 
 
+def _payload_bool(payload: Any, name: str, default: bool = False) -> bool:
+    raw = payload.get(name, default) if hasattr(payload, "get") else default
+    if isinstance(raw, bool):
+        return raw
+    if isinstance(raw, (list, tuple)):
+        raw = raw[0] if raw else default
+    return str(raw).strip().lower() in {"1", "true", "si", "sì", "yes", "on"}
+
+
+def _uffici_competenti_result(payload: Any, schema: Mapping[str, Any]) -> dict[str, Any]:
+    result = ricerca_uffici_competenti(
+        str(payload.get("comune", "") if hasattr(payload, "get") else ""),
+        includi_speciali=_payload_bool(payload, "includi_speciali"),
+    )
+    offices = list(result.get("offices") or [])
+    table_rows = [
+        [
+            str(office.get("typeLabel") or ""),
+            str(office.get("name") or ""),
+            " - ".join(part for part in [str(office.get("address") or ""), str(office.get("city") or "")] if part),
+            str(office.get("phone") or office.get("email") or office.get("pec") or ""),
+        ]
+        for office in offices[:12]
+    ]
+    return {
+        "ok": True,
+        "message": "Ricerca completata.",
+        "toolId": "uffici_competenti",
+        "title": schema.get("title", "Uffici competenti per Comune"),
+        "metrics": [
+            {"label": "Comune", "value": result.get("comune", ""), "note": "ricerca ministeriale"},
+            {"label": "Uffici mostrati", "value": str(result.get("totalVisible", 0)), "note": "schede operative"},
+            {"label": "Uffici fonte", "value": str(result.get("totalOfficial", 0)), "note": "risultati complessivi"},
+        ],
+        "tables": [
+            {
+                "title": "Riepilogo uffici",
+                "headers": ["Tipo", "Ufficio", "Sede", "Recapito"],
+                "rows": table_rows,
+            }
+        ] if table_rows else [],
+        "previewText": "",
+        "notes": list(result.get("notes") or []),
+        "warnings": list(result.get("warnings") or []),
+        "sources": [dict(result.get("source") or {})],
+        "offices": offices,
+    }
+
+
 @api_v1_react.post("/strumenti-legali/<tool_id>")
 @_richiedi_auth
 def strumenti_legali_react_calcola(tool_id: str):
@@ -2735,6 +2785,8 @@ def strumenti_legali_react_calcola(tool_id: str):
     payload = request.get_json(silent=True) if request.is_json else request.form
     method_name = str(schema.get("method") or "")
     try:
+        if tool_id == "uffici_competenti":
+            return jsonify(_uffici_competenti_result(payload, schema))
         result = getattr(_gestore_strumenti_legali_react(), method_name)(payload)
         normalised = build_tool_result(tool_id, result)
         return jsonify({

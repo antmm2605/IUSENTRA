@@ -282,11 +282,12 @@ export const studioModules: StudioModuleConfig[] = [
     lexContext: 'strumenti-forensi',
     lexLabel: 'Lex aiuta a scegliere strumento, dati necessari e risultato da allegare al fascicolo.',
     kpis: [
-      { label: 'Funzioni', value: '70', note: 'voci operative collegate', tone: 'primary' },
+      { label: 'Funzioni', value: '71', note: 'voci operative collegate', tone: 'primary' },
       { label: 'Prefill', value: 'Fascicolo', note: 'dati cliente e pratica riutilizzabili', tone: 'success' },
       { label: 'Esiti', value: 'Tracciati', note: 'risultati verificabili e ripetibili', tone: 'warning' },
     ],
     cards: [
+      { title: 'Uffici competenti', body: "Cerca il Comune e apri Tribunale, Giudice di Pace, Procura, UNEP e Corte d'Appello con recapiti e assistenza.", href: '/strumenti-legali/?tool=uffici_competenti#funzione-operativa', action: 'Cerca Comune', icon: 'map-pin', tone: 'success', meta: 'Competenza' },
       { title: 'Suite strumenti', body: 'Apri contributo unificato, interessi, onorari, TFR, usura e altri calcoli.', href: '/strumenti-legali/', action: 'Apri suite', icon: 'wrench', tone: 'primary', meta: 'Calcolo' },
       { title: 'Onorari forensi', body: 'Calcola fasi, valore controversia e parametri collegabili a preventivi.', href: '/strumenti-legali/?tool=onorari_forensi', action: 'Calcola onorari', icon: 'banknote', tone: 'success', meta: 'DM 55' },
       { title: 'Contributo unificato', body: 'Determina importi e controlli collegati al deposito.', href: '/strumenti-legali/?tool=contributo_unificato', action: 'Calcola CU', icon: 'check', tone: 'warning', meta: 'Deposito' },
@@ -311,8 +312,8 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Mediazione', body: 'Apri registro e riferimenti utili per costi e organismi.', href: '/ricerca-legale/mediazione', action: 'Apri mediazione', icon: 'landmark', tone: 'success', meta: 'ADR' },
       { title: 'Preventivo da calcolo', body: 'Porta il risultato nel flusso guidato per preventivi e incarichi.', href: '/preventivi/wizard', action: 'Crea preventivo', icon: 'send', tone: 'primary', meta: 'Incarichi' },
     ],
-    workflow: ['Scegli strumento', 'Collega fascicolo se utile', 'Calcola e verifica', 'Riporta risultato in pratica'],
-    links: [{ label: 'Compensi Forensi', href: '/compensi-forensi' }, { label: 'Fascicoli', href: '/fascicoli' }],
+    workflow: ['Cerca Comune o strumento', 'Collega fascicolo se utile', 'Calcola e verifica', 'Riporta risultato in pratica'],
+    links: [{ label: 'Compensi Forensi', href: '/compensi-forensi' }, { label: 'Fascicoli', href: '/fascicoli' }, { label: 'Notifiche legali', href: '/notifiche-legali' }],
   },
   {
     id: 'timesheet',

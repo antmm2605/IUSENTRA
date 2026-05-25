@@ -44,6 +44,20 @@ def _metric(label: str, value: str, subtext: str = "") -> Dict[str, str]:
 
 
 TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
+    "uffici_competenti": {
+        "title": "Uffici competenti per Comune",
+        "subtitle": "Ricerca ministeriale con Tribunale, Giudice di Pace, Procura, UNEP e Corte d'Appello.",
+        "submit_label": "Cerca uffici",
+        "method": "ricerca_uffici_competenti",
+        "fields": [
+            {"name": "comune", "label": "Comune", "type": "text", "required": True},
+            {
+                "name": "includi_speciali",
+                "label": "Mostra anche uffici nazionali e speciali",
+                "type": "checkbox",
+            },
+        ],
+    },
     "contributo_unificato": {
         "title": "Contributo unificato",
         "subtitle": "Calcolo operativo con categoria, grado e anticipazione forfettaria.",
@@ -542,7 +556,36 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
     tables: List[Dict[str, Any]] = []
     preview_text = ""
 
-    if tool_id == "contributo_unificato":
+    if tool_id == "uffici_competenti":
+        offices = list(result.get("offices") or [])
+        metrics = [
+            _metric("Comune", str(result.get("comune") or "")),
+            _metric("Uffici mostrati", str(result.get("totalVisible") or len(offices))),
+            _metric("Uffici fonte", str(result.get("totalOfficial") or len(offices))),
+        ]
+        tables.append(
+            {
+                "title": "Riepilogo uffici",
+                "headers": ["Tipo", "Ufficio", "Sede", "Recapito"],
+                "rows": [
+                    [
+                        str(office.get("typeLabel") or ""),
+                        str(office.get("name") or ""),
+                        " - ".join(
+                            part
+                            for part in [
+                                str(office.get("address") or ""),
+                                str(office.get("city") or ""),
+                            ]
+                            if part
+                        ),
+                        str(office.get("phone") or office.get("email") or office.get("pec") or ""),
+                    ]
+                    for office in offices[:12]
+                ],
+            }
+        )
+    elif tool_id == "contributo_unificato":
         metrics = [
             _metric("Tipologia", str(result.get("categoria_label") or ""), str(result.get("grado_label") or "")),
             _metric("Contributo base", f"EUR {_fmt_money(result.get('base'))}"),

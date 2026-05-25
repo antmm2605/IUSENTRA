@@ -3552,3 +3552,21 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `pnpm --filter @iusentra/studio build` | OK | Build finale con typecheck e Vite completata; asset principali `index-CGqbjqF_.js` e `index-C3bNLeDg.css` rigenerati. |
 | `python tools\check_repo_governance.py`; `git diff --check`; `python -m pytest tests\test_utf8_integrity.py -q --tb=short`; `python scripts\validate_openapi.py docs\openapi.yaml` | OK | Governance, whitespace, UTF-8 e OpenAPI confermati verdi dopo le modifiche UI/report. |
 | `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_react_asset_retention.py tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\verify_openapi_provider.py` | OK | Packaging, retention asset, readiness, contratti API e provider verification verdi. |
+
+## Hotfix PEC MIME/fascicolo 2.248.58 - 2026-05-25
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\pec_pipeline.py web\blueprints\pec_pipeline_api.py web\services\react_email_bridge.py tests\test_pec_audit_pipeline.py` | OK | Sintassi confermata per pipeline PEC, API, bridge React e regressione salvataggio MIME nel fascicolo. |
+| `python -m pytest -q tests\test_pec_audit_pipeline.py --tb=short` | OK | 10/10: aggiunto il caso nome/cognome cliente, proposta fascicolo aperto, conferma e salvataggio del MIME originale nel fascicolo. |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript verde dopo action bar PEC, dialogo conferma fascicolo e lettura corpo completo da MIME. |
+| `pnpm --filter @iusentra/studio build` | OK | Build Vite completata dopo il ritocco CSS: chunk `EmailPecPage-Dx9_Za8Q.js` e `EmailPecPage-D6fyEB1Z.css` rigenerati con layout allineato e scroll interno esteso. |
+| Browser Playwright locale su `http://127.0.0.1:5174/email/?cartella=INBOX` con dati temporanei isolati | OK | Desktop 1728x900: lista e dettaglio allineati a `top=808`, altezza `790`, nessun overflow orizzontale, barra `Apri MIME / Esegui controllo / Salva nel fascicolo / Scadenza automatica` presente, preview con `overflowY:auto` e `scrollHeight=1306`. Dialogo `Salva nel fascicolo` confermato: chiede nome/cognome, propone `Ricorso Rossi` e mostra `Conferma e salva`. Tablet 820x900 senza overflow. |
+
+## Uffici competenti per Comune 2.248.58 - 2026-05-25
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests/test_uffici_competenti.py tests/test_react_shell.py::test_react_strumenti_legali_catalogo_form_e_calcolo_json tests/test_react_shell.py::test_react_studio_module_frontend_supporta_rotte_profonde_e_form_reali --tb=short` | OK | 7/7 passati: parser Giustizia Map, normalizzazione uffici, endpoint React, form `uffici_competenti` e card frontend presidiate senza chiamate live nei test. |
+| `python -m compileall -q pct/uffici_competenti.py pct/applicazioni_runtime.py pct/strumenti_legali.py web/blueprints/api_v1_react.py` | OK | Sintassi confermata sul servizio read-only, schema strumenti, catalogo e API React. |
+| `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build` | OK | TypeScript e build Vite verdi dopo la resa a card degli uffici competenti. |

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.248.58 - 2026-05-25
+
+- Integrata negli Strumenti Forensi la ricerca read-only degli uffici giudiziari competenti per Comune da Giustizia Map: scheda React con Comune, Tribunale, Giudice di Pace, Procura, UNEP, Corte d'Appello, recapiti, assistenza depositi telematici e azioni verso fascicoli/notifiche senza modificare le procedure telematiche.
+
+- Aggiornata la pagina PEC React: lista messaggi e dettaglio restano allineati in due colonne senza spazi morti, con area di lettura completa più alta e scroll interno esteso.
+- Aggiunta la barra azioni PEC visibile con `Apri MIME`, `Esegui controllo`, `Salva nel fascicolo` e `Scadenza automatica`.
+- `Salva nel fascicolo` chiede nome e cognome cliente, propone solo fascicoli aperti dello studio, richiede conferma e salva il MIME originale nel fascicolo confermato, senza usare Local Signer o servizi telematici.
+- Corretto il dettaglio delle PEC conservate nella pipeline: il corpo messaggio viene letto dal testo completo estratto dal MIME, non da un campo compatibile vuoto o troncato.
+
 ## 2.248.56 - 2026-05-25
 
 - Verificate e corrette le pagine Amministrazione richieste: `Amministrazione`, `Utenti`, `Profili e Permessi`, `Registro Attività`, `Database`, `Registro GDPR`, `Sito Studio Contatti` e `Sito Studio` passano il controllo browser desktop/tablet/mobile con scroll completo, preset attivo e zero overflow.

@@ -2544,9 +2544,44 @@ def test_react_studio_module_deep_runtime_preventivi_conferimento_e_timesheet(tm
     assert any(field["name"] == "id_fascicolo" for field in timesheet_form["fields"])
 
 
-def test_react_strumenti_legali_catalogo_form_e_calcolo_json(tmp_path: Path):
+def test_react_strumenti_legali_catalogo_form_e_calcolo_json(tmp_path: Path, monkeypatch):
+    from web.blueprints import api_v1_react as react_api
+
     app = _app(tmp_path)
     _crea_operatore(app)
+
+    def fake_uffici_competenti(comune: str, *, includi_speciali: bool = False):
+        assert comune == "Taurianova"
+        assert includi_speciali is False
+        return {
+            "comune": comune,
+            "totalVisible": 2,
+            "totalOfficial": 3,
+            "notes": ["Ricerca eseguita in tempo reale sulla fonte ministeriale, senza salvare copie locali."],
+            "warnings": ["Verifica materia, rito, valore, foro applicabile e norme speciali prima dell'uso."],
+            "source": {"title": "Ministero della Giustizia - Giustizia Map", "url": "https://www.giustizia.it/"},
+            "offices": [
+                {
+                    "id": "ufficio-palmi",
+                    "name": "Tribunale di PALMI",
+                    "kind": "tribunale",
+                    "typeLabel": "Tribunale",
+                    "primary": True,
+                    "address": "Via Roma",
+                    "city": "PALMI",
+                    "cap": "89015",
+                    "phone": "0966 - 4169",
+                    "email": "tribunale.palmi@giustizia.it",
+                    "pec": "",
+                    "site": "",
+                    "assistenzaPct": {"orari": "dal lunedì al venerdì"},
+                    "casellario": {},
+                    "actions": [{"label": "Usa nel fascicolo", "href": "/fascicoli/nuovo", "method": "GET", "tone": "primary"}],
+                }
+            ],
+        }
+
+    monkeypatch.setattr(react_api, "ricerca_uffici_competenti", fake_uffici_competenti)
 
     with app.test_client() as client:
         _login(client)
@@ -2565,12 +2600,20 @@ def test_react_strumenti_legali_catalogo_form_e_calcolo_json(tmp_path: Path):
             },
             headers={"X-API-Key": "react-test-key"},
         )
+        uffici_response = client.post(
+            "/api/v1/ui/strumenti-legali/uffici_competenti",
+            data={"comune": "Taurianova"},
+            headers={"X-API-Key": "react-test-key"},
+        )
 
     runtime_payload = runtime_response.get_json()
     calc_payload = calc_response.get_json()
+    uffici_payload = uffici_response.get_json()
     suite = next(item for item in runtime_payload["operations"] if item["id"] == "suite-strumenti")
+    uffici = next(item for item in runtime_payload["operations"] if (item.get("tool") or {}).get("toolId") == "uffici_competenti")
     interessi = next(item for item in runtime_payload["operations"] if (item.get("tool") or {}).get("toolId") == "interessi")
     onorari = next(item for item in runtime_payload["operations"] if (item.get("tool") or {}).get("toolId") == "onorari_forensi")
+    uffici_fields = {field["name"]: field for field in uffici["form"]["fields"]}
     interessi_fields = {field["name"]: field for field in interessi["form"]["fields"]}
     onorari_fields = {field["name"]: field for field in onorari["form"]["fields"]}
 
@@ -2578,6 +2621,10 @@ def test_react_strumenti_legali_catalogo_form_e_calcolo_json(tmp_path: Path):
     assert runtime_payload["source"] == "repository_reali"
     assert len(suite["records"]) >= 30
     assert any(record["id"] == "calcolo_interessi_di_mora" for record in suite["records"])
+    assert uffici["title"] == "Uffici competenti per Comune"
+    assert uffici["form"]["action"] == "/api/v1/ui/strumenti-legali/uffici_competenti"
+    assert uffici_fields["comune"]["required"] is True
+    assert uffici_fields["includi_speciali"]["type"] == "checkbox"
     assert interessi["title"] == "Calcolo Interessi di Mora"
     assert interessi["form"]["action"] == "/api/v1/ui/strumenti-legali/interessi"
     assert interessi_fields["int_capitale"]["type"] == "number"
@@ -2590,6 +2637,11 @@ def test_react_strumenti_legali_catalogo_form_e_calcolo_json(tmp_path: Path):
     assert calc_payload["toolId"] == "interessi"
     assert any(metric["label"] == "Interessi maturati" for metric in calc_payload["metrics"])
     assert calc_payload["tables"][0]["title"] == "Segmenti di calcolo"
+    assert uffici_response.status_code == 200
+    assert uffici_payload["ok"] is True
+    assert uffici_payload["toolId"] == "uffici_competenti"
+    assert uffici_payload["offices"][0]["name"] == "Tribunale di PALMI"
+    assert uffici_payload["tables"][0]["title"] == "Riepilogo uffici"
 
 
 def test_react_studio_module_frontend_supporta_rotte_profonde_e_form_reali():
@@ -2602,9 +2654,12 @@ def test_react_studio_module_frontend_supporta_rotte_profonde_e_form_reali():
     assert "field.type === 'file'" in page_source
     assert "field.type === 'multiselect'" in page_source
     assert "normaliseStudioRuntimeResult" in page_source
+    assert "OfficeResultCards" in page_source
+    assert "Assistenza depositi telematici" in page_source
     assert "onSubmitOperation(event, operation)" in page_source
     assert "fetch(operation.form.action" in page_source
     assert "toolId: text(tool.toolId)" in runtime_source
+    assert "offices: list(item.offices).map(normaliseOffice)" in runtime_source
     assert "encType={operation.form.enctype || undefined}" in page_source
     assert "params.set('path', window.location.pathname)" in runtime_source
     assert "current.forEach((value, key) => params.append(key, value))" in runtime_source
@@ -4307,6 +4362,13 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert "/api/cf/calcola" in new_page
     assert "/api/cf/decodifica" in new_page
     assert "Genera CF" in new_page
+    assert "Lettura documento pronta" in new_page
+    assert "iusentra:cliente-documento-rilevato" in new_page
+    assert "IUSENTRA_CLIENTE_NUOVO" in new_page
+    assert "applicaDatiDocumento" in new_page
+    assert "doc_data_scadenza" in new_page
+    assert "normalizeClientDocumentScan" in new_page
+    assert "data_nascita: normalizeScanDate" in new_page
     assert 'name="provincia_nascita"' in new_page
     assert 'name="crea_preventivo_iniziale"' in new_page
     assert 'name="qualifica"' in new_page
@@ -4322,6 +4384,7 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert '"1" in form.getlist("crea_preventivo_iniziale")' in clienti_routes
     assert "provincia_nascita: str = \"\"" in soggetti_model
     assert ".iu-clienti-new-page" in new_css
+    assert ".iu-cln-doc-hook" in new_css
     assert ".iu-cln-process-grid" in new_css
     assert ".iu-soggetti-page" in soggetti_css
     assert ".iu-sogg-table" in soggetti_css

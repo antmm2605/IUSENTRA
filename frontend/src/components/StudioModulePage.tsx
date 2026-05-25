@@ -10,18 +10,23 @@ import {
   ClipboardList,
   Clock3,
   CloudUpload,
+  Copy,
   CreditCard,
   Database,
   Download,
   Earth,
+  ExternalLink,
   FileText,
   FolderOpen,
   Landmark,
   Mail,
+  MapPin,
   MessageCircle,
+  Phone,
   Plus,
   Send,
   Settings2,
+  ShieldAlert,
   ShieldCheck,
   Sparkles,
   Table,
@@ -37,6 +42,7 @@ import {
   operationIdFromTitle,
   type StudioModuleRuntime,
   type StudioRuntimeField,
+  type StudioRuntimeOffice,
   type StudioRuntimeOperation,
   type StudioRuntimeResult,
 } from '../studioModuleRuntime'
@@ -84,6 +90,7 @@ const iconMap: Record<string, LucideIcon> = {
   folder: FolderOpen,
   landmark: Landmark,
   mail: Mail,
+  'map-pin': MapPin,
   message: MessageCircle,
   plus: Plus,
   send: Send,
@@ -280,6 +287,121 @@ function RuntimeField({ field }: { field: StudioRuntimeField }) {
   )
 }
 
+function officeDetailLabel(key: string): string {
+  const labels: Record<string, string> = {
+    avviso: 'Avviso',
+    email: 'Email',
+    fax: 'Fax',
+    note: 'Note',
+    orari: 'Orari',
+    pec: 'PEC',
+    ricevimento: 'Ricevimento',
+    telefono: 'Telefono',
+  }
+  return labels[key] || key.replace(/_/g, ' ')
+}
+
+function officeSiteHref(site: string): string {
+  if (!site) return '#'
+  return /^https?:\/\//i.test(site) ? site : `https://${site}`
+}
+
+function OfficeContactRow({
+  icon: Icon,
+  label,
+  value,
+  href,
+  onCopy,
+}: {
+  icon: LucideIcon
+  label: string
+  value: string
+  href?: string
+  onCopy: (value: string, label: string) => void
+}) {
+  if (!value) return null
+  const content = href ? <a href={href}>{value}</a> : <span>{value}</span>
+  return (
+    <div className="iu-sm-office-contact">
+      <Icon size={15}/>
+      <strong>{label}</strong>
+      {content}
+      <button type="button" onClick={() => onCopy(value, label)} title={`Copia ${label}`}>
+        <Copy size={14}/>
+      </button>
+    </div>
+  )
+}
+
+function OfficeDetailBlock({ title, details }: { title: string; details: Record<string, string> }) {
+  const entries = Object.entries(details).filter(([, value]) => value)
+  if (!entries.length) return null
+  return (
+    <section className="iu-sm-office-detail">
+      <strong>{title}</strong>
+      {entries.slice(0, 5).map(([key, value]) => (
+        <p key={`${title}-${key}`}>
+          <span>{officeDetailLabel(key)}</span>
+          <em>{value}</em>
+        </p>
+      ))}
+    </section>
+  )
+}
+
+function OfficeResultCards({ offices }: { offices: StudioRuntimeOffice[] }) {
+  const [copied, setCopied] = useState('')
+  if (!offices.length) return null
+  const copyValue = (value: string, label: string) => {
+    if (!value) return
+    if (navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(value)
+    }
+    setCopied(`${label} copiato`)
+    window.setTimeout(() => setCopied(''), 1600)
+  }
+  return (
+    <div className="iu-sm-office-results">
+      <div className="iu-sm-office-results__head">
+        <strong>Uffici trovati</strong>
+        {copied ? <span>{copied}</span> : null}
+      </div>
+      {offices.map((office) => (
+        <article className={`iu-sm-office-card ${office.primary ? 'is-primary' : ''}`} key={office.id}>
+          <header>
+            <span><Landmark size={15}/>{office.typeLabel}</span>
+            <strong>{office.name}</strong>
+            <p>
+              <MapPin size={15}/>
+              {[office.address, office.cap, office.city].filter(Boolean).join(' - ') || 'Sede non indicata'}
+            </p>
+          </header>
+          <div className="iu-sm-office-card__contacts">
+            <OfficeContactRow icon={Phone} label="Telefono" value={office.phone} onCopy={copyValue}/>
+            <OfficeContactRow icon={Mail} label="Email" value={office.email} href={`mailto:${office.email}`} onCopy={copyValue}/>
+            <OfficeContactRow icon={ShieldAlert} label="PEC" value={office.pec} href={`mailto:${office.pec}`} onCopy={copyValue}/>
+            {office.site ? (
+              <a className="iu-sm-office-site" href={officeSiteHref(office.site)} target="_blank" rel="noreferrer">
+                <ExternalLink size={14}/> Sito ufficiale
+              </a>
+            ) : null}
+          </div>
+          <OfficeDetailBlock title="Assistenza depositi telematici" details={office.assistenzaPct}/>
+          <OfficeDetailBlock title="Casellario" details={office.casellario}/>
+          {office.notes ? <p className="iu-sm-office-card__note">{office.notes}</p> : null}
+          {office.actions.length ? (
+            <div className="iu-sm-office-card__actions">
+              {office.actions.slice(0, 3).map((action) => (
+                <a href={action.href} key={`${office.id}-${action.label}`}>{action.label}</a>
+              ))}
+            </div>
+          ) : null}
+        </article>
+      ))}
+    </div>
+  )
+}
+
 function ToolResultView({ state }: { state?: ToolResultState }) {
   if (!state) return null
   if (state.loading) {
@@ -307,6 +429,7 @@ function ToolResultView({ state }: { state?: ToolResultState }) {
           ))}
         </div>
       ) : null}
+      <OfficeResultCards offices={result.offices}/>
       {result.tables.map((table) => (
         <div className="iu-sm-result__table" key={`${result.toolId}-${table.title}`}>
           <strong>{table.title}</strong>

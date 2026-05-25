@@ -550,6 +550,7 @@ function auditDetailFromPayload(payload: unknown): EmailDetailData {
   const root = isRecord(payload) && isRecord(payload.data) ? payload.data : {}
   const message = isRecord(root.message) ? root.message : {}
   const parsed = isRecord(root.parsed) ? root.parsed : {}
+  const parsedBody = isRecord(parsed.body) ? parsed.body : {}
   const metadata = isRecord(message.metadata) ? message.metadata : {}
   const headers = isRecord(metadata.headers) ? metadata.headers : {}
   const report = isRecord(root.validation_report) ? root.validation_report : {}
@@ -606,7 +607,7 @@ function auditDetailFromPayload(payload: unknown): EmailDetailData {
     senderName: headers.from,
     recipients: headers.to,
     subject: headers.subject,
-    preview: parsed.body_text,
+    preview: text(parsed.body_text ?? parsedBody.text ?? parsedBody.html_text),
     timestamp: message.received_at,
     timeLabel: '',
     unread: false,
@@ -623,7 +624,7 @@ function auditDetailFromPayload(payload: unknown): EmailDetailData {
     source: 'pec_audit',
     generatedAt: text(root.generated_at),
     item: row,
-    bodyText: text(parsed.body_text),
+    bodyText: text(parsed.body_text ?? parsedBody.text ?? parsedBody.html_text),
     bodyHtml: '',
     attachments: attachments.map((raw, index) => {
       const item = isRecord(raw) ? raw : {}

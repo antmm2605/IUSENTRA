@@ -68,6 +68,28 @@ export type StudioRuntimeResultSource = {
   url: string
 }
 
+export type StudioRuntimeOffice = {
+  id: string
+  name: string
+  kind: string
+  typeLabel: string
+  primary: boolean
+  address: string
+  city: string
+  cap: string
+  phone: string
+  fax: string
+  email: string
+  pec: string
+  site: string
+  fiscalCode: string
+  patrono: string
+  notes: string
+  assistenzaPct: Record<string, string>
+  casellario: Record<string, string>
+  actions: StudioRuntimeAction[]
+}
+
 export type StudioRuntimeResult = {
   ok: boolean
   message: string
@@ -79,6 +101,7 @@ export type StudioRuntimeResult = {
   notes: string[]
   warnings: string[]
   sources: StudioRuntimeResultSource[]
+  offices: StudioRuntimeOffice[]
 }
 
 export type StudioModuleRuntime = {
@@ -225,6 +248,42 @@ function normaliseResultSource(value: unknown): StudioRuntimeResultSource {
   }
 }
 
+function normaliseTextMap(value: unknown): Record<string, string> {
+  if (!isRecord(value)) return {}
+  const entries: Array<[string, string]> = []
+  Object.entries(value).forEach(([key, mapValue]) => {
+    const entryKey = text(key)
+    const entryValue = display(mapValue)
+    if (entryKey && entryValue) entries.push([entryKey, entryValue])
+  })
+  return Object.fromEntries(entries)
+}
+
+function normaliseOffice(value: unknown): StudioRuntimeOffice {
+  const item = isRecord(value) ? value : {}
+  return {
+    id: text(item.id, 'ufficio'),
+    name: display(item.name, 'Ufficio giudiziario'),
+    kind: text(item.kind),
+    typeLabel: display(item.typeLabel || item.type_label, 'Ufficio'),
+    primary: item.primary === true,
+    address: display(item.address),
+    city: display(item.city),
+    cap: display(item.cap),
+    phone: display(item.phone),
+    fax: display(item.fax),
+    email: display(item.email),
+    pec: display(item.pec),
+    site: text(item.site),
+    fiscalCode: display(item.fiscalCode || item.fiscal_code),
+    patrono: display(item.patrono),
+    notes: display(item.notes),
+    assistenzaPct: normaliseTextMap(item.assistenzaPct || item.assistenza_pct),
+    casellario: normaliseTextMap(item.casellario),
+    actions: list(item.actions).map(normaliseAction),
+  }
+}
+
 export function normaliseStudioRuntimeResult(value: unknown): StudioRuntimeResult {
   const item = isRecord(value) ? value : {}
   return {
@@ -238,6 +297,7 @@ export function normaliseStudioRuntimeResult(value: unknown): StudioRuntimeResul
     notes: list(item.notes).map((note) => display(note)).filter(Boolean),
     warnings: list(item.warnings).map((warning) => display(warning)).filter(Boolean),
     sources: list(item.sources).map(normaliseResultSource).filter((source) => source.title || source.url),
+    offices: list(item.offices).map(normaliseOffice).filter((office) => office.name),
   }
 }
 

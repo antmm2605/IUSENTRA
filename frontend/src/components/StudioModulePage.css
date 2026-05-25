@@ -646,6 +646,216 @@
   font-weight:850;
 }
 
+.iu-sm-office-results{
+  display:grid;
+  gap:10px;
+}
+
+.iu-sm-office-results__head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.iu-sm-office-results__head strong{
+  color:#0f172a;
+  font-size:14px;
+  font-weight:950;
+}
+
+.iu-sm-office-results__head span{
+  border-radius:999px;
+  background:#dcfce7;
+  color:#166534;
+  padding:5px 8px;
+  font-size:11px;
+  font-weight:900;
+}
+
+.iu-sm-office-card{
+  display:grid;
+  gap:12px;
+  border:1px solid rgba(148,163,184,.26);
+  border-radius:12px;
+  background:#fff;
+  padding:13px;
+}
+
+.iu-sm-office-card.is-primary{
+  border-color:rgba(37,99,235,.28);
+  box-shadow:0 14px 28px rgba(15,23,42,.06);
+}
+
+.iu-sm-office-card header{
+  display:grid;
+  gap:5px;
+}
+
+.iu-sm-office-card header span,
+.iu-sm-office-card header p{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin:0;
+}
+
+.iu-sm-office-card header span{
+  width:max-content;
+  border-radius:999px;
+  background:#eaf2ff;
+  color:#0b5ed7;
+  padding:5px 8px;
+  font-size:11px;
+  font-weight:950;
+}
+
+.iu-sm-office-card header strong{
+  color:#111827;
+  font-size:15px;
+  line-height:1.25;
+}
+
+.iu-sm-office-card header p{
+  color:var(--iu-slate-600);
+  font-size:12px;
+  font-weight:750;
+}
+
+.iu-sm-office-card__contacts{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+
+.iu-sm-office-contact{
+  min-width:0;
+  display:grid;
+  grid-template-columns:18px 72px minmax(0,1fr) 32px;
+  gap:6px;
+  align-items:center;
+  border:1px solid rgba(148,163,184,.22);
+  border-radius:10px;
+  background:#f8fafc;
+  padding:8px;
+}
+
+.iu-sm-office-contact svg{
+  color:var(--iu-blue-600);
+}
+
+.iu-sm-office-contact strong{
+  color:#475569;
+  font-size:11px;
+  font-weight:950;
+}
+
+.iu-sm-office-contact span,
+.iu-sm-office-contact a{
+  min-width:0;
+  color:#111827;
+  font-size:12px;
+  font-weight:800;
+  overflow-wrap:anywhere;
+}
+
+.iu-sm-office-contact button{
+  width:30px;
+  height:30px;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(37,99,235,.16);
+  border-radius:8px;
+  background:#fff;
+  color:var(--iu-blue-700);
+  cursor:pointer;
+}
+
+.iu-sm-office-site{
+  min-height:38px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  border:1px solid rgba(37,99,235,.16);
+  border-radius:10px;
+  background:#fff;
+  color:#0f172a;
+  padding:0 10px;
+  font-size:12px;
+  font-weight:900;
+}
+
+.iu-sm-office-detail{
+  display:grid;
+  gap:7px;
+  border:1px solid rgba(245,158,11,.24);
+  border-radius:11px;
+  background:#fffbeb;
+  padding:10px;
+}
+
+.iu-sm-office-detail>strong{
+  color:#92400e;
+  font-size:12px;
+  font-weight:950;
+}
+
+.iu-sm-office-detail p{
+  display:grid;
+  gap:2px;
+  margin:0;
+}
+
+.iu-sm-office-detail span{
+  color:#92400e;
+  font-size:10px;
+  font-weight:950;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+}
+
+.iu-sm-office-detail em{
+  color:#3f2f10;
+  font-size:12px;
+  font-style:normal;
+  font-weight:750;
+  line-height:1.35;
+}
+
+.iu-sm-office-card__note{
+  margin:0;
+  color:var(--iu-slate-600);
+  font-size:12px;
+  font-weight:700;
+  line-height:1.4;
+}
+
+.iu-sm-office-card__actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.iu-sm-office-card__actions a{
+  min-height:34px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid rgba(37,99,235,.18);
+  border-radius:9px;
+  background:var(--iu-blue-600);
+  color:#fff;
+  padding:0 10px;
+  font-size:12px;
+  font-weight:900;
+}
+
+.iu-sm-office-card__actions a+ a{
+  background:#fff;
+  color:#0f172a;
+}
+
 .iu-sm-focus__hint{
   display:grid;
   gap:3px;
@@ -816,8 +1026,12 @@
   .iu-sm-focus__metrics,
   .iu-sm-focus__form,
   .iu-sm-result__metrics,
+  .iu-sm-office-card__contacts,
   .iu-sm-check-grid{
     grid-template-columns:1fr;
+  }
+  .iu-sm-office-contact{
+    grid-template-columns:18px 64px minmax(0,1fr) 32px;
   }
   .iu-sm-focus__form label:has(textarea),
   .iu-sm-focus__form label:has(select[name="id_cliente"]),

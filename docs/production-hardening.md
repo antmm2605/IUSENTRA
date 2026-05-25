@@ -55,7 +55,7 @@ Il modulo `core.security.upload_validator` verifica nome file, path traversal, e
 
 ## Rate limiting e security headers
 
-`core.security.rate_limit` preferisce Flask-Limiter con Redis e usa fallback in memoria se la dipendenza non e' disponibile. `core.security.headers` applica CSP, HSTS su cookie secure, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` e COOP.
+`core.security.rate_limit` preferisce Flask-Limiter con Redis e usa fallback in memoria se la dipendenza non è disponibile. Gli asset statici React/PWA (`/static/*`, manifest, service worker e favicon) sono esclusi dal rate limit utente per non bloccare caricamento e cambio pagina; API, login, upload e route operative restano invece protette. `core.security.headers` applica CSP, HSTS su cookie secure, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` e COOP.
 
 ## Audit HMAC
 

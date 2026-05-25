@@ -1574,9 +1574,11 @@
     if (micButton) {
       micButton.disabled = !recognitionSupported;
       micButton.classList.toggle('is-active', state.listening);
+      micButton.setAttribute('title', state.listening ? 'Interrompi dettatura' : 'Detta la richiesta a Lex');
+      micButton.setAttribute('aria-label', state.listening ? 'Interrompi dettatura' : 'Detta la richiesta a Lex');
       micButton.innerHTML =
         '<i class="bi bi-' + (state.listening ? 'mic-mute-fill' : 'mic-fill') + '"></i>' +
-        '<span>' + (state.listening ? 'Ascolto…' : 'Detta') + '</span>';
+        '<span>' + (state.listening ? 'Ascolto' : 'Microfono') + '</span>';
     }
 
     if (voiceBadge) {
@@ -1606,9 +1608,11 @@
     }
     freeWebButton.classList.toggle('is-active', Boolean(state.freeWebEnabled));
     freeWebButton.setAttribute('aria-pressed', state.freeWebEnabled ? 'true' : 'false');
+    freeWebButton.setAttribute('title', state.freeWebEnabled ? 'Disattiva ricerca web libera' : 'Attiva ricerca web libera');
+    freeWebButton.setAttribute('aria-label', state.freeWebEnabled ? 'Disattiva ricerca web libera' : 'Attiva ricerca web libera');
     freeWebButton.innerHTML =
       '<i class="bi bi-globe' + (state.freeWebEnabled ? '-americas' : '2') + '"></i>' +
-      '<span>' + (state.freeWebEnabled ? 'Web libero attivo' : 'Web libero') + '</span>';
+      '<span>' + (state.freeWebEnabled ? 'Web attivo' : 'Web libero') + '</span>';
   }
 
   function setFreeWebEnabled(enabled, options) {

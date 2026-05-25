@@ -23,7 +23,8 @@ def test_login_headers_e_bootstrap_password_forzata(tmp_path: Path):
 
     with app.test_client() as client:
         page = client.get("/login")
-        token = _extract_csrf_token(page.get_data(as_text=True))
+        html = page.get_data(as_text=True)
+        token = _extract_csrf_token(html)
 
         assert page.status_code == 200
         assert page.headers["X-Frame-Options"] == "SAMEORIGIN"
@@ -31,6 +32,18 @@ def test_login_headers_e_bootstrap_password_forzata(tmp_path: Path):
         assert page.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
         assert page.headers["Cross-Origin-Opener-Policy"] == "same-origin"
         assert "max-age=31536000" in page.headers["Strict-Transport-Security"]
+        assert 'class="auth-shell"' in html
+        assert "Rientra nel lavoro dello studio." in html
+        assert "iusentra-login-mark.svg" in html
+        assert 'class="brand-name">IUSENTRA' in html
+        assert "Lo studio legale, in un unico sistema" in html
+        assert 'class="brand-logo"' in html
+        assert 'aria-label="Mostra o nascondi password"' in html
+
+        next_page = client.get("/login?next=/notifiche-legali")
+        assert "Dopo l'accesso torni automaticamente alla pagina richiesta." in next_page.get_data(
+            as_text=True
+        )
 
         blocked = client.post(
             "/login",

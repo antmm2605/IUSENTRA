@@ -57,6 +57,22 @@ Lo stesso frame impone la sequenza `IUSENTRA_PAGE_SEQUENCE` su ogni superficie o
 
 Ogni figlio diretto non classificato dal preset viene trattato come `main-content`: una pagina non può più mostrare card, tab, note o calcolatori sopra al titolo solo perché usa classi locali. Gli hero locali sono normalizzati come header pagina, con superficie chiara, bordo e spaziatura del sistema.
 
+## Governance CSS obbligatoria
+
+Dal 25 maggio 2026 il design system unico è anche un gate bloccante: `frontend/package.json` esegue `scripts/react-migration/check-design-system-governance.mjs` dentro `pnpm --filter @iusentra/studio test`. Le sole superfici che possono restare fuori dal preset di pagina sono `/sito-studio/builder`, perché è un editor visuale dedicato, e le visualizzazioni dettaglio fascicolo `/fascicoli/<id>` richieste dall'utente. La shell usa un pattern stretto per il solo dettaglio fascicolo e lascia nel preset `/fascicoli`, `/fascicoli/nuovo` e `/fascicoli/archivio`.
+
+Le route `/email/`, `/email-ordinaria/` e `/notifiche-legali` sono state valutate nella Fase 4 e non sono eccezioni: devono restare React con preset attivo, stati reali, nessun testo tecnico visibile e nessun overflow su desktop, tablet e mobile.
+
+Le superfici di autenticazione non sono pagine operative React, ma devono mantenere la stessa qualità visiva: la login usa un lockup IUSENTRA dedicato con marchio vettoriale locale e tagline resa come testo HTML nitido, senza dipendere da ritagli raster poco leggibili.
+
+Il gate legge `scripts/react-migration/design-system-governance.json` e applica queste regole:
+
+- Nessun nuovo CSS locale può entrare senza allowlist e motivazione.
+- Nessun nuovo inline style React può entrare senza file, snippet e ragione operativa.
+- Gli accenti laterali spessi, i testi gradiente e i blur decorativi sono vietati sulle superfici operative.
+- `backdrop-filter` resta ammesso solo nei punti sticky o nel builder già dichiarati nella policy.
+- Il report automatico viene scritto in `artifacts/react-migration/design-system-governance-report.md` e non deve essere sostituito da note manuali.
+
 ## Token colore
 
 La palette deve restare istituzionale e leggibile:

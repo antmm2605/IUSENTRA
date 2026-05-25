@@ -2,6 +2,39 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-25T12:30:00+02:00: evoluzione grafica professionale e
+Lex 2.248.40.
+Il preset IUSENTRA è stato stabilizzato anche durante navigazioni consecutive
+nello stesso tab: l'audit aspetta che la sequenza pagina venga rimarcata prima
+di giudicare la route. Il controllo finale ha verificato 168 combinazioni
+desktop, tablet e mobile con scroll fino al fondo: Panoramica, Regia Operativa,
+Ricerca Studio, Agenda, Fascicoli, Clienti/Soggetti, Comunicazioni, Scadenze,
+Studio, Sito Studio, Amministrazione e Impostazioni restano React/preset dove
+previsto, senza overflow, senza testi tecnici visibili e con bottoni contenenti
+testo e icone.
+
+Lex è stato rifinito come pannello operativo professionale: toolbar laterale su
+desktop/tablet, toolbar verticale compatta su mobile, microfono, caricamento
+documenti e web libero sempre presenti. Il gate dedicato è verde 9/9 su PEC,
+Notifiche legali e Fascicoli; la textarea mobile ha dimensione touch corretta
+anche sulla pagina più compressa.
+
+Aggiornamento 2026-05-25T12:00:00+02:00: Design system unico governato 2.248.39.
+La Fase 4 rende bloccante il preset grafico IUSENTRA: `pnpm --filter @iusentra/studio test`
+esegue `check-design-system-governance.mjs`, che produce il report automatico
+`artifacts/react-migration/design-system-governance-report.md` e impedisce nuovi CSS
+locali o inline style non motivati. Il wizard preventivi è stato riallineato al preset
+senza accenti laterali pagina-specifici.
+Le sole pagine che possono restare come superfici speciali fuori preset sono
+`/sito-studio/builder` e le visualizzazioni dettaglio fascicolo `/fascicoli/<id>`;
+tutte le altre, incluse PEC, email, lista fascicoli, nuovo fascicolo e archivio,
+passano dal frame IUSENTRA.
+
+Verifica aggiunta: `/email/`, `/email-ordinaria/` e `/notifiche-legali` restano
+React con preset attivo su desktop, tablet e mobile. Gli asset statici React/PWA
+sono esclusi dal rate limit, così i cambi pagina ravvicinati non servono JS/CSS
+come 429 e non lasciano la shell vuota.
+
 Aggiornamento 2026-05-24T23:55:00+02:00: Sito Studio modifica articolo
 2.248.37.
 `/sito-studio/articoli/:id/modifica` è ora una pagina React operativa completa:

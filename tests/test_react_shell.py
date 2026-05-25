@@ -3247,6 +3247,7 @@ def test_react_fascicoli_usa_preset_grafico_globale():
     assert 'section[class*="-hero"][data-iusentra-sequence-slot="page-header"]' in design_css
     assert "sequenza_header_non_primo" in visual_audit
     assert "builder_preset_attivo" in visual_audit
+    assert "dettaglio_fascicolo_preset_attivo" in visual_audit
     assert "support_rail_card_troppo_stretta" in visual_audit
     assert "agenda_settimana_incompleta" in visual_audit
     assert "agenda_supporto_non_verticale" in visual_audit
@@ -3255,11 +3256,13 @@ def test_react_fascicoli_usa_preset_grafico_globale():
     assert "['Documenti', '/documenti']" in visual_audit
     assert "['Tribunali / PEC', '/tribunali']" in visual_audit
     assert "['Sito Studio Builder', '/sito-studio/builder']" in visual_audit
+    assert "['Dettaglio Fascicolo DC5BF1DB', '/fascicoli/DC5BF1DB']" in visual_audit
     assert "name: 'tablet', width: 1024" in visual_audit
     for order in ("order: 10", "order: 20", "order: 30", "order: 40", "order: 50", "order: 60", "order: 70", "order: 80"):
         assert order in design_css
     assert "margin-top: auto" in design_css
-    assert "const isPresetExcludedPage = isSitoStudioBuilderPage || isEmailPage || isEmailOrdinariaPage" in app_source
+    assert "const isFascicoloDetailViewPage = /^\\/fascicoli\\/(?!nuovo$|archivio$|importa$)[^/]+$/.test(routeKey)" in app_source
+    assert "const isPresetExcludedPage = isSitoStudioBuilderPage || isFascicoloDetailViewPage" in app_source
     assert "isPresetExcludedPage?'excluded':'active'" in app_source
     assert "IusentraRoutePresetFrame routeKey={routeKey} enabled={!isPresetExcludedPage}" in app_source
     assert "import './index.css'\nimport './styles/iusentra-design-system.css'" in main_source

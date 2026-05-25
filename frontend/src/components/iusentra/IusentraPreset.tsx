@@ -101,6 +101,7 @@ const IUSENTRA_SEQUENCE_ROOT_SELECTORS = [
   '.iu-content',
   '.iu-od-stack',
   '.iusentra-page-shell',
+  '.ius-page-shell',
   '.iusentra-page-shell__body',
   '.iusentra-main-area',
   '.iusentra-main-surface',
@@ -116,6 +117,7 @@ const IUSENTRA_ROUTE_PRESET_RUNTIME_CSS = `
 .iusentra-route-preset--active .iu-content.iusentra-route-sequence,
 .iusentra-route-preset--active .iu-od-stack.iusentra-route-sequence,
 .iusentra-route-preset--active .iusentra-page-shell.iusentra-route-sequence,
+.iusentra-route-preset--active .ius-page-shell.iusentra-route-sequence,
 .iusentra-route-preset--active .iusentra-page-shell__body.iusentra-route-sequence,
 .iusentra-route-preset--active .iusentra-main-surface.iusentra-route-sequence {
   display: flex !important;
@@ -366,11 +368,15 @@ function markNestedSequenceParts(element: HTMLElement, slot: IusentraPageSequenc
 
 function applyRouteSequencePreset(root: HTMLElement) {
   const sequenceRoots = new Set<HTMLElement>()
+  const preexistingSequenceClass = new WeakSet<HTMLElement>()
   root.querySelectorAll<HTMLElement>(IUSENTRA_SEQUENCE_ROOT_SELECTOR).forEach((element) => {
     if (!element.closest('.iusentra-route-preset--excluded')) sequenceRoots.add(element)
   })
 
   sequenceRoots.forEach((sequenceRoot) => {
+    if (sequenceRoot.classList.contains('iusentra-route-sequence')) {
+      preexistingSequenceClass.add(sequenceRoot)
+    }
     sequenceRoot.classList.add('iusentra-route-sequence')
     sequenceRoot.dataset.iusentraSequence = IUSENTRA_PAGE_SEQUENCE_VERSION
     sequenceRoot.dataset.iusentraSequenceOrder = IUSENTRA_PAGE_SEQUENCE_ORDER
@@ -385,7 +391,9 @@ function applyRouteSequencePreset(root: HTMLElement) {
 
   return () => {
     sequenceRoots.forEach((sequenceRoot) => {
-      sequenceRoot.classList.remove('iusentra-route-sequence')
+      if (!preexistingSequenceClass.has(sequenceRoot)) {
+        sequenceRoot.classList.remove('iusentra-route-sequence')
+      }
       delete sequenceRoot.dataset.iusentraSequence
       delete sequenceRoot.dataset.iusentraSequenceOrder
       sequenceRoot.querySelectorAll<HTMLElement>('[data-iusentra-sequence-slot],[data-iusentra-sequence-part]').forEach((element) => {

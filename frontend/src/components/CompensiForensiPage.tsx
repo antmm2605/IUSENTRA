@@ -234,7 +234,12 @@ export function CompensiForensiPage() {
           </div>
           <div className="iu-comp-actions">
             {data.actions.links.map((action) => (
-              <ButtonLink key={action.id} href={action.href} tone={action.tone === 'primary' ? 'primary' : 'neutral'}>
+              <ButtonLink
+                key={action.id}
+                href={action.href}
+                tone={action.tone === 'primary' ? 'primary' : action.tone === 'warning' ? 'warning' : 'neutral'}
+                data-iusentra-secondary-action={/_legacy=1|percorso_recupero/i.test(`${action.href} ${action.id}`) ? 'recovery' : undefined}
+              >
                 <ExternalLink size={16} aria-hidden="true" />
                 {action.label}
               </ButtonLink>

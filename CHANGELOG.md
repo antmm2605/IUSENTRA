@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.248.40 - 2026-05-25
+
+- Rafforzata la modernizzazione grafica operativa: preset IUSENTRA stabile anche durante navigazioni consecutive nello stesso tab, card e pannelli più coerenti, bottoni controllati per contenere testo e icone, e procedure secondarie governate senza scorciatoie tecniche visibili.
+- Verificate 168 combinazioni browser su desktop, tablet e mobile con scroll fino al fondo: Panoramica, Regia Operativa, Ricerca Studio, Agenda, Fascicoli, Clienti/Soggetti, Comunicazioni, Scadenze, Studio, Sito Studio, Amministrazione e Impostazioni restano React/preset dove previsto; `/sito-studio/builder` e i dettagli fascicolo personalizzati restano esclusi.
+- Rifinito Lex come pannello professionale: toolbar laterale su desktop/tablet, layout verticale compatto su mobile, icone microfono, caricamento documenti e web libero sempre presenti, textarea mobile con dimensione touch corretta e audit dedicato verde su PEC, Notifiche legali e Fascicoli.
+- Estesi i gate automatici: audit visuale con controllo bottoni, overflow, scroll, console, testi tecnici vietati, sequenza preset e procedure secondarie; audit Lex dedicato e report UTF-8 senza mojibake.
+- Confermati i gate locali: React test/typecheck/build, OpenAPI/provider, pytest mirati, security route, UTF-8, governance repo, Ruff e compileall.
+
+## 2.248.39 - 2026-05-25
+
+- Chiusa la Fase 4 Design system unico: aggiunto il gate bloccante `check-design-system-governance.mjs`, integrato in `pnpm --filter @iusentra/studio test`.
+- Versionata la policy `design-system-governance.json`: nuovi CSS locali, inline style React, `backdrop-filter` e pattern decorativi devono essere allowlistati con motivazione.
+- Normalizzato il pannello laterale del wizard preventivi rimuovendo l'accento pagina-specifico spesso e riportandolo su bordo/superficie del preset IUSENTRA.
+- Allineata la shell alla regola utente: possono restare fuori dal preset solo `/sito-studio/builder` e le visualizzazioni dettaglio fascicolo `/fascicoli/<id>`; PEC, email, lista fascicoli, nuovo fascicolo e archivio restano nel preset operativo.
+- Valutate esplicitamente `/email/`, `/email-ordinaria/` e `/notifiche-legali` in browser reale desktop/tablet/mobile: restano React con preset attivo, zero overflow e nessun testo tecnico vietato.
+- Migliorata la pagina di login: layout istituzionale più leggibile, marchio IUSENTRA vettoriale, tagline nitida in HTML, nota di ritorno alla pagina richiesta e schermata 2FA allineata senza toccare CSRF, campi o redirect.
+- Esentati gli asset statici React/PWA dal rate limit applicativo, mantenendo protette API, login, upload e route operative: il caricamento ravvicinato delle pagine non può più servire JS/CSS come risposta 429.
+
 ## 2.248.37 - 2026-05-24
 
 - Promossa `/sito-studio/articoli/:id/modifica` a React full: la pagina ora passa dalla shell React, legge l’articolo dal repository del tenant corrente e salva via API JSON reale.

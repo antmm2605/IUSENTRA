@@ -1,0 +1,691 @@
+{
+  "auditLabel": "2.248.39-modern-lex-final-6",
+  "host": "http://127.0.0.1:8099",
+  "failures": [],
+  "results": [
+    {
+      "route": "/email",
+      "viewport": "desktop",
+      "open": true,
+      "panel": {
+        "left": 1047,
+        "right": 1403,
+        "top": 414,
+        "bottom": 910,
+        "width": 357,
+        "height": 497
+      },
+      "composer": {
+        "left": 1060,
+        "right": 1390,
+        "top": 736,
+        "bottom": 873,
+        "width": 330,
+        "height": 137
+      },
+      "input": {
+        "left": 1060,
+        "right": 1338,
+        "top": 736,
+        "bottom": 873,
+        "width": 277,
+        "height": 137
+      },
+      "toolbar": {
+        "left": 1346,
+        "right": 1390,
+        "top": 736,
+        "bottom": 873,
+        "width": 44,
+        "height": 137
+      },
+      "tools": [
+        {
+          "label": "Carica documenti nel contesto di Lex",
+          "icon": true,
+          "visible": true,
+          "left": 1346,
+          "right": 1388,
+          "top": 736,
+          "width": 42,
+          "height": 42
+        },
+        {
+          "label": "Detta la richiesta a Lex",
+          "icon": true,
+          "visible": true,
+          "left": 1346,
+          "right": 1388,
+          "top": 783,
+          "width": 42,
+          "height": 42
+        },
+        {
+          "label": "Attiva ricerca web libera",
+          "icon": true,
+          "visible": true,
+          "left": 1346,
+          "right": 1388,
+          "top": 831,
+          "width": 42,
+          "height": 42
+        }
+      ],
+      "inputPlaceholder": "Scrivi una domanda operativa sullo studio, sui fascicoli o sul deposito telematico...",
+      "lateralToolbar": true,
+      "stackedToolbar": false,
+      "overflow": [],
+      "consoleErrors": [],
+      "screenshot": "desktop-email-lex.png",
+      "failures": []
+    },
+    {
+      "route": "/email",
+      "viewport": "tablet",
+      "open": true,
+      "panel": {
+        "left": 27,
+        "right": 978,
+        "top": 43,
+        "bottom": 889,
+        "width": 952,
+        "height": 846
+      },
+      "composer": {
+        "left": 40,
+        "right": 965,
+        "top": 714,
+        "bottom": 852,
+        "width": 924,
+        "height": 137
+      },
+      "input": {
+        "left": 40,
+        "right": 912,
+        "top": 714,
+        "bottom": 852,
+        "width": 872,
+        "height": 137
+      },
+      "toolbar": {
+        "left": 920,
+        "right": 965,
+        "top": 714,
+        "bottom": 852,
+        "width": 44,
+        "height": 137
+      },
+      "tools": [
+        {
+          "label": "Carica documenti nel contesto di Lex",
+          "icon": true,
+          "visible": true,
+          "left": 920,
+          "right": 963,
+          "top": 714,
+          "width": 42,
+          "height": 42
+        },
+        {
+          "label": "Detta la richiesta a Lex",
+          "icon": true,
+          "visible": true,
+          "left": 920,
+          "right": 963,
+          "top": 762,
+          "width": 42,
+          "height": 42
+        },
+        {
+          "label": "Attiva ricerca web libera",
+          "icon": true,
+          "visible": true,
+          "left": 920,
+          "right": 963,
+          "top": 810,
+          "width": 42,
+          "height": 42
+        }
+      ],
+      "inputPlaceholder": "Scrivi una domanda operativa sullo studio, sui fascicoli o sul deposito telematico...",
+      "lateralToolbar": true,
+      "stackedToolbar": false,
+      "overflow": [],
+      "consoleErrors": [],
+      "screenshot": "tablet-email-lex.png",
+      "failures": []
+    },
+    {
+      "route": "/email",
+      "viewport": "mobile",
+      "open": true,
+      "panel": {
+        "left": 21,
+        "right": 385,
+        "top": 47,
+        "bottom": 497,
+        "width": 364,
+        "height": 450
+      },
+      "composer": {
+        "left": 35,
+        "right": 371,
+        "top": 363,
+        "bottom": 460,
+        "width": 337,
+        "height": 97
+      },
+      "input": {
+        "left": 35,
+        "right": 371,
+        "top": 363,
+        "bottom": 409,
+        "width": 337,
+        "height": 47
+      },
+      "toolbar": {
+        "left": 35,
+        "right": 371,
+        "top": 417,
+        "bottom": 460,
+        "width": 337,
+        "height": 42
+      },
+      "tools": [
+        {
+          "label": "Carica documenti nel contesto di Lex",
+          "icon": true,
+          "visible": true,
+          "left": 35,
+          "right": 143,
+          "top": 417,
+          "width": 109,
+          "height": 42
+        },
+        {
+          "label": "Detta la richiesta a Lex",
+          "icon": true,
+          "visible": true,
+          "left": 149,
+          "right": 257,
+          "top": 417,
+          "width": 109,
+          "height": 42
+        },
+        {
+          "label": "Attiva ricerca web libera",
+          "icon": true,
+          "visible": true,
+          "left": 263,
+          "right": 371,
+          "top": 417,
+          "width": 109,
+          "height": 42
+        }
+      ],
+      "inputPlaceholder": "Scrivi una domanda operativa sullo studio, sui fascicoli o sul deposito telematico...",
+      "lateralToolbar": false,
+      "stackedToolbar": true,
+      "overflow": [],
+      "consoleErrors": [],
+      "screenshot": "mobile-email-lex.png",
+      "failures": []
+    },
+    {
+      "route": "/notifiche-legali",
+      "viewport": "desktop",
+      "open": true,
+      "panel": {
+        "left": 1047,
+        "right": 1403,
+        "top": 414,
+        "bottom": 910,
+        "width": 357,
+        "height": 497
+      },
+      "composer": {
+        "left": 1060,
+        "right": 1390,
+        "top": 736,
+        "bottom": 873,
+        "width": 330,
+        "height": 137
+      },
+      "input": {
+        "left": 1060,
+        "right": 1338,
+        "top": 736,
+        "bottom": 873,
+        "width": 277,
+        "height": 137
+      },
+      "toolbar": {
+        "left": 1346,
+        "right": 1390,
+        "top": 736,
+        "bottom": 873,
+        "width": 44,
+        "height": 137
+      },
+      "tools": [
+        {
+          "label": "Carica documenti nel contesto di Lex",
+          "icon": true,
+          "visible": true,
+          "left": 1346,
+          "right": 1388,
+          "top": 736,
+          "width": 42,
+          "height": 42
+        },
+        {
+          "label": "Detta la richiesta a Lex",
+          "icon": true,
+          "visible": true,
+          "left": 1346,
+          "right": 1388,
+          "top": 783,
+          "width": 42,
+          "height": 42
+        },
+        {
+          "label": "Attiva ricerca web libera",
+          "icon": true,
+          "visible": true,
+          "left": 1346,
+          "right": 1388,
+          "top": 831,
+          "width": 42,
+          "height": 42
+        }
+      ],
+      "inputPlaceholder": "Scrivi una domanda operativa sullo studio, sui fascicoli o sul deposito telematico...",
+      "lateralToolbar": true,
+      "stackedToolbar": false,
+      "overflow": [],
+      "consoleErrors": [],
+      "screenshot": "desktop-notifiche-legali-lex.png",
+      "failures": []
+    },
+    {
+      "route": "/notifiche-legali",
+      "viewport": "tablet",
+      "open": true,
+      "panel": {
+        "left": 27,
+        "right": 978,
+        "top": 43,
+        "bottom": 889,
+        "width": 952,
+        "height": 846
+      },
+      "composer": {
+        "left": 40,
+        "right": 965,
+        "top": 714,
+        "bottom": 852,
+        "width": 924,
+        "height": 137
+      },
+      "input": {
+        "left": 40,
+        "right": 912,
+        "top": 714,
+        "bottom": 852,
+        "width": 872,
+        "height": 137
+      },
+      "toolbar": {
+        "left": 920,
+        "right": 965,
+        "top": 714,
+        "bottom": 852,
+        "width": 44,
+        "height": 137
+      },
+      "tools": [
+        {
+          "label": "Carica documenti nel contesto di Lex",
+          "icon": true,
+          "visible": true,
+          "left": 920,
+          "right": 963,
+          "top": 714,
+          "width": 42,
+          "height": 42
+        },
+        {
+          "label": "Detta la richiesta a Lex",
+          "icon": true,
+          "visible": true,
+          "left": 920,
+          "right": 963,
+          "top": 762,
+          "width": 42,
+          "height": 42
+        },
+        {
+          "label": "Attiva ricerca web libera",
+          "icon": true,
+          "visible": true,
+          "left": 920,
+          "right": 963,
+          "top": 810,
+          "width": 42,
+          "height": 42
+        }
+      ],
+      "inputPlaceholder": "Scrivi una domanda operativa sullo studio, sui fascicoli o sul deposito telematico...",
+      "lateralToolbar": true,
+      "stackedToolbar": false,
+      "overflow": [],
+      "consoleErrors": [],
+      "screenshot": "tablet-notifiche-legali-lex.png",
+      "failures": []
+    },
+    {
+      "route": "/notifiche-legali",
+      "viewport": "mobile",
+      "open": true,
+      "panel": {
+        "left": 21,
+        "right": 385,
+        "top": 47,
+        "bottom": 497,
+        "width": 364,
+        "height": 450
+      },
+      "composer": {
+        "left": 35,
+        "right": 371,
+        "top": 353,
+        "bottom": 460,
+        "width": 337,
+        "height": 107
+      },
+      "input": {
+        "left": 35,
+        "right": 371,
+        "top": 353,
+        "bottom": 409,
+        "width": 337,
+        "height": 56
+      },
+      "toolbar": {
+        "left": 35,
+        "right": 371,
+        "top": 417,
+        "bottom": 460,
+        "width": 337,
+        "height": 42
+      },
+      "tools": [
+        {
+          "label": "Carica documenti nel contesto di Lex",
+          "icon": true,
+          "visible": true,
+          "left": 35,
+          "right": 143,
+          "top": 417,
+          "width": 109,
+          "height": 42
+        },
+        {
+          "label": "Detta la richiesta a Lex",
+          "icon": true,
+          "visible": true,
+          "left": 149,
+          "right": 257,
+          "top": 417,
+          "width": 109,
+          "height": 42
+        },
+        {
+          "label": "Attiva ricerca web libera",
+          "icon": true,
+          "visible": true,
+          "left": 263,
+          "right": 371,
+          "top": 417,
+          "width": 109,
+          "height": 42
+        }
+      ],
+      "inputPlaceholder": "Scrivi una domanda operativa sullo studio, sui fascicoli o sul deposito telematico...",
+      "lateralToolbar": false,
+      "stackedToolbar": true,
+      "overflow": [],
+      "consoleErrors": [],
+      "screenshot": "mobile-notifiche-legali-lex.png",
+      "failures": []
+    },
+    {
+      "route": "/fascicoli",
+      "viewport": "desktop",
+      "open": true,
+      "panel": {
+        "left": 1047,
+        "right": 1403,
+        "top": 414,
+        "bottom": 910,
+        "width": 357,
+        "height": 497
+      },
+      "composer": {
+        "left": 1060,
+        "right": 1390,
+        "top": 736,
+        "bottom": 873,
+        "width": 330,
+        "height": 137
+      },
+      "input": {
+        "left": 1060,
+        "right": 1338,
+        "top": 736,
+        "bottom": 873,
+        "width": 277,
+        "height": 137
+      },
+      "toolbar": {
+        "left": 1346,
+        "right": 1390,
+        "top": 736,
+        "bottom": 873,
+        "width": 44,
+        "height": 137
+      },
+      "tools": [
+        {
+          "label": "Carica documenti nel contesto di Lex",
+          "icon": true,
+          "visible": true,
+          "left": 1346,
+          "right": 1388,
+          "top": 736,
+          "width": 42,
+          "height": 42
+        },
+        {
+          "label": "Detta la richiesta a Lex",
+          "icon": true,
+          "visible": true,
+          "left": 1346,
+          "right": 1388,
+          "top": 783,
+          "width": 42,
+          "height": 42
+        },
+        {
+          "label": "Attiva ricerca web libera",
+          "icon": true,
+          "visible": true,
+          "left": 1346,
+          "right": 1388,
+          "top": 831,
+          "width": 42,
+          "height": 42
+        }
+      ],
+      "inputPlaceholder": "Scrivi una domanda operativa sullo studio, sui fascicoli o sul deposito telematico...",
+      "lateralToolbar": true,
+      "stackedToolbar": false,
+      "overflow": [],
+      "consoleErrors": [],
+      "screenshot": "desktop-fascicoli-lex.png",
+      "failures": []
+    },
+    {
+      "route": "/fascicoli",
+      "viewport": "tablet",
+      "open": true,
+      "panel": {
+        "left": 27,
+        "right": 978,
+        "top": 43,
+        "bottom": 889,
+        "width": 952,
+        "height": 846
+      },
+      "composer": {
+        "left": 40,
+        "right": 965,
+        "top": 714,
+        "bottom": 852,
+        "width": 924,
+        "height": 137
+      },
+      "input": {
+        "left": 40,
+        "right": 912,
+        "top": 714,
+        "bottom": 852,
+        "width": 872,
+        "height": 137
+      },
+      "toolbar": {
+        "left": 920,
+        "right": 965,
+        "top": 714,
+        "bottom": 852,
+        "width": 44,
+        "height": 137
+      },
+      "tools": [
+        {
+          "label": "Carica documenti nel contesto di Lex",
+          "icon": true,
+          "visible": true,
+          "left": 920,
+          "right": 963,
+          "top": 714,
+          "width": 42,
+          "height": 42
+        },
+        {
+          "label": "Detta la richiesta a Lex",
+          "icon": true,
+          "visible": true,
+          "left": 920,
+          "right": 963,
+          "top": 762,
+          "width": 42,
+          "height": 42
+        },
+        {
+          "label": "Attiva ricerca web libera",
+          "icon": true,
+          "visible": true,
+          "left": 920,
+          "right": 963,
+          "top": 810,
+          "width": 42,
+          "height": 42
+        }
+      ],
+      "inputPlaceholder": "Scrivi una domanda operativa sullo studio, sui fascicoli o sul deposito telematico...",
+      "lateralToolbar": true,
+      "stackedToolbar": false,
+      "overflow": [],
+      "consoleErrors": [],
+      "screenshot": "tablet-fascicoli-lex.png",
+      "failures": []
+    },
+    {
+      "route": "/fascicoli",
+      "viewport": "mobile",
+      "open": true,
+      "panel": {
+        "left": 21,
+        "right": 385,
+        "top": 47,
+        "bottom": 497,
+        "width": 364,
+        "height": 450
+      },
+      "composer": {
+        "left": 35,
+        "right": 371,
+        "top": 353,
+        "bottom": 460,
+        "width": 337,
+        "height": 107
+      },
+      "input": {
+        "left": 35,
+        "right": 371,
+        "top": 353,
+        "bottom": 409,
+        "width": 337,
+        "height": 56
+      },
+      "toolbar": {
+        "left": 35,
+        "right": 371,
+        "top": 417,
+        "bottom": 460,
+        "width": 337,
+        "height": 42
+      },
+      "tools": [
+        {
+          "label": "Carica documenti nel contesto di Lex",
+          "icon": true,
+          "visible": true,
+          "left": 35,
+          "right": 143,
+          "top": 417,
+          "width": 109,
+          "height": 42
+        },
+        {
+          "label": "Detta la richiesta a Lex",
+          "icon": true,
+          "visible": true,
+          "left": 149,
+          "right": 257,
+          "top": 417,
+          "width": 109,
+          "height": 42
+        },
+        {
+          "label": "Attiva ricerca web libera",
+          "icon": true,
+          "visible": true,
+          "left": 263,
+          "right": 371,
+          "top": 417,
+          "width": 109,
+          "height": 42
+        }
+      ],
+      "inputPlaceholder": "Scrivi una domanda operativa sullo studio, sui fascicoli o sul deposito telematico...",
+      "lateralToolbar": false,
+      "stackedToolbar": true,
+      "overflow": [],
+      "consoleErrors": [],
+      "screenshot": "mobile-fascicoli-lex.png",
+      "failures": []
+    }
+  ]
+}

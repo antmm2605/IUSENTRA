@@ -660,6 +660,11 @@
   .iu-scad-focus-actions{justify-content:flex-start;min-width:0}
   .iu-scad-inspector{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+@media(max-width:1180px){
+  .iu-scad-toolbar{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .iu-scad-search{grid-column:1/-1}
+  .iu-scad-filter-btn,.iu-scad-icon-btn,.iu-scad-reset{width:100%;min-width:0}
+}
 @media(max-width:980px){
   .iu-scad-hero{flex-direction:column}
   .iu-scad-hero__actions{justify-content:flex-start}

@@ -1942,8 +1942,10 @@
 }
 
 .iu-pwiz-side-list article {
-  border-left: 3px solid #d8e4f2;
-  padding-left: 0.65rem;
+  border: 1px solid var(--iu-border);
+  border-radius: 10px;
+  padding: 0.55rem 0.65rem;
+  background: rgba(248, 250, 252, 0.72);
 }
 
 .iu-pwiz-side-list strong,

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Marchio IUSENTRA">
+  <rect width="128" height="128" rx="24" fill="#f8fbff"/>
+  <path d="M28 32l22-6v64c-9-2-17-7-22-14V32z" fill="#06357c"/>
+  <path d="M58 39l20-4v48c-6 5-13 8-20 8V39z" fill="#0b4fb3"/>
+  <path d="M22 82c18 22 45 28 71 2l12-12c-21 38-62 47-92 20l9-10z" fill="#062f70"/>
+  <path d="M50 33l59-18-15 67-16-16-27 6 23-18-24-21z" fill="#f6c12a"/>
+  <path d="M55 35l47-14-12 51-12-13-22 5 19-15-20-14z" fill="#ffdd49"/>
+  <path d="M50 33l59-18-15 67-16-16-27 6 23-18-24-21z" fill="none" stroke="#d69211" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M28 32l22-6v64c-9-2-17-7-22-14V32zM58 39l20-4v48c-6 5-13 8-20 8V39zM22 82c18 22 45 28 71 2l12-12c-21 38-62 47-92 20l9-10z" fill="none" stroke="#001b49" stroke-width="2" stroke-linejoin="round"/>
+</svg>

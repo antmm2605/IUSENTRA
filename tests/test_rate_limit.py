@@ -7,6 +7,7 @@ from flask import Flask
 
 from core.security.rate_limit import (
     InMemoryRateLimiter,
+    _is_rate_limit_exempt_request,
     _redis_storage_available,
     _resolve_storage_uri,
     parse_rule,
@@ -39,6 +40,19 @@ def test_register_rate_limiter_protects_api_route() -> None:
     client = app.test_client()
     assert client.get("/api/ping").status_code == 200
     assert client.get("/api/ping").status_code == 429
+
+
+def test_register_rate_limiter_exempts_static_assets(tmp_path) -> None:
+    (tmp_path / "app.js").write_text("console.log('iusentra')", encoding="utf-8")
+    app = Flask(__name__, static_folder=str(tmp_path), static_url_path="/static")
+    app.config.update(RATELIMIT_ENABLED=True, RATELIMIT_DEFAULT="1/minute", RATELIMIT_STORAGE_URI="memory://")
+    register_rate_limiter(app)
+
+    client = app.test_client()
+
+    assert client.get("/static/app.js").status_code == 200
+    assert client.get("/static/app.js").status_code == 200
+    assert client.get("/static/app.js").status_code == 200
 
 
 def test_redis_rate_limit_storage_falls_back_to_memory(monkeypatch) -> None:
@@ -99,6 +113,12 @@ def test_register_rate_limiter_configures_fail_open_fallback(monkeypatch) -> Non
     assert captured["swallow_errors"] is True
     assert captured["in_memory_fallback_enabled"] is True
     assert captured["in_memory_fallback"] == ["10/minute"]
+    assert captured["default_limits_exempt_when"] is _is_rate_limit_exempt_request
+    assert captured["application_limits_exempt_when"] is _is_rate_limit_exempt_request
+    with app.test_request_context("/static/react/assets/index.js", method="GET"):
+        assert _is_rate_limit_exempt_request() is True
+    with app.test_request_context("/api/v1/ui/dashboard", method="GET"):
+        assert _is_rate_limit_exempt_request() is False
 
 
 def test_register_rate_limiter_with_unavailable_redis_does_not_break_requests(monkeypatch) -> None:

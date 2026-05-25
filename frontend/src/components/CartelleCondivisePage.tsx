@@ -185,11 +185,11 @@ export function CartelleCondivisePage() {
   }
 
   if (!data) {
-    return <main className="iu-share-page"><div className="iu-share-loading">Caricamento cartelle condivise...</div></main>
+    return <main className="iu-content iu-share-page iusentra-route-sequence"><div className="iu-share-loading">Caricamento cartelle condivise...</div></main>
   }
 
   return (
-    <main className="iu-share-page">
+    <main className="iu-content iu-share-page iusentra-route-sequence">
       <section className="iu-share-hero">
         <div>
           <span className="iu-share-kicker"><ShieldCheck size={16}/> Cartelle condivise</span>

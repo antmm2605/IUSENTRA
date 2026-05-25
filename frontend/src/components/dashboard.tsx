@@ -11,12 +11,14 @@ type ButtonProps = {
   full?: boolean
   href?: string
   className?: string
+  title?: string
+  disabled?: boolean
 }
 
-export function Button({ children, variant = 'secondary', full = false, href, className = '' }: ButtonProps) {
-  const classes = `iu-button iu-button--${variant} ${full ? 'iu-button--full' : ''} ${className}`.trim()
-  if (href) return <a className={classes} href={href}>{children}</a>
-  return <button className={classes} type="button">{children}</button>
+export function Button({ children, variant = 'secondary', full = false, href, className = '', title, disabled = false }: ButtonProps) {
+  const classes = `iu-button iu-button--${variant} ${full ? 'iu-button--full' : ''} ${disabled ? 'is-disabled' : ''} ${className}`.trim()
+  if (href && !disabled) return <a className={classes} href={href} title={title}>{children}</a>
+  return <button className={classes} type="button" title={title} disabled={disabled} aria-disabled={disabled}>{children}</button>
 }
 
 export function Badge({ tone = 'neutral', children }:{tone?:Tone; children:ReactNode}) {

@@ -15,6 +15,7 @@
   --iusentra-surface-bg: #ffffff;
   --iusentra-card-bg: #ffffff;
   --iusentra-card-subtle-bg: #f8fafc;
+  --iusentra-surface-muted: #f1f5f9;
   --iusentra-border: #e2e8f0;
   --iusentra-border-soft: rgba(15, 23, 42, 0.09);
   --iusentra-text: #111827;
@@ -241,6 +242,33 @@
   padding: 10px var(--iusentra-spacing-4);
   border-top: 1px solid var(--iusentra-border-soft);
   background: var(--iusentra-card-bg);
+}
+
+.iusentra-pagination-bar button,
+.iusentra-pagination-bar a {
+  min-width: 44px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid var(--iusentra-border-soft);
+  border-radius: var(--iusentra-radius-sm);
+  background: #fff;
+  color: var(--iusentra-text);
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.iusentra-pagination-bar button:disabled,
+.iusentra-pagination-bar a[aria-disabled="true"] {
+  color: var(--iusentra-text-muted);
+  background: var(--iusentra-surface-muted);
+  cursor: not-allowed;
+  opacity: 0.72;
 }
 
 .iusentra-empty-state {
@@ -1635,4 +1663,299 @@
 .iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] .iu-button--primary,
 .iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] button[class*="primary"] {
   color: #f8fafc;
+}
+
+.iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] .iu-button:disabled,
+.iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] button:disabled {
+  border-color: #cbd5e1;
+  background: linear-gradient(135deg, #f8fafc, #eef2f7);
+  color: #334155;
+  opacity: 1;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] .iu-button:disabled svg,
+.iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] button:disabled svg {
+  color: #64748b;
+}
+
+/* Preset 2026: regia visiva verticale, orizzontale, laterale e top. */
+.iusentra-preset-active {
+  --iusentra-page-bg: #f5f7fb;
+  --iusentra-surface-bg: rgba(255, 255, 255, 0.96);
+  --iusentra-card-bg: rgba(255, 255, 255, 0.98);
+  --iusentra-card-subtle-bg: #f8fbff;
+  --iusentra-border: rgba(15, 23, 42, 0.1);
+  --iusentra-border-soft: rgba(15, 23, 42, 0.08);
+  --iusentra-primary: #123d72;
+  --iusentra-primary-active: #2563eb;
+  --iusentra-accent: #b8860b;
+  --iusentra-radius-sm: 8px;
+  --iusentra-radius-md: 10px;
+  --iusentra-radius-lg: 12px;
+  --iusentra-layout-gap: 14px;
+  --iusentra-support-rail-width: 372px;
+  --iusentra-shadow-card: 0 12px 34px rgba(15, 23, 42, 0.07);
+  --iusentra-shadow-raised: 0 22px 54px rgba(15, 23, 42, 0.1);
+}
+
+.iusentra-preset-active .iu-content {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(245, 247, 251, 0)),
+    var(--iusentra-page-bg);
+}
+
+.iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"],
+.iusentra-preset-active .iusentra-route-sequence > .iu-page-heading[data-iusentra-sequence-slot="page-header"],
+.iusentra-preset-active .iusentra-route-sequence > section[class*="-hero"][data-iusentra-sequence-slot="page-header"] {
+  position: relative;
+  overflow: hidden;
+  min-height: 124px;
+  border-color: rgba(18, 61, 114, 0.14);
+  background:
+    linear-gradient(90deg, rgba(18, 61, 114, 0.07), rgba(255, 255, 255, 0.96) 38%, rgba(248, 251, 255, 0.96)),
+    #fff;
+  box-shadow: 0 18px 48px rgba(18, 61, 114, 0.09);
+}
+
+.iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"]::before,
+.iusentra-preset-active .iusentra-route-sequence > .iu-page-heading[data-iusentra-sequence-slot="page-header"]::before,
+.iusentra-preset-active .iusentra-route-sequence > section[class*="-hero"][data-iusentra-sequence-slot="page-header"]::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: linear-gradient(180deg, #123d72, #2563eb 48%, #b8860b);
+}
+
+.iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] h1,
+.iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] h2 {
+  font-size: clamp(25px, 2.15vw, 34px);
+  line-height: 1.08;
+  font-weight: 950;
+}
+
+.iusentra-panel-card,
+.iusentra-data-surface,
+.iusentra-action-card {
+  position: relative;
+  border-color: rgba(18, 61, 114, 0.1);
+  border-radius: var(--iusentra-radius-lg);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+}
+
+.iusentra-panel-card::before,
+.iusentra-data-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, rgba(18, 61, 114, 0.72), rgba(37, 99, 235, 0.58), rgba(184, 134, 11, 0.58));
+  opacity: 0.82;
+}
+
+.iusentra-panel-card__header,
+.iusentra-data-surface__header {
+  min-height: 54px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.9));
+}
+
+.iusentra-panel-card__title .ius-legal-icon,
+.ius-legal-icon {
+  border-color: rgba(37, 99, 235, 0.16);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(239, 246, 255, 0.86)),
+    #fff;
+  color: #1d4ed8;
+}
+
+.iusentra-panel-card__body {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.68));
+}
+
+.iusentra-filters-bar,
+.iusentra-context-filters {
+  align-items: center;
+  border-color: rgba(18, 61, 114, 0.12);
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.9)),
+    #fff;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.06);
+}
+
+.iusentra-data-surface__body {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.7)),
+    var(--iusentra-card-bg);
+}
+
+.iusentra-route-preset--active .iusentra-route-grid > .iusentra-route-rail {
+  gap: 12px;
+}
+
+.iusentra-route-preset--active .iusentra-route-grid > .iusentra-route-rail > * {
+  overflow: hidden;
+}
+
+.iusentra-preset-active main a[href],
+.iusentra-preset-active main button,
+.iusentra-preset-active .iu-content a[href],
+.iusentra-preset-active .iu-content button {
+  min-height: 32px;
+}
+
+.iusentra-preset-active main a[href],
+.iusentra-preset-active .iu-content a[href] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  min-width: 44px;
+}
+
+.iusentra-preset-active .iu-link,
+.iusentra-preset-active .iu-sync,
+.iusentra-preset-active .iu-cln-back,
+.iusentra-preset-active .iu-msg-back,
+.iusentra-preset-active .iu-msg-panel-action,
+.iusentra-preset-active .iu-scad-card a,
+.iusentra-preset-active .iu-settings-page a[href],
+.iusentra-preset-active .iu-db-table a[href],
+.iusentra-preset-active .iu-profiles-rollback {
+  min-height: 32px;
+  min-width: 44px;
+  align-items: center;
+}
+
+.iusentra-preset-active main button,
+.iusentra-preset-active .iu-content button {
+  min-width: 44px;
+}
+
+.iusentra-preset-active main button,
+.iusentra-preset-active main a[href],
+.iusentra-preset-active .iu-content button,
+.iusentra-preset-active .iu-content a[href] {
+  line-height: 1.25;
+}
+
+.iusentra-preset-active .iu-button,
+.iusentra-preset-active .iu-deadline-ghost,
+.iusentra-preset-active .iu-deadline-outline,
+.iusentra-preset-active .iu-deadline-cancel {
+  height: auto;
+  max-width: 100%;
+  min-height: 36px;
+  overflow-wrap: anywhere;
+  padding-bottom: 6px;
+  padding-top: 6px;
+  text-align: center;
+  white-space: normal;
+}
+
+.iusentra-preset-active .iu-button svg,
+.iusentra-preset-active .iu-deadline-ghost svg,
+.iusentra-preset-active .iu-deadline-outline svg,
+.iusentra-preset-active .iu-deadline-cancel svg {
+  flex: 0 0 auto;
+}
+
+.iusentra-preset-active .iu-ag-slot {
+  min-height: 32px;
+  height: auto;
+}
+
+.iusentra-preset-active main .iu-li-acquisition__source,
+.iusentra-preset-active .iu-content .iu-li-acquisition__source {
+  align-content: start;
+  height: auto;
+  min-height: 8.75rem;
+  overflow: visible;
+  white-space: normal;
+}
+
+.iusentra-preset-active main .iu-li-acquisition__source span,
+.iusentra-preset-active .iu-content .iu-li-acquisition__source span {
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.iusentra-preset-active main .iu-li-source-preview__item,
+.iusentra-preset-active .iu-content .iu-li-source-preview__item {
+  align-content: start;
+  height: auto;
+  min-height: 6.75rem;
+  overflow: visible;
+  white-space: normal;
+}
+
+.iusentra-preset-active main .iu-li-source-preview__item small,
+.iusentra-preset-active main .iu-li-source-preview__item strong,
+.iusentra-preset-active main .iu-li-acquisition__source small,
+.iusentra-preset-active main .iu-li-acquisition__source strong,
+.iusentra-preset-active .iu-content .iu-li-source-preview__item small,
+.iusentra-preset-active .iu-content .iu-li-source-preview__item strong,
+.iusentra-preset-active .iu-content .iu-li-acquisition__source small,
+.iusentra-preset-active .iu-content .iu-li-acquisition__source strong {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.iusentra-preset-active .iu-cln-mini-action,
+.iusentra-preset-active .iu-scad-filter-btn,
+.iusentra-preset-active .iu-scad-icon-btn,
+.iusentra-preset-active .iu-scad-reset {
+  min-height: 34px;
+}
+
+.iusentra-preset-active .iu-settings-tabs__list,
+.iusentra-preset-active .iu-search-filterbar,
+.iusentra-preset-active .iu-profiles-matrix,
+.iusentra-preset-active .iu-cli-table-wrap,
+.iusentra-preset-active .iu-db-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.iusentra-preset-active .iu-settings-tabs__list {
+  scrollbar-width: thin;
+}
+
+@media (max-width: 1180px) {
+  .iusentra-preset-active .iu-cli-toolbar {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  }
+
+  .iusentra-preset-active .iu-cli-toolbar .iu-cli-search,
+  .iusentra-preset-active .iu-cli-toolbar label:first-child {
+    grid-column: 1 / -1 !important;
+  }
+
+  .iusentra-preset-active .iu-cli-toolbar .iu-cli-filter-btn,
+  .iusentra-preset-active .iu-cli-toolbar .iu-cli-icon-btn {
+    width: 100% !important;
+    justify-self: stretch !important;
+  }
+}
+
+@media (min-width: 1181px) {
+  .iusentra-route-preset--active .iusentra-route-grid[data-iusentra-layout-has-rail="true"] {
+    grid-template-columns: minmax(0, 1fr) minmax(326px, var(--iusentra-support-rail-width));
+  }
+
+  .iusentra-route-preset--active .iusentra-route-grid > .iusentra-route-rail {
+    position: sticky;
+    top: calc(var(--iu-topbar-h, 76px) + 14px);
+    max-height: calc(100dvh - var(--iu-topbar-h, 76px) - 34px);
+    overflow: auto;
+    scrollbar-width: thin;
+  }
+}
+
+@media (max-width: 1180px) {
+  .iusentra-route-preset--active .iusentra-route-grid > .iusentra-route-rail {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) !important;
+  }
 }

@@ -14,8 +14,15 @@
 
 <div class="login-card card">
   <div class="login-header">
-    <div class="logo-wrap">
-      <img src="{{ url_for('static', filename='img/logo-iusentra.png') }}" alt="IUSENTRA" class="brand-logo">
+    <div class="logo-wrap" aria-label="IUSENTRA - Lo studio legale, in un unico sistema">
+      <img src="{{ url_for('static', filename='img/iusentra-login-mark.svg') }}"
+           alt=""
+           aria-hidden="true"
+           class="brand-logo">
+      <div class="brand-lockup">
+        <span class="brand-name">IUSENTRA</span>
+        <span class="brand-tagline">Lo studio legale, in un unico sistema</span>
+      </div>
     </div>
     <h1>Conferma la tua identità</h1>
     <p>{{ username }}</p>
@@ -56,4 +63,3 @@
 
 </body>
 </html>
-

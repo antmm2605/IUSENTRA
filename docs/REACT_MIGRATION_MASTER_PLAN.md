@@ -1,5 +1,30 @@
 # Migrazione progressiva Flask + React
 
+## Evoluzione grafica professionale e Lex - 2026-05-25 - 2.248.40
+
+La tranche rafforza il prodotto come gestionale professionale per studi legali:
+il preset IUSENTRA resta obbligatorio per tutte le pagine operative già
+governate, con sole eccezioni `/sito-studio/builder` e dettaglio fascicolo
+personalizzato. L'audit visuale finale controlla scroll completo, bottoni,
+icone, procedure secondarie, sequenza preset, overflow, console e testi
+tecnici vietati su desktop, tablet e mobile.
+
+Lex viene trattato come pannello operativo di studio, non come widget generico:
+toolbar laterale quando lo spazio lo consente, layout verticale compatto su
+mobile, icona microfono, caricamento documenti, web libero, textarea touch e
+spazi ridotti senza perdere leggibilità. La verifica dedicata copre PEC,
+Notifiche legali e Fascicoli.
+
+Verifiche locali: audit visuale 168/168, audit Lex 9/9, React
+test/typecheck/build, OpenAPI/provider, pytest mirati, security, UTF-8,
+governance repo, Ruff e compileall.
+
+## Design system unico governato - 2026-05-25 - 2.248.39
+
+La Fase 4 trasforma il preset grafico IUSENTRA in un gate bloccante. `pnpm --filter @iusentra/studio test` esegue ora `scripts/react-migration/check-design-system-governance.mjs`, che legge `scripts/react-migration/design-system-governance.json` e controlla allowlist CSS, inline style autorizzati, uso di `backdrop-filter` e divieti su accenti laterali spessi, testi gradiente e blur decorativi.
+
+Il report automatico vive in `artifacts/react-migration/design-system-governance-report.md`: nessuna nuova pagina React può introdurre CSS locale o inline style senza motivazione operativa. Il wizard preventivi è stato riallineato al preset rimuovendo l'accento laterale spesso dal pannello riepilogo. Per disposizione utente le sole eccezioni grafiche ammesse restano `/sito-studio/builder` e le visualizzazioni dettaglio fascicolo `/fascicoli/<id>`; PEC, email, notifiche legali, lista fascicoli, nuovo fascicolo, archivio e ogni altra pagina operativa devono passare dal preset. La Fase 4 include anche l'esenzione degli asset statici React/PWA dal rate limit, così le navigazioni ravvicinate non svuotano la shell per JS/CSS serviti come 429.
+
 ## Sito Studio modifica articolo React full - 2026-05-24 - 2.248.37
 
 La rotta `/sito-studio/articoli/:id/modifica`, richiesta dalla verifica su produzione, è stata promossa a `react_operational_full`. La pagina Flask serve la shell React per il percorso principale e conserva il rendering classico solo dietro `?_legacy=1`; il gate ammette la sola modifica articolo esatta e mantiene protetti download, allegati, export e workflow tecnici non parificati.

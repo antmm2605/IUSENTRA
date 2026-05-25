@@ -73,6 +73,20 @@ def _resolve_storage_uri(app: Flask, storage_uri: str) -> str:
     return "memory://"
 
 
+def _is_rate_limit_exempt_request() -> bool:
+    """Esclude asset e file applicativi statici dal rate limit utente."""
+
+    if request.method not in {"GET", "HEAD", "OPTIONS"}:
+        return False
+    endpoint = request.endpoint or ""
+    path = request.path or ""
+    if endpoint == "static" or endpoint.startswith("static."):
+        return True
+    if path.startswith("/static/"):
+        return True
+    return path in {"/manifest.webmanifest", "/sw.js", "/favicon.ico"}
+
+
 def register_rate_limiter(app: Flask) -> None:
     if not app.config.get("RATELIMIT_ENABLED", False):
         return
@@ -86,6 +100,8 @@ def register_rate_limiter(app: Flask) -> None:
             key_func=get_remote_address,
             app=app,
             default_limits=[str(app.config.get("RATELIMIT_DEFAULT") or "120/minute")],
+            default_limits_exempt_when=_is_rate_limit_exempt_request,
+            application_limits_exempt_when=_is_rate_limit_exempt_request,
             storage_uri=storage_uri,
             swallow_errors=True,
             in_memory_fallback=[str(app.config.get("RATELIMIT_DEFAULT") or "120/minute")],
@@ -103,6 +119,8 @@ def register_rate_limiter(app: Flask) -> None:
 
     @app.before_request
     def _apply_rate_limit():
+        if _is_rate_limit_exempt_request():
+            return None
         endpoint = request.endpoint or ""
         rule = strict_rule if any(token in endpoint for token in ("login", "upload", "assistente", "api_job")) else default_rule
         identity = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()

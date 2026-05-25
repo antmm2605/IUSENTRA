@@ -116,45 +116,47 @@
     <div id="pct-ai-presets" class="pct-ai-presets" aria-label="Superfici operative di Lex"></div>
 
     <footer class="pct-ai-footer">
-      <div class="pct-ai-toolbar">
-        <label for="pct-ai-upload" class="pct-ai-tool-btn pct-ai-tool-btn--upload" title="Carica documenti nel contesto di Lex">
-          <i class="bi bi-paperclip"></i>
-          <span>Carica documenti</span>
-        </label>
-        <input
-          id="pct-ai-upload"
-          class="pct-ai-upload-input"
-          type="file"
-          multiple
-          accept=".pdf,.docx,.txt,.md,.json,.html,.htm,.csv"
-        >
-        <button id="pct-ai-mic" class="pct-ai-tool-btn" type="button" title="Detta la richiesta a Lex" aria-label="Detta la richiesta a Lex">
-          <i class="bi bi-mic-fill"></i>
-          <span>Detta</span>
-        </button>
-        <button
-          id="pct-ai-free-web"
-          class="pct-ai-tool-btn"
-          type="button"
-          title="Attiva ricerca web libera solo per le prossime domande"
-          aria-label="Attiva ricerca web libera"
-          aria-pressed="false"
-        >
-          <i class="bi bi-globe2"></i>
-          <span>Web libero</span>
-        </button>
-      </div>
       <div id="pct-ai-attachments" class="pct-ai-attachments" hidden></div>
-      <div class="pct-ai-input-wrap">
-        <textarea
-          id="pct-ai-input"
-          class="pct-ai-input"
-          placeholder="Scrivi una domanda operativa sullo studio, sui fascicoli o sul deposito telematico..."
-          rows="1"
-        ></textarea>
-        <button id="pct-ai-send" class="pct-ai-send-btn" type="button" title="Invia domanda" aria-label="Invia domanda">
-          <i class="bi bi-send-fill"></i>
-        </button>
+      <div class="pct-ai-composer">
+        <div class="pct-ai-input-wrap">
+          <textarea
+            id="pct-ai-input"
+            class="pct-ai-input"
+            placeholder="Scrivi una domanda operativa sullo studio, sui fascicoli o sul deposito telematico..."
+            rows="1"
+          ></textarea>
+          <button id="pct-ai-send" class="pct-ai-send-btn" type="button" title="Invia domanda" aria-label="Invia domanda">
+            <i class="bi bi-send-fill"></i>
+          </button>
+        </div>
+        <div class="pct-ai-toolbar" aria-label="Strumenti rapidi Lex">
+          <label for="pct-ai-upload" class="pct-ai-tool-btn pct-ai-tool-btn--upload" title="Carica documenti nel contesto di Lex" aria-label="Carica documenti nel contesto di Lex">
+            <i class="bi bi-file-earmark-arrow-up"></i>
+            <span>Carica documenti</span>
+          </label>
+          <input
+            id="pct-ai-upload"
+            class="pct-ai-upload-input"
+            type="file"
+            multiple
+            accept=".pdf,.docx,.txt,.md,.json,.html,.htm,.csv"
+          >
+          <button id="pct-ai-mic" class="pct-ai-tool-btn" type="button" title="Detta la richiesta a Lex" aria-label="Detta la richiesta a Lex">
+            <i class="bi bi-mic-fill"></i>
+            <span>Microfono</span>
+          </button>
+          <button
+            id="pct-ai-free-web"
+            class="pct-ai-tool-btn"
+            type="button"
+            title="Attiva ricerca web libera solo per le prossime domande"
+            aria-label="Attiva ricerca web libera"
+            aria-pressed="false"
+          >
+            <i class="bi bi-globe2"></i>
+            <span>Web libero</span>
+          </button>
+        </div>
       </div>
       <div id="pct-ai-status" class="pct-ai-status-bar">Assistente pronto.</div>
       <button id="pct-ai-resize-handle" class="pct-ai-resize-handle" type="button" title="Ridimensiona la finestra di Lex" aria-label="Ridimensiona la finestra di Lex">

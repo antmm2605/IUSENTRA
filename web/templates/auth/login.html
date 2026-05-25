@@ -10,17 +10,51 @@
   <link href="{{ url_for('static', filename='css/auth.css') }}" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="auth-page">
 
-<div class="login-card card">
-  <div class="login-header">
-    <div class="logo-wrap">
-      <img src="{{ url_for('static', filename='img/logo-iusentra.png') }}" alt="IUSENTRA" class="brand-logo">
+<main class="auth-shell" aria-label="Accesso IUSENTRA">
+  <section class="auth-intro">
+    <div class="auth-eyebrow">
+      <i class="bi bi-shield-lock"></i>
+      Area riservata studio
     </div>
-    <h1>Accesso sicuro a IUSENTRA</h1>
-    <p>La piattaforma unica per lo studio legale</p>
-  </div>
-  <div class="card-body p-4">
+    <h2>Rientra nel lavoro dello studio.</h2>
+    <p>
+      Fascicoli, scadenze, comunicazioni e documenti restano in un ambiente
+      ordinato, protetto e separato per ogni studio.
+    </p>
+    <div class="auth-trust-list" aria-label="Garanzie di accesso">
+      <div>
+        <i class="bi bi-person-check"></i>
+        <span>Accesso personale</span>
+      </div>
+      <div>
+        <i class="bi bi-building-lock"></i>
+        <span>Dati separati per studio</span>
+      </div>
+      <div>
+        <i class="bi bi-journal-check"></i>
+        <span>Attività registrate</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="login-card card" aria-labelledby="login-title">
+    <div class="login-header">
+      <div class="logo-wrap" aria-label="IUSENTRA - Lo studio legale, in un unico sistema">
+        <img src="{{ url_for('static', filename='img/iusentra-login-mark.svg') }}"
+             alt=""
+             aria-hidden="true"
+             class="brand-logo">
+        <div class="brand-lockup">
+          <span class="brand-name">IUSENTRA</span>
+          <span class="brand-tagline">Lo studio legale, in un unico sistema</span>
+        </div>
+      </div>
+      <h1 id="login-title">Accesso sicuro</h1>
+      <p>Accedi per continuare il lavoro dello studio</p>
+    </div>
+    <div class="card-body p-4">
     {% if request.args.get('timeout') %}
     <div class="alert alert-warning d-flex align-items-center gap-2 py-2">
       <i class="bi bi-clock-history"></i>
@@ -51,12 +85,13 @@
       </div>
       {% endif %}
       <div class="mb-3">
-        <label class="form-label fw-semibold">Username</label>
+        <label class="form-label fw-semibold">Nome utente</label>
         <div class="input-group">
           <span class="input-group-text"><i class="bi bi-person"></i></span>
           <input type="text" name="username" class="form-control" required
                  autofocus autocomplete="username"
-                 placeholder="nome.utente">
+                 placeholder="nome.utente"
+                 value="{{ request.form.get('username', '') }}">
         </div>
       </div>
       <div class="mb-4">
@@ -66,7 +101,8 @@
           <input type="password" name="password" id="pwd" class="form-control" required
                  autocomplete="current-password" placeholder="••••••••">
           <button class="btn btn-outline-secondary" type="button"
-                  onclick="togglePwd()" title="Mostra/nascondi">
+                  onclick="togglePwd()" title="Mostra o nascondi password"
+                  aria-label="Mostra o nascondi password">
             <i class="bi bi-eye" id="eye-icon"></i>
           </button>
         </div>
@@ -76,12 +112,20 @@
       </button>
     </form>
 
+    {% if request.args.get('next') %}
+    <div class="auth-return-note">
+      <i class="bi bi-arrow-return-right"></i>
+      Dopo l'accesso torni automaticamente alla pagina richiesta.
+    </div>
+    {% endif %}
+
     <div class="mt-3 text-center text-muted small">
       <i class="bi bi-shield-lock me-1"></i>
       Accesso riservato al personale autorizzato
     </div>
-  </div>
-</div>
+    </div>
+  </section>
+</main>
 
 <script>
 function togglePwd() {
@@ -96,4 +140,3 @@ function togglePwd() {
 </script>
 </body>
 </html>
-

@@ -969,7 +969,7 @@ function PecAutomaticNotice({
   const count = Math.max(Number(summary.warnings || 0), warnings.length)
   if (!count || !first) return null
   return (
-    <section className="iu-mail-auto-notice" aria-label="Avviso automatico PEC">
+    <section className="iu-mail-auto-notice" aria-label="Avviso automatico PEC" data-iusentra-sequence-slot="main-content">
       <AlertTriangle size={17} />
       <div>
         <strong>Avviso automatico PEC</strong>
@@ -983,7 +983,7 @@ function PecAutomaticNotice({
 function MailboxStats({ data, mode }: { data: EmailPecPageData; mode: MailboxMode }) {
   if (mode === 'ordinaria') {
     return (
-      <section className="iu-mail-stats" aria-label={mailboxCopy.ordinaria.statsAria}>
+      <section className="iu-mail-stats" aria-label={mailboxCopy.ordinaria.statsAria} data-iusentra-sequence-slot="primary-actions">
         <StatCard icon={<Mail size={19} />} label="Totali" value={data.summary.total} note="email ordinarie archiviate" tone="primary" />
         <StatCard icon={<Inbox size={19} />} label="In arrivo" value={data.summary.inbox} note="ricevute via IMAP" tone="info" />
         <StatCard icon={<MailCheck size={19} />} label="Non lette" value={data.summary.unread} note="da lavorare" tone={data.summary.unread ? 'warning' : 'success'} />
@@ -994,7 +994,7 @@ function MailboxStats({ data, mode }: { data: EmailPecPageData; mode: MailboxMod
     )
   }
   return (
-    <section className="iu-mail-stats" aria-label={mailboxCopy.pec.statsAria}>
+    <section className="iu-mail-stats" aria-label={mailboxCopy.pec.statsAria} data-iusentra-sequence-slot="primary-actions">
       <StatCard icon={<Mail size={19} />} label="Totali" value={data.summary.total} note="messaggi archiviati" tone="primary" />
       <StatCard icon={<Inbox size={19} />} label="In arrivo" value={data.summary.inbox} note="ricevute in casella" tone="info" />
       <StatCard icon={<MailCheck size={19} />} label="Non lette" value={data.summary.unread} note="da lavorare" tone={data.summary.unread ? 'warning' : 'success'} />
@@ -1178,8 +1178,8 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
   const sortOptions = (copy.includeTelematic ? Object.keys(sortLabels) : ['recenti', 'mittente', 'oggetto']) as SortKey[]
 
   return (
-    <main className="iu-content iu-email-page">
-      <section className="iu-mail-hero">
+    <main className="iu-content iu-email-page iusentra-route-sequence">
+      <section className="iu-mail-hero" data-iusentra-sequence-slot="page-header">
         <div>
           <span className="iu-mail-eyebrow">{copy.includeTelematic ? <ShieldCheck size={16} /> : <Mail size={16} />} {copy.eyebrow}</span>
           <h1>{copy.heroTitle}</h1>
@@ -1190,13 +1190,20 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
           <Button href={data.actions.settings}><Settings2 size={15} /> Impostazioni</Button>
           {data.actions.autoEsiti ? <button type="button" onClick={runAutoEsiti}><Sparkles size={15} /> Auto-esiti</button> : null}
           <button type="button" onClick={runSync}><RefreshCw size={15} /> Aggiorna</button>
-          <Button variant="primary" href={data.actions.compose}><Send size={16} /> {copy.composeLabel}</Button>
+          <Button
+            variant="primary"
+            href={data.actions.compose}
+            disabled={!data.actions.compose}
+            title={data.actions.compose ? copy.composeLabel : 'Configura la casella per comporre nuovi messaggi'}
+          >
+            <Send size={16} /> {copy.composeLabel}
+          </Button>
         </div>
       </section>
 
       <MailboxStats data={data} mode={mode} />
 
-      <section className="iu-mail-toolbar" aria-label={copy.filtersAria}>
+      <section className="iu-mail-toolbar" aria-label={copy.filtersAria} data-iusentra-sequence-slot="filters">
         <FolderTabs data={data} folder={folder} onChange={changeFolder} ariaLabel={copy.folderAria} />
         <label className="iu-mail-search"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') load() }} placeholder="Cerca mittente, destinatario, oggetto, riferimento..." /></label>
         <button className="iu-mail-filter-btn" type="button" onClick={() => setAdvancedOpen((value) => !value)} aria-expanded={advancedOpen}><SlidersHorizontal size={16} /> Filtri</button>
@@ -1204,7 +1211,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
       </section>
 
       {advancedOpen ? (
-        <section className="iu-mail-advanced" aria-label={`Filtri avanzati ${copy.title}`}>
+        <section className="iu-mail-advanced" aria-label={`Filtri avanzati ${copy.title}`} data-iusentra-sequence-slot="context-filters">
           <label><span>Stato lettura</span><select value={status} onChange={(event) => setStatus(event.target.value as EmailStatus)}>{data.facets.statuses.map((facet) => <option value={facet.value} key={facet.value}>{facet.label} ({facet.count})</option>)}</select></label>
           {copy.includeTelematic ? <label><span>Esito PCT</span><select value={pctStatus} onChange={(event) => setPctStatus(event.target.value)}>{data.facets.pctStatuses.map((facet) => <option value={facet.value} key={facet.value || 'all'}>{facet.label} ({facet.count})</option>)}</select></label> : null}
           <label><span>Ordinamento</span><select value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>{sortOptions.map((item) => <option value={item} key={item}>{sortLabels[item]}</option>)}</select></label>
@@ -1214,7 +1221,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
         </section>
       ) : null}
 
-      <section className="iu-mail-status-line">
+      <section className="iu-mail-status-line" data-iusentra-sequence-slot="main-content">
         <span className={loading ? '' : 'is-ok'}>{loading ? copy.syncingLabel : copy.updatedLabel}</span>
         <small><Clock3 size={14} /> Le azioni sono tracciate e separate tra PEC ed email ordinaria.</small>
         {selectedVisibleCount ? <small>{selectedVisibleCount} messaggi selezionati nella vista corrente.</small> : null}
@@ -1223,7 +1230,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
 
       {copy.includeTelematic ? <PecAutomaticNotice rows={visible} summary={data.summary} onSelect={selectMessage} /> : null}
 
-      <section className="iu-mail-layout">
+      <section className="iu-mail-layout" data-iusentra-sequence-slot="main-content">
         <div className="iu-mail-list-card">
           <header>
             <div><strong>{visible.length} messaggi</strong><span>{folderLabel(folder)} · {sourceLabel(data.source, copy.sourceFallback)}</span></div>
@@ -1274,7 +1281,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
           : <OrdinaryInspector data={data} rows={visible} />}
       </section>
 
-      <section className="iu-mail-lower-grid">
+      <section className="iu-mail-lower-grid" data-iusentra-sequence-slot="support-sidebar">
         <Panel title={mode === 'pec' ? 'Qualità PEC' : 'Qualità email'} subtitle={mode === 'pec' ? 'Controlli prima di deposito, cancelleria e fascicolo' : 'Controlli su casella ordinaria, allegati e risposte'} icon={<ShieldCheck size={17} />}>
           <div className="iu-mail-checklist">
             <span><CheckCircle2 size={16} /> In arrivo, inviate e cestino restano visibili come cartelle distinte.</span>
@@ -1368,7 +1375,7 @@ export function EmailComposePage({ mode }: { mode: MailboxMode }) {
   }
 
   return (
-    <main className="iu-content iu-mail-compose-page">
+    <main className="iu-content iu-mail-compose-page iusentra-route-sequence">
       <section className="iu-mail-compose-hero">
         <div>
           <span className="iu-mail-eyebrow">{isOrdinary ? <Mail size={16} /> : <ShieldCheck size={16} />} {copy.eyebrow}</span>

@@ -198,7 +198,7 @@
 .iu-li-acquisition__source-grid {
   display: grid;
   gap: var(--iu-od-space-2);
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
   max-height: 21rem;
   overflow: auto;
   padding-right: var(--iu-od-space-1);
@@ -212,9 +212,13 @@
   cursor: pointer;
   display: grid;
   gap: var(--iu-od-space-2);
+  height: auto;
+  min-height: 8.75rem;
   min-width: 0;
+  overflow: visible;
   padding: var(--iu-od-space-3);
   text-align: left;
+  white-space: normal;
 }
 
 .iu-li-acquisition__source:hover,
@@ -304,9 +308,13 @@
   cursor: pointer;
   display: grid;
   gap: var(--iu-od-space-2);
+  height: auto;
+  min-height: 5.5rem;
   min-width: 0;
+  overflow: visible;
   padding: var(--iu-od-space-2) var(--iu-od-space-3);
   text-align: left;
+  white-space: normal;
 }
 
 .iu-li-source-preview__item:hover,
@@ -446,12 +454,16 @@
 .iu-li-results {
   display: grid;
   gap: var(--iu-od-space-3);
+  max-width: 100%;
+  min-width: 0;
 }
 
 .iu-li-results-list {
   display: grid;
   gap: var(--iu-od-source-gap);
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 100%;
+  min-width: 0;
 }
 
 .iu-li-record {
@@ -789,6 +801,8 @@
 .iu-li-registry {
   display: grid;
   gap: var(--iu-od-space-3);
+  max-width: 100%;
+  min-width: 0;
   padding: var(--iu-od-space-4);
 }
 
@@ -914,6 +928,10 @@
   }
 
   .iu-li-results-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .iu-li-registry-filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

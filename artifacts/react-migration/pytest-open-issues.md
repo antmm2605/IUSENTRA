@@ -1,6 +1,20 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornamento corrente: 2026-05-24, Sito Studio modifica articolo React full 2.248.37.
+Aggiornamento corrente: 2026-05-25, evoluzione grafica professionale e Lex 2.248.40.
+
+## Note evoluzione grafica professionale e Lex 2.248.40 - 2026-05-25
+
+Nessuna issue funzionale aperta prevista dalla patch. L'audit completo `2.248.39-modern-full-scroll-final-5` ha verificato 168 combinazioni desktop/tablet/mobile con scroll fino al fondo, preset, sequenza, bottoni, procedure secondarie, overflow, console e testi tecnici vietati. Il primo rilancio Lex ha individuato su mobile `/notifiche-legali` una textarea sotto soglia touch; la dimensione minima del compositore mobile è stata corretta e il gate `2.248.39-modern-lex-final-6` è verde 9/9.
+
+Restano obbligatori solo i passaggi di chiusura della sessione: cleanup runtime/asset temporanei, commit, push branch gemelli, required checks GitHub sullo SHA corrente e deploy Hetzner no-backup con `/api/pronto`.
+
+Aggiornamento precedente: 2026-05-25, Design system unico governato 2.248.39.
+
+## Note Design system unico governato 2.248.39 - 2026-05-25
+
+Aggiornamento verifica: `/email/`, `/email-ordinaria/` e `/notifiche-legali` sono verdi con preset attivo; gli asset statici React/PWA sono esclusi dal rate limit per evitare 429 su JS/CSS durante navigazioni ravvicinate.
+
+Nessuna issue funzionale aperta prevista dalla patch. Il nuovo gate `check-design-system-governance.mjs` blocca CSS locali non governati, inline style non autorizzati, accenti laterali spessi, testi gradiente e blur decorativi. `backdrop-filter` resta consentito solo nei punti sticky o nel builder già dichiarati nella policy.
 
 ## Note Sito Studio modifica articolo React full 2.248.37 - 2026-05-24
 

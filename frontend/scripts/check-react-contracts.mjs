@@ -704,6 +704,8 @@ assertContains(iusentraPreset, 'data-iusentra-runtime-preset', 'preset globale e
 assertContains(mainEntrypoint, "import './index.css'\nimport './styles/iusentra-design-system.css'", 'entrypoint React importa il CSS del preset globale dopo gli stili locali')
 assertContains(visualLoadAudit, 'sequenza_header_non_primo', 'visual audit blocca pagine con contenuto sopra al titolo')
 assertContains(visualLoadAudit, 'builder_preset_attivo', 'visual audit verifica che il builder resti fuori dal preset')
+assertContains(visualLoadAudit, 'dettaglio_fascicolo_preset_attivo', 'visual audit verifica che i dettagli fascicolo restino fuori dal preset')
+assertContains(visualLoadAudit, "['Dettaglio Fascicolo DC5BF1DB', '/fascicoli/DC5BF1DB']", 'visual audit include dettaglio fascicolo personalizzato')
 assertContains(visualLoadAudit, 'support_rail_card_troppo_stretta', 'visual audit blocca rail spezzati in micro-card')
 assertContains(visualLoadAudit, 'agenda_settimana_incompleta', 'visual audit blocca Agenda settimana desktop incompleta')
 assertContains(visualLoadAudit, 'agenda_supporto_non_verticale', 'visual audit blocca supporto Agenda in colonne strette')
@@ -724,7 +726,8 @@ assertContains(iusentraDesignSystemCss, 'margin-top: auto', 'CSS preset ancora l
 assertContains(iusentraDesignSystemCss, '.iusentra-preset-active .iu-panel', 'CSS preset normalizza pannelli globali')
 
 assertContains(app, '/global-search', 'nav ricerca studio')
-assertContains(app, 'const isPresetExcludedPage = isSitoStudioBuilderPage || isEmailPage || isEmailOrdinariaPage', 'preset globale esclude builder e caselle email')
+assertContains(app, "const isFascicoloDetailViewPage = /^\\/fascicoli\\/(?!nuovo$|archivio$|importa$)[^/]+$/.test(routeKey)", 'preset globale esclude tutte le visualizzazioni dettaglio fascicolo con pattern stretto')
+assertContains(app, 'const isPresetExcludedPage = isSitoStudioBuilderPage || isFascicoloDetailViewPage', 'preset globale esclude solo builder e dettagli fascicolo')
 assertContains(app, "isPresetExcludedPage?'excluded':'active'", 'shell React usa esclusione preset centralizzata')
 assertContains(app, 'IusentraRoutePresetFrame routeKey={routeKey} enabled={!isPresetExcludedPage}', 'App avvolge le rotte React nel frame preset quando consentito')
 assertContains(app, 'iusentra-preset-active', 'shell React applica preset globale')

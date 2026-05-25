@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "policy": "IUSENTRA design system unico: il preset globale e i CSS esistenti sono governati da allowlist. Nuovi CSS locali, nuovi inline style o accenti grafici fuori preset devono essere approvati qui con motivazione.",
+  "approvedPresetExceptions": [
+    {
+      "route": "/sito-studio/builder",
+      "reason": "Editor visuale sito studio personalizzato."
+    }
+  ],
+  "approvedPresetPatternExceptions": [
+    {
+      "routePattern": "/fascicoli/<id>",
+      "appSnippet": "const isFascicoloDetailViewPage = /^\\/fascicoli\\/(?!nuovo$|archivio$|importa$)[^/]+$/.test(routeKey)",
+      "reason": "Tutte le visualizzazioni dettaglio fascicolo devono mantenere la superficie personalizzata richiesta dall'utente; lista, nuovo e archivio restano nel preset operativo."
+    }
+  ],
+  "approvedCssFiles": [
+    "frontend/src/components/AdminDatabasePage.css",
+    "frontend/src/components/AgendaImportPage.css",
+    "frontend/src/components/AmministrazionePage.css",
+    "frontend/src/components/AnagraficaClientiPage.css",
+    "frontend/src/components/AuditPage.css",
+    "frontend/src/components/BackupPage.css",
+    "frontend/src/components/CartellaClientePage.css",
+    "frontend/src/components/CartelleCondivisePage.css",
+    "frontend/src/components/CodiceOggettoPstSearch.css",
+    "frontend/src/components/CompensiForensiPage.css",
+    "frontend/src/components/DocumentEditorPage.css",
+    "frontend/src/components/DocumentiAIPage.css",
+    "frontend/src/components/EmailPecPage.css",
+    "frontend/src/components/FascicoliPage.css",
+    "frontend/src/components/FatturazionePage.css",
+    "frontend/src/components/GiurisprudenzaPage.css",
+    "frontend/src/components/GuidaPraticaSidebar.css",
+    "frontend/src/components/IncassiPagamentiPage.css",
+    "frontend/src/components/LegalIntelligencePage.css",
+    "frontend/src/components/MessaggiPage.css",
+    "frontend/src/components/NotificheLegaliPage.css",
+    "frontend/src/components/NuovaScadenzaPage.css",
+    "frontend/src/components/NuovoAppuntamentoPage.css",
+    "frontend/src/components/NuovoClientePage.css",
+    "frontend/src/components/PreventiviPage.css",
+    "frontend/src/components/PreventivoWizardPage.css",
+    "frontend/src/components/PrivacyRegistroPage.css",
+    "frontend/src/components/ProfiliPage.css",
+    "frontend/src/components/ProfiloPage.css",
+    "frontend/src/components/RedazioneAttiPage.css",
+    "frontend/src/components/ScadenziarioPage.css",
+    "frontend/src/components/SitoStudioBuilderPage.css",
+    "frontend/src/components/SitoStudioBuilderPage.panels.css",
+    "frontend/src/components/SitoStudioPage.css",
+    "frontend/src/components/SitoStudioRedazioneAiPage.css",
+    "frontend/src/components/SoggettiPage.css",
+    "frontend/src/components/StatistichePage.css",
+    "frontend/src/components/StudioModulePage.css",
+    "frontend/src/components/StudioPage.css",
+    "frontend/src/components/SyncedTopScrollbar.css",
+    "frontend/src/components/TariffarioPage.css",
+    "frontend/src/components/TelematicoPage.css",
+    "frontend/src/components/TelematicoSurfacePage.css",
+    "frontend/src/components/TemplateAttiPage.css",
+    "frontend/src/components/TimesheetPage.css",
+    "frontend/src/components/UtentiPage.css",
+    "frontend/src/components/WizardProPage.css",
+    "frontend/src/components/layout/TopBar.css",
+    "frontend/src/features/impostazioni/ImpostazioniPage.css",
+    "frontend/src/features/impostazioni/components/BackupSettingsPanel.css",
+    "frontend/src/features/impostazioni/components/CalendarSettingsPanel.css",
+    "frontend/src/features/impostazioni/components/NotificationsSettingsPanel.css",
+    "frontend/src/features/impostazioni/components/PaymentsSettingsPanel.css",
+    "frontend/src/index.css",
+    "frontend/src/shell/shell.css",
+    "frontend/src/styles/iusentra-design-system.css",
+    "frontend/src/theme/impeccable-open-design.css",
+    "frontend/src/theme/layout.css",
+    "frontend/src/theme/legal-ui.css",
+    "frontend/src/theme/tokens.css",
+    "frontend/src/ui/ui.css"
+  ],
+  "allowedInlineStyles": [
+    {
+      "file": "frontend/src/App.tsx",
+      "snippets": [
+        "conic-gradient(var(--iu-blue-600)",
+        "style={{background:chart}}",
+        "style={{background:toneColor[d.tone]}}"
+      ],
+      "reason": "Grafici operativi calcolati da dati reali nella panoramica."
+    },
+    {
+      "file": "frontend/src/components/AgendaPage.tsx",
+      "snippets": [
+        "top: `${eventTopPercent(event)}%`",
+        "gridTemplateColumns: view === 'month'"
+      ],
+      "reason": "Agenda: posizionamento calendario e colonne giorno dipendono dai dati."
+    },
+    {
+      "file": "frontend/src/components/StatistichePage.tsx",
+      "snippets": [
+        "style={{ width: `${width}%` }}"
+      ],
+      "reason": "Barre percentuali calcolate da metriche reali."
+    },
+    {
+      "file": "frontend/src/components/WizardProPage.tsx",
+      "snippets": [
+        "style={{ width: `${Math.min(Math.max(item.progress, 0), 100)}%` }}"
+      ],
+      "reason": "Progressione wizard calcolata dallo stato del percorso."
+    },
+    {
+      "file": "frontend/src/components/SyncedTopScrollbar.tsx",
+      "snippets": [
+        "style={{ width: `${scrollWidth}px` }}"
+      ],
+      "reason": "Scrollbar superiore sincronizzata con larghezza reale del contenuto."
+    },
+    {
+      "file": "frontend/src/components/SitoStudioBuilderPage.tsx",
+      "snippets": [
+        "'--site-primary': primary",
+        "'--builder-panel-width': `${panelWidth}px`"
+      ],
+      "reason": "Builder sito studio: anteprima e pannelli devono seguire scelte live dell'utente."
+    }
+  ],
+  "allowedBackdropFilters": [
+    {
+      "file": "frontend/src/index.css",
+      "count": 4,
+      "reason": "Topbar, barra mobile e pannello Lex flottante già governati dal preset globale."
+    },
+    {
+      "file": "frontend/src/components/DocumentEditorPage.css",
+      "count": 1,
+      "reason": "Toolbar documento sticky sopra la superficie di redazione."
+    },
+    {
+      "file": "frontend/src/components/FascicoliPage.css",
+      "count": 1,
+      "reason": "Navigazione interna Fascicoli sticky e compatta."
+    },
+    {
+      "file": "frontend/src/components/MessaggiPage.css",
+      "count": 2,
+      "reason": "Filtri e barra invio messaggi sticky governati."
+    },
+    {
+      "file": "frontend/src/components/NuovoAppuntamentoPage.css",
+      "count": 1,
+      "reason": "Barra azioni form appuntamento sticky."
+    },
+    {
+      "file": "frontend/src/components/NuovaScadenzaPage.css",
+      "count": 1,
+      "reason": "Barra azioni form scadenza sticky."
+    },
+    {
+      "file": "frontend/src/components/NuovoClientePage.css",
+      "count": 1,
+      "reason": "Tab di anagrafica cliente sticky."
+    },
+    {
+      "file": "frontend/src/components/layout/TopBar.css",
+      "count": 1,
+      "reason": "Topbar responsive già condivisa."
+    },
+    {
+      "file": "frontend/src/components/SitoStudioBuilderPage.css",
+      "count": 2,
+      "reason": "Builder sito studio escluso dal preset pagina e governato come superficie creativa."
+    }
+  ],
+  "forbiddenCssPatterns": [
+    {
+      "id": "accento-laterale-spesso",
+      "regex": "border-(left|right)\\s*:\\s*([2-9]|[1-9][0-9])px\\b",
+      "reason": "Le card operative non devono usare accenti laterali pagina-specifici; usare bordo/superficie del preset."
+    },
+    {
+      "id": "testo-gradiente",
+      "regex": "background-clip\\s*:\\s*text|-webkit-text-fill-color",
+      "reason": "Il gestionale usa gerarchie tipografiche istituzionali, non titoli decorativi."
+    },
+    {
+      "id": "blur-decorativo",
+      "regex": "(^|[^A-Za-z0-9_-])filter\\s*:\\s*blur\\(",
+      "reason": "Orbi, bokeh e blur decorativi sono vietati nelle superfici operative."
+    },
+    {
+      "id": "termini-decorativi",
+      "regex": "\\b(orb|bokeh|glassmorphism)\\b",
+      "reason": "La UI IUSENTRA deve restare operativa, non decorativa."
+    }
+  ]
+}

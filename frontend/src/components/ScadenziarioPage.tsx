@@ -713,7 +713,7 @@ export function ScadenziarioPage() {
   const focusedRow = focusedId ? data.items.find((item) => item.id === focusedId) : undefined
 
   return (
-    <main className="iu-content iu-scad-page">
+    <main className="iu-content iu-scad-page iusentra-route-sequence">
       <section className="iu-scad-hero">
         <div>
           <span className="iu-scad-eyebrow"><CalendarCheck size={16}/> Scadenziario Legale</span>

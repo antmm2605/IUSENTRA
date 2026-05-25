@@ -295,7 +295,7 @@ function TechnicalRollback({ href }: { href: string }) {
       </div>
       <ButtonLink href={href} tone="warning">
         <ExternalLink size={15} />
-        Apri template storico
+        Percorso di recupero
       </ButtonLink>
     </section>
   )

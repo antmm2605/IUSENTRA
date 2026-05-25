@@ -1027,7 +1027,11 @@
 .iu-tel-office-list span{color:var(--iu-slate-600);font-size:12px;font-weight:750}
 .iu-tel-office-list button{
   justify-self:end;
-  max-width:300px;
+  height:auto;
+  max-width:380px;
+  min-height:40px;
+  overflow-wrap:anywhere;
+  white-space:normal;
 }
 .iu-tel-office-list button:disabled{
   opacity:.65;

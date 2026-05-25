@@ -2,6 +2,36 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-25T12:30:00+02:00: evoluzione grafica professionale e
+Lex 2.248.40.
+Audit visuale finale `2.248.39-modern-full-scroll-final-5`: 168/168 controlli
+verdi su desktop, tablet e mobile. Il controllo include caricamento shell React,
+preset globale, sequenza pagina, scroll fino al fondo, overflow orizzontale,
+console, parole tecniche vietate, bottoni con testo e icone contenuti nel
+componente, procedure secondarie e conferma delle eccezioni `/sito-studio/builder`
+e dettaglio fascicolo personalizzato.
+
+Audit Lex `2.248.39-modern-lex-final-6`: 9/9 controlli verdi su `/email`,
+`/notifiche-legali` e `/fascicoli`. Il pannello usa layout laterale quando c'è
+spazio e layout verticale compatto su mobile; microfono, caricamento documenti
+e web libero restano raggiungibili senza occupare spazio eccessivo.
+
+Aggiornamento 2026-05-25T12:00:00+02:00: Design system unico governato
+2.248.39.
+Audit anti-deriva grafica rafforzato: `check-design-system-governance.mjs` confronta i
+CSS reali di `frontend/src` con `design-system-governance.json`, blocca inline style
+non autorizzati e vieta accenti laterali spessi, testi gradiente e blur decorativi.
+Il report generato automaticamente certifica 61 CSS governati e 10 inline style
+motivati.
+Per disposizione utente le sole esclusioni dal preset restano `/sito-studio/builder`
+e le visualizzazioni dettaglio fascicolo `/fascicoli/<id>`; email, PEC, lista
+fascicoli, nuovo fascicolo, archivio e tutte le altre superfici operative sono
+governate dal frame.
+
+Verifica aggiunta: `/email/`, `/email-ordinaria/` e `/notifiche-legali` sono state
+controllate con browser reale e rimangono preset attivo; gli asset statici React/PWA
+sono esclusi dal rate limit per evitare 429 su JS/CSS durante navigazioni ravvicinate.
+
 Aggiornamento 2026-05-24T23:55:00+02:00: Sito Studio modifica articolo
 2.248.37.
 Audit anti-mascheramento esteso a `/sito-studio/articoli/:id/modifica`: la

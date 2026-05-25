@@ -1163,7 +1163,8 @@ export default function App() {
   const isProfiloPage = routeKey === '/profilo'
   const isBackupPage = routeKey === '/backup'
   const isSitoStudioBuilderPage = routeKey === '/sito-studio/builder'
-  const isPresetExcludedPage = isSitoStudioBuilderPage || isEmailPage || isEmailOrdinariaPage
+  const isFascicoloDetailViewPage = /^\/fascicoli\/(?!nuovo$|archivio$|importa$)[^/]+$/.test(routeKey)
+  const isPresetExcludedPage = isSitoStudioBuilderPage || isFascicoloDetailViewPage
   const isSitoStudioRedazioneAiPage = routeKey === '/sito-studio/redazione-ai'
   const isSitoStudioArticleEditPage = /^\/sito-studio\/articoli\/\d+\/modifica$/.test(routeKey)
   const isSitoStudioPage = routeKey === '/sito-studio' || routeKey === '/sito-studio/contatti' || isSitoStudioArticleEditPage

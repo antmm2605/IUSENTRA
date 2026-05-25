@@ -4,6 +4,8 @@ Generato: 2026-05-08T09:10:14.073Z
 
 ## Interventi e stato
 
+- 2026-05-25: evoluzione grafica professionale e Lex 2.248.40. Build Vite finale completata in 8.66s: main `index-BJqol7t9.js` 484.27 kB (141.52 kB gzip), CSS principale `index-L10LjiJb.css` 154.88 kB (26.98 kB gzip), chunk `FascicoliPage-CkgV5j-c.js` 180.83 kB (47.62 kB gzip), `NotificheLegaliPage-B3AIUXLj.js` 85.98 kB (19.85 kB gzip) e `EmailPecPage-1S6P5ANM.js` 59.57 kB (16.43 kB gzip). Nessuna nuova dipendenza frontend. Audit visuale caldo: 168/168 route/viewport verdi, con tempi tipici sotto 1.2s e picchi attesi sulle ricerche legali con query già documentate.
+
 - 2026-05-23: revisione `/notifiche-legali` 2.248.21. La modifica resta nel chunk lazy della pagina notifiche e non introduce nuove dipendenze frontend. Typecheck React verde; build e verifica browser finali vengono registrate nello stesso ciclo di rilascio prima del deploy.
 
 - 2026-05-23: hotfix fascicolo anagrafiche in nuova finestra 2.248.20. Build Vite completata in circa 43s nell'ambiente Windows locale con asset React rigenerati; la modifica resta nei chunk `FascicoliPage` e `SoggettiPage`, senza nuove dipendenze frontend. Browser reale autenticato su server locale temporaneo: dettaglio fascicolo a contenuto visibile 3551/3548/3436 ms, modifica cliente 1416/1450/1476 ms, soggetti filtrati 1342/1300/1306 ms. Desktop 1440, tablet 1024 e mobile 390 senza overflow orizzontale, senza sovrapposizioni tra azioni, senza console error e senza testi tecnici vietati.

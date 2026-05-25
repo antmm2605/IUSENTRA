@@ -30,6 +30,7 @@ import json
 import logging
 import sqlite3
 import threading
+import time
 from pathlib import Path
 from typing import Any, Dict
 
@@ -47,6 +48,11 @@ def _schema_sql() -> str:
 _instances: Dict[str, "StudioDB"] = {}
 _instances_lock = threading.Lock()
 logger = logging.getLogger(__name__)
+
+
+def _is_locked_error(exc: BaseException) -> bool:
+    message = str(exc).lower()
+    return "database is locked" in message or "database table is locked" in message
 
 
 # ------------------------------------------------------------------ helpers I/O
@@ -122,6 +128,7 @@ class StudioDB:
     def _connect(self) -> sqlite3.Connection:
         c = sqlite3.connect(
             str(self.db_path),
+            timeout=30,
             check_same_thread=False,
         )
         c.row_factory = sqlite3.Row
@@ -136,6 +143,7 @@ class StudioDB:
             c.execute("PRAGMA journal_mode=DELETE")
         c.execute("PRAGMA foreign_keys=ON")
         c.execute("PRAGMA synchronous=NORMAL")
+        c.execute("PRAGMA busy_timeout=15000")
         c.execute("PRAGMA cache_size=-16000")   # 16 MB page cache
         c.execute("PRAGMA temp_store=MEMORY")
         return c
@@ -208,20 +216,44 @@ class StudioDB:
         delete_all:
             Se True (default) cancella tutto e reinserisce (full-replace).
         """
-        conn = self.conn
-        conn.execute("PRAGMA foreign_keys=OFF")
-        try:
-            conn.execute("BEGIN")
-            if delete_all:
-                conn.execute(f"DELETE FROM {table}")
-            for row in rows:
-                inserter(conn, row)
-            conn.execute("COMMIT")
-        except Exception:
-            conn.execute("ROLLBACK")
-            raise
-        finally:
-            conn.execute("PRAGMA foreign_keys=ON")
+        last_error: sqlite3.OperationalError | None = None
+        for attempt in range(5):
+            conn = self.conn
+            began = False
+            try:
+                conn.execute("PRAGMA foreign_keys=OFF")
+                conn.execute("BEGIN IMMEDIATE")
+                began = True
+                if delete_all:
+                    conn.execute(f"DELETE FROM {table}")
+                for row in rows:
+                    inserter(conn, row)
+                conn.execute("COMMIT")
+                return
+            except sqlite3.OperationalError as exc:
+                last_error = exc
+                if began:
+                    try:
+                        conn.execute("ROLLBACK")
+                    except sqlite3.Error:
+                        pass
+                if not _is_locked_error(exc) or attempt == 4:
+                    raise
+                time.sleep(0.2 * (attempt + 1))
+            except Exception:
+                if began:
+                    try:
+                        conn.execute("ROLLBACK")
+                    except sqlite3.Error:
+                        pass
+                raise
+            finally:
+                try:
+                    conn.execute("PRAGMA foreign_keys=ON")
+                except sqlite3.Error:
+                    pass
+        if last_error is not None:
+            raise last_error
 
     def carica_tabella(self, table: str) -> list:
         """

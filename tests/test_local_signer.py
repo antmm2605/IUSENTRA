@@ -2656,7 +2656,7 @@ def test_download_requirements_local_signer_e_pubblico(tmp_path):
     assert "cryptography" in r.data.decode("utf-8")
 
 
-def test_installer_local_signer_windows_ps1_bootstrap_e_pubblico(tmp_path):
+def test_installer_local_signer_windows_ps1_legacy_restituisce_exe(tmp_path):
     from web.app import create_app
 
     version = _local_signer_version()
@@ -2666,10 +2666,9 @@ def test_installer_local_signer_windows_ps1_bootstrap_e_pubblico(tmp_path):
 
     assert r.status_code == 200
     assert "attachment" in r.headers.get("Content-Disposition", "")
-    assert f"InstallaLocalSigner-{version}.ps1" in r.headers.get("Content-Disposition", "")
-    body = r.data.decode("utf-8")
-    assert "Uninstall-ExistingLocalSigner" in body
-    assert "Disinstallo la vecchia versione locale prima di installare quella nuova" in body
+    disposition = r.headers.get("Content-Disposition", "")
+    assert f"SetupLocalSigner-{version}.exe" in disposition
+    assert ".ps1" not in disposition
 
 
 def test_installer_local_signer_windows_setup_route_e_pubblica(tmp_path):

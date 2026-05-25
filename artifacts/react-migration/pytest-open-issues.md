@@ -1,6 +1,14 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornamento corrente: 2026-05-25, Componi PEC via Local Signer 2.248.51.
+Aggiornamento corrente: 2026-05-25, EML fascicolo, cancellazione documenti e Local Signer EXE 2.248.52.
+
+## Note EML fascicolo, cancellazione documenti e Local Signer EXE 2.248.52 - 2026-05-25
+
+Risolta la causa del 500 visto sul fascicolo dello studio `studio-legale-giuseppe-montagnese`: la cancellazione rimuoveva il file prima del salvataggio dei metadati e, se SQLite rispondeva `database is locked`, restava una riga documento che puntava a un file non più presente. Da `2.248.52` il salvataggio tenant-aware ritenta i lock brevi con `busy_timeout`, la cancellazione salva prima i metadati e rimuove il file solo dopo, mentre upload e cancellazione restituiscono errore operativo controllato invece di 500 se l'archivio è temporaneamente occupato.
+
+L'editor documento ora riconosce gli `.eml` e li mostra come email originale read-only, con intestazioni, corpo e allegati, senza trasformarli in un documento modificabile. Per i casi storici già sporchi, la lettura recupera anche una copia EML con suffisso nello stesso fascicolo quando i metadati puntano ancora al nome base mancante.
+
+Local Signer passa a `1.6.45`. Il download Windows pubblico resta EXE-only: anche la vecchia route `windows-ps1` serve l'eseguibile `SetupLocalSigner-1.6.45.exe`, così all'utente non viene più proposto lo script PowerShell come installazione principale. Nessuna issue locale aperta dopo i test mirati; restano le sole verifiche operative reali post-deploy: aprire il documento EML caricato sul fascicolo Montagnese, cancellarlo dalla UI e installare il nuovo `SetupLocalSigner-1.6.45.exe` dal link pubblico.
 
 ## Note Componi PEC via Local Signer 2.248.51 - 2026-05-25
 

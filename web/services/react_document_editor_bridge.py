@@ -128,7 +128,8 @@ def _document_payload(fascicolo_id: str, doc: Any) -> dict[str, Any]:
     suffix = Path(name).suffix.lower()
     signed = bool(getattr(doc, "firmato", False) or getattr(doc, "firmato_digitalmente", False) or name.lower().endswith(".p7m"))
     pdf_preview_native = suffix == ".pdf"
-    editable = bool(estensione_editabile(name) and not signed and not pdf_preview_native)
+    eml_preview = suffix == ".eml"
+    editable = bool(estensione_editabile(name) and not signed and not pdf_preview_native and not eml_preview)
     locked_reason = ""
     if signed:
         locked_reason = "Il documento risulta firmato digitalmente: aprilo in anteprima o usa la pagina firma per sostituirlo consapevolmente."
@@ -137,6 +138,11 @@ def _document_payload(fascicolo_id: str, doc: Any) -> dict[str, Any]:
             "Il PDF viene visualizzato con anteprima nativa per preservare impaginazione, "
             "stemmi, timbri, firme e testo verticale. Per modificare il contenuto importa "
             "una versione DOCX, HTML o testo verificata."
+        )
+    elif eml_preview:
+        locked_reason = (
+            "Il messaggio EML viene mostrato come email originale con intestazioni, corpo e allegati. "
+            "Per non alterare la prova PEC resta in sola consultazione."
         )
     elif not estensione_editabile(name):
         locked_reason = f"Formato {suffix.upper() or 'non riconosciuto'} non supportato dall'editor."
@@ -220,6 +226,10 @@ def build_react_document_editor_payload(
     if document["extension"] == "pdf":
         warnings.append(
             "Anteprima PDF nativa attiva: l'editor non ricostruisce il layout in HTML, cosi' il documento resta uguale all'originale."
+        )
+    if document["extension"] == "eml":
+        warnings.append(
+            "Formato EML rilevato: il messaggio viene visualizzato come email originale in sola consultazione."
         )
     if not document["editable"] and document["lockedReason"]:
         warnings.append(document["lockedReason"])

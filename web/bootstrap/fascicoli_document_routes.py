@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 from collections.abc import Callable
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 from flask import Flask, flash, g, jsonify, redirect, request, send_file, url_for
@@ -105,6 +106,12 @@ def register_fascicoli_document_routes(
             return raw.encode("utf-8")
         return b""
 
+    def _percorso_documento_lettura(gestore_fascicoli: Any, id_fasc: str, id_doc: str) -> Path:
+        resolver = getattr(gestore_fascicoli, "percorso_documento_lettura", None)
+        if callable(resolver):
+            return Path(resolver(id_fasc, id_doc))
+        return Path(gestore_fascicoli.percorso_documento(id_fasc, id_doc))
+
     @app.route("/fascicoli/<id_fasc>/documenti/carica", methods=["POST"])
     def carica_documento(id_fasc):
         gestore_fascicoli = get_fascicoli()
@@ -190,6 +197,12 @@ def register_fascicoli_document_routes(
             if wants_json_response():
                 return jsonify({"ok": False, "messaggio": str(exc)}), 400
             flash(str(exc), "danger")
+        except Exception as exc:
+            app.logger.exception("Errore carica_documento id_fasc=%s: %s", id_fasc, exc)
+            msg = "Archivio documenti momentaneamente occupato. Riprova tra pochi secondi."
+            if wants_json_response():
+                return jsonify({"ok": False, "messaggio": msg}), 503
+            flash(msg, "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/metadati", methods=["POST"])
@@ -390,7 +403,7 @@ def register_fascicoli_document_routes(
     def scarica_documento(id_fasc, id_doc):
         gestore_fascicoli = get_fascicoli()
         try:
-            percorso = gestore_fascicoli.percorso_documento(id_fasc, id_doc)
+            percorso = _percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
             fascicolo = gestore_fascicoli.get(id_fasc)
             documento = next(doc for doc in fascicolo.documenti if doc.id == id_doc)
             data = decrypt_doc(percorso.read_bytes())
@@ -405,13 +418,27 @@ def register_fascicoli_document_routes(
     def visualizza_documento(id_fasc, id_doc):
         gestore_fascicoli = get_fascicoli()
         try:
-            percorso = gestore_fascicoli.percorso_documento(id_fasc, id_doc)
+            percorso = _percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
             fascicolo = gestore_fascicoli.get(id_fasc)
             documento = next(doc for doc in fascicolo.documenti if doc.id == id_doc)
             data = decrypt_doc(percorso.read_bytes())
             firma_payload = firma_payload_corrente_o_sibling(percorso, documento.nome, data)
             preview_payload = data
             preview_name = documento.nome
+
+            if documento.nome.lower().endswith(".eml"):
+                from pct.editor import eml_to_html
+                from web.bootstrap.fascicoli_document_helpers import preview_eml_html
+
+                html, _avvisi, meta = eml_to_html(data)
+                scarica_url = url_for("scarica_documento", id_fasc=id_fasc, id_doc=id_doc)
+                audit("fascicoli.documento.visualizza", "fascicolo", id_fasc, dettagli=f"doc {id_doc} - {documento.nome}")
+                return preview_eml_html(
+                    nome_documento=documento.nome,
+                    html_body=html,
+                    meta=meta,
+                    scarica_url=scarica_url,
+                )
 
             if documento.nome.lower().endswith(".p7m"):
                 contenuto_estratto = estrai_contenuto_p7m_per_preview(firma_payload)
@@ -528,6 +555,12 @@ def register_fascicoli_document_routes(
             if wants_json_response():
                 return jsonify({"ok": False, "messaggio": str(exc)}), 404
             flash(str(exc), "danger")
+        except Exception as exc:
+            app.logger.exception("Errore elimina_documento id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, exc)
+            msg = "Archivio documenti momentaneamente occupato. Riprova tra pochi secondi."
+            if wants_json_response():
+                return jsonify({"ok": False, "messaggio": msg}), 503
+            flash(msg, "danger")
         return _redirect_to_documenti_section(id_fasc)
 
     @app.route("/fascicoli/<id_fasc>/documenti/elimina-multipla", methods=["POST"])
@@ -547,6 +580,9 @@ def register_fascicoli_document_routes(
                 rimossi += 1
             except KeyError as exc:
                 errori.append(str(exc))
+            except Exception as exc:
+                app.logger.exception("Errore elimina_documenti_multipli id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, exc)
+                errori.append("Archivio documenti momentaneamente occupato.")
 
         if rimossi:
             audit(

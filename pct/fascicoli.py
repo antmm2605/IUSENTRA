@@ -1079,9 +1079,21 @@ class GestioneFascicoli:
             id_repeatto_portale=str(id_repeatto_portale or "").strip(),
             msg_id_portale=str(msg_id_portale or "").strip(),
         )
+        original_docs = list(f.documenti)
+        original_modificato = f.modificato_il
         f.documenti.append(doc)
         f.modificato_il = datetime.now().isoformat()
-        self._salva()
+        try:
+            self._salva()
+        except Exception:
+            f.documenti = original_docs
+            f.modificato_il = original_modificato
+            try:
+                if dest.exists():
+                    dest.unlink()
+            except OSError:
+                pass
+            raise
         return doc
 
     def sostituisci_documento(
@@ -1446,11 +1458,21 @@ class GestioneFascicoli:
         if not doc:
             raise KeyError(f"Documento '{id_doc}' non trovato nel fascicolo.")
         percorso = self.documents_dir / doc.percorso
-        if percorso.exists():
-            percorso.unlink()
+        original_docs = list(f.documenti)
+        original_modificato = f.modificato_il
         f.documenti = [d for d in f.documenti if d.id != id_doc]
         f.modificato_il = datetime.now().isoformat()
-        self._salva()
+        try:
+            self._salva()
+        except Exception:
+            f.documenti = original_docs
+            f.modificato_il = original_modificato
+            raise
+        try:
+            if percorso.exists():
+                percorso.unlink()
+        except OSError:
+            pass
 
     def aggiorna_documento_metadati(
         self,
@@ -1904,6 +1926,40 @@ class GestioneFascicoli:
         if not doc:
             raise KeyError(f"Documento '{id_doc}' non trovato.")
         return self.documents_dir / doc.percorso
+
+    def percorso_documento_lettura(self, id_fasc: str, id_doc: str) -> Path:
+        """Restituisce il file del documento, con recupero best-effort per duplicati storici.
+
+        Alcune versioni cancellavano il file fisico prima di salvare la rimozione nel
+        repository. Se il salvataggio falliva per lock SQLite, nel fascicolo restava
+        una riga valida ma il file puntava al nome base ormai assente. In lettura
+        possiamo usare una copia duplicata con stesso nome base, estensione e dimensione;
+        la cancellazione continua invece a usare solo il percorso diretto.
+        """
+        f = self._get_o_errore(id_fasc)
+        doc = next((d for d in f.documenti if d.id == id_doc), None)
+        if not doc:
+            raise KeyError(f"Documento '{id_doc}' non trovato.")
+        direct = self.documents_dir / doc.percorso
+        if direct.exists():
+            return direct
+        rel = Path(doc.percorso)
+        if not rel.name:
+            return direct
+        fasc_dir = self.documents_dir / rel.parent
+        if not fasc_dir.exists():
+            return direct
+        suffix = rel.suffix
+        stem = rel.stem
+        candidates = [
+            path
+            for path in fasc_dir.glob(f"{stem}_*{suffix}")
+            if path.is_file() and (not doc.dimensione_bytes or path.stat().st_size == doc.dimensione_bytes)
+        ]
+        if not candidates:
+            return direct
+        candidates.sort(key=lambda path: path.stat().st_mtime)
+        return candidates[0]
 
     # ---------------------------------------------------------------- Attività
 

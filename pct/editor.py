@@ -23,6 +23,9 @@ from __future__ import annotations
 import base64
 import io
 import re
+from email import policy
+from email.message import EmailMessage, Message
+from email.parser import BytesParser
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Optional
@@ -475,6 +478,118 @@ def txt_to_html(data: bytes) -> tuple[str, list[str]]:
     return html, []
 
 
+def _email_part_bytes(part: Message | EmailMessage) -> bytes:
+    try:
+        payload = part.get_payload(decode=True)
+    except Exception:
+        payload = None
+    if isinstance(payload, bytes):
+        return payload
+    if isinstance(payload, str):
+        return payload.encode("utf-8", errors="replace")
+    return b""
+
+
+def _email_part_text(part: Message | EmailMessage, payload: bytes) -> str:
+    try:
+        value = part.get_content()
+        if isinstance(value, str):
+            return value
+    except Exception:
+        pass
+    charset = part.get_content_charset() or "utf-8"
+    try:
+        return payload.decode(charset, errors="replace")
+    except LookupError:
+        return payload.decode("utf-8", errors="replace")
+
+
+def eml_to_html(data: bytes) -> tuple[str, list[str], dict[str, Any]]:
+    """Converte un file EML in HTML sicuro per consultazione nel fascicolo."""
+    try:
+        message = BytesParser(policy=policy.default).parsebytes(data)
+    except Exception as exc:
+        return (
+            "<p><em>Email non leggibile.</em></p>",
+            [f"Email non letta: {exc}"],
+            {"tipo_originale": "eml", "is_scanned": False, "n_caratteri": 0, "allegati": []},
+        )
+
+    headers: list[tuple[str, str]] = []
+    for key, label in (
+        ("Subject", "Oggetto"),
+        ("From", "Mittente"),
+        ("To", "Destinatari"),
+        ("Cc", "Cc"),
+        ("Date", "Data"),
+        ("Message-ID", "Message-ID"),
+    ):
+        value = str(message.get(key, "") or "").strip()
+        if value:
+            headers.append((label, value))
+
+    plain_parts: list[str] = []
+    html_parts: list[str] = []
+    attachments: list[dict[str, Any]] = []
+    for part in message.walk():
+        if part.is_multipart():
+            continue
+        filename = str(part.get_filename() or "").strip()
+        disposition = str(part.get_content_disposition() or "").lower()
+        content_type = str(part.get_content_type() or "").lower()
+        payload = _email_part_bytes(part)
+        if filename or disposition == "attachment":
+            attachments.append(
+                {
+                    "nome": filename or "allegato",
+                    "tipo": content_type or "application/octet-stream",
+                    "dimensione": len(payload),
+                }
+            )
+            continue
+        if content_type == "text/plain":
+            text = _email_part_text(part, payload).strip()
+            if text:
+                plain_parts.append(text)
+        elif content_type == "text/html":
+            text = _strip_tags(_email_part_text(part, payload)).strip()
+            if text:
+                html_parts.append(text)
+
+    body = "\n\n".join(plain_parts or html_parts).strip()
+    sections: list[str] = ['<article class="iusentra-eml-preview">', "<h1>Email PEC / EML</h1>"]
+    if headers:
+        sections.append('<dl class="iusentra-eml-headers">')
+        for label, value in headers:
+            sections.append(f"<dt>{_escape_html(label)}</dt><dd>{_escape_html(value)}</dd>")
+        sections.append("</dl>")
+    if body:
+        sections.append("<h2>Corpo del messaggio</h2>")
+        for block in _splitta_paragrafi(body):
+            sections.append(f"<p>{_escape_html(block)}</p>")
+    else:
+        sections.append("<p><em>Il messaggio non contiene un corpo testuale leggibile.</em></p>")
+    if attachments:
+        sections.append("<h2>Allegati indicati nel messaggio</h2><ul>")
+        for item in attachments:
+            size = item["dimensione"]
+            sections.append(
+                "<li>"
+                f"{_escape_html(item['nome'])} "
+                f"<small>{_escape_html(item['tipo'])}, {size} byte</small>"
+                "</li>"
+            )
+        sections.append("</ul>")
+    sections.append("</article>")
+    html = "\n".join(sections)
+    return html, [], {
+        "tipo_originale": "eml",
+        "is_scanned": False,
+        "n_caratteri": len(body),
+        "allegati": attachments,
+    }
+
+
 # ─────────────────────────────────────────────── bytes → HTML (dispatcher)
 
 def documento_to_html(data: bytes, nome_file: str) -> tuple[str, list[str], dict]:
@@ -522,6 +637,9 @@ def documento_to_html(data: bytes, nome_file: str) -> tuple[str, list[str], dict
             "is_scanned": False,
             "n_caratteri": len(html)
         }
+
+    if ext == ".eml":
+        return eml_to_html(data)
 
     if ext in (".html", ".htm"):
         html = data.decode("utf-8", errors="replace")

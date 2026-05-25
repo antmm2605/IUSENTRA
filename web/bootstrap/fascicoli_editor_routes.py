@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 from collections.abc import Callable
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
@@ -73,6 +74,12 @@ def register_fascicoli_editor_routes(
             )
         except Exception as exc:
             app.logger.warning("Indicizzazione Lex editor non completata per %s/%s: %s", id_fasc, filename, exc)
+
+    def _percorso_documento_lettura(gestore_fascicoli: Any, id_fasc: str, id_doc: str) -> Path:
+        resolver = getattr(gestore_fascicoli, "percorso_documento_lettura", None)
+        if callable(resolver):
+            return Path(resolver(id_fasc, id_doc))
+        return Path(gestore_fascicoli.percorso_documento(id_fasc, id_doc))
 
     def _current_studio_timbro():
         try:
@@ -188,7 +195,7 @@ def register_fascicoli_editor_routes(
 
         gestore_fascicoli = get_fascicoli()
         try:
-            percorso = gestore_fascicoli.percorso_documento(id_fasc, id_doc)
+            percorso = _percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
             fascicolo = gestore_fascicoli.get(id_fasc)
             documento = next(doc for doc in fascicolo.documenti if doc.id == id_doc)
             raw = decrypt_doc(percorso.read_bytes())

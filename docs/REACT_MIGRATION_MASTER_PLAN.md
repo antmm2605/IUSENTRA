@@ -1,5 +1,27 @@
 # Migrazione progressiva Flask + React
 
+## EML fascicolo, cancellazione documenti e Local Signer EXE - 2026-05-25 - 2.248.52
+
+La tranche chiude il problema operativo emerso sul fascicolo cliente: gli `.eml`
+caricati nel fascicolo sono ora consultabili nell'editor React come email
+originale read-only, con intestazioni, corpo, allegati e download, senza
+trasformazione in documento modificabile. La preview backend usa lo stesso
+parser sicuro e recupera anche copie storiche con suffisso quando un vecchio
+metadato punta al nome base non più presente.
+
+La cancellazione dei documenti è stata resa atomica rispetto ai metadati del
+fascicolo: prima salva l'archivio e solo dopo rimuove il file, così un lock
+SQLite non può più creare documenti fantasma. Lo storage tenant-aware ritenta i
+lock brevi con `busy_timeout`; upload e delete restituiscono errori operativi
+controllati invece di 500 quando l'archivio è temporaneamente occupato.
+
+Local Signer passa a `1.6.45` e il percorso Windows pubblico resta solo EXE:
+`SetupLocalSigner-1.6.45.exe` viene servito anche dalla vecchia route
+`windows-ps1`, per evitare che il cliente riceva un'installazione PowerShell.
+Verifiche locali: pytest mirati fascicoli/editor/storage/Local Signer,
+compileall, typecheck/build React, packaging, readiness, UTF-8, OpenAPI e
+governance repo.
+
 ## Evoluzione grafica professionale e Lex - 2026-05-25 - 2.248.40
 
 La tranche rafforza il prodotto come gestionale professionale per studi legali:

@@ -275,6 +275,10 @@ function isPdfLikeDocument(name: string, extension: string): boolean {
   return lowerExtension === 'pdf' || lowerExtension === 'p7m' || lowerName.endsWith('.pdf.p7m')
 }
 
+function isEmlDocument(name: string, extension: string): boolean {
+  return extension.toLowerCase() === 'eml' || name.toLowerCase().endsWith('.eml')
+}
+
 function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -841,6 +845,7 @@ export function DocumentEditorPage() {
 
   const doc = data.document
   const pdfPreviewMode = isPdfLikeDocument(doc.name, doc.extension)
+  const emlPreviewMode = isEmlDocument(doc.name, doc.extension)
   const editorEnabled = doc.editable && !conversionLocked
   const lockedReason = conversionLocked
     ? conversionLockedReason || 'Il documento non espone testo affidabile per la modifica inline.'
@@ -868,7 +873,7 @@ export function DocumentEditorPage() {
           <span className="iu-de-eyebrow"><FileText size={16}/> Editor professionale</span>
           <h1>{doc.name}</h1>
           <p>
-            <Badge tone={editorEnabled ? 'success' : 'warning'}>{editorEnabled ? 'Modificabile' : pdfPreviewMode ? 'Anteprima nativa' : 'Bloccato'}</Badge>
+            <Badge tone={editorEnabled ? 'success' : 'warning'}>{editorEnabled ? 'Modificabile' : pdfPreviewMode ? 'Anteprima nativa' : emlPreviewMode ? 'EML originale' : 'Bloccato'}</Badge>
             <span>{data.fascicolo.ref || data.fascicolo.id} - {data.fascicolo.client || data.fascicolo.title}</span>
           </p>
         </div>
@@ -1014,9 +1019,9 @@ export function DocumentEditorPage() {
           <section className="iu-de-locked" role="alert">
             <ShieldCheck size={24}/>
             <div>
-              <h2>{pdfPreviewMode ? 'Anteprima PDF fedele all\'originale' : 'Documento non modificabile in editor'}</h2>
+              <h2>{pdfPreviewMode ? 'Anteprima PDF fedele all\'originale' : emlPreviewMode ? 'Messaggio EML consultabile' : 'Documento non modificabile in editor'}</h2>
               <p>{lockedReason || 'Apri il documento in anteprima o scaricalo per lavorarlo con un applicativo esterno.'}</p>
-              <a href={doc.actions.preview || data.fascicolo.detailHref}><Eye size={15}/>{pdfPreviewMode ? 'Apri PDF originale' : 'Apri anteprima'}</a>
+              <a href={doc.actions.preview || data.fascicolo.detailHref}><Eye size={15}/>{pdfPreviewMode ? 'Apri PDF originale' : emlPreviewMode ? 'Apri email originale' : 'Apri anteprima'}</a>
               <button type="button" onClick={() => replaceFileRef.current?.click()}><UploadCloud size={15}/> Importa PDF/Word</button>
             </div>
           </section>
@@ -1025,8 +1030,8 @@ export function DocumentEditorPage() {
               <DocumentFacts data={data}/>
               <section className="iu-de-preview-shell">
                 <div className="iu-de-paper-head">
-                  <span>{pdfPreviewMode ? 'Anteprima originale del PDF' : 'Anteprima consultazione'}</span>
-                  <Badge tone={doc.signed || doc.extension === 'p7m' ? 'warning' : 'neutral'}>{doc.signed || doc.extension === 'p7m' ? 'Documento firmato' : pdfPreviewMode ? 'PDF nativo' : 'Sola lettura'}</Badge>
+                  <span>{pdfPreviewMode ? 'Anteprima originale del PDF' : emlPreviewMode ? 'Email originale' : 'Anteprima consultazione'}</span>
+                  <Badge tone={doc.signed || doc.extension === 'p7m' ? 'warning' : 'neutral'}>{doc.signed || doc.extension === 'p7m' ? 'Documento firmato' : pdfPreviewMode ? 'PDF nativo' : emlPreviewMode ? 'EML originale' : 'Sola lettura'}</Badge>
                 </div>
                 <iframe
                   className="iu-de-preview-frame"

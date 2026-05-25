@@ -2,6 +2,27 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-25T19:20:00+02:00: EML fascicolo, cancellazione
+documenti e Local Signer EXE 2.248.52.
+L'editor React dei documenti riconosce gli `.eml` caricati nel fascicolo e li
+presenta come email originale read-only: intestazioni, corpo, allegati e link
+di download restano consultabili senza alterare la prova PEC. Le route di
+visualizzazione/download usano un resolver di lettura che recupera anche copie
+storiche con suffisso quando un vecchio metadato punta a un file base non più
+presente.
+
+La cancellazione documenti salva prima l'archivio del fascicolo e rimuove il
+file solo dopo, così un lock SQLite non può più lasciare una riga fantasma con
+file già cancellato. Lo storage tenant-aware usa `busy_timeout` e retry brevi
+su `database is locked`; upload e delete restituiscono un messaggio operativo
+controllato invece di errore 500 se l'archivio è occupato.
+
+Local Signer è allineato a `1.6.45`: il download Windows pubblico è
+`SetupLocalSigner-1.6.45.exe` e anche la vecchia route `windows-ps1` restituisce
+l'EXE, senza proporre PowerShell come installazione utente. Gate locali
+confermati: pytest fascicoli/editor/storage/Local Signer, compileall, typecheck
+React, build Vite, packaging, readiness, UTF-8, OpenAPI e governance repo.
+
 Aggiornamento 2026-05-25T18:35:00+02:00: Componi PEC via Local Signer
 2.248.51.
 `/email/scrivi` resta esperienza React, ma il submit PEC non usa più la sola

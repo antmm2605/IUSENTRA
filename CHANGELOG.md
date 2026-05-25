@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.248.52 - 2026-05-25
+
+- Corretto il caricamento/cancellazione documenti del fascicolo quando SQLite è momentaneamente occupato: il salvataggio tenant ora usa `busy_timeout`, `BEGIN IMMEDIATE` e retry controllati.
+- La cancellazione documenti non elimina più il file fisico prima della persistenza: se il DB resta bloccato, il documento non diventa una riga fantasma senza file.
+- L'editor e l'anteprima fascicolo visualizzano i file `.eml` come email originali con intestazioni, corpo e allegati, in sola consultazione per non alterare la prova PEC.
+- Aggiornato Local Signer a `1.6.45`: il download Windows pubblico torna sempre a `SetupLocalSigner-<versione>.exe`; la vecchia rotta `windows-ps1` serve comunque l'EXE per evitare link PowerShell al cliente.
+
 ## 2.248.51 - 2026-05-25
 
 - Corretto `Componi PEC`: la pagina React invia la PEC dal PC locale tramite Local Signer (`/pec/send`) e registra l'inviato nello studio solo dopo conferma positiva con `Message-ID`.

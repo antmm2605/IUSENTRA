@@ -1727,6 +1727,58 @@ def test_studio_db_fallbacks_to_delete_when_wal_non_disponibile(tmp_path: Path, 
     assert row[0] == 1
 
 
+def test_studio_db_salva_tabella_ritenta_se_sqlite_bloccato(tmp_path: Path, monkeypatch):
+    from pct import storage as storage_module
+
+    real_connect = sqlite3.connect
+    attempts = {"delete": 0}
+
+    class _ProxyConnection:
+        def __init__(self, conn):
+            self._conn = conn
+
+        @property
+        def row_factory(self):
+            return self._conn.row_factory
+
+        @row_factory.setter
+        def row_factory(self, value):
+            self._conn.row_factory = value
+
+        def execute(self, sql, *args, **kwargs):
+            statement = str(sql).strip().upper()
+            if statement == "DELETE FROM RETRY_ROWS" and attempts["delete"] == 0:
+                attempts["delete"] += 1
+                raise sqlite3.OperationalError("database is locked")
+            if statement == "DELETE FROM RETRY_ROWS":
+                attempts["delete"] += 1
+            return self._conn.execute(sql, *args, **kwargs)
+
+        def __getattr__(self, name):
+            return getattr(self._conn, name)
+
+    monkeypatch.setattr(
+        storage_module.sqlite3,
+        "connect",
+        lambda *args, **kwargs: _ProxyConnection(real_connect(*args, **kwargs)),
+    )
+
+    db = StudioDB(str(tmp_path / "studio.db"))
+    db.conn.execute("CREATE TABLE retry_rows (id TEXT PRIMARY KEY, value TEXT)")
+    db.conn.execute("INSERT INTO retry_rows VALUES (?,?)", ("old", "old"))
+    db.conn.commit()
+
+    db.salva_tabella(
+        "retry_rows",
+        [{"id": "new", "value": "ok"}],
+        lambda conn, row: conn.execute("INSERT INTO retry_rows VALUES (?,?)", (row["id"], row["value"])),
+    )
+
+    rows = db.conn.execute("SELECT id, value FROM retry_rows").fetchall()
+    assert attempts["delete"] == 2
+    assert [tuple(row) for row in rows] == [("new", "ok")]
+
+
 def test_gestione_utenti_ripiega_su_json_quando_backend_studio_non_e_disponibile(tmp_path: Path):
     auth_path = tmp_path / "auth" / "utenti.json"
     audit_path = tmp_path / "auth" / "audit.json"

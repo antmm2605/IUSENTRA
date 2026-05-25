@@ -63,6 +63,46 @@ def _seed_documento_pdf(app):
     return fascicolo, documento
 
 
+def _seed_documento_eml(app):
+    raw = (
+        b"From: Cancelleria <cancelleria@example.test>\r\n"
+        b"To: Studio <studio@example.test>\r\n"
+        b"Subject: Comunicazione fascicolo\r\n"
+        b"Date: Mon, 25 May 2026 16:12:00 +0200\r\n"
+        b"Message-ID: <pec-test@example.test>\r\n"
+        b"MIME-Version: 1.0\r\n"
+        b"Content-Type: multipart/mixed; boundary=\"iusentra\"\r\n"
+        b"\r\n--iusentra\r\n"
+        b"Content-Type: text/plain; charset=utf-8\r\n"
+        b"\r\nTesto della comunicazione PEC.\r\n"
+        b"--iusentra\r\n"
+        b"Content-Type: text/plain; name=\"allegato.txt\"\r\n"
+        b"Content-Disposition: attachment; filename=\"allegato.txt\"\r\n"
+        b"\r\nAllegato testuale.\r\n"
+        b"--iusentra--\r\n"
+    )
+    with app.test_request_context("/"):
+        core_loader = (app.extensions.get("core_runtime") or {}).get("get_fascicoli")
+        fascicoli = core_loader() if callable(core_loader) else get_fascicoli()
+        fascicolo = fascicoli.nuovo(
+            "Comunicazione PEC",
+            TipoFascicolo.CIVILE,
+            nome_cliente="Cliente Reale",
+            tribunale="Tribunale di Palmi",
+            numero_rg="3441/2025",
+        )
+        documento = fascicoli.aggiungi_documento(
+            fascicolo.id,
+            "pec_comunicazione.eml",
+            TipoDocumento.COMUNICAZIONE,
+            raw,
+            note="Messaggio PEC",
+            tags=["pec"],
+            caricato_da="operatore",
+        )
+    return fascicolo, documento
+
+
 def test_editor_documento_route_profonda_serve_shell_react(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
@@ -125,6 +165,35 @@ def test_editor_documento_payload_pdf_usa_anteprima_nativa(tmp_path: Path):
     assert any("Anteprima PDF nativa" in warning for warning in payload["warnings"])
 
 
+def test_editor_documento_payload_eml_usa_anteprima_email_originale(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicolo, documento = _seed_documento_eml(app)
+
+    with app.test_client() as client:
+        _login(client)
+        payload_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/documenti/{documento.id}/editor")
+        html_response = client.get(f"/api/editor/{fascicolo.id}/{documento.id}/html")
+        preview_response = client.get(f"/fascicoli/{fascicolo.id}/documenti/{documento.id}/visualizza")
+
+    payload = payload_response.get_json()
+    html_payload = html_response.get_json()
+    preview_html = preview_response.get_data(as_text=True)
+    assert payload_response.status_code == 200
+    assert payload["document"]["extension"] == "eml"
+    assert payload["document"]["editable"] is False
+    assert "email originale" in payload["document"]["lockedReason"].lower()
+    assert any("Formato EML" in warning for warning in payload["warnings"])
+    assert html_response.status_code == 200
+    assert html_payload["ok"] is True
+    assert "Comunicazione fascicolo" in html_payload["html"]
+    assert "Testo della comunicazione PEC" in html_payload["html"]
+    assert html_payload["meta"]["tipo_originale"] == "eml"
+    assert preview_response.status_code == 200
+    assert "Email PEC / EML" in preview_html
+    assert "allegato.txt" in preview_html
+
+
 def test_editor_documento_importa_pdf_word_versiona_documento(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
@@ -166,6 +235,8 @@ def test_editor_documento_react_contract_statico():
     assert "Dimensione testo" in page_source
     assert "Interlinea" in page_source
     assert "Anteprima PDF fedele all\\'originale" in page_source
+    assert "Messaggio EML consultabile" in page_source
+    assert "EML originale" in page_source
     assert "PDF nativo" in page_source
     assert "Dati reali" in page_source
     assert "Nuovo atto con Lex" in page_source

@@ -497,6 +497,41 @@ class GestioneMessaggi:
         self._salva()
         return msg
 
+    def registra_email_inviata(
+        self,
+        destinatario: str,
+        oggetto: str,
+        corpo_testo: str = "",
+        corpo_html: str = "",
+        allegati: Optional[List[str]] = None,
+        id_cliente: str = "",
+        nome_destinatario: str = "",
+        tipo_automazione: str = "",
+        id_fascicolo: str = "",
+        message_id: str = "",
+        note: str = "",
+    ) -> Messaggio:
+        """Registra un'email gia' inviata da un canale esterno verificato."""
+        msg = self._crea_messaggio(
+            canale=CanaleMsggio.EMAIL,
+            id_cliente=id_cliente,
+            nome_destinatario=nome_destinatario,
+            email_destinatario=destinatario,
+            oggetto=oggetto,
+            corpo=corpo_testo,
+            corpo_html=corpo_html,
+            allegati=allegati or [],
+            tipo_automazione=tipo_automazione,
+            id_fascicolo=id_fascicolo,
+        )
+        msg.stato = StatoMessaggio.INVIATO
+        msg.inviato_il = datetime.now().isoformat()
+        msg.sid_esterno = str(message_id or "").strip()
+        msg.note = str(note or "").strip()
+        self._messaggi[msg.id] = msg
+        self._salva()
+        return msg
+
     # ---------------------------------------------------------------- Invio SMS
 
     def invia_sms(

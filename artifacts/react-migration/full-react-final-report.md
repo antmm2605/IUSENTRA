@@ -2,6 +2,17 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-25T18:35:00+02:00: Componi PEC via Local Signer
+2.248.51.
+`/email/scrivi` resta esperienza React, ma il submit PEC non usa più la sola
+risposta Flask come prova di invio. La pagina invia dal browser a Local Signer
+`127.0.0.1:27272/pec/send`, passa allegati in base64 e registra l'inviato nello
+studio con `/email/scrivi/conferma-locale` solo dopo `Message-ID` positivo. Il
+fallback server risponde con errore operativo quando l'invio server non è
+esplicitamente abilitato o quando lo storico messaggi torna `FALLITO`.
+Gate locali confermati: pytest PEC/email/Local Signer 78/78, typecheck React,
+build Vite e compileall Python.
+
 Aggiornamento 2026-05-25T12:30:00+02:00: evoluzione grafica professionale e
 Lex 2.248.40.
 Il preset IUSENTRA è stato stabilizzato anche durante navigazioni consecutive

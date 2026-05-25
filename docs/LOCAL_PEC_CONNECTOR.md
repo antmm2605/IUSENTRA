@@ -44,6 +44,12 @@ Il ponte locale permette al browser di parlare con `http://127.0.0.1:27272` sul 
 5. Se resta non disponibile, mostra il pacchetto Local Signer da scaricare per Windows, macOS o Linux. Su Windows il pacchetto proposto e' sempre l'eseguibile `SetupLocalSigner-<versione>.exe`.
 6. La password inserita nel campo PEC viene usata solo per la chiamata locale e non viene salvata dal server se l'utente non salva il form.
 
+## Componi PEC
+
+Da IUSENTRA 2.248.51 la pagina React `Componi PEC` non registra più un messaggio come inviato sulla sola risposta del server applicativo. Il browser prepara il payload con configurazione PEC tenant-aware, allegati in base64 e password salvata dello studio, invia a `http://127.0.0.1:27272/pec/send` dal PC locale e chiama `/email/scrivi/conferma-locale` solo dopo una risposta positiva con `Message-ID`.
+
+Se il Local Signer non risponde, se il provider rifiuta SMTP o se manca il `Message-ID`, l'utente vede errore e la cartella `INVIATI` non viene popolata artificialmente. La route server `/email/scrivi` resta un fallback esplicito e non dichiara successo quando lo storico messaggi contiene `FALLITO`.
+
 ## Endpoint Local Signer
 
 - `POST /pec/smtp/test`: verifica connessione e login SMTP PEC dal PC locale.

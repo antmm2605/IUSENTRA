@@ -1,6 +1,12 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornamento corrente: 2026-05-25, matrice SIECIC ministeriale Local Signer 1.6.44 2.248.50.
+Aggiornamento corrente: 2026-05-25, Componi PEC via Local Signer 2.248.51.
+
+## Note Componi PEC via Local Signer 2.248.51 - 2026-05-25
+
+Risolto il falso positivo rilevato sul tenant `studio-legale-giuseppe-montagnese`: il `POST /email/scrivi` delle 17:45 risultava `FALLITO` nello storico messaggi, ma la UI aveva mostrato successo. Da 2.248.51 `Componi PEC` invia dal PC locale tramite Local Signer e registra `INVIATI` solo dopo risposta positiva con `Message-ID`; il fallback server non dichiara più successo se `GestioneMessaggi` restituisce `FALLITO`.
+
+Nessuna issue test locale aperta dopo i gate mirati. Resta solo la verifica operativa reale post-deploy: aprire `Componi PEC` dallo studio cliente, inviare una PEC di prova tramite Local Signer e confermare in casella `ACCETTAZIONE`/`CONSEGNA` o presenza nella cartella PEC inviata del provider.
 
 ## Note matrice SIECIC ministeriale Local Signer 1.6.44 2.248.50 - 2026-05-25
 

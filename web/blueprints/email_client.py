@@ -31,6 +31,7 @@ from flask import (
 from pct.config_studio import _SMTPv4, _SMTP_SSLv4
 from pct.notifiche_legali import is_legal_notification_subject as _is_legal_notification_subject
 from web.blueprints.react_shell import render_react_shell_response
+from web.services.local_pec_runtime import pec_server_send_enabled
 from web.services.mailbox_sync_runtime import run_pec_mailbox_sync
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
 from werkzeug.utils import secure_filename
@@ -119,6 +120,27 @@ def _get_config_pec():
         return cfg.pec if cfg and hasattr(cfg, "pec") else None
     except Exception:
         return None
+
+
+def _messaggi_config_da_pec():
+    from pct.messaggi import ConfigEmail, ConfigMessaggistica
+
+    pec = _get_config_pec()
+    indirizzo = str(getattr(pec, "indirizzo", "") or "").strip()
+    smtp_port = int(getattr(pec, "smtp_port", 465) or 465) if pec else 465
+    use_ssl = bool(getattr(pec, "use_ssl", smtp_port == 465)) if pec else smtp_port == 465
+    return ConfigMessaggistica(
+        email=ConfigEmail(
+            smtp_host=str(getattr(pec, "smtp_host", "") or "").strip() if pec else "",
+            smtp_port=smtp_port,
+            username=indirizzo,
+            password=str(getattr(pec, "password", "") or "") if pec else "",
+            use_tls=not use_ssl,
+            mittente_email=indirizzo,
+            mittente_nome="Studio Legale",
+        ),
+        studio_nome="Studio Legale",
+    )
 
 
 def _pec_state_path() -> str:
@@ -362,20 +384,33 @@ def scrivi():
         return redirect("/notifiche-legali")
 
     try:
-        from pct.messaggi import GestioneMessaggi
+        from pct.messaggi import GestioneMessaggi, StatoMessaggio
+
+        if not pec_server_send_enabled():
+            message = (
+                "Invio PEC dal server non abilitato: usa il Local Signer sul PC dello studio "
+                "per completare l'invio reale."
+            )
+            if _wants_json_response():
+                return jsonify({"ok": False, "message": message, "requires_local_pec": True}), 409
+            flash(message, "warning")
+            return redirect(url_for("email_client.scrivi", a=destinatario, oggetto=oggetto))
+
         db_path = _cfg_path("MESSAGGI_DB", "./messaggi/storico.json")
         gm = GestioneMessaggi(
-            config=None,
+            config=_messaggi_config_da_pec(),
             db_path=db_path,
         )
         allegati = _save_compose_attachments()
-        gm.invia_email(
+        msg = gm.invia_email(
             destinatario=destinatario,
             oggetto=oggetto,
             corpo_testo=corpo_testo,
             id_cliente=id_cliente,
             allegati=allegati,
         )
+        if getattr(msg, "stato", None) == StatoMessaggio.FALLITO:
+            raise RuntimeError(getattr(msg, "errore", "") or "invio non completato")
         # Aggiorna subito la casella inviati
         ge = _get_gestore()
         _sync_inviati(ge)
@@ -393,6 +428,68 @@ def scrivi():
 
 
 # ─────────────────────────────────────────────────────────── Azioni email
+
+@email_client.route("/scrivi/conferma-locale", methods=["POST"])
+@_login_required
+def conferma_invio_locale():
+    """Registra l'invio PEC solo dopo conferma positiva del Local Signer."""
+    form = request.form
+    destinatario = form.get("a", "").strip()
+    oggetto = form.get("oggetto", "").strip()
+    corpo_testo = form.get("corpo", "").strip()
+    id_cliente = form.get("id_cliente", "").strip()
+    message_id = form.get("message_id", "").strip()
+
+    if not destinatario or not oggetto or not message_id:
+        return jsonify(
+            {
+                "ok": False,
+                "message": "Conferma invio PEC incompleta: destinatario, oggetto e Message-ID sono obbligatori.",
+            }
+        ), 400
+    if _is_legal_notification_subject(oggetto):
+        return jsonify(
+            {
+                "ok": False,
+                "message": (
+                    "Per notifiche ex L. 53/1994 usa il percorso guidato Notifica ex L. 53/1994: "
+                    "servono relata separata, firma digitale, PEC da pubblico elenco e ricevuta completa."
+                ),
+            }
+        ), 400
+
+    try:
+        from pct.messaggi import GestioneMessaggi
+
+        db_path = _cfg_path("MESSAGGI_DB", "./messaggi/storico.json")
+        gm = GestioneMessaggi(config=None, db_path=db_path)
+        msg = gm.registra_email_inviata(
+            destinatario=destinatario,
+            oggetto=oggetto,
+            corpo_testo=corpo_testo,
+            id_cliente=id_cliente,
+            message_id=message_id,
+            note="Invio confermato dal Local Signer del PC dello studio.",
+        )
+        ge = _get_gestore()
+        ge.sincronizza_inviati([msg])
+        _audit("email.pec_locale_inviata", f"A: {destinatario} | Ogg: {oggetto[:60]}")
+        return jsonify(
+            {
+                "ok": True,
+                "message": "PEC inviata dal PC locale e registrata nello studio.",
+                "redirect": url_for("email_client.casella", cartella="INVIATI"),
+                "id": msg.id,
+            }
+        )
+    except Exception:
+        return jsonify(
+            {
+                "ok": False,
+                "message": "PEC inviata dal PC locale, ma registrazione nello studio non completata. Sincronizza la casella PEC.",
+            }
+        ), 500
+
 
 @email_client.route("/<id_email>/cestino", methods=["POST"])
 @_login_required

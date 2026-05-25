@@ -134,6 +134,123 @@ def test_impostazioni_payload_smtp_locale_usa_password_pec_salvata_del_tenant(tm
     assert payload["payload"]["use_ssl"] is False
 
 
+def test_email_pec_scrivi_non_dichiara_successo_quando_serve_local_signer(tmp_path):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    GestioneConfigStudio(cfg["STUDIO_CONFIG"]).aggiorna(
+        ConfigStudio(
+            pec=ConfigPEC(
+                indirizzo="studio@example.pec.it",
+                password="segreta",
+                smtp_host="smtp.pec.example.it",
+                smtp_port=465,
+                use_ssl=True,
+            )
+        )
+    )
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+        response = client.post(
+            "/email/scrivi",
+            data={"a": "cliente@example.pec.it", "oggetto": "PEC test", "corpo": "Test"},
+            headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 409
+    assert payload["ok"] is False
+    assert payload["requires_local_pec"] is True
+    assert "Local Signer" in payload["message"]
+    assert GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"]).statistiche()["inviati"] == 0
+
+
+def test_email_pec_scrivi_server_fallito_non_viene_segnato_inviato(tmp_path, monkeypatch):
+    from pct.messaggi import GestioneMessaggi, StatoMessaggio
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    GestioneConfigStudio(cfg["STUDIO_CONFIG"]).aggiorna(
+        ConfigStudio(
+            pec=ConfigPEC(
+                indirizzo="studio@example.pec.it",
+                password="segreta",
+                smtp_host="smtp.pec.example.it",
+                smtp_port=465,
+                use_ssl=True,
+            )
+        )
+    )
+
+    def _fallito(self, **kwargs):
+        return SimpleNamespace(stato=StatoMessaggio.FALLITO, errore="SMTP KO")
+
+    monkeypatch.setenv("PEC_SEND_ENABLED", "1")
+    monkeypatch.setattr(GestioneMessaggi, "invia_email", _fallito)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+        response = client.post(
+            "/email/scrivi",
+            data={"a": "cliente@example.pec.it", "oggetto": "PEC test", "corpo": "Test"},
+            headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+        )
+
+    assert response.status_code == 400
+    assert response.get_json()["ok"] is False
+    assert GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"]).statistiche()["inviati"] == 0
+
+
+def test_email_pec_conferma_locale_registra_inviati_solo_dopo_message_id(tmp_path):
+    from pct.messaggi import CanaleMsggio, GestioneMessaggi, StatoMessaggio
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+        missing = client.post(
+            "/email/scrivi/conferma-locale",
+            data={"a": "cliente@example.pec.it", "oggetto": "PEC test", "corpo": "Test"},
+            headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+        )
+        notifica = client.post(
+            "/email/scrivi/conferma-locale",
+            data={
+                "a": "controparte@example.pec.it",
+                "oggetto": "Notificazione ai sensi della legge n. 53 del 1994",
+                "corpo": "Test",
+                "message_id": "<local-pec-notifica@example.test>",
+            },
+            headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+        )
+        response = client.post(
+            "/email/scrivi/conferma-locale",
+            data={
+                "a": "cliente@example.pec.it",
+                "oggetto": "PEC test",
+                "corpo": "Test",
+                "message_id": "<local-pec@example.test>",
+            },
+            headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+        )
+
+    assert missing.status_code == 400
+    assert notifica.status_code == 400
+    assert "Notifica ex L. 53/1994" in notifica.get_json()["message"]
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    sent = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"]).tutte(cartella=CartellaEmail.INVIATI)
+    assert len(sent) == 1
+    assert sent[0].message_id == "<local-pec@example.test>"
+    storico = GestioneMessaggi(config=None, db_path=cfg["MESSAGGI_DB"]).tutti(canale=CanaleMsggio.EMAIL)
+    assert storico[0].stato == StatoMessaggio.INVIATO
+    assert storico[0].sid_esterno == "<local-pec@example.test>"
+
+
 def test_base_template_non_renderizza_vecchio_lex_duplicato():
     template = Path("web/templates/base.html").read_text(encoding="utf-8")
     assert "__legacy_lex_disabled__" not in template

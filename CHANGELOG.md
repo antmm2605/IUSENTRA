@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.51 - 2026-05-25
+
+- Corretto `Componi PEC`: la pagina React invia la PEC dal PC locale tramite Local Signer (`/pec/send`) e registra l'inviato nello studio solo dopo conferma positiva con `Message-ID`.
+- La route server `/email/scrivi` non mostra più successo se lo storico messaggi registra `FALLITO`; senza invio server esplicitamente abilitato risponde con richiesta di Local Signer invece di popolare artificialmente `INVIATI`.
+- Aggiunti test di regressione su falso positivo PEC, conferma locale, storico messaggi e presidio React/Local Signer.
+
 ## 2.248.50 - 2026-05-25
 
 - Aggiornato Local Signer alla versione `1.6.44`: il fallback SIECIC della ricerca snapshot PST usa i servizi del catalogo ministeriale (`InfoFascicolo`, `ProfiloFascicolo`, `ElencoDocumenti`) invece dei nomi SICID che sul test reale Palmi rispondevano `Service ... non trovato`.

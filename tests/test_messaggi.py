@@ -129,6 +129,21 @@ def test_email_senza_smtp_fallisce(gm):
     assert msg.errore != ""
 
 
+def test_registra_email_inviata_da_canale_esterno(gm):
+    msg = gm.registra_email_inviata(
+        destinatario="cliente@example.com",
+        oggetto="PEC locale",
+        corpo_testo="Testo",
+        message_id="<local-pec@example.test>",
+        note="Invio confermato dal Local Signer.",
+    )
+
+    assert msg.stato == StatoMessaggio.INVIATO
+    assert msg.sid_esterno == "<local-pec@example.test>"
+    assert msg.inviato_il
+    assert gm.get(msg.id).note == "Invio confermato dal Local Signer."
+
+
 # ------------------------------------------------------------------ SMS/WA (mock Twilio)
 
 def _mock_twilio(gm):

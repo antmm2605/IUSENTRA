@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
-import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
+import { redirectAfterSuccess, submitFormJson, type FormSubmitResult } from '../formSubmit'
 
 export function JsonPostForm({
   action,
@@ -9,6 +9,7 @@ export function JsonPostForm({
   encType,
   pendingMessage = 'Salvataggio in corso...',
   successMessage = 'Operazione completata.',
+  customSubmit,
 }: {
   action: string
   className?: string
@@ -17,6 +18,7 @@ export function JsonPostForm({
   encType?: string
   pendingMessage?: string
   successMessage?: string
+  customSubmit?: (form: HTMLFormElement) => Promise<FormSubmitResult>
 }) {
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
@@ -26,7 +28,9 @@ export function JsonPostForm({
     setBusy(true)
     setMessage(pendingMessage)
     try {
-      const result = await submitFormJson(action, new FormData(event.currentTarget))
+      const result = customSubmit
+        ? await customSubmit(event.currentTarget)
+        : await submitFormJson(action, new FormData(event.currentTarget))
       setMessage(result.message || successMessage)
       redirectAfterSuccess(result, redirectTo || window.location.href)
     } catch (error) {

@@ -841,3 +841,9 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
 | Pagine Amministrazione richieste dall'utente | Browser in-app desktop/tablet/mobile con scroll | Risolto | `/amministrazione`, `/utenti`, `/profili`, `/registro-attivita`, `/admin/database`, `/privacy/registro`, `/registro-gdpr`, `/sito-studio/contatti` e `/sito-studio` passano 81 snapshot con zero failure. Il problema reale erano regole CSS più specifiche che riportavano alcune CTA a 38 px e una tabella Database troppo larga su mobile. | Ogni modifica futura a preset, admin, privacy o Sito Studio deve rilanciare il controllo browser su queste 9 route e verificare pulsanti, overflow, testi tecnici vietati e console. |
+
+## Note Uffici competenti per Comune 2.248.58 - 2026-05-25
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Contratti API dopo integrazione Uffici competenti | GitHub `Lint + syntax` sul push `fae2b62b6` | Risolto localmente, da verificare sul nuovo SHA | Il push della feature aveva `docs/openapi.yaml` non allineato all'output di `generate_api_contracts.py`; gli aggregatori a valle erano rossi o saltati per cascata dal blocco contratti. | Riallineato `docs/openapi.yaml` e rilanciati localmente generate check, validazione OpenAPI, provider verification, smoke contratti offline e whitespace mirato prima del nuovo push. |

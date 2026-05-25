@@ -1,5 +1,19 @@
 # Migrazione progressiva Flask + React
 
+## Local Signer 1.6.46 autenticazione PST 401 esplicita - 2026-05-25 - 2.248.53
+
+La diagnostica reale salvata dal PC cliente sul fascicolo `3441/2025` del
+Tribunale di Palmi ha mostrato un esito `HTTP 401 Unauthorized` su tutte le
+richieste batch verso il proxy PST. Da `1.6.46` questo scenario non viene più
+mostrato come "Nessun fascicolo trovato": la ricerca PST restituisce errore di
+autenticazione esplicito quando il certificato CNS/CIE non viene presentato o
+non viene accettato dal proxy ministeriale.
+
+Il comportamento atteso della UI è quindi distinguere tre casi: zero righe PST
+vere, SOAP Fault di servizio/registro e rifiuto di autenticazione. Il test reale
+successivo deve usare `SetupLocalSigner-1.6.46.exe`; se il proxy continua a
+rispondere `401`, la diagnosi operativa è certificato/PIN, non filtro fascicolo.
+
 ## EML fascicolo, cancellazione documenti e Local Signer EXE - 2026-05-25 - 2.248.52
 
 La tranche chiude il problema operativo emerso sul fascicolo cliente: gli `.eml`

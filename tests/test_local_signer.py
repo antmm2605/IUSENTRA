@@ -3977,6 +3977,30 @@ def test_soap_call_pst_session_batch_raw_riprova_con_certificato_dopo_cookie_onl
     ]
 
 
+def test_pst_best_effort_batch_401_non_diventa_ricerca_vuota():
+    module = _load_local_signer()
+
+    message = module._pst_best_effort_batch_blocking_error(
+        [
+            {
+                "body_bytes": b"<html><title>401 Unauthorized</title></html>",
+                "headers_text": "HTTP/1.1 401 Unauthorized\r\n",
+                "status_code": 401,
+                "error": "Il PST ha risposto HTTP 401 Unauthorized da ext.processotelematico.giustizia.it.",
+            },
+            {
+                "body_bytes": b"<html><title>401 Unauthorized</title></html>",
+                "headers_text": "HTTP/1.1 401 Unauthorized\r\n",
+                "status_code": 401,
+                "error": "Il PST ha risposto HTTP 401 Unauthorized da ext.processotelematico.giustizia.it.",
+            },
+        ]
+    )
+
+    assert "Autenticazione PST non riuscita" in message
+    assert "401 Unauthorized" in message
+
+
 def test_soap_call_pst_session_non_richiede_secondo_certificato_su_timeout():
     module = _load_local_signer()
 

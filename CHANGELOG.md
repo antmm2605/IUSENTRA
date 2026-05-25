@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.248.53 - 2026-05-25
+
+- Corretto Local Signer `1.6.46`: se il batch PST riceve solo errori `401 Unauthorized`, la UI non mostra più "Nessun fascicolo trovato" ma un errore di autenticazione PST esplicito.
+- Il caso reale Montagnese `3441/2025` resta tracciato come autenticazione rifiutata dal proxy PST quando il certificato CNS/CIE non viene presentato o accettato, invece di essere degradato a ricerca vuota.
+
 ## 2.248.52 - 2026-05-25
 
 - Corretto il caricamento/cancellazione documenti del fascicolo quando SQLite è momentaneamente occupato: il salvataggio tenant ora usa `busy_timeout`, `BEGIN IMMEDIATE` e retry controllati.

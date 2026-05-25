@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.45
+IUSENTRA Local Signer - v1.6.46
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -111,7 +111,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.45"
+VERSION = "1.6.46"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -4324,6 +4324,44 @@ def _soap_call_pst_session_batch_raw_best_effort(
     )
 
 
+def _pst_best_effort_batch_blocking_error(items: list[dict]) -> str:
+    """Restituisce l'errore bloccante quando nessuna richiesta PST e' valida."""
+    if not items:
+        return ""
+
+    errors: list[str] = []
+    has_success = False
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        error = str(item.get("error") or "").strip()
+        body = item.get("body_bytes") or b""
+        if error:
+            errors.append(error)
+            continue
+        if isinstance(body, bytes) and body.strip():
+            has_success = True
+        elif isinstance(body, str) and body.strip():
+            has_success = True
+
+    if has_success or not errors:
+        return ""
+
+    auth_errors = [
+        error
+        for error in errors
+        if _pst_cookie_retry_requires_cert(RuntimeError(error))
+        and ("401" in error or "Unauthorized" in error or "certificato" in error.lower())
+    ]
+    if auth_errors:
+        return (
+            "Autenticazione PST non riuscita: il portale ha rifiutato il certificato "
+            "o il PIN non e' stato completato.\n"
+            f"{auth_errors[0]}"
+        )
+    return errors[0]
+
+
 def _pst_preflight_auth_curl(url: str,
                              cert_thumbprint: Optional[str] = None,
                              pkcs11_uri: Optional[str] = None,
@@ -7454,6 +7492,9 @@ class _Handler(BaseHTTPRequestHandler):
                     if isinstance(item, dict) and item.get("error"):
                         servizio = _pst_servizio_proxy(str(batch_requests[idx].get("url") or ""))
                         log.info("PST ricerca-snapshot: richiesta %s/%s non bloccante: %s", idx + 1, servizio, item.get("error"))
+                blocking_error = _pst_best_effort_batch_blocking_error(batch_result_items)
+                if blocking_error:
+                    raise RuntimeError(blocking_error)
 
             xml_ricerca = batch_results[0][0].decode("utf-8", "replace") if batch_results else ""
             xml_profilo = (

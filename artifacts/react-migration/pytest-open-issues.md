@@ -1,6 +1,12 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornamento corrente: 2026-05-25, EML fascicolo, cancellazione documenti e Local Signer EXE 2.248.52.
+Aggiornamento corrente: 2026-05-25, Local Signer 1.6.46 autenticazione PST 401 esplicita 2.248.53.
+
+## Note Local Signer 1.6.46 autenticazione PST 401 esplicita 2.248.53 - 2026-05-25
+
+Il controllo dei log reali salvati sul tenant `studio-legale-giuseppe-montagnese` dopo il test sul fascicolo `3441/2025` ha isolato un problema diverso da "nessun fascicolo": il proxy PST ha risposto `HTTP 401 Unauthorized` a tutte le richieste batch, quindi il certificato CNS/CIE non è stato presentato o non è stato accettato dal proxy ministeriale. La diagnostica registrata mostrava ancora Local Signer `1.6.44`; il deploy server `2.248.52` è arrivato in produzione alle 19:18 italiane con EXE `1.6.45`, ma il nuovo client non era ancora stato reinstallato nel momento del log.
+
+Il fix `1.6.46` non degrada più un batch interamente fallito per `401 Unauthorized` a "Nessun fascicolo trovato con questi filtri": la UI riceverà errore PST esplicito di autenticazione, così il test reale distingue pratica inesistente da certificato/PIN rifiutato. Resta da ripetere il test reale installando `SetupLocalSigner-1.6.46.exe`; se il PST continua a rispondere `401`, la causa operativa sarà certificato di autenticazione web non accettato dal proxy o PIN non completato sulla finestra Windows, non filtro fascicolo.
 
 ## Note EML fascicolo, cancellazione documenti e Local Signer EXE 2.248.52 - 2026-05-25
 

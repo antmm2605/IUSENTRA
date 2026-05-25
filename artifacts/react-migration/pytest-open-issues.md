@@ -10,6 +10,8 @@ L'editor documento ora riconosce gli `.eml` e li mostra come email originale rea
 
 Local Signer passa a `1.6.45`. Il download Windows pubblico resta EXE-only: anche la vecchia route `windows-ps1` serve l'eseguibile `SetupLocalSigner-1.6.45.exe`, così all'utente non viene più proposto lo script PowerShell come installazione principale. Nessuna issue locale aperta dopo i test mirati; restano le sole verifiche operative reali post-deploy: aprire il documento EML caricato sul fascicolo Montagnese, cancellarlo dalla UI e installare il nuovo `SetupLocalSigner-1.6.45.exe` dal link pubblico.
 
+Risoluzione CI: il primo push `c0ee466b3` ha fallito `Lint + syntax` perché il generatore App V2 richiedeva l'aggiornamento di `docs/test-inventory.md` e `docs/test-plan-app-v2.md`. I documenti sono stati rigenerati e il blocco locale equivalente (`generate_app_v2_page_registry`, `generate_app_v2_test_docs`, `smoke_app_v2_all --subset inventory`, pytest App V2/test plan/CI gate) è verde; nessuna issue applicativa aggiuntiva resta aperta da quella failure.
+
 ## Note Componi PEC via Local Signer 2.248.51 - 2026-05-25
 
 Risolto il falso positivo rilevato sul tenant `studio-legale-giuseppe-montagnese`: il `POST /email/scrivi` delle 17:45 risultava `FALLITO` nello storico messaggi, ma la UI aveva mostrato successo. Da 2.248.51 `Componi PEC` invia dal PC locale tramite Local Signer e registra `INVIATI` solo dopo risposta positiva con `Message-ID`; il fallback server non dichiara più successo se `GestioneMessaggi` restituisce `FALLITO`.

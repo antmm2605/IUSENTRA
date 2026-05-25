@@ -12,6 +12,7 @@ Aggiornato: 2026-05-25, EML fascicolo, cancellazione documenti e Local Signer EX
 | `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build` | OK | TypeScript e build Vite produzione verdi dopo i testi/azioni EML nell'editor React. |
 | `python -m pytest -q tests/test_build_dist.py tests/test_local_signer.py tests/test_packaging_consistency.py tests/test_release_readiness.py tests/test_utf8_integrity.py tests/test_openapi_contracts_phase6.py --tb=short` | OK | Gate packaging, installer, release readiness, UTF-8 e OpenAPI verdi sul bump `2.248.52` / Local Signer `1.6.45`. |
 | `python tools\sync_packaging_files.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python tools\check_repo_governance.py` | OK | Packaging sincronizzato, OpenAPI valido e governance repository verde. |
+| `python scripts\react-migration\generate_app_v2_page_registry.py --check`; `python scripts\react-migration\generate_app_v2_test_docs.py --check`; `python scripts\smoke_app_v2_all.py --subset inventory`; `python -m pytest -q tests/test_app_v2_page_registry.py tests/test_app_v2_test_plan_phase10.py tests/test_ci_cd_gates_phase11.py --tb=short` | OK | Follow-up CI `Lint + syntax`: documenti App V2 rigenerati e blocco inventario/test plan verde, 14/14 test passati. |
 
 ## Componi PEC via Local Signer 2.248.51 - 2026-05-25
 

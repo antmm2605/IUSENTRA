@@ -39,6 +39,58 @@ def main() -> int:
             if snippet not in text:
                 failures.append(f"{existing_signer} non integra ancora: {snippet}")
 
+    baseline_doc = "docs/specs/ministero/PST_LOCAL_SIGNER_BASELINE_CERTIFICATO.md"
+    if not (REPO_ROOT / baseline_doc).exists():
+        failures.append(f"Manca {baseline_doc}")
+
+    for signer_path in ("tools/local_signer.py", "tools/dist/local_signer.py"):
+        signer_text = _read(signer_path)
+        required_snippets = (
+            'exact_registry_lookup = bool(str(numero_rg or "").strip() and str(anno_rg or "").strip())',
+            "filtered_nome_parte = None if exact_registry_lookup else nome_parte",
+            "filtered_cf_parte = None if exact_registry_lookup else cf_parte",
+            "tag(\"nomeParte\", filtered_nome_parte)",
+            "tag(\"codiceFiscaleParte\", filtered_cf_parte)",
+            "do_preflight=False",
+        )
+        for snippet in required_snippets:
+            if snippet not in signer_text:
+                failures.append(f"{signer_path} non preserva baseline PST: {snippet}")
+
+    react_text = _read("frontend/src/components/TelematicoSurfacePage.tsx")
+    react_required = (
+        "const exactPstSearch = Boolean(asText(query.numero) && asText(query.anno))",
+        "nome_parte: exactPstSearch ? '' : (query.assistito || query.controparte)",
+        "cf_parte: exactPstSearch ? '' : query.cf",
+        "pst_session_id: session?.sessionId || ''",
+        "localSignerJson('/pst/ricerca-snapshot'",
+        "localSignerJson('/pst/download-documenti-batch'",
+        "preflight_auth: false",
+    )
+    for snippet in react_required:
+        if snippet not in react_text:
+            failures.append(f"TelematicoSurfacePage non preserva baseline PST: {snippet}")
+    if "localSignerJson('/pst/preflight-auth'" in react_text:
+        failures.append("TelematicoSurfacePage non deve chiamare /pst/preflight-auth")
+    if "localSignerJson('/pst/download-documento'" in react_text:
+        failures.append("TelematicoSurfacePage non deve tornare al download documento singolo")
+
+    wizard_text = _read("web/templates/portale/acquisizione_wizard.html")
+    wizard_required = (
+        "const exactByRg = !!(String(query.numero || '').trim() && String(query.anno || '').trim());",
+        "nome_parte: exactByRg ? '' : (query.assistito || query.controparte || '')",
+        "cf_parte: exactByRg ? '' : (query.cf || '')",
+        "pst_session_id: activeSession?.session_id || ''",
+        "`${AW_PST_LS_BASE}/pst/ricerca-snapshot`",
+        "`${AW_PST_LS_BASE}/pst/download-documenti-batch`",
+        "preflight_auth: false",
+    )
+    for snippet in wizard_required:
+        if snippet not in wizard_text:
+            failures.append(f"Wizard acquisizione non preserva baseline PST: {snippet}")
+    if "`${AW_PST_LS_BASE}/pst/preflight-auth`" in wizard_text:
+        failures.append("Wizard acquisizione non deve chiamare /pst/preflight-auth")
+
     if failures:
         print("Local Signer boundary check FAILED")
         for item in failures:

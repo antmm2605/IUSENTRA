@@ -1267,6 +1267,7 @@ function awMapPstLocalSignerSearchRows(rows, query, tribunale) {
 }
 async function awPstSearchViaLocalSigner(query, retry = true) {
   const tribunale = String(query.ufficio_codice || '').trim();
+  const exactByRg = !!(String(query.numero || '').trim() && String(query.anno || '').trim());
   if (awCanUsePstSearchSnapshot(query)) {
     await awEnsurePstCertReady();
     const activeSession = awGetActivePstSession(tribunale, 'view');
@@ -1277,8 +1278,8 @@ async function awPstSearchViaLocalSigner(query, retry = true) {
           tribunale,
           numero_rg: query.numero || '',
           anno_rg: query.anno || '',
-          nome_parte: query.assistito || query.controparte || '',
-          cf_parte: query.cf || '',
+          nome_parte: exactByRg ? '' : (query.assistito || query.controparte || ''),
+          cf_parte: exactByRg ? '' : (query.cf || ''),
           oggetto: query.oggetto || '',
           ufficio_nome: document.getElementById('awOfficeInput')?.value || '',
           cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
@@ -1314,8 +1315,8 @@ async function awPstSearchViaLocalSigner(query, retry = true) {
         tribunale,
         numero_rg: query.numero || '',
         anno_rg: query.anno || '',
-        nome_parte: query.assistito || query.controparte || '',
-        cf_parte: query.cf || '',
+        nome_parte: exactByRg ? '' : (query.assistito || query.controparte || ''),
+        cf_parte: exactByRg ? '' : (query.cf || ''),
         cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
         cert_thumbprint: AW_PST_CERT?.thumbprint || null,
         cert_key: AW_PST_CERT?.thumbprint || '',

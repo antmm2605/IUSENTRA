@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.41 - 2026-05-25
+
+- Corretto il flusso PST/PolisWeb con Local Signer: quando la ricerca è esatta per numero e anno di ruolo, IUSENTRA non invia più parte assistita, controparte o codice fiscale come filtri aggiuntivi.
+- Preservata la sessione PST già aperta dal Local Signer: resta un PIN per visualizzare il fascicolo e un PIN separato solo per scaricare l'intero fascicolo, senza preflight o autenticazioni duplicate.
+- Aggiunti test di regressione su SOAP legacy, qbuilder SICID/SIGP, wizard React e wizard classico per impedire il ritorno del messaggio "Nessun fascicolo trovato" causato da filtri parte non coerenti con il portale.
+
 ## 2.248.40 - 2026-05-25
 
 - Rafforzata la modernizzazione grafica operativa: preset IUSENTRA stabile anche durante navigazioni consecutive nello stesso tab, card e pannelli più coerenti, bottoni controllati per contenere testo e icone, e procedure secondarie governate senza scorciatoie tecniche visibili.

@@ -1526,14 +1526,15 @@ function AcquisitionWizard({
         let signerPayload: JsonRecord | null = null
         let cert = await ensurePstCertificate()
         let session = activePstSessionFor(tribunale, cert)
+        const exactPstSearch = Boolean(asText(query.numero) && asText(query.anno))
         if (canUsePstSearchSnapshot()) {
           try {
             signerPayload = await localSignerJson('/pst/ricerca-snapshot', {
               tribunale,
               numero_rg: query.numero,
               anno_rg: query.anno,
-              nome_parte: query.assistito || query.controparte,
-              cf_parte: query.cf,
+              nome_parte: exactPstSearch ? '' : (query.assistito || query.controparte),
+              cf_parte: exactPstSearch ? '' : query.cf,
               oggetto: query.oggetto,
               ufficio_nome: query.ufficioNome || query.ufficio,
               cf_avvocato: asText(status.codice_fiscale_avvocato),
@@ -1554,8 +1555,8 @@ function AcquisitionWizard({
             tribunale,
             numero_rg: query.numero,
             anno_rg: query.anno,
-            nome_parte: query.assistito || query.controparte,
-            cf_parte: query.cf,
+            nome_parte: exactPstSearch ? '' : (query.assistito || query.controparte),
+            cf_parte: exactPstSearch ? '' : query.cf,
             cf_avvocato: asText(status.codice_fiscale_avvocato),
             cert_thumbprint: cert.thumbprint || null,
             cert_key: cert.thumbprint || '',

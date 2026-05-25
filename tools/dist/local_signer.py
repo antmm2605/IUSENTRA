@@ -4441,13 +4441,17 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
             return f"<{name}>{_esc(str(value))}</{name}>"
         return ""
 
+    exact_registry_lookup = bool(str(numero_rg or "").strip() and str(anno_rg or "").strip())
+    filtered_nome_parte = None if exact_registry_lookup else nome_parte
+    filtered_cf_parte = None if exact_registry_lookup else cf_parte
+
     body_inner = "".join([
         tag("cfAvvocato", cf_avvocato),
         tag("codiceUfficio", codice_ufficio),
         tag("numeroRG", numero_rg),
         tag("annoRG", anno_rg),
-        tag("nomeParte", nome_parte),
-        tag("codiceFiscaleParte", cf_parte),
+        tag("nomeParte", filtered_nome_parte),
+        tag("codiceFiscaleParte", filtered_cf_parte),
     ])
 
     return f"""<?xml version="1.0" encoding="UTF-8"?>

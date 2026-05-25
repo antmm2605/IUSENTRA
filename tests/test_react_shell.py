@@ -1451,6 +1451,9 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "'/pst/download-documento'" not in source
     assert "const prepared = await ensurePstPortalSession(tribunale)" not in source
     assert "ensurePstPortalSession" not in source
+    assert "const exactPstSearch = Boolean(asText(query.numero) && asText(query.anno))" in source
+    assert "nome_parte: exactPstSearch ? '' : (query.assistito || query.controparte)" in source
+    assert "cf_parte: exactPstSearch ? '' : query.cf" in source
     assert "pst_session_id: session?.sessionId || ''" in source
     assert "function coercePstSessionFromPayload" in source
     assert "const session = activePstSessionFor(tribunale, cert)" in source

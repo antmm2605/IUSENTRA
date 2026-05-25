@@ -3528,3 +3528,13 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build:vite` | OK | TypeScript e build Vite confermati dopo il presidio React sul caricamento catalogo uffici. |
 | `python -m py_compile tools\local_signer.py tools\dist\local_signer.py` | OK | Sintassi confermata su sorgente e pacchetto Local Signer `1.6.47`. |
 | `python tools\check_local_signer_boundaries.py`; `python tools\sync_packaging_files.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python tools\build_dist.py` | OK | Confini Local Signer, packaging, OpenAPI e pacchetti Windows/macOS/Linux allineati a `2.248.54` / `1.6.47`. |
+
+## Hotfix foreground PIN Windows 2.248.55 / Local Signer 1.6.48 - 2026-05-25
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile tools\local_signer.py tools\dist\local_signer.py` | OK | Sintassi confermata su sorgente e pacchetto Local Signer `1.6.48`. |
+| `python -m pytest -q tests/test_local_signer.py::test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows tests/test_local_signer.py::test_pst_ricerca_snapshot_esegue_preflight_prima_del_batch tests/test_local_signer.py::test_pst_best_effort_batch_401_non_diventa_ricerca_vuota tests/test_local_signer.py::test_pst_download_batch_riusa_sessione_view_anche_se_client_chiede_import --tb=short` | OK | 4/4 passati: helper foreground PIN presente sui curl PST e regressioni certificate preflight/401/download ancora verdi. |
+| `python -m pytest -q tests/test_local_signer.py --tb=short` | OK | Suite Local Signer completa verde dopo l'aggiunta del foreground best-effort Windows per PIN/Sicurezza Windows/smart card/Bit4id. |
+| `python -m pytest -q tests/test_build_dist.py tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 14/14 passati: pacchetti e readiness allineati alla nuova versione installabile `SetupLocalSigner-1.6.48.exe`. |
+| `python tools\check_local_signer_boundaries.py`; `python tools\sync_packaging_files.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python tools\build_dist.py` | OK | Guardrail Local Signer, packaging, OpenAPI e build dist allineati a `2.248.55` / `1.6.48`. |

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.248.55 - 2026-05-25
+
+- Aggiornato Local Signer a `1.6.48`: su Windows, durante preflight, ricerca e download PST, il processo prova a portare in primo piano la finestra PIN/Sicurezza Windows/smart card/Bit4id mentre `curl` attende il certificato, così l'avvocato non deve cercarla nella barra delle applicazioni.
+- Aggiunta una regressione statica per impedire che i `curl` PST tornino a essere lanciati senza l'helper di foreground del PIN.
+
 ## 2.248.54 - 2026-05-25
 
 - Corretto Local Signer `1.6.47`: ripristinato il preflight certificato PST come gate obbligatorio prima di ricerca, snapshot, documenti e download batch, così l'accettazione live del certificato torna separata dalla chiamata operativa come nel flusso certificato.

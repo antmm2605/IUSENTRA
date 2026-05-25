@@ -2636,3 +2636,9 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - La ricerca PST non deve trasformare errori di autenticazione o 401 in "nessun fascicolo trovato": il problema resta esplicito e finisce nella diagnosi server tenant-aware.
 - Il wizard React aspetta il catalogo uffici prima dell'avvio automatico; il wizard classico risolve un eventuale `codiceMinistero` cached tramite `/api/uffici` e invia al Local Signer il codice ufficiale, ad esempio Palmi `0910011` invece di `0800570094`.
 - Verifiche registrate: 8 test Local Signer PST mirati, 3 test wizard React/diagnostica, 2 test wizard classico, `py_compile`, boundary check Local Signer, packaging sync, OpenAPI e build pacchetti Local Signer `1.6.47`.
+
+## Aggiornamento 2026-05-25: foreground PIN Windows Local Signer 2.248.55 / 1.6.48
+
+- Durante preflight, ricerca, snapshot e download PST su Windows, il Local Signer avvia un helper best-effort che cerca finestre PIN/Sicurezza Windows/smart card/CNS/CIE/Bit4id/Aruba/token e prova a riportarle in primo piano mentre `curl` attende il certificato.
+- La modifica non cambia il modello di sicurezza: PIN e chiave privata restano sul dispositivo, non vengono salvati e non vengono trasferiti al server.
+- Verifiche registrate: suite Local Signer completa, test packaging/readiness, `py_compile`, boundary check, packaging sync, OpenAPI, UTF-8 integrity e build pacchetti Local Signer `1.6.48`.

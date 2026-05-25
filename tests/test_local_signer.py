@@ -165,6 +165,42 @@ def test_wizard_pst_usa_snapshot_e_sessione_unica_anche_per_download():
     )
 
 
+def test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "tools" / "local_signer.py").read_text(encoding="utf-8")
+
+    assert "def _windows_pin_prompt_foreground_pump" in source
+    assert "def _run_curl_with_pin_foreground" in source
+    assert '"sicurezza di windows"' in source
+    assert '"windows security"' in source
+    assert '"bit4id"' in source
+    assert source.count("_run_curl_with_pin_foreground(") >= 5
+
+    raw = source[
+        source.index("def _soap_call_curl_raw"):
+        source.index("def _soap_call_curl_batch_raw")
+    ]
+    batch = source[
+        source.index("def _soap_call_curl_batch_raw("):
+        source.index("def _soap_call_curl_batch_raw_best_effort")
+    ]
+    best_effort_start = source.index("def _soap_call_curl_batch_raw_best_effort")
+    best_effort = source[
+        best_effort_start:
+        source.index("def _soap_call_curl", best_effort_start + 1)
+    ]
+    preflight_start = source.index("def _pst_preflight_auth_curl")
+    preflight = source[
+        preflight_start:
+        source.index("def _esc", preflight_start + 1)
+    ]
+
+    assert "_run_curl_with_pin_foreground(" in raw
+    assert "_run_curl_with_pin_foreground(" in batch
+    assert "_run_curl_with_pin_foreground(" in best_effort
+    assert "_run_curl_with_pin_foreground(" in preflight
+
+
 def test_pst_preflight_import_riusa_sessione_view_attiva_senza_nuovo_handshake(monkeypatch):
     module = _load_local_signer()
     captured = {}

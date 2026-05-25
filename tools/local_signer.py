@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.47
+IUSENTRA Local Signer - v1.6.48
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -63,6 +63,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unicodedata
 import webbrowser
 import xml.etree.ElementTree as ET
@@ -111,7 +112,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.47"
+VERSION = "1.6.48"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -3258,6 +3259,106 @@ def _curl_windows_ssl_revoke_config_lines() -> list[str]:
     return ["ssl-no-revoke"] if sys.platform == "win32" else []
 
 
+_WINDOWS_PIN_FOREGROUND_KEYWORDS = (
+    "pin",
+    "sicurezza windows",
+    "sicurezza di windows",
+    "windows security",
+    "smart card",
+    "smartcard",
+    "carta intelligente",
+    "cns",
+    "cie",
+    "bit4id",
+    "aruba",
+    "token",
+)
+
+
+def _windows_try_foreground_pin_prompt_once() -> bool:
+    """
+    Best-effort: durante il TLS client-auth di curl, alcune dialog Windows
+    per il PIN restano minimizzate o dietro al browser. Se ne troviamo una
+    con titolo coerente, la ripristiniamo e proviamo a portarla davanti.
+    """
+    if sys.platform != "win32":
+        return False
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        user32 = ctypes.windll.user32  # type: ignore[attr-defined]
+        EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
+        matched: list[Any] = []
+
+        @EnumWindowsProc
+        def _enum_window(hwnd, _lparam):
+            if not user32.IsWindowVisible(hwnd):
+                return True
+            length = user32.GetWindowTextLengthW(hwnd)
+            if length <= 0:
+                return True
+            buffer = ctypes.create_unicode_buffer(length + 1)
+            user32.GetWindowTextW(hwnd, buffer, length + 1)
+            title = (buffer.value or "").strip()
+            if not title:
+                return True
+            title_norm = title.casefold()
+            if any(keyword in title_norm for keyword in _WINDOWS_PIN_FOREGROUND_KEYWORDS):
+                matched.append(hwnd)
+                return False
+            return True
+
+        user32.EnumWindows(_enum_window, 0)
+        if not matched:
+            return False
+
+        hwnd = matched[0]
+        sw_restore = 9
+        if user32.IsIconic(hwnd):
+            user32.ShowWindow(hwnd, sw_restore)
+        user32.BringWindowToTop(hwnd)
+        user32.SetForegroundWindow(hwnd)
+        switch_to_this_window = getattr(user32, "SwitchToThisWindow", None)
+        if switch_to_this_window:
+            switch_to_this_window(hwnd, True)
+        return True
+    except Exception as exc:
+        log.debug("Helper foreground PIN non disponibile: %s", exc)
+        return False
+
+
+def _windows_pin_prompt_foreground_pump(stop_event: threading.Event, deadline_seconds: float) -> None:
+    deadline = time.monotonic() + max(1.0, min(float(deadline_seconds or 1), 180.0))
+    while not stop_event.is_set() and time.monotonic() < deadline:
+        found = _windows_try_foreground_pin_prompt_once()
+        stop_event.wait(0.85 if found else 0.30)
+
+
+def _run_curl_with_pin_foreground(cmd: list[str], **kwargs: Any) -> subprocess.CompletedProcess:
+    if sys.platform != "win32":
+        return subprocess.run(cmd, **kwargs)
+
+    try:
+        pump_seconds = float(kwargs.get("timeout") or PST_SOAP_MAX_TIME + 10)
+    except (TypeError, ValueError):
+        pump_seconds = float(PST_SOAP_MAX_TIME + 10)
+
+    stop_event = threading.Event()
+    worker = threading.Thread(
+        target=_windows_pin_prompt_foreground_pump,
+        args=(stop_event, pump_seconds),
+        name="iusentra-pin-foreground",
+        daemon=True,
+    )
+    worker.start()
+    try:
+        return subprocess.run(cmd, **kwargs)
+    finally:
+        stop_event.set()
+        worker.join(timeout=0.5)
+
+
 def _http_status_from_headers(header_text: str) -> Optional[int]:
     status = None
     for raw_line in (header_text or "").splitlines():
@@ -3616,7 +3717,7 @@ def _soap_call_curl_raw(url: str, soap_body: str,
 
         cmd.append(url)
 
-        result = subprocess.run(
+        result = _run_curl_with_pin_foreground(
             cmd, capture_output=True,
             timeout=effective_max_time + 10
         )
@@ -3786,7 +3887,7 @@ def _soap_call_curl_batch_raw(
         tmp_files.append(cfg_file)
 
         log.debug("curl batch: %d richieste SOAP in un solo processo", len(transfers))
-        result = subprocess.run(
+        result = _run_curl_with_pin_foreground(
             [_curl_command(), "-s", "-S", "-K", cfg_file],
             capture_output=True,
             timeout=sum((int(t["max_time"]) + 10) for t in transfers),
@@ -3966,7 +4067,7 @@ def _soap_call_curl_batch_raw_best_effort(
             cfg_file = f.name
         tmp_files.append(cfg_file)
 
-        result = subprocess.run(
+        result = _run_curl_with_pin_foreground(
             [_curl_command(), "-s", "-S", "-K", cfg_file],
             capture_output=True,
             timeout=sum((int(t["max_time"]) + 10) for t in transfers),
@@ -4415,7 +4516,7 @@ def _pst_preflight_auth_curl(url: str,
         cmd.append(url)
 
         try:
-            result = subprocess.run(
+            result = _run_curl_with_pin_foreground(
                 cmd, capture_output=True, text=True,
                 timeout=PST_PREFLIGHT_MAX_TIME + 10, encoding="utf-8", errors="replace"
             )

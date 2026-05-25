@@ -15,6 +15,7 @@ Questo documento registra le regole funzionali certificate con test reale su PST
 - Ogni ricerca reale PST dal browser deve salvare sul server dello studio una diagnosi operativa tenant-aware con ufficio, codice risolto, R.G./anno, versione Local Signer, risposta/fault e log locale sanificato quando disponibile. La diagnosi non deve includere PIN, credenziali o token di sessione sensibili.
 - La visualizzazione del fascicolo usa la sessione PST già aperta dal Local Signer e passa sempre `pst_session_id` alle chiamate successive.
 - Non deve esistere una chiamata preventiva `/pst/preflight-auth` nel wizard React o nel wizard classico: il PIN deve essere richiesto solo quando serve davvero al portale. Il Local Signer, però, deve eseguire internamente il preflight certificato come gate obbligatorio prima della ricerca operativa, dello snapshot, del catalogo documenti e del download batch; un rifiuto certificato/HTTP 401 non deve mai diventare "nessun fascicolo trovato".
+- Su Windows, mentre `curl` attende il certificato client del PST, il Local Signer deve provare in modo best-effort a portare in primo piano la finestra PIN/Sicurezza Windows/smart card/CNS/CIE/Bit4id/Aruba/token, senza cambiare il numero di PIN richiesti e senza salvare PIN o chiavi.
 - Il comportamento certificato resta: un PIN per visualizzare il fascicolo e un PIN separato solo per scaricare l'intero fascicolo.
 - Il download dell'intero fascicolo usa `/pst/download-documenti-batch` e `preflight_auth: false`; non deve tornare al download singolo ripetuto come flusso principale React.
 - Il Local Signer non deve salvare PIN, credenziali CNS/CIE/SPID o sessioni portale nel cloud.
@@ -26,4 +27,5 @@ I presidi sono parte del gate `Local Signer boundaries` eseguito in CI Quality O
 
 - `tools/check_local_signer_boundaries.py` verifica la presenza delle invarianti sopra in `tools/local_signer.py`, `tools/dist/local_signer.py`, `frontend/src/components/TelematicoSurfacePage.tsx` e `web/templates/portale/acquisizione_wizard.html`.
 - `tests/test_local_signer.py` verifica che la SOAP di ricerca esatta numero/anno non includa `nomeParte` o `codiceFiscaleParte`, mentre la ricerca per parte continui a usarli.
+- `tests/test_local_signer.py::test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows` verifica che i `curl` PST usino l'helper di foreground della finestra PIN su Windows.
 - `tests/test_react_shell.py` e `tests/test_polisweb.py` impediscono il ritorno di preflight PIN dal wizard, verificano la normalizzazione del codice ufficio e bloccano il filtro parte/CF nelle ricerche esatte del wizard.

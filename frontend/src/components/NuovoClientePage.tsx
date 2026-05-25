@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import {
   ArrowLeft,
   BadgeCheck,
@@ -151,6 +151,287 @@ async function safeJson(response: Response): Promise<Record<string, unknown>> {
 
 function asInputValue(value: string | boolean | undefined): string {
   return typeof value === 'boolean' ? (value ? '1' : '0') : text(value)
+}
+
+type ClientDocumentField = keyof typeof initialClient
+type ClientDocumentPatch = Partial<Record<ClientDocumentField, string>>
+type ClientDocumentAutofillState = {
+  tone: 'neutral' | 'success' | 'danger'
+  message: string
+  fields: string[]
+}
+type ClientDocumentAutofillResult = {
+  ok: boolean
+  applied: string[]
+  skipped: string[]
+  message: string
+}
+
+declare global {
+  interface Window {
+    IUSENTRA_CLIENTE_NUOVO?: {
+      applicaDatiDocumento: (payload: unknown) => ClientDocumentAutofillResult
+    }
+  }
+}
+
+const emptyDocumentAutofillState: ClientDocumentAutofillState = {
+  tone: 'neutral',
+  message: 'In attesa dei dati dal lettore documento.',
+  fields: [],
+}
+
+const clientDocumentFieldLabels: Partial<Record<ClientDocumentField, string>> = {
+  codice_fiscale: 'codice fiscale',
+  cognome: 'cognome',
+  nome: 'nome',
+  sesso: 'sesso',
+  data_nascita: 'data di nascita',
+  luogo_nascita: 'luogo di nascita',
+  provincia_nascita: 'provincia di nascita',
+  nazionalita: 'nazionalità',
+  doc_tipo: 'tipo documento',
+  doc_numero: 'numero documento',
+  doc_rilasciato_da: 'rilasciato da',
+  doc_data_rilascio: 'data rilascio',
+  doc_data_scadenza: 'data scadenza',
+  via: 'via',
+  civico: 'civico',
+  cap: 'CAP',
+  comune: 'comune',
+  provincia: 'provincia',
+  nazione: 'nazione',
+  telefono: 'telefono',
+  cellulare: 'cellulare',
+  email: 'email',
+  pec: 'PEC',
+}
+
+const clientDocumentAliases: Partial<Record<ClientDocumentField, string[]>> = {
+  codice_fiscale: ['codice_fiscale', 'codice fiscale', 'cf', 'fiscalCode', 'taxCode'],
+  cognome: ['cognome', 'surname', 'lastName', 'familyName'],
+  nome: ['nome', 'name', 'firstName', 'givenName'],
+  sesso: ['sesso', 'sex', 'gender'],
+  data_nascita: ['data_nascita', 'data nascita', 'birthDate', 'dateOfBirth', 'dob'],
+  luogo_nascita: ['luogo_nascita', 'luogo nascita', 'comune_nascita', 'birthPlace', 'placeOfBirth'],
+  provincia_nascita: ['provincia_nascita', 'provincia nascita', 'birthProvince', 'provinceOfBirth'],
+  nazionalita: ['nazionalita', 'nazionalità', 'nationality', 'cittadinanza'],
+  doc_tipo: ['doc_tipo', 'tipo_documento', 'tipo documento', 'documentType', 'documento_tipo', 'type'],
+  doc_numero: ['doc_numero', 'numero_documento', 'numero documento', 'documentNumber', 'numero', 'number'],
+  doc_rilasciato_da: ['doc_rilasciato_da', 'rilasciato_da', 'rilasciato da', 'issuingAuthority', 'issuer'],
+  doc_data_rilascio: ['doc_data_rilascio', 'data_rilascio', 'data rilascio', 'issueDate', 'releasedAt'],
+  doc_data_scadenza: ['doc_data_scadenza', 'data_scadenza', 'data scadenza', 'expiryDate', 'expirationDate', 'validUntil'],
+  via: ['via', 'indirizzo', 'address', 'street', 'residenza_via'],
+  civico: ['civico', 'numero_civico', 'houseNumber', 'streetNumber'],
+  cap: ['cap', 'postalCode', 'zip', 'zipCode'],
+  comune: ['comune', 'city', 'municipality', 'residenza_comune'],
+  provincia: ['provincia', 'province', 'residenza_provincia'],
+  nazione: ['nazione', 'country', 'residenza_nazione'],
+  telefono: ['telefono', 'phone'],
+  cellulare: ['cellulare', 'mobile', 'mobilePhone'],
+  email: ['email', 'mail'],
+  pec: ['pec', 'certifiedEmail'],
+}
+
+function normalizeScanKey(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+function rememberScanValue(bucket: Map<string, string[]>, key: string, value: unknown) {
+  const normalizedKey = normalizeScanKey(key)
+  const clean = text(value)
+  if (!normalizedKey || !clean || clean === 'null' || clean === 'undefined') return
+  const current = bucket.get(normalizedKey) || []
+  current.push(clean)
+  bucket.set(normalizedKey, current)
+}
+
+function collectScanValues(payload: unknown, parentKey = '', bucket = new Map<string, string[]>(), depth = 0): Map<string, string[]> {
+  if (depth > 6 || payload === null || payload === undefined) return bucket
+  if (Array.isArray(payload)) {
+    payload.forEach((item) => collectScanValues(item, parentKey, bucket, depth + 1))
+    return bucket
+  }
+  if (!isRecord(payload)) {
+    if (parentKey) rememberScanValue(bucket, parentKey, payload)
+    return bucket
+  }
+  Object.entries(payload).forEach(([key, value]) => {
+    const compoundKey = parentKey ? `${parentKey}_${key}` : key
+    if (isRecord(value) || Array.isArray(value)) {
+      collectScanValues(value, compoundKey, bucket, depth + 1)
+      return
+    }
+    rememberScanValue(bucket, key, value)
+    rememberScanValue(bucket, compoundKey, value)
+  })
+  return bucket
+}
+
+function pickScanValue(values: Map<string, string[]>, aliases: string[]): string {
+  for (const alias of aliases) {
+    const candidates = values.get(normalizeScanKey(alias))
+    const value = candidates?.find((item) => text(item))
+    if (value) return value
+  }
+  return ''
+}
+
+function padDatePart(value: number): string {
+  return String(value).padStart(2, '0')
+}
+
+function formatScanDate(year: number, month: number, day: number): string {
+  if (year < 1900 || month < 1 || month > 12 || day < 1 || day > 31) return ''
+  const candidate = new Date(Date.UTC(year, month - 1, day))
+  if (candidate.getUTCFullYear() !== year || candidate.getUTCMonth() !== month - 1 || candidate.getUTCDate() !== day) return ''
+  return `${year}-${padDatePart(month)}-${padDatePart(day)}`
+}
+
+function normalizeTwoDigitYear(year: number, purpose: 'birth' | 'expiry' | 'generic'): number {
+  const currentYear = new Date().getFullYear()
+  const century = Math.floor(currentYear / 100) * 100
+  let fullYear = century + year
+  if (purpose === 'birth') {
+    if (fullYear > currentYear) fullYear -= 100
+    return fullYear
+  }
+  if (purpose === 'expiry') {
+    if (fullYear < currentYear - 30) fullYear += 100
+    return fullYear
+  }
+  if (fullYear > currentYear + 30) fullYear -= 100
+  return fullYear
+}
+
+function normalizeScanDate(value: unknown, purpose: 'birth' | 'expiry' | 'generic' = 'generic'): string {
+  const raw = text(value)
+  if (!raw) return ''
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (iso) return formatScanDate(Number(iso[1]), Number(iso[2]), Number(iso[3]))
+  const italian = raw.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2}|\d{4})$/)
+  if (italian) {
+    const year = italian[3].length === 2 ? normalizeTwoDigitYear(Number(italian[3]), purpose) : Number(italian[3])
+    return formatScanDate(year, Number(italian[2]), Number(italian[1]))
+  }
+  const digits = raw.replace(/\D/g, '')
+  if (digits.length === 8) return formatScanDate(Number(digits.slice(0, 4)), Number(digits.slice(4, 6)), Number(digits.slice(6, 8)))
+  if (digits.length === 6) return formatScanDate(normalizeTwoDigitYear(Number(digits.slice(0, 2)), purpose), Number(digits.slice(2, 4)), Number(digits.slice(4, 6)))
+  return ''
+}
+
+function normalizeScanSex(value: unknown): string {
+  const raw = normalizeScanKey(text(value))
+  if (['m', 'male', 'maschio', 'maschile'].includes(raw)) return 'M'
+  if (['f', 'female', 'femmina', 'femminile'].includes(raw)) return 'F'
+  return ''
+}
+
+function normalizeDocumentType(value: unknown): string {
+  const raw = normalizeScanKey(text(value))
+  if (!raw) return ''
+  if (raw.includes('pass')) return 'PASSAPORTO'
+  if (raw.includes('patente')) return 'PATENTE'
+  if (raw.includes('soggiorno')) return 'PERMESSO_SOGGIORNO'
+  if (raw.includes('ident') || raw === 'ci' || raw.startsWith('i')) return 'CARTA_IDENTITA'
+  return text(value).toUpperCase()
+}
+
+function normalizeNationality(value: unknown): string {
+  const raw = normalizeScanKey(text(value))
+  if (!raw) return ''
+  if (['ita', 'italia', 'italiana', 'italian'].includes(raw)) return 'Italiana'
+  return text(value)
+}
+
+function titleCaseScanValue(value: string): string {
+  return value
+    .replace(/</g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLocaleLowerCase('it-IT')
+    .replace(/(^|[\s'-])([a-zàèéìòù])/g, (_, prefix: string, letter: string) => `${prefix}${letter.toLocaleUpperCase('it-IT')}`)
+}
+
+function cleanMrzValue(value: string): string {
+  return value.replace(/</g, '').trim()
+}
+
+function parseMrzNames(segment: string): Pick<ClientDocumentPatch, 'nome' | 'cognome'> {
+  const [surname = '', names = ''] = segment.split('<<')
+  return {
+    cognome: titleCaseScanValue(surname),
+    nome: titleCaseScanValue(names.replace(/</g, ' ')),
+  }
+}
+
+function parseMrzDocument(rawMrz: string): ClientDocumentPatch {
+  const lines = rawMrz.toUpperCase().split(/\r?\n/).map((line) => line.replace(/\s/g, '')).filter((line) => line.includes('<'))
+  if (lines.length >= 2 && lines[0].startsWith('P') && lines[0].length >= 40 && lines[1].length >= 40) {
+    return {
+      doc_tipo: 'PASSAPORTO',
+      doc_numero: cleanMrzValue(lines[1].slice(0, 9)),
+      nazionalita: normalizeNationality(lines[1].slice(10, 13)),
+      data_nascita: normalizeScanDate(lines[1].slice(13, 19), 'birth'),
+      sesso: normalizeScanSex(lines[1].slice(20, 21)),
+      doc_data_scadenza: normalizeScanDate(lines[1].slice(21, 27), 'expiry'),
+      ...parseMrzNames(lines[0].slice(5)),
+    }
+  }
+  if (lines.length >= 3 && lines[0].length >= 30 && lines[1].length >= 30) {
+    return {
+      doc_tipo: 'CARTA_IDENTITA',
+      doc_numero: cleanMrzValue(lines[0].slice(5, 14)),
+      data_nascita: normalizeScanDate(lines[1].slice(0, 6), 'birth'),
+      sesso: normalizeScanSex(lines[1].slice(7, 8)),
+      doc_data_scadenza: normalizeScanDate(lines[1].slice(8, 14), 'expiry'),
+      nazionalita: normalizeNationality(lines[1].slice(15, 18)),
+      ...parseMrzNames(lines[2]),
+    }
+  }
+  return {}
+}
+
+function normalizeClientDocumentScan(payload: unknown): ClientDocumentPatch {
+  const values = collectScanValues(payload)
+  const patch: ClientDocumentPatch = {}
+  const mrz = pickScanValue(values, ['mrz', 'mrzText', 'mrz_text', 'rawMrz', 'raw_mrz', 'machineReadableZone'])
+  Object.assign(patch, mrz ? parseMrzDocument(mrz) : {})
+  Object.entries(clientDocumentAliases).forEach(([field, aliases]) => {
+    const raw = pickScanValue(values, aliases || [])
+    if (!raw) return
+    const target = field as ClientDocumentField
+    let clean = text(raw)
+    if (target === 'data_nascita') clean = normalizeScanDate(raw, 'birth')
+    if (target === 'doc_data_scadenza') clean = normalizeScanDate(raw, 'expiry')
+    if (target === 'doc_data_rilascio') clean = normalizeScanDate(raw, 'generic')
+    if (target === 'sesso') clean = normalizeScanSex(raw)
+    if (target === 'doc_tipo') clean = normalizeDocumentType(raw)
+    if (target === 'nazionalita') clean = normalizeNationality(raw)
+    if (['codice_fiscale', 'provincia_nascita', 'provincia'].includes(target)) clean = clean.toUpperCase()
+    if (clean) patch[target] = clean
+  })
+  return patch
+}
+
+function canAutofillClientField(field: ClientDocumentField, currentValue: string | boolean | undefined, nextValue: string, touchedFields: Set<string>): boolean {
+  if (!text(nextValue) || touchedFields.has(field)) return false
+  const current = asInputValue(currentValue)
+  const defaultValue = asInputValue(initialClient[field])
+  return !text(current) || current === defaultValue
+}
+
+function DocumentAutofillPanel({ state }:{ state: ClientDocumentAutofillState }) {
+  return (
+    <div className={`iu-cln-doc-hook iu-cln-doc-hook--${state.tone}`} role={state.tone === 'danger' ? 'alert' : 'status'}>
+      <Camera size={17}/>
+      <div>
+        <strong>Lettura documento pronta</strong>
+        <span>{state.message}</span>
+        {state.fields.length ? <small>{state.fields.join(', ')}</small> : null}
+      </div>
+    </div>
+  )
 }
 
 function emptySubmitState(): SubmitState {
@@ -333,13 +614,26 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
   const [values, setValues] = useState<ClientFormState>({...initialClient})
   const [cfStatus, setCfStatus] = useState('')
   const [submitState, setSubmitState] = useState<SubmitState>(() => emptySubmitState())
+  const [autofillState, setAutofillState] = useState<ClientDocumentAutofillState>(() => emptyDocumentAutofillState)
+  const [touchedFields, setTouchedFields] = useState<Set<string>>(() => new Set())
+  const valuesRef = useRef(values)
+  const touchedFieldsRef = useRef(touchedFields)
   const action = data.actions.operationalClientForm
   const isPhysical = values.tipo === 'PERSONA_FISICA'
   const nextUrl = data.query.nextUrl
 
   useEffect(() => {
+    valuesRef.current = values
+  }, [values])
+
+  useEffect(() => {
+    touchedFieldsRef.current = touchedFields
+  }, [touchedFields])
+
+  useEffect(() => {
     if (data.mode !== 'edit') return
     setValues({...initialClient, ...data.initialClient})
+    setTouchedFields(new Set())
   }, [data])
 
   useEffect(() => {
@@ -395,7 +689,69 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
     }
   }, [values.cognome, values.nome, values.sesso, values.data_nascita, values.luogo_nascita, values.provincia_nascita, values.codice_fiscale, isPhysical])
 
+  const applyDocumentPayload = useCallback((payload: unknown): ClientDocumentAutofillResult => {
+    if (!isPhysical) {
+      const result = { ok: false, applied: [], skipped: [], message: 'La lettura documento è disponibile per le persone fisiche.' }
+      setAutofillState({ tone: 'neutral', message: result.message, fields: [] })
+      return result
+    }
+    const patch = normalizeClientDocumentScan(payload)
+    const entries = Object.entries(patch).filter(([, value]) => text(value))
+    if (!entries.length) {
+      const result = { ok: false, applied: [], skipped: [], message: 'Nessun dato anagrafico riconosciuto dal documento.' }
+      setAutofillState({ tone: 'danger', message: result.message, fields: [] })
+      return result
+    }
+    const currentValues = valuesRef.current
+    const currentTouched = touchedFieldsRef.current
+    const nextValues: ClientFormState = { ...currentValues }
+    const applied: string[] = []
+    const skipped: string[] = []
+    entries.forEach(([field, value]) => {
+      const target = field as ClientDocumentField
+      const clean = text(value)
+      if (canAutofillClientField(target, currentValues[target], clean, currentTouched)) {
+        nextValues[target] = clean
+        applied.push(clientDocumentFieldLabels[target] || target)
+      } else {
+        skipped.push(clientDocumentFieldLabels[target] || target)
+      }
+    })
+    if (applied.length) {
+      setValues(nextValues)
+      setAutofillState({
+        tone: 'success',
+        message: skipped.length ? 'Dati documento applicati. Alcuni campi già compilati sono stati lasciati invariati.' : 'Dati documento applicati alla nuova anagrafica.',
+        fields: applied,
+      })
+      return { ok: true, applied, skipped, message: 'Dati documento applicati.' }
+    }
+    const result = { ok: false, applied, skipped, message: 'I campi riconosciuti erano già compilati.' }
+    setAutofillState({ tone: 'neutral', message: result.message, fields: skipped })
+    return result
+  }, [isPhysical])
+
+  useEffect(() => {
+    const api = { applicaDatiDocumento: applyDocumentPayload }
+    window.IUSENTRA_CLIENTE_NUOVO = api
+    const handleDocumentDetected = (event: Event) => {
+      applyDocumentPayload((event as CustomEvent<unknown>).detail)
+    }
+    window.addEventListener('iusentra:cliente-documento-rilevato', handleDocumentDetected)
+    return () => {
+      window.removeEventListener('iusentra:cliente-documento-rilevato', handleDocumentDetected)
+      if (window.IUSENTRA_CLIENTE_NUOVO?.applicaDatiDocumento === api.applicaDatiDocumento) {
+        delete window.IUSENTRA_CLIENTE_NUOVO
+      }
+    }
+  }, [applyDocumentPayload])
+
   const change = (name: string, value: string) => {
+    setTouchedFields((current) => {
+      const next = new Set(current)
+      next.add(name)
+      return next
+    })
     setValues((current) => ({...current, [name]: name.includes('codice') || name.includes('partita') || name === 'provincia_nascita' ? value.toUpperCase() : value}))
   }
   const checkbox = (event: ChangeEvent<HTMLInputElement>) => {
@@ -441,6 +797,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
       <Card title={isPhysical ? 'Dati persona fisica' : 'Dati persona giuridica'} icon={isPhysical ? <UserRound size={18}/> : <Building2 size={18}/>} note="Campi coerenti con l'anagrafica dello studio">
         {isPhysical ? (
           <div className="iu-cln-grid">
+            <DocumentAutofillPanel state={autofillState}/>
             <Field label="Cognome" name="cognome" value={asInputValue(values.cognome)} required placeholder="Rossi" onChange={change}/>
             <Field label="Nome" name="nome" value={asInputValue(values.nome)} required placeholder="Mario" onChange={change}/>
             <SelectField label="Sesso" name="sesso" value={asInputValue(values.sesso)} required onChange={change} options={[{value: '', label: '-'}, {value: 'M', label: 'Maschile'}, {value: 'F', label: 'Femminile'}]}/>
@@ -783,8 +1140,6 @@ export function NuovoClientePage() {
         </div>
         <QualityRail data={data} activeTab={tab}/>
       </section>
-
-      <div className="iu-cln-ocr-note"><Camera size={15}/>Hook OCR/MRZ pronto: quando collegheremo il parser documento potra popolare CF, documento e scadenze.</div>
 
       <FloatingLex
         context={tab === 'cliente' ? 'nuovo-cliente' : 'nuovo-soggetto'}

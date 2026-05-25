@@ -3562,3 +3562,14 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build` | OK | TypeScript e build Vite verdi dopo la resa a card degli uffici competenti. |
 | `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python scripts\smoke_app_v2_all.py --subset contracts`; `git diff --check -- docs\openapi.yaml` | OK | Hotfix post-push: contratti API riallineati al generatore, OpenAPI valido, provider verification OK e smoke contratti offline PASS=2/SKIP live=1. |
 | `python scripts\react-migration\generate_app_v2_page_registry.py --check`; `python scripts\react-migration\generate_app_v2_test_docs.py --check`; `python scripts\smoke_app_v2_all.py --subset inventory`; `python -m pytest -q tests\test_app_v2_page_registry.py tests\test_app_v2_test_plan_phase10.py tests\test_ci_cd_gates_phase11.py --tb=short`; `git diff --check -- docs\test-inventory.md docs\test-plan-app-v2.md` | OK | Hotfix post-push: documenti test App V2 riallineati con `tests/test_uffici_competenti.py`, inventory PASS=3 e 14/14 test governance verdi. |
+
+## Hook OCR/MRZ anagrafica cliente 2.248.59 - 2026-05-25
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript verde dopo l'hook `IUSENTRA_CLIENTE_NUOVO` e la normalizzazione payload documento su `/clienti/nuovo`. |
+| `python -m pytest tests\test_react_shell.py::test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf -q --tb=short` | OK | Regressione statica verde su evento `iusentra:cliente-documento-rilevato`, API globale, campi documento e pannello React. |
+| `pnpm --filter @iusentra/studio test` | OK | Contratti React, sequenza preset, governance design system, App V2 frontend, legal skills e coverage UI verdi. |
+| `pnpm --filter @iusentra/studio build` | OK | Build Vite completata in 6.73s dopo il nuovo pannello "Lettura documento pronta". |
+| Browser in-app su `http://127.0.0.1:5174/clienti/nuovo` desktop e mobile 390x844 | OK | Titolo `Nuovo Cliente`, pannello documento visibile, vecchio testo tecnico assente, zero errori console; mobile senza overflow orizzontale. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short`; `python -m pytest tests\test_utf8_integrity.py -q --tb=short` | OK | Packaging/versione `2.248.59`, readiness e presidio UTF-8 confermati prima del commit. |

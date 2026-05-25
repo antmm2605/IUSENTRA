@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.248.59 - 2026-05-25
+
+- Preparato su `/clienti/nuovo` l'hook di compilazione automatica da lettura documento: il parser OCR/MRZ potrà popolare codice fiscale, documento, scadenze, nome, cognome, nascita, indirizzo e recapiti senza sovrascrivere i campi già modificati dall'utente.
+
 ## 2.248.58 - 2026-05-25
 
 - Integrata negli Strumenti Forensi la ricerca read-only degli uffici giudiziari competenti per Comune da Giustizia Map: scheda React con Comune, Tribunale, Giudice di Pace, Procura, UNEP, Corte d'Appello, recapiti, assistenza depositi telematici e azioni verso fascicoli/notifiche senza modificare le procedure telematiche.

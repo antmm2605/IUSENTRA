@@ -848,3 +848,9 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | --- | --- | --- | --- | --- |
 | Contratti API dopo integrazione Uffici competenti | GitHub `Lint + syntax` sul push `fae2b62b6` | Risolto localmente, da verificare sul nuovo SHA | Il push della feature aveva `docs/openapi.yaml` non allineato all'output di `generate_api_contracts.py`; gli aggregatori a valle erano rossi o saltati per cascata dal blocco contratti. | Riallineato `docs/openapi.yaml` e rilanciati localmente generate check, validazione OpenAPI, provider verification, smoke contratti offline e whitespace mirato prima del nuovo push. |
 | Documenti test App V2 dopo suite Uffici competenti | GitHub `Lint + syntax` sul push `101b83f99` | Risolto localmente, da verificare sul nuovo SHA | Il nuovo test `tests/test_uffici_competenti.py` non era ancora censito in `docs/test-inventory.md` e `docs/test-plan-app-v2.md`; gli aggregatori Pytest/Signer/Deploy erano rossi o saltati per cascata dal blocco `Lint + syntax`. | Rigenerati i documenti App V2 e rilanciati page registry check, test docs check, smoke inventory, test governance App V2/CI e whitespace mirato prima del nuovo push. |
+
+## Note hook OCR/MRZ anagrafica cliente 2.248.59 - 2026-05-25
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| `/clienti/nuovo` lettura documento | Typecheck, pytest mirato, gate frontend, build e browser desktop/mobile | Nessuna issue aperta nuova | L'hook prepara il collegamento del parser OCR/MRZ e compila solo campi vuoti o rimasti ai valori predefiniti, preservando i campi già modificati dall'utente. | Quando verrà collegato il parser reale, inviare payload all'evento `iusentra:cliente-documento-rilevato` o a `window.IUSENTRA_CLIENTE_NUOVO.applicaDatiDocumento(payload)` e rilanciare il pytest mirato più browser desktop/mobile. |

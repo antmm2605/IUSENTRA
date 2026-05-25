@@ -315,7 +315,7 @@ def test_pst_download_batch_riusa_sessione_view_anche_se_client_chiede_import(mo
     assert captured["payload"]["pst_session_purpose"] == "view"
     assert calls["requested_session_id"] == "SID-VIEW"
     assert calls["ensure_purpose"] == "view"
-    assert "prepare_force" not in calls
+    assert calls["prepare_force"] is False
     assert calls["batch_do_preflight"] is False
     assert calls["batch_cookie_file"] == "C:\\temp\\pst.cookies"
 
@@ -4210,7 +4210,7 @@ def test_pst_prepare_authenticated_session_non_marca_cookie_pronto_su_preflight_
     assert len(calls) == 1
 
 
-def test_pst_ricerca_snapshot_batcha_ricerca_e_documenti_senza_preflight():
+def test_pst_ricerca_snapshot_esegue_preflight_prima_del_batch():
     module = _load_local_signer()
 
     originals = {
@@ -4225,6 +4225,7 @@ def test_pst_ricerca_snapshot_batcha_ricerca_e_documenti_senza_preflight():
         "_pst_servizio_sigp": module._pst_servizio_sigp,
         "_ensure_pst_session_entry": module._ensure_pst_session_entry,
         "_pst_preflight_auth_curl": module._pst_preflight_auth_curl,
+        "_resolve_pst_session_entry": module._resolve_pst_session_entry,
         "_soap_call_pst_session_batch_raw": module._soap_call_pst_session_batch_raw,
         "_soap_call_pst_session_batch_raw_best_effort": module._soap_call_pst_session_batch_raw_best_effort,
         "_estrai_fault_soap": module._estrai_fault_soap,
@@ -4281,7 +4282,13 @@ def test_pst_ricerca_snapshot_batcha_ricerca_e_documenti_senza_preflight():
 
         def _fake_preflight(*args, **kwargs):
             captured["preflight"] += 1
-            raise AssertionError("La ricerca-snapshot esatta non deve fare preflight separato")
+            captured["preflight_kwargs"] = kwargs
+            return {
+                "ok": True,
+                "http_code": 405,
+                "content_type": "text/html",
+                "nota": "Certificato selezionato e richiesta PIN gestita dal sistema.",
+            }
 
         def _fake_batch(requests, **kwargs):
             captured["batch"] = {"requests": list(requests), "kwargs": kwargs}
@@ -4298,6 +4305,7 @@ def test_pst_ricerca_snapshot_batcha_ricerca_e_documenti_senza_preflight():
             ]
 
         module._pst_preflight_auth_curl = _fake_preflight
+        module._resolve_pst_session_entry = lambda session_id: None
         module._soap_call_pst_session_batch_raw_best_effort = _fake_best_effort
         module._estrai_fault_soap = lambda xml: None
         def _fake_parse_fascicoli(xml):
@@ -4332,7 +4340,8 @@ def test_pst_ricerca_snapshot_batcha_ricerca_e_documenti_senza_preflight():
             setattr(module, name, value)
 
     assert captured["status"] == 200
-    assert captured["preflight"] == 0
+    assert captured["preflight"] == 1
+    assert captured["preflight_kwargs"]["cert_thumbprint"] == "AABBCC11"
     assert captured["payload"]["ok"] is True
     assert captured["payload"]["fascicoli"][0]["numero_rg"] == "274"
     assert captured["payload"]["fascicoli"][0]["nome_ufficio"] == "Tribunale di Palmi"
@@ -4343,7 +4352,7 @@ def test_pst_ricerca_snapshot_batcha_ricerca_e_documenti_senza_preflight():
     assert captured["session_ids"] == ["SID-STALENESS-FROM-BROWSER", ""]
     assert len(captured["batch"]["requests"]) == 9
     assert captured["batch"]["kwargs"]["cert_thumbprint"] == "AABBCC11"
-    assert captured["batch"]["kwargs"]["prefer_cookie_only"] is False
+    assert captured["batch"]["kwargs"]["prefer_cookie_only"] is True
 
 
 def test_pst_ricerca_snapshot_fault_client_su_sicid_passa_a_siecic(monkeypatch):
@@ -4395,7 +4404,20 @@ def test_pst_ricerca_snapshot_fault_client_su_sicid_passa_a_siecic(monkeypatch):
             True,
         ),
     )
-    monkeypatch.setattr(module, "_pst_preflight_auth_curl", lambda *args, **kwargs: pytest.fail("preflight vietato"))
+    captured["preflight"] = 0
+
+    def _fake_preflight(*args, **kwargs):
+        captured["preflight"] += 1
+        captured["preflight_kwargs"] = kwargs
+        return {
+            "ok": True,
+            "http_code": 405,
+            "content_type": "text/html",
+            "nota": "Certificato selezionato e richiesta PIN gestita dal sistema.",
+        }
+
+    monkeypatch.setattr(module, "_pst_preflight_auth_curl", _fake_preflight)
+    monkeypatch.setattr(module, "_resolve_pst_session_entry", lambda session_id: None)
 
     def _fake_batch(requests, **kwargs):
         captured["requests"] = list(requests)
@@ -4446,6 +4468,8 @@ def test_pst_ricerca_snapshot_fault_client_su_sicid_passa_a_siecic(monkeypatch):
     module._Handler._pst_ricerca_snapshot(_FakeHandler())
 
     assert captured["status"] == 200
+    assert captured["preflight"] == 1
+    assert captured["preflight_kwargs"]["cert_thumbprint"] == "AABBCC11"
     assert len(captured["requests"]) == 6
     assert captured["payload"]["ok"] is True
     assert captured["payload"]["fascicoli"][0]["numero_rg"] == "274"
@@ -4494,7 +4518,20 @@ def test_pst_ricerca_snapshot_prova_codice_ufficio_ufficiale_se_diverso(monkeypa
             True,
         ),
     )
-    monkeypatch.setattr(module, "_pst_preflight_auth_curl", lambda *args, **kwargs: pytest.fail("preflight vietato"))
+    captured["preflight"] = 0
+
+    def _fake_preflight(*args, **kwargs):
+        captured["preflight"] += 1
+        captured["preflight_kwargs"] = kwargs
+        return {
+            "ok": True,
+            "http_code": 405,
+            "content_type": "text/html",
+            "nota": "Certificato selezionato e richiesta PIN gestita dal sistema.",
+        }
+
+    monkeypatch.setattr(module, "_pst_preflight_auth_curl", _fake_preflight)
+    monkeypatch.setattr(module, "_resolve_pst_session_entry", lambda session_id: None)
 
     def _fake_best_effort(requests, **kwargs):
         captured["requests"] = list(requests)
@@ -4539,6 +4576,8 @@ def test_pst_ricerca_snapshot_prova_codice_ufficio_ufficiale_se_diverso(monkeypa
     module._Handler._pst_ricerca_snapshot(_FakeHandler())
 
     assert captured["status"] == 200
+    assert captured["preflight"] == 1
+    assert captured["preflight_kwargs"]["cert_thumbprint"] == "AABBCC11"
     assert len(captured["requests"]) == 6
     assert any('group="0910011"' in request["soap_body"] for request in captured["requests"])
     assert captured["payload"]["ok"] is True
@@ -4561,6 +4600,8 @@ def test_pst_ricerca_snapshot_sigp_include_ricerca_atti_nel_batch_visualizzazion
         "_pst_namespace_qbuilder": module._pst_namespace_qbuilder,
         "_pst_servizio_sigp": module._pst_servizio_sigp,
         "_ensure_pst_session_entry": module._ensure_pst_session_entry,
+        "_pst_preflight_auth_curl": module._pst_preflight_auth_curl,
+        "_resolve_pst_session_entry": module._resolve_pst_session_entry,
         "_soap_call_pst_session_batch_raw": module._soap_call_pst_session_batch_raw,
         "_soap_call_pst_session_batch_raw_best_effort": module._soap_call_pst_session_batch_raw_best_effort,
         "_sigp_documenti_da_ricerca_atti": module._sigp_documenti_da_ricerca_atti,
@@ -4572,7 +4613,7 @@ def test_pst_ricerca_snapshot_sigp_include_ricerca_atti_nel_batch_visualizzazion
         "_update_pst_session": module._update_pst_session,
         "_get_pst_session": module._get_pst_session,
     }
-    captured = {"batch": None}
+    captured = {"batch": None, "preflight": 0}
 
     class _FakeHandler:
         def _read_json(self):
@@ -4610,6 +4651,16 @@ def test_pst_ricerca_snapshot_sigp_include_ricerca_atti_nel_batch_visualizzazion
             },
             True,
         )
+        module._pst_preflight_auth_curl = lambda *args, **kwargs: (
+            captured.__setitem__("preflight", captured["preflight"] + 1)
+            or {
+                "ok": True,
+                "http_code": 405,
+                "content_type": "text/html",
+                "nota": "Certificato selezionato e richiesta PIN gestita dal sistema.",
+            }
+        )
+        module._resolve_pst_session_entry = lambda session_id: None
 
         def _fake_batch(requests, **kwargs):
             captured["batch"] = {"requests": list(requests), "kwargs": kwargs}
@@ -4651,6 +4702,7 @@ def test_pst_ricerca_snapshot_sigp_include_ricerca_atti_nel_batch_visualizzazion
             setattr(module, name, value)
 
     assert captured["status"] == 200
+    assert captured["preflight"] == 1
     assert captured["payload"]["ok"] is True
     assert [doc["id_repeatto"] for doc in captured["payload"]["documenti"]] == ["3080731", "3073476"]
     assert len(captured["batch"]["requests"]) == 4
@@ -4672,6 +4724,8 @@ def test_pst_documenti_sigp_batcha_documenti_e_ricerca_atti_senza_chiamate_extra
         "_pst_namespace_qbuilder": module._pst_namespace_qbuilder,
         "_pst_servizio_sigp": module._pst_servizio_sigp,
         "_ensure_pst_session_entry": module._ensure_pst_session_entry,
+        "_pst_preflight_auth_curl": module._pst_preflight_auth_curl,
+        "_resolve_pst_session_entry": module._resolve_pst_session_entry,
         "_soap_call_pst_session": module._soap_call_pst_session,
         "_soap_call_pst_session_batch_raw": module._soap_call_pst_session_batch_raw,
         "_sigp_documenti_da_ricerca_atti": module._sigp_documenti_da_ricerca_atti,
@@ -4679,7 +4733,7 @@ def test_pst_documenti_sigp_batcha_documenti_e_ricerca_atti_senza_chiamate_extra
         "_parse_documenti_xml": module._parse_documenti_xml,
         "_update_pst_session": module._update_pst_session,
     }
-    captured = {"batch": None}
+    captured = {"batch": None, "preflight": 0}
 
     class _FakeHandler:
         def _read_json(self):
@@ -4716,6 +4770,16 @@ def test_pst_documenti_sigp_batcha_documenti_e_ricerca_atti_senza_chiamate_extra
             },
             True,
         )
+        module._pst_preflight_auth_curl = lambda *args, **kwargs: (
+            captured.__setitem__("preflight", captured["preflight"] + 1)
+            or {
+                "ok": True,
+                "http_code": 405,
+                "content_type": "text/html",
+                "nota": "Certificato selezionato e richiesta PIN gestita dal sistema.",
+            }
+        )
+        module._resolve_pst_session_entry = lambda session_id: None
         module._soap_call_pst_session = lambda **kwargs: (_ for _ in ()).throw(
             AssertionError("Il catalogo SIGP deve usare il batch unico di visualizzazione")
         )
@@ -4742,6 +4806,7 @@ def test_pst_documenti_sigp_batcha_documenti_e_ricerca_atti_senza_chiamate_extra
             setattr(module, name, value)
 
     assert captured["status"] == 200
+    assert captured["preflight"] == 1
     assert captured["payload"]["ok"] is True
     assert captured["payload"]["documenti"][0]["id_repeatto"] == "3080731"
     assert len(captured["batch"]["requests"]) == 2
@@ -4805,10 +4870,11 @@ def test_pst_ricerca_esatta_arricchisce_profilo_se_mancano_campi_identita():
             },
             False,
         )
-        def _unexpected_prepare(*args, **kwargs):
-            raise AssertionError("La ricerca PST non deve fare preflight separato prima della chiamata operativa")
+        def _fake_prepare(session_entry, **kwargs):
+            captured["prepare_kwargs"] = kwargs
+            return session_entry, True
 
-        module._pst_prepare_authenticated_session = _unexpected_prepare
+        module._pst_prepare_authenticated_session = _fake_prepare
         module._soap_ricerca_fascicoli_body = lambda **kwargs: "<xml/>"
         def _fake_call_pst_session(**kwargs):
             captured["soap_kwargs"] = kwargs
@@ -4840,7 +4906,9 @@ def test_pst_ricerca_esatta_arricchisce_profilo_se_mancano_campi_identita():
     assert captured["status"] == 200
     assert captured["payload"]["ok"] is True
     assert len(captured["payload"]["fascicoli"]) == 1
-    assert captured["soap_kwargs"]["prefer_cookie_only"] is False
+    assert captured["prepare_kwargs"]["cert_thumbprint"] == "AABBCC11"
+    assert captured["prepare_kwargs"]["force"] is False
+    assert captured["soap_kwargs"]["prefer_cookie_only"] is True
     assert calls["arricchisci"] == 1
 
 

@@ -1597,6 +1597,11 @@ function AcquisitionWizard({
       }
       setStep(2)
     }
+    if (portal === 'pst' && (query.ufficio || query.ufficioCodice) && !data.offices.length) {
+      setStep(1)
+      setMessage('Il catalogo uffici non è ancora pronto. Attendo il caricamento per inviare al PST il codice ufficiale corretto.')
+      return
+    }
     setBusy('search')
     setMessage('')
     setImportResult({})
@@ -1707,7 +1712,7 @@ function AcquisitionWizard({
     if (params.get('auto_pst_test') !== '1') return
     if (autoPstTestStartedRef.current) return
     if (!query.numero || !query.anno || !(query.ufficio || query.ufficioCodice)) return
-    if (query.ufficioCodice && !data.offices.length) return
+    if ((query.ufficio || query.ufficioCodice) && !data.offices.length) return
     autoPstTestStartedRef.current = true
     const timer = window.setTimeout(() => {
       void runSearch()

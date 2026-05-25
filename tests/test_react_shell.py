@@ -2316,6 +2316,8 @@ def test_pst_acquisizione_usa_lookup_uffici_reali_importati(tmp_path: Path):
     assert "ufficio_codice: resolvedOfficeCode()" in page_source
     assert "ufficioCodice: office.codice || office.codiceMinistero" in page_source
     assert "fromExistingCode?.codice || explicitOfficeCode" in page_source
+    assert "Il catalogo uffici non è ancora pronto" in page_source
+    assert "if ((query.ufficio || query.ufficioCodice) && !data.offices.length) return" in page_source
     assert "selectedOfficeMatches(office)" in page_source
     assert "/api/v1/ui/local-signer/diagnostics" in page_source
     assert "auto_pst_test" in page_source

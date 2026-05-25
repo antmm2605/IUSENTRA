@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.248.54 - 2026-05-25
+
+- Corretto Local Signer `1.6.47`: ripristinato il preflight certificato PST come gate obbligatorio prima di ricerca, snapshot, documenti e download batch, così l'accettazione live del certificato torna separata dalla chiamata operativa come nel flusso certificato.
+- Aggiunte regressioni mirate per impedire che ricerca e ricerca-snapshot saltino il gate di autenticazione PST.
+
 ## 2.248.53 - 2026-05-25
 
 - Corretto Local Signer `1.6.46`: se il batch PST riceve solo errori `401 Unauthorized`, la UI non mostra più "Nessun fascicolo trovato" ma un errore di autenticazione PST esplicito.

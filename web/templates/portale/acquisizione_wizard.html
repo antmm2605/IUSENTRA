@@ -730,7 +730,37 @@ function awCurrentTargetDocument() {
     pecId: String(target.pecId || '').trim(),
   };
 }
-function awApplyInitialQueryFromNotification() {
+function awOfficeOfficialCode(item) {
+  return String(item?.codice || item?.codice_ufficio || '').trim();
+}
+function awOfficeMinisteroCode(item) {
+  return String(item?.codiceMinistero || item?.codice_ministero || '').trim();
+}
+async function awNormalizeInitialOfficeCode(candidate = '') {
+  const raw = String(candidate || '').trim();
+  if (!raw) return;
+  const officeInput = document.getElementById('awOfficeInput');
+  const officeValue = document.getElementById('awOfficeValue');
+  try {
+    const resp = await fetch(`/api/uffici?q=${encodeURIComponent(raw)}&limit=20`);
+    const data = await resp.json();
+    const rows = Array.isArray(data) ? data : (Array.isArray(data.value) ? data.value : []);
+    const wanted = raw.toUpperCase();
+    const wantedName = String(officeInput?.value || '').trim().toUpperCase();
+    const resolved = rows.find(item => {
+      const codice = awOfficeOfficialCode(item).toUpperCase();
+      const codiceMinistero = awOfficeMinisteroCode(item).toUpperCase();
+      const nome = String(item?.nome || '').trim().toUpperCase();
+      return (wanted && (codice === wanted || codiceMinistero === wanted))
+        || (wantedName && nome === wantedName);
+    });
+    if (!resolved) return;
+    const codice = awOfficeOfficialCode(resolved);
+    if (codice && officeValue) officeValue.value = codice;
+    if (officeInput && resolved.nome) officeInput.value = String(resolved.nome || '').trim();
+  } catch (_) {}
+}
+async function awApplyInitialQueryFromNotification() {
   const query = AW_BOOT.initialQuery || {};
   const target = awCurrentTargetDocument();
   const officeText = String(query.ufficio || '').trim();
@@ -750,6 +780,7 @@ function awApplyInitialQueryFromNotification() {
     const node = document.getElementById(id);
     if (node && String(value || '').trim()) node.value = String(value || '').trim();
   });
+  await awNormalizeInitialOfficeCode(officeCode || officeText);
   if (officeCode || query.numero || query.anno || target.singleDocument) {
     awGoStep(2);
   }
@@ -3117,7 +3148,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     awRenderSidebar();
     awBindQuickFilters();
     awInitOfficeAutocomplete();
-    awApplyInitialQueryFromNotification();
+    await awApplyInitialQueryFromNotification();
   } catch (err) {
     awRenderInitFallback(err);
   }

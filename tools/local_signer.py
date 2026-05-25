@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.46
+IUSENTRA Local Signer - v1.6.47
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -111,7 +111,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.46"
+VERSION = "1.6.47"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -7139,8 +7139,15 @@ class _Handler(BaseHTTPRequestHandler):
             if session_entry and not cf_avvocato:
                 cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
             with _pst_session_lock_for(session_entry):
+                session_entry, prefer_cookie_only = _pst_prepare_authenticated_session(
+                    session_entry,
+                    tribunale=tribunale,
+                    base_url=base_url,
+                    cf_avvocato=cf_avvocato,
+                    cert_thumbprint=cert_thumbprint,
+                    force=_session_created,
+                )
                 cookie_file = str((session_entry or {}).get("cookie_file") or "")
-                prefer_cookie_only = False
             soap = _soap_ricerca_fascicoli_body(
                 base_url=base_url,
                 codice_ufficio=codice_pst,
@@ -7341,12 +7348,17 @@ class _Handler(BaseHTTPRequestHandler):
             ) if _pst_namespace_qbuilder(base_url) else ""
 
             with _pst_session_lock_for(session_entry):
+                session_entry, prefer_cookie_only = _pst_prepare_authenticated_session(
+                    session_entry,
+                    tribunale=tribunale,
+                    base_url=base_url,
+                    cf_avvocato=cf_avvocato,
+                    cert_thumbprint=cert_thumbprint,
+                    force=session_created,
+                )
                 cookie_file = str((session_entry or {}).get("cookie_file") or "")
                 host = _pst_host(url_ricerca)
-                prefer_cookie_only = (
-                    _pst_session_can_use_cookie_only(session_entry, created_now=session_created)
-                    and host not in _mTLS_required_hosts
-                )
+                prefer_cookie_only = prefer_cookie_only and host not in _mTLS_required_hosts
                 batch_requests = [
                     {
                         "url": url_ricerca,
@@ -7824,8 +7836,15 @@ class _Handler(BaseHTTPRequestHandler):
             if session_entry and not cf_avvocato:
                 cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
             with _pst_session_lock_for(session_entry):
+                session_entry, prefer_cookie_only = _pst_prepare_authenticated_session(
+                    session_entry,
+                    tribunale=codice,
+                    base_url=base_url,
+                    cf_avvocato=cf_avvocato,
+                    cert_thumbprint=cert_thumbprint,
+                    force=_session_created,
+                )
                 cookie_file = str((session_entry or {}).get("cookie_file") or "")
-                prefer_cookie_only = False
             soap = _soap_documenti_body(
                 base_url=base_url,
                 codice_ufficio=codice_pst,
@@ -7964,8 +7983,15 @@ class _Handler(BaseHTTPRequestHandler):
                 cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
 
             with _pst_session_lock_for(session_entry):
+                session_entry, prefer_cookie_only = _pst_prepare_authenticated_session(
+                    session_entry,
+                    tribunale=codice,
+                    base_url=base_url,
+                    cf_avvocato=cf_avvocato,
+                    cert_thumbprint=cert_thumbprint,
+                    force=_session_created,
+                )
                 cookie_file = str((session_entry or {}).get("cookie_file") or "")
-                prefer_cookie_only = False
                 soap = _soap_documenti_body(
                     base_url=base_url,
                     codice_ufficio=codice_pst,
@@ -8411,8 +8437,15 @@ class _Handler(BaseHTTPRequestHandler):
             if session_entry and not cf_avvocato:
                 cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
             with _pst_session_lock_for(session_entry):
+                session_entry, prefer_cookie_only = _pst_prepare_authenticated_session(
+                    session_entry,
+                    tribunale=tribunale,
+                    base_url=base_url,
+                    cf_avvocato=cf_avvocato,
+                    cert_thumbprint=cert_thumbprint,
+                    force=_session_created,
+                )
                 cookie_file = str((session_entry or {}).get("cookie_file") or "")
-                prefer_cookie_only = False
                 host = _pst_host(_pst_url_documenti(base_url))
                 if host:
                     with _mTLS_required_lock:
@@ -8527,20 +8560,14 @@ class _Handler(BaseHTTPRequestHandler):
                 cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
             preflight_requested = bool(data.get("preflight_auth", False))
             with _pst_session_lock_for(session_entry):
-                if preflight_requested:
-                    session_entry, _prefer_cookie_only = _pst_prepare_authenticated_session(
-                        session_entry,
-                        tribunale=tribunale,
-                        base_url=base_url,
-                        cf_avvocato=cf_avvocato,
-                        cert_thumbprint=cert_thumbprint,
-                        force=session_created,
-                    )
-                else:
-                    host = _pst_host(_pst_url_documenti(base_url))
-                    if host:
-                        with _mTLS_required_lock:
-                            _mTLS_required_hosts.add(host)
+                session_entry, _prefer_cookie_only = _pst_prepare_authenticated_session(
+                    session_entry,
+                    tribunale=tribunale,
+                    base_url=base_url,
+                    cf_avvocato=cf_avvocato,
+                    cert_thumbprint=cert_thumbprint,
+                    force=session_created or preflight_requested,
+                )
                 esito = _pst_download_documenti_batch_payloads(
                     base_url=base_url,
                     codice_ufficio=codice_pst,

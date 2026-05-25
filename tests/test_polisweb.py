@@ -3414,6 +3414,10 @@ def test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita
     assert "await awEnsurePstPreviewDocumentCatalog()" in template
     assert "/pst/ricerca-snapshot" in template
     assert "function awCanUsePstSearchSnapshot" in template
+    assert "async function awNormalizeInitialOfficeCode" in template
+    assert "item?.codice_ministero" in template
+    assert "officeValue.value = codice" in template
+    assert "await awApplyInitialQueryFromNotification()" in template
     assert "/pst/download-documenti-batch" in template
     assert "`${AW_PST_LS_BASE}/pst/preflight-auth`" not in template
     assert "function awEnsurePstPortalSession" not in template

@@ -2629,3 +2629,10 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - La pagina Documenti AI del fascicolo include il pannello React “Lettura forense” per upload, badge sicurezza/validazione, albero ZIP/PEC, classificazione, dati estratti, eventi proposti, invio Lex dopo validazione e proof bundle.
 - Le API `/api/documents*` e `/api/pec/{id}/process` sono tenant-aware e protette dai flag `legal_document_understanding`, `ocr_forensic`, `pec_zip_ocr` e `lex_validated_documents_only`.
 - I gate mirati sono registrati in `artifacts/react-migration/pytest-confirmed-ok.md`: compileall, pytest documentale 16/16, feature flag/bootstrap 5/5, typecheck e build Vite.
+
+## Aggiornamento 2026-05-25: Hotfix PST Local Signer 2.248.54 / 1.6.47
+
+- Ripristinato il gate certificato interno del Local Signer prima di ricerca PST, ricerca-snapshot, catalogo documenti, fascicolo-snapshot, download singolo e download batch. Il wizard continua a non chiamare `/pst/preflight-auth` dal browser, ma le operazioni reali non possono più saltare `_pst_prepare_authenticated_session`.
+- La ricerca PST non deve trasformare errori di autenticazione o 401 in "nessun fascicolo trovato": il problema resta esplicito e finisce nella diagnosi server tenant-aware.
+- Il wizard React aspetta il catalogo uffici prima dell'avvio automatico; il wizard classico risolve un eventuale `codiceMinistero` cached tramite `/api/uffici` e invia al Local Signer il codice ufficiale, ad esempio Palmi `0910011` invece di `0800570094`.
+- Verifiche registrate: 8 test Local Signer PST mirati, 3 test wizard React/diagnostica, 2 test wizard classico, `py_compile`, boundary check Local Signer, packaging sync, OpenAPI e build pacchetti Local Signer `1.6.47`.

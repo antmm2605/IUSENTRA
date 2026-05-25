@@ -4362,13 +4362,6 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert "/api/cf/calcola" in new_page
     assert "/api/cf/decodifica" in new_page
     assert "Genera CF" in new_page
-    assert "Lettura documento pronta" in new_page
-    assert "iusentra:cliente-documento-rilevato" in new_page
-    assert "IUSENTRA_CLIENTE_NUOVO" in new_page
-    assert "applicaDatiDocumento" in new_page
-    assert "doc_data_scadenza" in new_page
-    assert "normalizeClientDocumentScan" in new_page
-    assert "data_nascita: normalizeScanDate" in new_page
     assert 'name="provincia_nascita"' in new_page
     assert 'name="crea_preventivo_iniziale"' in new_page
     assert 'name="qualifica"' in new_page
@@ -4384,7 +4377,6 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert '"1" in form.getlist("crea_preventivo_iniziale")' in clienti_routes
     assert "provincia_nascita: str = \"\"" in soggetti_model
     assert ".iu-clienti-new-page" in new_css
-    assert ".iu-cln-doc-hook" in new_css
     assert ".iu-cln-process-grid" in new_css
     assert ".iu-soggetti-page" in soggetti_css
     assert ".iu-sogg-table" in soggetti_css

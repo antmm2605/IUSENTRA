@@ -1574,22 +1574,6 @@ sviluppatore in nessuna scheda operativa e completa i dettagli email indicati:
   gate, full-react contract, no-fake React full, pytest mirati email/React,
   packaging/release readiness, Docker no-cache e readiness locale 2.214.0.
 
-### Aggiornamento PEC MIME/fascicolo 2.248.58 - 2026-05-25
-
-- La pagina React PEC mantiene lista messaggi e dettaglio allineati in due
-  colonne operative, senza spazi morti laterali, con area di lettura completa
-  più alta e scroll interno esteso sul corpo messaggio.
-- La scheda PEC espone in alto le azioni `Apri MIME`, `Esegui controllo`,
-  `Salva nel fascicolo` e `Scadenza automatica`, coerenti con la richiesta
-  visuale dell'utente.
-- Il salvataggio nel fascicolo resta un flusso interno IUSENTRA: chiede nome e
-  cognome cliente, cerca fascicoli aperti tenant-aware, propone il fascicolo,
-  richiede conferma e salva il MIME originale come comunicazione. Non usa Local
-  Signer, PST, PolisWeb o servizi telematici.
-- Per le PEC audit-grade il dettaglio legge il corpo da `parsed.body.text` o
-  `parsed.body.html_text`, così il messaggio completo estratto dal MIME non
-  viene degradato a preview troncata.
-
 ## Stato tranche 2026-05-09 - Pagine operative richieste full React 2.213.0
 
 Questa tranche risponde al controllo utente sul perimetro completo delle pagine

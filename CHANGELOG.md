@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.248.48 - 2026-05-25
+
+- Aggiornato Local Signer alla versione `1.6.42`: la ricerca PST esatta R.G./anno prova automaticamente il registro parallelo SICID/SIECIC dello stesso ufficio quando il primo registro non restituisce righe, senza cambiare ufficio, tenant o certificato.
+- Il fallback registro resta disattivabile solo in modo esplicito con `HACS_SIGNER_PST_REGISTER_FALLBACK=0`; il log diagnostico ora deve mostrare `fallback_registro=True` nei test reali Palmi.
+
 ## 2.248.47 - 2026-05-25
 
 - Normalizzata la ricerca PST quando in pagina resta salvato un vecchio `ufficio_codice`: se il valore coincide con il codice ministeriale di un ufficio, React invia comunque il codice ufficio ufficiale del catalogo, preservando il caso Palmi `0910011`.

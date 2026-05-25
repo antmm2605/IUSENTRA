@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.41
+IUSENTRA Local Signer - v1.6.42
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -111,7 +111,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.41"
+VERSION = "1.6.42"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -136,6 +136,7 @@ LOCAL_SIGNER_ALLOWED_ORIGINS = os.getenv(
 ) or ",".join(_DEFAULT_HACS_ALLOWED_ORIGINS)
 _ZEEP_WSDL_CACHE: dict[str, Any] = {}
 _TRUE_VALUES = {"1", "true", "yes", "on"}
+_FALSE_VALUES = {"0", "false", "no", "off"}
 
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
@@ -486,6 +487,17 @@ def _env_flag_enabled(name: str) -> bool:
     return str(os.getenv(name, "") or "").strip().lower() in _TRUE_VALUES
 
 
+def _env_flag_default_enabled(name: str) -> bool:
+    value = str(os.getenv(name, "") or "").strip().lower()
+    if not value:
+        return True
+    return value not in _FALSE_VALUES
+
+
+def _pst_register_fallback_enabled() -> bool:
+    return _env_flag_default_enabled("HACS_SIGNER_PST_REGISTER_FALLBACK")
+
+
 def _normalizza_servizio_pst_name(servizio: Any) -> str:
     valore = str(servizio or "").strip().upper()
     if not valore:
@@ -739,7 +751,7 @@ def _pst_base_varianti_ricerca_esatta(codice_o_nome: str, base_url: str) -> list
     dell'ufficio, ma alcuni Tribunali espongono fascicoli anche sul registro
     parallelo SICID/SIECIC. Le varianti non cambiano ufficio, GL o certificato.
     """
-    if not _env_flag_enabled("HACS_SIGNER_PST_REGISTER_FALLBACK"):
+    if not _pst_register_fallback_enabled():
         return [base_url.rstrip("/")] if base_url else []
 
     current = _pst_servizio_proxy(base_url)
@@ -6974,7 +6986,7 @@ class _Handler(BaseHTTPRequestHandler):
                 _pst_servizio_proxy(base_url),
                 str(data.get("numero_rg") or ""),
                 str(data.get("anno_rg") or ""),
-                _env_flag_enabled("HACS_SIGNER_PST_REGISTER_FALLBACK"),
+                _pst_register_fallback_enabled(),
             )
         except Exception as e:
             self._send_json({"ok": False, "errore": str(e)}, 503)
@@ -7149,7 +7161,7 @@ class _Handler(BaseHTTPRequestHandler):
                 _pst_servizio_proxy(base_url),
                 numero_rg,
                 anno_rg,
-                _env_flag_enabled("HACS_SIGNER_PST_REGISTER_FALLBACK"),
+                _pst_register_fallback_enabled(),
             )
         except Exception as e:
             self._send_json({"ok": False, "errore": str(e)}, 503)

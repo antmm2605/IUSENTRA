@@ -1,6 +1,10 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornamento corrente: 2026-05-25, diagnostica PST client e normalizzazione ufficio cached 2.248.47.
+Aggiornamento corrente: 2026-05-25, fallback PST SICID/SIECIC attivo di default 2.248.48.
+
+## Note fallback PST SICID/SIECIC attivo di default 2.248.48 - 2026-05-25
+
+Il test reale con Local Signer `1.6.41` sullo studio Giuseppe Montagnese ha salvato diagnostica server alle 13:41:24 UTC: la ricerca partiva con `ufficio_codice=0910011`, codice PST interno `0800570094`, servizio `JPW_SICID`, R.G. `3441/2025`, ma `fallback_registro=False`, quindi il registro parallelo non veniva provato quando SICID restituiva zero righe. Il fix `1.6.42` riattiva di default il fallback SICID/SIECIC per ricerca esatta R.G./anno dello stesso ufficio, lasciandolo disattivabile solo esplicitamente con `HACS_SIGNER_PST_REGISTER_FALLBACK=0`. Resta da eseguire il nuovo test reale dal PC cliente dopo installazione del Local Signer `1.6.42`; il log atteso deve mostrare `fallback_registro=True` e, in caso di primo registro vuoto, il passaggio a `JPW_SIECIC`.
 
 ## Note diagnostica PST client e normalizzazione ufficio cached 2.248.47 - 2026-05-25
 

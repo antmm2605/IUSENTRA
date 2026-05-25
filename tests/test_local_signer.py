@@ -1573,7 +1573,6 @@ def test_local_signer_normalizza_alias_e_namespace_qbuilder_catalogo_corrente():
 def test_pst_varianti_ricerca_esatta_palmi_prova_siecic_senza_cambiare_ufficio(monkeypatch):
     module = _load_local_signer()
     base = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID"
-    monkeypatch.setenv("HACS_SIGNER_PST_REGISTER_FALLBACK", "1")
 
     monkeypatch.setattr(
         module,
@@ -1595,10 +1594,20 @@ def test_pst_varianti_ricerca_esatta_palmi_prova_siecic_senza_cambiare_ufficio(m
     assert all("/pda/pycons/GLRC/" in variante for variante in varianti)
 
 
+def test_pst_varianti_ricerca_esatta_fallback_disattivabile_da_env(monkeypatch):
+    module = _load_local_signer()
+    base = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID"
+    monkeypatch.setenv("HACS_SIGNER_PST_REGISTER_FALLBACK", "0")
+    monkeypatch.setattr(module, "_risolvi_ufficio_da_snapshot", lambda value: None)
+
+    varianti = module._pst_base_varianti_ricerca_esatta("0800570094", base)
+
+    assert varianti == ["https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID"]
+
+
 def test_pst_varianti_ricerca_esatta_deriva_siecic_dalla_url_se_snapshot_manca(monkeypatch):
     module = _load_local_signer()
     base = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID"
-    monkeypatch.setenv("HACS_SIGNER_PST_REGISTER_FALLBACK", "1")
 
     monkeypatch.setattr(module, "_risolvi_ufficio_da_snapshot", lambda value: None)
 

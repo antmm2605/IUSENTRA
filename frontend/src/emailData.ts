@@ -557,6 +557,8 @@ function auditDetailFromPayload(payload: unknown): EmailDetailData {
   const pecId = text(message.id)
   const encoded = encodeURIComponent(pecId)
   const attachments = Array.isArray(root.attachments) ? root.attachments : []
+  const parsedBody = isRecord(parsed.body) ? parsed.body : {}
+  const fullBodyText = text(parsed.body_text ?? parsedBody.text ?? parsedBody.html_text)
   const qualityStatus = text(message.quality_status)
   const signatureStatus = text(message.signature_status)
   const audit = auditFromPayload({
@@ -592,6 +594,7 @@ function auditDetailFromPayload(payload: unknown): EmailDetailData {
       }
     }),
     quickActions: {
+      runAudit: '/api/pec/workers/run',
       saveMatter: `/api/pec/messages/${encoded}/salva-fascicolo`,
       requestMissingAttachment: `/api/pec/messages/${encoded}/richiedi-allegato-mancante`,
       scheduleDeadline: isRecord(report.deadline_proposal) && report.deadline_proposal.auto_create ? `/api/pec/messages/${encoded}/schedula-scadenza` : '',
@@ -606,14 +609,14 @@ function auditDetailFromPayload(payload: unknown): EmailDetailData {
     senderName: headers.from,
     recipients: headers.to,
     subject: headers.subject,
-    preview: parsed.body_text,
+    preview: fullBodyText,
     timestamp: message.received_at,
     timeLabel: '',
     unread: false,
     isPst: true,
     pctStatus: report.event_type,
     attachmentCount: attachments.length,
-    origin: 'controllo PEC audit-grade',
+    origin: 'controllo PEC',
     detailHref: `/api/pec/messages/${encoded}/mime`,
     operationalHref: `/email/?pec_audit=${encoded}`,
     auditOnly: true,
@@ -623,7 +626,7 @@ function auditDetailFromPayload(payload: unknown): EmailDetailData {
     source: 'pec_audit',
     generatedAt: text(root.generated_at),
     item: row,
-    bodyText: text(parsed.body_text),
+    bodyText: fullBodyText,
     bodyHtml: '',
     attachments: attachments.map((raw, index) => {
       const item = isRecord(raw) ? raw : {}
@@ -636,7 +639,7 @@ function auditDetailFromPayload(payload: unknown): EmailDetailData {
         previewHref: '',
         downloadHref: '',
         available: false,
-        statusLabel: 'Allegato conservato nel controllo audit-grade.',
+        statusLabel: 'Allegato conservato nel controllo PEC.',
       }
     }),
     pecAudit: audit,

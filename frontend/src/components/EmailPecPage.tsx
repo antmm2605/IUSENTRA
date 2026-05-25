@@ -391,7 +391,7 @@ function PecAuditBadges({ audit }: { audit?: PecAuditSummary }) {
 function auditOutcomeText(audit?: PecAuditSummary): string {
   if (!audit) return ''
   if (audit.persisted === false) {
-    return 'Esito provvisorio: il software ha controllato i dati visibili, ma deve acquisire il MIME originale per chiudere conservazione, firme, OCR e hash audit-grade.'
+    return 'Esito provvisorio: il software ha controllato i dati visibili, ma deve acquisire il MIME originale per chiudere conservazione, firme, OCR e verifica completa.'
   }
   if (audit.qualityTone === 'danger') return 'Esito critico: sono presenti anomalie da presidiare prima di archiviare o collegare la PEC.'
   if (audit.qualityTone === 'warning') return 'Esito da presidiare: il controllo automatico ha trovato elementi da verificare con azione operativa.'
@@ -404,7 +404,7 @@ function auditSuggestedAction(audit?: PecAuditSummary): string {
   if (recommended) return recommended
   const firstIssue = audit.validationIssues.find((item) => item.detail || item.title)
   if (firstIssue) return firstIssue.detail || firstIssue.title
-  if (audit.persisted === false) return 'Esegui controllo audit-grade: acquisizione MIME da IMAP, verifica allegati/firme e aggiornamento esito.'
+  if (audit.persisted === false) return 'Esegui controllo: acquisizione MIME da IMAP, verifica allegati/firme e aggiornamento esito.'
   if (audit.eventType === 'pct_deposito') return 'Verifica sequenza deposito: accettazione, consegna, esito controlli e accettazione finale.'
   if (audit.eventType) return 'Collega la comunicazione al fascicolo e presidia i termini indicati dalla PEC.'
   return 'Nessuna azione urgente rilevata; conserva la PEC nel fascicolo corretto se pertinente.'
@@ -538,8 +538,8 @@ function PecAuditInlineNotice({
         </div>
         <footer>
           {audit.quickActions.runAudit ? (
-            <button type="button" onClick={() => onAction(audit.quickActions.runAudit, 'Esegui controllo audit-grade')}>
-              <ShieldCheck size={15} /> Esegui controllo audit-grade
+            <button type="button" onClick={() => onAction(audit.quickActions.runAudit, 'Esegui controllo')}>
+              <ShieldCheck size={15} /> Esegui controllo
             </button>
           ) : null}
           {actionButton(audit.quickActions.saveMatter, 'Salva nel fascicolo', <FileCheck2 size={15} />)}
@@ -632,7 +632,7 @@ function PecAuditSidebarPanel({
           ) : null}
           <div className="iu-pec-sidebar-actions">
             {audit.quickActions.runAudit ? (
-              <button type="button" onClick={() => onAction(audit.quickActions.runAudit, 'Esegui controllo audit-grade')}>
+              <button type="button" onClick={() => onAction(audit.quickActions.runAudit, 'Esegui controllo')}>
                 <ShieldCheck size={15} /> Esegui controllo
               </button>
             ) : null}
@@ -644,6 +644,200 @@ function PecAuditSidebarPanel({
         </div>
       </TooltipProvider>
     </Panel>
+  )
+}
+
+function PecPrimaryActions({
+  audit,
+  onAction,
+}: {
+  audit?: PecAuditSummary
+  onAction: (url: string, label: string) => void
+}) {
+  if (!audit) return null
+  const unavailableTitle = 'Disponibile dopo l\'acquisizione del MIME originale'
+  const button = (url: string, label: string, icon: ReactNode) => (
+    <button
+      type="button"
+      disabled={!url}
+      title={url ? label : unavailableTitle}
+      onClick={() => {
+        if (url) onAction(url, label)
+      }}
+    >
+      {icon} {label}
+    </button>
+  )
+  const linkOrButton = (url: string, label: string, icon: ReactNode) => (
+    url
+      ? <a href={url} target="_blank" rel="noreferrer">{icon} {label}</a>
+      : button('', label, icon)
+  )
+  return (
+    <div className="iu-pec-primary-actions" aria-label="Azioni PEC">
+      {linkOrButton(audit.quickActions.openMime, 'Apri MIME', <Download size={15} />)}
+      {audit.quickActions.runAudit ? button(audit.quickActions.runAudit, 'Esegui controllo', <ShieldCheck size={15} />) : null}
+      {button(audit.quickActions.saveMatter, 'Salva nel fascicolo', <FileCheck2 size={15} />)}
+      {button(audit.quickActions.scheduleDeadline, 'Scadenza automatica', <Clock3 size={15} />)}
+    </div>
+  )
+}
+
+type PecSaveMatterRequest = {
+  url: string
+  subject: string
+}
+
+type PecSaveCandidate = {
+  id: string
+  label: string
+  numero: string
+  titolo: string
+  nomeCliente: string
+  stato: string
+  reason: string
+  href: string
+}
+
+function pecSaveCandidateFromPayload(value: unknown): PecSaveCandidate {
+  const item = record(value)
+  return {
+    id: text(item.id),
+    label: text(item.label),
+    numero: text(item.numero),
+    titolo: text(item.titolo),
+    nomeCliente: text(item.nome_cliente ?? item.nomeCliente),
+    stato: text(item.stato),
+    reason: text(item.reason),
+    href: text(item.href),
+  }
+}
+
+async function postPecSaveJson(url: string, payload: JsonRecord): Promise<JsonRecord> {
+  const token = csrfToken()
+  const response = await fetch(url, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      ...(token ? { 'X-CSRFToken': token } : {}),
+    },
+    body: JSON.stringify(payload),
+  })
+  const data = await response.json().catch(() => ({})) as JsonRecord
+  if (!response.ok && !Object.keys(data).length) throw new Error('Salvataggio nel fascicolo non completato.')
+  return data
+}
+
+function PecSaveMatterDialog({
+  request,
+  onClose,
+  onSaved,
+}: {
+  request: PecSaveMatterRequest
+  onClose: () => void
+  onSaved: (message: string) => void
+}) {
+  const [nome, setNome] = useState('')
+  const [cognome, setCognome] = useState('')
+  const [candidates, setCandidates] = useState<PecSaveCandidate[]>([])
+  const [selectedId, setSelectedId] = useState('')
+  const [message, setMessage] = useState('')
+  const [working, setWorking] = useState(false)
+  const [savedHref, setSavedHref] = useState('')
+
+  const selected = candidates.find((item) => item.id === selectedId)
+
+  const prepare = () => {
+    if (!nome.trim() && !cognome.trim()) {
+      setMessage('Indica almeno nome o cognome del cliente.')
+      return
+    }
+    setWorking(true)
+    setMessage('')
+    setSavedHref('')
+    postPecSaveJson(request.url, { prepara: true, nome: nome.trim(), cognome: cognome.trim() })
+      .then((payload) => {
+        const nextCandidates = Array.isArray(payload.candidates)
+          ? payload.candidates.map(pecSaveCandidateFromPayload).filter((item) => item.id)
+          : []
+        setCandidates(nextCandidates)
+        setSelectedId(nextCandidates[0]?.id || '')
+        setMessage(text(payload.message ?? payload.messaggio ?? payload.errore) || (nextCandidates.length ? 'Conferma il fascicolo aperto.' : 'Nessun fascicolo aperto trovato.'))
+      })
+      .catch((error) => setMessage(error instanceof Error ? error.message : 'Ricerca fascicolo non completata.'))
+      .finally(() => setWorking(false))
+  }
+
+  const confirm = () => {
+    if (!selectedId) {
+      setMessage('Seleziona il fascicolo da confermare.')
+      return
+    }
+    setWorking(true)
+    setMessage('')
+    postPecSaveJson(request.url, { fascicolo_id: selectedId })
+      .then((payload) => {
+        if (payload.ok === false) throw new Error(text(payload.message ?? payload.messaggio ?? payload.errore) || 'Salvataggio non completato.')
+        const nextMessage = text(payload.message ?? payload.messaggio) || 'MIME PEC salvato nel fascicolo.'
+        setSavedHref(text(payload.fascicolo_href ?? payload.document_href))
+        setMessage(nextMessage)
+        onSaved(nextMessage)
+      })
+      .catch((error) => setMessage(error instanceof Error ? error.message : 'Salvataggio non completato.'))
+      .finally(() => setWorking(false))
+  }
+
+  return (
+    <div className="iu-pec-save-dialog" role="dialog" aria-modal="true" aria-label="Salva MIME nel fascicolo">
+      <div className="iu-pec-save-dialog__panel">
+        <header>
+          <div>
+            <span>Salva MIME nel fascicolo</span>
+            <strong>{request.subject || 'PEC selezionata'}</strong>
+          </div>
+          <button type="button" onClick={onClose}>Chiudi</button>
+        </header>
+        <div className="iu-pec-save-dialog__fields">
+          <label>
+            <span>Nome cliente</span>
+            <input value={nome} onChange={(event) => setNome(event.target.value)} autoFocus />
+          </label>
+          <label>
+            <span>Cognome cliente</span>
+            <input value={cognome} onChange={(event) => setCognome(event.target.value)} />
+          </label>
+          <button type="button" onClick={prepare} disabled={working}>
+            <Search size={15} /> {working ? 'Ricerca...' : 'Cerca fascicolo aperto'}
+          </button>
+        </div>
+        {message ? <p className={savedHref ? 'is-ok' : ''}>{message}</p> : null}
+        {candidates.length ? (
+          <div className="iu-pec-save-dialog__candidates" aria-label="Fascicoli aperti trovati">
+            {candidates.map((candidate) => (
+              <label className={selectedId === candidate.id ? 'is-selected' : ''} key={candidate.id}>
+                <input type="radio" name="pec-fascicolo" checked={selectedId === candidate.id} onChange={() => setSelectedId(candidate.id)} />
+                <span>
+                  <strong>{candidate.label || candidate.titolo || candidate.id}</strong>
+                  <small>{[candidate.nomeCliente, candidate.stato, candidate.reason].filter(Boolean).join(' - ')}</small>
+                </span>
+              </label>
+            ))}
+          </div>
+        ) : null}
+        {selected ? (
+          <div className="iu-pec-save-dialog__confirm">
+            <span>Confermi l'inserimento del MIME in <b>{selected.label || selected.titolo}</b>?</span>
+            <button type="button" onClick={confirm} disabled={working}>
+              <FileCheck2 size={15} /> {working ? 'Salvataggio...' : 'Conferma e salva'}
+            </button>
+          </div>
+        ) : null}
+        {savedHref ? <a className="iu-pec-save-dialog__link" href={savedHref}>Apri fascicolo</a> : null}
+      </div>
+    </div>
   )
 }
 
@@ -848,6 +1042,7 @@ function EmailPreview({
           {copy.includeTelematic ? <PecAuditBadges audit={detail?.pecAudit ?? item.pecAudit} /> : null}
         </div>
       </header>
+      {copy.includeTelematic ? <PecPrimaryActions audit={detail?.pecAudit ?? item.pecAudit} onAction={onAction} /> : null}
       <div className="iu-mail-meta">
         <div><span>{item.folder === 'INVIATI' ? 'A' : 'Da'}</span><strong>{person}</strong></div>
         <div><span>{item.folder === 'INVIATI' ? 'Mittente' : 'Destinatari'}</span><strong>{item.folder === 'INVIATI' ? (item.sender || '-') : (item.recipients || '-')}</strong></div>
@@ -923,7 +1118,7 @@ function PecInspector({
               </a>
             ))}
           </div>
-        ) : <p className="iu-empty">Nessuna anomalia audit-grade nella vista corrente.</p>}
+        ) : <p className="iu-empty">Nessuna anomalia nella vista corrente.</p>}
       </Panel>
       <PecAuditSidebarPanel audit={selectedAudit} item={selectedItem} onAction={onAction} />
       <Panel title="Esiti da presidiare" icon={<AlertTriangle size={17} />} count={pctAlerts.length}>
@@ -1095,6 +1290,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
   const [detailReloadKey, setDetailReloadKey] = useState(0)
   const [statusLine, setStatusLine] = useState('')
   const [bulkWorking, setBulkWorking] = useState(false)
+  const [saveMatterRequest, setSaveMatterRequest] = useState<PecSaveMatterRequest | null>(null)
 
   const fetchPage = mode === 'ordinaria' ? getEmailOrdinariaPage : getEmailPecPage
   const fetchParams = {
@@ -1187,6 +1383,11 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
   }, [mode, selectedId, detailReloadKey])
 
   const runAction = (url: string, label: string) => {
+    if (copy.includeTelematic && url.includes('/salva-fascicolo')) {
+      setSaveMatterRequest({ url, subject: selected?.subject || detail?.item?.subject || 'PEC selezionata' })
+      setStatusLine('Indica nome e cognome del cliente per trovare il fascicolo aperto.')
+      return
+    }
     setStatusLine(`${label} in corso...`)
     postMailAction(url, label)
       .then((message) => {
@@ -1376,6 +1577,17 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
         secondaryHref="/fascicoli"
         secondaryLabel="Vai ai fascicoli"
       />
+      {saveMatterRequest ? (
+        <PecSaveMatterDialog
+          request={saveMatterRequest}
+          onClose={() => setSaveMatterRequest(null)}
+          onSaved={(message) => {
+            setStatusLine(message)
+            load()
+            setDetailReloadKey((value) => value + 1)
+          }}
+        />
+      ) : null}
     </main>
   )
 }

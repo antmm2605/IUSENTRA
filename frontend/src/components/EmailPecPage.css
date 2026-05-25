@@ -348,9 +348,10 @@
 }
 .iu-mail-layout{
   display:grid;
-  grid-template-columns:minmax(340px,430px) minmax(0,1fr) minmax(280px,340px);
+  --iu-mail-pane-height:clamp(620px,calc(100vh - 330px),980px);
+  grid-template-columns:minmax(320px,400px) minmax(0,1fr);
   gap:14px;
-  align-items:start;
+  align-items:stretch;
 }
 .iu-mail-list-card,
 .iu-mail-preview-card,
@@ -361,6 +362,9 @@
   box-shadow:var(--iu-shadow-soft);
 }
 .iu-mail-list-card{
+  height:var(--iu-mail-pane-height);
+  display:flex;
+  flex-direction:column;
   overflow:hidden;
 }
 .iu-mail-list-card>header{
@@ -400,9 +404,11 @@
   font-weight:900;
 }
 .iu-mail-list{
-  max-height:calc(100vh - 380px);
-  min-height:420px;
+  flex:1;
+  min-height:0;
+  max-height:none;
   overflow:auto;
+  scrollbar-gutter:stable;
   padding:8px;
 }
 .iu-mail-list-select-all,
@@ -568,7 +574,10 @@
   font-weight:700;
 }
 .iu-mail-preview-card{
-  min-height:520px;
+  height:var(--iu-mail-pane-height);
+  min-height:0;
+  overflow:auto;
+  scrollbar-gutter:stable;
   padding:18px;
 }
 .iu-mail-preview-card>header{
@@ -675,8 +684,44 @@
   gap:8px;
   flex-wrap:wrap;
 }
+.iu-pec-primary-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+  padding:10px 0 0;
+}
+.iu-pec-primary-actions button,
+.iu-pec-primary-actions a{
+  min-height:34px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  padding:0 11px;
+  border:1px solid rgba(148,163,184,.34);
+  border-radius:10px;
+  background:#fff;
+  color:#0f172a;
+  font-size:12px;
+  font-weight:900;
+  text-decoration:none;
+  cursor:pointer;
+}
+.iu-pec-primary-actions button:hover,
+.iu-pec-primary-actions a:hover{
+  border-color:rgba(37,99,235,.26);
+  background:rgba(37,99,235,.05);
+}
+.iu-pec-primary-actions button:disabled{
+  color:var(--iu-slate-400);
+  background:#f8fafc;
+  cursor:not-allowed;
+}
 .iu-mail-preview-empty{
-  min-height:520px;
+  min-height:var(--iu-mail-pane-height);
+  height:var(--iu-mail-pane-height);
   display:grid;
   place-items:center;
   align-content:center;
@@ -696,7 +741,9 @@
   line-height:1.5;
 }
 .iu-mail-inspector{
+  grid-column:1 / -1;
   display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
   gap:12px;
 }
 .iu-mail-briefing{
@@ -1141,8 +1188,10 @@
   background:#fff;
 }
 .iu-mail-full-detail pre{
-  max-height:420px;
+  min-height:360px;
+  max-height:560px;
   overflow:auto;
+  scrollbar-gutter:stable;
   margin:0;
   padding:14px;
   border:1px solid rgba(148,163,184,.34);
@@ -1153,6 +1202,164 @@
   color:#0f172a;
   font-family:inherit;
   line-height:1.55;
+}
+.iu-pec-save-dialog{
+  position:fixed;
+  inset:0;
+  z-index:80;
+  display:grid;
+  place-items:center;
+  padding:18px;
+  background:rgba(15,23,42,.38);
+}
+.iu-pec-save-dialog__panel{
+  width:min(720px,100%);
+  max-height:calc(100vh - 48px);
+  overflow:auto;
+  display:grid;
+  gap:14px;
+  padding:18px;
+  border:1px solid rgba(148,163,184,.34);
+  border-radius:18px;
+  background:#fff;
+  box-shadow:0 24px 70px rgba(15,23,42,.24);
+}
+.iu-pec-save-dialog__panel>header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  padding-bottom:12px;
+  border-bottom:1px solid rgba(148,163,184,.24);
+}
+.iu-pec-save-dialog__panel>header span{
+  display:block;
+  color:var(--iu-slate-500);
+  font-size:11px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.iu-pec-save-dialog__panel>header strong{
+  display:block;
+  margin-top:4px;
+  color:#0f172a;
+  font-size:16px;
+  line-height:1.25;
+}
+.iu-pec-save-dialog__panel>header button,
+.iu-pec-save-dialog__fields button,
+.iu-pec-save-dialog__confirm button{
+  min-height:36px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  padding:0 12px;
+  border:1px solid rgba(148,163,184,.34);
+  border-radius:10px;
+  background:#fff;
+  color:#0f172a;
+  font-size:12px;
+  font-weight:900;
+  cursor:pointer;
+}
+.iu-pec-save-dialog__fields{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr)) auto;
+  gap:10px;
+  align-items:end;
+}
+.iu-pec-save-dialog__fields label{
+  display:grid;
+  gap:6px;
+  color:var(--iu-slate-600);
+  font-size:12px;
+  font-weight:850;
+}
+.iu-pec-save-dialog__fields input{
+  min-height:38px;
+  border:1px solid rgba(148,163,184,.34);
+  border-radius:10px;
+  padding:0 11px;
+  color:#0f172a;
+  font-size:13px;
+}
+.iu-pec-save-dialog__panel>p{
+  margin:0;
+  padding:10px 12px;
+  border:1px solid rgba(245,158,11,.26);
+  border-radius:12px;
+  background:#fffbeb;
+  color:#92400e;
+  font-size:13px;
+  font-weight:760;
+  line-height:1.35;
+}
+.iu-pec-save-dialog__panel>p.is-ok{
+  border-color:rgba(16,185,129,.24);
+  background:#ecfdf5;
+  color:#047857;
+}
+.iu-pec-save-dialog__candidates{
+  display:grid;
+  gap:8px;
+}
+.iu-pec-save-dialog__candidates label{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  gap:10px;
+  align-items:flex-start;
+  padding:11px;
+  border:1px solid rgba(148,163,184,.3);
+  border-radius:12px;
+  background:#fff;
+  cursor:pointer;
+}
+.iu-pec-save-dialog__candidates label.is-selected{
+  border-color:rgba(37,99,235,.36);
+  background:#eff6ff;
+}
+.iu-pec-save-dialog__candidates strong,
+.iu-pec-save-dialog__candidates small{
+  display:block;
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+.iu-pec-save-dialog__candidates strong{
+  color:#0f172a;
+  font-size:13px;
+}
+.iu-pec-save-dialog__candidates small{
+  margin-top:3px;
+  color:var(--iu-slate-500);
+  font-size:12px;
+  font-weight:750;
+}
+.iu-pec-save-dialog__confirm{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px;
+  border:1px solid rgba(37,99,235,.18);
+  border-radius:12px;
+  background:#f8fbff;
+  color:#334155;
+  font-size:13px;
+  font-weight:760;
+}
+.iu-pec-save-dialog__confirm button{
+  border-color:transparent;
+  background:linear-gradient(135deg,var(--iu-navy-900),var(--iu-navy-800));
+  color:#fff;
+}
+.iu-pec-save-dialog__link{
+  justify-self:start;
+  color:#0f766e;
+  font-size:13px;
+  font-weight:900;
+  text-decoration:none;
 }
 .iu-mail-attachments{
   display:grid;
@@ -1405,6 +1612,9 @@
   .iu-mail-toolbar{grid-template-columns:1fr auto auto}
   .iu-mail-folders{grid-column:1 / -1;overflow:auto}
   .iu-mail-layout{grid-template-columns:1fr}
+  .iu-mail-list-card,
+  .iu-mail-preview-card,
+  .iu-mail-preview-empty{height:auto;min-height:auto}
   .iu-mail-list{max-height:none;min-height:auto}
   .iu-mail-inspector{grid-template-columns:1fr 1fr}
 }
@@ -1459,6 +1669,15 @@
   .iu-pec-audit-panel>footer button,.iu-pec-audit-panel>footer a{width:100%}
   .iu-pec-sidebar-actions{grid-template-columns:1fr}
   .iu-pec-sidebar-actions button,.iu-pec-sidebar-actions a{width:100%}
+  .iu-pec-primary-actions{justify-content:flex-start}
+  .iu-pec-primary-actions button,.iu-pec-primary-actions a{width:100%}
+  .iu-pec-save-dialog{padding:10px}
+  .iu-pec-save-dialog__panel{padding:14px;border-radius:14px}
+  .iu-pec-save-dialog__panel>header,
+  .iu-pec-save-dialog__confirm{display:grid}
+  .iu-pec-save-dialog__fields{grid-template-columns:1fr}
+  .iu-pec-save-dialog__fields button,
+  .iu-pec-save-dialog__confirm button{width:100%}
   .iu-mail-inspector{grid-template-columns:1fr}
   .iu-mail-lower-grid{grid-template-columns:1fr}
   .iu-mail-compose-form{padding:12px;border-radius:16px}

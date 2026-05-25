@@ -47,6 +47,7 @@ def _repo() -> PecAuditRepository:
     return PecAuditRepository(
         db_path,
         tenant_id=_tenant_id(),
+        clienti_db_path=_runtime_path("CLIENTI_DB", "./clienti/anagrafica.json"),
         fascicoli_db_path=_runtime_path("FASCICOLI_DB", "./fascicoli/fascicoli.json"),
         fascicoli_docs_path=_runtime_path("FASCICOLI_DOCS", "./fascicoli/documenti"),
         scadenziario_db_path=_runtime_path("SCADENZIARIO_DB", "./scadenziario/scadenze.json"),
@@ -170,7 +171,18 @@ def pec_digest_run():
 def pec_save_to_fascicolo(message_id: str):
     payload = request.get_json(silent=True) or {}
     try:
-        result = _repo().save_to_fascicolo(message_id, fascicolo_id=str(payload.get("fascicolo_id") or ""), actor=_actor())
+        fascicolo_id = str(payload.get("fascicolo_id") or "").strip()
+        prepara = bool(payload.get("prepara") or payload.get("prepare"))
+        if prepara or (not fascicolo_id and any(str(payload.get(key) or "").strip() for key in ("nome", "cognome", "cliente_id"))):
+            result = _repo().prepare_save_to_fascicolo(
+                message_id,
+                nome=str(payload.get("nome") or ""),
+                cognome=str(payload.get("cognome") or ""),
+                cliente_id=str(payload.get("cliente_id") or ""),
+                actor=_actor(),
+            )
+            return _json_success(result, 200 if result.get("ok") else 409)
+        result = _repo().save_to_fascicolo(message_id, fascicolo_id=fascicolo_id, actor=_actor())
         return _json_success(result, 200 if result.get("ok") else 409)
     except KeyError:
         return _json_error(404)

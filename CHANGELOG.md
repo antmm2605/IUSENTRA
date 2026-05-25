@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.248.60 - 2026-05-26
+
+- Corretto il dettaglio Email PEC: il messaggio completo usa il corpo MIME estratto, le finestre lista/lettura sono allineate con scroll coerente e le azioni `Apri MIME`, `Esegui controllo`, `Salva nel fascicolo` e `Scadenza automatica` sono disponibili nella testata della PEC.
+- Il salvataggio nel fascicolo ora chiede nome e cognome del cliente, cerca i fascicoli aperti collegati in anagrafica e salva il MIME originale solo dopo conferma dell'avvocato, senza usare Local Signer o servizi telematici.
+
 ## 2.248.59 - 2026-05-25
 
 - Preparato su `/clienti/nuovo` l'hook di compilazione automatica da lettura documento: il parser OCR/MRZ potrà popolare codice fiscale, documento, scadenze, nome, cognome, nascita, indirizzo e recapiti senza sovrascrivere i campi già modificati dall'utente.

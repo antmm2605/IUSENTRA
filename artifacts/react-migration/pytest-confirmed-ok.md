@@ -3574,3 +3574,16 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | Browser in-app su `http://127.0.0.1:5174/clienti/nuovo` desktop e mobile 390x844 | OK | Titolo `Nuovo Cliente`, pannello documento visibile, vecchio testo tecnico assente, zero errori console; mobile senza overflow orizzontale. |
 | `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short`; `python -m pytest tests\test_utf8_integrity.py -q --tb=short` | OK | Packaging/versione `2.248.59`, readiness e presidio UTF-8 confermati prima del commit. |
 | `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python scripts\smoke_app_v2_all.py --subset contracts`; `python -m pytest -q tests\test_openapi_contracts_phase6.py --tb=short` | OK | Hotfix post-push: contratti API, OpenAPI, provider verification, smoke contratti offline e test OpenAPI riallineati alla versione `2.248.59`. |
+
+## Hotfix PEC MIME/fascicolo 2.248.60 - 2026-05-26
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\pec_pipeline.py web\blueprints\pec_pipeline_api.py web\services\react_email_bridge.py tests\test_pec_audit_pipeline.py` | OK | Sintassi confermata dopo il flusso prepara/conferma salvataggio MIME nel fascicolo e la lettura completa del corpo PEC. |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript verde dopo dialog nome/cognome, azioni PEC in testata e layout lista/lettura allineato. |
+| `python -m pytest -q tests\test_pec_audit_pipeline.py --tb=short` | OK | 9/9 passati: coperto il percorso nome/cognome cliente, fascicolo aperto proposto, conferma e documento MIME salvato con `msg_id_portale`. |
+| `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python scripts\smoke_app_v2_all.py --subset contracts` | OK | Contratti API, OpenAPI, provider verification e smoke contratti offline verdi dopo bump `2.248.60`. |
+| `pnpm --filter @iusentra/studio build` | OK | Build Vite completata in 6.98s; asset `EmailPecPage-IurTy5I5.js` e `EmailPecPage-BIcI2S5Q.css` generati. |
+| `python -m pytest -q tests\test_react_asset_retention.py tests\test_utf8_integrity.py tests\test_openapi_contracts_phase6.py --tb=short` | OK | 10/10 passati: asset React referenziati, integrità UTF-8 e contratti OpenAPI confermati dopo la build finale. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short`; `git diff --check`; `python tools\check_repo_governance.py` | OK | Packaging sincronizzato, readiness 9/9, whitespace e governance repo confermati prima del commit. |
+| Browser Playwright su server Flask temporaneo `/email/?cartella=INBOX` | OK | Desktop 1728x900: lista e lettura allineate `top=808`, altezza `790`, overflow orizzontale `0`, azioni `Apri MIME`, `Esegui controllo`, `Salva nel fascicolo`, `Scadenza automatica`; dialog conferma `Ricorso Rossi` e salva il MIME. Mobile 390x844: overflow `0`, dialog largo 370px, 4 azioni visibili. |

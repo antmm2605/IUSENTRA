@@ -143,6 +143,7 @@ def test_pec_api_demo_digest_mime_and_quick_action(tmp_path, monkeypatch):
     paths = {
         "EMAIL_CASELLA_DB": tmp_path / "email" / "casella.json",
         "PEC_AUDIT_DB": tmp_path / "email" / "pec_audit.sqlite",
+        "CLIENTI_DB": tmp_path / "clienti" / "anagrafica.json",
         "FASCICOLI_DB": tmp_path / "fascicoli" / "fascicoli.json",
         "FASCICOLI_DOCS": tmp_path / "fascicoli" / "documenti",
         "SCADENZIARIO_DB": tmp_path / "scadenziario" / "scadenze.json",
@@ -159,6 +160,13 @@ def test_pec_api_demo_digest_mime_and_quick_action(tmp_path, monkeypatch):
     app.secret_key = "test"
     app.register_blueprint(pec_pipeline_api, url_prefix="/api/pec")
     monkeypatch.setattr("web.blueprints.pec_pipeline_api.tenant_data_path", fake_tenant_data_path)
+
+    from pct.clienti import GestioneClienti, TipoCliente
+    from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+
+    cliente = GestioneClienti(str(paths["CLIENTI_DB"])).nuovo(TipoCliente.PERSONA_FISICA, nome="Mario", cognome="Rossi")
+    fascicoli = GestioneFascicoli(str(paths["FASCICOLI_DB"]), documents_dir=str(paths["FASCICOLI_DOCS"]))
+    fascicolo = fascicoli.nuovo("Ricorso Rossi", TipoFascicolo.CIVILE, id_cliente=cliente.id, nome_cliente=cliente.nome_completo)
 
     @app.before_request
     def _inject_user():
@@ -204,6 +212,25 @@ def test_pec_api_demo_digest_mime_and_quick_action(tmp_path, monkeypatch):
     schedule_again = client.post(f"/api/pec/messages/{notice_id}/schedula-scadenza")
     assert schedule_again.status_code == 200
     assert schedule_again.get_json()["already_exists"] is True
+
+    prepare_save = client.post(
+        f"/api/pec/messages/{notice_id}/salva-fascicolo",
+        json={"prepara": True, "nome": "Mario", "cognome": "Rossi"},
+    )
+    assert prepare_save.status_code == 200
+    prepare_payload = prepare_save.get_json()
+    assert prepare_payload["requires_confirmation"] is True
+    assert prepare_payload["candidates"][0]["id"] == fascicolo.id
+
+    confirm_save = client.post(f"/api/pec/messages/{notice_id}/salva-fascicolo", json={"fascicolo_id": fascicolo.id})
+    assert confirm_save.status_code == 200
+    confirm_payload = confirm_save.get_json()
+    assert confirm_payload["ok"] is True
+    assert confirm_payload["message"] == "MIME PEC salvato nel fascicolo."
+
+    saved = GestioneFascicoli(str(paths["FASCICOLI_DB"]), documents_dir=str(paths["FASCICOLI_DOCS"])).get(fascicolo.id)
+    assert saved is not None
+    assert any(doc.msg_id_portale == notice_id and doc.fonte_documento == "PEC_AUDIT_PIPELINE" for doc in saved.documenti)
 
     digest = client.get("/api/pec/digest")
     assert digest.status_code == 200

@@ -104,6 +104,8 @@ def _pec_audit_all_summaries(db_path: str, *, tenant_id: str = "default", includ
             detail = repo.get_message_detail(str(row.get("id") or ""))
             message = detail.get("message") if isinstance(detail.get("message"), dict) else {}
             parsed = detail.get("parsed") if isinstance(detail.get("parsed"), dict) else {}
+            body = parsed.get("body") if isinstance(parsed.get("body"), dict) else {}
+            body_text = _safe_text(parsed.get("body_text") or body.get("text") or body.get("html_text"))
             summaries.append(
                 {
                     "id": row.get("id") or message.get("id") or "",
@@ -115,7 +117,7 @@ def _pec_audit_all_summaries(db_path: str, *, tenant_id: str = "default", includ
                     "received_at": message.get("received_at") or row.get("received_at") or "",
                     "metadata": message.get("metadata") or row.get("metadata") or {},
                     "fields": parsed.get("fields") or {},
-                    "body_text": parsed.get("body_text") or "",
+                    "body_text": body_text,
                     "validation_report": detail.get("validation_report") or {},
                     "fascicolo_link": detail.get("fascicolo_link") or {},
                     "attachments": detail.get("attachments") or [],
@@ -140,7 +142,7 @@ def _pec_audit_payload(summary: dict[str, Any] | None) -> dict[str, Any] | None:
     attachments = summary.get("attachments") if isinstance(summary.get("attachments"), list) else []
     provisional = bool(summary.get("provisional"))
     source_email_id = _safe_text(summary.get("source_email_id"))
-    run_audit_href = "/api/pec/fetch?limit=50" if provisional else ""
+    run_audit_href = "/api/pec/fetch?limit=50" if provisional else "/api/pec/workers/run"
     return {
         "id": pec_id,
         "qualityStatus": str(summary.get("quality_status") or ""),
@@ -300,7 +302,7 @@ def _provisional_pec_audit_summary(email_obj: Any, *, include_telematic: bool = 
         "mittente": field_result(
             _address_value(sender),
             0.72 if sender else 0.18,
-            "Letto dallo storico della casella PEC; confermare sul MIME originale quando il controllo audit-grade viene eseguito.",
+            "Letto dallo storico della casella PEC; confermare sul MIME originale quando il controllo completo viene eseguito.",
             ["email:mittente"] if sender else [],
         ),
         "data_invio": field_result(
@@ -360,12 +362,12 @@ def _provisional_pec_audit_summary(email_obj: Any, *, include_telematic: bool = 
             "severity": "warning",
             "blocking": False,
             "title": "Acquisizione MIME originale richiesta",
-            "detail": "Il software ha eseguito il presidio sul testo disponibile; per chiudere l'esito audit-grade deve acquisire il MIME originale da IMAP, verificare allegati, firme, OCR e hash.",
+            "detail": "Il software ha eseguito il presidio sul testo disponibile; per chiudere l'esito deve acquisire il MIME originale da IMAP, verificare allegati, firme, OCR e hash.",
         },
         *list(report.get("issues") or []),
     ]
     recommended = [
-        "Esegui controllo audit-grade per acquisire il MIME originale e aggiornare esito, firme, OCR e collegamento fascicolo.",
+        "Esegui controllo per acquisire il MIME originale e aggiornare esito, firme, OCR e collegamento fascicolo.",
         *list(report.get("recommended_actions") or []),
     ]
     report["recommended_actions"] = list(dict.fromkeys(_safe_text(item) for item in recommended if _safe_text(item)))
@@ -452,7 +454,7 @@ def _pec_audit_virtual_row(summary: dict[str, Any], *, base_path: str = "/email"
     preview = _short_text(
         summary.get("body_text")
         or "; ".join(_safe_text(item.get("title")) for item in issues if _safe_text(item.get("title")))
-        or "PEC conservata nella pipeline audit-grade.",
+        or "PEC conservata nel controllo completo.",
         220,
     )
     base = "/" + str(base_path or "/email").strip("/")
@@ -473,7 +475,7 @@ def _pec_audit_virtual_row(summary: dict[str, Any], *, base_path: str = "/email"
         "isPst": True,
         "pctStatus": _safe_text(report.get("event_type")),
         "attachmentCount": len(list(summary.get("attachments") or [])),
-        "origin": "controllo PEC audit-grade",
+        "origin": "controllo PEC",
         "detailHref": f"/api/pec/messages/{encoded}/mime",
         "operationalHref": f"{base}/?pec_audit={encoded}",
         "replyHref": "",

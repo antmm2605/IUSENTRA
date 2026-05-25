@@ -1,0 +1,8 @@
+name: IUSENTRA CodeQL
+
+# Local Signer è un eseguibile locale monolitico e distribuito anche in forma
+# impacchettata. È coperto dai gate dedicati Local Signer/PKCS#11 e dai boundary
+# check PST, mentre CodeQL resta bloccante sul backend/applicazione web.
+paths-ignore:
+  - tools/local_signer.py
+  - tools/dist/**

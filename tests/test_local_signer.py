@@ -1538,6 +1538,30 @@ def test_local_signer_normalizza_alias_e_namespace_qbuilder_catalogo_corrente():
     assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASSPE") == "urn:CONS-CASSPE"
 
 
+def test_pst_varianti_ricerca_esatta_palmi_prova_siecic_senza_cambiare_ufficio(monkeypatch):
+    module = _load_local_signer()
+    base = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID"
+
+    monkeypatch.setattr(
+        module,
+        "_risolvi_ufficio_da_snapshot",
+        lambda value: {
+            "codice_ministero": "0800570094",
+            "codice_gl": "GLRC",
+            "servizi_ministero": ["COM_TEL_136", "JPW_SICID", "JPW_SIECIC", "SICID", "SIECIC"],
+            "servizio_pst_predefinito": "JPW_SICID",
+        },
+    )
+
+    varianti = module._pst_base_varianti_ricerca_esatta("0800570094", base)
+
+    assert varianti == [
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC",
+    ]
+    assert all("/pda/pycons/GLRC/" in variante for variante in varianti)
+
+
 def test_estrai_codice_fiscale_dal_certificato_windows():
     module = _load_local_signer()
 

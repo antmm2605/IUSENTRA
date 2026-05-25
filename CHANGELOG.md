@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.43 - 2026-05-25
+
+- Aggiornato Local Signer alla versione 1.6.37: la ricerca esatta PST/PolisWeb per Palmi mantiene SICID come servizio principale e prepara nello stesso batch anche il fallback SIECIC dello stesso ufficio `0800570094`, senza cambiare tribunale, certificato o introdurre preflight.
+- Il wizard React usa il fascicolo presente nello snapshot quando il Local Signer riceve documenti/metadati ma non righe in `fascicoli`, evitando il messaggio vuoto "Nessun fascicolo trovato" in presenza di catalogo reale.
+- Confermati i gate mirati su Local Signer, wizard React, wizard classico, boundary PST, typecheck, build Vite e pacchetti Local Signer.
+
 ## 2.248.42 - 2026-05-25
 
 - Corretto il payload PST/PolisWeb della ricerca esatta RG/anno: IUSENTRA non invia più il codice fiscale avvocato configurato nel tenant, così il Local Signer determina l'identità dall'effettivo certificato selezionato sul PC del cliente.

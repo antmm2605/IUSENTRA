@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.36
+IUSENTRA Local Signer - v1.6.37
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -111,7 +111,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.36"
+VERSION = "1.6.37"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -676,6 +676,67 @@ def _risolvi_base_pst_da_snapshot(codice_o_nome: str) -> str:
     if root.startswith(_PST_LEGACY_BASE):
         root = _PST_PROXY_SH_URL
     return f"{root}/pda/pycons/{codice_gl}/{servizio}"
+
+
+def _pst_base_url_con_servizio(base_url: str, servizio: str) -> str:
+    servizio_norm = _normalizza_servizio_pst_name(servizio)
+    raw = (base_url or "").strip().rstrip("/")
+    if not raw or not servizio_norm or "/pda/pycons/" not in raw:
+        return raw
+
+    parsed = urlparse(raw)
+    path = parsed.path if parsed.scheme and parsed.netloc else raw
+    path_parts = [part for part in path.rstrip("/").split("/") if part]
+    if not path_parts:
+        return raw
+    path_parts[-1] = servizio_norm
+    normalized_path = "/" + "/".join(path_parts)
+    if parsed.scheme and parsed.netloc:
+        return f"{parsed.scheme}://{parsed.netloc}{normalized_path}"
+    return normalized_path if raw.startswith("/") else normalized_path.lstrip("/")
+
+
+def _pst_servizi_qbuilder_ufficio(codice_o_nome: str) -> list[str]:
+    ufficio = _risolvi_ufficio_da_snapshot(codice_o_nome)
+    if not ufficio:
+        return []
+
+    servizi: list[str] = []
+    for servizio in ufficio.get("servizi_ministero") or []:
+        servizio_norm = _normalizza_servizio_pst_name(servizio)
+        if servizio_norm in _PST_QBUILDER_NAMESPACES and servizio_norm not in servizi:
+            servizi.append(servizio_norm)
+    return servizi
+
+
+def _pst_base_varianti_ricerca_esatta(codice_o_nome: str, base_url: str) -> list[str]:
+    """
+    Per ricerche esatte RG/anno resta prioritario il servizio ufficiale
+    dell'ufficio, ma alcuni Tribunali espongono fascicoli anche sul registro
+    parallelo SICID/SIECIC. Le varianti non cambiano ufficio, GL o certificato.
+    """
+    current = _pst_servizio_proxy(base_url)
+    servizi_ufficio = _pst_servizi_qbuilder_ufficio(codice_o_nome)
+    candidati: list[str] = []
+
+    def _aggiungi(servizio: str) -> None:
+        servizio_norm = _normalizza_servizio_pst_name(servizio)
+        if servizio_norm in _PST_QBUILDER_NAMESPACES and servizio_norm not in candidati:
+            candidati.append(servizio_norm)
+
+    _aggiungi(current)
+    for servizio in ("JPW_SICID", "JPW_SIECIC", "JPW_SIGP"):
+        if servizio in servizi_ufficio:
+            _aggiungi(servizio)
+    for servizio in servizi_ufficio:
+        _aggiungi(servizio)
+
+    varianti: list[str] = []
+    for servizio in candidati:
+        variante = _pst_base_url_con_servizio(base_url, servizio)
+        if variante and variante not in varianti:
+            varianti.append(variante)
+    return varianti or ([base_url.rstrip("/")] if base_url else [])
 
 
 def _cerca_lib_registro_windows() -> Optional[str]:
@@ -7105,6 +7166,80 @@ class _Handler(BaseHTTPRequestHandler):
                         "soap_action": "ricercaAtti",
                         "cookie_file": cookie_file,
                     })
+                fallback_batches = []
+                if _pst_namespace_qbuilder(base_url):
+                    for fallback_base_url in _pst_base_varianti_ricerca_esatta(codice_pst or tribunale, base_url)[1:]:
+                        if fallback_base_url == base_url or not _pst_namespace_qbuilder(fallback_base_url):
+                            continue
+                        fallback_url_ricerca = _pst_url_ricerca(fallback_base_url)
+                        fallback_url_documenti = _pst_url_documenti(fallback_base_url)
+                        fallback_extra_headers = [f"X-WASP-User: {cf_avvocato}"]
+                        fallback_soap_profilo = _soap_profilo_fascicolo_body(
+                            base_url=fallback_base_url,
+                            codice_ufficio=codice_pst,
+                            numero_rg=numero_rg,
+                            anno_rg=anno_rg,
+                            sub_procedimento=sub_procedimento,
+                        )
+                        fallback_info = {
+                            "base_url": fallback_base_url,
+                            "url_ricerca": fallback_url_ricerca,
+                            "url_documenti": fallback_url_documenti,
+                            "ricerca_index": len(batch_requests),
+                            "profilo_index": None,
+                            "documenti_index": None,
+                            "sigp_atti_index": None,
+                        }
+                        batch_requests.append({
+                            "url": fallback_url_ricerca,
+                            "soap_body": _soap_ricerca_fascicoli_body(
+                                base_url=fallback_base_url,
+                                codice_ufficio=codice_pst,
+                                numero_rg=numero_rg,
+                                anno_rg=anno_rg,
+                                nome_parte=None,
+                                cf_parte=None,
+                                cf_avvocato=cf_avvocato,
+                                sub_procedimento=sub_procedimento,
+                            ),
+                            "extra_headers": fallback_extra_headers,
+                            "soap_action": "",
+                            "cookie_file": cookie_file,
+                        })
+                        if fallback_soap_profilo:
+                            fallback_info["profilo_index"] = len(batch_requests)
+                            batch_requests.append({
+                                "url": fallback_url_ricerca,
+                                "soap_body": fallback_soap_profilo,
+                                "extra_headers": fallback_extra_headers,
+                                "soap_action": "",
+                                "cookie_file": cookie_file,
+                            })
+                        fallback_info["documenti_index"] = len(batch_requests)
+                        batch_requests.append({
+                            "url": fallback_url_documenti,
+                            "soap_body": _soap_documenti_body(
+                                base_url=fallback_base_url,
+                                codice_ufficio=codice_pst,
+                                numero_rg=numero_rg,
+                                anno_rg=anno_rg,
+                                cf_avvocato=cf_avvocato,
+                                sub_procedimento=sub_procedimento,
+                            ),
+                            "extra_headers": fallback_extra_headers,
+                            "soap_action": "",
+                            "cookie_file": cookie_file,
+                        })
+                        if _pst_servizio_sigp(fallback_base_url):
+                            fallback_info["sigp_atti_index"] = len(batch_requests)
+                            batch_requests.append({
+                                "url": fallback_url_documenti,
+                                "soap_body": _soap_sigp_ricerca_atti_body(codice_pst, numero_rg, anno_rg),
+                                "extra_headers": fallback_extra_headers,
+                                "soap_action": "ricercaAtti",
+                                "cookie_file": cookie_file,
+                            })
+                        fallback_batches.append(fallback_info)
                 batch_results = _soap_call_pst_session_batch_raw(
                     batch_requests,
                     cert_thumbprint=cert_thumbprint,
@@ -7133,13 +7268,29 @@ class _Handler(BaseHTTPRequestHandler):
                 raise RuntimeError(f"Il PST ha restituito una SOAP Fault: {fault}")
             fault = _estrai_fault_soap(xml_profilo)
             if fault and not _pst_servizio_sigp(base_url):
-                raise RuntimeError(f"Il PST ha restituito una SOAP Fault: {fault}")
+                if fallback_batches:
+                    log.info(
+                        "Profilo fascicolo PST non disponibile su %s, provo registro alternativo: %s",
+                        _pst_servizio_proxy(base_url),
+                        fault,
+                    )
+                    xml_profilo = ""
+                else:
+                    raise RuntimeError(f"Il PST ha restituito una SOAP Fault: {fault}")
             if fault and _pst_servizio_sigp(base_url):
                 log.warning("Profilo fascicolo SIGP in snapshot non disponibile: %s", fault)
                 xml_profilo = ""
             fault = _estrai_fault_soap(xml_documenti)
             if fault and not _pst_servizio_sigp(base_url):
-                raise RuntimeError(f"Il PST ha restituito una SOAP Fault: {fault}")
+                if fallback_batches:
+                    log.info(
+                        "Catalogo documenti PST non disponibile su %s, provo registro alternativo: %s",
+                        _pst_servizio_proxy(base_url),
+                        fault,
+                    )
+                    xml_documenti = ""
+                else:
+                    raise RuntimeError(f"Il PST ha restituito una SOAP Fault: {fault}")
             if fault and _pst_servizio_sigp(base_url):
                 log.warning("Catalogo documenti SIGP qbuilder in snapshot non disponibile: %s", fault)
                 xml_documenti = ""
@@ -7153,6 +7304,88 @@ class _Handler(BaseHTTPRequestHandler):
                 fallback_motivo = str(pst_error)
                 log.warning("SIGP ricerca-snapshot esatta in fallback guidato: %s", fallback_motivo)
                 fascicoli = []
+            if not fascicoli and _pst_namespace_qbuilder(base_url):
+                for fallback_info in fallback_batches:
+                    fallback_base_url = str(fallback_info.get("base_url") or "")
+                    try:
+                        fallback_ricerca_index = int(fallback_info.get("ricerca_index"))
+                        fallback_documenti_index = int(fallback_info.get("documenti_index"))
+                        fallback_profile_index = fallback_info.get("profilo_index")
+                        fallback_sigp_atti_index = fallback_info.get("sigp_atti_index")
+
+                        fallback_xml_ricerca = (
+                            batch_results[fallback_ricerca_index][0].decode("utf-8", "replace")
+                            if len(batch_results) > fallback_ricerca_index
+                            else ""
+                        )
+                        fallback_fault = _estrai_fault_soap(fallback_xml_ricerca)
+                        if fallback_fault:
+                            log.info(
+                                "PST ricerca-snapshot: servizio %s ignorato per SOAP Fault: %s",
+                                _pst_servizio_proxy(fallback_base_url),
+                                fallback_fault,
+                            )
+                            continue
+
+                        fallback_xml_profilo = (
+                            batch_results[int(fallback_profile_index)][0].decode("utf-8", "replace")
+                            if fallback_profile_index is not None
+                            and len(batch_results) > int(fallback_profile_index)
+                            else ""
+                        )
+                        fallback_xml_documenti = (
+                            batch_results[fallback_documenti_index][0].decode("utf-8", "replace")
+                            if len(batch_results) > fallback_documenti_index
+                            else ""
+                        )
+                        fallback_xml_sigp_atti = (
+                            batch_results[int(fallback_sigp_atti_index)][0].decode("utf-8", "replace")
+                            if fallback_sigp_atti_index is not None
+                            and len(batch_results) > int(fallback_sigp_atti_index)
+                            else ""
+                        )
+                        if _estrai_fault_soap(fallback_xml_profilo):
+                            fallback_xml_profilo = ""
+                        if _estrai_fault_soap(fallback_xml_documenti):
+                            fallback_xml_documenti = ""
+                        if _estrai_fault_soap(fallback_xml_sigp_atti):
+                            fallback_xml_sigp_atti = ""
+
+                        fallback_fascicoli = _parse_fascicoli_xml(fallback_xml_ricerca)
+                        fallback_documenti = _parse_documenti_xml(fallback_xml_documenti)
+                        if fallback_xml_sigp_atti:
+                            fallback_documenti = _sigp_merge_documenti_con_profili(
+                                fallback_documenti,
+                                _sigp_documenti_minimi_da_ricerca_atti_xml(fallback_xml_sigp_atti),
+                            )
+                        if not fallback_fascicoli and not fallback_documenti:
+                            continue
+
+                        log.info(
+                            "PST ricerca-snapshot: servizio %s vuoto, uso %s per %s/%s ufficio %s",
+                            _pst_servizio_proxy(base_url),
+                            _pst_servizio_proxy(fallback_base_url),
+                            numero_rg,
+                            anno_rg,
+                            codice_pst,
+                        )
+                        base_url = fallback_base_url
+                        url_ricerca = str(fallback_info.get("url_ricerca") or _pst_url_ricerca(fallback_base_url))
+                        url_documenti = str(
+                            fallback_info.get("url_documenti") or _pst_url_documenti(fallback_base_url)
+                        )
+                        xml_ricerca = fallback_xml_ricerca
+                        xml_profilo = fallback_xml_profilo
+                        xml_documenti = fallback_xml_documenti
+                        xml_sigp_atti = fallback_xml_sigp_atti
+                        fascicoli = fallback_fascicoli
+                        break
+                    except Exception as fallback_error:
+                        log.warning(
+                            "PST ricerca-snapshot: fallback servizio %s non riuscito: %s",
+                            _pst_servizio_proxy(fallback_base_url),
+                            fallback_error,
+                        )
             if _pst_servizio_sigp(base_url) and not fascicoli:
                 fascicoli = [
                     _sigp_fascicolo_fallback(

@@ -1567,7 +1567,13 @@ function AcquisitionWizard({
         const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
         if (!nextSession) throw new Error('Sessione PST non inizializzata dal Local Signer.')
         const snapshot = asRecord(signerPayload.snapshot)
-        rows = asList(signerPayload.fascicoli || signerPayload.results).map((row, index) => {
+        const signerRows = asList(signerPayload.fascicoli || signerPayload.results)
+        const snapshotFascicolo = asRecord(snapshot.fascicolo)
+        const snapshotDocumenti = asList(snapshot.documenti || snapshot.catalogo)
+        const sourceRows = signerRows.length
+          ? signerRows
+          : (Object.keys(snapshotFascicolo).length || snapshotDocumenti.length ? [snapshotFascicolo] : [])
+        rows = sourceRows.map((row, index) => {
           const item = normalisePstAcquisitionResult(row, index, query, tribunale)
           return {
             ...item,

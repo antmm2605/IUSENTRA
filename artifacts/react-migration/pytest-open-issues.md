@@ -1,6 +1,10 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornamento corrente: 2026-05-25, hotfix PST CF tenant non vincolante 2.248.42.
+Aggiornamento corrente: 2026-05-25, hotfix PST Palmi fallback registro Local Signer 2.248.43.
+
+## Note hotfix PST Palmi fallback registro Local Signer 2.248.43 - 2026-05-25
+
+Il test reale sullo studio Giuseppe Montagnese ha confermato l'ufficio selezionato `0800570094`, cioè Tribunale Ordinario di Palmi. Il server di produzione aveva già servito l'asset React aggiornato, quindi la risposta "Nessun fascicolo trovato con questi filtri" restava nel perimetro del Local Signer locale e della risposta PST. Local Signer 1.6.37 mantiene SICID come servizio principale per Palmi, ma prepara nello stesso batch anche SIECIC dello stesso ufficio quando il registro ufficiale espone entrambi; non cambia ufficio, GL, certificato o tenant e non reintroduce `/pst/preflight-auth`. Il PC cliente deve eseguire Local Signer 1.6.37 perché questa logica gira su `127.0.0.1:27272`.
 
 ## Note hotfix PST CF tenant non vincolante 2.248.42 - 2026-05-25
 

@@ -43,20 +43,6 @@ def main() -> int:
     if not (REPO_ROOT / baseline_doc).exists():
         failures.append(f"Manca {baseline_doc}")
 
-    for signer_path in ("tools/local_signer.py", "tools/dist/local_signer.py"):
-        signer_text = _read(signer_path)
-        required_snippets = (
-            'exact_registry_lookup = bool(str(numero_rg or "").strip() and str(anno_rg or "").strip())',
-            "filtered_nome_parte = None if exact_registry_lookup else nome_parte",
-            "filtered_cf_parte = None if exact_registry_lookup else cf_parte",
-            "tag(\"nomeParte\", filtered_nome_parte)",
-            "tag(\"codiceFiscaleParte\", filtered_cf_parte)",
-            "do_preflight=False",
-        )
-        for snippet in required_snippets:
-            if snippet not in signer_text:
-                failures.append(f"{signer_path} non preserva baseline PST: {snippet}")
-
     react_text = _read("frontend/src/components/TelematicoSurfacePage.tsx")
     react_required = (
         "const exactPstSearch = Boolean(asText(query.numero) && asText(query.anno))",

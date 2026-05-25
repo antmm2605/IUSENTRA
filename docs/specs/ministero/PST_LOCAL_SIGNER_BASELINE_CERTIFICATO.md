@@ -7,7 +7,7 @@ Questo documento registra le regole funzionali certificate con test reale su PST
 
 ## Invarianti bloccanti
 
-- La connessione al portale non basta: se l'utente cerca per numero e anno di ruolo, i wizard IUSENTRA devono inviare al Local Signer una ricerca esatta sul fascicolo e non devono passare assistito, controparte o codice fiscale come filtri restrittivi.
+- La connessione al portale non basta: se l'utente cerca per numero e anno di ruolo, la ricerca deve essere esatta sul fascicolo e non deve aggiungere assistito, controparte o codice fiscale come filtri restrittivi.
 - La visualizzazione del fascicolo usa la sessione PST già aperta dal Local Signer e passa sempre `pst_session_id` alle chiamate successive.
 - Non deve esistere una chiamata preventiva `/pst/preflight-auth` nel wizard React o nel wizard classico: il PIN deve essere richiesto solo quando serve davvero al portale.
 - Il comportamento certificato resta: un PIN per visualizzare il fascicolo e un PIN separato solo per scaricare l'intero fascicolo.
@@ -19,6 +19,6 @@ Questo documento registra le regole funzionali certificate con test reale su PST
 
 I presidi sono parte del gate `Local Signer boundaries` eseguito in CI Quality Overlay:
 
-- `tools/check_local_signer_boundaries.py` verifica la presenza delle invarianti nei payload dei wizard React e classico, senza riaprire il monolite Local Signer alle annotazioni CodeQL storiche non legate a questa baseline.
-- `tests/test_local_signer.py` verifica che la ricerca qbuilder esatta numero/anno non includa parte o codice fiscale anche se il chiamante li valorizza.
-- `tests/test_react_shell.py` e `tests/test_polisweb.py` impediscono il ritorno di preflight PIN e del filtro parte/CF nelle ricerche esatte inviate dai wizard.
+- `tools/check_local_signer_boundaries.py` verifica la presenza delle invarianti sopra in `tools/local_signer.py`, `tools/dist/local_signer.py`, `frontend/src/components/TelematicoSurfacePage.tsx` e `web/templates/portale/acquisizione_wizard.html`.
+- `tests/test_local_signer.py` verifica che la SOAP di ricerca esatta numero/anno non includa `nomeParte` o `codiceFiscaleParte`, mentre la ricerca per parte continui a usarli.
+- `tests/test_react_shell.py` e `tests/test_polisweb.py` impediscono il ritorno di preflight PIN e del filtro parte/CF nelle ricerche esatte del wizard.

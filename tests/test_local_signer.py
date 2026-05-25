@@ -1660,6 +1660,42 @@ def test_costruisce_body_qbuilder_ricerca_per_tipo():
     assert '<entry property="ANNORUOLO, NUMERORUOLO" mode="asc"/>' in xml
 
 
+def test_costruisce_body_legacy_ricerca_esatta_senza_filtri_parte():
+    module = _load_local_signer()
+
+    xml = module._soap_ricerca_fascicoli_body(
+        base_url="https://pst.giustizia.it/PST/services/PSTService",
+        codice_ufficio="0800570094",
+        numero_rg="1025",
+        anno_rg=2024,
+        nome_parte="Parte non corrispondente",
+        cf_parte="RSSMRA80A01H501Z",
+        cf_avvocato="MNTRRT64L01L063H",
+    )
+
+    assert "<numeroRG>1025</numeroRG>" in xml
+    assert "<annoRG>2024</annoRG>" in xml
+    assert "<cfAvvocato>MNTRRT64L01L063H</cfAvvocato>" in xml
+    assert "<codiceUfficio>0800570094</codiceUfficio>" in xml
+    assert "<nomeParte>" not in xml
+    assert "<codiceFiscaleParte>" not in xml
+
+
+def test_costruisce_body_legacy_ricerca_per_parte_mantiene_filtri():
+    module = _load_local_signer()
+
+    xml = module._soap_ricerca_fascicoli_body(
+        base_url="https://pst.giustizia.it/PST/services/PSTService",
+        codice_ufficio="0800570094",
+        nome_parte="Mario Rossi",
+        cf_parte="RSSMRA80A01H501Z",
+        cf_avvocato="MNTRRT64L01L063H",
+    )
+
+    assert "<nomeParte>Mario Rossi</nomeParte>" in xml
+    assert "<codiceFiscaleParte>RSSMRA80A01H501Z</codiceFiscaleParte>" in xml
+
+
 def test_qbuilder_documenti_e_profilo_usano_parametri_pst_live():
     module = _load_local_signer()
     base_url = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID"

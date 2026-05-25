@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.35
+IUSENTRA Local Signer - v1.6.36
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -111,7 +111,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.35"
+VERSION = "1.6.36"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -4441,13 +4441,17 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
             return f"<{name}>{_esc(str(value))}</{name}>"
         return ""
 
+    exact_registry_lookup = bool(str(numero_rg or "").strip() and str(anno_rg or "").strip())
+    filtered_nome_parte = None if exact_registry_lookup else nome_parte
+    filtered_cf_parte = None if exact_registry_lookup else cf_parte
+
     body_inner = "".join([
         tag("cfAvvocato", cf_avvocato),
         tag("codiceUfficio", codice_ufficio),
         tag("numeroRG", numero_rg),
         tag("annoRG", anno_rg),
-        tag("nomeParte", nome_parte),
-        tag("codiceFiscaleParte", cf_parte),
+        tag("nomeParte", filtered_nome_parte),
+        tag("codiceFiscaleParte", filtered_cf_parte),
     ])
 
     return f"""<?xml version="1.0" encoding="UTF-8"?>

@@ -6,7 +6,7 @@ Aggiornamento corrente: 2026-05-25, hotfix PST ricerca esatta e baseline Local S
 
 Il test reale certificato del flusso PST/PolisWeb con Local Signer era stato dichiarato baseline: un PIN per visualizzare il fascicolo e un PIN separato per scaricare l'intero fascicolo. Dopo quel baseline erano entrate modifiche al flusso snapshot/import guidato che non dovevano alterare la ricerca esatta. La regressione verificata era coerente con il sintomo "connessione al portale riuscita, ma nessun fascicolo trovato": numero/anno erano accompagnati da parte o codice fiscale come filtri aggiuntivi.
 
-Stato locale: risolto nei payload dei wizard e blindato con documento `docs/specs/ministero/PST_LOCAL_SIGNER_BASELINE_CERTIFICATO.md`, test mirati e gate `tools/check_local_signer_boundaries.py`. Il monolite Local Signer non viene toccato in questa patch per non riaprire il debito CodeQL storico non collegato al filtro parte/CF. La chiusura operativa della tranche richiede commit, push, CI completa, deploy Hetzner e successivo test reale sul PC cliente quando l'avvocato ripete l'accesso al portale.
+Stato locale: risolto nel codice e blindato con documento `docs/specs/ministero/PST_LOCAL_SIGNER_BASELINE_CERTIFICATO.md`, test mirati e gate `tools/check_local_signer_boundaries.py`. La chiusura operativa della tranche richiede commit, push, CI completa, deploy Hetzner e successivo test reale sul PC cliente quando l'avvocato ripete l'accesso al portale.
 
 ## Note evoluzione grafica professionale e Lex 2.248.40 - 2026-05-25
 

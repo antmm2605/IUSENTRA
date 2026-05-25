@@ -967,7 +967,7 @@ def _build_impostazioni(config: dict[str, Any]) -> dict[str, Any]:
         "operations": [
             _operation("dati-studio", "Dati studio", "Dati anagrafici e fiscali usati nei documenti.", records=safe_rows[:1]),
             _operation("pec-e-smtp", "PEC e SMTP", "Verifica canali senza esporre password nella UI.", records=safe_rows[1:3], actions=[_action("Test PEC/SMTP", "/impostazioni/test/pec-smtp", method="POST")]),
-            _operation("firma-digitale", "Firma digitale", "Il dispositivo di firma si verifica dal browser tramite Local Signer sul PC dell'avvocato.", records=safe_rows[3:4], actions=[_action("Scarica Local Signer Windows", "/polisWeb/local-signer/setup/windows-exe")]),
+            _operation("firma-digitale", "Firma digitale", "Il dispositivo di firma si verifica dal browser tramite Local Signer sul PC dell'avvocato.", records=safe_rows[3:4], actions=[_action("Scarica Local Signer Windows", "/polisWeb/local-signer/setup/windows")]),
             _operation("assistente-locale", "Assistente locale", "Assistente sul PC dello studio e aggiornamento documenti.", actions=[_action("Stato assistente", "/api/local-ai/status")]),
             _operation("whatsapp", "WhatsApp", "Canale, numeri e promemoria cliente.", actions=[_action("Apri WhatsApp", "/impostazioni?tab=whatsapp")]),
             _operation("scheduler", "Scheduler", "Automazioni, backup e sincronizzazione calendario.", records=safe_rows[4:]),

@@ -60,6 +60,23 @@ def register_telematico_local_signer_routes(
             mimetype="application/octet-stream",
         )
 
+    def _send_windows_ps1():
+        ps1_path = local_signer_windows_offline_ps1_path()
+        if not ps1_path.exists():
+            ps1_path = local_signer_windows_exe_path().parent / local_signer_windows_ps1_name()
+        if ps1_path.exists():
+            return send_file(
+                ps1_path,
+                as_attachment=True,
+                download_name=local_signer_windows_ps1_name(),
+                mimetype="text/plain; charset=utf-8",
+            )
+        return Response(
+            render_local_signer_windows_ps1(get_base_url()),
+            mimetype="text/plain; charset=utf-8",
+            headers={"Content-Disposition": f'attachment; filename="{local_signer_windows_ps1_name()}"'},
+        )
+
     @app.route("/polisWeb/local-signer/download")
     def polis_local_signer_download():
         try:
@@ -186,33 +203,23 @@ def register_telematico_local_signer_routes(
     @app.route("/polisWeb/local-signer/setup/windows-ps1")
     def polis_local_signer_setup_windows_ps1():
         try:
-            ps1_path = local_signer_windows_offline_ps1_path()
-            if not ps1_path.exists():
-                ps1_path = local_signer_windows_exe_path().parent / local_signer_windows_ps1_name()
-            if ps1_path.exists():
-                return send_file(
-                    ps1_path,
-                    as_attachment=True,
-                    download_name=local_signer_windows_ps1_name(),
-                    mimetype="text/plain; charset=utf-8",
-                )
-            return Response(
-                render_local_signer_windows_ps1(get_base_url()),
-                mimetype="text/plain; charset=utf-8",
-                headers={"Content-Disposition": f'attachment; filename="{local_signer_windows_ps1_name()}"'},
-            )
+            return _send_windows_ps1()
         except Exception as exc:
             app.logger.exception("Errore generazione installer Windows PowerShell: %s", exc)
             return str(exc), 500
 
     @app.route("/polisWeb/local-signer/setup/windows")
     def polis_local_signer_setup_windows():
-        return _send_windows_exe()
+        try:
+            return _send_windows_ps1()
+        except Exception as exc:
+            app.logger.exception("Errore generazione installer Windows PowerShell: %s", exc)
+            return str(exc), 500
 
     @app.route("/polisWeb/local-signer/installa-windows")
     def polis_local_signer_installa():
         try:
-            return _send_windows_exe()
+            return _send_windows_ps1()
         except Exception as exc:
             app.logger.exception("Errore generazione script installer: %s", exc)
             return str(exc), 500

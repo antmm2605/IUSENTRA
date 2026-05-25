@@ -4183,6 +4183,105 @@ def test_pst_ricerca_snapshot_batcha_ricerca_e_documenti_senza_preflight():
     assert captured["batch"]["kwargs"]["prefer_cookie_only"] is False
 
 
+def test_pst_ricerca_snapshot_fault_client_su_sicid_passa_a_siecic(monkeypatch):
+    module = _load_local_signer()
+    captured = {}
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "tribunale": "0800570094",
+                "numero_rg": "274",
+                "anno_rg": "2026",
+                "cert_thumbprint": "AABBCC11",
+                "cf_avvocato": "RSSMRA80A01H501Z",
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    monkeypatch.setattr(module, "_curl_disponibile", lambda: True)
+    monkeypatch.setattr(
+        module,
+        "_risolvi_base_pst_runtime",
+        lambda tribunale: "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+    )
+    monkeypatch.setattr(module, "_risolvi_codice_ufficio_pst", lambda tribunale: "0800570094")
+    monkeypatch.setattr(module, "_require_certificato_pst", lambda thumbprint: "AABBCC11")
+    monkeypatch.setattr(module, "_cf_avvocato_pst", lambda cf, thumbprint: "RSSMRA80A01H501Z")
+    monkeypatch.setattr(
+        module,
+        "_risolvi_ufficio_da_snapshot",
+        lambda codice: {
+            "nome": "Tribunale di Palmi",
+            "servizi_ministero": ["JPW_SICID", "JPW_SIECIC"],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_ensure_pst_session_entry",
+        lambda *args, **kwargs: (
+            {
+                "session_id": "SID-PALMI",
+                "cookie_file": "C:\\temp\\pst.cookies",
+                "auth_ready": False,
+                "cf_avvocato": "RSSMRA80A01H501Z",
+            },
+            True,
+        ),
+    )
+    monkeypatch.setattr(module, "_pst_preflight_auth_curl", lambda *args, **kwargs: pytest.fail("preflight vietato"))
+
+    def _fake_batch(requests, **kwargs):
+        captured["requests"] = list(requests)
+        return [
+            (b"<fault-primary/>", "HTTP/1.1 200 OK\r\n"),
+            (b"<primary-profile/>", "HTTP/1.1 200 OK\r\n"),
+            (b"<primary-docs/>", "HTTP/1.1 200 OK\r\n"),
+            (b"<fallback-search/>", "HTTP/1.1 200 OK\r\n"),
+            (b"<fallback-profile/>", "HTTP/1.1 200 OK\r\n"),
+            (b"<fallback-docs/>", "HTTP/1.1 200 OK\r\n"),
+        ]
+
+    monkeypatch.setattr(module, "_soap_call_pst_session_batch_raw", _fake_batch)
+    monkeypatch.setattr(
+        module,
+        "_estrai_fault_soap",
+        lambda xml: "SOAP-ENV:Client RicercaInformazioniFascicoloPerTipo" if "fault-primary" in str(xml) else None,
+    )
+    monkeypatch.setattr(
+        module,
+        "_parse_fascicoli_xml",
+        lambda xml: [
+            {
+                "numero_rg": "274",
+                "anno_rg": 2026,
+                "codice_ufficio": "0800570094",
+                "nome_ufficio": "Tribunale di Palmi",
+                "oggetto": "Usucapione",
+            }
+        ]
+        if "fallback-search" in str(xml)
+        else [],
+    )
+    monkeypatch.setattr(
+        module,
+        "_parse_documenti_xml",
+        lambda xml: [{"id_documento": "DOC-SIECIC", "nome": "Atto.pdf"}] if "fallback-docs" in str(xml) else [],
+    )
+    monkeypatch.setattr(module, "_update_pst_session", lambda *args, **kwargs: None)
+    monkeypatch.setattr(module, "_get_pst_session", lambda *args, **kwargs: None)
+
+    module._Handler._pst_ricerca_snapshot(_FakeHandler())
+
+    assert captured["status"] == 200
+    assert len(captured["requests"]) == 6
+    assert captured["payload"]["ok"] is True
+    assert captured["payload"]["fascicoli"][0]["numero_rg"] == "274"
+    assert captured["payload"]["documenti"][0]["id_documento"] == "DOC-SIECIC"
+
+
 def test_pst_ricerca_snapshot_sigp_include_ricerca_atti_nel_batch_visualizzazione():
     module = _load_local_signer()
 

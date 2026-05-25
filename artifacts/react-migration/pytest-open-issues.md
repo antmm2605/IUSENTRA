@@ -1,6 +1,10 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornamento corrente: 2026-05-25, hotfix PST Palmi fallback registro Local Signer 2.248.43.
+Aggiornamento corrente: 2026-05-25, hotfix PST Palmi SOAP Fault Client 2.248.44.
+
+## Note hotfix PST Palmi SOAP Fault Client 2.248.44 - 2026-05-25
+
+Durante il test reale sul PC cliente, Local Signer 1.6.37 ha ricevuto `SOAP-ENV:Client` su `RicercaInformazioniFascicoloPerTipo`. La logica 1.6.37 preparava già i registri alternativi nello stesso batch, ma alzava errore sulla Fault della ricerca principale prima di leggere la risposta SIECIC. Local Signer 1.6.38 tratta quella Fault come registro non valido per quel fascicolo quando esiste un fallback preparato, continua sulle risposte alternative e resta senza `/pst/preflight-auth`.
 
 ## Note hotfix PST Palmi fallback registro Local Signer 2.248.43 - 2026-05-25
 

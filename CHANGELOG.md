@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.248.44 - 2026-05-25
+
+- Aggiornato Local Signer alla versione 1.6.38: se il PST risponde `SOAP-ENV:Client` sulla ricerca `RicercaInformazioniFascicoloPerTipo` del primo registro, la ricerca Palmi continua sul registro alternativo già preparato nello stesso batch, senza preflight e senza cambiare ufficio, tenant o certificato.
+- Aggiunto test di regressione sul caso Palmi `0800570094`: Fault SICID, fallback SIECIC e catalogo documenti restituito restano in una sola ricerca snapshot.
+
 ## 2.248.43 - 2026-05-25
 
 - Aggiornato Local Signer alla versione 1.6.37: la ricerca esatta PST/PolisWeb per Palmi mantiene SICID come servizio principale e prepara nello stesso batch anche il fallback SIECIC dello stesso ufficio `0800570094`, senza cambiare tribunale, certificato o introdurre preflight.

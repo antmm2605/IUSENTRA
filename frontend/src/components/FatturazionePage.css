@@ -131,7 +131,7 @@
 }
 
 .iu-fatt-search {
-  min-height: 42px;
+  min-height: 46px;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 8px;
@@ -146,6 +146,7 @@
 
 .iu-fatt-search input {
   width: 100%;
+  min-height: 38px;
   border: 0;
   outline: 0;
   background: transparent;
@@ -161,13 +162,24 @@
 }
 
 .iu-fatt-status-action select {
-  min-height: 38px;
+  min-height: 40px;
   border: 1px solid var(--iu-border);
   border-radius: var(--iu-radius-sm);
   background: var(--iu-bg-card);
   color: var(--iu-navy-900);
   font: inherit;
   padding: 8px 10px;
+}
+
+@media (max-width: 920px) {
+  .iu-fatt-search {
+    min-height: 52px;
+  }
+
+  .iu-fatt-search input,
+  .iu-fatt-status-action select {
+    min-height: 44px;
+  }
 }
 
 .iu-fatt-warning {

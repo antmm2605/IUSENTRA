@@ -94,7 +94,7 @@ function text(value: unknown, fallback = ''): string {
 }
 
 function display(value: unknown, fallback = ''): string {
-  return sanitizeDisplayText(text(value, fallback))
+  return sanitizeDisplayText(text(value, fallback).replace(/[_-]+/g, ' '))
 }
 
 function bool(value: unknown): boolean {
@@ -103,7 +103,7 @@ function bool(value: unknown): boolean {
 
 function value(value: unknown): string | number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string') return sanitizeDisplayText(value.trim())
+  if (typeof value === 'string') return sanitizeDisplayText(value.trim().replace(/[_-]+/g, ' '))
   return ''
 }
 
@@ -111,12 +111,12 @@ function normaliseContract(raw: unknown): ReactOperationalContract {
   const item = asRecord(raw)
   return {
     mock_fallback: bool(item.mock_fallback),
-    writes: text(item.writes) || 'none',
-    route_owner: text(item.route_owner) || 'react_shell',
+    writes: display(item.writes) || 'none',
+    route_owner: display(item.route_owner) || 'pagina operativa',
     operational: item.operational === false ? false : true,
-    sensitive_settings: text(item.sensitive_settings),
+    sensitive_settings: display(item.sensitive_settings),
     secrets_exposed: bool(item.secrets_exposed),
-    legacy_contract: text(item.legacy_contract),
+    legacy_contract: display(item.legacy_contract),
   }
 }
 

@@ -101,4 +101,12 @@
   .iu-db-hero h1{font-size:24px}
   .iu-db-stats,.iu-db-sidecol{grid-template-columns:1fr}
   .iu-db-stat{min-height:88px}
+  .iu-db-table-wrap{overflow-x:visible}
+  .iu-db-table{min-width:0;width:100%;border-spacing:0 8px}
+  .iu-db-table thead{display:none}
+  .iu-db-table tbody,.iu-db-table tr,.iu-db-table td{display:block;width:100%}
+  .iu-db-table tr{padding:10px;border:1px solid var(--iu-border);border-radius:14px;background:#fff;box-shadow:0 8px 22px rgba(15,23,42,.045)}
+  .iu-db-table td{padding:5px 2px;border:0;background:transparent;box-shadow:none!important}
+  .iu-db-table td:first-child,.iu-db-table td:last-child{border-radius:0}
+  .iu-db-table td span{max-width:100%;white-space:normal;overflow-wrap:anywhere}
 }

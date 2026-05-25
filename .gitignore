@@ -54,6 +54,8 @@ indexes/normattiva/
 *.har
 *.sqlite
 *.db
+*.db-shm
+*.db-wal
 *.faiss
 *.index
 *.embeddings

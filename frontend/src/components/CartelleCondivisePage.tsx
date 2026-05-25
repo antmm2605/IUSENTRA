@@ -198,7 +198,7 @@ export function CartelleCondivisePage() {
         </div>
         <div className="iu-share-hero__actions">
           <a href={data.actions.clients}>Clienti</a>
-          <a href={data.actions.audit}>Registro attivita</a>
+          <a href={data.actions.audit}>Registro attività</a>
           <a href={data.actions.gdpr}>Registro GDPR</a>
           {data.permissions.canCleanExpired ? <button type="button" onClick={cleanupExpired} disabled={busy}>{busy ? 'Pulizia...' : 'Pulisci scaduti'}</button> : null}
         </div>

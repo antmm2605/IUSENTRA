@@ -1,5 +1,23 @@
 # Migrazione progressiva Flask + React
 
+## Hotfix preset grafico operativo - 2026-05-25 - 2.248.56
+
+La verifica richiesta sulle pagine Studio ha corretto le regressioni visive
+residue sui controlli compatti: Fatturazione, Compensi Forensi, Redazione Atti,
+Ricerca Legale/Giurisprudenza e shell laterale ora mantengono altezza minima
+coerente e leggibilità touch-safe. Il dettaglio fascicolo resta escluso dal
+preset di pagina come richiesto, ma il modal `Elimina documento` usa dimensioni
+controllate, wrapping e bottoni da 44 px per evitare tagli o sovrapposizioni.
+
+Verifiche locali: typecheck, test e build React; audit browser sulle pagine
+segnalate in desktop/tablet/mobile; apertura reale del fascicolo
+`2DE106E6#documenti` con modal eliminazione misurato senza confermare la
+cancellazione. La build Vite ha rigenerato gli asset React correnti e la
+retention locale ha rimosso gli hash obsoleti non referenziati dal manifest.
+Nel medesimo rilascio Document Intelligence mantiene coerente il fascicolo con
+file reali `.txt` ed `.eml`, aggiornando i vincoli SQL e la migrazione dei DB
+SQLite già creati.
+
 ## Local Signer 1.6.46 autenticazione PST 401 esplicita - 2026-05-25 - 2.248.53
 
 La diagnostica reale salvata dal PC cliente sul fascicolo `3441/2025` del
@@ -2642,3 +2660,10 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - Durante preflight, ricerca, snapshot e download PST su Windows, il Local Signer avvia un helper best-effort che cerca finestre PIN/Sicurezza Windows/smart card/CNS/CIE/Bit4id/Aruba/token e prova a riportarle in primo piano mentre `curl` attende il certificato.
 - La modifica non cambia il modello di sicurezza: PIN e chiave privata restano sul dispositivo, non vengono salvati e non vengono trasferiti al server.
 - Verifiche registrate: suite Local Signer completa, test packaging/readiness, `py_compile`, boundary check, packaging sync, OpenAPI, UTF-8 integrity e build pacchetti Local Signer `1.6.48`.
+
+## Aggiornamento 2026-05-25: preset amministrazione e Sito Studio 2.248.56
+
+- Le pagine `Amministrazione`, `Utenti`, `Profili e Permessi`, `Registro Attività`, `Database`, `Registro GDPR`, `Sito Studio Contatti` e `Sito Studio` sono state verificate come superfici React full operative nel browser in-app.
+- Il preset IUSENTRA ora vince sulle regole specifiche che riportavano alcune CTA a 38 px; bottoni, link operativi e azioni secondarie restano leggibili e touch-safe.
+- `Database` su mobile passa da tabella larga a vista compatta a schede; il bottom nav mobile non produce overflow di pagina.
+- Verifiche registrate: browser in-app autenticato su desktop 1440x1000, tablet 900x1100 e mobile 390x844 con scroll alto/meta/fondo, 81 snapshot verdi, zero errori console nuovi, `pnpm test`, build Vite, governance, OpenAPI, provider verification, UTF-8 e asset retention.

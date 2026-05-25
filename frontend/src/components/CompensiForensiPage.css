@@ -119,7 +119,7 @@
   border: 1px solid var(--iu-od-border);
   border-radius: var(--iu-od-radius-2);
   color: var(--iu-od-text);
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   padding: 0 var(--iu-od-space-3);
 }
 

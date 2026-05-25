@@ -1803,7 +1803,7 @@
 .iusentra-preset-active main button,
 .iusentra-preset-active .iu-content a[href],
 .iusentra-preset-active .iu-content button {
-  min-height: 32px;
+  min-height: 44px;
 }
 
 .iusentra-preset-active main a[href],
@@ -1823,7 +1823,7 @@
 .iusentra-preset-active .iu-settings-page a[href],
 .iusentra-preset-active .iu-db-table a[href],
 .iusentra-preset-active .iu-profiles-rollback {
-  min-height: 32px;
+  min-height: 44px;
   min-width: 44px;
   align-items: center;
 }
@@ -1841,24 +1841,60 @@
 }
 
 .iusentra-preset-active .iu-button,
+.iusentra-preset-active .iu-btn,
 .iusentra-preset-active .iu-deadline-ghost,
 .iusentra-preset-active .iu-deadline-outline,
 .iusentra-preset-active .iu-deadline-cancel {
   height: auto;
   max-width: 100%;
-  min-height: 36px;
+  min-height: 44px;
   overflow-wrap: anywhere;
-  padding-bottom: 6px;
-  padding-top: 6px;
+  padding-bottom: 8px;
+  padding-top: 8px;
   text-align: center;
   white-space: normal;
 }
 
 .iusentra-preset-active .iu-button svg,
+.iusentra-preset-active .iu-btn svg,
 .iusentra-preset-active .iu-deadline-ghost svg,
 .iusentra-preset-active .iu-deadline-outline svg,
 .iusentra-preset-active .iu-deadline-cancel svg {
   flex: 0 0 auto;
+}
+
+.iusentra-preset-active main .group\/button,
+.iusentra-preset-active .iu-content .group\/button {
+  height: auto;
+  min-height: 44px;
+  padding-bottom: 8px;
+  padding-top: 8px;
+  white-space: normal;
+}
+
+@media (max-width: 920px) {
+  .iusentra-preset-active main a[href],
+  .iusentra-preset-active main button,
+  .iusentra-preset-active .iu-content a[href],
+  .iusentra-preset-active .iu-content button,
+  .iusentra-preset-active .iu-link,
+  .iusentra-preset-active .iu-sync,
+  .iusentra-preset-active .iu-cln-back,
+  .iusentra-preset-active .iu-msg-back,
+  .iusentra-preset-active .iu-msg-panel-action,
+  .iusentra-preset-active .iu-scad-card a,
+  .iusentra-preset-active .iu-settings-page a[href],
+  .iusentra-preset-active .iu-db-table a[href],
+  .iusentra-preset-active .iu-profiles-rollback,
+  .iusentra-preset-active .iu-button,
+  .iusentra-preset-active .iu-btn,
+  .iusentra-preset-active .iu-deadline-ghost,
+  .iusentra-preset-active .iu-deadline-outline,
+  .iusentra-preset-active .iu-deadline-cancel,
+  .iusentra-preset-active main .group\/button,
+  .iusentra-preset-active .iu-content .group\/button {
+    min-height: 44px;
+  }
 }
 
 .iusentra-preset-active .iu-ag-slot {
@@ -1885,7 +1921,7 @@
 .iusentra-preset-active .iu-content .iu-li-source-preview__item {
   align-content: start;
   height: auto;
-  min-height: 6.75rem;
+  min-height: 7.75rem;
   overflow: visible;
   white-space: normal;
 }

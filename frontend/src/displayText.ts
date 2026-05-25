@@ -52,6 +52,7 @@ export function sanitizeDisplayText(value: string): string {
     .replace(/\bauditati\b/gi, 'tracciati')
     .replace(/\bauditate\b/gi, 'tracciate')
     .replace(/\brollback\s+tecnico(?:\s+legacy)?\b/gi, 'Percorso di recupero')
+    .replace(/\blegacy[_-]?protected\b/gi, 'percorso protetto')
     .replace(/\broute\s+Flask\b/gi, 'percorso applicativo')
     .replace(/\broute\b/gi, 'percorso')
     .replace(/\bGET\b/g, 'consulta')

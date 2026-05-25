@@ -15,18 +15,18 @@
 .iu-privacy-stat--warning>div,.iu-privacy-stat--orange>div{background:rgba(245,158,11,.13);color:var(--iu-warning-500)}
 .iu-privacy-stat--danger>div{background:rgba(239,68,68,.12);color:var(--iu-danger-500)}
 .iu-privacy-toolbar{display:grid;grid-template-columns:minmax(260px,1fr) 230px auto auto;gap:10px;padding:12px;border:1px solid var(--iu-border);border-radius:16px;background:rgba(255,255,255,.92);box-shadow:var(--iu-shadow-soft)}
-.iu-privacy-toolbar label{min-height:42px;display:flex;align-items:center;gap:9px;padding:0 12px;border:1px solid var(--iu-border);border-radius:11px;background:#fff;color:var(--iu-slate-500)}
-.iu-privacy-toolbar input,.iu-privacy-toolbar select{width:100%;border:0;outline:0;background:transparent;color:#0f172a;font-weight:760}
+.iu-privacy-toolbar label{min-height:46px;display:flex;align-items:center;gap:9px;padding:0 12px;border:1px solid var(--iu-border);border-radius:11px;background:#fff;color:var(--iu-slate-500)}
+.iu-privacy-toolbar input,.iu-privacy-toolbar select{width:100%;min-height:44px;border:0;outline:0;background:transparent;color:#0f172a;font-weight:760}
 .iu-privacy-toggle-form,.iu-privacy-delete{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--iu-border);border-radius:11px;background:#fff;color:#0f172a;font-size:13px;font-weight:850;cursor:pointer}
-.iu-privacy-toggle-form{min-height:42px;padding:0 13px}
-.iu-privacy-alert{display:flex;align-items:center;gap:8px;min-height:42px;padding:0 13px;border:1px solid rgba(239,68,68,.22);border-radius:13px;background:rgba(239,68,68,.08);color:#b91c1c;font-size:13px;font-weight:850}
+.iu-privacy-toggle-form{min-height:46px;padding:0 13px}
+.iu-privacy-alert{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 13px;border:1px solid rgba(239,68,68,.22);border-radius:13px;background:rgba(239,68,68,.08);color:#b91c1c;font-size:13px;font-weight:850}
 .iu-privacy-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .iu-privacy-form label{display:grid;gap:6px}
 .iu-privacy-form label>span{color:var(--iu-slate-600);font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em}
-.iu-privacy-form input,.iu-privacy-form textarea,.iu-privacy-form select{width:100%;min-height:42px;padding:9px 11px;border:1px solid var(--iu-border);border-radius:11px;background:#fff;color:#0f172a;font-weight:760;outline:0}
+.iu-privacy-form input,.iu-privacy-form textarea,.iu-privacy-form select{width:100%;min-height:44px;padding:9px 11px;border:1px solid var(--iu-border);border-radius:11px;background:#fff;color:#0f172a;font-weight:760;outline:0}
 .iu-privacy-form textarea{resize:vertical;line-height:1.45}
 .iu-privacy-form .span2{grid-column:1/-1}
-.iu-privacy-check{display:flex!important;align-items:center;gap:9px;min-height:42px;padding:0 12px;border:1px solid var(--iu-border);border-radius:11px;background:#fff}
+.iu-privacy-check{display:flex!important;align-items:center;gap:9px;min-height:44px;padding:0 12px;border:1px solid var(--iu-border);border-radius:11px;background:#fff}
 .iu-privacy-check input{width:auto;min-height:0}
 .iu-privacy-form__actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
 .iu-privacy-layout{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;align-items:start}
@@ -40,7 +40,7 @@
 .iu-privacy-treatment__title{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .iu-privacy-treatment__title strong{color:#0f172a;font-size:16px}
 .iu-privacy-treatment p{margin:4px 0 0;color:var(--iu-slate-600);font-size:13px;font-weight:700;line-height:1.45}
-.iu-privacy-delete{min-height:34px;padding:0 10px;color:#b91c1c}
+.iu-privacy-delete{min-height:44px;padding:0 12px;color:#b91c1c}
 .iu-privacy-treatment dl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0}
 .iu-privacy-treatment dl>div{min-height:72px;padding:10px;border:1px solid var(--iu-border);border-radius:12px;background:#f8fafc}
 .iu-privacy-treatment dt{color:var(--iu-slate-500);font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.06em}
@@ -58,7 +58,7 @@
 .iu-privacy-empty svg{color:var(--iu-slate-300)}
 .iu-privacy-empty strong{color:#0f172a}
 .iu-privacy-actions,.iu-privacy-checklist{display:grid;gap:8px}
-.iu-privacy-actions a{display:flex;align-items:center;gap:8px;min-height:38px;padding:0 10px;border:1px solid var(--iu-border);border-radius:11px;background:#fff;color:#0f172a;font-size:13px;font-weight:850}
+.iu-privacy-actions a{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;border:1px solid var(--iu-border);border-radius:11px;background:#fff;color:#0f172a;font-size:13px;font-weight:850}
 .iu-privacy-checklist span{display:flex;align-items:center;gap:8px;color:var(--iu-slate-600);font-size:13px;font-weight:760;line-height:1.35}
 .iu-privacy-checklist svg{color:var(--iu-success-500);flex:0 0 auto}
 .iu-privacy-page .iu-lex-float__panel{width:min(350px,calc(100vw - 28px))}

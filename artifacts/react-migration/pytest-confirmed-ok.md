@@ -3538,3 +3538,17 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m pytest -q tests/test_local_signer.py --tb=short` | OK | Suite Local Signer completa verde dopo l'aggiunta del foreground best-effort Windows per PIN/Sicurezza Windows/smart card/Bit4id. |
 | `python -m pytest -q tests/test_build_dist.py tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 14/14 passati: pacchetti e readiness allineati alla nuova versione installabile `SetupLocalSigner-1.6.48.exe`. |
 | `python tools\check_local_signer_boundaries.py`; `python tools\sync_packaging_files.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python tools\build_dist.py` | OK | Guardrail Local Signer, packaging, OpenAPI e build dist allineati a `2.248.55` / `1.6.48`. |
+
+## Hotfix preset grafico operativo 2.248.56 - 2026-05-25
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript verde dopo il riallineamento CSS/preset su pagine Studio e fascicolo. |
+| `pnpm --filter @iusentra/studio test` | OK | Suite frontend verde, inclusi contratti React e governance del design system. |
+| `pnpm --filter @iusentra/studio build` | OK | Build Vite completata in 7.36s e asset React rigenerati in `web/static/react`. |
+| Browser CDP autenticato su Fatturazione, Compensi, Redazione Atti, Ricerca Legale/Giurisprudenza e fascicolo `2DE106E6#documenti` | OK | Desktop/tablet/mobile senza overflow orizzontale; modal `Elimina documento` con bottoni da 44 px e nessun testo tagliato. |
+| Browser in-app autenticato su Amministrazione, Utenti, Profili, Registro Attività, Database, Registro GDPR, Sito Studio Contatti e Sito Studio | OK | 81 snapshot su desktop 1440x1000, tablet 900x1100 e mobile 390x844 con scroll alto/meta/fondo: zero failure, zero console error/warn nuovi, preset attivo e controlli leggibili. |
+| `pnpm --filter @iusentra/studio test` | OK | Rilancio dopo i fix al preset: contratti React, sequenza preset, governance design system, App V2 frontend e coverage UI verdi. |
+| `pnpm --filter @iusentra/studio build` | OK | Build finale con typecheck e Vite completata; asset principali `index-CGqbjqF_.js` e `index-C3bNLeDg.css` rigenerati. |
+| `python tools\check_repo_governance.py`; `git diff --check`; `python -m pytest tests\test_utf8_integrity.py -q --tb=short`; `python scripts\validate_openapi.py docs\openapi.yaml` | OK | Governance, whitespace, UTF-8 e OpenAPI confermati verdi dopo le modifiche UI/report. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_react_asset_retention.py tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\verify_openapi_provider.py` | OK | Packaging, retention asset, readiness, contratti API e provider verification verdi. |

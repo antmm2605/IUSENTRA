@@ -134,7 +134,7 @@ export function AuditPage() {
   const [detail, setDetail] = useState<AuditEventDetail | null>(null)
   const [query, setQuery] = useState('')
   const [result, setResult] = useState('tutti')
-  const title = 'Registro attivita'
+  const title = 'Registro attività'
 
   function load() {
     setLoading(true)
@@ -191,7 +191,7 @@ export function AuditPage() {
   return (
     <Page
       title={title}
-      subtitle="Registro in consultazione delle attivita applicative e amministrative."
+      subtitle="Registro in consultazione delle attività applicative e amministrative."
       actions={
         <>
           <Button type="button" tone="primary" onClick={load}>
@@ -258,7 +258,7 @@ export function AuditPage() {
               </Button>
             </div>
           </Panel>
-          <Panel title="Eventi attivita" subtitle={`${visibleRecords.length} voci visualizzate`}>
+          <Panel title="Eventi attività" subtitle={`${visibleRecords.length} voci visualizzate`}>
             {visibleRecords.length ? (
               <div className="iu-audit-events">
                 {visibleRecords.map((record) => <AuditRecordItem record={record} onDetail={showDetail} key={record.id} />)}

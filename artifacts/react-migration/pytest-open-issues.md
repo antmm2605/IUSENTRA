@@ -1,6 +1,13 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornamento corrente: 2026-05-25, Local Signer 1.6.46 autenticazione PST 401 esplicita 2.248.53.
+Aggiornamento corrente: 2026-05-25, hotfix preset grafico operativo 2.248.56.
+
+## Note hotfix preset grafico operativo 2.248.56 - 2026-05-25
+
+Nessuna issue aperta nuova sul perimetro corretto. La prima euristica di audit
+scroll-overlap segnalava falsi positivi sugli elementi parzialmente fuori
+viewport durante lo scroll; la verifica confermata usa overflow orizzontale,
+dimensioni reali dei controlli e misurazione del modal su desktop/tablet/mobile.
 
 ## Note Local Signer 1.6.46 autenticazione PST 401 esplicita 2.248.53 - 2026-05-25
 
@@ -821,3 +828,8 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
 | Finestra PIN in barra Windows | Suite Local Signer, packaging e boundary check | Governato come best-effort Windows | Durante preflight, ricerca e download PST il Local Signer prova a riportare davanti le finestre con titolo coerente con PIN, Sicurezza Windows, smart card, CNS/CIE, Bit4id, Aruba o token. Windows può comunque applicare restrizioni di focus su finestre protette, ma il flusso non resta più passivo mentre `curl` attende il certificato. | Se un driver mostra un titolo diverso, aggiungerlo a `_WINDOWS_PIN_FOREGROUND_KEYWORDS` e rilanciare `test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows`, suite Local Signer e build dist. |
+## Note preset amministrazione e Sito Studio 2.248.56 - 2026-05-25
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Pagine Amministrazione richieste dall'utente | Browser in-app desktop/tablet/mobile con scroll | Risolto | `/amministrazione`, `/utenti`, `/profili`, `/registro-attivita`, `/admin/database`, `/privacy/registro`, `/registro-gdpr`, `/sito-studio/contatti` e `/sito-studio` passano 81 snapshot con zero failure. Il problema reale erano regole CSS più specifiche che riportavano alcune CTA a 38 px e una tabella Database troppo larga su mobile. | Ogni modifica futura a preset, admin, privacy o Sito Studio deve rilanciare il controllo browser su queste 9 route e verificare pulsanti, overflow, testi tecnici vietati e console. |

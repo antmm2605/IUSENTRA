@@ -267,7 +267,7 @@
   border: 1px solid var(--iu-od-border);
   border-radius: var(--iu-od-source-card-radius);
   color: var(--iu-od-text);
-  min-height: 2.55rem;
+  min-height: 2.75rem;
   padding: var(--iu-od-space-2) var(--iu-od-space-3);
 }
 

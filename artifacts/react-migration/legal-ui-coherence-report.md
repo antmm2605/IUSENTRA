@@ -2,6 +2,15 @@
 
 Generato: 2026-05-08T10:03:02.066Z
 
+Aggiornamento 2026-05-25: hotfix preset grafico operativo 2.248.56. Le pagine
+Studio richieste sono state rivalutate contro il preset IUSENTRA e rese più
+coerenti nelle dimensioni dei controlli: Fatturazione, Compensi Forensi,
+Redazione Atti e Giurisprudenza/Ricerca non presentano più campi o pulsanti
+sotto soglia su tablet e mobile. Il dettaglio fascicolo resta personalizzato,
+ma il modal di eliminazione documento usa una struttura professionale,
+contenuta e leggibile, con azioni chiaramente separabili e senza taglio del
+testo.
+
 Aggiornamento 2026-05-22: preset grafico globale 2.248.12. IUSENTRA dispone
 di un vocabolario unico per superfici operative, support rail, filtri, contesto
 filtri, DataSurface, paginazione, card e stati vuoti. Fascicoli è il caso
@@ -188,3 +197,9 @@ Card operative: ActionCard, CompactCard, KpiCard esistente, DetailPanel, Summary
 - `/ricerca-legale` presenta una scheda fonte professionale con estratto, contesto, uso pratico e attendibilita', cosi l'avvocato non vede piu' una lista di accessi esterni.
 - Card, mappa del contesto, tab e filtri usano icone Lucide, microcopy italiano e densita' coerente con il design system IUSENTRA.
 - Verifica CDP desktop/mobile: 8/8 controlli OK sulle route Legal Intelligence, nessun testo tecnico vietato, nessun overflow e nessun form POST HTML.
+
+## Aggiornamento 2.248.56 - 2026-05-25
+
+- Amministrazione, Utenti, Profili e Permessi, Registro Attività, Database, Registro GDPR, Sito Studio Contatti e Sito Studio sono stati verificati come superfici React operative, con preset IUSENTRA attivo, contenuti reali e microcopy professionale.
+- La verifica browser in-app autenticata ha coperto desktop, tablet e mobile con scroll alto/meta/fondo: 81 snapshot verdi, nessun errore console nuovo, nessun testo tecnico vietato e nessun controllo con testo o icona tagliati.
+- Il preset condiviso ora impone CTA e link operativi da 44 px anche quando la regola specifica di pagina è più forte; Database usa una resa mobile a schede invece della tabella larga.

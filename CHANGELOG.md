@@ -2,7 +2,13 @@
 
 ## 2.248.56 - 2026-05-25
 
-- Allineato Document Intelligence ai documenti reali del fascicolo: gli archivi SQL accettano anche `.txt` ed `.eml`, con migrazione SQLite/PostgreSQL del vincolo storico e anteprima/cancellazione fascicolo per EML/TXT.
+- Verificate e corrette le pagine Amministrazione richieste: `Amministrazione`, `Utenti`, `Profili e Permessi`, `Registro Attività`, `Database`, `Registro GDPR`, `Sito Studio Contatti` e `Sito Studio` passano il controllo browser desktop/tablet/mobile con scroll completo, preset attivo e zero overflow.
+- Rafforzato il preset IUSENTRA sui pulsanti: CTA e link operativi restano leggibili/touch-safe anche quando le pagine hanno CSS più specifici; Database usa una vista mobile compatta invece della tabella larga.
+- Rifinito il pulsante flottante Lex per evitare micro-overflow e mantenere l'etichetta accessibile senza mostrare testo tagliato.
+- Corretto il preset grafico operativo sulle pagine Studio richieste: i controlli di Fatturazione, Compensi Forensi, Redazione Atti, Ricerca Legale/Giurisprudenza e la shell laterale rispettano dimensioni leggibili e touch-safe.
+- Corretto il modal `Elimina documento` nel dettaglio fascicolo: testo e bottoni restano contenuti su desktop, tablet e mobile, senza sovrapposizioni o overflow.
+- Allineato Document Intelligence ai documenti reali del fascicolo: gli archivi SQL accettano anche `.txt` ed `.eml`, con migrazione SQLite/PostgreSQL del vincolo storico.
+- Pulita la retention degli asset React generati: il manifest punta solo agli asset Vite correnti e i file SQLite WAL/SHM locali sono ignorati come artefatti runtime.
 
 ## 2.248.55 - 2026-05-25
 

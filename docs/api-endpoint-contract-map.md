@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 207.
+- Endpoint React API contrattualizzati: 209.
 - Endpoint P0/P1 contrattualizzati: 192.
 - Endpoint con provider verification 200 rappresentativa: 28.
-- Endpoint con provider verification auth-error: 207.
+- Endpoint con provider verification auth-error: 209.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
 
 | Area | Endpoint | Metodo | Pagina | Priorita | OpenAPI | Provider Test | RBAC | Flag | Tenant | Stato |
@@ -118,6 +118,8 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Ricerca legale | `/api/v1/ui/legal-intelligence` | `GET` | Lex (/app/lex) | P1 | verified | success+auth-error | `sessione/API tenant-aware` | `routes.appV2.legalResearch.home` | current_tenant | verified |
 | Ricerca legale | `/api/v1/ui/legal-intelligence/mediazione` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Ricerca legale | `/api/v1/ui/legal-intelligence/news` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/ui/local-signer/diagnostics` | `POST` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/ui/local-signer/diagnostics/latest` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Messaggi | `/api/v1/ui/messaggi` | `GET` | Comunicazioni (/app/comunicazioni) | P1 | verified | success+auth-error | `sessione/API tenant-aware` | `routes.appV2.comms.deposits` | current_tenant | verified |
 | Messaggi | `/api/v1/ui/messaggi/nuovo` | `GET` | Messaggi | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali` | `GET` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |

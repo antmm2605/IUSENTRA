@@ -667,6 +667,78 @@ def _request_json_object() -> tuple[dict[str, Any] | None, Any | None]:
     return payload, None
 
 
+_LOCAL_SIGNER_DIAGNOSTIC_MAX_TEXT = 12000
+_LOCAL_SIGNER_DIAGNOSTIC_MAX_ITEMS = 80
+_LOCAL_SIGNER_DIAGNOSTIC_SECRET_KEYS = {
+    "pin",
+    "password",
+    "password_pec",
+    "authorization",
+    "access_token",
+    "refresh_token",
+    "secret",
+    "api_key",
+}
+
+
+def _local_signer_diagnostics_path() -> Path:
+    telematico_db = Path(
+        tenant_data_path(
+            "TELEMATICO_DB",
+            current_app.config.get("TELEMATICO_DB", "./telematico/workflow.db"),
+            require_tenant=True,
+        )
+    )
+    target = telematico_db.parent / "diagnostica-local-signer" / "eventi.jsonl"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    return target
+
+
+def _diagnostic_text(value: Any) -> str:
+    text = str(value or "")
+    text = re.sub(r"(?i)\b(pin|password)\s*[:=]\s*\S+", r"\1=[omesso]", text)
+    text = re.sub(r"(?i)\b(authorization|bearer)\s+[\w./+=:-]+", r"\1 [omesso]", text)
+    if len(text) > _LOCAL_SIGNER_DIAGNOSTIC_MAX_TEXT:
+        return f"{text[:_LOCAL_SIGNER_DIAGNOSTIC_MAX_TEXT]}... [troncato]"
+    return text
+
+
+def _sanitize_local_signer_diagnostic(value: Any) -> Any:
+    if isinstance(value, dict):
+        cleaned: dict[str, Any] = {}
+        for key, item in list(value.items())[:_LOCAL_SIGNER_DIAGNOSTIC_MAX_ITEMS]:
+            key_text = str(key)
+            if key_text.lower() in _LOCAL_SIGNER_DIAGNOSTIC_SECRET_KEYS:
+                cleaned[key_text] = "[omesso]"
+            else:
+                cleaned[key_text] = _sanitize_local_signer_diagnostic(item)
+        return cleaned
+    if isinstance(value, (list, tuple)):
+        return [_sanitize_local_signer_diagnostic(item) for item in list(value)[:_LOCAL_SIGNER_DIAGNOSTIC_MAX_ITEMS]]
+    if isinstance(value, str):
+        return _diagnostic_text(value)
+    return value
+
+
+def _read_local_signer_diagnostics(limit: int = 20) -> list[dict[str, Any]]:
+    path = _local_signer_diagnostics_path()
+    if not path.exists():
+        return []
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()[-max(1, min(limit, 100)):]
+    except OSError:
+        return []
+    items: list[dict[str, Any]] = []
+    for line in lines:
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(row, dict):
+            items.append(row)
+    return items
+
+
 def _warning(code: str, message: str) -> dict[str, str]:
     return {"code": code, "message": message}
 
@@ -2565,6 +2637,59 @@ def telematico_react_surface(surface: str):
             logger=current_app.logger,
         )
     )
+
+
+@api_v1_react.post("/local-signer/diagnostics")
+@_richiedi_auth
+def local_signer_diagnostics_capture():
+    payload, error = _request_json_object()
+    if error:
+        return error
+    assert payload is not None
+    now = _iso_now()
+    context = _sanitize_local_signer_diagnostic(payload.get("context") or {})
+    entry_seed = json.dumps(
+        {"created_at": now, "context": context, "source": payload.get("source")},
+        ensure_ascii=False,
+        sort_keys=True,
+        default=str,
+    )
+    entry_id = hashlib.sha256(entry_seed.encode("utf-8")).hexdigest()[:16]
+    entry = {
+        "id": entry_id,
+        "created_at": now,
+        "actor": _actor_label(),
+        "studio_context": _tenant_runtime_label(),
+        "source": _diagnostic_text(payload.get("source") or "browser-local-signer"),
+        "context": context,
+        "local_signer": _sanitize_local_signer_diagnostic(payload.get("local_signer") or {}),
+        "local_logs": _sanitize_local_signer_diagnostic(payload.get("local_logs") or {}),
+        "result": _sanitize_local_signer_diagnostic(payload.get("result") or {}),
+    }
+    path = _local_signer_diagnostics_path()
+    with path.open("a", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(entry, ensure_ascii=False, sort_keys=True, default=str) + "\n")
+    _audit_event(
+        "local_signer.diagnostica_salvata",
+        "local_signer",
+        entry_id,
+        f"Diagnosi Local Signer salvata per {entry['source']}.",
+    )
+    return jsonify({
+        "ok": True,
+        "id": entry_id,
+        "message": "Diagnosi Local Signer salvata sul server dello studio.",
+    })
+
+
+@api_v1_react.get("/local-signer/diagnostics/latest")
+@_richiedi_auth
+def local_signer_diagnostics_latest():
+    try:
+        limit = max(1, min(int(request.args.get("limit", "20")), 100))
+    except ValueError:
+        limit = 20
+    return jsonify({"ok": True, "items": _read_local_signer_diagnostics(limit)})
 
 
 @api_v1_react.get("/studio-modules/<module_id>")

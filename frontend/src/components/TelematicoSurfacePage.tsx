@@ -900,6 +900,38 @@ function isOfficialAssistantPortal(portal: string): boolean {
   return ['pdp', 'pat', 'ptt'].includes(portal)
 }
 
+function diagnosticPayloadForServer(value: unknown): unknown {
+  if (Array.isArray(value)) return value.slice(0, 80).map(diagnosticPayloadForServer)
+  if (isRecord(value)) {
+    const cleaned: JsonRecord = {}
+    Object.entries(value).slice(0, 120).forEach(([key, item]) => {
+      const lowered = key.toLowerCase()
+      if (['pin', 'password', 'password_pec', 'authorization', 'access_token', 'refresh_token', 'secret', 'api_key'].includes(lowered)) {
+        cleaned[key] = '[omesso]'
+        return
+      }
+      const safeKey = lowered === 'token' ? 'dispositivi' : key
+      cleaned[safeKey] = diagnosticPayloadForServer(item)
+    })
+    return cleaned
+  }
+  if (typeof value === 'string') return value.length > 12000 ? `${value.slice(0, 12000)}... [troncato]` : value
+  return value
+}
+
+async function saveLocalSignerDiagnostic(payload: JsonRecord): Promise<void> {
+  try {
+    await fetch('/api/v1/ui/local-signer/diagnostics', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(diagnosticPayloadForServer(payload)),
+    })
+  } catch {
+    // La diagnosi non deve bloccare l'operazione principale sul portale.
+  }
+}
+
 async function portalJson(portal: string, endpoint: string, body?: JsonRecord): Promise<JsonRecord> {
   const response = await fetch(`/api/portali/${encodeURIComponent(portal)}/acquisizione/${endpoint}`, {
     method: body ? 'POST' : 'GET',
@@ -1221,6 +1253,7 @@ function AcquisitionWizard({
   const [assistantSession, setAssistantSession] = useState<AssistantSession | null>(null)
   const [assistantMonitoring, setAssistantMonitoring] = useState(false)
   const assistantTimerRef = useRef<number | null>(null)
+  const autoPstTestStartedRef = useRef(false)
 
   useEffect(() => {
     if (!visible || !portal) return
@@ -1451,6 +1484,16 @@ function AcquisitionWizard({
     }).slice(0, 10)
   }, [data.offices, officeTypeFilter, query.ufficio])
 
+  const officeMatchesCode = (office: OfficeRow, value: string) => {
+    const needle = normaliseSearch(value)
+    return Boolean(needle) && (
+      normaliseSearch(office.codice) === needle
+      || normaliseSearch(office.codiceMinistero) === needle
+    )
+  }
+
+  const selectedOfficeMatches = (office: OfficeRow) => officeMatchesCode(office, asText(query.ufficioCodice))
+
   const selectOffice = (office: OfficeRow) => {
     setQuery((current) => ({
       ...current,
@@ -1461,7 +1504,11 @@ function AcquisitionWizard({
   }
 
   const resolvedOfficeCode = () => {
-    if (query.ufficioCodice) return query.ufficioCodice
+    const explicitOfficeCode = asText(query.ufficioCodice)
+    if (explicitOfficeCode) {
+      const fromExistingCode = data.offices.find((office) => officeMatchesCode(office, explicitOfficeCode))
+      return fromExistingCode?.codice || explicitOfficeCode
+    }
     const typed = normaliseSearch(query.ufficio)
     const exact = data.offices.find((office) => {
       return normaliseSearch(office.nome) === typed
@@ -1469,6 +1516,39 @@ function AcquisitionWizard({
         || normaliseSearch(office.codiceMinistero) === typed
     })
     return exact?.codice || exact?.codiceMinistero || query.ufficio
+  }
+
+  const currentLocalSignerDiagnosticContext = (event: string, extra: JsonRecord = {}): JsonRecord => ({
+    event,
+    portal,
+    ufficio: query.ufficioNome || query.ufficio,
+    ufficio_codice: resolvedOfficeCode(),
+    ufficio_codice_input: asText(query.ufficioCodice),
+    numero: query.numero,
+    anno: query.anno,
+    local_signer_version: localSigner.version,
+    latest_local_signer_version: data.localSigner.latestVersion,
+    generated_at: new Date().toISOString(),
+    ...extra,
+  })
+
+  const collectAndSaveLocalSignerDiagnostic = async (event: string, extra: JsonRecord = {}) => {
+    if (!portalNeedsLocalSigner || localSigner.unsupported) return
+    const diagnosi = await localSignerJson('/diagnosi', undefined, 45000).catch((error: unknown) => ({
+      ok: false,
+      errore: asText(error instanceof Error ? error.message : error),
+    }))
+    const logs = await localSignerJson('/logs/recent?lines=240', undefined, 45000).catch((error: unknown) => ({
+      ok: false,
+      errore: asText(error instanceof Error ? error.message : error),
+      nota: 'Coda log disponibile dal Local Signer 1.6.41.',
+    }))
+    await saveLocalSignerDiagnostic({
+      source: 'browser-local-signer',
+      context: currentLocalSignerDiagnosticContext(event, extra),
+      local_signer: diagnosi,
+      local_logs: logs,
+    })
   }
 
   const officeLooksLikeSigp = () => /giudice\s+di\s+pace|\bgdp\b/i.test(`${query.ufficio} ${query.ufficioNome} ${resolvedOfficeCode()}`)
@@ -1522,6 +1602,7 @@ function AcquisitionWizard({
     setImportResult({})
     try {
       let rows: AcquisitionResult[] = []
+      let pstSignerPayload: JsonRecord | null = null
       if (portal === 'pst') {
         const tribunale = resolvedOfficeCode()
         let signerPayload: JsonRecord | null = null
@@ -1567,6 +1648,7 @@ function AcquisitionWizard({
         }
         const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
         if (!nextSession) throw new Error('Sessione PST non inizializzata dal Local Signer.')
+        pstSignerPayload = signerPayload
         const snapshot = asRecord(signerPayload.snapshot)
         const signerRows = asList(signerPayload.fascicoli || signerPayload.results)
         const snapshotFascicolo = asRecord(snapshot.fascicolo)
@@ -1594,13 +1676,45 @@ function AcquisitionWizard({
       setSelection(rows[0] || null)
       setStep(2)
       setMessage(rows.length ? `${rows.length} risultati trovati.` : 'Nessun fascicolo trovato con questi filtri.')
+      if (portal === 'pst') {
+        void collectAndSaveLocalSignerDiagnostic(rows.length ? 'pst_search_success' : 'pst_search_empty', {
+          risultati: rows.length,
+          signer_result: pstSignerPayload ? {
+            ok: pstSignerPayload.ok !== false,
+            raw_xml: asText(pstSignerPayload.raw_xml),
+            fascicoli: asList(pstSignerPayload.fascicoli || pstSignerPayload.results).length,
+            documenti: asList(pstSignerPayload.documenti).length,
+            snapshot: asRecord(pstSignerPayload.snapshot),
+            pst_session_purpose: asText(pstSignerPayload.pst_session_purpose),
+          } : {},
+        })
+      }
     } catch (error: unknown) {
       if (portal === 'pst' && isPstSessionExpiredError(error)) clearPstSession()
-      setMessage(asText(error instanceof Error ? error.message : error, 'Ricerca non disponibile.'))
+      const errorMessage = asText(error instanceof Error ? error.message : error, 'Ricerca non disponibile.')
+      setMessage(errorMessage)
+      if (portal === 'pst') {
+        void collectAndSaveLocalSignerDiagnostic('pst_search_error', { errore: errorMessage })
+      }
     } finally {
       setBusy('')
     }
   }
+
+  useEffect(() => {
+    if (!visible || portal !== 'pst') return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('auto_pst_test') !== '1') return
+    if (autoPstTestStartedRef.current) return
+    if (!query.numero || !query.anno || !(query.ufficio || query.ufficioCodice)) return
+    if (query.ufficioCodice && !data.offices.length) return
+    autoPstTestStartedRef.current = true
+    const timer = window.setTimeout(() => {
+      void runSearch()
+    }, 600)
+    return () => window.clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.offices.length, query.anno, query.numero, query.ufficio, query.ufficioCodice, visible, portal])
 
   const runPreview = async () => {
     if (!selection) {
@@ -2130,7 +2244,7 @@ function AcquisitionWizard({
                       <span>Scrivi almeno 2 caratteri per cercare nel catalogo uffici importato.</span>
                     ) : officeMatches.length ? (
                       officeMatches.map((office) => (
-                        <button type="button" key={office.id} onClick={() => selectOffice(office)} className={(query.ufficioCodice && query.ufficioCodice === (office.codice || office.codiceMinistero)) ? 'is-selected' : ''}>
+                        <button type="button" key={office.id} onClick={() => selectOffice(office)} className={selectedOfficeMatches(office) ? 'is-selected' : ''}>
                           <strong>{office.nome}</strong>
                           <small>{[office.tipo, office.distretto, office.comune || office.provincia, office.codice || office.codiceMinistero, office.servizioPst].filter(Boolean).join(' - ')}</small>
                         </button>

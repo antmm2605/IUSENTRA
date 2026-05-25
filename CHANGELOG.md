@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.47 - 2026-05-25
+
+- Normalizzata la ricerca PST quando in pagina resta salvato un vecchio `ufficio_codice`: se il valore coincide con il codice ministeriale di un ufficio, React invia comunque il codice ufficio ufficiale del catalogo, preservando il caso Palmi `0910011`.
+- Aggiunta diagnostica Local Signer salvata sul server dello studio: dopo la ricerca PST il browser invia contesto, diagnosi locale, risposta/fault e, dal Local Signer `1.6.41`, anche la coda sanificata dei log locali.
+- Aggiornato Local Signer alla versione `1.6.41` con endpoint locale `GET /logs/recent`, logging esplicito di ufficio richiesto, codice PST risolto, servizio e R.G. usato nella chiamata.
+
 ## 2.248.46 - 2026-05-25
 
 - Ripristinato il percorso PST/PolisWeb certificato l'11 maggio: il wizard React invia il `codice` ufficio importato dal catalogo locale per tutti gli uffici, non il codice ministeriale come valore selezionato. Palmi torna quindi a selezionare `0910011`, mentre `0800570094` resta la traduzione interna per il Local Signer/PST.

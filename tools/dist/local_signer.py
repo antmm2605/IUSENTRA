@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.40
+IUSENTRA Local Signer - v1.6.41
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -111,7 +111,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.40"
+VERSION = "1.6.41"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -143,6 +143,30 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 log = logging.getLogger("local_signer")
+
+_LOCAL_LOG_FILES = ("local_signer.err.log", "local_signer.out.log", "installer.log")
+_LOCAL_LOG_MAX_BYTES = 160_000
+
+
+def _redact_local_log_text(value: str) -> str:
+    text = str(value or "")
+    text = re.sub(r"(?i)\b(pin|password)\s*[:=]\s*\S+", r"\1=[omesso]", text)
+    text = re.sub(r"(?i)\b(authorization|bearer)\s+[\w./+=:-]+", r"\1 [omesso]", text)
+    return text
+
+
+def _tail_local_log(path: Path, *, max_bytes: int = _LOCAL_LOG_MAX_BYTES, lines: int = 240) -> str:
+    if not path.exists() or not path.is_file():
+        return ""
+    size = path.stat().st_size
+    with path.open("rb") as handle:
+        if size > max_bytes:
+            handle.seek(max(0, size - max_bytes))
+        raw = handle.read(max_bytes)
+    text = raw.decode("utf-8", "replace")
+    if lines > 0:
+        text = "\n".join(text.splitlines()[-lines:])
+    return _redact_local_log_text(text)
 
 _PST_PORTALE_URL = "https://pst.giustizia.it"
 _PST_PROXY_PDA_URL = "https://pda.processotelematico.giustizia.it"
@@ -6112,6 +6136,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._ping()
         elif path == "/diagnosi":
             self._diagnosi()
+        elif path == "/logs/recent":
+            self._logs_recent()
         elif path == "/ai/status":
             self._ai_status()
         elif path == "/certificati":
@@ -6325,6 +6351,41 @@ class _Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 resp["errore_token"] = f"Errore inatteso: {e}"
         self._send_json(resp)
+
+    def _logs_recent(self):
+        params = self._query_params()
+        try:
+            lines = max(20, min(int(params.get("lines", 240)), 1000))
+        except (TypeError, ValueError):
+            lines = 240
+        try:
+            max_bytes = max(10_000, min(int(params.get("bytes", _LOCAL_LOG_MAX_BYTES)), 500_000))
+        except (TypeError, ValueError):
+            max_bytes = _LOCAL_LOG_MAX_BYTES
+        logs = []
+        for filename in _LOCAL_LOG_FILES:
+            path = _THIS_DIR / filename
+            try:
+                logs.append({
+                    "name": filename,
+                    "exists": path.exists() and path.is_file(),
+                    "size": path.stat().st_size if path.exists() and path.is_file() else 0,
+                    "tail": _tail_local_log(path, max_bytes=max_bytes, lines=lines),
+                })
+            except Exception as exc:
+                logs.append({
+                    "name": filename,
+                    "exists": False,
+                    "size": 0,
+                    "tail": "",
+                    "errore": str(exc),
+                })
+        self._send_json({
+            "ok": True,
+            "versione": VERSION,
+            "piattaforma": sys.platform,
+            "logs": logs,
+        })
 
     def _diagnosi(self):
         """
@@ -6906,6 +6967,15 @@ class _Handler(BaseHTTPRequestHandler):
             base_url = _risolvi_base_pst_runtime(tribunale)
             url_ricerca = _pst_url_ricerca(base_url)
             codice_pst = _risolvi_codice_ufficio_pst(tribunale)
+            log.info(
+                "PST ricerca: ufficio richiesto=%s codice_pst=%s servizio=%s rg=%s/%s fallback_registro=%s",
+                tribunale,
+                codice_pst,
+                _pst_servizio_proxy(base_url),
+                str(data.get("numero_rg") or ""),
+                str(data.get("anno_rg") or ""),
+                _env_flag_enabled("HACS_SIGNER_PST_REGISTER_FALLBACK"),
+            )
         except Exception as e:
             self._send_json({"ok": False, "errore": str(e)}, 503)
             return
@@ -7072,6 +7142,15 @@ class _Handler(BaseHTTPRequestHandler):
             url_ricerca = _pst_url_ricerca(base_url)
             url_documenti = _pst_url_documenti(base_url)
             codice_pst = _risolvi_codice_ufficio_pst(tribunale)
+            log.info(
+                "PST ricerca-snapshot: ufficio richiesto=%s codice_pst=%s servizio=%s rg=%s/%s fallback_registro=%s",
+                tribunale,
+                codice_pst,
+                _pst_servizio_proxy(base_url),
+                numero_rg,
+                anno_rg,
+                _env_flag_enabled("HACS_SIGNER_PST_REGISTER_FALLBACK"),
+            )
         except Exception as e:
             self._send_json({"ok": False, "errore": str(e)}, 503)
             return

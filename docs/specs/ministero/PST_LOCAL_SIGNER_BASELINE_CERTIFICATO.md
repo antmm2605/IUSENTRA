@@ -9,6 +9,8 @@ Questo documento registra le regole funzionali certificate con test reale su PST
 
 - La connessione al portale non basta: se l'utente cerca per numero e anno di ruolo, la ricerca deve essere esatta sul fascicolo e non deve aggiungere assistito, controparte o codice fiscale come filtri restrittivi.
 - La selezione degli uffici nel wizard deve inviare sempre il `codice` ufficio importato dal catalogo ministeriale locale; `codice_ministero` / `codiceMinistero` resta solo traduzione interna per Local Signer/PST o fallback quando il codice ufficio manca. Esempio certificato: Tribunale di Palmi selezionato come `0910011`, con traduzione PST interna `0800570094`.
+- Se il browser conserva un vecchio parametro `ufficio_codice` pari al `codiceMinistero`, la UI deve normalizzarlo al `codice` ufficiale prima della chiamata al Local Signer. Questa regola impedisce che cache, link o ricerche precedenti riportino Palmi a `0800570094` nel payload React.
+- Ogni ricerca reale PST dal browser deve salvare sul server dello studio una diagnosi operativa tenant-aware con ufficio, codice risolto, R.G./anno, versione Local Signer, risposta/fault e log locale sanificato quando disponibile. La diagnosi non deve includere PIN, credenziali o token di sessione sensibili.
 - La visualizzazione del fascicolo usa la sessione PST già aperta dal Local Signer e passa sempre `pst_session_id` alle chiamate successive.
 - Non deve esistere una chiamata preventiva `/pst/preflight-auth` nel wizard React o nel wizard classico: il PIN deve essere richiesto solo quando serve davvero al portale.
 - Il comportamento certificato resta: un PIN per visualizzare il fascicolo e un PIN separato solo per scaricare l'intero fascicolo.

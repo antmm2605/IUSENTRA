@@ -103,6 +103,38 @@ def test_pst_session_manager_scaduta_restituisce_errore_controllato():
             module._drop_pst_session(session_id)
 
 
+def test_local_signer_logs_recent_espone_coda_sanificata(tmp_path, monkeypatch):
+    module = _load_local_signer()
+    captured = {}
+    (tmp_path / "local_signer.err.log").write_text(
+        "10:00:01 [LocalSigner] INFO avvio\nPIN=123456\n10:00:02 PST ricerca-snapshot\n",
+        encoding="utf-8",
+    )
+
+    class _FakeHandler:
+        path = "/logs/recent?lines=20"
+
+        def _query_params(self):
+            return {"lines": "20"}
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    monkeypatch.setattr(module, "_THIS_DIR", tmp_path)
+
+    module._Handler._logs_recent(_FakeHandler())
+
+    assert captured["status"] == 200
+    payload = captured["payload"]
+    assert payload["ok"] is True
+    assert payload["versione"] == module.VERSION
+    err_log = next(item for item in payload["logs"] if item["name"] == "local_signer.err.log")
+    assert "PST ricerca-snapshot" in err_log["tail"]
+    assert "PIN=[omesso]" in err_log["tail"]
+    assert "123456" not in err_log["tail"]
+
+
 def test_wizard_pst_usa_snapshot_e_sessione_unica_anche_per_download():
     root = Path(__file__).resolve().parents[1]
     template = (root / "web" / "templates" / "portale" / "acquisizione_wizard.html").read_text(

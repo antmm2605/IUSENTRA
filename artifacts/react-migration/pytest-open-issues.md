@@ -1,6 +1,10 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornamento corrente: 2026-05-25, hotfix PST codici ufficio React e Local Signer 1.6.40 2.248.46.
+Aggiornamento corrente: 2026-05-25, diagnostica PST client e normalizzazione ufficio cached 2.248.47.
+
+## Note diagnostica PST client e normalizzazione ufficio cached 2.248.47 - 2026-05-25
+
+Il test reale cliente ha confermato Local Signer `1.6.40` attivo e ha indicato il fascicolo `3441/2025` del Tribunale di Palmi. Dopo il fix `2.248.46`, resta possibile che la pagina mantenga in memoria o in URL un vecchio `ufficio_codice=0800570094`: la UI `2.248.47` normalizza anche questo valore cached al codice ufficio `0910011` prima di chiamare il Local Signer. Aggiunto salvataggio tenant-aware della diagnosi Local Signer su `/api/v1/ui/local-signer/diagnostics`; il Local Signer `1.6.41` espone anche `/logs/recent` con coda log sanificata. Resta da eseguire il test reale dal PC cliente tramite link auto-run con PIN inserito dall'utente.
 
 ## Note hotfix PST codici ufficio React e Local Signer 1.6.40 2.248.46 - 2026-05-25
 

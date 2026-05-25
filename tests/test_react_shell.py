@@ -2315,6 +2315,10 @@ def test_pst_acquisizione_usa_lookup_uffici_reali_importati(tmp_path: Path):
     assert "officeTypeFilter" in page_source
     assert "ufficio_codice: resolvedOfficeCode()" in page_source
     assert "ufficioCodice: office.codice || office.codiceMinistero" in page_source
+    assert "fromExistingCode?.codice || explicitOfficeCode" in page_source
+    assert "selectedOfficeMatches(office)" in page_source
+    assert "/api/v1/ui/local-signer/diagnostics" in page_source
+    assert "auto_pst_test" in page_source
     assert "exact?.codice || exact?.codiceMinistero || query.ufficio" in page_source
     assert "office.codiceMinistero || office.codice" not in page_source
     assert "Step 5 - Mappatura nel gestionale" in page_source
@@ -2322,6 +2326,49 @@ def test_pst_acquisizione_usa_lookup_uffici_reali_importati(tmp_path: Path):
     assert "acquisitionVisible" in page_source
     assert "AcquisitionWizardLegacy" not in page_source
     assert "Step {step}/7" in page_source
+
+
+def test_local_signer_diagnostics_salva_server_studio(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            "/api/v1/ui/local-signer/diagnostics",
+            json={
+                "source": "browser-local-signer",
+                "context": {
+                    "event": "pst_search_empty",
+                    "ufficio": "Tribunale di Palmi",
+                    "ufficio_codice": "0910011",
+                    "numero": "3441",
+                    "anno": "2025",
+                },
+                "local_signer": {
+                    "ok": True,
+                    "versione": "1.6.41",
+                    "dispositivi": [{"label": "CNS"}],
+                },
+                "local_logs": {
+                    "ok": True,
+                    "logs": [{"name": "local_signer.err.log", "tail": "PIN=123456\nPST ricerca-snapshot"}],
+                },
+            },
+        )
+        payload = response.get_json()
+        latest_response = client.get("/api/v1/ui/local-signer/diagnostics/latest?limit=1")
+
+    latest = latest_response.get_json()
+    stored_path = tmp_path / "telematico" / "diagnostica-local-signer" / "eventi.jsonl"
+    stored_text = stored_path.read_text(encoding="utf-8")
+
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert latest_response.status_code == 200
+    assert latest["items"][0]["context"]["ufficio_codice"] == "0910011"
+    assert "PIN=[omesso]" in stored_text
+    assert "123456" not in stored_text
 
 
 def test_react_studio_module_card_e_runtime_non_sono_decorativi(tmp_path: Path):

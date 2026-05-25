@@ -66,10 +66,14 @@ def main() -> int:
         "localSignerJson('/pst/ricerca-snapshot'",
         "localSignerJson('/pst/download-documenti-batch'",
         "preflight_auth: false",
+        "ufficioCodice: office.codice || office.codiceMinistero",
+        "exact?.codice || exact?.codiceMinistero || query.ufficio",
     )
     for snippet in react_required:
         if snippet not in react_text:
             failures.append(f"TelematicoSurfacePage non preserva baseline PST: {snippet}")
+    if "office.codiceMinistero || office.codice" in react_text:
+        failures.append("TelematicoSurfacePage deve inviare il codice ufficio, non preferire il codice ministeriale")
     if "localSignerJson('/pst/preflight-auth'" in react_text:
         failures.append("TelematicoSurfacePage non deve chiamare /pst/preflight-auth")
     if "localSignerJson('/pst/download-documento'" in react_text:

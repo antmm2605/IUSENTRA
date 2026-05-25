@@ -1,0 +1,21 @@
+{
+  "checked_files": 4,
+  "error_files": 0,
+  "files": [],
+  "files_with_artifacts": 0,
+  "finished_at": "2026-05-25T13:01:15Z",
+  "no_backup_created": true,
+  "ok": true,
+  "repair_enabled": false,
+  "repaired_files": 0,
+  "roots": [
+    "D:\\legale\\IUSENTRA\\CHANGELOG.md",
+    "D:\\legale\\IUSENTRA\\docs\\specs\\ministero\\PST_LOCAL_SIGNER_BASELINE_CERTIFICATO.md",
+    "D:\\legale\\IUSENTRA\\artifacts\\react-migration\\pytest-confirmed-ok.md",
+    "D:\\legale\\IUSENTRA\\artifacts\\react-migration\\pytest-open-issues.md"
+  ],
+  "schema_version": "iusentra.utf8_integrity.v1",
+  "skipped_large_files": 0,
+  "started_at": "2026-05-25T13:01:13Z",
+  "unresolved_replacement_files": 0
+}

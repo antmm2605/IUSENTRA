@@ -1,6 +1,10 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornamento corrente: 2026-05-25, hotfix PST Palmi fallback derivato da URL 2.248.45.
+Aggiornamento corrente: 2026-05-25, hotfix PST codici ufficio React e Local Signer 1.6.40 2.248.46.
+
+## Note hotfix PST codici ufficio React e Local Signer 1.6.40 2.248.46 - 2026-05-25
+
+Il test reale sul PC cliente ha isolato il problema operativo: la UI React stava preferendo `codiceMinistero` come valore selezionato dell'ufficio, quindi per il Tribunale di Palmi mostrava/passava `0800570094` invece del `codice` ufficio certificato `0910011`. La connessione al portale e la richiesta PIN arrivavano, ma la ricerca partiva con un codice diverso dal baseline del test reale dell'11 maggio. Il fix è generale per tutti gli uffici: il wizard invia `codice` e usa `codiceMinistero` solo come fallback/traduzione interna; Local Signer passa a `1.6.40`, con fallback registro PST disattivato di default e attivabile solo via `HACS_SIGNER_PST_REGISTER_FALLBACK=1`. Nessuna issue locale aperta dopo i test mirati verdi; resta da fare la verifica reale sul PC cliente dopo installazione del nuovo signer.
 
 ## Note hotfix PST Palmi fallback derivato da URL 2.248.45 - 2026-05-25
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.39
+IUSENTRA Local Signer - v1.6.40
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -111,7 +111,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.39"
+VERSION = "1.6.40"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -715,6 +715,9 @@ def _pst_base_varianti_ricerca_esatta(codice_o_nome: str, base_url: str) -> list
     dell'ufficio, ma alcuni Tribunali espongono fascicoli anche sul registro
     parallelo SICID/SIECIC. Le varianti non cambiano ufficio, GL o certificato.
     """
+    if not _env_flag_enabled("HACS_SIGNER_PST_REGISTER_FALLBACK"):
+        return [base_url.rstrip("/")] if base_url else []
+
     current = _pst_servizio_proxy(base_url)
     servizi_ufficio = _pst_servizi_qbuilder_ufficio(codice_o_nome)
     candidati: list[str] = []
@@ -7328,6 +7331,17 @@ class _Handler(BaseHTTPRequestHandler):
                 fallback_motivo = str(pst_error)
                 log.warning("SIGP ricerca-snapshot esatta in fallback guidato: %s", fallback_motivo)
                 fascicoli = []
+            profili = _parse_fascicoli_xml(xml_profilo) if xml_profilo else []
+            if profili:
+                profilo = profili[0]
+                if fascicoli:
+                    fascicoli[0].update({
+                        key: value
+                        for key, value in profilo.items()
+                        if value not in (None, "", [])
+                    })
+                else:
+                    fascicoli = [profilo]
             if not fascicoli and _pst_namespace_qbuilder(base_url):
                 for fallback_info in fallback_batches:
                     fallback_base_url = str(fallback_info.get("base_url") or "")
@@ -7420,18 +7434,6 @@ class _Handler(BaseHTTPRequestHandler):
                         motivo=fallback_motivo or "Il web service SIGP non ha restituito righe per la ricerca esatta.",
                     )
                 ]
-
-            profili = _parse_fascicoli_xml(xml_profilo) if xml_profilo else []
-            if profili:
-                profilo = profili[0]
-                if fascicoli:
-                    fascicoli[0].update({
-                        key: value
-                        for key, value in profilo.items()
-                        if value not in (None, "", [])
-                    })
-                else:
-                    fascicoli = [profilo]
 
             documenti = _parse_documenti_xml(xml_documenti)
             if xml_sigp_atti:

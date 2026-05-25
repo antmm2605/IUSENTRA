@@ -1455,7 +1455,7 @@ function AcquisitionWizard({
     setQuery((current) => ({
       ...current,
       ufficio: office.nome,
-      ufficioCodice: office.codiceMinistero || office.codice,
+      ufficioCodice: office.codice || office.codiceMinistero,
       ufficioNome: office.nome,
     }))
   }
@@ -1464,10 +1464,11 @@ function AcquisitionWizard({
     if (query.ufficioCodice) return query.ufficioCodice
     const typed = normaliseSearch(query.ufficio)
     const exact = data.offices.find((office) => {
-      const code = office.codiceMinistero || office.codice
-      return normaliseSearch(office.nome) === typed || normaliseSearch(code) === typed
+      return normaliseSearch(office.nome) === typed
+        || normaliseSearch(office.codice) === typed
+        || normaliseSearch(office.codiceMinistero) === typed
     })
-    return exact?.codiceMinistero || exact?.codice || query.ufficio
+    return exact?.codice || exact?.codiceMinistero || query.ufficio
   }
 
   const officeLooksLikeSigp = () => /giudice\s+di\s+pace|\bgdp\b/i.test(`${query.ufficio} ${query.ufficioNome} ${resolvedOfficeCode()}`)
@@ -2129,9 +2130,9 @@ function AcquisitionWizard({
                       <span>Scrivi almeno 2 caratteri per cercare nel catalogo uffici importato.</span>
                     ) : officeMatches.length ? (
                       officeMatches.map((office) => (
-                        <button type="button" key={office.id} onClick={() => selectOffice(office)} className={(query.ufficioCodice && query.ufficioCodice === (office.codiceMinistero || office.codice)) ? 'is-selected' : ''}>
+                        <button type="button" key={office.id} onClick={() => selectOffice(office)} className={(query.ufficioCodice && query.ufficioCodice === (office.codice || office.codiceMinistero)) ? 'is-selected' : ''}>
                           <strong>{office.nome}</strong>
-                          <small>{[office.tipo, office.distretto, office.comune || office.provincia, office.codiceMinistero || office.codice, office.servizioPst].filter(Boolean).join(' - ')}</small>
+                          <small>{[office.tipo, office.distretto, office.comune || office.provincia, office.codice || office.codiceMinistero, office.servizioPst].filter(Boolean).join(' - ')}</small>
                         </button>
                       ))
                     ) : (

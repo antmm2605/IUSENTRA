@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.46 - 2026-05-25
+
+- Ripristinato il percorso PST/PolisWeb certificato l'11 maggio: il wizard React invia il `codice` ufficio importato dal catalogo locale per tutti gli uffici, non il codice ministeriale come valore selezionato. Palmi torna quindi a selezionare `0910011`, mentre `0800570094` resta la traduzione interna per il Local Signer/PST.
+- Aggiornato il Local Signer alla versione `1.6.40`, distribuendo il nuovo installer pubblico `SetupLocalSigner-1.6.40.exe`; il fallback registro PST introdotto nei tentativi precedenti resta disattivato di default e attivabile solo con `HACS_SIGNER_PST_REGISTER_FALLBACK=1`.
+- Aggiunti presidi anti-regressione su React e Local Signer boundaries per impedire che `codiceMinistero` venga di nuovo preferito al `codice` ufficio nella selezione generale degli uffici.
+
 ## 2.248.45 - 2026-05-25
 
 - Aggiornato Local Signer alla versione 1.6.39: il fallback Palmi SICID/SIECIC viene preparato anche se nel punto della chiamata non viene agganciata la riga dello snapshot uffici, derivandolo direttamente dalla URL `JPW_SICID`/`JPW_SIECIC`.

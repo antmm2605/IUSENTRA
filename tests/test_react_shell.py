@@ -2296,7 +2296,15 @@ def test_pst_acquisizione_usa_lookup_uffici_reali_importati(tmp_path: Path):
     assert len(offices) >= 1
     assert any(
         "Vibo Valentia" in office["nome"]
+        and office["codice"]
         and office["codiceMinistero"] == "1020470090"
+        and office["servizioPst"] == "JPW_SICID"
+        for office in offices
+    )
+    assert any(
+        office["nome"] == "Tribunale di Palmi"
+        and office["codice"] == "0910011"
+        and office["codiceMinistero"] == "0800570094"
         and office["servizioPst"] == "JPW_SICID"
         for office in offices
     )
@@ -2306,6 +2314,9 @@ def test_pst_acquisizione_usa_lookup_uffici_reali_importati(tmp_path: Path):
     assert "officeMatches" in page_source
     assert "officeTypeFilter" in page_source
     assert "ufficio_codice: resolvedOfficeCode()" in page_source
+    assert "ufficioCodice: office.codice || office.codiceMinistero" in page_source
+    assert "exact?.codice || exact?.codiceMinistero || query.ufficio" in page_source
+    assert "office.codiceMinistero || office.codice" not in page_source
     assert "Step 5 - Mappatura nel gestionale" in page_source
     assert "Riepilogo sempre visibile" in page_source
     assert "acquisitionVisible" in page_source

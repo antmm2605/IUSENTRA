@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.248.45 - 2026-05-25
+
+- Aggiornato Local Signer alla versione 1.6.39: il fallback Palmi SICID/SIECIC viene preparato anche se nel punto della chiamata non viene agganciata la riga dello snapshot uffici, derivandolo direttamente dalla URL `JPW_SICID`/`JPW_SIECIC`.
+- Corretto il caso reale in cui il PST risponde `Service 'RicercaInformazioniFascicoloPerTipo' non trovato | SOAP-ENV:Client`: la ricerca non deve fermarsi sul primo registro ma deve proseguire sul registro civile parallelo dello stesso ufficio.
+
 ## 2.248.44 - 2026-05-25
 
 - Aggiornato Local Signer alla versione 1.6.38: se il PST risponde `SOAP-ENV:Client` sulla ricerca `RicercaInformazioniFascicoloPerTipo` del primo registro, la ricerca Palmi continua sul registro alternativo già preparato nello stesso batch, senza preflight e senza cambiare ufficio, tenant o certificato.

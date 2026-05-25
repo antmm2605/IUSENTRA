@@ -1562,6 +1562,20 @@ def test_pst_varianti_ricerca_esatta_palmi_prova_siecic_senza_cambiare_ufficio(m
     assert all("/pda/pycons/GLRC/" in variante for variante in varianti)
 
 
+def test_pst_varianti_ricerca_esatta_deriva_siecic_dalla_url_se_snapshot_manca(monkeypatch):
+    module = _load_local_signer()
+    base = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID"
+
+    monkeypatch.setattr(module, "_risolvi_ufficio_da_snapshot", lambda value: None)
+
+    varianti = module._pst_base_varianti_ricerca_esatta("0800570094", base)
+
+    assert varianti == [
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC",
+    ]
+
+
 def test_estrai_codice_fiscale_dal_certificato_windows():
     module = _load_local_signer()
 

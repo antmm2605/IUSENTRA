@@ -1,6 +1,10 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornamento corrente: 2026-05-25, hotfix PST Palmi SOAP Fault Client 2.248.44.
+Aggiornamento corrente: 2026-05-25, hotfix PST Palmi fallback derivato da URL 2.248.45.
+
+## Note hotfix PST Palmi fallback derivato da URL 2.248.45 - 2026-05-25
+
+Nel test reale sul PC del cliente, Local Signer 1.6.38 era installato correttamente (`/diagnosi` OK, token CNS e curl disponibili), ma la chiamata `/pst/ricerca-snapshot` ha restituito `Service 'RicercaInformazioniFascicoloPerTipo' non trovato | SOAP-ENV:Client`. Local Signer 1.6.39 forza la preparazione del registro civile parallelo dalla URL `JPW_SICID`/`JPW_SIECIC` anche se lo snapshot uffici non viene agganciato in quel punto, cosi' la Fault del primo registro non blocca il tentativo sul registro alternativo dello stesso ufficio.
 
 ## Note hotfix PST Palmi SOAP Fault Client 2.248.44 - 2026-05-25
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.38
+IUSENTRA Local Signer - v1.6.39
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -111,7 +111,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.38"
+VERSION = "1.6.39"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -725,6 +725,22 @@ def _pst_base_varianti_ricerca_esatta(codice_o_nome: str, base_url: str) -> list
             candidati.append(servizio_norm)
 
     _aggiungi(current)
+
+    # Fallback anti-regressione: anche se il registro uffici non viene
+    # risolto nel punto chiamante, una URL JPW_SICID/JPW_SIECIC contiene gia'
+    # abbastanza informazione per provare il registro civile parallelo dello
+    # stesso ufficio senza cambiare GL, certificato o tenant.
+    if current == "JPW_SICID":
+        _aggiungi("JPW_SIECIC")
+    elif current == "JPW_SIECIC":
+        _aggiungi("JPW_SICID")
+    elif current == "SICID":
+        _aggiungi("JPW_SICID")
+        _aggiungi("JPW_SIECIC")
+    elif current == "SIECIC":
+        _aggiungi("JPW_SIECIC")
+        _aggiungi("JPW_SICID")
+
     for servizio in ("JPW_SICID", "JPW_SIECIC", "JPW_SIGP"):
         if servizio in servizi_ufficio:
             _aggiungi(servizio)

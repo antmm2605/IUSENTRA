@@ -1439,7 +1439,7 @@ assertContains(documentiAiPage, 'Presidio documenti', 'stato operativo Documenti
 assertContains(documentiAiPage, 'fetchDocumentAIList', 'pagina Documenti AI usa API reali')
 assertContains(documentiAiData, '/api/v1/ui/fascicoli/', 'client API Documenti AI')
 assertContains(documentiAiData, 'mock_fallback: false', 'contratto mock_fallback=false Documenti AI')
-assertContains(documentUploadPanel, 'PDF, DOCX o DOC', 'upload formati Documenti AI')
+assertContains(documentUploadPanel, 'PDF, DOCX, DOC, TXT, EML', 'upload formati Documenti AI')
 assertContains(documentListPanel, 'SHA-256', 'lista mostra hash Documenti AI')
 assertContains(documentDetailPanel, 'Versioni', 'dettaglio versioni Documenti AI')
 assertContains(documentTextPanel, 'Testo estratto', 'testo estratto Documenti AI')

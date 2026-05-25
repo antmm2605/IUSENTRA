@@ -346,6 +346,35 @@ function Copy-LocalSignerModule {
     }
 }
 
+function Copy-OrDownloadFile {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Source,
+        [string]$FallbackSource = "",
+        [Parameter(Mandatory = $true)]
+        [string]$DownloadUrl,
+        [Parameter(Mandatory = $true)]
+        [string]$Target,
+        [Parameter(Mandatory = $true)]
+        [string]$Label
+    )
+
+    if (Test-Path $Source) {
+        Copy-Item $Source $Target -Force
+        return
+    }
+    if ($FallbackSource -and (Test-Path $FallbackSource)) {
+        Copy-Item $FallbackSource $Target -Force
+        return
+    }
+    try {
+        Invoke-WebRequest -Uri $DownloadUrl -OutFile $Target -UseBasicParsing
+        Write-InstallerLog "$Label scaricato dal server."
+    } catch {
+        throw "$Label non trovato nel pacchetto e download non riuscito: $DownloadUrl"
+    }
+}
+
 function Write-LocalSignerLaunchers {
     $allowedOrigins = $defaultAllowedOrigins
     # Il launcher cerca pythonw.exe in due posizioni:
@@ -522,26 +551,44 @@ Write-Step "Arresto eventuali istanze Local Signer prima dell'aggiornamento..."
 Stop-LocalSignerProcesses
 
 Write-Step "Copio i file del Local Signer..."
-Copy-Item (Join-Path $toolsDir "local_signer.py") $pythonScript -Force
-Copy-Item (Join-Path $toolsDir "local_ai_host_bridge.py") $aiBridgeScript -Force
-Copy-Item (Join-Path $toolsDir "lex_document_context.py") $lexContextScript -Force
+Copy-OrDownloadFile `
+    -Source (Join-Path $toolsDir "local_signer.py") `
+    -DownloadUrl "$defaultBaseUrl/polisWeb/local-signer/download" `
+    -Target $pythonScript `
+    -Label "local_signer.py"
+Copy-OrDownloadFile `
+    -Source (Join-Path $toolsDir "local_ai_host_bridge.py") `
+    -DownloadUrl "$defaultBaseUrl/polisWeb/local-signer/download/local-ai-bridge" `
+    -Target $aiBridgeScript `
+    -Label "local_ai_host_bridge.py"
+Copy-OrDownloadFile `
+    -Source (Join-Path $toolsDir "lex_document_context.py") `
+    -DownloadUrl "$defaultBaseUrl/polisWeb/local-signer/download/lex-document-context" `
+    -Target $lexContextScript `
+    -Label "lex_document_context.py"
 $visibleSignatureSource = Join-Path $toolsDir "visible_signature.py"
-if (-not (Test-Path $visibleSignatureSource)) {
-    $visibleSignatureSource = Join-Path $repoRoot "visible_signature.py"
-}
-Copy-Item $visibleSignatureSource $visibleSignatureScript -Force
-Copy-Item (Join-Path $toolsDir "requirements_local_signer.txt") $requirementsFile -Force
+Copy-OrDownloadFile `
+    -Source $visibleSignatureSource `
+    -FallbackSource (Join-Path $repoRoot "visible_signature.py") `
+    -DownloadUrl "$defaultBaseUrl/polisWeb/local-signer/download/visible-signature" `
+    -Target $visibleSignatureScript `
+    -Label "visible_signature.py"
+Copy-OrDownloadFile `
+    -Source (Join-Path $toolsDir "requirements_local_signer.txt") `
+    -DownloadUrl "$defaultBaseUrl/polisWeb/local-signer/download/requirements" `
+    -Target $requirementsFile `
+    -Label "requirements_local_signer.txt"
 Copy-LocalSignerModule
 $ufficiSource = Join-Path $toolsDir "uffici_ministero.json"
 if (-not (Test-Path $ufficiSource)) {
     $ufficiSource = Join-Path (Split-Path -Parent $toolsDir) "pct\data\uffici_ministero.json"
 }
-if (Test-Path $ufficiSource) {
-    Copy-Item $ufficiSource $ufficiTarget -Force
-    Write-Step "Registro uffici PST locale copiato."
-} else {
-    Write-Host "  AVVISO: registro uffici PST locale non trovato; il signer usera' solo la configurazione esplicita." -ForegroundColor Yellow
-}
+Copy-OrDownloadFile `
+    -Source $ufficiSource `
+    -DownloadUrl "$defaultBaseUrl/polisWeb/local-signer/download/uffici" `
+    -Target $ufficiTarget `
+    -Label "uffici_ministero.json"
+Write-Step "Registro uffici PST locale copiato."
 
 # ── Configurazione ambiente Python ────────────────────────────────
 if ($useEmbeddedPython) {

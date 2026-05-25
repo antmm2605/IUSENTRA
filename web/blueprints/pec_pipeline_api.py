@@ -50,7 +50,6 @@ def _repo() -> PecAuditRepository:
         fascicoli_db_path=_runtime_path("FASCICOLI_DB", "./fascicoli/fascicoli.json"),
         fascicoli_docs_path=_runtime_path("FASCICOLI_DOCS", "./fascicoli/documenti"),
         scadenziario_db_path=_runtime_path("SCADENZIARIO_DB", "./scadenziario/scadenze.json"),
-        clienti_db_path=_runtime_path("CLIENTI_DB", "./clienti/anagrafica.json"),
     )
 
 
@@ -171,19 +170,7 @@ def pec_digest_run():
 def pec_save_to_fascicolo(message_id: str):
     payload = request.get_json(silent=True) or {}
     try:
-        repo = _repo()
-        if payload.get("prepara") or (
-            not str(payload.get("fascicolo_id") or "").strip()
-            and (str(payload.get("cliente_nome") or "").strip() or str(payload.get("cliente_cognome") or "").strip())
-        ):
-            result = repo.prepare_save_to_fascicolo(
-                message_id,
-                nome=str(payload.get("cliente_nome") or payload.get("nome") or ""),
-                cognome=str(payload.get("cliente_cognome") or payload.get("cognome") or ""),
-                actor=_actor(),
-            )
-            return _json_success(result, 200)
-        result = repo.save_to_fascicolo(message_id, fascicolo_id=str(payload.get("fascicolo_id") or ""), actor=_actor())
+        result = _repo().save_to_fascicolo(message_id, fascicolo_id=str(payload.get("fascicolo_id") or ""), actor=_actor())
         return _json_success(result, 200 if result.get("ok") else 409)
     except KeyError:
         return _json_error(404)

@@ -146,7 +146,6 @@ def test_pec_api_demo_digest_mime_and_quick_action(tmp_path, monkeypatch):
         "FASCICOLI_DB": tmp_path / "fascicoli" / "fascicoli.json",
         "FASCICOLI_DOCS": tmp_path / "fascicoli" / "documenti",
         "SCADENZIARIO_DB": tmp_path / "scadenziario" / "scadenze.json",
-        "CLIENTI_DB": tmp_path / "clienti" / "clienti.json",
     }
 
     def fake_tenant_data_path(key, default, *aliases, require_tenant=True):
@@ -209,85 +208,6 @@ def test_pec_api_demo_digest_mime_and_quick_action(tmp_path, monkeypatch):
     digest = client.get("/api/pec/digest")
     assert digest.status_code == 200
     assert digest.get_json()["data"]["new_messages"] == 5
-
-
-def test_pec_api_prepare_and_confirm_save_mime_to_open_fascicolo_by_client(tmp_path, monkeypatch):
-    from pct.clienti import GestioneClienti, TipoCliente
-    from pct.fascicoli import GestioneFascicoli, TipoFascicolo
-    from web.blueprints.pec_pipeline_api import pec_pipeline_api
-
-    paths = {
-        "EMAIL_CASELLA_DB": tmp_path / "email" / "casella.json",
-        "PEC_AUDIT_DB": tmp_path / "email" / "pec_audit.sqlite",
-        "FASCICOLI_DB": tmp_path / "fascicoli" / "fascicoli.json",
-        "FASCICOLI_DOCS": tmp_path / "fascicoli" / "documenti",
-        "SCADENZIARIO_DB": tmp_path / "scadenziario" / "scadenze.json",
-        "CLIENTI_DB": tmp_path / "clienti" / "clienti.json",
-    }
-
-    def fake_tenant_data_path(key, default, *aliases, require_tenant=True):
-        value = paths.get(key)
-        if not value:
-            raise AssertionError(f"Path tenant non atteso: {key}")
-        value.parent.mkdir(parents=True, exist_ok=True)
-        return str(value)
-
-    app = Flask(__name__)
-    app.secret_key = "test"
-    app.register_blueprint(pec_pipeline_api, url_prefix="/api/pec")
-    monkeypatch.setattr("web.blueprints.pec_pipeline_api.tenant_data_path", fake_tenant_data_path)
-
-    @app.before_request
-    def _inject_user():
-        g.utente_corrente = _User()
-        g.tenant_slug = "default"
-        g.data_paths = {"PEC_AUDIT_DB": str(paths["PEC_AUDIT_DB"])}
-
-    cliente = GestioneClienti(str(paths["CLIENTI_DB"])).nuovo(TipoCliente.PERSONA_FISICA, nome="Mario", cognome="Rossi")
-    fascicolo = GestioneFascicoli(
-        db_path=str(paths["FASCICOLI_DB"]),
-        documents_dir=str(paths["FASCICOLI_DOCS"]),
-    ).nuovo(
-        "Ricorso Rossi",
-        TipoFascicolo.CIVILE,
-        id_cliente=cliente.id,
-        nome_cliente=cliente.nome_completo,
-        numero_rg="1234",
-        anno_rg=2026,
-        tribunale="Tribunale di Brescia",
-    )
-
-    client = app.test_client()
-    assert client.post("/api/pec/demo/ingest").status_code == 200
-    rows = client.get("/api/pec/messages").get_json()["data"]
-    notice_id = next(row["id"] for row in rows if row["validation_report"]["event_type"] == "pct_deposito")
-
-    prepare = client.post(
-        f"/api/pec/messages/{notice_id}/salva-fascicolo",
-        json={"prepara": True, "cliente_nome": "Mario", "cliente_cognome": "Rossi"},
-    )
-    assert prepare.status_code == 200
-    prepare_payload = prepare.get_json()
-    assert prepare_payload["requires_confirmation"] is True
-    assert prepare_payload["fascicolo"]["id"] == fascicolo.id
-
-    confirm = client.post(
-        f"/api/pec/messages/{notice_id}/salva-fascicolo",
-        json={"conferma": True, "fascicolo_id": fascicolo.id, "cliente_nome": "Mario", "cliente_cognome": "Rossi"},
-    )
-    assert confirm.status_code == 200
-    confirm_payload = confirm.get_json()
-    assert confirm_payload["ok"] is True
-    assert confirm_payload["fascicolo_id"] == fascicolo.id
-    assert confirm_payload["document_id"]
-    aggiornato = GestioneFascicoli(
-        db_path=str(paths["FASCICOLI_DB"]),
-        documents_dir=str(paths["FASCICOLI_DOCS"]),
-    ).get(fascicolo.id)
-    assert aggiornato is not None
-    documento = next(doc for doc in aggiornato.documenti if doc.id == confirm_payload["document_id"])
-    assert documento.msg_id_portale == notice_id
-    assert documento.nome.endswith(".eml")
 
 
 def test_react_email_bridge_lists_audit_only_pec_messages(tmp_path):

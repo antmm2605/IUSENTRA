@@ -14,7 +14,6 @@ import json
 import mimetypes
 import re
 import sqlite3
-import unicodedata
 import uuid
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
@@ -264,16 +263,6 @@ def clean_text(value: Any, limit: int = 0) -> str:
     if limit and len(text) > limit:
         return text[: limit - 1].rstrip() + "…"
     return text
-
-
-def _lookup_text(value: Any) -> str:
-    text = unicodedata.normalize("NFKD", clean_text(value).lower())
-    text = "".join(ch for ch in text if not unicodedata.combining(ch))
-    return re.sub(r"[^a-z0-9]+", " ", text).strip()
-
-
-def _enum_value(value: Any) -> str:
-    return str(getattr(value, "value", value) or "")
 
 
 def parsedate_iso(value: Any) -> str:
@@ -1548,14 +1537,12 @@ class PecAuditRepository:
         fascicoli_db_path: str | Path | None = None,
         fascicoli_docs_path: str | Path | None = None,
         scadenziario_db_path: str | Path | None = None,
-        clienti_db_path: str | Path | None = None,
     ):
         self.db_path = Path(db_path)
         self.tenant_id = str(tenant_id or DEFAULT_TENANT_ID)
         self.fascicoli_db_path = Path(fascicoli_db_path) if fascicoli_db_path else None
         self.fascicoli_docs_path = Path(fascicoli_docs_path) if fascicoli_docs_path else None
         self.scadenziario_db_path = Path(scadenziario_db_path) if scadenziario_db_path else None
-        self.clienti_db_path = Path(clienti_db_path) if clienti_db_path else None
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.ensure_schema()
 
@@ -2419,151 +2406,6 @@ class PecAuditRepository:
             self.append_audit(conn, action="pec.retention.reviewed", resource_type="pec_retention", resource_id=self.tenant_id, payload=report, actor=actor)
         return report
 
-    def _cliente_matches(self, nome: str, cognome: str) -> list[dict[str, Any]]:
-        query = _lookup_text(" ".join([nome, cognome]))
-        reversed_query = _lookup_text(" ".join([cognome, nome]))
-        if not query or not self.clienti_db_path:
-            return []
-        try:
-            from pct.clienti import GestioneClienti, StatoCliente
-
-            manager = GestioneClienti(str(self.clienti_db_path))
-            clienti = [item for item in manager.tutti() if getattr(item, "stato", "") != StatoCliente.ARCHIVIATO]
-        except Exception:
-            return []
-        matches: list[dict[str, Any]] = []
-        nome_key = _lookup_text(nome)
-        cognome_key = _lookup_text(cognome)
-        for cliente in clienti:
-            label = clean_text(getattr(cliente, "nome_completo", ""), 120)
-            label_key = _lookup_text(label)
-            first_key = _lookup_text(getattr(cliente, "nome", ""))
-            last_key = _lookup_text(getattr(cliente, "cognome", ""))
-            score = 0.0
-            reasons: list[str] = []
-            if nome_key and cognome_key and first_key == nome_key and last_key == cognome_key:
-                score = 1.0
-                reasons.append("nome e cognome coincidenti")
-            elif query and (query == label_key or reversed_query == label_key):
-                score = 0.96
-                reasons.append("anagrafica coincidente")
-            elif nome_key and cognome_key and nome_key in label_key and cognome_key in label_key:
-                score = 0.86
-                reasons.append("anagrafica compatibile")
-            elif cognome_key and cognome_key in label_key:
-                score = 0.54
-                reasons.append("cognome compatibile")
-            if score:
-                matches.append(
-                    {
-                        "id": str(getattr(cliente, "id", "")),
-                        "name": label,
-                        "score": round(score, 3),
-                        "reasons": reasons,
-                    }
-                )
-        matches.sort(key=lambda item: float(item.get("score") or 0), reverse=True)
-        return matches[:8]
-
-    def _fascicolo_card(self, fascicolo: Any, *, score: float, reasons: list[str]) -> dict[str, Any]:
-        numero_rg = clean_text(getattr(fascicolo, "numero_rg", ""))
-        anno_rg = clean_text(getattr(fascicolo, "anno_rg", ""))
-        rg = f"{numero_rg}/{anno_rg}" if numero_rg and anno_rg else numero_rg
-        fascicolo_id = str(getattr(fascicolo, "id", ""))
-        return {
-            "id": fascicolo_id,
-            "title": clean_text(getattr(fascicolo, "titolo", ""), 140),
-            "number": clean_text(getattr(fascicolo, "numero", "")),
-            "clientName": clean_text(getattr(fascicolo, "nome_cliente", ""), 120),
-            "state": _enum_value(getattr(fascicolo, "stato", "")),
-            "rg": rg,
-            "court": clean_text(getattr(fascicolo, "tribunale", ""), 120),
-            "score": round(min(max(score, 0.0), 1.0), 3),
-            "reasons": reasons,
-            "href": f"/fascicoli/{fascicolo_id}" if fascicolo_id else "",
-        }
-
-    def prepare_save_to_fascicolo(
-        self,
-        message_id: str,
-        *,
-        nome: str = "",
-        cognome: str = "",
-        actor: str = "pec-api",
-    ) -> dict[str, Any]:
-        self.get_message_detail(message_id)
-        nome = clean_text(nome, 80)
-        cognome = clean_text(cognome, 80)
-        if not nome or not cognome:
-            return {"ok": False, "message": "Indica nome e cognome del cliente per cercare il fascicolo aperto."}
-        if not self.fascicoli_db_path:
-            return {"ok": False, "message": "Archivio fascicoli non configurato per questa azione."}
-        try:
-            from pct.fascicoli import GestioneFascicoli, StatoFascicolo
-
-            manager = GestioneFascicoli(
-                db_path=str(self.fascicoli_db_path),
-                documents_dir=str(self.fascicoli_docs_path or self.fascicoli_db_path.parent / "documenti"),
-            )
-            fascicoli = manager.tutti(archiviati=False)
-        except Exception as exc:
-            return {"ok": False, "message": f"Ricerca fascicolo non completata: {exc}"}
-
-        closed_states = {StatoFascicolo.DEFINITO.value, StatoFascicolo.ARCHIVIATO.value}
-        clienti = self._cliente_matches(nome, cognome)
-        cliente_ids = {item["id"] for item in clienti if item.get("id")}
-        nome_key = _lookup_text(nome)
-        cognome_key = _lookup_text(cognome)
-        full_key = _lookup_text(" ".join([cognome, nome]))
-        reverse_key = _lookup_text(" ".join([nome, cognome]))
-        cards: list[dict[str, Any]] = []
-        for fascicolo in fascicoli:
-            state = _enum_value(getattr(fascicolo, "stato", ""))
-            if state in closed_states:
-                continue
-            score = 0.0
-            reasons: list[str] = []
-            if str(getattr(fascicolo, "id_cliente", "") or "") in cliente_ids:
-                score += 0.72
-                reasons.append("cliente collegato al fascicolo")
-            client_label = _lookup_text(getattr(fascicolo, "nome_cliente", ""))
-            if full_key and full_key == client_label or reverse_key and reverse_key == client_label:
-                score += 0.62
-                reasons.append("nome cliente coincidente")
-            elif nome_key and cognome_key and nome_key in client_label and cognome_key in client_label:
-                score += 0.52
-                reasons.append("nome cliente compatibile")
-            if score:
-                state_bonus = 0.08 if state in {"APERTO", "IN_CORSO"} else 0.04 if state == "SOSPESO" else 0
-                cards.append(self._fascicolo_card(fascicolo, score=score + state_bonus, reasons=list(dict.fromkeys(reasons))))
-        cards.sort(key=lambda item: float(item.get("score") or 0), reverse=True)
-        cards = cards[:5]
-        with self.connect() as conn:
-            self.append_audit(
-                conn,
-                action="pec.fascicolo.prepare_save",
-                resource_type="pec_message",
-                resource_id=message_id,
-                payload={"cliente": {"nome": nome, "cognome": cognome}, "candidates": [item.get("id") for item in cards]},
-                actor=actor,
-            )
-        if not cards:
-            return {
-                "ok": False,
-                "message": f"Nessun fascicolo aperto trovato per {nome} {cognome}.",
-                "cliente": {"nome": nome, "cognome": cognome, "matches": clienti},
-                "candidates": [],
-            }
-        target = cards[0]
-        return {
-            "ok": True,
-            "requires_confirmation": True,
-            "message": f"Confermi il salvataggio del MIME PEC nel fascicolo {target.get('number') or target.get('title')}?",
-            "cliente": {"nome": nome, "cognome": cognome, "matches": clienti},
-            "fascicolo": target,
-            "candidates": cards,
-        }
-
     def save_to_fascicolo(self, message_id: str, *, fascicolo_id: str = "", actor: str = "pec-api") -> dict[str, Any]:
         detail = self.get_message_detail(message_id)
         target_id = fascicolo_id or str((detail.get("message") or {}).get("linked_fascicolo_id") or "")
@@ -2595,15 +2437,7 @@ class PecAuditRepository:
             return {"ok": False, "message": f"Salvataggio nel fascicolo non completato: {exc}"}
         with self.connect() as conn:
             self.append_audit(conn, action="pec.fascicolo.saved", resource_type="pec_message", resource_id=message_id, payload={"fascicolo_id": target_id, "document_id": getattr(doc, "id", "")}, actor=actor)
-        document_id = getattr(doc, "id", "")
-        return {
-            "ok": True,
-            "message": "MIME PEC salvato nel fascicolo.",
-            "fascicolo_id": target_id,
-            "document_id": document_id,
-            "fascicolo_href": f"/fascicoli/{target_id}",
-            "document_href": f"/fascicoli/{target_id}#documento-{document_id}" if document_id else f"/fascicoli/{target_id}",
-        }
+        return {"ok": True, "message": "PEC salvata nel fascicolo.", "fascicolo_id": target_id, "document_id": getattr(doc, "id", "")}
 
     def request_missing_attachment(self, message_id: str, *, actor: str = "pec-api") -> dict[str, Any]:
         detail = self.get_message_detail(message_id)

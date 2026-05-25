@@ -115,7 +115,7 @@ def _pec_audit_all_summaries(db_path: str, *, tenant_id: str = "default", includ
                     "received_at": message.get("received_at") or row.get("received_at") or "",
                     "metadata": message.get("metadata") or row.get("metadata") or {},
                     "fields": parsed.get("fields") or {},
-                    "body_text": (parsed.get("body") or {}).get("text") or (parsed.get("body") or {}).get("html_text") or parsed.get("body_text") or "",
+                    "body_text": parsed.get("body_text") or "",
                     "validation_report": detail.get("validation_report") or {},
                     "fascicolo_link": detail.get("fascicolo_link") or {},
                     "attachments": detail.get("attachments") or [],

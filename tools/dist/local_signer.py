@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.42
+IUSENTRA Local Signer - v1.6.43
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -111,7 +111,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.42"
+VERSION = "1.6.43"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -7350,12 +7350,23 @@ class _Handler(BaseHTTPRequestHandler):
                                 "cookie_file": cookie_file,
                             })
                         fallback_batches.append(fallback_info)
-                batch_results = _soap_call_pst_session_batch_raw(
+                batch_result_items = _soap_call_pst_session_batch_raw_best_effort(
                     batch_requests,
                     cert_thumbprint=cert_thumbprint,
                     cookie_file=cookie_file,
                     prefer_cookie_only=prefer_cookie_only,
                 )
+                batch_results = [
+                    (
+                        (item.get("body_bytes") or b"") if isinstance(item, dict) else b"",
+                        str(item.get("headers_text") or "") if isinstance(item, dict) else "",
+                    )
+                    for item in batch_result_items
+                ]
+                for idx, item in enumerate(batch_result_items):
+                    if isinstance(item, dict) and item.get("error"):
+                        servizio = _pst_servizio_proxy(str(batch_requests[idx].get("url") or ""))
+                        log.info("PST ricerca-snapshot: richiesta %s/%s non bloccante: %s", idx + 1, servizio, item.get("error"))
 
             xml_ricerca = batch_results[0][0].decode("utf-8", "replace") if batch_results else ""
             xml_profilo = (

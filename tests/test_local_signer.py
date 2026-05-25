@@ -4127,6 +4127,7 @@ def test_pst_ricerca_snapshot_batcha_ricerca_e_documenti_senza_preflight():
         "_ensure_pst_session_entry": module._ensure_pst_session_entry,
         "_pst_preflight_auth_curl": module._pst_preflight_auth_curl,
         "_soap_call_pst_session_batch_raw": module._soap_call_pst_session_batch_raw,
+        "_soap_call_pst_session_batch_raw_best_effort": module._soap_call_pst_session_batch_raw_best_effort,
         "_estrai_fault_soap": module._estrai_fault_soap,
         "_parse_fascicoli_xml": module._parse_fascicoli_xml,
         "_parse_documenti_xml": module._parse_documenti_xml,
@@ -4191,8 +4192,14 @@ def test_pst_ricerca_snapshot_batcha_ricerca_e_documenti_senza_preflight():
                 (b"<documents/>", "HTTP/1.1 200 OK\r\n"),
             ]
 
+        def _fake_best_effort(requests, **kwargs):
+            return [
+                {"body_bytes": body, "headers_text": headers, "status_code": 200, "error": ""}
+                for body, headers in _fake_batch(requests, **kwargs)
+            ]
+
         module._pst_preflight_auth_curl = _fake_preflight
-        module._soap_call_pst_session_batch_raw = _fake_batch
+        module._soap_call_pst_session_batch_raw_best_effort = _fake_best_effort
         module._estrai_fault_soap = lambda xml: None
         def _fake_parse_fascicoli(xml):
             if "profile" not in str(xml):
@@ -4235,7 +4242,7 @@ def test_pst_ricerca_snapshot_batcha_ricerca_e_documenti_senza_preflight():
     assert captured["payload"]["documenti"][0]["id_documento"] == "DOC-1"
     assert captured["payload"]["snapshot"]["fascicolo"]["numero"] == "274"
     assert captured["session_ids"] == ["SID-STALENESS-FROM-BROWSER", ""]
-    assert len(captured["batch"]["requests"]) == 3
+    assert len(captured["batch"]["requests"]) == 6
     assert captured["batch"]["kwargs"]["cert_thumbprint"] == "AABBCC11"
     assert captured["batch"]["kwargs"]["prefer_cookie_only"] is False
 
@@ -4302,7 +4309,13 @@ def test_pst_ricerca_snapshot_fault_client_su_sicid_passa_a_siecic(monkeypatch):
             (b"<fallback-docs/>", "HTTP/1.1 200 OK\r\n"),
         ]
 
-    monkeypatch.setattr(module, "_soap_call_pst_session_batch_raw", _fake_batch)
+    def _fake_best_effort(requests, **kwargs):
+        return [
+            {"body_bytes": body, "headers_text": headers, "status_code": 200, "error": ""}
+            for body, headers in _fake_batch(requests, **kwargs)
+        ]
+
+    monkeypatch.setattr(module, "_soap_call_pst_session_batch_raw_best_effort", _fake_best_effort)
     monkeypatch.setattr(
         module,
         "_estrai_fault_soap",
@@ -4355,6 +4368,7 @@ def test_pst_ricerca_snapshot_sigp_include_ricerca_atti_nel_batch_visualizzazion
         "_pst_servizio_sigp": module._pst_servizio_sigp,
         "_ensure_pst_session_entry": module._ensure_pst_session_entry,
         "_soap_call_pst_session_batch_raw": module._soap_call_pst_session_batch_raw,
+        "_soap_call_pst_session_batch_raw_best_effort": module._soap_call_pst_session_batch_raw_best_effort,
         "_sigp_documenti_da_ricerca_atti": module._sigp_documenti_da_ricerca_atti,
         "_estrai_fault_soap": module._estrai_fault_soap,
         "_parse_fascicoli_xml": module._parse_fascicoli_xml,
@@ -4412,10 +4426,16 @@ def test_pst_ricerca_snapshot_sigp_include_ricerca_atti_nel_batch_visualizzazion
                 (ricerca_atti_xml.encode("utf-8"), "HTTP/1.1 200 OK\r\n"),
             ]
 
+        def _fake_best_effort(requests, **kwargs):
+            return [
+                {"body_bytes": body, "headers_text": headers, "status_code": 200, "error": ""}
+                for body, headers in _fake_batch(requests, **kwargs)
+            ]
+
         def _unexpected_sigp_profile_roundtrip(*args, **kwargs):
             raise AssertionError("La visualizzazione SIGP non deve aprire chiamate profilo fuori batch")
 
-        module._soap_call_pst_session_batch_raw = _fake_batch
+        module._soap_call_pst_session_batch_raw_best_effort = _fake_best_effort
         module._sigp_documenti_da_ricerca_atti = _unexpected_sigp_profile_roundtrip
         module._estrai_fault_soap = lambda xml: None
         module._parse_fascicoli_xml = lambda xml: []

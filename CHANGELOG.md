@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.248.49 - 2026-05-25
+
+- Aggiornato Local Signer alla versione `1.6.43`: la ricerca snapshot PST usa il batch non bloccante, così una SOAP Fault del primo registro non interrompe più il tentativo sul registro parallelo SIECIC.
+- Ripristinato il flusso certificato di visualizzazione fascicolo: ricerca esatta R.G./anno, metadati fascicolo e catalogo documenti prima del download dell'intero fascicolo.
+
 ## 2.248.48 - 2026-05-25
 
 - Aggiornato Local Signer alla versione `1.6.42`: la ricerca PST esatta R.G./anno prova automaticamente il registro parallelo SICID/SIECIC dello stesso ufficio quando il primo registro non restituisce righe, senza cambiare ufficio, tenant o certificato.

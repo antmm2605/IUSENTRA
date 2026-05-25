@@ -1,6 +1,10 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornamento corrente: 2026-05-25, fallback PST SICID/SIECIC attivo di default 2.248.48.
+Aggiornamento corrente: 2026-05-25, batch snapshot PST non bloccante 2.248.49.
+
+## Note batch snapshot PST non bloccante 2.248.49 - 2026-05-25
+
+Il test reale con Local Signer `1.6.42` ha confermato `fallback_registro=True`, ma la snapshot si fermava comunque sulla SOAP Fault del primo registro: `Service 'RicercaInformazioniFascicoloPerTipo' non trovato | SOAP-ENV:Client`. Il fix `1.6.43` usa il batch best-effort per `/pst/ricerca-snapshot`, quindi la fault del primo registro viene registrata come non bloccante e il codice può valutare le risposte del registro parallelo SIECIC nello stesso tentativo. Resta da eseguire il nuovo test reale con Local Signer `1.6.43`; il log atteso deve mostrare `richiesta ... non bloccante` e poi, se SIECIC contiene il fascicolo, `servizio JPW_SICID vuoto, uso JPW_SIECIC`.
 
 ## Note fallback PST SICID/SIECIC attivo di default 2.248.48 - 2026-05-25
 

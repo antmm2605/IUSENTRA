@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.62 - 2026-05-26
+
+- Integrata nel dettaglio fascicolo la ricerca `Uffici giudiziari per Comune`: pannello interno con inserimento di uno o più Comuni, richiesta solo su comando dell'avvocato e risultato visualizzato nella stessa finestra del fascicolo.
+- Riutilizzato l'endpoint read-only già usato da Strumenti Forensi, senza collegamenti esterni obbligati e senza modificare procedure telematiche, depositi, Local Signer o flussi ministeriali.
+- Verificati typecheck, build Vite, regressioni React/uffici e browser reale desktop/tablet/mobile con ricerca `Taurianova` e output Palmi dentro il fascicolo.
+
 ## 2.248.61 - 2026-05-26
 
 - Completato su `/clienti/nuovo` il lettore documento reale: caricamento PDF/JPG/PNG, lettura OCR/MRZ via API, pannello di conferma, stati di caricamento/errore/incertezza e compilazione automatica dei campi anagrafici affidabili.

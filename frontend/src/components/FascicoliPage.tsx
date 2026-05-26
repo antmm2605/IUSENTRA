@@ -32,13 +32,16 @@ import {
   Landmark,
   ListChecks,
   Mail,
+  MapPin,
   PackageCheck,
   PencilLine,
+  Phone,
   Plus,
   RefreshCw,
   RotateCcw,
   Search,
   Send,
+  ShieldAlert,
   ShieldCheck,
   Sparkles,
   Trash2,
@@ -46,6 +49,7 @@ import {
   UserRound,
   UsersRound,
   WalletCards,
+  type LucideIcon,
 } from 'lucide-react'
 import { Badge, Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
@@ -82,6 +86,7 @@ import {
   type FascicoloDeposit,
   type FascicoloDocument,
   type FascicoloDetailSection,
+  type FascicoloFull,
   type LexIndexingSummary,
   type FascicoloFormData,
   type FascicoloRow,
@@ -97,7 +102,8 @@ import {
   codiceOggettoPstSource,
   findPraticaCollegata,
 } from '../data/praticheCollegateCatalog'
-import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
+import { csrfToken, redirectAfterSuccess, submitFormJson } from '../formSubmit'
+import { normaliseStudioRuntimeResult, type StudioRuntimeOffice, type StudioRuntimeResult } from '../studioModuleRuntime'
 import { CodiceOggettoPstSearch } from './CodiceOggettoPstSearch'
 import { GuidaPraticaSidebar } from './GuidaPraticaSidebar'
 import './FascicoliPage.css'
@@ -1187,6 +1193,224 @@ function DetailSection({ id, title, icon, count, defaultOpen = false, onOpen, ch
       </summary>
       <div className="iu-fas-detail-section__body">{children}</div>
     </details>
+  )
+}
+
+type FascicoloOfficeSearchRow = {
+  comune: string
+  result?: StudioRuntimeResult
+  error?: string
+}
+
+function splitOfficeComuneQuery(value: string): string[] {
+  const seen = new Set<string>()
+  return value
+    .split(/[\n,;]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .filter((item) => {
+      const key = item.toLowerCase()
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .slice(0, 8)
+}
+
+function officeLookupDetailLabel(key: string): string {
+  const labels: Record<string, string> = {
+    avviso: 'Avviso',
+    email: 'Email',
+    fax: 'Fax',
+    note: 'Note',
+    orari: 'Orari',
+    pec: 'PEC',
+    ricevimento: 'Ricevimento',
+    telefono: 'Telefono',
+  }
+  return labels[key] || key.replace(/_/g, ' ')
+}
+
+function FascicoloOfficeContact({ icon: Icon, label, value, onCopy }:{icon:LucideIcon; label:string; value:string; onCopy:(value:string,label:string)=>void}) {
+  if (!value) return null
+  return (
+    <div className="iu-fas-office-contact">
+      <Icon size={15}/>
+      <strong>{label}</strong>
+      <span>{value}</span>
+      <button type="button" onClick={() => onCopy(value, label)} title={`Copia ${label}`}>
+        <Copy size={14}/>
+      </button>
+    </div>
+  )
+}
+
+function FascicoloOfficeDetailBlock({ title, details }:{title:string; details:Record<string, string>}) {
+  const entries = Object.entries(details).filter(([, value]) => value)
+  if (!entries.length) return null
+  return (
+    <section className="iu-fas-office-detail">
+      <strong>{title}</strong>
+      {entries.slice(0, 4).map(([key, value]) => (
+        <p key={`${title}-${key}`}>
+          <span>{officeLookupDetailLabel(key)}</span>
+          <em>{value}</em>
+        </p>
+      ))}
+    </section>
+  )
+}
+
+function FascicoloOfficeCard({ office, onCopy }:{office:StudioRuntimeOffice; onCopy:(value:string,label:string)=>void}) {
+  return (
+    <article className={`iu-fas-office-card ${office.primary ? 'is-primary' : ''}`}>
+      <header>
+        <span><Landmark size={15}/>{office.typeLabel}</span>
+        <strong>{office.name}</strong>
+        <p><MapPin size={15}/>{[office.address, office.cap, office.city].filter(Boolean).join(' - ') || 'Sede non indicata'}</p>
+      </header>
+      <div className="iu-fas-office-card__contacts">
+        <FascicoloOfficeContact icon={Phone} label="Telefono" value={office.phone} onCopy={onCopy}/>
+        <FascicoloOfficeContact icon={Mail} label="Email" value={office.email} onCopy={onCopy}/>
+        <FascicoloOfficeContact icon={ShieldAlert} label="PEC" value={office.pec} onCopy={onCopy}/>
+        <FascicoloOfficeContact icon={Landmark} label="Sito" value={office.site} onCopy={onCopy}/>
+      </div>
+      <FascicoloOfficeDetailBlock title="Assistenza depositi telematici" details={office.assistenzaPct}/>
+      <FascicoloOfficeDetailBlock title="Casellario" details={office.casellario}/>
+      {office.notes ? <p className="iu-fas-office-note">{office.notes}</p> : null}
+    </article>
+  )
+}
+
+function FascicoloOfficeResultsWindow({ rows, loading }:{rows:FascicoloOfficeSearchRow[]; loading:boolean}) {
+  const [copied, setCopied] = useState('')
+  const copyValue = (value: string, label: string) => {
+    if (!value) return
+    if (navigator.clipboard?.writeText) void navigator.clipboard.writeText(value)
+    setCopied(`${label} copiato`)
+    window.setTimeout(() => setCopied(''), 1600)
+  }
+  if (loading && !rows.length) {
+    return <section className="iu-fas-office-window" aria-live="polite"><p className="iu-empty">Ricerca uffici in corso...</p></section>
+  }
+  if (!rows.length) {
+    return <section className="iu-fas-office-window is-empty"><p className="iu-empty">Inserisci uno o più Comuni per visualizzare qui gli uffici competenti.</p></section>
+  }
+  return (
+    <section className="iu-fas-office-window" aria-live="polite">
+      <header>
+        <div>
+          <span><Landmark size={15}/> Risultato ricerca</span>
+          <strong>{rows.length === 1 ? rows[0].comune : `${rows.length} Comuni cercati`}</strong>
+        </div>
+        {copied ? <em>{copied}</em> : null}
+      </header>
+      <div className="iu-fas-office-result-list">
+        {rows.map((row) => (
+          <section className="iu-fas-office-result-group" key={row.comune}>
+            <div className="iu-fas-office-result-group__head">
+              <strong>{row.comune}</strong>
+              {row.result ? <span>{row.result.offices.length} uffici visualizzati</span> : null}
+            </div>
+            {row.error ? <p className="iu-fas-office-error">{row.error}</p> : null}
+            {row.result?.metrics.length ? (
+              <div className="iu-fas-office-metrics">
+                {row.result.metrics.slice(0, 4).map((metric) => (
+                  <article key={`${row.comune}-${metric.label}`}>
+                    <span>{metric.label}</span>
+                    <strong>{metric.value}</strong>
+                    {metric.note ? <small>{metric.note}</small> : null}
+                  </article>
+                ))}
+              </div>
+            ) : null}
+            <div className="iu-fas-office-cards">
+              {row.result?.offices.map((office) => <FascicoloOfficeCard office={office} onCopy={copyValue} key={`${row.comune}-${office.id}`}/>)}
+            </div>
+            {row.result && !row.result.offices.length ? <p className="iu-empty">Nessun ufficio trovato per il Comune indicato.</p> : null}
+            {row.result?.warnings.length || row.result?.notes.length ? (
+              <div className="iu-fas-office-notes">
+                {[...row.result.warnings, ...row.result.notes].slice(0, 4).map((note) => <span key={`${row.comune}-${note}`}>{note}</span>)}
+              </div>
+            ) : null}
+          </section>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function FascicoloUfficiCompetentiPanel({ fascicolo }:{fascicolo:FascicoloFull}) {
+  const [query, setQuery] = useState('')
+  const [includeSpeciali, setIncludeSpeciali] = useState(false)
+  const [rows, setRows] = useState<FascicoloOfficeSearchRow[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const currentOffice = fascicolo.court
+  const search = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const comuni = splitOfficeComuneQuery(query)
+    if (!comuni.length) {
+      setError('Inserisci almeno un Comune.')
+      setRows([])
+      return
+    }
+    setLoading(true)
+    setError('')
+    setRows(comuni.map((comune) => ({ comune })))
+    const token = csrfToken()
+    const nextRows = await Promise.all(comuni.map(async (comune): Promise<FascicoloOfficeSearchRow> => {
+      const body = new FormData()
+      body.set('comune', comune)
+      if (includeSpeciali) body.set('includi_speciali', '1')
+      try {
+        const response = await fetch('/api/v1/ui/strumenti-legali/uffici_competenti', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            ...(token ? { 'X-CSRFToken': token } : {}),
+          },
+          body,
+        })
+        const result = normaliseStudioRuntimeResult(await response.json().catch(() => ({})))
+        if (!response.ok || !result.ok) {
+          return { comune, error: result.message || 'Ricerca non riuscita.' }
+        }
+        return { comune, result }
+      } catch (requestError) {
+        return { comune, error: requestError instanceof Error ? requestError.message : 'Ricerca non riuscita.' }
+      }
+    }))
+    setRows(nextRows)
+    setLoading(false)
+  }
+  return (
+    <div className="iu-fas-office-lookup">
+      <header>
+        <div>
+          <span><MapPin size={15}/> Competenza territoriale</span>
+          <strong>Uffici giudiziari per Comune</strong>
+          <p>La ricerca resta dentro il fascicolo e avvia la verifica solo quando la richiedi.</p>
+        </div>
+        <Badge tone="success">Nel fascicolo</Badge>
+      </header>
+      <form className="iu-fas-office-form" onSubmit={search}>
+        <label>
+          <span>Comuni da cercare</span>
+          <textarea value={query} onChange={(event) => setQuery(event.currentTarget.value)} rows={2} placeholder="Esempio: Taurianova, Palmi"/>
+        </label>
+        <label className="iu-fas-office-check">
+          <input type="checkbox" checked={includeSpeciali} onChange={(event) => setIncludeSpeciali(event.currentTarget.checked)}/>
+          <span>Mostra anche uffici distrettuali e speciali</span>
+        </label>
+        <button type="submit" disabled={loading}><Search size={15}/>{loading ? 'Ricerca...' : 'Cerca uffici'}</button>
+      </form>
+      {currentOffice ? <p className="iu-fas-office-current"><strong>Ufficio nel fascicolo</strong><span>{currentOffice}</span></p> : null}
+      {error ? <p className="iu-fas-office-error">{error}</p> : null}
+      <FascicoloOfficeResultsWindow rows={rows} loading={loading}/>
+    </div>
   )
 }
 
@@ -2291,7 +2515,7 @@ function DetailPage({ id }:{id:string}) {
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : 'Dati aggiornati'}</span></section>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
-      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#profilo">Profilo <b>{data.quickCounts.profilo || 0}</b></a><a href="#guida-pratica">Guida pratica</a><a href="#regia-operativa">Regia Operativa <b>{data.regia.documentSlots.length}</b></a><a href="#documenti">Documenti e atti <b>{data.quickCounts.documenti || 0}</b></a><a href="#relata-notifica">Relata notifica <b>{notificationRelataCount}</b></a><a href="#attivita">Attività <b>{data.quickCounts.attivita || 0}</b></a><a href="#udienze">Udienze / scadenze <b>{data.quickCounts.udienze_scadenze || 0}</b></a><a href="#cancelleria">Comunicazioni / Cancelleria <b>{data.quickCounts.comunicazioni || 0}</b></a><a href="#audit">Audit <b>{data.auditTrail.summary.total}</b></a><a href="#gestione">Gestione</a><a href="#economia">Contesto economico</a><a href="#conformita">Conformità</a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a></nav>
+      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#profilo">Profilo <b>{data.quickCounts.profilo || 0}</b></a><a href="#guida-pratica">Guida pratica</a><a href="#uffici-competenti">Uffici</a><a href="#regia-operativa">Regia Operativa <b>{data.regia.documentSlots.length}</b></a><a href="#documenti">Documenti e atti <b>{data.quickCounts.documenti || 0}</b></a><a href="#relata-notifica">Relata notifica <b>{notificationRelataCount}</b></a><a href="#attivita">Attività <b>{data.quickCounts.attivita || 0}</b></a><a href="#udienze">Udienze / scadenze <b>{data.quickCounts.udienze_scadenze || 0}</b></a><a href="#cancelleria">Comunicazioni / Cancelleria <b>{data.quickCounts.comunicazioni || 0}</b></a><a href="#audit">Audit <b>{data.auditTrail.summary.total}</b></a><a href="#gestione">Gestione</a><a href="#economia">Contesto economico</a><a href="#conformita">Conformità</a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a></nav>
       <section className="iu-fas-detail-grid iu-fas-detail-grid--with-guide">
         <aside className="iu-fas-guide-column" aria-label="Guida pratica facoltativa del fascicolo">
           <GuidaPraticaSidebar fascicoloId={f.id || id} codice={f.codiceOggettoPst} fascicoloTitle={f.title}/>
@@ -2321,8 +2545,11 @@ function DetailPage({ id }:{id:string}) {
           <a href="#conformita"><Badge tone={qualityIssues ? 'warning' : 'success'}>Conformità</Badge><strong>{qualityIssues ? `${qualityIssues} verifiche aperte` : 'Presidio OK'}</strong><span>Controlli qualità, parti, sync portale e dati principali.</span></a>
         </div>
       </section>
-          <section className="iu-fas-cockpit"><StatCard icon={<ClipboardCheck size={19}/>} label="Regia" value={`${data.regia.header.completion}%`} note={data.regia.header.operationalState || 'da verificare'} tone={data.regia.validation.ready ? 'success' : data.regia.validation.blockers.length ? 'danger' : 'warning'} href="#regia-operativa" onClick={openSection('regia-operativa', 'regia')}/><StatCard icon={<FileText size={19}/>} label="Documenti" value={data.quickCounts.documenti || 0} note="carica e classifica" tone="primary" href="#documenti" onClick={openSection('documenti', 'documenti')}/><StatCard icon={<FileSignature size={19}/>} label="Relata" value={notificationRelataCount} note={notificationRelata.statusLabel} tone={notificationRelata.tone} href="#relata-notifica" onClick={openSection('relata-notifica')}/><StatCard icon={<CalendarDays size={19}/>} label="Scadenze" value={data.quickCounts.udienze_scadenze || 0} note="gestisci agenda" tone="warning" href="#udienze" onClick={openSection('udienze', 'scadenze')}/><StatCard icon={<ListChecks size={19}/>} label="Attività" value={data.quickCounts.attivita || 0} note="aggiorna timeline" tone="success" href="#attivita" onClick={openSection('attivita', 'attivita')}/><StatCard icon={<Fingerprint size={19}/>} label="Audit" value={data.auditTrail.summary.total} note={data.auditTrail.summary.snapshotted ? 'prove in snapshot' : 'prove disponibili'} tone={data.auditTrail.summary.total ? 'success' : 'neutral'} href="#audit" onClick={openSection('audit')}/><StatCard icon={<WalletCards size={19}/>} label="Contesto economico" value={data.economics.length} note="incarico e incassi" tone="purple" href="#economia" onClick={openSection('economia')}/></section>
+          <section className="iu-fas-cockpit"><StatCard icon={<ClipboardCheck size={19}/>} label="Regia" value={`${data.regia.header.completion}%`} note={data.regia.header.operationalState || 'da verificare'} tone={data.regia.validation.ready ? 'success' : data.regia.validation.blockers.length ? 'danger' : 'warning'} href="#regia-operativa" onClick={openSection('regia-operativa', 'regia')}/><StatCard icon={<MapPin size={19}/>} label="Uffici" value="Cerca" note="competenza per Comune" tone="success" href="#uffici-competenti" onClick={openSection('uffici-competenti')}/><StatCard icon={<FileText size={19}/>} label="Documenti" value={data.quickCounts.documenti || 0} note="carica e classifica" tone="primary" href="#documenti" onClick={openSection('documenti', 'documenti')}/><StatCard icon={<FileSignature size={19}/>} label="Relata" value={notificationRelataCount} note={notificationRelata.statusLabel} tone={notificationRelata.tone} href="#relata-notifica" onClick={openSection('relata-notifica')}/><StatCard icon={<CalendarDays size={19}/>} label="Scadenze" value={data.quickCounts.udienze_scadenze || 0} note="gestisci agenda" tone="warning" href="#udienze" onClick={openSection('udienze', 'scadenze')}/><StatCard icon={<ListChecks size={19}/>} label="Attività" value={data.quickCounts.attivita || 0} note="aggiorna timeline" tone="success" href="#attivita" onClick={openSection('attivita', 'attivita')}/><StatCard icon={<Fingerprint size={19}/>} label="Audit" value={data.auditTrail.summary.total} note={data.auditTrail.summary.snapshotted ? 'prove in snapshot' : 'prove disponibili'} tone={data.auditTrail.summary.total ? 'success' : 'neutral'} href="#audit" onClick={openSection('audit')}/><StatCard icon={<WalletCards size={19}/>} label="Contesto economico" value={data.economics.length} note="incarico e incassi" tone="purple" href="#economia" onClick={openSection('economia')}/></section>
           <DetailSection id="profilo" title="Profilo fascicolo" icon={<BadgeCheck size={17}/>}><KvGrid items={data.profile}/>{f.notes ? <div className="iu-fas-note"><strong>Note</strong><p>{f.notes}</p></div> : null}</DetailSection>
+          <DetailSection id="uffici-competenti" title="Uffici giudiziari per Comune" icon={<MapPin size={17}/>} defaultOpen>
+            <FascicoloUfficiCompetentiPanel fascicolo={f}/>
+          </DetailSection>
           <RegiaOperativaSection data={data} onDone={refreshDetail} onError={failDetail} onOpen={() => loadLazySection('regia')} loading={lazyStatus.regia === 'loading'}/>
           <DetailSection id="relata-notifica" title="Relata notifica" icon={<FileSignature size={17}/>} count={notificationRelataCount} defaultOpen={notificationRelata.releaseDetected || notificationRelata.status !== 'monitoraggio'}>
             <NotificationRelataMonitor data={data}/>

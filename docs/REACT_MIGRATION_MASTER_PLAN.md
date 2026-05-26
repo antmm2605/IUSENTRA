@@ -1,5 +1,25 @@
 # Migrazione progressiva Flask + React
 
+## Fascicolo - uffici competenti per Comune inline - 2026-05-26 - 2.248.62
+
+Il dettaglio fascicolo React espone ora una sezione `Uffici giudiziari per Comune`
+subito dopo il profilo della pratica. L'avvocato può inserire uno o più Comuni
+separati da virgola, punto e virgola o nuova riga e ottenere il risultato dentro
+la stessa vista del fascicolo, senza dover aprire Strumenti Forensi come pagina
+separata.
+
+Il pannello usa lo stesso endpoint read-only
+`/api/v1/ui/strumenti-legali/uffici_competenti` già governato per Strumenti
+Forensi: non salva dati runtime, non modifica procedure telematiche, non avvia
+depositi o Local Signer e rende soltanto uffici, recapiti, assistenza pubblicata
+dalla fonte e copia rapida dei contatti. La ricerca parte solo dal pulsante
+`Cerca uffici`, così il caricamento del fascicolo resta leggero.
+
+Verifiche locali: typecheck React, build Vite, pytest mirati su fascicoli e
+uffici competenti, browser in-app autenticato con ricerca `Taurianova` e output
+Palmi visibile nel fascicolo, più controllo responsive desktop/tablet/mobile
+senza overflow orizzontale.
+
 ## Strumenti Forensi - uffici competenti per Comune - 2026-05-25 - 2.248.58
 
 La pagina `Strumenti Forensi` espone ora la funzione `Uffici competenti per Comune`.

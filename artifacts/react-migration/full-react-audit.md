@@ -2,6 +2,15 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-26T09:15:00+02:00: uffici competenti inline nel fascicolo
+2.248.62.
+Il dettaglio fascicolo mantiene la superficie React e aggiunge un pannello
+operativo per gli uffici competenti: input Comuni, checkbox per uffici
+distrettuali/speciali, bottone `Cerca uffici` e finestra risultato nella stessa
+pratica. Audit browser in-app: pannello visibile, ricerca `Taurianova` con
+risultato Palmi, nessun testo tecnico vietato e nessun overflow su mobile,
+tablet e desktop.
+
 Aggiornamento 2026-05-25T12:30:00+02:00: evoluzione grafica professionale e
 Lex 2.248.40.
 Audit visuale finale `2.248.39-modern-full-scroll-final-5`: 168/168 controlli

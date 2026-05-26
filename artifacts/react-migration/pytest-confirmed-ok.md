@@ -3603,3 +3603,15 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | API upload reale con PDF cliente generato per test su server Flask temporaneo | OK | `POST /api/v1/ui/clienti/nuovo/documento/leggi` ha restituito `ok=True`, CF `VRDLRA82B41H501Z`, nome `Laura`, cognome `Verdi`, scadenza `2030-02-01` e 19 campi riconosciuti senza salvare il file. |
 | `python scripts\react-migration\generate_app_v2_page_registry.py --check`; `python scripts\react-migration\generate_app_v2_test_docs.py --check`; `python scripts\smoke_app_v2_all.py --subset inventory`; `python -m pytest -q tests\test_app_v2_page_registry.py tests\test_app_v2_test_plan_phase10.py tests\test_ci_cd_gates_phase11.py --tb=short` | OK | Hotfix post-push: documenti test App V2 riallineati al nuovo `tests/test_client_document_reader.py`, inventory PASS=3 e 14/14 test governance verdi. |
 | `python scripts\react-migration\generate_backend_security_map.py --check`; `python -m pytest -q tests\test_backend_security_phase5.py::test_mappa_sicurezza_backend_generata_e_allineata tests\test_ui_api_security_matrix.py --tb=short` | OK | Hotfix post-push: mappa sicurezza backend riallineata al nuovo endpoint upload documento; test mappa e matrice sicurezza UI API verdi. |
+
+## Uffici competenti inline nel fascicolo 2.248.62 - 2026-05-26
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `pnpm --filter @iusentra/studio typecheck` | OK | TypeScript verde dopo il pannello `FascicoloUfficiCompetentiPanel`, import condiviso del normalizzatore uffici e card rapida `Uffici` nel cockpit del fascicolo. |
+| `pnpm --filter @iusentra/studio test` | OK | Contratti React, audit preset, governance design system, App V2 frontend, legal skills e coverage UI verdi dopo il CSS locale del pannello fascicolo. |
+| `python -m pytest -q tests/test_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests/test_react_shell.py::test_react_strumenti_legali_catalogo_form_e_calcolo_json tests/test_uffici_competenti.py --tb=short` | OK | 7/7 passati: regressione React del fascicolo, endpoint/form Strumenti Forensi e parser/normalizzazione uffici competenti confermati. |
+| `pnpm --filter @iusentra/studio build` | OK | Build Vite completata dopo il nuovo pannello; gli asset generati sono stati usati per verifica locale e poi ripuliti dalla worktree. |
+| Browser in-app autenticato su server Flask temporaneo `/fascicoli/C51B3762` | OK | Ricerca `Taurianova` eseguita nel pannello interno del fascicolo: risultato Palmi visibile nella stessa finestra, nessun testo tecnico vietato e nessun overflow su 390x844, 768x1024 e 1280x720. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py tests/test_utf8_integrity.py --tb=short` | OK | Packaging/versione `2.248.62`, readiness e presidio UTF-8 confermati dopo aggiornamento changelog/report. |
+| `git diff --check`; `python tools\check_repo_governance.py`; `python scripts\validate_openapi.py docs\openapi.yaml` | OK | Whitespace, governance repository e OpenAPI confermati verdi prima del commit. |

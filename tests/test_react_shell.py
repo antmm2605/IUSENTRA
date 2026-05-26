@@ -3499,6 +3499,12 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "Quadro intelligente AI" in page_source
     assert "<a href={quadroHref}><Gauge size={15}/> Quadro completo</a>" in page_source
     assert 'className="iu-fas-ai-actions"' in page_source
+    assert 'href="#uffici-competenti"' in page_source
+    assert 'id="uffici-competenti" title="Uffici giudiziari per Comune"' in page_source
+    assert "FascicoloUfficiCompetentiPanel" in page_source
+    assert "splitOfficeComuneQuery" in page_source
+    assert "normaliseStudioRuntimeResult" in page_source
+    assert "/api/v1/ui/strumenti-legali/uffici_competenti" in page_source
     assert '<a href="#documenti"><FileText size={15}/> Documenti e atti</a>' in page_source
     assert 'id="documenti" title="Documenti e atti"' in page_source
     assert 'id="editor-professionale" title="Editor professionale e compilatore atti"' not in page_source
@@ -3567,6 +3573,9 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert ".iu-fas-detail-section__summary" in css
     assert ".iu-fas-smart-board" in css
     assert ".iu-fas-ai-board" in css
+    assert ".iu-fas-office-lookup" in css
+    assert ".iu-fas-office-window" in css
+    assert ".iu-fas-office-card__contacts" in css
     assert ".iu-fas-command-bar" in css
     assert ".iu-fas-preview-modal" in css
     assert ".iu-fas-editor-board" in css

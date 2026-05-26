@@ -866,6 +866,12 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Documenti test App V2 dopo suite lettore documento | GitHub `Lint + syntax` sul push `d8c7aad33` | Risolto localmente, da verificare sul nuovo SHA | Il primo push della feature ha fatto emergere che `docs/test-inventory.md` e `docs/test-plan-app-v2.md` non includevano ancora `tests/test_client_document_reader.py`; gli aggregatori a valle erano rossi o saltati per cascata dal blocco upstream. | Rigenerati i documenti App V2 e rilanciati page registry check, test docs check, smoke inventory e test governance App V2/CI prima del nuovo push. |
 | Mappa sicurezza backend dopo endpoint upload | GitHub `Lint + syntax` sul push `3f1be46ef` | Risolto localmente, da verificare sul nuovo SHA | Il secondo push ha fatto emergere `docs/backend-endpoint-security-map.md` non allineato al nuovo endpoint `/api/v1/ui/clienti/nuovo/documento/leggi`; gli aggregatori a valle erano rossi o saltati per cascata. | Rigenerata la mappa sicurezza e rilanciati `test_mappa_sicurezza_backend_generata_e_allineata` e `tests/test_ui_api_security_matrix.py` prima del nuovo push. |
 
+## Note uffici competenti inline nel fascicolo 2.248.62 - 2026-05-26
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Pannello uffici nel dettaglio fascicolo | Typecheck, pytest mirati, build e browser responsive | Nessuna issue aperta nuova | La funzione usa l'endpoint read-only già governato per Strumenti Forensi e non tocca procedure telematiche, depositi o Local Signer. Il caricamento del fascicolo non effettua richieste uffici: la chiamata parte solo dal pulsante `Cerca uffici`. | Per modifiche future rilanciare il test React fascicoli, `tests/test_uffici_competenti.py`, typecheck/build e browser su un fascicolo con ricerca Comune. |
+
 ## Note PEC MIME/fascicolo 2.248.60 - 2026-05-26
 
 | Area | Gate | Stato | Nota | Azione |

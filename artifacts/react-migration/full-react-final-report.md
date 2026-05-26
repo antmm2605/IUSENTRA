@@ -2,6 +2,19 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-26T09:15:00+02:00: uffici competenti inline nel fascicolo
+2.248.62.
+Il dettaglio fascicolo React contiene ora una sezione `Uffici giudiziari per
+Comune` con ricerca interna: l'avvocato inserisce uno o più Comuni e il risultato
+viene renderizzato nella stessa finestra della pratica, con uffici, recapiti,
+assistenza pubblicata e copia rapida dei contatti. La funzione riusa l'endpoint
+read-only già governato per Strumenti Forensi e non modifica procedure
+telematiche, depositi, Local Signer o dati runtime.
+
+Gate locali confermati: typecheck React, pytest mirati fascicoli/uffici, build
+Vite e browser in-app su fascicolo campione con ricerca `Taurianova`, risultato
+Palmi visibile e zero overflow desktop/tablet/mobile.
+
 Aggiornamento 2026-05-25T19:20:00+02:00: EML fascicolo, cancellazione
 documenti e Local Signer EXE 2.248.52.
 L'editor React dei documenti riconosce gli `.eml` caricati nel fascicolo e li

@@ -2550,9 +2550,17 @@ def test_react_strumenti_legali_catalogo_form_e_calcolo_json(tmp_path: Path, mon
     app = _app(tmp_path)
     _crea_operatore(app)
 
-    def fake_uffici_competenti(comune: str, *, includi_speciali: bool = False):
+    def fake_uffici_competenti(
+        comune: str,
+        *,
+        includi_speciali: bool = False,
+        tipi_ufficio=None,
+        solo_pec: bool = False,
+    ):
         assert comune == "Taurianova"
         assert includi_speciali is False
+        assert tipi_ufficio == []
+        assert solo_pec is False
         return {
             "comune": comune,
             "totalVisible": 2,

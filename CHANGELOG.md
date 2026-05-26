@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.63 - 2026-05-26
+
+- Aggiunto in `/email/scrivi` un pannello collassabile `Ricerca uffici giudiziari per Comune`: filtra Giudice di Pace, Tribunale, Procura, UNEP, Corte d'Appello, Procura Generale, Corti di Assise e uffici minorenni, mostra solo recapiti PEC quando richiesto e inserisce la PEC nel campo destinatario.
+- Separata la composizione PEC dal Local Signer: il form React invia tramite il canale PEC dedicato del backend e registra l'inviato solo dopo esito SMTP positivo, lasciando Local Signer ai flussi di firma, portali e deposito.
+- Estesi parser/API/test degli uffici competenti con filtro per tipologia, filtro `solo_pec` e riconoscimento della Procura presso il Tribunale per i minorenni.
+
 ## 2.248.62 - 2026-05-26
 
 - Integrata nel dettaglio fascicolo la ricerca `Uffici giudiziari per Comune`: pannello interno con inserimento di uno o più Comuni, richiesta solo su comando dell'avvocato e risultato visualizzato nella stessa finestra del fascicolo.

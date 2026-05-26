@@ -31,7 +31,6 @@ from flask import (
 from pct.config_studio import _SMTPv4, _SMTP_SSLv4
 from pct.notifiche_legali import is_legal_notification_subject as _is_legal_notification_subject
 from web.blueprints.react_shell import render_react_shell_response
-from web.services.local_pec_runtime import pec_server_send_enabled
 from web.services.mailbox_sync_runtime import run_pec_mailbox_sync
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
 from werkzeug.utils import secure_filename
@@ -386,16 +385,6 @@ def scrivi():
     try:
         from pct.messaggi import GestioneMessaggi, StatoMessaggio
 
-        if not pec_server_send_enabled():
-            message = (
-                "Invio PEC dal server non abilitato: usa il Local Signer sul PC dello studio "
-                "per completare l'invio reale."
-            )
-            if _wants_json_response():
-                return jsonify({"ok": False, "message": message, "requires_local_pec": True}), 409
-            flash(message, "warning")
-            return redirect(url_for("email_client.scrivi", a=destinatario, oggetto=oggetto))
-
         db_path = _cfg_path("MESSAGGI_DB", "./messaggi/storico.json")
         gm = GestioneMessaggi(
             config=_messaggi_config_da_pec(),
@@ -413,6 +402,7 @@ def scrivi():
             raise RuntimeError(getattr(msg, "errore", "") or "invio non completato")
         # Aggiorna subito la casella inviati
         ge = _get_gestore()
+        ge.sincronizza_inviati([msg])
         _sync_inviati(ge)
         flash("Email inviata con successo.", "success")
         _audit("email.inviata", f"A: {destinatario} | Ogg: {oggetto[:60]}")

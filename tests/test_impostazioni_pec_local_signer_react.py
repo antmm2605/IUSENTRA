@@ -11,7 +11,7 @@ def _app(tmp_path: Path):
     return app
 
 
-def test_react_pec_invio_usa_local_signer_e_non_test_server():
+def test_react_pec_test_usa_local_signer_ma_composizione_usa_canale_pec_dedicato():
     actions = Path("frontend/src/features/impostazioni/components/SettingsActions.tsx").read_text(encoding="utf-8")
     local_signer = Path("frontend/src/features/impostazioni/localSigner.ts").read_text(encoding="utf-8")
     guard = Path("web/static/js/react-pec-local-signer-guard.js").read_text(encoding="utf-8")
@@ -29,10 +29,10 @@ def test_react_pec_invio_usa_local_signer_e_non_test_server():
     assert "iusentra-local-signer://restart" in guard
     assert "/impostazioni/pec/local-smtp-payload" in guard
     assert "react-pec-local-signer-guard.js" in shell
-    assert "/pec/send" in compose
-    assert "/email/scrivi/conferma-locale" in compose
-    assert "Invio PEC dal PC locale in corso" in compose
-    assert "LEGAL_NOTIFICATION_SUBJECT" in compose
+    assert "/pec/send" not in compose
+    assert "submitPecViaLocalSigner" not in compose
+    assert "Invio PEC in corso" in compose
+    assert "OfficePecLookupPanel" in compose
 
 
 def test_api_react_pec_smtp_non_esegue_verifica_sul_server(tmp_path: Path):

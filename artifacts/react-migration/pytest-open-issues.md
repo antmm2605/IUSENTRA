@@ -1,5 +1,18 @@
 # Pytest issue aperte e risoluzioni
 
+## Note Componi PEC uffici giudiziari e canale PEC dedicato 2.248.63 - 2026-05-26
+
+Nessuna issue locale aperta sul perimetro corretto. La composizione PEC ordinaria
+non dipende più da Local Signer: il backend invia con la configurazione PEC dello
+studio e popola `INVIATI` solo dopo esito SMTP positivo. Local Signer resta nel
+perimetro impostazioni/test locali e nei flussi telematici dove firma, portali o
+deposito lo richiedono.
+
+La ricerca uffici giudiziari in `/email/scrivi` usa lo stesso endpoint read-only
+degli Strumenti Forensi, con filtro per tipologia e PEC. Se la fonte ministeriale
+non pubblica una PEC per il filtro scelto, la UI mostra uno stato recuperabile e
+non modifica il destinatario.
+
 Aggiornamento corrente: 2026-05-25, hotfix preset grafico operativo 2.248.56.
 
 ## Note uffici competenti per Comune 2.248.58 - 2026-05-25

@@ -2745,10 +2745,23 @@ def _payload_bool(payload: Any, name: str, default: bool = False) -> bool:
     return str(raw).strip().lower() in {"1", "true", "si", "sì", "yes", "on"}
 
 
+def _payload_list(payload: Any, name: str) -> list[str]:
+    if not hasattr(payload, "get"):
+        return []
+    if hasattr(payload, "getlist"):
+        raw: Any = payload.getlist(name)
+    else:
+        raw = payload.get(name, [])
+    values = raw if isinstance(raw, (list, tuple, set)) else str(raw or "").split(",")
+    return [str(value).strip() for value in values if str(value).strip()]
+
+
 def _uffici_competenti_result(payload: Any, schema: Mapping[str, Any]) -> dict[str, Any]:
     result = ricerca_uffici_competenti(
         str(payload.get("comune", "") if hasattr(payload, "get") else ""),
         includi_speciali=_payload_bool(payload, "includi_speciali"),
+        tipi_ufficio=_payload_list(payload, "tipo_ufficio"),
+        solo_pec=_payload_bool(payload, "solo_pec"),
     )
     offices = list(result.get("offices") or [])
     table_rows = [

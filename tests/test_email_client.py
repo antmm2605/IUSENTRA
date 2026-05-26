@@ -134,7 +134,8 @@ def test_impostazioni_payload_smtp_locale_usa_password_pec_salvata_del_tenant(tm
     assert payload["payload"]["use_ssl"] is False
 
 
-def test_email_pec_scrivi_non_dichiara_successo_quando_serve_local_signer(tmp_path):
+def test_email_pec_scrivi_invia_dal_canale_pec_dedicato_senza_local_signer(tmp_path, monkeypatch):
+    from pct.messaggi import GestioneMessaggi, StatoMessaggio
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
@@ -149,6 +150,22 @@ def test_email_pec_scrivi_non_dichiara_successo_quando_serve_local_signer(tmp_pa
             )
         )
     )
+
+    def _inviato(self, **kwargs):
+        return SimpleNamespace(
+            id="pec-1",
+            stato=StatoMessaggio.INVIATO,
+            errore="",
+            email_destinatario=kwargs["destinatario"],
+            oggetto=kwargs["oggetto"],
+            corpo=kwargs["corpo_testo"],
+            corpo_html="",
+            sid_esterno="<pec-1@example.test>",
+            creato_il="2026-05-26T10:00:00",
+            inviato_il="2026-05-26T10:00:01",
+        )
+
+    monkeypatch.setattr(GestioneMessaggi, "invia_email", _inviato)
     app = create_app(cfg)
     with app.test_client() as client:
         _autentica_admin_session(app, client, cfg)
@@ -159,11 +176,13 @@ def test_email_pec_scrivi_non_dichiara_successo_quando_serve_local_signer(tmp_pa
         )
 
     payload = response.get_json()
-    assert response.status_code == 409
-    assert payload["ok"] is False
-    assert payload["requires_local_pec"] is True
-    assert "Local Signer" in payload["message"]
-    assert GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"]).statistiche()["inviati"] == 0
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["redirect"].endswith("/email/?cartella=INVIATI")
+    sent = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"]).tutte(cartella=CartellaEmail.INVIATI)
+    assert len(sent) == 1
+    assert sent[0].destinatari == "cliente@example.pec.it"
+    assert sent[0].message_id == "<pec-1@example.test>"
 
 
 def test_email_pec_scrivi_server_fallito_non_viene_segnato_inviato(tmp_path, monkeypatch):

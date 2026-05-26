@@ -3,15 +3,19 @@ import {
   AlertTriangle,
   Archive,
   CheckCircle2,
+  ChevronDown,
   Clock3,
   Download,
   Eye,
   FileCheck2,
   FileSignature,
   Inbox,
+  Landmark,
   Mail,
   MailCheck,
+  MapPin,
   Paperclip,
+  PlusCircle,
   RefreshCw,
   Reply,
   Search,
@@ -45,79 +49,13 @@ import {
   type PecAuditField,
   type PecAuditSummary,
 } from '../emailData'
-import { csrfToken, submitFormJson, type FormSubmitResult } from '../formSubmit'
+import { csrfToken, submitFormJson } from '../formSubmit'
+import { normaliseStudioRuntimeResult, type StudioRuntimeOffice, type StudioRuntimeResult } from '../studioModuleRuntime'
 import './EmailPecPage.css'
 
 type MailboxMode = 'pec' | 'ordinaria'
 type SortKey = 'recenti' | 'mittente' | 'oggetto' | 'pct'
 type JsonRecord = Record<string, unknown>
-
-const LOCAL_SIGNER_BASE_URL = 'http://127.0.0.1:27272'
-const LEGAL_NOTIFICATION_SUBJECT = 'notificazione ai sensi della legge n. 53 del 1994'
-
-function textValue(value: unknown, fallback = ''): string {
-  const text = typeof value === 'string' ? value.trim() : ''
-  return text || fallback
-}
-
-async function fetchJsonWithTimeout(endpoint: string, timeoutMs: number, init?: RequestInit): Promise<JsonRecord> {
-  const controller = new AbortController()
-  const timer = window.setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    const response = await fetch(endpoint, { ...init, signal: controller.signal })
-    const payload = await response.json().catch(() => ({})) as JsonRecord
-    if (!response.ok || payload.ok === false) {
-      throw new Error(textValue(payload.message, textValue(payload.messaggio, textValue(payload.errore, 'Operazione non riuscita.'))))
-    }
-    return payload
-  } catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new Error('Local Signer non ha risposto entro il tempo limite. Verifica che sia aperto sul PC dello studio.')
-    }
-    if (error instanceof TypeError) {
-      throw new Error('Local Signer non rilevato sul PC dello studio. Avvialo e riprova.')
-    }
-    throw error
-  } finally {
-    window.clearTimeout(timer)
-  }
-}
-
-function fileAttachment(file: File): Promise<JsonRecord> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = String(reader.result || '')
-      const contentBase64 = result.includes(',') ? result.split(',').pop() || '' : result
-      resolve({
-        filename: file.name,
-        content_base64: contentBase64,
-        mime_type: file.type || 'application/octet-stream',
-      })
-    }
-    reader.onerror = () => reject(new Error(`Allegato ${file.name} non leggibile dal browser.`))
-    reader.readAsDataURL(file)
-  })
-}
-
-async function savedPecSmtpPayload(): Promise<JsonRecord> {
-  const token = csrfToken()
-  const result = await fetchJsonWithTimeout('/impostazioni/pec/local-smtp-payload', 10000, {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      ...(token ? { 'X-CSRFToken': token } : {}),
-    },
-    body: JSON.stringify({}),
-  })
-  const payload = result.payload
-  if (!payload || typeof payload !== 'object') {
-    throw new Error('Configurazione PEC non disponibile. Verifica le impostazioni PEC dello studio.')
-  }
-  return payload as JsonRecord
-}
 
 const sortLabels: Record<SortKey, string> = {
   recenti: 'Più recenti',
@@ -221,6 +159,25 @@ type ComposeClient = {
   pec: string
   fiscalId: string
 }
+
+type OfficeKindOption = {
+  value: string
+  label: string
+}
+
+const composeOfficeKindOptions: OfficeKindOption[] = [
+  { value: '', label: 'Tutti gli uffici richiesti' },
+  { value: 'giudice_pace', label: 'Giudice di Pace di' },
+  { value: 'tribunale', label: 'Tribunale di' },
+  { value: 'procura', label: 'Procura della Repubblica presso il Tribunale di' },
+  { value: 'unep', label: 'Unep presso il Tribunale di' },
+  { value: 'corte_appello', label: "Corte d'Appello di" },
+  { value: 'procura_generale', label: "Procura Generale della Repubblica presso la Corte d'Appello di" },
+  { value: 'assise_appello', label: 'Corte di Assise di Appello di' },
+  { value: 'assise', label: 'Corte di Assise di' },
+  { value: 'procura_minorenni', label: 'Procura della Repubblica presso il Tribunale per i minorenni di' },
+  { value: 'tribunale_minorenni', label: 'Tribunale per i Minorenni di' },
+]
 
 function text(value: unknown): string {
   return typeof value === 'string' || typeof value === 'number' ? String(value).trim() : ''
@@ -1600,6 +1557,138 @@ export function EmailOrdinariaPage() {
   return <EmailMailboxPage mode="ordinaria" />
 }
 
+function OfficePecLookupPanel({ onInsert }: { onInsert: (pec: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const [comune, setComune] = useState('')
+  const [officeKind, setOfficeKind] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [result, setResult] = useState<StudioRuntimeResult | null>(null)
+  const [inserted, setInserted] = useState('')
+
+  const searchOffices = async () => {
+    const city = comune.trim()
+    if (city.length < 2) {
+      setError('Inserisci almeno due caratteri del Comune.')
+      setResult(null)
+      return
+    }
+    setLoading(true)
+    setError('')
+    setInserted('')
+    const formData = new FormData()
+    formData.set('comune', city)
+    formData.set('includi_speciali', '1')
+    formData.set('solo_pec', '1')
+    const kinds = officeKind
+      ? [officeKind]
+      : composeOfficeKindOptions.map((option) => option.value).filter(Boolean)
+    kinds.forEach((kind) => formData.append('tipo_ufficio', kind))
+    const token = csrfToken()
+    try {
+      const response = await fetch('/api/v1/ui/strumenti-legali/uffici_competenti', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          ...(token ? { 'X-CSRFToken': token } : {}),
+        },
+        body: formData,
+      })
+      const payload = normaliseStudioRuntimeResult(await response.json().catch(() => ({})))
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.message || 'Ricerca non riuscita.')
+      }
+      setResult(payload)
+      if (!payload.offices.length) {
+        setError('Nessuna PEC pubblicata per questi criteri. Prova un filtro diverso o verifica il Comune.')
+      }
+    } catch (requestError) {
+      setResult(null)
+      setError(requestError instanceof Error ? requestError.message : 'Ricerca non riuscita.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const insertOffice = (office: StudioRuntimeOffice) => {
+    if (!office.pec) return
+    onInsert(office.pec)
+    setInserted(`${office.name}: PEC inserita nel destinatario.`)
+  }
+
+  return (
+    <section className={`iu-mail-office-lookup ${open ? 'is-open' : ''}`}>
+      <button
+        className="iu-mail-office-lookup__toggle"
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+      >
+        <span><Landmark size={16} /> Ricerca uffici giudiziari per Comune</span>
+        <ChevronDown size={17} />
+      </button>
+      {open ? (
+        <div className="iu-mail-office-lookup__body">
+          <div className="iu-mail-office-lookup__filters">
+            <label>
+              <span>Comune</span>
+              <input
+                type="text"
+                value={comune}
+                onChange={(event) => setComune(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    void searchOffices()
+                  }
+                }}
+                placeholder="Comune di competenza"
+              />
+            </label>
+            <label>
+              <span>Ufficio</span>
+              <select value={officeKind} onChange={(event) => setOfficeKind(event.target.value)}>
+                {composeOfficeKindOptions.map((option) => (
+                  <option value={option.value} key={option.value || 'all'}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+            <button type="button" onClick={() => void searchOffices()} disabled={loading}>
+              <Search size={15} /> {loading ? 'Ricerca in corso...' : 'Cerca PEC'}
+            </button>
+          </div>
+          {error ? <p className="iu-mail-office-lookup__notice" role="status">{error}</p> : null}
+          {inserted ? <p className="iu-mail-office-lookup__success" role="status">{inserted}</p> : null}
+          {result?.offices.length ? (
+            <div className="iu-mail-office-results" aria-live="polite">
+              {result.offices.map((office) => (
+                <article className="iu-mail-office-result" key={office.id}>
+                  <header>
+                    <span><MapPin size={14} /> {office.typeLabel}</span>
+                    <strong>{office.name}</strong>
+                    <small>{[office.address, office.cap, office.city].filter(Boolean).join(' - ') || 'Sede non indicata'}</small>
+                  </header>
+                  <div>
+                    <b>{office.pec}</b>
+                    <button type="button" onClick={() => insertOffice(office)} disabled={!office.pec}>
+                      <PlusCircle size={15} /> Inserisci
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : null}
+          {result?.warnings.length ? (
+            <p className="iu-mail-office-lookup__hint">{result.warnings[0]}</p>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
 export function EmailComposePage({ mode }: { mode: MailboxMode }) {
   const copy = mailboxCopy[mode]
   const params = new URLSearchParams(window.location.search)
@@ -1655,45 +1744,6 @@ export function EmailComposePage({ mode }: { mode: MailboxMode }) {
     setClientMatches([])
   }
 
-  const submitPecViaLocalSigner = async (form: HTMLFormElement): Promise<FormSubmitResult> => {
-    const formData = new FormData(form)
-    const destinatario = String(formData.get('a') || '').trim()
-    const oggetto = String(formData.get('oggetto') || '').trim()
-    const corpo = String(formData.get('corpo') || '').trim()
-    if (!destinatario || !oggetto) {
-      throw new Error('Compila destinatario e oggetto.')
-    }
-    if (params.get('tipo') === 'notifica_l53' || oggetto.toLowerCase().includes(LEGAL_NOTIFICATION_SUBJECT)) {
-      throw new Error('Per notifiche ex L. 53/1994 usa il percorso guidato Notifica ex L. 53/1994: servono relata separata, firma digitale, PEC da pubblico elenco e ricevuta completa.')
-    }
-    const savedPayload = await savedPecSmtpPayload()
-    const files = formData.getAll('allegati').filter((item): item is File => item instanceof File && Boolean(item.name))
-    const attachments = await Promise.all(files.map(fileAttachment))
-    const localPayload: JsonRecord = {
-      ...savedPayload,
-      to: destinatario,
-      subject: oggetto,
-      body: corpo,
-      attachments,
-    }
-    const localResult = await fetchJsonWithTimeout(`${LOCAL_SIGNER_BASE_URL}/pec/send`, 120000, {
-      method: 'POST',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify(localPayload),
-    })
-    const messageId = textValue(localResult.message_id)
-    if (!messageId) {
-      throw new Error('Il Local Signer ha completato la chiamata senza Message-ID: sincronizza la casella PEC e verifica l\'invio.')
-    }
-    const confirm = new FormData()
-    confirm.set('a', destinatario)
-    confirm.set('oggetto', oggetto)
-    confirm.set('corpo', corpo)
-    confirm.set('id_cliente', String(formData.get('id_cliente') || ''))
-    confirm.set('message_id', messageId)
-    return submitFormJson('/email/scrivi/conferma-locale', confirm)
-  }
-
   return (
     <main className="iu-content iu-mail-compose-page iusentra-route-sequence">
       <section className="iu-mail-compose-hero">
@@ -1717,10 +1767,11 @@ export function EmailComposePage({ mode }: { mode: MailboxMode }) {
           className="iu-mail-compose-form"
           action={action}
           encType="multipart/form-data"
-          customSubmit={isOrdinary ? undefined : submitPecViaLocalSigner}
-          pendingMessage={isOrdinary ? 'Invio email in corso...' : 'Invio PEC dal PC locale in corso...'}
-          successMessage={isOrdinary ? 'Email ordinaria inviata con successo.' : 'PEC inviata dal PC locale e registrata nello studio.'}
+          pendingMessage={isOrdinary ? 'Invio email in corso...' : 'Invio PEC in corso...'}
+          successMessage={isOrdinary ? 'Email ordinaria inviata con successo.' : 'PEC inviata e registrata nello studio.'}
         >
+          {!isOrdinary && params.get('tipo') === 'notifica_l53' ? <input type="hidden" name="tipo_invio" value="notifica_l53" /> : null}
+          {!isOrdinary ? <OfficePecLookupPanel onInsert={(pec) => setRecipient((current) => appendAddress(current, pec))} /> : null}
           <label>
             <span>Destinatario</span>
             <input
@@ -1800,7 +1851,7 @@ export function EmailComposePage({ mode }: { mode: MailboxMode }) {
               <span><CheckCircle2 size={16} /> Invio collegato alla casella selezionata.</span>
               <span><Paperclip size={16} /> Puoi aggiungere uno o piu allegati prima dell'invio.</span>
               <span><CheckCircle2 size={16} /> Rientro automatico in <strong>{isOrdinary ? 'Email ordinaria' : 'Email PEC'}</strong>.</span>
-              <span><Settings2 size={16} /> Configurazione da <a href={settingsHref}>{isOrdinary ? 'SMTP/IMAP ordinario' : 'PEC'}</a>.</span>
+              <span><Settings2 size={16} /> <a href={settingsHref}>{isOrdinary ? 'Configurazione SMTP/IMAP' : 'Configurazione PEC'}</a>.</span>
             </div>
           </Panel>
           <Panel title="Anteprima rapida" subtitle="Controllo prima dell'invio" icon={<Eye size={17} />}>

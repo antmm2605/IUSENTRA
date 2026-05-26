@@ -140,6 +140,8 @@ def _office_kind(name: str) -> tuple[str, str, int, bool]:
     upper = name.upper()
     if "GIUDICE DI PACE" in upper:
         return "giudice_pace", "Giudice di Pace", 10, True
+    if "PROCURA DELLA REPUBBLICA PRESSO IL TRIBUNALE PER I MINORENNI" in upper:
+        return "procura_minorenni", "Procura presso Tribunale per i minorenni", 61, True
     if "TRIBUNALE PER I MINORENNI" in upper:
         return "tribunale_minorenni", "Tribunale per i minorenni", 62, True
     if upper.startswith("TRIBUNALE DI ") and not any(
@@ -248,16 +250,32 @@ def _parse_offices(xml_text: str, comune: str) -> list[dict[str, Any]]:
     return sorted(offices, key=lambda office: (int(office.get("priority") or 99), str(office.get("name") or "")))
 
 
-def _filter_offices(offices: Iterable[dict[str, Any]], includi_speciali: bool) -> list[dict[str, Any]]:
+def _filter_offices(
+    offices: Iterable[dict[str, Any]],
+    includi_speciali: bool,
+    *,
+    tipi_ufficio: Iterable[str] | None = None,
+    solo_pec: bool = False,
+) -> list[dict[str, Any]]:
+    allowed_kinds = {str(kind).strip() for kind in (tipi_ufficio or []) if str(kind).strip()}
+    filtered = list(offices)
     if includi_speciali:
-        return list(offices)
-    return [office for office in offices if office.get("primary") is True]
+        visible = filtered
+    else:
+        visible = [office for office in filtered if office.get("primary") is True]
+    if allowed_kinds:
+        visible = [office for office in visible if str(office.get("kind") or "") in allowed_kinds]
+    if solo_pec:
+        visible = [office for office in visible if str(office.get("pec") or "").strip()]
+    return visible
 
 
 def ricerca_uffici_competenti(
     comune: str,
     *,
     includi_speciali: bool = False,
+    tipi_ufficio: Iterable[str] | None = None,
+    solo_pec: bool = False,
     timeout: float = 8.0,
     fetcher: FetchGiustiziaMap | None = None,
 ) -> dict[str, Any]:
@@ -266,7 +284,12 @@ def ricerca_uffici_competenti(
     comune_normalizzato = _validate_comune(comune)
     html = fetcher(comune_normalizzato, timeout) if fetcher else _fetch_giustizia_map(comune_normalizzato, timeout)
     offices_all = _parse_offices(_extract_xml(html), comune_normalizzato)
-    offices = _filter_offices(offices_all, includi_speciali)
+    offices = _filter_offices(
+        offices_all,
+        includi_speciali,
+        tipi_ufficio=tipi_ufficio,
+        solo_pec=solo_pec,
+    )
     warnings: list[str] = [
         "Verifica materia, rito, valore, foro applicabile e norme speciali prima di usare il risultato in un atto."
     ]

@@ -1,5 +1,23 @@
 # Migrazione progressiva Flask + React
 
+## Componi PEC - ricerca uffici giudiziari e canale PEC dedicato - 2026-05-26 - 2.248.63
+
+La pagina React `/email/scrivi` espone ora un pannello collassabile sopra al
+campo destinatario per cercare gli uffici giudiziari competenti per Comune e
+inserire direttamente la PEC pubblicata nel destinatario. Il pannello riusa
+l'endpoint read-only `/api/v1/ui/strumenti-legali/uffici_competenti`, con filtro
+per Giudice di Pace, Tribunale, Procura, UNEP, Corte d'Appello, Procura
+Generale, Corti di Assise e uffici minorenni, più filtro per risultati con PEC.
+
+La composizione PEC ordinaria non usa più Local Signer: il form invia al backend
+dedicato `/email/scrivi`, che usa la configurazione PEC dello studio, registra
+la casella `INVIATI` solo dopo esito SMTP positivo e continua a bloccare le
+notifiche ex L. 53/1994 verso il percorso guidato. Local Signer resta riservato
+ai flussi che richiedono firma, portali e deposito.
+
+Verifiche locali: typecheck React, test frontend, build Vite, parser/API uffici,
+regressioni PEC senza Local Signer e guardia impostazioni PEC.
+
 ## Fascicolo - uffici competenti per Comune inline - 2026-05-26 - 2.248.62
 
 Il dettaglio fascicolo React espone ora una sezione `Uffici giudiziari per Comune`

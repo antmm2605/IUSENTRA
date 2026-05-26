@@ -3,6 +3,8 @@ name: CodeQL
 on:
   push:
   pull_request:
+  repository_dispatch:
+    types: [codex-ci-recovery]
   schedule:
     - cron: "15 3 * * 1"
 

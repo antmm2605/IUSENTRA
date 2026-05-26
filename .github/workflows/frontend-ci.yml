@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
   workflow_dispatch:
+  repository_dispatch:
+    types: [codex-ci-recovery]
 
 jobs:
   frontend-checks:

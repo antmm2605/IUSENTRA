@@ -34,6 +34,7 @@ Quindi, dopo ogni push, la consegna è vietata finché non sono vere tutte quest
 - `Lint + syntax` è verde prima di interpretare aggregatori Pytest, Signer o Coverage;
 - gli shard reali Pytest, Coverage 12/12 e Local Signer/PKCS#11 sono letti direttamente, non dedotti dagli aggregatori;
 - il deploy Hetzner è verificato dopo il push con commit server, container healthy, `https://app.iusentra.it/api/pronto` e pulizia cache Docker.
+- se GitHub riceve il push ma non crea run Actions sullo SHA corrente, usare il trigger di recupero `repository_dispatch` con `event_type=codex-ci-recovery` sui workflow critici versionati; i check devono restare check-run reali dello SHA corrente, mai status o report scritti a mano.
 
 Comando minimo per non confondere run vecchi e run nuovi:
 

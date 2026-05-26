@@ -4,6 +4,8 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+  repository_dispatch:
+    types: [codex-ci-recovery]
   schedule:
     - cron: "45 3 * * 2"
 

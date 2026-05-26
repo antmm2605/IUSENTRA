@@ -2,6 +2,8 @@ name: CI Quality Overlay
 
 on:
   workflow_dispatch:
+  repository_dispatch:
+    types: [codex-ci-recovery]
   pull_request:
   push:
     branches:

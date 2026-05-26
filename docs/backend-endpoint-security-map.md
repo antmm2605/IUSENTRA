@@ -8,9 +8,9 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 209.
-- Endpoint con `_richiedi_auth`: 209/209.
-- Endpoint con metodo di scrittura o cancellazione: 101.
+- Endpoint React API censiti: 210.
+- Endpoint con `_richiedi_auth`: 210/210.
+- Endpoint con metodo di scrittura o cancellazione: 102.
 - Endpoint con superficie file/upload/download/export/evidence: 6.
 - Route manifest censite: 107; critical: 18; high/P1: 69.
 - Parametri controllo bloccati: `tenant_id`, `tenant_slug`, `studio_id`, `studio_slug`, `user_id`, `api_key`, `token`, `access_token`, `refresh_token`, `redirect`, `redirect_url`, `return_url`, `next`, path filesystem.
@@ -72,6 +72,7 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `GET` | `/api/v1/ui/clienti/<id_cliente>/modifica` | Clienti | P1 | `sessione/API tenant-aware` | anagrafiche e cartelle | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/clienti/delete` | Clienti | P1 | `sessione/API tenant-aware` | anagrafiche e cartelle | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/clienti/nuovo` | Clienti | P1 | `sessione/API tenant-aware` | anagrafiche e cartelle | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/clienti/nuovo/documento/leggi` | Clienti | P1 | `sessione/API tenant-aware` | anagrafiche e cartelle | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/compensi-forensi` | Compensi forensi | P1 | `fatturazione.leggi` | calcoli tariffari | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/compensi-forensi/calcola` | Compensi forensi | P1 | `fatturazione.leggi` | calcoli tariffari | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/conferimenti/<conferimento_id>/apri-fascicolo` | Conferimenti | P0 | `fatturazione.leggi/scrivi` | apertura fascicolo da incarico | auth, tenant-aware, RBAC dominio, guardrail fase 5 |

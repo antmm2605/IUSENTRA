@@ -5,6 +5,7 @@ import os
 import sys
 from datetime import datetime
 from email.message import EmailMessage
+from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -26,6 +27,21 @@ from pct.email_client import (
 )
 from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoFascicolo
 from pct.runtime_resilience import clear_runtime_circuit_breakers
+
+
+def test_bootstrap_carica_env_locale_prima_della_configurazione(tmp_path, monkeypatch):
+    from web.bootstrap.flask_app_factory import _load_local_env_file
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("PCT_SECRET_KEY", raising=False)
+    (tmp_path / ".env").write_text(
+        "PCT_SECRET_KEY=chiave-stabile-per-decrittare-config-pec\n",
+        encoding="utf-8",
+    )
+
+    _load_local_env_file()
+
+    assert os.environ["PCT_SECRET_KEY"] == "chiave-stabile-per-decrittare-config-pec"
 
 
 def _cfg_web(tmp_path: Path) -> dict:
@@ -250,6 +266,72 @@ def test_email_pec_scrivi_usa_smtp_backend_server_reale(tmp_path, monkeypatch):
     sent = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"]).tutte(cartella=CartellaEmail.INVIATI)
     assert len(sent) == 1
     assert sent[0].destinatari == "cliente@example.pec.it, secondo@example.pec.it"
+    assert sent[0].message_id == calls["message_id"]
+
+
+def test_email_pec_scrivi_invia_allegato_via_smtp_backend(tmp_path, monkeypatch):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    GestioneConfigStudio(cfg["STUDIO_CONFIG"]).aggiorna(
+        ConfigStudio(
+            pec=ConfigPEC(
+                indirizzo="studio@example.pec.it",
+                password="segreta",
+                smtp_host="smtp.pec.example.it",
+                smtp_port=465,
+                use_ssl=True,
+            )
+        )
+    )
+    calls: dict[str, object] = {}
+
+    class DummySMTP:
+        def __init__(self, host, port, *, context=None, timeout=None):
+            calls["host"] = host
+            calls["port"] = port
+
+        def login(self, username, password):
+            calls["login"] = (username, password)
+
+        def send_message(self, mime, *, from_addr=None, to_addrs=None):
+            calls["from_addr"] = from_addr
+            calls["to_addrs"] = list(to_addrs or [])
+            calls["subject"] = mime["Subject"]
+            calls["message_id"] = mime["Message-ID"]
+            calls["attachments"] = [
+                part.get_filename()
+                for part in mime.walk()
+                if part.get_content_disposition() == "attachment"
+            ]
+
+        def quit(self):
+            calls["quit"] = True
+
+    monkeypatch.setattr("pct.messaggi._SMTP_SSLv4", DummySMTP)
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+        response = client.post(
+            "/email/scrivi",
+            data={
+                "a": "cliente@example.pec.it",
+                "oggetto": "PEC backend allegato",
+                "corpo": "Test server con allegato",
+                "allegati": (BytesIO(b"contenuto allegato"), "verifica-pec.txt"),
+            },
+            content_type="multipart/form-data",
+            headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert calls["login"] == ("studio@example.pec.it", "segreta")
+    assert calls["attachments"] == ["verifica-pec.txt"]
+    sent = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"]).tutte(cartella=CartellaEmail.INVIATI)
+    assert len(sent) == 1
+    assert sent[0].oggetto == "PEC backend allegato"
     assert sent[0].message_id == calls["message_id"]
 
 

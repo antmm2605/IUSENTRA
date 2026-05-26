@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Any
 
 from flask import Flask
@@ -15,10 +16,32 @@ from web.services.structured_logging import configure_structured_logging
 from web.extensions import sock
 
 
+def _load_local_env_file() -> None:
+    """Load root .env values needed before runtime config is decrypted."""
+
+    env_path = Path.cwd() / ".env"
+    if not env_path.exists():
+        return
+    try:
+        for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            if not key or key in os.environ:
+                continue
+            os.environ[key] = value.strip().strip('"').strip("'")
+    except OSError:
+        return
+
+
 def create_flask_app(config: dict[str, Any] | None = None) -> tuple[Flask, dict[str, Any]]:
     """Crea la Flask app base e applica i default di sicurezza/runtime comuni."""
 
     cfg = dict(config or {})
+    if not cfg.get("TESTING"):
+        _load_local_env_file()
     app = Flask("web", template_folder="templates", static_folder="static")
     app.config["TESTING"] = bool(cfg.get("TESTING", False))
     app.config["PCT_SCHEDULER_WORKER"] = bool(cfg.get("SCHEDULER_ONLY"))

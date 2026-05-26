@@ -15,6 +15,12 @@ la casella `INVIATI` solo dopo esito SMTP positivo e continua a bloccare le
 notifiche ex L. 53/1994 verso il percorso guidato. Local Signer resta riservato
 ai flussi che richiedono firma, portali e deposito.
 
+Hotfix del 26 maggio 2026: l'avvio locale carica `.env` prima della lettura
+della configurazione studio, così le password PEC cifrate con `PCT_SECRET_KEY`
+vengono decifrate prima del login SMTP. Il flusso `/email/scrivi` è stato
+verificato con invio reale Legalmail senza allegato e con allegato, entrambi con
+`Message-ID` e storico `INVIATO`.
+
 Verifiche locali: typecheck React, test frontend, build Vite, parser/API uffici,
 regressioni PEC senza Local Signer e guardia impostazioni PEC.
 

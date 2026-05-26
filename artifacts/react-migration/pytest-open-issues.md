@@ -8,6 +8,12 @@ studio e popola `INVIATI` solo dopo esito SMTP positivo. Local Signer resta nel
 perimetro impostazioni/test locali e nei flussi telematici dove firma, portali o
 deposito lo richiedono.
 
+Hotfix verificato il 26 maggio 2026: il fallimento reale `Invio PEC non riuscito`
+su `/email/scrivi` era causato dall'avvio locale senza `PCT_SECRET_KEY` caricato
+prima della decifratura della password PEC. Il bootstrap ora legge `.env` prima
+della configurazione runtime quando non è in `TESTING`; test mirati e due invii
+Legalmail reali, senza allegato e con allegato, sono verdi.
+
 La ricerca uffici giudiziari in `/email/scrivi` usa lo stesso endpoint read-only
 degli Strumenti Forensi, con filtro per tipologia e PEC. Se la fonte ministeriale
 non pubblica una PEC per il filtro scelto, la UI mostra uno stato recuperabile e

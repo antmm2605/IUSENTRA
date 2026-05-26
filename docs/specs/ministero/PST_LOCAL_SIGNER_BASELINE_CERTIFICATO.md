@@ -2,6 +2,7 @@
 
 Data baseline operativo: 2026-05-11.
 Data blindatura regressione: 2026-05-25.
+Nota test reale scarico/import fascicolo: `docs/specs/ministero/PST_FASCICOLO_IMPORT_TEST_REALE_2026-05-26.md`.
 
 Questo documento registra le regole funzionali certificate con test reale su PST/PolisWeb e Local Signer. Ogni modifica futura a ricerca fascicolo, anteprima, sessione PST o download documenti deve preservare queste invarianti oppure dichiarare in modo esplicito una nuova certificazione reale.
 
@@ -15,9 +16,10 @@ Questo documento registra le regole funzionali certificate con test reale su PST
 - Ogni ricerca reale PST dal browser deve salvare sul server dello studio una diagnosi operativa tenant-aware con ufficio, codice risolto, R.G./anno, versione Local Signer, risposta/fault e log locale sanificato quando disponibile. La diagnosi non deve includere PIN, credenziali o token di sessione sensibili.
 - La visualizzazione del fascicolo usa la sessione PST già aperta dal Local Signer e passa sempre `pst_session_id` alle chiamate successive.
 - Non deve esistere una chiamata preventiva `/pst/preflight-auth` nel wizard React o nel wizard classico: il PIN deve essere richiesto solo quando serve davvero al portale. Il Local Signer, però, deve eseguire internamente il preflight certificato come gate obbligatorio prima della ricerca operativa, dello snapshot, del catalogo documenti e del download batch; un rifiuto certificato/HTTP 401 non deve mai diventare "nessun fascicolo trovato".
-- Su Windows, mentre `curl` attende il certificato client del PST, il Local Signer deve provare in modo best-effort a portare in primo piano la finestra PIN/Sicurezza Windows/smart card/CNS/CIE/Bit4id/Aruba/token, senza cambiare il numero di PIN richiesti e senza salvare PIN o chiavi.
+- Su Windows, mentre `curl` attende il certificato client del PST, il Local Signer deve provare in modo best-effort a portare in primo piano la finestra PIN/Sicurezza Windows/smart card/CNS/CIE/Bit4id/Aruba/token, includendo anche dialog di credenziali/PIN senza titolo esplicito ma riconoscibili da classe o testo figlio, senza cambiare il numero di PIN richiesti e senza salvare PIN o chiavi.
 - Il comportamento certificato resta: un PIN per visualizzare il fascicolo e un PIN separato solo per scaricare l'intero fascicolo.
 - Il download dell'intero fascicolo usa `/pst/download-documenti-batch` e `preflight_auth: false`; non deve tornare al download singolo ripetuto come flusso principale React.
+- Nelle chiamate PST il codice fiscale dell'avvocato deve derivare prima dal certificato selezionato sul PC. Il codice fiscale configurato nello studio è solo fallback quando il certificato non espone il CF; questo evita che un tenant/studio diverso influenzi lo scaricamento di un fascicolo consultato con un certificato abilitato di un altro avvocato.
 - Il pacchetto Windows del Local Signer resta blindato sul profilo certificato `SetupLocalSigner-1.6.35.exe`: builder nativo IExpress, SED `Class=IEXPRESS` / `InsideCompressed=0`, file pubblico solo `SetupLocalSigner-<versione>.exe` con alias `SetupLocalSigner.exe`, avvio `powershell.exe -NoProfile -ExecutionPolicy Bypass -File installa_local_signer_locale.ps1` e file principali copiati dal CAB locale. Non si introducono PyInstaller, NSIS, zip autoestraenti, download pubblico `.ps1` o download dinamici dei file principali durante l'installazione Windows senza nuova certificazione reale e test aggiornati.
 - Il Local Signer non deve salvare PIN, credenziali CNS/CIE/SPID o sessioni portale nel cloud.
 - Il tenant dello studio resta separato: i fascicoli interni di uno studio non devono essere usati come fallback per un altro studio.

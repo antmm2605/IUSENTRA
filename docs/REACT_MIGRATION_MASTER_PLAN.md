@@ -1,5 +1,32 @@
 # Migrazione progressiva Flask + React
 
+## PST/PolisWeb - fascicolo reale, import e Local Signer - 2026-05-26 - 2.248.67
+
+Il wizard React di acquisizione PST torna a mostrare l'anteprima completa del
+fascicolo prima dell'importazione: dati del procedimento, parti, cronologia e
+documenti disponibili sono visibili nella stessa schermata operativa. La
+selezione dei documenti resta esplicita e l'import mostra avanzamento, documento
+corrente e avvisi quando il PST non consegna un singolo file pur completando il
+resto del fascicolo.
+
+Il Local Signer `1.6.50` riusa la sessione PST già aperta per il download batch,
+non torna al download singolo ripetuto e mantiene il flusso senza richieste PIN
+aggiuntive quando la sessione di visualizzazione è ancora valida. Su Windows
+l'helper foreground intercetta anche dialog PIN/credenziali senza titolo
+esplicito, usando titolo, classe finestra e testo dei controlli figli per
+ripristinare la richiesta davanti al browser.
+
+Per l'uso multi-studio, il codice fiscale dell'avvocato usato nelle chiamate PST
+deriva prima dal certificato selezionato sul PC; il codice fiscale configurato
+nello studio resta solo fallback. In questo modo un fascicolo scaricato con un
+certificato abilitato di un altro avvocato non viene condizionato dal tenant o
+dallo studio usato nel test precedente.
+
+Verifiche locali: test Local Signer/PST mirati, test React shell e import
+solo-catalogo, typecheck/build Vite, build pacchetti Local Signer, packaging,
+readiness, asset retention, UTF-8, boundary check e prova reale browser su
+Tribunale di Palmi R.G. 274/2026.
+
 ## Componi PEC - ricerca uffici giudiziari e canale PEC dedicato - 2026-05-26 - 2.248.63
 
 La pagina React `/email/scrivi` espone ora un pannello collassabile sopra al
@@ -2744,3 +2771,11 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - Il dettaglio fascicolo espone la rinomina dei documenti caricati con icona sotto il documento, form inline, route auditata e conservazione obbligatoria dell'estensione originale.
 - `/notifiche-legali` mostra `Data e ora verifica PEC` con orologio locale al secondo, campo modificabile dall'avvocato e pulsanti separati `Controlla relata` / `Invia PEC`; l'invio resta assistito e gli effetti legali sono ancora governati da PEC, RAC e RdAC.
 - Verifiche registrate: pytest mirati e suite di perimetro PEC/Document Intelligence/Fascicoli/Notifiche, typecheck, test frontend, build Vite e browser in-app autenticato su `/notifiche-legali`, `/fascicoli/DC5BF1DB` e `/email`.
+
+## Aggiornamento 2026-05-26: PST fascicolo/import reale 2.248.67
+
+- `/portali/pst/acquisizione` ripristina l’anteprima operativa completa: identità fascicolo, parti, cronologia e lista documenti reali sono visibili prima della selezione.
+- Il Local Signer `1.6.50` riusa la sessione PST aperta dalla visualizzazione anche quando il browser non invia più l’id sessione; lo scarico batch non ricade sul download singolo e riduce il flusso a un solo PIN nella sessione già autenticata.
+- La mappatura React usa l’id fascicolo locale (`practiceId`) per aggiornare pratiche esistenti; il backend accetta comunque l’id telematico come fallback compatibile.
+- L’import mostra avanzamento documento per documento, segnala import completato con avvisi quando un PDF non viene consegnato dal PST e distingue errori di timeout, autenticazione, autorizzazione, blocchi di verifica e assenza di file reali.
+- Verifiche registrate: test Local Signer mirati, test React shell/PST, test PolisWeb no-file, typecheck, build Vite, pacchetto Local Signer `1.6.50` e prova reale browser su RG 274/2026 Tribunale di Palmi con import 200 sul fascicolo `B6A03AE6`.

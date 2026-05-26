@@ -1198,6 +1198,7 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "portalJson(portal, 'importa-payload'" in page_source
     assert "portalJson(portal, 'importa-file'" in page_source
     assert "Sessione IUSENTRA" in page_source
+    assert "item.practiceId || item.id" in page_source
     assert "Endpoint browser:" not in page_source
     assert "collectAcquisitionFiles" in page_source
     assert "downloaded_files" in page_source
@@ -1213,6 +1214,7 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "iu-tel-surface-hero__meta" in page_source
     assert "iu-tel-surface-hero__eyebrow" in page_source
     assert '"pst": "Importa pratica da PST"' in bridge_source
+    assert '"practiceId": practice_id' in bridge_source
     assert '"importa-pratica"' in bridge_source
     assert '@api_v1_react.get("/telematico/surface/<surface>")' in api_source
     assert "build_react_telematico_surface_payload" in api_source
@@ -1471,6 +1473,10 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "Step 4 - Selezione" in source
     assert "Aggiorna pratica esistente" in source
     assert "Fascicolo locale da aggiornare" in source
+    assert "Dati fascicolo" in source
+    assert "Documenti nel fascicolo" in source
+    assert "iu-tel-acq-progress" in source
+    assert "Scaricamento documenti dal PST" in source
 
 
 def test_portale_acquisizione_accetta_alias_fascicolo_id_per_mapping():

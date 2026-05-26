@@ -321,6 +321,7 @@ def _case_row(row: dict[str, Any], index: int, fascicoli_index: dict[str, Any]) 
     status = _display_text(row.get("internal_status") or row.get("status") or row.get("status_text"), "Da verificare")
     return {
         "id": _text(row.get("id") or practice_id, f"case-{index}"),
+        "practiceId": practice_id,
         "portal": portal,
         "portalLabel": PORTAL_LABELS.get(portal, "Telematico"),
         "title": title,

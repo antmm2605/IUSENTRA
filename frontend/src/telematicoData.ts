@@ -27,6 +27,7 @@ export type TelematicoChannel = {
 
 export type TelematicoCase = {
   id: string
+  practiceId: string
   portal: TelematicoChannelId | 'altro'
   portalLabel: string
   title: string
@@ -326,6 +327,7 @@ function normaliseCase(value: unknown, index: number): TelematicoCase {
   const portalLabel = portal !== 'altro' ? channelDefaults[portal].label : text(item.portalLabel ?? item.portal_label, 'Telematico')
   return {
     id: text(item.id, `case-${index}`),
+    practiceId: text(item.practiceId ?? item.practice_id ?? item.id_fascicolo),
     portal,
     portalLabel: display(item.portalLabel ?? item.portal_label, portalLabel),
     title: display(item.title, 'Pratica telematica'),

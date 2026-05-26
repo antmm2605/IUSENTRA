@@ -173,7 +173,12 @@ def test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows():
     assert "def _run_curl_with_pin_foreground" in source
     assert '"sicurezza di windows"' in source
     assert '"windows security"' in source
+    assert '"credential"' in source
     assert '"bit4id"' in source
+    assert "EnumChildWindows" in source
+    assert "GetClassNameW" in source
+    assert "AttachThreadInput" in source
+    assert "SetWindowPos" in source
     assert source.count("_run_curl_with_pin_foreground(") >= 5
 
     raw = source[
@@ -199,6 +204,48 @@ def test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows():
     assert "_run_curl_with_pin_foreground(" in batch
     assert "_run_curl_with_pin_foreground(" in best_effort
     assert "_run_curl_with_pin_foreground(" in preflight
+
+
+def test_local_signer_foreground_pin_riconosce_dialog_windows_senza_titolo():
+    module = _load_local_signer()
+
+    assert module._windows_pin_prompt_candidate_score("", "Credential Dialog Xaml Host", "") >= 5
+    assert module._windows_pin_prompt_candidate_score(
+        "Richiesta credenziali",
+        "#32770",
+        "Inserire il PIN della smart card",
+    ) >= 15
+    assert module._windows_pin_prompt_candidate_score("Google Chrome", "Chrome_WidgetWin_1", "") == 0
+
+
+def test_pst_import_test_reale_note_blinda_passaggi_grafica_e_multi_studio():
+    root = Path(__file__).resolve().parents[1]
+    note = (
+        root
+        / "docs"
+        / "specs"
+        / "ministero"
+        / "PST_FASCICOLO_IMPORT_TEST_REALE_2026-05-26.md"
+    ).read_text(encoding="utf-8")
+    baseline = (
+        root
+        / "docs"
+        / "specs"
+        / "ministero"
+        / "PST_LOCAL_SIGNER_BASELINE_CERTIFICATO.md"
+    ).read_text(encoding="utf-8")
+
+    assert "Tribunale di Palmi" in note
+    assert "R.G. 274/2026" in note
+    assert "`B6A03AE6`" in note
+    assert "`/pst/download-documenti-batch`" in note
+    assert "non deve tornare al download singolo ripetuto" in note
+    assert "Dati fascicolo" in note
+    assert "Documenti nel fascicolo" in note
+    assert "Importazione completata con avvisi" in note
+    assert "codice fiscale ricavato dal certificato selezionato prevale" in note
+    assert "non deve cercare la finestra PIN nella barra delle applicazioni" in note
+    assert "PST_FASCICOLO_IMPORT_TEST_REALE_2026-05-26.md" in baseline
 
 
 def test_pst_preflight_import_riusa_sessione_view_attiva_senza_nuovo_handshake(monkeypatch):
@@ -354,6 +401,102 @@ def test_pst_download_batch_riusa_sessione_view_anche_se_client_chiede_import(mo
     assert calls["prepare_force"] is False
     assert calls["batch_do_preflight"] is False
     assert calls["batch_cookie_file"] == "C:\\temp\\pst.cookies"
+
+
+def test_pst_download_batch_recupera_sessione_view_se_client_non_la_invia(monkeypatch):
+    module = _load_local_signer()
+    captured = {}
+    calls = {}
+
+    class _NullLock:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "tribunale": "0580010",
+                "cert_thumbprint": "AABBCC11",
+                "cf_avvocato": "RSSMRA80A01H501Z",
+                "preflight_auth": False,
+                "documents": [{"id_documento": "DOC-1", "nome_documento": "atto.pdf"}],
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    monkeypatch.setattr(module, "_curl_disponibile", lambda: True)
+    monkeypatch.setattr(
+        module,
+        "_find_view_session_for_cert",
+        lambda thumbprint, tribunale: {
+            "session_id": "SID-VIEW",
+            "purpose": "view",
+            "tribunale": tribunale,
+            "cert_thumbprint": thumbprint,
+            "auth_ready": True,
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_resolve_pst_session_entry",
+        lambda session_id: {
+            "session_id": session_id,
+            "purpose": "view",
+            "cookie_file": "C:\\temp\\pst.cookies",
+            "auth_ready": True,
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_risolvi_base_pst_runtime",
+        lambda tribunale: "https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SICID",
+    )
+    monkeypatch.setattr(module, "_risolvi_codice_ufficio_pst", lambda tribunale: "0151460094")
+    monkeypatch.setattr(module, "_require_certificato_pst", lambda thumbprint: "AABBCC11")
+    monkeypatch.setattr(module, "_cf_avvocato_pst", lambda cf, thumbprint: "RSSMRA80A01H501Z")
+    monkeypatch.setattr(module, "_pst_session_lock_for", lambda session_entry: _NullLock())
+
+    def _fake_ensure(requested_session_id, **kwargs):
+        calls["requested_session_id"] = requested_session_id
+        calls["ensure_purpose"] = kwargs.get("purpose")
+        return (
+            {
+                "session_id": requested_session_id,
+                "purpose": kwargs.get("purpose"),
+                "cookie_file": "C:\\temp\\pst.cookies",
+                "auth_ready": True,
+                "cf_avvocato": "RSSMRA80A01H501Z",
+            },
+            False,
+        )
+
+    monkeypatch.setattr(module, "_ensure_pst_session_entry", _fake_ensure)
+    monkeypatch.setattr(module, "_pst_prepare_authenticated_session", lambda session_entry, **kwargs: (session_entry, True))
+    monkeypatch.setattr(
+        module,
+        "_pst_download_documenti_batch_payloads",
+        lambda **kwargs: {
+            "ok": True,
+            "files": [],
+            "failures": [],
+            "documenti_richiesti": 1,
+            "documenti_scaricati": 0,
+        },
+    )
+    monkeypatch.setattr(module, "_update_pst_session", lambda *args, **kwargs: None)
+
+    module._Handler._pst_download_documenti_batch(_FakeHandler())
+
+    assert captured["status"] == 200
+    assert captured["payload"]["pst_session_id"] == "SID-VIEW"
+    assert captured["payload"]["pst_session_purpose"] == "view"
+    assert calls["requested_session_id"] == "SID-VIEW"
+    assert calls["ensure_purpose"] == "view"
 
 
 def _local_signer_version():
@@ -1678,6 +1821,19 @@ def test_cf_avvocato_pst_usa_subject_completo_quando_il_cf_non_e_nel_display_nam
     }
 
     assert module._cf_avvocato_pst("", "FFEEDD22") == "MNTRRT64L01L063H"
+
+
+def test_cf_avvocato_pst_preferisce_certificato_a_cf_studio_diverso():
+    module = _load_local_signer()
+
+    module._ultimo_certificato_windows = {
+        "thumbprint": "AABBCC11",
+        "codice_fiscale": "MNTRRT64L01L063H",
+        "soggetto": "CN=Avv. Studio Due",
+    }
+
+    assert module._cf_avvocato_pst("RSSMRA80A01H501Z", "AABBCC11") == "MNTRRT64L01L063H"
+    assert module._cf_avvocato_pst("RSSMRA80A01H501Z", "FFEEDD22") == "RSSMRA80A01H501Z"
 
 
 def test_pick_preferred_windows_cert_filtra_per_codice_fiscale_e_prefere_authentica():
@@ -4144,6 +4300,46 @@ def test_download_documenti_batch_con_sessione_attiva_riusa_cookie_prima_del_cer
     assert len(calls["batch"]) == 1
     assert "<idCat>33581101</idCat>" in calls["batch"][0]["soap_body"]
     assert calls["batch"][0]["cookie_file"] == "C:\\temp\\pst.cookies"
+
+
+def test_download_documenti_batch_timeout_non_torna_al_download_singolo():
+    module = _load_local_signer()
+
+    orig_batch = module._soap_call_pst_session_batch_raw
+    orig_single = module._soap_call_curl_raw
+    calls = {"batch": 0, "single": 0}
+    try:
+        def _fake_batch(*args, **kwargs):
+            calls["batch"] += 1
+            raise RuntimeError(
+                "Timeout connessione a ext.processotelematico.giustizia.it (300s). "
+                "Il servizio PST potrebbe essere sovraccarico."
+            )
+
+        def _fake_single(*args, **kwargs):
+            calls["single"] += 1
+            raise AssertionError("non deve tornare al download singolo")
+
+        module._soap_call_pst_session_batch_raw = _fake_batch
+        module._soap_call_curl_raw = _fake_single
+
+        esito = module._pst_download_documenti_batch_payloads(
+            base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+            codice_ufficio="0800570094",
+            cert_thumbprint="AABBCC11",
+            cf_avvocato="RSSMRA80A01H501Z",
+            documenti=[{"id_documento": "33581101", "nome_documento": "Sentenza.pdf"}],
+            do_preflight=False,
+            cookie_file="C:\\temp\\pst.cookies",
+        )
+    finally:
+        module._soap_call_pst_session_batch_raw = orig_batch
+        module._soap_call_curl_raw = orig_single
+
+    assert esito["ok"] is True
+    assert esito["documenti_scaricati"] == 0
+    assert calls == {"batch": 1, "single": 0}
+    assert "non ricade sul download singolo" in esito["failures"][0]["errore"]
 
 
 def test_pst_prepare_authenticated_session_esegue_preflight_una_sola_volta():

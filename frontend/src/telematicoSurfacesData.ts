@@ -327,6 +327,7 @@ function normaliseCase(value: unknown, index: number): TelematicoCase {
   const item = isRecord(value) ? value : {}
   return {
     id: text(item.id, `case-${index}`),
+    practiceId: text(item.practiceId ?? item.practice_id ?? item.id_fascicolo),
     portal: text(item.portal, 'altro') as TelematicoCase['portal'],
     portalLabel: display(item.portalLabel, 'Telematico'),
     title: display(item.title, 'Pratica telematica'),

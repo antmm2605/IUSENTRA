@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.49
+IUSENTRA Local Signer - v1.6.50
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -112,7 +112,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.49"
+VERSION = "1.6.50"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -1249,23 +1249,23 @@ def _trova_certificato_windows(cert_thumbprint: Optional[str]) -> dict:
     if not thumbprint and cached:
         return cached
     if sys.platform != "win32":
-        return cached
+        return {}
     for cert in _windows_lista_certificati():
         cert_thumb = str(cert.get("thumbprint") or "").replace(" ", "").upper()
         if cert_thumb == thumbprint:
             return dict(cert)
-    return cached
+    return {}
 
 
 def _cf_avvocato_pst(cf_avvocato: str, cert_thumbprint: Optional[str] = None) -> str:
     explicit = _estrai_codice_fiscale_testo(cf_avvocato)
-    if explicit:
-        return explicit
     cert = _trova_certificato_windows(cert_thumbprint)
     for campo in ("codice_fiscale", "soggetto", "soggetto_completo", "emittente", "emittente_completo"):
         resolved = _estrai_codice_fiscale_testo(str(cert.get(campo) or ""))
         if resolved:
             return resolved
+    if explicit:
+        return explicit
     return ""
 
 
@@ -1968,6 +1968,15 @@ def _find_view_session_for_cert(cert_thumbprint: str, tribunale: str) -> Optiona
                 continue
             return dict(entry)
     return None
+
+
+def _reuse_view_session_id_if_available(session_id: str, cert_thumbprint: str, tribunale: str) -> str:
+    """Riusa una sessione PST gia' autenticata quando il client non ne passa una."""
+    requested_id = (session_id or "").strip()
+    if requested_id:
+        return requested_id
+    view_entry = _find_view_session_for_cert(cert_thumbprint, tribunale)
+    return str((view_entry or {}).get("session_id") or "").strip()
 
 
 def _pst_existing_session_purpose(session_id: str, default: str = "view") -> str:
@@ -3260,13 +3269,25 @@ def _curl_windows_ssl_revoke_config_lines() -> list[str]:
 
 
 _WINDOWS_PIN_FOREGROUND_KEYWORDS = (
+    "autenticazione",
+    "accesso",
+    "credenziali",
+    "credential",
+    "credentialui",
+    "identita",
+    "identità",
+    "lettore",
+    "password",
     "pin",
     "sicurezza windows",
     "sicurezza di windows",
+    "sicurezza",
     "windows security",
+    "microsoft smart card",
     "smart card",
     "smartcard",
     "carta intelligente",
+    "firma digitale",
     "cns",
     "cie",
     "bit4id",
@@ -3275,11 +3296,121 @@ _WINDOWS_PIN_FOREGROUND_KEYWORDS = (
 )
 
 
+_WINDOWS_PIN_FOREGROUND_CLASS_KEYWORDS = (
+    "credential",
+    "smartcard",
+    "cryptui",
+    "bit4",
+    "aruba",
+)
+
+
+def _windows_pin_prompt_candidate_score(
+    title: str,
+    class_name: str = "",
+    child_text: str = "",
+) -> int:
+    title_norm = (title or "").casefold()
+    class_norm = (class_name or "").casefold()
+    child_norm = (child_text or "").casefold()
+    score = 0
+    if title_norm and any(keyword in title_norm for keyword in _WINDOWS_PIN_FOREGROUND_KEYWORDS):
+        score += 8
+    if child_norm and any(keyword in child_norm for keyword in _WINDOWS_PIN_FOREGROUND_KEYWORDS):
+        score += 6
+    if class_norm and any(keyword in class_norm for keyword in _WINDOWS_PIN_FOREGROUND_CLASS_KEYWORDS):
+        score += 5
+    if class_norm == "#32770" and score:
+        score += 1
+    return score
+
+
+def _windows_force_foreground_window(user32: Any, hwnd: Any) -> bool:
+    """
+    Best-effort robusto per finestre PIN Windows: restore, topmost temporaneo
+    e attach del thread aiutano quando il dialog resta solo sulla taskbar.
+    """
+    try:
+        import ctypes
+
+        kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
+        sw_show = 5
+        sw_restore = 9
+        hwnd_topmost = -1
+        hwnd_notopmost = -2
+        swp_nomove = 0x0002
+        swp_nosize = 0x0001
+        swp_showwindow = 0x0040
+        swp_flags = swp_nomove | swp_nosize | swp_showwindow
+
+        allow_set_foreground = getattr(user32, "AllowSetForegroundWindow", None)
+        if allow_set_foreground:
+            try:
+                allow_set_foreground(-1)
+            except Exception:
+                pass
+
+        current_thread = kernel32.GetCurrentThreadId()
+        target_thread = user32.GetWindowThreadProcessId(hwnd, None)
+        foreground_hwnd = user32.GetForegroundWindow()
+        foreground_thread = user32.GetWindowThreadProcessId(foreground_hwnd, None) if foreground_hwnd else 0
+        attached_threads: list[Any] = []
+        attach_thread_input = getattr(user32, "AttachThreadInput", None)
+        if attach_thread_input:
+            for thread_id in {target_thread, foreground_thread}:
+                if thread_id and thread_id != current_thread:
+                    try:
+                        if attach_thread_input(current_thread, thread_id, True):
+                            attached_threads.append(thread_id)
+                    except Exception:
+                        continue
+
+        try:
+            if user32.IsIconic(hwnd):
+                user32.ShowWindow(hwnd, sw_restore)
+            else:
+                user32.ShowWindow(hwnd, sw_show)
+            show_window_async = getattr(user32, "ShowWindowAsync", None)
+            if show_window_async:
+                show_window_async(hwnd, sw_restore)
+
+            set_window_pos = getattr(user32, "SetWindowPos", None)
+            if set_window_pos:
+                set_window_pos(hwnd, hwnd_topmost, 0, 0, 0, 0, swp_flags)
+
+            user32.BringWindowToTop(hwnd)
+            foreground_ok = bool(user32.SetForegroundWindow(hwnd))
+            try:
+                user32.SetActiveWindow(hwnd)
+                user32.SetFocus(hwnd)
+            except Exception:
+                pass
+
+            switch_to_this_window = getattr(user32, "SwitchToThisWindow", None)
+            if switch_to_this_window:
+                switch_to_this_window(hwnd, True)
+
+            if set_window_pos:
+                set_window_pos(hwnd, hwnd_notopmost, 0, 0, 0, 0, swp_flags)
+            return foreground_ok
+        finally:
+            if attach_thread_input:
+                for thread_id in attached_threads:
+                    try:
+                        attach_thread_input(current_thread, thread_id, False)
+                    except Exception:
+                        pass
+    except Exception as exc:
+        log.debug("Foreground PIN non applicabile alla finestra: %s", exc)
+        return False
+
+
 def _windows_try_foreground_pin_prompt_once() -> bool:
     """
     Best-effort: durante il TLS client-auth di curl, alcune dialog Windows
     per il PIN restano minimizzate o dietro al browser. Se ne troviamo una
-    con titolo coerente, la ripristiniamo e proviamo a portarla davanti.
+    con titolo, classe o testo figlio coerente, la ripristiniamo e proviamo a
+    portarla davanti.
     """
     if sys.platform != "win32":
         return False
@@ -3289,39 +3420,58 @@ def _windows_try_foreground_pin_prompt_once() -> bool:
 
         user32 = ctypes.windll.user32  # type: ignore[attr-defined]
         EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
-        matched: list[Any] = []
+        EnumChildWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
+        matched: list[tuple[int, Any]] = []
+
+        def _window_text(hwnd: Any) -> str:
+            length = user32.GetWindowTextLengthW(hwnd)
+            if length <= 0:
+                return ""
+            buffer = ctypes.create_unicode_buffer(length + 1)
+            user32.GetWindowTextW(hwnd, buffer, length + 1)
+            return (buffer.value or "").strip()
+
+        def _class_name(hwnd: Any) -> str:
+            buffer = ctypes.create_unicode_buffer(256)
+            user32.GetClassNameW(hwnd, buffer, len(buffer))
+            return (buffer.value or "").strip()
+
+        def _child_text(hwnd: Any) -> str:
+            parts: list[str] = []
+
+            @EnumChildWindowsProc
+            def _enum_child(child_hwnd, _child_lparam):
+                text = _window_text(child_hwnd)
+                if text:
+                    parts.append(text)
+                return len(parts) < 24
+
+            user32.EnumChildWindows(hwnd, _enum_child, 0)
+            return " ".join(parts)
 
         @EnumWindowsProc
         def _enum_window(hwnd, _lparam):
-            if not user32.IsWindowVisible(hwnd):
+            if not user32.IsWindowVisible(hwnd) and not user32.IsIconic(hwnd):
                 return True
-            length = user32.GetWindowTextLengthW(hwnd)
-            if length <= 0:
-                return True
-            buffer = ctypes.create_unicode_buffer(length + 1)
-            user32.GetWindowTextW(hwnd, buffer, length + 1)
-            title = (buffer.value or "").strip()
-            if not title:
-                return True
-            title_norm = title.casefold()
-            if any(keyword in title_norm for keyword in _WINDOWS_PIN_FOREGROUND_KEYWORDS):
-                matched.append(hwnd)
-                return False
+            title = _window_text(hwnd)
+            class_name = _class_name(hwnd)
+            child_text = ""
+            score = _windows_pin_prompt_candidate_score(title, class_name, child_text)
+            if not score:
+                child_text = _child_text(hwnd)
+                score = _windows_pin_prompt_candidate_score(title, class_name, child_text)
+            if score:
+                matched.append((score, hwnd))
             return True
 
         user32.EnumWindows(_enum_window, 0)
         if not matched:
             return False
 
-        hwnd = matched[0]
-        sw_restore = 9
-        if user32.IsIconic(hwnd):
-            user32.ShowWindow(hwnd, sw_restore)
-        user32.BringWindowToTop(hwnd)
-        user32.SetForegroundWindow(hwnd)
-        switch_to_this_window = getattr(user32, "SwitchToThisWindow", None)
-        if switch_to_this_window:
-            switch_to_this_window(hwnd, True)
+        matched.sort(key=lambda item: item[0], reverse=True)
+        for _score, hwnd in matched[:3]:
+            if _windows_force_foreground_window(user32, hwnd):
+                return True
         return True
     except Exception as exc:
         log.debug("Helper foreground PIN non disponibile: %s", exc)
@@ -5949,7 +6099,8 @@ def _pst_download_documenti_batch_payloads(
         dl_reqs: list[dict] = []
         dl_meta: list[dict] = []
 
-        allow_single_fallback = len(documenti) == 1
+        allow_single_fallback = False
+        allow_runtime_single_fallback = False
 
         for raw in documenti:
             item = raw if isinstance(raw, dict) else {}
@@ -5968,7 +6119,8 @@ def _pst_download_documenti_batch_payloads(
                 elif servizio == "JPW_SICID":
                     if not id_cat:
                         if allow_single_fallback:
-                            # Per il lotto singolo mantieni il fallback puntuale.
+                            # Mantenuto disattivato: anche un lotto singolo deve
+                            # restare nel percorso batch per non riaprire prompt PIN.
                             files.append(
                                 _pst_download_documento_payload(
                                     base_url=base_url,
@@ -6071,7 +6223,7 @@ def _pst_download_documenti_batch_payloads(
                         "errore": str(e),
                     })
         except RuntimeError as batch_err:
-            if len(dl_reqs) == 1:
+            if allow_runtime_single_fallback and len(dl_reqs) == 1:
                 log.warning("Batch download PST fallito, fallback download singolo: %s", batch_err)
                 req = dl_reqs[0]
                 meta = dl_meta[0]
@@ -6106,7 +6258,7 @@ def _pst_download_documenti_batch_payloads(
                     })
             else:
                 log.warning(
-                    "Batch download PST fallito senza fallback singoli per evitare prompt PIN ripetuti: %s",
+                    "Batch download PST fallito senza fallback singolo per evitare prompt PIN ripetuti: %s",
                     batch_err,
                 )
                 for meta in dl_meta:
@@ -6115,7 +6267,7 @@ def _pst_download_documenti_batch_payloads(
                         "nome_documento": meta["nome_documento"],
                         "errore": (
                             "Download batch PST non riuscito. "
-                            "Il lotto non ricade sui download singoli per evitare richieste PIN ripetute. "
+                            "Il lotto non ricade sul download singolo per evitare richieste PIN ripetute. "
                             f"Dettaglio: {batch_err}"
                         ),
                     })
@@ -8525,6 +8677,11 @@ class _Handler(BaseHTTPRequestHandler):
                 data.get("cert_thumbprint")
             )
             cf_avvocato = _cf_avvocato_pst(data.get("cf_avvocato", ""), cert_thumbprint)
+            requested_session_id = _reuse_view_session_id_if_available(
+                requested_session_id,
+                cert_thumbprint,
+                tribunale,
+            )
             session_entry, _session_created = _ensure_pst_session_entry(
                 requested_session_id,
                 tribunale=tribunale,
@@ -8632,6 +8789,11 @@ class _Handler(BaseHTTPRequestHandler):
                 data.get("cert_thumbprint")
             )
             cf_avvocato = _cf_avvocato_pst(data.get("cf_avvocato", ""), cert_thumbprint)
+            requested_session_id = _reuse_view_session_id_if_available(
+                requested_session_id,
+                cert_thumbprint,
+                tribunale,
+            )
             session_kwargs = {
                 "tribunale": tribunale,
                 "base_url": base_url,

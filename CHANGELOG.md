@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.248.67 - 2026-05-26
+
+- Ripristinata l’anteprima completa del fascicolo PST/PolisWeb: dati fascicolo, parti, cronologia e documenti reali tornano visibili prima della selezione e dell’importazione.
+- Corretto lo scarico/import PST: il Local Signer 1.6.50 riusa la sessione di visualizzazione anche per il batch documenti, non ricade più sul download singolo e non chiede un secondo PIN nel flusso già autenticato.
+- Corretta la mappatura React del fascicolo locale: le pratiche telematiche espongono anche l’id fascicolo gestionale e il backend accetta in sicurezza eventuali id telematici già presenti.
+- Migliorati avanzamento ed errori import: la barra mostra il documento corrente, segnala import completato con avvisi quando il PST non consegna un singolo file e distingue blocchi di verifica, timeout, autenticazione e assenza di file reali.
+- Rafforzata la richiesta PIN su Windows: il Local Signer prova a riportare in primo piano anche dialog di credenziali/PIN senza titolo esplicito, evitando che la richiesta resti nascosta sulla barra delle applicazioni.
+- Rafforzato l’uso multi-studio: nelle chiamate PST il codice fiscale ricavato dal certificato selezionato prevale su quello configurato nello studio; il dato dello studio resta solo fallback quando il certificato non espone il CF.
+
 ## 2.248.66 - 2026-05-26
 
 - Rafforzato `Salva nel fascicolo` da `/email`: il riconoscimento cliente ora confronta nome/cognome anche con ordine invertito e dati anagrafici collegati, così propone il fascicolo aperto invece di mostrare falsi “nessun fascicolo aperto”.

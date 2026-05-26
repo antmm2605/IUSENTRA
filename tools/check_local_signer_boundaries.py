@@ -42,6 +42,24 @@ def main() -> int:
     baseline_doc = "docs/specs/ministero/PST_LOCAL_SIGNER_BASELINE_CERTIFICATO.md"
     if not (REPO_ROOT / baseline_doc).exists():
         failures.append(f"Manca {baseline_doc}")
+    import_note_doc = "docs/specs/ministero/PST_FASCICOLO_IMPORT_TEST_REALE_2026-05-26.md"
+    if not (REPO_ROOT / import_note_doc).exists():
+        failures.append(f"Manca {import_note_doc}")
+    else:
+        import_note_text = _read(import_note_doc)
+        for snippet in (
+            "Tribunale di Palmi",
+            "R.G. 274/2026",
+            "`B6A03AE6`",
+            "`/pst/download-documenti-batch`",
+            "Dati fascicolo",
+            "Documenti nel fascicolo",
+            "Importazione completata con avvisi",
+            "codice fiscale ricavato dal certificato selezionato",
+            "barra delle applicazioni di Windows",
+        ):
+            if snippet not in import_note_text:
+                failures.append(f"{import_note_doc} non preserva nota test reale: {snippet}")
 
     for signer_path in ("tools/local_signer.py", "tools/dist/local_signer.py"):
         signer_text = _read(signer_path)
@@ -52,6 +70,11 @@ def main() -> int:
             "tag(\"nomeParte\", filtered_nome_parte)",
             "tag(\"codiceFiscaleParte\", filtered_cf_parte)",
             "do_preflight=False",
+            "def _windows_pin_prompt_candidate_score",
+            "EnumChildWindows",
+            "AttachThreadInput",
+            "def _cf_avvocato_pst",
+            "if explicit:\n        return explicit",
         )
         for snippet in required_snippets:
             if snippet not in signer_text:

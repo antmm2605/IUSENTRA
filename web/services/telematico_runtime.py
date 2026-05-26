@@ -1215,6 +1215,15 @@ def build_telematico_runtime(
                 raise ValueError("Fascicolo locale selezionato non trovato.")
             target = gf.get(target_id)
             if not target:
+                telematico_case = get_telematico().get_case(target_id)
+                linked_practice_id = str(
+                    (telematico_case or {}).get("practice_id")
+                    or (telematico_case or {}).get("id_fascicolo")
+                    or ""
+                ).strip()
+                if linked_practice_id:
+                    target = gf.get(linked_practice_id)
+            if not target:
                 raise ValueError("Fascicolo locale selezionato non trovato.")
             if not _fascicolo_matches_selection(target, portale, selection, strict=False):
                 raise ValueError("Il fascicolo locale selezionato non è compatibile con il fascicolo del portale.")
@@ -2111,7 +2120,11 @@ def build_telematico_runtime(
         selection_dc = _selection_to_fascicolo_dataclass(portale, selection)
         analysis = _analyze_portale_import(portale, selection, preview, options, mapping)
         if analysis["blockers"]:
-            raise ValueError("Sono presenti blocchi da risolvere prima dell'importazione.")
+            first_blocker = dict((analysis.get("blockers") or [{}])[0] or {})
+            blocker_label = str(first_blocker.get("label") or first_blocker.get("title") or "Controllo bloccante").strip()
+            blocker_detail = str(first_blocker.get("detail") or first_blocker.get("message") or "").strip()
+            suffix = f" {blocker_label}: {blocker_detail}" if blocker_detail else f" {blocker_label}."
+            raise ValueError(f"Sono presenti blocchi da risolvere prima dell'importazione.{suffix}")
         mode, resolved_target, auto_integrated = _resolve_portale_import_target(portale, selection, mapping)
         partial_pst_existing_update = False
 

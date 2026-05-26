@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import re
+import os
 from functools import lru_cache
 from pathlib import Path
 
-LOCAL_SIGNER_BROWSER_URL = "http://127.0.0.1:27272"
+LOCAL_SIGNER_BROWSER_URL = os.getenv("IUSENTRA_LOCAL_SIGNER_BROWSER_URL", "http://127.0.0.1:27272")
 
 
 def _repo_root() -> Path:

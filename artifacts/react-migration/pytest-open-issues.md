@@ -1,5 +1,21 @@
 # Pytest issue aperte e risoluzioni
 
+## Note PST fascicolo/import e Local Signer 1.6.50 - 2026-05-26
+
+Nessuna issue locale aperta sul perimetro corretto dopo i test mirati e la prova
+browser reale su Tribunale di Palmi R.G. 274/2026. Il Local Signer `1.6.50`
+riusa la sessione di visualizzazione per il batch documenti, non torna al
+download singolo ripetuto e segnala come avviso il singolo documento che il PST
+non consegna, senza perdere i file reali ricevuti.
+
+La richiesta PIN su Windows è rafforzata in modo best-effort anche per dialog di
+credenziali/PIN senza titolo esplicito. Il caso multi-studio è presidiato: quando
+il certificato selezionato espone il codice fiscale dell'avvocato, quel CF
+prevale su quello configurato nello studio; il CF dello studio resta solo
+fallback. Una verifica reale con un altro studio resta naturalmente condizionata
+dall'abilitazione ministeriale del certificato su quel fascicolo, ma il software
+non deve più ereditare il CF del tenant usato nel test precedente.
+
 ## Note Componi PEC uffici giudiziari e canale PEC dedicato 2.248.63 - 2026-05-26
 
 Nessuna issue locale aperta sul perimetro corretto. La composizione PEC ordinaria
@@ -919,3 +935,11 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Falso negativo `Salva nel fascicolo` da `/email` | Test PEC audit pipeline e browser `/email` | Risolto localmente, da verificare sul nuovo SHA | Il matching precedente era troppo fragile sui nomi cliente/fascicolo: casi con ordine invertito o dati anagrafici collegati potevano non proporre un fascicolo aperto. Ora il confronto usa varianti anagrafiche, id cliente e punteggio per token. | Per modifiche future rilanciare `tests/test_pec_audit_pipeline.py` e verificare il dialog di conferma su una PEC reale con cliente/fascicolo aperto. |
 | Indicizzazione Lex bloccata in `In corso` | Test Document Intelligence e API fascicolo | Risolto localmente, da verificare sul nuovo SHA | I record rimasti `processing` senza worker attivo venivano contati come in corso ma non rientravano in coda. Ora dopo soglia configurabile diventano stale e vengono reindicizzati; `.pdf.p7m`, `.pdf`, `.txt`, `.eml`, `.doc` e `.docx` restano formati presidiati. | Mantenere `IUSENTRA_DOCUMENT_AI_INDEXING_STALE_MINUTES` entro soglia prudente e rilanciare i test Document Intelligence quando si tocca estrazione o coda. |
 | `Data e ora verifica PEC` e pulsante `Invia PEC` | Normativa documentata, test API e browser | Nessuna issue aperta nuova | La UI mostra un orologio locale al secondo e prepara l'invio assistito; il sistema non sostituisce gli effetti legali di RAC/RdAC e non automatizza portali o firma. | Per modifiche future consultare `docs/specs/ministero/notifiche_legali_directives.md` e rilanciare `tests/test_notifiche_legali.py` più browser su `/notifiche-legali`. |
+## Note hotfix PST fascicolo/import 2.248.67 / 1.6.50 - 2026-05-26
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Richieste PIN ripetute nel flusso PST | Test Local Signer mirati e prova reale RG 274/2026 | Risolto localmente, da verificare sul nuovo SHA | Il batch documenti riusa la sessione PST aperta dalla visualizzazione e non ricade più sul download singolo; nella seconda prova reale non è comparsa una nuova selezione certificato. | Ogni modifica futura a ricerca, preview o download PST deve rilanciare i test Local Signer mirati e una prova browser con sessione già aperta. |
+| Anteprima fascicolo impoverita | Test React shell e browser reale | Risolto | La schermata mostra di nuovo identità fascicolo, parti, cronologia e documenti prima della selezione; i contatori non sostituiscono più il dettaglio operativo. | Mantenere `pstPreviewDocuments`, sezioni `Dati fascicolo`, `Parti`, `Documenti nel fascicolo` e regressione React dedicata. |
+| Mapping fascicolo locale da pratiche telematiche | Test React shell, build e prova reale | Risolto | Le opzioni della tendina ora usano `practiceId` (`B6A03AE6`) e non l’id telematico `tm_case...`; il backend resta compatibile se una vecchia build invia ancora l’id telematico. | Non rimuovere `practiceId` da `react_telematico_bridge`; in caso di refactor rilanciare analisi/import PST su fascicolo esistente. |
+| PDF singolo non consegnato dal PST | Browser reale e messaggi import | Governato come avviso | Nel test reale il PST ha segnalato un documento senza contenuto, ma gli altri documenti sono stati presi in carico; la UI deve mostrare import completato con avvisi e conteggio file ricevuti, non successo pieno fuorviante. | Se il portale non consegna tutti i file, non importare solo catalogo e mantenere avviso visibile sul documento fallito. |

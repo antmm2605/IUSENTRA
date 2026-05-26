@@ -183,6 +183,15 @@ type PstSession = {
   expiresAt: number
 }
 
+type ImportProgress = {
+  active: boolean
+  phase: string
+  current: string
+  completed: number
+  total: number
+  failures: string[]
+}
+
 const REACT_PST_CERT_KEY = 'iusentra.react.pst.cert'
 const REACT_PST_SESSION_KEY = 'iusentra.react.pst.session'
 const REACT_PST_SESSION_PURPOSE = 'view'
@@ -489,6 +498,10 @@ function scrollToSurfaceTarget(targetId: string) {
   const target = document.getElementById(targetId)
   if (!target) return
   const topbar = document.querySelector<HTMLElement>('.iu-topbar')
+  if (!topbar) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    return
+  }
   const offset = (topbar?.getBoundingClientRect().height || 76) + 18
   const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - offset)
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -1007,6 +1020,13 @@ function normalisePstAcquisitionResult(value: unknown, index: number, query: Acq
 }
 
 function previewCount(preview: JsonRecord, key: string): number {
+  const counts = asRecord(preview.counts)
+  const counted = asNumber(counts[key])
+  if (counted) return counted
+  if (key === 'documenti') {
+    const docs = pstPreviewDocuments(preview)
+    if (docs.length) return docs.length
+  }
   const value = preview[key]
   if (Array.isArray(value)) return value.length
   if (isRecord(value)) return Object.keys(value).length
@@ -1018,8 +1038,11 @@ function previewIdentity(preview: JsonRecord): JsonRecord {
 }
 
 function pstPreviewDocuments(preview: JsonRecord): JsonRecord[] {
-  const direct = asList(preview.documenti).map(asRecord)
+  const direct = asList(preview.documenti || preview.documents || preview.catalogo).map(asRecord)
   if (direct.length) return direct
+  const snapshot = asRecord(preview.snapshot)
+  const snapshotDocs = asList(snapshot.documenti || snapshot.documents || snapshot.catalogo).map(asRecord)
+  if (snapshotDocs.length) return snapshotDocs
   return asList(preview.depositi).map(asRecord).flatMap((deposito) => {
     const docs = asList(deposito.documenti).map(asRecord)
     return docs.map((documento) => ({
@@ -1031,6 +1054,82 @@ function pstPreviewDocuments(preview: JsonRecord): JsonRecord[] {
       mittente: asText(documento.mittente || deposito.mittente),
     }))
   })
+}
+
+function previewPeople(preview: JsonRecord): string[] {
+  const values: string[] = []
+  const append = (value: unknown) => {
+    const text = asText(value)
+    if (text && !values.includes(text)) values.push(text)
+  }
+  asList(preview.parti).forEach((item) => {
+    if (isRecord(item)) append(item.nome || item.denominazione || item.name || item.label)
+    else append(item)
+  })
+  asList(preview.controparti).forEach((item) => {
+    if (isRecord(item)) append(item.nome || item.denominazione || item.name || item.label)
+    else append(item)
+  })
+  return values
+}
+
+function previewEvents(preview: JsonRecord): JsonRecord[] {
+  const rows = [
+    ...asList(preview.eventi).map(asRecord),
+    ...asList(preview.udienze).map(asRecord),
+    ...asList(preview.comunicazioni).map(asRecord),
+    ...asList(preview.istanze).map(asRecord),
+    ...asList(preview.depositi_telematici).map(asRecord),
+  ]
+  const seen = new Set<string>()
+  return rows.filter((row) => {
+    const key = [
+      asText(row.label || row.tipo || row.tipo_atto || row.oggetto),
+      asText(row.data || row.data_evento || row.data_udienza || row.data_deposito),
+      asText(row.id || row.evento_uid || row.udienza_uid),
+    ].join('|')
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+function previewDocumentTitle(row: JsonRecord, index: number): string {
+  return asText(
+    row.nome
+    || row.nome_documento
+    || row.nome_file_originale
+    || row.filename
+    || row.name,
+    `Documento ${index + 1}`,
+  )
+}
+
+function previewDocumentMeta(row: JsonRecord): string {
+  return [
+    asText(row.tipo_atto || row.tipo),
+    italianDate(row.data_deposito || row.data_documento || row.data),
+    asText(row.mittente),
+  ].filter(Boolean).join(' - ')
+}
+
+function previewIdentityRows(identity: JsonRecord, selection: AcquisitionResult | null): Array<[string, string]> {
+  return [
+    ['R.G.', asText(identity.numero_rg || identity.rg || identity.numero || selection?.title, 'n.d.')],
+    ['Ufficio', asText(identity.ufficio_nome || identity.ufficio || identity.tribunale || identity.court, 'Ufficio non indicato')],
+    ['Procedimento', asText(identity.procedimento || identity.ruolo || identity.tipo_registro || identity.tipo, 'n.d.')],
+    ['Stato', asText(identity.stato || identity.fase, 'n.d.')],
+    ['Sezione', asText(identity.sezione || identity.sub_procedimento, 'n.d.')],
+    ['Oggetto', asText(identity.oggetto || identity.materia || identity.reato, 'n.d.')],
+    ['Iscrizione', italianDate(identity.data_iscrizione || identity.data_deposito)],
+    ['Ultima attività', italianDate(identity.ultima_attivita || identity.data_udienza)],
+  ]
+}
+
+function formatDownloadFailure(row: JsonRecord, index: number): string {
+  const name = asText(row.nome_documento || row.nome || row.id_documento, `Documento ${index + 1}`)
+  const detail = asText(row.errore || row.message, 'non scaricato')
+  return `${name}: ${detail}`
 }
 
 function pstDocumentIdentifierValues(item: JsonRecord): string[] {
@@ -1219,6 +1318,14 @@ function AcquisitionWizard({
   const [analysis, setAnalysis] = useState<JsonRecord>({})
   const [files, setFiles] = useState<AcquisitionFile[]>([])
   const [importResult, setImportResult] = useState<JsonRecord>({})
+  const [importProgress, setImportProgress] = useState<ImportProgress>({
+    active: false,
+    phase: '',
+    current: '',
+    completed: 0,
+    total: 0,
+    failures: [],
+  })
   const [options, setOptions] = useState<AcquisitionOptions>({
     scarica_originale_portale: portal !== 'pst',
     mantieni_albero_originale: false,
@@ -1363,6 +1470,9 @@ function AcquisitionWizard({
       return payload
     } catch (error: unknown) {
       if (error instanceof DOMException && error.name === 'AbortError') {
+        if (path.includes('/pst/download-documenti-batch')) {
+          throw new Error('Scaricamento dal PST non completato: il portale ufficiale non ha risposto entro il tempo massimo. Riprova tra qualche minuto dalla stessa schermata.')
+        }
         throw new Error('Timeout del Local Signer locale. Verifica che sia avviato e riprova.')
       }
       throw error
@@ -1605,6 +1715,7 @@ function AcquisitionWizard({
     setBusy('search')
     setMessage('')
     setImportResult({})
+    setImportProgress({ active: false, phase: '', current: '', completed: 0, total: 0, failures: [] })
     try {
       let rows: AcquisitionResult[] = []
       let pstSignerPayload: JsonRecord | null = null
@@ -1869,6 +1980,8 @@ function AcquisitionWizard({
       return
     }
     setBusy('import')
+    setImportProgress({ active: true, phase: 'Preparazione importazione', current: '', completed: 0, total: 0, failures: [] })
+    let downloadFailureMessages: string[] = []
     try {
       let activeSelection: JsonRecord = selection?.raw || {}
       if (!payloadJson && portal === 'pst' && options.importa_documenti && !downloadedFiles.length) {
@@ -1876,6 +1989,15 @@ function AcquisitionWizard({
           .map((item) => pstDownloadDocumentPayload(item, options.scarica_originale_portale))
           .filter((item) => pstDocumentIdentifierValues(item).length)
         if (documenti.length) {
+          const firstName = asText(documenti[0]?.nome_documento || documenti[0]?.id_documento, 'documenti del fascicolo')
+          setImportProgress({
+            active: true,
+            phase: 'Scaricamento documenti dal PST',
+            current: firstName,
+            completed: 0,
+            total: documenti.length,
+            failures: [],
+          })
           const tribunale = asText(activeSelection.ufficio_codice || resolvedOfficeCode())
           const cert = await ensurePstCertificate()
           let session = activePstSessionFor(tribunale, cert)
@@ -1894,6 +2016,15 @@ function AcquisitionWizard({
           if (!nextSession) throw new Error('Sessione PST non inizializzata dal Local Signer.')
           const signerFiles = asList(signerPayload.files).map(asRecord)
           const failures = asList(signerPayload.failures).map(asRecord)
+          downloadFailureMessages = failures.map(formatDownloadFailure)
+          setImportProgress({
+            active: true,
+            phase: signerFiles.length ? 'Documenti ricevuti dal PST' : 'Scaricamento non completato',
+            current: signerFiles.length ? asText(signerFiles[signerFiles.length - 1]?.nome || signerFiles[signerFiles.length - 1]?.nome_documento, firstName) : firstName,
+            completed: signerFiles.length,
+            total: asNumber(signerPayload.documenti_richiesti) || documenti.length,
+            failures: downloadFailureMessages,
+          })
           if (!signerFiles.length) {
             throw new Error(asText(failures[0]?.errore || failures[0]?.message, 'Nessun documento scaricato dal portale ufficiale.'))
           }
@@ -1941,12 +2072,29 @@ function AcquisitionWizard({
           })
       }
       if (payload.ok === false) throw new Error(asText(payload.errore, 'Importazione non completata.'))
+      setImportProgress((current) => ({
+        ...current,
+        active: false,
+        phase: current.failures.length ? 'Importazione completata con avvisi' : 'Importazione completata',
+        completed: current.failures.length && downloadedFiles.length
+          ? Math.min(downloadedFiles.length, current.total || downloadedFiles.length)
+          : current.total || downloadedFiles.length || activeFiles.length,
+        total: current.total || downloadedFiles.length || activeFiles.length,
+      }))
       setImportResult(payload)
       setFiles(activeFiles)
       setStep(7)
-      setMessage('Importazione completata o presa in carico dal gestionale operativo.')
+      setMessage(downloadFailureMessages.length
+        ? `Importazione completata con ${downloadFailureMessages.length} avviso da verificare sul portale ufficiale.`
+        : 'Importazione completata o presa in carico dal gestionale operativo.')
     } catch (error: unknown) {
       if (portal === 'pst' && isPstSessionExpiredError(error)) clearPstSession()
+      setImportProgress((current) => ({
+        ...current,
+        active: false,
+        phase: current.phase || 'Importazione non completata',
+        failures: current.failures.length ? current.failures : [asText(error instanceof Error ? error.message : error, 'Importazione non completata.')],
+      }))
       setMessage(asText(error instanceof Error ? error.message : error, 'Importazione non disponibile.'))
     } finally {
       setBusy('')
@@ -2074,6 +2222,10 @@ function AcquisitionWizard({
   if (!visible || !portal) return null
 
   const identity = previewIdentity(preview)
+  const previewDocuments = pstPreviewDocuments(preview)
+  const previewParties = previewPeople(preview)
+  const previewTimeline = previewEvents(preview)
+  const identityRows = previewIdentityRows(identity, selection)
   const blockers = issueRows(analysis, 'blockers')
   const warnings = issueRows(analysis, 'warnings')
   const oks = issueRows(analysis, 'ok')
@@ -2286,12 +2438,58 @@ function AcquisitionWizard({
           {step === 3 ? (
             <Panel title="Step 3 - Anteprima" subtitle="Verifica i dati trovati prima della selezione" icon={<FileCheck2 size={17}/>}>
               {Object.keys(preview).length ? (
-                <div className="iu-tel-acq-preview">
-                  <article><span>Procedimento</span><strong>{asText(identity.numero_rg || identity.rg || identity.numero || selection?.title, 'n.d.')}</strong><small>{asText(identity.ufficio || identity.tribunale || identity.court, 'Ufficio non indicato')}</small></article>
-                  <article><span>Parti</span><strong>{previewCount(preview, 'parti')}</strong><small>Parti/anagrafiche rilevate</small></article>
-                  <article><span>Documenti</span><strong>{previewCount(preview, 'documenti') + previewCount(preview, 'depositi')}</strong><small>Documenti o buste disponibili</small></article>
-                  <article><span>Eventi</span><strong>{previewCount(preview, 'eventi')}</strong><small>Cronologia importabile</small></article>
-                </div>
+                <>
+                  <div className="iu-tel-acq-preview">
+                    <article><span>Procedimento</span><strong>{asText(identity.numero_rg || identity.rg || identity.numero || selection?.title, 'n.d.')}</strong><small>{asText(identity.ufficio_nome || identity.ufficio || identity.tribunale || identity.court, 'Ufficio non indicato')}</small></article>
+                    <article><span>Parti</span><strong>{previewCount(preview, 'parti')}</strong><small>Parti/anagrafiche rilevate</small></article>
+                    <article><span>Documenti</span><strong>{previewCount(preview, 'documenti')}</strong><small>{previewCount(preview, 'depositi')} buste o gruppi</small></article>
+                    <article><span>Eventi</span><strong>{previewCount(preview, 'eventi')}</strong><small>Cronologia importabile</small></article>
+                  </div>
+                  <div className="iu-tel-acq-detail-grid">
+                    <section>
+                      <header><FileText size={16}/><strong>Dati fascicolo</strong></header>
+                      <dl>
+                        {identityRows.map(([label, value]) => (
+                          <div key={label}>
+                            <dt>{label}</dt>
+                            <dd>{value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </section>
+                    <section>
+                      <header><BadgeCheck size={16}/><strong>Parti</strong></header>
+                      <div className="iu-tel-acq-list">
+                        {previewParties.length ? previewParties.slice(0, 8).map((name) => <span key={name}>{name}</span>) : <em>Nessuna parte indicata nell'anteprima.</em>}
+                      </div>
+                    </section>
+                    <section className="iu-tel-acq-detail-grid__wide">
+                      <header><FileCheck2 size={16}/><strong>Documenti nel fascicolo</strong></header>
+                      <div className="iu-tel-acq-documents">
+                        {previewDocuments.length ? previewDocuments.slice(0, 24).map((doc, index) => (
+                          <article key={`${previewDocumentTitle(doc, index)}-${index}`}>
+                            <FileText size={15}/>
+                            <div>
+                              <strong>{previewDocumentTitle(doc, index)}</strong>
+                              <small>{previewDocumentMeta(doc) || 'Metadati documento non indicati'}</small>
+                            </div>
+                          </article>
+                        )) : <em>Nessun documento disponibile nell'anteprima.</em>}
+                      </div>
+                    </section>
+                    <section className="iu-tel-acq-detail-grid__wide">
+                      <header><ClipboardCheck size={16}/><strong>Cronologia</strong></header>
+                      <div className="iu-tel-acq-timeline">
+                        {previewTimeline.length ? previewTimeline.slice(0, 10).map((event, index) => (
+                          <article key={`${asText(event.id || event.evento_uid || event.label, 'evento')}-${index}`}>
+                            <strong>{asText(event.label || event.tipo || event.tipo_atto || event.oggetto, 'Evento')}</strong>
+                            <small>{italianDate(event.data || event.data_evento || event.data_udienza || event.data_deposito)}{asText(event.descrizione || event.stato) ? ` - ${asText(event.descrizione || event.stato)}` : ''}</small>
+                          </article>
+                        )) : <em>Nessun evento indicato nell'anteprima.</em>}
+                      </div>
+                    </section>
+                  </div>
+                </>
               ) : <p className="iu-empty">Carica l'anteprima dopo aver selezionato il fascicolo.</p>}
               <div className="iu-tel-acq-actions">
                 <button type="button" disabled={!Object.keys(preview).length} onClick={() => setStep(4)}><ArrowRight size={15}/> Scegli cosa importare</button>
@@ -2309,6 +2507,20 @@ function AcquisitionWizard({
                 <label><input type="checkbox" checked={options.mantieni_albero_originale} onChange={(event) => updateOption('mantieni_albero_originale', event.currentTarget.checked)}/> Mantieni struttura originale</label>
               </div>
               {portal === 'pst' ? <p className="iu-tel-acq-note">Default PST: copia di consultazione con annotazioni ministeriali. L'originale si usa solo se selezionato espressamente.</p> : null}
+              {previewDocuments.length ? (
+                <div className="iu-tel-acq-documents iu-tel-acq-documents--selection">
+                  {previewDocuments.map((doc, index) => (
+                    <article key={`${previewDocumentTitle(doc, index)}-select-${index}`}>
+                      <FileText size={15}/>
+                      <div>
+                        <strong>{previewDocumentTitle(doc, index)}</strong>
+                        <small>{previewDocumentMeta(doc) || 'Pronto per lo scaricamento in batch'}</small>
+                      </div>
+                      <Badge tone={options.importa_documenti ? 'success' : 'neutral'}>{options.importa_documenti ? 'Selezionato' : 'Escluso'}</Badge>
+                    </article>
+                  ))}
+                </div>
+              ) : null}
               <div className="iu-tel-acq-mapping-mode" aria-label="Destinazione pratica">
                 {acquisitionMappingModes.map(([value, label, help]) => (
                   <label key={value} className={mapping.mode === value ? 'is-selected' : ''}>
@@ -2321,7 +2533,7 @@ function AcquisitionWizard({
               <div className="iu-tel-acq-form iu-tel-acq-form--mapping">
                 <label><span>Fascicolo locale da aggiornare</span><select value={mapping.target_fascicolo_id} onChange={(event) => updateMapping('target_fascicolo_id', event.currentTarget.value)}>
                   <option value="">Seleziona se necessario</option>
-                  {data.recentCases.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}
+                  {data.recentCases.map((item) => <option value={item.practiceId || item.id} key={item.id}>{item.title}</option>)}
                 </select></label>
               </div>
               <label className="iu-tel-acq-file">
@@ -2351,7 +2563,7 @@ function AcquisitionWizard({
               <div className="iu-tel-acq-form iu-tel-acq-form--mapping">
                 <label><span>Fascicolo locale target</span><select value={mapping.target_fascicolo_id} onChange={(event) => updateMapping('target_fascicolo_id', event.currentTarget.value)}>
                   <option value="">Seleziona se necessario</option>
-                  {data.recentCases.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}
+                  {data.recentCases.map((item) => <option value={item.practiceId || item.id} key={item.id}>{item.title}</option>)}
                 </select></label>
                 <label><span>Procedimento</span><input value={mapping.procedimento} onChange={(event) => updateMapping('procedimento', event.currentTarget.value)}/></label>
                 <label><span>Materia</span><input value={mapping.materia} onChange={(event) => updateMapping('materia', event.currentTarget.value)}/></label>
@@ -2392,6 +2604,21 @@ function AcquisitionWizard({
               <div className="iu-tel-acq-actions">
                 <button type="button" disabled={busy === 'import'} onClick={() => runImport()}><UploadCloud size={15}/> Importa nel gestionale</button>
               </div>
+              {(importProgress.active || importProgress.phase || importProgress.failures.length) ? (
+                <div className="iu-tel-acq-progress" aria-live="polite">
+                  <div>
+                    <strong>{importProgress.phase || 'Importazione'}</strong>
+                    <span>{importProgress.current || 'Preparazione documenti'}</span>
+                    <small>{importProgress.total ? `${importProgress.completed}/${importProgress.total} documenti` : 'Operazione in corso'}</small>
+                  </div>
+                  <progress value={importProgress.total ? importProgress.completed : undefined} max={importProgress.total || undefined}/>
+                  {importProgress.failures.length ? (
+                    <ul>
+                      {importProgress.failures.slice(0, 5).map((failure) => <li key={failure}>{failure}</li>)}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : null}
               {Object.keys(importResult).length ? (
                 <div className="iu-tel-acq-import-result">
                   <strong>Import completato</strong>
@@ -2411,7 +2638,7 @@ function AcquisitionWizard({
               <span><strong>Selezione</strong>{selection?.title || 'Nessun fascicolo selezionato'}</span>
               <span><strong>File manuali</strong>{files.length}</span>
               <span><strong>Mappatura</strong>{mapping.mode.replace('_', ' ')}</span>
-              <span><strong>Documenti</strong>{previewCount(preview, 'documenti') + previewCount(preview, 'depositi')}</span>
+              <span><strong>Documenti</strong>{previewCount(preview, 'documenti')}</span>
               <span><strong>Eventi</strong>{previewCount(preview, 'eventi')}</span>
             </div>
           </Panel>

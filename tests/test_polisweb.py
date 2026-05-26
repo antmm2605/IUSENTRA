@@ -438,6 +438,67 @@ def test_importa_fascicolo_esistente_sincronizza_cliente_parti_e_attivita(tmp_pa
     assert {s.nome_completo for s in soggetti} >= {"Stillitano Francesco", "BANCA ALFA S.P.A."}
 
 
+def test_importa_fascicolo_esistente_crea_parti_da_cliente_locale_se_pst_non_espone_parti(tmp_path):
+    from pct.clienti import TipoCliente
+
+    gestione_clienti = GestioneClienti(str(tmp_path / "clienti.json"))
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "documenti"),
+        archive_dir=str(tmp_path / "archivio"),
+    )
+    gestione_soggetti = GestioneSoggetti(
+        soggetti_path=str(tmp_path / "soggetti.json"),
+        parti_path=str(tmp_path / "parti.json"),
+    )
+
+    cliente = gestione_clienti.nuovo(
+        tipo=TipoCliente.PERSONA_FISICA,
+        cognome="Loprete",
+        nome="Domenico",
+    )
+    fascicolo_locale = gestione_fascicoli.nuovo(
+        titolo="RG 274/2026 - Usucapione",
+        tipo=TipoFascicolo.CIVILE,
+        id_cliente=cliente.id,
+        nome_cliente=cliente.nome_completo,
+        controparte="Princi Concetta",
+        cf_controparte="PRNCTT45C44L063Q",
+        numero_rg="274",
+        anno_rg=2026,
+        tribunale="Tribunale di Palmi",
+    )
+
+    fascicolo_pw = FascicoloPolisWeb(
+        numero_rg="274",
+        anno_rg=2026,
+        ruolo="CIVILE_COGNIZIONE",
+        stato="PENDENTE",
+        oggetto="Usucapione",
+        data_iscrizione="2026-03-06",
+        parti=[],
+        parti_dettaglio=[],
+        codice_ufficio="0910011",
+        nome_ufficio="Tribunale di Palmi",
+    )
+
+    risultato = ClientPolisWebDemo().sincronizza_fascicolo_esistente(
+        fascicolo_pw=fascicolo_pw,
+        fascicolo_locale=fascicolo_locale,
+        gestione_fascicoli=gestione_fascicoli,
+        gestione_clienti=gestione_clienti,
+        gestione_soggetti=gestione_soggetti,
+        avvocato_referente="admin",
+        documenti_pw=[],
+    )
+
+    assert risultato.successo is True
+    parti = gestione_soggetti.parti_fascicolo(fascicolo_locale.id)
+    by_name = {soggetto.nome_completo: parte.ruolo.value for parte, soggetto in parti}
+    assert by_name["Loprete Domenico"] == "ASSISTITO"
+    assert by_name["Princi Concetta"] == "CONTROPARTE"
+
+
 def test_importa_fascicolo_portale_definito_mantiene_stato_definito(tmp_path):
     gestione_clienti = GestioneClienti(str(tmp_path / "clienti.json"))
     gestione_fascicoli = GestioneFascicoli(
@@ -4752,6 +4813,9 @@ def test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero(t
     fascicolo_reload = gestione_fascicoli_reload.get(fascicolo.id)
     assert fascicolo_reload is not None
     assert fascicolo_reload.stato == StatoFascicolo.DEFINITO
+    assert fascicolo_reload.source_snapshot["portale"] == "PST"
+    assert fascicolo_reload.source_snapshot["counts"]["documenti"] == 1
+    assert fascicolo_reload.source_snapshot["parti"] == ["MONTAGNESE ELISABETTA", "STILLITANO FRANCESCO"]
     assert len(fascicolo_reload.documenti) == 1
     assert len(fascicolo_reload.depositi_pct) == 1
     doc = fascicolo_reload.documenti[0]

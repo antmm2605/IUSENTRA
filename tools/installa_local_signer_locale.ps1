@@ -27,7 +27,7 @@ $requirementsFile = Join-Path $targetDir "requirements_local_signer.txt"
 $pythonExe = Join-Path $venvDir "Scripts\python.exe"
 $pythonwExe = Join-Path $venvDir "Scripts\pythonw.exe"
 $defaultBaseUrl = "https://app.iusentra.it"
-$defaultAllowedOrigins = "$defaultBaseUrl,https://studio-legale-pct-production.up.railway.app"
+$defaultAllowedOrigins = "$defaultBaseUrl,https://studio-legale-pct-production.up.railway.app,http://127.0.0.1:8080,http://localhost:8080"
 $installerLog = Join-Path $targetDir "installer.log"
 $runtimeStdoutLog = Join-Path $targetDir "local_signer.out.log"
 $runtimeStderrLog = Join-Path $targetDir "local_signer.err.log"
@@ -348,6 +348,7 @@ function Copy-LocalSignerModule {
 
 function Write-LocalSignerLaunchers {
     $allowedOrigins = $defaultAllowedOrigins
+    $updateInstallerUrl = "$defaultBaseUrl/polisWeb/local-signer/setup/windows"
     # Il launcher cerca pythonw.exe in due posizioni:
     # 1. python\pythonw.exe  (Python portatile scaricato dall'installer)
     # 2. .venv\Scripts\pythonw.exe  (venv creato da Python di sistema)
@@ -358,12 +359,18 @@ set "DIR=%~dp0"
 set "PY=%DIR%local_signer.py"
 set "TARGET=%DIR%local_signer.py"
 set "PCT_LOCAL_SIGNER_ALLOWED_ORIGINS=__ALLOWED_ORIGINS__"
+set "IUSENTRA_LOCAL_SIGNER_UPDATE_URL=__UPDATE_INSTALLER_URL__"
 set "FORCE_RESTART=0"
 set "SILENT_MODE=0"
+set "UPDATE_MODE=0"
 
 if /I "%~1"=="--force" set "FORCE_RESTART=1"
 if /I "%~1"=="--silent" set "SILENT_MODE=1"
+if /I "%~1"=="--update" set "UPDATE_MODE=1"
 echo %~1 | find /I "iusentra-local-signer://restart" >nul 2>&1 && set "FORCE_RESTART=1"
+echo %~1 | find /I "iusentra-local-signer://update" >nul 2>&1 && set "UPDATE_MODE=1"
+
+if "%UPDATE_MODE%"=="1" goto :update
 
 rem Cerca pythonw: prima Python portatile, poi venv
 set "PYW=%DIR%python\pythonw.exe"
@@ -389,8 +396,13 @@ if "%SILENT_MODE%"=="1" exit /b 0
 timeout /t 2 >nul
 start "" "http://127.0.0.1:27272/diagnosi"
 exit /b 0
+
+:update
+powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "$ErrorActionPreference='Stop'; $url=$env:IUSENTRA_LOCAL_SIGNER_UPDATE_URL; if (-not $url.StartsWith('https://app.iusentra.it/')) { exit 2 }; $target=Join-Path $env:TEMP ('SetupLocalSigner-' + [Guid]::NewGuid().ToString('N') + '.exe'); Invoke-WebRequest -Uri $url -UseBasicParsing -OutFile $target; Start-Process -WindowStyle Hidden -FilePath $target -ArgumentList @('/Q')"
+exit /b %ERRORLEVEL%
 '@
     $cmd = $cmd.Replace('__ALLOWED_ORIGINS__', $allowedOrigins)
+    $cmd = $cmd.Replace('__UPDATE_INSTALLER_URL__', $updateInstallerUrl)
     Set-Content -Path $starterCmd -Value $cmd -Encoding ASCII
 
     $vbs = @'
@@ -398,7 +410,9 @@ Set shell = CreateObject("WScript.Shell")
 Dim extra
 extra = " --background"
 If WScript.Arguments.Count > 0 Then
-  If InStr(LCase(WScript.Arguments(0)), "iusentra-local-signer://restart") > 0 Then
+  If InStr(LCase(WScript.Arguments(0)), "iusentra-local-signer://update") > 0 Then
+    extra = " --update"
+  ElseIf InStr(LCase(WScript.Arguments(0)), "iusentra-local-signer://restart") > 0 Then
     extra = extra & " --force"
   End If
 End If

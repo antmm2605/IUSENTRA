@@ -1847,11 +1847,77 @@ def build_telematico_runtime(
 
         return created
 
+    def _source_snapshot_portale(
+        portale: str,
+        selection: dict[str, Any],
+        preview: dict[str, Any],
+        import_log_id: str,
+    ) -> dict[str, Any]:
+        identity = dict((preview or {}).get("identity") or {})
+        counts = dict((preview or {}).get("counts") or {})
+
+        def _clean(value: Any) -> str:
+            return str(value or "").strip()
+
+        def _names(values: Any) -> list[str]:
+            names: list[str] = []
+            seen: set[str] = set()
+            if not isinstance(values, list):
+                return names
+            for item in values:
+                if isinstance(item, dict):
+                    text = _clean(
+                        item.get("nominativo")
+                        or item.get("nome")
+                        or item.get("denominazione")
+                        or item.get("label")
+                    )
+                else:
+                    text = _clean(item)
+                key = re.sub(r"\s+", " ", text).casefold()
+                if text and key not in seen:
+                    seen.add(key)
+                    names.append(text)
+            return names
+
+        return {
+            "portale": _portale_source_name(portale),
+            "import_log_id": import_log_id,
+            "acquisito_il": datetime.now().isoformat(),
+            "external_id": _clean(selection.get("external_id")),
+            "numero": _clean(identity.get("numero") or selection.get("numero")),
+            "anno": int(identity.get("anno") or selection.get("anno") or 0),
+            "ufficio_nome": _clean(identity.get("ufficio_nome") or selection.get("ufficio_nome")),
+            "ufficio_codice": _clean(identity.get("ufficio_codice") or selection.get("ufficio_codice")),
+            "procedimento": _clean(identity.get("procedimento") or selection.get("procedimento")),
+            "sub_procedimento": _clean(identity.get("sub_procedimento") or selection.get("sub_procedimento")),
+            "sezione": _clean(identity.get("sezione") or selection.get("sezione")),
+            "stato": _clean(identity.get("stato") or selection.get("stato")),
+            "oggetto": _clean(identity.get("oggetto") or selection.get("oggetto")),
+            "data_iscrizione": _normalizza_data_portale(identity.get("data_iscrizione")),
+            "data_udienza": _normalizza_data_portale(identity.get("data_udienza")),
+            "ultima_attivita": _clean(identity.get("ultima_attivita") or selection.get("ultima_attivita")),
+            "parti": _names((preview or {}).get("parti") or selection.get("parti")),
+            "controparti": _names((preview or {}).get("controparti") or selection.get("controparti")),
+            "difensori": _names((preview or {}).get("difensori")),
+            "counts": {
+                "parti": int(counts.get("parti") or 0),
+                "documenti": int(counts.get("documenti") or 0),
+                "depositi": int(counts.get("depositi") or 0),
+                "eventi": int(counts.get("eventi") or 0),
+                "udienze": int(counts.get("udienze") or 0),
+                "comunicazioni": int(counts.get("comunicazioni") or 0),
+                "istanze": int(counts.get("istanze") or 0),
+                "esiti": int(counts.get("esiti") or 0),
+            },
+        }
+
     def _update_fascicolo_sync_metadata(
         id_fasc: str,
         *,
         portale: str,
         selection: dict[str, Any],
+        preview: dict[str, Any] | None = None,
         import_log_id: str,
         has_conflicts: bool,
         document_sync_enabled: bool,
@@ -1865,6 +1931,7 @@ def build_telematico_runtime(
             last_sync_at=datetime.now().isoformat(),
             sync_status=sync_status,
             import_log_id=import_log_id,
+            source_snapshot=_source_snapshot_portale(portale, selection, preview or {}, import_log_id),
             has_conflicts=has_conflicts,
             document_sync_enabled=document_sync_enabled,
             events_sync_enabled=events_sync_enabled,
@@ -2344,6 +2411,7 @@ def build_telematico_runtime(
             id_fasc,
             portale=portale,
             selection=selection,
+            preview=preview,
             import_log_id=log_id,
             has_conflicts=bool(analysis["warnings"]),
             document_sync_enabled=importa_file_portale,
@@ -2442,6 +2510,7 @@ def build_telematico_runtime(
             id_fasc,
             portale=portale,
             selection=selection,
+            preview=preview,
             import_log_id=log_id,
             has_conflicts=False,
             document_sync_enabled=False,
@@ -3545,6 +3614,7 @@ def build_telematico_runtime(
             fascicolo_id,
             portale=portale_norm,
             selection=selection,
+            preview=preview,
             import_log_id=log_id,
             has_conflicts=bool(receipt_warning),
             document_sync_enabled=True,
@@ -3739,6 +3809,8 @@ def build_telematico_runtime(
         configured = os.getenv("PCT_BASE_URL", "").rstrip("/")
         if configured:
             origini.add(configured)
+        origini.add("http://127.0.0.1:8080")
+        origini.add("http://localhost:8080")
         origini.add("https://app.iusentra.it")
         origini.add("https://studio-legale-pct-production.up.railway.app")
         return ",".join(sorted(o for o in origini if o))
@@ -3765,6 +3837,7 @@ $starterVbs = "$dir\\\\start_local_signer.vbs"
 $pyExe  = "$venv\\\\Scripts\\\\python.exe"
 $pywExe = "$venv\\\\Scripts\\\\pythonw.exe"
 $allowedOrigins = "{allowed_origins}"
+$updateInstallerUrl = "{base_url}/polisWeb/local-signer/setup/windows"
 $version = "{version}"
 
 Write-Host "IUSENTRA Local Signer v$version - Installazione..." -ForegroundColor Cyan
@@ -3842,12 +3915,18 @@ set "PYW=%DIR%.venv\\Scripts\\pythonw.exe"
 set "PY=%DIR%local_signer.py"
 set "TARGET=%DIR%local_signer.py"
 set "PCT_LOCAL_SIGNER_ALLOWED_ORIGINS=__ALLOWED_ORIGINS__"
+set "IUSENTRA_LOCAL_SIGNER_UPDATE_URL=__UPDATE_INSTALLER_URL__"
 set "FORCE_RESTART=0"
 set "SILENT_MODE=0"
+set "UPDATE_MODE=0"
 
 if /I "%~1"=="--force" set "FORCE_RESTART=1"
 if /I "%~1"=="--silent" set "SILENT_MODE=1"
+if /I "%~1"=="--update" set "UPDATE_MODE=1"
 echo %~1 | find /I "iusentra-local-signer://restart" >nul 2>&1 && set "FORCE_RESTART=1"
+echo %~1 | find /I "iusentra-local-signer://update" >nul 2>&1 && set "UPDATE_MODE=1"
+
+if "%UPDATE_MODE%"=="1" goto :update
 
 if "%FORCE_RESTART%"=="0" (
 powershell -NoProfile -WindowStyle Hidden -Command "try {{ $r = Invoke-RestMethod 'http://127.0.0.1:27272/ping' -UseBasicParsing -TimeoutSec 2; if ($r.ok) {{ exit 0 }} }} catch {{}}; exit 1" >nul 2>&1
@@ -3869,15 +3948,22 @@ if "%SILENT_MODE%"=="1" exit /b 0
 timeout /t 2 >nul
 start "" "http://127.0.0.1:27272/diagnosi"
 exit /b 0
+
+:update
+powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "$ErrorActionPreference='Stop'; $url=$env:IUSENTRA_LOCAL_SIGNER_UPDATE_URL; if (-not $url.StartsWith('https://app.iusentra.it/')) {{ exit 2 }}; $target=Join-Path $env:TEMP ('SetupLocalSigner-' + [Guid]::NewGuid().ToString('N') + '.exe'); Invoke-WebRequest -Uri $url -UseBasicParsing -OutFile $target; Start-Process -WindowStyle Hidden -FilePath $target -ArgumentList @('/Q')"
+exit /b %ERRORLEVEL%
 '@
 $cmd = $cmd.Replace('__ALLOWED_ORIGINS__', $allowedOrigins)
+$cmd = $cmd.Replace('__UPDATE_INSTALLER_URL__', $updateInstallerUrl)
 Set-Content -Path $starterCmd -Value $cmd -Encoding ASCII
 $vbs = @"
 Set shell = CreateObject("WScript.Shell")
 Dim extra
 extra = " --background"
 If WScript.Arguments.Count > 0 Then
-  If InStr(LCase(WScript.Arguments(0)), "iusentra-local-signer://restart") > 0 Then
+  If InStr(LCase(WScript.Arguments(0)), "iusentra-local-signer://update") > 0 Then
+    extra = " --update"
+  ElseIf InStr(LCase(WScript.Arguments(0)), "iusentra-local-signer://restart") > 0 Then
     extra = extra & " --force"
   End If
 End If

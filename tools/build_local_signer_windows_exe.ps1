@@ -18,7 +18,7 @@ $localSignerModDir = Join-Path $repoDir "local_signer_mod"
 $ufficiJson = Join-Path $repoDir "pct\data\uffici_ministero.json"
 $baseUrl = "https://app.iusentra.it"
 $downloadPage = "$baseUrl/impostazioni?tab=firma"
-$allowedOrigins = "$baseUrl,https://studio-legale-pct-production.up.railway.app"
+$allowedOrigins = "$baseUrl,https://studio-legale-pct-production.up.railway.app,http://127.0.0.1:8080,http://localhost:8080"
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
 function Write-Utf8TextFile {

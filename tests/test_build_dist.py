@@ -98,6 +98,9 @@ def test_build_windows_ps1_include_versione_e_script_originale():
     assert "Find-PythonCommand" in contenuto
     assert "FORCE_RESTART" in contenuto
     assert "iusentra-local-signer://restart" in contenuto
+    assert "iusentra-local-signer://update" in contenuto
+    assert "IUSENTRA_LOCAL_SIGNER_UPDATE_URL" in contenuto
+    assert "/polisWeb/local-signer/setup/windows" in contenuto
     assert "Copy-OrDownloadFile" not in contenuto
     assert 'Copy-Item (Join-Path $toolsDir "local_signer.py") $pythonScript -Force' in contenuto
     assert 'Copy-Item (Join-Path $toolsDir "local_ai_host_bridge.py") $aiBridgeScript -Force' in contenuto

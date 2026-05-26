@@ -275,6 +275,8 @@ def build_windows_exe_native(version: str) -> bytes:
 
 def build_macos_command(version: str, base_url: str) -> str:
     allowed_origins = ",".join(sorted({
+        "http://127.0.0.1:8080",
+        "http://localhost:8080",
         base_url.rstrip("/"),
         BASE_URL_DEFAULT,
         "https://studio-legale-pct-production.up.railway.app",
@@ -347,6 +349,8 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffic
 
 def build_linux_run(version: str, base_url: str) -> str:
     allowed_origins = ",".join(sorted({
+        "http://127.0.0.1:8080",
+        "http://localhost:8080",
         base_url.rstrip("/"),
         BASE_URL_DEFAULT,
         "https://studio-legale-pct-production.up.railway.app",

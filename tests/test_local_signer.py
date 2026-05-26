@@ -179,6 +179,8 @@ def test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows():
     assert "GetClassNameW" in source
     assert "AttachThreadInput" in source
     assert "SetWindowPos" in source
+    assert "CREATE_NO_WINDOW" in source
+    assert "STARTF_USESHOWWINDOW" in source
     assert source.count("_run_curl_with_pin_foreground(") >= 5
 
     raw = source[
@@ -204,6 +206,46 @@ def test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows():
     assert "_run_curl_with_pin_foreground(" in batch
     assert "_run_curl_with_pin_foreground(" in best_effort
     assert "_run_curl_with_pin_foreground(" in preflight
+
+
+def test_run_curl_windows_silenzia_console_senza_perdere_foreground_pin(monkeypatch):
+    module = _load_local_signer()
+    captured = {}
+
+    monkeypatch.setattr(module.sys, "platform", "win32")
+    monkeypatch.setattr(module.subprocess, "CREATE_NO_WINDOW", 0x08000000, raising=False)
+    monkeypatch.setattr(module.subprocess, "STARTF_USESHOWWINDOW", 1, raising=False)
+    monkeypatch.setattr(module.subprocess, "SW_HIDE", 0, raising=False)
+    monkeypatch.setattr(
+        module,
+        "_windows_pin_prompt_foreground_pump",
+        lambda stop_event, deadline_seconds: None,
+    )
+
+    def _fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        captured["kwargs"] = kwargs
+        return SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+
+    monkeypatch.setattr(module.subprocess, "run", _fake_run)
+
+    result = module._run_curl_with_pin_foreground(
+        ["curl.exe", "--version"],
+        capture_output=True,
+        timeout=7,
+        creationflags=0x00000002,
+    )
+
+    assert result.returncode == 0
+    assert captured["cmd"][0] == "curl.exe"
+    assert captured["kwargs"]["capture_output"] is True
+    assert captured["kwargs"]["timeout"] == 7
+    assert captured["kwargs"]["creationflags"] & 0x08000000
+    assert captured["kwargs"]["creationflags"] & 0x00000002
+    startupinfo = captured["kwargs"].get("startupinfo")
+    if startupinfo is not None:
+        assert getattr(startupinfo, "dwFlags", 0) & 1
+        assert getattr(startupinfo, "wShowWindow", None) == 0
 
 
 def test_local_signer_foreground_pin_riconosce_dialog_windows_senza_titolo():
@@ -819,7 +861,7 @@ def test_preflight_auth_accetta_http_405_come_handshake_valido():
 
     orig_run = module.subprocess.run
     try:
-        def _fake_run(cmd, capture_output, text, timeout, encoding, errors):
+        def _fake_run(cmd, capture_output, text, timeout, encoding, errors, **kwargs):
             header_file = cmd[cmd.index("--dump-header") + 1]
             body_file = cmd[cmd.index("-o") + 1]
             Path(header_file).write_text(
@@ -847,7 +889,7 @@ def test_preflight_auth_timeout_non_blocca_la_ricerca_reale():
 
     orig_run = module.subprocess.run
     try:
-        def _fake_run(cmd, capture_output, text, timeout, encoding, errors):
+        def _fake_run(cmd, capture_output, text, timeout, encoding, errors, **kwargs):
             return SimpleNamespace(returncode=28, stdout="", stderr="operation timed out")
 
         module.subprocess.run = _fake_run
@@ -867,7 +909,7 @@ def test_preflight_auth_timeout_expired_non_diventa_errore_500():
 
     orig_run = module.subprocess.run
     try:
-        def _fake_run(cmd, capture_output, text, timeout, encoding, errors):
+        def _fake_run(cmd, capture_output, text, timeout, encoding, errors, **kwargs):
             raise module.subprocess.TimeoutExpired(cmd, timeout)
 
         module.subprocess.run = _fake_run
@@ -1438,6 +1480,10 @@ def test_local_signer_launcher_windows_usa_avvio_silenzioso():
     assert "Register-LocalSignerStartupShortcut" in installer
     assert "IUSENTRA Local Signer.lnk" in installer
     assert "iusentra-local-signer://restart" in installer
+    assert "iusentra-local-signer://update" in installer
+    assert 'set "UPDATE_MODE=0"' in installer
+    assert "IUSENTRA_LOCAL_SIGNER_UPDATE_URL" in installer
+    assert "/polisWeb/local-signer/setup/windows" in installer
     assert "Invoke-Pip" in installer
     assert "PIP_NO_CACHE_DIR" in installer
     assert 'set "SILENT_MODE=0"' in launcher
@@ -3962,7 +4008,7 @@ def test_soap_call_curl_batch_raw_windows_preserva_cert_store_spec():
     captured = {}
 
     try:
-        def _fake_run(cmd, capture_output, timeout):
+        def _fake_run(cmd, capture_output, timeout, **kwargs):
             cfg_path = Path(cmd[-1])
             cfg_text = cfg_path.read_text(encoding="utf-8")
             captured["cfg"] = cfg_text
@@ -4009,7 +4055,7 @@ def test_soap_call_curl_raw_windows_applica_ssl_no_revoke():
     captured = {}
 
     try:
-        def _fake_run(cmd, capture_output, timeout):
+        def _fake_run(cmd, capture_output, timeout, **kwargs):
             captured["cmd"] = cmd
             header_path = Path(cmd[cmd.index("--dump-header") + 1])
             header_path.write_text("HTTP/1.1 200 OK\r\nContent-Type: text/xml\r\n\r\n", encoding="utf-8")
@@ -4042,7 +4088,7 @@ def test_pst_preflight_windows_applica_ssl_no_revoke():
     captured = {}
 
     try:
-        def _fake_run(cmd, capture_output, text, timeout, encoding, errors):
+        def _fake_run(cmd, capture_output, text, timeout, encoding, errors, **kwargs):
             captured["cmd"] = cmd
             header_path = Path(cmd[cmd.index("--dump-header") + 1])
             body_path = Path(cmd[cmd.index("-o") + 1])
@@ -4166,6 +4212,66 @@ def test_soap_call_pst_session_batch_raw_riprova_con_certificato_dopo_cookie_onl
     assert calls == [
         {"cert_thumbprint": None, "cookie_files": ["C:\\temp\\pst.cookies"]},
         {"cert_thumbprint": "AABBCC11", "cookie_files": ["C:\\temp\\pst.cookies"]},
+    ]
+
+
+def test_soap_call_pst_session_prova_cookie_anche_se_host_mtls_gia_noto():
+    module = _load_local_signer()
+
+    orig_call = module._soap_call_curl
+    module._mTLS_required_hosts.add("pst.example.test")
+    calls = []
+    try:
+        def _fake_call(*args, **kwargs):
+            calls.append(kwargs.get("cert_thumbprint"))
+            return "<ok/>"
+
+        module._soap_call_curl = _fake_call
+
+        result = module._soap_call_pst_session(
+            url="https://pst.example.test/soap",
+            soap_body="<xml/>",
+            cert_thumbprint="AABBCC11",
+            cookie_file="C:\\temp\\pst.cookies",
+            prefer_cookie_only=True,
+        )
+    finally:
+        module._soap_call_curl = orig_call
+        module._mTLS_required_hosts.discard("pst.example.test")
+
+    assert result == "<ok/>"
+    assert calls == [None]
+
+
+def test_soap_call_pst_session_batch_prova_cookie_anche_se_host_mtls_gia_noto():
+    module = _load_local_signer()
+
+    orig_call = module._soap_call_curl_batch_raw
+    module._mTLS_required_hosts.add("pst.example.test")
+    calls = []
+    try:
+        def _fake_call(requests, cert_thumbprint=None, pkcs11_uri=None):
+            calls.append({
+                "cert_thumbprint": cert_thumbprint,
+                "cookie_files": [req.get("cookie_file") for req in requests],
+            })
+            return [(b"<ok/>", "HTTP/1.1 200 OK\r\n")]
+
+        module._soap_call_curl_batch_raw = _fake_call
+
+        result = module._soap_call_pst_session_batch_raw(
+            [{"url": "https://pst.example.test/soap", "soap_body": "<xml/>"}],
+            cert_thumbprint="AABBCC11",
+            cookie_file="C:\\temp\\pst.cookies",
+            prefer_cookie_only=True,
+        )
+    finally:
+        module._soap_call_curl_batch_raw = orig_call
+        module._mTLS_required_hosts.discard("pst.example.test")
+
+    assert result == [(b"<ok/>", "HTTP/1.1 200 OK\r\n")]
+    assert calls == [
+        {"cert_thumbprint": None, "cookie_files": ["C:\\temp\\pst.cookies"]},
     ]
 
 
@@ -4395,6 +4501,46 @@ def test_pst_prepare_authenticated_session_esegue_preflight_una_sola_volta():
     assert calls[0]["cookie_file"]
 
 
+def test_pst_prepare_authenticated_session_non_disattiva_cookie_se_host_mtls_gia_noto():
+    module = _load_local_signer()
+
+    orig_preflight = module._pst_preflight_auth_curl
+    host = "ext.processotelematico.giustizia.it"
+    module._mTLS_required_hosts.add(host)
+    calls = []
+    try:
+        def _fake_preflight(url, cert_thumbprint=None, pkcs11_uri=None, cookie_file=None):
+            calls.append({"url": url, "cert_thumbprint": cert_thumbprint, "cookie_file": cookie_file})
+            return {
+                "ok": True,
+                "http_code": 405,
+                "content_type": "text/html",
+            }
+
+        module._pst_preflight_auth_curl = _fake_preflight
+        session_entry = module._create_pst_session(
+            cert_thumbprint="AABBCC11",
+            tribunale="0580010",
+            base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SICID",
+            cf_avvocato="RSSMRA80A01H501Z",
+        )
+
+        refreshed, prefer_cookie_only = module._pst_prepare_authenticated_session(
+            session_entry,
+            tribunale="0580010",
+            base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SICID",
+            cf_avvocato="RSSMRA80A01H501Z",
+            cert_thumbprint="AABBCC11",
+        )
+    finally:
+        module._pst_preflight_auth_curl = orig_preflight
+        module._mTLS_required_hosts.discard(host)
+
+    assert prefer_cookie_only is True
+    assert refreshed["auth_ready"] is True
+    assert len(calls) == 1
+
+
 def test_pst_prepare_authenticated_session_non_marca_cookie_pronto_su_preflight_timeout():
     module = _load_local_signer()
 
@@ -4442,7 +4588,7 @@ def test_pst_prepare_authenticated_session_non_marca_cookie_pronto_su_preflight_
     assert len(calls) == 1
 
 
-def test_pst_ricerca_snapshot_esegue_preflight_prima_del_batch():
+def test_pst_ricerca_snapshot_usa_batch_certificato_senza_preflight_separato():
     module = _load_local_signer()
 
     originals = {
@@ -4572,8 +4718,7 @@ def test_pst_ricerca_snapshot_esegue_preflight_prima_del_batch():
             setattr(module, name, value)
 
     assert captured["status"] == 200
-    assert captured["preflight"] == 1
-    assert captured["preflight_kwargs"]["cert_thumbprint"] == "AABBCC11"
+    assert captured["preflight"] == 0
     assert captured["payload"]["ok"] is True
     assert captured["payload"]["fascicoli"][0]["numero_rg"] == "274"
     assert captured["payload"]["fascicoli"][0]["nome_ufficio"] == "Tribunale di Palmi"
@@ -4584,7 +4729,7 @@ def test_pst_ricerca_snapshot_esegue_preflight_prima_del_batch():
     assert captured["session_ids"] == ["SID-STALENESS-FROM-BROWSER", ""]
     assert len(captured["batch"]["requests"]) == 9
     assert captured["batch"]["kwargs"]["cert_thumbprint"] == "AABBCC11"
-    assert captured["batch"]["kwargs"]["prefer_cookie_only"] is True
+    assert captured["batch"]["kwargs"]["prefer_cookie_only"] is False
 
 
 def test_pst_ricerca_snapshot_fault_client_su_sicid_passa_a_siecic(monkeypatch):
@@ -4700,8 +4845,7 @@ def test_pst_ricerca_snapshot_fault_client_su_sicid_passa_a_siecic(monkeypatch):
     module._Handler._pst_ricerca_snapshot(_FakeHandler())
 
     assert captured["status"] == 200
-    assert captured["preflight"] == 1
-    assert captured["preflight_kwargs"]["cert_thumbprint"] == "AABBCC11"
+    assert captured["preflight"] == 0
     assert len(captured["requests"]) == 6
     assert captured["payload"]["ok"] is True
     assert captured["payload"]["fascicoli"][0]["numero_rg"] == "274"
@@ -4808,8 +4952,7 @@ def test_pst_ricerca_snapshot_prova_codice_ufficio_ufficiale_se_diverso(monkeypa
     module._Handler._pst_ricerca_snapshot(_FakeHandler())
 
     assert captured["status"] == 200
-    assert captured["preflight"] == 1
-    assert captured["preflight_kwargs"]["cert_thumbprint"] == "AABBCC11"
+    assert captured["preflight"] == 0
     assert len(captured["requests"]) == 6
     assert any('group="0910011"' in request["soap_body"] for request in captured["requests"])
     assert captured["payload"]["ok"] is True
@@ -4934,7 +5077,7 @@ def test_pst_ricerca_snapshot_sigp_include_ricerca_atti_nel_batch_visualizzazion
             setattr(module, name, value)
 
     assert captured["status"] == 200
-    assert captured["preflight"] == 1
+    assert captured["preflight"] == 0
     assert captured["payload"]["ok"] is True
     assert [doc["id_repeatto"] for doc in captured["payload"]["documenti"]] == ["3080731", "3073476"]
     assert len(captured["batch"]["requests"]) == 4

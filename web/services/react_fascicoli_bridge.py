@@ -1271,6 +1271,20 @@ def _client_payload(cliente: Any) -> dict[str, Any] | None:
 
 
 def _profile(fascicolo: Any, *, apps: Iterable[Any] | None = None, studio_avvocato_titolare: str = "") -> list[dict[str, Any]]:
+    source_snapshot = getattr(fascicolo, "source_snapshot", None)
+    source_counts = dict(source_snapshot.get("counts") or {}) if isinstance(source_snapshot, dict) else {}
+    source_summary = ""
+    if source_counts:
+        source_summary = ", ".join(
+            f"{label} {int(source_counts.get(key) or 0)}"
+            for key, label in (
+                ("parti", "parti"),
+                ("documenti", "documenti"),
+                ("depositi", "depositi"),
+                ("eventi", "eventi"),
+            )
+            if int(source_counts.get(key) or 0)
+        )
     rows = [
         ("Cliente", getattr(fascicolo, "nome_cliente", ""), False, f"/clienti/{_text(getattr(fascicolo, 'id_cliente', ''))}" if _text(getattr(fascicolo, "id_cliente", "")) else ""),
         ("Controparte", getattr(fascicolo, "controparte", ""), False, ""),
@@ -1293,6 +1307,7 @@ def _profile(fascicolo: Any, *, apps: Iterable[Any] | None = None, studio_avvoca
         ("Prossima udienza", _date_label(_next_hearing_value(fascicolo, apps)), False, ""),
         ("Chiusura", _date_label(_closure_date_value(fascicolo)), False, ""),
         ("Fonte portale", getattr(fascicolo, "source", ""), False, ""),
+        ("Dati letti dal portale", source_summary, False, ""),
         ("Ultimo sync", _date_label(getattr(fascicolo, "last_sync_at", "")), False, ""),
     ]
     return [
@@ -2140,6 +2155,7 @@ def _full_fascicolo(fascicolo: Any, *, apps: Iterable[Any] | None = None, studio
             "lastSyncAt": _date_label(getattr(fascicolo, "last_sync_at", "")),
             "syncStatus": _text(getattr(fascicolo, "sync_status", "")),
             "importLogId": _text(getattr(fascicolo, "import_log_id", "")),
+            "sourceSnapshot": dict(getattr(fascicolo, "source_snapshot", {}) or {}),
             "hasConflicts": bool(getattr(fascicolo, "has_conflicts", False)),
             "documentSyncEnabled": bool(getattr(fascicolo, "document_sync_enabled", False)),
             "eventsSyncEnabled": bool(getattr(fascicolo, "events_sync_enabled", False)),

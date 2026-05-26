@@ -688,6 +688,57 @@ def test_collega_documenti_a_deposito_portale_aggancia_file_locali_al_deposito_u
     assert fascicolo.documenti[0].id_documento_portale == "DOC-001"
     assert fascicolo.documenti[0].mittente_portale == "cancelleria@tribunale.giustiziapec.it"
     assert fascicolo.documenti[0].fonte_documento == "PORTALE_TELEMATICO"
+
+
+def test_collega_documenti_portale_deduplica_ids_e_mantiene_classificazione(gf, fascicolo_base):
+    dep = gf.sincronizza_deposito_portale(
+        fascicolo_base.id,
+        fonte="PolisWeb / PST",
+        id_deposito_esterno="DEP-DECRETO-35052610",
+        tipo_atto="Decreto",
+        data_deposito="2026-05-07",
+        mittente="RUSCIO EMANUELA",
+        documenti_portale=[
+            {
+                "id_documento": "35052610",
+                "nome": "Decreto_35052610.pdf",
+                "tipo": "Decreto",
+                "data_deposito": "2026-05-07",
+                "mittente": "RUSCIO EMANUELA",
+                "dimensione_bytes": 12000,
+                "disponibile": True,
+                "id_deposito": "DEP-DECRETO-35052610",
+                "tipo_atto": "Decreto",
+            }
+        ],
+        registrato_da="admin",
+        servizio_portale="DocumentiFascicolo",
+    )
+    doc = gf.aggiungi_documento(
+        fascicolo_base.id,
+        "Decreto_35052610.pdf",
+        TipoDocumento.DECRETO,
+        b"decreto",
+        fonte_documento="PORTALE_TELEMATICO",
+        nome_originale="pst:JPW_SICID:35052610",
+    )
+
+    gf.collega_documenti_a_deposito_portale(
+        fascicolo_base.id,
+        dep.id,
+        [doc.id, doc.id, doc.id],
+        note="File ufficiale acquisito dal fascicolo PST.",
+        registrato_da="admin",
+    )
+
+    fascicolo = gf.get(fascicolo_base.id)
+    deposito = fascicolo.depositi_pct[0]
+    documento = fascicolo.documenti[0]
+    assert deposito.documenti_ids == [doc.id]
+    assert documento.id_deposito_pct == dep.id
+    assert documento.classificazione_portale == "Decreto"
+    assert documento.tipo_atto_portale == "Decreto"
+    assert documento.id_documento_portale == "35052610"
     assert not any(
         att.tipo == TipoAttivita.CONSULTAZIONE and att.id_deposito_pct == dep.id
         for att in fascicolo.attivita

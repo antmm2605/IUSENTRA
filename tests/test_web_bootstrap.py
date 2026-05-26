@@ -1102,22 +1102,30 @@ def test_impostazioni_js_e_esterno_e_senza_duplicazioni():
 
 def test_local_signer_monitor_globale_verifica_versione_e_installer():
     base = (REPO_ROOT / "web/templates/base.html").read_text(encoding="utf-8")
+    react_shell = (REPO_ROOT / "web/templates/react_shell.html").read_text(encoding="utf-8")
     monitor_js = (REPO_ROOT / "web/static/js/local-signer-monitor.js").read_text(encoding="utf-8")
 
     assert 'id="iusentra-local-signer-monitor"' in base
     assert 'data-local-signer-url="{{ local_signer_release.browser_url }}"' in base
     assert 'data-latest-version="{{ local_signer_release.version }}"' in base
+    assert 'data-restart-protocol="iusentra-local-signer://restart"' in base
+    assert 'data-update-protocol="iusentra-local-signer://update"' in base
+    assert 'data-restart-protocol="iusentra-local-signer://restart"' in react_shell
+    assert 'data-update-protocol="iusentra-local-signer://update"' in react_shell
     assert "/static/js/local-signer-monitor.js?v={{ app_version }}" in base
 
     assert "http://127.0.0.1:27272" in monitor_js
     assert "iusentra-local-signer://restart" in monitor_js
+    assert "iusentra-local-signer://update" in monitor_js
     assert "isDesktopLocalSignerHost" in monitor_js
     assert "unsupported_mobile_tablet" in monitor_js
     assert "hideBanner();" in monitor_js
     assert "compareVersions" in monitor_js
+    assert "verifyAfterUpdate" in monitor_js
     assert "Fase 1: provo ad avviare" in monitor_js
     assert "Fase 2: versione rilevata" in monitor_js
-    assert "Fase 3: installa il pacchetto" in monitor_js
+    assert "Aggiorna automaticamente" in monitor_js
+    assert "Se Windows non ha autorizzato" in monitor_js
     assert "Fase 4 completata" in monitor_js
     assert "autoOpenInstallerOnce" in monitor_js
 

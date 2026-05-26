@@ -2326,6 +2326,8 @@ def test_pst_acquisizione_usa_lookup_uffici_reali_importati(tmp_path: Path):
     assert "if ((query.ufficio || query.ufficioCodice) && !data.offices.length) return" in page_source
     assert "selectedOfficeMatches(office)" in page_source
     assert "/api/v1/ui/local-signer/diagnostics" in page_source
+    assert "iusentra-local-signer://update" in page_source
+    assert "Aggiorna automaticamente" in page_source
     assert "auto_pst_test" in page_source
     assert "exact?.codice || exact?.codiceMinistero || query.ufficio" in page_source
     assert "office.codiceMinistero || office.codice" not in page_source
@@ -2334,6 +2336,16 @@ def test_pst_acquisizione_usa_lookup_uffici_reali_importati(tmp_path: Path):
     assert "acquisitionVisible" in page_source
     assert "AcquisitionWizardLegacy" not in page_source
     assert "Step {step}/7" in page_source
+    assert "Riprova scarico" in page_source
+    assert "REACT_ACQUISITION_HISTORY_KEY" in page_source
+    assert "Fascicolo non scaricato dal portale" in page_source
+    assert "previewPartyCountLabel" in page_source
+    assert "nominativi unici" in page_source
+    assert "previewParties.slice(0, 8)" not in page_source
+    assert "recordAcquisitionHistory('empty'" in page_source
+    assert "recordAcquisitionHistory('failed'" in page_source
+    assert "auto_pst_test" in page_source
+    assert "add('cf'" not in page_source
 
 
 def test_local_signer_diagnostics_salva_server_studio(tmp_path: Path):
@@ -3450,6 +3462,26 @@ def test_react_fascicoli_bridge_usa_repository_reali(tmp_path: Path):
         numero_rg="001",
         anno_rg=today.year,
     )
+    fascicolo = fascicoli.aggiorna(
+        fascicolo.id,
+        source="PST",
+        source_external_id=f"0580010:001:{today.year}:RG",
+        sync_status="SINCRONIZZATO",
+        source_snapshot={
+            "portale": "PST",
+            "external_id": f"0580010:001:{today.year}:RG",
+            "numero": "001",
+            "anno": today.year,
+            "ufficio_nome": "Corte d'Appello di Milano",
+            "ufficio_codice": "0580010",
+            "procedimento": "Contenzioso civile",
+            "stato": "Pendente",
+            "oggetto": "Appello civile",
+            "parti": ["Moscato Marco"],
+            "controparti": ["Zurich Ass.ni"],
+            "counts": {"parti": 2, "documenti": 3, "depositi": 1, "eventi": 2},
+        },
+    )
     soggetti = GestioneSoggetti(app.config["SOGGETTI_DB"], app.config["SOGGETTI_PARTI_DB"])
     controparte = soggetti.crea(
         TipoSoggetto.PERSONA_GIURIDICA,
@@ -3756,6 +3788,26 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
         numero_rg="001",
         anno_rg=today.year,
     )
+    fascicolo = fascicoli.aggiorna(
+        fascicolo.id,
+        source="PST",
+        source_external_id=f"0580010:001:{today.year}:RG",
+        sync_status="SINCRONIZZATO",
+        source_snapshot={
+            "portale": "PST",
+            "external_id": f"0580010:001:{today.year}:RG",
+            "numero": "001",
+            "anno": today.year,
+            "ufficio_nome": "Corte d'Appello di Milano",
+            "ufficio_codice": "0580010",
+            "procedimento": "Contenzioso civile",
+            "stato": "Pendente",
+            "oggetto": "Appello civile",
+            "parti": ["Moscato Marco"],
+            "controparti": ["Zurich Ass.ni"],
+            "counts": {"parti": 2, "documenti": 3, "depositi": 1, "eventi": 2},
+        },
+    )
     soggetti = GestioneSoggetti(app.config["SOGGETTI_DB"], app.config["SOGGETTI_PARTI_DB"])
     controparte = soggetti.crea(
         TipoSoggetto.PERSONA_GIURIDICA,
@@ -3821,6 +3873,9 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert row["deleteHref"] == f"/fascicoli/{fascicolo.id}/elimina"
     assert not row["href"].startswith("/app-v2/")
     assert detail["fascicolo"]["title"] == "Appello civile"
+    assert detail["fascicolo"]["sourceSnapshot"]["portale"] == "PST"
+    assert detail["fascicolo"]["sourceSnapshot"]["counts"]["documenti"] == 3
+    assert any(item["label"] == "Dati letti dal portale" and "documenti 3" in item["value"] for item in detail["profile"])
     assert alias_detail["fascicolo"]["id"] == fascicolo.id
     assert detail["signature"]["visibleSignatureMode"] == "laterale"
     assert "visibleSignaturePlace" in detail["signature"]
@@ -3839,7 +3894,7 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert form["studio"]["leadLawyer"] == "Avv. Refactor"
     assert form["fascicolo"]["leadLawyer"] == "Avv. Refactor"
     assert form["guardrails"]["channel"] == "PCT_TELEMATICO"
-    assert form["guardrails"]["requiredOpeningFields"] == ["titolo", "tipo", "oggetto", "autorita giudiziaria", "controparte"]
+    assert form["guardrails"]["requiredOpeningFields"] == ["titolo", "tipo", "oggetto", "autorità giudiziaria", "controparte"]
     assert new_form["judicialOffices"]
     assert any("Tribunale" in office["label"] for office in new_form["judicialOffices"])
     assert "subjects" in new_form

@@ -192,9 +192,15 @@ type ImportProgress = {
   failures: string[]
 }
 
+type AcquisitionHistoryEvent = TelematicoSurfaceData['recentEvents'][number] & {
+  local?: boolean
+}
+
 const REACT_PST_CERT_KEY = 'iusentra.react.pst.cert'
 const REACT_PST_SESSION_KEY = 'iusentra.react.pst.session'
 const REACT_PST_SESSION_PURPOSE = 'view'
+const REACT_ACQUISITION_HISTORY_KEY = 'iusentra.react.portali.acquisition.history'
+const REACT_ACQUISITION_HISTORY_LIMIT = 10
 
 function surfaceFromCurrentPath(): TelematicoSurfaceId {
   const raw = window.location.pathname.replace(/\/+$/, '') || '/'
@@ -260,6 +266,111 @@ function writeStoredRecord(key: string, value: JsonRecord | null) {
   } catch {
     // sessionStorage puo essere disabilitato: il flusso resta valido in memoria.
   }
+}
+
+function normaliseAcquisitionHistoryEvent(value: unknown): AcquisitionHistoryEvent | null {
+  const row = asRecord(value)
+  const href = asText(row.href)
+  const title = asText(row.title)
+  if (!href || !title) return null
+  return {
+    id: asText(row.id, `local-acq-${Date.now()}`),
+    portal: asText(row.portal || 'pst') as AcquisitionHistoryEvent['portal'],
+    title,
+    subtitle: asText(row.subtitle),
+    timestamp: asText(row.timestamp),
+    href,
+    tone: asText(row.tone, 'warning') as Tone,
+    badge: asText(row.badge, 'Riprova'),
+    local: row.local !== false,
+  }
+}
+
+function readAcquisitionHistory(portal = ''): AcquisitionHistoryEvent[] {
+  try {
+    const raw = window.localStorage?.getItem(REACT_ACQUISITION_HISTORY_KEY)
+    const parsed = JSON.parse(raw || '[]') as unknown
+    return asList(parsed)
+      .map(normaliseAcquisitionHistoryEvent)
+      .filter((item): item is AcquisitionHistoryEvent => Boolean(item))
+      .filter((item) => !portal || item.portal === portal)
+      .slice(0, REACT_ACQUISITION_HISTORY_LIMIT)
+  } catch {
+    return []
+  }
+}
+
+function writeAcquisitionHistory(items: AcquisitionHistoryEvent[]) {
+  try {
+    window.localStorage?.setItem(
+      REACT_ACQUISITION_HISTORY_KEY,
+      JSON.stringify(items.slice(0, REACT_ACQUISITION_HISTORY_LIMIT)),
+    )
+  } catch {
+    // La cronologia locale e' un aiuto operativo: non deve bloccare il wizard.
+  }
+}
+
+function acquisitionRetryHref(portal: string, query: AcquisitionQuery, mapping: AcquisitionMapping): string {
+  const params = new URLSearchParams()
+  const add = (key: string, value: string) => {
+    const clean = asText(value)
+    if (clean) params.set(key, clean)
+  }
+  add('ufficio', query.ufficioNome || query.ufficio)
+  add('ufficio_codice', query.ufficioCodice)
+  add('numero', query.numero)
+  add('anno', query.anno)
+  if (mapping.target_fascicolo_id) {
+    params.set('fascicolo_id', mapping.target_fascicolo_id)
+    params.set('mode', mapping.mode === 'create_new' ? 'update_existing' : mapping.mode)
+  }
+  if (portal === 'pst' && query.numero && query.anno && (query.ufficio || query.ufficioCodice)) {
+    params.set('auto_pst_test', '1')
+  }
+  const queryString = params.toString()
+  return `/portali/${encodeURIComponent(portal)}/acquisizione${queryString ? `?${queryString}` : ''}#wizard-acquisizione`
+}
+
+function friendlyAcquisitionReason(value: unknown): string {
+  const raw = asText(value, 'Operazione non completata.')
+  const lower = raw.toLowerCase()
+  if (lower.includes('tempo massimo') || lower.includes('timeout') || lower.includes('non ha risposto')) {
+    return 'Il portale ufficiale non ha risposto entro il tempo massimo; possibile sovraffollamento, puoi riprovare con gli stessi dati.'
+  }
+  if (lower.includes('401') || lower.includes('unauthorized') || lower.includes('pin') || lower.includes('certificato') || lower.includes('autentic')) {
+    return 'Certificato o PIN non confermati/accettati sul PC; verifica il dispositivo e riprova.'
+  }
+  if (lower.includes('file reali') || lower.includes('solo catalogo') || lower.includes('metadati') || lower.includes('lotto scaricato')) {
+    return 'Il PST ha esposto il catalogo, ma non ha consegnato file reali al Local Signer.'
+  }
+  if (lower.includes('sessione')) {
+    return 'Sessione del portale scaduta o non più valida; riapri il canale e riprova.'
+  }
+  if (lower.includes('nessun fascicolo')) {
+    return 'Nessun fascicolo restituito dal portale con questi dati; verifica ufficio, numero e anno.'
+  }
+  return raw
+}
+
+function acquisitionHistorySubtitle(query: AcquisitionQuery, reason: string): string {
+  const rg = [query.numero, query.anno].filter(Boolean).join('/')
+  const parts = [
+    query.ufficioNome || query.ufficio || 'Ufficio non indicato',
+    rg ? `R.G. ${rg}` : '',
+    reason,
+  ].filter(Boolean)
+  return parts.join(' - ')
+}
+
+function pushAcquisitionHistoryEvent(event: AcquisitionHistoryEvent) {
+  const current = readAcquisitionHistory()
+  const next = [
+    event,
+    ...current.filter((item) => item.id !== event.id && item.href !== event.href),
+  ].slice(0, REACT_ACQUISITION_HISTORY_LIMIT)
+  writeAcquisitionHistory(next)
+  window.dispatchEvent(new CustomEvent('iusentra:portal-acquisition-history', { detail: event }))
 }
 
 function loadPstCertificate(): PstCertificate | null {
@@ -730,19 +841,34 @@ function CasesPanel({ data }:{ data:TelematicoSurfaceData }) {
   )
 }
 
-function EventsPanel({ data }:{ data:TelematicoSurfaceData }) {
+function mergeAcquisitionEvents(
+  serverEvents: TelematicoSurfaceData['recentEvents'],
+  localEvents: AcquisitionHistoryEvent[],
+): AcquisitionHistoryEvent[] {
+  const seen = new Set<string>()
+  return [...localEvents, ...serverEvents].filter((event) => {
+    const key = `${event.href}|${event.title}|${event.timestamp}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  }).slice(0, 14)
+}
+
+function EventsPanel({ data, localEvents = [] }:{ data:TelematicoSurfaceData; localEvents?: AcquisitionHistoryEvent[] }) {
+  const events = mergeAcquisitionEvents(data.recentEvents, localEvents)
   return (
-    <Panel title="Cronologia" subtitle="Import, esiti e azioni recenti" icon={<RefreshCw size={17}/>} count={data.recentEvents.length}>
-      {data.recentEvents.length ? (
+    <Panel title="Cronologia" subtitle="Import, esiti e azioni recenti" icon={<RefreshCw size={17}/>} count={events.length}>
+      {events.length ? (
         <div className="iu-tel-surface-events">
-          {data.recentEvents.map((item) => (
-            <a href={item.href} key={item.id}>
+          {events.map((item) => (
+            <a href={item.href} key={item.id} className={item.local ? 'is-retry-event' : undefined}>
               <Badge tone={item.tone}>{item.badge || 'Evento'}</Badge>
               <div>
                 <strong>{item.title}</strong>
                 <span>{item.subtitle}</span>
                 <time>{item.timestamp}</time>
               </div>
+              {item.local ? <em>Riprova</em> : null}
             </a>
           ))}
         </div>
@@ -890,13 +1016,25 @@ function isDesktopLocalSignerHost(): boolean {
   return !isMobileOrTablet && !isIpadDesktopMode
 }
 
-function requestLocalSignerStart() {
+function requestLocalSignerProtocol(uri: string) {
   if (!isDesktopLocalSignerHost()) return
   const iframe = document.createElement('iframe')
   iframe.hidden = true
-  iframe.src = 'iusentra-local-signer://restart'
+  iframe.src = uri
   document.body.appendChild(iframe)
   window.setTimeout(() => iframe.remove(), 3000)
+}
+
+function requestLocalSignerStart() {
+  requestLocalSignerProtocol('iusentra-local-signer://restart')
+}
+
+function requestLocalSignerUpdate() {
+  requestLocalSignerProtocol('iusentra-local-signer://update')
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
 }
 
 function officialPortalHref(portal: string): string {
@@ -1056,21 +1194,76 @@ function pstPreviewDocuments(preview: JsonRecord): JsonRecord[] {
   })
 }
 
+function previewPersonName(item: unknown): string {
+  if (!isRecord(item)) return asText(item)
+  const nested = item.parte || item.soggetto || item.anagrafica
+  const cognome = asText(item.cognome || item.cognome_persona)
+  const nome = asText(item.nome_persona || item.nome_proprio)
+  if (cognome && nome) return `${cognome} ${nome}`
+  const direct = asText(
+    item.nominativo
+    || item.nome
+    || item.denominazione
+    || item.ragione_sociale
+    || item.name
+    || item.label,
+  )
+  if (direct) return direct
+  return isRecord(nested) ? previewPersonName(nested) : ''
+}
+
 function previewPeople(preview: JsonRecord): string[] {
   const values: string[] = []
+  const seen = new Set<string>()
   const append = (value: unknown) => {
     const text = asText(value)
-    if (text && !values.includes(text)) values.push(text)
+    const key = normaliseSearch(text)
+    if (text && !seen.has(key)) {
+      seen.add(key)
+      values.push(text)
+    }
   }
-  asList(preview.parti).forEach((item) => {
-    if (isRecord(item)) append(item.nome || item.denominazione || item.name || item.label)
-    else append(item)
-  })
-  asList(preview.controparti).forEach((item) => {
-    if (isRecord(item)) append(item.nome || item.denominazione || item.name || item.label)
-    else append(item)
-  })
+  const identity = previewIdentity(preview)
+  const payload = asRecord(preview.payload)
+  const snapshot = asRecord(preview.snapshot)
+  const snapshotIdentity = asRecord(snapshot.fascicolo || snapshot.identity || snapshot.procedimento || snapshot.ricorso || snapshot.controversia)
+  const collect = (source: unknown) => {
+    const rows = Array.isArray(source) ? source : (isRecord(source) ? Object.values(source) : [])
+    rows.forEach((item) => append(previewPersonName(item)))
+  }
+  ;[
+    preview.parti,
+    preview.controparti,
+    preview.parti_dettaglio,
+    preview.anagrafiche,
+    identity.parti,
+    identity.controparti,
+    identity.parti_dettaglio,
+    identity.anagrafiche,
+    payload.parti,
+    payload.controparti,
+    payload.parti_dettaglio,
+    snapshot.parti,
+    snapshot.controparti,
+    snapshot.parti_dettaglio,
+    snapshotIdentity.parti,
+    snapshotIdentity.controparti,
+    snapshotIdentity.parti_dettaglio,
+  ].forEach(collect)
   return values
+}
+
+function previewPartyMetric(preview: JsonRecord, parties: string[]): number {
+  return parties.length || previewCount(preview, 'parti')
+}
+
+function previewPartyCountLabel(preview: JsonRecord, parties: string[]): string {
+  const rawRows = previewCount(preview, 'parti')
+  const uniqueNames = parties.length
+  if (!uniqueNames && rawRows) return 'Righe PST rilevate'
+  if (!uniqueNames) return 'Nessuna parte indicata'
+  if (rawRows > uniqueNames) return `${uniqueNames} nominativi unici, ${rawRows} righe PST`
+  return `${uniqueNames} nominativi visualizzati`
 }
 
 function previewEvents(preview: JsonRecord): JsonRecord[] {
@@ -1298,9 +1491,11 @@ function authorisedPayload(files: AcquisitionFile[]): JsonRecord | null {
 function AcquisitionWizard({
   surfaceId,
   data,
+  localEvents = [],
 }:{
   surfaceId: TelematicoSurfaceId
   data: TelematicoSurfaceData
+  localEvents?: AcquisitionHistoryEvent[]
 }) {
   const portal = portalFromSurface(surfaceId, data)
   const visible = isAcquisitionPath(portal)
@@ -1429,7 +1624,7 @@ function AcquisitionWizard({
         message: outdated && reachable
           ? `Local Signer rilevato su questo PC. Aggiornamento consigliato alla versione ${data.localSigner.latestVersion}, ma puoi proseguire con la ricerca.`
           : reachable
-            ? 'Local Signer rilevato su questo PC. La ricerca puo usare il canale locale autorizzato.'
+            ? 'Local Signer rilevato su questo PC. La ricerca può usare il canale locale autorizzato.'
             : asText(payload.messaggio || payload.error, 'Local Signer raggiunto ma non pronto.'),
       }
       setLocalSigner(next)
@@ -1450,6 +1645,37 @@ function AcquisitionWizard({
     } finally {
       window.clearTimeout(timer)
     }
+  }
+
+  const updateLocalSignerAutomatically = async (): Promise<BrowserLocalSignerStatus | null> => {
+    if (!localSignerDesktopSupported) return null
+    setLocalSigner((current) => ({
+      ...current,
+      checked: true,
+      checking: true,
+      message: 'Aggiornamento automatico Local Signer avviato. IUSENTRA usa il pacchetto ufficiale e poi ricontrolla il servizio locale.',
+    }))
+    requestLocalSignerUpdate()
+    for (let attempt = 0; attempt < 70; attempt += 1) {
+      await wait(1200)
+      const next = await checkLocalSigner(false)
+      if (next.ok && !next.outdated) {
+        setMessage(`Local Signer aggiornato alla versione ${next.version || data.localSigner.latestVersion}.`)
+        return next
+      }
+    }
+    const next = {
+      checked: true,
+      checking: false,
+      ok: Boolean(localSigner.ok),
+      outdated: true,
+      unsupported: false,
+      version: localSigner.version,
+      tokenLabel: localSigner.tokenLabel,
+      message: 'Aggiornamento automatico non completato. Se Windows non ha autorizzato l’avvio, usa il pacchetto ufficiale e poi verifica di nuovo.',
+    }
+    setLocalSigner(next)
+    return next
   }
 
   const localSignerJson = async (path: string, body?: JsonRecord, timeoutMs = 45000): Promise<JsonRecord> => {
@@ -1642,6 +1868,27 @@ function AcquisitionWizard({
     ...extra,
   })
 
+  const recordAcquisitionHistory = (
+    kind: 'empty' | 'failed' | 'warning',
+    title: string,
+    reason: unknown,
+  ) => {
+    const friendlyReason = friendlyAcquisitionReason(reason)
+    const retryHref = acquisitionRetryHref(portal, query, mapping)
+    const timestamp = new Date().toISOString()
+    pushAcquisitionHistoryEvent({
+      id: `local-${portal}-${kind}-${Date.now()}`,
+      portal: portal as AcquisitionHistoryEvent['portal'],
+      title,
+      subtitle: acquisitionHistorySubtitle(query, friendlyReason),
+      timestamp,
+      href: retryHref,
+      tone: kind === 'failed' ? 'danger' : 'warning',
+      badge: kind === 'failed' ? 'Non scaricato' : 'Riprova',
+      local: true,
+    })
+  }
+
   const collectAndSaveLocalSignerDiagnostic = async (event: string, extra: JsonRecord = {}) => {
     if (!portalNeedsLocalSigner || localSigner.unsupported) return
     const diagnosi = await localSignerJson('/diagnosi', undefined, 45000).catch((error: unknown) => ({
@@ -1792,6 +2039,9 @@ function AcquisitionWizard({
       setSelection(rows[0] || null)
       setStep(2)
       setMessage(rows.length ? `${rows.length} risultati trovati.` : 'Nessun fascicolo trovato con questi filtri.')
+      if (!rows.length) {
+        recordAcquisitionHistory('empty', 'Fascicolo non scaricato dal portale', 'Nessun fascicolo trovato con questi filtri.')
+      }
       if (portal === 'pst') {
         void collectAndSaveLocalSignerDiagnostic(rows.length ? 'pst_search_success' : 'pst_search_empty', {
           risultati: rows.length,
@@ -1809,6 +2059,7 @@ function AcquisitionWizard({
       if (portal === 'pst' && isPstSessionExpiredError(error)) clearPstSession()
       const errorMessage = asText(error instanceof Error ? error.message : error, 'Ricerca non disponibile.')
       setMessage(errorMessage)
+      recordAcquisitionHistory('failed', 'Fascicolo non scaricato dal portale', errorMessage)
       if (portal === 'pst') {
         void collectAndSaveLocalSignerDiagnostic('pst_search_error', { errore: errorMessage })
       }
@@ -2084,6 +2335,9 @@ function AcquisitionWizard({
       setImportResult(payload)
       setFiles(activeFiles)
       setStep(7)
+      if (downloadFailureMessages.length) {
+        recordAcquisitionHistory('warning', 'Scarico completato con documenti da riprovare', downloadFailureMessages.join(' | '))
+      }
       setMessage(downloadFailureMessages.length
         ? `Importazione completata con ${downloadFailureMessages.length} avviso da verificare sul portale ufficiale.`
         : 'Importazione completata o presa in carico dal gestionale operativo.')
@@ -2095,7 +2349,9 @@ function AcquisitionWizard({
         phase: current.phase || 'Importazione non completata',
         failures: current.failures.length ? current.failures : [asText(error instanceof Error ? error.message : error, 'Importazione non completata.')],
       }))
-      setMessage(asText(error instanceof Error ? error.message : error, 'Importazione non disponibile.'))
+      const errorMessage = asText(error instanceof Error ? error.message : error, 'Importazione non disponibile.')
+      setMessage(errorMessage)
+      recordAcquisitionHistory('failed', 'Fascicolo non scaricato dal portale', errorMessage)
     } finally {
       setBusy('')
     }
@@ -2241,6 +2497,7 @@ function AcquisitionWizard({
     { id: 7, label: 'Importa', help: 'Acquisizione finale' },
   ]
   const currentStep = steps.find((item) => item.id === step) || steps[1]
+  const retryEvents = localEvents.filter((item) => item.portal === portal).slice(0, 3)
 
   return (
     <section className="iu-tel-acquisition" id="wizard-acquisizione">
@@ -2306,15 +2563,15 @@ function AcquisitionWizard({
               <div className="iu-tel-acq-status">
                 <span><strong>Canale</strong>{portalLabel(portal)}</span>
                 <span><strong>Stato</strong>{asText(status.status_text || status.label || status.mode, 'Da verificare')}</span>
-                <span><strong>Local Signer</strong>{localSigner.unsupported ? 'Solo desktop' : localSigner.ok ? 'Rilevato sul PC' : localSigner.outdated ? 'Da aggiornare' : 'Da verificare dal PC'}</span>
+                <span><strong>Local Signer</strong>{localSigner.unsupported ? 'Solo desktop' : localSigner.outdated ? 'Da aggiornare' : localSigner.ok ? 'Rilevato sul PC' : 'Da verificare dal PC'}</span>
                 <button type="button" disabled={localSigner.checking || localSigner.unsupported} onClick={() => checkLocalSigner(false)}>
                   <RefreshCw size={15}/> {localSigner.checking ? 'Verifica...' : 'Verifica Local Signer'}
                 </button>
               </div>
-              <div className={`iu-tel-local-signer-card ${localSigner.ok ? 'is-ok' : localSigner.outdated ? 'is-warning' : 'is-missing'}`}>
+              <div className={`iu-tel-local-signer-card ${localSigner.outdated ? 'is-warning' : localSigner.ok ? 'is-ok' : 'is-missing'}`}>
                 <ShieldCheck size={18}/>
                 <div>
-                  <strong>{localSigner.unsupported ? 'Disponibile solo su desktop' : localSigner.ok ? 'Local Signer pronto' : localSigner.outdated ? 'Aggiornamento richiesto' : 'Controllo locale richiesto'}</strong>
+                  <strong>{localSigner.unsupported ? 'Disponibile solo su desktop' : localSigner.outdated ? 'Aggiornamento richiesto' : localSigner.ok ? 'Local Signer pronto' : 'Controllo locale richiesto'}</strong>
                   <span>{localSigner.message}</span>
                   <small>
                     Servizio locale IUSENTRA sul PC in uso
@@ -2326,6 +2583,7 @@ function AcquisitionWizard({
               </div>
               <div className="iu-tel-acq-actions">
                 <button type="button" disabled={localSigner.unsupported} onClick={() => checkLocalSigner(true)}><RefreshCw size={15}/> Avvia e verifica</button>
+                {localSigner.unsupported ? null : <button type="button" disabled={localSigner.checking} onClick={updateLocalSignerAutomatically}><Download size={15}/> Aggiorna automaticamente</button>}
                 {localSigner.unsupported ? null : <a href={localSignerInstallHref(data)}><Download size={15}/> Installa o aggiorna</a>}
                 <button type="button" disabled={localSigner.unsupported} onClick={() => setStep(2)}><ArrowRight size={15}/> Vai alla ricerca</button>
               </div>
@@ -2364,6 +2622,14 @@ function AcquisitionWizard({
                 <div className="iu-tel-local-signer-inline">
                   <ShieldCheck size={16}/>
                   <span>Local Signer è disponibile solo da PC desktop Windows, macOS o Linux. Da mobile o tablet il controllo non viene eseguito.</span>
+                </div>
+              ) : requiresBrowserLocalSigner && localSigner.outdated ? (
+                <div className="iu-tel-local-signer-inline">
+                  <ShieldCheck size={16}/>
+                  <span>È disponibile una nuova versione del Local Signer. IUSENTRA può aggiornarla automaticamente dal pacchetto ufficiale.</span>
+                  <button type="button" disabled={localSigner.checking} onClick={updateLocalSignerAutomatically}>
+                    {localSigner.checking ? 'Aggiornamento...' : 'Aggiorna automaticamente'}
+                  </button>
                 </div>
               ) : requiresBrowserLocalSigner && localSigner.checked && !localSigner.ok ? (
                 <div className="iu-tel-local-signer-inline">
@@ -2441,7 +2707,7 @@ function AcquisitionWizard({
                 <>
                   <div className="iu-tel-acq-preview">
                     <article><span>Procedimento</span><strong>{asText(identity.numero_rg || identity.rg || identity.numero || selection?.title, 'n.d.')}</strong><small>{asText(identity.ufficio_nome || identity.ufficio || identity.tribunale || identity.court, 'Ufficio non indicato')}</small></article>
-                    <article><span>Parti</span><strong>{previewCount(preview, 'parti')}</strong><small>Parti/anagrafiche rilevate</small></article>
+                    <article><span>Parti</span><strong>{previewPartyMetric(preview, previewParties)}</strong><small>{previewPartyCountLabel(preview, previewParties)}</small></article>
                     <article><span>Documenti</span><strong>{previewCount(preview, 'documenti')}</strong><small>{previewCount(preview, 'depositi')} buste o gruppi</small></article>
                     <article><span>Eventi</span><strong>{previewCount(preview, 'eventi')}</strong><small>Cronologia importabile</small></article>
                   </div>
@@ -2460,7 +2726,7 @@ function AcquisitionWizard({
                     <section>
                       <header><BadgeCheck size={16}/><strong>Parti</strong></header>
                       <div className="iu-tel-acq-list">
-                        {previewParties.length ? previewParties.slice(0, 8).map((name) => <span key={name}>{name}</span>) : <em>Nessuna parte indicata nell'anteprima.</em>}
+                        {previewParties.length ? previewParties.map((name) => <span key={name}>{name}</span>) : <em>Nessuna parte indicata nell'anteprima.</em>}
                       </div>
                     </section>
                     <section className="iu-tel-acq-detail-grid__wide">
@@ -2642,6 +2908,22 @@ function AcquisitionWizard({
               <span><strong>Eventi</strong>{previewCount(preview, 'eventi')}</span>
             </div>
           </Panel>
+          {retryEvents.length ? (
+            <Panel title="Riprova scarico" subtitle="Tentativi non completati" icon={<RefreshCw size={17}/>} count={retryEvents.length}>
+              <div className="iu-tel-acq-retry-list">
+                {retryEvents.map((item) => (
+                  <a href={item.href} key={item.id}>
+                    <Badge tone={item.tone}>{item.badge || 'Riprova'}</Badge>
+                    <div>
+                      <strong>{item.title}</strong>
+                      <span>{item.subtitle}</span>
+                      <small>{italianDate(item.timestamp)}</small>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </Panel>
+          ) : null}
         </aside>
       </div>
     </section>
@@ -2654,6 +2936,8 @@ export function TelematicoSurfacePage() {
   const [loading, setLoading] = useState(true)
   const [actionMessage, setActionMessage] = useState('')
   const [activeOperation, setActiveOperation] = useState<{ cardId:string; actionId:string } | null>(null)
+  const [localAcquisitionEvents, setLocalAcquisitionEvents] = useState<AcquisitionHistoryEvent[]>(() => readAcquisitionHistory())
+  const currentPortalForHistory = portalFromSurface(surfaceId, data)
 
   useEffect(() => {
     let active = true
@@ -2664,6 +2948,24 @@ export function TelematicoSurfacePage() {
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [surfaceId])
+
+  useEffect(() => {
+    const refresh = (event?: Event) => {
+      const stored = readAcquisitionHistory(currentPortalForHistory)
+      const detail = normaliseAcquisitionHistoryEvent((event as CustomEvent | undefined)?.detail)
+      if (detail && (!currentPortalForHistory || detail.portal === currentPortalForHistory)) {
+        setLocalAcquisitionEvents([
+          detail,
+          ...stored.filter((item) => item.id !== detail.id && item.href !== detail.href),
+        ].slice(0, REACT_ACQUISITION_HISTORY_LIMIT))
+        return
+      }
+      setLocalAcquisitionEvents(stored)
+    }
+    refresh()
+    window.addEventListener('iusentra:portal-acquisition-history', refresh)
+    return () => window.removeEventListener('iusentra:portal-acquisition-history', refresh)
+  }, [currentPortalForHistory])
 
   useEffect(() => {
     if (loading || !window.location.hash) return
@@ -2804,7 +3106,7 @@ export function TelematicoSurfacePage() {
         />
       ) : null}
 
-      <AcquisitionWizard surfaceId={surfaceId} data={data}/>
+      <AcquisitionWizard surfaceId={surfaceId} data={data} localEvents={localAcquisitionEvents}/>
 
       {data.surface.id === 'tribunali' ? (
         <section className="iu-tel-tribunali-workspace">
@@ -2826,7 +3128,7 @@ export function TelematicoSurfacePage() {
       )}
 
       <section className="iu-tel-surface-bottom">
-        <EventsPanel data={data}/>
+        <EventsPanel data={data} localEvents={localAcquisitionEvents}/>
         <LexPanel data={data}/>
       </section>
 

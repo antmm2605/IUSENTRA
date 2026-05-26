@@ -943,6 +943,11 @@ def _ruolo_parte_pst(idx: int, parte: Dict[str, str], id_cliente_principale: str
     if id_cliente_principale and getattr(soggetto, "id_cliente", "") == id_cliente_principale:
         return RuoloSoggetto.ASSISTITO
 
+    if tipo in {"AP", "ATTORE", "RICORRENTE", "ASSISTITO"}:
+        return RuoloSoggetto.ASSISTITO
+    if tipo in {"AS", "CP", "CONVENUTO", "RESISTENTE", "CONTROPARTE"}:
+        return RuoloSoggetto.CONTROPARTE
+
     parole_controparte = (
         "CONVENUT",
         "RESISTENT",
@@ -958,6 +963,70 @@ def _ruolo_parte_pst(idx: int, parte: Dict[str, str], id_cliente_principale: str
         return RuoloSoggetto.CONTROPARTE
 
     return RuoloSoggetto.ASSISTITO if idx == 0 else RuoloSoggetto.CONTROPARTE
+
+
+def _parti_pst_o_minime_da_fascicolo(
+    fascicolo_pw: FascicoloPolisWeb,
+    fascicolo_locale,
+    gestione_clienti,
+    id_cliente_principale: str,
+) -> List[Dict[str, str]]:
+    def _hints_cognome_nome(valore: str) -> tuple[str, str]:
+        tokens = re.sub(r"\s+", " ", str(valore or "").strip()).split()
+        if not tokens:
+            return "", ""
+        if len(tokens) == 1:
+            return tokens[0].title(), ""
+        return tokens[0].title(), " ".join(token.title() for token in tokens[1:])
+
+    parti = _iter_parti_pst(fascicolo_pw.parti, fascicolo_pw.parti_dettaglio)
+    if parti:
+        return parti
+
+    fallback: List[Dict[str, str]] = []
+    cliente_principale = gestione_clienti.get(id_cliente_principale) if id_cliente_principale else None
+    nome_cliente = (
+        getattr(cliente_principale, "nome_completo", "")
+        or getattr(fascicolo_locale, "nome_cliente", "")
+        or ""
+    )
+    cf_cliente = (
+        getattr(cliente_principale, "identificativo_fiscale", "")
+        or getattr(cliente_principale, "codice_fiscale", "")
+        or ""
+    )
+    if nome_cliente:
+        cognome_cliente = str(getattr(cliente_principale, "cognome", "") or "").strip()
+        nome_proprio_cliente = str(getattr(cliente_principale, "nome", "") or "").strip()
+        if not (cognome_cliente or nome_proprio_cliente):
+            cognome_cliente, nome_proprio_cliente = _hints_cognome_nome(str(nome_cliente))
+        fallback.append(
+            {
+                "nome": re.sub(r"\s+", " ", str(nome_cliente).strip()),
+                "cognome": cognome_cliente,
+                "nome_proprio": nome_proprio_cliente,
+                "codice_fiscale": str(cf_cliente or "").strip().upper(),
+                "tipo": "ASSISTITO",
+                "avvocato": "",
+                "cf_avvocato": "",
+            }
+        )
+
+    controparte = str(getattr(fascicolo_locale, "controparte", "") or "").strip()
+    if controparte and _nome_normalizzato(controparte) != _nome_normalizzato(nome_cliente):
+        cognome_controparte, nome_proprio_controparte = _hints_cognome_nome(controparte)
+        fallback.append(
+            {
+                "nome": re.sub(r"\s+", " ", controparte),
+                "cognome": cognome_controparte,
+                "nome_proprio": nome_proprio_controparte,
+                "codice_fiscale": str(getattr(fascicolo_locale, "cf_controparte", "") or "").strip().upper(),
+                "tipo": "CONTROPARTE",
+                "avvocato": "",
+                "cf_avvocato": "",
+            }
+        )
+    return fallback
 
 
 def riconcilia_soggetti_pst(
@@ -1119,7 +1188,14 @@ def _sincronizza_parti_pst_su_fascicolo(
     if not gestione_soggetti:
         return controparte, cf_controparte, avvisi
 
-    for idx, parte in enumerate(_iter_parti_pst(fascicolo_pw.parti, fascicolo_pw.parti_dettaglio)):
+    parti_importabili = _parti_pst_o_minime_da_fascicolo(
+        fascicolo_pw,
+        fascicolo_locale,
+        gestione_clienti,
+        id_cliente_principale,
+    )
+
+    for idx, parte in enumerate(parti_importabili):
         nome = parte["nome"]
         codice_fiscale = parte.get("codice_fiscale", "")
         cliente = _cerca_cliente_pst(gestione_clienti, nome, codice_fiscale)

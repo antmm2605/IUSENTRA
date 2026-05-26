@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.248.69 - 2026-05-26
+
+- L'anteprima PST non tronca più le parti a 8 nominativi: mostra tutti i soggetti letti e distingue i nominativi unici dalle righe grezze del portale.
+- Il fascicolo conserva la fonte telematica come dato della pratica: dopo l'acquisizione salva e mostra in UI lo snapshot PST con ufficio, R.G., stato, oggetto, parti, controparti, conteggi documenti/depositi/eventi e log di import.
+- Aggiornato Local Signer a `1.6.51`: lo scarico batch prova sempre a riusare per primo la sessione PST già autenticata, anche se lo stesso host aveva richiesto fallback certificato, così il secondo PIN resta solo un fallback reale del portale.
+- Su Windows le chiamate `curl` del Local Signer vengono avviate senza finestra console, lasciando visibile solo la richiesta PIN di sistema quando il portale la richiede.
+
+## 2.248.68 - 2026-05-26
+
+- Blindato il post-import PST/PolisWeb: quando il portale non espone un elenco parti strutturato, il fascicolo aggiorna comunque l’anagrafica parti usando assistito e controparte già presenti nella pratica gestionale.
+- Rafforzata la classificazione documenti PST: il collegamento ai depositi ufficiali deduplica gli ID documento e preserva tipo atto, classificazione portale e identificativo ministeriale nella visualizzazione fascicolo.
+- Migliorata la cronologia acquisizione: i fascicoli non scaricati o scaricati con avvisi vengono mostrati anche nel riepilogo laterale del wizard con motivo operativo e link `Riprova` già precompilato con ufficio, numero e anno.
+- Aggiornata la prova reale Palmi R.G. 274/2026 con verifica su cliente, parti e classificazione documentale, così il flusso resta controllabile anche dopo futuri interventi su Local Signer o wizard di acquisizione.
+
 ## 2.248.67 - 2026-05-26
 
 - Ripristinata l’anteprima completa del fascicolo PST/PolisWeb: dati fascicolo, parti, cronologia e documenti reali tornano visibili prima della selezione e dell’importazione.

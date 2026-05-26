@@ -1839,6 +1839,8 @@ if ('serviceWorker' in navigator) {
      data-setup-windows="{{ url_for('polis_local_signer_setup_windows') }}"
      data-setup-macos="{{ url_for('polis_local_signer_setup_macos') }}"
      data-setup-linux="{{ url_for('polis_local_signer_setup_linux') }}"
+     data-restart-protocol="iusentra-local-signer://restart"
+     data-update-protocol="iusentra-local-signer://update"
      data-auto-installer-prompt="1"></div>
 <script src="/static/js/support_launch.js?v={{ app_version }}" defer></script>
 <script src="/static/js/local-signer-monitor.js?v={{ app_version }}" defer></script>

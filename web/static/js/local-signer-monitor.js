@@ -17,6 +17,8 @@
       setupWindows: data.setupWindows || '/polisWeb/local-signer/setup/windows',
       setupMacos: data.setupMacos || '/polisWeb/local-signer/setup/macos',
       setupLinux: data.setupLinux || '/polisWeb/local-signer/setup/linux',
+      updateProtocol: data.updateProtocol || 'iusentra-local-signer://update',
+      restartProtocol: data.restartProtocol || 'iusentra-local-signer://restart',
       autoInstallerPrompt: data.autoInstallerPrompt === '1',
     };
   }
@@ -120,15 +122,23 @@
     }
   }
 
-  function requestStart() {
+  function requestProtocol(uri) {
     const iframe = document.createElement('iframe');
     iframe.className = 'd-none';
     iframe.setAttribute('aria-hidden', 'true');
-    iframe.src = 'iusentra-local-signer://restart';
+    iframe.src = uri;
     document.body.appendChild(iframe);
     window.setTimeout(function () {
       iframe.remove();
     }, 2500);
+  }
+
+  function requestStart(cfg) {
+    requestProtocol(cfg.restartProtocol);
+  }
+
+  function requestUpdate(cfg) {
+    requestProtocol(cfg.updateProtocol);
   }
 
   function banner() {
@@ -236,11 +246,23 @@
   }
 
   async function verifyAfterStart(cfg) {
-    requestStart();
+    requestStart(cfg);
     for (let attempt = 0; attempt < 10; attempt += 1) {
       await sleep(900);
       const payload = await ping(cfg);
       if (payload) {
+        return payload;
+      }
+    }
+    return null;
+  }
+
+  async function verifyAfterUpdate(cfg) {
+    requestUpdate(cfg);
+    for (let attempt = 0; attempt < 70; attempt += 1) {
+      await sleep(1200);
+      const payload = await ping(cfg);
+      if (payload && compareVersions(payload.versione || payload.version || '', cfg.latestVersion) >= 0) {
         return payload;
       }
     }
@@ -289,18 +311,36 @@
     if (compareVersions(installedVersion, cfg.latestVersion) < 0) {
       renderBanner(
         'warning',
-        'Aggiornamento Local Signer richiesto',
+        'Aggiornamento Local Signer in corso',
         'Fase 2: versione rilevata ' +
           installedVersion +
           ', versione richiesta ' +
           cfg.latestVersion +
-          '. Fase 3: installa il pacchetto aggiornato e poi verifica di nuovo.',
+          '. Provo ad avviare automaticamente il pacchetto ufficiale e poi ricontrollo il servizio.',
         [
+          { type: 'button', name: 'auto-update', label: 'Aggiorna automaticamente', className: 'btn-primary' },
           { type: 'link', name: 'installer', label: installer.label, url: installer.url, className: 'btn-primary' },
           { type: 'button', name: 'retry', label: 'Verifica dopo aggiornamento', className: 'btn-outline-primary' },
         ]
       );
-      autoOpenInstallerOnce(cfg, 'outdated');
+      if (cfg.autoInstallerPrompt && !installerPromptAlreadyShown(cfg, 'outdated-auto')) {
+        rememberInstallerPrompt(cfg, 'outdated-auto');
+        const updated = await verifyAfterUpdate(cfg);
+        if (updated) {
+          hideBanner();
+          return { ok: true, version: updated.versione || updated.version || '', payload: updated };
+        }
+      }
+      renderBanner(
+        'warning',
+        'Aggiornamento Local Signer richiesto',
+        'Se Windows non ha autorizzato l’avvio automatico, usa il pacchetto ufficiale qui sotto e poi verifica di nuovo.',
+        [
+          { type: 'button', name: 'auto-update', label: 'Riprova aggiornamento automatico', className: 'btn-primary' },
+          { type: 'link', name: 'installer', label: installer.label, url: installer.url, className: 'btn-outline-primary' },
+          { type: 'button', name: 'retry', label: 'Verifica dopo aggiornamento', className: 'btn-outline-secondary' },
+        ]
+      );
       return { ok: false, reason: 'outdated', installedVersion: installedVersion };
     }
 
@@ -325,6 +365,26 @@
     if (action === 'retry') {
       event.preventDefault();
       run({ showOk: true });
+    } else if (action === 'auto-update') {
+      event.preventDefault();
+      (async function () {
+        const cfg = config();
+        renderBanner(
+          'warning',
+          'Aggiornamento automatico avviato',
+          'Sto aprendo il pacchetto ufficiale IUSENTRA sul PC e ricontrollo il servizio locale.',
+          [{ type: 'button', name: 'retry', label: 'Verifica', className: 'btn-outline-primary' }]
+        );
+        const updated = await verifyAfterUpdate(cfg);
+        if (updated) {
+          renderBanner(
+            'success',
+            'Local Signer aggiornato',
+            'Il servizio locale risponde con la versione ' + (updated.versione || updated.version || cfg.latestVersion) + '.',
+            [{ type: 'button', name: 'close', label: 'Chiudi', className: 'btn-outline-success' }]
+          );
+        }
+      })();
     } else if (action === 'close') {
       event.preventDefault();
       hideBanner();

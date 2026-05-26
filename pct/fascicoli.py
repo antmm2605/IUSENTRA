@@ -16,7 +16,7 @@ import re
 import shutil
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Optional, List
+from typing import Any, Iterable, Optional, List
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 
@@ -451,6 +451,18 @@ def _documento_portale_payload(dep: "EsitoDepositoPCT", item: dict | None) -> di
     }
 
 
+def _deduplica_documenti_ids(documenti_ids: Iterable[str]) -> List[str]:
+    normalizzati: List[str] = []
+    visti: set[str] = set()
+    for raw in documenti_ids or []:
+        doc_id = str(raw or "").strip()
+        if not doc_id or doc_id in visti:
+            continue
+        visti.add(doc_id)
+        normalizzati.append(doc_id)
+    return normalizzati
+
+
 def _documento_portale_nome_keys(nome: str) -> set[str]:
     key = _normalizza_nome_documento_match(nome)
     return {key} if key else set()
@@ -700,6 +712,7 @@ class Fascicolo:
     last_sync_at: str = ""              # ISO datetime ultimo allineamento
     sync_status: str = ""               # IMPORTATO | SINCRONIZZATO | DA_VERIFICARE
     import_log_id: str = ""             # id log acquisizione guidata
+    source_snapshot: dict[str, Any] = field(default_factory=dict)
     has_conflicts: bool = False
     document_sync_enabled: bool = False
     events_sync_enabled: bool = False
@@ -1686,6 +1699,7 @@ class GestioneFascicoli:
         if not documenti_ids:
             raise ValueError("Nessun documento selezionato per l'importazione dal portale.")
 
+        documenti_ids = _deduplica_documenti_ids(documenti_ids)
         doc_ids = set(documenti_ids)
         if not any(doc.id in doc_ids for doc in f.documenti):
             raise ValueError("I documenti indicati non appartengono al fascicolo.")
@@ -1738,10 +1752,14 @@ class GestioneFascicoli:
             raise ValueError("Nessun documento da collegare al deposito ufficiale.")
 
         doc_ids_presenti = {doc.id for doc in f.documenti}
-        nuovi_ids = [
-            doc_id for doc_id in documenti_ids
-            if doc_id in doc_ids_presenti and doc_id not in dep.documenti_ids
-        ]
+        dep.documenti_ids = _deduplica_documenti_ids(dep.documenti_ids)
+        gia_collegati = set(dep.documenti_ids)
+        nuovi_ids: List[str] = []
+        for doc_id in _deduplica_documenti_ids(documenti_ids):
+            if doc_id not in doc_ids_presenti or doc_id in gia_collegati:
+                continue
+            nuovi_ids.append(doc_id)
+            gia_collegati.add(doc_id)
         if not nuovi_ids:
             return dep
 
@@ -1909,6 +1927,7 @@ class GestioneFascicoli:
             )
 
         if dep:
+            dep.documenti_ids = _deduplica_documenti_ids(dep.documenti_ids)
             dep.stato = _normalizza_stato_deposito_pct(stato or dep.stato)
             dep.timestamp = timestamp or dep.timestamp
             dep.tipo_atto = tipo_atto or dep.tipo_atto

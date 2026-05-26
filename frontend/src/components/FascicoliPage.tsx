@@ -1182,6 +1182,32 @@ function KvGrid({ items }:{items:KeyValue[]}) {
   return <div className="iu-fas-kv-grid">{items.map((item) => <div key={`${item.label}-${item.value}`}><span>{item.label}</span>{item.href ? <a href={item.href} className={item.mono ? 'mono' : ''}>{item.value || 'n.d.'}</a> : <strong className={item.mono ? 'mono' : ''}>{item.value || 'n.d.'}</strong>}</div>)}</div>
 }
 
+function SourceSnapshotPanel({ fascicolo }:{fascicolo:FascicoloFull}) {
+  const snapshot = fascicolo.sourceSnapshot
+  const counts = snapshot.counts || {}
+  const hasSnapshot = Boolean(snapshot.portale || snapshot.externalId || Object.values(counts).some((value) => Number(value || 0) > 0))
+  if (!hasSnapshot) return null
+  const items: KeyValue[] = [
+    { label: 'Portale', value: snapshot.portale || fascicolo.source || 'n.d.' },
+    { label: 'Riferimento', value: snapshot.externalId || fascicolo.sourceExternalId || 'n.d.', mono: true },
+    { label: 'Ufficio', value: [snapshot.ufficioNome, snapshot.ufficioCodice].filter(Boolean).join(' - ') || fascicolo.court || 'n.d.' },
+    { label: 'Procedimento', value: snapshot.procedimento || fascicolo.procedureType || 'n.d.' },
+    { label: 'Stato portale', value: snapshot.stato || fascicolo.syncStatus || 'n.d.' },
+    { label: 'Data iscrizione', value: snapshot.dataIscrizione || 'n.d.' },
+    { label: 'Data udienza', value: snapshot.dataUdienza || 'n.d.' },
+    { label: 'Dati letti', value: `${Number(counts.parti || 0)} parti, ${Number(counts.documenti || 0)} documenti, ${Number(counts.depositi || 0)} depositi, ${Number(counts.eventi || 0)} eventi` },
+  ]
+  const names = [...snapshot.parti, ...snapshot.controparti]
+  return (
+    <div className="iu-fas-source-panel">
+      <header><Landmark size={16}/><strong>Fonte telematica acquisita</strong><span>{snapshot.acquisitoIl || fascicolo.lastSyncAt || 'ultimo allineamento registrato'}</span></header>
+      <KvGrid items={items}/>
+      {snapshot.oggetto ? <p>{snapshot.oggetto}</p> : null}
+      {names.length ? <div className="iu-fas-source-parties">{names.map((name) => <span key={name}>{name}</span>)}</div> : null}
+    </div>
+  )
+}
+
 function DetailSection({ id, title, icon, count, defaultOpen = false, onOpen, children }:{id:string; title:string; icon:ReactNode; count?:number; defaultOpen?:boolean; onOpen?:()=>void; children:ReactNode}) {
   return (
     <details id={id} className="iu-fas-detail-section" {...(defaultOpen ? { open: true } : {})} onToggle={(event) => { if (event.currentTarget.open) onOpen?.() }}>
@@ -2609,7 +2635,7 @@ function DetailPage({ id }:{id:string}) {
         </div>
       </section>
           <section className="iu-fas-cockpit"><StatCard icon={<ClipboardCheck size={19}/>} label="Regia" value={`${data.regia.header.completion}%`} note={data.regia.header.operationalState || 'da verificare'} tone={data.regia.validation.ready ? 'success' : data.regia.validation.blockers.length ? 'danger' : 'warning'} href="#regia-operativa" onClick={openSection('regia-operativa', 'regia')}/><StatCard icon={<MapPin size={19}/>} label="Uffici" value="Cerca" note="competenza per Comune" tone="success" href="#uffici-competenti" onClick={openSection('uffici-competenti')}/><StatCard icon={<FileText size={19}/>} label="Documenti" value={data.quickCounts.documenti || 0} note="carica e classifica" tone="primary" href="#documenti" onClick={openSection('documenti', 'documenti')}/><StatCard icon={<FileSignature size={19}/>} label="Relata" value={notificationRelataCount} note={notificationRelata.statusLabel} tone={notificationRelata.tone} href="#relata-notifica" onClick={openSection('relata-notifica')}/><StatCard icon={<CalendarDays size={19}/>} label="Scadenze" value={data.quickCounts.udienze_scadenze || 0} note="gestisci agenda" tone="warning" href="#udienze" onClick={openSection('udienze', 'scadenze')}/><StatCard icon={<ListChecks size={19}/>} label="Attività" value={data.quickCounts.attivita || 0} note="aggiorna timeline" tone="success" href="#attivita" onClick={openSection('attivita', 'attivita')}/><StatCard icon={<Fingerprint size={19}/>} label="Audit" value={data.auditTrail.summary.total} note={data.auditTrail.summary.snapshotted ? 'prove in snapshot' : 'prove disponibili'} tone={data.auditTrail.summary.total ? 'success' : 'neutral'} href="#audit" onClick={openSection('audit')}/><StatCard icon={<WalletCards size={19}/>} label="Contesto economico" value={data.economics.length} note="incarico e incassi" tone="purple" href="#economia" onClick={openSection('economia')}/></section>
-          <DetailSection id="profilo" title="Profilo fascicolo" icon={<BadgeCheck size={17}/>}><KvGrid items={data.profile}/>{f.notes ? <div className="iu-fas-note"><strong>Note</strong><p>{f.notes}</p></div> : null}</DetailSection>
+          <DetailSection id="profilo" title="Profilo fascicolo" icon={<BadgeCheck size={17}/>}><KvGrid items={data.profile}/><SourceSnapshotPanel fascicolo={f}/>{f.notes ? <div className="iu-fas-note"><strong>Note</strong><p>{f.notes}</p></div> : null}</DetailSection>
           <DetailSection id="uffici-competenti" title="Uffici giudiziari per Comune" icon={<MapPin size={17}/>} defaultOpen>
             <FascicoloUfficiCompetentiPanel fascicolo={f}/>
           </DetailSection>

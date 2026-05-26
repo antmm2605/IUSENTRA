@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.50
+IUSENTRA Local Signer - v1.6.51
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -112,7 +112,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.50"
+VERSION = "1.6.51"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -128,6 +128,8 @@ PST_SESSION_TTL_SECONDS = max(
 )
 PST_SESSION_MAX_ACTIVE = max(int(os.getenv("HACS_SIGNER_PST_SESSION_MAX_ACTIVE", "6")), 1)
 _DEFAULT_HACS_ALLOWED_ORIGINS = (
+    "http://127.0.0.1:8080",
+    "http://localhost:8080",
     "https://app.iusentra.it",
     "https://studio-legale-pct-production.up.railway.app",
 )
@@ -251,10 +253,10 @@ _pst_session_lock = threading.Lock()
 _LOCALHOST_ORIGIN_HOSTS = {"localhost", "127.0.0.1", "::1"}
 _local_ai_bridge_instance = None
 
-# Host PST dove il tentativo cookie-only ha fallito (mTLS obbligatorio).
-# Salvato in memoria per saltare il tentativo inutile nelle chiamate successive
+# Host PST dove almeno un tentativo cookie-only ha richiesto fallback mTLS.
+# Segnale diagnostico: il riuso cookie resta comunque il primo tentativo, per
 # della stessa sessione, così tutte le chiamate arrivano al cert più velocemente
-# e rientrano nella finestra di cache-PIN di Windows (Bit4id/Aruba Key).
+# non riaprire un secondo prompt PIN quando la sessione e' ancora valida.
 _mTLS_required_hosts: set[str] = set()
 _mTLS_required_lock = threading.Lock()
 
@@ -2167,11 +2169,8 @@ def _pst_prepare_authenticated_session(
     # Se l'host è già noto come mTLS-obbligatorio, non tentare mai cookie-only:
     # andare direttamente al certificato riduce i prompt PIN perché tutte le
     # chiamate successive rientrano nella finestra di cache-PIN di Windows.
-    host = _pst_host(_pst_url_ricerca(base_url))
-    host_needs_mtls = host in _mTLS_required_hosts
-
     if not force and _pst_session_can_use_cookie_only(session_entry):
-        return session_entry, not host_needs_mtls
+        return session_entry, True
     if not force and session_entry.get("preflight_attempted") and not session_entry.get("auth_ready"):
         # Un preflight gia' tentato ma senza HTTP reale (tipicamente timeout
         # mentre Windows/Bit4id gestisce il PIN) non dimostra cookie validi:
@@ -2198,7 +2197,7 @@ def _pst_prepare_authenticated_session(
     refreshed = _resolve_pst_session_entry(session_entry["session_id"]) or session_entry
     # Dopo preflight, controlla se l'host richiede mTLS (potrebbe essere
     # stato registrato da una sessione precedente nella stessa istanza).
-    prefer_cookie = _pst_preflight_confirmed(esito) and host not in _mTLS_required_hosts
+    prefer_cookie = _pst_preflight_confirmed(esito)
     return refreshed, prefer_cookie
 
 
@@ -2773,12 +2772,39 @@ def _pst_base_monitoraggio() -> str:
     return _PST_BASE
 
 
+def _windows_hidden_subprocess_kwargs(kwargs: dict[str, Any]) -> dict[str, Any]:
+    if sys.platform != "win32":
+        return kwargs
+
+    hidden_kwargs = dict(kwargs)
+    no_window = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    if no_window:
+        hidden_kwargs["creationflags"] = int(hidden_kwargs.get("creationflags") or 0) | int(no_window)
+
+    startupinfo = hidden_kwargs.get("startupinfo")
+    startupinfo_factory = getattr(subprocess, "STARTUPINFO", None)
+    if startupinfo is None and startupinfo_factory is not None:
+        try:
+            startupinfo = startupinfo_factory()
+            hidden_kwargs["startupinfo"] = startupinfo
+        except Exception:
+            startupinfo = None
+
+    if startupinfo is not None:
+        try:
+            startupinfo.dwFlags |= getattr(subprocess, "STARTF_USESHOWWINDOW", 0)
+            startupinfo.wShowWindow = getattr(subprocess, "SW_HIDE", 0)
+        except Exception:
+            pass
+
+    return hidden_kwargs
+
+
 def _curl_disponibile() -> bool:
     """Verifica che curl sia disponibile nel PATH."""
     try:
-        r = subprocess.run(
-            [_curl_command(), "--version"], capture_output=True, timeout=5
-        )
+        run_kwargs = _windows_hidden_subprocess_kwargs({"capture_output": True, "timeout": 5})
+        r = subprocess.run([_curl_command(), "--version"], **run_kwargs)
         return r.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return False
@@ -3486,11 +3512,12 @@ def _windows_pin_prompt_foreground_pump(stop_event: threading.Event, deadline_se
 
 
 def _run_curl_with_pin_foreground(cmd: list[str], **kwargs: Any) -> subprocess.CompletedProcess:
+    run_kwargs = _windows_hidden_subprocess_kwargs(kwargs)
     if sys.platform != "win32":
-        return subprocess.run(cmd, **kwargs)
+        return subprocess.run(cmd, **run_kwargs)
 
     try:
-        pump_seconds = float(kwargs.get("timeout") or PST_SOAP_MAX_TIME + 10)
+        pump_seconds = float(run_kwargs.get("timeout") or PST_SOAP_MAX_TIME + 10)
     except (TypeError, ValueError):
         pump_seconds = float(PST_SOAP_MAX_TIME + 10)
 
@@ -3503,7 +3530,7 @@ def _run_curl_with_pin_foreground(cmd: list[str], **kwargs: Any) -> subprocess.C
     )
     worker.start()
     try:
-        return subprocess.run(cmd, **kwargs)
+        return subprocess.run(cmd, **run_kwargs)
     finally:
         stop_event.set()
         worker.join(timeout=0.5)
@@ -4421,7 +4448,7 @@ def _soap_call_pst_session(
             connect_timeout=connect_timeout,
         )
 
-    if prefer_cookie_only and cookie_file and host not in _mTLS_required_hosts:
+    if prefer_cookie_only and cookie_file:
         # Quando prefer_cookie_only=True il preflight ha già stabilito una sessione
         # autenticata con cookie validi. Tentiamo cookie-only solo se il portale
         # non è già noto come mTLS-obbligatorio (per evitare prompt PIN ripetuti).
@@ -4469,7 +4496,7 @@ def _soap_call_pst_session_raw(
             connect_timeout=connect_timeout,
         )
 
-    if prefer_cookie_only and cookie_file and host not in _mTLS_required_hosts:
+    if prefer_cookie_only and cookie_file:
         # Stessa logica di _soap_call_pst_session: tenta cookie-only solo se il
         # portale non è già noto come mTLS-obbligatorio.
         try:
@@ -4510,7 +4537,7 @@ def _soap_call_pst_session_batch_raw(
     ]
     first_url = str((effective_requests[0].get("url") if effective_requests else None) or "")
     host = _pst_host(first_url) if first_url else ""
-    if prefer_cookie_only and cookie_file and (not host or host not in _mTLS_required_hosts):
+    if prefer_cookie_only and cookie_file:
         try:
             return _soap_call_curl_batch_raw(
                 effective_requests,
@@ -4553,7 +4580,7 @@ def _soap_call_pst_session_batch_raw_best_effort(
     ]
     first_url = str((effective_requests[0].get("url") if effective_requests else None) or "")
     host = _pst_host(first_url) if first_url else ""
-    if prefer_cookie_only and cookie_file and (not host or host not in _mTLS_required_hosts):
+    if prefer_cookie_only and cookie_file:
         try:
             return _soap_call_curl_batch_raw_best_effort(
                 effective_requests,
@@ -6997,13 +7024,18 @@ class _Handler(BaseHTTPRequestHandler):
             ("endpoint_configurato", _pst_base_monitoraggio()),
         ]:
             try:
+                run_kwargs = _windows_hidden_subprocess_kwargs({
+                    "capture_output": True,
+                    "text": True,
+                    "timeout": 15,
+                })
                 r = subprocess.run(
                     [_curl_command(), "-s", "-o", null_dev,
                      "-w", "%{http_code}",
                      "--max-time", "10",
                      "--connect-timeout", "8",
                      url],
-                    capture_output=True, text=True, timeout=15
+                    **run_kwargs,
                 )
                 code = r.stdout.strip()
                 raggiungibile = r.returncode == 0 and code not in ("", "000")
@@ -7601,17 +7633,11 @@ class _Handler(BaseHTTPRequestHandler):
             ) if _pst_namespace_qbuilder(base_url) else ""
 
             with _pst_session_lock_for(session_entry):
-                session_entry, prefer_cookie_only = _pst_prepare_authenticated_session(
-                    session_entry,
-                    tribunale=tribunale,
-                    base_url=base_url,
-                    cf_avvocato=cf_avvocato,
-                    cert_thumbprint=cert_thumbprint,
-                    force=session_created,
-                )
+                # La ricerca-snapshot è già un lotto unico di ricerca, profilo e
+                # documenti: usarla anche come gate certificato evita il doppio
+                # prompt PIN causato da preflight + batch su alcuni driver Windows.
                 cookie_file = str((session_entry or {}).get("cookie_file") or "")
-                host = _pst_host(url_ricerca)
-                prefer_cookie_only = prefer_cookie_only and host not in _mTLS_required_hosts
+                prefer_cookie_only = _pst_session_can_use_cookie_only(session_entry)
                 batch_requests = [
                     {
                         "url": url_ricerca,

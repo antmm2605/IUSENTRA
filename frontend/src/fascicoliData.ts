@@ -285,6 +285,28 @@ export type FascicoloParty = { id: string; name: string; role: string; taxCode: 
 export type FascicoloHistory = { date: string; description: string; from: string; to: string; notes: string; lawyer: string }
 export type FascicoloMoney = { id: string; label: string; value: string; note: string; href: string; tone: Tone }
 export type FascicoloPerson = { id: string; name: string; taxCode: string; vat: string; email: string; pec: string; phone: string; address: string; href: string }
+export type FascicoloSourceSnapshot = {
+  portale: string
+  importLogId: string
+  acquisitoIl: string
+  externalId: string
+  numero: string
+  anno: number
+  ufficioNome: string
+  ufficioCodice: string
+  procedimento: string
+  subProcedimento: string
+  sezione: string
+  stato: string
+  oggetto: string
+  dataIscrizione: string
+  dataUdienza: string
+  ultimaAttivita: string
+  parti: string[]
+  controparti: string[]
+  difensori: string[]
+  counts: Record<string, number>
+}
 
 export type FascicoloFull = FascicoloRow & {
   clientId: string
@@ -329,6 +351,7 @@ export type FascicoloFull = FascicoloRow & {
   lastSyncAt: string
   syncStatus: string
   importLogId: string
+  sourceSnapshot: FascicoloSourceSnapshot
   hasConflicts: boolean
   documentSyncEnabled: boolean
   eventsSyncEnabled: boolean
@@ -613,7 +636,9 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
     riferimentoCartaceo: '', attorePrincipale: '', istruttorePmGip: '', cancelliere: '', ctu: '', ctp: '',
     statoPraticaOperativa: '', personalizzabile: false, fascicoloVeloce: false, documentiInizialiCount: 0, emailInizialiCount: 0, dataAperturaIso: '', dataChiusuraIso: '',
     firstHearing: '', citationNotification: '', nextHearing: '', notes: '', reservedNotes: '',
-    source: '', sourceExternalId: '', lastSyncAt: '', syncStatus: '', importLogId: '', hasConflicts: false, documentSyncEnabled: false,
+    source: '', sourceExternalId: '', lastSyncAt: '', syncStatus: '', importLogId: '',
+    sourceSnapshot: { portale: '', importLogId: '', acquisitoIl: '', externalId: '', numero: '', anno: 0, ufficioNome: '', ufficioCodice: '', procedimento: '', subProcedimento: '', sezione: '', stato: '', oggetto: '', dataIscrizione: '', dataUdienza: '', ultimaAttivita: '', parti: [], controparti: [], difensori: [], counts: {} },
+    hasConflicts: false, documentSyncEnabled: false,
     eventsSyncEnabled: false, complianceControlsEnabled: true, archiveReady: false,
   },
   quickCounts: {}, lexIndexing: { total_documents: 0, ready: 0, queued: 0, indexing: 0, errors: 0, stale: 0, not_indexed: 0, archived: 0, last_indexed_at: null, status: 'ready', warnings: [] }, profile: [], documents: [], activities: [], deadlines: [], appointments: [], deposits: [], requests: [], parties: [], history: [],
@@ -1012,6 +1037,37 @@ function normalizeNotificationRelata(value: unknown): FascicoloNotificationRelat
   }
 }
 
+function normalizeSourceSnapshot(value: unknown): FascicoloSourceSnapshot {
+  const row = isRecord(value) ? value : {}
+  const countsRaw = isRecord(row.counts) ? row.counts : {}
+  const counts: Record<string, number> = {}
+  Object.entries(countsRaw).forEach(([key, count]) => {
+    counts[key] = number(count)
+  })
+  return {
+    portale: text(row.portale),
+    importLogId: text(row.importLogId ?? row.import_log_id),
+    acquisitoIl: text(row.acquisitoIl ?? row.acquisito_il),
+    externalId: text(row.externalId ?? row.external_id),
+    numero: text(row.numero),
+    anno: number(row.anno),
+    ufficioNome: text(row.ufficioNome ?? row.ufficio_nome),
+    ufficioCodice: text(row.ufficioCodice ?? row.ufficio_codice),
+    procedimento: text(row.procedimento),
+    subProcedimento: text(row.subProcedimento ?? row.sub_procedimento),
+    sezione: text(row.sezione),
+    stato: text(row.stato),
+    oggetto: text(row.oggetto),
+    dataIscrizione: text(row.dataIscrizione ?? row.data_iscrizione),
+    dataUdienza: text(row.dataUdienza ?? row.data_udienza),
+    ultimaAttivita: text(row.ultimaAttivita ?? row.ultima_attivita),
+    parti: asArray(row.parti).map((item) => text(item)).filter(Boolean),
+    controparti: asArray(row.controparti).map((item) => text(item)).filter(Boolean),
+    difensori: asArray(row.difensori).map((item) => text(item)).filter(Boolean),
+    counts,
+  }
+}
+
 function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
   if (!isRecord(payload)) return emptyFascicoloDetail
   const base = normalizeItem(payload.fascicolo ?? {}, 0)
@@ -1061,6 +1117,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     lastSyncAt: text(fullPayload.lastSyncAt ?? fullPayload.last_sync_at),
     syncStatus: text(fullPayload.syncStatus ?? fullPayload.sync_status),
     importLogId: text(fullPayload.importLogId ?? fullPayload.import_log_id),
+    sourceSnapshot: normalizeSourceSnapshot(fullPayload.sourceSnapshot ?? fullPayload.source_snapshot),
     hasConflicts: bool(fullPayload.hasConflicts ?? fullPayload.has_conflicts),
     documentSyncEnabled: bool(fullPayload.documentSyncEnabled ?? fullPayload.document_sync_enabled),
     eventsSyncEnabled: bool(fullPayload.eventsSyncEnabled ?? fullPayload.events_sync_enabled),

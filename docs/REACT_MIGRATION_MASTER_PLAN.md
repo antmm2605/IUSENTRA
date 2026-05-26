@@ -2737,7 +2737,7 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 
 ## Aggiornamento 2026-05-25: Hotfix PST Local Signer 2.248.54 / 1.6.47
 
-- Ripristinato il gate certificato interno del Local Signer prima di ricerca PST, ricerca-snapshot, catalogo documenti, fascicolo-snapshot, download singolo e download batch. Il wizard continua a non chiamare `/pst/preflight-auth` dal browser, ma le operazioni reali non possono più saltare `_pst_prepare_authenticated_session`.
+- Ripristinato il gate certificato interno del Local Signer prima delle operazioni PST. Dal 2026-05-27 la ricerca-snapshot usa il batch reale ricerca/profilo/documenti come gate certificato, senza preflight separato, per evitare due richieste PIN consecutive sui driver Windows che non condividono la cache tra processi `curl`. Il wizard continua a non chiamare `/pst/preflight-auth` dal browser e gli errori 401/certificato restano espliciti.
 - La ricerca PST non deve trasformare errori di autenticazione o 401 in "nessun fascicolo trovato": il problema resta esplicito e finisce nella diagnosi server tenant-aware.
 - Il wizard React aspetta il catalogo uffici prima dell'avvio automatico; il wizard classico risolve un eventuale `codiceMinistero` cached tramite `/api/uffici` e invia al Local Signer il codice ufficiale, ad esempio Palmi `0910011` invece di `0800570094`.
 - Verifiche registrate: 8 test Local Signer PST mirati, 3 test wizard React/diagnostica, 2 test wizard classico, `py_compile`, boundary check Local Signer, packaging sync, OpenAPI e build pacchetti Local Signer `1.6.47`.

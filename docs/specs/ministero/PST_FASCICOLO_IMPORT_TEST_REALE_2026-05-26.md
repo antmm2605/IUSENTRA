@@ -19,6 +19,9 @@ L'avvocato deve poter scaricare e importare il fascicolo senza passaggi tecnici:
   riutilizzabile;
 - non deve cercare la finestra PIN nella barra delle applicazioni di Windows;
 - vede tutte le informazioni del fascicolo prima di importare;
+- le parti visualizzate non devono essere tagliate: se il PST espone 12 righe e
+  8 nominativi unici, la UI deve spiegare la differenza e mostrare comunque
+  tutti i nominativi disponibili;
 - vede tutti i documenti presenti nel fascicolo;
 - vede una barra di avanzamento con il documento in scaricamento;
 - importa nel fascicolo gestionale corretto, senza confondere id telematici e id
@@ -90,6 +93,51 @@ L'avvocato deve poter scaricare e importare il fascicolo senza passaggi tecnici:
     `Importazione completata con avvisi`, indicando il file non ricevuto, senza
     trasformare l'intero import in "non completato" quando altri file reali sono
     arrivati.
+
+## Verifica anagrafiche e documenti
+
+Controllo aggiuntivo del 26 maggio 2026 sul fascicolo gestionale `B6A03AE6`
+dopo la prova reale Palmi R.G. 274/2026:
+
+- il cliente principale deve restare collegato all'anagrafica clienti, con
+  `id_cliente` valorizzato e nominativo visibile nel fascicolo;
+- le parti devono essere presenti anche in anagrafica parti/soggetti, non solo
+  come testo libero nel fascicolo. Se il PST non espone `parti` o
+  `parti_dettaglio`, il gestionale crea comunque una parte `ASSISTITO` dal
+  cliente collegato e una parte `CONTROPARTE` dalla controparte del fascicolo;
+- i documenti scaricati devono restare collegati ai depositi ufficiali PST senza
+  duplicare gli ID interni e senza perdere `tipo_atto`, classificazione portale,
+  identificativo documento ministeriale, data deposito e mittente;
+- l'acquisizione PST deve restare registrata come fonte del fascicolo: nella UI
+  del fascicolo devono comparire almeno ufficio, R.G., stato, oggetto, conteggi
+  di parti/documenti/depositi/eventi e riferimento al log di import;
+- la visualizzazione del fascicolo deve quindi mostrare la classificazione
+  corretta, ad esempio `Citazione`, `Decreto` e `AttoNonCodificato`, invece di
+  una categoria generica quando il dato portale è disponibile.
+
+Formula di regressione: dopo l'import PST completo o parziale con file reali, il
+fascicolo deve popolare clienti, parti e documenti/depositi come dati strutturati
+del gestionale; non è sufficiente salvare solo i PDF nel fascicolo.
+
+## Cronologia e riprova
+
+Il pannello `Cronologia - Import, esiti e azioni recenti` deve riportare anche i
+tentativi non conclusi, non solo gli import riusciti. Se il fascicolo non viene
+scaricato o il PST non consegna file reali, la riga deve indicare un motivo
+operativo comprensibile, ad esempio timeout/sovraffollamento del portale,
+certificato o PIN non accettato, sessione scaduta, nessun fascicolo trovato o
+catalogo senza PDF effettivi.
+
+La stessa informazione deve essere visibile anche nel riepilogo laterale del
+wizard quando l'avvocato è dentro `/portali/pst/acquisizione`, con azione
+`Riprova`. Il link di riprova deve riaprire la pagina già compilata almeno con
+ufficio giudiziario, codice ufficio, numero, anno e fascicolo gestionale target
+quando presente. Non devono essere salvati PIN, credenziali, sessioni o dati
+sensibili del certificato nella cronologia locale del browser.
+
+Formula di regressione: un errore recuperabile dello scarico PST deve diventare
+un tentativo cliccabile e precompilato, non un messaggio effimero che sparisce al
+refresh della pagina.
 
 ## Regole grafiche della pagina
 

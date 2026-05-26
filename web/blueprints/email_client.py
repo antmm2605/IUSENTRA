@@ -407,7 +407,7 @@ def scrivi():
         flash("Email inviata con successo.", "success")
         _audit("email.inviata", f"A: {destinatario} | Ogg: {oggetto[:60]}")
         if _wants_json_response():
-            return jsonify({"ok": True, "message": "PEC inviata con successo.", "redirect": url_for("email_client.casella", cartella="INVIATI")})
+            return jsonify({"ok": True, "message": "PEC inviata dal server dello studio.", "redirect": url_for("email_client.casella", cartella="INVIATI")})
         return redirect(url_for("email_client.casella", cartella="INVIATI"))
     except Exception:
         if _wants_json_response():

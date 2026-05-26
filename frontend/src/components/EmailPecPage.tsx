@@ -165,6 +165,15 @@ type OfficeKindOption = {
   label: string
 }
 
+type ComuneOption = {
+  codiceIstat: string
+  nome: string
+  label: string
+  cap: string[]
+  siglaProvincia: string
+  provincia: string
+}
+
 const composeOfficeKindOptions: OfficeKindOption[] = [
   { value: '', label: 'Tutti gli uffici richiesti' },
   { value: 'giudice_pace', label: 'Giudice di Pace di' },
@@ -1560,11 +1569,53 @@ export function EmailOrdinariaPage() {
 function OfficePecLookupPanel({ onInsert }: { onInsert: (pec: string) => void }) {
   const [open, setOpen] = useState(false)
   const [comune, setComune] = useState('')
+  const [selectedComune, setSelectedComune] = useState<ComuneOption | null>(null)
+  const [comuneOptions, setComuneOptions] = useState<ComuneOption[]>([])
+  const [comuneLoading, setComuneLoading] = useState(false)
   const [officeKind, setOfficeKind] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<StudioRuntimeResult | null>(null)
   const [inserted, setInserted] = useState('')
+
+  useEffect(() => {
+    const query = comune.trim()
+    if (!open || selectedComune?.nome === query || query.length < 2) {
+      setComuneOptions([])
+      return
+    }
+    let active = true
+    const timer = window.setTimeout(() => {
+      setComuneLoading(true)
+      fetch(`/api/v1/ui/territorio/comuni?q=${encodeURIComponent(query)}&limit=12`, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      })
+        .then((response) => response.ok ? response.json() : { items: [] })
+        .then((payload) => {
+          if (!active) return
+          const items = Array.isArray(payload.items) ? payload.items : []
+          setComuneOptions(items.map((item: JsonRecord) => ({
+            codiceIstat: text(item.codiceIstat),
+            nome: text(item.nome),
+            label: text(item.label),
+            cap: Array.isArray(item.cap) ? item.cap.map((cap) => text(cap)).filter(Boolean) : [],
+            siglaProvincia: text(item.siglaProvincia),
+            provincia: text(item.provincia),
+          })).filter((item: ComuneOption) => item.codiceIstat && item.nome))
+        })
+        .catch(() => {
+          if (active) setComuneOptions([])
+        })
+        .finally(() => {
+          if (active) setComuneLoading(false)
+        })
+    }, 220)
+    return () => {
+      active = false
+      window.clearTimeout(timer)
+    }
+  }, [comune, open, selectedComune])
 
   const searchOffices = async () => {
     const city = comune.trim()
@@ -1578,6 +1629,7 @@ function OfficePecLookupPanel({ onInsert }: { onInsert: (pec: string) => void })
     setInserted('')
     const formData = new FormData()
     formData.set('comune', city)
+    if (selectedComune?.codiceIstat) formData.set('comune_istat', selectedComune.codiceIstat)
     formData.set('includi_speciali', '1')
     formData.set('solo_pec', '1')
     const kinds = officeKind
@@ -1637,7 +1689,10 @@ function OfficePecLookupPanel({ onInsert }: { onInsert: (pec: string) => void })
               <input
                 type="text"
                 value={comune}
-                onChange={(event) => setComune(event.target.value)}
+                onChange={(event) => {
+                  setComune(event.target.value)
+                  setSelectedComune(null)
+                }}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter') {
                     event.preventDefault()
@@ -1659,6 +1714,25 @@ function OfficePecLookupPanel({ onInsert }: { onInsert: (pec: string) => void })
               <Search size={15} /> {loading ? 'Ricerca in corso...' : 'Cerca PEC'}
             </button>
           </div>
+          {comuneLoading || comuneOptions.length ? (
+            <div className="iu-mail-office-comuni" aria-label="Comuni trovati">
+              {comuneLoading ? <span>Ricerca Comuni...</span> : null}
+              {comuneOptions.map((option) => (
+                <button
+                  type="button"
+                  key={option.codiceIstat}
+                  onClick={() => {
+                    setComune(option.nome)
+                    setSelectedComune(option)
+                    setComuneOptions([])
+                  }}
+                >
+                  <strong>{option.label}</strong>
+                  <span>{option.cap.slice(0, 4).join(', ')}{option.cap.length > 4 ? '...' : ''}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
           {error ? <p className="iu-mail-office-lookup__notice" role="status">{error}</p> : null}
           {inserted ? <p className="iu-mail-office-lookup__success" role="status">{inserted}</p> : null}
           {result?.offices.length ? (

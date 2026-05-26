@@ -157,7 +157,9 @@ function asInputValue(value: string | boolean | undefined): string {
 }
 
 type ClientDocumentField = keyof typeof initialClient
+type SubjectDocumentField = keyof typeof initialSubject
 type ClientDocumentPatch = Partial<Record<ClientDocumentField, string>>
+type SubjectDocumentPatch = Partial<Record<SubjectDocumentField, string>>
 type ClientDocumentReaderPhase = 'idle' | 'selected' | 'reading' | 'success' | 'warning' | 'danger'
 type ClientDocumentRecognizedField = {
   name: string
@@ -189,6 +191,9 @@ type ClientDocumentAutofillResult = {
 declare global {
   interface Window {
     IUSENTRA_CLIENTE_NUOVO?: {
+      applicaDatiDocumento: (payload: unknown) => ClientDocumentAutofillResult
+    }
+    IUSENTRA_SOGGETTO_NUOVO?: {
       applicaDatiDocumento: (payload: unknown) => ClientDocumentAutofillResult
     }
   }
@@ -440,10 +445,28 @@ function normalizeClientDocumentScan(payload: unknown): ClientDocumentPatch {
   return patch
 }
 
+function normalizeSubjectDocumentScan(payload: unknown): SubjectDocumentPatch {
+  const clientPatch = normalizeClientDocumentScan(payload)
+  const subjectPatch: SubjectDocumentPatch = {}
+  Object.entries(clientPatch).forEach(([field, value]) => {
+    if (field in initialSubject && text(value)) {
+      subjectPatch[field as SubjectDocumentField] = value
+    }
+  })
+  return subjectPatch
+}
+
 function canAutofillClientField(field: ClientDocumentField, currentValue: string | boolean | undefined, nextValue: string, touchedFields: Set<string>): boolean {
   if (!text(nextValue) || touchedFields.has(field)) return false
   const current = asInputValue(currentValue)
   const defaultValue = asInputValue(initialClient[field])
+  return !text(current) || current === defaultValue
+}
+
+function canAutofillSubjectField(field: SubjectDocumentField, currentValue: string | undefined, nextValue: string, touchedFields: Set<string>): boolean {
+  if (!text(nextValue) || touchedFields.has(field)) return false
+  const current = asInputValue(currentValue)
+  const defaultValue = asInputValue(initialSubject[field])
   return !text(current) || current === defaultValue
 }
 
@@ -1107,12 +1130,27 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
   const [values, setValues] = useState<SubjectFormState>({...initialSubject})
   const [cfStatus, setCfStatus] = useState('')
   const [submitState, setSubmitState] = useState<SubmitState>(() => emptySubmitState())
+  const [autofillState, setAutofillState] = useState<ClientDocumentAutofillState>(() => emptyDocumentAutofillState)
+  const [selectedDocumentFile, setSelectedDocumentFile] = useState<File | null>(null)
+  const [touchedFields, setTouchedFields] = useState<Set<string>>(() => new Set())
+  const valuesRef = useRef(values)
+  const touchedFieldsRef = useRef(touchedFields)
+  const documentFileInputRef = useRef<HTMLInputElement | null>(null)
   const action = data.actions.operationalSubjectForm
   const isLegal = subjectLegalTypes.has(values.tipo)
 
   useEffect(() => {
+    valuesRef.current = values
+  }, [values])
+
+  useEffect(() => {
+    touchedFieldsRef.current = touchedFields
+  }, [touchedFields])
+
+  useEffect(() => {
     if (data.mode === 'edit_subject') {
       setValues({ ...initialSubject, ...data.initialSubject })
+      setTouchedFields(new Set())
       return
     }
     if (data.query.idCliente) setValues((current) => ({...current, id_cliente: data.query.idCliente}))
@@ -1167,7 +1205,164 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
     }
   }, [values.cognome, values.nome, values.sesso, values.data_nascita, values.luogo_nascita, values.provincia_nascita, values.codice_fiscale, isLegal])
 
+  const applyDocumentPayload = useCallback((payload: unknown): ClientDocumentAutofillResult => {
+    if (isLegal) {
+      const result = { ok: false, applied: [], skipped: [], message: 'La lettura documento è disponibile per le persone fisiche.' }
+      setAutofillState({ ...emptyDocumentAutofillState, phase: 'warning', tone: 'neutral', message: result.message, filename: selectedDocumentFile?.name || '' })
+      return result
+    }
+    const patch = normalizeSubjectDocumentScan(payload)
+    const entries = Object.entries(patch).filter(([, value]) => text(value))
+    if (!entries.length) {
+      const result = { ok: false, applied: [], skipped: [], message: 'Nessun dato anagrafico riconosciuto dal documento.' }
+      setAutofillState({ ...emptyDocumentAutofillState, phase: 'danger', tone: 'danger', message: result.message, filename: selectedDocumentFile?.name || '' })
+      return result
+    }
+    const currentValues = valuesRef.current
+    const currentTouched = touchedFieldsRef.current
+    const nextValues: SubjectFormState = { ...currentValues }
+    const applied: string[] = []
+    const skipped: string[] = []
+    entries.forEach(([field, value]) => {
+      const target = field as SubjectDocumentField
+      const clean = text(value)
+      if (canAutofillSubjectField(target, currentValues[target], clean, currentTouched)) {
+        nextValues[target] = clean
+        applied.push(clientDocumentFieldLabels[target as ClientDocumentField] || target)
+      } else {
+        skipped.push(clientDocumentFieldLabels[target as ClientDocumentField] || target)
+      }
+    })
+    if (applied.length) {
+      setValues(nextValues)
+      setAutofillState({
+        phase: 'success',
+        tone: 'success',
+        message: skipped.length ? 'Dati documento applicati. Alcuni campi già compilati sono stati lasciati invariati.' : 'Dati documento applicati al nuovo soggetto.',
+        fields: applied,
+        applied,
+        skipped,
+        missing: [],
+        warnings: [],
+        recognized: recognizedDocumentFields(payload),
+        filename: selectedDocumentFile?.name || '',
+      })
+      return { ok: true, applied, skipped, message: 'Dati documento applicati.' }
+    }
+    const result = { ok: false, applied, skipped, message: 'I campi riconosciuti erano già compilati.' }
+    setAutofillState({
+      ...emptyDocumentAutofillState,
+      phase: 'warning',
+      tone: 'warning',
+      message: result.message,
+      fields: skipped,
+      skipped,
+      recognized: recognizedDocumentFields(payload),
+      filename: selectedDocumentFile?.name || '',
+    })
+    return result
+  }, [isLegal, selectedDocumentFile])
+
+  const chooseDocumentFile = () => {
+    documentFileInputRef.current?.click()
+  }
+
+  const handleDocumentFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0] || null
+    setSelectedDocumentFile(file)
+    if (!file) {
+      setAutofillState(emptyDocumentAutofillState)
+      return
+    }
+    setAutofillState({
+      ...emptyDocumentAutofillState,
+      phase: 'selected',
+      tone: 'neutral',
+      filename: file.name,
+      message: 'Documento caricato. Premi Leggi documento / MRZ per compilare i dati riconosciuti.',
+    })
+  }
+
+  const readSelectedDocumentFile = async () => {
+    if (!selectedDocumentFile) {
+      setAutofillState({
+        ...emptyDocumentAutofillState,
+        phase: 'warning',
+        tone: 'warning',
+        message: 'Carica prima un PDF, JPG o PNG del documento.',
+      })
+      documentFileInputRef.current?.click()
+      return
+    }
+    setAutofillState({
+      ...emptyDocumentAutofillState,
+      phase: 'reading',
+      tone: 'neutral',
+      filename: selectedDocumentFile.name,
+      message: 'Lettura OCR/MRZ in corso...',
+    })
+    try {
+      const formData = new FormData()
+      formData.append('file', selectedDocumentFile)
+      const response = await fetch(data.actions.documentReader, {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: formData,
+        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      })
+      const payload = await safeJson(response)
+      const recognized = recognizedDocumentFields(payload)
+      const missing = stringList(payload.missing)
+      const warnings = stringList(payload.warnings)
+      if (!response.ok && !recognized.length) {
+        throw new Error(text(payload.message ?? payload.errore, `Lettura documento non riuscita: HTTP ${response.status}`))
+      }
+      const result = applyDocumentPayload(payload)
+      const phase: ClientDocumentReaderPhase = result.ok ? 'success' : recognized.length ? 'warning' : 'danger'
+      setAutofillState({
+        phase,
+        tone: result.ok ? 'success' : recognized.length ? 'warning' : 'danger',
+        message: text(payload.message, result.message),
+        fields: result.applied,
+        applied: result.applied,
+        skipped: result.skipped,
+        missing,
+        warnings,
+        recognized,
+        filename: selectedDocumentFile.name,
+      })
+    } catch (error) {
+      setAutofillState({
+        ...emptyDocumentAutofillState,
+        phase: 'danger',
+        tone: 'danger',
+        filename: selectedDocumentFile.name,
+        message: error instanceof Error ? error.message : 'Lettura documento non riuscita.',
+      })
+    }
+  }
+
+  useEffect(() => {
+    const api = { applicaDatiDocumento: applyDocumentPayload }
+    window.IUSENTRA_SOGGETTO_NUOVO = api
+    const handleDocumentDetected = (event: Event) => {
+      applyDocumentPayload((event as CustomEvent<unknown>).detail)
+    }
+    window.addEventListener('iusentra:soggetto-documento-rilevato', handleDocumentDetected)
+    return () => {
+      window.removeEventListener('iusentra:soggetto-documento-rilevato', handleDocumentDetected)
+      if (window.IUSENTRA_SOGGETTO_NUOVO?.applicaDatiDocumento === api.applicaDatiDocumento) {
+        delete window.IUSENTRA_SOGGETTO_NUOVO
+      }
+    }
+  }, [applyDocumentPayload])
+
   const change = (name: string, value: string) => {
+    setTouchedFields((current) => {
+      const next = new Set(current)
+      next.add(name)
+      return next
+    })
     setValues((current) => ({...current, [name]: name.includes('codice') || name.includes('partita') || name.includes('provincia') ? value.toUpperCase() : value}))
   }
   const generateNow = () => {
@@ -1210,6 +1405,14 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
           </div>
         ) : (
           <div className="iu-cln-grid">
+            <DocumentAutofillPanel
+              state={autofillState}
+              selectedFile={selectedDocumentFile}
+              inputRef={documentFileInputRef}
+              onChooseFile={chooseDocumentFile}
+              onReadFile={readSelectedDocumentFile}
+              onFileChange={handleDocumentFileChange}
+            />
             <Field label="Cognome" name="cognome" value={values.cognome} required onChange={change}/>
             <Field label="Nome" name="nome" value={values.nome} required onChange={change}/>
             <SelectField label="Sesso" name="sesso" value={values.sesso} onChange={change} options={[{value: '', label: '-'}, {value: 'M', label: 'Maschile'}, {value: 'F', label: 'Femminile'}]}/>

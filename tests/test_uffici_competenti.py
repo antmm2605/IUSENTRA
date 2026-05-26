@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from pct.uffici_competenti import GIUSTIZIA_MAP_VIEW_URL, ricerca_uffici_competenti
+from pct.uffici_competenti import GIUSTIZIA_MAP_VIEW_URL, _find_comune_option, ricerca_uffici_competenti
 
 
 _SOURCE_I_GRAVE = "\u0117"
@@ -74,7 +74,7 @@ def test_ricerca_uffici_competenti_parse_ministero_senza_cache():
     assert tribunale["assistenzaPct"]["orari"] == "dal lunedì al venerdì dalle 12.30 alle 14.00"
     assert any(action["label"] == "Usa nel fascicolo" for action in tribunale["actions"])
     assert payload["warnings"]
-    assert "senza salvare copie locali" in payload["notes"][0]
+    assert "fonte ministeriale" in payload["notes"][0]
 
 
 def test_ricerca_uffici_competenti_visualizza_uffici_speciali_su_richiesta():
@@ -100,6 +100,47 @@ def test_ricerca_uffici_competenti_filtra_tipologia_e_solo_pec():
     assert payload["totalVisible"] == 1
     assert payload["offices"][0]["kind"] == "procura_minorenni"
     assert payload["offices"][0]["pec"] == "procmin.reggiocalabria@giustiziacert.it"
+
+
+def test_ricerca_uffici_competenti_arricchisce_pec_da_catalogo_ministeriale():
+    html = """
+    <root>
+      <ufficio nomeufficio="Tribunale di PALMI">
+        <indirizzo>Via Roma</indirizzo>
+        <comune>PALMI</comune>
+        <pec/>
+      </ufficio>
+      <ufficio>
+        <nome>Giudice di Pace di PALMI</nome>
+        <comune>PALMI</comune>
+        <pec/>
+      </ufficio>
+    </root>
+    """
+
+    payload = ricerca_uffici_competenti(
+        "Palmi",
+        includi_speciali=True,
+        tipi_ufficio=["tribunale", "giudice_pace"],
+        solo_pec=True,
+        fetcher=lambda _comune, _timeout: html,
+    )
+
+    assert [office["kind"] for office in payload["offices"]] == ["giudice_pace", "tribunale"]
+    assert payload["offices"][0]["pec"] == "gdp.palmi@civile.ptel.giustiziacert.it"
+    assert payload["offices"][1]["pec"] == "tribunale.palmi@civile.ptel.giustiziacert.it"
+
+
+def test_ricerca_uffici_competenti_seleziona_comune_esatto_da_lista_ministeriale():
+    html = """
+    <select name="comune" class="cerca_for" id="comune">
+      <option value="">Scegli...</option>
+      <option value="18080057#Palmi">Palmi (RC)</option>
+      <option value="11044056#Palmiano">Palmiano (AP)</option>
+    </select>
+    """
+
+    assert _find_comune_option(html, "Palmi") == "18080057#Palmi"
 
 
 @pytest.mark.parametrize("comune", ["", "A", "\x01Palmi"])

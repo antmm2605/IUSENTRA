@@ -54,6 +54,7 @@ from pct.termini_processuali import (
     LEGAL_SOURCES,
     calculate_and_audit,
 )
+from pct.territorio_italia import get_comune, search_comuni
 from pct.uffici_competenti import ricerca_uffici_competenti
 from pct.timesheet import StatoTimesheet
 from pct.workspace_intelligente import WorkspaceIntelligenteService
@@ -1782,6 +1783,23 @@ def clienti_react_nuovo_documento_leggi():
         }), exc.status_code
 
 
+@api_v1_react.get("/territorio/comuni")
+@_richiedi_auth
+def territorio_react_comuni():
+    query = str(request.args.get("q", "") or "").strip()
+    try:
+        limit = min(50, max(1, int(request.args.get("limit", 20) or 20)))
+    except ValueError:
+        limit = 20
+    comuni = [comune.to_dict() for comune in search_comuni(query, limit=limit)]
+    return jsonify({
+        "ok": True,
+        "query": query,
+        "total": len(comuni),
+        "items": comuni,
+    })
+
+
 @api_v1_react.get("/clienti/<id_cliente>/cartella")
 @_richiedi_auth
 def cliente_cartella_react(id_cliente: str):
@@ -2757,12 +2775,19 @@ def _payload_list(payload: Any, name: str) -> list[str]:
 
 
 def _uffici_competenti_result(payload: Any, schema: Mapping[str, Any]) -> dict[str, Any]:
+    comune_codice = str(payload.get("comune_istat", "") if hasattr(payload, "get") else "").strip()
+    comune_nome = str(payload.get("comune", "") if hasattr(payload, "get") else "").strip()
+    comune_db = get_comune(codice_istat=comune_codice) if comune_codice else None
+    comune_query = comune_db.giustizia_map_value if comune_db else comune_nome
     result = ricerca_uffici_competenti(
-        str(payload.get("comune", "") if hasattr(payload, "get") else ""),
+        comune_query,
         includi_speciali=_payload_bool(payload, "includi_speciali"),
         tipi_ufficio=_payload_list(payload, "tipo_ufficio"),
         solo_pec=_payload_bool(payload, "solo_pec"),
     )
+    if comune_db:
+        result["comune"] = comune_db.label
+        result["comuneRecord"] = comune_db.to_dict()
     offices = list(result.get("offices") or [])
     table_rows = [
         [
@@ -2794,6 +2819,7 @@ def _uffici_competenti_result(payload: Any, schema: Mapping[str, Any]) -> dict[s
         "notes": list(result.get("notes") or []),
         "warnings": list(result.get("warnings") or []),
         "sources": [dict(result.get("source") or {})],
+        "comuneRecord": result.get("comuneRecord"),
         "offices": offices,
     }
 

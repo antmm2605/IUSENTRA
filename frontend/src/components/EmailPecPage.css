@@ -1163,6 +1163,41 @@
   opacity:.58;
   cursor:not-allowed;
 }
+.iu-mail-office-comuni{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:8px;
+}
+.iu-mail-office-comuni button,
+.iu-mail-office-comuni span{
+  min-height:42px;
+  display:grid;
+  gap:2px;
+  padding:8px 10px;
+  border:1px solid rgba(37,99,235,.16);
+  border-radius:12px;
+  background:#fff;
+  color:#0f172a;
+  text-align:left;
+  font-size:12px;
+  font-weight:800;
+}
+.iu-mail-office-comuni button{
+  cursor:pointer;
+}
+.iu-mail-office-comuni button:hover{
+  border-color:rgba(37,99,235,.45);
+  background:#eff6ff;
+}
+.iu-mail-office-comuni button span{
+  min-height:0;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:var(--iu-slate-500);
+  font-size:11px;
+  font-weight:760;
+}
 .iu-mail-office-lookup__notice,
 .iu-mail-office-lookup__success,
 .iu-mail-office-lookup__hint{

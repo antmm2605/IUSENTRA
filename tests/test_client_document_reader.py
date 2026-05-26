@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from io import BytesIO
+from pathlib import Path
 
 from web.services.client_document_reader import parse_client_document_text
 from tests.test_react_shell import _app
@@ -94,3 +95,28 @@ def test_clienti_nuovo_documento_leggi_api_upload_in_memoria(tmp_path, monkeypat
     assert payload["patch"]["codice_fiscale"] == "BNCNNA90C41H501Q"
     assert payload["patch"]["data_nascita"] == "1990-03-01"
     assert payload["patch"]["doc_data_scadenza"] == "2030-03-01"
+
+
+def test_react_soggetti_nuovo_usa_ocr_mrz_e_popola_campi_anagrafici() -> None:
+    source = Path("frontend/src/components/NuovoClientePage.tsx").read_text(encoding="utf-8")
+
+    assert "IUSENTRA_SOGGETTO_NUOVO" in source
+    assert "iusentra:soggetto-documento-rilevato" in source
+    assert "normalizeSubjectDocumentScan" in source
+    assert "canAutofillSubjectField" in source
+    assert "setValues(nextValues)" in source
+    for field in [
+        "codice_fiscale",
+        "cognome",
+        "nome",
+        "sesso",
+        "data_nascita",
+        "luogo_nascita",
+        "provincia_nascita",
+        "doc_numero",
+        "doc_data_scadenza",
+    ]:
+        assert f"{field}:" in source or f"'{field}'" in source
+    assert "Dati documento applicati al nuovo soggetto." in source
+    assert "data.actions.documentReader" in source
+    assert "DocumentAutofillPanel" in source

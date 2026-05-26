@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.248.64 - 2026-05-26
+
+- Completato il pannello `/email/scrivi` per la ricerca PEC degli uffici giudiziari: autocomplete su tutti i 7.894 Comuni italiani con provincia/CAP, filtro per le dieci tipologie richieste e inserimento della PEC nel destinatario.
+- Aggiunti i DB versionati `territorio_italia.sqlite` e `uffici_giudiziari_comuni.sqlite`, con audit 100% Comuni/CAP/province e 100% associazioni Comune -> uffici giudiziari; i Comuni di nuova istituzione non ancora riconosciuti da Giustizia Map usano i Comuni predecessori documentati e interrogati sulla fonte ministeriale.
+- Rafforzato l'invio PEC server-side: la composizione usa SMTP/PEC del backend dello studio, valida destinatari multipli, TLS e credenziali backend, invia con `from_addr`/`to_addrs` espliciti e gestisce correttamente messaggi con allegati.
+- Esteso il lettore OCR/MRZ anche alla scheda Nuovo Soggetto/Parte con popolamento controllato dei campi anagrafici, senza sovrascrivere valori già modificati dall'utente.
+
 ## 2.248.63 - 2026-05-26
 
 - Aggiunto in `/email/scrivi` un pannello collassabile `Ricerca uffici giudiziari per Comune`: filtra Giudice di Pace, Tribunale, Procura, UNEP, Corte d'Appello, Procura Generale, Corti di Assise e uffici minorenni, mostra solo recapiti PEC quando richiesto e inserisce la PEC nel campo destinatario.

@@ -892,3 +892,10 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | --- | --- | --- | --- | --- |
 | Salva nel fascicolo da Email PEC | Test API PEC, typecheck e browser visuale | Risolto localmente, da verificare sul nuovo SHA | Sul commit deployato mancava il percorso richiesto dall'utente: il pulsante poteva solo tentare un salvataggio diretto con `fascicolo_id`, senza chiedere nome/cognome cliente e senza conferma del fascicolo aperto. | Aggiunto endpoint di preparazione su clienti/fascicoli locali, dialog React con conferma e test end-to-end; rilanciare build/browser e CI sul nuovo push. |
 | Worktree locale durante hotfix PEC | `pnpm --filter @iusentra/studio typecheck` | Risolto localmente | Un primo rilancio ha letto modifiche fuori perimetro su `/clienti/nuovo`, già classificate come estranee al fix PEC e non committabili in questa tranche. | Ripristinati i file clienti a `HEAD`, rilanciato `pnpm --filter @iusentra/studio typecheck` e confermato verde prima della build finale. |
+
+## Note PEC server, Comuni e uffici giudiziari 2.248.64 - 2026-05-26
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Comuni di nuova istituzione non presenti su Giustizia Map con nome corrente | `scripts\build_uffici_giudiziari_comuni_db.py` + audit associazioni | Governato | Il completamento 100% usa i Comuni predecessori documentati per fusioni/scorpori e interroga comunque Giustizia Map su ciascun predecessore; il risultato conserva `derivedFromComuni` e avviso professionale in UI. | Se Giustizia Map aggiorna i nomi correnti, rigenerare `uffici_giudiziari_comuni.sqlite` e verificare che l'audit resti 100%. |
+| Recapiti PEC non pubblicati in alcuni nodi Giustizia Map | Catalogo `PEC_territorio.pdf` + parser PEC | Governato | Il parser ora legge PEC anche dal campo `email` e integra il catalogo ministeriale PEC territorio; gli indirizzi non vengono inventati quando nessuna fonte ufficiale li pubblica. | Per nuovi cataloghi ministeriali rilanciare `scripts\build_pec_territorio_data.py` e l'audit uffici. |

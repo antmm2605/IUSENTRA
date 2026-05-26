@@ -2721,3 +2721,12 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - Il preset IUSENTRA ora vince sulle regole specifiche che riportavano alcune CTA a 38 px; bottoni, link operativi e azioni secondarie restano leggibili e touch-safe.
 - `Database` su mobile passa da tabella larga a vista compatta a schede; il bottom nav mobile non produce overflow di pagina.
 - Verifiche registrate: browser in-app autenticato su desktop 1440x1000, tablet 900x1100 e mobile 390x844 con scroll alto/meta/fondo, 81 snapshot verdi, zero errori console nuovi, `pnpm test`, build Vite, governance, OpenAPI, provider verification, UTF-8 e asset retention.
+
+## Aggiornamento 2026-05-26: PEC server, Comuni e uffici giudiziari 2.248.64
+
+- `/email/scrivi` usa un pannello collassabile per cercare uffici giudiziari per Comune con autocomplete su banca dati locale completa dei 7.894 Comuni italiani, provincia e CAP.
+- La ricerca filtra le dieci tipologie richieste dall'utente e inserisce nel destinatario solo recapiti PEC pubblicati o integrati da fonte ministeriale; il filtro `Procura Generale` esclude la Cassazione perché non rientra nella voce richiesta.
+- La banca dati `uffici_giudiziari_comuni.sqlite` è normalizzata: 7.894 Comuni, 1.028 uffici unici e 78.816 associazioni Comune -> ufficio, con audit 100% e tracciamento dei Comuni predecessori quando Giustizia Map non espone il nome corrente.
+- L'invio PEC della composizione usa il canale SMTP/PEC backend dello studio, non Local Signer, con destinatari normalizzati, TLS, `from_addr`/`to_addrs` espliciti e MIME corretto per allegati.
+- Il lettore OCR/MRZ già presente su Nuovo Cliente è stato esteso anche a Nuovo Soggetto/Parte, con popolamento dei campi affidabili e preservazione dei valori modificati dall'utente.
+- Verifiche registrate: audit territorio, audit uffici, pytest mirati Comuni/uffici/PEC/OCR, suite `tests/test_email_client.py`, typecheck, build Vite e compileall.

@@ -18,6 +18,7 @@ setup(
     package_data={
         "pct": [
             "data/*.json",
+            "data/*.sqlite",
             "data/cataloghi/*.json",
             "data/legal_knowledge_base_modules/*.json",
             "sql/*.sql",

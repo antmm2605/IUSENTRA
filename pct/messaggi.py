@@ -18,9 +18,7 @@ Funzionalità:
 import json
 import uuid
 import re
-import smtplib
-import ssl
-from pct.config_studio import _SMTPv4, _SMTP_SSLv4
+from pct.config_studio import _SMTPv4, _SMTP_SSLv4, _crea_contesto_tls_sicuro, _msg_errore_rete
 from datetime import datetime, date, timedelta
 from pathlib import Path
 from typing import Optional, List, Dict, Any
@@ -30,7 +28,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
-from email.utils import make_msgid
+from email.utils import formataddr, getaddresses, make_msgid
 
 
 # ------------------------------------------------------------------ Enums
@@ -446,21 +444,40 @@ class GestioneMessaggi:
         )
 
         try:
-            mime = MIMEMultipart("alternative")
-            mime["From"] = (
-                f"{self.config.email.mittente_nome} "
-                f"<{self.config.email.mittente_email}>"
-            )
-            mime["To"] = destinatario
+            if not self.config or not getattr(self.config, "email", None):
+                raise ValueError("Configurazione email non presente.")
+            email_cfg = self.config.email
+            sender = email_cfg.mittente_email or email_cfg.username
+            recipients = [
+                address
+                for _name, address in getaddresses([destinatario])
+                if address
+            ]
+            if not email_cfg.smtp_host:
+                raise ValueError("Server SMTP non configurato.")
+            if not sender or not email_cfg.username:
+                raise ValueError("Indirizzo PEC mittente non configurato.")
+            if not email_cfg.password:
+                raise ValueError("Password PEC non configurata sul backend dello studio.")
+            if not recipients:
+                raise ValueError("Destinatario non valido.")
+
+            has_attachments = bool(allegati)
+            mime = MIMEMultipart("mixed" if has_attachments else "alternative")
+            mime["From"] = formataddr((email_cfg.mittente_nome or "", sender))
+            mime["To"] = ", ".join(recipients)
             mime["Subject"] = oggetto
             mime["Message-ID"] = make_msgid()
-            if self.config.email.reply_to:
-                mime["Reply-To"] = self.config.email.reply_to
+            if email_cfg.reply_to:
+                mime["Reply-To"] = email_cfg.reply_to
 
-            mime.attach(MIMEText(corpo_testo, "plain", "utf-8"))
+            body_container = MIMEMultipart("alternative") if has_attachments else mime
+            body_container.attach(MIMEText(corpo_testo, "plain", "utf-8"))
             if corpo_html:
                 html_completo = self._wrap_html(corpo_html, oggetto)
-                mime.attach(MIMEText(html_completo, "html", "utf-8"))
+                body_container.attach(MIMEText(html_completo, "html", "utf-8"))
+            if has_attachments:
+                mime.attach(body_container)
 
             for percorso in (allegati or []):
                 p = Path(percorso)
@@ -473,16 +490,15 @@ class GestioneMessaggi:
                                     f'attachment; filename="{p.name}"')
                     mime.attach(part)
 
-            ctx = ssl.create_default_context()
-            if self.config.email.use_tls:
-                smtp = _SMTPv4(self.config.email.smtp_host, self.config.email.smtp_port)
+            ctx = _crea_contesto_tls_sicuro()
+            if email_cfg.use_tls:
+                smtp = _SMTPv4(email_cfg.smtp_host, email_cfg.smtp_port, timeout=30)
                 smtp.starttls(context=ctx)
             else:
-                smtp = _SMTP_SSLv4(self.config.email.smtp_host,
-                                   self.config.email.smtp_port, context=ctx)
+                smtp = _SMTP_SSLv4(email_cfg.smtp_host, email_cfg.smtp_port, context=ctx, timeout=30)
 
-            smtp.login(self.config.email.username, self.config.email.password)
-            smtp.send_message(mime)
+            smtp.login(email_cfg.username, email_cfg.password)
+            smtp.send_message(mime, from_addr=sender, to_addrs=recipients)
             smtp.quit()
 
             msg.stato = StatoMessaggio.INVIATO
@@ -491,7 +507,7 @@ class GestioneMessaggi:
 
         except Exception as e:
             msg.stato = StatoMessaggio.FALLITO
-            msg.errore = str(e)
+            msg.errore = _msg_errore_rete(e, "Invio PEC backend")
 
         self._messaggi[msg.id] = msg
         self._salva()

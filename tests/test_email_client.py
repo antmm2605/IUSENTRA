@@ -30,7 +30,7 @@ from pct.runtime_resilience import clear_runtime_circuit_breakers
 
 
 def test_bootstrap_carica_env_locale_prima_della_configurazione(tmp_path, monkeypatch):
-    from web.bootstrap.flask_app_factory import _load_local_env_file
+    from web.services.local_env_runtime import load_local_env_file
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("PCT_SECRET_KEY", raising=False)
@@ -39,7 +39,7 @@ def test_bootstrap_carica_env_locale_prima_della_configurazione(tmp_path, monkey
         encoding="utf-8",
     )
 
-    _load_local_env_file()
+    load_local_env_file()
 
     assert os.environ["PCT_SECRET_KEY"] == "chiave-stabile-per-decrittare-config-pec"
 

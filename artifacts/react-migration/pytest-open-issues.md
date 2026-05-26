@@ -871,6 +871,7 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
 | Pannello uffici nel dettaglio fascicolo | Typecheck, pytest mirati, build e browser responsive | Nessuna issue aperta nuova | La funzione usa l'endpoint read-only già governato per Strumenti Forensi e non tocca procedure telematiche, depositi o Local Signer. Il caricamento del fascicolo non effettua richieste uffici: la chiamata parte solo dal pulsante `Cerca uffici`. | Per modifiche future rilanciare il test React fascicoli, `tests/test_uffici_competenti.py`, typecheck/build e browser su un fascicolo con ricerca Comune. |
+| Contratti API dopo bump `2.248.62` | GitHub `Lint + syntax` sul push `04deddb88` | Risolto localmente, da verificare sul nuovo SHA | Il primo push ha evidenziato `docs/openapi.yaml` non riallineato alla nuova versione applicativa; i check a valle non sono stati dichiarati verdi. | Rigenerato `docs/openapi.yaml` con `generate_api_contracts.py` e rilanciati generate check, validazione OpenAPI, provider verification, smoke contratti e test OpenAPI prima del nuovo push. |
 
 ## Note PEC MIME/fascicolo 2.248.60 - 2026-05-26
 

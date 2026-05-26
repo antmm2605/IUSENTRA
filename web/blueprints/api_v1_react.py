@@ -15,6 +15,7 @@ from functools import wraps
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
 from urllib.parse import urlencode
+from zoneinfo import ZoneInfo
 
 from flask import Blueprint, current_app, g, jsonify, request, send_file, session, url_for
 from werkzeug.exceptions import HTTPException
@@ -2186,6 +2187,25 @@ def _augment_custom_relata_payload(payload: dict[str, Any]) -> dict[str, Any]:
     return payload
 
 
+def _local_rome_datetime_seconds() -> str:
+    return datetime.now(ZoneInfo("Europe/Rome")).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def _stamp_notifica_pec_times(payload: dict[str, Any]) -> dict[str, Any]:
+    operation = str(payload.get("operazione") or "").strip()
+    if operation not in {"notifica_pec_l53", "invio_pec_l53"}:
+        return payload
+    stamped = dict(payload)
+    now = _local_rome_datetime_seconds()
+    if not str(stamped.get("data_verifica_pec") or "").strip():
+        stamped["data_verifica_pec"] = now
+    if operation == "invio_pec_l53":
+        stamped["data_ora_invio_pec"] = now
+    elif not str(stamped.get("data_ora_invio_pec") or "").strip():
+        stamped["data_ora_invio_pec"] = stamped["data_verifica_pec"]
+    return stamped
+
+
 @api_v1_react.get("/notifiche-legali")
 @_richiedi_auth
 def notifiche_legali_payload():
@@ -2315,10 +2335,16 @@ def notifiche_legali_preview():
     override_text = str(payload.get("relata_override_text") or "").strip()
     if len(override_text) > _NOTIFICHE_DRAFT_BODY_MAX:
         return jsonify({"ok": False, "message": "La bozza relata modificata e' troppo lunga.", "blockers": ["La bozza relata modificata e' troppo lunga."]}), 400
+    payload = _stamp_notifica_pec_times(payload)
+    is_send = str(payload.get("operazione") or "").strip() == "invio_pec_l53"
     result = validate_legal_notification(_augment_custom_relata_payload(payload))
     return _notifiche_legali_result_response(
         result,
-        success_message="Relata e controlli L. 53/1994 pronti per la revisione dell'avvocato.",
+        success_message=(
+            "Piano di invio PEC pronto per la conferma dell'avvocato."
+            if is_send
+            else "Relata e controlli L. 53/1994 pronti per la revisione dell'avvocato."
+        ),
     )
 
 

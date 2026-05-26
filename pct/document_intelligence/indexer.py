@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import os
 from collections import Counter
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Any
 
 from .models import LexIndexingSummary
@@ -20,8 +22,9 @@ _STATE_PRIORITY = {
     "not_indexed": 0,
     _ERROR: 1,
     _ARCHIVED: 2,
-    _QUEUED: 3,
-    _INDEXING: 4,
+    _INDEXING: 3,
+    _QUEUED: 4,
+    _STALE: 4,
     _READY: 5,
 }
 
@@ -146,6 +149,8 @@ def _state_from_record(record: Any) -> str:
     if status == "ready":
         return _READY
     if status == "processing":
+        if _processing_record_is_stale(record):
+            return _STALE
         return _INDEXING
     if status == "uploaded":
         return _QUEUED
@@ -154,6 +159,36 @@ def _state_from_record(record: Any) -> str:
     if status == "error":
         return _ERROR
     return "not_indexed"
+
+
+def _processing_record_is_stale(record: Any) -> bool:
+    updated = _parse_datetime(getattr(record, "updated_at", "") or getattr(record, "created_at", ""))
+    if updated is None:
+        return False
+    now = datetime.now(timezone.utc)
+    if updated.tzinfo is None:
+        updated = updated.replace(tzinfo=timezone.utc)
+    minutes = _stale_processing_minutes()
+    return (now - updated).total_seconds() >= minutes * 60
+
+
+def _parse_datetime(value: Any) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    raw = raw.replace("Z", "+00:00")
+    try:
+        return datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+
+
+def _stale_processing_minutes() -> int:
+    try:
+        value = int(str(os.environ.get("IUSENTRA_DOCUMENT_AI_INDEXING_STALE_MINUTES", "30")).strip())
+    except (TypeError, ValueError):
+        return 30
+    return max(5, min(1440, value))
 
 
 def _last_ready_update(records: list[Any]) -> str | None:

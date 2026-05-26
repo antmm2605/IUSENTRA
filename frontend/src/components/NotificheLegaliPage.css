@@ -255,6 +255,14 @@
   cursor: pointer;
 }
 
+.iu-legal-clock-state {
+  display: block;
+  margin-top: 5px;
+  color: var(--iu-slate-600, #526173);
+  font-size: 12px;
+  font-weight: 720;
+}
+
 .iu-legal-field input[readonly] {
   background: rgba(235, 244, 255, .75);
   color: var(--iu-blue-700, #173a67);
@@ -299,13 +307,19 @@
   font-weight: 850;
 }
 
+.iu-legal-submit-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
 .iu-legal-submit {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   min-height: 42px;
-  margin-top: 14px;
   padding: 0 15px;
   border: 0;
   border-radius: 8px;
@@ -313,6 +327,10 @@
   color: #f8fbff;
   font-weight: 750;
   cursor: pointer;
+}
+
+.iu-legal-submit--send {
+  background: #0f766e;
 }
 
 .iu-legal-submit:disabled {

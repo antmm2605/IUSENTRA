@@ -222,6 +222,16 @@ def test_pec_api_demo_digest_mime_and_quick_action(tmp_path, monkeypatch):
     assert prepare_payload["requires_confirmation"] is True
     assert prepare_payload["candidates"][0]["id"] == fascicolo.id
 
+    direct_fascicolo = fascicoli.nuovo("Ricorso Bianchi", TipoFascicolo.CIVILE, id_cliente="", nome_cliente="Bianchi Luisa")
+    prepare_direct = client.post(
+        f"/api/pec/messages/{notice_id}/salva-fascicolo",
+        json={"prepara": True, "nome": "Luisa Bianchi", "cognome": ""},
+    )
+    assert prepare_direct.status_code == 200
+    direct_payload = prepare_direct.get_json()
+    assert direct_payload["requires_confirmation"] is True
+    assert direct_payload["candidates"][0]["id"] == direct_fascicolo.id
+
     confirm_save = client.post(f"/api/pec/messages/{notice_id}/salva-fascicolo", json={"fascicolo_id": fascicolo.id})
     assert confirm_save.status_code == 200
     confirm_payload = confirm_save.get_json()

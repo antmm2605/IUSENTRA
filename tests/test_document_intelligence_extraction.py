@@ -29,6 +29,17 @@ def test_document_ai_extraction_docx_semplice(tmp_path: Path):
     assert "Parte" in result.text
 
 
+def test_document_ai_extraction_doc_legacy_testuale(tmp_path: Path):
+    target = tmp_path / "memoria.doc"
+    target.write_bytes(b"\xd0\xcf\x11\xe0\x00\x00Memoria difensiva cliente Rossi contro Bianchi")
+
+    result = extract_document_text(target, "doc")
+
+    assert result.error is None
+    assert result.extraction_engine in {"antiword", "libreoffice", "doc.binary-text", "doc.rtf"}
+    assert "Memoria difensiva" in result.text
+
+
 def test_document_ai_extraction_pdf_semplice(tmp_path: Path):
     pytest.importorskip("reportlab")
     from reportlab.pdfgen import canvas

@@ -25,6 +25,7 @@ from xml.sax.saxutils import escape
 
 LEGAL_NOTIFICATION_SUBJECT = "notificazione ai sensi della legge n. 53 del 1994"
 LEGAL_NOTIFICATION_OPERATION = "notifica_pec_l53"
+LEGAL_NOTIFICATION_SEND_OPERATION = "invio_pec_l53"
 CLIENT_COMMUNICATION_OPERATION = "comunicazione_cliente_non_notifica"
 TEMPLATE_CATALOG_PATH = Path(__file__).with_name("data") / "notifiche_legali_templates.json"
 CLIENT_COMMUNICATION_CATALOG_PATH = Path(__file__).with_name("data") / "comunicazioni_cliente_templates.json"
@@ -2066,7 +2067,7 @@ def build_notification_timing_plan(payload: dict[str, Any]) -> dict[str, Any]:
     hour = planned_at.hour
     if 0 <= hour < 7:
         return {
-            "plannedAt": planned_at.strftime("%d/%m/%Y %H:%M"),
+            "plannedAt": planned_at.strftime("%d/%m/%Y %H:%M:%S"),
             "ready": False,
             "status": "fuori_fascia_destinatario",
             "senderEffect": "Verifica professionale richiesta prima dell'invio.",
@@ -2076,7 +2077,7 @@ def build_notification_timing_plan(payload: dict[str, Any]) -> dict[str, Any]:
         }
     if 21 <= hour <= 23:
         return {
-            "plannedAt": planned_at.strftime("%d/%m/%Y %H:%M"),
+            "plannedAt": planned_at.strftime("%d/%m/%Y %H:%M:%S"),
             "ready": True,
             "status": "fascia_serale_con_scissione",
             "senderEffect": "Per il notificante vale il momento di generazione della RAC.",
@@ -2085,7 +2086,7 @@ def build_notification_timing_plan(payload: dict[str, Any]) -> dict[str, Any]:
             "legalBasis": _legal_source_rows("l53_art3bis", "dl179_art16septies", "corte_cost_75_2019", "dpr68_art6_8"),
         }
     return {
-        "plannedAt": planned_at.strftime("%d/%m/%Y %H:%M"),
+        "plannedAt": planned_at.strftime("%d/%m/%Y %H:%M:%S"),
         "ready": True,
         "status": "fascia_ordinaria",
         "senderEffect": "Per il notificante vale il momento di generazione della RAC.",
@@ -2771,8 +2772,8 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
     subject_input = text(payload.get("oggetto_pec") or payload.get("subject") or _deep_get(payload, "notifica.oggetto_pec"))
 
     operation = text(payload.get("operazione") or _deep_get(payload, "notifica.operazione"))
-    if operation != LEGAL_NOTIFICATION_OPERATION:
-        blockers.append(block("OPERATION_REQUIRED", "Il percorso deve essere notifica_pec_l53."))
+    if operation not in {LEGAL_NOTIFICATION_OPERATION, LEGAL_NOTIFICATION_SEND_OPERATION}:
+        blockers.append(block("OPERATION_REQUIRED", "Usa il percorso guidato di controllo o invio PEC L. 53/1994."))
     if not subject_input or subject_input.lower() != LEGAL_NOTIFICATION_SUBJECT:
         blockers.append(block("L53_SUBJECT_REQUIRED", "L'oggetto PEC deve essere esattamente: notificazione ai sensi della legge n. 53 del 1994."))
     if not role:

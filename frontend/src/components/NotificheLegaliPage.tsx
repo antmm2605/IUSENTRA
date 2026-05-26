@@ -114,6 +114,26 @@ function todayLocalDate() {
   return now.toISOString().slice(0, 10)
 }
 
+function localDateTime() {
+  const now = new Date()
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
+  return now.toISOString().slice(0, 19)
+}
+
+function localClockLabel(value: string) {
+  const parsed = value ? new Date(value) : new Date()
+  if (Number.isNaN(parsed.getTime())) return value
+  return new Intl.DateTimeFormat('it-IT', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).format(parsed)
+}
+
 function Field({
   label,
   children,
@@ -648,6 +668,7 @@ export function NotificheLegaliPage() {
     fonte_pec_destinatario: 'reginde',
     destinatario_pec_pubblico_elenco: false,
     data_verifica_pec: '',
+    data_ora_invio_pec: '',
     nome_file: '',
     descrizione_documento: '',
     origine_documento: 'originale_informatico',
@@ -692,6 +713,8 @@ export function NotificheLegaliPage() {
   const [relataDraftDirty, setRelataDraftDirty] = useState(false)
   const [relataDraftSaving, setRelataDraftSaving] = useState(false)
   const [relataDraftMessage, setRelataDraftMessage] = useState('')
+  const [pecClockAuto, setPecClockAuto] = useState(true)
+  const [pecClockLabel, setPecClockLabel] = useState(localClockLabel(localDateTime()))
 
   const [deposito, setDeposito] = useState({
     atto_notificato: '',
@@ -746,6 +769,19 @@ export function NotificheLegaliPage() {
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [])
+
+  useEffect(() => {
+    const tick = () => {
+      const value = localDateTime()
+      setPecClockLabel(localClockLabel(value))
+      if (pecClockAuto) {
+        setNotifica((current) => current.data_verifica_pec === value ? current : { ...current, data_verifica_pec: value })
+      }
+    }
+    tick()
+    const handle = window.setInterval(tick, 1000)
+    return () => window.clearInterval(handle)
+  }, [pecClockAuto])
 
   const selectedTemplate = useMemo(() => data.modelliRelata.find((item) => item.value === notifica.template_id), [data.modelliRelata, notifica.template_id])
   const selectedClientTemplate = useMemo(() => data.modelliComunicazioneCliente.find((item) => item.value === cliente.template_id), [data.modelliComunicazioneCliente, cliente.template_id])
@@ -821,12 +857,6 @@ export function NotificheLegaliPage() {
     notifica.ufficio_giudiziario,
     officeAcquisitionCompleted ? 'documento_ufficio_collegato' : '',
   ].filter(Boolean).length
-
-  const localDateTime = () => {
-    const now = new Date()
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
-    return now.toISOString().slice(0, 16)
-  }
 
   const applyClient = (client: { id: string; nome: string; codiceFiscalePiva: string; pec: string }) => {
     setSelectedClientId(client.id)
@@ -1213,11 +1243,14 @@ export function NotificheLegaliPage() {
     if (practice) applyPractice(practice)
   }, [data.precompilazione.pratiche, selectedPracticeId])
 
-  const buildNotificaPayload = (includeDraft: boolean): Record<string, unknown> => {
+  const buildNotificaPayload = (includeDraft: boolean, verificationTimestamp = ''): Record<string, unknown> => {
     const selectedOfficeAcquired = selectedNotificationDocuments.some((documento) => documento.documentoUfficio || documento.notificaRichiesta)
     const documentOfficeAcquired = selectedOfficeAcquired || officeAcquisitionCompleted
+    const verificaPec = verificationTimestamp || notifica.data_verifica_pec || localDateTime()
     const payload: Record<string, unknown> = {
       ...notifica,
+      data_verifica_pec: verificaPec,
+      data_ora_invio_pec: notifica.data_ora_invio_pec || verificaPec,
       operazione: 'notifica_pec_l53',
       template_fields: modelFields,
       oggetto_pec: data.mandatorySubject,
@@ -1271,7 +1304,18 @@ export function NotificheLegaliPage() {
     setRelataDraftMessage('Bozza ripristinata dal modello compilato.')
   }
 
-  const previewPayloadKey = JSON.stringify({ notifica, modelFields, selectedNotificationDocumentIds, manualNotificationDocuments, attestazioniAutomatiche })
+  const previewStableNotifica = {
+    ...notifica,
+    data_verifica_pec: '',
+    data_ora_invio_pec: '',
+  }
+  const previewPayloadKey = JSON.stringify({
+    notifica: previewStableNotifica,
+    modelFields,
+    selectedNotificationDocumentIds,
+    manualNotificationDocuments,
+    attestazioniAutomatiche,
+  })
 
   useEffect(() => {
     if (loading || tab !== 'notifica') return undefined
@@ -1296,8 +1340,12 @@ export function NotificheLegaliPage() {
     setWorking(true)
     setResult({ ...emptyResult, message: 'Controllo in corso...' })
     const endpoint = key === 'notifica' ? data.azioni.notifica : key === 'deposito' ? data.azioni.provaDeposito : data.azioni.comunicazioneCliente
+    const verificaPec = key === 'notifica' ? localDateTime() : ''
+    if (key === 'notifica') {
+      setNotifica((current) => ({ ...current, data_verifica_pec: verificaPec }))
+    }
     const payload = key === 'notifica'
-      ? buildNotificaPayload(true)
+      ? buildNotificaPayload(true, verificaPec)
       : key === 'deposito'
         ? buildDepositoPayload()
         : {
@@ -1315,6 +1363,29 @@ export function NotificheLegaliPage() {
       }))
     }
     setResult(response)
+    setWorking(false)
+  }
+
+  const sendNotification = async () => {
+    const invioPec = localDateTime()
+    setWorking(true)
+    setResult({ ...emptyResult, message: 'Preparazione invio PEC in corso...' })
+    setNotifica((current) => ({
+      ...current,
+      data_verifica_pec: invioPec,
+      data_ora_invio_pec: invioPec,
+    }))
+    const payload = {
+      ...buildNotificaPayload(true, invioPec),
+      operazione: 'invio_pec_l53',
+      conferma_invio_pec: true,
+      data_ora_invio_pec: invioPec,
+    }
+    const response = await postLegalWorkflow(data.azioni.notifica, payload).catch(() => ({ ...emptyResult, blockers: ['Preparazione invio PEC non completata. Riprova tra poco.'] }))
+    setResult(response.ok ? {
+      ...response,
+      message: response.message || 'Piano di invio PEC pronto: verifica allegati, relata firmata e ricevute attese prima della trasmissione.',
+    } : response)
     setWorking(false)
   }
 
@@ -1767,11 +1838,20 @@ export function NotificheLegaliPage() {
                 </Field>
                 <label className="iu-legal-check"><input type="checkbox" checked={notifica.destinatario_pec_pubblico_elenco} onChange={(event) => changeNotifica('destinatario_pec_pubblico_elenco', event.currentTarget.checked)} /><span>PEC destinatario verificata su pubblico elenco</span></label>
                 <Field label="Parte rappresentata"><input value={notifica.destinatario_parte_rappresentata} onChange={(event) => changeNotifica('destinatario_parte_rappresentata', event.currentTarget.value)} /></Field>
-                <Field label="Data e ora verifica PEC" hint="Da compilare solo dopo il controllo effettivo del pubblico elenco.">
+                <Field label="Data e ora verifica PEC" hint="Aggiornata automaticamente con l'orologio del dispositivo; modifica manualmente solo se la verifica è già stata eseguita in un momento diverso.">
                   <div className="iu-legal-inline-action">
-                    <input type="datetime-local" value={notifica.data_verifica_pec} onChange={(event) => changeNotifica('data_verifica_pec', event.currentTarget.value)} />
-                    <button type="button" onClick={() => changeNotifica('data_verifica_pec', localDateTime())}>Ora</button>
+                    <input
+                      type="datetime-local"
+                      step={1}
+                      value={notifica.data_verifica_pec}
+                      onChange={(event) => {
+                        setPecClockAuto(false)
+                        changeNotifica('data_verifica_pec', event.currentTarget.value)
+                      }}
+                    />
+                    <button type="button" onClick={() => { setPecClockAuto(true); changeNotifica('data_verifica_pec', localDateTime()) }}>Ora</button>
                   </div>
+                  <small className="iu-legal-clock-state">{pecClockAuto ? 'Orologio automatico' : 'Orario impostato manualmente'}: {pecClockLabel}</small>
                 </Field>
                 <Field label={selectedNotificationDocuments.length ? 'Nome file aggiuntivo' : 'Nome file atto'}><input value={notifica.nome_file} onChange={(event) => changeNotifica('nome_file', event.currentTarget.value)} placeholder="ricorso.pdf" /></Field>
                 <Field label={selectedNotificationDocuments.length ? 'Descrizione aggiuntiva' : 'Descrizione documento'}><input value={notifica.descrizione_documento} onChange={(event) => changeNotifica('descrizione_documento', event.currentTarget.value)} /></Field>
@@ -1834,7 +1914,10 @@ export function NotificheLegaliPage() {
                 <label className="iu-legal-check"><input type="checkbox" checked={notifica.relata_documento_separato} onChange={(event) => changeNotifica('relata_documento_separato', event.currentTarget.checked)} /><span>Relata come documento separato</span></label>
                 <label className="iu-legal-check iu-legal-field--wide"><input type="checkbox" checked={notifica.approvazione_avvocato} onChange={(event) => changeNotifica('approvazione_avvocato', event.currentTarget.checked)} /><span>Approvazione finale dell'avvocato prima dell'invio</span></label>
               </div>
-              <button className="iu-legal-submit" type="button" disabled={working} onClick={() => run('notifica')}><ShieldCheck size={16} /> {working ? 'Controllo...' : 'Controlla relata'}</button>
+              <div className="iu-legal-submit-row">
+                <button className="iu-legal-submit" type="button" disabled={working} onClick={() => run('notifica')}><ShieldCheck size={16} /> {working ? 'Controllo...' : 'Controlla relata'}</button>
+                <button className="iu-legal-submit iu-legal-submit--send" type="button" disabled={working} onClick={sendNotification}><Send size={16} /> {working ? 'Preparazione...' : 'Invia PEC'}</button>
+              </div>
             </Panel>
           ) : null}
 

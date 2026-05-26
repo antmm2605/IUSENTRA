@@ -1,6 +1,6 @@
 # Direttive salvate - notifiche legali PEC
 
-Data consultazione: 24 maggio 2026.
+Data consultazione: 24 maggio 2026. Aggiornamento operativo verificato il 26 maggio 2026.
 
 Questo file conserva le direttive normative e tecniche usate dal software per il
 flusso di notifica PEC, relata, firma digitale, allegati e deposito prova. Le
@@ -20,6 +20,7 @@ protette dai test in `tests/test_notifiche_legali.py`.
 | Casistica operativa FIIF/ordini | Matrice FIIF/Ordine Pavia su artt. 137 c.p.c. e 3-ter L. 53/1994, salvata in `docs/specs/ministero/prassi_notifiche/FIIF_casistica_art_137_cpc_3ter_L53_area_web.pdf` | https://www.ordineavvocatipavia.it/wp-content/uploads/2025/02/Casistica-artt.-137-cpc-e-3-ter-co-2-3-L.-53-94.pdf | Fonte di prassi non sostitutiva della norma: distingue PEC funzionante, indirizzo assente/non PEC, casella satura, causa imputabile/non imputabile e casi art. 170/330 c.p.c. |
 | Orario e perfezionamento PEC | Corte costituzionale, sentenza 75/2019 su art. 16-septies D.L. 179/2012; D.P.R. 68/2005 artt. 6 e 8 | https://www.cortecostituzionale.it/scheda-pronuncia/2019/75 | Per il notificante rileva la RAC anche nella fascia 21:00-24:00; per il destinatario resta la tutela oraria. Le notifiche automatiche 00:00-06:59 sono bloccate nel workflow salvo valutazione manuale. |
 | Schemi XSD SICI aggiornati | Ministero della giustizia, PST, comunicazione software house 12 maggio 2026 e allegati salvati in `docs/specs/ministero/xsd/2026-05-12-sici/` | https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC4871 | Gli schemi SICI 2026 restano disponibili offline per i controlli tecnici dei depositi collegati alla prova di notifica. La nota ufficiale indica modifica di `tipi-base.xsd` e dei codici oggetto, quindi ogni validazione DatiAtto/oggetto deve usare la fonte salvata più recente. |
+| Timestamp verifica PEC e invio | Verifica del 26 maggio 2026 su L. 53/1994 art. 3-bis, D.L. 179/2012 art. 16-ter, Provvedimento DGSIA 7 agosto 2024 e Corte cost. 75/2019 | https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=094G0076&atto.dataPubblicazioneGazzetta=1994-01-26&bloccoAggiornamentoBreadCrumb=true&classica=true&dataVigenza=&generaTabId=true&qId=&tabID=&tipoDettaglio=multivigenza&title=lbl.dettaglioAtto ; https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=012G0201&atto.dataPubblicazioneGazzetta=2012-10-19&bloccoAggiornamentoBreadCrumb=true&classica=true&dataVigenza=&generaTabId=true&qId=&tabID=&tipoDettaglio=multivigenza&title=lbl.dettaglioAtto ; https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3429 ; https://www.cortecostituzionale.it/scheda-pronuncia/2019/75 | Il campo visibile `Data e ora verifica PEC` è timestamp operativo di controllo del pubblico elenco e non sostituisce RAC/RdAC. Al click su invio PEC il software lo valorizza con data, ora, minuti e secondi locali se manca o se è in modalità automatica; il piano di invio usa `data_ora_invio_pec` per mostrare fascia oraria, scissione effetti e ricevute da conservare. |
 
 ## Regole runtime salvate
 
@@ -45,6 +46,11 @@ protette dai test in `tests/test_notifiche_legali.py`.
 - Dopo l'invio si conservano PEC inviata, RAC e RdAC completa in originale
   digitale; questi elementi alimentano il deposito prova e i riferimenti in
   DatiAtto.xml.
+- `Data e ora verifica PEC` resta visibile nel percorso di notifica, viene
+  alimentata automaticamente dall'orologio locale con precisione al secondo e
+  rappresenta il momento operativo di verifica dell'indirizzo nel pubblico
+  elenco. Non sostituisce le ricevute PEC: al momento dell'invio restano
+  decisive PEC inviata, RAC e RdAC completa.
 - Se la notifica PEC non può essere eseguita o non ha esito positivo per causa
   imputabile al destinatario, il software prepara il percorso area web PST ex
   art. 3-ter con atto/PEC, relata, avviso di mancata consegna EML e

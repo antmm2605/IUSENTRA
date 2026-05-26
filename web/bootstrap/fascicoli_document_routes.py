@@ -13,12 +13,6 @@ from flask import Flask, flash, g, jsonify, redirect, request, send_file, url_fo
 from pct.document_management import normalize_document_tags
 from pct.document_intelligence.sources import source_from_uploaded_document
 from pct.fascicoli import TipoDocumento
-from web.services.signed_document_runtime import (
-    build_document_signed_snapshot_from_bytes,
-    build_document_version_candidates,
-)
-
-
 from web.bootstrap.fascicoli_document_helpers import (
     applica_modalita_portale,
     classifica_tipo_documento,
@@ -28,6 +22,12 @@ from web.bootstrap.fascicoli_document_helpers import (
     preview_unavailable_html,
     wants_json_response,
 )
+from web.services.fascicoli_document_rename import rinomina_documento_response
+from web.services.signed_document_runtime import (
+    build_document_signed_snapshot_from_bytes,
+    build_document_version_candidates,
+)
+
 
 def register_fascicoli_document_routes(
     app: Flask,
@@ -232,6 +232,17 @@ def register_fascicoli_document_routes(
             )
             flash(f"Impossibile aggiornare i metadati del documento: {exc}", "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc, focus="documenti"))
+
+    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/rinomina", methods=["POST"])
+    def rinomina_documento(id_fasc, id_doc):
+        return rinomina_documento_response(
+            app=app,
+            get_fascicoli=get_fascicoli,
+            audit=audit,
+            wants_json=wants_json_response,
+            id_fasc=id_fasc,
+            id_doc=id_doc,
+        )
 
     @app.route("/fascicoli/<id_fasc>/documenti/importa-portale", methods=["POST"])
     def importa_documenti_portale(id_fasc):

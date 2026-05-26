@@ -2736,3 +2736,11 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - L'invio PEC della composizione usa il canale SMTP/PEC backend dello studio, non Local Signer, con destinatari normalizzati, TLS, `from_addr`/`to_addrs` espliciti e MIME corretto per allegati.
 - Il lettore OCR/MRZ già presente su Nuovo Cliente è stato esteso anche a Nuovo Soggetto/Parte, con popolamento dei campi affidabili e preservazione dei valori modificati dall'utente.
 - Verifiche registrate: audit territorio, audit uffici, pytest mirati Comuni/uffici/PEC/OCR, suite `tests/test_email_client.py`, typecheck, build Vite e compileall.
+## Aggiornamento 2026-05-26: PEC fascicolo, Lex e notifiche legali 2.248.66
+
+- `/email` conserva il percorso `Salva nel fascicolo` senza Local Signer e senza servizi telematici: la preparazione chiede nome/cognome cliente, confronta varianti anagrafiche e fascicoli aperti anche con ordine nome/cognome invertito, poi richiede conferma prima di salvare il MIME.
+- Il riepilogo indicizzazione Lex recupera i documenti rimasti in `In corso`: i record `processing` oltre soglia diventano stale e rientrano nel ciclo di indicizzazione, così la coda non resta a zero con elementi bloccati.
+- Document Intelligence resta allineata ai formati richiesti dal fascicolo: `.pdf.p7m`, `.pdf`, `.txt`, `.eml`, `.doc` e `.docx`; per DOC legacy usa conversione locale quando disponibile e fallback testuale prudente.
+- Il dettaglio fascicolo espone la rinomina dei documenti caricati con icona sotto il documento, form inline, route auditata e conservazione obbligatoria dell'estensione originale.
+- `/notifiche-legali` mostra `Data e ora verifica PEC` con orologio locale al secondo, campo modificabile dall'avvocato e pulsanti separati `Controlla relata` / `Invia PEC`; l'invio resta assistito e gli effetti legali sono ancora governati da PEC, RAC e RdAC.
+- Verifiche registrate: pytest mirati e suite di perimetro PEC/Document Intelligence/Fascicoli/Notifiche, typecheck, test frontend, build Vite e browser in-app autenticato su `/notifiche-legali`, `/fascicoli/DC5BF1DB` e `/email`.

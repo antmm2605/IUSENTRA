@@ -140,6 +140,35 @@ def test_elimina_documento_resta_nella_sezione_documenti(fascicolo_ux):
     ).get(fascicolo.id).documenti
 
 
+def test_rinomina_documento_da_react_action(fascicolo_ux):
+    from web.app import create_app
+
+    cfg, fascicolo = fascicolo_ux
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    doc = gf.aggiungi_documento(fascicolo.id, "atto.pdf", TipoDocumento.ATTO_GIUDIZIARIO, b"%PDF-1.4")
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/rinomina",
+            json={"nome_file": "Ricorso principale"},
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+        detail = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}").get_json()
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert payload["nome_file"] == "Ricorso principale.pdf"
+    assert detail["documents"][0]["name"] == "Ricorso principale.pdf"
+    assert detail["documents"][0]["actions"]["rename"].endswith(f"/documenti/{doc.id}/rinomina")
+
+
 def test_documenti_eml_e_txt_si_visualizzano_e_si_eliminano(fascicolo_ux):
     from web.app import create_app
 

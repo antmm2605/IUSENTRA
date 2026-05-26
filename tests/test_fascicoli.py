@@ -218,6 +218,49 @@ def test_aggiorna_metadati_documento_normalizza_i_tag(gf, fascicolo_base):
     assert aggiornato.tags == ["istanza", "udienza"]
 
 
+def test_rinomina_documento_aggiorna_nome_e_file(gf, fascicolo_base):
+    doc = gf.aggiungi_documento(
+        fascicolo_base.id,
+        nome_file="atto_originale.pdf",
+        tipo=TipoDocumento.ATTO_GIUDIZIARIO,
+        contenuto=b"%PDF-1.4 atto",
+    )
+    percorso_originale = gf.percorso_documento(fascicolo_base.id, doc.id)
+
+    rinominato = gf.rinomina_documento(fascicolo_base.id, doc.id, "Ricorso introduttivo")
+
+    assert rinominato.nome == "Ricorso introduttivo.pdf"
+    assert not percorso_originale.exists()
+    assert gf.percorso_documento(fascicolo_base.id, doc.id).exists()
+    assert gf.get(fascicolo_base.id).documenti[0].nome == "Ricorso introduttivo.pdf"
+
+
+def test_rinomina_documento_non_cambia_estensione(gf, fascicolo_base):
+    doc = gf.aggiungi_documento(
+        fascicolo_base.id,
+        nome_file="atto.pdf.p7m",
+        tipo=TipoDocumento.ATTO_GIUDIZIARIO,
+        contenuto=b"firmato",
+    )
+
+    with pytest.raises(ValueError, match="estensione"):
+        gf.rinomina_documento(fascicolo_base.id, doc.id, "atto.docx")
+
+
+def test_rinomina_documento_lungo_preserva_estensione(gf, fascicolo_base):
+    doc = gf.aggiungi_documento(
+        fascicolo_base.id,
+        nome_file="atto.pdf.p7m",
+        tipo=TipoDocumento.ATTO_GIUDIZIARIO,
+        contenuto=b"firmato",
+    )
+
+    rinominato = gf.rinomina_documento(fascicolo_base.id, doc.id, f"{'memoria' * 40}.pdf.p7m")
+
+    assert rinominato.nome.endswith(".pdf.p7m")
+    assert len(rinominato.nome) <= 180
+
+
 def test_rimuovi_documento(gf, fascicolo_base):
     doc = gf.aggiungi_documento(
         fascicolo_base.id, "da_eliminare.pdf",

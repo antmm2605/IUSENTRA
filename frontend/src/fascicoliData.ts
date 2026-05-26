@@ -128,6 +128,7 @@ export type FascicoloDocument = {
     pdfa: string
     attest: string
     metadata: string
+    rename: string
     delete: string
   }
 }
@@ -1105,7 +1106,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
         portalName: text(row.portalName ?? row.nome_portale), portalClass: text(row.portalClass ?? row.classificazione_portale), portalSender: text(row.portalSender ?? row.mittente_portale),
         portalDate: text(row.portalDate ?? row.data_deposito_portale), hash: text(row.hash ?? row.hash_sha256),
         actions: {
-          preview: text(actions.preview), download: text(actions.download), edit: text(actions.edit), sign: text(actions.sign), pdfa: text(actions.pdfa), attest: text(actions.attest), metadata: text(actions.metadata), delete: text(actions.delete),
+          preview: text(actions.preview), download: text(actions.download), edit: text(actions.edit), sign: text(actions.sign), pdfa: text(actions.pdfa), attest: text(actions.attest), metadata: text(actions.metadata), rename: text(actions.rename), delete: text(actions.delete),
         },
       }
     }),

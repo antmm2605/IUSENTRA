@@ -1,9 +1,10 @@
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from pct.document_intelligence.extraction import ExtractionResult
 from pct.document_intelligence.indexer import DocumentAIIndexer
-from pct.document_intelligence.models import DocumentAIPageText
+from pct.document_intelligence.models import DocumentAIPageText, DocumentAIRecord
 from pct.document_intelligence.repository import DocumentAIRepository
 from pct.document_intelligence.service import DocumentAIService
 from pct.document_intelligence.sources import source_from_uploaded_document
@@ -190,6 +191,49 @@ def test_hash_invariato_non_reindicizza(tmp_path: Path, monkeypatch):
 
     assert result.indexed == 0
     assert result.skipped == 1
+    assert result.summary.ready == 1
+
+
+def test_processing_vecchio_viene_recuperato_e_reindicizzato(tmp_path: Path, monkeypatch):
+    _patch_extraction(monkeypatch)
+    service = _service(tmp_path)
+    source = _source(b"contenuto bloccato", filename="atto.pdf", mime_type="application/pdf")
+    old_ts = (datetime.now(timezone.utc) - timedelta(hours=2)).replace(microsecond=0).isoformat()
+    service.repository.create_document_record(
+        DocumentAIRecord(
+            id="docai-stale",
+            tenant_id="tenant-a",
+            fascicolo_id="fas-1",
+            original_filename=source.filename,
+            safe_filename=source.safe_filename,
+            file_type=source.file_type,
+            mime_type=source.mime_type,
+            size_bytes=source.size_bytes,
+            sha256=source.sha256,
+            status="processing",
+            current_version_id=None,
+            page_count=None,
+            created_by="worker",
+            created_at=old_ts,
+            updated_at=old_ts,
+        )
+    )
+
+    summary = DocumentAIIndexer(service).summarize(
+        tenant_id="tenant-a",
+        fascicolo_id="fas-1",
+        sources=[source],
+        user_context=_context(),
+    )
+    result = DocumentAIIndexer(service).process(
+        tenant_id="tenant-a",
+        fascicolo_id="fas-1",
+        sources=[source],
+        user_context=_context(),
+    )
+
+    assert summary.stale == 1
+    assert result.indexed == 1
     assert result.summary.ready == 1
 
 

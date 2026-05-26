@@ -122,6 +122,41 @@ def _tipo_attivita_da_tipo_atto(tipo_atto: str) -> "TipoAttivita":
     return TipoAttivita.DEPOSITO_ATTI
 
 
+def _estensione_documento(nome_file: str) -> str:
+    nome = Path(str(nome_file or "")).name
+    lower = nome.lower()
+    if lower.endswith(".p7m"):
+        inner = Path(nome[:-4]).suffix
+        return f"{inner}.p7m" if inner else ".p7m"
+    return Path(nome).suffix
+
+
+def _normalizza_nome_documento(nuovo_nome: str, nome_corrente: str) -> str:
+    raw = str(nuovo_nome or "").strip()
+    if not raw:
+        raise ValueError("Indica il nuovo nome del documento.")
+    if "/" in raw or "\\" in raw:
+        raise ValueError("Il nome del documento non può contenere percorsi.")
+    base = Path(raw).name.strip()
+    if base in {"", ".", ".."}:
+        raise ValueError("Nome documento non valido.")
+    base = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', "-", base).strip(" .")
+    if not base:
+        raise ValueError("Nome documento non valido.")
+    estensione_originale = _estensione_documento(nome_corrente)
+    estensione_nuova = _estensione_documento(base)
+    if estensione_nuova:
+        if estensione_originale and estensione_nuova.casefold() != estensione_originale.casefold():
+            raise ValueError(f"L'estensione del documento resta {estensione_originale}.")
+        if len(base) <= 180:
+            return base
+        stem = base[: -len(estensione_nuova)] if estensione_nuova else Path(base).stem
+        return f"{stem[: max(1, 180 - len(estensione_nuova))]}{estensione_nuova}"
+    if estensione_originale:
+        return f"{base[: max(1, 180 - len(estensione_originale))]}{estensione_originale}"
+    return base[:180]
+
+
 class EsitoAttivita(str, Enum):
     IN_ATTESA       = "IN_ATTESA"
     FAVOREVOLE      = "FAVOREVOLE"
@@ -1506,6 +1541,63 @@ class GestioneFascicoli:
             doc.tags = normalized
         f.modificato_il = datetime.now().isoformat()
         self._salva()
+        return doc
+
+    def rinomina_documento(self, id_fasc: str, id_doc: str, nome_file: str) -> Documento:
+        f = self._get_o_errore(id_fasc)
+        doc = next((d for d in f.documenti if d.id == id_doc), None)
+        if not doc:
+            raise KeyError(f"Documento '{id_doc}' non trovato nel fascicolo.")
+
+        nuovo_nome = _normalizza_nome_documento(nome_file, doc.nome)
+        if nuovo_nome == doc.nome:
+            return doc
+
+        percorso_corrente = self.documents_dir / doc.percorso
+        cartella = percorso_corrente.parent if percorso_corrente.parent.exists() else self.documents_dir / id_fasc
+        cartella.mkdir(parents=True, exist_ok=True)
+        destinazione = cartella / nuovo_nome
+        if destinazione.exists() and destinazione.resolve() != percorso_corrente.resolve():
+            suffix = _estensione_documento(nuovo_nome) or Path(nuovo_nome).suffix
+            stem = Path(nuovo_nome[: -len(suffix)]).name if suffix else Path(nuovo_nome).stem
+            while destinazione.exists():
+                candidato = f"{stem}_{uuid.uuid4().hex[:4]}{suffix}"
+                destinazione = cartella / candidato
+                nuovo_nome = candidato
+
+        old_nome = doc.nome
+        old_percorso = doc.percorso
+        old_modificato = f.modificato_il
+        moved = False
+        temp_case_path: Path | None = None
+        try:
+            if percorso_corrente.exists() and destinazione.resolve() != percorso_corrente.resolve():
+                percorso_corrente.rename(destinazione)
+                moved = True
+            elif percorso_corrente.exists() and destinazione.name != percorso_corrente.name:
+                temp_case_path = cartella / f".iusentra-rename-{uuid.uuid4().hex[:8]}{Path(percorso_corrente.name).suffix}"
+                percorso_corrente.rename(temp_case_path)
+                temp_case_path.rename(destinazione)
+                moved = True
+            doc.nome = nuovo_nome
+            doc.percorso = str(destinazione.relative_to(self.documents_dir)) if destinazione.exists() else old_percorso
+            f.modificato_il = datetime.now().isoformat()
+            self._salva()
+        except Exception:
+            doc.nome = old_nome
+            doc.percorso = old_percorso
+            f.modificato_il = old_modificato
+            if temp_case_path and temp_case_path.exists() and not percorso_corrente.exists():
+                try:
+                    temp_case_path.rename(percorso_corrente)
+                except OSError:
+                    pass
+            if moved and destinazione.exists() and not percorso_corrente.exists():
+                try:
+                    destinazione.rename(percorso_corrente)
+                except OSError:
+                    pass
+            raise
         return doc
 
     def aggiungi_esito_deposito(

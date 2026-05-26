@@ -1545,6 +1545,51 @@ def _normalise_lookup(value: Any) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _lookup_tokens(value: Any) -> tuple[str, ...]:
+    normalised = _normalise_lookup(value)
+    return tuple(part for part in normalised.split() if part)
+
+
+def _lookup_name_score(query: Any, candidate: Any) -> float:
+    """Confronta nomi cliente in modo indipendente dall'ordine dei token."""
+
+    query_tokens = set(_lookup_tokens(query))
+    candidate_tokens = set(_lookup_tokens(candidate))
+    if not query_tokens or not candidate_tokens:
+        return 0.0
+    if query_tokens == candidate_tokens:
+        return 1.0
+    overlap = len(query_tokens & candidate_tokens)
+    if not overlap:
+        return 0.0
+    score = overlap / max(len(query_tokens), len(candidate_tokens))
+    if min(len(query_tokens), len(candidate_tokens)) >= 2 and (
+        query_tokens.issubset(candidate_tokens) or candidate_tokens.issubset(query_tokens)
+    ):
+        score = max(score, 0.86)
+    return score
+
+
+def _client_lookup_variants(cliente: Any) -> list[str]:
+    nome = _lookup_text(cliente, "nome")
+    cognome = _lookup_text(cliente, "cognome")
+    variants = [
+        _lookup_text(cliente, "id"),
+        _lookup_text(cliente, "nome_completo", "ragione_sociale", "denominazione"),
+        " ".join(part for part in (nome, cognome) if part),
+        " ".join(part for part in (cognome, nome) if part),
+    ]
+    seen: set[str] = set()
+    out: list[str] = []
+    for value in variants:
+        cleaned = clean_text(value)
+        key = _normalise_lookup(cleaned)
+        if cleaned and key not in seen:
+            seen.add(key)
+            out.append(cleaned)
+    return out
+
+
 class PecAuditRepository:
     """Repository SQLite per PEC audit-grade e coda worker automatizzata."""
 
@@ -2489,26 +2534,45 @@ class PecAuditRepository:
             for cliente in clienti.tutti():
                 if getattr(cliente, "stato", None) == StatoCliente.ARCHIVIATO:
                     continue
-                full_name = _normalise_lookup(_lookup_text(cliente, "nome_completo", "ragione_sociale"))
-                reverse_name = _normalise_lookup(f"{_lookup_text(cliente, 'nome')} {_lookup_text(cliente, 'cognome')}")
-                if any(term and (term in full_name or term in reverse_name) for term in haystack_terms):
+                variants = _client_lookup_variants(cliente)
+                normalised_variants = [_normalise_lookup(value) for value in variants]
+                score = max((_lookup_name_score(query, value) for value in variants), default=0.0)
+                if score >= 0.72 or any(
+                    term
+                    and any(term in variant or variant in term for variant in normalised_variants if variant)
+                    for term in haystack_terms
+                ):
                     if all(getattr(existing, "id", "") != getattr(cliente, "id", "") for existing in matched_clienti):
                         matched_clienti.append(cliente)
 
         matched_ids = {clean_text(getattr(cliente, "id", "")) for cliente in matched_clienti if clean_text(getattr(cliente, "id", ""))}
         query_norm = _normalise_lookup(query)
+        matched_names = [
+            value
+            for cliente in matched_clienti
+            for value in _client_lookup_variants(cliente)
+            if _lookup_tokens(value)
+        ]
         candidates_by_id: dict[str, dict[str, Any]] = {}
         for fascicolo in fascicoli.tutti(archiviati=False):
             if getattr(fascicolo, "stato", None) in {StatoFascicolo.DEFINITO, StatoFascicolo.ARCHIVIATO}:
                 continue
             fascicolo_id = _lookup_text(fascicolo, "id")
-            fascicolo_cliente_id = _lookup_text(fascicolo, "id_cliente")
-            fascicolo_cliente = _normalise_lookup(_lookup_text(fascicolo, "nome_cliente"))
+            fascicolo_cliente_id = _lookup_text(fascicolo, "id_cliente", "cliente_id", "idCliente")
+            fascicolo_cliente_raw = _lookup_text(fascicolo, "nome_cliente", "cliente", "assistito", "intestatario")
+            fascicolo_cliente = _normalise_lookup(fascicolo_cliente_raw)
             if matched_ids and fascicolo_cliente_id in matched_ids:
                 candidates_by_id[fascicolo_id] = self._fascicolo_card(fascicolo, confidence=1.0, reason="Cliente collegato all'anagrafica del fascicolo.")
                 continue
-            if query_norm and (query_norm in fascicolo_cliente or fascicolo_cliente in query_norm):
-                candidates_by_id[fascicolo_id] = self._fascicolo_card(fascicolo, confidence=0.82, reason="Nome cliente coerente con il fascicolo aperto.")
+            score = _lookup_name_score(query, fascicolo_cliente_raw)
+            if matched_names:
+                score = max(score, *(_lookup_name_score(name, fascicolo_cliente_raw) for name in matched_names))
+            if score >= 0.72 or (query_norm and fascicolo_cliente and (query_norm in fascicolo_cliente or fascicolo_cliente in query_norm)):
+                candidates_by_id[fascicolo_id] = self._fascicolo_card(
+                    fascicolo,
+                    confidence=max(0.82, min(0.96, score or 0.82)),
+                    reason="Nome cliente coerente con il fascicolo aperto.",
+                )
 
         candidates = sorted(candidates_by_id.values(), key=lambda item: (-float(item.get("confidence") or 0), str(item.get("label") or "")))
         cliente_card = {}

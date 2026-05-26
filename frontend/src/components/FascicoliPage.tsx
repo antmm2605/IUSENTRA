@@ -1822,10 +1822,73 @@ function DocumentUploadWorkspace({
 }
 
 function DocumentRow({ doc, onPreview, onDone, onError }:{doc:FascicoloDocument; onPreview:(preview:PreviewDocument)=>void; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
+  const [renaming, setRenaming] = useState(false)
+  const [draftName, setDraftName] = useState(doc.name)
+  const [renameBusy, setRenameBusy] = useState(false)
+  const [renameMessage, setRenameMessage] = useState('')
+
+  const startRename = () => {
+    setDraftName(doc.name)
+    setRenameMessage('')
+    setRenaming(true)
+  }
+
+  const submitRename = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!doc.actions.rename || renameBusy) return
+    const value = draftName.trim()
+    if (!value) {
+      setRenameMessage('Indica il nuovo nome del documento.')
+      return
+    }
+    setRenameBusy(true)
+    setRenameMessage('')
+    const formData = new FormData()
+    formData.set('nome_file', value)
+    try {
+      const response = await fetch(doc.actions.rename, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': csrfToken(),
+        },
+        body: formData,
+      })
+      const payload = await response.json().catch(() => ({})) as Record<string, unknown>
+      const message = String(payload.message || payload.messaggio || '')
+      if (!response.ok || payload.ok === false) throw new Error(message || 'Rinomina non completata.')
+      setRenaming(false)
+      onDone(message || 'Nome documento aggiornato.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Rinomina non completata.'
+      setRenameMessage(message)
+      onError(message)
+    } finally {
+      setRenameBusy(false)
+    }
+  }
+
   return (
     <article className="iu-fas-doc-row">
-      <div><FileText size={18}/></div>
+      <div className="iu-fas-doc-icon-cell">
+        <FileText size={18}/>
+        {doc.actions.rename ? (
+          <button type="button" title="Rinomina file" aria-label={`Rinomina file ${doc.name}`} onClick={startRename}>
+            <PencilLine size={13}/>
+          </button>
+        ) : null}
+      </div>
       <div><strong>{doc.name}</strong><span>{doc.type} · {doc.size || 'dimensione n.d.'} · {doc.documentDate || doc.uploadedAt || 'data n.d.'}</span>{doc.notes ? <p>{doc.notes}</p> : null}{doc.tags.length ? <em>{doc.tags.join(', ')}</em> : null}</div>
+      {renaming ? (
+        <form className="iu-fas-doc-rename-form" onSubmit={submitRename}>
+          <input value={draftName} onChange={(event) => setDraftName(event.currentTarget.value)} aria-label={`Nuovo nome file ${doc.name}`} />
+          <button type="submit" disabled={renameBusy}>{renameBusy ? 'Salvo...' : 'Salva nome'}</button>
+          <button type="button" onClick={() => setRenaming(false)} disabled={renameBusy}>Annulla</button>
+          {renameMessage ? <small>{renameMessage}</small> : null}
+        </form>
+      ) : null}
       <div className="iu-fas-doc-badges"><Badge tone={doc.statusTone}>{doc.statusLabel || (doc.signed ? 'Firmato' : 'Da firmare')}</Badge>{doc.source ? <Badge tone="neutral">{doc.source}</Badge> : null}{doc.portalClass ? <Badge tone="info">{doc.portalClass}</Badge> : null}</div>
       <div className="iu-fas-actions iu-fas-actions--wrap">
         {doc.actions.preview ? <button type="button" title="Anteprima interna" onClick={() => onPreview({ name: doc.name, url: doc.actions.preview, downloadUrl: doc.actions.download })}><Eye size={15}/></button> : null}

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.248.66 - 2026-05-26
+
+- Rafforzato `Salva nel fascicolo` da `/email`: il riconoscimento cliente ora confronta nome/cognome anche con ordine invertito e dati anagrafici collegati, così propone il fascicolo aperto invece di mostrare falsi “nessun fascicolo aperto”.
+- Sbloccata l’indicizzazione Lex dei documenti rimasti in stato `In corso`: i record `processing` vecchi diventano recuperabili e vengono reindicizzati; l’estrazione copre `.pdf.p7m`, `.pdf`, `.txt`, `.eml`, `.doc` e `.docx`, con fallback sicuro per DOC legacy.
+- Aggiunta nel dettaglio fascicolo la rinomina dei documenti caricati: icona sotto il documento, form inline, estensione originale preservata e route auditata.
+- Aggiornata `/notifiche-legali`: `Data e ora verifica PEC` resta visibile, si aggiorna automaticamente con ora locale fino ai secondi, e il percorso notifica mostra anche `Invia PEC` oltre a `Controlla relata`.
+- Documentate le fonti operative ufficiali per timestamp PEC, invio e perfezionamento notifica: il timestamp UI è un dato operativo dello studio, mentre gli effetti legali restano collegati a PEC inviata, RAC e RdAC.
+
 ## 2.248.65 - 2026-05-26
 
 - Completato il pannello `/email/scrivi` per la ricerca PEC degli uffici giudiziari: autocomplete su tutti i 7.894 Comuni italiani con provincia/CAP, filtro per le dieci tipologie richieste e inserimento della PEC nel destinatario.

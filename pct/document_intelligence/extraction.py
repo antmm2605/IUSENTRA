@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import os
+import re
+import subprocess
+import tempfile
 from dataclasses import dataclass, field
 from email import policy
 from email.message import EmailMessage, Message
@@ -591,20 +594,39 @@ def _extract_docx(content: bytes) -> ExtractionResult:
             )
 
 
-def _extract_doc(_content: bytes) -> ExtractionResult:
-    if which("soffice") or which("libreoffice"):
+def _extract_doc(content: bytes) -> ExtractionResult:
+    if bytes(content[:4]).startswith(b"PK\x03\x04"):
+        result = _extract_docx(content)
+        if result.extraction_engine and not result.extraction_engine.startswith("doc-compat:"):
+            result.extraction_engine = f"doc-compat:{result.extraction_engine}"
+        return result
+
+    rtf_text = _extract_rtf_text(content)
+    if rtf_text.strip():
         return ExtractionResult(
-            ok=False,
-            text="",
+            ok=True,
+            text=rtf_text,
             pages=[],
-            extraction_engine="doc_legacy_requires_conversion_adapter",
-            warnings=[
-                "Estrazione DOC non disponibile nel runtime corrente.",
-                "DOC legacy rilevato: conversione LibreOffice non cablata in questa tranche.",
-            ],
-            error_code="doc_legacy_conversion_not_configured",
-            error_message="Formato DOC legacy ammesso in upload ma richiede un adattatore di conversione locale.",
+            extraction_engine="doc.rtf",
+            warnings=["File .doc letto come documento RTF compatibile."],
         )
+
+    external_result = _extract_doc_with_external_tool(content)
+    if external_result is not None:
+        return external_result
+
+    fallback_text = _extract_legacy_doc_binary_text(content)
+    if fallback_text.strip():
+        return ExtractionResult(
+            ok=True,
+            text=fallback_text,
+            pages=[],
+            extraction_engine="doc.binary-text",
+            warnings=[
+                "DOC legacy letto con estrazione testuale compatibile; verifica l'impaginazione originale se il documento va depositato.",
+            ],
+        )
+
     return ExtractionResult(
         ok=False,
         text="",
@@ -614,6 +636,137 @@ def _extract_doc(_content: bytes) -> ExtractionResult:
         error_code="doc_legacy_extraction_unavailable",
         error_message="Formato DOC legacy ammesso in upload; estrazione testo non disponibile senza conversione locale.",
     )
+
+
+def _extract_rtf_text(content: bytes) -> str:
+    if not bytes(content[:12]).lstrip().startswith(b"{\\rtf"):
+        return ""
+    raw, _encoding, _warnings = _decode_text_bytes(content)
+    raw = re.sub(r"\\'[0-9a-fA-F]{2}", " ", raw)
+    raw = re.sub(r"\\[a-zA-Z]+-?\d* ?", " ", raw)
+    raw = raw.replace("{", " ").replace("}", " ").replace("\\", " ")
+    return _clean_text(re.sub(r"\s+", " ", raw))
+
+
+def _extract_doc_with_external_tool(content: bytes) -> ExtractionResult | None:
+    antiword = which("antiword")
+    if antiword:
+        text, _error = _run_doc_text_command([antiword, "{input}"], content)
+        if text.strip():
+            return ExtractionResult(
+                ok=True,
+                text=text,
+                pages=[],
+                extraction_engine="antiword",
+                warnings=[],
+            )
+
+    office = which("soffice") or which("libreoffice")
+    if office:
+        text, error = _run_libreoffice_doc_conversion(office, content)
+        if text.strip():
+            return ExtractionResult(
+                ok=True,
+                text=text,
+                pages=[],
+                extraction_engine="libreoffice",
+                warnings=[],
+            )
+    return None
+
+
+def _run_doc_text_command(command: list[str], content: bytes) -> tuple[str, str]:
+    timeout = _int_from_env("IUSENTRA_DOCUMENT_AI_DOC_TIMEOUT_SECONDS", default=20, minimum=3, maximum=120)
+    with tempfile.TemporaryDirectory(prefix="iusentra-doc-") as tmpdir:
+        input_path = Path(tmpdir) / "documento.doc"
+        input_path.write_bytes(content)
+        args = [str(input_path) if part == "{input}" else part for part in command]
+        try:
+            completed = subprocess.run(
+                args,
+                cwd=tmpdir,
+                check=False,
+                capture_output=True,
+                timeout=timeout,
+            )
+        except Exception as exc:
+            return "", str(exc)
+        if completed.stdout:
+            text, _encoding, _warnings = _decode_text_bytes(completed.stdout)
+            return text, ""
+        stderr = completed.stderr.decode("utf-8", errors="replace").strip()
+        return "", stderr
+
+
+def _run_libreoffice_doc_conversion(office: str, content: bytes) -> tuple[str, str]:
+    timeout = _int_from_env("IUSENTRA_DOCUMENT_AI_DOC_TIMEOUT_SECONDS", default=20, minimum=3, maximum=120)
+    with tempfile.TemporaryDirectory(prefix="iusentra-doc-") as tmpdir:
+        input_path = Path(tmpdir) / "documento.doc"
+        input_path.write_bytes(content)
+        try:
+            completed = subprocess.run(
+                [
+                    office,
+                    "--headless",
+                    "--convert-to",
+                    "txt:Text",
+                    "--outdir",
+                    tmpdir,
+                    str(input_path),
+                ],
+                cwd=tmpdir,
+                check=False,
+                capture_output=True,
+                timeout=timeout,
+            )
+        except Exception as exc:
+            return "", str(exc)
+        for candidate in Path(tmpdir).glob("*.txt"):
+            try:
+                text, _encoding, _warnings = _decode_text_bytes(candidate.read_bytes())
+                return text, ""
+            except OSError:
+                continue
+        error = (completed.stderr or completed.stdout).decode("utf-8", errors="replace").strip()
+        return "", error
+
+
+def _extract_legacy_doc_binary_text(content: bytes) -> str:
+    candidates: list[str] = []
+    for encoding in ("utf-8", "utf-16le", "cp1252", "latin-1"):
+        try:
+            decoded = content.decode(encoding, errors="ignore")
+        except LookupError:
+            continue
+        cleaned = _clean_text(decoded)
+        printable = sum(1 for char in cleaned if char.isprintable() or char.isspace())
+        ratio = printable / max(1, len(cleaned))
+        if ratio >= 0.65:
+            candidates.append(cleaned)
+    byte_runs = re.findall(rb"[A-Za-z0-9\xc0-\xff][A-Za-z0-9\xc0-\xff \t\r\n.,;:!?/()'\-]{5,}", content)
+    if byte_runs:
+        chunks = []
+        for run in byte_runs[:800]:
+            text = run.decode("cp1252", errors="ignore").strip()
+            if text:
+                chunks.append(text)
+        candidates.append(" ".join(chunks))
+    candidates = [
+        value
+        for value in (re.sub(r"\s+", " ", candidate).strip() for candidate in candidates)
+        if _legacy_doc_text_is_meaningful(value)
+    ]
+    if not candidates:
+        return ""
+    return max(candidates, key=len)
+
+
+def _legacy_doc_text_is_meaningful(value: str) -> bool:
+    clean = str(value or "").strip()
+    if len(clean) < 24:
+        return False
+    words = re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ]{3,}", clean)
+    return len(words) >= 3
 
 
 def _repair_pdf_text(pages: list[DocumentAIPageText]) -> tuple[list[DocumentAIPageText], str, list[str]]:

@@ -436,6 +436,11 @@ def test_piano_firma_include_solo_documento_marcato_come_atto_da_sottoscrivere()
 
 
 def test_piano_orario_applica_scissione_e_blocco_notturno():
+    ordinario = build_notification_timing_plan({"data_ora_invio_pec": "2026-05-24T10:40:57"})
+    assert ordinario["ready"] is True
+    assert ordinario["status"] == "fascia_ordinaria"
+    assert ordinario["plannedAt"] == "24/05/2026 10:40:57"
+
     serale = build_notification_timing_plan({"data_ora_invio_pec": "2026-05-24T21:30"})
 
     assert serale["ready"] is True
@@ -839,6 +844,14 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
         json=_legal_payload(),
         headers=headers,
     )
+    send_payload = _legal_payload()
+    send_payload["operazione"] = "invio_pec_l53"
+    send_payload["data_verifica_pec"] = ""
+    send_response = client.post(
+        "/api/v1/ui/notifiche-legali/notifica",
+        json=send_payload,
+        headers=headers,
+    )
     client_response = client.post(
         "/api/v1/ui/notifiche-legali/comunicazione-cliente",
         json={"operazione": "comunicazione_cliente_non_notifica", "cliente_nome": "Cliente", "provvedimento_descrizione": "Provvedimento depositato"},
@@ -848,6 +861,7 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     payload = payload_response.get_json()
     invalid_payload = invalid_response.get_json()
     valid_payload = valid_response.get_json()
+    send_result = send_response.get_json()
     client_payload = client_response.get_json()
 
     assert payload_response.status_code == 200
@@ -865,6 +879,10 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     assert "RELAZIONE DI NOTIFICAZIONE" in valid_payload["relataText"]
     assert valid_payload["outputPlan"]["workflowSteps"]
     assert valid_payload["outputPlan"]["auditTrail"]["documentsCount"] == 1
+    assert send_response.status_code == 200
+    assert send_result["ok"] is True
+    assert send_result["message"] == "Piano di invio PEC pronto per la conferma dell'avvocato."
+    assert len(send_result["outputPlan"]["timingPlan"]["plannedAt"].split(":")) == 3
     assert client_response.status_code == 200
     assert client_payload["ok"] is True
     assert client_payload["relataText"] == ""

@@ -1600,6 +1600,7 @@ def _documents(fascicolo: Any) -> list[dict[str, Any]]:
                     "pdfa": f"/fascicoli/{fid}/documenti/{did}/converti-pdfa",
                     "attest": f"/fascicoli/{fid}/documenti/{did}/attestazione",
                     "metadata": f"/fascicoli/{fid}/documenti/{did}/metadati",
+                    "rename": f"/fascicoli/{fid}/documenti/{did}/rinomina",
                     "delete": f"/fascicoli/{fid}/documenti/{did}/elimina",
                     "acquire": "",
                 },

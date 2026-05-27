@@ -1,5 +1,13 @@
 # Pytest shard confermati OK
 
+## Local Signer 1.6.58 SIGP/Giudice di Pace 2.248.75 - 2026-05-27
+
+| Comando | Esito | Note |
+| --- | --- | --- |
+| `python -m py_compile tools\local_signer.py tools\dist\local_signer.py` | OK | Sintassi confermata sul sorgente e sul file distribuito del Local Signer `1.6.58`. |
+| `python -m pytest -q tests/test_local_signer.py -k "sigp_usa_timeout_lungo or batch_sigp_include_dominio_invocazione or batch_multi_documento_usa_id_documento_come_idcat_sicid"` | OK | 3/3 passati: SIGP esegue `calcolaHash` prima del download anche nel lotto, senza tornare al download singolo ripetuto. |
+| Test reale autorizzato Giudice di Pace di Palmi R.G. `466/2023` | OK | Local Signer `1.6.58`: ricerca snapshot OK, 1 fascicolo, 34 documenti; download batch singolo `Atto_3080760.pdf` OK, 0 fallimenti; download batch multiplo `Atto_3080760.pdf` e `Atto_3080731.pdf` OK, 2/2, 0 fallimenti. |
+
 ## Local Signer 1.6.57 foreground PIN e matrice ministeriale PST 2.248.74 - 2026-05-27
 
 | Comando | Esito | Note |

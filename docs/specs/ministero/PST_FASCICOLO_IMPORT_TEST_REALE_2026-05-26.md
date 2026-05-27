@@ -217,6 +217,16 @@ repository; per una certificazione live di SIL, SIVG, MIN/SIMIN, SIECIC, SIGP,
 Cassazione o richieste copie serve un fascicolo reale e un certificato
 autorizzato per quello specifico registro.
 
+Verifica aggiuntiva SIGP/Giudice di Pace dopo installazione del Local Signer
+`1.6.58`: diagnosi locale OK, ricerca reale Giudice di Pace di Palmi R.G.
+`466/2023` OK, 1 fascicolo, 34 documenti a catalogo. Il primo tentativo con
+`1.6.57` trovava il catalogo ma il download andava in timeout; la prova diretta
+ha confermato che il PST SIGP accetta `estraiProfiloDocumento`,
+`estraiMasterDetailAtto` e `calcolaHash`, e che il `downloadAtto` riesce dopo
+`calcolaHash`. Con `1.6.58` il download batch di `Atto_3080760.pdf` è riuscito
+con 0 fallimenti e il download batch multiplo di `Atto_3080760.pdf` e
+`Atto_3080731.pdf` è riuscito 2/2 con 0 fallimenti.
+
 ## Regressioni vietate
 
 - Non reintrodurre `/pst/preflight-auth` come chiamata preventiva dal wizard

@@ -1,5 +1,15 @@
 # Pytest issue aperte e risoluzioni
 
+## Note Local Signer 1.6.58 SIGP/Giudice di Pace 2.248.75 - 2026-05-27
+
+Nessuna issue locale aperta sul perimetro corretto dopo i test mirati e la prova
+live autorizzata sul Giudice di Pace di Palmi R.G. `466/2023`.
+
+Il catalogo SIGP era già raggiungibile, ma il primo download reale andava in
+timeout senza un `calcolaHash` preventivo sul documento. Il Local Signer `1.6.58`
+esegue quel passaggio nello stesso lotto `curl`; la prova reale successiva ha
+scaricato sia un documento singolo sia due documenti in batch con 0 fallimenti.
+
 ## Note Local Signer 1.6.57 foreground PIN e PST 2.248.74 - 2026-05-27
 
 Nessuna issue locale aperta sul perimetro corretto dopo i test mirati. Il test

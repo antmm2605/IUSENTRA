@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.248.75 - 2026-05-27
+
+- Local Signer `1.6.58`: per SIGP/Giudice di Pace lo scarico documenti esegue `calcolaHash` prima del `downloadAtto` nello stesso lotto `curl`; la prova reale sul fascicolo `466/2023` aveva catalogo OK ma download in timeout senza questo passaggio.
+- Pacchetto Windows rigenerato come `SetupLocalSigner-1.6.58.exe` con profilo IExpress blindato e alias `SetupLocalSigner.exe`.
+
 ## 2.248.74 - 2026-05-27
 
 - Local Signer `1.6.57`: rafforzato il primo piano della finestra PIN su Windows, riconoscendo anche `CredentialUIBroker`, finestre senza titolo e processi Bit4id/Aruba/MinVA/CNS/CIE; la console `curl` resta nascosta e non vengono salvati PIN o credenziali.

@@ -3956,10 +3956,15 @@ def test_download_documenti_batch_rispetta_original_false_sicid():
 def test_download_documento_sigp_usa_timeout_lungo_e_copia_di_default():
     module = _load_local_signer()
 
+    orig_warmup = module._soap_call_pst_session
     orig_raw = module._soap_call_pst_session_raw
-    calls = {}
+    calls = {"warmup": []}
 
     try:
+        def _fake_warmup(**kwargs):
+            calls["warmup"].append(kwargs)
+            return "<calcolaHashResponse><return>HASH</return></calcolaHashResponse>"
+
         def _fake_raw(**kwargs):
             calls.update(kwargs)
             body = (
@@ -3977,6 +3982,7 @@ def test_download_documento_sigp_usa_timeout_lungo_e_copia_di_default():
             )
             return body, 'Content-Type: multipart/related; boundary="abc123"'
 
+        module._soap_call_pst_session = _fake_warmup
         module._soap_call_pst_session_raw = _fake_raw
         esito = module._pst_download_documento_payload(
             base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIGP",
@@ -3987,8 +3993,12 @@ def test_download_documento_sigp_usa_timeout_lungo_e_copia_di_default():
             cf_avvocato="RSSMRA80A01H501Z",
         )
     finally:
+        module._soap_call_pst_session = orig_warmup
         module._soap_call_pst_session_raw = orig_raw
 
+    assert len(calls["warmup"]) == 1
+    assert "<impl:calcolaHash" in calls["warmup"][0]["soap_body"]
+    assert "<idDoc>3080760</idDoc>" in calls["warmup"][0]["soap_body"]
     assert calls["soap_action"] == "downloadAtto"
     assert 'InvocationDomain name="JPW" role="AVV" group="0800570152"' in calls["soap_body"]
     assert "<idrepeatto>3080760</idrepeatto>" in calls["soap_body"]
@@ -4019,7 +4029,9 @@ def test_download_documenti_batch_sigp_include_dominio_invocazione():
                 b"JVBERi0xLjcK\r\n"
                 b"--abc123--\r\n"
             )
-            return [(body, 'Content-Type: multipart/related; boundary="abc123"')]
+            return [(b"<hash/>", "HTTP/1.1 200 OK\r\nContent-Type: text/xml\r\n")] + [
+                (body, 'Content-Type: multipart/related; boundary="abc123"')
+            ]
 
         module._soap_call_pst_session_batch_raw = _fake_batch
         esito = module._pst_download_documenti_batch_payloads(
@@ -4043,11 +4055,14 @@ def test_download_documenti_batch_sigp_include_dominio_invocazione():
 
     assert esito["ok"] is True
     assert esito["documenti_scaricati"] == 1
-    assert len(calls["requests"]) == 1
-    soap_body = calls["requests"][0]["soap_body"]
+    assert len(calls["requests"]) == 2
+    assert "<impl:calcolaHash" in calls["requests"][0]["soap_body"]
+    assert "<idDoc>3080760</idDoc>" in calls["requests"][0]["soap_body"]
+    assert calls["requests"][0]["extra_headers"] == ["X-WASP-User: RSSMRA80A01H501Z"]
+    soap_body = calls["requests"][1]["soap_body"]
     assert 'InvocationDomain name="JPW" role="AVV" group="0800570152"' in soap_body
     assert "<idrepeatto>3080760</idrepeatto>" in soap_body
-    assert calls["requests"][0]["soap_action"] == "downloadAtto"
+    assert calls["requests"][1]["soap_action"] == "downloadAtto"
 
 
 def test_download_documenti_batch_best_effort_non_azzera_lotto_se_un_profilo_fallisce():

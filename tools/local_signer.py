@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.57
+IUSENTRA Local Signer - v1.6.58
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -112,7 +112,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.57"
+VERSION = "1.6.58"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -6002,10 +6002,27 @@ def _pst_download_documento_payload(
         soap_action = "downloadAtto"
         download_id_repeatto = str(id_repeatto or id_documento).strip()
         if not download_id_repeatto:
-            raise RuntimeError("Il servizio Cassazione richiede idRepeatTo per il download dell'atto.")
+            raise RuntimeError("Il servizio SIGP richiede idRepeatTo per il download dell'atto.")
         soap_body = _soap_sigp_download_body(download_id_repeatto, codice_ufficio)
     else:
         raise RuntimeError(f"Servizio PST non supportato per il download diretto: {servizio or 'sconosciuto'}.")
+
+    if servizio == "JPW_SIGP" and cf_avvocato and (id_documento or id_repeatto):
+        _soap_call_pst_session(
+            url=url_documenti,
+            soap_body=_soap_bea_sicid_body(
+                "calcolaHash",
+                [
+                    ("idUtenteCorrente", cf_avvocato),
+                    ("idDoc", id_documento or id_repeatto),
+                ],
+                group=codice_ufficio,
+            ),
+            cert_thumbprint=cert_thumbprint,
+            extra_headers=[f"X-WASP-User: {cf_avvocato}"],
+            cookie_file=download_cookie_file,
+            prefer_cookie_only=download_prefer_cookie_only,
+        )
 
     body_bytes, headers_text = _soap_call_pst_session_raw(
         url=url_documenti,
@@ -6410,7 +6427,7 @@ def _pst_download_documenti_batch_payloads(
                 if servizio == "JPW_SIGP":
                     id_repeatto = str(item.get("id_repeatto") or id_doc or id_cat).strip()
                     if not id_repeatto:
-                        raise RuntimeError("idRepeatTo mancante nel lotto Cassazione.")
+                        raise RuntimeError("idRepeatTo mancante nel lotto SIGP.")
                     soap_body = _soap_sigp_download_body(id_repeatto, codice_ufficio)
                     soap_action = "downloadAtto"
                     extra_h: list[str] = []
@@ -6495,7 +6512,14 @@ def _pst_download_documenti_batch_payloads(
         # ── Fase 3: UN SOLO processo curl per tutti i download ──
         try:
             warmup_reqs: list[dict] = []
-            if _pst_servizio_sicid_family(base_url) and len(dl_reqs) > 1 and cf_avvocato:
+            needs_hash_warmup = bool(
+                cf_avvocato
+                and (
+                    _pst_servizio_sigp(base_url)
+                    or (_pst_servizio_sicid_family(base_url) and len(dl_reqs) > 1)
+                )
+            )
+            if needs_hash_warmup:
                 first_doc_id = str(
                     dl_meta[0]["item"].get("id_documento")
                     or dl_meta[0]["item"].get("id_documento_portale")
@@ -6514,7 +6538,7 @@ def _pst_download_documenti_batch_payloads(
                             group=codice_ufficio,
                         ),
                         "soap_action": "",
-                        "extra_headers": extra_base,
+                        "extra_headers": extra_base or [f"X-WASP-User: {cf_avvocato}"],
                         "cookie_file": download_cookie_file,
                         "max_time": PST_DOWNLOAD_MAX_TIME,
                         "connect_timeout": PST_DOWNLOAD_CONNECT_TIMEOUT,

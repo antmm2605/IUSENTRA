@@ -1989,6 +1989,44 @@ def test_pst_varianti_ricerca_esatta_deriva_siecic_dalla_url_se_snapshot_manca(m
     ]
 
 
+def test_pst_tabella_lavoro_da_schema_ministeriale_parte_da_sil(monkeypatch):
+    module = _load_local_signer()
+    base = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID"
+
+    monkeypatch.setattr(
+        module,
+        "_risolvi_ufficio_da_snapshot",
+        lambda value: {
+            "codice_ministero": "0800570094",
+            "codice_gl": "GLRC",
+            "servizi_ministero": ["COM_TEL_136", "JPW_SICID", "JPW_SIECIC", "SICID", "SIECIC"],
+            "servizio_pst_predefinito": "JPW_SICID",
+        },
+    )
+
+    payload = {
+        "schema": "schema ministeriale lavoro",
+        "materia": "lavoro",
+        "registro": "LAV",
+        "oggetto": "controversia di lavoro",
+    }
+    preferred = module._pst_base_url_con_preferenza_payload(base, payload)
+    varianti = module._pst_base_varianti_ricerca_esatta("0800570094", preferred)
+
+    assert module._pst_servizio_ministeriale_da_payload(payload) == "JPW_SIL"
+    assert module._pst_servizio_ministeriale_da_payload({"tabella_ministeriale": "SICID_LAVORO"}) == "JPW_SIL"
+    assert module._pst_servizio_ministeriale_da_payload({"schema": "civile", "registro": "RGN"}) == "JPW_SICID"
+    assert module._pst_servizio_ministeriale_da_payload({"schema": "giudice relatore indicato"}) == ""
+    assert module._pst_servizio_ministeriale_da_payload({"schema": "giudice di pace"}) == "JPW_SIGP"
+    assert module._pst_servizio_ministeriale_da_payload({"schema": "penale"}) == ""
+    assert module._pst_servizio_ministeriale_da_payload({"tabella_ministeriale": "CASSPE"}) == "JPW_CASSPE"
+    assert module._pst_servizio_ministeriale_da_payload({"schema": "cassazione penale"}) == "JPW_CASSPE"
+    assert module._pst_servizio_ministeriale_da_payload({"schema": "cassazione civile"}) == "JPW_CASSCI"
+    assert preferred == "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIL"
+    assert varianti[0] == preferred
+    assert varianti[1] == "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID"
+
+
 def test_estrai_codice_fiscale_dal_certificato_windows():
     module = _load_local_signer()
 

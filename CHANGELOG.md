@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.248.78 - 2026-05-27
+
+- Local Signer `1.6.60`: la ricerca PST riconosce automaticamente gli indizi di tabella ministeriale (`lavoro`, `LAV`, `SIL`, previdenza/assistenza) e avvia Palmi/lavoro su `JPW_SIL` con tipo `LAV` prima del fallback SICID.
+- La scelta automatica delle tabelle PST resta prudente sul penale: `penale` da solo non sposta il canale, mentre `CASSPE` / `cassazione penale` resta su PST `JPW_CASSPE` e `cassazione civile` su `JPW_CASSCI`.
+- Il wizard PST React e quello classico inviano `schema`, `materia`, `registro` e `tipo_registro` al Local Signer; la schermata React espone anche la scelta compatta della tabella ministeriale quando serve forzare il rito corretto.
+- Presidiata la non regressione sui portali assistiti: PDP, PAT e PTT continuano a importare tramite canale locale quando il Local Signer è abilitato, senza ricadere sul certificato server.
+- Documentata la prova live Palmi R.G. `3441/2025`: il fault su `CONS-SICC-BE` non deve più guidare i fascicoli lavoro verso la tabella civile.
+
 ## 2.248.77 - 2026-05-27
 
 - Nel wizard PST la destinazione pratica è stata semplificata: `Crea nuova pratica` per la prima importazione e `Usa pratica esistente` per aggiornare un fascicolo locale, senza più le voci ambigue `Collega` / `Aggiorna pratica esistente`.

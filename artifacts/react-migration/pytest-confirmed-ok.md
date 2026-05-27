@@ -1,5 +1,17 @@
 # Pytest shard confermati OK
 
+## Local Signer 1.6.60 tabelle ministeriali PST e penale neutro 2.248.78 - 2026-05-27
+
+| Comando | Esito | Note |
+| --- | --- | --- |
+| `python -m pytest tests\test_local_signer.py -q -k "tabella_lavoro or qbuilder_sicid_family or varianti_ricerca_esatta" --tb=short` | OK | 5/5: lo schema lavoro parte da `JPW_SIL`/`LAV`; `penale` da solo resta neutro; `CASSPE` e `cassazione penale` restano PST `JPW_CASSPE`; `cassazione civile` usa `JPW_CASSCI`; nessun falso positivo su `giudice relatore`. |
+| `python -m pytest tests\test_portali_telematici_matrix.py -q --tb=short` | OK | 12/12: matrice PST/QBuilder confermata per SICID, SIL, SIVG, MIN/SIMIN, SIECIC, SIGP e Cassazione civile/penale; PDP/PAT/PTT restano canali assistiti separati. |
+| `python -m pytest tests\test_react_shell.py -q -k "react_wizard_pst_verifica_local_signer_dal_browser" --tb=short` | OK | Il wizard React invia gli indizi ministeriali e mostra le scelte `Lavoro e previdenza` e `Cassazione penale` senza preflight PIN. |
+| `python -m pytest tests\test_polisweb.py -q -k "route_importa_pdp_via_local_signer or route_importa_pat_via_local_signer or route_importa_sigit_via_local_signer" --tb=short` | OK | 3/3: non regressione sui portali assistiti; PDP, PAT e PTT importano tramite client locale quando Local Signer è abilitato, senza richiedere certificato server. |
+| `python -m py_compile tools\local_signer.py tools\dist\local_signer.py web\services\telematico_runtime.py web\bootstrap\telematico_portali_routes.py`; `python tools\check_local_signer_boundaries.py`; `python tools\sync_packaging_files.py --check` | OK | Sintassi, boundary Local Signer e packaging flat confermati dopo la rigenerazione `SetupLocalSigner-1.6.60.exe`. |
+| `npm --prefix frontend run typecheck`; `node frontend\scripts\check-react-contracts.mjs`; `npm --prefix frontend run build` | OK | TypeScript, contratti React e build Vite verdi; asset hashati generati localmente ripuliti perché il deploy ricostruisce il bundle. |
+| `python -m pytest tests\test_build_dist.py tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short`; `python -m pytest tests\test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | Dist/readiness/packaging 15/15, UTF-8 4/4 e whitespace senza errori; `git diff --check` riporta solo warning CRLF/LF su file già presenti in worktree. |
+
 ## Local Signer 1.6.59 certificato automatico e tabelle PST 2.248.76 - 2026-05-27
 
 | Comando | Esito | Note |

@@ -1,5 +1,22 @@
 # Pytest issue aperte e risoluzioni
 
+## Note Local Signer 1.6.60 tabelle ministeriali PST e penale - 2026-05-27
+
+Nessuna issue locale aperta sul perimetro corretto dopo i test mirati.
+
+La prova cliente su Palmi R.G. `3441/2025`, indicata come schema ministeriale
+lavoro, aveva prodotto una SOAP Fault su `CONS-SICC-BE`: il Local Signer stava
+partendo dal canale civile ordinario. Il fix `1.6.60` rende gli indizi
+ministeriali espliciti parte del payload e fa partire lavoro/previdenza da
+`JPW_SIL`/`LAV`, mantenendo il fallback sugli altri registri.
+
+Regola anti-regressione aggiunta durante la sessione: il termine `penale` da
+solo non deve spostare il canale né verso PDP né verso Cassazione. Quando però
+la tabella ministeriale è esplicita (`CASSPE`, `JPW_CASSPE` o `cassazione
+penale`), la pratica resta su PST/QBuilder `JPW_CASSPE`; `cassazione civile`
+usa `JPW_CASSCI`. PDP, PAT e PTT sono stati verificati separatamente per non
+perdere gli altri portali assistiti.
+
 ## Note Local Signer 1.6.59 certificato automatico e PST 2.248.76 - 2026-05-27
 
 Nessuna issue locale aperta sul perimetro corretto dopo i test mirati e la prova

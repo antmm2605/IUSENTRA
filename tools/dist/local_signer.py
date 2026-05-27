@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.59
+IUSENTRA Local Signer - v1.6.60
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -112,7 +112,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.59"
+VERSION = "1.6.60"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -246,19 +246,32 @@ _PST_SERVIZI_DEFAULT = (
 )
 _PST_SERVIZI_ALIAS = {
     "JPW_CASS": "JPW_CASSCI",
+    "CASSCI": "JPW_CASSCI",
+    "CASSPE": "JPW_CASSPE",
     "SICID": "JPW_SICID",
     "SICC": "JPW_SICID",
+    "CIVILE": "JPW_SICID",
     "SIL": "JPW_SIL",
     "SILP": "JPW_SIL",
+    "LAV": "JPW_SIL",
     "LAVORO": "JPW_SIL",
+    "PREVIDENZA": "JPW_SIL",
+    "PREVIDENZIALE": "JPW_SIL",
+    "ASSISTENZA": "JPW_SIL",
+    "ASSISTENZIALE": "JPW_SIL",
     "SIVG": "JPW_SIVG",
     "VOLONTARIA": "JPW_SIVG",
     "VG": "JPW_SIVG",
     "MIN": "JPW_MIN",
     "MINORI": "JPW_MIN",
+    "MINORENNI": "JPW_MIN",
     "SIMIN": "JPW_SIMIN",
     "SIECIC": "JPW_SIECIC",
+    "ESECUZIONI": "JPW_SIECIC",
+    "CONCORSUALI": "JPW_SIECIC",
     "SIGP": "JPW_SIGP",
+    "GDP": "JPW_SIGP",
+    "RGN": "JPW_SICID",
 }
 _PST_QBUILDER_NAMESPACES = {
     "JPW_SICID": "urn:CONS-SICC-BE",
@@ -883,6 +896,98 @@ def _pst_base_url_con_servizio(base_url: str, servizio: str) -> str:
     if parsed.scheme and parsed.netloc:
         return f"{parsed.scheme}://{parsed.netloc}{normalized_path}"
     return normalized_path if raw.startswith("/") else normalized_path.lstrip("/")
+
+
+def _pst_hint_tokens_ministeriali(value: Any) -> list[str]:
+    raw = str(value or "").strip()
+    if not raw:
+        return []
+    normalized = unicodedata.normalize("NFKD", raw.upper())
+    ascii_text = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    return re.findall(r"[A-Z0-9_]+", ascii_text)
+
+
+def _pst_servizio_ministeriale_da_tokens(tokens: list[str]) -> str:
+    text = " ".join(tokens)
+    keyword_groups = (
+        ("JPW_CASSPE", (("CASS", "PENAL"),)),
+        ("JPW_CASSCI", (("CASS", "CIVIL"),)),
+        ("JPW_SIL", (("LAVOR",), ("PREVIDENZ",), ("ASSISTENZ",))),
+        ("JPW_SIVG", (("VOLONTARI",), ("VOLONTARI", "GIURISDIZIONE"))),
+        ("JPW_MIN", (("MINORE",), ("MINORI",), ("MINORENN",))),
+        ("JPW_SIECIC", (("ESECUZ",), ("CONCORS",))),
+        ("JPW_SIGP", (("GIUDICE", "PACE"),)),
+    )
+    for servizio, groups in keyword_groups:
+        if any(all(marker in text for marker in group) for group in groups):
+            return servizio
+    return ""
+
+
+def _pst_servizio_ministeriale_da_payload(*payloads: Any) -> str:
+    """
+    Ricava la tabella ministeriale richiesta dal wizard o dal fascicolo.
+
+    La scelta resta prudente: usa solo indizi espliciti di registro, schema,
+    materia o tabella, e non prova a dedurre il rito dal solo numero di R.G.
+    """
+    explicit_keys = (
+        "servizio_pst",
+        "servizio_pst_preferito",
+        "servizio",
+        "registro_portale",
+        "tabella_ministeriale",
+    )
+    hint_keys = (
+        "registro",
+        "tipo_registro",
+        "materia",
+        "schema",
+        "quick_filter",
+        "oggetto",
+        "ruolo",
+        "procedimento",
+    )
+    collected: list[str] = []
+    for payload in payloads:
+        if not isinstance(payload, dict):
+            continue
+        for key in explicit_keys:
+            value = payload.get(key)
+            value_tokens = _pst_hint_tokens_ministeriali(value)
+            servizio_keyword = _pst_servizio_ministeriale_da_tokens(value_tokens)
+            if servizio_keyword:
+                return servizio_keyword
+            for token in value_tokens:
+                servizio = _PST_SERVIZI_ALIAS.get(token, token)
+                if servizio in _PST_QBUILDER_NAMESPACES:
+                    return servizio
+            if value not in (None, ""):
+                collected.append(str(value))
+        for key in hint_keys:
+            value = payload.get(key)
+            if value not in (None, ""):
+                collected.append(str(value))
+
+    tokens: list[str] = []
+    for value in collected:
+        tokens.extend(_pst_hint_tokens_ministeriali(value))
+    servizio_keyword = _pst_servizio_ministeriale_da_tokens(tokens)
+    if servizio_keyword:
+        return servizio_keyword
+    for token in tokens:
+        servizio = _PST_SERVIZI_ALIAS.get(token, "")
+        if servizio in _PST_QBUILDER_NAMESPACES:
+            return servizio
+    return ""
+
+
+def _pst_base_url_con_preferenza_payload(base_url: str, *payloads: Any) -> str:
+    servizio = _pst_servizio_ministeriale_da_payload(*payloads)
+    if not servizio:
+        return base_url.rstrip("/") if base_url else ""
+    preferita = _pst_base_url_con_servizio(base_url, servizio)
+    return preferita or (base_url.rstrip("/") if base_url else "")
 
 
 def _pst_servizi_qbuilder_ufficio(codice_o_nome: str) -> list[str]:
@@ -7867,14 +7972,17 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         try:
+            servizio_hint = _pst_servizio_ministeriale_da_payload(data)
             base_url = _risolvi_base_pst_runtime(tribunale)
+            base_url = _pst_base_url_con_preferenza_payload(base_url, data)
             url_ricerca = _pst_url_ricerca(base_url)
             codice_pst = _risolvi_codice_ufficio_pst(tribunale)
             log.info(
-                "PST ricerca: ufficio richiesto=%s codice_pst=%s servizio=%s rg=%s/%s fallback_registro=%s",
+                "PST ricerca: ufficio richiesto=%s codice_pst=%s servizio=%s tabella_hint=%s rg=%s/%s fallback_registro=%s",
                 tribunale,
                 codice_pst,
                 _pst_servizio_proxy(base_url),
+                servizio_hint or "auto",
                 str(data.get("numero_rg") or ""),
                 str(data.get("anno_rg") or ""),
                 _pst_register_fallback_enabled(),
@@ -7892,8 +8000,12 @@ class _Handler(BaseHTTPRequestHandler):
             existing_session = _resolve_pst_session_entry(requested_session_id) if requested_session_id else None
             session_base_url = str((existing_session or {}).get("base_url") or "").strip()
             if session_base_url and _pst_namespace_qbuilder(session_base_url):
-                base_url = session_base_url
-                url_documenti = _pst_url_documenti(base_url)
+                base_url = (
+                    _pst_base_url_con_servizio(session_base_url, servizio_hint)
+                    if servizio_hint
+                    else session_base_url
+                )
+                url_ricerca = _pst_url_ricerca(base_url)
             if _pst_namespace_qbuilder(base_url) and not cf_avvocato:
                 raise RuntimeError(
                     "Impossibile determinare il codice fiscale dell'avvocato dal certificato selezionato.\n"
@@ -8053,15 +8165,18 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         try:
+            servizio_hint = _pst_servizio_ministeriale_da_payload(data)
             base_url = _risolvi_base_pst_runtime(tribunale)
+            base_url = _pst_base_url_con_preferenza_payload(base_url, data)
             url_ricerca = _pst_url_ricerca(base_url)
             url_documenti = _pst_url_documenti(base_url)
             codice_pst = _risolvi_codice_ufficio_pst(tribunale)
             log.info(
-                "PST ricerca-snapshot: ufficio richiesto=%s codice_pst=%s servizio=%s rg=%s/%s fallback_registro=%s",
+                "PST ricerca-snapshot: ufficio richiesto=%s codice_pst=%s servizio=%s tabella_hint=%s rg=%s/%s fallback_registro=%s",
                 tribunale,
                 codice_pst,
                 _pst_servizio_proxy(base_url),
+                servizio_hint or "auto",
                 numero_rg,
                 anno_rg,
                 _pst_register_fallback_enabled(),
@@ -8520,6 +8635,7 @@ class _Handler(BaseHTTPRequestHandler):
             snapshot = None
             if fascicolo_row or documenti:
                 ufficio = _risolvi_ufficio_da_snapshot(str(fascicolo_row.get("codice_ufficio") or codice_pst))
+                tabella_policy = _pst_tabella_ministeriale_policy(base_url)
                 fascicolo = {
                     "codice_ufficio": str(fascicolo_row.get("codice_ufficio") or codice_pst or tribunale),
                     "ufficio_codice": str(fascicolo_row.get("codice_ufficio") or codice_pst or tribunale),
@@ -8546,6 +8662,9 @@ class _Handler(BaseHTTPRequestHandler):
                     ),
                     "parti": fascicolo_row.get("parti") if isinstance(fascicolo_row.get("parti"), list) else [],
                     "controparti": fascicolo_row.get("controparti") if isinstance(fascicolo_row.get("controparti"), list) else [],
+                    "servizio_pst": _pst_servizio_proxy(base_url),
+                    "registro_portale": _pst_tipo_ricerca_qbuilder(base_url),
+                    "tabella_ministeriale": str(tabella_policy.get("tabella") or ""),
                 }
                 snapshot = {
                     "fascicolo": fascicolo,
@@ -8603,7 +8722,19 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         try:
+            servizio_hint = _pst_servizio_ministeriale_da_payload(data)
+            base_url = _pst_base_url_con_preferenza_payload(base_url, data)
+            url_documenti = _pst_url_documenti(base_url)
             requested_session_id = str(data.get("pst_session_id") or "").strip()
+            existing_session = _resolve_pst_session_entry(requested_session_id) if requested_session_id else None
+            session_base_url = str((existing_session or {}).get("base_url") or "").strip()
+            if session_base_url and _pst_namespace_qbuilder(session_base_url):
+                base_url = (
+                    _pst_base_url_con_servizio(session_base_url, servizio_hint)
+                    if servizio_hint
+                    else session_base_url
+                )
+                url_documenti = _pst_url_documenti(base_url)
             cert_thumbprint = _require_certificato_pst(
                 data.get("cert_thumbprint")
             )
@@ -8743,7 +8874,9 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         try:
+            servizio_hint = _pst_servizio_ministeriale_da_payload(data, selection)
             base_url = _risolvi_base_pst_runtime(codice)
+            base_url = _pst_base_url_con_preferenza_payload(base_url, data, selection)
             url_documenti = _pst_url_documenti(base_url)
             codice_pst = _risolvi_codice_ufficio_pst(codice)
         except Exception as e:
@@ -8752,6 +8885,15 @@ class _Handler(BaseHTTPRequestHandler):
 
         try:
             requested_session_id = str(data.get("pst_session_id") or "").strip()
+            existing_session = _resolve_pst_session_entry(requested_session_id) if requested_session_id else None
+            session_base_url = str((existing_session or {}).get("base_url") or "").strip()
+            if session_base_url and _pst_namespace_qbuilder(session_base_url):
+                base_url = (
+                    _pst_base_url_con_servizio(session_base_url, servizio_hint)
+                    if servizio_hint
+                    else session_base_url
+                )
+                url_documenti = _pst_url_documenti(base_url)
             cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
             cf_avvocato = _cf_avvocato_pst(data.get("cf_avvocato", ""), cert_thumbprint)
             if _pst_namespace_qbuilder(base_url) and not cf_avvocato:
@@ -9208,7 +9350,9 @@ class _Handler(BaseHTTPRequestHandler):
         try:
             requested_session_id = str(data.get("pst_session_id") or "").strip()
             download_purpose = _pst_existing_session_purpose(requested_session_id, "view")
+            servizio_hint = _pst_servizio_ministeriale_da_payload(data, *(item for item in documenti if isinstance(item, dict)))
             base_url = _risolvi_base_pst_runtime(tribunale)
+            base_url = _pst_base_url_con_preferenza_payload(base_url, data, *(item for item in documenti if isinstance(item, dict)))
             codice_pst = _risolvi_codice_ufficio_pst(tribunale)
             cert_thumbprint = _require_certificato_pst(
                 data.get("cert_thumbprint")
@@ -9222,7 +9366,11 @@ class _Handler(BaseHTTPRequestHandler):
             existing_session = _resolve_pst_session_entry(requested_session_id) if requested_session_id else None
             session_base_url = str((existing_session or {}).get("base_url") or "").strip()
             if session_base_url and _pst_namespace_qbuilder(session_base_url):
-                base_url = session_base_url
+                base_url = (
+                    _pst_base_url_con_servizio(session_base_url, servizio_hint)
+                    if servizio_hint
+                    else session_base_url
+                )
             session_entry, _session_created = _ensure_pst_session_entry(
                 requested_session_id,
                 tribunale=tribunale,

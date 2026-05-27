@@ -87,6 +87,9 @@ type AcquisitionQuery = {
   controparte: string
   cf: string
   oggetto: string
+  materia: string
+  registro: string
+  schema: string
 }
 
 type AcquisitionFile = {
@@ -326,6 +329,10 @@ function acquisitionRetryHref(portal: string, query: AcquisitionQuery, mapping: 
   add('ufficio_codice', query.ufficioCodice)
   add('numero', query.numero)
   add('anno', query.anno)
+  add('oggetto', query.oggetto)
+  add('materia', query.materia)
+  add('registro', query.registro)
+  add('schema', query.schema)
   if (mapping.target_fascicolo_id) {
     params.set('fascicolo_id', mapping.target_fascicolo_id)
     params.set('mode', mapping.mode === 'create_new' ? 'update_existing' : mapping.mode)
@@ -513,6 +520,9 @@ function acquisitionInitialFascicoloId(): string {
 function acquisitionInitialQuery(): AcquisitionQuery {
   const params = new URLSearchParams(window.location.search)
   const documento = asText(params.get('documento') || params.get('documento_portale'))
+  const schema = asText(params.get('schema') || params.get('tabella') || params.get('tabella_ministeriale') || params.get('quick_filter'))
+  const materia = asText(params.get('materia') || schema || params.get('oggetto') || documento)
+  const registro = asText(params.get('registro') || params.get('tipo_registro') || params.get('quick_filter') || schema)
   return {
     ufficio: asText(params.get('ufficio')),
     ufficioCodice: asText(params.get('ufficio_codice')),
@@ -522,7 +532,10 @@ function acquisitionInitialQuery(): AcquisitionQuery {
     assistito: asText(params.get('assistito')),
     controparte: asText(params.get('controparte')),
     cf: asText(params.get('cf') || params.get('codice_fiscale')),
-    oggetto: asText(params.get('oggetto') || documento),
+    oggetto: asText(params.get('oggetto') || materia || documento),
+    materia,
+    registro,
+    schema,
   }
 }
 
@@ -551,6 +564,21 @@ function acquisitionTargetPayload(target: AcquisitionTargetDocument): JsonRecord
     pecId: target.pecId,
     nonDuplicare: target.nonDuplicare,
     faseSuccessiva: target.faseSuccessiva,
+  }
+}
+
+function ministerialSchemaFromQuery(query: AcquisitionQuery): string {
+  return asText(query.schema || query.registro || query.materia || query.oggetto)
+}
+
+function ministerialHintsFromQuery(query: AcquisitionQuery): JsonRecord {
+  const schema = ministerialSchemaFromQuery(query)
+  return {
+    materia: asText(query.materia || query.oggetto || schema),
+    registro: asText(query.registro || schema),
+    schema,
+    tipo_registro: asText(query.registro || schema),
+    quick_filter: schema,
   }
 }
 
@@ -1194,6 +1222,9 @@ function normalisePstAcquisitionResult(value: unknown, index: number, query: Acq
     data_iscrizione: asText(row.data_iscrizione),
     data_udienza: asText(row.data_udienza),
     ultima_attivita: asText(row.data_udienza || row.data_iscrizione || row.ultima_attivita),
+    servizio_pst: asText(row.servizio_pst),
+    registro_portale: asText(row.registro_portale || row.tipo_registro),
+    tabella_ministeriale: asText(row.tabella_ministeriale),
     payload: row,
   }
   return {
@@ -2115,6 +2146,9 @@ function AcquisitionWizard({
     ufficio_codice_input: asText(query.ufficioCodice),
     numero: query.numero,
     anno: query.anno,
+    schema: ministerialSchemaFromQuery(query),
+    registro: asText(query.registro),
+    materia: asText(query.materia || query.oggetto),
     local_signer_version: localSigner.version,
     latest_local_signer_version: data.localSigner.latestVersion,
     generated_at: new Date().toISOString(),
@@ -2189,9 +2223,7 @@ function AcquisitionWizard({
     controparte: query.controparte,
     cf: query.cf,
     oggetto: query.oggetto,
-    materia: query.oggetto,
-    registro: '',
-    quick_filter: '',
+    ...ministerialHintsFromQuery(query),
     target_document: targetDocumentPayload,
   })
 
@@ -2261,6 +2293,7 @@ function AcquisitionWizard({
               nome_parte: exactPstSearch ? '' : (query.assistito || query.controparte),
               cf_parte: exactPstSearch ? '' : query.cf,
               oggetto: query.oggetto,
+              ...ministerialHintsFromQuery(query),
               ufficio_nome: query.ufficioNome || query.ufficio,
               cf_avvocato: pstCfForDiagnostic,
               cert_thumbprint: cert.thumbprint || null,
@@ -2285,6 +2318,8 @@ function AcquisitionWizard({
             anno_rg: query.anno,
             nome_parte: exactPstSearch ? '' : (query.assistito || query.controparte),
             cf_parte: exactPstSearch ? '' : query.cf,
+            oggetto: query.oggetto,
+            ...ministerialHintsFromQuery(query),
             cf_avvocato: pstCfForDiagnostic,
             cert_thumbprint: cert.thumbprint || null,
             cert_key: cert.thumbprint || '',
@@ -2401,6 +2436,10 @@ function AcquisitionWizard({
             anno_rg: asText(selection.raw.anno || query.anno),
             id_fascicolo: asText(selection.raw.id_fascicolo),
             sub_procedimento: asText(selection.raw.sub_procedimento),
+            servizio_pst: asText(selection.raw.servizio_pst || asRecord(asRecord(selection.raw.snapshot).fascicolo).servizio_pst),
+            registro_portale: asText(selection.raw.registro_portale || asRecord(asRecord(selection.raw.snapshot).fascicolo).registro_portale),
+            tabella_ministeriale: asText(selection.raw.tabella_ministeriale || asRecord(asRecord(selection.raw.snapshot).fascicolo).tabella_ministeriale),
+            ...ministerialHintsFromQuery(query),
             cf_avvocato: pstAttorneyFiscalCode(cert),
             cert_thumbprint: cert.thumbprint || null,
             cert_key: cert.thumbprint || '',
@@ -2558,6 +2597,10 @@ function AcquisitionWizard({
       pst_session_id: session?.sessionId || '',
       preflight_auth: false,
       original: options.scarica_originale_portale,
+      servizio_pst: asText(activeSelection.servizio_pst || asRecord(asRecord(activeSelection.snapshot).fascicolo).servizio_pst),
+      registro_portale: asText(activeSelection.registro_portale || asRecord(asRecord(activeSelection.snapshot).fascicolo).registro_portale),
+      tabella_ministeriale: asText(activeSelection.tabella_ministeriale || asRecord(asRecord(activeSelection.snapshot).fascicolo).tabella_ministeriale),
+      ...ministerialHintsFromQuery(query),
       documents: documenti,
     }, 360000)
     const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
@@ -3071,6 +3114,31 @@ function AcquisitionWizard({
                 </label>
                 <label><span>Numero</span><input value={query.numero} onChange={(event) => updateQuery('numero', event.currentTarget.value)} placeholder="Es. 466"/></label>
                 <label><span>Anno</span><input value={query.anno} onChange={(event) => updateQuery('anno', event.currentTarget.value)} inputMode="numeric"/></label>
+                <label>
+                  <span>Tabella ministeriale</span>
+                  <select
+                    value={query.schema}
+                    onChange={(event) => {
+                      const schema = event.currentTarget.value
+                      setQuery((current) => ({
+                        ...current,
+                        schema,
+                        registro: schema || current.registro,
+                        materia: schema || current.materia,
+                      }))
+                    }}
+                  >
+                    <option value="">Automatica</option>
+                    <option value="civile">Civile contenzioso</option>
+                    <option value="lavoro">Lavoro e previdenza</option>
+                    <option value="volontaria">Volontaria giurisdizione</option>
+                    <option value="minori">Minori</option>
+                    <option value="esecuzioni">Esecuzioni e concorsuali</option>
+                    <option value="giudice di pace">Giudice di pace</option>
+                    <option value="cassazione civile">Cassazione civile</option>
+                    <option value="cassazione penale">Cassazione penale</option>
+                  </select>
+                </label>
                 <label><span>Parte assistita</span><input value={query.assistito} onChange={(event) => updateQuery('assistito', event.currentTarget.value)} placeholder="Cliente, imputato, ricorrente..."/></label>
                 <label><span>Controparte</span><input value={query.controparte} onChange={(event) => updateQuery('controparte', event.currentTarget.value)} placeholder="Controparte, resistente, parte offesa..."/></label>
                 <label><span>CF / P.IVA</span><input value={query.cf} onChange={(event) => updateQuery('cf', event.currentTarget.value)} placeholder="Codice fiscale o partita IVA"/></label>

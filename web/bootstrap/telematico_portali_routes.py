@@ -140,9 +140,6 @@ def register_telematico_portali_routes(
                     "success",
                 )
                 return redirect(url_for("dettaglio_fascicolo", id_fasc=target.id))
-            if portale_browser_channel_required("pdp"):
-                flash(portale_browser_guided_message("pdp"), "info")
-                return redirect(url_for("portale_acquisizione_wizard", portale="pdp"))
             if portale_local_channel_enabled("pdp"):
                 client = ClientPDP(codice_fiscale_avvocato=codice_fiscale_avvocato_portale())
             else:

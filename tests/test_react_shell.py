@@ -1467,6 +1467,11 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "cf_avvocato_fonte: pstCfSourceForDiagnostic" in source
     assert "cf_avvocato: pstCfForDiagnostic" in source
     assert "cf_avvocato: exactPstSearch ? ''" not in source
+    assert "function ministerialHintsFromQuery(query: AcquisitionQuery): JsonRecord" in source
+    assert "Tabella ministeriale" in source
+    assert "Lavoro e previdenza" in source
+    assert "Cassazione penale" in source
+    assert "...ministerialHintsFromQuery(query)" in source
     assert "const pstHasPartySearch = () => Boolean(" in source
     assert "Indica numero e anno oppure almeno una parte o un codice fiscale per interrogare il PST." in source
     assert "const signerRows = asList(signerPayload.fascicoli || signerPayload.results)" in source

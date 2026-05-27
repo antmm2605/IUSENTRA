@@ -221,7 +221,16 @@ def build_telematico_runtime(
             "assistant_label": "",
             "assistant_disclaimer": "",
             "deposit_assistant_enabled": False,
-            "quick_filters": ["civile", "lavoro", "famiglia", "esecuzioni", "volontaria", "recenti"],
+            "quick_filters": [
+                "civile",
+                "lavoro",
+                "famiglia",
+                "esecuzioni",
+                "volontaria",
+                "cassazione civile",
+                "cassazione penale",
+                "recenti",
+            ],
         },
         "pdp": {
             "id": "pdp",

@@ -237,6 +237,20 @@ Local Signer. Questa verifica presidia la regressione lamentata dall'utente:
 l'avvocato non deve riselezionare ogni volta il certificato quando sul PC esiste
 già un certificato PST compatibile con il codice fiscale richiesto.
 
+Verifica log live del 27 maggio 2026 su Palmi R.G. `3441/2025`, schema
+ministeriale lavoro: il browser ha aperto l'acquisizione con ufficio `0910011`,
+numero `3441`, anno `2025`, Local Signer `1.6.59` aggiornato e diagnostica
+locale OK. Il PST ha restituito una SOAP Fault sul namespace civile
+`CONS-SICC-BE`, quindi la correzione `1.6.60` rende obbligatoria la traduzione
+automatica degli indizi espliciti `lavoro`, `LAV`, `SIL`, `SILP`, previdenza o
+assistenza verso `JPW_SIL`/`LAV` prima di SICID. La regola vale anche quando la
+tabella uffici locale non elenca ancora `JPW_SIL` tra i servizi Palmi, perché la
+famiglia SICID consente il tentativo sullo stesso GL e con lo stesso certificato.
+La stessa correzione non deve spostare genericamente le pratiche penali fuori da
+PST: `penale` da solo resta neutro, mentre una tabella ministeriale esplicita
+`CASSPE`, `JPW_CASSPE` o `cassazione penale` usa il canale PST/QBuilder di
+Cassazione penale; `cassazione civile` usa `JPW_CASSCI`.
+
 ## Regressioni vietate
 
 - Non reintrodurre `/pst/preflight-auth` come chiamata preventiva dal wizard

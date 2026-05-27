@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.52
+IUSENTRA Local Signer - v1.6.53
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -112,7 +112,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.52"
+VERSION = "1.6.53"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -137,6 +137,10 @@ LOCAL_SIGNER_ALLOWED_ORIGINS = os.getenv(
     "PCT_LOCAL_SIGNER_ALLOWED_ORIGINS",
     os.getenv("HACS_SIGNER_ALLOWED_ORIGINS", ""),
 ) or ",".join(_DEFAULT_HACS_ALLOWED_ORIGINS)
+LOCAL_SIGNER_UPDATE_URL = os.getenv(
+    "IUSENTRA_LOCAL_SIGNER_UPDATE_URL",
+    "https://app.iusentra.it/polisWeb/local-signer/setup/windows",
+)
 _ZEEP_WSDL_CACHE: dict[str, Any] = {}
 _TRUE_VALUES = {"1", "true", "yes", "on"}
 _FALSE_VALUES = {"0", "false", "no", "off"}
@@ -147,6 +151,58 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 log = logging.getLogger("local_signer")
+
+
+def _powershell_single_quote(value: str) -> str:
+    return "'" + str(value).replace("'", "''") + "'"
+
+
+def _local_signer_update_url() -> str:
+    url = str(os.getenv("IUSENTRA_LOCAL_SIGNER_UPDATE_URL", LOCAL_SIGNER_UPDATE_URL) or "").strip()
+    if not url.startswith("https://app.iusentra.it/"):
+        raise RuntimeError("URL aggiornamento Local Signer non autorizzato.")
+    return url
+
+
+def _avvia_aggiornamento_local_signer() -> dict:
+    """Scarica e avvia il pacchetto ufficiale Windows senza salvare dati sensibili."""
+    update_url = _local_signer_update_url()
+    if sys.platform != "win32":
+        return {
+            "ok": False,
+            "errore": "Aggiornamento automatico disponibile solo su Windows.",
+            "installer_url": update_url,
+        }
+    target = Path(tempfile.gettempdir()) / f"SetupLocalSigner-{secrets.token_hex(8)}.exe"
+    ps_command = (
+        "$ErrorActionPreference='Stop'; "
+        f"$url={_powershell_single_quote(update_url)}; "
+        "if (-not $url.StartsWith('https://app.iusentra.it/')) { exit 2 }; "
+        f"$target={_powershell_single_quote(str(target))}; "
+        "Invoke-WebRequest -Uri $url -UseBasicParsing -OutFile $target; "
+        "Start-Process -WindowStyle Hidden -FilePath $target -ArgumentList @('/Q')"
+    )
+    subprocess.Popen(
+        [
+            "powershell",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-WindowStyle",
+            "Hidden",
+            "-Command",
+            ps_command,
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+    )
+    return {
+        "ok": True,
+        "versione_corrente": VERSION,
+        "messaggio": "Aggiornamento Local Signer avviato dal pacchetto ufficiale.",
+        "installer_url": update_url,
+    }
 
 _LOCAL_LOG_FILES = ("local_signer.err.log", "local_signer.out.log", "installer.log")
 _LOCAL_LOG_MAX_BYTES = 160_000
@@ -4617,9 +4673,16 @@ def _pst_best_effort_batch_blocking_error(items: list[dict]) -> str:
         if error:
             errors.append(error)
             continue
+        body_text = ""
         if isinstance(body, bytes) and body.strip():
-            has_success = True
+            body_text = body.decode("utf-8", "replace")
         elif isinstance(body, str) and body.strip():
+            body_text = body
+        if body_text:
+            fault = _estrai_fault_soap(body_text)
+            if fault:
+                errors.append(f"Il PST ha restituito una SOAP Fault: {fault}")
+                continue
             has_success = True
 
     if has_success or not errors:
@@ -6530,10 +6593,12 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"errore": "CORS: origine non consentita"}, 403)
             return
         path = urlparse(self.path).path
-        if path in {"/", "/ping", "/seleziona-certificato", "/pst/status", "/ai/status"}:
+        if path in {"/", "/ping", "/update", "/seleziona-certificato", "/pst/status", "/ai/status"}:
             log.info("HTTP GET %s", path)
         if path in {"/", "/ping"}:
             self._ping()
+        elif path == "/update":
+            self._local_signer_update()
         elif path == "/diagnosi":
             self._diagnosi()
         elif path == "/logs/recent":
@@ -6564,6 +6629,7 @@ class _Handler(BaseHTTPRequestHandler):
             "/ai/rag/query",
             "/ai/rag/query/stream",
             "/ai/embed",
+            "/update",
             "/pst/preflight-auth",
             "/pst/ricerca",
             "/pst/ricerca-snapshot",
@@ -6595,6 +6661,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._ai_rag_query_stream()
         elif path == "/ai/embed":
             self._ai_embed()
+        elif path == "/update":
+            self._local_signer_update()
         elif path == "/firma":
             self._firma()
         elif path == "/firma-batch":
@@ -6639,6 +6707,13 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"errore": "Not found"}, 404)
 
     # ── Handlers ────────────────────────────────────────────────────────────────
+
+    def _local_signer_update(self):
+        try:
+            self._send_json(_avvia_aggiornamento_local_signer())
+        except Exception as e:
+            log.error("Aggiornamento Local Signer non avviato: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _ai_status(self):
         self._ai_facade().status()

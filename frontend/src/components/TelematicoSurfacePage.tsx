@@ -1036,6 +1036,17 @@ function requestLocalSignerUpdate() {
   requestLocalSignerProtocol('iusentra-local-signer://update')
 }
 
+function requestLocalSignerInstallerDownload(data: TelematicoSurfaceData) {
+  if (!isDesktopLocalSignerHost()) return
+  const link = document.createElement('a')
+  link.href = localSignerInstallHref(data)
+  link.target = '_blank'
+  link.rel = 'noopener'
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+}
+
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
 }
@@ -1625,7 +1636,7 @@ function AcquisitionWizard({
         version,
         tokenLabel,
         message: outdated && reachable
-          ? `Local Signer rilevato su questo PC. Aggiornamento consigliato alla versione ${data.localSigner.latestVersion}, ma puoi proseguire con la ricerca.`
+          ? `Local Signer rilevato su questo PC, ma serve la versione ${data.localSigner.latestVersion}. Aggiorno prima di avviare la ricerca.`
           : reachable
             ? 'Local Signer rilevato su questo PC. La ricerca può usare il canale locale autorizzato.'
             : asText(payload.messaggio || payload.error, 'Local Signer raggiunto ma non pronto.'),
@@ -1658,7 +1669,17 @@ function AcquisitionWizard({
       checking: true,
       message: 'Aggiornamento automatico Local Signer avviato. IUSENTRA usa il pacchetto ufficiale e poi ricontrolla il servizio locale.',
     }))
-    requestLocalSignerUpdate()
+    let updateStarted = false
+    try {
+      const updatePayload = await localSignerJson('/update', {}, 8000)
+      updateStarted = updatePayload.ok !== false
+    } catch {
+      updateStarted = false
+    }
+    if (!updateStarted) {
+      requestLocalSignerUpdate()
+      window.setTimeout(() => requestLocalSignerInstallerDownload(data), 1500)
+    }
     for (let attempt = 0; attempt < 70; attempt += 1) {
       await wait(1200)
       const next = await checkLocalSigner(false)
@@ -1952,13 +1973,22 @@ function AcquisitionWizard({
       setMessage('Il canale Local Signer è disponibile solo da PC desktop Windows, macOS o Linux. Da mobile o tablet il controllo non viene eseguito.')
       return
     }
-    if (requiresBrowserLocalSigner && !localSigner.ok) {
+    if (requiresBrowserLocalSigner) {
       setStep(1)
       setMessage('Verifico Local Signer sul PC e proseguo appena il servizio locale risponde.')
-      const checkedSigner = await checkLocalSigner(false)
+      let checkedSigner = localSigner.ok ? localSigner : await checkLocalSigner(false)
       if (!checkedSigner.ok) {
         setMessage('Local Signer non raggiungibile sul PC. Avvialo dal pacchetto installato e ripeti la ricerca.')
         return
+      }
+      if (checkedSigner.outdated) {
+        setMessage(`Local Signer ${checkedSigner.version || ''} da aggiornare alla versione ${data.localSigner.latestVersion}. Avvio l'aggiornamento prima della ricerca.`)
+        const updatedSigner = await updateLocalSignerAutomatically()
+        checkedSigner = updatedSigner || checkedSigner
+        if (!checkedSigner.ok || checkedSigner.outdated) {
+          setMessage('Aggiornamento Local Signer non completato: installa il pacchetto ufficiale aperto dal browser, poi premi Cerca di nuovo.')
+          return
+        }
       }
       setStep(2)
     }

@@ -258,7 +258,21 @@
   }
 
   async function verifyAfterUpdate(cfg) {
-    requestUpdate(cfg);
+    try {
+      await fetchJsonWithTimeout(cfg.baseUrl + '/update', 8000);
+    } catch (error) {
+      requestUpdate(cfg);
+      window.setTimeout(function () {
+        const installer = installerFor(cfg);
+        const link = document.createElement('a');
+        link.href = installer.url;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }, 1500);
+    }
     for (let attempt = 0; attempt < 70; attempt += 1) {
       await sleep(1200);
       const payload = await ping(cfg);

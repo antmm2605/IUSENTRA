@@ -1490,6 +1490,41 @@ def test_local_signer_launcher_windows_usa_avvio_silenzioso():
     assert 'if "%SILENT_MODE%"=="1" exit /b 0' in launcher
 
 
+def test_local_signer_update_endpoint_avvia_installer_ufficiale_windows(monkeypatch, tmp_path):
+    module = _load_local_signer()
+    calls = {}
+
+    monkeypatch.setattr(module.sys, "platform", "win32")
+    monkeypatch.setattr(module.tempfile, "gettempdir", lambda: str(tmp_path))
+    monkeypatch.setenv("IUSENTRA_LOCAL_SIGNER_UPDATE_URL", "https://app.iusentra.it/polisWeb/local-signer/setup/windows")
+
+    class _FakePopen:
+        def __init__(self, args, **kwargs):
+            calls["args"] = args
+            calls["kwargs"] = kwargs
+
+    monkeypatch.setattr(module.subprocess, "Popen", _FakePopen)
+
+    result = module._avvia_aggiornamento_local_signer()
+
+    assert result["ok"] is True
+    assert result["installer_url"] == "https://app.iusentra.it/polisWeb/local-signer/setup/windows"
+    assert calls["args"][0] == "powershell"
+    joined = " ".join(calls["args"])
+    assert "Invoke-WebRequest" in joined
+    assert "Start-Process" in joined
+    assert "/Q" in joined
+
+
+def test_local_signer_update_endpoint_rifiuta_url_non_ufficiale(monkeypatch):
+    module = _load_local_signer()
+
+    monkeypatch.setenv("IUSENTRA_LOCAL_SIGNER_UPDATE_URL", "https://example.test/SetupLocalSigner.exe")
+
+    with pytest.raises(RuntimeError, match="non autorizzato"):
+        module._local_signer_update_url()
+
+
 def test_riusa_certificato_windows_selezionato_per_chiamate_pst_successive():
     module = _load_local_signer()
 
@@ -4297,6 +4332,45 @@ def test_pst_best_effort_batch_401_non_diventa_ricerca_vuota():
 
     assert "Autenticazione PST non riuscita" in message
     assert "401 Unauthorized" in message
+
+
+def test_pst_best_effort_batch_soap_fault_non_diventa_ricerca_vuota():
+    module = _load_local_signer()
+
+    fault_body = (
+        b'<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">'
+        b"<SOAP-ENV:Body><SOAP-ENV:Fault><faultcode>SOAP-ENV:Client</faultcode>"
+        b"<faultstring>L'utente 'B3A95785DA8A2E69E040A8C001C863D0' non puo' eseguire "
+        b"l'operazione '{urn:CONS-SICC-BE}execute'</faultstring>"
+        b"</SOAP-ENV:Fault></SOAP-ENV:Body></SOAP-ENV:Envelope>"
+    )
+
+    message = module._pst_best_effort_batch_blocking_error(
+        [
+            {"body_bytes": fault_body, "headers_text": "HTTP/1.1 500 Internal Server Error\r\n", "error": ""},
+            {"body_bytes": b"", "headers_text": "HTTP/1.1 200 OK\r\n", "error": ""},
+        ]
+    )
+
+    assert "SOAP Fault" in message
+    assert "non puo' eseguire" in message
+
+
+def test_pst_best_effort_batch_fault_non_blocca_se_esiste_risposta_valida():
+    module = _load_local_signer()
+
+    message = module._pst_best_effort_batch_blocking_error(
+        [
+            {"body_bytes": b"<Envelope><Body><ricercaResponse/></Body></Envelope>", "headers_text": "HTTP/1.1 200 OK\r\n", "error": ""},
+            {
+                "body_bytes": b"<Envelope><Body><Fault><faultstring>Service non trovato</faultstring></Fault></Body></Envelope>",
+                "headers_text": "HTTP/1.1 500 Internal Server Error\r\n",
+                "error": "",
+            },
+        ]
+    )
+
+    assert message == ""
 
 
 def test_soap_call_pst_session_non_richiede_secondo_certificato_su_timeout():

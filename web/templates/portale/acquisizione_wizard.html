@@ -170,8 +170,8 @@
       <div class="aw-box bg-light-subtle mt-3">
         <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
           <div>
-            <div class="fw-semibold mb-1">Pratica da aggiornare</div>
-            <div class="small text-muted">Scegli qui se creare una nuova pratica, collegarla oppure aggiornare il fascicolo locale gia aperto.</div>
+            <div class="fw-semibold mb-1">Destinazione pratica</div>
+            <div class="small text-muted">Scegli qui se creare una nuova pratica oppure usare il fascicolo locale già aperto.</div>
           </div>
           {% if linked_fascicolo %}
           <span class="badge text-bg-{{ spec.color }}">Fascicolo gia collegato</span>
@@ -179,9 +179,8 @@
         </div>
         <div class="row g-3">
           <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="create_new" {{ 'checked' if linked_mode == 'create_new' else '' }}><span class="form-check-label fw-semibold">Crea nuova pratica</span></div><div class="small text-muted">Precompila area, procedimento, RG e parti dal portale.</div></label></div>
-          <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="attach_existing" {{ 'checked' if linked_mode == 'attach_existing' else '' }}><span class="form-check-label fw-semibold">Collega a pratica esistente</span></div><div class="small text-muted">Mantieni il fascicolo locale come primario e collega l'origine telematica.</div></label></div>
-          <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="update_existing" {{ 'checked' if linked_mode == 'update_existing' else '' }}><span class="form-check-label fw-semibold">Aggiorna pratica esistente</span></div><div class="small text-muted">Aggiorna dati, eventi e sincronizzazione sul fascicolo locale.</div></label></div>
-          <div class="col-lg-7"><label class="form-label fw-semibold">Fascicolo locale da aggiornare</label><select class="form-select" id="awTarget" data-initial-target="{{ linked_target_id }}"></select><div class="form-text">{% if linked_fascicolo %}Il fascicolo del workflow corrente e gia precollegato: il sistema lo propone come target principale.{% else %}Il sistema propone i fascicoli compatibili per RG, ufficio e parti.{% endif %}</div></div>
+          <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="update_existing" {{ 'checked' if linked_mode in ['attach_existing', 'update_existing'] else '' }}><span class="form-check-label fw-semibold">Usa pratica esistente</span></div><div class="small text-muted">Inserisce dati e documenti nel fascicolo locale scelto.</div></label></div>
+          <div class="col-lg-7"><label class="form-label fw-semibold">Fascicolo locale</label><select class="form-select" id="awTarget" data-initial-target="{{ linked_target_id }}"></select><div class="form-text">{% if linked_fascicolo %}Il fascicolo del workflow corrente è già precollegato: il sistema lo propone come target principale.{% else %}Il sistema propone i fascicoli compatibili per RG, ufficio e parti.{% endif %}</div></div>
         </div>
       </div>
     </div></div></section>
@@ -2649,8 +2648,8 @@ function awRenderMappingSummary() {
   const mapping = awCurrentMapping();
   const modeLabel = {
     create_new: 'Crea nuova pratica',
-    attach_existing: 'Collega a pratica esistente',
-    update_existing: 'Aggiorna pratica esistente',
+    attach_existing: 'Usa pratica esistente',
+    update_existing: 'Usa pratica esistente',
   }[mapping.mode] || 'Crea nuova pratica';
   const target = document.getElementById('awTarget');
   const targetText = target?.selectedOptions?.[0]?.textContent?.trim() || '';
@@ -2796,7 +2795,7 @@ async function awStartImport() {
           state.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>${awEscape(AW_STATE.downloadWarning)}</span><br><small class="text-muted">Aggiorno la pratica locale selezionata con i file ricevuti e conservo i documenti non restituiti dal PST come voci ufficiali da acquisire.</small>`;
         } else {
           importBtn.disabled = false;
-          state.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${awEscape(AW_STATE.downloadWarning)}</span><br><small class="text-muted">Importazione interrotta: seleziona <strong>Collega a pratica esistente</strong> o <strong>Aggiorna pratica esistente</strong> per aggiornare una pratica gia presente con i file disponibili.</small>`;
+          state.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${awEscape(AW_STATE.downloadWarning)}</span><br><small class="text-muted">Importazione interrotta: seleziona <strong>Usa pratica esistente</strong> per aggiornare una pratica già presente con i file disponibili.</small>`;
           return;
         }
       } else {

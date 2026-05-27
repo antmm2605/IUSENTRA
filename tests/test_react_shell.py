@@ -1485,8 +1485,22 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "params.get('mode')" in source
     assert "params.get('fascicolo_id')" in source
     assert "Step 4 - Selezione" in source
-    assert "Aggiorna pratica esistente" in source
-    assert "Fascicolo locale da aggiornare" in source
+    assert "Scarica selezionati" in source
+    assert "Scarica tutti" in source
+    assert "Scarica selezionati dal PST" not in source
+    assert "Scarica tutti dal PST" not in source
+    assert "selectedDocumentKeys" in source
+    assert "downloadSelectedPstDocuments" in source
+    assert "filterPreviewForSelectedDocuments" in source
+    assert "filterDownloadedFilesForSelectedPstDocuments" in source
+    assert "missingPstDocumentsForDownload" in source
+    assert "Usa pratica esistente" in source
+    assert "Importa nel fascicolo" in source
+    assert "Scegli destinazione" in source
+    assert "Aggiorna pratica esistente" not in source
+    assert "Collega a pratica esistente" not in source
+    assert "Fascicolo locale da aggiornare" not in source
+    assert "Fascicolo locale target" not in source
     assert "Dati fascicolo" in source
     assert "Documenti nel fascicolo" in source
     assert "iu-tel-acq-progress" in source
@@ -1502,8 +1516,11 @@ def test_portale_acquisizione_accetta_alias_fascicolo_id_per_mapping():
     assert 'request.args.get("target_fascicolo_id")' in source
     assert 'request.args.get("mode")' in source
     assert '"update_existing" if linked_fascicolo else "create_new"' in source
-    assert "Pratica da aggiornare" in template
-    assert "Fascicolo locale da aggiornare" in template
+    assert "Destinazione pratica" in template
+    assert "Fascicolo locale" in template
+    assert "Aggiorna pratica esistente" not in template
+    assert "Collega a pratica esistente" not in template
+    assert "Fascicolo locale da aggiornare" not in template
     assert 'name="awMapMode" value="update_existing"' in template
     assert "function awSyncMappingModeFromTarget" in template
 
@@ -1538,9 +1555,11 @@ def test_portale_acquisizione_legacy_step4_preseleziona_aggiorna_pratica(tmp_pat
     html = response.get_data(as_text=True)
     assert response.status_code == 200
     assert "Step 4 — Scelta contenuti da importare" in html
-    assert "Pratica da aggiornare" in html
-    assert "Aggiorna pratica esistente" in html
-    assert "Fascicolo locale da aggiornare" in html
+    assert "Destinazione pratica" in html
+    assert "Usa pratica esistente" in html
+    assert "Aggiorna pratica esistente" not in html
+    assert "Collega a pratica esistente" not in html
+    assert "Fascicolo locale da aggiornare" not in html
     assert f'data-initial-target="{fascicolo.id}"' in html
     assert 'name="awMapMode" value="update_existing" checked' in html
 

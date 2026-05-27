@@ -1,5 +1,40 @@
 # Migrazione progressiva Flask + React
 
+## Fascicolo - prova deposito e stato ricevute PEC - 2026-05-27 - 2.248.70
+
+Il dettaglio fascicolo React espone il pulsante `Deposito telematico` tra le
+azioni principali della pratica, così l'avvocato entra nella preparazione del
+deposito direttamente dal fascicolo senza dover cercare la scheda nei pannelli
+laterali. Lo stato del deposito resta poi visibile accanto alle comunicazioni di
+cancelleria: accettazione PEC, consegna, controlli automatici e conferma finale
+sono mostrati come passaggi progressivi. Quando il deposito è creato in prova,
+l'avvocato può avanzare la simulazione senza invio reale e vedere l'effetto nel
+fascicolo come se arrivassero le PEC operative.
+
+Il pulsante è stato replicato anche nella vista classica del dettaglio
+fascicolo, così l'interfaccia resta coerente tra ambienti locali, sessioni già
+aperte e superfici non ancora ricaricate sulla shell React. Per i depositi
+reali, lo stato non dipende dal click manuale: lo scheduler esegue la
+sincronizzazione automatica della casella PEC tramite `mailbox_sync_runtime`,
+salva le nuove PEC PST/cancelleria e aggiorna ricevute deposito, comunicazioni
+di cancelleria e stato mostrato nel fascicolo. Il controllo manuale rimane come
+azione di anticipo.
+
+Le API React dei fascicoli usano ora il loader runtime condiviso con la vista
+classica. Il dettaglio React, la sezione Cancelleria e la pagina di preparazione
+deposito leggono quindi lo stesso fascicolo mostrato dopo il login, evitando
+differenze tra UI classica e UI React.
+
+La simulazione è marcata in modo esplicito, usa ricevute sintetiche sanificate
+con allegati nominali `postacert.eml`, `daticert.xml`, `EsitoAtto.xml` e
+`smime.p7s`, e rifiuta la generazione su depositi reali. I controlli automatici
+possono produrre uno stato con avvisi, così la UI mostra anche il caso in cui la
+PEC dei controlli richiede verifica dell'avvocato prima della conferma della
+cancelleria.
+
+Verifiche locali: sintassi Python, pytest mirati deposito/ricevute, typecheck
+React, build Vite, UTF-8, packaging, OpenAPI e whitespace.
+
 ## PST/PolisWeb - fascicolo reale, import e Local Signer - 2026-05-26 - 2.248.67
 
 Il wizard React di acquisizione PST torna a mostrare l'anteprima completa del
@@ -2779,3 +2814,11 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - La mappatura React usa l’id fascicolo locale (`practiceId`) per aggiornare pratiche esistenti; il backend accetta comunque l’id telematico come fallback compatibile.
 - L’import mostra avanzamento documento per documento, segnala import completato con avvisi quando un PDF non viene consegnato dal PST e distingue errori di timeout, autenticazione, autorizzazione, blocchi di verifica e assenza di file reali.
 - Verifiche registrate: test Local Signer mirati, test React shell/PST, test PolisWeb no-file, typecheck, build Vite, pacchetto Local Signer `1.6.50` e prova reale browser su RG 274/2026 Tribunale di Palmi con import 200 sul fascicolo `B6A03AE6`.
+
+## Aggiornamento 2026-05-27: PST download documenti nel fascicolo 2.248.77
+
+- Il wizard PST distingue in modo stabile `Crea nuova pratica` e `Usa pratica esistente`; le vecchie voci `Collega a pratica esistente` e `Aggiorna pratica esistente` non devono tornare come scelte separate.
+- Lo step documenti espone selezione singola, `Scarica selezionati` e `Scarica tutti`; l'import usa il sottoinsieme selezionato e passa file reali a `downloaded_files`.
+- Il decoder backend accetta sia il payload storico (`nome`, `contenuto_b64`) sia alias Local Signer/browser (`filename`, `content_base64`, `source`, `data_deposito`, `id_documento`, `id_deposito`) e fonde i metadati del catalogo prima del salvataggio.
+- Regressione obbligatoria: `tests/test_polisweb.py::test_api_portale_acquisizione_import_pst_salva_lotto_sette_documenti_nel_fascicolo` simula `7/7` documenti con `Atto_2767510.pdf` e fallisce se i PDF ricevuti non finiscono nei documenti del fascicolo e nel deposito.
+- Per la prima importazione resta vietato creare pratiche vuote: catalogo PST senza file reali blocca l'import. Per una pratica già esistente, l'assenza di parti strutturate dal portale è solo un avviso e non cancella i dati locali.

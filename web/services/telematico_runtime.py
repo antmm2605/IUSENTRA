@@ -711,12 +711,24 @@ def build_telematico_runtime(
             "oggetto": str(oggetto or "").strip(),
             "parti": assistiti,
             "controparti": controparti,
+            "data_iscrizione": str(payload.get("data_iscrizione") or payload.get("data_deposito") or "").strip(),
+            "data_udienza": str(payload.get("data_udienza") or "").strip(),
             "ultima_attivita": str(ultima_attivita or "").strip(),
             "payload": payload,
         }
 
     def _build_portale_preview(portale: str, selection: dict[str, Any], documenti: list[dict]) -> dict[str, Any]:
-        payload = dict((selection or {}).get("payload") or {})
+        selection = dict(selection or {})
+        payload = dict(selection.get("payload") or {})
+        snapshot = dict(selection.get("snapshot") or {})
+        snapshot_identity = dict(
+            snapshot.get("fascicolo")
+            or snapshot.get("identity")
+            or snapshot.get("procedimento")
+            or snapshot.get("ricorso")
+            or snapshot.get("controversia")
+            or {}
+        )
         docs = _normalize_portale_documents(documenti or [])
         depositi = _group_portale_documents(docs)
         def _clean(value: Any) -> str:
@@ -728,6 +740,13 @@ def build_telematico_runtime(
                 if cleaned:
                     return cleaned
             return ""
+
+        def _as_int(*values: Any) -> int:
+            value = _first_value(*values)
+            try:
+                return int(value or 0)
+            except (TypeError, ValueError):
+                return 0
 
         def _sortable_date(raw: Any) -> tuple[int, datetime]:
             value = _clean(raw)
@@ -788,8 +807,15 @@ def build_telematico_runtime(
             for doc in docs
             if any(token in (doc.get("tipo_atto") or doc.get("tipo") or "").upper() for token in ("SENTENZA", "ORDINANZA", "DECRETO", "PROVVEDIMENTO"))
         )
-        data_iscrizione = _first_value(payload.get("data_iscrizione"), payload.get("data_deposito"))
-        data_udienza = _first_value(payload.get("data_udienza"))
+        data_iscrizione = _first_value(
+            selection.get("data_iscrizione"),
+            payload.get("data_iscrizione"),
+            snapshot_identity.get("data_iscrizione"),
+            selection.get("data_deposito"),
+            payload.get("data_deposito"),
+            snapshot_identity.get("data_deposito"),
+        )
+        data_udienza = _first_value(selection.get("data_udienza"), payload.get("data_udienza"), snapshot_identity.get("data_udienza"))
         latest_doc_date = ""
         doc_dates = [_clean(doc.get("data_deposito")) for doc in docs if _clean(doc.get("data_deposito"))]
         if doc_dates:
@@ -800,17 +826,27 @@ def build_telematico_runtime(
             payload.get("tipo_registro"),
             payload.get("tipo"),
             payload.get("sub_procedimento"),
+            snapshot_identity.get("procedimento"),
+            snapshot_identity.get("ruolo"),
+            snapshot_identity.get("tipo_registro"),
+            snapshot_identity.get("tipo"),
+            snapshot_identity.get("sub_procedimento"),
         )
-        stato = _first_value(selection.get("stato"), payload.get("stato"), payload.get("fase"))
+        stato = _first_value(selection.get("stato"), payload.get("stato"), payload.get("fase"), snapshot_identity.get("stato"), snapshot_identity.get("fase"))
         oggetto = _first_value(
             selection.get("oggetto"),
             payload.get("oggetto"),
             payload.get("reato"),
             payload.get("oggetto_controversia"),
             payload.get("materia"),
+            snapshot_identity.get("oggetto"),
+            snapshot_identity.get("reato"),
+            snapshot_identity.get("oggetto_controversia"),
+            snapshot_identity.get("materia"),
         )
         ultima_attivita = _first_value(
             selection.get("ultima_attivita"),
+            snapshot_identity.get("ultima_attivita"),
             latest_doc_date,
             data_udienza,
             data_iscrizione,
@@ -886,14 +922,14 @@ def build_telematico_runtime(
         ]
         return {
             "identity": {
-                "id_fascicolo": _first_value(selection.get("id_fascicolo"), payload.get("id_fascicolo")),
-                "numero": str(selection.get("numero") or "").strip(),
-                "anno": int(selection.get("anno") or 0),
-                "ufficio_nome": str(selection.get("ufficio_nome") or "").strip(),
-                "ufficio_codice": str(selection.get("ufficio_codice") or "").strip(),
+                "id_fascicolo": _first_value(selection.get("id_fascicolo"), payload.get("id_fascicolo"), snapshot_identity.get("id_fascicolo")),
+                "numero": _first_value(selection.get("numero"), payload.get("numero_rg"), payload.get("numero"), snapshot_identity.get("numero_rg"), snapshot_identity.get("numero")),
+                "anno": _as_int(selection.get("anno"), payload.get("anno_rg"), payload.get("anno"), snapshot_identity.get("anno_rg"), snapshot_identity.get("anno")),
+                "ufficio_nome": _first_value(selection.get("ufficio_nome"), payload.get("nome_ufficio"), payload.get("ufficio_nome"), snapshot_identity.get("nome_ufficio"), snapshot_identity.get("ufficio_nome")),
+                "ufficio_codice": _first_value(selection.get("ufficio_codice"), payload.get("codice_ufficio"), payload.get("ufficio_codice"), snapshot_identity.get("codice_ufficio"), snapshot_identity.get("ufficio_codice")),
                 "procedimento": procedimento,
-                "sub_procedimento": _first_value(selection.get("sub_procedimento"), payload.get("sub_procedimento")),
-                "sezione": _first_value(selection.get("sezione"), payload.get("sezione")),
+                "sub_procedimento": _first_value(selection.get("sub_procedimento"), payload.get("sub_procedimento"), snapshot_identity.get("sub_procedimento")),
+                "sezione": _first_value(selection.get("sezione"), payload.get("sezione"), snapshot_identity.get("sezione")),
                 "oggetto": oggetto,
                 "stato": stato,
                 "data_iscrizione": data_iscrizione,
@@ -1406,6 +1442,7 @@ def build_telematico_runtime(
         counts = dict(preview.get("counts") or {})
         mode = mapping.get("mode") or "create_new"
         target_id = mapping.get("target_fascicolo_id") or ""
+        existing_target_mode = mode in {"attach_existing", "update_existing"} and bool(target_id)
         payload = dict(selection.get("payload") or {})
         manual_mode = bool(selection.get("manual_mode") or payload.get("manual_mode"))
 
@@ -1420,7 +1457,13 @@ def build_telematico_runtime(
             oks.append({"label": "Identità fascicolo pronta", "detail": f"{selection.get('numero')}/{selection.get('anno')}", "tone": "success"})
 
         if options.get("importa_parti") and counts.get("parti", 0) <= 0:
-            if manual_mode and portale in {"pdp", "pat", "ptt"}:
+            if existing_target_mode:
+                warnings.append({
+                    "label": "Parti non esposte dal portale",
+                    "detail": "La pratica locale resta primaria: IUSENTRA aggiornerà dati e documenti disponibili senza cancellare assistiti e controparti già presenti.",
+                    "tone": "warning",
+                })
+            elif manual_mode and portale in {"pdp", "pat", "ptt"}:
                 warnings.append({
                     "label": "Parti da completare manualmente",
                     "detail": "Il portale non ha restituito parti strutturate: completa assistiti e controparti dal browser ufficiale o direttamente nel gestionale dopo l'importazione.",

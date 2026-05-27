@@ -3579,8 +3579,10 @@ def test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita
     assert "Importazione interrotta: non salvo il fascicolo solo come metadati" in template
     assert "function awCanProceedWithPartialPstDownload" in template
     assert "Aggiorno la pratica locale selezionata con i file ricevuti" in template
-    assert "Collega a pratica esistente" in template
-    assert "Aggiorna pratica esistente" in template
+    assert "Usa pratica esistente" in template
+    assert "Destinazione pratica" in template
+    assert "Collega a pratica esistente" not in template
+    assert "Aggiorna pratica esistente" not in template
     assert "Array.isArray(data.value) ? data.value : []" in template
     assert "window.location.href = autoOpenUrl" in template
     assert "Importa tutto" in template
@@ -4202,6 +4204,96 @@ def test_api_portale_acquisizione_analyze_manual_mode_non_blocca_parti_mancanti(
     assert data["ok"] is True
     assert not any(item["label"] == "Parti non disponibili" for item in data["analysis"]["blockers"])
     assert any(item["label"] == "Parti da completare manualmente" for item in data["analysis"]["warnings"])
+
+
+def test_api_portale_acquisizione_analyze_pst_pratica_esistente_non_blocca_parti_mancanti(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 3173/2025",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Ufficio del Giudice di Pace di Palmi",
+        numero_rg="3173",
+        anno_rg=2025,
+        oggetto="Importazione PST",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/api/portali/pst/acquisizione/analyze",
+            json={
+                "selection": {
+                    "external_id": "SIGP:3173:2025",
+                    "numero": "3173",
+                    "anno": 2025,
+                    "ufficio_codice": "0800570152",
+                    "ufficio_nome": "Ufficio del Giudice di Pace di Palmi",
+                    "procedimento": "GDP",
+                    "parti": [],
+                    "controparti": [],
+                    "payload": {
+                        "numero_rg": "3173",
+                        "anno_rg": 2025,
+                        "ruolo": "GDP",
+                        "codice_ufficio": "0800570152",
+                        "nome_ufficio": "Ufficio del Giudice di Pace di Palmi",
+                    },
+                },
+                "preview": {
+                    "identity": {
+                        "numero": "3173",
+                        "anno": 2025,
+                        "ufficio_nome": "Ufficio del Giudice di Pace di Palmi",
+                        "ufficio_codice": "0800570152",
+                    },
+                    "parti": [],
+                    "controparti": [],
+                    "documenti": [
+                        {"id_documento": "DOC-3173", "nome": "Atto_2767510.pdf", "id_cat": "2767510"}
+                    ],
+                    "depositi": [],
+                    "counts": {"parti": 0, "documenti": 1, "depositi": 0, "eventi": 0, "udienze": 0},
+                },
+                "options": {
+                    "importa_parti": True,
+                    "importa_documenti": True,
+                    "importa_eventi": False,
+                    "importa_scadenze": False,
+                },
+                "mapping": {"mode": "update_existing", "target_fascicolo_id": fascicolo.id},
+            },
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert not any(item["label"] == "Parti non disponibili" for item in data["analysis"]["blockers"])
+    assert any(item["label"] == "Parti non esposte dal portale" for item in data["analysis"]["warnings"])
 
 
 def test_api_portale_acquisizione_import_pdp_via_local_signer_non_richiede_certificato_server(tmp_path, monkeypatch):
@@ -5100,6 +5192,110 @@ def test_api_portale_acquisizione_import_pst_blocca_catalogo_senza_file(tmp_path
     assert len(fascicolo_reload.depositi_pct) == 0
 
 
+def test_api_portale_acquisizione_import_pst_prima_pratica_non_crea_vuoto_senza_file(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/api/portali/pst/acquisizione/import",
+            json={
+                "selection": {
+                    "external_id": "0580010:63:2025:RG",
+                    "numero": "63",
+                    "anno": 2025,
+                    "ufficio_codice": "0580010",
+                    "ufficio_nome": "Tribunale di Roma",
+                    "procedimento": "GENERALE DEGLI AFFARI CIVILI CONTENZIOSI",
+                    "oggetto": "Test prima importazione",
+                    "parti": ["ROSSI MARIO"],
+                    "controparti": [],
+                    "payload": {
+                        "numero_rg": "63",
+                        "anno_rg": 2025,
+                        "ruolo": "GENERALE DEGLI AFFARI CIVILI CONTENZIOSI",
+                        "oggetto": "Test prima importazione",
+                        "parti": ["ROSSI MARIO"],
+                        "codice_ufficio": "0580010",
+                        "nome_ufficio": "Tribunale di Roma",
+                    },
+                },
+                "preview": {
+                    "identity": {
+                        "numero": "63",
+                        "anno": 2025,
+                        "ufficio_nome": "Tribunale di Roma",
+                        "ufficio_codice": "0580010",
+                    },
+                    "parti": ["ROSSI MARIO"],
+                    "controparti": [],
+                    "documenti": [
+                        {
+                            "id_documento": "DOC-ROMA-63",
+                            "nome": "Atto_63_2025.pdf",
+                            "tipo": "ATTO PRINCIPALE",
+                            "tipo_atto": "Atto",
+                            "data_deposito": "2025-01-15",
+                            "id_deposito": "BUSTA-ROMA-63",
+                            "id_cat": "CAT-ROMA-63",
+                        }
+                    ],
+                    "depositi": [],
+                    "counts": {
+                        "parti": 1,
+                        "documenti": 1,
+                        "depositi": 0,
+                        "eventi": 0,
+                        "udienze": 0,
+                    },
+                },
+                "options": {
+                    "importa_dati_pratica": True,
+                    "importa_parti": True,
+                    "importa_eventi": False,
+                    "importa_scadenze": False,
+                    "importa_documenti": True,
+                    "importa_cronologia_depositi": True,
+                    "mantieni_albero_originale": False,
+                },
+                "mapping": {"mode": "create_new"},
+                "downloaded_files": [],
+            },
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is False
+    assert "non sono arrivati file reali" in data["errore"]
+
+    gestione_fascicoli_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    assert gestione_fascicoli_reload.tutti() == []
+
+
 def test_api_portale_acquisizione_import_pst_parziale_aggiorna_pratica_esistente(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app
@@ -5441,11 +5637,13 @@ def test_api_portale_acquisizione_import_pst_arricchisce_file_locali_con_metadat
                 },
                 "downloaded_files": [
                     {
-                        "nome": "CitazioneStillitanoMontagnese.PDF",
-                        "contenuto_b64": base64.b64encode(b"%PDF-1.4 manual upload").decode("ascii"),
+                        "filename": "CitazioneStillitanoMontagnese.PDF",
+                        "content_base64": base64.b64encode(b"%PDF-1.4 manual upload").decode("ascii"),
                         "content_type": "application/pdf",
-                        "origine": r"C:\\QuickOrganizer\\ATTI\\CitazioneStillitanoMontagnese.PDF",
-                        "data_documento": "",
+                        "source": r"C:\\QuickOrganizer\\ATTI\\CitazioneStillitanoMontagnese.PDF",
+                        "data_deposito": "",
+                        "id_documento": "DOC-CITAZIONE-1",
+                        "id_deposito": "BUSTA-PST-001",
                     }
                 ],
             },
@@ -5492,6 +5690,167 @@ def test_api_portale_acquisizione_import_pst_arricchisce_file_locali_con_metadat
     assert "Classificazione: ATTO PRINCIPALE" in detail_body
     assert "Copia di consultazione" in detail_body
     assert "Portale telematico" in detail_body
+
+
+def test_api_portale_acquisizione_import_pst_salva_lotto_sette_documenti_nel_fascicolo(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="GdP Palmi R.G. 3173/2025",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Ufficio del Giudice di Pace di Palmi",
+        numero_rg="3173",
+        anno_rg=2025,
+        oggetto="Importazione documenti PST",
+    )
+    preview_documenti = [
+        {
+            "id_documento": f"DOC-3173-{index}",
+            "nome": nome,
+            "tipo": "Atto" if index == 0 else "Documento",
+            "tipo_atto": "Atto" if index == 0 else "Documento",
+            "data_deposito": "2025-11-07",
+            "mittente": "Cancelleria",
+            "id_deposito": "BUSTA-3173-2025",
+            "id_cat": id_cat,
+            "id_repeatto": id_cat,
+        }
+        for index, (nome, id_cat) in enumerate(
+            [
+                ("Atto_2767510.pdf", "2767510"),
+                ("Verbale_2767511.pdf", "2767511"),
+                ("Comunicazione_2767512.pdf", "2767512"),
+                ("Nota_2767513.pdf", "2767513"),
+                ("Allegato_2767514.pdf", "2767514"),
+                ("Provvedimento_2767515.pdf", "2767515"),
+                ("Ricevuta_2767516.pdf", "2767516"),
+            ]
+        )
+    ]
+    downloaded_files = [
+        {
+            "filename": row["nome"],
+            "content_base64": base64.b64encode(f"%PDF-1.4 {row['nome']}".encode("ascii")).decode("ascii"),
+            "content_type": "application/pdf",
+            "source": f"pst:JPW_SIGP:{row['id_cat']}",
+            "data_deposito": row["data_deposito"],
+            "id_documento": row["id_documento"],
+            "id_deposito": row["id_deposito"],
+            "id_cat": row["id_cat"],
+            "id_repeatto": row["id_repeatto"],
+            "tipo_atto": row["tipo_atto"],
+        }
+        for row in preview_documenti
+    ]
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/api/portali/pst/acquisizione/import",
+            json={
+                "selection": {
+                    "external_id": "SIGP:3173:2025",
+                    "numero": "3173",
+                    "anno": 2025,
+                    "ufficio_codice": "0800570152",
+                    "ufficio_nome": "Ufficio del Giudice di Pace di Palmi",
+                    "procedimento": "GDP",
+                    "oggetto": "Importazione documenti PST",
+                    "parti": [],
+                    "controparti": [],
+                    "payload": {
+                        "numero_rg": "3173",
+                        "anno_rg": 2025,
+                        "ruolo": "GDP",
+                        "oggetto": "Importazione documenti PST",
+                        "codice_ufficio": "0800570152",
+                        "nome_ufficio": "Ufficio del Giudice di Pace di Palmi",
+                    },
+                },
+                "preview": {
+                    "identity": {
+                        "numero": "3173",
+                        "anno": 2025,
+                        "ufficio_nome": "Ufficio del Giudice di Pace di Palmi",
+                        "ufficio_codice": "0800570152",
+                        "procedimento": "GDP",
+                    },
+                    "parti": [],
+                    "controparti": [],
+                    "documenti": preview_documenti,
+                    "depositi": [
+                        {
+                            "id_deposito": "BUSTA-3173-2025",
+                            "tipo_atto": "Documenti fascicolo",
+                            "data_deposito": "2025-11-07",
+                            "mittente": "Cancelleria",
+                            "documenti": preview_documenti,
+                        }
+                    ],
+                    "counts": {
+                        "parti": 0,
+                        "documenti": 7,
+                        "depositi": 1,
+                        "eventi": 0,
+                        "udienze": 0,
+                    },
+                },
+                "options": {
+                    "importa_dati_pratica": True,
+                    "importa_parti": True,
+                    "importa_eventi": False,
+                    "importa_scadenze": False,
+                    "importa_documenti": True,
+                    "importa_cronologia_depositi": True,
+                    "mantieni_albero_originale": False,
+                },
+                "mapping": {"mode": "update_existing", "target_fascicolo_id": fascicolo.id},
+                "downloaded_files": downloaded_files,
+            },
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["result"]["summary"]["documenti"] == 7
+    assert data["result"]["summary"]["documenti_da_acquisire"] == 0
+
+    fascicolo_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    ).get(fascicolo.id)
+    assert fascicolo_reload is not None
+    nomi = {doc.nome for doc in fascicolo_reload.documenti}
+    assert "Atto_2767510.pdf" in nomi
+    assert len(nomi) == 7
+    assert {doc.id_cat_portale for doc in fascicolo_reload.documenti} >= {"2767510", "2767516"}
+    assert len(fascicolo_reload.depositi_pct) == 1
+    assert len(fascicolo_reload.depositi_pct[0].documenti_ids) == 7
 
 
 def test_api_portale_acquisizione_preview_pst_usa_fallback_payload_e_id_fascicolo(tmp_path):
@@ -5577,6 +5936,81 @@ def test_api_portale_acquisizione_preview_pst_usa_fallback_payload_e_id_fascicol
     assert identity["oggetto"] == "Vendita di cose immobili"
     assert identity["data_iscrizione"] == "2024-09-05"
     assert identity["ultima_attivita"] == "2026-01-09 09:39:19.000"
+
+
+def test_api_portale_acquisizione_preview_pst_preserva_iscrizione_da_snapshot(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/api/portali/pst/acquisizione/preview",
+            json={
+                "selection": {
+                    "external_id": "0580910:63:2025:RG",
+                    "numero": "63",
+                    "anno": 2025,
+                    "ufficio_codice": "0580910",
+                    "ufficio_nome": "Tribunale di Roma",
+                    "procedimento": "",
+                    "payload": {
+                        "numero_rg": "63",
+                        "anno_rg": 2025,
+                        "ruolo": "GENERALE DEGLI AFFARI CIVILI CONTENZIOSI",
+                    },
+                    "snapshot": {
+                        "fascicolo": {
+                            "data_iscrizione": "2025-01-14",
+                            "data_udienza": "2025-06-20",
+                            "stato": "In trattazione",
+                            "oggetto": "Responsabilita contrattuale",
+                        }
+                    },
+                },
+                "documenti": [
+                    {
+                        "id_documento": "DOC-ROMA-63-1",
+                        "nome": "Atto_roma_63.pdf",
+                        "tipo_atto": "Atto",
+                        "data_deposito": "2025-01-15",
+                        "id_deposito": "DEP-ROMA-63",
+                        "id_cat": "ROMA63",
+                    }
+                ],
+            },
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    identity = data["preview"]["identity"]
+    assert identity["numero"] == "63"
+    assert identity["anno"] == 2025
+    assert identity["ufficio_nome"] == "Tribunale di Roma"
+    assert identity["data_iscrizione"] == "2025-01-14"
+    assert identity["data_udienza"] == "2025-06-20"
+    assert identity["stato"] == "In trattazione"
+    assert identity["oggetto"] == "Responsabilita contrattuale"
 
 
 def test_api_portale_acquisizione_import_pst_filtra_i_file_secondo_step4(tmp_path):

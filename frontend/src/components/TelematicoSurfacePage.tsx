@@ -102,6 +102,11 @@ type AcquisitionFile = {
   id_deposito_pct: string
   tipo_atto: string
   tipo: string
+  id_cat?: string
+  id_repeatto?: string
+  msg_id?: string
+  numero_documento?: string
+  id_doc_mittente?: string
   original_documento_portale: boolean
   modalita_documento_portale: 'originale' | 'copia'
 }
@@ -143,8 +148,7 @@ type AcquisitionTargetDocument = {
 
 const acquisitionMappingModes: Array<[AcquisitionMapping['mode'], string, string]> = [
   ['create_new', 'Crea nuova pratica', 'Precompila area, procedimento, RG e parti dal portale.'],
-  ['attach_existing', 'Collega a pratica esistente', "Mantieni il fascicolo locale come primario e collega l'origine telematica."],
-  ['update_existing', 'Aggiorna pratica esistente', 'Aggiorna dati, eventi e sincronizzazione sul fascicolo locale.'],
+  ['update_existing', 'Usa pratica esistente', 'Inserisce dati e documenti nel fascicolo locale scelto.'],
 ]
 
 type BrowserLocalSignerStatus = {
@@ -553,7 +557,7 @@ function acquisitionTargetPayload(target: AcquisitionTargetDocument): JsonRecord
 function acquisitionInitialMappingMode(targetFascicoloId = acquisitionInitialFascicoloId()): AcquisitionMapping['mode'] {
   const params = new URLSearchParams(window.location.search)
   const requestedMode = asText(params.get('mode')).toLowerCase()
-  if (requestedMode === 'attach_existing' || requestedMode === 'update_existing') return requestedMode
+  if (requestedMode === 'attach_existing' || requestedMode === 'update_existing') return 'update_existing'
   if (requestedMode === 'create_new' && !targetFascicoloId) return 'create_new'
   return targetFascicoloId ? 'update_existing' : 'create_new'
 }
@@ -1390,6 +1394,95 @@ function pstDocumentIdentifierValues(item: JsonRecord): string[] {
   return values
 }
 
+function pstDocumentSelectionKey(item: JsonRecord, index: number): string {
+  const identifiers = pstDocumentIdentifierValues(item).join('|')
+  const deposito = asText(item.id_deposito_pct || item.id_deposito_esterno || item.id_deposito)
+  const title = normaliseSearch(previewDocumentTitle(item, index))
+  const date = asText(item.data_documento || item.data_deposito || item.data)
+  const type = normaliseSearch(asText(item.tipo_atto || item.tipo))
+  return [identifiers, deposito, title, date, type, String(index)].filter(Boolean).join('::')
+}
+
+function pstDocumentsMatch(left: JsonRecord, right: JsonRecord): boolean {
+  const leftIds = new Set(pstDocumentIdentifierValues(left))
+  const rightIds = pstDocumentIdentifierValues(right)
+  if (rightIds.some((id) => leftIds.has(id))) return true
+  const leftName = normaliseSearch(previewDocumentTitle(left, 0))
+  const rightName = normaliseSearch(previewDocumentTitle(right, 0))
+  if (!leftName || leftName !== rightName) return false
+  const leftDeposit = asText(left.id_deposito_pct || left.id_deposito_esterno || left.id_deposito)
+  const rightDeposit = asText(right.id_deposito_pct || right.id_deposito_esterno || right.id_deposito)
+  const leftDate = asText(left.data_documento || left.data_deposito || left.data)
+  const rightDate = asText(right.data_documento || right.data_deposito || right.data)
+  return (!leftDeposit || !rightDeposit || leftDeposit === rightDeposit)
+    && (!leftDate || !rightDate || leftDate === rightDate)
+}
+
+function acquisitionFilePstRecord(file: AcquisitionFile): JsonRecord {
+  return {
+    nome: file.nome,
+    nome_documento: file.nome,
+    nome_file_originale: file.nome_file_originale,
+    filename: file.nome_file_originale || file.nome,
+    data_documento: file.data_documento,
+    data_deposito: file.data_documento,
+    id_documento: file.id_documento_portale,
+    id_documento_portale: file.id_documento_portale,
+    id_deposito: file.id_deposito_esterno,
+    id_deposito_esterno: file.id_deposito_esterno,
+    id_deposito_pct: file.id_deposito_pct,
+    tipo_atto: file.tipo_atto,
+    tipo: file.tipo,
+    id_cat: file.id_cat,
+    id_repeatto: file.id_repeatto,
+    msg_id: file.msg_id,
+    numero_documento: file.numero_documento,
+    id_doc_mittente: file.id_doc_mittente,
+  }
+}
+
+function filterDownloadedFilesForSelectedPstDocuments(files: AcquisitionFile[], selectedDocuments: JsonRecord[]): AcquisitionFile[] {
+  if (!selectedDocuments.length) return files
+  return files.filter((file) => selectedDocuments.some((doc) => pstDocumentsMatch(acquisitionFilePstRecord(file), doc)))
+}
+
+function missingPstDocumentsForDownload(selectedDocuments: JsonRecord[], files: AcquisitionFile[]): JsonRecord[] {
+  if (!selectedDocuments.length) return []
+  return selectedDocuments.filter((doc) => !files.some((file) => pstDocumentsMatch(acquisitionFilePstRecord(file), doc)))
+}
+
+function pstDocumentIsProvision(row: JsonRecord): boolean {
+  return /sentenza|ordinanza|decreto|provvedimento/i.test(asText(row.tipo_atto || row.tipo))
+}
+
+function filterPreviewForSelectedDocuments(preview: JsonRecord, selectedDocuments: JsonRecord[]): JsonRecord {
+  if (!selectedDocuments.length) return preview
+  const allDocuments = pstPreviewDocuments(preview)
+  if (!allDocuments.length || selectedDocuments.length >= allDocuments.length) return preview
+  const selected = selectedDocuments.map(asRecord)
+  const documenti = allDocuments.filter((doc) => selected.some((candidate) => pstDocumentsMatch(doc, candidate)))
+  const depositi: JsonRecord[] = []
+  asList(preview.depositi).map(asRecord).forEach((deposito) => {
+    const depositoDocumenti = asList(deposito.documenti)
+      .map(asRecord)
+      .filter((doc) => selected.some((candidate) => pstDocumentsMatch(doc, candidate)))
+    if (depositoDocumenti.length) {
+      depositi.push({ ...deposito, documenti: depositoDocumenti })
+    }
+  })
+  return {
+    ...preview,
+    documenti,
+    depositi,
+    counts: {
+      ...asRecord(preview.counts),
+      documenti: documenti.length,
+      provvedimenti: documenti.filter(pstDocumentIsProvision).length,
+      depositi: depositi.length,
+    },
+  }
+}
+
 function pstDownloadDocumentPayload(item: JsonRecord, original: boolean): JsonRecord {
   return {
     id_documento: asText(item.id_documento || item.id_documento_portale),
@@ -1508,6 +1601,38 @@ function assistantFilesToAcquisitionFiles(rows: unknown[], originalMode: boolean
   return collected
 }
 
+function signerFilesToAcquisitionFiles(rows: unknown[], originalMode: boolean): AcquisitionFile[] {
+  const collected: AcquisitionFile[] = []
+  for (const value of rows) {
+    const row = asRecord(value)
+    const filename = asText(row.nome || row.filename || row.name || row.nome_documento || row.nome_file_originale)
+    const content = asText(row.contenuto_b64 || row.content_base64 || row.base64)
+    if (!filename || !content) continue
+    collected.push({
+      nome: filename,
+      nome_file_originale: asText(row.nome_file_originale || row.filename || row.name || filename),
+      contenuto_b64: content,
+      payload_json: null,
+      origine: asText(row.origine || row.source, `pst:${filename}`),
+      data_documento: asText(row.data_documento || row.data_deposito || row.detected_at).slice(0, 10),
+      content_type: asText(row.content_type),
+      id_documento_portale: asText(row.id_documento_portale || row.id_documento),
+      id_deposito_esterno: asText(row.id_deposito_esterno || row.id_deposito),
+      id_deposito_pct: asText(row.id_deposito_pct),
+      tipo_atto: asText(row.tipo_atto),
+      tipo: asText(row.tipo),
+      id_cat: asText(row.id_cat),
+      id_repeatto: asText(row.id_repeatto),
+      msg_id: asText(row.msg_id),
+      numero_documento: asText(row.numero_documento),
+      id_doc_mittente: asText(row.id_doc_mittente),
+      original_documento_portale: 'original_documento_portale' in row ? Boolean(row.original_documento_portale) : originalMode,
+      modalita_documento_portale: asText(row.modalita_documento_portale) === 'originale' || ('original_documento_portale' in row ? Boolean(row.original_documento_portale) : originalMode) ? 'originale' : 'copia',
+    })
+  }
+  return collected
+}
+
 function mergeAcquisitionFiles(current: AcquisitionFile[], incoming: AcquisitionFile[]): AcquisitionFile[] {
   const merged = [...current]
   const seen = new Set(current.map((file) => `${file.nome_file_originale.toLowerCase()}::${file.contenuto_b64.slice(0, 48)}`))
@@ -1557,6 +1682,7 @@ function AcquisitionWizard({
   const [preview, setPreview] = useState<JsonRecord>({})
   const [analysis, setAnalysis] = useState<JsonRecord>({})
   const [files, setFiles] = useState<AcquisitionFile[]>([])
+  const [selectedDocumentKeys, setSelectedDocumentKeys] = useState<string[]>([])
   const [importResult, setImportResult] = useState<JsonRecord>({})
   const [importProgress, setImportProgress] = useState<ImportProgress>({
     active: false,
@@ -1614,6 +1740,39 @@ function AcquisitionWizard({
     })
     return rows
   }, [data.recentCases, initialTargetFascicoloId])
+  const previewDocuments = useMemo(() => pstPreviewDocuments(preview), [preview])
+  const previewDocumentKeys = useMemo(
+    () => previewDocuments.map((doc, index) => pstDocumentSelectionKey(doc, index)),
+    [previewDocuments],
+  )
+  const previewDocumentKeySignature = previewDocumentKeys.join('\u001f')
+  useEffect(() => {
+    setSelectedDocumentKeys((current) => {
+      if (!previewDocumentKeys.length) return current.length ? [] : current
+      const available = new Set(previewDocumentKeys)
+      const kept = current.filter((key) => available.has(key))
+      if (kept.length) return kept
+      return previewDocumentKeys
+    })
+  }, [previewDocumentKeySignature])
+  const selectedDocumentKeySet = useMemo(() => new Set(selectedDocumentKeys), [selectedDocumentKeys])
+  const selectedPreviewDocuments = useMemo(
+    () => previewDocuments.filter((doc, index) => selectedDocumentKeySet.has(pstDocumentSelectionKey(doc, index))),
+    [previewDocuments, selectedDocumentKeySet],
+  )
+  const downloadedPstDocumentCount = useMemo(
+    () => files.filter((file) => (
+      !file.payload_json
+      && (
+        asText(file.origine).startsWith('pst:')
+        || Boolean(file.id_documento_portale)
+        || Boolean(file.id_cat)
+        || Boolean(file.id_repeatto)
+        || Boolean(file.msg_id)
+      )
+    )).length,
+    [files],
+  )
 
   useEffect(() => {
     if (!visible || !portal) return
@@ -2309,9 +2468,12 @@ function AcquisitionWizard({
     }
     setBusy('analysis')
     try {
+      const previewForAnalysis = portal === 'pst' && options.importa_documenti && selectedPreviewDocuments.length
+        ? filterPreviewForSelectedDocuments(preview, selectedPreviewDocuments)
+        : preview
       const payload = await portalJson(portal, 'analyze', {
         selection: selection.raw,
-        preview,
+        preview: previewForAnalysis,
         options,
         mapping,
         target_document: targetDocumentPayload,
@@ -2342,6 +2504,128 @@ function AcquisitionWizard({
     }
   }
 
+  const togglePreviewDocument = (doc: JsonRecord, index: number, checked: boolean) => {
+    const key = pstDocumentSelectionKey(doc, index)
+    setSelectedDocumentKeys((current) => {
+      const next = new Set(current)
+      if (checked) next.add(key)
+      else next.delete(key)
+      const values = Array.from(next)
+      if (!values.length) setOptions((currentOptions) => ({ ...currentOptions, importa_documenti: false }))
+      else setOptions((currentOptions) => ({ ...currentOptions, importa_documenti: true }))
+      return values
+    })
+  }
+
+  const selectAllPreviewDocuments = () => {
+    setSelectedDocumentKeys(previewDocumentKeys)
+    if (previewDocumentKeys.length) setOptions((current) => ({ ...current, importa_documenti: true }))
+  }
+
+  const clearPreviewDocumentSelection = () => {
+    setSelectedDocumentKeys([])
+    setOptions((current) => ({ ...current, importa_documenti: false }))
+  }
+
+  const downloadPstDocumentsFromSigner = async (
+    documentsToDownload: JsonRecord[],
+    activeSelection: JsonRecord = selection?.raw || {},
+  ): Promise<{ files: AcquisitionFile[]; failures: string[]; selection: JsonRecord }> => {
+    const documenti = documentsToDownload
+      .map((item) => pstDownloadDocumentPayload(item, options.scarica_originale_portale))
+      .filter((item) => pstDocumentIdentifierValues(item).length)
+    if (!documenti.length) {
+      throw new Error('Nessun documento selezionato contiene identificativi PST scaricabili.')
+    }
+    const firstName = asText(documenti[0]?.nome_documento || documenti[0]?.id_documento, 'documenti del fascicolo')
+    setImportProgress({
+      active: true,
+      phase: 'Scaricamento documenti dal PST',
+      current: firstName,
+      completed: 0,
+      total: documenti.length,
+      failures: [],
+    })
+    const tribunale = asText(activeSelection.ufficio_codice || resolvedOfficeCode())
+    const cert = await ensurePstCertificate()
+    const session = activePstSessionFor(tribunale, cert)
+    const signerPayload = await localSignerJson('/pst/download-documenti-batch', {
+      tribunale,
+      cf_avvocato: pstAttorneyFiscalCode(cert),
+      cert_thumbprint: cert.thumbprint || null,
+      cert_key: cert.thumbprint || '',
+      purpose: REACT_PST_SESSION_PURPOSE,
+      pst_session_id: session?.sessionId || '',
+      preflight_auth: false,
+      original: options.scarica_originale_portale,
+      documents: documenti,
+    }, 360000)
+    const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
+    if (!nextSession) throw new Error('Sessione PST non inizializzata dal Local Signer.')
+    const signerRows = asList(signerPayload.files).map(asRecord)
+    const signerFiles = signerFilesToAcquisitionFiles(signerRows, options.scarica_originale_portale)
+    const failures = asList(signerPayload.failures).map(asRecord)
+    const failureMessages = failures.map(formatDownloadFailure)
+    setImportProgress({
+      active: true,
+      phase: signerFiles.length ? 'Documenti ricevuti dal PST' : 'Scaricamento non completato',
+      current: signerFiles.length ? asText(signerFiles[signerFiles.length - 1]?.nome || firstName) : firstName,
+      completed: signerFiles.length,
+      total: asNumber(signerPayload.documenti_richiesti) || documenti.length,
+      failures: failureMessages,
+    })
+    if (!signerFiles.length) {
+      throw new Error(asText(failures[0]?.errore || failures[0]?.message, 'Nessun documento scaricato dal portale ufficiale.'))
+    }
+    return {
+      files: signerFiles,
+      failures: failureMessages,
+      selection: {
+        ...activeSelection,
+        pst_session: pstSessionForServer(nextSession, cert),
+      },
+    }
+  }
+
+  const downloadSelectedPstDocuments = async (documentsOverride?: JsonRecord[]) => {
+    const docsToDownload = documentsOverride || selectedPreviewDocuments
+    if (!docsToDownload.length) {
+      setMessage('Seleziona almeno un documento PST da scaricare.')
+      return
+    }
+    setBusy('download')
+    try {
+      const downloaded = await downloadPstDocumentsFromSigner(docsToDownload)
+      const merged = mergeAcquisitionFiles(files, downloaded.files)
+      setFiles(merged)
+      setImportProgress((current) => ({
+        ...current,
+        active: false,
+        phase: downloaded.failures.length ? 'Documenti ricevuti con avvisi' : 'Documenti ricevuti',
+        completed: downloaded.files.length,
+        total: current.total || docsToDownload.length,
+        failures: downloaded.failures,
+      }))
+      setMessage(`${downloaded.files.length} documenti PST scaricati e pronti per l'importazione.`)
+      if (downloaded.failures.length) {
+        recordAcquisitionHistory('warning', 'Scarico completato con documenti da riprovare', downloaded.failures.join(' | '))
+      }
+    } catch (error: unknown) {
+      if (portal === 'pst' && isPstSessionExpiredError(error)) clearPstSession()
+      const errorMessage = asText(error instanceof Error ? error.message : error, 'Scaricamento documenti non completato.')
+      setMessage(errorMessage)
+      recordAcquisitionHistory('failed', 'Fascicolo non scaricato dal portale', errorMessage)
+      setImportProgress((current) => ({
+        ...current,
+        active: false,
+        phase: current.phase || 'Scaricamento non completato',
+        failures: current.failures.length ? current.failures : [errorMessage],
+      }))
+    } finally {
+      setBusy('')
+    }
+  }
+
   const runImport = async (overrideFiles?: AcquisitionFile[]) => {
     let activeFiles = overrideFiles || files
     if (portalUsesOfficialAssistant && assistantSession?.downloaded_files?.length) {
@@ -2351,7 +2635,11 @@ function AcquisitionWizard({
       )
     }
     const payloadJson = authorisedPayload(activeFiles)
-    const downloadedFiles: unknown[] = activeFiles.filter((file) => !file.payload_json)
+    const selectedDocsForImport = portal === 'pst' && options.importa_documenti ? selectedPreviewDocuments : []
+    let downloadedFiles = activeFiles.filter((file) => !file.payload_json)
+    if (portal === 'pst' && selectedDocsForImport.length) {
+      downloadedFiles = filterDownloadedFilesForSelectedPstDocuments(downloadedFiles, selectedDocsForImport)
+    }
     if (!payloadJson && portalUsesOfficialAssistant && downloadedFiles.length && !mapping.target_fascicolo_id) {
       setMessage('Seleziona il fascicolo interno in cui importare file, ricevute ed esiti.')
       setStep(5)
@@ -2371,55 +2659,24 @@ function AcquisitionWizard({
     let downloadFailureMessages: string[] = []
     try {
       let activeSelection: JsonRecord = selection?.raw || {}
-      if (!payloadJson && portal === 'pst' && options.importa_documenti && !downloadedFiles.length) {
-        const documenti = pstPreviewDocuments(preview)
-          .map((item) => pstDownloadDocumentPayload(item, options.scarica_originale_portale))
-          .filter((item) => pstDocumentIdentifierValues(item).length)
-        if (documenti.length) {
-          const firstName = asText(documenti[0]?.nome_documento || documenti[0]?.id_documento, 'documenti del fascicolo')
-          setImportProgress({
-            active: true,
-            phase: 'Scaricamento documenti dal PST',
-            current: firstName,
-            completed: 0,
-            total: documenti.length,
-            failures: [],
-          })
-          const tribunale = asText(activeSelection.ufficio_codice || resolvedOfficeCode())
-          const cert = await ensurePstCertificate()
-          let session = activePstSessionFor(tribunale, cert)
-          const signerPayload = await localSignerJson('/pst/download-documenti-batch', {
-            tribunale,
-            cf_avvocato: pstAttorneyFiscalCode(cert),
-            cert_thumbprint: cert.thumbprint || null,
-            cert_key: cert.thumbprint || '',
-            purpose: REACT_PST_SESSION_PURPOSE,
-            pst_session_id: session?.sessionId || '',
-            preflight_auth: false,
-            original: options.scarica_originale_portale,
-            documents: documenti,
-          }, 360000)
-          const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
-          if (!nextSession) throw new Error('Sessione PST non inizializzata dal Local Signer.')
-          const signerFiles = asList(signerPayload.files).map(asRecord)
-          const failures = asList(signerPayload.failures).map(asRecord)
-          downloadFailureMessages = failures.map(formatDownloadFailure)
-          setImportProgress({
-            active: true,
-            phase: signerFiles.length ? 'Documenti ricevuti dal PST' : 'Scaricamento non completato',
-            current: signerFiles.length ? asText(signerFiles[signerFiles.length - 1]?.nome || signerFiles[signerFiles.length - 1]?.nome_documento, firstName) : firstName,
-            completed: signerFiles.length,
-            total: asNumber(signerPayload.documenti_richiesti) || documenti.length,
-            failures: downloadFailureMessages,
-          })
-          if (!signerFiles.length) {
-            throw new Error(asText(failures[0]?.errore || failures[0]?.message, 'Nessun documento scaricato dal portale ufficiale.'))
+      let activePreview = preview
+      if (selectedDocsForImport.length) {
+        activePreview = filterPreviewForSelectedDocuments(preview, selectedDocsForImport)
+      }
+      if (!payloadJson && portal === 'pst' && options.importa_documenti) {
+        const documentsToDownload = selectedDocsForImport.length ? selectedDocsForImport : pstPreviewDocuments(preview)
+        const missingDocuments = selectedDocsForImport.length
+          ? missingPstDocumentsForDownload(selectedDocsForImport, downloadedFiles)
+          : (downloadedFiles.length ? [] : documentsToDownload)
+        if (missingDocuments.length) {
+          const downloaded = await downloadPstDocumentsFromSigner(missingDocuments, activeSelection)
+          downloadFailureMessages = downloaded.failures
+          downloadedFiles.push(...downloaded.files)
+          activeFiles = mergeAcquisitionFiles(activeFiles, downloaded.files)
+          if (selectedDocsForImport.length) {
+            downloadedFiles = filterDownloadedFilesForSelectedPstDocuments(downloadedFiles, selectedDocsForImport)
           }
-          downloadedFiles.push(...signerFiles)
-          activeSelection = {
-            ...activeSelection,
-            pst_session: pstSessionForServer(nextSession, cert),
-          }
+          activeSelection = downloaded.selection
         }
       }
       let payload: JsonRecord
@@ -2450,7 +2707,7 @@ function AcquisitionWizard({
         }
         payload = await portalJson(portal, 'import', {
             selection: activeSelection,
-            preview,
+            preview: activePreview,
             options,
             mapping,
             downloaded_files: downloadedFiles,
@@ -2614,7 +2871,6 @@ function AcquisitionWizard({
   if (!visible || !portal) return null
 
   const identity = previewIdentity(preview)
-  const previewDocuments = pstPreviewDocuments(preview)
   const previewParties = previewPeople(preview)
   const previewTimeline = previewEvents(preview)
   const identityRows = previewIdentityRows(identity, selection)
@@ -2902,7 +3158,12 @@ function AcquisitionWizard({
           {step === 4 ? (
             <Panel title="Step 4 - Selezione" subtitle="Scegli documenti, eventi, parti e file autorizzati" icon={<ClipboardCheck size={17}/>}>
               <div className="iu-tel-acq-switches">
-                <label><input type="checkbox" checked={options.importa_documenti} onChange={(event) => updateOption('importa_documenti', event.currentTarget.checked)}/> Importa documenti</label>
+                <label><input type="checkbox" checked={options.importa_documenti} onChange={(event) => {
+                  const checked = event.currentTarget.checked
+                  updateOption('importa_documenti', checked)
+                  if (checked && previewDocumentKeys.length && !selectedDocumentKeys.length) setSelectedDocumentKeys(previewDocumentKeys)
+                  if (!checked) setSelectedDocumentKeys([])
+                }}/> Importa documenti</label>
                 <label><input type="checkbox" checked={options.importa_eventi} onChange={(event) => updateOption('importa_eventi', event.currentTarget.checked)}/> Importa eventi</label>
                 <label><input type="checkbox" checked={options.importa_parti} onChange={(event) => updateOption('importa_parti', event.currentTarget.checked)}/> Importa parti</label>
                 <label><input type="checkbox" checked={options.scarica_originale_portale} onChange={(event) => updateOption('scarica_originale_portale', event.currentTarget.checked)}/> Originale portale</label>
@@ -2910,18 +3171,50 @@ function AcquisitionWizard({
               </div>
               {portal === 'pst' ? <p className="iu-tel-acq-note">Default PST: copia di consultazione con annotazioni ministeriali. L'originale si usa solo se selezionato espressamente.</p> : null}
               {previewDocuments.length ? (
-                <div className="iu-tel-acq-documents iu-tel-acq-documents--selection">
-                  {previewDocuments.map((doc, index) => (
-                    <article key={`${previewDocumentTitle(doc, index)}-select-${index}`}>
-                      <FileText size={15}/>
-                      <div>
-                        <strong>{previewDocumentTitle(doc, index)}</strong>
-                        <small>{previewDocumentMeta(doc) || 'Pronto per lo scaricamento in batch'}</small>
-                      </div>
-                      <Badge tone={options.importa_documenti ? 'success' : 'neutral'}>{options.importa_documenti ? 'Selezionato' : 'Escluso'}</Badge>
-                    </article>
-                  ))}
-                </div>
+                <>
+                  <div className="iu-tel-acq-selection-toolbar">
+                    <strong>{selectedPreviewDocuments.length}/{previewDocuments.length} documenti selezionati</strong>
+                    <span>{downloadedPstDocumentCount ? `${downloadedPstDocumentCount} scaricati in questa sessione` : 'Nessun documento ancora scaricato'}</span>
+                    <button type="button" onClick={selectAllPreviewDocuments}><CheckCircle2 size={14}/> Seleziona tutti</button>
+                    <button type="button" onClick={clearPreviewDocumentSelection}><ClipboardCheck size={14}/> Nessuno</button>
+                    {portal === 'pst' ? (
+                      <>
+                        <button type="button" disabled={busy === 'download' || !options.importa_documenti || !selectedPreviewDocuments.length} onClick={() => downloadSelectedPstDocuments()}>
+                          <Download size={14}/> Scarica selezionati
+                        </button>
+                        <button type="button" disabled={busy === 'download'} onClick={() => {
+                          selectAllPreviewDocuments()
+                          void downloadSelectedPstDocuments(previewDocuments)
+                        }}>
+                          <Download size={14}/> Scarica tutti
+                        </button>
+                      </>
+                    ) : null}
+                  </div>
+                  <div className="iu-tel-acq-documents iu-tel-acq-documents--selection">
+                    {previewDocuments.map((doc, index) => {
+                      const selected = options.importa_documenti && selectedDocumentKeySet.has(pstDocumentSelectionKey(doc, index))
+                      return (
+                        <article className={selected ? 'is-selected' : 'is-excluded'} key={`${previewDocumentTitle(doc, index)}-select-${index}`}>
+                          <label className="iu-tel-acq-doc-check">
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={(event) => togglePreviewDocument(doc, index, event.currentTarget.checked)}
+                              aria-label={`Seleziona ${previewDocumentTitle(doc, index)}`}
+                            />
+                            <FileText size={15}/>
+                          </label>
+                          <div>
+                            <strong>{previewDocumentTitle(doc, index)}</strong>
+                            <small>{previewDocumentMeta(doc) || 'Pronto per lo scaricamento dal PST'}</small>
+                          </div>
+                          <Badge tone={selected ? 'success' : 'neutral'}>{selected ? 'Da scaricare' : 'Escluso'}</Badge>
+                        </article>
+                      )
+                    })}
+                  </div>
+                </>
               ) : null}
               <div className="iu-tel-acq-mapping-mode" aria-label="Destinazione pratica">
                 {acquisitionMappingModes.map(([value, label, help]) => (
@@ -2933,7 +3226,7 @@ function AcquisitionWizard({
                 ))}
               </div>
               <div className="iu-tel-acq-form iu-tel-acq-form--mapping">
-                <label><span>Fascicolo locale da aggiornare</span><select value={mapping.target_fascicolo_id} onChange={(event) => updateMapping('target_fascicolo_id', event.currentTarget.value)}>
+                <label><span>Fascicolo locale</span><select value={mapping.target_fascicolo_id} onChange={(event) => updateMapping('target_fascicolo_id', event.currentTarget.value)}>
                   <option value="">Seleziona se necessario</option>
                   {mappingTargetOptions.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}
                 </select></label>
@@ -2946,13 +3239,16 @@ function AcquisitionWizard({
                 {files.map((file) => <span key={`${file.nome}-${file.contenuto_b64.length}`}>{file.nome}{file.payload_json ? ' - dati autorizzati' : ''}</span>)}
               </div>
               <div className="iu-tel-acq-actions">
-                <button type="button" onClick={() => setStep(5)}><ArrowRight size={15}/> Vai alla mappatura</button>
+                {mapping.target_fascicolo_id ? (
+                  <button type="button" disabled={busy === 'import'} onClick={() => runImport()}><UploadCloud size={15}/> Importa nel fascicolo</button>
+                ) : null}
+                <button type="button" onClick={() => setStep(5)}><ArrowRight size={15}/> {mapping.target_fascicolo_id ? 'Verifica destinazione' : 'Scegli destinazione'}</button>
               </div>
             </Panel>
           ) : null}
 
           {step === 5 ? (
-            <Panel title="Step 5 - Mappatura nel gestionale" subtitle="Decidi se creare, collegare o aggiornare una pratica esistente" icon={<FolderOpen size={17}/>}>
+            <Panel title="Step 5 - Destinazione" subtitle="Crea una nuova pratica o usa un fascicolo locale" icon={<FolderOpen size={17}/>}>
               <div className="iu-tel-acq-mapping-mode">
                 {acquisitionMappingModes.map(([value, label, help]) => (
                   <label key={value} className={mapping.mode === value ? 'is-selected' : ''}>
@@ -2963,7 +3259,7 @@ function AcquisitionWizard({
                 ))}
               </div>
               <div className="iu-tel-acq-form iu-tel-acq-form--mapping">
-                <label><span>Fascicolo locale target</span><select value={mapping.target_fascicolo_id} onChange={(event) => updateMapping('target_fascicolo_id', event.currentTarget.value)}>
+                <label><span>Fascicolo locale</span><select value={mapping.target_fascicolo_id} onChange={(event) => updateMapping('target_fascicolo_id', event.currentTarget.value)}>
                   <option value="">Seleziona se necessario</option>
                   {mappingTargetOptions.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}
                 </select></label>

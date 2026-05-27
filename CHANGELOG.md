@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.248.77 - 2026-05-27
+
+- Nel wizard PST la destinazione pratica è stata semplificata: `Crea nuova pratica` per la prima importazione e `Usa pratica esistente` per aggiornare un fascicolo locale, senza più le voci ambigue `Collega` / `Aggiorna pratica esistente`.
+- Aggiunti i comandi UI `Scarica selezionati` e `Scarica tutti` per i documenti PST, con selezione per singolo documento prima dell'importazione.
+- Blindata la prima importazione: se il PST espone solo il catalogo ma non consegna file reali, IUSENTRA non crea una pratica vuota e restituisce un blocco esplicito.
+- Per pratiche già presenti, l'assenza di parti strutturate dal portale diventa un avviso: dati e documenti possono aggiornare il fascicolo locale senza cancellare assistiti e controparti esistenti.
+
 ## 2.248.76 - 2026-05-27
 
 - Local Signer `1.6.59`: la selezione certificato PST torna automatica quando sul PC è già presente un certificato di autenticazione compatibile con il codice fiscale dello studio/avvocato; il dialog Windows si apre solo se manca un match sicuro o c'è ambiguità reale.

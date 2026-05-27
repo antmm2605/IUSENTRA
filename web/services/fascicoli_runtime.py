@@ -1445,8 +1445,24 @@ def build_fascicoli_runtime(
     def _decode_portale_downloaded_items(files: list[dict]) -> list[dict]:
         items: list[dict] = []
         for file_item in files or []:
-            nome = str((file_item or {}).get("nome") or "").strip()
-            contenuto_b64 = str((file_item or {}).get("contenuto_b64") or "").strip()
+            row = file_item or {}
+            nome = str(
+                row.get("nome")
+                or row.get("filename")
+                or row.get("name")
+                or row.get("nome_documento")
+                or row.get("nome_file_originale")
+                or ""
+            ).strip()
+            contenuto_b64 = str(
+                row.get("contenuto_b64")
+                or row.get("content_base64")
+                or row.get("base64")
+                or row.get("contenuto_base64")
+                or ""
+            ).strip()
+            if contenuto_b64.lower().startswith("data:") and "," in contenuto_b64:
+                contenuto_b64 = contenuto_b64.split(",", 1)[1].strip()
             if not nome or not contenuto_b64:
                 continue
             try:
@@ -1456,31 +1472,31 @@ def build_fascicoli_runtime(
             espansi = _espandi_file_importato_portale(
                 nome_file=nome,
                 contenuto=payload,
-                data_documento=str((file_item or {}).get("data_documento") or date.today().isoformat()),
-                origine=str((file_item or {}).get("origine") or f"local-signer:{nome}"),
+                data_documento=str(row.get("data_documento") or row.get("data_deposito") or date.today().isoformat()),
+                origine=str(row.get("origine") or row.get("source") or f"local-signer:{nome}"),
             )
             for item in espansi:
-                item["id_deposito_esterno"] = str((file_item or {}).get("id_deposito_esterno") or "").strip()
-                item["id_deposito_pct"] = str((file_item or {}).get("id_deposito_pct") or "").strip()
-                item["id_documento_portale"] = str((file_item or {}).get("id_documento_portale") or "").strip()
-                item["tipo_atto"] = str((file_item or {}).get("tipo_atto") or "").strip()
-                item["tipo"] = str((file_item or {}).get("tipo") or "").strip()
-                item["mittente"] = str((file_item or {}).get("mittente") or "").strip()
-                item["servizio_portale"] = str((file_item or {}).get("servizio_portale") or "").strip()
-                item["id_cat"] = str((file_item or {}).get("id_cat") or "").strip()
-                item["id_repeatto"] = str((file_item or {}).get("id_repeatto") or "").strip()
-                item["msg_id"] = str((file_item or {}).get("msg_id") or "").strip()
-                item["content_type"] = str((file_item or {}).get("content_type") or "").strip()
-                item["nome_file_originale"] = str((file_item or {}).get("nome_file_originale") or "").strip()
+                item["id_deposito_esterno"] = str(row.get("id_deposito_esterno") or row.get("id_deposito") or "").strip()
+                item["id_deposito_pct"] = str(row.get("id_deposito_pct") or "").strip()
+                item["id_documento_portale"] = str(row.get("id_documento_portale") or row.get("id_documento") or "").strip()
+                item["tipo_atto"] = str(row.get("tipo_atto") or "").strip()
+                item["tipo"] = str(row.get("tipo") or "").strip()
+                item["mittente"] = str(row.get("mittente") or "").strip()
+                item["servizio_portale"] = str(row.get("servizio_portale") or "").strip()
+                item["id_cat"] = str(row.get("id_cat") or "").strip()
+                item["id_repeatto"] = str(row.get("id_repeatto") or "").strip()
+                item["msg_id"] = str(row.get("msg_id") or "").strip()
+                item["content_type"] = str(row.get("content_type") or "").strip()
+                item["nome_file_originale"] = str(row.get("nome_file_originale") or row.get("filename") or row.get("name") or nome).strip()
                 has_modalita_portale = any(
-                    key in (file_item or {})
+                    key in row
                     for key in ("original_documento_portale", "modalita_documento_portale")
                 )
                 if has_modalita_portale:
-                    original_documento_portale = bool((file_item or {}).get("original_documento_portale", True))
+                    original_documento_portale = bool(row.get("original_documento_portale", True))
                     item["original_documento_portale"] = original_documento_portale
                     item["modalita_documento_portale"] = (
-                        str((file_item or {}).get("modalita_documento_portale") or "").strip()
+                        str(row.get("modalita_documento_portale") or "").strip()
                         or ("originale" if original_documento_portale else "copia")
                     )
                 else:

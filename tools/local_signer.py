@@ -9350,9 +9350,9 @@ class _Handler(BaseHTTPRequestHandler):
         try:
             requested_session_id = str(data.get("pst_session_id") or "").strip()
             download_purpose = _pst_existing_session_purpose(requested_session_id, "view")
-            servizio_hint = _pst_servizio_ministeriale_da_payload(data, *(item for item in documenti if isinstance(item, dict)))
+            servizio_hint = _pst_servizio_ministeriale_da_payload(data)
             base_url = _risolvi_base_pst_runtime(tribunale)
-            base_url = _pst_base_url_con_preferenza_payload(base_url, data, *(item for item in documenti if isinstance(item, dict)))
+            base_url = _pst_base_url_con_preferenza_payload(base_url, data)
             codice_pst = _risolvi_codice_ufficio_pst(tribunale)
             cert_thumbprint = _require_certificato_pst(
                 data.get("cert_thumbprint")

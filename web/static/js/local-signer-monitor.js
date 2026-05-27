@@ -110,6 +110,17 @@
     }
   }
 
+  function openInstallerDownload(cfg) {
+    const installer = installerFor(cfg);
+    const iframe = document.createElement('iframe');
+    iframe.hidden = true;
+    iframe.src = installer.url;
+    document.body.appendChild(iframe);
+    window.setTimeout(function () {
+      iframe.remove();
+    }, 30000);
+  }
+
   async function ping(cfg) {
     try {
       const payload = await fetchJsonWithTimeout(cfg.baseUrl + '/ping?light=1', 2500);
@@ -259,18 +270,14 @@
 
   async function verifyAfterUpdate(cfg) {
     try {
-      await fetchJsonWithTimeout(cfg.baseUrl + '/update', 8000);
+      const updatePayload = await fetchJsonWithTimeout(cfg.baseUrl + '/update', 8000);
+      if (!updatePayload || updatePayload.ok !== true) {
+        throw new Error('Aggiornamento locale non avviato');
+      }
     } catch (error) {
       requestUpdate(cfg);
       window.setTimeout(function () {
-        const installer = installerFor(cfg);
-        const link = document.createElement('a');
-        link.href = installer.url;
-        link.target = '_blank';
-        link.rel = 'noopener';
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
+        openInstallerDownload(cfg);
       }, 1500);
     }
     for (let attempt = 0; attempt < 70; attempt += 1) {

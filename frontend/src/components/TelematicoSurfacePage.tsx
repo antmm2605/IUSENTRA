@@ -1038,13 +1038,11 @@ function requestLocalSignerUpdate() {
 
 function requestLocalSignerInstallerDownload(data: TelematicoSurfaceData) {
   if (!isDesktopLocalSignerHost()) return
-  const link = document.createElement('a')
-  link.href = localSignerInstallHref(data)
-  link.target = '_blank'
-  link.rel = 'noopener'
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
+  const iframe = document.createElement('iframe')
+  iframe.hidden = true
+  iframe.src = localSignerInstallHref(data)
+  document.body.appendChild(iframe)
+  window.setTimeout(() => iframe.remove(), 30000)
 }
 
 function wait(ms: number): Promise<void> {

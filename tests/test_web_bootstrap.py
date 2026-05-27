@@ -1122,6 +1122,10 @@ def test_local_signer_monitor_globale_verifica_versione_e_installer():
     assert "hideBanner();" in monitor_js
     assert "compareVersions" in monitor_js
     assert "verifyAfterUpdate" in monitor_js
+    assert "cfg.baseUrl + '/update'" in monitor_js
+    assert "openInstallerDownload" in monitor_js
+    assert "updatePayload.ok !== true" in monitor_js
+    assert "document.createElement('iframe')" in monitor_js
     assert "Fase 1: provo ad avviare" in monitor_js
     assert "Fase 2: versione rilevata" in monitor_js
     assert "Aggiorna automaticamente" in monitor_js
@@ -1193,12 +1197,18 @@ def test_email_e_sync_fascicolo_usano_date_italiane_e_target_corrente():
     email_template = (REPO_ROOT / "web/templates/email/client.html").read_text(encoding="utf-8")
     email_detail = (REPO_ROOT / "web/templates/email/_dettaglio_panel.html").read_text(encoding="utf-8")
     fascicolo_template = (REPO_ROOT / "web/templates/fascicoli/dettaglio.html").read_text(encoding="utf-8")
+    fascicolo_react = (REPO_ROOT / "frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
 
     assert "|fmt_ora" in email_template
     assert "|fmt_data" in email_template
     assert "ts[5:7]" not in email_template
     assert "ts[8:10]" not in email_template
     assert "|fmt_dataora" in email_detail
+    assert 'class="ds-btn ds-btn-primary" title="Prepara deposito telematico"' in fascicolo_template
+    assert "url_for('deposito_prepara', id_fasc=fascicolo.id)" in fascicolo_template
+    assert "sincronizzazione automatica della casella PEC" in fascicolo_template
+    assert "La casella PEC viene sincronizzata automaticamente" in fascicolo_react
+    assert "le nuove ricevute aggiornano stato deposito e fascicolo" in fascicolo_react
     assert "JSON.stringify({ id_fascicolo: '{{ fascicolo.id }}' })" in fascicolo_template
     assert "nextUrl.hash = 'sezione-comunicazioni-cancelleria';" in fascicolo_template
     assert "window.location.assign(nextUrl.toString())" in fascicolo_template
@@ -1757,6 +1767,19 @@ def test_modal_firma_deposito_prevede_riavvio_local_signer():
     assert "getSelectedMode" in helper_js
     assert "getSignaturePlace" in helper_js
     assert "getSelectedDatetimeMode" in helper_js
+
+
+def test_api_react_fascicoli_usa_loader_runtime_condiviso():
+    source = (REPO_ROOT / "web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
+    block = source.split("# IUSENTRA_REACT_FASCICOLI_ROUTES_START", 1)[1].split(
+        "# IUSENTRA_REACT_FASCICOLI_ROUTES_END",
+        1,
+    )[0]
+
+    assert "get_fascicoli=_fascicoli_loader()" in block
+    assert "gf = _fascicoli_loader()()" in source
+    assert "get_fascicoli=get_fascicoli" not in block
+    assert "gf=get_fascicoli()" not in block
 
 
 def test_cockpit_fascicolo_unifica_quadro_workflow_e_controlli_operativi():

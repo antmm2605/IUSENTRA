@@ -1,5 +1,22 @@
 # Pytest issue aperte e risoluzioni
 
+## Note Local Signer 1.6.59 certificato automatico e PST 2.248.76 - 2026-05-27
+
+Nessuna issue locale aperta sul perimetro corretto dopo i test mirati e la prova
+live autorizzata Palmi/SICID R.G. `274/2026`.
+
+La regressione segnalata sulla selezione ripetuta del certificato è stata
+presidiata sia lato React sia lato Local Signer: il wizard legge prima il
+certificato già esposto da `/ping` con filtro codice fiscale, mentre
+`/seleziona-certificato?auto=1` riusa la cache compatibile prima di aprire la
+finestra nativa Windows. Il dialog resta previsto solo quando non esiste un
+match sicuro o c'è ambiguità reale nello store certificati.
+
+La prova reale con Local Signer `1.6.59` ha confermato ricerca senza thumbprint
+manuale e download batch `6/6` sul fascicolo Palmi R.G. `274/2026`. La gestione
+best-effort resta comunque attiva: se un documento va in timeout/fault mentre
+altri file arrivano, il lotto non viene più azzerato.
+
 ## Note Local Signer 1.6.58 SIGP/Giudice di Pace 2.248.75 - 2026-05-27
 
 Nessuna issue locale aperta sul perimetro corretto dopo i test mirati e la prova

@@ -227,6 +227,16 @@ ha confermato che il PST SIGP accetta `estraiProfiloDocumento`,
 con 0 fallimenti e il download batch multiplo di `Atto_3080760.pdf` e
 `Atto_3080731.pdf` è riuscito 2/2 con 0 fallimenti.
 
+Verifica aggiuntiva dopo installazione del Local Signer `1.6.59`: diagnosi
+locale OK, selezione certificato automatica da `/ping?auto=1&prefer_cf=...`
+con `auto_selezionato=true`, ricerca reale Palmi/SICID R.G. `274/2026` inviata
+senza `cert_thumbprint` manuale nel payload, 1 fascicolo e 6 documenti a
+catalogo. Lo scarico batch degli stessi 6 documenti è riuscito 6/6 con 0
+fallimenti, sempre riusando il certificato selezionato automaticamente dal
+Local Signer. Questa verifica presidia la regressione lamentata dall'utente:
+l'avvocato non deve riselezionare ogni volta il certificato quando sul PC esiste
+già un certificato PST compatibile con il codice fiscale richiesto.
+
 ## Regressioni vietate
 
 - Non reintrodurre `/pst/preflight-auth` come chiamata preventiva dal wizard

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.58
+IUSENTRA Local Signer - v1.6.59
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -112,7 +112,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.58"
+VERSION = "1.6.59"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -278,6 +278,64 @@ _PST_QBUILDER_TIPO_RICERCA = {
     "JPW_MIN": "MIN",
     "JPW_SIMIN": "MIN",
     "JPW_SIGP": "GDP",
+}
+_PST_TABELLE_MINISTERIALI_POLICY = {
+    "JPW_SICID": {
+        "tabella": "SICID_CONTENZIOSO_CIVILE",
+        "registro": "JPW_SICID",
+        "download": "downloadDocumento",
+        "warmup": "calcolaHash_multi",
+        "errore_lotto": "per_documento",
+        "x_wasp_user": True,
+    },
+    "JPW_SIL": {
+        "tabella": "SICID_LAVORO",
+        "registro": "JPW_SIL",
+        "download": "downloadDocumento",
+        "warmup": "calcolaHash_multi",
+        "errore_lotto": "per_documento",
+        "x_wasp_user": True,
+    },
+    "JPW_SIVG": {
+        "tabella": "SICID_VOLONTARIA_GIURISDIZIONE",
+        "registro": "JPW_SIVG",
+        "download": "downloadDocumento",
+        "warmup": "calcolaHash_multi",
+        "errore_lotto": "per_documento",
+        "x_wasp_user": True,
+    },
+    "JPW_MIN": {
+        "tabella": "SICID_MINORI",
+        "registro": "JPW_MIN",
+        "download": "downloadDocumento",
+        "warmup": "calcolaHash_multi",
+        "errore_lotto": "per_documento",
+        "x_wasp_user": True,
+    },
+    "JPW_SIMIN": {
+        "tabella": "SICID_SIMIN",
+        "registro": "JPW_SIMIN",
+        "download": "downloadDocumento",
+        "warmup": "calcolaHash_multi",
+        "errore_lotto": "per_documento",
+        "x_wasp_user": True,
+    },
+    "JPW_SIECIC": {
+        "tabella": "SIECIC_ESECUZIONI_CONCORSUALI",
+        "registro": "SIECIC",
+        "download": "downloadDocumento",
+        "warmup": "",
+        "errore_lotto": "per_documento",
+        "x_wasp_user": True,
+    },
+    "JPW_SIGP": {
+        "tabella": "SIGP_GIUDICE_DI_PACE",
+        "registro": "GDP",
+        "download": "downloadAtto",
+        "warmup": "calcolaHash_always",
+        "errore_lotto": "per_documento",
+        "x_wasp_user": True,
+    },
 }
 _PDP_BASE = os.getenv("PCT_PDP_BASE_URL", "https://appweb.giustizia.it/snt").rstrip("/")
 _PDP_OFFICIAL_BROWSER_URL = "https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp"
@@ -1892,6 +1950,51 @@ def _pick_preferred_windows_cert(
     return None
 
 
+def _certificato_windows_compatibile_pst(
+    cert: Optional[dict],
+    *,
+    prefer_issuer: str = "",
+    prefer_subject: str = "",
+    prefer_cf: str = "",
+) -> bool:
+    if not cert or not str(cert.get("thumbprint") or "").strip():
+        return False
+
+    prefer_cf_norm = _estrai_codice_fiscale_testo(prefer_cf)
+    subject_raw = (
+        f"{cert.get('codice_fiscale', '')} "
+        f"{cert.get('soggetto', '')} "
+        f"{cert.get('soggetto_completo', '')}"
+    )
+    if prefer_cf_norm and prefer_cf_norm not in subject_raw.upper():
+        return False
+
+    issuer_norm = _cert_match_normalized(
+        " ".join([
+            str(cert.get("emittente") or ""),
+            str(cert.get("emittente_completo") or ""),
+        ])
+    )
+    subject_norm = _cert_match_normalized(subject_raw)
+    has_authentica = "authentica" in issuer_norm
+    has_web_hint = any(h in subject_norm for h in _PST_CERT_SUBJECT_HINTS)
+    is_only_qualified = ("qualified" in issuer_norm) and not has_authentica and not has_web_hint
+    if is_only_qualified:
+        return False
+
+    issuer_keywords = _cert_match_keywords(prefer_issuer)
+    subject_keywords = _cert_match_keywords(prefer_subject)
+    if issuer_keywords or subject_keywords:
+        return _cert_preferred_score(
+            cert,
+            issuer_keywords,
+            subject_keywords,
+            prefer_cf=prefer_cf_norm,
+        ) > 0
+
+    return True
+
+
 def _close_pin_session_entry(entry: Optional[dict]) -> None:
     if not entry:
         return
@@ -2851,6 +2954,23 @@ def _pst_registro_da_base_url(base_url: str) -> str:
 
 def _pst_registro_documenti_sicid(base_url: str) -> str:
     return _pst_servizio_proxy(base_url) or _pst_registro_da_base_url(base_url)
+
+
+def _pst_tabella_ministeriale_policy(base_url: str) -> dict:
+    servizio = _pst_servizio_proxy(base_url)
+    policy = dict(_PST_TABELLE_MINISTERIALI_POLICY.get(servizio or "", {}))
+    if policy:
+        policy.setdefault("servizio", servizio)
+        return policy
+    return {
+        "servizio": servizio,
+        "tabella": servizio or "PST",
+        "registro": servizio or _pst_registro_da_base_url(base_url),
+        "download": "",
+        "warmup": "",
+        "errore_lotto": "per_documento",
+        "x_wasp_user": bool(_pst_namespace_qbuilder(base_url)),
+    }
 
 
 def _risolvi_codice_ufficio_pst(codice_o_nome: str) -> str:
@@ -4458,15 +4578,15 @@ def _soap_call_curl_batch_raw_best_effort(
             capture_output=True,
             timeout=sum((int(t["max_time"]) + 10) for t in transfers),
         )
+        batch_error = ""
         if result.returncode != 0:
-            raise RuntimeError(
-                _curl_errore_leggibile(
-                    result.returncode,
-                    result.stderr.decode("utf-8", "replace"),
-                    transfers[0]["url"],
-                    timeout_sec=max(int(t["max_time"]) for t in transfers),
-                )
+            batch_error = _curl_errore_leggibile(
+                result.returncode,
+                result.stderr.decode("utf-8", "replace"),
+                transfers[0]["url"],
+                timeout_sec=max(int(t["max_time"]) for t in transfers),
             )
+            log.warning("curl batch best-effort terminato con errore globale: %s", batch_error)
 
         results: list[dict] = []
         for t in transfers:
@@ -4487,6 +4607,8 @@ def _soap_call_curl_batch_raw_best_effort(
                     error = f"Il PST ha restituito una SOAP Fault: {fault}"
                 else:
                     error = _http_errore_leggibile(status, body_str, t["url"], content_type)
+            elif not hdr_text.strip() and not body_bytes and batch_error:
+                error = batch_error
             elif "html" in content_type.lower() and "<html" in body_str.lower():
                 error = (
                     "Il PST ha restituito una pagina HTML anziché XML SOAP.\n"
@@ -6310,10 +6432,11 @@ def _pst_download_documenti_batch_payloads(
                 cookie_file=cookie_file,
             )
         servizio = _pst_servizio_proxy(base_url)
+        policy = _pst_tabella_ministeriale_policy(base_url)
         url_documenti = _pst_url_documenti(base_url)
         download_cookie_file = _pst_download_cookie_file(base_url, cookie_file)
         prefer_cookie_only = _pst_download_can_use_cookie_only(base_url, download_cookie_file)
-        usa_wasp = _pst_servizio_sicid_family(base_url) or servizio == "JPW_SIECIC"
+        usa_wasp = bool(policy.get("x_wasp_user")) or _pst_servizio_sicid_family(base_url) or servizio == "JPW_SIECIC"
         extra_base = [f"X-WASP-User: {cf_avvocato}"] if (usa_wasp and cf_avvocato) else []
 
         # ── Fase 1: risolvi id_cat e metadati mancanti per SICID/SIECIC ──
@@ -6512,11 +6635,12 @@ def _pst_download_documenti_batch_payloads(
         # ── Fase 3: UN SOLO processo curl per tutti i download ──
         try:
             warmup_reqs: list[dict] = []
+            warmup_policy = str(policy.get("warmup") or "").strip()
             needs_hash_warmup = bool(
                 cf_avvocato
                 and (
-                    _pst_servizio_sigp(base_url)
-                    or (_pst_servizio_sicid_family(base_url) and len(dl_reqs) > 1)
+                    warmup_policy == "calcolaHash_always"
+                    or (warmup_policy == "calcolaHash_multi" and len(dl_reqs) > 1)
                 )
             )
             if needs_hash_warmup:
@@ -6543,16 +6667,21 @@ def _pst_download_documenti_batch_payloads(
                         "max_time": PST_DOWNLOAD_MAX_TIME,
                         "connect_timeout": PST_DOWNLOAD_CONNECT_TIMEOUT,
                     })
-            batch_results = _soap_call_pst_session_batch_raw(
+            batch_result_items = _soap_call_pst_session_batch_raw_best_effort(
                 [*warmup_reqs, *dl_reqs],
                 cert_thumbprint=cert_thumbprint,
                 cookie_file=download_cookie_file,
                 prefer_cookie_only=prefer_cookie_only,
             )
             if warmup_reqs:
-                batch_results = batch_results[len(warmup_reqs):]
-            for (body_bytes, hdr_text), meta in zip(batch_results, dl_meta):
+                batch_result_items = batch_result_items[len(warmup_reqs):]
+            for result, meta in zip(batch_result_items, dl_meta):
                 try:
+                    error = str((result or {}).get("error") or "").strip() if isinstance(result, dict) else ""
+                    if error:
+                        raise RuntimeError(error)
+                    body_bytes = (result or {}).get("body_bytes") or b""
+                    hdr_text = str((result or {}).get("headers_text") or "")
                     ct = _http_header_value(hdr_text, "Content-Type")
                     parsed = _parse_download_documento_response(body_bytes, ct)
                     files.append(
@@ -6570,6 +6699,16 @@ def _pst_download_documenti_batch_payloads(
                         "id_documento": meta["id_documento"],
                         "nome_documento": meta["nome_documento"],
                         "errore": str(e),
+                    })
+            if len(batch_result_items) < len(dl_meta):
+                for meta in dl_meta[len(batch_result_items):]:
+                    failures.append({
+                        "id_documento": meta["id_documento"],
+                        "nome_documento": meta["nome_documento"],
+                        "errore": (
+                            "Il lotto PST non ha restituito una risposta per questo documento. "
+                            f"Tabella ministeriale: {policy.get('tabella') or servizio or 'PST'}."
+                        ),
                     })
         except RuntimeError as batch_err:
             if allow_runtime_single_fallback and len(dl_reqs) == 1:
@@ -7042,13 +7181,26 @@ class _Handler(BaseHTTPRequestHandler):
                     auto=prefs["auto"],
                 ) if certs else None
                 cached = dict(_ultimo_certificato_windows or {})
-                selected = preferred or cached
-                if selected.get("thumbprint"):
+                selected = preferred
+                if not selected and _certificato_windows_compatibile_pst(
+                    cached,
+                    prefer_issuer=prefs["prefer_issuer"],
+                    prefer_subject=prefs["prefer_subject"],
+                    prefer_cf=prefs["prefer_cf"],
+                ):
+                    selected = cached
+                if selected and selected.get("thumbprint"):
+                    if preferred:
+                        _ricorda_certificato_windows(selected)
                     resp["certificato_windows_selezionato"] = {
                         "thumbprint": selected.get("thumbprint"),
                         "soggetto": selected.get("soggetto", ""),
+                        "soggetto_completo": selected.get("soggetto_completo", ""),
                         "emittente": selected.get("emittente", ""),
+                        "emittente_completo": selected.get("emittente_completo", ""),
                         "scadenza": selected.get("scadenza", ""),
+                        "codice_fiscale": selected.get("codice_fiscale", ""),
+                        "auto_selezionato": bool(preferred),
                     }
                 if prefs["prefer_cf"]:
                     resp["filtro_codice_fiscale"] = _estrai_codice_fiscale_testo(prefs["prefer_cf"])
@@ -7284,14 +7436,26 @@ class _Handler(BaseHTTPRequestHandler):
 
         if sys.platform == "win32":
             try:
-                cert = _pick_preferred_windows_cert(
-                    _windows_lista_certificati(),
+                cert = None
+                auto_pick = False
+                cached = dict(_ultimo_certificato_windows or {})
+                if auto_select and _certificato_windows_compatibile_pst(
+                    cached,
                     prefer_issuer=prefer_issuer,
                     prefer_subject=prefer_subject,
                     prefer_cf=prefer_cf,
-                    auto=auto_select,
-                )
-                auto_pick = cert is not None
+                ):
+                    cert = cached
+                    auto_pick = True
+                if cert is None:
+                    cert = _pick_preferred_windows_cert(
+                        _windows_lista_certificati(),
+                        prefer_issuer=prefer_issuer,
+                        prefer_subject=prefer_subject,
+                        prefer_cf=prefer_cf,
+                        auto=auto_select,
+                    )
+                    auto_pick = cert is not None
                 if cert is None:
                     cert = _windows_seleziona_cert()
                     auto_pick = False

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.76 - 2026-05-27
+
+- Local Signer `1.6.59`: la selezione certificato PST torna automatica quando sul PC è già presente un certificato di autenticazione compatibile con il codice fiscale dello studio/avvocato; il dialog Windows si apre solo se manca un match sicuro o c'è ambiguità reale.
+- Lo scarico documenti PST usa una policy esplicita per tabella ministeriale: SICID, lavoro, volontaria giurisdizione, minori/SIMIN, SIECIC e SIGP/Giudice di Pace mantengono servizio, warm-up e gestione errori per documento senza cambiare registro durante il download.
+- Il batch download non azzera più l'intero lotto se una richiesta del Ministero va in timeout o fault mentre altre risposte sono utilizzabili: i file ricevuti restano importabili e il singolo documento fallito viene riportato come avviso.
+
 ## 2.248.75 - 2026-05-27
 
 - Local Signer `1.6.58`: per SIGP/Giudice di Pace lo scarico documenti esegue `calcolaHash` prima del `downloadAtto` nello stesso lotto `curl`; la prova reale sul fascicolo `466/2023` aveva catalogo OK ma download in timeout senza questo passaggio.

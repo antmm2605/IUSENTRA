@@ -399,6 +399,39 @@ function storePstCertificate(cert: PstCertificate | null) {
   } : null)
 }
 
+function extractItalianFiscalCode(value: unknown): string {
+  const match = asText(value).toUpperCase().match(/\b([A-Z]{6}[0-9A-Z]{2}[A-Z][0-9A-Z]{2}[A-Z][0-9A-Z]{3}[A-Z])\b/)
+  return match?.[1] || ''
+}
+
+function coercePstCertificate(value: unknown): PstCertificate | null {
+  const root = asRecord(value)
+  const record = asRecord(root.certificato_windows_selezionato || root.certificato || root)
+  const thumbprint = asText(record.thumbprint)
+  if (!thumbprint) return null
+  return {
+    thumbprint,
+    soggetto: asText(record.soggetto || record.subject || record.soggetto_completo),
+    emittente: asText(record.emittente || record.issuer || record.emittente_completo),
+    scadenza: asText(record.scadenza),
+    tokenSlot: asText(record.tokenSlot || record.token_slot),
+    codiceFiscale: extractItalianFiscalCode(
+      record.codice_fiscale
+      || record.codiceFiscale
+      || record.codice_fiscale_avvocato
+      || `${asText(record.soggetto)} ${asText(record.soggetto_completo)}`,
+    ),
+  }
+}
+
+function certificateMatchesPstPreferences(cert: PstCertificate | null, prefs: JsonRecord, status: JsonRecord): cert is PstCertificate {
+  if (!cert?.thumbprint) return false
+  const preferCf = extractItalianFiscalCode(prefs.prefer_cf || status.codice_fiscale_avvocato)
+  if (!preferCf) return true
+  const certText = `${cert.codiceFiscale} ${cert.soggetto}`.toUpperCase()
+  return certText.includes(preferCf)
+}
+
 function loadPstSession(): PstSession | null {
   const saved = readStoredRecord(REACT_PST_SESSION_KEY)
   const sessionId = asText(saved?.sessionId || saved?.session_id)
@@ -1745,7 +1778,8 @@ function AcquisitionWizard({
   const signerCertPreferenceQuery = () => {
     const prefs = asRecord(status.cert_preferences)
     const params = new URLSearchParams()
-    if (prefs.auto) params.set('auto', '1')
+    const autoPref = asText(prefs.auto).toLowerCase()
+    if (prefs.auto !== false && autoPref !== '0' && autoPref !== 'false') params.set('auto', '1')
     const preferIssuer = asText(prefs.prefer_issuer)
     const preferSubject = asText(prefs.prefer_subject)
     const preferCf = asText(prefs.prefer_cf || status.codice_fiscale_avvocato)
@@ -1757,17 +1791,33 @@ function AcquisitionWizard({
   }
 
   const ensurePstCertificate = async (forceDialog = false): Promise<PstCertificate> => {
-    if (!forceDialog && pstCert?.thumbprint && (asText(status.codice_fiscale_avvocato) || pstCert.codiceFiscale)) return pstCert
-    const payload = await localSignerJson(`/seleziona-certificato${signerCertPreferenceQuery()}`, undefined, 120000)
-    const cert = {
-      thumbprint: asText(payload.thumbprint),
-      soggetto: asText(payload.soggetto),
-      emittente: asText(payload.emittente),
-      scadenza: asText(payload.scadenza),
-      tokenSlot: asText(payload.token_slot),
-      codiceFiscale: asText(payload.codice_fiscale || payload.codiceFiscale || payload.codice_fiscale_avvocato),
+    const prefs = asRecord(status.cert_preferences)
+    if (!forceDialog) {
+      const savedCert = pstCert || loadPstCertificate()
+      const savedThumbprint = asText(savedCert?.thumbprint)
+      if (certificateMatchesPstPreferences(savedCert, prefs, status)) {
+        if (!pstCert) setPstCert(savedCert)
+        return savedCert
+      }
+      if (savedThumbprint) {
+        setPstCert(null)
+        storePstCertificate(null)
+      }
+      try {
+        const signerStatus = await localSignerJson(`/ping${signerCertPreferenceQuery()}`, undefined, 20000)
+        const autoCert = coercePstCertificate(signerStatus)
+        if (certificateMatchesPstPreferences(autoCert, prefs, status)) {
+          setPstCert(autoCert)
+          storePstCertificate(autoCert)
+          return autoCert
+        }
+      } catch {
+        // La selezione esplicita gestira' il messaggio operativo se il servizio locale non risponde.
+      }
     }
-    if (!cert.thumbprint) throw new Error('Seleziona il certificato di firma sul PC e riprova.')
+    const payload = await localSignerJson(`/seleziona-certificato${signerCertPreferenceQuery()}`, undefined, 120000)
+    const cert = coercePstCertificate(payload)
+    if (!cert?.thumbprint) throw new Error('Seleziona il certificato di firma sul PC e riprova.')
     setPstCert(cert)
     storePstCertificate(cert)
     return cert

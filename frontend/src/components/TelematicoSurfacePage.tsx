@@ -197,8 +197,8 @@ type AcquisitionHistoryEvent = TelematicoSurfaceData['recentEvents'][number] & {
   local?: boolean
 }
 
-const REACT_PST_CERT_KEY = 'iusentra.react.pst.cert'
-const REACT_PST_SESSION_KEY = 'iusentra.react.pst.session'
+const REACT_PST_CERT_KEY = 'iusentra.react.pst.cert.v2'
+const REACT_PST_SESSION_KEY = 'iusentra.react.pst.session.v2'
 const REACT_PST_SESSION_PURPOSE = 'view'
 const REACT_ACQUISITION_HISTORY_KEY = 'iusentra.react.portali.acquisition.history'
 const REACT_ACQUISITION_HISTORY_LIMIT = 10

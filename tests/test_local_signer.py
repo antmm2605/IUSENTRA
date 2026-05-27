@@ -4215,7 +4215,7 @@ def test_soap_call_pst_session_batch_raw_riprova_con_certificato_dopo_cookie_onl
     ]
 
 
-def test_soap_call_pst_session_prova_cookie_anche_se_host_mtls_gia_noto():
+def test_soap_call_pst_session_salta_cookie_se_host_mtls_gia_noto():
     module = _load_local_signer()
 
     orig_call = module._soap_call_curl
@@ -4240,10 +4240,10 @@ def test_soap_call_pst_session_prova_cookie_anche_se_host_mtls_gia_noto():
         module._mTLS_required_hosts.discard("pst.example.test")
 
     assert result == "<ok/>"
-    assert calls == [None]
+    assert calls == ["AABBCC11"]
 
 
-def test_soap_call_pst_session_batch_prova_cookie_anche_se_host_mtls_gia_noto():
+def test_soap_call_pst_session_batch_salta_cookie_se_host_mtls_gia_noto():
     module = _load_local_signer()
 
     orig_call = module._soap_call_curl_batch_raw
@@ -4271,7 +4271,7 @@ def test_soap_call_pst_session_batch_prova_cookie_anche_se_host_mtls_gia_noto():
 
     assert result == [(b"<ok/>", "HTTP/1.1 200 OK\r\n")]
     assert calls == [
-        {"cert_thumbprint": None, "cookie_files": ["C:\\temp\\pst.cookies"]},
+        {"cert_thumbprint": "AABBCC11", "cookie_files": ["C:\\temp\\pst.cookies"]},
     ]
 
 

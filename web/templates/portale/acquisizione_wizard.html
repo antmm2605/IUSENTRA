@@ -387,9 +387,9 @@ const AW_STEPS = [
   {id:7,t:'Importa',s:'Acquisizione finale'},
 ];
 const AW_PST_LS_BASE = 'http://127.0.0.1:27272';
-const AW_PST_CERT_KEY = `hacs-aw-pst-cert-${AW_BOOT.portale}`;
-const AW_PST_SESSION_KEY = `hacs-aw-pst-session-${AW_BOOT.portale}`;
-const AW_PST_IMPORT_SESSION_KEY = `hacs-aw-pst-import-session-${AW_BOOT.portale}`;
+const AW_PST_CERT_KEY = `hacs-aw-pst-cert-v2-${AW_BOOT.portale}`;
+const AW_PST_SESSION_KEY = `hacs-aw-pst-session-v2-${AW_BOOT.portale}`;
+const AW_PST_IMPORT_SESSION_KEY = `hacs-aw-pst-import-session-v2-${AW_BOOT.portale}`;
 function awJson(url, options = {}) {
   return fetch(url, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options }).then(r => r.json());
 }

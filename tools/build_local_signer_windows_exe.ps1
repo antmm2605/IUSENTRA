@@ -182,6 +182,7 @@ if (-not (Test-Path $outputExeVersioned)) {
 }
 
 Copy-Item $outputExeVersioned $outputExeAlias -Force
+Copy-Item $localSignerPy (Join-Path $distDir "local_signer.py") -Force
 
 $macTemplate = @'
 #!/bin/bash

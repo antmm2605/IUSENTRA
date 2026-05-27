@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.51
+IUSENTRA Local Signer - v1.6.52
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -112,7 +112,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.51"
+VERSION = "1.6.52"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -4448,7 +4448,7 @@ def _soap_call_pst_session(
             connect_timeout=connect_timeout,
         )
 
-    if prefer_cookie_only and cookie_file:
+    if prefer_cookie_only and cookie_file and (not host or host not in _mTLS_required_hosts):
         # Quando prefer_cookie_only=True il preflight ha già stabilito una sessione
         # autenticata con cookie validi. Tentiamo cookie-only solo se il portale
         # non è già noto come mTLS-obbligatorio (per evitare prompt PIN ripetuti).
@@ -4496,7 +4496,7 @@ def _soap_call_pst_session_raw(
             connect_timeout=connect_timeout,
         )
 
-    if prefer_cookie_only and cookie_file:
+    if prefer_cookie_only and cookie_file and (not host or host not in _mTLS_required_hosts):
         # Stessa logica di _soap_call_pst_session: tenta cookie-only solo se il
         # portale non è già noto come mTLS-obbligatorio.
         try:
@@ -4537,7 +4537,7 @@ def _soap_call_pst_session_batch_raw(
     ]
     first_url = str((effective_requests[0].get("url") if effective_requests else None) or "")
     host = _pst_host(first_url) if first_url else ""
-    if prefer_cookie_only and cookie_file:
+    if prefer_cookie_only and cookie_file and (not host or host not in _mTLS_required_hosts):
         try:
             return _soap_call_curl_batch_raw(
                 effective_requests,
@@ -4580,7 +4580,7 @@ def _soap_call_pst_session_batch_raw_best_effort(
     ]
     first_url = str((effective_requests[0].get("url") if effective_requests else None) or "")
     host = _pst_host(first_url) if first_url else ""
-    if prefer_cookie_only and cookie_file:
+    if prefer_cookie_only and cookie_file and (not host or host not in _mTLS_required_hosts):
         try:
             return _soap_call_curl_batch_raw_best_effort(
                 effective_requests,

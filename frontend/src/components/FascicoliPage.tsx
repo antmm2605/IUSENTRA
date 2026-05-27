@@ -2696,6 +2696,10 @@ function DetailPage({ id }:{id:string}) {
               </div>
               <div className="iu-fas-deposit-column">
                 <Panel title="Cancelleria" icon={<Mail size={17}/>} count={cancelleriaRows.length}>
+                  <p className="iu-fas-sync-note">
+                    <RefreshCw size={14}/>
+                    La casella PEC viene sincronizzata automaticamente: le nuove ricevute aggiornano stato deposito e fascicolo.
+                  </p>
                   <div className="iu-fas-comm-list">
                     {lazyStatus.depositi === 'loading' ? <p className="iu-empty">Caricamento cancelleria...</p> : null}
                     {cancelleriaRows.map((dep) => (

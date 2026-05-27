@@ -12,6 +12,8 @@
 | `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build` | OK | TypeScript e build Vite verdi dopo il riuso certificato PST lato React; gli asset statici locali rigenerati sono stati ripuliti perché Docker/CI li ricostruiscono. |
 | `python -m pytest -q tests/test_build_dist.py tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 15/15 passati su dist, packaging e readiness dopo il bump `2.248.76` / Local Signer `1.6.59`. |
 | `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python scripts\smoke_app_v2_all.py --subset contracts`; `python -m pytest -q tests/test_openapi_contracts_phase6.py --tb=short` | OK | OpenAPI e contratti API riallineati al bump `2.248.76`; smoke contratti offline PASS=2/SKIP live=1 e test contratti 5/5 verdi. |
+| `python -m pytest -q tests/test_web_bootstrap.py::test_email_e_sync_fascicolo_usano_date_italiane_e_target_corrente --tb=short` | OK | Hotfix post-push: riallineato il contratto React della scheda fascicolo sulla nota di sincronizzazione PEC automatica richiesta dal gate `Pytest core fase 10/10`. |
+| `pnpm --filter @iusentra/studio typecheck`; `git diff --cached --check` | OK | TypeScript e whitespace dello staged set confermati dopo il micro-hotfix React/PEC. |
 | Test reale autorizzato Palmi/SICID R.G. `274/2026` | OK | Local Signer `1.6.59`: `/ping?auto=1&prefer_cf=...` ha restituito `auto_selezionato=true`; ricerca senza thumbprint manuale OK, 1 fascicolo, 6 documenti; download batch 6/6, 0 fallimenti. |
 
 ## Local Signer 1.6.58 SIGP/Giudice di Pace 2.248.75 - 2026-05-27

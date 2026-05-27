@@ -705,6 +705,20 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-comm-row strong,.iu-fas-portal-catalog strong{font-size:13px;color:#111827;line-height:1.3}
 .iu-fas-comm-row span,.iu-fas-portal-catalog span{color:var(--iu-slate-500);font-size:12px;font-weight:740;line-height:1.35}
 .iu-fas-comm-row small{color:var(--iu-slate-600);font-size:11.5px;font-weight:820;line-height:1.35}
+.iu-fas-sync-note{display:flex;align-items:flex-start;gap:7px;margin:0 0 9px;padding:8px 9px;border:1px solid rgba(37,99,235,.16);border-radius:10px;background:#eff6ff;color:#1e3a8a;font-size:11.5px;font-weight:820;line-height:1.35}
+.iu-fas-sync-note svg{flex:0 0 auto;margin-top:1px}
+.iu-fas-deposit-state{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px;align-items:center;margin-top:3px;padding:8px;border:1px solid var(--iu-border);border-radius:10px;background:#f8fafc}
+.iu-fas-deposit-state span{color:#334155;font-size:11.5px;font-weight:760;line-height:1.35}
+.iu-fas-deposit-state--success{border-color:rgba(22,163,74,.22);background:#ecfdf3}
+.iu-fas-deposit-state--warning{border-color:rgba(245,158,11,.28);background:#fffbeb}
+.iu-fas-deposit-state--danger{border-color:rgba(239,68,68,.24);background:#fff1f2}
+.iu-fas-deposit-state--primary{border-color:rgba(37,99,235,.22);background:#eff6ff}
+.iu-fas-receipt-steps{display:flex;flex-wrap:wrap;gap:5px;margin-top:3px}
+.iu-fas-receipt-steps span{display:inline-flex;align-items:center;gap:4px;min-height:24px;padding:3px 7px;border:1px solid var(--iu-border);border-radius:999px;background:#f8fafc;color:var(--iu-slate-600);font-size:10.5px;font-weight:880;line-height:1.1}
+.iu-fas-receipt-steps span.is-done{border-color:rgba(22,163,74,.24);background:#ecfdf3;color:#17603a}
+.iu-fas-comm-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:4px}
+.iu-fas-comm-actions .iu-fas-post{width:auto;height:30px;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:0 9px;border-radius:8px;font-size:11px;font-weight:900;line-height:1.1;white-space:normal}
+.iu-fas-comm-actions small{color:var(--iu-slate-500)}
 .iu-fas-activity-row{grid-template-columns:116px minmax(0,1fr) minmax(190px,auto);gap:10px;padding:11px 12px;border-radius:12px}
 .iu-fas-activity-date{align-content:start;gap:5px}
 .iu-fas-activity-date time{color:var(--iu-slate-600);font-size:12px;font-weight:900}

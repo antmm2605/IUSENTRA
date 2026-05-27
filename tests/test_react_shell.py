@@ -1456,7 +1456,9 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "const exactPstSearch = Boolean(asText(query.numero) && asText(query.anno))" in source
     assert "nome_parte: exactPstSearch ? '' : (query.assistito || query.controparte)" in source
     assert "cf_parte: exactPstSearch ? '' : query.cf" in source
-    assert "cf_avvocato: asText(status.codice_fiscale_avvocato)" in source
+    assert "codiceFiscale: asText(payload.codice_fiscale || payload.codiceFiscale || payload.codice_fiscale_avvocato)" in source
+    assert "const pstAttorneyFiscalCode = (cert?: PstCertificate | null)" in source
+    assert "cf_avvocato: pstAttorneyFiscalCode(cert)" in source
     assert "cf_avvocato: exactPstSearch ? ''" not in source
     assert "const signerRows = asList(signerPayload.fascicoli || signerPayload.results)" in source
     assert "const snapshotFascicolo = asRecord(snapshot.fascicolo)" in source

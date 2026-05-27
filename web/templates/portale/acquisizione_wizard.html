@@ -608,6 +608,9 @@ function awSavePstCert(cert) {
   const currentThumb = String(AW_PST_CERT?.thumbprint || '').toUpperCase();
   if (previousThumb && currentThumb && previousThumb !== currentThumb) awClearPstSession('all');
 }
+function awPstAttorneyCf() {
+  return AW_STATE.status.codice_fiscale_avvocato || AW_PST_CERT?.codice_fiscale || AW_PST_CERT?.codiceFiscale || '';
+}
 function awGetPstSessionByPurpose(purpose = 'view') {
   return AW_PST_SESSION || AW_PST_IMPORT_SESSION;
 }
@@ -1230,11 +1233,18 @@ async function awLsSelectCert() {
   const resp = await fetch(`${AW_PST_LS_BASE}/seleziona-certificato?${params.toString()}`, { signal: AbortSignal.timeout(120000) });
   const data = await resp.json();
   if (!data.ok) throw new Error(data.errore || 'Selezione certificato non riuscita');
-  awSavePstCert({ thumbprint: data.thumbprint, soggetto: data.soggetto, emittente: data.emittente, scadenza: data.scadenza, auto_selezionato: !!data.auto_selezionato });
+  awSavePstCert({
+    thumbprint: data.thumbprint,
+    soggetto: data.soggetto,
+    emittente: data.emittente,
+    scadenza: data.scadenza,
+    codice_fiscale: data.codice_fiscale || data.codiceFiscale || data.codice_fiscale_avvocato || '',
+    auto_selezionato: !!data.auto_selezionato,
+  });
   return AW_PST_CERT;
 }
 async function awEnsurePstCertReady({ forceDialog = false } = {}) {
-  if (!forceDialog && AW_PST_CERT?.thumbprint) return AW_PST_CERT;
+  if (!forceDialog && AW_PST_CERT?.thumbprint && awPstAttorneyCf()) return AW_PST_CERT;
   if (AW_CERT_SELECT_PROMISE) return AW_CERT_SELECT_PROMISE;
   AW_CERT_SELECT_PROMISE = (async () => {
     const cert = await awLsSelectCert();
@@ -1313,7 +1323,7 @@ async function awPstSearchViaLocalSigner(query, retry = true) {
           cf_parte: exactByRg ? '' : (query.cf || ''),
           oggetto: query.oggetto || '',
           ufficio_nome: document.getElementById('awOfficeInput')?.value || '',
-          cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+          cf_avvocato: awPstAttorneyCf(),
           cert_thumbprint: AW_PST_CERT?.thumbprint || null,
           cert_key: AW_PST_CERT?.thumbprint || '',
           purpose: 'view',
@@ -1348,7 +1358,7 @@ async function awPstSearchViaLocalSigner(query, retry = true) {
         anno_rg: query.anno || '',
         nome_parte: exactByRg ? '' : (query.assistito || query.controparte || ''),
         cf_parte: exactByRg ? '' : (query.cf || ''),
-        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+        cf_avvocato: awPstAttorneyCf(),
         cert_thumbprint: AW_PST_CERT?.thumbprint || null,
         cert_key: AW_PST_CERT?.thumbprint || '',
         purpose: 'view',
@@ -1383,7 +1393,7 @@ async function awPstPreviewViaLocalSigner(selection, retry = true) {
           anno_rg: selection.anno,
           id_fascicolo: selection.id_fascicolo || selection.payload?.id_fascicolo || '',
           sub_procedimento: selection.sub_procedimento || selection.payload?.sub_procedimento || '',
-          cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+          cf_avvocato: awPstAttorneyCf(),
           cert_thumbprint: AW_PST_CERT?.thumbprint || null,
           cert_key: AW_PST_CERT?.thumbprint || '',
           purpose: 'view',
@@ -1480,7 +1490,7 @@ async function awSearchViaLocalSigner(query) {
         anno_rg: query.anno || '',
         nome_imputato: query.assistito || '',
         tipo_registro: query.registro || '',
-        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+        cf_avvocato: awPstAttorneyCf(),
         cert_thumbprint: AW_PST_CERT?.thumbprint || null,
       },
     },
@@ -1492,7 +1502,7 @@ async function awSearchViaLocalSigner(query) {
         anno: query.anno || '',
         nome_ricorrente: query.assistito || '',
         materia: query.materia || '',
-        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+        cf_avvocato: awPstAttorneyCf(),
         cert_thumbprint: AW_PST_CERT?.thumbprint || null,
       },
     },
@@ -1504,7 +1514,7 @@ async function awSearchViaLocalSigner(query) {
         anno_rgt: query.anno || '',
         nome_ricorrente: query.assistito || '',
         tipo: query.materia || '',
-        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+        cf_avvocato: awPstAttorneyCf(),
         cert_thumbprint: AW_PST_CERT?.thumbprint || null,
       },
     },
@@ -1530,7 +1540,7 @@ async function awPreviewViaLocalSigner(selection) {
         codice_ufficio: selection.ufficio_codice || '',
         numero_rg: selection.numero || '',
         anno_rg: selection.anno || '',
-        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+        cf_avvocato: awPstAttorneyCf(),
         cert_thumbprint: AW_PST_CERT?.thumbprint || null,
       },
     },
@@ -1540,7 +1550,7 @@ async function awPreviewViaLocalSigner(selection) {
         codice_ufficio: selection.ufficio_codice || '',
         numero_ricorso: selection.numero || '',
         anno: selection.anno || '',
-        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+        cf_avvocato: awPstAttorneyCf(),
         cert_thumbprint: AW_PST_CERT?.thumbprint || null,
       },
     },
@@ -1550,7 +1560,7 @@ async function awPreviewViaLocalSigner(selection) {
         codice_commissione: selection.ufficio_codice || '',
         numero_rgt: selection.numero || '',
         anno_rgt: selection.anno || '',
-        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+        cf_avvocato: awPstAttorneyCf(),
         cert_thumbprint: AW_PST_CERT?.thumbprint || null,
       },
     },
@@ -1705,7 +1715,7 @@ async function awPstDownloadSelectionViaLocalSigner(retry = true) {
       method: 'POST',
       body: JSON.stringify({
         tribunale,
-        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+        cf_avvocato: awPstAttorneyCf(),
         cert_thumbprint: AW_PST_CERT?.thumbprint || null,
         cert_key: AW_PST_CERT?.thumbprint || '',
         purpose: 'view',
@@ -1763,7 +1773,7 @@ async function awPstDownloadDocumentoSingolo(tribunale, doc, retry = true) {
       method: 'POST',
       body: JSON.stringify({
         tribunale,
-        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+        cf_avvocato: awPstAttorneyCf(),
         cert_thumbprint: AW_PST_CERT?.thumbprint || null,
         cert_key: AW_PST_CERT?.thumbprint || '',
         purpose: 'view',

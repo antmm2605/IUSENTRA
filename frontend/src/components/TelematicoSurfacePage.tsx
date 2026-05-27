@@ -174,6 +174,7 @@ type PstCertificate = {
   emittente: string
   scadenza: string
   tokenSlot: string
+  codiceFiscale: string
 }
 
 type PstSession = {
@@ -383,6 +384,7 @@ function loadPstCertificate(): PstCertificate | null {
     emittente: asText(saved?.emittente),
     scadenza: asText(saved?.scadenza),
     tokenSlot: asText(saved?.tokenSlot || saved?.token_slot),
+    codiceFiscale: asText(saved?.codiceFiscale || saved?.codice_fiscale),
   }
 }
 
@@ -393,6 +395,7 @@ function storePstCertificate(cert: PstCertificate | null) {
     emittente: cert.emittente,
     scadenza: cert.scadenza,
     tokenSlot: cert.tokenSlot,
+    codiceFiscale: cert.codiceFiscale,
   } : null)
 }
 
@@ -1722,7 +1725,7 @@ function AcquisitionWizard({
   }
 
   const ensurePstCertificate = async (forceDialog = false): Promise<PstCertificate> => {
-    if (!forceDialog && pstCert?.thumbprint) return pstCert
+    if (!forceDialog && pstCert?.thumbprint && (asText(status.codice_fiscale_avvocato) || pstCert.codiceFiscale)) return pstCert
     const payload = await localSignerJson(`/seleziona-certificato${signerCertPreferenceQuery()}`, undefined, 120000)
     const cert = {
       thumbprint: asText(payload.thumbprint),
@@ -1730,12 +1733,17 @@ function AcquisitionWizard({
       emittente: asText(payload.emittente),
       scadenza: asText(payload.scadenza),
       tokenSlot: asText(payload.token_slot),
+      codiceFiscale: asText(payload.codice_fiscale || payload.codiceFiscale || payload.codice_fiscale_avvocato),
     }
     if (!cert.thumbprint) throw new Error('Seleziona il certificato di firma sul PC e riprova.')
     setPstCert(cert)
     storePstCertificate(cert)
     return cert
   }
+
+  const pstAttorneyFiscalCode = (cert?: PstCertificate | null) => asText(
+    status.codice_fiscale_avvocato || cert?.codiceFiscale || '',
+  )
 
   const rememberPstSession = (payload: JsonRecord, tribunale: string, cert: PstCertificate): PstSession | null => {
     const sessionId = asText(payload.pst_session_id)
@@ -1982,7 +1990,7 @@ function AcquisitionWizard({
               cf_parte: exactPstSearch ? '' : query.cf,
               oggetto: query.oggetto,
               ufficio_nome: query.ufficioNome || query.ufficio,
-              cf_avvocato: asText(status.codice_fiscale_avvocato),
+              cf_avvocato: pstAttorneyFiscalCode(cert),
               cert_thumbprint: cert.thumbprint || null,
               cert_key: cert.thumbprint || '',
               purpose: REACT_PST_SESSION_PURPOSE,
@@ -2002,7 +2010,7 @@ function AcquisitionWizard({
             anno_rg: query.anno,
             nome_parte: exactPstSearch ? '' : (query.assistito || query.controparte),
             cf_parte: exactPstSearch ? '' : query.cf,
-            cf_avvocato: asText(status.codice_fiscale_avvocato),
+            cf_avvocato: pstAttorneyFiscalCode(cert),
             cert_thumbprint: cert.thumbprint || null,
             cert_key: cert.thumbprint || '',
             purpose: REACT_PST_SESSION_PURPOSE,
@@ -2106,7 +2114,7 @@ function AcquisitionWizard({
             anno_rg: asText(selection.raw.anno || query.anno),
             id_fascicolo: asText(selection.raw.id_fascicolo),
             sub_procedimento: asText(selection.raw.sub_procedimento),
-            cf_avvocato: asText(status.codice_fiscale_avvocato),
+            cf_avvocato: pstAttorneyFiscalCode(cert),
             cert_thumbprint: cert.thumbprint || null,
             cert_key: cert.thumbprint || '',
             purpose: REACT_PST_SESSION_PURPOSE,
@@ -2254,7 +2262,7 @@ function AcquisitionWizard({
           let session = activePstSessionFor(tribunale, cert)
           const signerPayload = await localSignerJson('/pst/download-documenti-batch', {
             tribunale,
-            cf_avvocato: asText(status.codice_fiscale_avvocato),
+            cf_avvocato: pstAttorneyFiscalCode(cert),
             cert_thumbprint: cert.thumbprint || null,
             cert_key: cert.thumbprint || '',
             purpose: REACT_PST_SESSION_PURPOSE,

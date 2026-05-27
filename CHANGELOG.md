@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.71 - 2026-05-27
+
+- Local Signer `1.6.54`: la ricerca PST non maschera più come "nessun fascicolo trovato" il caso reale in cui la risposta principale è vuota/non parsabile e i tentativi dello stesso batch contengono SOAP Fault del Ministero.
+- Nel wizard PST React il codice fiscale passato alla ricerca viene preso prima dal certificato selezionato sul PC; il CF configurato nello studio resta solo fallback e la diagnostica tenant-aware registra fonte CF e thumbprint.
+- Pacchetto Windows rigenerato come `SetupLocalSigner-1.6.54.exe` con il profilo IExpress già blindato.
+
 ## 2.248.69 - 2026-05-26
 
 - L'anteprima PST non tronca più le parti a 8 nominativi: mostra tutti i soggetti letti e distingue i nominativi unici dalle righe grezze del portale.

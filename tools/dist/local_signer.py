@@ -112,7 +112,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.53"
+VERSION = "1.6.54"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -4703,6 +4703,55 @@ def _pst_best_effort_batch_blocking_error(items: list[dict]) -> str:
     return errors[0]
 
 
+def _pst_xml_response_valida_senza_fault(xml_str: str) -> bool:
+    xml_clean = _normalizza_xml_pst(xml_str)
+    if not xml_clean:
+        return False
+    if _estrai_fault_soap(xml_clean):
+        return False
+    try:
+        ET.fromstring(xml_clean)
+        return True
+    except Exception:
+        return False
+
+
+def _pst_fault_ricerca_preferita(faults: list[str]) -> str:
+    cleaned: list[str] = []
+    for fault in faults:
+        text = str(fault or "").strip()
+        if text and text not in cleaned:
+            cleaned.append(text)
+    if not cleaned:
+        return ""
+
+    priority_markers = (
+        "non puo' eseguire",
+        "non può eseguire",
+        "unauthorized",
+        "certificato",
+        "pin",
+        "service",
+        "base dati",
+    )
+    for marker in priority_markers:
+        marker_lower = marker.lower()
+        for fault in cleaned:
+            if marker_lower in fault.lower():
+                return fault
+    return cleaned[0]
+
+
+def _pst_ricerca_vuota_fault_message(faults: list[str]) -> str:
+    fault = _pst_fault_ricerca_preferita(faults)
+    if not fault:
+        return ""
+    return (
+        "Il PST non ha restituito una risposta valida per la ricerca fascicolo.\n"
+        f"Il PST ha restituito una SOAP Fault: {fault}"
+    )
+
+
 def _pst_preflight_auth_curl(url: str,
                              cert_thumbprint: Optional[str] = None,
                              pkcs11_uri: Optional[str] = None,
@@ -7878,8 +7927,11 @@ class _Handler(BaseHTTPRequestHandler):
                 if sigp_atti_index is not None and len(batch_results) > sigp_atti_index
                 else ""
             )
+            search_faults: list[str] = []
+            valid_search_response_seen = _pst_xml_response_valida_senza_fault(xml_ricerca)
             fault = _estrai_fault_soap(xml_ricerca)
             if fault:
+                search_faults.append(fault)
                 if fallback_batches:
                     log.info(
                         "Ricerca PST non disponibile su %s, provo registro alternativo: %s",
@@ -7955,12 +8007,15 @@ class _Handler(BaseHTTPRequestHandler):
                         )
                         fallback_fault = _estrai_fault_soap(fallback_xml_ricerca)
                         if fallback_fault:
+                            search_faults.append(fallback_fault)
                             log.info(
                                 "PST ricerca-snapshot: servizio %s ignorato per SOAP Fault: %s",
                                 _pst_servizio_proxy(fallback_base_url),
                                 fallback_fault,
                             )
                             continue
+                        if _pst_xml_response_valida_senza_fault(fallback_xml_ricerca):
+                            valid_search_response_seen = True
 
                         fallback_xml_profilo = (
                             batch_results[int(fallback_profile_index)][0].decode("utf-8", "replace")
@@ -8071,6 +8126,8 @@ class _Handler(BaseHTTPRequestHandler):
                         "controparti": [],
                     }
                 ]
+            if not fascicoli and not documenti and search_faults and not valid_search_response_seen:
+                raise RuntimeError(_pst_ricerca_vuota_fault_message(search_faults))
             if session_entry:
                 _update_pst_session(
                     session_entry["session_id"],

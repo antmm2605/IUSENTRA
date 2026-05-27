@@ -4926,6 +4926,199 @@ def test_pst_ricerca_snapshot_fault_client_su_sicid_passa_a_siecic(monkeypatch):
     assert captured["payload"]["documenti"][0]["id_documento"] == "DOC-SIECIC"
 
 
+def test_pst_ricerca_snapshot_fault_fallback_non_diventa_ricerca_vuota(monkeypatch):
+    module = _load_local_signer()
+    captured = {}
+    monkeypatch.setenv("HACS_SIGNER_PST_REGISTER_FALLBACK", "1")
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "tribunale": "0910011",
+                "numero_rg": "3441",
+                "anno_rg": "2025",
+                "cert_thumbprint": "AABBCC11",
+                "cf_avvocato": "MNTGPP94L01G791A",
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    monkeypatch.setattr(module, "_curl_disponibile", lambda: True)
+    monkeypatch.setattr(
+        module,
+        "_risolvi_base_pst_runtime",
+        lambda tribunale: "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+    )
+    monkeypatch.setattr(module, "_risolvi_codice_ufficio_pst", lambda tribunale: "0800570094")
+    monkeypatch.setattr(module, "_require_certificato_pst", lambda thumbprint: "AABBCC11")
+    monkeypatch.setattr(module, "_cf_avvocato_pst", lambda cf, thumbprint: "MNTGPP94L01G791A")
+    monkeypatch.setattr(
+        module,
+        "_risolvi_ufficio_da_snapshot",
+        lambda codice: {
+            "nome": "Tribunale di Palmi",
+            "servizi_ministero": ["JPW_SICID", "JPW_SIECIC"],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_ensure_pst_session_entry",
+        lambda *args, **kwargs: (
+            {
+                "session_id": "SID-GIUSEPPE",
+                "cookie_file": "C:\\temp\\pst.cookies",
+                "auth_ready": False,
+                "cf_avvocato": "MNTGPP94L01G791A",
+            },
+            True,
+        ),
+    )
+    monkeypatch.setattr(module, "_resolve_pst_session_entry", lambda session_id: None)
+    monkeypatch.setattr(module, "_update_pst_session", lambda *args, **kwargs: None)
+    monkeypatch.setattr(module, "_get_pst_session", lambda *args, **kwargs: None)
+
+    user_fault = (
+        b"<SOAP-ENV:Envelope xmlns:SOAP-ENV='http://schemas.xmlsoap.org/soap/envelope/'>"
+        b"<SOAP-ENV:Body><SOAP-ENV:Fault><faultcode>SOAP-ENV:Client</faultcode>"
+        b"<faultstring>L'utente 'B3A95785DA8A2E69E040A8C001C863D0' non puo' eseguire "
+        b"l'operazione '{urn:CONS-SICC-BE}execute'</faultstring>"
+        b"</SOAP-ENV:Fault></SOAP-ENV:Body></SOAP-ENV:Envelope>"
+    )
+    service_fault = (
+        b"<SOAP-ENV:Envelope xmlns:SOAP-ENV='http://schemas.xmlsoap.org/soap/envelope/'>"
+        b"<SOAP-ENV:Body><SOAP-ENV:Fault><faultcode>SOAP-ENV:Client</faultcode>"
+        b"<faultstring>Service 'InfoFascicolo' non trovato</faultstring>"
+        b"</SOAP-ENV:Fault></SOAP-ENV:Body></SOAP-ENV:Envelope>"
+    )
+
+    def _fake_best_effort(requests, **kwargs):
+        captured["requests"] = list(requests)
+        bodies = [
+            b"",
+            b"<profile/>",
+            b"<documents/>",
+            user_fault,
+            user_fault,
+            user_fault,
+            service_fault,
+            service_fault,
+            service_fault,
+        ]
+        return [
+            {"body_bytes": bodies[index], "headers_text": "HTTP/1.1 200 OK\r\n", "status_code": 200, "error": ""}
+            for index, _request in enumerate(requests)
+        ]
+
+    monkeypatch.setattr(module, "_soap_call_pst_session_batch_raw_best_effort", _fake_best_effort)
+
+    module._Handler._pst_ricerca_snapshot(_FakeHandler())
+
+    assert captured["status"] == 500
+    assert len(captured["requests"]) == 9
+    assert captured["payload"]["ok"] is False
+    assert "SOAP Fault" in captured["payload"]["errore"]
+    assert "non puo' eseguire" in captured["payload"]["errore"]
+
+
+def test_pst_ricerca_snapshot_risposta_valida_vuota_non_bloccata_da_fault_fallback(monkeypatch):
+    module = _load_local_signer()
+    captured = {}
+    monkeypatch.setenv("HACS_SIGNER_PST_REGISTER_FALLBACK", "1")
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "tribunale": "0910011",
+                "numero_rg": "9999",
+                "anno_rg": "2025",
+                "cert_thumbprint": "AABBCC11",
+                "cf_avvocato": "MNTGPP94L01G791A",
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    monkeypatch.setattr(module, "_curl_disponibile", lambda: True)
+    monkeypatch.setattr(
+        module,
+        "_risolvi_base_pst_runtime",
+        lambda tribunale: "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+    )
+    monkeypatch.setattr(module, "_risolvi_codice_ufficio_pst", lambda tribunale: "0800570094")
+    monkeypatch.setattr(module, "_require_certificato_pst", lambda thumbprint: "AABBCC11")
+    monkeypatch.setattr(module, "_cf_avvocato_pst", lambda cf, thumbprint: "MNTGPP94L01G791A")
+    monkeypatch.setattr(
+        module,
+        "_risolvi_ufficio_da_snapshot",
+        lambda codice: {
+            "nome": "Tribunale di Palmi",
+            "servizi_ministero": ["JPW_SICID", "JPW_SIECIC"],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_ensure_pst_session_entry",
+        lambda *args, **kwargs: (
+            {
+                "session_id": "SID-EMPTY",
+                "cookie_file": "C:\\temp\\pst.cookies",
+                "auth_ready": False,
+                "cf_avvocato": "MNTGPP94L01G791A",
+            },
+            True,
+        ),
+    )
+    monkeypatch.setattr(module, "_resolve_pst_session_entry", lambda session_id: None)
+    monkeypatch.setattr(module, "_update_pst_session", lambda *args, **kwargs: None)
+    monkeypatch.setattr(module, "_get_pst_session", lambda *args, **kwargs: None)
+
+    empty_rowlist = (
+        b"<?xml version='1.0' encoding='UTF-8'?>"
+        b"<SOAP-ENV:Envelope xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' "
+        b"xmlns:SOAP-ENV='http://schemas.xmlsoap.org/soap/envelope/'>"
+        b"<SOAP-ENV:Body><ns1:executeResponse xmlns:ns1='urn:CONS-SICC-BE'>"
+        b"<return available='0' xmlns:ns2='urn:qbuilder-types' xsi:type='ns2:rowListType'/>"
+        b"</ns1:executeResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>"
+    )
+    service_fault = (
+        b"<SOAP-ENV:Envelope xmlns:SOAP-ENV='http://schemas.xmlsoap.org/soap/envelope/'>"
+        b"<SOAP-ENV:Body><SOAP-ENV:Fault><faultcode>SOAP-ENV:Client</faultcode>"
+        b"<faultstring>Service 'InfoFascicolo' non trovato</faultstring>"
+        b"</SOAP-ENV:Fault></SOAP-ENV:Body></SOAP-ENV:Envelope>"
+    )
+
+    def _fake_best_effort(requests, **kwargs):
+        captured["requests"] = list(requests)
+        bodies = [
+            empty_rowlist,
+            b"<profile/>",
+            b"<documents/>",
+            service_fault,
+            service_fault,
+            service_fault,
+            service_fault,
+            service_fault,
+            service_fault,
+        ]
+        return [
+            {"body_bytes": bodies[index], "headers_text": "HTTP/1.1 200 OK\r\n", "status_code": 200, "error": ""}
+            for index, _request in enumerate(requests)
+        ]
+
+    monkeypatch.setattr(module, "_soap_call_pst_session_batch_raw_best_effort", _fake_best_effort)
+
+    module._Handler._pst_ricerca_snapshot(_FakeHandler())
+
+    assert captured["status"] == 200
+    assert len(captured["requests"]) == 9
+    assert captured["payload"]["ok"] is True
+    assert captured["payload"]["fascicoli"] == []
+    assert captured["payload"]["documenti"] == []
+
+
 def test_pst_ricerca_snapshot_prova_codice_ufficio_ufficiale_se_diverso(monkeypatch):
     module = _load_local_signer()
     captured = {}

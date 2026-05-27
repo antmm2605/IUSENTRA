@@ -1761,7 +1761,11 @@ function AcquisitionWizard({
   }
 
   const pstAttorneyFiscalCode = (cert?: PstCertificate | null) => asText(
-    status.codice_fiscale_avvocato || cert?.codiceFiscale || '',
+    cert?.codiceFiscale || status.codice_fiscale_avvocato || '',
+  )
+
+  const pstAttorneyFiscalCodeSource = (cert?: PstCertificate | null) => (
+    asText(cert?.codiceFiscale) ? 'certificato' : (asText(status.codice_fiscale_avvocato) ? 'impostazioni_studio' : '')
   )
 
   const rememberPstSession = (payload: JsonRecord, tribunale: string, cert: PstCertificate): PstSession | null => {
@@ -1999,13 +2003,19 @@ function AcquisitionWizard({
     setMessage('')
     setImportResult({})
     setImportProgress({ active: false, phase: '', current: '', completed: 0, total: 0, failures: [] })
+    let rows: AcquisitionResult[] = []
+    let pstSignerPayload: JsonRecord | null = null
+    let pstCertForDiagnostic: PstCertificate | null = null
+    let pstCfForDiagnostic = ''
+    let pstCfSourceForDiagnostic = ''
     try {
-      let rows: AcquisitionResult[] = []
-      let pstSignerPayload: JsonRecord | null = null
       if (portal === 'pst') {
         const tribunale = resolvedOfficeCode()
         let signerPayload: JsonRecord | null = null
         let cert = await ensurePstCertificate()
+        pstCertForDiagnostic = cert
+        pstCfForDiagnostic = pstAttorneyFiscalCode(cert)
+        pstCfSourceForDiagnostic = pstAttorneyFiscalCodeSource(cert)
         let session = activePstSessionFor(tribunale, cert)
         const exactPstSearch = Boolean(asText(query.numero) && asText(query.anno))
         if (canUsePstSearchSnapshot()) {
@@ -2018,7 +2028,7 @@ function AcquisitionWizard({
               cf_parte: exactPstSearch ? '' : query.cf,
               oggetto: query.oggetto,
               ufficio_nome: query.ufficioNome || query.ufficio,
-              cf_avvocato: pstAttorneyFiscalCode(cert),
+              cf_avvocato: pstCfForDiagnostic,
               cert_thumbprint: cert.thumbprint || null,
               cert_key: cert.thumbprint || '',
               purpose: REACT_PST_SESSION_PURPOSE,
@@ -2031,6 +2041,9 @@ function AcquisitionWizard({
         }
         if (!signerPayload) {
           cert = await ensurePstCertificate()
+          pstCertForDiagnostic = cert
+          pstCfForDiagnostic = pstAttorneyFiscalCode(cert)
+          pstCfSourceForDiagnostic = pstAttorneyFiscalCodeSource(cert)
           session = activePstSessionFor(tribunale, cert)
           signerPayload = await localSignerJson('/pst/ricerca', {
             tribunale,
@@ -2038,7 +2051,7 @@ function AcquisitionWizard({
             anno_rg: query.anno,
             nome_parte: exactPstSearch ? '' : (query.assistito || query.controparte),
             cf_parte: exactPstSearch ? '' : query.cf,
-            cf_avvocato: pstAttorneyFiscalCode(cert),
+            cf_avvocato: pstCfForDiagnostic,
             cert_thumbprint: cert.thumbprint || null,
             cert_key: cert.thumbprint || '',
             purpose: REACT_PST_SESSION_PURPOSE,
@@ -2081,6 +2094,11 @@ function AcquisitionWizard({
       if (portal === 'pst') {
         void collectAndSaveLocalSignerDiagnostic(rows.length ? 'pst_search_success' : 'pst_search_empty', {
           risultati: rows.length,
+          cf_avvocato_usato: pstCfForDiagnostic,
+          cf_avvocato_fonte: pstCfSourceForDiagnostic,
+          cf_avvocato_certificato: asText(pstCertForDiagnostic?.codiceFiscale),
+          cf_avvocato_impostazioni: asText(status.codice_fiscale_avvocato),
+          cert_thumbprint: asText(pstCertForDiagnostic?.thumbprint),
           signer_result: pstSignerPayload ? {
             ok: pstSignerPayload.ok !== false,
             raw_xml: asText(pstSignerPayload.raw_xml),
@@ -2097,7 +2115,14 @@ function AcquisitionWizard({
       setMessage(errorMessage)
       recordAcquisitionHistory('failed', 'Fascicolo non scaricato dal portale', errorMessage)
       if (portal === 'pst') {
-        void collectAndSaveLocalSignerDiagnostic('pst_search_error', { errore: errorMessage })
+        void collectAndSaveLocalSignerDiagnostic('pst_search_error', {
+          errore: errorMessage,
+          cf_avvocato_usato: pstCfForDiagnostic,
+          cf_avvocato_fonte: pstCfSourceForDiagnostic,
+          cf_avvocato_certificato: asText(pstCertForDiagnostic?.codiceFiscale),
+          cf_avvocato_impostazioni: asText(status.codice_fiscale_avvocato),
+          cert_thumbprint: asText(pstCertForDiagnostic?.thumbprint),
+        })
       }
     } finally {
       setBusy('')

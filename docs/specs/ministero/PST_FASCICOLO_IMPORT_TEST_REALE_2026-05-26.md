@@ -181,6 +181,42 @@ Se un certificato non è abilitato al fascicolo, il software deve mostrare un
 errore di autenticazione/abilitazione professionale, non "nessun fascicolo" e
 non "importazione senza file reali".
 
+## Aggiornamento reale 27 maggio 2026 - Local Signer 1.6.56
+
+Verifica autorizzata eseguita su macchina locale con certificato dell'avvocato
+abilitato, senza salvare PIN, cookie, sessioni ministeriali o XML grezzi.
+
+Perimetro verificato:
+
+- Tribunale di Palmi selezionato in UI come `0910011`, tradotto dal Local Signer
+  verso il PST in `0800570094`;
+- R.G. `1025/2024`;
+- Local Signer `1.6.56`;
+- ricerca snapshot PST riuscita: 1 fascicolo e 16 documenti nel catalogo;
+- scarico batch fascicolo intero riuscito: 16 file ricevuti, 0 fallimenti;
+- primo documento scaricato in prova singola/batch: `Documento_33584995.pdf`;
+- primi tipi documento letti dal catalogo: `Documento`, `SentenzaDefinitiva`,
+  `VerbaleUdienza`, `AttoNonCodificato`, `ProduzioneDocumentiRichiesti`.
+
+Correzione certificata dal test: per i download documenti QBuilder il Local
+Signer usa il certificato client diretto sul canale download e non invia i cookie
+della ricerca; il lotto resta comunque un unico processo `curl`, con warm-up
+tecnico nello stesso processo quando necessario, così non si torna al download
+singolo ripetuto.
+
+Verifica aggiuntiva dopo installazione del Local Signer `1.6.57`: diagnosi
+locale OK, ricerca reale Palmi R.G. `1025/2024` OK, 16 documenti a catalogo,
+scarico batch di un documento OK (`Documento_33584995.pdf`, contenuto base64
+presente), 0 fallimenti. La differenza `1.6.57` rispetto a `1.6.56` riguarda il
+foreground della finestra PIN Windows.
+
+Limite dichiarato della verifica: questa prova live certifica il percorso reale
+Palmi/SICID con certificato autorizzato. Le tabelle ministeriali degli altri
+servizi sono presidiate da matrice di regressione su cataloghi/WSDL presenti in
+repository; per una certificazione live di SIL, SIVG, MIN/SIMIN, SIECIC, SIGP,
+Cassazione o richieste copie serve un fascicolo reale e un certificato
+autorizzato per quello specifico registro.
+
 ## Regressioni vietate
 
 - Non reintrodurre `/pst/preflight-auth` come chiamata preventiva dal wizard

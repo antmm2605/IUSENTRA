@@ -1568,6 +1568,19 @@ function AcquisitionWizard({
   const [assistantMonitoring, setAssistantMonitoring] = useState(false)
   const assistantTimerRef = useRef<number | null>(null)
   const autoPstTestStartedRef = useRef(false)
+  const mappingTargetOptions = useMemo(() => {
+    const rows: Array<{ id: string; title: string }> = []
+    const add = (id: string, title: string) => {
+      const cleanId = asText(id)
+      if (!cleanId || rows.some((item) => item.id === cleanId)) return
+      rows.push({ id: cleanId, title: asText(title, 'Pratica locale selezionata') })
+    }
+    add(initialTargetFascicoloId, 'Pratica locale selezionata')
+    data.recentCases.forEach((item) => {
+      add(item.practiceId || item.id, item.title)
+    })
+    return rows
+  }, [data.recentCases, initialTargetFascicoloId])
 
   useEffect(() => {
     if (!visible || !portal) return
@@ -1940,6 +1953,15 @@ function AcquisitionWizard({
   }
 
   const officeLooksLikeSigp = () => /giudice\s+di\s+pace|\bgdp\b/i.test(`${query.ufficio} ${query.ufficioNome} ${resolvedOfficeCode()}`)
+  const pstHasPartySearch = () => Boolean(
+    asText(query.assistito)
+    || asText(query.controparte)
+    || asText(query.cf),
+  )
+  const pstHasExactOrPartySearch = () => Boolean(
+    (asText(query.numero) && asText(query.anno))
+    || pstHasPartySearch(),
+  )
 
   const canUsePstSearchSnapshot = () => Boolean(
     portal === 'pst'
@@ -2018,6 +2040,9 @@ function AcquisitionWizard({
         pstCfSourceForDiagnostic = pstAttorneyFiscalCodeSource(cert)
         let session = activePstSessionFor(tribunale, cert)
         const exactPstSearch = Boolean(asText(query.numero) && asText(query.anno))
+        if (!pstHasExactOrPartySearch()) {
+          throw new Error('Indica numero e anno oppure almeno una parte o un codice fiscale per interrogare il PST.')
+        }
         if (canUsePstSearchSnapshot()) {
           try {
             signerPayload = await localSignerJson('/pst/ricerca-snapshot', {
@@ -2860,7 +2885,7 @@ function AcquisitionWizard({
               <div className="iu-tel-acq-form iu-tel-acq-form--mapping">
                 <label><span>Fascicolo locale da aggiornare</span><select value={mapping.target_fascicolo_id} onChange={(event) => updateMapping('target_fascicolo_id', event.currentTarget.value)}>
                   <option value="">Seleziona se necessario</option>
-                  {data.recentCases.map((item) => <option value={item.practiceId || item.id} key={item.id}>{item.title}</option>)}
+                  {mappingTargetOptions.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}
                 </select></label>
               </div>
               <label className="iu-tel-acq-file">
@@ -2890,7 +2915,7 @@ function AcquisitionWizard({
               <div className="iu-tel-acq-form iu-tel-acq-form--mapping">
                 <label><span>Fascicolo locale target</span><select value={mapping.target_fascicolo_id} onChange={(event) => updateMapping('target_fascicolo_id', event.currentTarget.value)}>
                   <option value="">Seleziona se necessario</option>
-                  {data.recentCases.map((item) => <option value={item.practiceId || item.id} key={item.id}>{item.title}</option>)}
+                  {mappingTargetOptions.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}
                 </select></label>
                 <label><span>Procedimento</span><input value={mapping.procedimento} onChange={(event) => updateMapping('procedimento', event.currentTarget.value)}/></label>
                 <label><span>Materia</span><input value={mapping.materia} onChange={(event) => updateMapping('materia', event.currentTarget.value)}/></label>

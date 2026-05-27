@@ -2571,7 +2571,11 @@ function awCurrentOptions() {
 function awCurrentMapping() {
   const initialMapping = AW_BOOT.initialMapping || {};
   const selectedMode = document.querySelector('input[name="awMapMode"]:checked')?.value || initialMapping.mode || 'create_new';
-  const targetId = document.getElementById('awTarget')?.value || initialMapping.target_fascicolo_id || '';
+  const targetId = document.getElementById('awTarget')?.value
+    || initialMapping.target_fascicolo_id
+    || AW_BOOT.linkedFascicolo?.id
+    || AW_STATE.selection?.fascicolo_locale_id
+    || '';
   return {
     mode: targetId && selectedMode === 'create_new' ? 'update_existing' : selectedMode,
     target_fascicolo_id: targetId,
@@ -2611,7 +2615,7 @@ function awRenderMappingMatches() {
   if (linked && !matches.some(match => String(match.id) === String(linked.id))) {
     matches.unshift(linked);
   }
-  const initialTarget = target.dataset.initialTarget || AW_BOOT.initialMapping?.target_fascicolo_id || '';
+  const initialTarget = target.dataset.initialTarget || AW_BOOT.initialMapping?.target_fascicolo_id || AW_BOOT.linkedFascicolo?.id || '';
   if (initialTarget && !matches.some(match => String(match.id) === String(initialTarget))) {
     matches.unshift({
       id: String(initialTarget),
@@ -2830,7 +2834,7 @@ async function awStartImport() {
         payload: manualAuthorizedPayload,
         options,
         mapping: awCurrentMapping(),
-        fascicolo_locale_id: awCurrentMapping().target_fascicolo_id || AW_BOOT.initialMapping?.target_fascicolo_id || '',
+        fascicolo_locale_id: awCurrentMapping().target_fascicolo_id || AW_BOOT.initialMapping?.target_fascicolo_id || AW_BOOT.linkedFascicolo?.id || '',
         downloaded_files: downloadedFiles,
         pst_session: awCurrentPstSessionPayload(),
         snapshot: AW_STATE.pstSnapshot || null,

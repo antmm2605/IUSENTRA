@@ -72,7 +72,10 @@ def main() -> int:
             "do_preflight=False",
             "def _windows_pin_prompt_candidate_score",
             "EnumChildWindows",
+            "QueryFullProcessImageNameW",
+            "credentialuibroker",
             "AttachThreadInput",
+            "FlashWindow",
             "def _cf_avvocato_pst",
             "if explicit:\n        return explicit",
         )

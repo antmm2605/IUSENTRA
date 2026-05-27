@@ -1358,9 +1358,19 @@ def build_telematico_runtime(
         )
 
     def _coerce_mapping(data: dict[str, Any]) -> dict[str, str]:
+        target_id = str(
+            data.get("target_fascicolo_id")
+            or data.get("fascicolo_locale_id")
+            or data.get("fascicolo_id")
+            or data.get("id_fasc")
+            or ""
+        ).strip()
+        mode = str(data.get("mode") or "create_new").strip() or "create_new"
+        if target_id and mode == "create_new":
+            mode = "update_existing"
         return {
-            "mode": str(data.get("mode") or "create_new").strip() or "create_new",
-            "target_fascicolo_id": str(data.get("target_fascicolo_id") or "").strip(),
+            "mode": mode,
+            "target_fascicolo_id": target_id,
             "area_pratica": str(data.get("area_pratica") or "").strip(),
             "materia": str(data.get("materia") or "").strip(),
             "procedimento": str(data.get("procedimento") or "").strip(),

@@ -129,6 +129,88 @@ def test_polisweb_qbuilder_documenti_e_profilo_usano_parametri_pst_live():
         assert 'name="subpro"' not in xml
 
 
+def test_api_portale_acquisizione_analyze_usa_alias_fascicolo_locale_per_update(tmp_path: Path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    utenti = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    utenti.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+    fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        titolo="RG 1025/2024",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2024,
+        oggetto="Vendita di cose immobili",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post("/login", data={"username": "avvocato", "password": "Avv12345!"})
+        response = client.post(
+            "/api/portali/pst/acquisizione/analyze",
+            json={
+                "fascicolo_locale_id": fascicolo.id,
+                "selection": {
+                    "numero": "1025",
+                    "anno": 2024,
+                    "ufficio_codice": "0800570094",
+                    "ufficio_nome": "Tribunale di Palmi",
+                    "parti": ["Montagnese"],
+                    "payload": {
+                        "numero_rg": "1025",
+                        "anno_rg": 2024,
+                        "codice_ufficio": "0800570094",
+                        "nome_ufficio": "Tribunale di Palmi",
+                    },
+                },
+                "preview": {
+                    "identity": {
+                        "numero": "1025",
+                        "anno": 2024,
+                        "ufficio_nome": "Tribunale di Palmi",
+                    },
+                    "parti": ["Montagnese"],
+                    "documenti": [],
+                    "counts": {"parti": 1, "documenti": 0, "depositi": 0},
+                },
+                "options": {
+                    "importa_parti": False,
+                    "importa_documenti": False,
+                    "importa_eventi": False,
+                    "importa_udienze": False,
+                    "importa_scadenze": False,
+                },
+                "mapping": {"mode": "create_new"},
+            },
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["analysis"]["resolved_mode"] == "update_existing"
+    assert data["analysis"]["auto_target_fascicolo_id"] == fascicolo.id
+    assert all(
+        item.get("label") != "Pratica locale non selezionata"
+        for item in data["analysis"]["blockers"]
+    )
+
+
 def test_polisweb_qbuilder_sigp_usa_registro_gdp_senza_subpro_implicito():
     client = _client()
     base = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIGP"

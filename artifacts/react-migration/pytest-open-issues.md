@@ -1,5 +1,35 @@
 # Pytest issue aperte e risoluzioni
 
+## Note Local Signer 1.6.57 foreground PIN e PST 2.248.74 - 2026-05-27
+
+Nessuna issue locale aperta sul perimetro corretto dopo i test mirati. Il test
+live autorizzato Palmi R.G. `1025/2024` ha confermato ricerca, catalogo e
+scarico batch dell'intero fascicolo con 16 documenti e 0 fallimenti.
+
+Durante la prova la finestra PIN Windows poteva restare in barra delle
+applicazioni: il Local Signer `1.6.57` estende il riconoscimento del dialog a
+titolo, classe, testo figlio e processo (`CredentialUIBroker`, Bit4id, Aruba,
+MinVA, CNS/CIE). La verifica live del focus dipende da un nuovo prompt reale di
+Windows e quindi resta osservabile alla prossima richiesta PIN non servita dalla
+cache del token; il comportamento è presidiato da test di regressione mirati.
+
+## Note prova deposito senza invio reale 2.248.70 - 2026-05-27
+
+Nessuna issue locale aperta sul perimetro corretto dopo i test mirati. Il flusso
+di prova marca il deposito come `Prova senza invio reale`, non apre canali PEC
+esterni e consente di generare ricevute sintetiche solo su quel deposito.
+
+La simulazione copre accettazione PEC, consegna, controlli automatici con avvisi
+e conferma della cancelleria dentro il fascicolo. Le evidenze sono sanificate con
+domini `.invalid`; indirizzi e identificativi PEC reali non vengono salvati nelle
+fixture o nei documenti della tranche.
+
+Follow-up chiuso nella stessa tranche: la UI React dei fascicoli usa lo stesso
+loader runtime della vista classica, quindi login, dettaglio pratica, sezione
+Cancelleria e pulsante `Deposito telematico` leggono lo stesso fascicolo. La
+sezione Cancelleria mostra anche che la casella PEC viene sincronizzata
+automaticamente e aggiorna stato deposito e fascicolo.
+
 ## Note PST fascicolo/import e Local Signer 1.6.50 - 2026-05-26
 
 Nessuna issue locale aperta sul perimetro corretto dopo i test mirati e la prova

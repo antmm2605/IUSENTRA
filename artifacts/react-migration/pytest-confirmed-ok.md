@@ -1,5 +1,15 @@
 # Pytest shard confermati OK
 
+## Local Signer 1.6.57 foreground PIN e matrice ministeriale PST 2.248.74 - 2026-05-27
+
+| Comando | Esito | Note |
+| --- | --- | --- |
+| `python -m pytest -q tests/test_local_signer.py -k "foreground_pin or qbuilder_ricerca_per_parte or qbuilder_sicid_family_usa_tipo_registro or download_documenti_batch or pst_download_documento_payload or soap_call_pst_session_batch or session_can_use_cookie"` | OK | Verifica mirata su finestra PIN Windows, ricerca per parte senza R.G., download QBuilder senza cookie ricerca e batch documenti in un solo processo. |
+| `python -m pytest -q tests/test_portali_telematici_matrix.py` | OK | Matrice servizi ministeriali: SICID, SIL, SIVG, MIN/SIMIN, SIECIC, SIGP, Cassazione civile/penale, PDP/PAT/PTT browser assist e operazioni WSDL presidiate. |
+| `python -m pytest -q tests/test_react_shell.py -k "portale_acquisizione"` | OK | Wizard React presidia ricerca esatta, ricerca per parte, target pratica esistente e Local Signer browser. |
+| `python -m pytest -q tests/test_polisweb.py -k "alias_fascicolo_locale_per_update"` | OK | API acquisizione accetta gli alias del fascicolo gestionale e resta su `Aggiorna pratica esistente`. |
+| Test reale autorizzato Palmi R.G. `1025/2024` | OK | Local Signer `1.6.56`: ricerca snapshot OK, 1 fascicolo, 16 documenti, scarico batch intero 16/16, 0 fallimenti. Dopo installazione `1.6.57`: diagnosi OK, ricerca OK, catalogo 16, download batch di `Documento_33584995.pdf` OK, 0 fallimenti. |
+
 ## Local Signer 1.6.55 registri civili paralleli PST 2.248.72 - 2026-05-27
 
 | Comando | Esito | Note |

@@ -63,20 +63,32 @@ def test_pst_qbuilder_matrix_servizi_ufficiali(servizio, distretto, namespace):
         anno_rg=2024,
         sub_procedimento="1",
     )
+    ricerca_parte_xml = module._soap_ricerca_fascicoli_body(
+        base_url=base_url,
+        codice_ufficio="0800570094",
+        nome_parte="Montagnese",
+        cf_parte="MNTGPP94L01G791A",
+        cf_avvocato="MNTGPP94L01G791A",
+    )
 
     assert module._pst_namespace_qbuilder(base_url) == namespace
     assert f'<execute xmlns="{namespace}">' in ricerca_xml
+    assert f'<execute xmlns="{namespace}">' in ricerca_parte_xml
     if servizio == "JPW_SIECIC":
         assert "<name>InfoFascicolo</name>" in ricerca_xml
         assert "<name>RicercaInformazioniFascicoloPerTipo</name>" not in ricerca_xml
+        assert "<name>RicercaInformazioniFascicoloPerPartiGiudiceDate</name>" in ricerca_parte_xml
         for xml in (ricerca_xml, documenti_xml, profilo_xml):
             assert '<value name="idUfficio" type="string">0800570094</value>' in xml
             assert '<value name="annoRuolo" type="integer">2024</value>' in xml
             assert '<value name="numeroRuolo" type="string">1025</value>' in xml
     else:
         assert "<name>RicercaInformazioniFascicoloPerTipo</name>" in ricerca_xml
+        assert "<name>RicercaInformazioniFascicoloPerPartiGiudiceDate</name>" in ricerca_parte_xml
         assert '<value name="anno" type="string">2024</value>' in ricerca_xml
         assert '<value name="numero" type="integer">1025</value>' in ricerca_xml
+        assert 'name="numero"' not in ricerca_parte_xml
+        assert 'name="anno"' not in ricerca_parte_xml
 
         for xml in (ricerca_xml, documenti_xml, profilo_xml):
             assert 'name="subProc"' not in xml

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.248.74 - 2026-05-27
+
+- Local Signer `1.6.57`: rafforzato il primo piano della finestra PIN su Windows, riconoscendo anche `CredentialUIBroker`, finestre senza titolo e processi Bit4id/Aruba/MinVA/CNS/CIE; la console `curl` resta nascosta e non vengono salvati PIN o credenziali.
+- Pacchetto Windows rigenerato come `SetupLocalSigner-1.6.57.exe` con profilo IExpress blindato e alias `SetupLocalSigner.exe`.
+
+## 2.248.73 - 2026-05-27
+
+- Local Signer `1.6.56`: lo scarico documenti QBuilder non invia più i cookie della ricerca quando il Ministero si aspetta il certificato client diretto sul download; il lotto resta un unico processo `curl` e il fascicolo reale Palmi R.G. `1025/2024` è stato verificato con ricerca, catalogo e batch `16/16` senza fallimenti.
+- `Aggiorna pratica esistente` è più robusto tra React, wizard classico e API: gli alias `target_fascicolo_id`, `fascicolo_locale_id`, `fascicolo_id` e `id_fasc` vengono ricondotti alla stessa mappatura gestionale.
+- Aggiunta verifica di adeguatezza alle tabelle ministeriali: SICID, SIL, SIVG, MIN/SIMIN, SIECIC, SIGP e Cassazione civile/penale controllano namespace, nome servizio, tipo registro e ricerca per parte senza numero/anno tramite `RicercaInformazioniFascicoloPerPartiGiudiceDate`.
+- Pacchetto Windows rigenerato come `SetupLocalSigner-1.6.56.exe` con il profilo IExpress blindato e alias `SetupLocalSigner.exe`.
+
 ## 2.248.72 - 2026-05-27
 
 - Local Signer `1.6.55`: la ricerca PST esatta numero/anno ora mantiene il registro certificato come prima scelta, ma se il registro civile ordinario non restituisce il fascicolo prova nello stesso ufficio e nella stessa sessione i canali ministeriali civili `JPW_SIL`/lavoro, `JPW_SIVG`/volontaria giurisdizione, `JPW_MIN`/minori e `JPW_SIMIN` prima di SIECIC.

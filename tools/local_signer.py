@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.53
+IUSENTRA Local Signer - v1.6.57
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -112,7 +112,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.55"
+VERSION = "1.6.57"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -2241,6 +2241,20 @@ def _pst_session_can_use_cookie_only(session_entry: Optional[dict], *, created_n
     return bool(session_entry.get("auth_ready"))
 
 
+def _pst_download_can_use_cookie_only(base_url: str, cookie_file: Optional[str]) -> bool:
+    return bool(_pst_download_cookie_file(base_url, cookie_file))
+
+
+def _pst_download_cookie_file(base_url: str, cookie_file: Optional[str]) -> str:
+    # Le operazioni documento del proxy QBuilder possono restare appese quando
+    # ricevono cookie della ricerca. Per il download si usa quindi il certificato
+    # direttamente senza inviare cookie; il batch multiplo resta un unico
+    # processo curl, quindi Windows chiede comunque un solo PIN per il lotto.
+    if _pst_namespace_qbuilder(base_url):
+        return ""
+    return str(cookie_file or "").strip()
+
+
 def _pst_preflight_confirmed(esito: Optional[dict]) -> bool:
     """Il cookie-only e' affidabile solo se il preflight ha prodotto un HTTP reale."""
     if not esito or not esito.get("ok"):
@@ -2835,6 +2849,10 @@ def _pst_registro_da_base_url(base_url: str) -> str:
     return tail.split("/", 1)[0].strip()
 
 
+def _pst_registro_documenti_sicid(base_url: str) -> str:
+    return _pst_servizio_proxy(base_url) or _pst_registro_da_base_url(base_url)
+
+
 def _risolvi_codice_ufficio_pst(codice_o_nome: str) -> str:
     if _risolvi_codice_ministero_hacs is not None:
         return _risolvi_codice_ministero_hacs(codice_o_nome)
@@ -3397,14 +3415,27 @@ def _curl_windows_ssl_revoke_config_lines() -> list[str]:
 _WINDOWS_PIN_FOREGROUND_KEYWORDS = (
     "autenticazione",
     "accesso",
+    "autorizzazione",
+    "autorizza",
+    "carta nazionale",
+    "certificate",
+    "certificato",
+    "chiave privata",
     "credenziali",
     "credential",
     "credentialui",
+    "dispositivo di sicurezza",
     "identita",
     "identità",
+    "immettere il pin",
+    "immetti il pin",
+    "inserire il pin",
+    "inserisci il pin",
     "lettore",
     "password",
     "pin",
+    "private key",
+    "richiesta pin",
     "sicurezza windows",
     "sicurezza di windows",
     "sicurezza",
@@ -3418,12 +3449,15 @@ _WINDOWS_PIN_FOREGROUND_KEYWORDS = (
     "cie",
     "bit4id",
     "aruba",
+    "arubapec",
+    "minva",
     "token",
 )
 
 
 _WINDOWS_PIN_FOREGROUND_CLASS_KEYWORDS = (
     "credential",
+    "credential dialog xaml host",
     "smartcard",
     "cryptui",
     "bit4",
@@ -3431,14 +3465,33 @@ _WINDOWS_PIN_FOREGROUND_CLASS_KEYWORDS = (
 )
 
 
+_WINDOWS_PIN_FOREGROUND_PROCESS_KEYWORDS = (
+    "credentialuibroker",
+    "credential",
+    "cryptui",
+    "certenroll",
+    "bit4",
+    "aruba",
+    "arubapec",
+    "minva",
+    "akutility",
+    "smartcard",
+    "carta",
+    "cieid",
+    "cns",
+)
+
+
 def _windows_pin_prompt_candidate_score(
     title: str,
     class_name: str = "",
     child_text: str = "",
+    process_name: str = "",
 ) -> int:
     title_norm = (title or "").casefold()
     class_norm = (class_name or "").casefold()
     child_norm = (child_text or "").casefold()
+    process_norm = (process_name or "").casefold()
     score = 0
     if title_norm and any(keyword in title_norm for keyword in _WINDOWS_PIN_FOREGROUND_KEYWORDS):
         score += 8
@@ -3446,6 +3499,10 @@ def _windows_pin_prompt_candidate_score(
         score += 6
     if class_norm and any(keyword in class_norm for keyword in _WINDOWS_PIN_FOREGROUND_CLASS_KEYWORDS):
         score += 5
+    if process_norm and any(keyword in process_norm for keyword in _WINDOWS_PIN_FOREGROUND_PROCESS_KEYWORDS):
+        score += 7
+    if class_norm in {"applicationframewindow", "windows.ui.core.corewindow", "nativehwndhost"} and score:
+        score += 2
     if class_norm == "#32770" and score:
         score += 1
     return score
@@ -3467,7 +3524,9 @@ def _windows_force_foreground_window(user32: Any, hwnd: Any) -> bool:
         swp_nomove = 0x0002
         swp_nosize = 0x0001
         swp_showwindow = 0x0040
-        swp_flags = swp_nomove | swp_nosize | swp_showwindow
+        swp_noownerzorder = 0x0200
+        swp_nosendchanging = 0x0400
+        swp_flags = swp_nomove | swp_nosize | swp_showwindow | swp_noownerzorder | swp_nosendchanging
 
         allow_set_foreground = getattr(user32, "AllowSetForegroundWindow", None)
         if allow_set_foreground:
@@ -3503,9 +3562,14 @@ def _windows_force_foreground_window(user32: Any, hwnd: Any) -> bool:
             set_window_pos = getattr(user32, "SetWindowPos", None)
             if set_window_pos:
                 set_window_pos(hwnd, hwnd_topmost, 0, 0, 0, 0, swp_flags)
+                time.sleep(0.08)
 
             user32.BringWindowToTop(hwnd)
             foreground_ok = bool(user32.SetForegroundWindow(hwnd))
+            if not foreground_ok:
+                user32.ShowWindow(hwnd, sw_restore)
+                user32.BringWindowToTop(hwnd)
+                foreground_ok = bool(user32.SetForegroundWindow(hwnd))
             try:
                 user32.SetActiveWindow(hwnd)
                 user32.SetFocus(hwnd)
@@ -3515,6 +3579,21 @@ def _windows_force_foreground_window(user32: Any, hwnd: Any) -> bool:
             switch_to_this_window = getattr(user32, "SwitchToThisWindow", None)
             if switch_to_this_window:
                 switch_to_this_window(hwnd, True)
+
+            if not foreground_ok:
+                flash_window = getattr(user32, "FlashWindow", None)
+                if flash_window:
+                    try:
+                        flash_window(hwnd, True)
+                    except Exception:
+                        pass
+                # Windows a volte rifiuta SetForegroundWindow ma mostra comunque
+                # il dialog se resta topmost per qualche istante.
+                time.sleep(0.45)
+                try:
+                    foreground_ok = bool(user32.GetForegroundWindow() == hwnd)
+                except Exception:
+                    pass
 
             if set_window_pos:
                 set_window_pos(hwnd, hwnd_notopmost, 0, 0, 0, 0, swp_flags)
@@ -3562,6 +3641,35 @@ def _windows_try_foreground_pin_prompt_once() -> bool:
             user32.GetClassNameW(hwnd, buffer, len(buffer))
             return (buffer.value or "").strip()
 
+        def _process_name(hwnd: Any) -> str:
+            pid = wintypes.DWORD()
+            try:
+                user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+            except Exception:
+                return ""
+            if not pid.value:
+                return ""
+            kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
+            open_process = getattr(kernel32, "OpenProcess", None)
+            query_image = getattr(kernel32, "QueryFullProcessImageNameW", None)
+            close_handle = getattr(kernel32, "CloseHandle", None)
+            if not (open_process and query_image and close_handle):
+                return ""
+            handle = open_process(0x1000, False, pid.value)
+            if not handle:
+                return ""
+            try:
+                buffer = ctypes.create_unicode_buffer(1024)
+                size = wintypes.DWORD(len(buffer))
+                if query_image(handle, 0, buffer, ctypes.byref(size)):
+                    return (buffer.value or "").strip()
+            finally:
+                try:
+                    close_handle(handle)
+                except Exception:
+                    pass
+            return ""
+
         def _child_text(hwnd: Any) -> str:
             parts: list[str] = []
 
@@ -3581,11 +3689,12 @@ def _windows_try_foreground_pin_prompt_once() -> bool:
                 return True
             title = _window_text(hwnd)
             class_name = _class_name(hwnd)
+            process_name = _process_name(hwnd)
             child_text = ""
-            score = _windows_pin_prompt_candidate_score(title, class_name, child_text)
+            score = _windows_pin_prompt_candidate_score(title, class_name, child_text, process_name)
             if not score:
                 child_text = _child_text(hwnd)
-                score = _windows_pin_prompt_candidate_score(title, class_name, child_text)
+                score = _windows_pin_prompt_candidate_score(title, class_name, child_text, process_name)
             if score:
                 matched.append((score, hwnd))
             return True
@@ -3608,7 +3717,7 @@ def _windows_pin_prompt_foreground_pump(stop_event: threading.Event, deadline_se
     deadline = time.monotonic() + max(1.0, min(float(deadline_seconds or 1), 180.0))
     while not stop_event.is_set() and time.monotonic() < deadline:
         found = _windows_try_foreground_pin_prompt_once()
-        stop_event.wait(0.85 if found else 0.30)
+        stop_event.wait(0.22 if found else 0.25)
 
 
 def _run_curl_with_pin_foreground(cmd: list[str], **kwargs: Any) -> subprocess.CompletedProcess:
@@ -5821,9 +5930,14 @@ def _pst_download_documento_payload(
     extra_headers: list[str] = []
     soap_action = ""
     profilo: dict = {}
+    download_cookie_file = _pst_download_cookie_file(base_url, cookie_file)
+    download_prefer_cookie_only = bool(prefer_cookie_only) and _pst_download_can_use_cookie_only(
+        base_url,
+        download_cookie_file,
+    )
 
     if _pst_servizio_sicid_family(base_url):
-        registro = _pst_registro_da_base_url(base_url)
+        registro = _pst_registro_documenti_sicid(base_url)
         if not cf_avvocato:
             raise RuntimeError(
                 "Il download ufficiale del documento richiede il codice fiscale dell'avvocato nell'header X-WASP-User."
@@ -5845,8 +5959,8 @@ def _pst_download_documento_payload(
                 ),
                 cert_thumbprint=cert_thumbprint,
                 extra_headers=extra_headers,
-                cookie_file=cookie_file,
-                prefer_cookie_only=prefer_cookie_only,
+                cookie_file=download_cookie_file,
+                prefer_cookie_only=download_prefer_cookie_only,
             )
             profilo = _parse_profilo_documento_xml(profilo_xml)
             id_cat = str(profilo.get("id_cat") or "").strip()
@@ -5880,8 +5994,8 @@ def _pst_download_documento_payload(
                 soap_body=_soap_bea_siecic_body("estraiProfiloDocumento", [("idDoc", id_documento)]),
                 cert_thumbprint=cert_thumbprint,
                 extra_headers=extra_headers,
-                cookie_file=cookie_file,
-                prefer_cookie_only=prefer_cookie_only,
+                cookie_file=download_cookie_file,
+                prefer_cookie_only=download_prefer_cookie_only,
             )
             profilo = _parse_profilo_documento_xml(profilo_xml)
     elif servizio == "JPW_SIGP":
@@ -5899,8 +6013,8 @@ def _pst_download_documento_payload(
         cert_thumbprint=cert_thumbprint,
         extra_headers=extra_headers,
         soap_action=soap_action,
-        cookie_file=cookie_file,
-        prefer_cookie_only=prefer_cookie_only,
+        cookie_file=download_cookie_file,
+        prefer_cookie_only=download_prefer_cookie_only,
         max_time=PST_DOWNLOAD_MAX_TIME,
         connect_timeout=PST_DOWNLOAD_CONNECT_TIMEOUT,
     )
@@ -6178,9 +6292,10 @@ def _pst_download_documenti_batch_payloads(
                 cert_thumbprint=cert_thumbprint,
                 cookie_file=cookie_file,
             )
-        prefer_cookie_only = bool(cookie_file)
         servizio = _pst_servizio_proxy(base_url)
         url_documenti = _pst_url_documenti(base_url)
+        download_cookie_file = _pst_download_cookie_file(base_url, cookie_file)
+        prefer_cookie_only = _pst_download_can_use_cookie_only(base_url, download_cookie_file)
         usa_wasp = _pst_servizio_sicid_family(base_url) or servizio == "JPW_SIECIC"
         extra_base = [f"X-WASP-User: {cf_avvocato}"] if (usa_wasp and cf_avvocato) else []
 
@@ -6207,7 +6322,7 @@ def _pst_download_documenti_batch_payloads(
                     item = documenti[i]
                     for id_doc in _pst_document_id_candidates(item):
                         if _pst_servizio_sicid_family(base_url):
-                            registro = _pst_registro_da_base_url(base_url)
+                            registro = _pst_registro_documenti_sicid(base_url)
                             soap = _soap_bea_sicid_body(
                                 "estraiProfiloDocumento",
                                 [
@@ -6227,14 +6342,14 @@ def _pst_download_documenti_batch_payloads(
                             "soap_body": soap,
                             "extra_headers": extra_base,
                             "soap_action": "",
-                            "cookie_file": cookie_file,
+                            "cookie_file": download_cookie_file,
                         })
                         prof_meta.append((i, id_doc))
                 try:
                     prof_results = _soap_call_pst_session_batch_raw_best_effort(
                         prof_reqs,
                         cert_thumbprint=cert_thumbprint,
-                        cookie_file=cookie_file,
+                        cookie_file=download_cookie_file,
                         prefer_cookie_only=prefer_cookie_only,
                     )
                     resolved_profili: set[int] = set()
@@ -6319,7 +6434,7 @@ def _pst_download_documenti_batch_payloads(
                                         item.get("data_deposito") or item.get("data_documento") or ""
                                     ).strip(),
                                     original=original,
-                                    cookie_file=cookie_file,
+                                    cookie_file=download_cookie_file,
                                     prefer_cookie_only=prefer_cookie_only,
                                 )
                             )
@@ -6362,7 +6477,7 @@ def _pst_download_documenti_batch_payloads(
                     "soap_body": soap_body,
                     "soap_action": soap_action,
                     "extra_headers": extra_h,
-                    "cookie_file": cookie_file,
+                    "cookie_file": download_cookie_file,
                     "max_time": PST_DOWNLOAD_MAX_TIME,
                     "connect_timeout": PST_DOWNLOAD_CONNECT_TIMEOUT,
                 })
@@ -6379,12 +6494,39 @@ def _pst_download_documenti_batch_payloads(
 
         # ── Fase 3: UN SOLO processo curl per tutti i download ──
         try:
+            warmup_reqs: list[dict] = []
+            if _pst_servizio_sicid_family(base_url) and len(dl_reqs) > 1 and cf_avvocato:
+                first_doc_id = str(
+                    dl_meta[0]["item"].get("id_documento")
+                    or dl_meta[0]["item"].get("id_documento_portale")
+                    or dl_meta[0]["id_documento"]
+                    or ""
+                ).strip()
+                if first_doc_id:
+                    warmup_reqs.append({
+                        "url": url_documenti,
+                        "soap_body": _soap_bea_sicid_body(
+                            "calcolaHash",
+                            [
+                                ("idUtenteCorrente", cf_avvocato),
+                                ("idDoc", first_doc_id),
+                            ],
+                            group=codice_ufficio,
+                        ),
+                        "soap_action": "",
+                        "extra_headers": extra_base,
+                        "cookie_file": download_cookie_file,
+                        "max_time": PST_DOWNLOAD_MAX_TIME,
+                        "connect_timeout": PST_DOWNLOAD_CONNECT_TIMEOUT,
+                    })
             batch_results = _soap_call_pst_session_batch_raw(
-                dl_reqs,
+                [*warmup_reqs, *dl_reqs],
                 cert_thumbprint=cert_thumbprint,
-                cookie_file=cookie_file,
+                cookie_file=download_cookie_file,
                 prefer_cookie_only=prefer_cookie_only,
             )
+            if warmup_reqs:
+                batch_results = batch_results[len(warmup_reqs):]
             for (body_bytes, hdr_text), meta in zip(batch_results, dl_meta):
                 try:
                     ct = _http_header_value(hdr_text, "Content-Type")

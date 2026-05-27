@@ -174,11 +174,15 @@ def test_local_signer_pst_curl_attiva_foreground_prompt_pin_windows():
     assert '"sicurezza di windows"' in source
     assert '"windows security"' in source
     assert '"credential"' in source
+    assert '"credentialuibroker"' in source
     assert '"bit4id"' in source
+    assert '"minva"' in source
     assert "EnumChildWindows" in source
     assert "GetClassNameW" in source
+    assert "QueryFullProcessImageNameW" in source
     assert "AttachThreadInput" in source
     assert "SetWindowPos" in source
+    assert "FlashWindow" in source
     assert "CREATE_NO_WINDOW" in source
     assert "STARTF_USESHOWWINDOW" in source
     assert source.count("_run_curl_with_pin_foreground(") >= 5
@@ -257,6 +261,18 @@ def test_local_signer_foreground_pin_riconosce_dialog_windows_senza_titolo():
         "#32770",
         "Inserire il PIN della smart card",
     ) >= 15
+    assert module._windows_pin_prompt_candidate_score(
+        "",
+        "ApplicationFrameWindow",
+        "",
+        r"C:\Windows\System32\CredentialUIBroker.exe",
+    ) >= 9
+    assert module._windows_pin_prompt_candidate_score(
+        "",
+        "NativeHWNDHost",
+        "",
+        r"C:\Program Files\Bit4id\MinVa\MinVa.exe",
+    ) >= 9
     assert module._windows_pin_prompt_candidate_score("Google Chrome", "Chrome_WidgetWin_1", "") == 0
 
 
@@ -2061,6 +2077,35 @@ def test_qbuilder_sicid_family_usa_tipo_registro_ministeriale_corretto():
         assert '<value name="anno" type="string">2025</value>' in xml
 
 
+def test_qbuilder_ricerca_per_parte_copre_registri_ministeriali_senza_rg():
+    module = _load_local_signer()
+
+    attesi = {
+        "JPW_SICID": "urn:CONS-SICC-BE",
+        "JPW_SIL": "urn:CONS-SIL-BE-DISTR",
+        "JPW_SIVG": "urn:CONS-SIVG-BE",
+        "JPW_MIN": "urn:CONS-MIN-BE",
+        "JPW_SIMIN": "urn:CONS-MIN-BE",
+        "JPW_SIGP": "urn:CONS-SIGP-BE",
+    }
+
+    for servizio, namespace in attesi.items():
+        xml = module._soap_ricerca_fascicoli_body(
+            base_url=f"https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/{servizio}",
+            codice_ufficio="0800570094",
+            nome_parte="Montagnese",
+            cf_parte="MNTGPP94L01G791A",
+            cf_avvocato="MNTGPP94L01G791A",
+        )
+
+        assert f'<execute xmlns="{namespace}">' in xml
+        assert "<name>RicercaInformazioniFascicoloPerPartiGiudiceDate</name>" in xml
+        assert '<value name="cognomeNome" type="string">MONTAGNESE</value>' in xml
+        assert '<value name="codiceFiscale" type="string">MNTGPP94L01G791A</value>' in xml
+        assert 'name="numero"' not in xml
+        assert 'name="anno"' not in xml
+
+
 def test_qbuilder_siecic_usa_servizi_catalogo_ministeriale():
     module = _load_local_signer()
     base_url = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC"
@@ -3721,7 +3766,7 @@ def test_download_documenti_batch_singolo_usa_id_documento_come_idcat_sicid():
     assert calls["best_effort"] == 0
     assert len(calls["batch"]) == 1
     assert "<idCat>33581101</idCat>" in calls["batch"][0]["soap_body"]
-    assert calls["batch"][0]["cookie_file"] == "C:\\temp\\pst.cookies"
+    assert calls["batch"][0]["cookie_file"] == ""
 
 
 def test_download_documenti_batch_multi_documento_usa_id_documento_come_idcat_sicid():
@@ -3752,10 +3797,9 @@ def test_download_documenti_batch_multi_documento_usa_id_documento_come_idcat_si
                 b"JVBERi0xLjcK\r\n"
                 b"--abc123--\r\n"
             )
-            return [
-                (body, 'Content-Type: multipart/related; boundary="abc123"'),
-                (body, 'Content-Type: multipart/related; boundary="abc123"'),
-            ]
+            return [(b"<hash/>", "HTTP/1.1 200 OK\r\nContent-Type: text/xml\r\n")] + [
+                (body, 'Content-Type: multipart/related; boundary="abc123"')
+            ] * (len(requests) - 1)
 
         module._soap_call_pst_session_batch_raw_best_effort = _fake_best_effort
         module._soap_call_pst_session_batch_raw = _fake_batch
@@ -3780,9 +3824,11 @@ def test_download_documenti_batch_multi_documento_usa_id_documento_come_idcat_si
     assert esito["documenti_scaricati"] == 2
     assert esito["failures"] == []
     assert calls["best_effort"] == 0
-    assert len(calls["batch"]) == 2
-    assert "<idCat>33581101</idCat>" in calls["batch"][0]["soap_body"]
-    assert "<idCat>33393309</idCat>" in calls["batch"][1]["soap_body"]
+    assert len(calls["batch"]) == 3
+    assert "<impl:calcolaHash" in calls["batch"][0]["soap_body"]
+    assert "<idDoc>33581101</idDoc>" in calls["batch"][0]["soap_body"]
+    assert "<idCat>33581101</idCat>" in calls["batch"][1]["soap_body"]
+    assert "<idCat>33393309</idCat>" in calls["batch"][2]["soap_body"]
 
 
 def test_download_documenti_batch_sicid_accetta_documento_con_solo_id_cat():
@@ -4483,15 +4529,16 @@ def test_soap_call_pst_session_batch_raw_non_richiede_secondo_certificato_su_tim
     assert calls == [None]
 
 
-def test_download_documenti_batch_con_sessione_attiva_riusa_cookie_prima_del_certificato():
+def test_download_documenti_batch_con_sessione_attiva_usa_certificato_in_lotto_unico():
     module = _load_local_signer()
 
     orig_batch = module._soap_call_curl_batch_raw
     orig_download = module._pst_download_documento_payload
-    calls = {"batch": []}
+    calls = {"batch": [], "cert_thumbprint": None}
     try:
         def _fake_batch(requests, cert_thumbprint=None, pkcs11_uri=None):
             calls["batch"] = list(requests)
+            calls["cert_thumbprint"] = cert_thumbprint
             return [(b"<Envelope><return/></Envelope>", "HTTP/1.1 200 OK\r\n")] * len(requests)
 
         def _fake_download(**kwargs):
@@ -4525,8 +4572,9 @@ def test_download_documenti_batch_con_sessione_attiva_riusa_cookie_prima_del_cer
     assert esito["ok"] is True
     assert esito["documenti_scaricati"] == 1
     assert len(calls["batch"]) == 1
+    assert calls["cert_thumbprint"] == "AABBCC11"
     assert "<idCat>33581101</idCat>" in calls["batch"][0]["soap_body"]
-    assert calls["batch"][0]["cookie_file"] == "C:\\temp\\pst.cookies"
+    assert calls["batch"][0]["cookie_file"] == ""
 
 
 def test_download_documenti_batch_timeout_non_torna_al_download_singolo():

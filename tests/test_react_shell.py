@@ -1463,6 +1463,8 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "cf_avvocato_fonte: pstCfSourceForDiagnostic" in source
     assert "cf_avvocato: pstCfForDiagnostic" in source
     assert "cf_avvocato: exactPstSearch ? ''" not in source
+    assert "const pstHasPartySearch = () => Boolean(" in source
+    assert "Indica numero e anno oppure almeno una parte o un codice fiscale per interrogare il PST." in source
     assert "const signerRows = asList(signerPayload.fascicoli || signerPayload.results)" in source
     assert "const snapshotFascicolo = asRecord(snapshot.fascicolo)" in source
     assert "const sourceRows = signerRows.length" in source
@@ -1474,6 +1476,8 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "function acquisitionInitialMappingMode" in source
     assert "mode: acquisitionInitialMappingMode(initialTargetFascicoloId)" in source
     assert "target_fascicolo_id: initialTargetFascicoloId" in source
+    assert "const mappingTargetOptions = useMemo(() => {" in source
+    assert "add(initialTargetFascicoloId, 'Pratica locale selezionata')" in source
     assert "params.get('mode')" in source
     assert "params.get('fascicolo_id')" in source
     assert "Step 4 - Selezione" in source

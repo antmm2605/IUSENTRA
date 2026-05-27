@@ -135,6 +135,23 @@ def register_portali_acquisizione_routes(
             "pecId": str(target.get("pecId") or target.get("pec_id") or "").strip(),
         }
 
+    def _coerce_request_mapping(data: dict[str, Any]) -> dict[str, str]:
+        mapping_raw = dict(data.get("mapping") or {})
+        fallback_target = str(
+            data.get("target_fascicolo_id")
+            or data.get("fascicolo_locale_id")
+            or data.get("fascicolo_id")
+            or data.get("id_fasc")
+            or ""
+        ).strip()
+        if fallback_target and not str(mapping_raw.get("target_fascicolo_id") or "").strip():
+            mapping_raw["target_fascicolo_id"] = fallback_target
+        if str(mapping_raw.get("target_fascicolo_id") or "").strip():
+            requested_mode = str(mapping_raw.get("mode") or "").strip()
+            if not requested_mode or requested_mode == "create_new":
+                mapping_raw["mode"] = "update_existing"
+        return _coerce_mapping(mapping_raw)
+
     def _filter_target_document_rows(documenti: list[dict[str, Any]], target: dict[str, Any]) -> list[dict[str, Any]]:
         if not target.get("singleDocument"):
             return documenti
@@ -305,7 +322,7 @@ def register_portali_acquisizione_routes(
             if not selection or not preview:
                 raise ValueError("Selezione o anteprima mancanti.")
             options = _coerce_import_options(dict(data.get("options") or {}), portale=portale)
-            mapping = _coerce_mapping(dict(data.get("mapping") or {}))
+            mapping = _coerce_request_mapping(data)
             analysis = _analyze_portale_import(portale, selection, preview, options, mapping)
             return jsonify({"ok": True, "analysis": analysis})
         except Exception as e:
@@ -322,7 +339,7 @@ def register_portali_acquisizione_routes(
             if not selection or not preview:
                 raise ValueError("Selezione o anteprima mancanti.")
             options = _coerce_import_options(dict(data.get("options") or {}), portale=portale)
-            mapping = _coerce_mapping(dict(data.get("mapping") or {}))
+            mapping = _coerce_request_mapping(data)
             downloaded_files_raw = data.get("downloaded_files")
             downloaded_files = downloaded_files_raw if isinstance(downloaded_files_raw, list) else []
             result = _importa_o_collega_fascicolo_portale(
@@ -350,12 +367,7 @@ def register_portali_acquisizione_routes(
             if not selection or not preview:
                 raise ValueError("Payload autorizzato non riconoscibile.")
             options = _coerce_import_options(dict(data.get("options") or {}), portale=portale)
-            mapping_raw = dict(data.get("mapping") or {})
-            fascicolo_locale_id = str(data.get("fascicolo_locale_id") or "").strip()
-            if fascicolo_locale_id and not mapping_raw.get("target_fascicolo_id"):
-                mapping_raw["mode"] = "update_existing"
-                mapping_raw["target_fascicolo_id"] = fascicolo_locale_id
-            mapping = _coerce_mapping(mapping_raw)
+            mapping = _coerce_request_mapping(data)
             downloaded_files_raw = data.get("downloaded_files")
             downloaded_files = downloaded_files_raw if isinstance(downloaded_files_raw, list) else []
             result = _importa_o_collega_fascicolo_portale(

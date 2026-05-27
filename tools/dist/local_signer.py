@@ -112,7 +112,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.54"
+VERSION = "1.6.55"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -232,16 +232,52 @@ _PST_PORTALE_URL = "https://pst.giustizia.it"
 _PST_PROXY_PDA_URL = "https://pda.processotelematico.giustizia.it"
 _PST_PROXY_SH_URL = "https://ext.processotelematico.giustizia.it"
 _PST_LEGACY_BASE = "https://wspa.giustizia.it/wspa"
-_PST_SERVIZI_DEFAULT = ("JPW_SICID", "JPW_SIECIC", "JPW_SIGP", "JPW_CASSCI", "JPW_CASSPE")
+_PST_SICID_FAMILY_SERVIZI = ("JPW_SICID", "JPW_SIL", "JPW_SIVG", "JPW_MIN", "JPW_SIMIN")
+_PST_SERVIZI_DEFAULT = (
+    "JPW_SICID",
+    "JPW_SIL",
+    "JPW_SIVG",
+    "JPW_MIN",
+    "JPW_SIMIN",
+    "JPW_SIECIC",
+    "JPW_SIGP",
+    "JPW_CASSCI",
+    "JPW_CASSPE",
+)
 _PST_SERVIZI_ALIAS = {
     "JPW_CASS": "JPW_CASSCI",
+    "SICID": "JPW_SICID",
+    "SICC": "JPW_SICID",
+    "SIL": "JPW_SIL",
+    "SILP": "JPW_SIL",
+    "LAVORO": "JPW_SIL",
+    "SIVG": "JPW_SIVG",
+    "VOLONTARIA": "JPW_SIVG",
+    "VG": "JPW_SIVG",
+    "MIN": "JPW_MIN",
+    "MINORI": "JPW_MIN",
+    "SIMIN": "JPW_SIMIN",
+    "SIECIC": "JPW_SIECIC",
+    "SIGP": "JPW_SIGP",
 }
 _PST_QBUILDER_NAMESPACES = {
     "JPW_SICID": "urn:CONS-SICC-BE",
+    "JPW_SIL": "urn:CONS-SIL-BE-DISTR",
+    "JPW_SIVG": "urn:CONS-SIVG-BE",
+    "JPW_MIN": "urn:CONS-MIN-BE",
+    "JPW_SIMIN": "urn:CONS-MIN-BE",
     "JPW_SIECIC": "urn:CONS-SIECIC-BE",
     "JPW_SIGP": "urn:CONS-SIGP-BE",
     "JPW_CASSCI": "urn:CONS-CASSCI",
     "JPW_CASSPE": "urn:CONS-CASSPE",
+}
+_PST_QBUILDER_TIPO_RICERCA = {
+    "JPW_SICID": "RGN",
+    "JPW_SIL": "LAV",
+    "JPW_SIVG": "VG",
+    "JPW_MIN": "MIN",
+    "JPW_SIMIN": "MIN",
+    "JPW_SIGP": "GDP",
 }
 _PDP_BASE = os.getenv("PCT_PDP_BASE_URL", "https://appweb.giustizia.it/snt").rstrip("/")
 _PDP_OFFICIAL_BROWSER_URL = "https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp"
@@ -807,8 +843,9 @@ def _pst_servizi_qbuilder_ufficio(codice_o_nome: str) -> list[str]:
 def _pst_base_varianti_ricerca_esatta(codice_o_nome: str, base_url: str) -> list[str]:
     """
     Per ricerche esatte RG/anno resta prioritario il servizio ufficiale
-    dell'ufficio, ma alcuni Tribunali espongono fascicoli anche sul registro
-    parallelo SICID/SIECIC. Le varianti non cambiano ufficio, GL o certificato.
+    dell'ufficio, ma alcuni Tribunali espongono fascicoli civili su registri
+    paralleli dello stesso ufficio. Le varianti non cambiano GL, certificato
+    o tenant: provano solo il canale ministeriale corretto.
     """
     if not _pst_register_fallback_enabled():
         return [base_url.rstrip("/")] if base_url else []
@@ -825,21 +862,25 @@ def _pst_base_varianti_ricerca_esatta(codice_o_nome: str, base_url: str) -> list
     _aggiungi(current)
 
     # Fallback anti-regressione: anche se il registro uffici non viene
-    # risolto nel punto chiamante, una URL JPW_SICID/JPW_SIECIC contiene gia'
-    # abbastanza informazione per provare il registro civile parallelo dello
-    # stesso ufficio senza cambiare GL, certificato o tenant.
-    if current == "JPW_SICID":
+    # risolto nel punto chiamante, una URL civile contiene gia' abbastanza
+    # informazione per provare i registri ministeriali dello stesso ufficio.
+    if current in _PST_SICID_FAMILY_SERVIZI:
+        for servizio in _PST_SICID_FAMILY_SERVIZI:
+            _aggiungi(servizio)
         _aggiungi("JPW_SIECIC")
     elif current == "JPW_SIECIC":
-        _aggiungi("JPW_SICID")
+        for servizio in _PST_SICID_FAMILY_SERVIZI:
+            _aggiungi(servizio)
     elif current == "SICID":
-        _aggiungi("JPW_SICID")
+        for servizio in _PST_SICID_FAMILY_SERVIZI:
+            _aggiungi(servizio)
         _aggiungi("JPW_SIECIC")
     elif current == "SIECIC":
         _aggiungi("JPW_SIECIC")
-        _aggiungi("JPW_SICID")
+        for servizio in _PST_SICID_FAMILY_SERVIZI:
+            _aggiungi(servizio)
 
-    for servizio in ("JPW_SICID", "JPW_SIECIC", "JPW_SIGP"):
+    for servizio in (*_PST_SICID_FAMILY_SERVIZI, "JPW_SIECIC", "JPW_SIGP"):
         if servizio in servizi_ufficio:
             _aggiungi(servizio)
     for servizio in servizi_ufficio:
@@ -2686,10 +2727,13 @@ def _pst_servizio_siecic(base_url: str) -> bool:
     return _pst_servizio_proxy(base_url) == "JPW_SIECIC"
 
 
+def _pst_servizio_sicid_family(base_url: str) -> bool:
+    return _pst_servizio_proxy(base_url) in _PST_SICID_FAMILY_SERVIZI
+
+
 def _pst_tipo_ricerca_qbuilder(base_url: str) -> str:
-    # Il Giudice di Pace passa dal registro SIGP/GDP: il tipo RGN dei registri
-    # civili ordinari provoca Fault SUBPRO o ricerche vuote su questo canale.
-    return "GDP" if _pst_servizio_sigp(base_url) else "RGN"
+    servizio = _pst_servizio_proxy(base_url)
+    return _PST_QBUILDER_TIPO_RICERCA.get(servizio, "RGN")
 
 
 def _pst_subpro_sigp(sub_procedimento: str = "") -> str:
@@ -5778,7 +5822,7 @@ def _pst_download_documento_payload(
     soap_action = ""
     profilo: dict = {}
 
-    if servizio == "JPW_SICID":
+    if _pst_servizio_sicid_family(base_url):
         registro = _pst_registro_da_base_url(base_url)
         if not cf_avvocato:
             raise RuntimeError(
@@ -6137,7 +6181,7 @@ def _pst_download_documenti_batch_payloads(
         prefer_cookie_only = bool(cookie_file)
         servizio = _pst_servizio_proxy(base_url)
         url_documenti = _pst_url_documenti(base_url)
-        usa_wasp = servizio in ("JPW_SICID", "JPW_SIECIC")
+        usa_wasp = _pst_servizio_sicid_family(base_url) or servizio == "JPW_SIECIC"
         extra_base = [f"X-WASP-User: {cf_avvocato}"] if (usa_wasp and cf_avvocato) else []
 
         # ── Fase 1: risolvi id_cat e metadati mancanti per SICID/SIECIC ──
@@ -6162,7 +6206,7 @@ def _pst_download_documenti_batch_payloads(
                 for i in need_prof:
                     item = documenti[i]
                     for id_doc in _pst_document_id_candidates(item):
-                        if servizio == "JPW_SICID":
+                        if _pst_servizio_sicid_family(base_url):
                             registro = _pst_registro_da_base_url(base_url)
                             soap = _soap_bea_sicid_body(
                                 "estraiProfiloDocumento",
@@ -6255,7 +6299,7 @@ def _pst_download_documenti_batch_payloads(
                     soap_body = _soap_sigp_download_body(id_repeatto, codice_ufficio)
                     soap_action = "downloadAtto"
                     extra_h: list[str] = []
-                elif servizio == "JPW_SICID":
+                elif _pst_servizio_sicid_family(base_url):
                     if not id_cat:
                         if allow_single_fallback:
                             # Mantenuto disattivato: anche un lotto singolo deve
@@ -7515,6 +7559,11 @@ class _Handler(BaseHTTPRequestHandler):
                 data.get("cert_thumbprint")
             )
             cf_avvocato = _cf_avvocato_pst(data.get("cf_avvocato", ""), cert_thumbprint)
+            existing_session = _resolve_pst_session_entry(requested_session_id) if requested_session_id else None
+            session_base_url = str((existing_session or {}).get("base_url") or "").strip()
+            if session_base_url and _pst_namespace_qbuilder(session_base_url):
+                base_url = session_base_url
+                url_documenti = _pst_url_documenti(base_url)
             if _pst_namespace_qbuilder(base_url) and not cf_avvocato:
                 raise RuntimeError(
                     "Impossibile determinare il codice fiscale dell'avvocato dal certificato selezionato.\n"
@@ -8840,6 +8889,10 @@ class _Handler(BaseHTTPRequestHandler):
                 cert_thumbprint,
                 tribunale,
             )
+            existing_session = _resolve_pst_session_entry(requested_session_id) if requested_session_id else None
+            session_base_url = str((existing_session or {}).get("base_url") or "").strip()
+            if session_base_url and _pst_namespace_qbuilder(session_base_url):
+                base_url = session_base_url
             session_entry, _session_created = _ensure_pst_session_entry(
                 requested_session_id,
                 tribunale=tribunale,
@@ -8952,6 +9005,10 @@ class _Handler(BaseHTTPRequestHandler):
                 cert_thumbprint,
                 tribunale,
             )
+            existing_session = _resolve_pst_session_entry(requested_session_id) if requested_session_id else None
+            session_base_url = str((existing_session or {}).get("base_url") or "").strip()
+            if session_base_url and _pst_namespace_qbuilder(session_base_url):
+                base_url = session_base_url
             session_kwargs = {
                 "tribunale": tribunale,
                 "base_url": base_url,

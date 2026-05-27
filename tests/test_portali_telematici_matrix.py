@@ -21,6 +21,10 @@ def _load_local_signer():
     ("servizio", "distretto", "namespace"),
     [
         ("JPW_SICID", "GLRC", "urn:CONS-SICC-BE"),
+        ("JPW_SIL", "GLRC", "urn:CONS-SIL-BE-DISTR"),
+        ("JPW_SIVG", "GLRC", "urn:CONS-SIVG-BE"),
+        ("JPW_MIN", "GLRC", "urn:CONS-MIN-BE"),
+        ("JPW_SIMIN", "GLRC", "urn:CONS-MIN-BE"),
         ("JPW_SIECIC", "GLRC", "urn:CONS-SIECIC-BE"),
         ("JPW_SIGP", "GLRC", "urn:CONS-SIGP-BE"),
         ("JPW_CASSCI", "GLCC", "urn:CONS-CASSCI"),
@@ -62,14 +66,22 @@ def test_pst_qbuilder_matrix_servizi_ufficiali(servizio, distretto, namespace):
 
     assert module._pst_namespace_qbuilder(base_url) == namespace
     assert f'<execute xmlns="{namespace}">' in ricerca_xml
-    assert "<name>RicercaInformazioniFascicoloPerTipo</name>" in ricerca_xml
-    assert '<value name="anno" type="string">2024</value>' in ricerca_xml
-    assert '<value name="numero" type="integer">1025</value>' in ricerca_xml
+    if servizio == "JPW_SIECIC":
+        assert "<name>InfoFascicolo</name>" in ricerca_xml
+        assert "<name>RicercaInformazioniFascicoloPerTipo</name>" not in ricerca_xml
+        for xml in (ricerca_xml, documenti_xml, profilo_xml):
+            assert '<value name="idUfficio" type="string">0800570094</value>' in xml
+            assert '<value name="annoRuolo" type="integer">2024</value>' in xml
+            assert '<value name="numeroRuolo" type="string">1025</value>' in xml
+    else:
+        assert "<name>RicercaInformazioniFascicoloPerTipo</name>" in ricerca_xml
+        assert '<value name="anno" type="string">2024</value>' in ricerca_xml
+        assert '<value name="numero" type="integer">1025</value>' in ricerca_xml
 
-    for xml in (ricerca_xml, documenti_xml, profilo_xml):
-        assert 'name="subProc"' not in xml
-        assert 'name="annoRuolo"' not in xml
-        assert 'name="numeroRuolo"' not in xml
+        for xml in (ricerca_xml, documenti_xml, profilo_xml):
+            assert 'name="subProc"' not in xml
+            assert 'name="annoRuolo"' not in xml
+            assert 'name="numeroRuolo"' not in xml
 
     if servizio == "JPW_SIGP":
         assert '<value name="tipo" type="string">GDP</value>' in ricerca_xml
@@ -77,7 +89,19 @@ def test_pst_qbuilder_matrix_servizi_ufficiali(servizio, distretto, namespace):
             assert 'name="subpro"' not in xml
         assert '<value name="subpro" type="integer">1</value>' in documenti_subproc_xml
         assert 'name="subProc"' not in documenti_subproc_xml
+    elif servizio == "JPW_SIL":
+        assert '<value name="tipo" type="string">LAV</value>' in ricerca_xml
+    elif servizio == "JPW_SIVG":
+        assert '<value name="tipo" type="string">VG</value>' in ricerca_xml
+    elif servizio in {"JPW_MIN", "JPW_SIMIN"}:
+        assert '<value name="tipo" type="string">MIN</value>' in ricerca_xml
+    elif servizio == "JPW_SIECIC":
+        for xml in (ricerca_xml, documenti_xml, profilo_xml, documenti_subproc_xml):
+            assert 'name="subProc"' not in xml
+            assert 'name="subpro"' not in xml
     else:
+        if servizio == "JPW_SICID":
+            assert '<value name="tipo" type="string">RGN</value>' in ricerca_xml
         for xml in (ricerca_xml, documenti_xml, profilo_xml):
             assert 'name="subpro"' not in xml
         assert '<value name="subProc" type="string">1</value>' in documenti_subproc_xml

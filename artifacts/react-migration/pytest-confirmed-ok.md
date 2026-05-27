@@ -1,5 +1,29 @@
 # Pytest shard confermati OK
 
+## Local Signer 1.6.55 registri civili paralleli PST 2.248.72 - 2026-05-27
+
+| Comando | Esito | Note |
+| --- | --- | --- |
+| `python -m py_compile tools\local_signer.py tools\dist\local_signer.py` | OK | Sintassi confermata su sorgente e dist Local Signer dopo l'estensione dei servizi PST civili. |
+| `python tools\check_local_signer_boundaries.py` | OK | Confini runtime Local Signer preservati. |
+| `python -m pytest -q tests/test_portali_telematici_matrix.py` | OK | 12/12 passati: matrice qbuilder con `JPW_SICID`, `JPW_SIL` lavoro, `JPW_SIVG` volontaria, `JPW_MIN`/`JPW_SIMIN` minori, `JPW_SIECIC`, `JPW_SIGP` e Cassazione. |
+| `python -m pytest -q tests/test_local_signer.py -k "pst_ricerca_snapshot or qbuilder or download_batch or local_signer_dist"` | OK | 25/25 passati: fallback stesso ufficio/stesso certificato, SIECIC ministeriale e download documenti sul servizio realmente trovato. |
+| `python -m pytest -q tests/test_polisweb.py -k "qbuilder or pst_namespace or parse_fascicoli or DocumentiFascicolo"` | OK | 9/9 passati sui parser e body PolisWeb/PST collegati. |
+| `python -m pytest -q tests/test_reginde.py -k "servizio_pst or base_pst or uffici"` | OK | 6/6 passati sul resolver uffici e codici PST. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_web_bootstrap.py::test_email_e_sync_fascicolo_usano_date_italiane_e_target_corrente tests/test_web_bootstrap.py::test_api_react_fascicoli_usa_loader_runtime_condiviso` | OK | 10/10 passati: packaging e loader fascicoli condiviso restano coerenti. |
+
+## Prova deposito senza invio reale e stato PEC fascicolo 2.248.70 - 2026-05-27
+
+| Comando | Esito | Note |
+| --- | --- | --- |
+| `python -m py_compile pct/deposito_simulazione.py web/bootstrap/deposito_receipt_routes.py web/bootstrap/deposito_routes.py web/services/react_fascicoli_bridge.py web/services/mailbox_sync_runtime.py pct/scheduler.py web/blueprints/api_v1_react.py` | OK | Sintassi confermata su marcatore prova deposito, generazione ricevute sintetiche sanificate, route API, bridge fascicolo React, sync PEC automatica, scheduler e loader React condiviso. |
+| `python -m pytest -q tests/test_deposito_guidato.py::test_deposito_prova_genera_ricevuta_accettazione_senza_invio_reale tests/test_deposito_guidato.py::test_ricevuta_prova_rifiuta_depositi_non_simulati tests/test_deposito.py::test_deposito_invia_pec_civile_usa_local_signer_se_server_send_disabilitato --tb=short` | OK | 3/3 passati: sequenza accettazione, consegna, controlli con avvisi e conferma, più rifiuto della ricevuta di prova su depositi reali. |
+| `python -m pytest -q tests/test_deposito_guidato.py tests/test_deposito.py::test_deposito_invia_pec_tributario_demo_registra_esito tests/test_deposito.py::test_deposito_invia_pec_civile_usa_local_signer_se_server_send_disabilitato tests/test_regia_deposito_receipts.py --tb=short` | OK | 13/13 passati sul perimetro deposito guidato, ricevute e regressioni esistenti. |
+| `python -m pytest -q tests/test_dashboard_mailbox_sync.py::test_sync_pec_automatico_aggiorna_depositi_e_cancelleria tests/test_scheduler_worker.py::test_start_scheduler_worker_registra_job_core tests/test_web_bootstrap.py::test_email_e_sync_fascicolo_usano_date_italiane_e_target_corrente tests/test_web_bootstrap.py::test_api_react_fascicoli_usa_loader_runtime_condiviso --tb=short` | OK | 4/4 passati: sincronizzazione automatica PEC via scheduler/mailbox runtime, pulsante `Deposito telematico` anche nella vista classica, messaggio operativo di controllo manuale come anticipo e loader React condiviso con la vista classica. |
+| `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build` | OK | TypeScript e build Vite verdi dopo stato deposito nel dettaglio fascicolo React, pulsante principale `Deposito telematico`, nota PEC automatica e loader fascicoli condiviso. Gli asset compilati locali sono stati ripuliti perché Docker/CI ricostruiscono il bundle dalla sorgente. |
+| Browser reale locale su `http://127.0.0.1:5097/fascicoli/DB3B351C#cancelleria` | OK | Percorso visto in UI: login corrente, pulsante alto `Deposito telematico`, preparazione deposito, `Prova senza invio reale`, rientro nel fascicolo, ricevute accettazione PEC/consegna/controlli automatici/conferma e stato finale `Deposito confermato` dentro Cancelleria. |
+| `python -m pytest -q tests/test_utf8_integrity.py --tb=short`; `python tools\sync_packaging_files.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `git diff --check` | OK | UTF-8, packaging, OpenAPI e whitespace confermati dopo documentazione e bump `2.248.70`. |
+
 ## Componi PEC uffici giudiziari e canale PEC dedicato 2.248.65 - 2026-05-26
 
 | Comando | Esito | Note |

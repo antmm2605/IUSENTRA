@@ -1,10 +1,23 @@
 # Changelog
 
+## 2.248.72 - 2026-05-27
+
+- Local Signer `1.6.55`: la ricerca PST esatta numero/anno ora mantiene il registro certificato come prima scelta, ma se il registro civile ordinario non restituisce il fascicolo prova nello stesso ufficio e nella stessa sessione i canali ministeriali civili `JPW_SIL`/lavoro, `JPW_SIVG`/volontaria giurisdizione, `JPW_MIN`/minori e `JPW_SIMIN` prima di SIECIC.
+- Lo scarico documenti riusa il servizio PST realmente individuato dalla ricerca snapshot, così un fascicolo trovato su un registro civile parallelo non torna al default `JPW_SICID` durante il download.
+
 ## 2.248.71 - 2026-05-27
 
 - Local Signer `1.6.54`: la ricerca PST non maschera più come "nessun fascicolo trovato" il caso reale in cui la risposta principale è vuota/non parsabile e i tentativi dello stesso batch contengono SOAP Fault del Ministero.
 - Nel wizard PST React il codice fiscale passato alla ricerca viene preso prima dal certificato selezionato sul PC; il CF configurato nello studio resta solo fallback e la diagnostica tenant-aware registra fonte CF e thumbprint.
 - Pacchetto Windows rigenerato come `SetupLocalSigner-1.6.54.exe` con il profilo IExpress già blindato.
+
+## 2.248.70 - 2026-05-27
+
+- Aggiunta la prova deposito senza invio reale: il deposito viene marcato in modo sicuro, non apre canali PEC esterni e può generare ricevute sintetiche solo sul fascicolo di prova.
+- La ricevuta sintetica riproduce struttura PEC sanificata con `postacert.eml`, `daticert.xml`, `EsitoAtto.xml` e `smime.p7s`, senza conservare indirizzi o identificativi reali.
+- Nel dettaglio fascicolo React il pulsante `Deposito telematico` è visibile tra le azioni principali e le comunicazioni di cancelleria mostrano avanzamento ricevute e azioni per simulare accettazione, consegna, controlli automatici con avvisi e conferma; i depositi reali rifiutano la simulazione.
+- Lo stesso pulsante è disponibile anche nella vista classica del fascicolo; i depositi reali vengono aggiornati dalla sincronizzazione automatica PEC dello scheduler, mentre il controllo manuale resta solo un'azione di anticipo.
+- Allineato il loader dei fascicoli React al runtime della vista classica: login, dettaglio pratica, sezione Cancelleria e preparazione deposito leggono lo stesso archivio e mostrano lo stesso stato operativo.
 
 ## 2.248.69 - 2026-05-26
 

@@ -68,6 +68,10 @@
       <i class="bi bi-shield-lock"></i><span class="d-none d-sm-inline">Workflow PDP</span>
     </a>
     {% endif %}
+    <a href="{{ url_for('deposito_prepara', id_fasc=fascicolo.id) }}"
+       class="ds-btn ds-btn-primary" title="Prepara deposito telematico">
+      <i class="bi bi-send"></i><span class="d-none d-sm-inline">Deposito telematico</span>
+    </a>
     <a href="{{ url_for('quadro_fascicolo', id_fasc=fascicolo.id) }}"
        class="ds-btn ds-btn-ghost" title="Quadro sinottico della pratica">
       <i class="bi bi-grid-3x3-gap"></i><span class="d-none d-sm-inline">Quadro</span>
@@ -108,6 +112,9 @@
       <a href="#sezione-comunicazioni-cancelleria" class="btn btn-sm btn-outline-primary">
         <i class="bi bi-inboxes me-1"></i>Cancelleria
         <span class="badge text-bg-primary ms-1">{{ WFC.comunicazioni or 0 }}</span>
+      </a>
+      <a href="{{ url_for('deposito_prepara', id_fasc=fascicolo.id) }}" class="btn btn-sm btn-primary">
+        <i class="bi bi-send me-1"></i>Deposito telematico
       </a>
       <a href="#sezione-istanze" class="btn btn-sm btn-outline-primary">
         <i class="bi bi-journal-text me-1"></i>Istanze
@@ -1634,7 +1641,7 @@
       </div>
       <div class="collapse" id="collapse-sezione-comunicazioni-cancelleria">
       <div class="card-body py-2 border-bottom bg-light-subtle small text-muted">
-        Ricevute PEC, fasi del deposito e comunicazioni di cancelleria aggiornate dalla stessa sincronizzazione della casella PEC.
+        Ricevute PEC, fasi del deposito e comunicazioni di cancelleria sono aggiornate dalla sincronizzazione automatica della casella PEC; il pulsante manuale serve solo per anticipare il controllo.
       </div>
       <div class="card-body p-0">
         {% if WFS.comunicazioni_attivita %}

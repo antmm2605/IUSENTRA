@@ -775,7 +775,7 @@ def _detail_include_sections(default: Iterable[str] | None = None) -> set[str]:
 
 
 def _regia_context(id_fasc: str) -> dict[str, Any]:
-    gf = get_fascicoli()
+    gf = _fascicoli_loader()()
     fascicolo = gf.get(id_fasc)
     if not fascicolo:
         return {"error": jsonify({"errore": "Fascicolo non trovato.", "codice": 404}), "status": 404}
@@ -2983,7 +2983,7 @@ def admin_database_react_payload():
 @_richiedi_auth
 def fascicoli_react_list():
     return jsonify(build_react_fascicoli_payload(
-        get_fascicoli=get_fascicoli,
+        get_fascicoli=_fascicoli_loader(),
         get_scadenziario=get_scadenziario,
         page=_request_int("page", default=1),
         page_size=_request_int("page_size", "pageSize", default=25),
@@ -3000,7 +3000,7 @@ def fascicoli_react_list():
 @_richiedi_auth
 def fascicoli_react_archivio():
     return jsonify(build_react_archivio_payload(
-        get_fascicoli=get_fascicoli,
+        get_fascicoli=_fascicoli_loader(),
         get_scadenziario=get_scadenziario,
         query=request.args.get("q", ""),
     ))
@@ -3010,7 +3010,7 @@ def fascicoli_react_archivio():
 @_richiedi_auth
 def fascicoli_react_export():
     return jsonify(build_react_fascicoli_export_payload(
-        get_fascicoli=get_fascicoli,
+        get_fascicoli=_fascicoli_loader(),
         get_scadenziario=get_scadenziario,
     ))
 
@@ -3019,7 +3019,7 @@ def fascicoli_react_export():
 @_richiedi_auth
 def fascicolo_react_nuovo():
     return jsonify(build_react_fascicolo_form_payload(
-        get_fascicoli=get_fascicoli,
+        get_fascicoli=_fascicoli_loader(),
         get_clienti=get_clienti,
         get_soggetti=get_soggetti,
         get_preventivi=get_preventivi_readonly,
@@ -3034,7 +3034,7 @@ def fascicolo_react_nuovo():
 @_richiedi_auth
 def fascicolo_react_modifica(id_fasc: str):
     return jsonify(build_react_fascicolo_form_payload(
-        get_fascicoli=get_fascicoli,
+        get_fascicoli=_fascicoli_loader(),
         get_clienti=get_clienti,
         get_soggetti=get_soggetti,
         get_preventivi=get_preventivi_readonly,
@@ -3059,7 +3059,7 @@ def fascicolo_react_documento_editor(id_fasc: str, id_doc: str):
 @_richiedi_auth
 def fascicolo_react_dettaglio(id_fasc: str):
     return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
-        get_fascicoli=get_fascicoli,
+        get_fascicoli=_fascicoli_loader(),
         get_clienti=get_clienti,
         get_agenda=get_agenda,
         get_scadenziario=get_scadenziario,
@@ -3079,7 +3079,7 @@ def fascicolo_react_dettaglio(id_fasc: str):
 @_richiedi_auth
 def fascicolo_react_documenti(id_fasc: str):
     return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
-        get_fascicoli=get_fascicoli,
+        get_fascicoli=_fascicoli_loader(),
         get_clienti=get_clienti,
         get_agenda=get_agenda,
         get_scadenziario=get_scadenziario,
@@ -3099,7 +3099,7 @@ def fascicolo_react_documenti(id_fasc: str):
 @_richiedi_auth
 def fascicolo_react_attivita(id_fasc: str):
     return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
-        get_fascicoli=get_fascicoli,
+        get_fascicoli=_fascicoli_loader(),
         get_clienti=get_clienti,
         get_agenda=get_agenda,
         get_scadenziario=get_scadenziario,
@@ -3119,7 +3119,7 @@ def fascicolo_react_attivita(id_fasc: str):
 @_richiedi_auth
 def fascicolo_react_scadenze(id_fasc: str):
     return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
-        get_fascicoli=get_fascicoli,
+        get_fascicoli=_fascicoli_loader(),
         get_clienti=get_clienti,
         get_agenda=get_agenda,
         get_scadenziario=get_scadenziario,
@@ -3139,7 +3139,7 @@ def fascicolo_react_scadenze(id_fasc: str):
 @_richiedi_auth
 def fascicolo_react_depositi(id_fasc: str):
     return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
-        get_fascicoli=get_fascicoli,
+        get_fascicoli=_fascicoli_loader(),
         get_clienti=get_clienti,
         get_agenda=get_agenda,
         get_scadenziario=get_scadenziario,
@@ -3160,7 +3160,7 @@ def fascicolo_react_depositi(id_fasc: str):
 def fascicolo_regia_operativa(id_fasc: str):
     return jsonify(build_react_practice_engine_payload(
         fascicolo_id=id_fasc,
-        get_fascicoli=get_fascicoli,
+        get_fascicoli=_fascicoli_loader(),
         get_clienti=get_clienti,
         get_preventivi=get_preventivi_readonly,
         get_fatturazione=get_fatturazione,
@@ -3222,7 +3222,7 @@ def fascicolo_regia_ricalcola(id_fasc: str):
 def fascicolo_regia_checklist(id_fasc: str):
     payload = build_react_practice_engine_payload(
         fascicolo_id=id_fasc,
-        get_fascicoli=get_fascicoli,
+        get_fascicoli=_fascicoli_loader(),
         get_clienti=get_clienti,
         get_preventivi=get_preventivi_readonly,
         get_fatturazione=get_fatturazione,
@@ -3237,7 +3237,7 @@ def fascicolo_regia_checklist(id_fasc: str):
 def fascicolo_regia_document_slots(id_fasc: str):
     payload = build_react_practice_engine_payload(
         fascicolo_id=id_fasc,
-        get_fascicoli=get_fascicoli,
+        get_fascicoli=_fascicoli_loader(),
         get_clienti=get_clienti,
         get_preventivi=get_preventivi_readonly,
         get_fatturazione=get_fatturazione,
@@ -3437,7 +3437,7 @@ def regia_apri_fascicolo_da_preventivo(preventivo_id: str):
         return jsonify({"errore": "Impossibile aprire il fascicolo: manca pagamento o acconto. Registra l'incasso oppure inserisci un override motivato.", "mock_fallback": False}), 409
     result = apri_fascicolo_automatico(
         gp=gp,
-        gf=get_fascicoli(),
+        gf=_fascicoli_loader()(),
         gs=get_scadenziario(),
         cliente=cliente,
         preventivo=preventivo,
@@ -3472,7 +3472,7 @@ def regia_apri_fascicolo_da_conferimento(conferimento_id: str):
         return jsonify({"errore": "Impossibile aprire il fascicolo: manca pagamento o acconto. Registra l'incasso oppure inserisci un override motivato.", "mock_fallback": False}), 409
     result = apri_fascicolo_automatico(
         gp=gp,
-        gf=get_fascicoli(),
+        gf=_fascicoli_loader()(),
         gs=get_scadenziario(),
         cliente=cliente,
         preventivo=preventivo,

@@ -325,6 +325,7 @@ def test_pst_preflight_import_riusa_sessione_view_attiva_senza_nuovo_handshake(m
             "tribunale": tribunale,
             "cert_thumbprint": thumbprint,
             "auth_ready": True,
+            "base_url": "https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SIL",
         },
     )
 
@@ -386,6 +387,7 @@ def test_pst_download_batch_riusa_sessione_view_anche_se_client_chiede_import(mo
             "purpose": "view",
             "cookie_file": "C:\\temp\\pst.cookies",
             "auth_ready": True,
+            "base_url": "https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SIL",
         },
     )
     monkeypatch.setattr(
@@ -481,6 +483,7 @@ def test_pst_download_batch_recupera_sessione_view_se_client_non_la_invia(monkey
             "tribunale": tribunale,
             "cert_thumbprint": thumbprint,
             "auth_ready": True,
+            "base_url": "https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SIL",
         },
     )
     monkeypatch.setattr(
@@ -491,6 +494,7 @@ def test_pst_download_batch_recupera_sessione_view_se_client_non_la_invia(monkey
             "purpose": "view",
             "cookie_file": "C:\\temp\\pst.cookies",
             "auth_ready": True,
+            "base_url": "https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SIL",
         },
     )
     monkeypatch.setattr(
@@ -506,6 +510,7 @@ def test_pst_download_batch_recupera_sessione_view_se_client_non_la_invia(monkey
     def _fake_ensure(requested_session_id, **kwargs):
         calls["requested_session_id"] = requested_session_id
         calls["ensure_purpose"] = kwargs.get("purpose")
+        calls["ensure_base_url"] = kwargs.get("base_url")
         return (
             {
                 "session_id": requested_session_id,
@@ -513,23 +518,24 @@ def test_pst_download_batch_recupera_sessione_view_se_client_non_la_invia(monkey
                 "cookie_file": "C:\\temp\\pst.cookies",
                 "auth_ready": True,
                 "cf_avvocato": "RSSMRA80A01H501Z",
+                "base_url": kwargs.get("base_url"),
             },
             False,
         )
 
     monkeypatch.setattr(module, "_ensure_pst_session_entry", _fake_ensure)
     monkeypatch.setattr(module, "_pst_prepare_authenticated_session", lambda session_entry, **kwargs: (session_entry, True))
-    monkeypatch.setattr(
-        module,
-        "_pst_download_documenti_batch_payloads",
-        lambda **kwargs: {
+    def _fake_download_payloads(**kwargs):
+        calls["batch_base_url"] = kwargs.get("base_url")
+        return {
             "ok": True,
             "files": [],
             "failures": [],
             "documenti_richiesti": 1,
             "documenti_scaricati": 0,
-        },
-    )
+        }
+
+    monkeypatch.setattr(module, "_pst_download_documenti_batch_payloads", _fake_download_payloads)
     monkeypatch.setattr(module, "_update_pst_session", lambda *args, **kwargs: None)
 
     module._Handler._pst_download_documenti_batch(_FakeHandler())
@@ -539,6 +545,8 @@ def test_pst_download_batch_recupera_sessione_view_se_client_non_la_invia(monkey
     assert captured["payload"]["pst_session_purpose"] == "view"
     assert calls["requested_session_id"] == "SID-VIEW"
     assert calls["ensure_purpose"] == "view"
+    assert calls["ensure_base_url"].endswith("/JPW_SIL")
+    assert calls["batch_base_url"].endswith("/JPW_SIL")
 
 
 def _local_signer_version():
@@ -1825,6 +1833,10 @@ def test_local_signer_normalizza_alias_e_namespace_qbuilder_catalogo_corrente():
 
     assert module._pst_servizio_proxy("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASS") == "JPW_CASSCI"
     assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC") == "urn:CONS-SIECIC-BE"
+    assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIL") == "urn:CONS-SIL-BE-DISTR"
+    assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIVG") == "urn:CONS-SIVG-BE"
+    assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_MIN") == "urn:CONS-MIN-BE"
+    assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIMIN") == "urn:CONS-MIN-BE"
     assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIGP") == "urn:CONS-SIGP-BE"
     assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASSCI") == "urn:CONS-CASSCI"
     assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASSPE") == "urn:CONS-CASSPE"
@@ -1849,6 +1861,10 @@ def test_pst_varianti_ricerca_esatta_palmi_prova_siecic_senza_cambiare_ufficio(m
 
     assert varianti == [
         "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIL",
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIVG",
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_MIN",
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIMIN",
         "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC",
     ]
     assert all("/pda/pycons/GLRC/" in variante for variante in varianti)
@@ -1875,6 +1891,10 @@ def test_pst_varianti_ricerca_esatta_deriva_siecic_dalla_url_se_snapshot_manca(m
 
     assert varianti == [
         "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIL",
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIVG",
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_MIN",
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIMIN",
         "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC",
     ]
 
@@ -2012,6 +2032,33 @@ def test_costruisce_body_qbuilder_ricerca_per_tipo():
     assert "Parte non corrispondente" not in xml
     assert "RSSMRA80A01H501Z" not in xml
     assert '<entry property="ANNORUOLO, NUMERORUOLO" mode="asc"/>' in xml
+
+
+def test_qbuilder_sicid_family_usa_tipo_registro_ministeriale_corretto():
+    module = _load_local_signer()
+
+    attesi = {
+        "JPW_SICID": ("urn:CONS-SICC-BE", "RGN"),
+        "JPW_SIL": ("urn:CONS-SIL-BE-DISTR", "LAV"),
+        "JPW_SIVG": ("urn:CONS-SIVG-BE", "VG"),
+        "JPW_MIN": ("urn:CONS-MIN-BE", "MIN"),
+        "JPW_SIMIN": ("urn:CONS-MIN-BE", "MIN"),
+    }
+
+    for servizio, (namespace, tipo) in attesi.items():
+        xml = module._soap_ricerca_fascicoli_body(
+            base_url=f"https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/{servizio}",
+            codice_ufficio="0800570094",
+            numero_rg="3441",
+            anno_rg=2025,
+            cf_avvocato="MNTGPP94L01G791A",
+        )
+
+        assert f'<execute xmlns="{namespace}">' in xml
+        assert "<name>RicercaInformazioniFascicoloPerTipo</name>" in xml
+        assert f'<value name="tipo" type="string">{tipo}</value>' in xml
+        assert '<value name="numero" type="integer">3441</value>' in xml
+        assert '<value name="anno" type="string">2025</value>' in xml
 
 
 def test_qbuilder_siecic_usa_servizi_catalogo_ministeriale():
@@ -4801,7 +4848,11 @@ def test_pst_ricerca_snapshot_usa_batch_certificato_senza_preflight_separato():
     assert captured["payload"]["documenti"][0]["id_documento"] == "DOC-1"
     assert captured["payload"]["snapshot"]["fascicolo"]["numero"] == "274"
     assert captured["session_ids"] == ["SID-STALENESS-FROM-BROWSER", ""]
-    assert len(captured["batch"]["requests"]) == 9
+    assert len(captured["batch"]["requests"]) == 21
+    assert any("/JPW_SIL" in request["url"] for request in captured["batch"]["requests"])
+    assert any("/JPW_SIVG" in request["url"] for request in captured["batch"]["requests"])
+    assert any("/JPW_MIN" in request["url"] for request in captured["batch"]["requests"])
+    assert any("/JPW_SIMIN" in request["url"] for request in captured["batch"]["requests"])
     assert captured["batch"]["kwargs"]["cert_thumbprint"] == "AABBCC11"
     assert captured["batch"]["kwargs"]["prefer_cookie_only"] is False
 
@@ -4872,14 +4923,25 @@ def test_pst_ricerca_snapshot_fault_client_su_sicid_passa_a_siecic(monkeypatch):
 
     def _fake_batch(requests, **kwargs):
         captured["requests"] = list(requests)
-        return [
-            (b"<fault-primary/>", "HTTP/1.1 200 OK\r\n"),
-            (b"<primary-profile/>", "HTTP/1.1 200 OK\r\n"),
-            (b"<primary-docs/>", "HTTP/1.1 200 OK\r\n"),
-            (b"<fallback-search/>", "HTTP/1.1 200 OK\r\n"),
-            (b"<fallback-profile/>", "HTTP/1.1 200 OK\r\n"),
-            (b"<fallback-docs/>", "HTTP/1.1 200 OK\r\n"),
-        ]
+        results = []
+        for request in requests:
+            servizio = module._pst_servizio_proxy(request.get("url", ""))
+            body = str(request.get("soap_body") or "")
+            if servizio == "JPW_SICID" and "RicercaInformazioniFascicoloPerTipo" in body:
+                results.append((b"<fault-primary/>", "HTTP/1.1 200 OK\r\n"))
+            elif servizio == "JPW_SIECIC" and "<name>InfoFascicolo</name>" in body:
+                results.append((b"<fallback-search/>", "HTTP/1.1 200 OK\r\n"))
+            elif servizio == "JPW_SIECIC" and "<name>ElencoDocumenti</name>" in body:
+                results.append((b"<fallback-docs/>", "HTTP/1.1 200 OK\r\n"))
+            elif servizio == "JPW_SIECIC":
+                results.append((b"<fallback-profile/>", "HTTP/1.1 200 OK\r\n"))
+            elif servizio == "JPW_SICID" and "<name>DocumentiFascicolo</name>" in body:
+                results.append((b"<primary-docs/>", "HTTP/1.1 200 OK\r\n"))
+            elif servizio == "JPW_SICID":
+                results.append((b"<primary-profile/>", "HTTP/1.1 200 OK\r\n"))
+            else:
+                results.append((b"<empty/>", "HTTP/1.1 200 OK\r\n"))
+        return results
 
     def _fake_best_effort(requests, **kwargs):
         return [
@@ -4920,7 +4982,11 @@ def test_pst_ricerca_snapshot_fault_client_su_sicid_passa_a_siecic(monkeypatch):
 
     assert captured["status"] == 200
     assert captured["preflight"] == 0
-    assert len(captured["requests"]) == 6
+    assert len(captured["requests"]) == 18
+    assert any("/JPW_SIL" in request["url"] for request in captured["requests"])
+    assert any("/JPW_SIVG" in request["url"] for request in captured["requests"])
+    assert any("/JPW_MIN" in request["url"] for request in captured["requests"])
+    assert any("/JPW_SIMIN" in request["url"] for request in captured["requests"])
     assert captured["payload"]["ok"] is True
     assert captured["payload"]["fascicoli"][0]["numero_rg"] == "274"
     assert captured["payload"]["documenti"][0]["id_documento"] == "DOC-SIECIC"
@@ -4995,17 +5061,20 @@ def test_pst_ricerca_snapshot_fault_fallback_non_diventa_ricerca_vuota(monkeypat
 
     def _fake_best_effort(requests, **kwargs):
         captured["requests"] = list(requests)
-        bodies = [
-            b"",
-            b"<profile/>",
-            b"<documents/>",
-            user_fault,
-            user_fault,
-            user_fault,
-            service_fault,
-            service_fault,
-            service_fault,
-        ]
+        bodies = []
+        for request in requests:
+            servizio = module._pst_servizio_proxy(request.get("url", ""))
+            body = str(request.get("soap_body") or "")
+            if servizio == "JPW_SICID" and "RicercaInformazioniFascicoloPerTipo" in body:
+                bodies.append(b"")
+            elif servizio == "JPW_SICID" and "<name>DocumentiFascicolo</name>" in body:
+                bodies.append(b"<documents/>")
+            elif servizio == "JPW_SICID":
+                bodies.append(b"<profile/>")
+            elif servizio in {"JPW_SIL", "JPW_SIVG"}:
+                bodies.append(user_fault)
+            else:
+                bodies.append(service_fault)
         return [
             {"body_bytes": bodies[index], "headers_text": "HTTP/1.1 200 OK\r\n", "status_code": 200, "error": ""}
             for index, _request in enumerate(requests)
@@ -5016,7 +5085,7 @@ def test_pst_ricerca_snapshot_fault_fallback_non_diventa_ricerca_vuota(monkeypat
     module._Handler._pst_ricerca_snapshot(_FakeHandler())
 
     assert captured["status"] == 500
-    assert len(captured["requests"]) == 9
+    assert len(captured["requests"]) == 21
     assert captured["payload"]["ok"] is False
     assert "SOAP Fault" in captured["payload"]["errore"]
     assert "non puo' eseguire" in captured["payload"]["errore"]
@@ -5092,17 +5161,18 @@ def test_pst_ricerca_snapshot_risposta_valida_vuota_non_bloccata_da_fault_fallba
 
     def _fake_best_effort(requests, **kwargs):
         captured["requests"] = list(requests)
-        bodies = [
-            empty_rowlist,
-            b"<profile/>",
-            b"<documents/>",
-            service_fault,
-            service_fault,
-            service_fault,
-            service_fault,
-            service_fault,
-            service_fault,
-        ]
+        bodies = []
+        for request in requests:
+            servizio = module._pst_servizio_proxy(request.get("url", ""))
+            body = str(request.get("soap_body") or "")
+            if servizio == "JPW_SICID" and "RicercaInformazioniFascicoloPerTipo" in body:
+                bodies.append(empty_rowlist)
+            elif servizio == "JPW_SICID" and "<name>DocumentiFascicolo</name>" in body:
+                bodies.append(b"<documents/>")
+            elif servizio == "JPW_SICID":
+                bodies.append(b"<profile/>")
+            else:
+                bodies.append(service_fault)
         return [
             {"body_bytes": bodies[index], "headers_text": "HTTP/1.1 200 OK\r\n", "status_code": 200, "error": ""}
             for index, _request in enumerate(requests)
@@ -5113,7 +5183,7 @@ def test_pst_ricerca_snapshot_risposta_valida_vuota_non_bloccata_da_fault_fallba
     module._Handler._pst_ricerca_snapshot(_FakeHandler())
 
     assert captured["status"] == 200
-    assert len(captured["requests"]) == 9
+    assert len(captured["requests"]) == 21
     assert captured["payload"]["ok"] is True
     assert captured["payload"]["fascicoli"] == []
     assert captured["payload"]["documenti"] == []

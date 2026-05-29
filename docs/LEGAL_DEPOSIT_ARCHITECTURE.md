@@ -69,3 +69,41 @@ Nel penale, PDP/PST sono trattati come canali del difensore. APP e' indicato com
 - In sviluppo/test nessun invio reale parte senza feature flag espliciti.
 - I file sono validati prima del pacchetto.
 - Il manifest contiene hash SHA-256 e risultati dei controlli.
+
+## Prova deposito senza invio reale
+
+La prova guidata del deposito usa un marcatore esplicito nel fascicolo e non apre
+alcun canale PEC esterno. Serve a verificare busta, passaggi UI, registrazione
+dell'esito e controllo ricevute prima dell'invio effettivo.
+
+Nel fascicolo React l'ingresso operativo è esposto con il pulsante
+`Deposito telematico` tra le azioni principali della pratica e resta replicato
+nel pannello dei servizi telematici. Dopo la prova, lo stesso fascicolo mostra
+lo stato delle ricevute nella sezione `Comunicazioni / Cancelleria`, insieme
+alla nota che la casella PEC viene sincronizzata automaticamente.
+
+Lo stesso ingresso è replicato anche nella vista classica del fascicolo, così
+un ambiente non ancora riallineato alla shell React non perde il passaggio di
+preparazione. Per i depositi reali, la casella PEC viene sincronizzata dal
+servizio automatico delle mailbox: ogni nuova PEC PST/cancelleria viene salvata
+nella casella tenant-aware e il workflow condiviso aggiorna ricevute del
+deposito, comunicazioni di cancelleria e stato visibile nel fascicolo. Il
+pulsante `Controlla PEC` resta solo una forzatura manuale per anticipare il
+controllo.
+
+Le API React dei fascicoli devono usare lo stesso loader runtime della vista
+classica. Questo evita che una sessione locale o tenant-aware mostri una pratica
+diversa tra shell React, login e dettaglio classico: dettaglio, Cancelleria e
+preparazione deposito leggono sempre lo stesso archivio operativo.
+
+Le ricevute generate dalla prova sono sintetiche e sanificate: riproducono la
+forma operativa osservata nelle PEC di deposito, con testo del messaggio
+certificato e allegati nominali `postacert.eml`, `daticert.xml`,
+`EsitoAtto.xml` e `smime.p7s`, ma usano domini `.invalid` e identificativi
+fittizi. Non rappresentano una fonte normativa autonoma e non sostituiscono le
+ricevute reali del gestore PEC o dell'ufficio giudiziario.
+
+Il formato `EsitoAtto.xml` resta agganciato alle specifiche versionate in
+`docs/specs/ministero/EsitoAtto.dtd`. La rotta di generazione della ricevuta di
+prova rifiuta depositi non marcati come prova, così non è possibile applicare una
+ricevuta sintetica a un deposito reale.

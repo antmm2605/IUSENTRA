@@ -26,6 +26,7 @@ _CORE_TABLES = {
     "appuntamenti": "appuntamenti",
     "scadenze": "scadenze",
     "timesheet": "timesheet_entries",
+    "time_tracking": "time_tracking_timers",
     "preventivi": "preventivi_records",
     "conferimenti": "conferimenti_records",
     "fatturazione": "parcelle",
@@ -198,6 +199,42 @@ def _copy_scadenze(sqlite_backend, target_backend) -> None:
     target_backend.salva_tabella("scadenze", list(rows), _insert)
 
 
+def _copy_time_tracking(sqlite_backend, target_backend) -> None:
+    rows = sqlite_backend.conn.execute("SELECT * FROM time_tracking_timers").fetchall()
+
+    def _insert(conn, row):
+        raw = _row_dict(row)
+        conn.execute(
+            """
+            INSERT INTO time_tracking_timers
+            (id, user_id, username, id_fascicolo, id_cliente, activity_type,
+             description, started_at, paused_at, ended_at, elapsed_seconds,
+             status, timesheet_entry_id, created_at, updated_at, dati_json)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                raw.get("id", ""),
+                raw.get("user_id", ""),
+                raw.get("username", ""),
+                raw.get("id_fascicolo"),
+                raw.get("id_cliente"),
+                raw.get("activity_type", "other"),
+                raw.get("description", ""),
+                raw.get("started_at", ""),
+                raw.get("paused_at"),
+                raw.get("ended_at"),
+                int(raw.get("elapsed_seconds") or 0),
+                raw.get("status", "running"),
+                raw.get("timesheet_entry_id"),
+                raw.get("created_at", ""),
+                raw.get("updated_at", ""),
+                raw.get("dati_json", "{}"),
+            ),
+        )
+
+    target_backend.salva_tabella("time_tracking_timers", list(rows), _insert)
+
+
 def _copy_payment_config(sqlite_backend, target_backend) -> None:
     rows = sqlite_backend.conn.execute("SELECT * FROM payment_config").fetchall()
 
@@ -352,6 +389,7 @@ def _build_json_to_sqlite_sources(paths: dict[str, str]) -> dict[str, str]:
         "appuntamenti": paths.get("AGENDA_DB", ""),
         "scadenze": paths.get("SCADENZIARIO_DB", ""),
         "timesheet": paths.get("TIMESHEET_DB", ""),
+        "time_tracking": paths.get("TIME_TRACKING_DB", ""),
         "preventivi": preventivi_path,
         "conferimenti": conferimenti_path,
         "fatturazione": paths.get("FATTURAZIONE_DB", ""),
@@ -433,6 +471,8 @@ def _copy_core_state_to_target(
         timesheet_dst._entries = {row.id: row for row in timesheet_src.tutte()}
         timesheet_dst._salva()
 
+    _copy_time_tracking(sqlite_backend, target_backend)
+
     preventivi_path = paths.get("PREVENTIVI_DB", "")
     if preventivi_path:
         preventivi_src = GestionePreventivi(db_path=preventivi_path, studio_db=sqlite_backend)
@@ -507,6 +547,7 @@ def migrate_core_storage_to_postgres(
         "appuntamenti": _json_record_count(paths.get("AGENDA_DB", "")),
         "scadenze": _json_record_count(paths.get("SCADENZIARIO_DB", "")),
         "timesheet": _json_record_count(paths.get("TIMESHEET_DB", "")),
+        "time_tracking": _json_record_count(paths.get("TIME_TRACKING_DB", "")),
         "preventivi": _json_record_count(paths.get("PREVENTIVI_DB", "")),
         "conferimenti": _json_record_count(
             str(Path(paths.get("PREVENTIVI_DB", "")).with_name("conferimenti.json"))

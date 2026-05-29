@@ -176,6 +176,13 @@ export type FascicoloAppointment = {
   tone: Tone
 }
 
+export type FascicoloDepositReceiptStep = {
+  id: string
+  label: string
+  done: boolean
+  tone: Tone
+}
+
 export type FascicoloDeposit = {
   id: string
   timestamp: string
@@ -189,6 +196,10 @@ export type FascicoloDeposit = {
   mainFile: string
   documentsCount: number
   portalDocuments: Array<{ name: string; type: string; date: string; sender: string; imported: boolean; available: boolean }>
+  simulated: boolean
+  receiptSteps: FascicoloDepositReceiptStep[]
+  checkReceiptsAction: string
+  nextSimulationAction: string
   tone: Tone
 }
 
@@ -1178,7 +1189,31 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     }),
     deposits: asArray(payload.deposits).map((entry, index) => {
       const row = isRecord(entry) ? entry : {}
-      return { id: text(row.id, `dep-${index}`), timestamp: text(row.timestamp), status: text(row.status ?? row.stato), actType: text(row.actType ?? row.tipo_atto), pec: text(row.pec ?? row.pec_destinatario), message: text(row.message ?? row.messaggio), checks: text(row.checks ?? row.esito_controlli), source: text(row.source ?? row.fonte_portale), externalId: text(row.externalId ?? row.id_deposito_esterno), mainFile: text(row.mainFile ?? row.nome_atto_principale), documentsCount: number(row.documentsCount ?? row.documenti_count), portalDocuments: asArray(row.portalDocuments ?? row.documenti_portale).map((doc) => { const d = isRecord(doc) ? doc : {}; return { name: text(d.name ?? d.nome, 'Documento'), type: text(d.type ?? d.tipo), date: text(d.date ?? d.data), sender: text(d.sender ?? d.mittente), imported: bool(d.imported ?? d.gia_importato), available: d.available === undefined ? true : bool(d.available ?? d.disponibile) } }), tone: text(row.tone, 'primary') as Tone }
+      return {
+        id: text(row.id, `dep-${index}`),
+        timestamp: text(row.timestamp),
+        status: text(row.status ?? row.stato),
+        actType: text(row.actType ?? row.tipo_atto),
+        pec: text(row.pec ?? row.pec_destinatario),
+        message: text(row.message ?? row.messaggio),
+        checks: text(row.checks ?? row.esito_controlli),
+        source: text(row.source ?? row.fonte_portale),
+        externalId: text(row.externalId ?? row.id_deposito_esterno),
+        mainFile: text(row.mainFile ?? row.nome_atto_principale),
+        documentsCount: number(row.documentsCount ?? row.documenti_count),
+        portalDocuments: asArray(row.portalDocuments ?? row.documenti_portale).map((doc) => {
+          const d = isRecord(doc) ? doc : {}
+          return { name: text(d.name ?? d.nome, 'Documento'), type: text(d.type ?? d.tipo), date: text(d.date ?? d.data), sender: text(d.sender ?? d.mittente), imported: bool(d.imported ?? d.gia_importato), available: d.available === undefined ? true : bool(d.available ?? d.disponibile) }
+        }),
+        simulated: bool(row.simulated ?? row.simulazione),
+        receiptSteps: asArray(row.receiptSteps ?? row.receipt_steps).map((step, stepIndex) => {
+          const item = isRecord(step) ? step : {}
+          return { id: text(item.id, `ricevuta-${stepIndex}`), label: text(item.label, 'Ricevuta'), done: bool(item.done), tone: text(item.tone, bool(item.done) ? 'success' : 'neutral') as Tone }
+        }),
+        checkReceiptsAction: text(row.checkReceiptsAction ?? row.check_receipts_action),
+        nextSimulationAction: text(row.nextSimulationAction ?? row.next_simulation_action),
+        tone: text(row.tone, 'primary') as Tone,
+      }
     }),
     requests: asArray(payload.requests).map(normalizeActivity),
     parties: asArray(payload.parties).map((entry, index) => { const row = isRecord(entry) ? entry : {}; return { id: text(row.id, `party-${index}`), name: text(row.name ?? row.nome, 'Soggetto'), role: text(row.role ?? row.ruolo), taxCode: text(row.taxCode ?? row.codice_fiscale), email: text(row.email), pec: text(row.pec), phone: text(row.phone ?? row.telefono), href: text(row.href, '/soggetti') } }),

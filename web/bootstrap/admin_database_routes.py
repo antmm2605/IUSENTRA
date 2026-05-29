@@ -166,6 +166,7 @@ def register_admin_database_routes(
                 "per_modulo": risultato.record_migrati,
                 "errori": risultato.errori,
                 "avvisi": risultato.avvisi,
+                "audit_migrazione": risultato.audit,
                 "durata_secondi": round(risultato.ms / 1000, 3),
             }
         )
@@ -201,6 +202,7 @@ def register_admin_database_routes(
                     "per_modulo": risultato.record_migrati,
                     "errori": risultato.errori,
                     "avvisi": risultato.avvisi,
+                    "audit_migrazione": risultato.audit,
                     "istruzione": (
                         "Per ambienti multi-tenant imposta SQLite dal pannello SUPERADMIN dello studio. "
                         "Per installazioni single-tenant legacy puoi usare PCT_STORAGE_MODE=SQLITE; "

@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 211.
+- Endpoint React API contrattualizzati: 214.
 - Endpoint P0/P1 contrattualizzati: 193.
 - Endpoint con provider verification 200 rappresentativa: 28.
-- Endpoint con provider verification auth-error: 211.
+- Endpoint con provider verification auth-error: 214.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
 
 | Area | Endpoint | Metodo | Pagina | Priorita | OpenAPI | Provider Test | RBAC | Flag | Tenant | Stato |
@@ -94,6 +94,9 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Giurisprudenza | `/api/v1/ui/giurisprudenza/nuova` | `GET` | Giurisprudenza | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Giurisprudenza | `/api/v1/ui/giurisprudenza/nuova` | `POST` | Giurisprudenza | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Ricerca globale | `/api/v1/ui/global-search` | `GET` | Ricerca globale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/ui/import/quickorganizer` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/ui/import/quickorganizer/anteprima` | `POST` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/ui/import/quickorganizer/esegui` | `POST` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Impostazioni | `/api/v1/ui/impostazioni` | `GET` | Impostazioni | P0 | verified | success+auth-error | `admin.configura` | `n/a` | current_tenant | verified |
 | API React operativa | `/api/v1/ui/impostazioni-studio` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Impostazioni | `/api/v1/ui/impostazioni/{section}` | `POST` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |

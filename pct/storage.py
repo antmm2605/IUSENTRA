@@ -101,6 +101,15 @@ class StudioDB:
         return _instances[key]
 
     @classmethod
+    def invalidate(cls, db_path: str) -> None:
+        """Chiude e rimuove l'istanza cache per un database appena sostituito."""
+        key = str(resolve_sqlite_path(db_path))
+        with _instances_lock:
+            instance = _instances.pop(key, None)
+        if instance is not None:
+            instance.chiudi()
+
+    @classmethod
     def from_data_path(cls, any_data_file: str) -> "StudioDB":
         """
         Deriva il percorso studio.db dalla posizione di un qualunque file dati.

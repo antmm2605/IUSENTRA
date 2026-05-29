@@ -507,6 +507,10 @@ body.react-shell-page #root{
   white-space:nowrap;
   transition:.16s ease;
 }
+.iu-button svg{
+  color:currentColor;
+  flex:0 0 auto;
+}
 .iu-button:hover{
   transform:translateY(-1px);
   border-color:rgba(37,99,235,.25);
@@ -516,6 +520,20 @@ body.react-shell-page #root{
   border-color:transparent;
   background:linear-gradient(135deg,var(--iu-navy-900),var(--iu-navy-800));
   color:#fff;
+}
+.iu-button--primary:hover,
+.iu-button--primary:focus-visible{
+  color:#fff;
+}
+.iu-button:disabled,
+.iu-button[aria-disabled='true']{
+  border-color:#cbd5e1;
+  background:#f8fafc;
+  color:#334155;
+  opacity:1;
+  cursor:not-allowed;
+  box-shadow:none;
+  transform:none;
 }
 .iu-button--ghost{
   border-color:transparent;

@@ -145,6 +145,31 @@ export type AdminDatabaseMigrationResult = {
   per_modulo: Record<string, number>
   errori: string[]
   avvisi: string[]
+  audit_migrazione?: {
+    validation?: {
+      ok?: boolean
+      modules?: Record<string, {
+        json_count?: number
+        sqlite_count?: number
+        status?: string
+        missing_source_ids?: string[]
+        payload_mismatches?: string[]
+      }>
+      errors?: string[]
+      warnings?: string[]
+    }
+    precheck?: {
+      ok?: boolean
+      modules?: Record<string, {
+        json_count?: number
+        existing_sqlite_count?: number
+        status?: string
+        reason?: string
+      }>
+      blockers?: string[]
+    }
+    staging?: boolean
+  }
   durata_secondi?: number
   istruzione?: string
   errore?: string

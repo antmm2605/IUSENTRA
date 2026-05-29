@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from pct.config_studio import ConfigSMTP, ConfigStudio, GestioneConfigStudio
+from pct.config_studio import ConfigPEC, ConfigSMTP, ConfigStudio, GestioneConfigStudio
 from pct.email_client import GestioneEmailRicevute
 from tests.test_email_client import _autentica_admin_session, _cfg_web
 from web.app import create_app
@@ -158,6 +158,51 @@ def test_sync_pec_e_ordinaria_usano_database_separati(tmp_path, monkeypatch):
     assert runtime.run_pec_mailbox_sync(ctx)["ok"] is True
     assert runtime.run_ordinary_mailbox_sync(ctx)["ok"] is True
     assert observed == [paths["EMAIL_CASELLA_DB"], paths["EMAIL_ORDINARIA_DB"]]
+
+
+def test_sync_pec_automatico_aggiorna_depositi_e_cancelleria(tmp_path, monkeypatch):
+    runtime.clear_mailbox_sync_runtime_state()
+    paths = _paths(tmp_path)
+    GestioneConfigStudio(paths["STUDIO_CONFIG"]).aggiorna(
+        ConfigStudio(
+            pec=ConfigPEC(
+                indirizzo="studio@example.invalid",
+                password="segreta",
+                smtp_host="smtp.example.invalid",
+                smtp_port=465,
+                imap_host="imap.example.invalid",
+                imap_port=993,
+                use_ssl=True,
+            )
+        )
+    )
+    ctx = runtime.mailbox_context_from_paths(paths, tenant_label="studio-a")
+    observed: dict[str, str] = {}
+
+    def _fake_workflow(gestione_email, gestione_fascicoli, config_pec, **kwargs):
+        observed["email_db"] = str(gestione_email.db_path)
+        observed["fascicoli_db"] = str(gestione_fascicoli.db_path)
+        observed["state_path"] = str(kwargs.get("state_path", ""))
+        observed["pec"] = config_pec.indirizzo
+        return {
+            "sync": {"nuove": 1, "pst_trovate": 1, "allegati_salvati": 0, "errore": ""},
+            "auto_esiti": ["Fascicolo RG 1/2026: deposito aggiornato"],
+            "poll": {"trovati": 1, "associati": 1, "duplicati": 0, "errori": 0},
+        }
+
+    monkeypatch.setattr("pct.email_client.sincronizza_pec_e_fascicoli", _fake_workflow)
+
+    result = runtime.run_pec_mailbox_sync(ctx, limite=25)
+
+    assert result["ok"] is True
+    assert result["nuove"] == 1
+    assert result["pst_trovate"] == 1
+    assert result["esiti_aggiornati"] == 1
+    assert result["comunicazioni_cancelleria"] == 1
+    assert observed["email_db"] == paths["EMAIL_CASELLA_DB"]
+    assert observed["fascicoli_db"] == paths["FASCICOLI_DB"]
+    assert observed["pec"] == "studio@example.invalid"
+    assert observed["state_path"].endswith("pec_cancelleria_state.json")
 
 
 def test_mailbox_sync_multi_tenant_blocca_path_email_globali(tmp_path):

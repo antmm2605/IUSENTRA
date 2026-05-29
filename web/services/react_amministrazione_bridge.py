@@ -138,6 +138,13 @@ def build_react_amministrazione_payload(
         _module("profili", "Profili", "/profili", "permessi", "Matrice ruoli, categorie e permessi personalizzati."),
         _module("audit", "Registro attivita", "/audit", "sicurezza", "Eventi di controllo e dettaglio consultabile."),
         _module("registro-attivita", "Registro attivita", "/registro-attivita", "sicurezza", "Superficie operativa del registro audit."),
+        _module(
+            "import-studio-telematico",
+            "Importa pratiche da Studio Telematico",
+            "/importa-pratiche-studio-telematico",
+            "fascicoli",
+            "Percorso guidato per acquisire pratiche, ATTI, EMAILS e anagrafiche del cliente.",
+        ),
         _module("backup", "Backup", "/backup", "governance", "Controllo backup disponibile nello stesso ambiente operativo."),
     ]
     legacy_routes = [
@@ -244,6 +251,7 @@ def build_react_amministrazione_payload(
             _action("profili", "Apri profili", "/profili", "primary"),
             _action("audit", "Apri audit", "/audit", "neutral"),
             _action("registro", "Registro attivita", "/registro-attivita", "neutral"),
+            _action("import-studio-telematico", "Importa pratiche", "/importa-pratiche-studio-telematico", "primary"),
             _action("backup", "Apri backup", "/backup", "neutral"),
         ],
         "warnings": warnings,

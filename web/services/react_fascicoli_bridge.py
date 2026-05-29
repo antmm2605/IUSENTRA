@@ -17,6 +17,7 @@ from urllib.parse import quote
 
 from pct.fascicoli import EsitoAttivita, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
 from pct.fascicolo_workspace import build_fascicolo_workspace
+from pct.deposito_simulazione import is_simulated_deposit, next_receipt_phase, receipt_steps
 from pct.notifiche_legali import office_notification_evidence_from_pec
 from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry, codice_oggetto_pst_payload
 from web.services.react_practice_engine_bridge import build_react_practice_engine_payload
@@ -1893,8 +1894,10 @@ def _appointments(apps: Iterable[Any]) -> list[dict[str, Any]]:
 def _deposits(fascicolo: Any) -> list[dict[str, Any]]:
     out = []
     seen: set[tuple[str, ...]] = set()
+    fid = quote(_text(getattr(fascicolo, "id", "")), safe="")
     for dep in getattr(fascicolo, "depositi_pct", []) or []:
         did = _text(getattr(dep, "id", ""), f"deposito-{len(out)}")
+        encoded_did = quote(did, safe="")
         status = _enum_value(getattr(dep, "stato", ""))
         portal_docs = []
         for doc in getattr(dep, "documenti_portale", []) or []:
@@ -1916,6 +1919,8 @@ def _deposits(fascicolo: Any) -> list[dict[str, Any]]:
         seen.add(dedupe_key)
         tone = "success" if status in {"ACCETTATO_CANCELLERIA", "CONSEGNATO", "ACCETTATO_PEC"} else "danger" if "ERRORE" in status or "RIFIUTATO" in status else "warning" if "WARN" in status else "primary"
         message = _deposit_display_message(dep, portal_docs)
+        simulated = is_simulated_deposit(dep)
+        next_phase = next_receipt_phase(dep)
         out.append(
             {
                 "id": did,
@@ -1930,6 +1935,10 @@ def _deposits(fascicolo: Any) -> list[dict[str, Any]]:
                 "mainFile": _text(getattr(dep, "nome_atto_principale", "")),
                 "documentsCount": len(getattr(dep, "documenti_ids", []) or []) + len(portal_docs),
                 "portalDocuments": portal_docs,
+                "simulated": simulated,
+                "receiptSteps": receipt_steps(dep),
+                "checkReceiptsAction": f"/api/fascicoli/{fid}/depositi/{encoded_did}/controlla" if fid and encoded_did else "",
+                "nextSimulationAction": f"/api/fascicoli/{fid}/depositi/{encoded_did}/simula-ricevuta" if simulated and next_phase != "completo" and fid and encoded_did else "",
                 "tone": tone,
             }
         )
@@ -2092,8 +2101,10 @@ def _workflow(preventivi: list[Any], conferimenti: list[Any], parcelle: list[Any
 
 def _telematic(fascicolo: Any) -> list[dict[str, Any]]:
     fid = _text(getattr(fascicolo, "id", ""))
+    encoded_fid = quote(fid, safe="")
     tipo = _enum_value(getattr(fascicolo, "tipo", ""))
     return [
+        {"label": "Deposito telematico", "value": "Prepara", "note": "busta, firma, PEC e ricevute", "href": f"/fascicoli/{encoded_fid}/deposito/prepara", "tone": "success"},
         {"label": "PolisWeb / PST", "value": "Apri", "note": "consultazione e acquisizione guidata", "href": f"/polisWeb?id_fasc={fid}", "tone": "primary"},
         {"label": "PDP Penale", "value": "Attivo" if tipo == "PENALE" else "Disponibile", "note": "percorso penale se applicabile", "href": f"/pdp/fascicoli/{fid}", "tone": "danger" if tipo == "PENALE" else "neutral"},
         {"label": "PAT", "value": "Collega", "note": "amministrativo", "href": "/pat", "tone": "info"},

@@ -21,7 +21,10 @@ def _load_local_signer():
     ("servizio", "distretto", "namespace"),
     [
         ("JPW_SICID", "GLRC", "urn:CONS-SICC-BE"),
+        ("JPW_SIL_DISTR", "GLRC", "urn:CONS-SIL-BE-DISTR"),
         ("JPW_SIL", "GLRC", "urn:CONS-SIL-BE-DISTR"),
+        ("JPW_SILP_DISTR", "GLRC", "urn:CONS-SIL-BE-DISTR"),
+        ("JPW_SILP", "GLRC", "urn:CONS-SIL-BE-DISTR"),
         ("JPW_SIVG", "GLRC", "urn:CONS-SIVG-BE"),
         ("JPW_MIN", "GLRC", "urn:CONS-MIN-BE"),
         ("JPW_SIMIN", "GLRC", "urn:CONS-MIN-BE"),
@@ -74,6 +77,11 @@ def test_pst_qbuilder_matrix_servizi_ufficiali(servizio, distretto, namespace):
     assert module._pst_namespace_qbuilder(base_url) == namespace
     assert f'<execute xmlns="{namespace}">' in ricerca_xml
     assert f'<execute xmlns="{namespace}">' in ricerca_parte_xml
+    if servizio in module._PST_SICID_FAMILY_SERVIZI:
+        assert module._pst_url_ricerca(base_url).endswith("/JPW_SICID")
+        assert module._pst_url_documenti(base_url).endswith("/JPW_SICID")
+    else:
+        assert module._pst_url_ricerca(base_url).endswith(f"/{servizio}")
     if servizio == "JPW_SIECIC":
         assert "<name>InfoFascicolo</name>" in ricerca_xml
         assert "<name>RicercaInformazioniFascicoloPerTipo</name>" not in ricerca_xml
@@ -101,7 +109,7 @@ def test_pst_qbuilder_matrix_servizi_ufficiali(servizio, distretto, namespace):
             assert 'name="subpro"' not in xml
         assert '<value name="subpro" type="integer">1</value>' in documenti_subproc_xml
         assert 'name="subProc"' not in documenti_subproc_xml
-    elif servizio == "JPW_SIL":
+    elif servizio in {"JPW_SIL_DISTR", "JPW_SIL", "JPW_SILP_DISTR", "JPW_SILP"}:
         assert '<value name="tipo" type="string">LAV</value>' in ricerca_xml
     elif servizio == "JPW_SIVG":
         assert '<value name="tipo" type="string">VG</value>' in ricerca_xml

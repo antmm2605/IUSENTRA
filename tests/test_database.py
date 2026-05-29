@@ -881,6 +881,140 @@ def test_migra_verso_sqlite_sanifica_scadenza_orfana(tmp_path):
     assert row[1] is None
 
 
+def test_migra_verso_sqlite_blocca_svuotamento_db_operativo_esistente(tmp_path):
+    clienti_path = tmp_path / "clienti" / "anagrafica.json"
+    fascicoli_path = tmp_path / "fascicoli" / "fascicoli.json"
+    studio_db = tmp_path / "studio.db"
+    _scrivi_json(
+        clienti_path,
+        {
+            "CLI001": {
+                "id": "CLI001",
+                "nome": "Giuseppe",
+                "cognome": "Montagnese",
+                "codice_fiscale": "MNTGPP70A01H501Z",
+            }
+        },
+    )
+    _scrivi_json(
+        fascicoli_path,
+        {
+            "FASC001": {
+                "id": "FASC001",
+                "numero": "1/2026",
+                "titolo": "Pratica da preservare",
+                "id_cliente": "CLI001",
+            }
+        },
+    )
+
+    iniziale = GestioneDatabase({
+        "clienti": str(clienti_path),
+        "fascicoli": str(fascicoli_path),
+    }).migra_verso_sqlite(str(studio_db))
+    assert iniziale.riuscita is True
+
+    _scrivi_json(clienti_path, {})
+    _scrivi_json(fascicoli_path, {})
+    bloccato = GestioneDatabase({
+        "clienti": str(clienti_path),
+        "fascicoli": str(fascicoli_path),
+    }).migra_verso_sqlite(str(studio_db))
+
+    assert bloccato.riuscita is False
+    assert any("Blocco anti-perdita su clienti" in errore for errore in bloccato.errori)
+    assert bloccato.audit["precheck"]["modules"]["clienti"]["status"] == "blocked"
+
+    conn = sqlite3.connect(studio_db)
+    counts = conn.execute(
+        "SELECT (SELECT COUNT(*) FROM clienti), (SELECT COUNT(*) FROM fascicoli)"
+    ).fetchone()
+    conn.close()
+    assert counts == (1, 1)
+
+
+def test_migra_verso_sqlite_preserva_payload_completo_e_timer_topbar(tmp_path):
+    clienti_path = tmp_path / "clienti" / "anagrafica.json"
+    fascicoli_path = tmp_path / "fascicoli" / "fascicoli.json"
+    timer_path = tmp_path / "timesheet" / "time_tracking.json"
+    email_path = tmp_path / "email" / "ordinaria.json"
+    studio_db = tmp_path / "studio.db"
+    cliente = {
+        "id": "CLI100",
+        "nome": "Laura",
+        "cognome": "Verdi",
+        "recapiti": {"telefono_principale": "3330000000", "pec": "laura@example.pec.it"},
+        "campi_ui": {"origine": "form-anagrafica", "preferenza": "email"},
+    }
+    fascicolo = {
+        "id": "FAS100",
+        "numero": "100/2026",
+        "titolo": "Verifica campi UI",
+        "id_cliente": "CLI100",
+        "documenti": [{"id": "DOC1", "nome_file": "atto.pdf", "tag_ui": ["principale"]}],
+        "scadenze_interne": [{"id": "SC1", "titolo": "Deposito"}],
+    }
+    timer = {
+        "id": "TMR100",
+        "user_id": "USR1",
+        "username": "admin",
+        "case_id": "FAS100",
+        "client_id": "CLI100",
+        "activity_type": "drafting",
+        "description": "Redazione atto",
+        "started_at": "2026-05-29T08:00:00Z",
+        "elapsed_seconds": 120,
+        "status": "paused",
+        "created_at": "2026-05-29T08:00:00Z",
+        "updated_at": "2026-05-29T08:02:00Z",
+    }
+    email = {"id": "MAIL100", "oggetto": "Messaggio", "campi_ui": {"cartella": "INBOX"}}
+    _scrivi_json(clienti_path, {"CLI100": cliente})
+    _scrivi_json(fascicoli_path, {"FAS100": fascicolo})
+    _scrivi_json(timer_path, {"TMR100": timer})
+    _scrivi_json(email_path, [email])
+
+    risultato = GestioneDatabase({
+        "clienti": str(clienti_path),
+        "fascicoli": str(fascicoli_path),
+        "time_tracking": str(timer_path),
+        "email_ordinaria": str(email_path),
+    }).migra_verso_sqlite(str(studio_db))
+
+    assert risultato.riuscita is True
+    assert risultato.audit["validation"]["ok"] is True
+    assert risultato.record_migrati["time_tracking"] == 1
+    assert risultato.record_migrati["email_ordinaria"] == 1
+
+    conn = sqlite3.connect(studio_db)
+    cliente_payload = json.loads(conn.execute(
+        "SELECT dati_json FROM clienti WHERE id = ?",
+        ("CLI100",),
+    ).fetchone()[0])
+    fascicolo_payload = json.loads(conn.execute(
+        "SELECT dati_json FROM fascicoli WHERE id = ?",
+        ("FAS100",),
+    ).fetchone()[0])
+    timer_payload = json.loads(conn.execute(
+        "SELECT dati_json FROM time_tracking_timers WHERE id = ?",
+        ("TMR100",),
+    ).fetchone()[0])
+    email_payload = json.loads(conn.execute(
+        """
+        SELECT payload_json
+        FROM moduli_json_records
+        WHERE modulo = ? AND record_key LIKE ?
+        """,
+        ("email_ordinaria", "%MAIL100"),
+    ).fetchone()[0])
+    conn.close()
+
+    assert cliente_payload["campi_ui"]["origine"] == "form-anagrafica"
+    assert fascicolo_payload["documenti"][0]["tag_ui"] == ["principale"]
+    assert timer_payload["description"] == "Redazione atto"
+    assert email_payload["campi_ui"]["cartella"] == "INBOX"
+
+
 # ================================================================ esporta_tutto()
 
 def test_esporta_tutto_zip_creato(db, tmp_path):
@@ -1207,6 +1341,40 @@ def test_admin_database_migra_json(client_admin):
     assert "record_migrati" in data
     assert "messaggio" in data
     assert "avvisi" in data
+
+
+def test_admin_database_attiva_sqlite_blocca_json_vuoti_su_db_pieno(client_admin):
+    clienti_path = Path(client_admin.application.config["CLIENTI_DB"])
+    fascicoli_path = Path(client_admin.application.config["FASCICOLI_DB"])
+    _scrivi_json(clienti_path, {
+        "CLI001": {"id": "CLI001", "nome": "Anna", "cognome": "Rossi"},
+    })
+    _scrivi_json(fascicoli_path, {
+        "FASC001": {"id": "FASC001", "numero": "1/2026", "titolo": "Pratica", "id_cliente": "CLI001"},
+    })
+
+    primo = client_admin.post("/admin/database/attiva-sqlite")
+    assert primo.status_code == 200
+    assert primo.get_json()["ok"] is True
+
+    _scrivi_json(clienti_path, {})
+    _scrivi_json(fascicoli_path, {})
+    secondo = client_admin.post("/admin/database/attiva-sqlite")
+    payload = secondo.get_json()
+
+    assert secondo.status_code == 200
+    assert payload["ok"] is False
+    assert any("Blocco anti-perdita su clienti" in errore for errore in payload["errori"])
+    assert payload["audit_migrazione"]["precheck"]["modules"]["clienti"]["status"] == "blocked"
+
+    studio_db = Path(clienti_path).resolve().parents[1] / "studio.db"
+    conn = sqlite3.connect(studio_db)
+    counts = conn.execute(
+        "SELECT (SELECT COUNT(*) FROM clienti), (SELECT COUNT(*) FROM fascicoli)"
+    ).fetchone()
+    conn.close()
+    assert counts == (1, 1)
+
 
 def test_admin_database_export_zip(client_admin):
     r = client_admin.get("/admin/database/export")

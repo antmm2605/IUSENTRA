@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import sqlite3
+import subprocess
+import sys
 
 from click.testing import CliRunner
 
@@ -139,6 +141,7 @@ def _tenant_paths(tmp_path: Path) -> dict[str, str]:
         "SEARCH_INDEX": str(root / "search" / "index.db"),
         "BACKUP_DIR": str(root / "backup"),
         "TIMESHEET_DB": str(root / "timesheet" / "entries.json"),
+        "TIME_TRACKING_DB": str(root / "timesheet" / "time_tracking.json"),
         "PREVENTIVI_DB": str(root / "preventivi" / "preventivi.json"),
         "FATTURAZIONE_DB": str(root / "fatturazione" / "parcelle.json"),
         "PAGAMENTI_DIR": str(root / "pagamenti"),
@@ -263,6 +266,24 @@ def _seed_core_json(paths: dict[str, str]) -> None:
         ],
     )
     _write_json(
+        Path(paths["TIME_TRACKING_DB"]),
+        [
+            {
+                "id": "timer-1",
+                "user_id": "usr-1",
+                "username": "amministratore",
+                "id_fascicolo": "fas-1",
+                "id_cliente": "cli-1",
+                "activity_type": "studio",
+                "description": "Timer topbar su fascicolo",
+                "started_at": "2026-04-17T09:00:00",
+                "elapsed_seconds": 1800,
+                "status": "stopped",
+                "dati_json": {"campo_ui": "valore timer"},
+            }
+        ],
+    )
+    _write_json(
         Path(paths["PREVENTIVI_DB"]),
         [
             {
@@ -371,6 +392,8 @@ def test_migrate_full_storage_to_sqlite_copre_repository_estesi(tmp_path: Path):
 
     assert report["success"] is True
     assert report["core"]["record_migrati"]["clienti"] == 1
+    assert report["core"]["record_migrati"]["time_tracking"] == 1
+    assert report["diff_summary"]["by_domain"]["time_tracking"]["dopo"] == 1
     assert report["repositories"]["template_atti"]["sqlite_stats"]["template_repository"] >= 1
     assert report["repositories"]["legal_intelligence"]["sqlite_stats"]["legal_sources_repository"] >= 1
     assert report["repositories"]["telematico_repository"]["sqlite_stats"]["telematico_sources_repository"] >= 1
@@ -417,6 +440,128 @@ def test_provision_storage_backend_sqlite_usa_migrazione_completa(tmp_path: Path
     assert payload["migration_report"]["repositories"]["template_atti"]["ok"] is True
     assert payload["migration_report"]["repositories"]["legal_intelligence"]["ok"] is True
     assert Path(payload["migration_report_path"]).exists()
+
+
+def test_migrate_full_storage_to_sqlite_blocca_svuotamento_studio_db_operativo(tmp_path: Path):
+    paths = _tenant_paths(tmp_path)
+    _seed_core_json(paths)
+
+    primo = migrate_full_storage_to_sqlite(
+        paths=paths,
+        tenant_slug="studio-anti-perdita",
+        database_config=DatabaseConfig(mode=DbMode.SQLITE),
+    )
+    assert primo["success"] is True
+
+    _write_json(Path(paths["CLIENTI_DB"]), [])
+    _write_json(Path(paths["FASCICOLI_DB"]), [])
+
+    secondo = migrate_full_storage_to_sqlite(
+        paths=paths,
+        tenant_slug="studio-anti-perdita",
+        database_config=DatabaseConfig(mode=DbMode.SQLITE),
+    )
+
+    assert secondo["success"] is False
+    assert secondo["core"]["riuscita"] is False
+    assert any("Blocco anti-perdita" in err for err in secondo["core"]["errori"])
+    conn = sqlite3.connect(paths["STUDIO_DB"])
+    try:
+        clienti = conn.execute("SELECT COUNT(*) FROM clienti").fetchone()[0]
+        fascicoli = conn.execute("SELECT COUNT(*) FROM fascicoli").fetchone()[0]
+        timers = conn.execute("SELECT COUNT(*) FROM time_tracking_timers").fetchone()[0]
+    finally:
+        conn.close()
+    assert (clienti, fascicoli, timers) == (1, 1, 1)
+
+
+def test_provision_storage_backend_sqlite_blocca_cutover_su_json_vuoti(tmp_path: Path):
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Anti Perdita", "studio-anti-perdita", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug)
+    _seed_core_json(paths)
+
+    primo = tm.provision_storage_backend(studio.slug, migrate_existing=True)
+    assert primo["ok"] is True
+    assert primo["migrated"] is True
+
+    _write_json(Path(paths["CLIENTI_DB"]), [])
+    _write_json(Path(paths["FASCICOLI_DB"]), [])
+
+    secondo = tm.provision_storage_backend(studio.slug, migrate_existing=True)
+
+    assert secondo["ok"] is False
+    assert secondo["migrated"] is False
+    assert secondo["sqlite_ready"] is False
+    assert any("Blocco anti-perdita" in err for err in secondo["migration_errors"])
+    conn = sqlite3.connect(paths["STUDIO_DB"])
+    try:
+        assert conn.execute("SELECT COUNT(*) FROM clienti").fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM fascicoli").fetchone()[0] == 1
+    finally:
+        conn.close()
+
+
+def test_audit_sqlite_migration_integrity_script_blocca_delta(tmp_path: Path):
+    paths = _tenant_paths(tmp_path)
+    _seed_core_json(paths)
+    report = migrate_full_storage_to_sqlite(
+        paths=paths,
+        tenant_slug="studio-audit-script",
+        database_config=DatabaseConfig(mode=DbMode.SQLITE),
+    )
+    assert report["success"] is True
+
+    repo_root = Path(__file__).resolve().parents[1]
+    audit_json = tmp_path / "audit-ok.json"
+    ok = subprocess.run(
+        [
+            sys.executable,
+            str(repo_root / "scripts" / "audit_sqlite_migration_integrity.py"),
+            "--db",
+            paths["STUDIO_DB"],
+            "--data-root",
+            str(tmp_path / "tenant"),
+            "--report-json",
+            str(audit_json),
+        ],
+        cwd=repo_root,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert ok.returncode == 0, ok.stdout + ok.stderr
+    assert json.loads(audit_json.read_text(encoding="utf-8"))["ok"] is True
+
+    conn = sqlite3.connect(paths["STUDIO_DB"])
+    try:
+        conn.execute("DELETE FROM clienti WHERE id = 'cli-1'")
+        conn.commit()
+    finally:
+        conn.close()
+
+    fail_json = tmp_path / "audit-fail.json"
+    fail = subprocess.run(
+        [
+            sys.executable,
+            str(repo_root / "scripts" / "audit_sqlite_migration_integrity.py"),
+            "--db",
+            paths["STUDIO_DB"],
+            "--data-root",
+            str(tmp_path / "tenant"),
+            "--report-json",
+            str(fail_json),
+        ],
+        cwd=repo_root,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert fail.returncode == 1
+    fail_payload = json.loads(fail_json.read_text(encoding="utf-8"))
+    assert fail_payload["ok"] is False
+    assert any("clienti" in errore for errore in fail_payload["errors"])
 
 
 def test_migrate_core_storage_to_postgres_produce_report_consistente(tmp_path: Path, monkeypatch):

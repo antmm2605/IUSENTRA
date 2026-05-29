@@ -1,5 +1,74 @@
 # Pytest issue aperte e risoluzioni
 
+## Database anti-perdita SQLite 2.248.84 - 2026-05-29
+
+Nessuna issue di codice aperta sul perimetro corretto dopo i test mirati e le
+suite storage/database rilanciate.
+
+Audit locale non distruttivo:
+
+- `data\tenants\tenant-8bf98719c459\studio.db` non è allineato ai JSON correnti:
+  lo script segnala clienti `23 -> 12`, PEC/email non presenti nel mirror SQL e
+  diversi payload storici incompleti. Il DB non è stato riscritto durante
+  l'audit.
+- `data\tenants\antonella-mammola\studio.db` non è allineato ai JSON correnti:
+  lo script segnala email, condivisioni, soggetti, template e repository
+  intelligence mancanti nel mirror SQL. Il DB non è stato riscritto durante
+  l'audit.
+
+Questi due esiti confermano la funzione bloccante del nuovo audit su dati
+runtime locali già divergenti. La migrazione corretta su tenant temporaneo,
+seguita da `scripts\audit_sqlite_migration_integrity.py`, torna invece `OK` e
+preserva anche i JSON generati dai repository secondari dopo il secondo
+passaggio core.
+
+Follow-up App V2 chiuso nella stessa sessione: `npm --prefix frontend run test`
+aveva inizialmente bloccato la route P1
+`/importa-pratiche-studio-telematico` perché presente nel manifest ma non ancora
+riallineata nei documenti generati. Eseguito
+`python scripts\react-migration\generate_app_v2_page_registry.py`; poi
+`tests\test_app_v2_frontend_phase7.py`, `tests\test_ui_coverage_phase9.py`,
+`tests\test_app_v2_page_registry.py`, `tests\test_quickorganizer_import.py` e
+`npm --prefix frontend run test` sono tornati verdi.
+
+## Note Local Signer 1.6.63 path fisico SICID per tabelle SICID-family - 2026-05-27
+
+Nessuna issue locale aperta sul perimetro corretto dopo i test mirati.
+
+La prova cliente su Palmi R.G. `3441/2025` con Local Signer `1.6.62` ha
+confermato che schema, materia e registro `lavoro` venivano riconosciuti, ma il
+PST restituiva HTTP 404 sui path fisici `JPW_SIL*`, `JPW_SIVG`, `JPW_MIN` e
+`JPW_SIMIN` sotto `GLRC`. Il registro uffici ministeriale locale espone per
+Palmi i gateway `JPW_SICID` e `JPW_SIECIC`: il fix `1.6.63` separa quindi il
+servizio logico dalla URL fisica. Le tabelle SICID-family mantengono namespace e
+tipo ricerca corretti nel SOAP (`CONS-SIL-BE-DISTR`/`LAV` per lavoro), ma il
+trasporto usa `JPW_SICID` quando quello è il gateway esposto dall'ufficio.
+
+Prova cliente successiva con Local Signer `1.6.63`, app `2.248.82`: ricerca
+Palmi `0910011` / PST `0800570094`, R.G. `3441/2025`, schema `lavoro`, riuscita
+con `pst_search_success`, `1` fascicolo e `6` documenti. Il fascicolo è `RITO
+LAVORO 1 GRADO`, oggetto `retribuzione`, stato `RISERVATO`, tabella
+`SICID_LAVORO`, registro `LAV`, servizio logico `JPW_SIL_DISTR`. Non è aperta
+una issue sulla ricerca: il messaggio `Il portale non espone una prossima
+udienza da tradurre in scadenziario` dipende da `data_udienza` vuota nei
+metadati PST. Resta da completare il comportamento prodotto per gli altri casi:
+se il catalogo contiene atti come `FissazioneTermineNoteSostituzioneUdienza`,
+scaricare il PDF e ricavare la scadenza dal documento fonte, senza inventarla
+dai metadati.
+
+## Note Local Signer 1.6.62 endpoint lavoro distribuiti e PIN su 401 PST - 2026-05-27
+
+Nessuna issue locale aperta sul perimetro corretto dopo i test mirati.
+
+La prova cliente su Palmi R.G. `3441/2025` ha mostrato che `1.6.60` sceglieva il
+rito lavoro, ma il PST rispondeva HTTP 404 sul canale `/JPW_SIL`. Il fix
+`1.6.61` prova prima `JPW_SIL_DISTR`, poi `JPW_SIL`, `JPW_SILP_DISTR`,
+`JPW_SILP` e solo dopo torna agli altri registri già presidiati. Inoltre, se il
+PST risponde HTTP 401 durante il tentativo cookie-only, il Local Signer scarta il
+cookie e ritenta subito col certificato, così Windows può riproporre il PIN.
+Questo evita di correggere lavoro perdendo SICID, volontaria giurisdizione,
+minori o SIECIC.
+
 ## Note Local Signer 1.6.60 tabelle ministeriali PST e penale - 2026-05-27
 
 Nessuna issue locale aperta sul perimetro corretto dopo i test mirati.
@@ -1026,3 +1095,16 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | Prima importazione con solo catalogo PST | Test `test_api_portale_acquisizione_import_pst_prima_pratica_non_crea_vuoto_senza_file` | Governato | Se il PST espone documenti ma non consegna file reali, IUSENTRA non crea una pratica vuota e mantiene il blocco esplicito. | Non trasformare il catalogo in successo; servono file reali o un avviso/blocco visibile. |
 | Pratica già esistente senza parti esposte dal portale | Test `test_api_portale_acquisizione_analyze_pst_pratica_esistente_non_blocca_parti_mancanti` | Governato | L'assenza di parti dal portale diventa avviso, perché il fascicolo locale resta primario e non deve perdere assistiti/controparti già presenti. | Non reintrodurre blocchi distruttivi su pratiche esistenti quando l'obiettivo è importare file e dati disponibili. |
 | Scarico manuale e selezione documenti PST | Typecheck React e test shell `test_react_wizard_pst_verifica_local_signer_dal_browser` | Governato | Se l'utente scarica documenti e poi cambia selezione, l'import filtra i file già scaricati in base alla selezione corrente e tenta lo scarico dei soli documenti selezionati ancora mancanti. | Non inviare al backend file PST deselezionati e non considerare completo l'import quando manca un file reale selezionato. |
+
+## Note Import pratiche Studio Telematico 2.248.79 - 2026-05-27
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Matrice completa React shell | `python -m pytest tests/test_react_shell.py::test_react_migration_matrice_completa_route_api_e_card_operative -q` | Blocco preesistente fuori perimetro | Il test si ferma prima della nuova rotta su `Legal Intelligence: /legal-intelligence`, che restituisce 301 invece di 200. La rotta import Studio Telematico è stata verificata con smoke dedicato e gate route/contratti React. | Correggere o aggiornare il contratto della redirect `/legal-intelligence` prima di usare la matrice completa come gate finale di questa tranche. |
+| Pacchetto dati cliente | Analisi `QuickOrganizer.mdb` senza cartelle | Governato | Il file `.mdb` da solo non contiene i documenti dei fascicoli né le email collegate; per import completo servono sempre `ATTI` ed `EMAILS` dalla postazione `C:\QuickOrganizer`. | Usare il comando `Prepara pacchetto` dalla pagina Amministrazione e caricare lo ZIP prodotto dal PC del cliente. |
+## Note scadenziario PST da documento fonte 2.248.83 - 2026-05-27
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| `data_udienza` non esposta dal PST | Test PolisWeb mirato e typecheck React | Governato | La regola è condizionata: se il portale espone una data/udienza strutturata, quella resta fonte primaria; se non la espone, il wizard mostra i documenti fonte del catalogo e l'analisi restituisce `Scadenza da documento fonte`. | Per modifiche future a preview/analyze/import PST rilanciare `test_api_portale_acquisizione_analyze_usa_documento_fonte_se_udienza_non_esposta`, typecheck React e una prova UI su fascicolo con catalogo documenti. |
+| Creazione scadenze senza data verificata | Runtime telematico | Bloccato intenzionalmente | IUSENTRA non crea una scadenza datata dai soli metadati quando manca `data_udienza`: registra il documento fonte da leggere e crea la scadenza solo dopo estrazione verificabile dal documento. | Collegare eventuale OCR/lettore PDF allo stesso campo `documenti_scadenziario`, mantenendo fonte, data estratta e documento in nota scadenza. |

@@ -68,6 +68,7 @@ TENANT_FILE_SEED_PATHS: tuple[str, ...] = (
     "template_atti/templates.json",
     "telematico/workflow.db",
     "timesheet/entries.json",
+    "timesheet/time_tracking.json",
     "wizard_pro/sessioni.json",
 )
 
@@ -1210,6 +1211,7 @@ class GestioneTenant:
             "AGENDA_DB",
             "SCADENZIARIO_DB",
             "TIMESHEET_DB",
+            "TIME_TRACKING_DB",
             "MESSAGGI_DB",
             "PRIVACY_DB",
             "PORTALE_DB",
@@ -1256,6 +1258,7 @@ class GestioneTenant:
                     "appuntamenti": legacy_paths.get("AGENDA_DB", ""),
                     "scadenze": legacy_paths.get("SCADENZIARIO_DB", ""),
                     "timesheet": legacy_paths.get("TIMESHEET_DB", ""),
+                    "time_tracking": legacy_paths.get("TIME_TRACKING_DB", ""),
                     "messaggi": legacy_paths.get("MESSAGGI_DB", ""),
                     "privacy": legacy_paths.get("PRIVACY_DB", ""),
                     "search_index": legacy_paths.get("SEARCH_INDEX", ""),
@@ -1302,6 +1305,7 @@ class GestioneTenant:
             "AUDIT_DB":          f"{base}/auth/audit.json",
             "SCADENZIARIO_DB":   f"{base}/scadenziario/scadenze.json",
             "TIMESHEET_DB":      f"{base}/timesheet/entries.json",
+            "TIME_TRACKING_DB":   f"{base}/timesheet/time_tracking.json",
             "SEARCH_INDEX":      f"{base}/search/index.db",
             "PRIVACY_DB":        f"{base}/privacy/registro.json",
             "PORTALE_DB":        f"{base}/portale/portali.json",
@@ -1557,11 +1561,19 @@ class GestioneTenant:
                 payload["migration_errors"] = list(core.get("errori") or [])
                 payload["migration_warnings"] = list(core.get("avvisi") or [])
                 payload["migration_records"] = dict(core.get("record_migrati") or {})
+                if not report.get("success"):
+                    payload["ok"] = False
+                    payload["error"] = (
+                        "Migrazione SQLite bloccata: correggere i domini non allineati "
+                        "prima di attivare il backend dello studio."
+                    )
 
             from pct.storage import StudioDB
 
             studio_db = StudioDB.get(paths["STUDIO_DB"])
-            payload["sqlite_ready"] = bool(studio_db.db_path.exists())
+            payload["sqlite_ready"] = bool(studio_db.db_path.exists()) and (
+                not migrate_existing or bool(payload.get("migrated"))
+            )
             self._scrivi_storage_manifest(slug, studio)
             return payload
 

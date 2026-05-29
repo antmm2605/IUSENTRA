@@ -62,6 +62,9 @@ Legenda:
 - `Sito Studio` usa un repository SQL dedicato per tenant, mentre immagini e asset restano su filesystem tenant-aware; `strumenti legali`, `applicazioni` e `news giuridiche strutturate` vengono pubblicati solo quando il flag amministrativo del sito e' attivo.
 - `Uffici giudiziari e PEC` resta runtime JSON-first per la cache storica degli uffici, ma ora ha schema SQLite/PostgreSQL esplicito e report di verifica con fonti PST/IPA distinte; il cutover R/W SQL richiede repository tenant-aware e job schedulato dedicato.
 - `admin/database` esegue la verifica referenziale con riparazione automatica dei problemi risolvibili: prima della scrittura crea backup JSON, non crea record fittizi e, quando non trova un collegamento reale univoco, scollega il riferimento orfano conservando l'ID originale in note/metadati.
+- `admin/database` non sovrascrive più un `studio.db` operativo con sorgenti JSON vuote o incomplete: la migrazione usa staging, precheck anti-perdita e validazione campo-per-campo prima di installare il database finale.
+- Il cutover SQLite completo riesegue il mirror core dopo la sincronizzazione dei repository secondari, così i JSON generati da Legal Intelligence, Giurisprudenza, Workspace Intelligence, template e moduli analoghi finiscono anche in `moduli_json_records`.
+- `timesheet/time_tracking.json` è un percorso tenant-aware ufficiale: il timer della top bar viene copiato dal bootstrap legacy, migrato in `time_tracking_timers`, contato nei report e portato nel cutover PostgreSQL.
 - I moduli JSON monitorati da `admin/database` che non hanno ancora una tabella verticale dedicata sono comunque migrabili con struttura esplicita SQLite/PostgreSQL: `moduli_dati` registra percorso, backend e metadati; `moduli_json_records` conserva i record normalizzati per modulo. Le tabelle dedicate restano il target preferito per i domini core, ma Calendar Sync, Email, Soggetti, Portale, Template, Wizard, Intelligence e moduli analoghi non devono risultare "non migrabili" solo perche' sono JSON runtime.
 - Lo snapshot SQLite mostrato da `admin/database` resta presente anche se una tabella tecnica derivata, come l'indice FTS `search_documenti`, non e' conteggiabile nel runtime corrente: la pagina mostra un avviso e conserva le statistiche delle altre tabelle invece di dichiarare assente l'intero database.
 
@@ -76,3 +79,4 @@ Legenda:
 - fonti, staging, review queue, news, normative, giurisprudenza e prassi di `Update Intelligence` coerenti nell'archivio SQL condiviso di piattaforma
 - snapshot, gap queue, draft e publish history di `Coverage AI` coerenti tra SQLite condiviso e PostgreSQL esplicito di piattaforma
 - report di migrazione persistito sotto `backup/` del tenant
+- audit severo con `scripts/audit_sqlite_migration_integrity.py` prima di dichiarare riuscito un recupero dati o un cutover su tenant reale

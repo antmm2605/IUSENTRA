@@ -1,6 +1,6 @@
 # Database e migrazioni
 
-Aggiornato: 2026-05-14, fase 12 `fasereact`.
+Aggiornato: 2026-05-29, presidio anti-perdita SQLite `2.248.84`.
 
 ## Stato reale
 
@@ -46,6 +46,43 @@ Ogni migrazione dati deve:
 5. registrare audit se modifica dati operativi;
 6. avere test su tenant A/B o data root temporaneo;
 7. documentare rollback.
+
+## Presidio anti-perdita SQLite
+
+Il passaggio JSON -> SQLite dello studio non può più cancellare un database
+operativo già popolato quando i JSON correnti sono vuoti, incompleti o puntano
+al tenant sbagliato.
+
+Regole applicate da `GestioneDatabase.migra_verso_sqlite`:
+
+- prima di scrivere viene letto il target esistente e viene eseguito un
+  precheck anti-perdita sui domini operativi: clienti, fascicoli, agenda,
+  scadenze, timesheet, timer, preventivi, conferimenti, fatturazione,
+  pagamenti, messaggi, utenti, privacy e backup;
+- se la sorgente JSON contiene meno record di un target SQLite già popolato,
+  la migrazione torna `riuscita=false`, conserva il database esistente e
+  riporta `Blocco anti-perdita` nel report;
+- la scrittura persistente avviene su database di staging nascosto e viene
+  installata sul target solo dopo validazione di conteggi, identificativi e
+  payload JSON;
+- i repository secondari che generano o aggiornano JSON vengono seguiti da un
+  secondo passaggio core controllato, così anche i mirror `moduli_json_records`
+  restano allineati;
+- `time_tracking` è tenant-aware in `timesheet/time_tracking.json` e viene
+  migrato in `time_tracking_timers`, incluso nei report e nel cutover
+  PostgreSQL.
+
+Audit manuale su uno studio:
+
+```powershell
+python scripts\audit_sqlite_migration_integrity.py `
+  --db data\tenants\<studio>\studio.db `
+  --data-root data\tenants\<studio> `
+  --report-json artifacts\sqlite-migration-audit-<studio>.json
+```
+
+Il comando esce con codice `1` se manca anche un solo record o se un payload
+non conserva tutti i campi della sorgente.
 
 ## Rollback migrazione
 

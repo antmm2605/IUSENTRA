@@ -7,9 +7,10 @@ truth frontend.
 
 from __future__ import annotations
 
-import json
 import hashlib
+import json
 import re
+import shutil
 from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
@@ -285,6 +286,14 @@ from web.services.react_telematico_bridge import (
     build_react_telematico_surface_payload,
     build_react_tribunali_payload,
 )
+from web.services.quickorganizer_import import (
+    QuickOrganizerImportError,
+    import_quickorganizer_package,
+    load_staged_package,
+    save_upload_to_temp,
+    stage_uploaded_package,
+    staging_root_for_anchor,
+)
 from web.services.react_timesheet_bridge import build_react_timesheet_payload
 from web.services.react_wizard_pro_bridge import (
     build_react_wizard_pro_complete_payload,
@@ -444,6 +453,15 @@ def _puo_eseguire_backup() -> bool:
 
 def _puo_configurare_impostazioni() -> bool:
     return _api_key_valida() or _session_user_can("admin.configura")
+
+
+def _puo_importare_studio_telematico() -> bool:
+    if _api_key_valida():
+        return True
+    return (
+        _session_user_can("admin.configura")
+        or (_session_user_can("fascicoli.scrivi") and _session_user_can("clienti.scrivi"))
+    )
 
 
 def _puo_leggere_fatturazione() -> bool:
@@ -823,6 +841,68 @@ def _cfg_value(key: str, default: str = "") -> str:
 
 def _tenant_cfg_value(key: str, default: str = "") -> str:
     return tenant_data_path(key, default, require_tenant=True)
+
+
+def _studio_telematico_staging_root() -> Path:
+    fascicoli_db = _tenant_cfg_value("FASCICOLI_DB", "./data/fascicoli/fascicoli.json")
+    return staging_root_for_anchor(fascicoli_db)
+
+
+def _studio_telematico_import_page(path: str = "/importa-pratiche-studio-telematico") -> dict[str, Any]:
+    can_import = _puo_importare_studio_telematico()
+    return {
+        "ok": True,
+        "generatedAt": _iso_now(),
+        "page": {
+            "title": "Importa pratiche da Studio Telematico",
+            "subtitle": (
+                "Acquisizione guidata di pratiche, clienti, parti, documenti da ATTI, EMAILS e appuntamenti "
+                "dal vecchio gestionale dello studio."
+            ),
+            "path": path,
+        },
+        "permissions": {
+            "canImport": can_import,
+            "message": "" if can_import else "Per importare le pratiche serve un profilo autorizzato dello studio.",
+        },
+        "steps": [
+            {
+                "id": "prepara",
+                "label": "Prepara il pacchetto",
+                "description": "Sul PC del cliente raccogli archivio dati, cartella ATTI con tutti i documenti e cartella EMAILS.",
+            },
+            {
+                "id": "controlla",
+                "label": "Controlla completezza",
+                "description": "IUSENTRA mostra quante pratiche, parti, documenti da ATTI ed EMAILS sono pronti.",
+            },
+            {
+                "id": "importa",
+                "label": "Acquisisci nello studio",
+                "description": "L'import crea fascicoli e anagrafiche senza duplicare quanto già presente.",
+            },
+        ],
+        "acceptedFiles": ".zip,.json,.mdb",
+        "actions": {
+            "refresh": "/api/v1/ui/import/quickorganizer",
+            "preview": "/api/v1/ui/import/quickorganizer/anteprima",
+            "run": "/api/v1/ui/import/quickorganizer/esegui",
+            "helper": "/static/tools/prepara_import_studio_telematico.ps1",
+            "fascicoli": "/fascicoli",
+            "clienti": "/clienti",
+        },
+        "notes": [
+            "Il pacchetto consigliato è l'archivio compresso preparato dal PC dove era installato Studio Telematico.",
+            "Tutti i documenti dei fascicoli devono essere nella cartella ATTI; le email collegate devono essere nella cartella EMAILS.",
+            "L'archivio dati da solo consente il controllo delle pratiche, ma senza le cartelle ATTI ed EMAILS l'import resta parziale.",
+            "Le pratiche già importate vengono riconosciute e aggiornate, non duplicate.",
+        ],
+        "contracts": {
+            "mock_fallback": False,
+            "writes": "operational_routes",
+            "route_owner": "react_shell",
+        },
+    }
 
 
 def _tenant_runtime_label() -> str:
@@ -2976,6 +3056,90 @@ def admin_database_react_payload():
     except Exception as exc:
         current_app.logger.exception("Bridge React database non disponibile: %s", exc)
         return jsonify(build_react_admin_database_error_payload("Database non disponibile dal runtime corrente.")), 200
+
+
+@api_v1_react.get("/import/quickorganizer")
+@_richiedi_auth
+def studio_telematico_import_react_payload():
+    return jsonify(_studio_telematico_import_page(request.args.get("path", "/import/quickorganizer")))
+
+
+@api_v1_react.post("/import/quickorganizer/anteprima")
+@_richiedi_auth
+def studio_telematico_import_preview():
+    if not _puo_importare_studio_telematico():
+        return jsonify({"ok": False, "errore": "Profilo non autorizzato all'importazione pratiche.", "codice": 403}), 403
+
+    uploaded = request.files.get("pacchetto") or request.files.get("package")
+    if not uploaded or not str(getattr(uploaded, "filename", "") or "").strip():
+        return jsonify({"ok": False, "errore": "Seleziona il pacchetto Studio Telematico da controllare."}), 400
+
+    temp_path = save_upload_to_temp(uploaded)
+    try:
+        stage = stage_uploaded_package(temp_path, _studio_telematico_staging_root())
+    except QuickOrganizerImportError as exc:
+        return jsonify({"ok": False, "errore": str(exc), "codice": "import_non_valido"}), 400
+    except Exception as exc:  # noqa: BLE001 - risposta controllata per import da archivi esterni
+        current_app.logger.exception("Anteprima import Studio Telematico non riuscita: %s", exc)
+        return jsonify({"ok": False, "errore": "Il pacchetto non è leggibile. Verifica di aver incluso pratiche, ATTI ed EMAILS."}), 400
+    finally:
+        shutil.rmtree(temp_path.parent, ignore_errors=True)
+
+    summary = stage.get("analysis", {}).get("summary", {}) if isinstance(stage.get("analysis"), dict) else {}
+    _audit_event(
+        "studio_telematico.import_anteprima",
+        "import_pratiche",
+        str(stage.get("importId") or ""),
+        f"Controllate {summary.get('matters', 0)} pratiche da Studio Telematico.",
+    )
+    return jsonify({"ok": True, **stage})
+
+
+@api_v1_react.post("/import/quickorganizer/esegui")
+@_richiedi_auth
+def studio_telematico_import_run():
+    if not _puo_importare_studio_telematico():
+        return jsonify({"ok": False, "errore": "Profilo non autorizzato all'importazione pratiche.", "codice": 403}), 403
+
+    body = _request_payload()
+    import_id = str(body.get("importId") or body.get("import_id") or "").strip()
+    allow_partial = bool(body.get("allowPartial") or body.get("importaParziale") or body.get("allow_partial"))
+    if not import_id:
+        return jsonify({"ok": False, "errore": "Anteprima non trovata. Carica di nuovo il pacchetto."}), 400
+
+    try:
+        package, stage = load_staged_package(_studio_telematico_staging_root(), import_id)
+        result = import_quickorganizer_package(
+            package,
+            fascicoli=_fascicoli_loader()(),
+            clienti=get_clienti(),
+            soggetti=get_soggetti(),
+            actor=_actor_label(),
+            allow_partial=allow_partial,
+        )
+    except QuickOrganizerImportError as exc:
+        return jsonify({"ok": False, "errore": str(exc), "codice": "import_non_completato"}), 400
+    except Exception as exc:  # noqa: BLE001 - archivi cliente possono contenere dati non coerenti
+        current_app.logger.exception("Import Studio Telematico non riuscito: %s", exc)
+        return jsonify({"ok": False, "errore": "Import non completato. Nessun passaggio successivo è stato avviato automaticamente."}), 400
+
+    clear_dashboard_payload_cache()
+    summary = result.get("summary", {}) if isinstance(result.get("summary"), dict) else {}
+    _audit_event(
+        "studio_telematico.import_esegui",
+        "import_pratiche",
+        import_id,
+        (
+            f"Importate {summary.get('mattersCreated', 0)} nuove pratiche e aggiornate "
+            f"{summary.get('mattersUpdated', 0)} pratiche già presenti."
+        ),
+    )
+    return jsonify({
+        "ok": True,
+        "importId": import_id,
+        "sourceName": stage.get("sourceName", ""),
+        **result,
+    })
 
 
 # IUSENTRA_REACT_FASCICOLI_ROUTES_START

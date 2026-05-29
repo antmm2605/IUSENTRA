@@ -158,6 +158,7 @@ def test_react_sidebar_contiene_navigazione_enterprise_completa():
         "Archivio Giurisprudenza",
         "Sincronizzazione Calendari",
         "Profili e Permessi",
+        "Importa pratiche da Studio Telematico",
         "Registro Attività",
         "Registro GDPR",
     ):
@@ -299,6 +300,7 @@ def test_react_blocco_finale_studio_admin_completo():
         "/impostazioni-studio",
         "/sincronizzazione-calendari",
         "/amministrazione",
+        "/importa-pratiche-studio-telematico",
         "/utenti",
         "/utenti/nuovo",
         "/profili",
@@ -334,6 +336,7 @@ def test_react_blocco_finale_studio_admin_completo():
         "Impostazioni Studio",
         "Sincronizzazione Calendari",
         "Amministrazione",
+        "Importa pratiche da Studio Telematico",
         "Utenti",
         "Profili e Permessi",
         "Registro Attività",
@@ -2845,6 +2848,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Impostazioni Studio",
         "Sincronizzazione Calendari",
         "Amministrazione",
+        "Importa pratiche da Studio Telematico",
         "Utenti",
         "Profili e Permessi",
         "Registro Attività",
@@ -2940,6 +2944,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Strumenti Forensi": "/strumenti-legali/",
         "Strumenti Operativi": "/strumenti-operativi",
         "Amministrazione": "/amministrazione",
+        "Importa pratiche da Studio Telematico": "/importa-pratiche-studio-telematico",
         "Incassi e Pagamenti": "/incassi-pagamenti",
         "Pagamenti": "/impostazioni?tab=pagamenti",
         "Notifiche": "/impostazioni?tab=notifiche",
@@ -3003,6 +3008,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
             "Guida firma digitale": "/api/v1/ui/telematico/surface/firma",
             "Registro GDPR": "/api/v1/ui/privacy/registro",
             "Database": "/api/v1/ui/admin/database",
+            "Importa pratiche da Studio Telematico": "/api/v1/ui/import/quickorganizer",
             "Ricerca Studio": "/api/global-search?q=matrice&limit=5",
         }.items():
             _assert_payload_operativo(client, label, path, require_links=label != "Ricerca Studio")

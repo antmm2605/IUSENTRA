@@ -115,6 +115,7 @@ class RisultatoMigrazione:
     record_migrati: Dict[str, int] = field(default_factory=dict)
     errori: List[str] = field(default_factory=list)
     avvisi: List[str] = field(default_factory=list)
+    audit: Dict[str, Any] = field(default_factory=dict)
     ms: int = 0
 
     def to_dict(self) -> dict:
@@ -622,6 +623,36 @@ class GestioneDatabase:
         "audit", "privacy", "notifiche", "backup",
     }
 
+    MODULI_SQLITE_TABELLE = {
+        "clienti": ("clienti", "id"),
+        "fascicoli": ("fascicoli", "id"),
+        "appuntamenti": ("appuntamenti", "id"),
+        "scadenze": ("scadenze", "id"),
+        "timesheet": ("timesheet_entries", "id"),
+        "time_tracking": ("time_tracking_timers", "id"),
+        "preventivi": ("preventivi_records", "preventivo_id"),
+        "conferimenti": ("conferimenti_records", "conferimento_id"),
+        "fatturazione": ("parcelle", "id"),
+        "pagamenti_links": ("payment_links", "id"),
+        "pagamenti_config": ("payment_config", "config_id"),
+        "messaggi": ("messaggi", "id"),
+        "utenti": ("utenti", "id"),
+        "audit": ("audit_log", "id"),
+        "privacy": ("privacy_trattamenti", "id"),
+        "notifiche": ("notifiche_log", "id"),
+        "backup": ("backup_records", "id"),
+    }
+
+    # Domini che non devono mai diminuire in un DB operativo esistente durante
+    # l'attivazione SQL. Audit/notifiche possono crescere durante la stessa
+    # operazione e vengono validati nel report, ma non bloccano il cutover.
+    MODULI_SQLITE_ANTI_PERDITA = {
+        "clienti", "fascicoli", "appuntamenti", "scadenze",
+        "timesheet", "time_tracking", "preventivi", "conferimenti",
+        "fatturazione", "pagamenti_links", "messaggi", "utenti",
+        "privacy", "backup",
+    }
+
     def __init__(self, percorsi: Dict[str, str]):
         """
         Parameters
@@ -742,6 +773,301 @@ class GestioneDatabase:
         if isinstance(value, (dict, list)):
             return cls._payload_json(value)
         return cls._payload_json({"value": value})
+
+    @staticmethod
+    def _canonical_payload(value: Any) -> str:
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except (TypeError, json.JSONDecodeError):
+                value = {"value": value}
+        return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+    @classmethod
+    def _source_record_identity(
+        cls,
+        chiave: str,
+        record_key: str,
+        payload: Any,
+    ) -> str:
+        if chiave == "pagamenti_config":
+            return "default" if payload else ""
+        if chiave not in cls.MODULI_SQLITE_STRUTTURATI:
+            return record_key
+        if isinstance(payload, dict):
+            candidates = (
+                "id",
+                "preventivo_id",
+                "conferimento_id",
+                "uuid",
+                "slug",
+                "codice",
+                "numero",
+                "msg_id",
+                "message_id",
+            )
+            for field_name in candidates:
+                value = payload.get(field_name)
+                if value not in (None, ""):
+                    return str(value)
+        return ""
+
+    @classmethod
+    def _source_payloads_for_module(cls, chiave: str, raw: Any) -> Dict[str, str]:
+        if chiave == "pagamenti_config":
+            return {"default": cls._canonical_payload(raw)} if raw else {}
+        payloads: Dict[str, str] = {}
+        for record_key, _record_index, _record_kind, payload in cls._json_record_entries(raw):
+            identity = cls._source_record_identity(chiave, record_key, payload)
+            if not identity:
+                continue
+            stored_payload = cls._json_record_payload(payload) if chiave not in cls.MODULI_SQLITE_STRUTTURATI else payload
+            payloads[identity] = cls._canonical_payload(stored_payload)
+        return payloads
+
+    @classmethod
+    def _source_summary_for_module(cls, chiave: str, raw: Any) -> Dict[str, Any]:
+        if chiave == "pagamenti_config":
+            count = 1 if raw else 0
+        else:
+            count = len(cls._json_record_entries(raw))
+        payloads = cls._source_payloads_for_module(chiave, raw)
+        return {
+            "count": count,
+            "ids": set(payloads),
+            "payloads": payloads,
+        }
+
+    def _source_migration_snapshot(self) -> Dict[str, Dict[str, Any]]:
+        snapshot: Dict[str, Dict[str, Any]] = {}
+        for chiave in self._moduli_monitorati():
+            if chiave not in self.MODULI_SQLITE:
+                continue
+            raw, err = self._leggi_json_grezzo(chiave)
+            if err:
+                snapshot[chiave] = {"count": 0, "ids": set(), "payloads": {}, "errore": err}
+                continue
+            snapshot[chiave] = self._source_summary_for_module(chiave, raw)
+        return snapshot
+
+    @staticmethod
+    def _sqlite_has_table(conn: sqlite3.Connection, table_name: str) -> bool:
+        row = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
+            (table_name,),
+        ).fetchone()
+        return bool(row)
+
+    @staticmethod
+    def _sqlite_table_columns(conn: sqlite3.Connection, table_name: str) -> set[str]:
+        try:
+            return {str(row[1]) for row in conn.execute(f'PRAGMA table_info("{table_name}")')}
+        except sqlite3.Error:
+            return set()
+
+    @classmethod
+    def _sqlite_structured_snapshot(
+        cls,
+        conn: sqlite3.Connection,
+        chiave: str,
+    ) -> Dict[str, Any]:
+        table_info = cls.MODULI_SQLITE_TABELLE.get(chiave)
+        if not table_info:
+            return {"count": 0, "ids": set(), "payloads": {}}
+        table_name, id_column = table_info
+        if not cls._sqlite_has_table(conn, table_name):
+            return {"count": 0, "ids": set(), "payloads": {}}
+        columns = cls._sqlite_table_columns(conn, table_name)
+        count_row = conn.execute(f'SELECT COUNT(*) FROM "{table_name}"').fetchone()
+        count = int((count_row or [0])[0] or 0)
+        ids: set[str] = set()
+        payloads: Dict[str, str] = {}
+        if id_column in columns:
+            select_columns = f'"{id_column}"'
+            if "dati_json" in columns:
+                select_columns += ', dati_json'
+            for row in conn.execute(f'SELECT {select_columns} FROM "{table_name}"').fetchall():
+                identity = str(row[0] or "")
+                if not identity:
+                    continue
+                ids.add(identity)
+                if "dati_json" in columns and len(row) > 1 and row[1]:
+                    payloads[identity] = cls._canonical_payload(row[1])
+        return {"count": count, "ids": ids, "payloads": payloads}
+
+    @classmethod
+    def _sqlite_extended_snapshot(
+        cls,
+        conn: sqlite3.Connection,
+        chiave: str,
+    ) -> Dict[str, Any]:
+        if not cls._sqlite_has_table(conn, "moduli_json_records"):
+            return {"count": 0, "ids": set(), "payloads": {}}
+        rows = conn.execute(
+            """
+            SELECT record_key, payload_json
+            FROM moduli_json_records
+            WHERE modulo = ?
+            """,
+            (chiave,),
+        ).fetchall()
+        payloads = {
+            str(row[0]): cls._canonical_payload(row[1])
+            for row in rows
+            if row and row[0] not in (None, "")
+        }
+        return {"count": len(rows), "ids": set(payloads), "payloads": payloads}
+
+    @classmethod
+    def _sqlite_snapshot_for_module(
+        cls,
+        conn: sqlite3.Connection,
+        chiave: str,
+    ) -> Dict[str, Any]:
+        if chiave in cls.MODULI_SQLITE_STRUTTURATI:
+            return cls._sqlite_structured_snapshot(conn, chiave)
+        if chiave in cls.MODULI_SQLITE:
+            return cls._sqlite_extended_snapshot(conn, chiave)
+        return {"count": 0, "ids": set(), "payloads": {}}
+
+    def _sqlite_migration_snapshot(self, db_path: Path) -> Dict[str, Dict[str, Any]]:
+        if not db_path.exists():
+            return {}
+        snapshot: Dict[str, Dict[str, Any]] = {}
+        try:
+            conn = sqlite3.connect(str(db_path))
+            conn.row_factory = sqlite3.Row
+            try:
+                for chiave in self._moduli_monitorati():
+                    if chiave not in self.MODULI_SQLITE:
+                        continue
+                    snapshot[chiave] = self._sqlite_snapshot_for_module(conn, chiave)
+            finally:
+                conn.close()
+        except sqlite3.Error:
+            return {}
+        return snapshot
+
+    def _anti_loss_precheck(self, target_db_path: Path) -> Dict[str, Any]:
+        source = self._source_migration_snapshot()
+        existing = self._sqlite_migration_snapshot(target_db_path)
+        blockers: List[str] = []
+        modules: Dict[str, Dict[str, Any]] = {}
+        for chiave, existing_info in existing.items():
+            if chiave not in self.MODULI_SQLITE:
+                continue
+            source_info = source.get(chiave, {"count": 0, "ids": set(), "payloads": {}})
+            existing_count = int(existing_info.get("count") or 0)
+            source_count = int(source_info.get("count") or 0)
+            existing_ids = set(existing_info.get("ids") or set())
+            source_ids = set(source_info.get("ids") or set())
+            missing_existing = sorted(existing_ids - source_ids) if source_ids else []
+            is_guarded = (
+                chiave in self.MODULI_SQLITE_ANTI_PERDITA
+                or (chiave not in self.MODULI_SQLITE_STRUTTURATI and chiave in self.MODULI_SQLITE)
+            )
+            status = "ok"
+            reason = ""
+            if is_guarded and existing_count > source_count:
+                status = "blocked"
+                reason = (
+                    f"il database operativo contiene {existing_count} record, "
+                    f"la sorgente JSON ne contiene {source_count}"
+                )
+                blockers.append(
+                    f"Blocco anti-perdita su {chiave}: {reason}."
+                )
+            elif is_guarded and missing_existing:
+                status = "blocked"
+                sample = ", ".join(missing_existing[:5])
+                reason = f"record gia' presenti nel database assenti dalla sorgente JSON: {sample}"
+                blockers.append(f"Blocco anti-perdita su {chiave}: {reason}.")
+            modules[chiave] = {
+                "json_count": source_count,
+                "existing_sqlite_count": existing_count,
+                "missing_existing_ids": missing_existing[:20],
+                "status": status,
+                "reason": reason,
+            }
+        return {
+            "ok": not blockers,
+            "target_exists": target_db_path.exists(),
+            "target_db": str(target_db_path),
+            "modules": modules,
+            "blockers": blockers,
+        }
+
+    def _validate_sqlite_migration(self, db_path: Path) -> Dict[str, Any]:
+        source = self._source_migration_snapshot()
+        migrated = self._sqlite_migration_snapshot(db_path)
+        modules: Dict[str, Dict[str, Any]] = {}
+        errors: List[str] = []
+        warnings: List[str] = []
+        for chiave, source_info in source.items():
+            migrated_info = migrated.get(chiave, {"count": 0, "ids": set(), "payloads": {}})
+            source_count = int(source_info.get("count") or 0)
+            migrated_count = int(migrated_info.get("count") or 0)
+            source_ids = set(source_info.get("ids") or set())
+            migrated_ids = set(migrated_info.get("ids") or set())
+            missing_source = sorted(source_ids - migrated_ids) if source_ids else []
+            source_payloads = dict(source_info.get("payloads") or {})
+            migrated_payloads = dict(migrated_info.get("payloads") or {})
+            payload_mismatches = [
+                identity
+                for identity, payload in source_payloads.items()
+                if identity in migrated_payloads and migrated_payloads[identity] != payload
+            ]
+            status = "ok"
+            if migrated_count < source_count:
+                status = "error"
+                errors.append(
+                    f"{chiave}: record SQLite {migrated_count} inferiori alla sorgente JSON {source_count}"
+                )
+            if missing_source:
+                status = "error"
+                errors.append(
+                    f"{chiave}: record sorgente non presenti in SQLite ({', '.join(missing_source[:5])})"
+                )
+            if payload_mismatches:
+                status = "error"
+                errors.append(
+                    f"{chiave}: dati_json/payload_json non conserva tutti i campi per {len(payload_mismatches)} record"
+                )
+            if source_count == 0 and migrated_count > 0:
+                warnings.append(
+                    f"{chiave}: SQLite contiene {migrated_count} record non presenti nella sorgente JSON corrente"
+                )
+            modules[chiave] = {
+                "json_count": source_count,
+                "sqlite_count": migrated_count,
+                "missing_source_ids": missing_source[:20],
+                "payload_mismatches": payload_mismatches[:20],
+                "status": status,
+            }
+        return {
+            "ok": not errors,
+            "db_path": str(db_path),
+            "modules": modules,
+            "errors": errors,
+            "warnings": warnings,
+        }
+
+    def verifica_migrazione_sqlite(self, percorso_db: str) -> Dict[str, Any]:
+        """Verifica pubblica conteggi, identificativi e payload JSON preservati nel DB SQLite."""
+        db_path = resolve_sqlite_path(percorso_db)
+        return self._validate_sqlite_migration(db_path)
+
+    @staticmethod
+    def _install_sqlite_database(source_db_path: Path, target_db_path: Path) -> None:
+        target_db_path.parent.mkdir(parents=True, exist_ok=True)
+        source = sqlite3.connect(str(source_db_path))
+        target = sqlite3.connect(str(target_db_path))
+        try:
+            source.backup(target)
+            target.commit()
+        finally:
+            source.close()
+            target.close()
 
     @classmethod
     def _modulo_payload_metadata(cls, path: Path, raw: Any, errore: Optional[str]) -> str:
@@ -1552,11 +1878,39 @@ class GestioneDatabase:
         RisultatoMigrazione con conteggio record migrati e lista errori.
         """
         t0 = time.monotonic()
-        percorso_db_path = resolve_sqlite_path(percorso_db)
-        percorso_db = str(percorso_db_path)
-        percorso_db_path.parent.mkdir(parents=True, exist_ok=True)
+        target_db_path = resolve_sqlite_path(percorso_db)
+        target_db = str(target_db_path)
+        target_db_path.parent.mkdir(parents=True, exist_ok=True)
 
-        conn = sqlite3.connect(percorso_db)
+        precheck = self._anti_loss_precheck(target_db_path)
+        if not precheck.get("ok", True):
+            ms = int((time.monotonic() - t0) * 1000)
+            return RisultatoMigrazione(
+                riuscita=False,
+                percorso_db=target_db,
+                record_migrati={},
+                errori=list(precheck.get("blockers") or []),
+                avvisi=[
+                    "Attivazione SQLite bloccata: il database esistente contiene record non presenti nei JSON correnti."
+                ],
+                audit={"precheck": precheck, "validation": {}, "staging": False},
+                ms=ms,
+            )
+
+        work_db_path = target_db_path
+        staging = target_db_path.exists()
+        if staging:
+            stamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
+            work_db_path = target_db_path.with_name(
+                f".{target_db_path.stem}.migrazione-{stamp}{target_db_path.suffix}"
+            )
+            for suffix in ("", "-wal", "-shm"):
+                try:
+                    work_db_path.with_name(work_db_path.name + suffix).unlink()
+                except FileNotFoundError:
+                    pass
+
+        conn = sqlite3.connect(str(work_db_path))
         conn.row_factory = sqlite3.Row
         errori: List[str] = []
         avvisi: List[str] = []
@@ -1812,6 +2166,58 @@ class GestioneDatabase:
                     except Exception as ex:
                         errori.append(f"timesheet/{voce.get('id','?')}: {ex}")
                 migrati["timesheet"] = t_count
+
+            # ---- Timer attivita top bar
+            time_tracking_raw, err = self._leggi_json("time_tracking")
+            if err:
+                errori.append(f"time_tracking: {err}")
+            else:
+                tt_count = 0
+                for timer in time_tracking_raw:
+                    try:
+                        id_cliente = timer.get("client_id") or timer.get("id_cliente") or None
+                        if id_cliente and id_cliente not in id_clienti_migrati:
+                            avvisi.append(
+                                f"time_tracking/{timer.get('id','?')}: cliente {id_cliente!r} non trovato, riferimento scollegato in migrazione"
+                            )
+                            id_cliente = None
+                        id_fascicolo = timer.get("case_id") or timer.get("id_fascicolo") or None
+                        if id_fascicolo and id_fascicolo not in id_fascicoli_migrati:
+                            avvisi.append(
+                                f"time_tracking/{timer.get('id','?')}: fascicolo {id_fascicolo!r} non trovato, riferimento scollegato in migrazione"
+                            )
+                            id_fascicolo = None
+                        conn.execute(
+                            """
+                            INSERT OR REPLACE INTO time_tracking_timers
+                            (id, user_id, username, id_fascicolo, id_cliente, activity_type,
+                             description, started_at, paused_at, ended_at, elapsed_seconds,
+                             status, timesheet_entry_id, created_at, updated_at, dati_json)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                            """,
+                            (
+                                timer.get("id"),
+                                timer.get("user_id") or None,
+                                timer.get("username", ""),
+                                id_fascicolo,
+                                id_cliente,
+                                timer.get("activity_type", "other"),
+                                timer.get("description", ""),
+                                timer.get("started_at", ""),
+                                timer.get("paused_at") or None,
+                                timer.get("ended_at") or None,
+                                int(timer.get("elapsed_seconds", 0) or 0),
+                                timer.get("status", "running"),
+                                timer.get("timesheet_entry_id") or None,
+                                timer.get("created_at", ""),
+                                timer.get("updated_at", ""),
+                                json.dumps(timer, ensure_ascii=False),
+                            ),
+                        )
+                        tt_count += 1
+                    except Exception as ex:
+                        errori.append(f"time_tracking/{timer.get('id','?')}: {ex}")
+                migrati["time_tracking"] = tt_count
 
             # ---- Preventivi
             preventivi_raw, err = self._leggi_json("preventivi")
@@ -2400,6 +2806,10 @@ class GestioneDatabase:
             avvisi.append(
                 "Base strutturale seedata automaticamente con moduli procedurali e forensi versionati, senza associazioni automatiche ai cataloghi legacy."
             )
+            try:
+                conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            except sqlite3.Error:
+                pass
             conn.commit()
 
         except Exception as e:
@@ -2408,20 +2818,46 @@ class GestioneDatabase:
         finally:
             conn.close()
 
-        try:
-            from pct.storage import StudioDB
+        validation: Dict[str, Any] = {}
+        if not errori:
+            validation = self._validate_sqlite_migration(work_db_path)
+            if not validation.get("ok", False):
+                errori.extend(str(item) for item in validation.get("errors") or [])
+            avvisi.extend(str(item) for item in validation.get("warnings") or [])
 
-            StudioDB.get(percorso_db).ensure_schema()
-        except Exception as exc:
-            errori.append(f"Riallineamento schema SQLite post-migrazione non riuscito: {exc}")
+        if not errori and work_db_path != target_db_path:
+            try:
+                self._install_sqlite_database(work_db_path, target_db_path)
+            except Exception as exc:
+                errori.append(f"Installazione SQLite sicura non riuscita: {exc}")
+
+        if not errori:
+            try:
+                from pct.storage import StudioDB
+
+                try:
+                    StudioDB.invalidate(target_db)
+                except AttributeError:
+                    pass
+                StudioDB.get(target_db).ensure_schema()
+            except Exception as exc:
+                errori.append(f"Riallineamento schema SQLite post-migrazione non riuscito: {exc}")
+
+        if work_db_path != target_db_path:
+            for suffix in ("", "-wal", "-shm"):
+                try:
+                    work_db_path.with_name(work_db_path.name + suffix).unlink()
+                except FileNotFoundError:
+                    pass
 
         ms = int((time.monotonic() - t0) * 1000)
         return RisultatoMigrazione(
             riuscita=len(errori) == 0,
-            percorso_db=percorso_db,
+            percorso_db=target_db,
             record_migrati=migrati,
             errori=errori,
             avvisi=avvisi,
+            audit={"precheck": precheck, "validation": validation, "staging": staging},
             ms=ms,
         )
 

@@ -1,0 +1,33 @@
+{
+  "route": "/importa-pratiche-studio-telematico",
+  "status": "react_operational_full",
+  "surface": "Importa pratiche da Studio Telematico",
+  "must_preserve": [
+    "sezione in Amministrazione",
+    "percorso guidato con anteprima obbligatoria",
+    "documenti fascicolo dalla cartella ATTI",
+    "email collegate dalla cartella EMAILS",
+    "import idempotente senza duplicare fascicoli già acquisiti",
+    "linguaggio giuridico e non tecnico",
+    "nessun collegamento a funzioni di backup"
+  ],
+  "api": {
+    "page": "/api/v1/ui/import/quickorganizer",
+    "preview": "/api/v1/ui/import/quickorganizer/anteprima",
+    "run": "/api/v1/ui/import/quickorganizer/esegui"
+  },
+  "writes": [
+    "clienti",
+    "soggetti",
+    "parti_fascicolo",
+    "fascicoli",
+    "documenti_fascicolo",
+    "attivita_fascicolo",
+    "audit"
+  ],
+  "permissions": [
+    "admin.configura",
+    "fascicoli.scrivi",
+    "clienti.scrivi"
+  ]
+}

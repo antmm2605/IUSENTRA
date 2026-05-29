@@ -223,6 +223,14 @@ function OptimizationResult({ result }: { result: AdminDatabaseOptimizeResult | 
 
 function MigrationResult({ result }: { result: AdminDatabaseMigrationResult | null }) {
   if (!result) return null
+  const auditModules = result.audit_migrazione?.validation?.modules || result.audit_migrazione?.precheck?.modules || {}
+  const auditRows = Object.entries(auditModules)
+    .map(([name, row]) => {
+      const jsonCount = Number(row.json_count || 0)
+      const sqliteCount = Number('sqlite_count' in row ? row.sqlite_count || 0 : row.existing_sqlite_count || 0)
+      return { name, jsonCount, sqliteCount, status: String(row.status || 'ok'), reason: String('reason' in row ? row.reason || '' : '') }
+    })
+    .filter((row) => row.jsonCount || row.sqliteCount || row.status !== 'ok')
   return (
     <div className="iu-db-migration-result">
       <div className="iu-db-okline">
@@ -236,6 +244,17 @@ function MigrationResult({ result }: { result: AdminDatabaseMigrationResult | nu
         <div className="iu-db-module-counts">
           {Object.entries(result.per_modulo).map(([name, count]) => (
             <span key={name}><strong>{name}</strong>{formatNumber(count)}</span>
+          ))}
+        </div>
+      ) : null}
+      {auditRows.length ? (
+        <div className="iu-db-module-counts" aria-label="Verifica dati migrati">
+          {auditRows.slice(0, 12).map((row) => (
+            <span key={row.name}>
+              <strong>{row.name}</strong>
+              {formatNumber(row.sqliteCount)} / {formatNumber(row.jsonCount)}
+              {row.reason ? <small>{row.reason}</small> : null}
+            </span>
           ))}
         </div>
       ) : null}

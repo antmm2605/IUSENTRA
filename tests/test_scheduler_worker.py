@@ -34,6 +34,8 @@ def test_start_scheduler_worker_registra_job_core(monkeypatch, tmp_path: Path):
         assert scheduler.get_job("legal_official_archives_daily") is not None
         assert scheduler.get_job("legal_updates_batch") is not None
         assert scheduler.get_job("scheduler_registry_reload") is not None
+        assert scheduler.get_job("mailbox_sync_runtime") is not None
+        assert scheduler.get_job("poll_pec_cancelleria") is not None
         assert "hour='23'" in str(scheduler.get_job("legal_official_archives_daily").trigger)
         assert "minute='0'" in str(scheduler.get_job("legal_official_archives_daily").trigger)
         assert "hour='23'" in str(scheduler.get_job("legal_updates_batch").trigger)

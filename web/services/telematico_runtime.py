@@ -75,6 +75,90 @@ def _data_portale_scadenziario_utilizzabile(value: Any, *, today: date | None = 
         return False
 
 
+_SCADENZIARIO_DOCUMENT_HINTS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("Fissazione termine", ("fissazione", "termine")),
+    ("Fissazione udienza", ("fissazione", "udienza")),
+    ("Sostituzione udienza", ("sostituzione", "udienza")),
+    ("Rinvio udienza", ("rinvio", "udienza")),
+    ("Trattazione scritta", ("trattazione", "scritta")),
+    ("Termine note", ("termine", "note")),
+    ("Note sostituzione udienza", ("note", "sostituzione", "udienza")),
+    ("Verbale udienza", ("verbale", "udienza")),
+    ("Comunicazione udienza", ("comunicazione", "udienza")),
+    ("Ordinanza con termini", ("ordinanza", "termine")),
+    ("Decreto con termini", ("decreto", "termine")),
+    ("Provvedimento con termini", ("provvedimento", "termine")),
+)
+
+
+def _compact_scadenziario_match_text(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
+
+
+def _documenti_scadenziario_da_catalogo(documenti: list[dict[str, Any]] | tuple[dict[str, Any], ...]) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for raw_doc in documenti or []:
+        if not isinstance(raw_doc, dict):
+            continue
+        doc = dict(raw_doc)
+        searchable = " ".join(
+            str(doc.get(key) or "")
+            for key in (
+                "nome",
+                "nome_documento",
+                "filename",
+                "tipo",
+                "tipo_atto",
+                "descrizione",
+                "oggetto",
+            )
+        )
+        compact = _compact_scadenziario_match_text(searchable)
+        motivo = ""
+        for label, tokens in _SCADENZIARIO_DOCUMENT_HINTS:
+            if all(_compact_scadenziario_match_text(token) in compact for token in tokens):
+                motivo = label
+                break
+        if not motivo:
+            continue
+        identifier = str(
+            doc.get("id_documento")
+            or doc.get("id_documento_portale")
+            or doc.get("id_cat")
+            or doc.get("nome")
+            or doc.get("nome_documento")
+            or ""
+        ).strip()
+        if identifier and identifier in seen:
+            continue
+        if identifier:
+            seen.add(identifier)
+        candidates.append(
+            {
+                "id_documento": str(doc.get("id_documento") or doc.get("id_documento_portale") or "").strip(),
+                "id_cat": str(doc.get("id_cat") or "").strip(),
+                "nome": str(doc.get("nome") or doc.get("nome_documento") or doc.get("filename") or "").strip(),
+                "tipo": str(doc.get("tipo") or "").strip(),
+                "tipo_atto": str(doc.get("tipo_atto") or "").strip(),
+                "data_deposito": str(doc.get("data_deposito") or doc.get("data") or "").strip(),
+                "motivo": motivo,
+                "richiede_lettura_documento": True,
+            }
+        )
+    return candidates
+
+
+def _preview_ha_udienza_strutturata(preview: dict[str, Any]) -> bool:
+    identity = dict((preview or {}).get("identity") or {})
+    if _normalizza_data_portale(identity.get("data_udienza")):
+        return True
+    for row in list((preview or {}).get("udienze") or []):
+        if isinstance(row, dict) and _normalizza_data_portale(row.get("data") or row.get("data_udienza")):
+            return True
+    return False
+
+
 def build_telematico_runtime(
     app: Flask,
     *,
@@ -895,6 +979,7 @@ def build_telematico_runtime(
             for row in structured_udienze
             if _date_only(row.get("data_udienza") or row.get("data"))
         ]
+        documenti_scadenziario = [] if data_udienza or udienze else _documenti_scadenziario_da_catalogo(docs)
         comunicazioni = [
             {
                 "id": _clean(row.get("comunicazione_uid")),
@@ -954,6 +1039,7 @@ def build_telematico_runtime(
             "istanze": istanze,
             "depositi_telematici": depositi_telematici,
             "documenti": docs,
+            "documenti_scadenziario": documenti_scadenziario,
             "depositi": depositi,
             "counts": {
                 "parti": len(list(selection.get("parti") or [])) + len(list(selection.get("controparti") or [])),
@@ -961,6 +1047,7 @@ def build_telematico_runtime(
                 "eventi": len(eventi),
                 "udienze": len(udienze) or (1 if data_udienza else 0),
                 "documenti": len(docs),
+                "fonti_scadenziario": len(documenti_scadenziario),
                 "provvedimenti": provvedimenti_count,
                 "depositi": len(depositi),
                 "esiti": len(depositi) + len(depositi_telematici),
@@ -1139,7 +1226,12 @@ def build_telematico_runtime(
         counts["documenti"] = len(filtered_docs)
         counts["provvedimenti"] = sum(1 for doc in filtered_docs if _portale_doc_is_provvedimento(doc))
         counts["depositi"] = len(filtered_depositi)
+        documenti_scadenziario = []
+        if not _preview_ha_udienza_strutturata(view):
+            documenti_scadenziario = _documenti_scadenziario_da_catalogo(filtered_docs)
+        counts["fonti_scadenziario"] = len(documenti_scadenziario)
         view["documenti"] = filtered_docs
+        view["documenti_scadenziario"] = documenti_scadenziario
         view["depositi"] = filtered_depositi
         view["counts"] = counts
         return view
@@ -1454,6 +1546,14 @@ def build_telematico_runtime(
         existing_target_mode = mode in {"attach_existing", "update_existing"} and bool(target_id)
         payload = dict(selection.get("payload") or {})
         manual_mode = bool(selection.get("manual_mode") or payload.get("manual_mode"))
+        has_udienza_strutturata = _preview_ha_udienza_strutturata(preview)
+        documenti_scadenziario = [
+            dict(row)
+            for row in list(preview.get("documenti_scadenziario") or [])
+            if isinstance(row, dict)
+        ]
+        if not documenti_scadenziario and not has_udienza_strutturata:
+            documenti_scadenziario = _documenti_scadenziario_da_catalogo(list(preview.get("documenti") or []))
 
         if not selection.get("ufficio_codice"):
             blockers.append({"label": "Ufficio giudiziario mancante", "detail": "Seleziona un ufficio valido prima di proseguire.", "tone": "danger"})
@@ -1510,8 +1610,24 @@ def build_telematico_runtime(
         elif mode == "create_new" and candidates:
             warnings.append({"label": "Possibile duplicato locale", "detail": f"Esistono {len(candidates)} fascicoli con RG o parti compatibili.", "tone": "warning"})
 
-        if options.get("importa_scadenze") and not preview.get("identity", {}).get("data_udienza"):
-            warnings.append({"label": "Nessuna udienza importabile", "detail": "Il portale non espone una prossima udienza da tradurre in scadenziario.", "tone": "warning"})
+        if options.get("importa_scadenze") and not has_udienza_strutturata:
+            if documenti_scadenziario:
+                first_doc = documenti_scadenziario[0]
+                first_name = str(first_doc.get("nome") or first_doc.get("tipo_atto") or "documento fonte").strip()
+                detail = (
+                    "Il portale non espone una prossima udienza strutturata: IUSENTRA userà il documento fonte "
+                    f"'{first_name}' per ricavare termine o udienza dopo lo scarico, senza generare scadenze non verificate."
+                )
+                warnings.append(
+                    {
+                        "label": "Scadenza da documento fonte",
+                        "detail": detail,
+                        "tone": "warning",
+                        "documenti": documenti_scadenziario[:5],
+                    }
+                )
+            else:
+                warnings.append({"label": "Nessuna udienza importabile", "detail": "Il portale non espone una prossima udienza da tradurre in scadenziario.", "tone": "warning"})
 
         score = max(0, min(100, 100 - len(blockers) * 18 - len(warnings) * 7))
         status = "ok" if not blockers and not warnings else ("warning" if not blockers else "block")
@@ -1683,11 +1799,21 @@ def build_telematico_runtime(
         gs = get_scadenziario()
         fasc = gf.get(id_fasc)
         if not fasc:
-            return {"attivita": 0, "scadenze": 0, "scadenze_scartate": 0}
+            return {"attivita": 0, "scadenze": 0, "scadenze_scartate": 0, "scadenze_da_documento": 0}
         data_udienza = _normalizza_data_portale(preview.get("identity", {}).get("data_udienza"))
         if not data_udienza:
-            return {"attivita": 0, "scadenze": 0, "scadenze_scartate": 0}
-        created = {"attivita": 0, "scadenze": 0, "scadenze_scartate": 0}
+            documenti_scadenziario = [
+                dict(row)
+                for row in list(preview.get("documenti_scadenziario") or [])
+                if isinstance(row, dict)
+            ] or _documenti_scadenziario_da_catalogo(list(preview.get("documenti") or []))
+            return {
+                "attivita": 0,
+                "scadenze": 0,
+                "scadenze_scartate": 0,
+                "scadenze_da_documento": len(documenti_scadenziario),
+            }
+        created = {"attivita": 0, "scadenze": 0, "scadenze_scartate": 0, "scadenze_da_documento": 0}
         if crea_attivita:
             exists = any(att.tipo == TipoAttivita.UDIENZA and att.data == data_udienza for att in fasc.attivita)
             if not exists:
@@ -2531,6 +2657,7 @@ def build_telematico_runtime(
                 or catalogo_depositi_synced
                 or int(preview.get("counts", {}).get("depositi", 0) or 0),
                 "scadenze_generate": udienza_result["scadenze"] + structured_result["scadenze"],
+                "scadenze_da_documento": udienza_result.get("scadenze_da_documento", 0),
                 "scadenze_scartate_per_data_passata": udienza_result.get("scadenze_scartate", 0) + structured_result.get("scadenze_scartate", 0),
                 "eventi_generati": udienza_result["attivita"] + structured_result["attivita"],
                 "comunicazioni_generate": structured_result["comunicazioni"],

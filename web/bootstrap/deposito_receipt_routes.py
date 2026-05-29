@@ -3,8 +3,16 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import datetime
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
+
+from pct.deposito_simulazione import (
+    apply_simulated_receipt,
+    is_simulated_deposit,
+    next_receipt_phase,
+    receipt_flags,
+)
 
 
 def register_deposito_receipt_routes(
@@ -29,6 +37,21 @@ def register_deposito_receipt_routes(
         if not deposito:
             return jsonify({"errore": "Deposito non trovato"}), 200
 
+        if is_simulated_deposit(deposito):
+            return jsonify(
+                {
+                    "stato": deposito.stato,
+                    "ricevuta_accettazione": bool(deposito.ricevuta_accettazione),
+                    "ricevuta_consegna": bool(deposito.ricevuta_consegna),
+                    "ricevuta_controlli": bool(deposito.ricevuta_controlli_automatici),
+                    "ricevuta_cancelleria": bool(deposito.ricevuta_cancelleria),
+                    "simulazione": True,
+                    "prossima_fase": next_receipt_phase(deposito),
+                    "aggiornato": False,
+                    "messaggio": "Deposito di prova: nessun controllo esterno eseguito.",
+                }
+            )
+
         try:
             cfg_studio = get_config_studio().config
             pec_cfg = cfg_studio.pec if cfg_studio and hasattr(cfg_studio, "pec") else None
@@ -38,7 +61,8 @@ def register_deposito_receipt_routes(
                         "stato": deposito.stato,
                         "ricevuta_accettazione": bool(deposito.ricevuta_accettazione),
                         "ricevuta_consegna": bool(deposito.ricevuta_consegna),
-                        "info": "IMAP non configurato - verifica manuale necessaria.",
+                        "info": "Casella PEC non configurata per il controllo automatico.",
+                        "messaggio": "Casella PEC non configurata: verifica manuale necessaria.",
                     }
                 )
 
@@ -109,8 +133,74 @@ def register_deposito_receipt_routes(
                     "esito_controlli": deposito.esito_controlli,
                     "ricevuta_cancelleria": bool(deposito.ricevuta_cancelleria),
                     "aggiornato": aggiornato,
+                    "messaggio": "Ricevute aggiornate." if aggiornato else "Nessuna nuova ricevuta PEC trovata.",
                 }
             )
         except Exception as exc:
             app.logger.exception("deposito_controlla_ricevute %s/%s: %s", id_fasc, id_dep, exc)
             return jsonify({"errore": str(exc), "stato": deposito.stato})
+
+    @app.route("/api/fascicoli/<id_fasc>/depositi/<id_dep>/simula-ricevuta", methods=["POST"])
+    def deposito_simula_ricevuta(id_fasc, id_dep):
+        """Genera una ricevuta sintetica solo per depositi creati senza invio reale."""
+
+        gestore_fascicoli = get_fascicoli()
+        fascicolo = gestore_fascicoli.get(id_fasc)
+        if not fascicolo:
+            return jsonify({"ok": False, "errore": "Fascicolo non trovato"}), 404
+
+        deposito = next((item for item in fascicolo.depositi_pct if item.id == id_dep), None)
+        if not deposito:
+            return jsonify({"ok": False, "errore": "Deposito non trovato"}), 404
+        if not is_simulated_deposit(deposito):
+            return jsonify(
+                {
+                    "ok": False,
+                    "errore": "La ricevuta di prova può essere generata solo per depositi senza invio reale.",
+                }
+            ), 400
+
+        body = request.get_json(silent=True) or {}
+        fase = str(request.form.get("fase") or body.get("fase") or request.args.get("fase") or "prossima")
+        ref = str(getattr(fascicolo, "rg_completo", "") or getattr(fascicolo, "numero", "") or id_fasc)
+        generated_at = datetime.now().isoformat(timespec="seconds")
+        try:
+            phase, updated, message = apply_simulated_receipt(
+                deposito,
+                fase=fase,
+                fascicolo_ref=ref,
+                generated_at=generated_at,
+            )
+        except ValueError as exc:
+            return jsonify({"ok": False, "errore": str(exc)}), 400
+
+        if updated:
+            try:
+                fascicolo.modificato_il = generated_at
+            except Exception:
+                pass
+            gestore_fascicoli._salva()
+            audit(
+                "fascicoli.deposito.ricevuta_prova",
+                "fascicolo",
+                id_fasc,
+                dettagli=f"Deposito {id_dep} - fase {phase} - stato {deposito.stato}",
+            )
+
+        flags = receipt_flags(deposito)
+        return jsonify(
+            {
+                "ok": True,
+                "stato": deposito.stato,
+                "fase": phase,
+                "aggiornato": updated,
+                "simulazione": True,
+                "ricevuta_accettazione": flags["accettazione"],
+                "ricevuta_consegna": flags["consegna"],
+                "ricevuta_controlli": flags["controlli"],
+                "ricevuta_cancelleria": flags["cancelleria"],
+                "prossima_fase": next_receipt_phase(deposito),
+                "messaggio": message,
+                "message": message,
+            }
+        )

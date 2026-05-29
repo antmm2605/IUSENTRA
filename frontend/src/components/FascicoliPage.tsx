@@ -1730,7 +1730,8 @@ function depositStatusLabel(status: string): string {
   const clean = normaliseText(status).replace(/_/g, ' ').trim()
   if (!clean) return 'Da verificare'
   if (/importato da portale/.test(clean)) return 'Importato da portale'
-  if (/accettato cancelleria/.test(clean)) return 'Accettato dalla cancelleria'
+  if (/accettato cancelleria/.test(clean)) return 'Deposito confermato'
+  if (/warn controlli/.test(clean)) return 'Controlli con avvisi'
   if (/accettato pec/.test(clean)) return 'Accettato PEC'
   if (/consegnato/.test(clean)) return 'Consegnato'
   if (/errore/.test(clean)) return 'Errore'
@@ -1743,6 +1744,81 @@ function depositStatusLabel(status: string): string {
 function isCancelleriaCommunication(dep: FascicoloDeposit): boolean {
   const text = depositCommunicationText(dep)
   return /(accettazion|consegna|rdac|rac|esito|cancelleria|deposito|busta)/.test(text)
+}
+
+function depositNextSimulationLabel(dep: FascicoloDeposit): string {
+  const next = dep.receiptSteps.find((step) => !step.done)
+  if (!next) return 'Prova completata'
+  if (next.id === 'accettazione') return 'Genera accettazione'
+  if (next.id === 'consegna') return 'Genera consegna'
+  if (next.id === 'controlli') return 'Genera controlli'
+  if (next.id === 'cancelleria') return 'Genera conferma'
+  return `Genera ${next.label.toLowerCase()}`
+}
+
+function depositPhaseSummary(dep: FascicoloDeposit): { label: string; body: string; tone: FascicoloRow['tone'] } {
+  const status = normaliseText(`${dep.status} ${dep.checks}`)
+  const done = new Set(dep.receiptSteps.filter((step) => step.done).map((step) => step.id))
+  if (/accettato cancelleria/.test(status) || done.has('cancelleria')) {
+    return { label: 'Deposito confermato', body: 'La conferma di cancelleria è registrata nel fascicolo.', tone: 'success' }
+  }
+  if (/errore|rifiutato/.test(status)) {
+    return { label: 'Deposito da presidiare', body: 'È presente un esito negativo o un blocco: verifica le ricevute e gli allegati.', tone: 'danger' }
+  }
+  if (/warn controlli|warn/.test(status)) {
+    return { label: 'Controlli automatici con avvisi', body: "La PEC dei controlli è arrivata: serve verifica dell'avvocato prima della conferma finale.", tone: 'warning' }
+  }
+  if (done.has('controlli')) {
+    return { label: 'Controlli automatici ricevuti', body: 'La fase tecnica è registrata; resta da attendere la conferma della cancelleria.', tone: 'warning' }
+  }
+  if (done.has('consegna')) {
+    return { label: 'Consegna PEC ricevuta', body: 'Il messaggio risulta consegnato: attendi i controlli automatici.', tone: 'primary' }
+  }
+  if (done.has('accettazione') || /accettato pec/.test(status)) {
+    return { label: 'Accettazione PEC ricevuta', body: 'Il gestore PEC ha accettato il messaggio di deposito.', tone: 'success' }
+  }
+  if (/inviato/.test(status)) {
+    return { label: 'Deposito inviato', body: 'Il deposito è registrato: verifica l’arrivo delle ricevute PEC.', tone: 'primary' }
+  }
+  return { label: 'Deposito da verificare', body: 'Apri il flusso PEC per controllare accettazione, consegna, controlli e conferma.', tone: 'neutral' }
+}
+
+function DepositReceiptSteps({ dep }:{dep:FascicoloDeposit}) {
+  const visible = dep.simulated || dep.receiptSteps.some((step) => step.done)
+  if (!visible || !dep.receiptSteps.length) return null
+  return (
+    <div className="iu-fas-receipt-steps" aria-label="Stato ricevute deposito">
+      {dep.receiptSteps.map((step) => (
+        <span className={step.done ? 'is-done' : ''} key={`${dep.id}-${step.id}`}>
+          {step.done ? <CheckCircle2 size={13}/> : <Clock3 size={13}/>}
+          {step.label}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function DepositReceiptActions({ dep, onDone, onError }:{dep:FascicoloDeposit; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
+  const done = dep.receiptSteps.length > 0 && dep.receiptSteps.every((step) => step.done)
+  if (!dep.checkReceiptsAction && !dep.nextSimulationAction && !dep.simulated) return null
+  return (
+    <div className="iu-fas-comm-actions">
+      {!dep.simulated && dep.checkReceiptsAction ? <PostAction action={dep.checkReceiptsAction} tone="secondary" onDone={onDone} onError={onError}><RefreshCw size={14}/> Controlla PEC</PostAction> : null}
+      {dep.nextSimulationAction ? <PostAction action={dep.nextSimulationAction} tone="primary" onDone={onDone} onError={onError}><CheckCircle2 size={14}/> {depositNextSimulationLabel(dep)}</PostAction> : null}
+      {dep.simulated ? <small>{done ? 'Prova senza invio reale completata' : 'Prova senza invio reale'}</small> : null}
+      {!dep.simulated ? <small>La PEC viene sincronizzata automaticamente; usa il controllo manuale solo per anticipare.</small> : null}
+    </div>
+  )
+}
+
+function DepositStateSummary({ dep }:{dep:FascicoloDeposit}) {
+  const summary = depositPhaseSummary(dep)
+  return (
+    <div className={`iu-fas-deposit-state iu-fas-deposit-state--${summary.tone}`}>
+      <Badge tone={summary.tone}>{summary.label}</Badge>
+      <span>{summary.body}</span>
+    </div>
+  )
 }
 
 function buildDocumentSections(documents: FascicoloDocument[]): DocumentAutoSection[] {
@@ -2543,6 +2619,7 @@ function DetailPage({ id }:{id:string}) {
   const compilerHref = `/template-atti/catalogo?id_fascicolo=${encodedId}`
   const detailReturnHref = `/fascicoli/${encodeURIComponent(f.id || id)}#conformita`
   const exportPdfHref = data.actions.exportPdf || f.exportPdfHref
+  const depositTelematicHref = data.telematic.find((item) => /deposito telematico/i.test(item.label))?.href || `/fascicoli/${encodedId}/deposito/prepara`
   const clientId = data.client?.id || f.clientId
   const clientRecordHref = clientId ? `/clienti/${encodeURIComponent(clientId)}/modifica` : '/clienti'
   const partiesRecordHref = `/soggetti?fascicolo=${encodedId}`
@@ -2600,7 +2677,7 @@ function DetailPage({ id }:{id:string}) {
     <main id="fascicolo-top" className="iu-content iu-fascicoli-page iu-fascicolo-detail-page">
       <section className="iu-fas-hero iu-fas-detail-hero">
         <div><span className="iu-fas-eyebrow"><FolderOpen size={16}/> Fascicolo</span><h1>{f.title}</h1><p><Badge tone={f.tone}>{formatFascicoloStatus(f.status)}</Badge><Badge tone="neutral">{formatFascicoloType(f.type)}</Badge>{f.archiveReady ? <Badge tone="warning">Pronto per archivio</Badge> : null}<span>{f.object || f.subtitle}</span></p></div>
-        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><a className="iu-button iu-button--secondary iu-fas-record-link" href={clientRecordHref} target="_blank" rel="noopener noreferrer" aria-label="Apri anagrafica cliente in una nuova finestra" title="Apri anagrafica cliente in una nuova finestra"><UserRound size={15}/> Cliente</a><a className="iu-button iu-button--secondary iu-fas-record-link" href={partiesRecordHref} target="_blank" rel="noopener noreferrer" aria-label="Apri soggetti e parti in una nuova finestra" title="Apri soggetti e parti in una nuova finestra"><UsersRound size={15}/> Soggetti</a><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={quadroHref}><Gauge size={15}/> Quadro AI</Button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button variant="primary" href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button></div>
+        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><Button variant="primary" href={depositTelematicHref}><Send size={15}/> Deposito telematico</Button><a className="iu-button iu-button--secondary iu-fas-record-link" href={clientRecordHref} target="_blank" rel="noopener noreferrer" aria-label="Apri anagrafica cliente in una nuova finestra" title="Apri anagrafica cliente in una nuova finestra"><UserRound size={15}/> Cliente</a><a className="iu-button iu-button--secondary iu-fas-record-link" href={partiesRecordHref} target="_blank" rel="noopener noreferrer" aria-label="Apri soggetti e parti in una nuova finestra" title="Apri soggetti e parti in una nuova finestra"><UsersRound size={15}/> Soggetti</a><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={quadroHref}><Gauge size={15}/> Quadro AI</Button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button></div>
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : 'Dati aggiornati'}</span></section>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
@@ -2687,6 +2764,9 @@ function DetailPage({ id }:{id:string}) {
                         <strong>{dep.message || dep.pec || dep.actType || 'Comunicazione PEC'}</strong>
                         <span>{depositMetaLine(dep)}</span>
                         {dep.actType ? <small>{dep.actType}</small> : null}
+                        <DepositStateSummary dep={dep}/>
+                        <DepositReceiptSteps dep={dep}/>
+                        <DepositReceiptActions dep={dep} onDone={refreshDetail} onError={failDetail}/>
                       </article>
                     ))}
                     {lazyStatus.depositi === 'loaded' && !comunicazioniRows.length ? <p className="iu-empty">Nessuna comunicazione PEC collegata al fascicolo.</p> : null}
@@ -2708,6 +2788,9 @@ function DetailPage({ id }:{id:string}) {
                         <strong>{dep.message || dep.actType || 'PEC di accettazione deposito'}</strong>
                         <span>{depositMetaLine(dep)}</span>
                         {dep.actType ? <small>{dep.actType}</small> : null}
+                        <DepositStateSummary dep={dep}/>
+                        <DepositReceiptSteps dep={dep}/>
+                        <DepositReceiptActions dep={dep} onDone={refreshDetail} onError={failDetail}/>
                       </article>
                     ))}
                     {lazyStatus.depositi === 'loaded' && !cancelleriaRows.length ? <p className="iu-empty">Nessuna PEC di accettazione o esito collegata.</p> : null}

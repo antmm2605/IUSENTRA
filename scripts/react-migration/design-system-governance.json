@@ -42,6 +42,7 @@
     "frontend/src/components/PreventiviPage.css",
     "frontend/src/components/PreventivoWizardPage.css",
     "frontend/src/components/PrivacyRegistroPage.css",
+    "frontend/src/components/QuickOrganizerImportPage.css",
     "frontend/src/components/ProfiliPage.css",
     "frontend/src/components/ProfiloPage.css",
     "frontend/src/components/RedazioneAttiPage.css",

@@ -1656,16 +1656,48 @@
 }
 
 .iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] .iu-button,
+.iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] .iu-btn,
 .iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] button {
   color: var(--iusentra-text);
 }
 
 .iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] .iu-button--primary,
+.iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] .iu-btn--primary,
 .iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] button[class*="primary"] {
+  border-color: transparent;
+  background: linear-gradient(135deg, #071329, #123d72);
   color: #f8fafc;
 }
 
+.iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] .iu-button--primary:hover,
+.iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] .iu-btn--primary:hover,
+.iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] button[class*="primary"]:hover {
+  color: #fff;
+}
+
+.iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] .iu-button--primary svg,
+.iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] .iu-btn--primary svg {
+  color: currentColor;
+}
+
+.iusentra-preset-active .iu-button--primary,
+.iusentra-preset-active .iu-btn--primary {
+  color: #fff;
+}
+
+.iusentra-preset-active .iu-button--primary:hover,
+.iusentra-preset-active .iu-btn--primary:hover {
+  color: #fff;
+}
+
+.iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] .iu-btn--neutral {
+  border-color: rgba(15, 23, 42, 0.13);
+  background: #fff;
+  color: #0f172a;
+}
+
 .iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] .iu-button:disabled,
+.iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] .iu-btn:disabled,
 .iusentra-preset-active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] button:disabled {
   border-color: #cbd5e1;
   background: linear-gradient(135deg, #f8fafc, #eef2f7);

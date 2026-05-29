@@ -1,5 +1,46 @@
 # Changelog
 
+## 2.248.84 - 2026-05-29
+
+- Blindata la pagina `Database`: `Migra dati` e `Attiva SQLite` ora usano staging, precheck anti-perdita e validazione di conteggi, identificativi e payload prima di sostituire `studio.db`.
+- Se i JSON del tenant sono vuoti o incompleti mentre il database operativo contiene clienti, fascicoli o altri domini critici, la migrazione viene bloccata e il database esistente resta intatto.
+- Aggiunto audit severo `scripts/audit_sqlite_migration_integrity.py` con uscita non riuscita quando manca un record o un campo non viene conservato.
+- Il cutover completo riesegue il mirror core dopo i repository secondari, così Legal Intelligence, Giurisprudenza, Workspace Intelligence, template e moduli JSON finiscono anche in `moduli_json_records`.
+- Reso tenant-aware `timesheet/time_tracking.json`: bootstrap, migrazione SQLite, report full storage e cutover PostgreSQL coprono anche i timer della top bar.
+
+## 2.248.83 - 2026-05-27
+
+- Scadenziario PST: se il portale espone una data/udienza strutturata, IUSENTRA continua a usare quella come fonte primaria.
+- Se invece `data_udienza` non è esposta, l'acquisizione cerca documenti fonte nel catalogo ufficiale, come fissazione termine, sostituzione udienza, rinvio, verbale o provvedimento con termini, e li porta fino ad anteprima e verifica UI.
+- La prova Palmi lavoro R.G. `3441/2025` ora mostra il documento `FissazioneTermineNoteSostituzioneUdienza_32899061.pdf` come fonte per completare lo scadenziario dopo lo scarico, senza inventare una scadenza dai soli metadati.
+
+## 2.248.82 - 2026-05-27
+
+- Local Signer `1.6.63`: le tabelle della famiglia SICID (`lavoro/SIL`, volontaria giurisdizione, minori) restano logiche nel SOAP ministeriale, ma usano il path fisico `JPW_SICID` quando l'ufficio espone quel solo gateway JPW.
+- La prova live Palmi R.G. `3441/2025` non viene più trasformata in "nessun fascicolo" per il solo fatto che i path fisici `JPW_SIL*` rispondono HTTP 404; il log conserva `servizio_logico` per capire quale tabella è stata tentata.
+- Registrata la prova cliente riuscita: Palmi lavoro R.G. `3441/2025` restituisce `1` fascicolo e `6` documenti; se `data_udienza` è vuota, lo scadenziario deve leggere eventuali atti di fissazione termine dal PDF invece di inventare una prossima udienza dai metadati.
+- Aggiornati test e matrice QBuilder per garantire che `CONS-SIL-BE-DISTR`/`LAV` non regredisca a `CONS-SICC-BE`, senza spostare SIECIC, SIGP o Cassazione.
+
+## 2.248.81 - 2026-05-27
+
+- Rafforzato il contrasto dei pulsanti React condivisi: i pulsanti primari `.iu-btn` e `.iu-button` mantengono testo bianco leggibile anche dentro le intestazioni di pagina, senza ereditarietà di colore dal titolo.
+- Sistemata la pagina `Importa pratiche da Studio Telematico`: pannelli dedicati, titolo `Pacchetto cliente` leggibile, pulsanti `Prepara pacchetto`, `Fascicoli`, `Controlla pacchetto` e `Importa pratiche` con stati visibili e coerenti.
+- Verifica browser reale su pagine rappresentative (`Import Studio Telematico`, `Clienti`, `Fascicoli`, `Agenda`, `Amministrazione`) per impedire il caso sfondo scuro/testo invisibile nei pulsanti standard.
+
+## 2.248.80 - 2026-05-27
+
+- Local Signer `1.6.62`: le ricerche PST con schema ministeriale lavoro provano prima `JPW_SIL_DISTR`/`LAV`, poi `JPW_SIL`, `JPW_SILP_DISTR` e `JPW_SILP`, mantenendo gli altri fallback SICID/SIVG/MIN/SIMIN/SIECIC.
+- Se il PST risponde `401 Unauthorized` durante il tentativo con cookie, il Local Signer scarta il cookie del canale PST e ritenta subito col certificato, così Windows può riproporre il PIN invece di fermarsi sull’autenticazione fallita.
+- Documentata la prova live Palmi R.G. `3441/2025`: `1.6.60` aveva corretto il rito, ma il PST ha risposto HTTP 404 su `/JPW_SIL`; il nuovo ordine evita l’errore senza perdere le altre tabelle ministeriali.
+
+## 2.248.79 - 2026-05-27
+
+- Aggiunta in Amministrazione la pagina React `Importa pratiche da Studio Telematico`, con percorso guidato, anteprima di completezza e import operativo di pratiche, clienti, parti, documenti, email e agenda.
+- Il pacchetto cliente rispetta la struttura del vecchio gestionale: `QuickOrganizer.mdb`, cartella `ATTI` per tutti i documenti del fascicolo e cartella `EMAILS` per le email collegate.
+- L'import è idempotente: le pratiche già acquisite vengono aggiornate tramite identificativo sorgente e i documenti già presenti non vengono duplicati.
+- Aggiunto lo script `prepara_import_studio_telematico.ps1` per preparare dalla postazione del cliente un archivio unico con dati, `ATTI` ed `EMAILS`, senza trasferire credenziali.
+- Inseriti endpoint auditati `/api/v1/ui/import/quickorganizer*`, test di regressione su import completo/parziale e guardrail React per mantenere la route full React.
+
 ## 2.248.78 - 2026-05-27
 
 - Local Signer `1.6.60`: la ricerca PST riconosce automaticamente gli indizi di tabella ministeriale (`lavoro`, `LAV`, `SIL`, previdenza/assistenza) e avvia Palmi/lavoro su `JPW_SIL` con tipo `LAV` prima del fallback SICID.

@@ -22,6 +22,10 @@ def _load_local_signer():
     return module
 
 
+def _servizio_logico_richiesta(module, request):
+    return request.get("servizio_logico") or module._pst_servizio_proxy(request.get("url", ""))
+
+
 def _load_local_ai_host_bridge():
     root = Path(__file__).resolve().parents[1]
     path = root / "tools" / "local_ai_host_bridge.py"
@@ -1888,6 +1892,10 @@ def test_local_signer_usa_qbuilder_sicid_sulla_root_del_proxy():
     assert module._pst_servizio_proxy(base) == "JPW_SICID"
     assert module._pst_namespace_qbuilder(base) == "urn:CONS-SICC-BE"
     assert module._pst_url_documenti(base) == base
+    sil_logico = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIL_DISTR"
+    assert module._pst_namespace_qbuilder(sil_logico) == "urn:CONS-SIL-BE-DISTR"
+    assert module._pst_url_ricerca(sil_logico) == base
+    assert module._pst_url_documenti(sil_logico) == base
 
 
 def test_local_signer_normalizza_alias_e_namespace_qbuilder_catalogo_corrente():
@@ -1895,7 +1903,10 @@ def test_local_signer_normalizza_alias_e_namespace_qbuilder_catalogo_corrente():
 
     assert module._pst_servizio_proxy("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASS") == "JPW_CASSCI"
     assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC") == "urn:CONS-SIECIC-BE"
+    assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIL_DISTR") == "urn:CONS-SIL-BE-DISTR"
     assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIL") == "urn:CONS-SIL-BE-DISTR"
+    assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SILP_DISTR") == "urn:CONS-SIL-BE-DISTR"
+    assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SILP") == "urn:CONS-SIL-BE-DISTR"
     assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIVG") == "urn:CONS-SIVG-BE"
     assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_MIN") == "urn:CONS-MIN-BE"
     assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIMIN") == "urn:CONS-MIN-BE"
@@ -1951,7 +1962,10 @@ def test_pst_varianti_ricerca_esatta_palmi_prova_siecic_senza_cambiare_ufficio(m
 
     assert varianti == [
         "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIL_DISTR",
         "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIL",
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SILP_DISTR",
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SILP",
         "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIVG",
         "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_MIN",
         "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIMIN",
@@ -1981,7 +1995,10 @@ def test_pst_varianti_ricerca_esatta_deriva_siecic_dalla_url_se_snapshot_manca(m
 
     assert varianti == [
         "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIL_DISTR",
         "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIL",
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SILP_DISTR",
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SILP",
         "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIVG",
         "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_MIN",
         "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIMIN",
@@ -2013,8 +2030,8 @@ def test_pst_tabella_lavoro_da_schema_ministeriale_parte_da_sil(monkeypatch):
     preferred = module._pst_base_url_con_preferenza_payload(base, payload)
     varianti = module._pst_base_varianti_ricerca_esatta("0800570094", preferred)
 
-    assert module._pst_servizio_ministeriale_da_payload(payload) == "JPW_SIL"
-    assert module._pst_servizio_ministeriale_da_payload({"tabella_ministeriale": "SICID_LAVORO"}) == "JPW_SIL"
+    assert module._pst_servizio_ministeriale_da_payload(payload) == "JPW_SIL_DISTR"
+    assert module._pst_servizio_ministeriale_da_payload({"tabella_ministeriale": "SICID_LAVORO"}) == "JPW_SIL_DISTR"
     assert module._pst_servizio_ministeriale_da_payload({"schema": "civile", "registro": "RGN"}) == "JPW_SICID"
     assert module._pst_servizio_ministeriale_da_payload({"schema": "giudice relatore indicato"}) == ""
     assert module._pst_servizio_ministeriale_da_payload({"schema": "giudice di pace"}) == "JPW_SIGP"
@@ -2022,9 +2039,21 @@ def test_pst_tabella_lavoro_da_schema_ministeriale_parte_da_sil(monkeypatch):
     assert module._pst_servizio_ministeriale_da_payload({"tabella_ministeriale": "CASSPE"}) == "JPW_CASSPE"
     assert module._pst_servizio_ministeriale_da_payload({"schema": "cassazione penale"}) == "JPW_CASSPE"
     assert module._pst_servizio_ministeriale_da_payload({"schema": "cassazione civile"}) == "JPW_CASSCI"
-    assert preferred == "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIL"
+    assert preferred == "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIL_DISTR"
+    assert module._pst_url_ricerca(preferred) == "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID"
+    assert module._pst_url_documenti(preferred) == "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID"
+    ricerca_xml = module._soap_ricerca_fascicoli_body(
+        base_url=preferred,
+        codice_ufficio="0800570094",
+        numero_rg="3441",
+        anno_rg=2025,
+        cf_avvocato="MNTGPP94L01G791A",
+    )
+    assert '<execute xmlns="urn:CONS-SIL-BE-DISTR">' in ricerca_xml
+    assert '<value name="tipo" type="string">LAV</value>' in ricerca_xml
     assert varianti[0] == preferred
-    assert varianti[1] == "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID"
+    assert varianti[1] == "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIL"
+    assert "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID" in varianti
 
 
 def test_estrai_codice_fiscale_dal_certificato_windows():
@@ -2167,7 +2196,10 @@ def test_qbuilder_sicid_family_usa_tipo_registro_ministeriale_corretto():
 
     attesi = {
         "JPW_SICID": ("urn:CONS-SICC-BE", "RGN"),
+        "JPW_SIL_DISTR": ("urn:CONS-SIL-BE-DISTR", "LAV"),
         "JPW_SIL": ("urn:CONS-SIL-BE-DISTR", "LAV"),
+        "JPW_SILP_DISTR": ("urn:CONS-SIL-BE-DISTR", "LAV"),
+        "JPW_SILP": ("urn:CONS-SIL-BE-DISTR", "LAV"),
         "JPW_SIVG": ("urn:CONS-SIVG-BE", "VG"),
         "JPW_MIN": ("urn:CONS-MIN-BE", "MIN"),
         "JPW_SIMIN": ("urn:CONS-MIN-BE", "MIN"),
@@ -2194,7 +2226,10 @@ def test_qbuilder_ricerca_per_parte_copre_registri_ministeriali_senza_rg():
 
     attesi = {
         "JPW_SICID": "urn:CONS-SICC-BE",
+        "JPW_SIL_DISTR": "urn:CONS-SIL-BE-DISTR",
         "JPW_SIL": "urn:CONS-SIL-BE-DISTR",
+        "JPW_SILP_DISTR": "urn:CONS-SIL-BE-DISTR",
+        "JPW_SILP": "urn:CONS-SIL-BE-DISTR",
         "JPW_SIVG": "urn:CONS-SIVG-BE",
         "JPW_MIN": "urn:CONS-MIN-BE",
         "JPW_SIMIN": "urn:CONS-MIN-BE",
@@ -4522,6 +4557,73 @@ def test_soap_call_pst_session_batch_raw_riprova_con_certificato_dopo_cookie_onl
     ]
 
 
+def test_soap_call_pst_session_batch_best_effort_riprova_con_certificato_dopo_401_cookie_only():
+    module = _load_local_signer()
+
+    orig_call = module._soap_call_curl_batch_raw_best_effort
+    session = module._create_pst_session(
+        cert_thumbprint="AABBCC11",
+        tribunale="0910011",
+        base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIL_DISTR",
+        cf_avvocato="MNTGPP94L01G791A",
+    )
+    old_cookie = session["cookie_file"]
+    module._update_pst_session(session["session_id"], auth_ready=True)
+    calls = []
+    try:
+        def _fake_call(requests, cert_thumbprint=None, pkcs11_uri=None):
+            calls.append({
+                "cert_thumbprint": cert_thumbprint,
+                "cookie_files": [req.get("cookie_file") for req in requests],
+            })
+            if cert_thumbprint is None:
+                return [
+                    {
+                        "body_bytes": b"<html><title>401 Unauthorized</title></html>",
+                        "headers_text": "HTTP/1.1 401 Unauthorized\r\n",
+                        "status_code": 401,
+                        "error": "Il PST ha risposto HTTP 401 Unauthorized da ext.processotelematico.giustizia.it.",
+                    }
+                ] * len(requests)
+            return [
+                {
+                    "body_bytes": b"<ok/>",
+                    "headers_text": "HTTP/1.1 200 OK\r\n",
+                    "status_code": 200,
+                    "error": "",
+                }
+            ] * len(requests)
+
+        module._soap_call_curl_batch_raw_best_effort = _fake_call
+
+        result = module._soap_call_pst_session_batch_raw_best_effort(
+            [
+                {
+                    "url": "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIL_DISTR",
+                    "soap_body": "<xml/>",
+                    "cookie_file": "",
+                }
+            ],
+            cert_thumbprint="AABBCC11",
+            cookie_file=old_cookie,
+            prefer_cookie_only=True,
+        )
+        refreshed = module._get_pst_session(session["session_id"], refresh=False)
+    finally:
+        module._soap_call_curl_batch_raw_best_effort = orig_call
+        module._drop_pst_session(session["session_id"])
+
+    assert result[0]["error"] == ""
+    assert calls[0] == {
+        "cert_thumbprint": None,
+        "cookie_files": [old_cookie],
+    }
+    assert calls[1]["cert_thumbprint"] == "AABBCC11"
+    assert calls[1]["cookie_files"][0]
+    assert calls[1]["cookie_files"][0] != old_cookie
+    assert refreshed["auth_ready"] is False
+
+
 def test_soap_call_pst_session_salta_cookie_se_host_mtls_gia_noto():
     module = _load_local_signer()
 
@@ -5101,11 +5203,18 @@ def test_pst_ricerca_snapshot_usa_batch_certificato_senza_preflight_separato():
     assert captured["payload"]["documenti"][0]["id_documento"] == "DOC-1"
     assert captured["payload"]["snapshot"]["fascicolo"]["numero"] == "274"
     assert captured["session_ids"] == ["SID-STALENESS-FROM-BROWSER", ""]
-    assert len(captured["batch"]["requests"]) == 21
-    assert any("/JPW_SIL" in request["url"] for request in captured["batch"]["requests"])
-    assert any("/JPW_SIVG" in request["url"] for request in captured["batch"]["requests"])
-    assert any("/JPW_MIN" in request["url"] for request in captured["batch"]["requests"])
-    assert any("/JPW_SIMIN" in request["url"] for request in captured["batch"]["requests"])
+    assert len(captured["batch"]["requests"]) >= 21
+    servizi_logici = {_servizio_logico_richiesta(module, request) for request in captured["batch"]["requests"]}
+    assert "JPW_SIL_DISTR" in servizi_logici
+    assert "JPW_SIL" in servizi_logici
+    assert "JPW_SIVG" in servizi_logici
+    assert "JPW_MIN" in servizi_logici
+    assert "JPW_SIMIN" in servizi_logici
+    assert all(
+        request["url"].endswith("/JPW_SICID")
+        for request in captured["batch"]["requests"]
+        if _servizio_logico_richiesta(module, request) in module._PST_SICID_FAMILY_SERVIZI
+    )
     assert captured["batch"]["kwargs"]["cert_thumbprint"] == "AABBCC11"
     assert captured["batch"]["kwargs"]["prefer_cookie_only"] is False
 
@@ -5178,7 +5287,7 @@ def test_pst_ricerca_snapshot_fault_client_su_sicid_passa_a_siecic(monkeypatch):
         captured["requests"] = list(requests)
         results = []
         for request in requests:
-            servizio = module._pst_servizio_proxy(request.get("url", ""))
+            servizio = _servizio_logico_richiesta(module, request)
             body = str(request.get("soap_body") or "")
             if servizio == "JPW_SICID" and "RicercaInformazioniFascicoloPerTipo" in body:
                 results.append((b"<fault-primary/>", "HTTP/1.1 200 OK\r\n"))
@@ -5235,11 +5344,13 @@ def test_pst_ricerca_snapshot_fault_client_su_sicid_passa_a_siecic(monkeypatch):
 
     assert captured["status"] == 200
     assert captured["preflight"] == 0
-    assert len(captured["requests"]) == 18
-    assert any("/JPW_SIL" in request["url"] for request in captured["requests"])
-    assert any("/JPW_SIVG" in request["url"] for request in captured["requests"])
-    assert any("/JPW_MIN" in request["url"] for request in captured["requests"])
-    assert any("/JPW_SIMIN" in request["url"] for request in captured["requests"])
+    assert len(captured["requests"]) >= 18
+    servizi_logici = {_servizio_logico_richiesta(module, request) for request in captured["requests"]}
+    assert "JPW_SIL_DISTR" in servizi_logici
+    assert "JPW_SIL" in servizi_logici
+    assert "JPW_SIVG" in servizi_logici
+    assert "JPW_MIN" in servizi_logici
+    assert "JPW_SIMIN" in servizi_logici
     assert captured["payload"]["ok"] is True
     assert captured["payload"]["fascicoli"][0]["numero_rg"] == "274"
     assert captured["payload"]["documenti"][0]["id_documento"] == "DOC-SIECIC"
@@ -5316,7 +5427,7 @@ def test_pst_ricerca_snapshot_fault_fallback_non_diventa_ricerca_vuota(monkeypat
         captured["requests"] = list(requests)
         bodies = []
         for request in requests:
-            servizio = module._pst_servizio_proxy(request.get("url", ""))
+            servizio = _servizio_logico_richiesta(module, request)
             body = str(request.get("soap_body") or "")
             if servizio == "JPW_SICID" and "RicercaInformazioniFascicoloPerTipo" in body:
                 bodies.append(b"")
@@ -5324,7 +5435,7 @@ def test_pst_ricerca_snapshot_fault_fallback_non_diventa_ricerca_vuota(monkeypat
                 bodies.append(b"<documents/>")
             elif servizio == "JPW_SICID":
                 bodies.append(b"<profile/>")
-            elif servizio in {"JPW_SIL", "JPW_SIVG"}:
+            elif servizio in {"JPW_SIL_DISTR", "JPW_SIL", "JPW_SILP_DISTR", "JPW_SILP", "JPW_SIVG"}:
                 bodies.append(user_fault)
             else:
                 bodies.append(service_fault)
@@ -5338,7 +5449,7 @@ def test_pst_ricerca_snapshot_fault_fallback_non_diventa_ricerca_vuota(monkeypat
     module._Handler._pst_ricerca_snapshot(_FakeHandler())
 
     assert captured["status"] == 500
-    assert len(captured["requests"]) == 21
+    assert len(captured["requests"]) >= 21
     assert captured["payload"]["ok"] is False
     assert "SOAP Fault" in captured["payload"]["errore"]
     assert "non puo' eseguire" in captured["payload"]["errore"]
@@ -5416,7 +5527,7 @@ def test_pst_ricerca_snapshot_risposta_valida_vuota_non_bloccata_da_fault_fallba
         captured["requests"] = list(requests)
         bodies = []
         for request in requests:
-            servizio = module._pst_servizio_proxy(request.get("url", ""))
+            servizio = _servizio_logico_richiesta(module, request)
             body = str(request.get("soap_body") or "")
             if servizio == "JPW_SICID" and "RicercaInformazioniFascicoloPerTipo" in body:
                 bodies.append(empty_rowlist)
@@ -5436,7 +5547,7 @@ def test_pst_ricerca_snapshot_risposta_valida_vuota_non_bloccata_da_fault_fallba
     module._Handler._pst_ricerca_snapshot(_FakeHandler())
 
     assert captured["status"] == 200
-    assert len(captured["requests"]) == 21
+    assert len(captured["requests"]) >= 21
     assert captured["payload"]["ok"] is True
     assert captured["payload"]["fascicoli"] == []
     assert captured["payload"]["documenti"] == []

@@ -3,7 +3,8 @@ from pathlib import Path
 
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.deposito_guidato import OrchestratoreDepositoGuidato
-from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+from pct.deposito_simulazione import SIMULATED_DEPOSIT_NOTE_MARKER
+from pct.fascicoli import EsitoDepositoPCT, GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.pst_catalog import PST_WEB_SERVICES_DOC_VERSION
 from web.app import create_app
 
@@ -141,7 +142,7 @@ def test_api_validazione_deposito_restituisce_semaforo_e_consente_con_warning(tm
         username="avvocato",
         password="Avv12345!",
         ruolo=RuoloUtente.AVVOCATO,
-        email="avvocato@example.com",
+        email="avvocato@example.invalid",
     )
 
     gf = GestioneFascicoli(
@@ -280,7 +281,7 @@ def test_pagina_deposito_prepara_renderizza_anche_senza_correction_query(tmp_pat
         username="avvocato",
         password="Avv12345!",
         ruolo=RuoloUtente.AVVOCATO,
-        email="avvocato@example.com",
+        email="avvocato@example.invalid",
     )
 
     gf = GestioneFascicoli(
@@ -323,6 +324,207 @@ def test_pagina_deposito_prepara_renderizza_anche_senza_correction_query(tmp_pat
     assert "_arrayBufferToBase64Safe" in html
     assert "_base64ToUint8ArraySafe" in html
     assert "String.fromCharCode(...new Uint8Array(buf))" not in html
+
+
+def test_deposito_prova_genera_ricevuta_accettazione_senza_invio_reale(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fasc = gf.nuovo(
+        titolo="Comparsa prova deposito",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="204",
+        anno_rg=2025,
+        controparte="Alfa S.r.l.",
+        id_cliente="cli-1",
+    )
+    atto = gf.aggiungi_documento(
+        fasc.id,
+        "comparsa.pdf",
+        TipoDocumento.COMPARSA,
+        _pdf_base(),
+        firmato=True,
+    )
+    procura = gf.aggiungi_documento(
+        fasc.id,
+        "procura.pdf",
+        TipoDocumento.PROCURA,
+        _pdf_base(),
+        firmato=False,
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            f"/fascicoli/{fasc.id}/deposito/invia",
+            data={
+                "demo_mode": "1",
+                "tipo_atto": "COMPARSA_RISPOSTA",
+                "codice_registro": "RG",
+                "codice_oggetto_pst": "014001",
+                "oggetto": "Comparsa di costituzione e risposta",
+                "numero_rg": "204",
+                "anno_rg": "2025",
+                "tribunale_nome": "Tribunale di Palmi",
+                "atto_principale_id": atto.id,
+                "allegati_ids": [procura.id],
+            },
+            follow_redirects=False,
+        )
+
+    assert response.status_code == 302
+    gf_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fasc_reload = gf_reload.get(fasc.id)
+    assert fasc_reload is not None
+    assert len(fasc_reload.depositi_pct) == 1
+    deposito = fasc_reload.depositi_pct[0]
+    assert deposito.stato == "INVIATO"
+    assert SIMULATED_DEPOSIT_NOTE_MARKER in deposito.note
+    assert deposito.ricevuta_accettazione == ""
+
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        receipt_response = client.post(
+            f"/api/fascicoli/{fasc.id}/depositi/{deposito.id}/simula-ricevuta",
+            data={"fase": "accettazione"},
+        )
+        consegna_response = client.post(
+            f"/api/fascicoli/{fasc.id}/depositi/{deposito.id}/simula-ricevuta",
+            data={"fase": "consegna"},
+        )
+        controlli_response = client.post(
+            f"/api/fascicoli/{fasc.id}/depositi/{deposito.id}/simula-ricevuta",
+            data={"fase": "controlli"},
+        )
+        conferma_response = client.post(
+            f"/api/fascicoli/{fasc.id}/depositi/{deposito.id}/simula-ricevuta",
+            data={"fase": "cancelleria"},
+        )
+
+    assert receipt_response.status_code == 200
+    payload = receipt_response.get_json()
+    assert payload["ok"] is True
+    assert payload["simulazione"] is True
+    assert payload["fase"] == "accettazione"
+    assert payload["stato"] == "ACCETTATO_PEC"
+    assert payload["ricevuta_accettazione"] is True
+    assert payload["prossima_fase"] == "consegna"
+    assert consegna_response.get_json()["stato"] == "CONSEGNATO"
+    controlli_payload = controlli_response.get_json()
+    assert controlli_payload["stato"] == "WARN_CONTROLLI"
+    assert controlli_payload["ricevuta_controlli"] is True
+    conferma_payload = conferma_response.get_json()
+    assert conferma_payload["stato"] == "ACCETTATO_CANCELLERIA"
+    assert conferma_payload["ricevuta_cancelleria"] is True
+    assert conferma_payload["prossima_fase"] == "completo"
+
+    gf_receipts = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fasc_after_receipt = gf_receipts.get(fasc.id)
+    assert fasc_after_receipt is not None
+    deposito_reload = fasc_after_receipt.depositi_pct[0]
+    ricevuta = deposito_reload.ricevuta_accettazione
+    assert "Messaggio di posta certificata" in ricevuta
+    assert "daticert.xml" in ricevuta
+    assert "EsitoAtto.xml" in ricevuta
+    assert "postacert.eml" in ricevuta
+    assert "smime.p7s" in ricevuta
+    assert "studio-legale@pec.invalid" in ricevuta
+    assert "@pec.it" not in ricevuta
+    assert "ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO" in deposito_reload.ricevuta_controlli_automatici
+    assert "<CodiceEsito>-1</CodiceEsito>" in deposito_reload.ricevuta_controlli_automatici
+    assert "NOME FILE: documento_allegato.pdf" in deposito_reload.ricevuta_controlli_automatici
+    assert deposito_reload.ricevuta_consegna
+    assert deposito_reload.ricevuta_cancelleria
+    assert deposito_reload.stato == "ACCETTATO_CANCELLERIA"
+
+
+def test_ricevuta_prova_rifiuta_depositi_non_simulati(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fasc = gf.nuovo(
+        titolo="Deposito reale da proteggere",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="204",
+        anno_rg=2025,
+    )
+    fasc.depositi_pct.append(
+        EsitoDepositoPCT(
+            id="DEP-REALE",
+            timestamp="2026-05-27T08:00:00",
+            stato="INVIATO",
+            tipo_atto="RICORSO",
+            pec_destinatario="ufficio@example.pec.it",
+            messaggio="Deposito inviato via PEC.",
+        )
+    )
+    gf._salva()
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            f"/api/fascicoli/{fasc.id}/depositi/DEP-REALE/simula-ricevuta",
+            data={"fase": "accettazione"},
+        )
+
+    assert response.status_code == 400
+    payload = response.get_json()
+    assert payload["ok"] is False
+    assert "solo per depositi senza invio reale" in payload["errore"]
 
 
 def test_orchestratore_tributario_consente_prededeposito_con_nir(tmp_path):

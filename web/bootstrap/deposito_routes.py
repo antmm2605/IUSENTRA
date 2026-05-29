@@ -9,6 +9,7 @@ from typing import Any
 
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
 
+from pct.deposito_simulazione import simulated_deposit_note
 from web.bootstrap.deposito_receipt_routes import register_deposito_receipt_routes
 from web.services.local_pec_runtime import (
     deposito_pec_subject,
@@ -530,10 +531,10 @@ def register_deposito_routes(
             fake_mid = _hl.md5(f"{id_dep}{timestamp}".encode()).hexdigest()[:16].upper()
             ris = {
                 "inviato": True,
-                "message_id": f"DEMO-{fake_mid}@pst.giustizia.it",
+                "message_id": f"PROVA-{fake_mid}@iusentra.invalid",
                 "demo": True,
             }
-            app.logger.info("Deposito DEMO %s - busta creata, invio PEC simulato", id_dep)
+            app.logger.info("Deposito di prova %s - busta creata senza invio PEC reale", id_dep)
         elif form.get("local_pec_confirmed") == "1":
             try:
                 ris = local_pec_confirmation_result(form.get("local_pec_message_id", ""))
@@ -582,7 +583,7 @@ def register_deposito_routes(
 
             from pct.fascicoli import AttivitaProcessuale, EsitoAttivita, TIPO_ATTO_LABEL, _tipo_attivita_da_tipo_atto
 
-            msg_demo = "[DEMO] " if modalita_demo else ""
+            msg_demo = "Prova senza invio reale - " if modalita_demo else ""
             atto_doc = next((doc for doc in fascicolo.documenti if doc.id == atto_id), None)
             tutti_ids = [atto_id] + [aid for aid in allegati_ids if aid != atto_id]
             esito = EsitoDepositoPCT(
@@ -591,8 +592,12 @@ def register_deposito_routes(
                 stato="INVIATO",
                 tipo_atto=tipo_atto,
                 pec_destinatario=pec_dest,
-                messaggio=f"{msg_demo}Busta {id_dep} inviata via PEC a {pec_dest}. Message-ID: {ris.get('message_id', '')}",
-                note=("[SIMULAZIONE DEMO - nessun atto realmente inviato] " + note).strip() if modalita_demo else note,
+                messaggio=(
+                    f"{msg_demo}Busta {id_dep} predisposta verso {pec_dest}. Nessun invio esterno eseguito."
+                    if modalita_demo
+                    else f"Busta {id_dep} inviata via PEC a {pec_dest}. Message-ID: {ris.get('message_id', '')}"
+                ),
+                note=simulated_deposit_note(note) if modalita_demo else note,
                 registrato_da=utente.username if utente else "",
                 documenti_ids=tutti_ids,
                 nome_atto_principale=atto_doc.nome if atto_doc else "",
@@ -755,18 +760,19 @@ def register_deposito_routes(
         timestamp = _dt.now().isoformat()
 
         if demo_mode:
+            pec_prova = tribunale_pec or f"{tribunale_nome.lower().replace(' ', '.')}@pec.prova.invalid"
             esito = EsitoDepositoPCT(
                 id=id_dep,
                 timestamp=timestamp,
                 stato="INVIATO",
                 tipo_atto=tipo_atto,
-                pec_destinatario=tribunale_pec or f"{tribunale_nome.lower().replace(' ', '.')}@pec.demo",
+                pec_destinatario=pec_prova,
                 messaggio=(
-                    f"[DEMO] Busta {id_dep} creata e PEC simulata per {tribunale_nome}. "
+                    f"Prova deposito senza invio reale: busta {id_dep} predisposta per {tribunale_nome}. "
                     f"Atto: {tipo_atto} - RG {numero_rg}/{anno_rg}."
                 ),
-                note=note,
-                registrato_da=utente.username if utente else "demo",
+                note=simulated_deposit_note(note),
+                registrato_da=utente.username if utente else "prova",
             )
         else:
             try:
@@ -953,7 +959,7 @@ def register_deposito_routes(
             sync_pubblica("modifica", "fascicoli", id_fasc, utente=utente.username if utente else "")
             if demo_mode:
                 flash(
-                    f"[DEMO] Deposito simulato con ID {esito.id}. In modalita reale la busta verrebbe firmata e inviata via PEC.",
+                    f"Deposito di prova registrato con ID {esito.id}. Nessun messaggio PEC è stato spedito.",
                     "warning",
                 )
             else:

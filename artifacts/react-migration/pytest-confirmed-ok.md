@@ -1,5 +1,48 @@
 # Pytest shard confermati OK
 
+## Database anti-perdita SQLite 2.248.84 - 2026-05-29
+
+| Comando | Esito | Note |
+| --- | --- | --- |
+| `python -m py_compile pct\database.py pct\storage.py pct\storage_migration.py pct\storage_migration_full.py pct\tenant.py web\services\tenant_legacy_bootstrap.py scripts\audit_sqlite_migration_integrity.py web\bootstrap\admin_database_routes.py` | OK | Sintassi confermata dopo staging anti-perdita, invalidazione cache SQLite, percorso tenant-aware `TIME_TRACKING_DB` e script audit. |
+| `python -m compileall -q pct web scripts` | OK | Compilazione sintattica ampia su backend, web e script di audit/migrazione. |
+| `python -m pytest tests\test_database.py::test_migra_verso_sqlite_blocca_svuotamento_db_operativo_esistente tests\test_database.py::test_migra_verso_sqlite_preserva_payload_completo_e_timer_topbar tests\test_database.py::test_admin_database_attiva_sqlite_blocca_json_vuoti_su_db_pieno tests\test_storage_postgres_migration.py::test_migrate_full_storage_to_sqlite_copre_repository_estesi tests\test_storage_postgres_migration.py::test_migrate_full_storage_to_sqlite_blocca_svuotamento_studio_db_operativo tests\test_storage_postgres_migration.py::test_provision_storage_backend_sqlite_blocca_cutover_su_json_vuoti tests\test_storage_postgres_migration.py::test_audit_sqlite_migration_integrity_script_blocca_delta -q --tb=short` | OK | 7/7: coperti blocco su JSON vuoti, conservazione payload completi, pannello `/admin/database`, provisioning SQLite e audit CLI che fallisce su delta. |
+| `python -m pytest tests\test_database.py -q --tb=short` | OK | 62/62: suite database completa verde. |
+| `python -m pytest tests\test_storage_postgres_migration.py -q --tb=short` | OK | 11/11: migrazione full SQLite/PostgreSQL, repository estesi, provisioning e audit script verdi. |
+| `python -m pytest tests\test_storage_governance.py tests\test_storage_strategy.py::test_single_tenant_bootstrap_migra_dati_legacy_nello_studio_sqlite tests\test_storage_strategy.py::test_gestione_tenant_provision_storage_backend_creates_sqlite_and_manifest tests\test_storage_strategy.py::test_superadmin_can_create_studio_with_sqlite_strategy tests\test_tenant_migration_full.py -q --tb=short` | OK | 10/10: governance storage, bootstrap single-tenant, creazione studio SQLite e assistente migrazione confermati. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript verde dopo esposizione audit migrazione nel componente React `Database`. |
+| `npm --prefix frontend run build` | OK | Build Vite completata in 9.74s; generati asset React con chunk `AdminDatabasePage-CCoBcGgm.js`. |
+| `python -m pytest tests\test_app_v2_frontend_phase7.py tests\test_ui_coverage_phase9.py tests\test_app_v2_page_registry.py tests\test_quickorganizer_import.py -q --tb=short` | OK | 13/13 dopo rigenerazione `generate_app_v2_page_registry.py`: registro App V2, copertura UI fase 9 e import Studio Telematico coerenti con il manifest. |
+| `npm --prefix frontend run test` | OK | Contratti React, preset UI, design system governance, App V2 frontend, Legal Skills e `validate_ui_coverage.py` verdi dopo la rigenerazione documentale. |
+| `python scripts\react-migration\generate_app_v2_page_registry.py --check` | OK | Registro App V2 generato allineato dopo l'inserimento della route P1 `/importa-pratiche-studio-telematico`. |
+| `python scripts\react-migration\generate_app_v2_test_docs.py --check`; `python scripts\smoke_app_v2_all.py --subset inventory`; `python -m pytest -q tests/test_app_v2_page_registry.py tests/test_app_v2_test_plan_phase10.py tests/test_ci_cd_gates_phase11.py --tb=short` | OK | Documenti test App V2 riallineati dopo il rosso CI su `generate_app_v2_test_docs.py`; inventory smoke PASS=3 e 14/14 pytest fase 10/11 verdi. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python -m pytest tests\test_openapi_contracts_phase6.py -q --tb=short` | OK | Contratti API e OpenAPI riallineati al sorgente corrente; 5/5 test fase 6 verdi. |
+| `python tools\sync_packaging_files.py --check`; `python tools\check_local_signer_boundaries.py`; `python -m pytest tests\test_build_dist.py tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | Packaging Local Signer sincronizzato, boundary confermati e 15/15 test dist/readiness verdi. |
+| `python -m pytest tests\test_utf8_integrity.py -q --tb=short` | OK | 4/4: presidio UTF-8 confermato sui testi/report aggiornati. |
+| `git diff --check` | OK | Nessun errore whitespace; restano solo warning CRLF/LF già presenti su file storici. |
+
+## Local Signer 1.6.63 path fisico SICID per tabelle SICID-family 2.248.82 - 2026-05-27
+
+| Comando | Esito | Note |
+| --- | --- | --- |
+| `python scripts\react-migration\generate_api_contracts.py` | OK | Rigenerati `docs\openapi.yaml`, `docs\api-endpoint-contract-map.md` e `docs\api-contracts.md` dopo il bump `2.248.82`. |
+| `python tools\build_dist.py` | OK | Rigenerati `SetupLocalSigner-1.6.63.exe`, alias `SetupLocalSigner.exe`, pacchetti macOS/Linux e `tools\dist\local_signer.py`. |
+| `python -m py_compile tools\local_signer.py tools\dist\local_signer.py` | OK | Sintassi del sorgente e del pacchetto distribuito confermata. |
+| `python -m pytest tests\test_local_signer.py -q -k "batch_best_effort_riprova_con_certificato_dopo_401_cookie_only or tabella_lavoro or qbuilder_sicid_family or varianti_ricerca_esatta or fallback_non_diventa_ricerca_vuota or risposta_valida_vuota_non_bloccata_da_fault_fallback or fault_client_su_sicid_passa_a_siecic" --tb=short` | OK | 9/9: lavoro/SIL resta `CONS-SIL-BE-DISTR`/`LAV`, ma usa endpoint fisico `JPW_SICID`; resta il retry PIN su 401 cookie-only. |
+| `python -m pytest tests\test_portali_telematici_matrix.py -q --tb=short` | OK | 15/15: matrice QBuilder confermata; SIECIC, SIGP e Cassazione non vengono mappati sul path SICID. |
+| `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml` | OK | Contratti API fase 6 e OpenAPI allineati alla versione `2.248.82`. |
+| `python tools\check_local_signer_boundaries.py`; `python tools\sync_packaging_files.py --check` | OK | Boundary Local Signer e packaging flat confermati dopo il build `1.6.63`. |
+
+## Local Signer 1.6.62 endpoint lavoro distribuiti e PIN su 401 PST 2.248.80 - 2026-05-27
+
+| Comando | Esito | Note |
+| --- | --- | --- |
+| `python tools\build_dist.py` | OK | Rigenerati `SetupLocalSigner-1.6.62.exe`, alias `SetupLocalSigner.exe`, pacchetti macOS/Linux e `tools\dist\local_signer.py`. |
+| `python -m py_compile tools\local_signer.py tools\dist\local_signer.py` | OK | Sintassi del sorgente e del pacchetto distribuito confermata. |
+| `python -m pytest tests\test_local_signer.py -q -k "batch_best_effort_riprova_con_certificato_dopo_401_cookie_only or tabella_lavoro or qbuilder_sicid_family or varianti_ricerca_esatta or fallback_non_diventa_ricerca_vuota or fault_client_su_sicid_passa_a_siecic" --tb=short` | OK | 8/8: lo schema lavoro parte da `JPW_SIL_DISTR`/`LAV`, mantiene `JPW_SIL`, `JPW_SILP_DISTR`, `JPW_SILP` e su HTTP 401 cookie-only scarta il cookie e ritenta col certificato/PIN. |
+| `python -m pytest tests\test_portali_telematici_matrix.py -q --tb=short` | OK | 15/15: matrice QBuilder estesa ai canali lavoro distribuiti e preservata per gli altri registri. |
+| `python tools\check_local_signer_boundaries.py` | OK | Boundary Local Signer invariato. |
+
 ## Local Signer 1.6.60 tabelle ministeriali PST e penale neutro 2.248.78 - 2026-05-27
 
 | Comando | Esito | Note |
@@ -3782,3 +3825,27 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | Browser in-app su Flask locale `127.0.0.1:8090/portali/pst/acquisizione?fascicolo_id=B6A03AE6&mode=update_existing` | OK | Wizard classico verificato sullo step 4: visibili `Destinazione pratica`, `Crea nuova pratica`, `Usa pratica esistente`, `Fascicolo locale`; assenti `Collega a pratica esistente`, `Aggiorna pratica esistente`, `Fascicolo locale da aggiornare`; console senza errori. |
 | `npm --prefix frontend run typecheck`; `python -m pytest -q tests/test_polisweb.py::test_api_portale_acquisizione_import_pst_salva_lotto_sette_documenti_nel_fascicolo tests/test_polisweb.py::test_api_portale_acquisizione_import_pst_filtra_i_file_secondo_step4 tests/test_polisweb.py::test_api_portale_acquisizione_import_pst_arricchisce_file_locali_con_metadati_preview tests/test_polisweb.py::test_api_portale_acquisizione_import_pst_blocca_catalogo_senza_file tests/test_polisweb.py::test_api_portale_acquisizione_import_pst_prima_pratica_non_crea_vuoto_senza_file tests/test_polisweb.py::test_api_portale_acquisizione_analyze_pst_pratica_esistente_non_blocca_parti_mancanti tests/test_react_shell.py::test_react_wizard_pst_verifica_local_signer_dal_browser tests/test_react_shell.py::test_portale_acquisizione_accetta_alias_fascicolo_id_per_mapping tests/test_react_shell.py::test_portale_acquisizione_legacy_step4_preseleziona_aggiorna_pratica --tb=short`; `git diff --check` | OK | Controllo finale dopo filtro client: 9/9 passati, file scaricati ma deselezionati esclusi dall'import e documenti selezionati mancanti riscaricati prima dell'import. |
 | `npm --prefix frontend run build`; pulizia asset Vite generati (`web/static/react`) | OK | Build Vite finale verde; gli asset hashati generati localmente sono stati rimossi dalla worktree perché non parte del commit sorgente. |
+
+## Import pratiche Studio Telematico 2.248.79 - 2026-05-27
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\services\quickorganizer_import.py web\blueprints\api_v1_react.py` | OK | Sintassi confermata per servizio import, endpoint anteprima/esecuzione e permessi auditati. |
+| `python -m pytest tests/test_quickorganizer_import.py -q` | OK | 2/2 passati: import completo da pacchetto con `ATTI` ed `EMAILS`, reimport senza duplicati e blocco del pacchetto incompleto. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript verde per pagina React e normalizzatori dati import Studio Telematico. |
+| `node scripts\react-migration\check-route-gate.mjs`; `node frontend\scripts\check-react-contracts.mjs` | OK | Route `/importa-pratiche-studio-telematico` governata come React full e contratti React coerenti. |
+| `python -m pytest tests/test_react_shell.py::test_react_sidebar_contiene_navigazione_enterprise_completa -q` | OK | La voce `Importa pratiche da Studio Telematico` è presente nella navigazione Amministrazione. |
+| Smoke Flask autenticato su `/importa-pratiche-studio-telematico` e `/api/v1/ui/import/quickorganizer` | OK | Shell React 200 e payload API 200 con titolo, azioni e note operative su `ATTI` ed `EMAILS`. |
+| `npm --prefix frontend run build` | OK | Build Vite verde dopo correzione leggibilità pulsanti `.iu-btn`/`.iu-button`, pannelli dedicati import e bump versione `2.248.81`. |
+| Browser in-app su `/importa-pratiche-studio-telematico` | OK | Screenshot aggiornato verificato: `Prepara pacchetto` è testo scuro su sfondo bianco, `Fascicoli` testo bianco su sfondo scuro, `Controlla pacchetto` disabilitato leggibile. |
+| Browser in-app su `/importa-pratiche-studio-telematico`, `/clienti`, `/fascicoli`, `/agenda`, `/amministrazione` | OK | Stili calcolati: nessun pulsante primario standard visibile con testo non bianco; coperti sia `.iu-btn` sia `.iu-button`. |
+| `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python -m pytest tests\test_openapi_contracts_phase6.py -q --tb=short` | OK | Contratti API, OpenAPI, provider verification e test OpenAPI riallineati alla versione `2.248.81`. |
+
+## Scadenziario PST da documento fonte 2.248.83 - 2026-05-27
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web/services/telematico_runtime.py` | OK | Sintassi confermata dopo regola `data_udienza` primaria e fallback documenti fonte. |
+| `python -m pytest tests/test_polisweb.py::test_api_portale_acquisizione_analyze_usa_documento_fonte_se_udienza_non_esposta tests/test_polisweb.py::test_api_portale_acquisizione_analyze_preferisce_udienza_strutturata_al_documento_fonte -q --tb=short` | OK | Il caso Palmi `3441/2025` con `FissazioneTermineNoteSostituzioneUdienza_32899061.pdf` produce avviso `Scadenza da documento fonte`; quando `data_udienza` è presente, la data strutturata resta primaria e non viene sostituita dal documento. |
+| `npm --prefix frontend run typecheck` | OK | La UI React dell'acquisizione mostra la fonte scadenziario in anteprima, selezione e verifica senza errori TypeScript. |
+| `python -m pytest tests/test_utf8_integrity.py -q --tb=short` | OK | Presidio UTF-8 confermato dopo testi UI/documentazione in italiano. |

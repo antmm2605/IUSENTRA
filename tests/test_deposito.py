@@ -1244,6 +1244,7 @@ def test_deposito_invia_pec_civile_usa_local_signer_se_server_send_disabilitato(
     data = {
         "tipo_atto": "MEMORIA",
         "codice_registro": "RG",
+        "codice_oggetto_pst": "014001",
         "oggetto": "Memoria civile",
         "numero_rg": "123",
         "anno_rg": "2026",

@@ -194,6 +194,10 @@ def _json_record_count(path: str) -> int:
     return 1 if payload else 0
 
 
+def _json_document_count(path: str) -> int:
+    return 1 if _json_record_count(path) > 0 else 0
+
+
 def _count_files(path: str, suffixes: tuple[str, ...] = ()) -> int:
     try:
         root = resolve_runtime_path(str(path or "").strip())
@@ -388,6 +392,7 @@ def _base_sqlite_sources(paths: dict[str, str]) -> dict[str, str]:
         "appuntamenti": paths.get("AGENDA_DB", ""),
         "scadenze": paths.get("SCADENZIARIO_DB", ""),
         "timesheet": paths.get("TIMESHEET_DB", ""),
+        "time_tracking": paths.get("TIME_TRACKING_DB", ""),
         "messaggi": paths.get("MESSAGGI_DB", ""),
         "utenti": paths.get("AUTH_DB", ""),
         "audit": paths.get("AUDIT_DB", ""),
@@ -490,6 +495,15 @@ def _build_diff_summary(*, inventory: dict[str, Any], target: str) -> dict[str, 
         destination_count = int(domain.get(destination_key) or 0)
         delta = destination_count - source_count
         ok = source_count == destination_count
+        loss_risk = source_count > destination_count
+        status = "success" if ok else "danger" if loss_risk else "warning"
+        status_label = (
+            "Allineato"
+            if ok
+            else "Mancano record nella destinazione"
+            if loss_risk
+            else "Record aggiuntivi da presidiare"
+        )
         rows.append(
             {
                 "code": str(domain.get("code") or ""),
@@ -499,8 +513,9 @@ def _build_diff_summary(*, inventory: dict[str, Any], target: str) -> dict[str, 
                 "destination_label": destination_label,
                 "destination_count": destination_count,
                 "delta": delta,
-                "status": "success" if ok else "warning",
-                "status_label": "Allineato" if ok else "Delta da presidiare",
+                "loss_risk": loss_risk,
+                "status": status,
+                "status_label": status_label,
                 "note": str(domain.get("note") or ""),
             }
         )
@@ -511,7 +526,8 @@ def _build_diff_summary(*, inventory: dict[str, Any], target: str) -> dict[str, 
             "delta": delta,
             "source_label": source_label,
             "destination_label": destination_label,
-            "status": "success" if ok else "warning",
+            "loss_risk": loss_risk,
+            "status": status,
         }
     return {
         "rows": rows,
@@ -520,10 +536,26 @@ def _build_diff_summary(*, inventory: dict[str, Any], target: str) -> dict[str, 
             "rows_total": len(rows),
             "matched": sum(1 for row in rows if row["status"] == "success"),
             "mismatched": sum(1 for row in rows if row["status"] != "success"),
+            "loss_risks": sum(1 for row in rows if row.get("loss_risk")),
             "source_label": source_label,
             "destination_label": destination_label,
         },
     }
+
+
+def _diff_loss_rows(diff_summary: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        dict(row)
+        for row in diff_summary.get("rows", [])
+        if bool(row.get("loss_risk"))
+    ]
+
+
+def _repositories_ok(repositories: dict[str, Any]) -> bool:
+    for payload in repositories.values():
+        if isinstance(payload, dict) and payload.get("ok") is False:
+            return False
+    return True
 
 
 def _build_precheck_snapshot(*, inventory: dict[str, Any], target: str, paths: dict[str, str]) -> dict[str, Any]:
@@ -586,16 +618,26 @@ def _build_dirty_tenant_findings(
     for row in diff_summary.get("rows", []):
         if row.get("status") == "success":
             continue
+        severity = "danger" if row.get("loss_risk") else "warning"
+        title = (
+            "Record mancanti nella destinazione"
+            if row.get("loss_risk")
+            else "Differenza tra sorgente e destinazione"
+        )
         findings.append(
             {
-                "severity": "warning",
+                "severity": severity,
                 "code": "DELTA_PRE_POST",
-                "title": "Differenza tra sorgente e destinazione",
+                "title": title,
                 "detail": (
                     f"{row['title']}: {row['source_label']}={row['source_count']} | "
                     f"{row['destination_label']}={row['destination_count']}."
                 ),
-                "recovery": "Verifica il dominio con delta, correggi la sorgente o il repository e riesegui il cutover.",
+                "recovery": (
+                    "Blocca il cutover, correggi la migrazione del dominio indicato e riesegui il controllo."
+                    if row.get("loss_risk")
+                    else "Verifica il dominio con delta, conferma i record strutturali aggiuntivi e conserva il report."
+                ),
             }
         )
     unique_findings: list[dict[str, Any]] = []
@@ -620,6 +662,7 @@ def _build_operation_log(
 ) -> list[dict[str, Any]]:
     repo_errors = list(repository_errors or [])
     mismatched = int((diff_summary.get("summary") or {}).get("mismatched") or 0)
+    loss_risks = int((diff_summary.get("summary") or {}).get("loss_risks") or 0)
     return [
         {
             "step": "precheck_snapshot",
@@ -645,10 +688,16 @@ def _build_operation_log(
         {
             "step": "diff_check",
             "label": "Diff pre/post e consistenza",
-            "status": "warning" if mismatched else "success",
+            "status": "danger" if loss_risks else "warning" if mismatched else "success",
             "detail": (
-                f"Domini con delta residuo: {mismatched}. "
-                + ("Serve correzione prima del cutover definitivo." if mismatched else "Conteggi allineati nel report corrente.")
+                f"Domini con delta residuo: {mismatched}; rischi perdita: {loss_risks}. "
+                + (
+                    "Il cutover deve restare bloccato finché la destinazione non contiene tutti i record."
+                    if loss_risks
+                    else "Record aggiuntivi o strutturali da presidiare nel report."
+                    if mismatched
+                    else "Conteggi allineati nel report corrente."
+                )
             ),
         },
         {
@@ -1080,8 +1129,28 @@ def migrate_full_storage_to_sqlite(
     )
     precheck_snapshot["snapshot_path"] = precheck_snapshot_path
     migratore = GestioneDatabase(_extended_sqlite_sources(paths))
-    core = migratore.migra_verso_sqlite(paths["STUDIO_DB"]).to_dict()
-    repositories = _migrate_sqlite_repository_domains(paths)
+    core_pre_repository = migratore.migra_verso_sqlite(paths["STUDIO_DB"]).to_dict()
+    core = dict(core_pre_repository)
+    repositories: dict[str, Any] = {}
+    repository_errors: list[str] = []
+    if bool(core_pre_repository.get("riuscita")):
+        try:
+            repositories = _migrate_sqlite_repository_domains(paths)
+        except Exception as exc:
+            repositories = {"repository_sync": {"ok": False, "error": str(exc)}}
+            repository_errors.append(f"repository_sync: {exc}")
+        else:
+            # Alcuni repository governati materializzano o aggiornano JSON di
+            # supporto durante la sincronizzazione. Ripassiamo lo staging core
+            # per catturare nel mirror SQL anche quei campi appena generati.
+            core = migratore.migra_verso_sqlite(paths["STUDIO_DB"]).to_dict()
+    else:
+        repositories = {
+            "repository_sync": {
+                "ok": False,
+                "error": "Sincronizzazione non eseguita perché il trasferimento core è stato bloccato.",
+            }
+        }
     inventory = build_full_storage_inventory(
         paths=paths,
         database_config=database_config,
@@ -1090,8 +1159,10 @@ def migrate_full_storage_to_sqlite(
     core_errors = [str(item) for item in core.get("errori") or []]
     core_warnings = [str(item) for item in core.get("avvisi") or []]
     diff_summary = _build_diff_summary(inventory=inventory, target="sqlite")
+    loss_rows = _diff_loss_rows(diff_summary)
+    success = bool(core.get("riuscita")) and _repositories_ok(repositories) and not loss_rows
     dirty_findings = _build_dirty_tenant_findings(
-        errors=core_errors,
+        errors=core_errors + repository_errors,
         warnings=core_warnings,
         diff_summary=diff_summary,
     )
@@ -1099,7 +1170,10 @@ def migrate_full_storage_to_sqlite(
         "generated_at": _now_iso(),
         "tenant_slug": tenant_slug,
         "target": "sqlite",
-        "success": bool(core.get("riuscita")),
+        "success": success,
+        "blocking_loss_domains": [row.get("code") for row in loss_rows],
+        "repository_errors": repository_errors,
+        "core_pre_repository": core_pre_repository,
         "core": core,
         "repositories": repositories,
         "documents": {
@@ -1113,12 +1187,13 @@ def migrate_full_storage_to_sqlite(
         "dirty_tenant_findings": dirty_findings,
         "operation_log": _build_operation_log(
             target="sqlite",
-            success=bool(core.get("riuscita")),
+            success=success,
             core_success=bool(core.get("riuscita")),
             diff_summary=diff_summary,
             repository_rows=len(repositories),
+            repository_errors=repository_errors,
         ),
-        "rollback": _build_rollback_posture(target="sqlite", success=bool(core.get("riuscita"))),
+        "rollback": _build_rollback_posture(target="sqlite", success=success),
     }
     report["inventory"] = inventory
     if write_report:
@@ -1172,7 +1247,6 @@ def migrate_full_storage_to_postgres(
         tenant_slug=tenant_slug,
     )
     repositories, repo_errors = _migrate_postgres_repository_domains(paths, dsn)
-    success = bool(core_report.get("success")) and not repo_errors
     inventory = build_full_storage_inventory(
         paths=paths,
         database_config=database_config,
@@ -1181,6 +1255,13 @@ def migrate_full_storage_to_postgres(
     sqlite_warnings = [str(item) for item in (sqlite_report.get("core") or {}).get("avvisi") or []]
     repo_errors_text = [str(item) for item in repo_errors]
     diff_summary = _build_diff_summary(inventory=inventory, target="postgresql")
+    loss_rows = _diff_loss_rows(diff_summary)
+    success = (
+        bool(sqlite_report.get("success"))
+        and bool(core_report.get("success"))
+        and not repo_errors
+        and not loss_rows
+    )
     dirty_findings = _build_dirty_tenant_findings(
         errors=repo_errors_text,
         warnings=sqlite_warnings,
@@ -1191,6 +1272,7 @@ def migrate_full_storage_to_postgres(
         "tenant_slug": tenant_slug,
         "target": "postgresql",
         "success": success,
+        "blocking_loss_domains": [row.get("code") for row in loss_rows],
         "sqlite_stage": sqlite_report,
         "core": core_report,
         "repositories": repositories,
@@ -1300,6 +1382,14 @@ def build_full_storage_inventory(
             "storage_kind": "core",
         },
         {
+            "code": "time_tracking",
+            "title": "Timer operativi",
+            "json_count": _json_record_count(paths.get("TIME_TRACKING_DB", "")),
+            "sqlite_count": _sqlite_table_count(paths["STUDIO_DB"], "time_tracking_timers"),
+            "postgres_count": _postgres_table_count(postgres_config, "time_tracking_timers") if postgres_online else 0,
+            "storage_kind": "core",
+        },
+        {
             "code": "preventivi",
             "title": "Preventivi",
             "json_count": _json_record_count(paths["PREVENTIVI_DB"]),
@@ -1326,7 +1416,7 @@ def build_full_storage_inventory(
         {
             "code": "pagamenti_config",
             "title": "Pagamenti - configurazione",
-            "json_count": _json_record_count(pagamenti_config_json_path),
+            "json_count": _json_document_count(pagamenti_config_json_path),
             "sqlite_count": _sqlite_table_count(paths["STUDIO_DB"], "payment_config"),
             "postgres_count": _postgres_table_count(postgres_config, "payment_config") if postgres_online else 0,
             "storage_kind": "core",
@@ -1407,7 +1497,7 @@ def build_full_storage_inventory(
         {
             "code": "workspace_intelligence",
             "title": "Workspace intelligence",
-            "json_count": _json_record_count(paths["WORKSPACE_INTELLIGENCE_DB"]),
+            "json_count": _json_document_count(paths["WORKSPACE_INTELLIGENCE_DB"]),
             "sqlite_count": _sqlite_table_count(workspace_repo_db, "workspace_intelligence_snapshot"),
             "postgres_count": _postgres_table_count(postgres_config, "workspace_intelligence_snapshot") if postgres_online else 0,
             "storage_kind": "repository",

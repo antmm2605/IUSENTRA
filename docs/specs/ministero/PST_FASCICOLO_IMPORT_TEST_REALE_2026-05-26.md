@@ -251,6 +251,73 @@ PST: `penale` da solo resta neutro, mentre una tabella ministeriale esplicita
 `CASSPE`, `JPW_CASSPE` o `cassazione penale` usa il canale PST/QBuilder di
 Cassazione penale; `cassazione civile` usa `JPW_CASSCI`.
 
+Aggiornamento live `1.6.62`: dopo la correzione `1.6.60`, Palmi/lavoro ha
+risposto HTTP 404 su `/pda/pycons/GLRC/JPW_SIL`; il canale lavoro deve quindi
+provare prima `JPW_SIL_DISTR`/`LAV`, mantenendo `JPW_SIL`, `JPW_SILP_DISTR` e
+`JPW_SILP` come varianti immediate dello stesso rito prima del ritorno a SICID.
+Nella stessa prova, un HTTP 401 durante il tentativo cookie-only deve scartare il
+cookie PST e ritentare subito col certificato client, così Windows può riproporre
+il PIN invece di riusare una sessione rifiutata.
+
+Aggiornamento live `1.6.63`: la prova cliente successiva ha mostrato Local Signer
+`1.6.62` correttamente installato, schema `lavoro` riconosciuto e autenticazione
+non più bloccata, ma il PST ha restituito HTTP 404 sui path fisici `JPW_SIL*`,
+`JPW_SIVG`, `JPW_MIN` e `JPW_SIMIN` sotto `GLRC`. Il registro uffici ministeriale
+locale per Palmi espone `JPW_SICID` e `JPW_SIECIC`, non i path fisici delle
+sotto-tabelle SICID-family. Da `1.6.63` la tabella resta logica nel SOAP
+(`CONS-SIL-BE-DISTR`/`LAV` per lavoro), mentre l'endpoint HTTP usa il gateway
+fisico `JPW_SICID` per la famiglia SICID. Il log del batch registra comunque
+`servizio_logico`, così la diagnostica distingue il rito tentato dal path usato.
+
+Prova cliente successiva con deploy diretto `1.6.63` / app `2.248.82`, ore
+`20:39` del 27 maggio 2026: la ricerca Palmi `0910011`, PST `0800570094`, R.G.
+`3441/2025`, schema `lavoro`, materia `lavoro`, registro `lavoro`, ha prodotto
+`pst_search_success`, `1` fascicolo e `6` documenti. Il fascicolo restituito dal
+PST è:
+
+- numero `3441/2025`;
+- procedimento `RITO LAVORO 1 GRADO`;
+- oggetto `retribuzione`;
+- stato `RISERVATO`;
+- data iscrizione `2025-11-04`;
+- registro portale `LAV`;
+- tabella ministeriale `SICID_LAVORO`;
+- servizio logico `JPW_SIL_DISTR`;
+- `data_udienza` vuota.
+
+Documenti esposti dal catalogo PST nella prova:
+
+- `ProduzioneDocumentiRichiesti_34942889.pdf`, deposito `2026-04-28`, id
+  `34942889`;
+- `CostituzioneSemplice_34911163.pdf`, deposito `2026-04-24`, id `34911163`;
+- `ProduzioneDocumentiRichiesti_34275720.pdf`, deposito `2026-03-04`, id
+  `34275720`;
+- `Documento_32916765.pdf`, deposito `2025-11-06`, id `32916765`;
+- `FissazioneTermineNoteSostituzioneUdienza_32899061.pdf`, deposito
+  `2025-11-05`, id `32899061`;
+- `Ricorso_32883326.pdf`, deposito `2025-11-04`, id `32883326`.
+
+Conclusione tecnica della prova: la ricerca fascicolo è corretta e il messaggio
+`Il portale non espone una prossima udienza da tradurre in scadenziario` non è
+un errore di ricerca. Il PST, in questo caso, non valorizza `data_udienza` nei
+metadati del fascicolo. La prossima scadenza o il termine possono essere dentro
+il PDF `FissazioneTermineNoteSostituzioneUdienza_32899061.pdf`, quindi il
+completamento del flusso deve scaricare i documenti e, quando `data_udienza` è
+vuota ma il catalogo contiene atti di fissazione termine, sostituzione udienza,
+ordinanza, decreto o provvedimento analogo, proporre lettura/OCR del documento
+per estrarre data, termine e fonte senza inventare una scadenza dai soli
+metadati.
+
+Aggiornamento app `2.248.83`: la regola è stata resa generale e visibile in UI.
+La precedenza è vincolante: se il PST espone una data o una udienza strutturata,
+IUSENTRA usa quella come fonte primaria per udienza/scadenziario; solo nei casi
+in cui la data non viene esposta, l'anteprima e l'analisi cercano nel catalogo
+documentale atti fonte come fissazione termine, sostituzione udienza, rinvio,
+verbale, ordinanza, decreto o provvedimento con termini. Il documento fonte
+viene mostrato nella sezione `Scadenziario` del wizard e negli avvisi di verifica;
+la scadenza viene creata solo dopo lettura/scarico del documento e solo se data e
+termine sono estratti con fonte verificabile.
+
 ## Regressioni vietate
 
 - Non reintrodurre `/pst/preflight-auth` come chiamata preventiva dal wizard

@@ -1603,6 +1603,46 @@ function awPreviewDocuments() {
     mittente: doc.mittente || dep.mittente || '',
   })));
 }
+function awCompactDeadlineText(value) {
+  return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '');
+}
+function awPreviewHasStructuredHearing(preview = AW_STATE.preview) {
+  const identity = preview?.identity || {};
+  if (String(identity.data_udienza || '').trim()) return true;
+  return Array.isArray(preview?.udienze) && preview.udienze.some(row => String(row?.data || row?.data_udienza || '').trim());
+}
+function awDeadlineDocumentReason(doc) {
+  const compact = awCompactDeadlineText([
+    doc?.nome,
+    doc?.nome_documento,
+    doc?.filename,
+    doc?.tipo,
+    doc?.tipo_atto,
+    doc?.descrizione,
+    doc?.oggetto,
+  ].filter(Boolean).join(' '));
+  const hints = [
+    ['Fissazione termine', ['fissazione', 'termine']],
+    ['Fissazione udienza', ['fissazione', 'udienza']],
+    ['Sostituzione udienza', ['sostituzione', 'udienza']],
+    ['Rinvio udienza', ['rinvio', 'udienza']],
+    ['Trattazione scritta', ['trattazione', 'scritta']],
+    ['Termine note', ['termine', 'note']],
+    ['Verbale udienza', ['verbale', 'udienza']],
+    ['Comunicazione udienza', ['comunicazione', 'udienza']],
+    ['Ordinanza con termini', ['ordinanza', 'termine']],
+    ['Decreto con termini', ['decreto', 'termine']],
+    ['Provvedimento con termini', ['provvedimento', 'termine']],
+  ];
+  const match = hints.find(([, tokens]) => tokens.every(token => compact.includes(awCompactDeadlineText(token))));
+  return match ? match[0] : '';
+}
+function awDeadlineSourceDocuments(preview = AW_STATE.preview) {
+  const direct = Array.isArray(preview?.documenti_scadenziario) ? preview.documenti_scadenziario : [];
+  if (direct.length) return direct;
+  if (!preview || awPreviewHasStructuredHearing(preview)) return [];
+  return awPreviewDocuments().map(doc => ({ ...doc, motivo: awDeadlineDocumentReason(doc) })).filter(doc => doc.motivo);
+}
 function awIsProvvedimentoDocumento(item) {
   const tipo = String(item?.tipo_atto || item?.tipo || '').toUpperCase();
   return ['SENTENZA', 'ORDINANZA', 'DECRETO', 'PROVVEDIMENTO'].some(token => tipo.includes(token));
@@ -2364,6 +2404,13 @@ function awRenderPreview() {
   tabs.innerHTML = defs.map(tab => `<li class="nav-item"><button type="button" class="nav-link ${AW_STATE.previewTab === tab.id ? 'active' : ''}" data-aw-tab="${tab.id}">${tab.label}</button></li>`).join('');
   tabs.querySelectorAll('[data-aw-tab]').forEach(btn => btn.addEventListener('click', () => { AW_STATE.previewTab = btn.dataset.awTab; awRenderPreview(); awPostProcessPreviewDom(); }));
   const identity = preview.identity || {};
+  const deadlineDocs = awDeadlineSourceDocuments(preview);
+  const structuredHearing = awPreviewHasStructuredHearing(preview);
+  const scadenziarioHtml = structuredHearing
+    ? `<div class="alert alert-success rounded-4 mt-3 mb-0"><strong>Scadenziario:</strong> il portale espone la data strutturata ${awEscape(awFormatDate(identity.data_udienza || (preview.udienze || [])[0]?.data || (preview.udienze || [])[0]?.data_udienza))}; verrà usata quella.</div>`
+    : (deadlineDocs.length
+      ? `<div class="alert alert-warning rounded-4 mt-3 mb-0"><strong>Scadenziario da documento fonte:</strong> il portale non espone la prossima udienza strutturata. IUSENTRA userà ${awEscape(deadlineDocs[0].nome || deadlineDocs[0].nome_documento || deadlineDocs[0].tipo_atto || 'il documento fonte')} dopo lo scarico, senza generare scadenze non verificate.</div>`
+      : '<div class="alert alert-light border rounded-4 mt-3 mb-0"><strong>Scadenziario:</strong> il portale non espone una prossima udienza e il catalogo non indica documenti fonte riconoscibili.</div>');
   if (AW_STATE.previewTab === 'dati') {
     root.innerHTML = `${manualNotice}
       <div class="row g-3">
@@ -2371,7 +2418,7 @@ function awRenderPreview() {
         <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Procedimento</div><div class="fw-semibold">${awEscape(identity.procedimento || 'Non indicato')}</div><div class="small text-muted mt-1">Stato: ${awEscape(awFormatStatus(identity.stato))}${identity.sub_procedimento ? ` · Sub-procedimento ${awEscape(identity.sub_procedimento)}` : ''}</div></div></div>
         <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Oggetto</div><div class="fw-semibold">${awEscape(identity.oggetto || 'Oggetto non disponibile')}</div></div></div>
         <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Timeline minima</div><div class="small">Iscrizione: ${awEscape(awFormatDate(identity.data_iscrizione))}<br>Ultima attivita: ${awEscape(awFormatDate(identity.ultima_attivita))}<br>Prossima udienza: ${awEscape(awFormatDate(identity.data_udienza))}</div></div></div>
-      </div>`;
+      </div>${scadenziarioHtml}`;
     return;
   }
   if (AW_STATE.previewTab === 'parti') {
@@ -2523,7 +2570,7 @@ function awRenderSelectionOptions() {
     ['importa_difensori', 'Difensori', counts.difensori || 0, 'Conserva eventuali difensori strutturati dal portale.'],
     ['importa_eventi', 'Eventi e cronologia', counts.eventi || 0, 'Integra eventi rilevanti e timeline portale.'],
     ['importa_udienze', 'Udienze', counts.udienze || 0, 'Rende governabile il calendario processuale.'],
-    ['importa_scadenze', 'Scadenze', counts.udienze || 0, 'Trasforma le date strutturate in scadenziario interno.'],
+    ['importa_scadenze', 'Scadenze', counts.udienze || counts.fonti_scadenziario || 0, counts.udienze ? 'Trasforma le date strutturate in scadenziario interno.' : 'Se la data non è esposta, usa il documento fonte dopo lo scarico.'],
     ['importa_documenti', 'Documenti e allegati', counts.documenti || 0, 'Popola archivio documentale e vista a buste.'],
     ['importa_provvedimenti', 'Provvedimenti', counts.provvedimenti || 0, 'Evidenzia sentenze, ordinanze e decreti.'],
     ['importa_cronologia_depositi', 'Cronologia depositi', counts.depositi || 0, 'Mantiene tracciata l’origine telematica.'],
@@ -2756,7 +2803,13 @@ function awRenderAnalysis() {
   warnings.textContent = (analysis.warnings || []).length;
   summary.innerHTML = `<strong>${awEscape(analysis.summary_text || '')}</strong><br><span class="small text-muted">Prossimo passo: ${awEscape(analysis.next_step?.label || 'Nessuno')}</span>`;
   const list = [...(analysis.blockers || []), ...(analysis.warnings || [])];
-  issues.innerHTML = list.length ? list.map(item => `<div class="${awToneCls(item.tone)}"><div class="fw-semibold">${awEscape(item.label)}</div><div class="small">${awEscape(item.detail || '')}</div></div>`).join('') : '<div class="aw-box text-success">Nessun conflitto bloccante rilevato.</div>';
+  issues.innerHTML = list.length ? list.map(item => {
+    const docs = Array.isArray(item.documenti) ? item.documenti : [];
+    const docsHtml = docs.length
+      ? `<div class="d-flex flex-wrap gap-1 mt-2">${docs.slice(0, 4).map(doc => `<span class="badge text-bg-warning">${awEscape(doc.nome || doc.nome_documento || doc.tipo_atto || 'Documento fonte')}</span>`).join('')}</div>`
+      : '';
+    return `<div class="${awToneCls(item.tone)}"><div class="fw-semibold">${awEscape(item.label)}</div><div class="small">${awEscape(item.detail || '')}</div>${docsHtml}</div>`;
+  }).join('') : '<div class="aw-box text-success">Nessun conflitto bloccante rilevato.</div>';
   ok.innerHTML = (analysis.ok || []).map(item => `<div class="${awToneCls(item.tone)}"><div class="fw-semibold">${awEscape(item.label)}</div><div class="small">${awEscape(item.detail || '')}</div></div>`).join('');
   const canImport = !(analysis.blockers || []).length;
   goImport.disabled = !canImport;

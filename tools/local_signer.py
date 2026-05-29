@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.60
+IUSENTRA Local Signer - v1.6.63
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -112,7 +112,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.60"
+VERSION = "1.6.63"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -232,10 +232,20 @@ _PST_PORTALE_URL = "https://pst.giustizia.it"
 _PST_PROXY_PDA_URL = "https://pda.processotelematico.giustizia.it"
 _PST_PROXY_SH_URL = "https://ext.processotelematico.giustizia.it"
 _PST_LEGACY_BASE = "https://wspa.giustizia.it/wspa"
-_PST_SICID_FAMILY_SERVIZI = ("JPW_SICID", "JPW_SIL", "JPW_SIVG", "JPW_MIN", "JPW_SIMIN")
+_PST_SIL_ENDPOINT_SERVIZI = ("JPW_SIL_DISTR", "JPW_SIL", "JPW_SILP_DISTR", "JPW_SILP")
+_PST_SICID_FAMILY_SERVIZI = (
+    "JPW_SICID",
+    *_PST_SIL_ENDPOINT_SERVIZI,
+    "JPW_SIVG",
+    "JPW_MIN",
+    "JPW_SIMIN",
+)
 _PST_SERVIZI_DEFAULT = (
     "JPW_SICID",
+    "JPW_SIL_DISTR",
     "JPW_SIL",
+    "JPW_SILP_DISTR",
+    "JPW_SILP",
     "JPW_SIVG",
     "JPW_MIN",
     "JPW_SIMIN",
@@ -251,14 +261,14 @@ _PST_SERVIZI_ALIAS = {
     "SICID": "JPW_SICID",
     "SICC": "JPW_SICID",
     "CIVILE": "JPW_SICID",
-    "SIL": "JPW_SIL",
-    "SILP": "JPW_SIL",
-    "LAV": "JPW_SIL",
-    "LAVORO": "JPW_SIL",
-    "PREVIDENZA": "JPW_SIL",
-    "PREVIDENZIALE": "JPW_SIL",
-    "ASSISTENZA": "JPW_SIL",
-    "ASSISTENZIALE": "JPW_SIL",
+    "SIL": "JPW_SIL_DISTR",
+    "SILP": "JPW_SILP_DISTR",
+    "LAV": "JPW_SIL_DISTR",
+    "LAVORO": "JPW_SIL_DISTR",
+    "PREVIDENZA": "JPW_SIL_DISTR",
+    "PREVIDENZIALE": "JPW_SIL_DISTR",
+    "ASSISTENZA": "JPW_SIL_DISTR",
+    "ASSISTENZIALE": "JPW_SIL_DISTR",
     "SIVG": "JPW_SIVG",
     "VOLONTARIA": "JPW_SIVG",
     "VG": "JPW_SIVG",
@@ -275,7 +285,10 @@ _PST_SERVIZI_ALIAS = {
 }
 _PST_QBUILDER_NAMESPACES = {
     "JPW_SICID": "urn:CONS-SICC-BE",
+    "JPW_SIL_DISTR": "urn:CONS-SIL-BE-DISTR",
     "JPW_SIL": "urn:CONS-SIL-BE-DISTR",
+    "JPW_SILP_DISTR": "urn:CONS-SIL-BE-DISTR",
+    "JPW_SILP": "urn:CONS-SIL-BE-DISTR",
     "JPW_SIVG": "urn:CONS-SIVG-BE",
     "JPW_MIN": "urn:CONS-MIN-BE",
     "JPW_SIMIN": "urn:CONS-MIN-BE",
@@ -286,11 +299,19 @@ _PST_QBUILDER_NAMESPACES = {
 }
 _PST_QBUILDER_TIPO_RICERCA = {
     "JPW_SICID": "RGN",
+    "JPW_SIL_DISTR": "LAV",
     "JPW_SIL": "LAV",
+    "JPW_SILP_DISTR": "LAV",
+    "JPW_SILP": "LAV",
     "JPW_SIVG": "VG",
     "JPW_MIN": "MIN",
     "JPW_SIMIN": "MIN",
     "JPW_SIGP": "GDP",
+}
+_PST_QBUILDER_HTTP_ENDPOINT_SERVIZI = {
+    servizio: "JPW_SICID"
+    for servizio in _PST_SICID_FAMILY_SERVIZI
+    if servizio != "JPW_SICID"
 }
 _PST_TABELLE_MINISTERIALI_POLICY = {
     "JPW_SICID": {
@@ -302,6 +323,30 @@ _PST_TABELLE_MINISTERIALI_POLICY = {
         "x_wasp_user": True,
     },
     "JPW_SIL": {
+        "tabella": "SICID_LAVORO",
+        "registro": "JPW_SIL",
+        "download": "downloadDocumento",
+        "warmup": "calcolaHash_multi",
+        "errore_lotto": "per_documento",
+        "x_wasp_user": True,
+    },
+    "JPW_SIL_DISTR": {
+        "tabella": "SICID_LAVORO",
+        "registro": "JPW_SIL",
+        "download": "downloadDocumento",
+        "warmup": "calcolaHash_multi",
+        "errore_lotto": "per_documento",
+        "x_wasp_user": True,
+    },
+    "JPW_SILP_DISTR": {
+        "tabella": "SICID_LAVORO",
+        "registro": "JPW_SIL",
+        "download": "downloadDocumento",
+        "warmup": "calcolaHash_multi",
+        "errore_lotto": "per_documento",
+        "x_wasp_user": True,
+    },
+    "JPW_SILP": {
         "tabella": "SICID_LAVORO",
         "registro": "JPW_SIL",
         "download": "downloadDocumento",
@@ -912,7 +957,7 @@ def _pst_servizio_ministeriale_da_tokens(tokens: list[str]) -> str:
     keyword_groups = (
         ("JPW_CASSPE", (("CASS", "PENAL"),)),
         ("JPW_CASSCI", (("CASS", "CIVIL"),)),
-        ("JPW_SIL", (("LAVOR",), ("PREVIDENZ",), ("ASSISTENZ",))),
+        ("JPW_SIL_DISTR", (("LAVOR",), ("PREVIDENZ",), ("ASSISTENZ",))),
         ("JPW_SIVG", (("VOLONTARI",), ("VOLONTARI", "GIURISDIZIONE"))),
         ("JPW_MIN", (("MINORE",), ("MINORI",), ("MINORENN",))),
         ("JPW_SIECIC", (("ESECUZ",), ("CONCORS",))),
@@ -1027,7 +1072,15 @@ def _pst_base_varianti_ricerca_esatta(codice_o_nome: str, base_url: str) -> list
     # Fallback anti-regressione: anche se il registro uffici non viene
     # risolto nel punto chiamante, una URL civile contiene gia' abbastanza
     # informazione per provare i registri ministeriali dello stesso ufficio.
-    if current in _PST_SICID_FAMILY_SERVIZI:
+    if current in _PST_SIL_ENDPOINT_SERVIZI:
+        for servizio in _PST_SIL_ENDPOINT_SERVIZI:
+            _aggiungi(servizio)
+        _aggiungi("JPW_SICID")
+        _aggiungi("JPW_SIVG")
+        _aggiungi("JPW_MIN")
+        _aggiungi("JPW_SIMIN")
+        _aggiungi("JPW_SIECIC")
+    elif current in _PST_SICID_FAMILY_SERVIZI:
         for servizio in _PST_SICID_FAMILY_SERVIZI:
             _aggiungi(servizio)
         _aggiungi("JPW_SIECIC")
@@ -2217,6 +2270,32 @@ def _drop_pst_session(session_id: str) -> None:
     _close_pst_session_entry(entry)
 
 
+def _reset_pst_session_cookie_after_auth_failure(cookie_file: Optional[str], reason: str = "") -> str:
+    old_cookie = str(cookie_file or "").strip()
+    new_cookie = _ensure_cookie_file()
+    matched = False
+    current = _utcnow_naive()
+    with _pst_session_lock:
+        for entry in _pst_session_cache.values():
+            if str(entry.get("cookie_file") or "").strip() != old_cookie:
+                continue
+            entry["cookie_file"] = new_cookie
+            entry["auth_ready"] = False
+            entry["preflight_attempted"] = False
+            entry["last_auth_error"] = str(reason or "").strip()
+            entry["last_used_at"] = current
+            entry["expires_at"] = current + timedelta(seconds=PST_SESSION_TTL_SECONDS)
+            matched = True
+    if old_cookie:
+        try:
+            Path(old_cookie).unlink(missing_ok=True)
+        except Exception:
+            pass
+    if matched:
+        log.info("PST sessione: cookie autenticazione scartato dopo rifiuto PST; prossimo tentativo richiede il certificato.")
+    return new_cookie
+
+
 def _update_pst_session(session_id: str, **updates) -> Optional[dict]:
     sid = (session_id or "").strip()
     if not sid:
@@ -3034,16 +3113,29 @@ def _pst_usa_qbuilder(base_url: str) -> bool:
     return bool(_pst_namespace_qbuilder(base_url))
 
 
+def _pst_http_endpoint_base_url(base_url: str) -> str:
+    raw = (base_url or "").strip().rstrip("/")
+    if not raw:
+        return ""
+    servizio_logico = _pst_servizio_proxy(raw)
+    servizio_http = _PST_QBUILDER_HTTP_ENDPOINT_SERVIZI.get(servizio_logico, servizio_logico)
+    if not servizio_http or servizio_http == servizio_logico:
+        return raw
+    return _pst_base_url_con_servizio(raw, servizio_http) or raw
+
+
 def _pst_url_ricerca(base_url: str) -> str:
+    http_base_url = _pst_http_endpoint_base_url(base_url)
     if _pst_usa_qbuilder(base_url):
-        return base_url.rstrip("/")
-    return f"{base_url.rstrip('/')}/RicercaFascicoliRegistroService"
+        return http_base_url.rstrip("/")
+    return f"{http_base_url.rstrip('/')}/RicercaFascicoliRegistroService"
 
 
 def _pst_url_documenti(base_url: str) -> str:
+    http_base_url = _pst_http_endpoint_base_url(base_url)
     if _pst_usa_qbuilder(base_url):
-        return base_url.rstrip("/")
-    return f"{base_url.rstrip('/')}/ConsultazioneAvanzataDocumentiService"
+        return http_base_url.rstrip("/")
+    return f"{http_base_url.rstrip('/')}/ConsultazioneAvanzataDocumentiService"
 
 
 def _pst_registro_da_base_url(base_url: str) -> str:
@@ -3587,6 +3679,22 @@ def _pst_cookie_retry_requires_cert(error: Exception) -> bool:
         "accesso al servizio e' stato negato",
     ]
     return any(marker in text for marker in retry_markers)
+
+
+def _pst_auth_failure_requires_fresh_session(error: Any) -> bool:
+    text = str(error or "").strip().lower()
+    if not text:
+        return False
+    markers = (
+        "autenticazione pst non riuscita",
+        "http 401",
+        "unauthorized",
+        "certificato cns/cie",
+        "pin non",
+        "pin della smart card",
+        "certificato client",
+    )
+    return any(marker in text for marker in markers)
 
 
 def _format_windows_cert_spec(cert_thumbprint: Optional[str]) -> str:
@@ -5018,7 +5126,7 @@ def _soap_call_pst_session_batch_raw_best_effort(
     host = _pst_host(first_url) if first_url else ""
     if prefer_cookie_only and cookie_file and (not host or host not in _mTLS_required_hosts):
         try:
-            return _soap_call_curl_batch_raw_best_effort(
+            cookie_results = _soap_call_curl_batch_raw_best_effort(
                 effective_requests,
                 cert_thumbprint=None,
             )
@@ -5032,10 +5140,37 @@ def _soap_call_pst_session_batch_raw_best_effort(
                     "PST host %s (batch best-effort): cookie-only rifiutato,"
                     " future chiamate useranno direttamente il certificato.", host
                 )
-    return _soap_call_curl_batch_raw_best_effort(
+        else:
+            blocking_error = _pst_best_effort_batch_blocking_error(cookie_results)
+            if not blocking_error or not _pst_cookie_retry_requires_cert(RuntimeError(blocking_error)):
+                return cookie_results
+            if host:
+                with _mTLS_required_lock:
+                    _mTLS_required_hosts.add(host)
+                log.info(
+                    "PST host %s (batch best-effort): cookie-only ha restituito"
+                    " autenticazione non valida, ritento subito col certificato.", host
+                )
+
+        fresh_cookie = _reset_pst_session_cookie_after_auth_failure(
+            cookie_file,
+            "cookie-only PST rifiutato; retry immediato col certificato",
+        )
+        effective_requests = [
+            {**req, "cookie_file": fresh_cookie}
+            for req in effective_requests
+        ]
+    cert_results = _soap_call_curl_batch_raw_best_effort(
         effective_requests,
         cert_thumbprint=cert_thumbprint,
     )
+    final_blocking_error = _pst_best_effort_batch_blocking_error(cert_results)
+    if final_blocking_error and _pst_auth_failure_requires_fresh_session(final_blocking_error):
+        _reset_pst_session_cookie_after_auth_failure(
+            cookie_file,
+            "autenticazione PST rifiutata anche col certificato",
+        )
+    return cert_results
 
 
 def _pst_best_effort_batch_blocking_error(items: list[dict]) -> str:
@@ -8263,6 +8398,7 @@ class _Handler(BaseHTTPRequestHandler):
                         "extra_headers": extra_headers,
                         "soap_action": "",
                         "cookie_file": cookie_file,
+                        "servizio_logico": _pst_servizio_proxy(base_url),
                     },
                 ]
                 profile_index = None
@@ -8274,6 +8410,7 @@ class _Handler(BaseHTTPRequestHandler):
                         "extra_headers": extra_headers,
                         "soap_action": "",
                         "cookie_file": cookie_file,
+                        "servizio_logico": _pst_servizio_proxy(base_url),
                     })
                 documenti_index = len(batch_requests)
                 batch_requests.append({
@@ -8282,6 +8419,7 @@ class _Handler(BaseHTTPRequestHandler):
                     "extra_headers": extra_headers,
                     "soap_action": "",
                     "cookie_file": cookie_file,
+                    "servizio_logico": _pst_servizio_proxy(base_url),
                 })
                 sigp_atti_index = None
                 if _pst_servizio_sigp(base_url):
@@ -8292,6 +8430,7 @@ class _Handler(BaseHTTPRequestHandler):
                         "extra_headers": extra_headers,
                         "soap_action": "ricercaAtti",
                         "cookie_file": cookie_file,
+                        "servizio_logico": _pst_servizio_proxy(base_url),
                     })
                 fallback_batches = []
                 if _pst_namespace_qbuilder(base_url):
@@ -8349,6 +8488,7 @@ class _Handler(BaseHTTPRequestHandler):
                             "extra_headers": fallback_extra_headers,
                             "soap_action": "",
                             "cookie_file": cookie_file,
+                            "servizio_logico": _pst_servizio_proxy(fallback_base_url),
                         })
                         if fallback_soap_profilo:
                             fallback_info["profilo_index"] = len(batch_requests)
@@ -8358,6 +8498,7 @@ class _Handler(BaseHTTPRequestHandler):
                                 "extra_headers": fallback_extra_headers,
                                 "soap_action": "",
                                 "cookie_file": cookie_file,
+                                "servizio_logico": _pst_servizio_proxy(fallback_base_url),
                             })
                         fallback_info["documenti_index"] = len(batch_requests)
                         batch_requests.append({
@@ -8373,6 +8514,7 @@ class _Handler(BaseHTTPRequestHandler):
                             "extra_headers": fallback_extra_headers,
                             "soap_action": "",
                             "cookie_file": cookie_file,
+                            "servizio_logico": _pst_servizio_proxy(fallback_base_url),
                         })
                         if _pst_servizio_sigp(fallback_base_url):
                             fallback_info["sigp_atti_index"] = len(batch_requests)
@@ -8382,6 +8524,7 @@ class _Handler(BaseHTTPRequestHandler):
                                 "extra_headers": fallback_extra_headers,
                                 "soap_action": "ricercaAtti",
                                 "cookie_file": cookie_file,
+                                "servizio_logico": _pst_servizio_proxy(fallback_base_url),
                             })
                         fallback_batches.append(fallback_info)
                 batch_result_items = _soap_call_pst_session_batch_raw_best_effort(
@@ -8399,7 +8542,10 @@ class _Handler(BaseHTTPRequestHandler):
                 ]
                 for idx, item in enumerate(batch_result_items):
                     if isinstance(item, dict) and item.get("error"):
-                        servizio = _pst_servizio_proxy(str(batch_requests[idx].get("url") or ""))
+                        servizio = str(
+                            batch_requests[idx].get("servizio_logico")
+                            or _pst_servizio_proxy(str(batch_requests[idx].get("url") or ""))
+                        )
                         log.info("PST ricerca-snapshot: richiesta %s/%s non bloccante: %s", idx + 1, servizio, item.get("error"))
                 blocking_error = _pst_best_effort_batch_blocking_error(batch_result_items)
                 if blocking_error:

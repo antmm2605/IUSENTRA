@@ -1,5 +1,23 @@
 # Migrazione progressiva Flask + React
 
+## Database - audit anti-perdita SQLite - 2026-05-29 - 2.248.84
+
+La pagina React `/admin/database` espone ora nel risultato della migrazione un
+riquadro `Verifica dati migrati` alimentato dal report backend
+`audit_migrazione`. L'avvocato vede per ogni modulo controllato il conteggio
+della sorgente e del database SQLite, senza dover leggere solo il totale
+aggregato.
+
+Le azioni `Migra dati` e `Attiva SQLite` non possono più sostituire uno
+`studio.db` già popolato quando i JSON tenant-aware sono vuoti o incompleti:
+il backend blocca l'operazione, conserva il database operativo e restituisce
+un errore esplicito. Il report React mostra quindi l'esito reale del blocco
+invece di presentare un successo con perdita silenziosa.
+
+Verifiche locali: suite `tests/test_database.py`, suite
+`tests/test_storage_postgres_migration.py`, shard storage/governance mirati,
+typecheck React, build Vite e audit CLI su tenant temporaneo.
+
 ## Fascicolo - prova deposito e stato ricevute PEC - 2026-05-27 - 2.248.70
 
 Il dettaglio fascicolo React espone il pulsante `Deposito telematico` tra le
@@ -2822,3 +2840,19 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - Il decoder backend accetta sia il payload storico (`nome`, `contenuto_b64`) sia alias Local Signer/browser (`filename`, `content_base64`, `source`, `data_deposito`, `id_documento`, `id_deposito`) e fonde i metadati del catalogo prima del salvataggio.
 - Regressione obbligatoria: `tests/test_polisweb.py::test_api_portale_acquisizione_import_pst_salva_lotto_sette_documenti_nel_fascicolo` simula `7/7` documenti con `Atto_2767510.pdf` e fallisce se i PDF ricevuti non finiscono nei documenti del fascicolo e nel deposito.
 - Per la prima importazione resta vietato creare pratiche vuote: catalogo PST senza file reali blocca l'import. Per una pratica già esistente, l'assenza di parti strutturate dal portale è solo un avviso e non cancella i dati locali.
+
+## Aggiornamento 2026-05-27: Import pratiche Studio Telematico 2.248.79
+
+- `/importa-pratiche-studio-telematico` è una superficie React full dentro Amministrazione, servita dalla shell App V2 e censita nel manifest con `react_operational_full`.
+- La pagina usa linguaggio operativo per studio legale, card compatte e percorso guidato: preparazione pacchetto, controllo completezza, import nello studio.
+- La regola dati è esplicita e testata: `TESTI` legge i documenti solo dalla cartella `ATTI`, mentre `EMAILS` legge i messaggi solo dalla cartella `EMAILS`.
+- Il backend importa pratiche, clienti, parti, documenti, email e agenda con deduplica su `source_external_id` e identificativi documento sorgente.
+- Il file `.mdb` da solo viene trattato come controllo dati parziale; l'acquisizione completa richiede il pacchetto con `ATTI` ed `EMAILS`.
+- Verifiche registrate: `py_compile`, test import completo/parziale, typecheck React, gate route/contratti React e smoke HTTP della rotta/payload.
+
+## Aggiornamento 2026-05-27: contrasto pulsanti React 2.248.81
+
+- Corretto il problema sistemico per cui il preset dell'intestazione poteva far ereditare ai pulsanti il colore del titolo, rendendo il testo illeggibile su pulsanti scuri.
+- La correzione copre sia i pulsanti moderni `.iu-btn` sia i pulsanti storici `.iu-button`; i primari mantengono testo bianco, i neutri testo scuro su fondo chiaro e gli stati disabilitati restano leggibili.
+- La pagina `Importa pratiche da Studio Telematico` usa pannelli dedicati invece del contenitore generico, così `Pacchetto cliente` resta in alto e le azioni `Prepara pacchetto`, `Fascicoli`, `Controlla pacchetto` e `Importa pratiche` sono leggibili.
+- Verifiche registrate: build Vite, browser in-app con screenshot sulla pagina import e controllo stili calcolati su `/importa-pratiche-studio-telematico`, `/clienti`, `/fascicoli`, `/agenda` e `/amministrazione`.

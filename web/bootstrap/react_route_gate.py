@@ -28,6 +28,8 @@ _REACT_PREFIXES = (
     "/global-search",
     "/guida/firma-digitale",
     "/impostazioni",
+    "/importa-pratiche-studio-telematico",
+    "/import/quickorganizer",
     "/legal-skills",
     "/legal-intelligence",
     "/messaggi",

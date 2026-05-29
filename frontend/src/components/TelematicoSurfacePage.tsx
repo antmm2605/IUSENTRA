@@ -5,6 +5,7 @@ import {
   BadgeCheck,
   Building2,
   CheckCircle2,
+  Clock3,
   ClipboardCheck,
   Copy,
   Download,
@@ -128,6 +129,7 @@ type AcquisitionOptions = {
   mantieni_albero_originale: boolean
   importa_documenti: boolean
   importa_eventi: boolean
+  importa_scadenze: boolean
   importa_parti: boolean
 }
 
@@ -1386,6 +1388,55 @@ function previewDocumentMeta(row: JsonRecord): string {
   ].filter(Boolean).join(' - ')
 }
 
+const scadenziarioDocumentHints: Array<[string, string[]]> = [
+  ['Fissazione termine', ['fissazione', 'termine']],
+  ['Fissazione udienza', ['fissazione', 'udienza']],
+  ['Sostituzione udienza', ['sostituzione', 'udienza']],
+  ['Rinvio udienza', ['rinvio', 'udienza']],
+  ['Trattazione scritta', ['trattazione', 'scritta']],
+  ['Termine note', ['termine', 'note']],
+  ['Verbale udienza', ['verbale', 'udienza']],
+  ['Comunicazione udienza', ['comunicazione', 'udienza']],
+  ['Ordinanza con termini', ['ordinanza', 'termine']],
+  ['Decreto con termini', ['decreto', 'termine']],
+  ['Provvedimento con termini', ['provvedimento', 'termine']],
+]
+
+function compactDeadlineText(value: string): string {
+  return normaliseSearch(value).replace(/[^a-z0-9]+/g, '')
+}
+
+function deadlineDocumentReason(row: JsonRecord, index: number): string {
+  const searchable = [
+    previewDocumentTitle(row, index),
+    asText(row.tipo_atto || row.tipo),
+    asText(row.descrizione || row.oggetto),
+  ].join(' ')
+  const compact = compactDeadlineText(searchable)
+  const match = scadenziarioDocumentHints.find(([, tokens]) => (
+    tokens.every((token) => compact.includes(compactDeadlineText(token)))
+  ))
+  return match ? match[0] : ''
+}
+
+function previewDeadlineSourceDocuments(preview: JsonRecord): JsonRecord[] {
+  const direct = asList(preview.documenti_scadenziario || preview.documentiScadenziario).map(asRecord)
+  if (direct.length) return direct
+  const identity = previewIdentity(preview)
+  if (asText(identity.data_udienza) || asList(preview.udienze).length) return []
+  return pstPreviewDocuments(preview)
+    .map((row, index) => ({ ...row, motivo: deadlineDocumentReason(row, index) }))
+    .filter((row) => asText(row.motivo))
+}
+
+function previewStructuredHearingLabel(preview: JsonRecord): string {
+  const identity = previewIdentity(preview)
+  const identityDate = italianDate(identity.data_udienza)
+  if (identityDate) return identityDate
+  const structured = asList(preview.udienze).map(asRecord).find((row) => italianDate(row.data || row.data_udienza))
+  return structured ? italianDate(structured.data || structured.data_udienza) : ''
+}
+
 function previewIdentityRows(identity: JsonRecord, selection: AcquisitionResult | null): Array<[string, string]> {
   return [
     ['R.G.', asText(identity.numero_rg || identity.rg || identity.numero || selection?.title, 'n.d.')],
@@ -1501,15 +1552,18 @@ function filterPreviewForSelectedDocuments(preview: JsonRecord, selectedDocument
       depositi.push({ ...deposito, documenti: depositoDocumenti })
     }
   })
+  const documentiScadenziario = previewDeadlineSourceDocuments({ ...preview, documenti, documenti_scadenziario: [] })
   return {
     ...preview,
     documenti,
+    documenti_scadenziario: documentiScadenziario,
     depositi,
     counts: {
       ...asRecord(preview.counts),
       documenti: documenti.length,
       provvedimenti: documenti.filter(pstDocumentIsProvision).length,
       depositi: depositi.length,
+      fonti_scadenziario: documentiScadenziario.length,
     },
   }
 }
@@ -1728,6 +1782,7 @@ function AcquisitionWizard({
     mantieni_albero_originale: false,
     importa_documenti: true,
     importa_eventi: true,
+    importa_scadenze: true,
     importa_parti: true,
   })
   const initialTargetFascicoloId = useMemo(() => acquisitionInitialFascicoloId(), [])
@@ -1772,6 +1827,8 @@ function AcquisitionWizard({
     return rows
   }, [data.recentCases, initialTargetFascicoloId])
   const previewDocuments = useMemo(() => pstPreviewDocuments(preview), [preview])
+  const structuredHearingLabel = useMemo(() => previewStructuredHearingLabel(preview), [preview])
+  const deadlineSourceDocuments = useMemo(() => previewDeadlineSourceDocuments(preview), [preview])
   const previewDocumentKeys = useMemo(
     () => previewDocuments.map((doc, index) => pstDocumentSelectionKey(doc, index)),
     [previewDocuments],
@@ -3170,6 +3227,11 @@ function AcquisitionWizard({
                     <article><span>Parti</span><strong>{previewPartyMetric(preview, previewParties)}</strong><small>{previewPartyCountLabel(preview, previewParties)}</small></article>
                     <article><span>Documenti</span><strong>{previewCount(preview, 'documenti')}</strong><small>{previewCount(preview, 'depositi')} buste o gruppi</small></article>
                     <article><span>Eventi</span><strong>{previewCount(preview, 'eventi')}</strong><small>Cronologia importabile</small></article>
+                    <article>
+                      <span>Scadenziario</span>
+                      <strong>{structuredHearingLabel ? 'Data ministeriale' : deadlineSourceDocuments.length ? `${deadlineSourceDocuments.length} fonte` : 'Non esposta'}</strong>
+                      <small>{structuredHearingLabel || (deadlineSourceDocuments[0] ? previewDocumentTitle(deadlineSourceDocuments[0], 0) : 'Nessuna data strutturata')}</small>
+                    </article>
                   </div>
                   <div className="iu-tel-acq-detail-grid">
                     <section>
@@ -3188,6 +3250,28 @@ function AcquisitionWizard({
                       <div className="iu-tel-acq-list">
                         {previewParties.length ? previewParties.map((name) => <span key={name}>{name}</span>) : <em>Nessuna parte indicata nell'anteprima.</em>}
                       </div>
+                    </section>
+                    <section className="iu-tel-acq-detail-grid__wide">
+                      <header><Clock3 size={16}/><strong>Scadenziario</strong></header>
+                      {structuredHearingLabel ? (
+                        <p className="iu-tel-acq-note">Il portale espone una data strutturata: IUSENTRA userà {structuredHearingLabel} per udienza e scadenziario.</p>
+                      ) : deadlineSourceDocuments.length ? (
+                        <div className="iu-tel-acq-documents">
+                          <p className="iu-tel-acq-note">Il portale non espone una prossima udienza strutturata. IUSENTRA userà questi documenti fonte dopo lo scarico, senza creare scadenze non verificate.</p>
+                          {deadlineSourceDocuments.slice(0, 6).map((doc, index) => (
+                            <article key={`${previewDocumentTitle(doc, index)}-deadline-${index}`}>
+                              <Clock3 size={15}/>
+                              <div>
+                                <strong>{previewDocumentTitle(doc, index)}</strong>
+                                <small>{[asText(doc.motivo), previewDocumentMeta(doc)].filter(Boolean).join(' - ') || 'Documento fonte per termine o udienza'}</small>
+                              </div>
+                              <Badge tone="warning">Fonte</Badge>
+                            </article>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="iu-tel-acq-note">Il portale non espone una prossima udienza e il catalogo non indica documenti fonte riconoscibili per termini o udienze.</p>
+                      )}
                     </section>
                     <section className="iu-tel-acq-detail-grid__wide">
                       <header><FileCheck2 size={16}/><strong>Documenti nel fascicolo</strong></header>
@@ -3233,10 +3317,14 @@ function AcquisitionWizard({
                   if (!checked) setSelectedDocumentKeys([])
                 }}/> Importa documenti</label>
                 <label><input type="checkbox" checked={options.importa_eventi} onChange={(event) => updateOption('importa_eventi', event.currentTarget.checked)}/> Importa eventi</label>
+                <label><input type="checkbox" checked={options.importa_scadenze} onChange={(event) => updateOption('importa_scadenze', event.currentTarget.checked)}/> Scadenziario</label>
                 <label><input type="checkbox" checked={options.importa_parti} onChange={(event) => updateOption('importa_parti', event.currentTarget.checked)}/> Importa parti</label>
                 <label><input type="checkbox" checked={options.scarica_originale_portale} onChange={(event) => updateOption('scarica_originale_portale', event.currentTarget.checked)}/> Originale portale</label>
                 <label><input type="checkbox" checked={options.mantieni_albero_originale} onChange={(event) => updateOption('mantieni_albero_originale', event.currentTarget.checked)}/> Mantieni struttura originale</label>
               </div>
+              {!structuredHearingLabel && deadlineSourceDocuments.length && options.importa_scadenze ? (
+                <p className="iu-tel-acq-note">Scadenziario: manca la data ministeriale, quindi verranno usati i documenti fonte selezionati per estrarre termine o udienza dopo lo scarico.</p>
+              ) : null}
               {portal === 'pst' ? <p className="iu-tel-acq-note">Default PST: copia di consultazione con annotazioni ministeriali. L'originale si usa solo se selezionato espressamente.</p> : null}
               {previewDocuments.length ? (
                 <>
@@ -3351,12 +3439,24 @@ function AcquisitionWizard({
                   <article><span>OK</span><strong>{oks.length}</strong></article>
                 </div>
               ) : <p className="iu-empty">Esegui l'analisi dalla mappatura per vedere conflitti, blocchi e avvisi.</p>}
-              {[...blockers, ...warnings].slice(0, 8).map((issue, index) => (
-                <p className="iu-tel-acq-issue" key={`${asText(issue.code, 'issue')}-${index}`}>
-                  <strong>{asText(issue.code || issue.title || issue.categoria, 'Controllo')}</strong>
-                  <span>{asText(issue.message || issue.human_message || issue.detail || issue.descrizione, 'Verifica richiesta')}</span>
-                </p>
-              ))}
+              {[...blockers, ...warnings].slice(0, 8).map((issue, index) => {
+                const issueDocuments = asList(issue.documenti).map(asRecord)
+                return (
+                  <div className="iu-tel-acq-issue" key={`${asText(issue.code || issue.label, 'issue')}-${index}`}>
+                    <strong>{asText(issue.code || issue.label || issue.title || issue.categoria, 'Controllo')}</strong>
+                    <span>{asText(issue.message || issue.human_message || issue.detail || issue.descrizione, 'Verifica richiesta')}</span>
+                    {issueDocuments.length ? (
+                      <div className="iu-tel-acq-issue__docs">
+                        {issueDocuments.slice(0, 4).map((doc, docIndex) => (
+                          <span key={`${previewDocumentTitle(doc, docIndex)}-${docIndex}`}>
+                            {previewDocumentTitle(doc, docIndex)}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                )
+              })}
               <div className="iu-tel-acq-actions">
                 <button type="button" disabled={!Object.keys(analysis).length || blockers.length > 0} onClick={() => setStep(7)}><ArrowRight size={15}/> Vai all'importazione</button>
                 <button type="button" disabled={busy === 'analysis'} onClick={runAnalysis}><ShieldCheck size={15}/> Rianalizza</button>

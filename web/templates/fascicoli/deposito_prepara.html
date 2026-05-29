@@ -313,7 +313,7 @@
     </div>
     <div class="card-body d-grid gap-3">
 
-      {# — Invio via PEC — sempre visibile; demo=true finché PEC non configurata — #}
+      {# — Invio via PEC — sempre visibile; prova=true finché PEC non configurata — #}
       {# TODO: sostituire avviaInvioPec(true) con avviaInvioPec(false) quando PEC studio attiva #}
       <div>
         <button type="button" class="btn btn-success fw-semibold w-100" id="btnInviaPecDiretto"
@@ -338,7 +338,7 @@
           PEC mittente non configurata — l'invio diretto non è disponibile.<br>
           <a href="{{ url_for('impostazioni.index') }}" class="fw-semibold">
             Vai in Impostazioni → PEC
-          </a> per inserire le credenziali, oppure usa la modalità Demo qui sotto.
+          </a> per inserire le credenziali, oppure usa la prova senza invio reale qui sotto.
         </div>
       </div>
       {% elif not pec_tribunale %}
@@ -346,19 +346,19 @@
       <div class="alert alert-secondary small d-flex gap-2 align-items-start mb-0 py-2">
         <i class="bi bi-info-circle flex-shrink-0 mt-1"></i>
         <div>
-          PEC del tribunale non trovata nel bundle uffici. Puoi comunque testare in Demo
+          PEC del tribunale non trovata nel bundle uffici. Puoi comunque fare una prova senza invio reale
           o scaricare la busta <code>.enc</code> e inviarla manualmente.
         </div>
       </div>
       {% endif %}
 
-      {# — Modalità Demo — sempre visibile — #}
+      {# — Prova senza invio reale — sempre visibile — #}
       <div>
         <button type="button" class="btn btn-warning fw-semibold w-100" id="btnInviaPecDemo" onclick="avviaInvioPec(true)">
-          <i class="bi bi-play-circle me-2"></i>Testa in Modalità Demo
+          <i class="bi bi-play-circle me-2"></i>Prova senza invio reale
         </button>
         <div class="form-text text-center mt-1">
-          Simula busta + invio PEC — nessuna connessione reale, nessun documento inviato
+          Predispone la busta e registra il deposito di prova — nessuna connessione reale, nessun documento inviato
         </div>
       </div>
 
@@ -658,7 +658,7 @@
   </div>
 </div>
 
-{# ── Modal conferma invio PEC (reale e demo) ─────────────────────────── #}
+{# ── Modal conferma invio PEC reale o prova senza invio ───────────────── #}
 <div class="modal fade" id="modalConfermaPec" tabindex="-1">
   <div class="modal-dialog modal-fullscreen-sm-down">
     <div class="modal-content">
@@ -669,13 +669,12 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        {# Banner demo — visibile solo in demo mode #}
+        {# Banner prova — visibile solo quando non si invia realmente #}
         <div id="bannerDemo" class="alert alert-warning d-flex gap-2 align-items-start small mb-3" style="display:none!important">
           <i class="bi bi-play-circle-fill flex-shrink-0 mt-1"></i>
           <div>
-            <strong>Modalità Demo attiva</strong> — Nessun file verrà inviato. La busta è simulata
-            e l'invio PEC è fittizio. L'esito viene comunque salvato nel fascicolo con etichetta
-            <code>[DEMO]</code>.
+            <strong>Prova senza invio reale attiva</strong> — Nessun file verrà inviato. La busta
+            e il controllo successivo saranno registrati nel fascicolo come prova operativa.
           </div>
         </div>
         <p class="mb-1 small text-muted">Destinatario PEC:</p>
@@ -715,7 +714,7 @@
   <input type="hidden" name="anno_rg" id="gb_annorg">
   <input type="hidden" name="note" id="gb_note">
   <input type="hidden" name="atto_principale_id" id="gb_atto">
-  {# demo_mode=1 per prove; impostare 0 (o rimuovere) quando dati reali attivi #}
+  {# demo_mode=1 per prove senza invio; impostare 0 quando dati reali attivi #}
   <input type="hidden" name="demo_mode" id="gb_demo" value="1">
   <div id="gb_allegati"></div>
 </form>
@@ -726,7 +725,7 @@
 <script>
 let mainDocId = null;
 const allegatiSet = new Set();
-let _invioDemo = false;  // true = modalità demo, false = invio reale
+let _invioDemo = false;  // true = prova senza invio reale, false = invio reale
 
 // ── Configurazione Local Signer ───────────────────────────────────────────────
 const _LS_PORT = 27272;
@@ -1453,14 +1452,14 @@ function _eseguiInvioPec() {
 
   if (_invioDemo) {
     bannerDemo.style.removeProperty('display');
-    titleEl.innerHTML = '<i class="bi bi-play-circle me-2 text-warning"></i>Demo — Invio simulato';
+    titleEl.innerHTML = '<i class="bi bi-play-circle me-2 text-warning"></i>Prova senza invio reale';
     headerEl.classList.add('bg-warning-subtle');
-    pecEl.textContent = pecReale || '{{ fascicolo.tribunale or "tribunale" }}'.toLowerCase().replace(/ /g,'.') + '@pec.demo';
+    pecEl.textContent = pecReale || '{{ fascicolo.tribunale or "tribunale" }}'.toLowerCase().replace(/ /g,'.') + '@pec.prova.invalid';
     pecEl.classList.replace('text-primary', 'text-warning');
-    btnLbl.textContent = 'Avvia simulazione Demo';
+    btnLbl.textContent = 'Avvia prova';
     btnConf.className  = 'btn btn-warning fw-semibold';
     progBar.className  = 'progress-bar progress-bar-striped progress-bar-animated w-100 bg-warning';
-    progTxt.textContent = 'Simulazione in corso — attendere…';
+    progTxt.textContent = 'Prova in corso — attendere…';
     warningEl.style.display = 'none';
   } else {
     bannerDemo.style.display = 'none';
@@ -1639,7 +1638,7 @@ function avviaInvioPec(demo) {
   if (!_validaForm()) return;
   _invioDemo = !!demo;
   // Controlla se l'atto principale è firmato
-  // (in demo mode si bypassa il controllo firma — l'invio è simulato)
+  // Nella prova senza invio si bypassa il controllo firma perché non parte alcun messaggio PEC.
   if (!_invioDemo && !_docMainFirmato()) {
     _apriFirmaPkcs11('pec');
     return;
@@ -1737,4 +1736,3 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 {% endblock %}
-

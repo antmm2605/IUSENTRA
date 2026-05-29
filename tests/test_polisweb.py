@@ -211,6 +211,153 @@ def test_api_portale_acquisizione_analyze_usa_alias_fascicolo_locale_per_update(
     )
 
 
+def test_api_portale_acquisizione_analyze_usa_documento_fonte_se_udienza_non_esposta(tmp_path: Path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    utenti = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    utenti.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    documento_fonte = {
+        "id_documento": "32899061",
+        "nome": "FissazioneTermineNoteSostituzioneUdienza_32899061.pdf",
+        "tipo": "FissazioneTermineNoteSostituzioneUdienza",
+        "tipo_atto": "FissazioneTermineNoteSostituzioneUdienza",
+        "data_deposito": "2025-11-05",
+        "disponibile": True,
+    }
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post("/login", data={"username": "avvocato", "password": "Avv12345!"})
+        response = client.post(
+            "/api/portali/pst/acquisizione/analyze",
+            json={
+                "selection": {
+                    "numero": "3441",
+                    "anno": 2025,
+                    "ufficio_codice": "0800570094",
+                    "ufficio_nome": "Tribunale di Palmi",
+                    "procedimento": "RITO LAVORO 1 GRADO",
+                    "oggetto": "Retribuzione",
+                    "parti": ["Montagnese"],
+                    "payload": {
+                        "numero_rg": "3441",
+                        "anno_rg": 2025,
+                        "codice_ufficio": "0800570094",
+                        "nome_ufficio": "Tribunale di Palmi",
+                    },
+                },
+                "preview": {
+                    "identity": {
+                        "numero": "3441",
+                        "anno": 2025,
+                        "ufficio_nome": "Tribunale di Palmi",
+                        "procedimento": "RITO LAVORO 1 GRADO",
+                        "data_udienza": "",
+                    },
+                    "parti": ["Montagnese"],
+                    "documenti": [documento_fonte],
+                    "counts": {"parti": 1, "documenti": 1, "depositi": 1, "udienze": 0},
+                },
+                "options": {
+                    "importa_parti": True,
+                    "importa_documenti": True,
+                    "importa_eventi": True,
+                    "importa_udienze": True,
+                    "importa_scadenze": True,
+                },
+                "mapping": {"mode": "create_new"},
+            },
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    warnings = data["analysis"]["warnings"]
+    warning = next(item for item in warnings if item["label"] == "Scadenza da documento fonte")
+    assert "FissazioneTermineNoteSostituzioneUdienza_32899061.pdf" in warning["detail"]
+    assert warning["documenti"][0]["id_documento"] == "32899061"
+    assert all(item.get("label") != "Nessuna udienza importabile" for item in warnings)
+
+
+def test_api_portale_acquisizione_analyze_preferisce_udienza_strutturata_al_documento_fonte(tmp_path: Path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    utenti = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    utenti.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post("/login", data={"username": "avvocato", "password": "Avv12345!"})
+        response = client.post(
+            "/api/portali/pst/acquisizione/analyze",
+            json={
+                "selection": {
+                    "numero": "3441",
+                    "anno": 2025,
+                    "ufficio_codice": "0800570094",
+                    "ufficio_nome": "Tribunale di Palmi",
+                    "parti": ["Montagnese"],
+                    "payload": {"numero_rg": "3441", "anno_rg": 2025},
+                },
+                "preview": {
+                    "identity": {
+                        "numero": "3441",
+                        "anno": 2025,
+                        "ufficio_nome": "Tribunale di Palmi",
+                        "data_udienza": "2026-06-20",
+                    },
+                    "parti": ["Montagnese"],
+                    "documenti": [
+                        {
+                            "id_documento": "32899061",
+                            "nome": "FissazioneTermineNoteSostituzioneUdienza_32899061.pdf",
+                            "tipo_atto": "FissazioneTermineNoteSostituzioneUdienza",
+                        }
+                    ],
+                    "counts": {"parti": 1, "documenti": 1, "depositi": 1, "udienze": 1},
+                },
+                "options": {
+                    "importa_parti": True,
+                    "importa_documenti": True,
+                    "importa_eventi": True,
+                    "importa_udienze": True,
+                    "importa_scadenze": True,
+                },
+                "mapping": {"mode": "create_new"},
+            },
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    warnings = data["analysis"]["warnings"]
+    assert all(item.get("label") != "Scadenza da documento fonte" for item in warnings)
+    assert all(item.get("label") != "Nessuna udienza importabile" for item in warnings)
+
+
 def test_polisweb_qbuilder_sigp_usa_registro_gdp_senza_subpro_implicito():
     client = _client()
     base = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIGP"

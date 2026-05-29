@@ -6,14 +6,14 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 401.
+- File pytest censiti: 402.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
 | Tipo test | Conteggio |
 | --- | --- |
 | API contract | 65 |
-| Backend | 44 |
+| Backend | 45 |
 | E2E | 7 |
 | Frontend static gate | 1 |
 | Frontend/UI | 119 |
@@ -32,7 +32,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 45 |
 | 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 14 |
 | 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 38 |
-| 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 29 |
+| 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 30 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 136 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
 | 09-misc | Test non classificati dalle fasi principali | 71 |
@@ -105,6 +105,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Backend | tests/test_metrics_endpoint.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_normattiva_importer.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_pec.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Backend | tests/test_pec_legal_workflow.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_performance_budget.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_portali_certificati.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Backend | tests/test_procedure_xsd_mapper.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |

@@ -15,6 +15,13 @@ La copertura al 100% viene applicata al nuovo modulo
 non dichiara una copertura globale 100% e mantiene invece fixture mirate sui
 rami critici modificati.
 
+Follow-up CI post-push sullo SHA `69fdd7133`: `Lint + syntax` ha segnalato
+`docs\test-inventory.md` e `docs\test-plan-app-v2.md` non aggiornati dopo i
+nuovi test. Eseguito `python scripts\react-migration\generate_app_v2_test_docs.py`;
+poi `generate_app_v2_page_registry.py --check`, `generate_app_v2_test_docs.py
+--check`, `smoke_app_v2_all.py --subset inventory` e pytest fase 10/11 sono
+tornati verdi localmente prima del nuovo push.
+
 ## Database anti-perdita SQLite 2.248.84 - 2026-05-29
 
 Nessuna issue di codice aperta sul perimetro corretto dopo i test mirati e le

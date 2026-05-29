@@ -14,6 +14,7 @@
 | `python -m pytest tests\test_notifiche_legali.py -k "attestazione_conformita" -q` | OK | Payload attestazione e DOCX autocompilante verificati. |
 | `python -m pytest tests\test_react_shell.py -k "admin_database or portale_acquisizione or react_wizard_pst" -q` | OK | Contratti React amministrazione database e wizard PST/Local Signer verdi. |
 | `python -m pytest tests\test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | Presidio UTF-8 e whitespace confermati; rimangono solo warning CRLF/LF storici della shell Git. |
+| `python scripts\react-migration\generate_app_v2_page_registry.py --check`; `python scripts\react-migration\generate_app_v2_test_docs.py --check`; `python scripts\smoke_app_v2_all.py --subset inventory`; `python -m pytest -q tests\test_app_v2_page_registry.py tests\test_app_v2_test_plan_phase10.py tests\test_ci_cd_gates_phase11.py --tb=short` | OK | Hotfix post-push: riallineati `docs\test-inventory.md` e `docs\test-plan-app-v2.md` dopo il rosso CI `App V2 registry and test plan gates`; inventory PASS=3 e 14/14 pytest verdi. |
 
 ## Database anti-perdita SQLite 2.248.84 - 2026-05-29
 

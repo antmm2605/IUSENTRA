@@ -1528,6 +1528,8 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "Ricerca PST in corso" in source
     assert "Consultazione PST ancora in attesa" in source
     assert "Scaricamento documenti dal PST" in source
+    assert "function pstPreviewDocumentIsDownloadable" in source
+    assert "rawPreviewDocumentTitle" in source
 
 
 def test_import_studio_telematico_react_pubblica_exe_e_barra_avanzamento():
@@ -1542,10 +1544,17 @@ def test_import_studio_telematico_react_pubblica_exe_e_barra_avanzamento():
     assert "/static/tools/prepara_import_studio_telematico.ps1" not in api_source
     assert "type WorkProgress" in page_source
     assert "function WorkProgressBar" in page_source
+    assert "sourcePath" in page_source
+    assert "Pacchetto grande sul PC" in page_source
+    assert "localPathEnabled" in data_source
+    assert "Controllo con avvisi" in page_source
+    assert "ZIP preparato dalla postazione Studio Telematico completa" in page_source
+    assert "stage_referenced_package" in api_source
     assert "<WorkProgressBar progress={workProgress} />" in page_source
     assert "Caricamento e controllo del pacchetto in corso" in page_source
     assert "Importazione in corso" in page_source
     assert ".iu-st-import-progress" in css_source
+    assert ".iu-st-import-local-path" in css_source
 
 
 def test_portale_acquisizione_accetta_alias_fascicolo_id_per_mapping():

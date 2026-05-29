@@ -87,7 +87,7 @@ class QuickOrganizerPackage:
 
     def read_file(self, package_file: PackageFile) -> bytes:
         if package_file.source:
-            return _safe_existing_file(package_file.source).read_bytes()
+            return _safe_existing_file(package_file.source, extra_roots=_local_import_roots()).read_bytes()
         if package_file.zip_member:
             with zipfile.ZipFile(self.source_path) as archive:
                 return archive.read(package_file.zip_member)
@@ -98,9 +98,17 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
-def _safe_runtime_dir(path: str | Path, *, create: bool = False) -> Path:
+def _safe_runtime_dir(
+    path: str | Path,
+    *,
+    create: bool = False,
+    extra_roots: Iterable[str | Path] = (),
+) -> Path:
     try:
-        resolved = resolve_runtime_path(path, extra_roots=(tempfile.gettempdir(), _repo_root())).resolve()
+        resolved = resolve_runtime_path(
+            path,
+            extra_roots=(tempfile.gettempdir(), _repo_root(), *tuple(extra_roots)),
+        ).resolve()
     except (OSError, RuntimeError, ValueError, UnsafeRuntimePath) as exc:
         raise QuickOrganizerImportError("Percorso di lavoro import non valido.") from exc
     if create:
@@ -108,21 +116,37 @@ def _safe_runtime_dir(path: str | Path, *, create: bool = False) -> Path:
     return resolved
 
 
-def _safe_child_path(root: str | Path, *parts: str) -> Path:
-    root_path = _safe_runtime_dir(root)
+def _safe_child_path(root: str | Path, *parts: str, extra_roots: Iterable[str | Path] = ()) -> Path:
+    root_path = _safe_runtime_dir(root, extra_roots=extra_roots)
     joined = werkzeug_safe_join(str(root_path), *[str(part or "") for part in parts])
     if not joined:
         raise QuickOrganizerImportError("Percorso di lavoro import non valido.")
     return Path(joined)
 
 
-def _safe_existing_file(path: str | Path, *, allowed_suffixes: set[str] | None = None) -> Path:
+def _local_import_roots() -> tuple[Path, ...]:
+    roots: list[Path] = []
+    for raw in str(os.getenv("IUSENTRA_STUDIO_TELEMATICO_LOCAL_ROOTS", "") or "").split(os.pathsep):
+        raw = raw.strip()
+        if raw:
+            roots.append(Path(raw).expanduser())
+    home = Path.home()
+    roots.extend([home, home / "Downloads", home / "Desktop"])
+    return tuple(roots)
+
+
+def _safe_existing_file(
+    path: str | Path,
+    *,
+    allowed_suffixes: set[str] | None = None,
+    extra_roots: Iterable[str | Path] = (),
+) -> Path:
     suffixes = {suffix.casefold() for suffix in allowed_suffixes} if allowed_suffixes else None
     try:
         resolved = resolve_runtime_path(
             path,
             allowed_suffixes=suffixes,
-            extra_roots=(tempfile.gettempdir(), _repo_root()),
+            extra_roots=(tempfile.gettempdir(), _repo_root(), *tuple(extra_roots)),
         ).resolve(strict=True)
     except (OSError, RuntimeError, ValueError, UnsafeRuntimePath) as exc:
         raise QuickOrganizerImportError("File import non valido o fuori dall'area consentita.") from exc
@@ -133,6 +157,10 @@ def _safe_existing_file(path: str | Path, *, allowed_suffixes: set[str] | None =
 
 def _safe_package_path(path: str | Path) -> Path:
     return _safe_existing_file(path, allowed_suffixes=PACKAGE_SUFFIXES)
+
+
+def _safe_local_package_path(path: str | Path) -> Path:
+    return _safe_existing_file(path, allowed_suffixes=PACKAGE_SUFFIXES, extra_roots=_local_import_roots())
 
 
 def _safe_upload_suffix(filename: Any) -> str:
@@ -242,8 +270,8 @@ def _table_payload(raw: Any) -> dict[str, list[dict[str, Any]]]:
     return tables
 
 
-def _read_json_payload(path: Path) -> dict[str, Any]:
-    path = _safe_existing_file(path, allowed_suffixes={".json"})
+def _read_json_payload(path: Path, *, extra_roots: Iterable[str | Path] = ()) -> dict[str, Any]:
+    path = _safe_existing_file(path, allowed_suffixes={".json"}, extra_roots=extra_roots)
     try:
         # lgtm[py/path-injection] Percorso già normalizzato da resolve_runtime_path.
         return json.loads(path.read_text(encoding="utf-8-sig"))
@@ -251,11 +279,11 @@ def _read_json_payload(path: Path) -> dict[str, Any]:
         raise QuickOrganizerImportError("Il file dati QuickOrganizer non è un JSON valido.") from exc
 
 
-def _files_from_directory(root: Path) -> dict[str, PackageFile]:
+def _files_from_directory(root: Path, *, extra_roots: Iterable[str | Path] = ()) -> dict[str, PackageFile]:
     files: dict[str, PackageFile] = {}
-    safe_root = _safe_runtime_dir(root)
+    safe_root = _safe_runtime_dir(root, extra_roots=extra_roots)
     for base_name in ("ATTI", "EMAILS"):
-        base = _safe_child_path(safe_root, base_name)
+        base = _safe_child_path(safe_root, base_name, extra_roots=extra_roots)
         # lgtm[py/path-injection] Sotto-directory costante dentro root validata.
         if not base.exists():
             continue
@@ -269,7 +297,7 @@ def _files_from_directory(root: Path) -> dict[str, PackageFile]:
                 PackageFile(
                     name=file_path.name,
                     size=file_path.stat().st_size,
-                    sha256=_sha256_file(file_path),
+                    sha256=f"fs-size:{file_path.stat().st_size}",
                     section=base_name,
                     source=file_path,
                 ),
@@ -277,10 +305,10 @@ def _files_from_directory(root: Path) -> dict[str, PackageFile]:
     return files
 
 
-def _package_from_json(path: Path) -> QuickOrganizerPackage:
-    path = _safe_existing_file(path, allowed_suffixes={".json"})
-    payload = _read_json_payload(path)
-    files = _files_from_directory(path.parent)
+def _package_from_json(path: Path, *, extra_roots: Iterable[str | Path] = ()) -> QuickOrganizerPackage:
+    path = _safe_existing_file(path, allowed_suffixes={".json"}, extra_roots=extra_roots)
+    payload = _read_json_payload(path, extra_roots=extra_roots)
+    files = _files_from_directory(path.parent, extra_roots=extra_roots)
     return QuickOrganizerPackage(path, _table_payload(payload), files, source_kind="json")
 
 
@@ -324,12 +352,20 @@ def _package_from_nested_mdb_zip(
     with tempfile.TemporaryDirectory(prefix="iusentra-qo-mdb-") as tmp:
         tmp_path = _safe_child_path(tmp, "QuickOrganizer.mdb")
         tmp_path.write_bytes(archive.read(mdb_name))
-        mdb_package = _package_from_mdb(tmp_path)
+        try:
+            mdb_package = _package_from_mdb(tmp_path)
+        except QuickOrganizerImportError:
+            return QuickOrganizerPackage(
+                path,
+                _empty_quickorganizer_tables(),
+                files,
+                source_kind="zip-mdb-unreadable",
+            )
     return QuickOrganizerPackage(path, mdb_package.tables, files, source_kind="zip-mdb")
 
 
-def _package_from_zip(path: Path) -> QuickOrganizerPackage:
-    path = _safe_existing_file(path, allowed_suffixes={".zip"})
+def _package_from_zip(path: Path, *, extra_roots: Iterable[str | Path] = ()) -> QuickOrganizerPackage:
+    path = _safe_existing_file(path, allowed_suffixes={".zip"}, extra_roots=extra_roots)
     try:
         with zipfile.ZipFile(path) as archive:
             names = [name for name in archive.namelist() if not name.endswith("/")]
@@ -376,8 +412,8 @@ def _powershell32() -> str:
     return "powershell.exe"
 
 
-def _package_from_mdb(path: Path) -> QuickOrganizerPackage:
-    path = _safe_existing_file(path, allowed_suffixes={".mdb"})
+def _package_from_mdb(path: Path, *, extra_roots: Iterable[str | Path] = ()) -> QuickOrganizerPackage:
+    path = _safe_existing_file(path, allowed_suffixes={".mdb"}, extra_roots=extra_roots)
     if platform.system().lower() != "windows":
         raise QuickOrganizerImportError(
             "Per l'archivio Access serve il pacchetto preparato dal PC QuickOrganizer."
@@ -444,15 +480,16 @@ try {
     return QuickOrganizerPackage(path, _table_payload(payload), {}, source_kind="mdb")
 
 
-def load_quickorganizer_package(path: str | Path) -> QuickOrganizerPackage:
-    source = _safe_package_path(path)
+def load_quickorganizer_package(path: str | Path, *, local_source: bool = False) -> QuickOrganizerPackage:
+    source = _safe_local_package_path(path) if local_source else _safe_package_path(path)
+    extra_roots = _local_import_roots() if local_source else ()
     suffix = source.suffix.casefold()
     if suffix == ".zip":
-        return _package_from_zip(source)
+        return _package_from_zip(source, extra_roots=extra_roots)
     if suffix == ".json":
-        return _package_from_json(source)
+        return _package_from_json(source, extra_roots=extra_roots)
     if suffix == ".mdb":
-        return _package_from_mdb(source)
+        return _package_from_mdb(source, extra_roots=extra_roots)
     raise QuickOrganizerImportError("Carica un pacchetto ZIP QuickOrganizer o un archivio dati preparato.")
 
 
@@ -516,7 +553,25 @@ def analyze_quickorganizer_package(package: QuickOrganizerPackage) -> dict[str, 
             }
         )
     if not pratiche:
-        warnings.append({"code": "pratiche_assenti", "message": "Nessuna pratica rilevata nel pacchetto."})
+        if package.source_kind == "zip-mdb-unreadable":
+            warnings.append({
+                "code": "archivio_dati_non_leggibile",
+                "message": (
+                    "Il pacchetto contiene l'archivio dati QuickOrganizer, ma questa installazione non riesce a leggerlo. "
+                    "Esegui il nuovo PreparaPacchettoStudioTelematico.exe sul PC dove era installato Studio Telematico: "
+                    "creerà un pacchetto completo con archivio dati, ATTI ed EMAILS."
+                ),
+            })
+        elif package.files:
+            warnings.append({
+                "code": "archivio_dati_assente",
+                "message": (
+                    "Il pacchetto contiene file da ATTI o EMAILS, ma manca l'archivio dati QuickOrganizer. "
+                    "Prepara di nuovo il pacchetto dalla postazione Studio Telematico completa."
+                ),
+            })
+        else:
+            warnings.append({"code": "pratiche_assenti", "message": "Nessuna pratica rilevata nel pacchetto."})
     return {
         "ok": bool(pratiche),
         "sourceKind": package.source_kind,
@@ -1051,6 +1106,11 @@ def staging_root_for_anchor(anchor_path: str | Path) -> Path:
     return base / "importazioni" / "quickorganizer"
 
 
+def _fast_source_fingerprint(path: Path) -> str:
+    stat = path.stat()
+    return f"local-size:{stat.st_size}:mtime:{int(stat.st_mtime)}"
+
+
 def stage_uploaded_package(source_path: str | Path, staging_root: str | Path) -> dict[str, Any]:
     source = _safe_package_path(source_path)
     package = load_quickorganizer_package(source)
@@ -1077,6 +1137,29 @@ def stage_uploaded_package(source_path: str | Path, staging_root: str | Path) ->
     return stage_payload
 
 
+def stage_referenced_package(source_path: str | Path, staging_root: str | Path) -> dict[str, Any]:
+    source = _safe_local_package_path(source_path)
+    package = load_quickorganizer_package(source, local_source=True)
+    import_id = uuid.uuid4().hex
+    root = _safe_runtime_dir(staging_root, create=True)
+    target_dir = _safe_child_path(root, import_id)
+    target_dir.mkdir(parents=True, exist_ok=True)
+    analysis = analyze_quickorganizer_package(package)
+    stage_payload = {
+        "importId": import_id,
+        "sourceName": source.name,
+        "sourceSha256": _fast_source_fingerprint(source),
+        "sourcePath": str(source),
+        "createdAt": _iso_now(),
+        "analysis": analysis,
+    }
+    _safe_child_path(target_dir, "stage.json").write_text(
+        json.dumps(stage_payload, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return stage_payload
+
+
 def load_staged_package(staging_root: str | Path, import_id: str) -> tuple[QuickOrganizerPackage, dict[str, Any]]:
     safe_id = re.sub(r"[^a-f0-9]", "", _text(import_id).lower())
     if not safe_id or safe_id != _text(import_id).lower():
@@ -1089,6 +1172,9 @@ def load_staged_package(staging_root: str | Path, import_id: str) -> tuple[Quick
         raise QuickOrganizerImportError("Anteprima import non trovata. Carica di nuovo il pacchetto.")
     # lgtm[py/path-injection] Percorso stage confinato a directory import validata.
     stage = json.loads(stage_path.read_text(encoding="utf-8"))
+    external_source = _text(stage.get("sourcePath") if isinstance(stage, Mapping) else "")
+    if external_source:
+        return load_quickorganizer_package(external_source, local_source=True), stage
     # lgtm[py/path-injection] Directory import_id validata e non derivata direttamente dal nome file.
     source = next((path for path in target_dir.iterdir() if path.name.startswith("source.")), None)
     if not source:

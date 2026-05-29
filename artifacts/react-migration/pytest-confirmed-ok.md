@@ -1,5 +1,22 @@
 # Pytest shard confermati OK
 
+## Hotfix regressioni PST e Studio Telematico 2.248.89 - 2026-05-29
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile tools\local_signer.py web\services\quickorganizer_import.py web\blueprints\api_v1_react.py` | OK | Sintassi confermata dopo validazione payload PST, fallback ZIP/MDB Studio Telematico e anteprima con percorso locale governato. |
+| `python -m pytest tests/test_local_signer.py -q` | OK | Suite completa Local Signer verde dopo blocco dei PDF/XML non reali, no cookie su download QBuilder e dist `1.6.65` allineata. |
+| `python -m pytest tests/test_quickorganizer_import.py -q` | OK | 5/5: import completo, reimport idempotente, ZIP con sole `ATTI`/`EMAILS`, staging locale senza copia e ZIP con MDB non leggibile trasformato in avviso utile. |
+| `python -m pytest tests/test_build_dist.py::test_build_studio_telematico_packager_pubblica_exe_senza_ps1_primario tests/test_local_signer.py::test_local_signer_dist_allineato_a_sorgente_e_installer_versionati -q` | OK | Pacchetto Studio Telematico `.exe` e Local Signer dist governati dopo rebuild. |
+| `python -m pytest tests/test_react_asset_retention.py -q` | OK | Manifest React e asset hashati correnti referenziati; chunk `TelematicoSurfacePage` senza messaggio obsoleto `Timeout del Local Signer locale`. |
+| `pnpm --filter @iusentra/studio test`; `pnpm --filter @iusentra/studio build` | OK | Contratti React, design system, UI coverage e build Vite confermati dopo filtro documenti PST e UI import Studio Telematico. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml` | OK | OpenAPI e contratti API riallineati alla versione `2.248.89`. |
+| `python -m pytest tests/test_portali_telematici_matrix.py tests/test_polisweb.py::test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita_assistita tests/test_polisweb.py::test_api_portale_acquisizione_import_pst_salva_lotto_sette_documenti_nel_fascicolo tests/test_polisweb.py::test_api_portale_acquisizione_import_pst_salva_lotto_otto_documenti_con_alias_local_signer -q` | OK | 18/18: matrice ministeriale, wizard PST, lotto documenti 7/7 e 8/8 coperti senza regressioni su selezione tutto/singolo/multipla. |
+| Controllo reale `C:\Users\antmm\Downloads\ATTI\QuickOrganizer.zip` | OK | Il file reale contiene MDB e 9575 file `ATTI`/`EMAILS`; ora restituisce `sourceKind=zip-mdb-unreadable` con avviso professionale, non errore generico. |
+| Controllo reale `C:\Users\antmm\Downloads\Citazione_28139218.pdf` | OK | Payload PST non PDF bloccato con messaggio operativo: non viene più importato come documento reale. |
+| Browser in-app su `http://127.0.0.1:8080/importa-pratiche-studio-telematico` e `/portali/pst/acquisizione` | OK | Login reale locale, pagine caricate, console senza errori, nessun overflow desktop/tablet/mobile, nessun `Pacchetto non leggibile` a pagina vuota e nessun timeout obsoleto PST. |
+| Copia locale `C:\Users\antmm\Downloads\PreparaPacchettoStudioTelematico.exe` | OK | Aggiornata con l'EXE generato dal repository; hash sorgente/destinazione coincidenti. |
+
 ## Hotfix regressioni PST e Studio Telematico 2.248.88 - 2026-05-29
 
 | Comando / verifica | Esito | Nota |

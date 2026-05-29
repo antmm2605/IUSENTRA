@@ -1,5 +1,15 @@
 # Pytest issue aperte e risoluzioni
 
+## Hotfix regressioni PST e Studio Telematico 2.248.89 - 2026-05-29
+
+Nessuna issue di codice aperta sul perimetro corretto dopo test mirati, build e browser locale.
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Scarico reale PST con PIN utente | Local Signer `1.6.65` installato sul PC dell'avvocato | Da ripetere con token reale | Il codice ora rifiuta payload non documentali e usa certificato diretto per download QBuilder; l'automazione locale non può inserire il PIN dell'avvocato né confermare un download ministeriale reale senza sessione utente. | Installare/aggiornare il Local Signer `1.6.65`, poi ripetere visualizzazione e download tutto/singolo/multiplo sul fascicolo reale. Se il PST restituisce ancora contenuti non PDF, il sistema deve bloccarli e mostrarli come errore operativo. |
+| Vecchio `QuickOrganizer.zip` con MDB | Analisi file reale in `C:\Users\antmm\Downloads\ATTI` | Governato | Il file contiene `QuickOrganizer.mdb` e 9575 file `ATTI`/`EMAILS`, ma questa installazione non riesce a leggere direttamente l'MDB. Ora l'anteprima non fallisce più con errore generico e chiede il nuovo preparatore EXE. | Usare `C:\Users\antmm\Downloads\PreparaPacchettoStudioTelematico.exe` aggiornato sul PC dove era installato Studio Telematico, così il pacchetto contiene `quickorganizer-export.json` oltre ad `ATTI` ed `EMAILS`. |
+| Dati runtime locali durante verifica | `git status --short` | Da ripulire prima del commit | Il server Docker locale ha sincronizzato JSON tenant e posta in `data/`; sono dati runtime fuori perimetro e non devono entrare nel commit. | Prima di commit/finale escludere o ripristinare i file runtime senza inserirli nel rilascio. |
+
 ## Hotfix regressioni PST e Studio Telematico 2.248.88 - 2026-05-29
 
 Nessuna issue di codice aperta sul perimetro corretto dopo test mirati, build e browser locale.

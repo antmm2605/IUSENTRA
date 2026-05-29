@@ -463,7 +463,7 @@ def test_pst_download_batch_riusa_sessione_view_anche_se_client_chiede_import(mo
     assert calls["requested_session_id"] == "SID-VIEW"
     assert calls["ensure_purpose"] == "view"
     assert calls["batch_do_preflight"] is False
-    assert calls["batch_cookie_file"] == "C:\\temp\\pst.cookies"
+    assert calls["batch_cookie_file"] == ""
 
 
 def test_pst_download_batch_senza_sessione_autenticata_non_invia_cookie_non_pronti(monkeypatch):
@@ -3040,6 +3040,29 @@ def test_parse_download_documento_response_multipart():
     assert parsed["content"].startswith(b"%PDF")
     assert parsed["content_type"] == "application/pdf"
     assert parsed["content_id"] == "test-doc-1"
+
+
+def test_assemble_download_file_payload_rifiuta_pdf_non_reale():
+    module = _load_local_signer()
+
+    parsed = {
+        "content": b"\xb9\xb9\\\xffZ\xce\x00\x01",
+        "content_type": "application/pdf",
+        "filename": "Citazione_28139218.pdf",
+    }
+
+    try:
+        module._assemble_download_file_payload(
+            parsed,
+            {"id_cat": "28139218"},
+            "28139218",
+            "Citazione_28139218.pdf",
+            "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+        )
+    except RuntimeError as exc:
+        assert "PDF richiesto" in str(exc)
+    else:
+        raise AssertionError("Payload PST non PDF accettato come documento reale")
 
 
 def test_pst_download_documento_payload_sicid_usa_profilo_e_allegato():

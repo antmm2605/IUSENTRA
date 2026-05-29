@@ -2,6 +2,20 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-29T21:05:00+02:00: hotfix regressioni PST e Studio Telematico
+2.248.89.
+Verifica browser in-app su server locale `127.0.0.1:8080`: `/portali/pst/acquisizione`
+carica il percorso guidato PST senza messaggio obsoleto `Timeout del Local Signer locale`;
+`/importa-pratiche-studio-telematico` carica il percorso guidato e non mostra
+`Pacchetto non leggibile` nello stato iniziale. Desktop, tablet e mobile non hanno
+overflow orizzontale e la console non registra errori.
+
+Verifica file reali utente: `QuickOrganizer.zip` in `C:\Users\antmm\Downloads\ATTI`
+viene riconosciuto come ZIP con `QuickOrganizer.mdb` non leggibile in questo ambiente
+e 9575 file `ATTI`/`EMAILS`; l'anteprima ora produce un avviso operativo e non un
+errore generico. Il falso `Citazione_28139218.pdf` da PST viene bloccato perché non
+contiene un PDF reale.
+
 Aggiornamento 2026-05-29T18:10:00+02:00: hotfix regressioni PST e Studio Telematico
 2.248.88.
 Le superfici React coinvolte restano operative: `/portali/pst/acquisizione`

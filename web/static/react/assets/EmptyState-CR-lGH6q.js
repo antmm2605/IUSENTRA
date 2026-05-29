@@ -1,0 +1,1 @@
+import{aU as a}from"./index-xGb7cXMe.js";import{I as r}from"./IusEmptyState-CzngoO4q.js";/* empty css           */function i({title:t,message:m,action:s}){return a.jsx(r,{title:t,message:m,action:s,className:"iu-empty-state"})}export{i as E};

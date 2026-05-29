@@ -23,6 +23,7 @@ export type StudioTelematicoImportPage = {
   }
   steps: StudioTelematicoStep[]
   acceptedFiles: string
+  localPathEnabled?: boolean
   actions: {
     refresh: string
     preview: string
@@ -120,6 +121,7 @@ export const emptyStudioTelematicoPage: StudioTelematicoImportPage = {
   },
   steps: [],
   acceptedFiles: '.zip,.json,.mdb',
+  localPathEnabled: false,
   actions: {
     refresh: '/api/v1/ui/import/quickorganizer',
     preview: '/api/v1/ui/import/quickorganizer/anteprima',
@@ -272,19 +274,25 @@ export function getStudioTelematicoImportPage(signal?: AbortSignal): Promise<Stu
 
 export async function previewStudioTelematicoPackage(
   endpoint: string,
-  file: File,
+  options: { file?: File | null; sourcePath?: string },
 ): Promise<StudioTelematicoPreview> {
-  const form = new FormData()
-  form.append('pacchetto', file)
+  const file = options.file || null
+  const sourcePath = stringValue(options.sourcePath).trim()
   try {
+    const isUpload = Boolean(file)
+    const body = isUpload ? new FormData() : JSON.stringify({ sourcePath })
+    if (file && body instanceof FormData) {
+      body.append('pacchetto', file)
+    }
     const response = await fetch(endpoint || emptyStudioTelematicoPage.actions.preview, {
       method: 'POST',
       credentials: 'same-origin',
       headers: {
         Accept: 'application/json',
+        ...(isUpload ? {} : { 'Content-Type': 'application/json' }),
         ...csrfHeader(),
       },
-      body: form,
+      body,
     })
     const raw = await response.json().catch(() => ({}))
     const record = isRecord(raw) ? raw : {}

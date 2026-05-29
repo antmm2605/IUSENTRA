@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.248.89 - 2026-05-29
+
+- Rafforzata l'importazione Studio Telematico sul caso reale `QuickOrganizer.zip`: se lo ZIP contiene `QuickOrganizer.mdb` ma l'ambiente non riesce a leggerlo, l'anteprima non mostra più `Pacchetto non leggibile`; conta i file `ATTI`/`EMAILS` e indica di usare il nuovo `PreparaPacchettoStudioTelematico.exe` per creare il pacchetto completo con archivio dati esportato.
+- Aggiornato anche `C:\Users\antmm\Downloads\PreparaPacchettoStudioTelematico.exe` con il nuovo preparatore IExpress: selezione automatica della cartella corretta, PowerShell 32 bit reale e ZIP scritto in streaming senza copia temporanea di tutti i documenti.
+- Il filtro UI PST non include più righe non scaricabili o nomi estratti per errore come documenti; il Local Signer rifiuta payload PDF/XML non reali invece di salvarli come file del fascicolo.
+- Verifica browser reale su `/importa-pratiche-studio-telematico` e `/portali/pst/acquisizione` in desktop, tablet e mobile: nessun overflow, nessun errore console e nessun messaggio obsoleto `Timeout del Local Signer locale`.
+
 ## 2.248.88 - 2026-05-29
 
 - Corrette regressioni Local Signer/PST: caricamento preferenze certificato prima dell'auto-selezione, timeout operativi più lunghi per le chiamate PST lente, messaggi di avanzamento visibili durante ricerca, visualizzazione e download.

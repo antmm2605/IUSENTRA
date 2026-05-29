@@ -4,6 +4,7 @@ import json
 import zipfile
 from pathlib import Path
 
+import web.services.quickorganizer_import as quickorganizer_import
 from pct.clienti import GestioneClienti
 from pct.fascicoli import GestioneFascicoli
 from pct.soggetti import GestioneSoggetti
@@ -11,7 +12,9 @@ from web.services.quickorganizer_import import (
     QuickOrganizerImportError,
     analyze_quickorganizer_package,
     import_quickorganizer_package,
+    load_staged_package,
     load_quickorganizer_package,
+    stage_referenced_package,
 )
 
 
@@ -87,6 +90,14 @@ def _write_files_only_package(path: Path) -> Path:
     return path
 
 
+def _write_mdb_package(path: Path) -> Path:
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("QuickOrganizer.mdb", b"non e un database Access reale")
+        archive.writestr("ATTI/ricorso.pdf", b"%PDF-1.4\ncontenuto atto")
+        archive.writestr("EMAILS/messaggio.eml", b"Subject: Invio documenti\n\nTesto")
+    return path
+
+
 def _repositories(tmp_path: Path):
     fascicoli = GestioneFascicoli(
         db_path=str(tmp_path / "fascicoli" / "fascicoli.json"),
@@ -154,8 +165,48 @@ def test_import_studio_telematico_legge_zip_con_sole_cartelle_senza_errore_gener
     assert analysis["canImportComplete"] is False
     assert analysis["summary"]["availableFiles"] == 2
     assert analysis["warnings"] == [
-        {"code": "pratiche_assenti", "message": "Nessuna pratica rilevata nel pacchetto."}
+        {
+            "code": "archivio_dati_assente",
+            "message": (
+                "Il pacchetto contiene file da ATTI o EMAILS, ma manca l'archivio dati QuickOrganizer. "
+                "Prepara di nuovo il pacchetto dalla postazione Studio Telematico completa."
+            ),
+        }
     ]
+
+
+def test_import_studio_telematico_stage_percorso_locale_non_copia_zip_grande(tmp_path: Path):
+    source = _write_files_only_package(tmp_path / "QuickOrganizer.zip")
+    stage_root = tmp_path / "staging"
+
+    stage = stage_referenced_package(source, stage_root)
+    package, loaded = load_staged_package(stage_root, stage["importId"])
+
+    assert stage["sourceName"] == "QuickOrganizer.zip"
+    assert stage["sourceSha256"].startswith("local-size:")
+    assert stage["analysis"]["summary"]["availableFiles"] == 2
+    assert package.source_path == source.resolve()
+    assert loaded["sourcePath"] == str(source.resolve())
+    assert not list((stage_root / stage["importId"]).glob("source.*"))
+
+
+def test_import_studio_telematico_zip_mdb_non_leggibile_mostra_avviso_utile(
+    tmp_path: Path,
+    monkeypatch,
+):
+    def _raise_unreadable(path: Path, **kwargs):
+        raise QuickOrganizerImportError("Il database QuickOrganizer non è leggibile su questo ambiente.")
+
+    monkeypatch.setattr(quickorganizer_import, "_package_from_mdb", _raise_unreadable)
+
+    package = load_quickorganizer_package(_write_mdb_package(tmp_path / "QuickOrganizer.zip"))
+    analysis = analyze_quickorganizer_package(package)
+
+    assert package.source_kind == "zip-mdb-unreadable"
+    assert analysis["ok"] is False
+    assert analysis["summary"]["availableFiles"] == 2
+    assert analysis["warnings"][0]["code"] == "archivio_dati_non_leggibile"
+    assert "PreparaPacchettoStudioTelematico.exe" in analysis["warnings"][0]["message"]
 
 
 def test_import_studio_telematico_blocca_pacchetto_senza_atti_o_emails(tmp_path: Path):

@@ -6626,6 +6626,35 @@ def _looks_like_pkcs7_signed(payload: bytes, content_type: str = "", filename: s
         return False
 
 
+def _validate_pst_download_payload(payload: bytes, content_type: str = "", filename: str = "") -> None:
+    header = (content_type or "").lower()
+    name = (filename or "").lower()
+    data = payload or b""
+    if not data:
+        raise RuntimeError("Il PST non ha restituito contenuto per il documento richiesto.")
+
+    if _looks_like_pkcs7_signed(data, header, "") or name.endswith(".p7m"):
+        return
+
+    if "pdf" in header or name.endswith(".pdf"):
+        if not data.startswith(b"%PDF"):
+            raise RuntimeError(
+                "Il PST ha restituito un contenuto non valido per il PDF richiesto; "
+                "il file non viene importato come documento reale."
+            )
+        return
+
+    if "xml" in header or name.endswith(".xml"):
+        stripped = data.lstrip()
+        if stripped.startswith(b"\xef\xbb\xbf"):
+            stripped = stripped[3:].lstrip()
+        if not stripped.startswith(b"<"):
+            raise RuntimeError(
+                "Il PST ha restituito un contenuto non valido per il file XML richiesto; "
+                "il file non viene importato come documento reale."
+            )
+
+
 def _soap_bea_sicid_body(operation: str, parameters: list[tuple[str, str]], *, group: str, role: str = "AVV") -> str:
     params_xml = "".join(
         f"<{_esc(name)}>{_esc(str(value))}</{_esc(name)}>"
@@ -6808,6 +6837,7 @@ def _pst_download_documento_payload(
         nome_finale = str(profilo.get("nome_file_originale") or "").strip()
     if not nome_finale:
         nome_finale = f"documento_{document_id_output or 'pst'}"
+    _validate_pst_download_payload(parsed["content"], parsed.get("content_type", ""), nome_finale)
     if _looks_like_pkcs7_signed(parsed["content"], parsed.get("content_type", ""), nome_finale):
         if not nome_finale.lower().endswith(".p7m"):
             nome_finale += ".p7m"
@@ -6854,6 +6884,7 @@ def _assemble_download_file_payload(
         nome_finale = (nome_documento or "").strip()
     if not nome_finale:
         nome_finale = f"documento_{document_id_output or 'pst'}"
+    _validate_pst_download_payload(parsed["content"], parsed.get("content_type", ""), nome_finale)
     if _looks_like_pkcs7_signed(parsed["content"], parsed.get("content_type", ""), nome_finale):
         if not nome_finale.lower().endswith(".p7m"):
             nome_finale += ".p7m"
@@ -10610,7 +10641,10 @@ class _Handler(BaseHTTPRequestHandler):
                     # certificato client. Non aprire un warm-up/preflight qui:
                     # sulle CNS Windows quello era il punto che moltiplicava
                     # le finestre PIN tra visualizzazione e scaricamento.
-                    _prefer_cookie_only = _pst_session_can_use_cookie_only(session_entry)
+                    # Il canale download QBuilder richiede certificato diretto:
+                    # i cookie della visualizzazione possono produrre payload
+                    # non-documentali o 401 mascherati.
+                    _prefer_cookie_only = False
                 batch_cookie_file = str((session_entry or {}).get("cookie_file") or "") if _prefer_cookie_only else ""
                 esito = _pst_download_documenti_batch_payloads(
                     base_url=base_url,

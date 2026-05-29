@@ -133,6 +133,7 @@ def test_build_windows_exe_profile_resta_iexpress_1_6_35():
 def test_build_studio_telematico_packager_pubblica_exe_senza_ps1_primario():
     root = Path(__file__).resolve().parents[1]
     builder = (root / "tools" / "build_studio_telematico_packager_exe.ps1").read_text(encoding="utf-8")
+    packager = (root / "web" / "static" / "tools" / "prepara_import_studio_telematico.ps1").read_text(encoding="utf-8")
     api_source = (root / "web" / "blueprints" / "api_v1_react.py").read_text(encoding="utf-8")
     ts_source = (root / "frontend" / "src" / "quickOrganizerImportData.ts").read_text(encoding="utf-8")
     exe = root / "web" / "static" / "tools" / "PreparaPacchettoStudioTelematico.exe"
@@ -142,6 +143,10 @@ def test_build_studio_telematico_packager_pubblica_exe_senza_ps1_primario():
     assert "InsideCompressed=0" in builder
     assert "AppLaunched=powershell.exe -NoProfile -ExecutionPolicy Bypass -File prepara_import_studio_telematico.ps1" in builder
     assert "FILE0=prepara_import_studio_telematico.ps1" in builder
+    assert "[Environment]::Is64BitProcess" in packager
+    assert "System.IO.Compression.ZipArchive" in packager
+    assert "CreateEntryFromFile" in packager
+    assert "Compress-Archive" not in packager
     assert "/static/tools/PreparaPacchettoStudioTelematico.exe" in api_source
     assert "/static/tools/PreparaPacchettoStudioTelematico.exe" in ts_source
     assert exe.exists()

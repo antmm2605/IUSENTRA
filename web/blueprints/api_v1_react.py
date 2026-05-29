@@ -8,7 +8,9 @@ truth frontend.
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import json
+import os
 import re
 from datetime import date, datetime, timedelta, timezone
 from functools import wraps
@@ -48,6 +50,7 @@ from pct.pratiche_collegate_catalog import (
     looks_like_codice_oggetto_pst,
     resolve_codice_oggetto_pst_payload,
 )
+from pct.runtime_env import is_managed_cloud_runtime
 from pct.scadenziario import PrioritaTermine, TipoTermine
 from pct.strumenti_legali import GestioneStrumentiLegali
 from pct.termini_processuali import (
@@ -291,6 +294,7 @@ from web.services.quickorganizer_import import (
     import_quickorganizer_package,
     load_staged_package,
     save_upload_to_temp,
+    stage_referenced_package,
     stage_uploaded_package,
     staging_root_for_anchor,
 )
@@ -462,6 +466,27 @@ def _puo_importare_studio_telematico() -> bool:
         _session_user_can("admin.configura")
         or (_session_user_can("fascicoli.scrivi") and _session_user_can("clienti.scrivi"))
     )
+
+
+def _request_from_loopback() -> bool:
+    remote = str(request.remote_addr or "").strip()
+    if not remote:
+        return False
+    try:
+        return ipaddress.ip_address(remote).is_loopback
+    except ValueError:
+        return remote in {"localhost", "127.0.0.1", "::1"}
+
+
+def _studio_telematico_local_path_enabled() -> bool:
+    raw = str(os.getenv("IUSENTRA_STUDIO_TELEMATICO_LOCAL_PATH", "") or "").strip().lower()
+    if raw in {"0", "false", "no", "off"}:
+        return False
+    if is_managed_cloud_runtime():
+        return False
+    if raw in {"1", "true", "yes", "on"}:
+        return _request_from_loopback()
+    return os.name == "nt" and _request_from_loopback()
 
 
 def _puo_leggere_fatturazione() -> bool:
@@ -883,6 +908,7 @@ def _studio_telematico_import_page(path: str = "/importa-pratiche-studio-telemat
             },
         ],
         "acceptedFiles": ".zip,.json,.mdb",
+        "localPathEnabled": _studio_telematico_local_path_enabled(),
         "actions": {
             "refresh": "/api/v1/ui/import/quickorganizer",
             "preview": "/api/v1/ui/import/quickorganizer/anteprima",
@@ -3072,8 +3098,36 @@ def studio_telematico_import_preview():
         return jsonify({"ok": False, "errore": "Profilo non autorizzato all'importazione pratiche.", "codice": 403}), 403
 
     uploaded = request.files.get("pacchetto") or request.files.get("package")
-    if not uploaded or not str(getattr(uploaded, "filename", "") or "").strip():
+    body = _request_payload() if not uploaded else {}
+    source_path = str(body.get("sourcePath") or body.get("source_path") or "").strip()
+    if (not uploaded or not str(getattr(uploaded, "filename", "") or "").strip()) and not source_path:
         return jsonify({"ok": False, "errore": "Seleziona il pacchetto Studio Telematico da controllare."}), 400
+
+    if source_path:
+        if not _studio_telematico_local_path_enabled():
+            return jsonify({
+                "ok": False,
+                "errore": "Il controllo tramite percorso locale è disponibile solo dall'app installata su questo PC.",
+                "codice": "percorso_locale_non_disponibile",
+            }), 400
+        try:
+            stage = stage_referenced_package(source_path, _studio_telematico_staging_root())
+        except QuickOrganizerImportError as exc:
+            return jsonify({"ok": False, "errore": exc.public_message, "codice": "import_non_valido"}), 400
+        except Exception as exc:  # noqa: BLE001 - risposta controllata per import da archivi esterni
+            current_app.logger.exception("Anteprima import Studio Telematico da percorso locale non riuscita: %s", exc)
+            return jsonify({"ok": False, "errore": "Il pacchetto indicato non è leggibile. Verifica percorso, pratiche, ATTI ed EMAILS."}), 400
+
+        summary = stage.get("analysis", {}).get("summary", {}) if isinstance(stage.get("analysis"), dict) else {}
+        _audit_event(
+            "studio_telematico.import_anteprima",
+            "import_pratiche",
+            str(stage.get("importId") or ""),
+            f"Controllate {summary.get('matters', 0)} pratiche da Studio Telematico.",
+        )
+        public_stage = dict(stage)
+        public_stage.pop("sourcePath", None)
+        return jsonify({"ok": True, **public_stage})
 
     temp_path = save_upload_to_temp(uploaded)
     try:

@@ -1292,6 +1292,23 @@ function previewIdentity(preview: JsonRecord): JsonRecord {
   return asRecord(preview.identity || preview.fascicolo || preview.procedimento || preview.ricorso || preview.controversia)
 }
 
+function rawPreviewDocumentTitle(row: JsonRecord): string {
+  return asText(row.nome || row.nome_documento || row.nome_file_originale || row.filename || row.name)
+}
+
+function pstPreviewDocumentIsDownloadable(row: JsonRecord, index: number): boolean {
+  const identifiers = pstDocumentIdentifierValues(row)
+  if (!identifiers.length) return false
+  const title = rawPreviewDocumentTitle(row)
+  const type = asText(row.tipo_atto || row.tipo)
+  const date = asText(row.data_deposito || row.data_documento || row.data)
+  const searchable = normaliseSearch([title, type].filter(Boolean).join(' '))
+  if (/\.(pdf|p7m|xml|eml|msg|docx?|rtf|txt)$/i.test(title)) return true
+  if (type && normaliseSearch(type) !== 'documento' && (date || identifiers.some((id) => /\d{4,}/.test(id)))) return true
+  if (date && title && !/^[A-ZÀ-Ý' -]{2,42}$/.test(title)) return true
+  return /\b(citazione|sentenza|verbale|ordinanza|decreto|scritti|note|produzione|intimazione|consegna)\b/.test(searchable)
+}
+
 function pstPreviewDocuments(preview: JsonRecord): JsonRecord[] {
   const flatten = (rows: JsonRecord[], parent?: JsonRecord): JsonRecord[] => rows.flatMap((row) => {
     const current = parent && !asText(row.parent_id_documento || row.id_documento_padre)
@@ -1313,12 +1330,13 @@ function pstPreviewDocuments(preview: JsonRecord): JsonRecord[] {
     ]
     return children.length ? [current, ...flatten(children, current)] : [current]
   })
-  const direct = flatten(asList(preview.documenti || preview.documents || preview.catalogo).map(asRecord))
+  const keepDownloadable = (rows: JsonRecord[]) => rows.filter((row, index) => pstPreviewDocumentIsDownloadable(row, index))
+  const direct = keepDownloadable(flatten(asList(preview.documenti || preview.documents || preview.catalogo).map(asRecord)))
   if (direct.length) return direct
   const snapshot = asRecord(preview.snapshot)
-  const snapshotDocs = flatten(asList(snapshot.documenti || snapshot.documents || snapshot.catalogo).map(asRecord))
+  const snapshotDocs = keepDownloadable(flatten(asList(snapshot.documenti || snapshot.documents || snapshot.catalogo).map(asRecord)))
   if (snapshotDocs.length) return snapshotDocs
-  return asList(preview.depositi).map(asRecord).flatMap((deposito) => {
+  return keepDownloadable(asList(preview.depositi).map(asRecord).flatMap((deposito) => {
     const docs = flatten(asList(deposito.documenti).map(asRecord))
     return docs.map((documento) => ({
       ...documento,
@@ -1328,7 +1346,7 @@ function pstPreviewDocuments(preview: JsonRecord): JsonRecord[] {
       data_deposito: asText(documento.data_deposito || deposito.data_deposito),
       mittente: asText(documento.mittente || deposito.mittente),
     }))
-  })
+  }))
 }
 
 function previewPersonName(item: unknown): string {

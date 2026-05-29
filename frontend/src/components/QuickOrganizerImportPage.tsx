@@ -34,6 +34,7 @@ import './QuickOrganizerImportPage.css'
 
 type WorkState = 'idle' | 'loading' | 'success' | 'error'
 type WorkProgress = { active: boolean; label: string; detail: string; value: number }
+const LARGE_PACKAGE_UPLOAD_LIMIT_BYTES = 2 * 1024 * 1024 * 1024
 
 function ImportPanel({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
   return (
@@ -192,6 +193,7 @@ export function QuickOrganizerImportPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [file, setFile] = useState<File | null>(null)
+  const [sourcePath, setSourcePath] = useState('')
   const [preview, setPreview] = useState<StudioTelematicoPreview | null>(null)
   const [previewState, setPreviewState] = useState<WorkState>('idle')
   const [importState, setImportState] = useState<WorkState>('idle')
@@ -214,37 +216,62 @@ export function QuickOrganizerImportPage() {
   }, [])
 
   const analysis = preview?.analysis || null
+  const sourcePathValue = sourcePath.trim()
+  const largePackageSelected = Boolean(file && file.size > LARGE_PACKAGE_UPLOAD_LIMIT_BYTES)
   const canRun = useMemo(() => {
     if (!data.permissions.canImport || !preview?.ok || importState === 'loading') return false
     return Boolean(preview.analysis.canImportComplete || allowPartial)
   }, [allowPartial, data.permissions.canImport, importState, preview])
 
   async function handlePreview() {
-    if (!file) {
-      setMessage('Seleziona prima il pacchetto preparato sul PC del cliente.')
+    if (!file && !sourcePathValue) {
+      setMessage('Seleziona il pacchetto preparato sul PC del cliente oppure incolla il percorso del file.')
+      return
+    }
+    if (largePackageSelected && !sourcePathValue && data.localPathEnabled) {
+      setPreviewState('error')
+      setWorkProgress({
+        active: false,
+        label: 'Pacchetto grande',
+        detail: 'Per archivi molto grandi usa il percorso del file sul PC, così il controllo non ricarica 5 GB dal browser',
+        value: 100,
+      })
+      setMessage('Il pacchetto è molto grande: incolla il percorso completo del file ZIP sul PC e poi avvia il controllo.')
       return
     }
     setPreviewState('loading')
     setImportState('idle')
     setResult(emptyStudioTelematicoResult)
-    setMessage('Caricamento e controllo del pacchetto in corso. La pagina resta aggiornata durante la verifica.')
+    setMessage(sourcePathValue
+      ? 'Controllo del pacchetto dal PC in corso. La pagina resta aggiornata durante la verifica.'
+      : 'Caricamento e controllo del pacchetto in corso. La pagina resta aggiornata durante la verifica.')
     setWorkProgress({
       active: true,
       label: 'Controllo pacchetto',
-      detail: 'Carico archivio, cartelle ATTI ed EMAILS e dati pratica',
+      detail: sourcePathValue
+        ? 'Leggo archivio, cartelle ATTI ed EMAILS e dati pratica senza ricopiare il file'
+        : 'Carico archivio, cartelle ATTI ed EMAILS e dati pratica',
       value: 35,
     })
-    const checked = await previewStudioTelematicoPackage(data.actions.preview, file)
+    const checked = await previewStudioTelematicoPackage(data.actions.preview, {
+      file: sourcePathValue ? null : file,
+      sourcePath: sourcePathValue,
+    })
     setPreview(checked)
     setPreviewState(checked.ok ? 'success' : 'error')
     setAllowPartial(false)
+    const previewWarnings = checked.analysis?.warnings ?? []
+    const previewHasAvvisi = checked.ok && (!checked.analysis?.canImportComplete || previewWarnings.length > 0)
+    const previewWarningMessage = previewWarnings[0]?.message || 'Controllo completato con avvisi. Verifica il riepilogo prima di importare.'
     setWorkProgress({
       active: false,
-      label: checked.ok ? 'Controllo completato' : 'Controllo non completato',
-      detail: checked.ok ? 'Riepilogo pronto per la verifica' : (checked.errore || 'Pacchetto da verificare'),
+      label: checked.ok ? (previewHasAvvisi ? 'Controllo con avvisi' : 'Controllo completato') : 'Controllo non completato',
+      detail: checked.ok ? (previewHasAvvisi ? previewWarningMessage : 'Riepilogo pronto per la verifica') : (checked.errore || 'Pacchetto da verificare'),
       value: checked.ok ? 100 : 100,
     })
-    setMessage(checked.ok ? 'Controllo completato. Verifica il riepilogo prima di importare.' : checked.errore || 'Pacchetto non leggibile.')
+    setMessage(checked.ok
+      ? (previewHasAvvisi ? previewWarningMessage : 'Controllo completato. Verifica il riepilogo prima di importare.')
+      : checked.errore || 'Controllo non completato. Verifica che il pacchetto sia lo ZIP preparato dalla postazione Studio Telematico completa.')
   }
 
   async function handleImport() {
@@ -312,6 +339,7 @@ export function QuickOrganizerImportPage() {
                   accept={data.acceptedFiles}
                   onChange={(event) => {
                     setFile(event.currentTarget.files?.[0] || null)
+                    setSourcePath('')
                     setPreview(null)
                     setResult(emptyStudioTelematicoResult)
                     setWorkProgress({ active: false, label: '', detail: '', value: 0 })
@@ -319,11 +347,36 @@ export function QuickOrganizerImportPage() {
                   }}
                 />
               </label>
-              <Button type="button" onClick={handlePreview} disabled={!file || previewState === 'loading'}>
+              <Button type="button" onClick={handlePreview} disabled={(!file && !sourcePathValue) || previewState === 'loading'}>
                 {previewState === 'loading' ? <RefreshCw size={15} /> : <UploadCloud size={15} />}
                 {previewState === 'loading' ? 'Controllo in corso' : 'Controlla pacchetto'}
               </Button>
             </div>
+            {data.localPathEnabled ? (
+              <label className="iu-st-import-local-path">
+                <span>Pacchetto grande sul PC</span>
+                <input
+                  type="text"
+                  value={sourcePath}
+                  placeholder={'C:\\Users\\utente\\Downloads\\QuickOrganizer.zip'}
+                  onChange={(event) => {
+                    setSourcePath(event.currentTarget.value)
+                    setFile(null)
+                    setPreview(null)
+                    setResult(emptyStudioTelematicoResult)
+                    setWorkProgress({ active: false, label: '', detail: '', value: 0 })
+                    setMessage('')
+                  }}
+                />
+                <small>Per archivi molto grandi incolla qui il percorso completo del file ZIP generato sul PC.</small>
+              </label>
+            ) : null}
+            {largePackageSelected && data.localPathEnabled && !sourcePathValue ? (
+              <div className="iu-st-import-message is-error">
+                <AlertTriangle size={16} />
+                <span>Archivio molto grande rilevato: usa il percorso del file sul PC per evitare attese e caricamenti non riusciti.</span>
+              </div>
+            ) : null}
             <div className="iu-st-import-notes">
               {data.notes.map((note) => <span key={note}>{note}</span>)}
             </div>

@@ -84,6 +84,48 @@ python scripts\audit_sqlite_migration_integrity.py `
 Il comando esce con codice `1` se manca anche un solo record o se un payload
 non conserva tutti i campi della sorgente.
 
+### Pre-verifica e riconciliazione sicura
+
+L'azione `Attiva SQLite` non deve più essere un singolo comando ambiguo. Il
+flusso amministrativo espone quattro passaggi distinti:
+
+1. `Analizza`: esegue `preverifica_attivazione_sqlite` senza scrivere dati.
+2. `Migra JSON`: crea il database da sorgente JSON solo se il precheck non
+   rileva rischio perdita dati.
+3. `Riconcilia`: usa il database operativo esistente come base, crea backup e
+   importa solo i record presenti nella sorgente ma assenti dal database.
+4. `Attiva SQLite`: abilita la modalità SQLite solo quando il database
+   risultante supera i controlli di integrità.
+
+Gli stati ammessi nel messaggio finale sono:
+
+- `Completata`;
+- `Completata con avvisi non bloccanti`;
+- `Bloccata per protezione dati`;
+- `Non eseguita`;
+- `Eseguita riconciliazione`;
+- `Rollback eseguito`;
+- `Richiede intervento SUPERADMIN`.
+
+Se il database operativo contiene più record della sorgente, ad esempio
+`clienti 25 / 9`, la migrazione distruttiva resta bloccata. La riconciliazione
+sicura:
+
+- crea un backup del database operativo prima di scrivere;
+- conserva i record presenti solo nel database;
+- aggiunge i record presenti solo nella sorgente;
+- non sovrascrive alla cieca i conflitti sullo stesso ID;
+- segnala record in conflitto, orfani o non migrati con motivo e azione
+  consigliata;
+- registra nel report finale record preservati, importati, già presenti e in
+  conflitto.
+
+In multi-tenant il tenant è obbligatorio e il percorso
+`/data/tenants/<tenant_id>/studio.db` è trattato come risorsa protetta. In
+single-tenant `PCT_STORAGE_MODE=SQLITE` è la configurazione esplicita; il flag
+storico `PCT_SQLITE_MODE=1` resta compatibile ma non deve produrre stati
+contraddittori.
+
 ## Rollback migrazione
 
 Rollback minimo:

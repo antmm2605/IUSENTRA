@@ -165,6 +165,77 @@ Origini che richiedono attestazione:
 
 Se manca attestazione testuale o dichiarazione esplicita tracciata, il flusso si blocca con `ATTESTAZIONE_REQUIRED`.
 
+### Modello autocompilante di attestazione
+
+Il modello Word di studio è versionato in
+`docs/templates/attestazione_conformita_autocompilante.docx`.
+
+Il runtime usa `pct.notifiche_legali.build_attestazione_conformita_payload` e,
+quando serve un file editabile, `generate_attestazione_conformita_docx`.
+I campi compilati arrivano dai dati già presenti nel gestionale:
+
+- avvocato: nome, codice fiscale, Foro e firma digitale;
+- fascicolo/procedimento: numero R.G., anno, registro, ufficio e materia;
+- cliente, destinatario e parti: nominativi e recapiti censiti;
+- documenti: nome file, descrizione, origine, hash, fonte portale/PEC e data di comunicazione quando presente.
+
+Il modello elenca tutti i documenti selezionati per la notifica o per il
+fascicolo e marca in modo distinto quelli che richiedono attestazione di
+conformità. I documenti nativi, originali informatici, duplicati informatici o
+già firmati digitalmente restano nell'elenco, ma non generano una dichiarazione
+di conformità non dovuta. I documenti estratti dal fascicolo informatico,
+ricevuti da comunicazione di cancelleria o provenienti da scansione analogica
+richiedono invece attestazione tracciata.
+
+Il DOCX non contiene dati dimostrativi: i placeholder sono collegati ai campi
+del database e le mancanze vengono riportate come `missing_fields`, così la UI
+può chiedere allo studio di completare i dati prima della firma.
+
+## Workflow PEC legale e router registri
+
+Il classificatore `pct.pec_legal_workflow` legge oggetto, corpo, mittente,
+destinatari e allegati già transitati nel flusso autorizzato. Non scarica
+contenuti dai portali e non sostituisce la revisione dell'avvocato.
+
+Famiglie PEC presidiate:
+
+- comunicazione cancelleria civile;
+- comunicazione Giudice di Pace/SIGP;
+- comunicazione lavoro;
+- volontaria giurisdizione;
+- Cassazione civile;
+- Cassazione penale;
+- deposito PCT civile;
+- deposito penale/PDP;
+- notifica avvocato;
+- fattura elettronica SDI;
+- PEC da controparte;
+- PEC non riconosciuta da revisione umana.
+
+Il numero di ruolo viene scomposto in numero, anno, suffisso, registro
+normalizzato, canale e tabella ministeriale. La regola permanente è che `GDP`
+non diventa mai `CC`: `2962/2023/GDP` usa SIGP/Giudice di Pace, mentre
+`274/2026/CC`, `63/2025/VG` e `/LAV` restano sui rispettivi registri.
+
+Eventi PEC governati:
+
+- udienza fissata, confermata, rinviata, revocata, online o in presenza;
+- deposito sentenza, minuta o pubblicazione;
+- deposito CTU;
+- sostituzione giudice;
+- decreto o ricorso da notificare;
+- accettazione o rifiuto deposito;
+- ricevuta PEC di accettazione, consegna e mancata consegna;
+- deposito ricorso per Cassazione penale con RG APP e RG NR;
+- notifiche SDI, inclusa mancata consegna;
+- PEC non riconosciuta, sempre conservata e inviata a revisione.
+
+La ricevuta di accettazione PEC non chiude un deposito se mancano consegna,
+esito controlli o accettazione cancelleria. L'anti-duplicazione usa oggetto
+normalizzato, Message-ID, registri, mittente, destinatari e nomi/hash allegati;
+i prefissi `FWD:`, `FW:`, `I:`, `R:`, `RE:`, `Rif:` e `Inoltro:` non cambiano
+la chiave di correlazione.
+
 ## Template relata
 
 Il catalogo vive in `pct/data/notifiche_legali_templates.json` e contiene almeno i modelli 01-34 richiesti:

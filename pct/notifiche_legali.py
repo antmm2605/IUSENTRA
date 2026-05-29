@@ -1743,6 +1743,7 @@ def _documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
             "descrizione_breve_privacy": payload.get("descrizione_breve_privacy"),
             "origine": payload.get("origine_documento") or payload.get("origine"),
             "hash_sha256": payload.get("hash_sha256"),
+            "data_documento": payload.get("data_documento") or payload.get("dataDocumento"),
             "data_comunicazione_cancelleria": payload.get("data_comunicazione_cancelleria"),
             "attestazione_conformita": payload.get("attestazione_conformita"),
             "attestazione_conformita_presente": payload.get("attestazione_conformita_presente"),
@@ -1799,6 +1800,7 @@ def _documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
             "origine_label": DOCUMENT_ORIGIN_LABELS.get(origin, text(item.get("origine"))),
             "necessita_attestazione": boolish(item.get("necessita_attestazione")) or origin in ORIGINS_REQUIRING_ATTESTATION,
             "hash_sha256": text(item.get("hash_sha256")),
+            "data_documento": _format_italian_date(item.get("data_documento") or item.get("dataDocumento")),
             "fonte_documento": source_name,
             "riferimento_portale": portal_reference,
             "servizio_portale": portal_service,
@@ -2559,6 +2561,140 @@ def _attestation_blocks(context: dict[str, Any]) -> list[str]:
         if block:
             blocks.append(block)
     return blocks
+
+
+def build_attestazione_conformita_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    """Prepara modello autocompilante per attestazione di conformità.
+
+    Il testo segue la matrice salvata in docs/LEGAL_NOTIFICATIONS_AND_TELEMATIC_REGISTRY.md:
+    se la copia informatica è destinata alla notifica, l'attestazione va riportata
+    nella relata; questo modello serve come documento separato o anteprima di studio
+    quando il flusso lo richiede.
+    """
+
+    context = _build_context(payload)
+    attested_documents = [document for document in context["documenti"] if document["necessita_attestazione"]]
+    documents = context["documenti"]
+    missing: list[str] = []
+    if not context["avvocato"]["full_name"]:
+        missing.append("avvocato.nome")
+    if not context["avvocato"]["codice_fiscale"]:
+        missing.append("avvocato.codice_fiscale")
+    if not context["avvocato"]["foro"]:
+        missing.append("avvocato.foro")
+    if not context["procedimento"]["numero_rg"]:
+        missing.append("procedimento.numero_rg")
+    if not context["procedimento"]["anno_rg"]:
+        missing.append("procedimento.anno_rg")
+    if not documents:
+        missing.append("documenti")
+    doc_lines = []
+    for index, document in enumerate(documents, 1):
+        date_label = _format_italian_date(document.get("data_documento") or document.get("data_comunicazione_cancelleria"))
+        suffix = f", in data {date_label}" if date_label else ""
+        doc_lines.append(
+            f"{index}. {document['descrizione'] or document['nome_file']} ({document['nome_file']}){suffix};"
+        )
+    if attested_documents:
+        conformity_text = (
+            "sono conformi alle copie informatiche presenti nel fascicolo informatico "
+            f"del relativo procedimento R.G. n. {context['procedimento']['numero_rg']}/{context['procedimento']['anno_rg']} "
+            "dal quale sono estratte."
+        )
+    else:
+        conformity_text = (
+            "sono documenti informatici indicati dal fascicolo; non risultano origini che richiedano "
+            "attestazione automatica di conformità."
+        )
+    lines = [
+        "ATTESTAZIONE DI CONFORMITÀ",
+        "",
+        (
+            f"Il sottoscritto Avv. {context['avvocato']['full_name']} "
+            f"C.F. {context['avvocato']['codice_fiscale']}, del Foro di {context['avvocato']['foro']},"
+        ),
+        "",
+        "attesta",
+        "",
+        "ai sensi di legge, che le copie informatiche:",
+        *doc_lines,
+        conformity_text,
+        "",
+        f"{context['notifica']['luogo']}, {context['notifica']['data']}".strip(", "),
+        "",
+        f"Avv. {context['avvocato']['full_name']}",
+        "Firmato digitalmente",
+    ]
+    blocks = _attestation_blocks(context)
+    if blocks:
+        lines.extend(["", "Dettaglio attestazioni:", *blocks])
+    return {
+        "schema": "iusentra.attestazione_conformita.v1",
+        "ok": not missing,
+        "missing_fields": missing,
+        "title": "Attestazione di conformità",
+        "text": "\n".join(line for line in lines if line is not None).strip() + "\n",
+        "documenti": [
+            {
+                "nome_file": document["nome_file"],
+                "descrizione": document["descrizione"],
+                "origine": document["origine"],
+                "origine_label": DOCUMENT_ORIGIN_LABELS.get(document["origine"], document["origine"]),
+                "necessita_attestazione": bool(document["necessita_attestazione"]),
+                "hash_sha256": document["hash_sha256"],
+            }
+            for document in documents
+        ],
+        "campi_database": {
+            "avvocato": context["avvocato"],
+            "cliente": context["cliente"],
+            "procedimento": context["procedimento"],
+            "destinatario": context["destinatario"],
+        },
+        "normativa": [
+            "art. 196-undecies disp. att. c.p.c.",
+            "L. 53/1994, art. 3-bis",
+            "Provvedimento DGSIA 7 agosto 2024, art. 27",
+        ],
+    }
+
+
+def render_attestazione_conformita_text(payload: dict[str, Any]) -> str:
+    return str(build_attestazione_conformita_payload(payload).get("text") or "")
+
+
+def generate_attestazione_conformita_docx(
+    payload: dict[str, Any],
+    output_path: str | Path,
+) -> dict[str, Any]:
+    """Genera DOCX dell'attestazione usando i dati fascicolo/cliente/parti."""
+
+    attestation = build_attestazione_conformita_payload(payload)
+    try:
+        from docx import Document
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+    except Exception as exc:  # pragma: no cover - dipendenza ambiente
+        raise RuntimeError(f"python-docx non disponibile: {exc}") from exc
+
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    document = Document()
+    for index, raw_line in enumerate(str(attestation["text"]).splitlines()):
+        paragraph = document.add_paragraph()
+        line = raw_line.strip()
+        if index == 0:
+            run = paragraph.add_run(line)
+            run.bold = True
+            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            continue
+        if line.lower() == "attesta":
+            run = paragraph.add_run("Attesta")
+            run.bold = True
+            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            continue
+        paragraph.add_run(line)
+    document.save(output)
+    return {**attestation, "output_path": str(output)}
 
 
 def _document_rows(context: dict[str, Any], *, privacy: bool = False) -> list[str]:

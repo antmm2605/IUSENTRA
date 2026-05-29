@@ -962,6 +962,14 @@ class GestioneDatabase:
             existing_ids = set(existing_info.get("ids") or set())
             source_ids = set(source_info.get("ids") or set())
             missing_existing = sorted(existing_ids - source_ids) if source_ids else []
+            only_source = sorted(source_ids - existing_ids) if existing_ids else sorted(source_ids)
+            source_payloads = dict(source_info.get("payloads") or {})
+            existing_payloads = dict(existing_info.get("payloads") or {})
+            payload_mismatches = [
+                identity
+                for identity, payload in source_payloads.items()
+                if identity in existing_payloads and existing_payloads[identity] != payload
+            ]
             is_guarded = (
                 chiave in self.MODULI_SQLITE_ANTI_PERDITA
                 or (chiave not in self.MODULI_SQLITE_STRUTTURATI and chiave in self.MODULI_SQLITE)
@@ -986,6 +994,11 @@ class GestioneDatabase:
                 "json_count": source_count,
                 "existing_sqlite_count": existing_count,
                 "missing_existing_ids": missing_existing[:20],
+                "only_source_ids": only_source[:20],
+                "payload_mismatches": payload_mismatches[:20],
+                "only_database_count": len(missing_existing),
+                "only_source_count": len(only_source),
+                "conflict_count": len(payload_mismatches),
                 "status": status,
                 "reason": reason,
             }
@@ -995,6 +1008,94 @@ class GestioneDatabase:
             "target_db": str(target_db_path),
             "modules": modules,
             "blockers": blockers,
+        }
+
+    @staticmethod
+    def _sqlite_writable_probe(db_path: Path) -> str:
+        if db_path.exists() and not db_path.is_file():
+            return "Il percorso SQLite esiste ma non e' un file."
+        parent = db_path.parent
+        if not parent.exists():
+            return "La cartella del database SQLite non esiste."
+        probe = parent / f".iusentra-write-probe-{int(time.time() * 1000)}.tmp"
+        try:
+            probe.write_text("ok", encoding="utf-8")
+            probe.unlink(missing_ok=True)
+        except Exception as exc:
+            return f"La cartella del database non e' scrivibile: {exc}"
+        if db_path.exists():
+            try:
+                conn = sqlite3.connect(str(db_path), timeout=1)
+                try:
+                    conn.execute("PRAGMA quick_check").fetchone()
+                finally:
+                    conn.close()
+            except sqlite3.OperationalError as exc:
+                return f"Database SQLite non leggibile o bloccato: {exc}"
+            except sqlite3.Error as exc:
+                return f"Database SQLite non valido: {exc}"
+        return ""
+
+    @staticmethod
+    def _sqlite_disk_free_label(db_path: Path) -> str:
+        try:
+            usage = shutil.disk_usage(str(db_path.parent if db_path.parent.exists() else db_path.parent.parent))
+        except Exception:
+            return "n.d."
+        free = usage.free
+        if free < 1024:
+            return f"{free} B"
+        if free < 1024 ** 2:
+            return f"{free / 1024:.1f} KB"
+        if free < 1024 ** 3:
+            return f"{free / 1024 ** 2:.1f} MB"
+        return f"{free / 1024 ** 3:.1f} GB"
+
+    def preverifica_attivazione_sqlite(self, percorso_db: str) -> Dict[str, Any]:
+        """Analisi non distruttiva prima dell'attivazione SQLite operativa."""
+        db_path = resolve_sqlite_path(percorso_db)
+        precheck = self._anti_loss_precheck(db_path)
+        writable_error = self._sqlite_writable_probe(db_path)
+        if writable_error:
+            precheck.setdefault("blockers", []).append(writable_error)
+            precheck["ok"] = False
+        modules = precheck.get("modules") or {}
+        blocked = not bool(precheck.get("ok", True))
+        has_existing = bool(precheck.get("target_exists"))
+        has_only_database = any(int(row.get("only_database_count") or 0) > 0 for row in modules.values())
+        has_conflicts = any(int(row.get("conflict_count") or 0) > 0 for row in modules.values())
+        if blocked:
+            stato = "Bloccata per protezione dati"
+            messaggio = (
+                "Pre-verifica SQLite completata: il database esistente contiene dati da preservare "
+                "prima dell'attivazione."
+            )
+            azione = (
+                "Usare la riconciliazione sicura: il database esistente resta la base, i record "
+                "presenti solo nella sorgente vengono aggiunti e i conflitti restano da revisione."
+            )
+        elif has_existing and (has_only_database or has_conflicts):
+            stato = "Completata con avvisi non bloccanti"
+            messaggio = "Pre-verifica SQLite completata con differenze da presidiare."
+            azione = "Eseguire riconciliazione sicura prima dell'attivazione definitiva."
+        else:
+            stato = "Completata"
+            messaggio = "Pre-verifica SQLite completata: non sono emersi blocchi anti-perdita."
+            azione = "Puoi procedere con migrazione o attivazione SQLite."
+        return {
+            "ok": not blocked,
+            "stato": stato,
+            "messaggio": messaggio,
+            "percorso_db": str(db_path),
+            "record_migrati": 0,
+            "per_modulo": {},
+            "errori": list(precheck.get("blockers") or []),
+            "avvisi": [
+                f"Spazio libero rilevato: {self._sqlite_disk_free_label(db_path)}.",
+                "La pre-verifica non modifica i dati dello studio.",
+            ],
+            "azione_consigliata": azione,
+            "audit_migrazione": {"precheck": precheck, "validation": {}, "staging": False},
         }
 
     def _validate_sqlite_migration(self, db_path: Path) -> Dict[str, Any]:
@@ -1068,6 +1169,289 @@ class GestioneDatabase:
         finally:
             source.close()
             target.close()
+
+    @staticmethod
+    def _sqlite_identifier(name: str) -> str:
+        return '"' + str(name).replace('"', '""') + '"'
+
+    @classmethod
+    def _sqlite_table_names_for_merge(cls, conn: sqlite3.Connection) -> List[str]:
+        rows = conn.execute(
+            """
+            SELECT name
+            FROM sqlite_master
+            WHERE type = 'table'
+              AND name NOT LIKE 'sqlite_%'
+            ORDER BY name
+            """
+        ).fetchall()
+        return [str(row[0]) for row in rows if row and row[0]]
+
+    @classmethod
+    def _sqlite_table_info_for_merge(cls, conn: sqlite3.Connection, table_name: str) -> Dict[str, Any]:
+        rows = conn.execute(f"PRAGMA table_info({cls._sqlite_identifier(table_name)})").fetchall()
+        columns = [str(row[1]) for row in rows]
+        pk_rows = sorted((int(row[5] or 0), str(row[1])) for row in rows if int(row[5] or 0) > 0)
+        pk_columns = [name for _, name in pk_rows]
+        return {"columns": columns, "pk_columns": pk_columns}
+
+    @staticmethod
+    def _sqlite_row_canonical(row: sqlite3.Row, columns: List[str]) -> str:
+        payload = {column: row[column] for column in columns}
+        return json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str)
+
+    @classmethod
+    def _sqlite_copy_table_schema(cls, source: sqlite3.Connection, target: sqlite3.Connection, table_name: str) -> None:
+        row = source.execute(
+            """
+            SELECT sql
+            FROM sqlite_master
+            WHERE type = 'table' AND name = ?
+            """,
+            (table_name,),
+        ).fetchone()
+        if row and row[0]:
+            target.execute(str(row[0]))
+
+    @classmethod
+    def _merge_sqlite_source_into_existing(
+        cls,
+        source_db_path: Path,
+        target_db_path: Path,
+    ) -> Dict[str, Any]:
+        source = sqlite3.connect(str(source_db_path))
+        target = sqlite3.connect(str(target_db_path))
+        source.row_factory = sqlite3.Row
+        target.row_factory = sqlite3.Row
+        report: Dict[str, Any] = {
+            "records_imported": 0,
+            "already_present": 0,
+            "conflicts": [],
+            "tables": {},
+        }
+        try:
+            target.execute("PRAGMA foreign_keys = OFF")
+            for table_name in cls._sqlite_table_names_for_merge(source):
+                if not cls._sqlite_has_table(target, table_name):
+                    cls._sqlite_copy_table_schema(source, target, table_name)
+                source_info = cls._sqlite_table_info_for_merge(source, table_name)
+                target_info = cls._sqlite_table_info_for_merge(target, table_name)
+                columns = [column for column in source_info["columns"] if column in target_info["columns"]]
+                if not columns:
+                    continue
+                pk_columns = [
+                    column for column in (target_info["pk_columns"] or source_info["pk_columns"])
+                    if column in columns
+                ]
+                table_report = {
+                    "imported": 0,
+                    "already_present": 0,
+                    "conflicts": 0,
+                    "preserved_existing": 0,
+                    "target_count": 0,
+                }
+                target_before = int(
+                    (target.execute(
+                        f"SELECT COUNT(*) FROM {cls._sqlite_identifier(table_name)}"
+                    ).fetchone() or [0])[0] or 0
+                )
+                select_sql = (
+                    "SELECT "
+                    + ", ".join(cls._sqlite_identifier(column) for column in columns)
+                    + f" FROM {cls._sqlite_identifier(table_name)}"
+                )
+                insert_sql = (
+                    f"INSERT INTO {cls._sqlite_identifier(table_name)} "
+                    f"({', '.join(cls._sqlite_identifier(column) for column in columns)}) "
+                    f"VALUES ({', '.join('?' for _ in columns)})"
+                )
+                for row in source.execute(select_sql).fetchall():
+                    existing = None
+                    if pk_columns:
+                        where = " AND ".join(f"{cls._sqlite_identifier(column)} = ?" for column in pk_columns)
+                        existing = target.execute(
+                            f"SELECT {', '.join(cls._sqlite_identifier(column) for column in columns)} "
+                            f"FROM {cls._sqlite_identifier(table_name)} WHERE {where}",
+                            tuple(row[column] for column in pk_columns),
+                        ).fetchone()
+                    if existing is None and not pk_columns:
+                        where = " AND ".join(f"{cls._sqlite_identifier(column)} IS ?" for column in columns)
+                        existing = target.execute(
+                            f"SELECT {', '.join(cls._sqlite_identifier(column) for column in columns)} "
+                            f"FROM {cls._sqlite_identifier(table_name)} WHERE {where}",
+                            tuple(row[column] for column in columns),
+                        ).fetchone()
+                    if existing is None:
+                        target.execute(insert_sql, tuple(row[column] for column in columns))
+                        table_report["imported"] += 1
+                        report["records_imported"] += 1
+                        continue
+                    if cls._sqlite_row_canonical(existing, columns) == cls._sqlite_row_canonical(row, columns):
+                        table_report["already_present"] += 1
+                        report["already_present"] += 1
+                        continue
+                    table_report["conflicts"] += 1
+                    report["conflicts"].append(
+                        {
+                            "table": table_name,
+                            "key": {column: row[column] for column in pk_columns} if pk_columns else {},
+                            "reason": (
+                                "Record gia' presente con contenuto diverso: conservata la versione "
+                                "nel database operativo."
+                            ),
+                        }
+                    )
+                target_after = int(
+                    (target.execute(
+                        f"SELECT COUNT(*) FROM {cls._sqlite_identifier(table_name)}"
+                    ).fetchone() or [0])[0] or 0
+                )
+                table_report["preserved_existing"] = max(
+                    target_before - table_report["already_present"],
+                    0,
+                )
+                table_report["target_count"] = target_after
+                if (
+                    table_report["imported"]
+                    or table_report["already_present"]
+                    or table_report["conflicts"]
+                    or table_report["preserved_existing"]
+                ):
+                    report["tables"][table_name] = table_report
+            target.commit()
+        finally:
+            try:
+                target.execute("PRAGMA foreign_keys = ON")
+            except sqlite3.Error:
+                pass
+            source.close()
+            target.close()
+        return report
+
+    def riconcilia_verso_sqlite(self, percorso_db: str) -> RisultatoMigrazione:
+        """Riconcilia SQLite preservando il database operativo come base."""
+        t0 = time.monotonic()
+        target_db_path = resolve_sqlite_path(percorso_db)
+        target_db_path.parent.mkdir(parents=True, exist_ok=True)
+        precheck = self._anti_loss_precheck(target_db_path)
+        if not target_db_path.exists() or precheck.get("ok", True):
+            risultato = self.migra_verso_sqlite(str(target_db_path))
+            risultato.audit.setdefault("reconciliation", {"mode": "non necessaria"})
+            return risultato
+
+        writable_error = self._sqlite_writable_probe(target_db_path)
+        if writable_error:
+            ms = int((time.monotonic() - t0) * 1000)
+            return RisultatoMigrazione(
+                riuscita=False,
+                percorso_db=str(target_db_path),
+                record_migrati={},
+                errori=[writable_error],
+                avvisi=["Riconciliazione non eseguita: database operativo non modificato."],
+                audit={"precheck": precheck, "validation": {}, "reconciliation": {"executed": False}},
+                ms=ms,
+            )
+
+        stamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
+        backup_db_path = target_db_path.with_name(
+            f"{target_db_path.stem}.backup-riconciliazione-{stamp}{target_db_path.suffix}"
+        )
+        source_db_path = target_db_path.with_name(
+            f".{target_db_path.stem}.sorgente-riconciliazione-{stamp}{target_db_path.suffix}"
+        )
+        staging_db_path = target_db_path.with_name(
+            f".{target_db_path.stem}.riconciliazione-{stamp}{target_db_path.suffix}"
+        )
+        errori: List[str] = []
+        avvisi: List[str] = []
+        record_migrati: Dict[str, int] = {}
+        reconciliation: Dict[str, Any] = {
+            "executed": False,
+            "mode": "database_esistente_come_base",
+            "backup_db": str(backup_db_path),
+            "source_db": str(source_db_path),
+            "staging_db": str(staging_db_path),
+        }
+
+        try:
+            self._install_sqlite_database(target_db_path, backup_db_path)
+            self._install_sqlite_database(target_db_path, staging_db_path)
+            source_result = self.migra_verso_sqlite(str(source_db_path))
+            if not source_result.riuscita:
+                errori.extend(source_result.errori or ["Migrazione sorgente per riconciliazione non riuscita."])
+            else:
+                merge_report = self._merge_sqlite_source_into_existing(source_db_path, staging_db_path)
+                reconciliation.update(merge_report)
+                reconciliation["executed"] = True
+                record_migrati = {
+                    table: int(row.get("imported") or 0)
+                    for table, row in dict(merge_report.get("tables") or {}).items()
+                    if int(row.get("imported") or 0) > 0
+                }
+                conflicts = list(merge_report.get("conflicts") or [])
+                if conflicts:
+                    avvisi.append(
+                        f"Riconciliazione eseguita con {len(conflicts)} conflitti conservati per revisione."
+                    )
+                validation = self._validate_sqlite_migration(staging_db_path)
+                blocking_validation_errors = [
+                    str(item)
+                    for item in validation.get("errors") or []
+                    if "record sorgente non presenti" in str(item)
+                ]
+                if blocking_validation_errors:
+                    errori.extend(blocking_validation_errors)
+                reconciliation["validation"] = validation
+            if not errori:
+                self._install_sqlite_database(staging_db_path, target_db_path)
+                try:
+                    from pct.storage import StudioDB
+
+                    try:
+                        StudioDB.invalidate(str(target_db_path))
+                    except AttributeError:
+                        pass
+                    StudioDB.get(str(target_db_path)).ensure_schema()
+                except Exception as exc:
+                    errori.append(f"Riallineamento schema SQLite post-riconciliazione non riuscito: {exc}")
+        except Exception as exc:
+            errori.append(f"Riconciliazione SQLite non riuscita: {exc}")
+        finally:
+            for cleanup_path in (source_db_path, staging_db_path):
+                try:
+                    from pct.storage import StudioDB
+
+                    try:
+                        StudioDB.invalidate(str(cleanup_path))
+                    except AttributeError:
+                        pass
+                except Exception:
+                    pass
+                for suffix in ("", "-wal", "-shm"):
+                    try:
+                        cleanup_path.with_name(cleanup_path.name + suffix).unlink()
+                    except (FileNotFoundError, PermissionError):
+                        pass
+
+        ms = int((time.monotonic() - t0) * 1000)
+        if not errori:
+            avvisi.append(
+                "Riconciliazione conservativa completata: i record presenti solo nel database operativo sono stati preservati."
+            )
+        return RisultatoMigrazione(
+            riuscita=len(errori) == 0,
+            percorso_db=str(target_db_path),
+            record_migrati=record_migrati,
+            errori=errori,
+            avvisi=avvisi,
+            audit={
+                "precheck": precheck,
+                "validation": reconciliation.get("validation", {}),
+                "reconciliation": reconciliation,
+                "staging": True,
+            },
+            ms=ms,
+        )
 
     @classmethod
     def _modulo_payload_metadata(cls, path: Path, raw: Any, errore: Optional[str]) -> str:

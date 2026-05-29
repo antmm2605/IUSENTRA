@@ -5,7 +5,9 @@ from types import SimpleNamespace
 
 from pct.notifiche_legali import (
     LEGAL_NOTIFICATION_SUBJECT,
+    build_attestazione_conformita_payload,
     build_client_communication,
+    generate_attestazione_conformita_docx,
     build_notification_attachment_manifest,
     build_notification_normative_checks,
     build_notification_send_plan,
@@ -140,6 +142,60 @@ def test_notifica_l53_riporta_piu_documenti_nell_elenco_allegati():
     assert "1. ricorso.pdf - Ricorso" in result.relata_text
     assert "2. procura.pdf - Procura alle liti" in result.relata_text
     assert "3. provvedimento.pdf - Provvedimento" in result.relata_text
+
+
+def test_attestazione_conformita_autocompila_fascicolo_cliente_e_documenti():
+    payload = _legal_payload()
+    payload["documenti"] = [
+        {
+            "nome_file": "ricorso.pdf",
+            "descrizione": "Ricorso per il recupero delle annualità Carta del docente",
+            "origine": "copia_fascicolo_informatico",
+            "hash_sha256": "a" * 64,
+        },
+        {
+            "nome_file": "procura.pdf",
+            "descrizione": "Procura alle liti",
+            "origine": "firmato_digitalmente",
+            "hash_sha256": "b" * 64,
+        },
+        {
+            "nome_file": "decreto_fissazione_udienza.pdf",
+            "descrizione": "Decreto fissazione udienza",
+            "origine": "comunicazione_cancelleria",
+            "data_comunicazione_cancelleria": "2026-05-18",
+            "hash_sha256": "c" * 64,
+        },
+    ]
+
+    model = build_attestazione_conformita_payload(payload)
+
+    assert model["ok"] is True
+    assert model["missing_fields"] == []
+    assert "ATTESTAZIONE DI CONFORMITÀ" in model["text"]
+    assert "Avv. Mario Rossi" in model["text"]
+    assert "R.G. n. 1234/2026" in model["text"]
+    assert "Ricorso per il recupero delle annualità Carta del docente" in model["text"]
+    assert "Procura alle liti" in model["text"]
+    assert len(model["documenti"]) == 3
+    assert "comunicazione_cancelleria" in {item["origine"] for item in model["documenti"]}
+    assert "art. 196-undecies" in " ".join(model["normativa"])
+
+
+def test_attestazione_conformita_docx_generato_contiene_placeholder_compilati(tmp_path):
+    output = tmp_path / "attestazione.docx"
+
+    result = generate_attestazione_conformita_docx(_legal_payload(), output)
+
+    assert result["ok"] is True
+    assert output.exists()
+
+    from docx import Document
+
+    text = "\n".join(paragraph.text for paragraph in Document(output).paragraphs)
+    assert "ATTESTAZIONE DI CONFORMITÀ" in text
+    assert "Avv. Mario Rossi" in text
+    assert "ricorso.pdf" in text
 
 
 def test_notifica_l53_audit_automatico_include_normativa_e_piu_allegati():

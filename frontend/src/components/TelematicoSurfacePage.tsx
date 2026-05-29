@@ -355,6 +355,9 @@ function friendlyAcquisitionReason(value: unknown): string {
   if (lower.includes('401') || lower.includes('unauthorized') || lower.includes('pin') || lower.includes('certificato') || lower.includes('autentic')) {
     return 'Certificato o PIN non confermati/accettati sul PC; verifica il dispositivo e riprova.'
   }
+  if (lower.includes('documenti reali presenti') || lower.includes('primo elemento da verificare')) {
+    return raw
+  }
   if (lower.includes('file reali') || lower.includes('solo catalogo') || lower.includes('metadati') || lower.includes('lotto scaricato')) {
     return 'Il PST ha esposto il catalogo, ma non ha consegnato file reali al Local Signer.'
   }
@@ -1467,11 +1470,20 @@ function pstDocumentIdentifierValues(item: JsonRecord): string[] {
   ;[
     item.id_documento,
     item.id_documento_portale,
+    item.idDocumento,
+    item.idDoc,
     item.id_cat,
+    item.idCat,
     item.id_repeatto,
+    item.idRepeatto,
+    item.idRepeatTo,
     item.msg_id,
+    item.msgId,
+    item.msgid,
     item.numero_documento,
+    item.numeroDocumento,
     item.id_doc_mittente,
+    item.idDocMittente,
   ].forEach(append)
   return values
 }
@@ -1516,10 +1528,15 @@ function acquisitionFilePstRecord(file: AcquisitionFile): JsonRecord {
     tipo_atto: file.tipo_atto,
     tipo: file.tipo,
     id_cat: file.id_cat,
+    idCat: file.id_cat,
     id_repeatto: file.id_repeatto,
+    idRepeatto: file.id_repeatto,
     msg_id: file.msg_id,
+    msgId: file.msg_id,
     numero_documento: file.numero_documento,
+    numeroDocumento: file.numero_documento,
     id_doc_mittente: file.id_doc_mittente,
+    idDocMittente: file.id_doc_mittente,
   }
 }
 
@@ -1663,22 +1680,27 @@ function assistantFilesToAcquisitionFiles(rows: unknown[], originalMode: boolean
   const collected: AcquisitionFile[] = []
   for (const value of rows) {
     const row = asRecord(value)
-    const filename = asText(row.filename || row.name || row.nome)
-    const content = asText(row.content_base64 || row.base64 || row.contenuto_b64)
+    const filename = asText(row.filename || row.name || row.nome || row.nome_file || row.nomeFile || row.nome_documento || row.nomeDocumento)
+    const content = asText(row.content_base64 || row.base64 || row.contenuto_b64 || row.contenuto_base64 || row.contenutoBase64 || row.file_base64 || row.fileBase64 || row.bytes_base64 || row.bytesBase64)
     if (!filename || !content) continue
     collected.push({
       nome: filename,
-      nome_file_originale: filename,
+      nome_file_originale: asText(row.nome_file_originale || row.nomeFileOriginale || filename),
       contenuto_b64: content,
       payload_json: null,
       origine: asText(row.source || row.local_temp_ref, `sessione-assistita:${filename}`),
       data_documento: asText(row.detected_at).slice(0, 10),
       content_type: asText(row.content_type),
-      id_documento_portale: asText(row.id_documento_portale || row.id_documento),
-      id_deposito_esterno: asText(row.id_deposito_esterno || row.id_deposito),
+      id_documento_portale: asText(row.id_documento_portale || row.id_documento || row.idDocumento || row.idDoc),
+      id_deposito_esterno: asText(row.id_deposito_esterno || row.id_deposito || row.idDeposito),
       id_deposito_pct: asText(row.id_deposito_pct),
       tipo_atto: asText(row.tipo_atto),
       tipo: asText(row.tipo),
+      id_cat: asText(row.id_cat || row.idCat),
+      id_repeatto: asText(row.id_repeatto || row.idRepeatto || row.idRepeatTo),
+      msg_id: asText(row.msg_id || row.msgId || row.msgid),
+      numero_documento: asText(row.numero_documento || row.numeroDocumento),
+      id_doc_mittente: asText(row.id_doc_mittente || row.idDocMittente),
       original_documento_portale: originalMode,
       modalita_documento_portale: originalMode ? 'originale' : 'copia',
     })
@@ -1690,27 +1712,27 @@ function signerFilesToAcquisitionFiles(rows: unknown[], originalMode: boolean): 
   const collected: AcquisitionFile[] = []
   for (const value of rows) {
     const row = asRecord(value)
-    const filename = asText(row.nome || row.filename || row.name || row.nome_documento || row.nome_file_originale)
-    const content = asText(row.contenuto_b64 || row.content_base64 || row.base64)
+    const filename = asText(row.nome || row.filename || row.name || row.nome_documento || row.nomeDocumento || row.nome_file || row.nomeFile || row.nome_file_originale || row.nomeFileOriginale)
+    const content = asText(row.contenuto_b64 || row.content_base64 || row.base64 || row.contenuto_base64 || row.contenutoBase64 || row.file_base64 || row.fileBase64 || row.bytes_base64 || row.bytesBase64)
     if (!filename || !content) continue
     collected.push({
       nome: filename,
-      nome_file_originale: asText(row.nome_file_originale || row.filename || row.name || filename),
+      nome_file_originale: asText(row.nome_file_originale || row.nomeFileOriginale || row.filename || row.name || row.nome_file || filename),
       contenuto_b64: content,
       payload_json: null,
       origine: asText(row.origine || row.source, `pst:${filename}`),
       data_documento: asText(row.data_documento || row.data_deposito || row.detected_at).slice(0, 10),
       content_type: asText(row.content_type),
-      id_documento_portale: asText(row.id_documento_portale || row.id_documento),
-      id_deposito_esterno: asText(row.id_deposito_esterno || row.id_deposito),
+      id_documento_portale: asText(row.id_documento_portale || row.id_documento || row.idDocumento || row.idDoc),
+      id_deposito_esterno: asText(row.id_deposito_esterno || row.id_deposito || row.idDeposito),
       id_deposito_pct: asText(row.id_deposito_pct),
       tipo_atto: asText(row.tipo_atto),
       tipo: asText(row.tipo),
-      id_cat: asText(row.id_cat),
-      id_repeatto: asText(row.id_repeatto),
-      msg_id: asText(row.msg_id),
-      numero_documento: asText(row.numero_documento),
-      id_doc_mittente: asText(row.id_doc_mittente),
+      id_cat: asText(row.id_cat || row.idCat),
+      id_repeatto: asText(row.id_repeatto || row.idRepeatto || row.idRepeatTo),
+      msg_id: asText(row.msg_id || row.msgId || row.msgid),
+      numero_documento: asText(row.numero_documento || row.numeroDocumento),
+      id_doc_mittente: asText(row.id_doc_mittente || row.idDocMittente),
       original_documento_portale: 'original_documento_portale' in row ? Boolean(row.original_documento_portale) : originalMode,
       modalita_documento_portale: asText(row.modalita_documento_portale) === 'originale' || ('original_documento_portale' in row ? Boolean(row.original_documento_portale) : originalMode) ? 'originale' : 'copia',
     })
@@ -2978,6 +3000,17 @@ function AcquisitionWizard({
   const warnings = issueRows(analysis, 'warnings')
   const oks = issueRows(analysis, 'ok')
   const summary = importSummary(importResult)
+  const documentReport = asRecord(summary.report_documentale)
+  const documentReportCards = [
+    ['Documenti reali', asText(documentReport.documenti_reali || summary.documenti_reali || summary.documenti, '0')],
+    ['Informazioni', asText(documentReport.documenti_informativi || summary.documenti_informativi, '0')],
+    ['Solo catalogo', asText(documentReport.documenti_catalogo || summary.documenti_catalogo, '0')],
+    ['Senza contenuto', asText(documentReport.documenti_senza_contenuto || summary.documenti_senza_contenuto, '0')],
+    ['Scartati', asText(documentReport.documenti_scartati || summary.documenti_scartati, '0')],
+  ]
+  const missingImportNames = asList(documentReport.documenti_senza_contenuto_elenco || documentReport.documenti_mancanti_elenco)
+    .map((item) => asText(item))
+    .filter(Boolean)
   const official = officialPortalHref(portal)
   const steps = [
     { id: 1, label: 'Accesso', help: 'Sorgente e connessione' },
@@ -3482,6 +3515,22 @@ function AcquisitionWizard({
                     <ul>
                       {importProgress.failures.slice(0, 5).map((failure) => <li key={failure}>{failure}</li>)}
                     </ul>
+                  ) : null}
+                </div>
+              ) : null}
+              {Object.keys(documentReport).length ? (
+                <div className="iu-tel-acq-document-report" aria-label="Report documenti importazione">
+                  {documentReportCards.map(([label, value]) => (
+                    <article key={label}>
+                      <span>{label}</span>
+                      <strong>{value}</strong>
+                    </article>
+                  ))}
+                  {missingImportNames.length ? (
+                    <div className="iu-tel-acq-document-report__notes">
+                      <strong>Da verificare</strong>
+                      {missingImportNames.slice(0, 4).map((name) => <span key={name}>{name}</span>)}
+                    </div>
                   ) : null}
                 </div>
               ) : null}

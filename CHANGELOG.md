@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.248.86 - 2026-05-29
+
+- Rafforzata l'importazione finale PST/Local Signer: Step 7 riconosce i file reali con contenuto, hash e provenienza, distingue catalogo, Informazioni e documenti senza contenuto, e restituisce un report utile invece del blocco generico.
+- Aggiunti audit leggibili per importazione PST avviata, documento reale riconosciuto, documento informativo escluso, documento importato, import completato o bloccato senza perdita dati.
+- La pagina `Database` espone pre-verifica, report differenze, riconciliazione conservativa e attivazione SQLite con stati non contraddittori; il database operativo viene preservato nei casi tipo clienti `25 / 9`.
+- Aggiunto il classificatore PEC legale con router registri CC, LAV, VG, GDP/SIGP, Cassazione e penale, eventi di udienza/deposito/ricevute/SDI e chiavi anti-duplicato normalizzate.
+- Aggiunto il modello DOCX `attestazione_conformita_autocompilante.docx` e il generatore dati per compilare attestazioni di conformità da fascicolo, cliente, soggetti/parti e documenti.
+- Introdotto lo script `scripts/audit_finale_pst_sqlite_pec.py` per eseguire gate mirati su Step 7, SQLite, PEC, UI React, UTF-8, build e copertura critica.
+
 ## 2.248.85 - 2026-05-29
 
 - Chiuso il blocco sicurezza post-audit database: le route amministrative, PEC, documenti fascicolo, import Studio Telematico e Local Signer non restituiscono più eccezioni grezze o dettagli tecnici al browser.

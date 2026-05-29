@@ -1,5 +1,29 @@
 # Migrazione progressiva Flask + React
 
+## PST / SQLite / PEC - ripristino robustezza operativa - 2026-05-29 - 2.248.86
+
+La tranche 2.248.86 chiude tre regressioni operative ad alto rischio:
+
+- Step 7 PST/Local Signer importa solo documenti reali, ma non scarta più un
+  lotto valido solo perché accanto ai PDF sono presenti catalogo o Informazioni.
+  La UI React mostra documenti importabili, informativi, catalogo, mancanti e
+  scartati con motivazione.
+- La pagina React `Database` distingue analisi, pre-verifica, report
+  differenze, backup, riconciliazione, attivazione e verifica finale. Gli stati
+  `Bloccata per protezione dati` e `Eseguita riconciliazione` sostituiscono i
+  vecchi messaggi contraddittori di completamento con errori.
+- Il flusso PEC legale espone dati classificati per famiglia, registro, evento,
+  priorità, azione consigliata, documenti allegati e stato ricevute, senza
+  chiudere depositi sulla sola ricevuta di accettazione.
+
+È stato inoltre aggiunto il modello DOCX autocompilante per attestazione di
+conformità, collegato ai dati fascicolo/cliente/soggetti/parti/documenti e
+documentato in `docs/templates/attestazione_conformita_autocompilante.md`.
+
+Verifiche locali: py_compile dei moduli critici, test Step 7, SQLite, PEC,
+attestazione, React shell amministrazione/PST, typecheck React, build Vite,
+UTF-8 e `scripts/audit_finale_pst_sqlite_pec.py`.
+
 ## Database - audit anti-perdita SQLite - 2026-05-29 - 2.248.84
 
 La pagina React `/admin/database` espone ora nel risultato della migrazione un

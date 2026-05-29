@@ -419,6 +419,21 @@ def build_telematico_runtime(
         _write_json_list(path, rows)
         return log_id
 
+    def _update_portale_import_log(log_id: str, updates: dict[str, Any]) -> None:
+        if not log_id:
+            return
+        path = _portale_import_log_path()
+        rows = _read_json_list(path)
+        for index, row in enumerate(rows):
+            if str(row.get("id") or "") != log_id:
+                continue
+            patched = dict(row)
+            patched.update(updates)
+            patched["updated_at"] = datetime.now().isoformat()
+            rows[index] = patched
+            _write_json_list(path, rows)
+            return
+
     def _last_portale_import_log(portale: str) -> dict[str, Any]:
         sorgente = _portale_source_name(portale).strip().upper()
         for row in reversed(_read_json_list(_portale_import_log_path())):
@@ -1075,11 +1090,20 @@ def build_telematico_runtime(
         for value in (
             payload.get("id_documento"),
             payload.get("id_documento_portale"),
+            payload.get("idDocumento"),
+            payload.get("idDoc"),
             payload.get("id_cat"),
+            payload.get("idCat"),
             payload.get("id_repeatto"),
+            payload.get("idRepeatto"),
+            payload.get("idRepeatTo"),
             payload.get("msg_id"),
+            payload.get("msgId"),
+            payload.get("msgid"),
             payload.get("numero_documento"),
+            payload.get("numeroDocumento"),
             payload.get("id_doc_mittente"),
+            payload.get("idDocMittente"),
         ):
             text = str(value or "").strip()
             if text and not text.startswith("#"):
@@ -1091,6 +1115,7 @@ def build_telematico_runtime(
         return str(
             payload.get("id_deposito_esterno")
             or payload.get("id_deposito")
+            or payload.get("idDeposito")
             or payload.get("id_deposito_pct")
             or ""
         ).strip()
@@ -1101,7 +1126,13 @@ def build_telematico_runtime(
             str(
                 payload.get("nome")
                 or payload.get("nome_documento")
+                or payload.get("nomeDocumento")
+                or payload.get("filename")
+                or payload.get("name")
+                or payload.get("nome_file")
+                or payload.get("nomeFile")
                 or payload.get("nome_file_originale")
+                or payload.get("nomeFileOriginale")
                 or ""
             ).strip()
         )
@@ -1140,16 +1171,27 @@ def build_telematico_runtime(
                 item.get("id_documento_portale")
                 or match.get("id_documento_portale")
                 or match.get("id_documento")
+                or match.get("idDocumento")
                 or item.get("id_documento")
+                or item.get("idDocumento")
                 or ""
             ).strip()
-            merged["id_cat"] = str(item.get("id_cat") or match.get("id_cat") or "").strip()
-            merged["id_repeatto"] = str(item.get("id_repeatto") or match.get("id_repeatto") or "").strip()
-            merged["msg_id"] = str(item.get("msg_id") or match.get("msg_id") or "").strip()
+            merged["id_cat"] = str(item.get("id_cat") or item.get("idCat") or match.get("id_cat") or match.get("idCat") or "").strip()
+            merged["id_repeatto"] = str(
+                item.get("id_repeatto")
+                or item.get("idRepeatto")
+                or item.get("idRepeatTo")
+                or match.get("id_repeatto")
+                or match.get("idRepeatto")
+                or match.get("idRepeatTo")
+                or ""
+            ).strip()
+            merged["msg_id"] = str(item.get("msg_id") or item.get("msgId") or match.get("msg_id") or match.get("msgId") or "").strip()
             merged["id_deposito_esterno"] = str(
                 item.get("id_deposito_esterno")
                 or match.get("id_deposito_esterno")
                 or match.get("id_deposito")
+                or match.get("idDeposito")
                 or ""
             ).strip()
             merged["id_deposito_pct"] = str(item.get("id_deposito_pct") or match.get("id_deposito_pct") or "").strip()
@@ -1203,6 +1245,198 @@ def build_telematico_runtime(
                 row["original_documento_portale"] = bool(original)
             patched.append(row)
         return patched
+
+    def _portale_item_is_informativo(row: dict[str, Any] | None) -> bool:
+        payload = dict(row or {})
+        name = Path(
+            str(
+                payload.get("nome")
+                or payload.get("nome_documento")
+                or payload.get("filename")
+                or payload.get("name")
+                or payload.get("nome_file")
+                or payload.get("nome_file_originale")
+                or ""
+            )
+        ).stem
+        text = " ".join(
+            str(payload.get(key) or "")
+            for key in (
+                "tipo",
+                "tipo_atto",
+                "classificazione",
+                "receipt_type",
+                "categoria",
+            )
+        )
+        compact_name = re.sub(r"[^a-z0-9]+", "", name.casefold())
+        compact_text = re.sub(r"[^a-z0-9]+", "", text.casefold())
+        return compact_name in {"informazioni", "informazionifascicolo"} or compact_text in {
+            "informazioni",
+            "informazionifascicolo",
+            "catalogoinformazioni",
+        }
+
+    def _portale_raw_content_b64(row: dict[str, Any] | None) -> str:
+        payload = dict(row or {})
+        content_b64 = str(
+            payload.get("contenuto_b64")
+            or payload.get("content_base64")
+            or payload.get("base64")
+            or payload.get("contenuto_base64")
+            or payload.get("contenutoBase64")
+            or payload.get("file_base64")
+            or payload.get("fileBase64")
+            or payload.get("bytes_base64")
+            or payload.get("bytesBase64")
+            or ""
+        ).strip()
+        if content_b64.lower().startswith("data:") and "," in content_b64:
+            return content_b64.split(",", 1)[1].strip()
+        return content_b64
+
+    def _portale_raw_file_name(row: dict[str, Any] | None) -> str:
+        payload = dict(row or {})
+        return Path(
+            str(
+                payload.get("nome")
+                or payload.get("filename")
+                or payload.get("name")
+                or payload.get("nome_documento")
+                or payload.get("nomeDocumento")
+                or payload.get("nome_file")
+                or payload.get("nomeFile")
+                or payload.get("nome_file_originale")
+                or payload.get("nomeFileOriginale")
+                or ""
+            )
+        ).name
+
+    def _portale_raw_file_has_content(row: dict[str, Any] | None) -> bool:
+        content_b64 = _portale_raw_content_b64(row)
+        if not content_b64:
+            return False
+        try:
+            return bool(base64.b64decode(content_b64, validate=False))
+        except Exception:
+            return False
+
+    def _portale_document_hash(item: dict[str, Any] | None) -> str:
+        payload = dict(item or {})
+        content = payload.get("contenuto")
+        if isinstance(content, bytes) and content:
+            return hashlib.sha256(content).hexdigest()
+        sha = str(payload.get("sha256") or "").strip().lower()
+        return sha if re.fullmatch(r"[0-9a-f]{64}", sha) else ""
+
+    def _portale_document_report(
+        *,
+        files: list[dict[str, Any]],
+        preview_docs: list[dict[str, Any]],
+        decoded_items: list[dict[str, Any]],
+        final_items: list[dict[str, Any]],
+        documenti_attesi: int,
+    ) -> dict[str, Any]:
+        raw_rows = [dict(row or {}) for row in files or [] if isinstance(row, dict)]
+        raw_without_content = [
+            _portale_raw_file_name(row) or str(row.get("id_documento") or row.get("id_cat") or "documento senza nome")
+            for row in raw_rows
+            if not _portale_raw_file_has_content(row)
+        ]
+        informative_keys: set[str] = set()
+        for row in [*preview_docs, *decoded_items]:
+            if not _portale_item_is_informativo(row):
+                continue
+            key = _portale_document_name_key(row) or "|".join(sorted(_portale_document_identifier_values(row)))
+            informative_keys.add(key or f"informazioni-{len(informative_keys) + 1}")
+        reali = []
+        for item in final_items:
+            name = str(item.get("nome") or item.get("nome_file_originale") or "").strip()
+            content = item.get("contenuto")
+            sha = _portale_document_hash(item)
+            if name and isinstance(content, bytes) and content and sha and not _portale_item_is_informativo(item):
+                reali.append({"nome": name, "sha256": sha, "dimensione_bytes": len(content)})
+        catalogo_count = max(int(documenti_attesi or 0) - len(reali) - len(informative_keys), 0)
+        without_content_count = len(raw_without_content)
+        if not raw_rows and documenti_attesi:
+            without_content_count = int(documenti_attesi)
+        elif raw_rows and not reali and not raw_without_content:
+            without_content_count = max(int(documenti_attesi or 0), len(raw_rows))
+        missing_preview = []
+        for doc in preview_docs:
+            if _portale_item_is_informativo(doc):
+                continue
+            if any(_portale_document_matches_preview(item, doc) for item in final_items):
+                continue
+            missing_preview.append(str(doc.get("nome") or doc.get("nome_documento") or doc.get("id_documento") or "Documento PST").strip())
+        return {
+            "documenti_attesi": int(documenti_attesi or 0),
+            "file_ricevuti": len(raw_rows),
+            "documenti_reali": len(reali),
+            "documenti_reali_elenco": reali,
+            "documenti_catalogo": catalogo_count,
+            "documenti_informativi": len(informative_keys),
+            "documenti_senza_contenuto": without_content_count,
+            "documenti_senza_contenuto_elenco": raw_without_content[:20],
+            "documenti_mancanti": len(missing_preview),
+            "documenti_mancanti_elenco": missing_preview[:20],
+            "documenti_scartati": max(len(decoded_items) - len(final_items), 0),
+        }
+
+    def _portale_import_block_message(report: dict[str, Any]) -> str:
+        names = list(report.get("documenti_senza_contenuto_elenco") or report.get("documenti_mancanti_elenco") or [])
+        first = str(names[0] if names else "nessun file effettivo").strip()
+        return (
+            "Importazione PST bloccata per protezione dati: "
+            "non sono arrivati file reali importabili, oppure sono presenti solo catalogo o metadati/Informazioni. "
+            f"documenti reali presenti {int(report.get('documenti_reali') or 0)}, "
+            f"solo catalogo {int(report.get('documenti_catalogo') or 0)}, "
+            f"solo Informazioni {int(report.get('documenti_informativi') or 0)}, "
+            f"senza contenuto {int(report.get('documenti_senza_contenuto') or 0)}. "
+            f"Primo elemento da verificare: {first}. "
+            "Azione richiesta: scarica di nuovo i documenti dal Local Signer oppure seleziona i PDF/P7M reali "
+            "prima dello Step 7; catalogo, Informazioni e metadati restano tracciati ma non bastano per importare documenti."
+        )
+
+    def _merge_portale_items_by_position_when_safe(
+        decoded_items: list[dict[str, Any]],
+        preview_docs: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        importable_preview = [doc for doc in preview_docs if not _portale_item_is_informativo(doc)]
+        real_items = [
+            item
+            for item in decoded_items
+            if str(item.get("nome") or "").strip()
+            and isinstance(item.get("contenuto"), bytes)
+            and item.get("contenuto")
+            and not _portale_item_is_informativo(item)
+        ]
+        if not real_items or len(real_items) != len(importable_preview):
+            return []
+        merged: list[dict[str, Any]] = []
+        for item, preview_doc in zip(real_items, importable_preview):
+            row = dict(preview_doc)
+            row.update(item)
+            row["id_documento_portale"] = str(
+                item.get("id_documento_portale")
+                or preview_doc.get("id_documento_portale")
+                or preview_doc.get("id_documento")
+                or ""
+            ).strip()
+            row["id_cat"] = str(item.get("id_cat") or preview_doc.get("id_cat") or "").strip()
+            row["id_repeatto"] = str(item.get("id_repeatto") or preview_doc.get("id_repeatto") or "").strip()
+            row["msg_id"] = str(item.get("msg_id") or preview_doc.get("msg_id") or "").strip()
+            row["id_deposito_esterno"] = str(
+                item.get("id_deposito_esterno")
+                or preview_doc.get("id_deposito_esterno")
+                or preview_doc.get("id_deposito")
+                or ""
+            ).strip()
+            row["tipo_atto"] = str(item.get("tipo_atto") or preview_doc.get("tipo_atto") or "").strip()
+            row["tipo"] = str(item.get("tipo") or preview_doc.get("tipo") or "").strip()
+            row["mittente"] = str(item.get("mittente") or preview_doc.get("mittente") or "").strip()
+            merged.append(row)
+        return merged
 
     def _filter_portale_preview_by_options(preview: dict[str, Any], options: dict[str, bool]) -> dict[str, Any]:
         view = dict(preview or {})
@@ -2389,35 +2623,113 @@ def build_telematico_runtime(
         counts = preview_for_files.get("counts") or {}
         documenti_attesi = int(counts.get("documenti", 0) or 0)
         selected_preview_docs = list(preview_for_files.get("documenti") or [])
+        documenti_attesi_importabili = sum(1 for row in selected_preview_docs if not _portale_item_is_informativo(row))
         decoded_items: list[dict[str, Any]] = []
+        decoded_items_raw: list[dict[str, Any]] = []
+        document_report: dict[str, Any] = _portale_document_report(
+            files=files,
+            preview_docs=selected_preview_docs,
+            decoded_items=[],
+            final_items=[],
+            documenti_attesi=documenti_attesi,
+        )
         if importa_file_portale and portale == "pst" and documenti_attesi > 0:
             if files:
-                decoded_items = _decode_portale_downloaded_items(files)
-                decoded_items = _merge_preview_metadata_into_portale_items(decoded_items, selected_preview_docs)
-                decoded_items = _filter_portale_items_by_preview_selection(decoded_items, selected_preview_docs)
+                decoded_items_raw = _decode_portale_downloaded_items(files)
+                importable_raw_items = [
+                    item for item in decoded_items_raw if not _portale_item_is_informativo(item)
+                ]
+                decoded_items = _merge_preview_metadata_into_portale_items(importable_raw_items, selected_preview_docs)
+                filtered_items = _filter_portale_items_by_preview_selection(decoded_items, selected_preview_docs)
+                if not filtered_items:
+                    positional_items = _merge_portale_items_by_position_when_safe(
+                        importable_raw_items,
+                        selected_preview_docs,
+                    )
+                    if positional_items:
+                        filtered_items = positional_items
+                decoded_items = filtered_items
                 decoded_items = _apply_portale_download_mode_to_items(
                     decoded_items,
                     original=scarica_originale_portale,
                 )
+                document_report = _portale_document_report(
+                    files=files,
+                    preview_docs=selected_preview_docs,
+                    decoded_items=decoded_items_raw,
+                    final_items=decoded_items,
+                    documenti_attesi=documenti_attesi,
+                )
             if not files:
-                raise ValueError(
-                    "Importazione PST interrotta: il fascicolo espone documenti, ma non sono arrivati "
-                    "file reali dal Local Signer. IUSENTRA non importa piu' solo catalogo o metadati."
+                _append_portale_import_log(
+                    {
+                        "portale": _portale_source_name(portale),
+                        "selection": selection,
+                        "preview_counts": preview.get("counts") or {},
+                        "options": options,
+                        "mapping": mapping,
+                        "analysis": analysis,
+                        "download": {
+                            "documenti_attesi": documenti_attesi,
+                            "documenti_attesi_importabili": documenti_attesi_importabili,
+                            "documenti_decodificati": 0,
+                            "report_documentale": document_report,
+                        },
+                        "status": "bloccata_protezione_dati",
+                        "audit_studio": [
+                            "Importazione PST avviata",
+                            "Importazione bloccata per assenza file reali",
+                            "Importazione annullata senza perdita dati",
+                        ],
+                        "utente": user_name,
+                    }
                 )
+                raise ValueError(_portale_import_block_message(document_report))
             if not decoded_items:
-                raise ValueError(
-                    "Importazione PST interrotta: il lotto scaricato non contiene file documentali "
-                    "riconducibili al catalogo del fascicolo."
+                _append_portale_import_log(
+                    {
+                        "portale": _portale_source_name(portale),
+                        "selection": selection,
+                        "preview_counts": preview.get("counts") or {},
+                        "options": options,
+                        "mapping": mapping,
+                        "analysis": analysis,
+                        "download": {
+                            "documenti_attesi": documenti_attesi,
+                            "documenti_attesi_importabili": documenti_attesi_importabili,
+                            "documenti_decodificati": len(decoded_items_raw),
+                            "report_documentale": document_report,
+                        },
+                        "status": "bloccata_protezione_dati",
+                        "audit_studio": [
+                            "Importazione PST avviata",
+                            "Importazione bloccata per assenza file reali",
+                            "Importazione annullata senza perdita dati",
+                        ],
+                        "utente": user_name,
+                    }
                 )
-            partial_pst_existing_update = len(decoded_items) < documenti_attesi and mode in {
+                raise ValueError(_portale_import_block_message(document_report))
+            partial_pst_existing_update = len(decoded_items) < documenti_attesi_importabili and mode in {
                 "attach_existing",
                 "update_existing",
             }
-            if len(decoded_items) < documenti_attesi and not partial_pst_existing_update:
+            if len(decoded_items) < documenti_attesi_importabili and not partial_pst_existing_update:
                 raise ValueError(
                     f"Importazione PST interrotta: scaricati {len(decoded_items)} documenti su "
-                    f"{documenti_attesi}. Il fascicolo viene aggiornato solo quando il lotto e' completo."
+                    f"{documenti_attesi_importabili}. Il fascicolo viene aggiornato solo quando il lotto e' completo."
                 )
+
+        audit_studio_events: list[str] = []
+        if portale == "pst" and importa_file_portale:
+            audit_studio_events.append("Importazione PST avviata")
+            for row in list(document_report.get("documenti_reali_elenco") or []):
+                nome_reale = str((row or {}).get("nome") or "documento").strip()
+                audit_studio_events.append(f"Documento reale riconosciuto: {nome_reale}")
+            if int(document_report.get("documenti_informativi") or 0):
+                audit_studio_events.append("Documento informativo escluso dall'importazione documentale")
+            if int(document_report.get("documenti_reali") or 0) == 0 and documenti_attesi > 0:
+                audit_studio_events.append("Importazione bloccata per assenza file reali")
 
         log_id = _append_portale_import_log(
             {
@@ -2429,9 +2741,12 @@ def build_telematico_runtime(
                 "analysis": analysis,
                 "download": {
                     "documenti_attesi": documenti_attesi,
+                    "documenti_attesi_importabili": documenti_attesi_importabili,
                     "documenti_decodificati": len(decoded_items),
                     "parziale_su_pratica_esistente": partial_pst_existing_update,
+                    "report_documentale": document_report,
                 },
+                "audit_studio": audit_studio_events,
                 "utente": user_name,
             }
         )
@@ -2635,6 +2950,36 @@ def build_telematico_runtime(
         fasc = gf.get(id_fasc)
         documenti_importati_count = int(import_result.get("documenti_importati", 0) or 0)
         documenti_da_acquisire = max(documenti_attesi - documenti_importati_count, 0)
+        if portale == "pst" and importa_file_portale:
+            document_report = dict(document_report)
+            document_report["documenti_importati"] = documenti_importati_count
+            document_report["documenti_gia_presenti_o_riusati"] = max(
+                int(document_report.get("documenti_reali") or 0) - documenti_importati_count,
+                0,
+            )
+            final_audit_events = list(audit_studio_events)
+            if int(document_report.get("documenti_informativi") or 0):
+                final_audit_events.append("Documento informativo escluso dall'importazione documentale")
+            if documenti_importati_count:
+                final_audit_events.append("Documento importato nel fascicolo")
+            if documenti_da_acquisire:
+                final_audit_events.append("Importazione completata con documenti ancora da acquisire")
+            else:
+                final_audit_events.append("Importazione completata")
+            _update_portale_import_log(
+                log_id,
+                {
+                    "status": "completata" if not documenti_da_acquisire else "completata_con_avvisi",
+                    "download": {
+                        "documenti_attesi": documenti_attesi,
+                        "documenti_attesi_importabili": documenti_attesi_importabili,
+                        "documenti_decodificati": len(decoded_items),
+                        "parziale_su_pratica_esistente": partial_pst_existing_update,
+                        "report_documentale": document_report,
+                    },
+                    "audit_studio": final_audit_events,
+                },
+            )
         return {
             "id_fascicolo": id_fasc,
             "created": created,
@@ -2653,6 +2998,11 @@ def build_telematico_runtime(
                 "documenti": documenti_importati_count,
                 "documenti_catalogo": documenti_attesi,
                 "documenti_da_acquisire": documenti_da_acquisire,
+                "documenti_reali": int(document_report.get("documenti_reali") or documenti_importati_count or 0),
+                "documenti_informativi": int(document_report.get("documenti_informativi") or 0),
+                "documenti_senza_contenuto": int(document_report.get("documenti_senza_contenuto") or 0),
+                "documenti_scartati": int(document_report.get("documenti_scartati") or 0),
+                "report_documentale": document_report,
                 "depositi": len(import_result.get("depositi_agganciati") or [])
                 or catalogo_depositi_synced
                 or int(preview.get("counts", {}).get("depositi", 0) or 0),

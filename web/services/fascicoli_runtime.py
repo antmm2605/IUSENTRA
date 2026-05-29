@@ -1451,7 +1451,11 @@ def build_fascicoli_runtime(
                 or row.get("filename")
                 or row.get("name")
                 or row.get("nome_documento")
+                or row.get("nomeDocumento")
+                or row.get("nome_file")
+                or row.get("nomeFile")
                 or row.get("nome_file_originale")
+                or row.get("nomeFileOriginale")
                 or ""
             ).strip()
             contenuto_b64 = str(
@@ -1459,6 +1463,11 @@ def build_fascicoli_runtime(
                 or row.get("content_base64")
                 or row.get("base64")
                 or row.get("contenuto_base64")
+                or row.get("contenutoBase64")
+                or row.get("file_base64")
+                or row.get("fileBase64")
+                or row.get("bytes_base64")
+                or row.get("bytesBase64")
                 or ""
             ).strip()
             if contenuto_b64.lower().startswith("data:") and "," in contenuto_b64:
@@ -1478,16 +1487,29 @@ def build_fascicoli_runtime(
             for item in espansi:
                 item["id_deposito_esterno"] = str(row.get("id_deposito_esterno") or row.get("id_deposito") or "").strip()
                 item["id_deposito_pct"] = str(row.get("id_deposito_pct") or "").strip()
-                item["id_documento_portale"] = str(row.get("id_documento_portale") or row.get("id_documento") or "").strip()
+                item["id_documento_portale"] = str(
+                    row.get("id_documento_portale")
+                    or row.get("id_documento")
+                    or row.get("idDocumento")
+                    or row.get("idDoc")
+                    or ""
+                ).strip()
                 item["tipo_atto"] = str(row.get("tipo_atto") or "").strip()
                 item["tipo"] = str(row.get("tipo") or "").strip()
                 item["mittente"] = str(row.get("mittente") or "").strip()
                 item["servizio_portale"] = str(row.get("servizio_portale") or "").strip()
-                item["id_cat"] = str(row.get("id_cat") or "").strip()
-                item["id_repeatto"] = str(row.get("id_repeatto") or "").strip()
-                item["msg_id"] = str(row.get("msg_id") or "").strip()
+                item["id_cat"] = str(row.get("id_cat") or row.get("idCat") or "").strip()
+                item["id_repeatto"] = str(row.get("id_repeatto") or row.get("idRepeatto") or row.get("idRepeatTo") or "").strip()
+                item["msg_id"] = str(row.get("msg_id") or row.get("msgId") or row.get("msgid") or "").strip()
                 item["content_type"] = str(row.get("content_type") or "").strip()
-                item["nome_file_originale"] = str(row.get("nome_file_originale") or row.get("filename") or row.get("name") or nome).strip()
+                item["nome_file_originale"] = str(
+                    row.get("nome_file_originale")
+                    or row.get("nomeFileOriginale")
+                    or row.get("filename")
+                    or row.get("name")
+                    or row.get("nome_file")
+                    or nome
+                ).strip()
                 has_modalita_portale = any(
                     key in row
                     for key in ("original_documento_portale", "modalita_documento_portale")

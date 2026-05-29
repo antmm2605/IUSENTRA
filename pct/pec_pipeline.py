@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from pct.email_client import cartelle_imap_standard
+from pct.pec_legal_workflow import classifica_pec_legale
 
 SCHEMA_VERSION = "2026-05-21.pec-audit-pipeline.v2"
 DEFAULT_TENANT_ID = "default"
@@ -926,6 +927,22 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
         if match:
             protocol = match.group(1)
     legal_context = detect_pec_legal_context(body_all)
+    legal_workflow = classifica_pec_legale(
+        subject=subject,
+        body=body_all,
+        sender=sender,
+        recipients=[item.get("email", "") for item in [*to_addresses, *cc_addresses] if isinstance(item, dict)],
+        attachments=[
+            {
+                "filename": item.filename,
+                "content_type": item.content_type,
+                "size_bytes": len(item.data),
+                "sha256": sha256_bytes(item.data),
+            }
+            for item in attachments
+        ],
+        message_id=message_id,
+    )
     fields = {
         "mittente": field_result(
             {"name": sender_name, "email": sender},
@@ -983,6 +1000,7 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
         },
         "fields": fields,
         "semantic_context": legal_context,
+        "legal_workflow": legal_workflow,
         "rg_candidates": rg_values,
         "body": {
             "text": clean_text(text_body, 20000),
@@ -1027,6 +1045,10 @@ def event_type_from_parsed(parsed: dict[str, Any], classes: Iterable[str]) -> st
         "domicilio_digitale",
     }:
         return event_hint
+    legal_workflow = parsed.get("legal_workflow") if isinstance(parsed.get("legal_workflow"), dict) else {}
+    legal_event = str(legal_workflow.get("event_type") or "")
+    if legal_event and legal_event != "pec_non_riconosciuta":
+        return legal_event
     if "deposito" in text or {"atto", "procura"} & class_set:
         return "deposito"
     if "notifica" in text:
@@ -1383,6 +1405,30 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
                 }
             )
     semantic_context = parsed.get("semantic_context") if isinstance(parsed.get("semantic_context"), dict) else {}
+    legal_workflow = parsed.get("legal_workflow") if isinstance(parsed.get("legal_workflow"), dict) else {}
+    if legal_workflow:
+        action = str(legal_workflow.get("azione_proposta") or "")
+        priority = str(legal_workflow.get("priority") or "media")
+        if action:
+            issues.append(
+                {
+                    "code": f"legal_workflow_{legal_workflow.get('event_type') or 'evento'}",
+                    "severity": "danger" if priority == "rossa" else "warning" if priority == "alta" else "info",
+                    "blocking": False,
+                    "title": str(legal_workflow.get("event_label") or "Evento PEC"),
+                    "detail": action,
+                }
+            )
+        if legal_workflow.get("event_type") == "ricevuta_accettazione_pec":
+            issues.append(
+                {
+                    "code": "pec_acceptance_does_not_close_deposit",
+                    "severity": "warning",
+                    "blocking": False,
+                    "title": "Ricevuta PEC non conclusiva",
+                    "detail": "La sola accettazione PEC non chiude il deposito se mancano consegna ed esito cancelleria.",
+                }
+            )
     notice_events = {
         "notifica_giudice_pace",
         "notifica_telematica",
@@ -1485,6 +1531,7 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
         "issues": issues,
         "deposit_lifecycle": deposit_lifecycle,
         "semantic_context": semantic_context,
+        "legal_workflow": legal_workflow,
         "normative_references": semantic_context.get("normative_references") or [],
         "agent_questions": [
             *(semantic_context.get("agent_questions") or []),
@@ -1500,6 +1547,7 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
         ],
         "recommended_actions": [
             *(semantic_context.get("recommended_actions") or []),
+            *([legal_workflow.get("azione_proposta")] if legal_workflow.get("azione_proposta") else []),
             *(
                 [deadline_proposal.get("reason")]
                 if deadline_proposal.get("auto_create") and deadline_proposal.get("reason")

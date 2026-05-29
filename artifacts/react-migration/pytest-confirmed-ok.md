@@ -1,5 +1,20 @@
 # Pytest shard confermati OK
 
+## PST/Local Signer, SQLite, PEC e attestazione 2.248.86 - 2026-05-29
+
+| Comando | Esito | Note |
+| --- | --- | --- |
+| `python scripts\audit_finale_pst_sqlite_pec.py --json` | OK | Audit finale locale superato; report Markdown versionato in `artifacts\audit\finale-pst-sqlite-pec-20260529-130823.md`. Il JSON diagnostico non viene versionato. |
+| `python -m py_compile web\services\telematico_runtime.py web\services\fascicoli_runtime.py web\bootstrap\portali_acquisizione_routes.py pct\database.py web\bootstrap\admin_database_routes.py web\services\react_admin_database_bridge.py pct\pec_legal_workflow.py pct\pec_pipeline.py pct\notifiche_legali.py` | OK | Sintassi moduli critici confermata da audit. |
+| `npm --prefix frontend run typecheck`; `npm --prefix frontend run build` | OK | TypeScript e build Vite verdi; asset generati localmente ripuliti perché Docker ricompila. |
+| `python -m pytest tests\test_polisweb.py -k "lotto_otto_documenti or blocca_file_senza_contenuto or salva_lotto_sette_documenti or blocca_catalogo_senza_file or parziale_aggiorna_pratica_esistente" -q` | OK | Step 7 coperto su lotto reale Local Signer/PST, catalogo, contenuto mancante e import parziale sicuro. |
+| `python -m pytest tests\test_database.py -k "sqlite or admin_database" -q` | OK | 29/29: pre-verifica, riconciliazione conservativa, blocco anti-perdita e route amministrative SQLite verdi. |
+| `python -m pytest tests\test_pec_legal_workflow.py tests\test_pec_audit_pipeline.py -k "pec or deposit_lifecycle or react_email_bridge_lists" -q` | OK | 19/19: famiglie PEC, registri, eventi, anti-duplicati e compatibilità pipeline/audit confermati. |
+| `python -m coverage run --data-file=artifacts\audit\.coverage-pst-sqlite-pec -m pytest tests\test_pec_legal_workflow.py -q`; `python -m coverage report --data-file=artifacts\audit\.coverage-pst-sqlite-pec --include=pct\pec_legal_workflow.py -m` | OK | Copertura `pct\pec_legal_workflow.py` al 100%. Non viene dichiarata copertura globale 100% del progetto storico. |
+| `python -m pytest tests\test_notifiche_legali.py -k "attestazione_conformita" -q` | OK | Payload attestazione e DOCX autocompilante verificati. |
+| `python -m pytest tests\test_react_shell.py -k "admin_database or portale_acquisizione or react_wizard_pst" -q` | OK | Contratti React amministrazione database e wizard PST/Local Signer verdi. |
+| `python -m pytest tests\test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | Presidio UTF-8 e whitespace confermati; rimangono solo warning CRLF/LF storici della shell Git. |
+
 ## Database anti-perdita SQLite 2.248.84 - 2026-05-29
 
 | Comando | Esito | Note |

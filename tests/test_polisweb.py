@@ -6000,6 +6000,241 @@ def test_api_portale_acquisizione_import_pst_salva_lotto_sette_documenti_nel_fas
     assert len(fascicolo_reload.depositi_pct[0].documenti_ids) == 7
 
 
+def test_api_portale_acquisizione_import_pst_salva_lotto_otto_documenti_con_alias_local_signer(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="Divorzio consensuale R.G. 1025/2026",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2026,
+        oggetto="Divorzio",
+    )
+    nomi = [
+        "RicorsoDivorzio_243923088.pdf",
+        "Procura_243923089.pdf",
+        "EstrattoMatrimonio_243923090.pdf",
+        "StatoFamiglia_243923091.pdf",
+        "CertificatoResidenza_243923092.pdf",
+        "DichiarazioneRedditi_243923093.pdf",
+        "DocumentoIdentita_243923094.pdf",
+        "RicevutaContributo_243923095.pdf",
+    ]
+    preview_documenti = [
+        {
+            "id_documento": f"DOC-DIV-{index}",
+            "nome": nome,
+            "tipo": "Ricorso" if index == 1 else "Documento",
+            "tipo_atto": "Ricorso" if index == 1 else "Documento",
+            "data_deposito": "2026-05-20",
+            "mittente": "Local Signer",
+            "id_deposito": "BUSTA-DIV-1025",
+            "id_cat": f"CAT-DIV-{index}",
+            "id_repeatto": f"REP-DIV-{index}",
+        }
+        for index, nome in enumerate(nomi, start=1)
+    ]
+    downloaded_files = [
+        {
+            "nome_file": row["nome"],
+            "contenuto_base64": base64.b64encode(f"%PDF-1.4 {row['nome']}".encode("ascii")).decode("ascii"),
+            "content_type": "application/pdf",
+            "source": f"pst:JPW_SICID:{row['id_cat']}",
+            "data_deposito": row["data_deposito"],
+            "idDocumento": row["id_documento"],
+            "idDeposito": row["id_deposito"],
+            "idCat": row["id_cat"],
+            "idRepeatTo": row["id_repeatto"],
+            "tipo_atto": row["tipo_atto"],
+        }
+        for row in preview_documenti
+    ]
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/api/portali/pst/acquisizione/import",
+            json={
+                "selection": {
+                    "external_id": "0580010:1025:2026:RG",
+                    "numero": "1025",
+                    "anno": 2026,
+                    "ufficio_codice": "0580010",
+                    "ufficio_nome": "Tribunale di Palmi",
+                    "procedimento": "CC",
+                    "oggetto": "Divorzio",
+                    "parti": ["ROSSI MARIA"],
+                    "controparti": ["BIANCHI LUCA"],
+                    "payload": {
+                        "numero_rg": "1025",
+                        "anno_rg": 2026,
+                        "ruolo": "CC",
+                        "oggetto": "Divorzio",
+                        "codice_ufficio": "0580010",
+                        "nome_ufficio": "Tribunale di Palmi",
+                    },
+                },
+                "preview": {
+                    "identity": {
+                        "numero": "1025",
+                        "anno": 2026,
+                        "ufficio_nome": "Tribunale di Palmi",
+                        "ufficio_codice": "0580010",
+                        "procedimento": "CC",
+                    },
+                    "parti": ["ROSSI MARIA"],
+                    "controparti": ["BIANCHI LUCA"],
+                    "documenti": preview_documenti,
+                    "depositi": [
+                        {
+                            "id_deposito": "BUSTA-DIV-1025",
+                            "tipo_atto": "Documenti fascicolo",
+                            "data_deposito": "2026-05-20",
+                            "mittente": "Local Signer",
+                            "documenti": preview_documenti,
+                        }
+                    ],
+                    "counts": {"parti": 1, "documenti": 8, "depositi": 1, "eventi": 0, "udienze": 0},
+                },
+                "options": {
+                    "importa_dati_pratica": True,
+                    "importa_parti": True,
+                    "importa_eventi": False,
+                    "importa_scadenze": False,
+                    "importa_documenti": True,
+                    "importa_cronologia_depositi": True,
+                    "mantieni_albero_originale": False,
+                },
+                "mapping": {"mode": "update_existing", "target_fascicolo_id": fascicolo.id},
+                "downloaded_files": downloaded_files,
+            },
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    summary = data["result"]["summary"]
+    assert summary["documenti"] == 8
+    assert summary["documenti_reali"] == 8
+    assert summary["documenti_da_acquisire"] == 0
+    assert summary["report_documentale"]["documenti_senza_contenuto"] == 0
+
+    fascicolo_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    ).get(fascicolo.id)
+    assert fascicolo_reload is not None
+    assert len(fascicolo_reload.documenti) == 8
+    assert "RicorsoDivorzio_243923088.pdf" in {doc.nome for doc in fascicolo_reload.documenti}
+
+    import_rows = json.loads((tmp_path / "portale" / "import_log.json").read_text(encoding="utf-8"))
+    row = next(item for item in import_rows if item["id"] == data["result"]["import_log_id"])
+    assert "Importazione PST avviata" in row["audit_studio"]
+    assert any("Documento reale riconosciuto" in item for item in row["audit_studio"])
+    assert "Importazione completata" in row["audit_studio"]
+
+
+def test_api_portale_acquisizione_import_pst_blocca_file_senza_contenuto_con_report(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/api/portali/pst/acquisizione/import",
+            json={
+                "selection": {
+                    "external_id": "0580010:1025:2026:RG",
+                    "numero": "1025",
+                    "anno": 2026,
+                    "ufficio_codice": "0580010",
+                    "ufficio_nome": "Tribunale di Palmi",
+                    "procedimento": "CC",
+                    "oggetto": "Divorzio",
+                    "parti": ["ROSSI MARIA"],
+                    "controparti": [],
+                    "payload": {"numero_rg": "1025", "anno_rg": 2026, "ruolo": "CC"},
+                },
+                "preview": {
+                    "identity": {"numero": "1025", "anno": 2026, "ufficio_nome": "Tribunale di Palmi"},
+                    "documenti": [
+                        {
+                            "id_documento": "DOC-DIV-1",
+                            "nome": "RicorsoDivorzio_243923088.pdf",
+                            "tipo": "Ricorso",
+                            "tipo_atto": "Ricorso",
+                            "data_deposito": "2026-05-20",
+                            "id_deposito": "BUSTA-DIV-1025",
+                            "id_cat": "CAT-DIV-1",
+                        }
+                    ],
+                    "depositi": [],
+                    "counts": {"documenti": 1, "depositi": 0, "eventi": 0, "udienze": 0},
+                },
+                "options": {
+                    "importa_dati_pratica": True,
+                    "importa_parti": False,
+                    "importa_eventi": False,
+                    "importa_scadenze": False,
+                    "importa_documenti": True,
+                },
+                "mapping": {"mode": "create_new"},
+                "downloaded_files": [{"nome_file": "RicorsoDivorzio_243923088.pdf", "contenuto_base64": ""}],
+            },
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is False
+    assert "documenti reali presenti 0" in data["errore"]
+    assert "senza contenuto 1" in data["errore"]
+    assert "RicorsoDivorzio_243923088.pdf" in data["errore"]
+
+
 def test_api_portale_acquisizione_preview_pst_usa_fallback_payload_e_id_fascicolo(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app

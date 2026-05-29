@@ -1,5 +1,20 @@
 # Pytest issue aperte e risoluzioni
 
+## PST/Local Signer, SQLite, PEC e attestazione 2.248.86 - 2026-05-29
+
+Nessuna issue di codice aperta sul perimetro corretto dopo l'audit finale
+locale.
+
+Nota operativa: i gate di audit generano durante l'esecuzione asset Vite e JSON
+runtime tenant-aware. Gli asset React sono ripuliti dallo script; i JSON runtime
+locali sono stati classificati come artefatti di test e ripristinati prima del
+commit, senza includere dati tenant nel diff.
+
+La copertura al 100% viene applicata al nuovo modulo
+`pct\pec_legal_workflow.py`. Per i moduli storici più ampi, il report finale
+non dichiara una copertura globale 100% e mantiene invece fixture mirate sui
+rami critici modificati.
+
 ## Database anti-perdita SQLite 2.248.84 - 2026-05-29
 
 Nessuna issue di codice aperta sul perimetro corretto dopo i test mirati e le

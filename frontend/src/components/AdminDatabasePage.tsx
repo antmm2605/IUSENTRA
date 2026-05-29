@@ -69,6 +69,32 @@ function statusTone(status: AsyncState): Tone {
   return 'neutral'
 }
 
+type SqliteOperation = 'precheck' | 'migrate' | 'reconcile' | 'activate'
+
+function sqliteOperationLabel(operation: SqliteOperation): string {
+  if (operation === 'precheck') return 'Pre-verifica SQLite'
+  if (operation === 'reconcile') return 'Riconciliazione SQLite'
+  if (operation === 'activate') return 'Attivazione SQLite'
+  return 'Migrazione SQLite'
+}
+
+function sqliteLoadingMessage(operation: SqliteOperation): string {
+  if (operation === 'precheck') return 'Analisi SQLite in corso...'
+  if (operation === 'reconcile') return 'Riconciliazione SQLite in corso...'
+  if (operation === 'activate') return 'Attivazione SQLite in corso...'
+  return 'Migrazione SQLite in corso...'
+}
+
+function sqliteMessage(payload: AdminDatabaseMigrationResult): string {
+  return payload.messaggio || payload.stato || payload.errore || (payload.ok ? 'Operazione SQLite completata.' : 'Operazione SQLite non completata.')
+}
+
+function sqliteOperationStatus(payload: AdminDatabaseMigrationResult): AsyncState {
+  if (!payload.ok) return 'error'
+  if (payload.stato === 'Bloccata per protezione dati' || payload.stato === 'Non eseguita' || payload.stato === 'Rollback eseguito') return 'error'
+  return 'success'
+}
+
 function csrfToken(): string {
   return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || ''
 }
@@ -224,22 +250,67 @@ function OptimizationResult({ result }: { result: AdminDatabaseOptimizeResult | 
 function MigrationResult({ result }: { result: AdminDatabaseMigrationResult | null }) {
   if (!result) return null
   const auditModules = result.audit_migrazione?.validation?.modules || result.audit_migrazione?.precheck?.modules || {}
+  const reconciliation = result.audit_migrazione?.reconciliation
+  const reconciliationRows = Object.entries(reconciliation?.tables || {})
+    .map(([name, row]) => ({
+      name,
+      imported: Number(row.imported || 0),
+      preserved: Number(row.preserved_existing || 0),
+      already: Number(row.already_present || 0),
+      conflicts: Number(row.conflicts || 0),
+      target: Number(row.target_count || 0),
+    }))
+    .filter((row) => row.imported || row.preserved || row.already || row.conflicts || row.target)
   const auditRows = Object.entries(auditModules)
     .map(([name, row]) => {
       const jsonCount = Number(row.json_count || 0)
       const sqliteCount = Number('sqlite_count' in row ? row.sqlite_count || 0 : row.existing_sqlite_count || 0)
-      return { name, jsonCount, sqliteCount, status: String(row.status || 'ok'), reason: String('reason' in row ? row.reason || '' : '') }
+      const onlyDatabase = Number('only_database_count' in row ? row.only_database_count || 0 : 0)
+      const onlySource = Number('only_source_count' in row ? row.only_source_count || 0 : 0)
+      const conflicts = Number('conflict_count' in row ? row.conflict_count || 0 : 0)
+      return {
+        name,
+        jsonCount,
+        sqliteCount,
+        status: String(row.status || 'ok'),
+        reason: String('reason' in row ? row.reason || '' : ''),
+        onlyDatabase,
+        onlySource,
+        conflicts,
+      }
     })
-    .filter((row) => row.jsonCount || row.sqliteCount || row.status !== 'ok')
+    .filter((row) => row.jsonCount || row.sqliteCount || row.status !== 'ok' || row.onlyDatabase || row.onlySource || row.conflicts)
+  const flowSteps = [
+    'Analisi',
+    'Pre-verifica',
+    'Report differenze',
+    'Backup',
+    'Riconciliazione',
+    'Attivazione',
+    'Verifica finale',
+    'Esito',
+  ]
+  const completedSteps = new Set<string>(['Analisi', 'Pre-verifica', 'Report differenze'])
+  if (reconciliation?.backup_db) completedSteps.add('Backup')
+  if (reconciliation?.executed) completedSteps.add('Riconciliazione')
+  if (result.ok) completedSteps.add('Attivazione')
+  if (result.audit_migrazione?.validation) completedSteps.add('Verifica finale')
+  if (result.stato || result.messaggio || result.errore) completedSteps.add('Esito')
   return (
     <div className="iu-db-migration-result">
       <div className="iu-db-okline">
         {result.ok ? <CheckCircle2 size={16}/> : <AlertTriangle size={16}/>}
-        {result.messaggio || result.errore || 'Operazione completata'}
+        <span>{result.stato ? <Badge tone={result.ok ? 'success' : 'danger'}>{result.stato}</Badge> : null}{sqliteMessage(result)}</span>
       </div>
       {result.percorso_db ? <p><strong>Database:</strong> {result.percorso_db}</p> : null}
       <p><strong>Record migrati:</strong> {formatNumber(result.record_migrati || 0)}</p>
+      {result.azione_consigliata ? <p><strong>Azione consigliata:</strong> {result.azione_consigliata}</p> : null}
       {result.istruzione ? <p>{result.istruzione}</p> : null}
+      <div className="iu-db-flow" aria-label="Flusso SQLite">
+        {flowSteps.map((step) => (
+          <span key={step} className={completedSteps.has(step) ? 'is-done' : ''}>{step}</span>
+        ))}
+      </div>
       {Object.keys(result.per_modulo || {}).length ? (
         <div className="iu-db-module-counts">
           {Object.entries(result.per_modulo).map(([name, count]) => (
@@ -253,7 +324,34 @@ function MigrationResult({ result }: { result: AdminDatabaseMigrationResult | nu
             <span key={row.name}>
               <strong>{row.name}</strong>
               {formatNumber(row.sqliteCount)} / {formatNumber(row.jsonCount)}
+              {(row.onlyDatabase || row.onlySource || row.conflicts) ? (
+                <small>
+                  Solo database {formatNumber(row.onlyDatabase)} · solo sorgente {formatNumber(row.onlySource)} · conflitti {formatNumber(row.conflicts)}
+                </small>
+              ) : null}
               {row.reason ? <small>{row.reason}</small> : null}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {reconciliationRows.length ? (
+        <div className="iu-db-module-counts" aria-label="Riconciliazione SQLite">
+          {reconciliationRows.slice(0, 12).map((row) => (
+            <span key={row.name}>
+              <strong>{row.name}</strong>
+              <small>
+                importati {formatNumber(row.imported)} · preservati {formatNumber(row.preserved)} · conflitti {formatNumber(row.conflicts)}
+              </small>
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {reconciliation?.backup_db ? <p><strong>Backup:</strong> {reconciliation.backup_db}</p> : null}
+      {reconciliation?.conflicts?.length ? (
+        <div className="iu-db-warning-list">
+          {reconciliation.conflicts.slice(0, 8).map((conflict, index) => (
+            <span key={`${conflict.table || 'tabella'}-${index}`}>
+              <AlertTriangle size={14}/>{conflict.table || 'Tabella'}: {conflict.reason || 'conflitto da revisione'}
             </span>
           ))}
         </div>
@@ -380,19 +478,25 @@ export function AdminDatabasePage() {
     }
   }
 
-  const runMigration = async (activate = false) => {
-    const action = activate ? data.actions.activateSqlite : data.actions.migrate
-    setMigration({ status: 'loading', message: activate ? 'Attivazione SQLite in corso...' : 'Migrazione SQLite in corso...', payload: null })
+  const runMigration = async (operation: SqliteOperation) => {
+    const action = operation === 'precheck'
+      ? data.actions.precheckSqlite
+      : operation === 'reconcile'
+        ? data.actions.reconcileSqlite
+        : operation === 'activate'
+          ? data.actions.activateSqlite
+          : data.actions.migrate
+    setMigration({ status: 'loading', message: sqliteLoadingMessage(operation), payload: null })
     try {
       const payload = await jsonRequest<AdminDatabaseMigrationResult>(action, { method: 'POST' })
       setMigration({
-        status: payload.ok ? 'success' : 'error',
-        message: payload.messaggio || payload.errore || (payload.ok ? 'Operazione SQLite completata.' : 'Operazione SQLite completata con errori.'),
+        status: sqliteOperationStatus(payload),
+        message: sqliteMessage(payload),
         payload,
       })
       await loadData()
     } catch (caught) {
-      setMigration({ status: 'error', message: caught instanceof Error ? caught.message : 'Operazione SQLite non completata.', payload: null })
+      setMigration({ status: 'error', message: caught instanceof Error ? caught.message : `${sqliteOperationLabel(operation)} non completata.`, payload: null })
     }
   }
 
@@ -472,21 +576,27 @@ export function AdminDatabasePage() {
                 {data.sqlite.error ? <span>{data.sqlite.error}</span> : <span>{data.sqlite.totalPages ? `${formatNumber(data.sqlite.totalPages)} pagine totali` : 'Nessun dettaglio SQLite disponibile'}</span>}
               </div>
               <div className="iu-db-sqlite__actions">
-                <button type="button" className="iu-button iu-button--primary" onClick={() => runMigration(false)} disabled={migration.status === 'loading'}>
+                <button type="button" className="iu-button" onClick={() => runMigration('precheck')} disabled={migration.status === 'loading'}>
+                  <SearchCheck size={15}/>{migration.status === 'loading' ? 'Analisi...' : 'Analizza'}
+                </button>
+                <button type="button" className="iu-button iu-button--primary" onClick={() => runMigration('migrate')} disabled={migration.status === 'loading'}>
                   <UploadCloud size={15}/>{migration.status === 'loading' ? 'Migrazione...' : 'Migra JSON'}
+                </button>
+                <button type="button" className="iu-button" onClick={() => runMigration('reconcile')} disabled={migration.status === 'loading'}>
+                  <ShieldCheck size={15}/>{migration.status === 'loading' ? 'Riconcilio...' : 'Riconcilia'}
                 </button>
                 <button
                   type="button"
                   className="iu-button"
                   onClick={() => {
-                    if (window.confirm('Attivare SQLite operativo per questo ambiente?')) void runMigration(true)
+                    if (window.confirm('Attivare SQLite operativo per questo ambiente?')) void runMigration('activate')
                   }}
                   disabled={migration.status === 'loading'}
                 >
                   <HardDrive size={15}/>Attiva SQLite
                 </button>
               </div>
-              <OperationAlert state={migration as OperationState<unknown>} idleText="Migrazione e attivazione usano operazioni amministrative tracciate."/>
+              <OperationAlert state={migration as OperationState<unknown>} idleText="Analizza prima di attivare: il blocco anti-perdita resta attivo e la riconciliazione conserva i dati già nel database."/>
               <MigrationResult result={migration.payload}/>
               {data.sqlite.tables.length ? (
                 <div className="iu-db-sqlite__tables">

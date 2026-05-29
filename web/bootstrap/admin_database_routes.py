@@ -30,6 +30,64 @@ def register_admin_database_routes(
             "suggerimento": problema.suggerimento,
         }
 
+    def _sqlite_instruction() -> str:
+        return (
+            "Per ambienti multi-tenant imposta SQLite dal pannello SUPERADMIN dello studio. "
+            "Per installazioni single-tenant legacy puoi usare PCT_STORAGE_MODE=SQLITE; "
+            "PCT_SQLITE_MODE=1 resta supportato come compatibilità."
+        )
+
+    def _sqlite_status_payload(risultato, *, fallback_db: str = "") -> dict:
+        totale = sum(risultato.record_migrati.values()) if risultato.record_migrati else 0
+        audit_migrazione = risultato.audit or {}
+        precheck = audit_migrazione.get("precheck") if isinstance(audit_migrazione, dict) else {}
+        reconciliation = audit_migrazione.get("reconciliation") if isinstance(audit_migrazione, dict) else {}
+        blockers = list((precheck or {}).get("blockers") or []) if isinstance(precheck, dict) else []
+        riconciliata = bool(isinstance(reconciliation, dict) and reconciliation.get("executed"))
+        if risultato.riuscita and riconciliata:
+            stato = "Eseguita riconciliazione"
+            messaggio = (
+                "Riconciliazione SQLite completata: il database operativo è rimasto la base, "
+                "i record mancanti dalla sorgente sono stati aggiunti senza cancellare quelli già presenti."
+            )
+            azione = "Controlla eventuali conflitti indicati nel report prima di usare i dati riconciliati."
+        elif risultato.riuscita and risultato.avvisi:
+            stato = "Completata con avvisi non bloccanti"
+            messaggio = "Operazione SQLite completata con avvisi da presidiare."
+            azione = "Leggi gli avvisi e conserva il report insieme al backup generato."
+        elif risultato.riuscita:
+            stato = "Completata"
+            messaggio = "Operazione SQLite completata con successo."
+            azione = "Puoi usare il database SQLite indicato nel report."
+        elif blockers:
+            stato = "Bloccata per protezione dati"
+            messaggio = (
+                "Attivazione SQLite bloccata: il database esistente contiene record non presenti "
+                "nei dati correnti e non verrà sovrascritto."
+            )
+            azione = (
+                "Esegui la riconciliazione sicura: il database esistente viene usato come base, "
+                "i record solo nella sorgente vengono aggiunti e i conflitti restano da revisione."
+            )
+        else:
+            stato = "Non eseguita"
+            messaggio = "Operazione SQLite non eseguita: verifica gli errori riportati."
+            azione = "Correggi gli errori indicati e ripeti la pre-verifica prima di procedere."
+        return {
+            "ok": risultato.riuscita,
+            "stato": stato,
+            "messaggio": messaggio,
+            "percorso_db": risultato.percorso_db or fallback_db,
+            "record_migrati": totale,
+            "per_modulo": risultato.record_migrati,
+            "errori": risultato.errori,
+            "avvisi": risultato.avvisi,
+            "audit_migrazione": audit_migrazione,
+            "durata_secondi": round(risultato.ms / 1000, 3),
+            "azione_consigliata": azione,
+            "istruzione": _sqlite_instruction(),
+        }
+
     @app.route("/admin/database")
     def admin_database():
         """Dashboard gestione database solo amministratori."""
@@ -147,29 +205,74 @@ def register_admin_database_routes(
         database = get_database()
         risultato = database.migra_verso_sqlite(percorso_db)
         audit("database.migra_sqlite", risorsa_tipo="db", risorsa_id=percorso_db)
-        totale = sum(risultato.record_migrati.values()) if risultato.record_migrati else 0
-        if risultato.riuscita and risultato.avvisi:
-            messaggio = (
-                "Migrazione completata con avvisi: alcuni riferimenti orfani sono stati "
-                "scollegati per preservare i record."
-            )
-        elif risultato.riuscita:
-            messaggio = "Migrazione completata con successo."
-        else:
-            messaggio = "Migrazione non completata: verifica gli errori riportati."
-        return jsonify(
-            {
-                "ok": risultato.riuscita,
-                "messaggio": messaggio,
-                "percorso_db": risultato.percorso_db,
-                "record_migrati": totale,
-                "per_modulo": risultato.record_migrati,
-                "errori": risultato.errori,
-                "avvisi": risultato.avvisi,
-                "audit_migrazione": risultato.audit,
-                "durata_secondi": round(risultato.ms / 1000, 3),
-            }
-        )
+        return jsonify(_sqlite_status_payload(risultato, fallback_db=percorso_db))
+
+    @app.route("/admin/database/preverifica-sqlite", methods=["POST"])
+    def admin_database_preverifica_sqlite():
+        """Esegue la pre-verifica anti-perdita senza modificare il database SQLite."""
+        utente = g.utente_corrente
+        if not utente or not utente.ha_permesso("utenti.leggi"):
+            return jsonify({"errore": "Non autorizzato"}), 403
+        try:
+            from pct.storage import StudioDB
+
+            studio_db = StudioDB.from_data_path(cfg_data_path("CLIENTI_DB"))
+            percorso_db = str(studio_db.db_path)
+            payload = get_database().preverifica_attivazione_sqlite(percorso_db)
+            payload["istruzione"] = _sqlite_instruction()
+            audit("database.preverifica_sqlite", risorsa_tipo="db", risorsa_id=percorso_db)
+            return jsonify(payload)
+        except Exception as exc:
+            app.logger.exception("Errore pre-verifica SQLite: %s", exc)
+            return jsonify(
+                {
+                    "ok": False,
+                    "stato": "Non eseguita",
+                    "messaggio": "Pre-verifica SQLite non eseguita.",
+                    "errore": "Pre-verifica SQLite non eseguita. Il database esistente non è stato modificato.",
+                    "errori": ["Pre-verifica SQLite non eseguita."],
+                    "avvisi": [],
+                    "audit_migrazione": {"precheck": {}, "validation": {}, "staging": False},
+                    "azione_consigliata": "Verifica configurazione tenant, permessi su /data e ripeti l'analisi.",
+                    "istruzione": _sqlite_instruction(),
+                }
+            ), 200
+
+    @app.route("/admin/database/riconcilia-sqlite", methods=["POST"])
+    def admin_database_riconcilia_sqlite():
+        """Riconcilia SQLite preservando il database operativo come base."""
+        utente = g.utente_corrente
+        if not utente or not utente.ha_permesso("utenti.leggi"):
+            return jsonify({"errore": "Non autorizzato"}), 403
+        try:
+            from pct.storage import StudioDB
+            from pct import cache as pct_cache
+
+            studio_db = StudioDB.from_data_path(cfg_data_path("CLIENTI_DB"))
+            percorso_db = str(studio_db.db_path)
+            risultato = get_database().riconcilia_verso_sqlite(percorso_db)
+            pct_cache.invalidate(percorso_db)
+            audit("database.riconcilia_sqlite", risorsa_tipo="db", risorsa_id=percorso_db)
+            return jsonify(_sqlite_status_payload(risultato, fallback_db=percorso_db))
+        except Exception as exc:
+            app.logger.exception("Errore riconciliazione SQLite: %s", exc)
+            return jsonify(
+                {
+                    "ok": False,
+                    "stato": "Rollback eseguito",
+                    "messaggio": "Riconciliazione SQLite non completata.",
+                    "errore": "Riconciliazione SQLite non completata. Il database esistente non è stato modificato.",
+                    "errori": ["Riconciliazione SQLite non completata."],
+                    "avvisi": [],
+                    "audit_migrazione": {
+                        "precheck": {},
+                        "validation": {},
+                        "reconciliation": {"executed": False},
+                    },
+                    "azione_consigliata": "Conserva il report e richiedi intervento SUPERADMIN prima di ripetere.",
+                    "istruzione": _sqlite_instruction(),
+                }
+            ), 200
 
     @app.route("/admin/database/attiva-sqlite", methods=["POST"])
     def admin_database_attiva_sqlite():
@@ -193,29 +296,19 @@ def register_admin_database_routes(
             pct_cache.invalidate(percorso_db)
 
             audit("database.attiva_sqlite", risorsa_tipo="db", risorsa_id=percorso_db)
-            totale = sum(risultato.record_migrati.values()) if risultato.record_migrati else 0
-            return jsonify(
-                {
-                    "ok": risultato.riuscita,
-                    "percorso_db": percorso_db,
-                    "record_migrati": totale,
-                    "per_modulo": risultato.record_migrati,
-                    "errori": risultato.errori,
-                    "avvisi": risultato.avvisi,
-                    "audit_migrazione": risultato.audit,
-                    "istruzione": (
-                        "Per ambienti multi-tenant imposta SQLite dal pannello SUPERADMIN dello studio. "
-                        "Per installazioni single-tenant legacy puoi usare PCT_STORAGE_MODE=SQLITE; "
-                        "PCT_SQLITE_MODE=1 resta supportato come compatibilita'."
-                    ),
-                }
-            )
+            return jsonify(_sqlite_status_payload(risultato, fallback_db=percorso_db))
         except Exception as exc:
             app.logger.exception("Errore attivazione SQLite: %s", exc)
             return jsonify(
                 {
                     "ok": False,
+                    "stato": "Rollback eseguito",
+                    "messaggio": "Attivazione SQLite non completata.",
                     "errore": "Operazione SQLite non completata. Il database esistente non è stato modificato.",
+                    "errori": ["Operazione SQLite non completata."],
+                    "avvisi": [],
+                    "azione_consigliata": "Esegui la pre-verifica e ripeti solo dopo aver risolto l'errore.",
+                    "istruzione": _sqlite_instruction(),
                 }
             ), 200
 

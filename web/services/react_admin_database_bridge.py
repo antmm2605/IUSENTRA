@@ -139,6 +139,8 @@ def _actions_payload() -> dict[str, str]:
         "repair": "/admin/database/verifica-ripara",
         "optimize": "/admin/database/ottimizza",
         "migrate": "/admin/database/migra",
+        "precheckSqlite": "/admin/database/preverifica-sqlite",
+        "reconcileSqlite": "/admin/database/riconcilia-sqlite",
         "activateSqlite": "/admin/database/attiva-sqlite",
         "exportZip": "/admin/database/export",
         "backup": "/backup",

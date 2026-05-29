@@ -52,6 +52,8 @@ export type AdminDatabaseActions = {
   repair: string
   optimize: string
   migrate: string
+  precheckSqlite: string
+  reconcileSqlite: string
   activateSqlite: string
   exportZip: string
   backup: string
@@ -139,12 +141,14 @@ export type AdminDatabaseOptimizeResult = {
 
 export type AdminDatabaseMigrationResult = {
   ok: boolean
+  stato?: string
   messaggio: string
   percorso_db: string
   record_migrati: number
   per_modulo: Record<string, number>
   errori: string[]
   avvisi: string[]
+  azione_consigliata?: string
   audit_migrazione?: {
     validation?: {
       ok?: boolean
@@ -160,13 +164,36 @@ export type AdminDatabaseMigrationResult = {
     }
     precheck?: {
       ok?: boolean
+      target_exists?: boolean
+      target_db?: string
       modules?: Record<string, {
         json_count?: number
         existing_sqlite_count?: number
+        only_database_count?: number
+        only_source_count?: number
+        conflict_count?: number
+        missing_existing_ids?: string[]
+        only_source_ids?: string[]
+        payload_mismatches?: string[]
         status?: string
         reason?: string
       }>
       blockers?: string[]
+    }
+    reconciliation?: {
+      executed?: boolean
+      mode?: string
+      backup_db?: string
+      records_imported?: number
+      already_present?: number
+      conflicts?: Array<{ table?: string; reason?: string; key?: Record<string, unknown> }>
+      tables?: Record<string, {
+        imported?: number
+        already_present?: number
+        conflicts?: number
+        preserved_existing?: number
+        target_count?: number
+      }>
     }
     staging?: boolean
   }
@@ -181,6 +208,8 @@ const emptyActions: AdminDatabaseActions = {
   repair: '/admin/database/verifica-ripara',
   optimize: '/admin/database/ottimizza',
   migrate: '/admin/database/migra',
+  precheckSqlite: '/admin/database/preverifica-sqlite',
+  reconcileSqlite: '/admin/database/riconcilia-sqlite',
   activateSqlite: '/admin/database/attiva-sqlite',
   exportZip: '/admin/database/export',
   backup: '/backup',
@@ -372,6 +401,8 @@ function normalisePayload(payload: unknown): AdminDatabasePageData {
       repair: text(actions.repair, emptyActions.repair),
       optimize: text(actions.optimize, emptyActions.optimize),
       migrate: text(actions.migrate, emptyActions.migrate),
+      precheckSqlite: text(actions.precheckSqlite, emptyActions.precheckSqlite),
+      reconcileSqlite: text(actions.reconcileSqlite, emptyActions.reconcileSqlite),
       activateSqlite: text(actions.activateSqlite, emptyActions.activateSqlite),
       exportZip: text(actions.exportZip, emptyActions.exportZip),
       backup: text(actions.backup, emptyActions.backup),

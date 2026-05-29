@@ -76,6 +76,8 @@ def register_portali_acquisizione_routes(
         lowered = detail.lower()
         if not detail:
             return base
+        if "documenti reali presenti" in lowered or "primo elemento da verificare" in lowered:
+            return detail
         if "timeout connessione" in lowered or "timed out" in lowered:
             return (
                 "Scaricamento dal PST non completato: il portale ufficiale non ha risposto "

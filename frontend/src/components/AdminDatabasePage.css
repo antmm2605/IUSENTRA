@@ -40,6 +40,7 @@
 .iu-db-operation-alert--danger{border-color:rgba(239,68,68,.24);background:rgba(239,68,68,.09);color:#b91c1c}
 .iu-db-integrity-result{display:grid;gap:10px}
 .iu-db-okline{display:flex;align-items:center;gap:8px;min-height:34px;padding:0 11px;border-radius:10px;background:rgba(16,185,129,.1);color:#047857;font-size:12px;font-weight:850}
+.iu-db-okline>span{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .iu-db-problems,.iu-db-repairs{display:grid;gap:8px}
 .iu-db-problems article,.iu-db-repairs article{display:grid;gap:5px;padding:10px;border:1px solid var(--iu-border);border-radius:12px;background:#fff}
 .iu-db-repairs article{border-color:rgba(16,185,129,.22);background:rgba(240,253,250,.72)}
@@ -58,9 +59,13 @@
 .iu-db-migration-result{display:grid;gap:8px;padding:10px;border:1px solid var(--iu-border);border-radius:12px;background:#fff}
 .iu-db-migration-result p{margin:0;color:var(--iu-slate-600);font-size:12px;font-weight:740;line-height:1.4}
 .iu-db-migration-result strong{color:#0f172a}
+.iu-db-flow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.iu-db-flow span{min-height:30px;display:flex;align-items:center;justify-content:center;padding:0 8px;border:1px solid var(--iu-border);border-radius:10px;background:#f8fafc;color:var(--iu-slate-500);font-size:11px;font-weight:850;text-align:center}
+.iu-db-flow span.is-done{border-color:rgba(16,185,129,.24);background:rgba(16,185,129,.1);color:#047857}
 .iu-db-module-counts,.iu-db-sqlite__tables{display:grid;gap:7px}
-.iu-db-module-counts span,.iu-db-sqlite__tables span{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:32px;padding:0 9px;border:1px solid var(--iu-border);border-radius:10px;background:#f8fafc;color:var(--iu-slate-600);font-size:12px;font-weight:780}
+.iu-db-module-counts span,.iu-db-sqlite__tables span{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:32px;padding:7px 9px;border:1px solid var(--iu-border);border-radius:10px;background:#f8fafc;color:var(--iu-slate-600);font-size:12px;font-weight:780}
 .iu-db-module-counts strong,.iu-db-sqlite__tables strong{min-width:0;overflow:hidden;text-overflow:ellipsis;color:#0f172a;white-space:nowrap}
+.iu-db-module-counts small{color:var(--iu-slate-500);font-size:11px;font-weight:740;line-height:1.3;text-align:right}
 .iu-db-warning-list,.iu-db-error-list{display:grid;gap:6px}
 .iu-db-warning-list span,.iu-db-error-list span{display:flex;align-items:center;gap:7px;padding:7px 9px;border-radius:10px;font-size:12px;font-weight:780;line-height:1.35}
 .iu-db-warning-list span{background:rgba(245,158,11,.1);color:#92400e}

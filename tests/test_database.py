@@ -933,6 +933,68 @@ def test_migra_verso_sqlite_blocca_svuotamento_db_operativo_esistente(tmp_path):
     assert counts == (1, 1)
 
 
+def test_preverifica_attivazione_sqlite_reporta_blocco_anti_perdita(tmp_path):
+    clienti_path = tmp_path / "clienti" / "anagrafica.json"
+    studio_db = tmp_path / "studio.db"
+    _scrivi_json(
+        clienti_path,
+        {
+            "CLI001": {"id": "CLI001", "nome": "Anna", "cognome": "Rossi"},
+            "CLI002": {"id": "CLI002", "nome": "Luca", "cognome": "Bianchi"},
+        },
+    )
+    iniziale = GestioneDatabase({"clienti": str(clienti_path)}).migra_verso_sqlite(str(studio_db))
+    assert iniziale.riuscita is True
+
+    _scrivi_json(clienti_path, {"CLI001": {"id": "CLI001", "nome": "Anna", "cognome": "Rossi"}})
+    report = GestioneDatabase({"clienti": str(clienti_path)}).preverifica_attivazione_sqlite(str(studio_db))
+
+    assert report["ok"] is False
+    assert report["stato"] == "Bloccata per protezione dati"
+    assert report["record_migrati"] == 0
+    assert "riconciliazione sicura" in report["azione_consigliata"]
+    modulo = report["audit_migrazione"]["precheck"]["modules"]["clienti"]
+    assert modulo["status"] == "blocked"
+    assert modulo["existing_sqlite_count"] == 2
+    assert modulo["json_count"] == 1
+    assert modulo["only_database_count"] == 1
+
+
+def test_riconcilia_verso_sqlite_preserva_database_e_importa_solo_sorgente(tmp_path):
+    clienti_path = tmp_path / "clienti" / "anagrafica.json"
+    studio_db = tmp_path / "studio.db"
+    iniziali = {
+        f"CLI{i:03d}": {"id": f"CLI{i:03d}", "nome": f"Nome {i}", "cognome": "Esistente"}
+        for i in range(1, 26)
+    }
+    _scrivi_json(clienti_path, iniziali)
+    primo = GestioneDatabase({"clienti": str(clienti_path)}).migra_verso_sqlite(str(studio_db))
+    assert primo.riuscita is True
+
+    sorgente_ridotta = {
+        **{
+            f"CLI{i:03d}": {"id": f"CLI{i:03d}", "nome": f"Nome {i}", "cognome": "Esistente"}
+            for i in range(1, 9)
+        },
+        "CLI999": {"id": "CLI999", "nome": "Nuovo", "cognome": "Solo Sorgente"},
+    }
+    _scrivi_json(clienti_path, sorgente_ridotta)
+    riconciliato = GestioneDatabase({"clienti": str(clienti_path)}).riconcilia_verso_sqlite(str(studio_db))
+
+    assert riconciliato.riuscita is True
+    assert riconciliato.audit["precheck"]["modules"]["clienti"]["status"] == "blocked"
+    assert riconciliato.audit["reconciliation"]["executed"] is True
+    assert Path(riconciliato.audit["reconciliation"]["backup_db"]).exists()
+
+    conn = sqlite3.connect(studio_db)
+    count, nuovo = conn.execute(
+        "SELECT COUNT(*), SUM(CASE WHEN id = 'CLI999' THEN 1 ELSE 0 END) FROM clienti"
+    ).fetchone()
+    conn.close()
+    assert count == 26
+    assert nuovo == 1
+
+
 def test_migra_verso_sqlite_preserva_payload_completo_e_timer_topbar(tmp_path):
     clienti_path = tmp_path / "clienti" / "anagrafica.json"
     fascicoli_path = tmp_path / "fascicoli" / "fascicoli.json"
@@ -1364,6 +1426,8 @@ def test_admin_database_attiva_sqlite_blocca_json_vuoti_su_db_pieno(client_admin
 
     assert secondo.status_code == 200
     assert payload["ok"] is False
+    assert payload["stato"] == "Bloccata per protezione dati"
+    assert "non verrà sovrascritto" in payload["messaggio"]
     assert any("Blocco anti-perdita su clienti" in errore for errore in payload["errori"])
     assert payload["audit_migrazione"]["precheck"]["modules"]["clienti"]["status"] == "blocked"
 
@@ -1374,6 +1438,54 @@ def test_admin_database_attiva_sqlite_blocca_json_vuoti_su_db_pieno(client_admin
     ).fetchone()
     conn.close()
     assert counts == (1, 1)
+
+
+def test_admin_database_preverifica_e_riconcilia_sqlite_json(client_admin):
+    clienti_path = Path(client_admin.application.config["CLIENTI_DB"])
+    _scrivi_json(
+        clienti_path,
+        {
+            f"CLI{i:03d}": {"id": f"CLI{i:03d}", "nome": f"Nome {i}", "cognome": "Preservato"}
+            for i in range(1, 26)
+        },
+    )
+    primo = client_admin.post("/admin/database/attiva-sqlite")
+    assert primo.status_code == 200
+    assert primo.get_json()["ok"] is True
+
+    _scrivi_json(
+        clienti_path,
+        {
+            **{
+                f"CLI{i:03d}": {"id": f"CLI{i:03d}", "nome": f"Nome {i}", "cognome": "Preservato"}
+                for i in range(1, 9)
+            },
+            "CLI999": {"id": "CLI999", "nome": "Nuovo", "cognome": "Solo Sorgente"},
+        },
+    )
+
+    precheck = client_admin.post("/admin/database/preverifica-sqlite")
+    precheck_payload = precheck.get_json()
+    assert precheck.status_code == 200
+    assert precheck_payload["ok"] is False
+    assert precheck_payload["stato"] == "Bloccata per protezione dati"
+    assert precheck_payload["audit_migrazione"]["precheck"]["modules"]["clienti"]["only_source_count"] == 1
+
+    riconcilia = client_admin.post("/admin/database/riconcilia-sqlite")
+    payload = riconcilia.get_json()
+    assert riconcilia.status_code == 200
+    assert payload["ok"] is True
+    assert payload["stato"] == "Eseguita riconciliazione"
+    assert payload["audit_migrazione"]["reconciliation"]["executed"] is True
+
+    studio_db = Path(clienti_path).resolve().parents[1] / "studio.db"
+    conn = sqlite3.connect(studio_db)
+    count, nuovo = conn.execute(
+        "SELECT COUNT(*), SUM(CASE WHEN id = 'CLI999' THEN 1 ELSE 0 END) FROM clienti"
+    ).fetchone()
+    conn.close()
+    assert count == 26
+    assert nuovo == 1
 
 
 def test_admin_database_export_zip(client_admin):

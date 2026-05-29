@@ -1117,6 +1117,38 @@
   display:grid;
   gap:8px;
 }
+.iu-tel-acq-document-report{
+  margin-top:12px;
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:8px;
+}
+.iu-tel-acq-document-report article,
+.iu-tel-acq-document-report__notes{
+  border:1px solid var(--iu-border);
+  border-radius:13px;
+  background:#fff;
+  padding:10px;
+  display:grid;
+  gap:4px;
+  min-width:0;
+}
+.iu-tel-acq-document-report span{
+  color:var(--iu-slate-600);
+  font-size:11px;
+  font-weight:800;
+  overflow-wrap:anywhere;
+}
+.iu-tel-acq-document-report strong{
+  color:var(--iu-slate-950);
+  font-size:15px;
+  font-weight:950;
+}
+.iu-tel-acq-document-report__notes{
+  grid-column:1/-1;
+  border-color:rgba(245,158,11,.32);
+  background:#fffbeb;
+}
 .iu-tel-acq-summary{
   display:grid;
   gap:8px;
@@ -1353,6 +1385,7 @@
   .iu-tel-acq-office-search,
   .iu-tel-acq-preview,
   .iu-tel-acq-analysis,
+  .iu-tel-acq-document-report,
   .iu-tel-acq-switches,
   .iu-tel-acq-mapping-mode,
   .iu-tel-acq-detail-grid,

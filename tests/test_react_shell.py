@@ -2277,6 +2277,8 @@ def test_react_admin_database_operativo_secondo_pattern_oss(tmp_path: Path):
     assert "data.actions.repair" in page_source
     assert "data.actions.optimize" in page_source
     assert "data.actions.migrate" in page_source
+    assert "data.actions.precheckSqlite" in page_source
+    assert "data.actions.reconcileSqlite" in page_source
     assert "data.actions.activateSqlite" in page_source
     assert "data.actions.exportZip" in page_source
     assert "data.actions.governance" not in page_source
@@ -2316,6 +2318,8 @@ def test_react_admin_database_operativo_secondo_pattern_oss(tmp_path: Path):
     assert payload["actions"]["repair"] == "/admin/database/verifica-ripara"
     assert payload["actions"]["optimize"] == "/admin/database/ottimizza"
     assert payload["actions"]["migrate"] == "/admin/database/migra"
+    assert payload["actions"]["precheckSqlite"] == "/admin/database/preverifica-sqlite"
+    assert payload["actions"]["reconcileSqlite"] == "/admin/database/riconcilia-sqlite"
     assert payload["actions"]["activateSqlite"] == "/admin/database/attiva-sqlite"
     assert payload["actions"]["exportZip"] == "/admin/database/export"
     assert "governance" not in payload["actions"]

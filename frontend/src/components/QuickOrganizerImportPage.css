@@ -251,6 +251,49 @@
   color: #047857;
 }
 
+.iu-st-import-progress {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid rgba(18, 61, 114, 0.2);
+  border-radius: 8px;
+  background: #eff6ff;
+}
+
+.iu-st-import-progress div {
+  display: grid;
+  gap: 4px;
+}
+
+.iu-st-import-progress strong {
+  color: #0f172a;
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 900;
+}
+
+.iu-st-import-progress span {
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+.iu-st-import-progress progress {
+  width: 100%;
+  height: 11px;
+  accent-color: #123d72;
+}
+
+.iu-st-import-progress.is-active progress {
+  animation: iu-st-import-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes iu-st-import-pulse {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+
 .iu-st-import-confirm {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(190px, auto);

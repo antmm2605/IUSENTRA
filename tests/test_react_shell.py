@@ -1462,8 +1462,14 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "codiceFiscale: extractItalianFiscalCode(" in source
     assert "function coercePstCertificate(value: unknown): PstCertificate | null" in source
     assert "function certificateMatchesPstPreferences" in source
-    assert "localSignerJson(`/ping${signerCertPreferenceQuery()}`" in source
-    assert "const payload = await localSignerJson(`/seleziona-certificato${signerCertPreferenceQuery()}`" in source
+    assert "const LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS = 360_000" in source
+    assert "const LOCAL_SIGNER_PST_DOWNLOAD_TIMEOUT_MS = 480_000" in source
+    assert "const LOCAL_SIGNER_PST_STATUS_TIMEOUT_MS = 60_000" in source
+    assert "function statusHasPstCertificatePreference" in source
+    assert "const statusForPstCertificate = async (): Promise<JsonRecord>" in source
+    assert "const certificateStatus = await statusForPstCertificate()" in source
+    assert "localSignerJson(`/ping${signerCertPreferenceQuery(certificateStatus)}`" in source
+    assert "const payload = await localSignerJson(`/seleziona-certificato${signerCertPreferenceQuery(certificateStatus)}`" in source
     assert "const pstAttorneyFiscalCode = (cert?: PstCertificate | null)" in source
     assert "cert?.codiceFiscale || status.codice_fiscale_avvocato || ''" in source
     assert "status.codice_fiscale_avvocato || cert?.codiceFiscale" not in source
@@ -1516,8 +1522,30 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "Fascicolo locale target" not in source
     assert "Dati fascicolo" in source
     assert "Documenti nel fascicolo" in source
+    assert "function AcquisitionProgressView" in source
     assert "iu-tel-acq-progress" in source
+    assert source.count("<AcquisitionProgressView progress={importProgress} />") == 1
+    assert "Ricerca PST in corso" in source
+    assert "Consultazione PST ancora in attesa" in source
     assert "Scaricamento documenti dal PST" in source
+
+
+def test_import_studio_telematico_react_pubblica_exe_e_barra_avanzamento():
+    data_source = Path("frontend/src/quickOrganizerImportData.ts").read_text(encoding="utf-8")
+    page_source = Path("frontend/src/components/QuickOrganizerImportPage.tsx").read_text(encoding="utf-8")
+    css_source = Path("frontend/src/components/QuickOrganizerImportPage.css").read_text(encoding="utf-8")
+    api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
+
+    assert "/static/tools/PreparaPacchettoStudioTelematico.exe" in data_source
+    assert "/static/tools/PreparaPacchettoStudioTelematico.exe" in api_source
+    assert "/static/tools/prepara_import_studio_telematico.ps1" not in data_source
+    assert "/static/tools/prepara_import_studio_telematico.ps1" not in api_source
+    assert "type WorkProgress" in page_source
+    assert "function WorkProgressBar" in page_source
+    assert "<WorkProgressBar progress={workProgress} />" in page_source
+    assert "Caricamento e controllo del pacchetto in corso" in page_source
+    assert "Importazione in corso" in page_source
+    assert ".iu-st-import-progress" in css_source
 
 
 def test_portale_acquisizione_accetta_alias_fascicolo_id_per_mapping():

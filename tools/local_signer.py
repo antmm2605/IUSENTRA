@@ -112,7 +112,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.64"
+VERSION = "1.6.65"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -4047,7 +4047,7 @@ def _windows_try_foreground_pin_prompt_once() -> bool:
 
 
 def _windows_pin_prompt_foreground_pump(stop_event: threading.Event, deadline_seconds: float) -> None:
-    deadline = time.monotonic() + max(1.0, min(float(deadline_seconds or 1), 180.0))
+    deadline = time.monotonic() + max(1.0, min(float(deadline_seconds or 1), 900.0))
     while not stop_event.is_set() and time.monotonic() < deadline:
         found = _windows_try_foreground_pin_prompt_once()
         stop_event.wait(0.22 if found else 0.25)
@@ -10596,14 +10596,22 @@ class _Handler(BaseHTTPRequestHandler):
                 cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
             preflight_requested = bool(data.get("preflight_auth", False))
             with _pst_session_lock_for(session_entry):
-                session_entry, _prefer_cookie_only = _pst_prepare_authenticated_session(
-                    session_entry,
-                    tribunale=tribunale,
-                    base_url=base_url,
-                    cf_avvocato=cf_avvocato,
-                    cert_thumbprint=cert_thumbprint,
-                    force=session_created or preflight_requested,
-                )
+                if preflight_requested:
+                    session_entry, _prefer_cookie_only = _pst_prepare_authenticated_session(
+                        session_entry,
+                        tribunale=tribunale,
+                        base_url=base_url,
+                        cf_avvocato=cf_avvocato,
+                        cert_thumbprint=cert_thumbprint,
+                        force=session_created or preflight_requested,
+                    )
+                else:
+                    # Il batch documenti e' gia' un unico processo curl con
+                    # certificato client. Non aprire un warm-up/preflight qui:
+                    # sulle CNS Windows quello era il punto che moltiplicava
+                    # le finestre PIN tra visualizzazione e scaricamento.
+                    _prefer_cookie_only = _pst_session_can_use_cookie_only(session_entry)
+                batch_cookie_file = str((session_entry or {}).get("cookie_file") or "") if _prefer_cookie_only else ""
                 esito = _pst_download_documenti_batch_payloads(
                     base_url=base_url,
                     codice_ufficio=codice_pst,
@@ -10611,7 +10619,7 @@ class _Handler(BaseHTTPRequestHandler):
                     cf_avvocato=cf_avvocato,
                     documenti=documenti,
                     do_preflight=False,
-                    cookie_file=str((session_entry or {}).get("cookie_file") or ""),
+                    cookie_file=batch_cookie_file,
                     original=(
                         data.get("original", False)
                         if isinstance(data.get("original", False), bool)

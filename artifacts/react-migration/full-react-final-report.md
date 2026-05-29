@@ -2,6 +2,20 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-29T18:10:00+02:00: hotfix regressioni PST e Studio Telematico
+2.248.88.
+Le superfici React coinvolte restano operative: `/portali/pst/acquisizione`
+carica la ricerca per anno e il percorso PST senza console error e senza
+messaggio generico di timeout Local Signer; `/importa-pratiche-studio-telematico`
+espone il preparatore Windows `.exe`, non mostra più `.ps1` come azione primaria
+e mantiene feedback visibile durante controllo/import.
+
+Verifica locale isolata: server Flask temporaneo su `127.0.0.1:18080`, login
+operatore test, browser in-app con screenshot desktop non vuoti, console senza
+errori. Verifica API reale: upload ZIP con sole cartelle `ATTI`/`EMAILS`
+restituisce anteprima controllata (`sourceKind=zip-files`, `availableFiles=2`,
+warning `pratiche_assenti`) invece di `Pacchetto non leggibile`.
+
 Aggiornamento 2026-05-26T09:15:00+02:00: uffici competenti inline nel fascicolo
 2.248.62.
 Il dettaglio fascicolo React contiene ora una sezione `Uffici giudiziari per

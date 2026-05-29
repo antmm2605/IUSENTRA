@@ -284,6 +284,50 @@ def _package_from_json(path: Path) -> QuickOrganizerPackage:
     return QuickOrganizerPackage(path, _table_payload(payload), files, source_kind="json")
 
 
+def _empty_quickorganizer_tables() -> dict[str, list[dict[str, Any]]]:
+    return {name: [] for name in TABLES_REQUIRED}
+
+
+def _files_from_zip_infos(archive: zipfile.ZipFile, names_to_skip: set[str] | None = None) -> dict[str, PackageFile]:
+    skipped = {name.casefold() for name in (names_to_skip or set()) if name}
+    files: dict[str, PackageFile] = {}
+    for info in archive.infolist():
+        if info.is_dir():
+            continue
+        filename = Path(info.filename).name
+        if not filename or filename.casefold() in skipped:
+            continue
+        parts = [part.upper() for part in Path(info.filename).parts]
+        section = "ATTI" if "ATTI" in parts else "EMAILS" if "EMAILS" in parts else ""
+        if not section:
+            continue
+        file_key = _file_key(filename)
+        key = f"{section}:{file_key}"
+        if key in files:
+            continue
+        files[key] = PackageFile(
+            name=filename,
+            size=info.file_size,
+            sha256=f"zip-crc:{info.CRC:08x}",
+            section=section,
+            zip_member=info.filename,
+        )
+    return files
+
+
+def _package_from_nested_mdb_zip(
+    path: Path,
+    archive: zipfile.ZipFile,
+    mdb_name: str,
+    files: dict[str, PackageFile],
+) -> QuickOrganizerPackage:
+    with tempfile.TemporaryDirectory(prefix="iusentra-qo-mdb-") as tmp:
+        tmp_path = _safe_child_path(tmp, "QuickOrganizer.mdb")
+        tmp_path.write_bytes(archive.read(mdb_name))
+        mdb_package = _package_from_mdb(tmp_path)
+    return QuickOrganizerPackage(path, mdb_package.tables, files, source_kind="zip-mdb")
+
+
 def _package_from_zip(path: Path) -> QuickOrganizerPackage:
     path = _safe_existing_file(path, allowed_suffixes={".zip"})
     try:
@@ -298,29 +342,25 @@ def _package_from_zip(path: Path) -> QuickOrganizerPackage:
                 ),
                 "",
             )
+            files = _files_from_zip_infos(archive, {json_name, *EXPORT_JSON_NAMES})
             if not json_name:
-                raise QuickOrganizerImportError("Nel pacchetto manca il file dati QuickOrganizer.")
-            payload = json.loads(archive.read(json_name).decode("utf-8-sig"))
-            files: dict[str, PackageFile] = {}
-            for info in archive.infolist():
-                if info.is_dir():
-                    continue
-                filename = Path(info.filename).name
-                if not filename or filename.casefold() in {name.casefold() for name in EXPORT_JSON_NAMES}:
-                    continue
-                parts = [part.upper() for part in Path(info.filename).parts]
-                section = "ATTI" if "ATTI" in parts else "EMAILS" if "EMAILS" in parts else ""
-                file_key = _file_key(filename)
-                key = f"{section}:{file_key}" if section else file_key
-                if key in files:
-                    continue
-                files[key] = PackageFile(
-                    name=filename,
-                    size=info.file_size,
-                    sha256=f"zip-crc:{info.CRC:08x}",
-                    section=section,
-                    zip_member=info.filename,
+                mdb_name = next(
+                    (
+                        name
+                        for name in names
+                        if Path(name).suffix.casefold() == ".mdb"
+                        and Path(name).name.casefold() in {"quickorganizer.mdb", "studio.mdb", "archivio.mdb"}
+                    ),
+                    "",
+                ) or next((name for name in names if Path(name).suffix.casefold() == ".mdb"), "")
+                if mdb_name:
+                    return _package_from_nested_mdb_zip(path, archive, mdb_name, files)
+                if files:
+                    return QuickOrganizerPackage(path, _empty_quickorganizer_tables(), files, source_kind="zip-files")
+                raise QuickOrganizerImportError(
+                    "Nel pacchetto non trovo QuickOrganizer.mdb, il file dati preparato, la cartella ATTI o la cartella EMAILS."
                 )
+            payload = json.loads(archive.read(json_name).decode("utf-8-sig"))
     except zipfile.BadZipFile as exc:
         raise QuickOrganizerImportError("Il pacchetto QuickOrganizer non è un archivio ZIP valido.") from exc
     except json.JSONDecodeError as exc:

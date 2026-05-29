@@ -1,5 +1,29 @@
 # Pytest shard confermati OK
 
+## Hotfix regressioni PST e Studio Telematico 2.248.88 - 2026-05-29
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web/services/quickorganizer_import.py tools/local_signer.py` | OK | Sintassi confermata dopo fix ZIP Studio Telematico, no-preflight batch PST e watcher PIN più lungo. |
+| Parser PowerShell su `web/static/tools/prepara_import_studio_telematico.ps1` e `tools/build_studio_telematico_packager_exe.ps1` | OK | Nessun errore di parse; il preparatore sceglie la cartella `QuickOrganizer.mdb`/`ATTI`/`EMAILS` e il builder EXE resta IExpress. |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_studio_telematico_packager_exe.ps1`; controllo firma `MZ` | OK | Generato `web/static/tools/PreparaPacchettoStudioTelematico.exe` da proporre all'avvocato al posto del `.ps1`. |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_local_signer_windows_exe.ps1`; controllo firma `MZ` | OK | Rigenerati `SetupLocalSigner-1.6.65.exe`, alias `SetupLocalSigner.exe`, pacchetti `.ps1`, `.command`, `.run` e `tools/dist/local_signer.py`. |
+| `python -m pytest -q tests/test_local_signer.py -k "foreground_pin or download_batch_riusa_sessione_view or download_batch_senza_sessione_autenticata or ping_windows_usa_il_filtro_cf or seleziona_certificato_windows_auto or pick_preferred_windows_cert or dist_allineato" --tb=short` | OK | 10/10 passati: auto-selezione certificato, finestra PIN, no preflight extra e dist allineato. |
+| `python -m pytest -q tests/test_quickorganizer_import.py --tb=short` | OK | 3/3 passati: import completo, blocco incompleto e ZIP con sole cartelle `ATTI`/`EMAILS` leggibile con warning controllato. |
+| `python -m pytest -q tests/test_react_shell.py -k "wizard_pst_verifica_local_signer or importa_pratiche_studio_telematico or import_studio_telematico_react" --tb=short` | OK | 2/2 passati: UI PST con status certificato aggiornato/progress e pagina Studio Telematico con EXE/barra avanzamento. |
+| `python -m pytest -q tests/test_build_dist.py -k "studio_telematico_packager or local_signer_exe_profile or installer_powershell" --tb=short` | OK | 2/2 passati: profilo IExpress Local Signer e preparatore Studio Telematico EXE governati. |
+| `python -m pytest -q tests/test_polisweb.py -k "acquisizione_import_pst_filtra_i_file_secondo_step4 or acquisizione_import_pst_importa_file_reali or preview_pst_preserva_iscrizione or preview_pst_usa_fallback_payload_e_id_fascicolo or classico_non_chiede_preflight_pin" --tb=short` | OK | 5/5 passati: import PST reale simulato, filtro selezione e no-preflight classico preservati. |
+| `python -m pytest -q tests/test_local_signer.py --tb=short` | OK | Suite completa Local Signer verde dopo bump `1.6.65`. |
+| `pnpm --filter @iusentra/studio build` | OK | TypeScript e build Vite verdi; asset React generati per `QuickOrganizerImportPage` e `TelematicoSurfacePage`. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml` | OK | OpenAPI e contratti API riallineati alla versione `2.248.88`. |
+| `python tools\sync_packaging_files.py --check`; `python tools\check_local_signer_boundaries.py`; `python -m pytest tests\test_build_dist.py tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | Packaging Local Signer/EXE sincronizzato, boundary confermati e 16/16 test dist/readiness verdi. |
+| `python -m pytest tests\test_openapi_contracts_phase6.py tests\test_app_v2_page_registry.py tests\test_app_v2_test_plan_phase10.py tests\test_ci_cd_gates_phase11.py tests\test_utf8_integrity.py -q --tb=short` | OK | 23/23: contratti OpenAPI, documenti App V2/CI e presidio UTF-8 verdi dopo il bump versione. |
+| `pnpm --filter @iusentra/studio test`; `pnpm --filter @iusentra/studio build` | OK | Contratti React, governance design system, UI coverage e build Vite confermati; asset hashati locali ripuliti perché il deploy ricompila. |
+| Browser in-app su `http://127.0.0.1:18080/importa-pratiche-studio-telematico` | OK | Pagina autenticata non vuota, helper `/static/tools/PreparaPacchettoStudioTelematico.exe`, nessun `.ps1` visibile, console senza errori. Screenshot: `%TEMP%/iusentra-quickorganizer-desktop.png`. |
+| POST HTTP reale multipart su `/api/v1/ui/import/quickorganizer/anteprima` con ZIP `ATTI`/`EMAILS` | OK | 200 con `sourceKind=zip-files`, `availableFiles=2`, `canImportComplete=false`, warning `pratiche_assenti`; non più `Pacchetto non leggibile`. |
+| Browser in-app su `http://127.0.0.1:18080/portali/pst/acquisizione` | OK | Pagina PST caricata, ricerca per anno visibile, messaggio generico `Timeout del Local Signer locale` non presente, console senza errori. Screenshot: `%TEMP%/iusentra-pst-acquisizione-desktop.png`. |
+| Ping reale Local Signer locale `http://127.0.0.1:27272/ping?auto=1&prefer_cf=MNTRRT64L01L063H` | OK | Ambiente utente attuale (`1.6.64`) auto-seleziona il certificato CNS corretto fra 14 certificati Windows (`auto_selezionato=true`, CF `MNTRRT64L01L063H`). |
+
 ## PST/PolisWeb schede fascicolo e ricerca annuale 2.248.87 - 2026-05-29
 
 | Comando | Esito | Note |

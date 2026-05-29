@@ -33,6 +33,7 @@ import {
 import './QuickOrganizerImportPage.css'
 
 type WorkState = 'idle' | 'loading' | 'success' | 'error'
+type WorkProgress = { active: boolean; label: string; detail: string; value: number }
 
 function ImportPanel({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
   return (
@@ -43,6 +44,19 @@ function ImportPanel({ title, subtitle, children }: { title: string; subtitle?: 
       </header>
       <div className="iu-st-import-panel__body">{children}</div>
     </section>
+  )
+}
+
+function WorkProgressBar({ progress }: { progress: WorkProgress }) {
+  if (!progress.active && !progress.label) return null
+  return (
+    <div className={`iu-st-import-progress ${progress.active ? 'is-active' : ''}`} aria-live="polite">
+      <div>
+        <strong>{progress.label || 'Controllo pacchetto'}</strong>
+        <span>{progress.detail || 'Operazione in corso'}</span>
+      </div>
+      <progress value={progress.value} max={100} />
+    </div>
   )
 }
 
@@ -184,6 +198,7 @@ export function QuickOrganizerImportPage() {
   const [message, setMessage] = useState('')
   const [allowPartial, setAllowPartial] = useState(false)
   const [result, setResult] = useState<StudioTelematicoImportResult>(emptyStudioTelematicoResult)
+  const [workProgress, setWorkProgress] = useState<WorkProgress>({ active: false, label: '', detail: '', value: 0 })
 
   useEffect(() => {
     const controller = new AbortController()
@@ -212,21 +227,45 @@ export function QuickOrganizerImportPage() {
     setPreviewState('loading')
     setImportState('idle')
     setResult(emptyStudioTelematicoResult)
-    setMessage('')
+    setMessage('Caricamento e controllo del pacchetto in corso. La pagina resta aggiornata durante la verifica.')
+    setWorkProgress({
+      active: true,
+      label: 'Controllo pacchetto',
+      detail: 'Carico archivio, cartelle ATTI ed EMAILS e dati pratica',
+      value: 35,
+    })
     const checked = await previewStudioTelematicoPackage(data.actions.preview, file)
     setPreview(checked)
     setPreviewState(checked.ok ? 'success' : 'error')
     setAllowPartial(false)
+    setWorkProgress({
+      active: false,
+      label: checked.ok ? 'Controllo completato' : 'Controllo non completato',
+      detail: checked.ok ? 'Riepilogo pronto per la verifica' : (checked.errore || 'Pacchetto da verificare'),
+      value: checked.ok ? 100 : 100,
+    })
     setMessage(checked.ok ? 'Controllo completato. Verifica il riepilogo prima di importare.' : checked.errore || 'Pacchetto non leggibile.')
   }
 
   async function handleImport() {
     if (!preview?.importId) return
     setImportState('loading')
-    setMessage('')
+    setMessage('Importazione in corso. Creo o aggiorno pratiche, clienti, parti, ATTI ed EMAILS senza duplicare i dati già presenti.')
+    setWorkProgress({
+      active: true,
+      label: 'Importazione pratiche',
+      detail: 'Registro fascicoli, anagrafiche, documenti e messaggi',
+      value: 55,
+    })
     const imported = await runStudioTelematicoImport(data.actions.run, preview.importId, allowPartial)
     setResult(imported)
     setImportState(imported.ok ? 'success' : 'error')
+    setWorkProgress({
+      active: false,
+      label: imported.ok ? 'Import completato' : 'Import non completato',
+      detail: imported.ok ? 'Riepilogo acquisizioni pronto' : (imported.errore || 'Controlla gli avvisi'),
+      value: 100,
+    })
     setMessage(imported.ok ? 'Import completato.' : imported.errore || 'Import non completato.')
   }
 
@@ -275,6 +314,7 @@ export function QuickOrganizerImportPage() {
                     setFile(event.currentTarget.files?.[0] || null)
                     setPreview(null)
                     setResult(emptyStudioTelematicoResult)
+                    setWorkProgress({ active: false, label: '', detail: '', value: 0 })
                     setMessage('')
                   }}
                 />
@@ -287,6 +327,7 @@ export function QuickOrganizerImportPage() {
             <div className="iu-st-import-notes">
               {data.notes.map((note) => <span key={note}>{note}</span>)}
             </div>
+            <WorkProgressBar progress={workProgress} />
             {message ? (
               <div className={`iu-st-import-message is-${previewState === 'error' || importState === 'error' ? 'error' : 'info'}`}>
                 {previewState === 'error' || importState === 'error' ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}

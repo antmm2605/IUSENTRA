@@ -130,6 +130,24 @@ def test_build_windows_exe_profile_resta_iexpress_1_6_35():
     assert "FILE13=local_signer_mod__server_bootstrap.py" in builder
 
 
+def test_build_studio_telematico_packager_pubblica_exe_senza_ps1_primario():
+    root = Path(__file__).resolve().parents[1]
+    builder = (root / "tools" / "build_studio_telematico_packager_exe.ps1").read_text(encoding="utf-8")
+    api_source = (root / "web" / "blueprints" / "api_v1_react.py").read_text(encoding="utf-8")
+    ts_source = (root / "frontend" / "src" / "quickOrganizerImportData.ts").read_text(encoding="utf-8")
+    exe = root / "web" / "static" / "tools" / "PreparaPacchettoStudioTelematico.exe"
+
+    assert '$iexpressExe = Join-Path $env:SystemRoot "System32\\iexpress.exe"' in builder
+    assert "Class=IEXPRESS" in builder
+    assert "InsideCompressed=0" in builder
+    assert "AppLaunched=powershell.exe -NoProfile -ExecutionPolicy Bypass -File prepara_import_studio_telematico.ps1" in builder
+    assert "FILE0=prepara_import_studio_telematico.ps1" in builder
+    assert "/static/tools/PreparaPacchettoStudioTelematico.exe" in api_source
+    assert "/static/tools/PreparaPacchettoStudioTelematico.exe" in ts_source
+    assert exe.exists()
+    assert exe.read_bytes()[:2] == b"MZ"
+
+
 def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_path):
     ls_py = tmp_path / "local_signer.py"
     ai_bridge = tmp_path / "local_ai_host_bridge.py"

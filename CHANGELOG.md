@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.248.88 - 2026-05-29
+
+- Corrette regressioni Local Signer/PST: caricamento preferenze certificato prima dell'auto-selezione, timeout operativi più lunghi per le chiamate PST lente, messaggi di avanzamento visibili durante ricerca, visualizzazione e download.
+- Local Signer `1.6.65`: il download batch dei documenti non apre più un preflight separato quando il client ha già richiesto `preflight_auth=false`; il prompt PIN Windows resta in primo piano più a lungo durante le operazioni reali.
+- La pagina `Importa pratiche da Studio Telematico` propone un pacchetto Windows `.exe`, mostra una barra di avanzamento durante controllo/import e legge gli ZIP con cartelle `ATTI`/`EMAILS` senza trasformarli in errore generico.
+- Aggiunti test di regressione su auto-selezione certificato PST, assenza di preflight PIN extra, pacchetto Studio Telematico `.exe` e ZIP con sole cartelle documentali.
+
 ## 2.248.87 - 2026-05-29
 
 - Estesa l'acquisizione PST/PolisWeb del fascicolo alle schede effettivamente esposte dal portale: dettaglio/profilo, documenti, master detail degli atti, allegati secondari, storico eventi, comunicazioni/notificazioni, scadenze/termini, istanze e dati accessori.

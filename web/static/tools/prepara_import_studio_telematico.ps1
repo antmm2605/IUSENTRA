@@ -4,7 +4,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$ProgressPreference = "SilentlyContinue"
+$ProgressPreference = "Continue"
 
 function Restart-InPowerShell32 {
     $windir = $env:WINDIR
@@ -20,7 +20,50 @@ function Restart-InPowerShell32 {
 
 Restart-InPowerShell32
 
-$root = [System.IO.Path]::GetFullPath($CartellaStudioTelematico)
+function Test-StudioTelematicoRoot {
+    param([string]$Path)
+    if (-not $Path) { return $false }
+    $resolved = [System.IO.Path]::GetFullPath($Path)
+    return (
+        (Test-Path (Join-Path $resolved "QuickOrganizer.mdb")) -and
+        (Test-Path (Join-Path $resolved "ATTI")) -and
+        (Test-Path (Join-Path $resolved "EMAILS"))
+    )
+}
+
+function Select-StudioTelematicoRoot {
+    param([string]$InitialPath)
+    $candidates = @(
+        $InitialPath,
+        "C:\QuickOrganizer",
+        "C:\StudioTelematico",
+        "C:\ProgramData\QuickOrganizer"
+    ) | Where-Object { $_ } | Select-Object -Unique
+    foreach ($candidate in $candidates) {
+        if (Test-StudioTelematicoRoot $candidate) {
+            return [System.IO.Path]::GetFullPath($candidate)
+        }
+    }
+
+    try {
+        Add-Type -AssemblyName System.Windows.Forms
+        $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
+        $dialog.Description = "Seleziona la cartella Studio Telematico/QuickOrganizer che contiene QuickOrganizer.mdb, ATTI ed EMAILS"
+        $dialog.ShowNewFolderButton = $false
+        if ($InitialPath -and (Test-Path $InitialPath)) {
+            $dialog.SelectedPath = [System.IO.Path]::GetFullPath($InitialPath)
+        }
+        if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK -and (Test-StudioTelematicoRoot $dialog.SelectedPath)) {
+            return [System.IO.Path]::GetFullPath($dialog.SelectedPath)
+        }
+    } catch {
+        # Se la scelta grafica non è disponibile, resta il messaggio controllato sotto.
+    }
+
+    throw "Seleziona una cartella che contenga QuickOrganizer.mdb, ATTI ed EMAILS."
+}
+
+$root = Select-StudioTelematicoRoot -InitialPath $CartellaStudioTelematico
 $mdb = Join-Path $root "QuickOrganizer.mdb"
 $atti = Join-Path $root "ATTI"
 $emails = Join-Path $root "EMAILS"

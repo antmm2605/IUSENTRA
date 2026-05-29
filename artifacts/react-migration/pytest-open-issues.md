@@ -1,5 +1,14 @@
 # Pytest issue aperte e risoluzioni
 
+## Hotfix regressioni PST e Studio Telematico 2.248.88 - 2026-05-29
+
+Nessuna issue di codice aperta sul perimetro corretto dopo test mirati, build e browser locale.
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Verifica reale fascicolo PST con PIN utente | Local Signer installato sul PC dell'avvocato | Da ripetere dopo installazione `1.6.65` | Il ping reale dell'ambiente corrente (`1.6.64`) auto-seleziona correttamente il certificato CNS fra 14 certificati; le correzioni su timeout/preflight sono nel pacchetto `1.6.65` generato in questa tranche. | Installare `SetupLocalSigner-1.6.65.exe`, poi ripetere visualizzazione e download tutto/singolo/multiplo su fascicolo reale con PIN utente prima di dichiarare riuscito lo scarico ministeriale reale. |
+| Browser in-app download EXE | Browser in-app | Limitazione strumento, non prodotto | Il browser integrato non supporta l'evento download file; la presenza del link EXE è stata verificata in DOM e l'EXE è stato validato localmente come `MZ`. | In browser manuale o Playwright completo verificare il download diretto di `/static/tools/PreparaPacchettoStudioTelematico.exe` se serve prova end-to-end del salvataggio file. |
+
 ## PST/PolisWeb schede fascicolo e ricerca annuale 2.248.87 - 2026-05-29
 
 Nessuna issue di codice aperta sul perimetro corretto dopo i test mirati.

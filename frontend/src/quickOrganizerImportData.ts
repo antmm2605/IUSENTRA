@@ -124,7 +124,7 @@ export const emptyStudioTelematicoPage: StudioTelematicoImportPage = {
     refresh: '/api/v1/ui/import/quickorganizer',
     preview: '/api/v1/ui/import/quickorganizer/anteprima',
     run: '/api/v1/ui/import/quickorganizer/esegui',
-    helper: '/static/tools/prepara_import_studio_telematico.ps1',
+    helper: '/static/tools/PreparaPacchettoStudioTelematico.exe',
     fascicoli: '/fascicoli',
     clienti: '/clienti',
   },

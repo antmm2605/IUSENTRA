@@ -215,6 +215,10 @@ const REACT_PST_SESSION_KEY = 'iusentra.react.pst.session.v2'
 const REACT_PST_SESSION_PURPOSE = 'view'
 const REACT_ACQUISITION_HISTORY_KEY = 'iusentra.react.portali.acquisition.history'
 const REACT_ACQUISITION_HISTORY_LIMIT = 10
+const LOCAL_SIGNER_DEFAULT_TIMEOUT_MS = 45_000
+const LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS = 360_000
+const LOCAL_SIGNER_PST_DOWNLOAD_TIMEOUT_MS = 480_000
+const LOCAL_SIGNER_PST_STATUS_TIMEOUT_MS = 60_000
 
 function surfaceFromCurrentPath(): TelematicoSurfaceId {
   const raw = window.location.pathname.replace(/\/+$/, '') || '/'
@@ -450,6 +454,11 @@ function certificateMatchesPstPreferences(cert: PstCertificate | null, prefs: Js
   if (!preferCf) return true
   const certText = `${cert.codiceFiscale} ${cert.soggetto}`.toUpperCase()
   return certText.includes(preferCf)
+}
+
+function statusHasPstCertificatePreference(status: JsonRecord): boolean {
+  const prefs = asRecord(status.cert_preferences)
+  return Boolean(extractItalianFiscalCode(prefs.prefer_cf || status.codice_fiscale_avvocato))
 }
 
 function loadPstSession(): PstSession | null {
@@ -951,6 +960,25 @@ function EventsPanel({ data, localEvents = [] }:{ data:TelematicoSurfaceData; lo
         </div>
       ) : <p className="iu-empty">Nessun evento telematico recente.</p>}
     </Panel>
+  )
+}
+
+function AcquisitionProgressView({ progress }: { progress: ImportProgress }) {
+  if (!(progress.active || progress.phase || progress.failures.length)) return null
+  return (
+    <div className="iu-tel-acq-progress" aria-live="polite">
+      <div>
+        <strong>{progress.phase || 'Operazione in corso'}</strong>
+        <span>{progress.current || 'Preparazione dati'}</span>
+        <small>{progress.total ? `${progress.completed}/${progress.total} passaggi` : 'Operazione in corso'}</small>
+      </div>
+      <progress value={progress.total ? progress.completed : undefined} max={progress.total || undefined}/>
+      {progress.failures.length ? (
+        <ul>
+          {progress.failures.slice(0, 5).map((failure) => <li key={failure}>{failure}</li>)}
+        </ul>
+      ) : null}
+    </div>
   )
 }
 
@@ -2055,7 +2083,24 @@ function AcquisitionWizard({
     return next
   }
 
-  const localSignerJson = async (path: string, body?: JsonRecord, timeoutMs = 45000): Promise<JsonRecord> => {
+  const loadPortalStatus = async (): Promise<JsonRecord> => {
+    const payload = await portalJson(portal, 'status')
+    const nextStatus = asRecord(payload.status)
+    setStatus(nextStatus)
+    return nextStatus
+  }
+
+  const statusForPstCertificate = async (): Promise<JsonRecord> => {
+    if (statusHasPstCertificatePreference(status)) return status
+    try {
+      const refreshed = await loadPortalStatus()
+      return Object.keys(refreshed).length ? refreshed : status
+    } catch {
+      return status
+    }
+  }
+
+  const localSignerJson = async (path: string, body?: JsonRecord, timeoutMs = LOCAL_SIGNER_DEFAULT_TIMEOUT_MS): Promise<JsonRecord> => {
     const controller = new AbortController()
     const timer = window.setTimeout(() => controller.abort(), timeoutMs)
     try {
@@ -2074,9 +2119,12 @@ function AcquisitionWizard({
     } catch (error: unknown) {
       if (error instanceof DOMException && error.name === 'AbortError') {
         if (path.includes('/pst/download-documenti-batch')) {
-          throw new Error('Scaricamento dal PST non completato: il portale ufficiale non ha risposto entro il tempo massimo. Riprova tra qualche minuto dalla stessa schermata.')
+          throw new Error('Scaricamento dal PST ancora in attesa: il portale ufficiale non ha risposto entro il tempo massimo. Il Local Signer era attivo; riprova dalla stessa schermata senza riselezionare il certificato.')
         }
-        throw new Error('Timeout del Local Signer locale. Verifica che sia avviato e riprova.')
+        if (path.includes('/pst/')) {
+          throw new Error('Consultazione PST ancora in attesa: il portale ufficiale sta rispondendo lentamente. Il Local Signer era attivo; riprova dalla stessa schermata mantenendo inserito il token.')
+        }
+        throw new Error('Il servizio locale non ha risposto entro il tempo massimo. Verifica che Local Signer sia avviato sul PC e riprova.')
       }
       throw error
     } finally {
@@ -2084,14 +2132,14 @@ function AcquisitionWizard({
     }
   }
 
-  const signerCertPreferenceQuery = () => {
-    const prefs = asRecord(status.cert_preferences)
+  const signerCertPreferenceQuery = (sourceStatus: JsonRecord = status) => {
+    const prefs = asRecord(sourceStatus.cert_preferences)
     const params = new URLSearchParams()
     const autoPref = asText(prefs.auto).toLowerCase()
     if (prefs.auto !== false && autoPref !== '0' && autoPref !== 'false') params.set('auto', '1')
     const preferIssuer = asText(prefs.prefer_issuer)
     const preferSubject = asText(prefs.prefer_subject)
-    const preferCf = asText(prefs.prefer_cf || status.codice_fiscale_avvocato)
+    const preferCf = asText(prefs.prefer_cf || sourceStatus.codice_fiscale_avvocato)
     if (preferIssuer) params.set('prefer_issuer', preferIssuer)
     if (preferSubject) params.set('prefer_subject', preferSubject)
     if (preferCf) params.set('prefer_cf', preferCf)
@@ -2100,11 +2148,12 @@ function AcquisitionWizard({
   }
 
   const ensurePstCertificate = async (forceDialog = false): Promise<PstCertificate> => {
-    const prefs = asRecord(status.cert_preferences)
+    const certificateStatus = await statusForPstCertificate()
+    const prefs = asRecord(certificateStatus.cert_preferences)
     if (!forceDialog) {
       const savedCert = pstCert || loadPstCertificate()
       const savedThumbprint = asText(savedCert?.thumbprint)
-      if (certificateMatchesPstPreferences(savedCert, prefs, status)) {
+      if (certificateMatchesPstPreferences(savedCert, prefs, certificateStatus)) {
         if (!pstCert) setPstCert(savedCert)
         return savedCert
       }
@@ -2113,9 +2162,9 @@ function AcquisitionWizard({
         storePstCertificate(null)
       }
       try {
-        const signerStatus = await localSignerJson(`/ping${signerCertPreferenceQuery()}`, undefined, 20000)
+        const signerStatus = await localSignerJson(`/ping${signerCertPreferenceQuery(certificateStatus)}`, undefined, LOCAL_SIGNER_PST_STATUS_TIMEOUT_MS)
         const autoCert = coercePstCertificate(signerStatus)
-        if (certificateMatchesPstPreferences(autoCert, prefs, status)) {
+        if (certificateMatchesPstPreferences(autoCert, prefs, certificateStatus)) {
           setPstCert(autoCert)
           storePstCertificate(autoCert)
           return autoCert
@@ -2124,7 +2173,7 @@ function AcquisitionWizard({
         // La selezione esplicita gestira' il messaggio operativo se il servizio locale non risponde.
       }
     }
-    const payload = await localSignerJson(`/seleziona-certificato${signerCertPreferenceQuery()}`, undefined, 120000)
+    const payload = await localSignerJson(`/seleziona-certificato${signerCertPreferenceQuery(certificateStatus)}`, undefined, 120000)
     const cert = coercePstCertificate(payload)
     if (!cert?.thumbprint) throw new Error('Seleziona il certificato di firma sul PC e riprova.')
     setPstCert(cert)
@@ -2384,9 +2433,20 @@ function AcquisitionWizard({
       return
     }
     setBusy('search')
-    setMessage('')
+    setMessage(portal === 'pst'
+      ? 'Ricerca PST in corso: verifico certificato, sessione e dati del fascicolo. Se Windows mostra il PIN, inseriscilo una sola volta per la consultazione.'
+      : '')
     setImportResult({})
-    setImportProgress({ active: false, phase: '', current: '', completed: 0, total: 0, failures: [] })
+    setImportProgress(portal === 'pst'
+      ? {
+        active: true,
+        phase: 'Ricerca fascicolo sul PST',
+        current: 'Verifica certificato e sessione locale',
+        completed: 0,
+        total: 4,
+        failures: [],
+      }
+      : { active: false, phase: '', current: '', completed: 0, total: 0, failures: [] })
     let rows: AcquisitionResult[] = []
     let pstSignerPayload: JsonRecord | null = null
     let pstCertForDiagnostic: PstCertificate | null = null
@@ -2397,6 +2457,11 @@ function AcquisitionWizard({
         const tribunale = resolvedOfficeCode()
         let signerPayload: JsonRecord | null = null
         let cert = await ensurePstCertificate()
+        setImportProgress((current) => ({
+          ...current,
+          current: 'Certificato confermato; lettura dati dal portale ufficiale',
+          completed: Math.max(current.completed, 1),
+        }))
         pstCertForDiagnostic = cert
         pstCfForDiagnostic = pstAttorneyFiscalCode(cert)
         pstCfSourceForDiagnostic = pstAttorneyFiscalCodeSource(cert)
@@ -2421,7 +2486,7 @@ function AcquisitionWizard({
               cert_key: cert.thumbprint || '',
               purpose: REACT_PST_SESSION_PURPOSE,
               pst_session_id: session?.sessionId || '',
-            }, 120000)
+            }, LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS)
           } catch (error: unknown) {
             const message = asText(error instanceof Error ? error.message : error)
             if (!/not found/i.test(message)) throw error
@@ -2429,6 +2494,11 @@ function AcquisitionWizard({
         }
         if (!signerPayload) {
           cert = await ensurePstCertificate()
+          setImportProgress((current) => ({
+            ...current,
+            current: 'Uso il percorso di ricerca alternativo del PST',
+            completed: Math.max(current.completed, 1),
+          }))
           pstCertForDiagnostic = cert
           pstCfForDiagnostic = pstAttorneyFiscalCode(cert)
           pstCfSourceForDiagnostic = pstAttorneyFiscalCodeSource(cert)
@@ -2446,8 +2516,13 @@ function AcquisitionWizard({
             cert_key: cert.thumbprint || '',
             purpose: REACT_PST_SESSION_PURPOSE,
             pst_session_id: session?.sessionId || '',
-          }, 120000)
+          }, LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS)
         }
+        setImportProgress((current) => ({
+          ...current,
+          current: 'Dati fascicolo ricevuti; preparo la lista documenti',
+          completed: Math.max(current.completed, 3),
+        }))
         const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
         if (!nextSession) throw new Error('Sessione PST non inizializzata dal Local Signer.')
         pstSignerPayload = signerPayload
@@ -2478,6 +2553,14 @@ function AcquisitionWizard({
       setSelection(rows[0] || null)
       setStep(2)
       setMessage(rows.length ? `${rows.length} risultati trovati.` : 'Nessun fascicolo trovato con questi filtri.')
+      setImportProgress((current) => ({
+        ...current,
+        active: false,
+        phase: rows.length ? 'Ricerca completata' : 'Ricerca completata senza risultati',
+        current: rows.length ? 'Seleziona il fascicolo da visualizzare' : 'Nessun fascicolo trovato con questi filtri',
+        completed: current.total || 4,
+        total: current.total || 4,
+      }))
       if (!rows.length) {
         recordAcquisitionHistory('empty', 'Fascicolo non scaricato dal portale', 'Nessun fascicolo trovato con questi filtri.')
       }
@@ -2503,6 +2586,12 @@ function AcquisitionWizard({
       if (portal === 'pst' && isPstSessionExpiredError(error)) clearPstSession()
       const errorMessage = asText(error instanceof Error ? error.message : error, 'Ricerca non disponibile.')
       setMessage(errorMessage)
+      setImportProgress((current) => ({
+        ...current,
+        active: false,
+        phase: current.phase || 'Ricerca non completata',
+        failures: current.failures.length ? current.failures : [errorMessage],
+      }))
       recordAcquisitionHistory('failed', 'Fascicolo non scaricato dal portale', errorMessage)
       if (portal === 'pst') {
         void collectAndSaveLocalSignerDiagnostic('pst_search_error', {
@@ -2544,6 +2633,14 @@ function AcquisitionWizard({
     try {
       let payload: JsonRecord
       if (portal === 'pst') {
+        setImportProgress({
+          active: true,
+          phase: 'Visualizzazione fascicolo PST',
+          current: 'Carico scheda, documenti, eventi e comunicazioni disponibili',
+          completed: 0,
+          total: 3,
+          failures: [],
+        })
         const tribunale = asText(activeSelection.raw.ufficio_codice || resolvedOfficeCode())
         let snapshot = asRecord(activeSelection.raw.snapshot)
         let documenti = asList(snapshot.documenti).map(asRecord)
@@ -2567,7 +2664,7 @@ function AcquisitionWizard({
             cert_key: cert.thumbprint || '',
             purpose: REACT_PST_SESSION_PURPOSE,
             pst_session_id: session?.sessionId || '',
-          }, 120000)
+          }, LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS)
           const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
           if (!nextSession) throw new Error('Sessione PST non inizializzata dal Local Signer.')
           snapshot = asRecord(signerPayload.snapshot)
@@ -2592,9 +2689,28 @@ function AcquisitionWizard({
       setPreview(asRecord(payload.preview))
       setStep(3)
       setMessage('Anteprima caricata: verifica dati, parti, eventi e documenti.')
+      if (portal === 'pst') {
+        setImportProgress((current) => ({
+          ...current,
+          active: false,
+          phase: 'Fascicolo visualizzato',
+          current: 'Dati fascicolo, documenti ed eventi caricati',
+          completed: current.total || 3,
+          total: current.total || 3,
+        }))
+      }
     } catch (error: unknown) {
       if (portal === 'pst' && isPstSessionExpiredError(error)) clearPstSession()
-      setMessage(asText(error instanceof Error ? error.message : error, 'Anteprima non disponibile.'))
+      const errorMessage = asText(error instanceof Error ? error.message : error, 'Anteprima non disponibile.')
+      setMessage(errorMessage)
+      if (portal === 'pst') {
+        setImportProgress((current) => ({
+          ...current,
+          active: false,
+          phase: current.phase || 'Visualizzazione non completata',
+          failures: current.failures.length ? current.failures : [errorMessage],
+        }))
+      }
     } finally {
       setBusy('')
     }
@@ -2724,7 +2840,7 @@ function AcquisitionWizard({
       tabella_ministeriale: asText(activeSelection.tabella_ministeriale || asRecord(asRecord(activeSelection.snapshot).fascicolo).tabella_ministeriale),
       ...ministerialHintsFromQuery(query),
       documents: documenti,
-    }, 360000)
+    }, LOCAL_SIGNER_PST_DOWNLOAD_TIMEOUT_MS)
     const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
     if (!nextSession) throw new Error('Sessione PST non inizializzata dal Local Signer.')
     const signerRows = asList(signerPayload.files).map(asRecord)
@@ -3104,6 +3220,7 @@ function AcquisitionWizard({
       </div>
 
       {message ? <div className="iu-tel-acquisition__message"><AlertTriangle size={17}/>{message}</div> : null}
+      <AcquisitionProgressView progress={importProgress} />
 
       {targetDocument.singleDocument ? (
         <div className="iu-tel-acquisition__target">
@@ -3549,21 +3666,6 @@ function AcquisitionWizard({
               <div className="iu-tel-acq-actions">
                 <button type="button" disabled={busy === 'import'} onClick={() => runImport()}><UploadCloud size={15}/> Importa nel gestionale</button>
               </div>
-              {(importProgress.active || importProgress.phase || importProgress.failures.length) ? (
-                <div className="iu-tel-acq-progress" aria-live="polite">
-                  <div>
-                    <strong>{importProgress.phase || 'Importazione'}</strong>
-                    <span>{importProgress.current || 'Preparazione documenti'}</span>
-                    <small>{importProgress.total ? `${importProgress.completed}/${importProgress.total} documenti` : 'Operazione in corso'}</small>
-                  </div>
-                  <progress value={importProgress.total ? importProgress.completed : undefined} max={importProgress.total || undefined}/>
-                  {importProgress.failures.length ? (
-                    <ul>
-                      {importProgress.failures.slice(0, 5).map((failure) => <li key={failure}>{failure}</li>)}
-                    </ul>
-                  ) : null}
-                </div>
-              ) : null}
               {Object.keys(documentReport).length ? (
                 <div className="iu-tel-acq-document-report" aria-label="Report documenti importazione">
                   {documentReportCards.map(([label, value]) => (

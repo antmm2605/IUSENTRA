@@ -887,7 +887,7 @@ def _studio_telematico_import_page(path: str = "/importa-pratiche-studio-telemat
             "refresh": "/api/v1/ui/import/quickorganizer",
             "preview": "/api/v1/ui/import/quickorganizer/anteprima",
             "run": "/api/v1/ui/import/quickorganizer/esegui",
-            "helper": "/static/tools/prepara_import_studio_telematico.ps1",
+            "helper": "/static/tools/PreparaPacchettoStudioTelematico.exe",
             "fascicoli": "/fascicoli",
             "clienti": "/clienti",
         },

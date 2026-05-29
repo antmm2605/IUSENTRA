@@ -80,6 +80,13 @@ def _write_package(path: Path, *, include_atto: bool = True, include_email: bool
     return path
 
 
+def _write_files_only_package(path: Path) -> Path:
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("ATTI/ricorso.pdf", b"%PDF-1.4\ncontenuto atto")
+        archive.writestr("EMAILS/messaggio.eml", b"Subject: Invio documenti\n\nTesto")
+    return path
+
+
 def _repositories(tmp_path: Path):
     fascicoli = GestioneFascicoli(
         db_path=str(tmp_path / "fascicoli" / "fascicoli.json"),
@@ -136,6 +143,19 @@ def test_import_studio_telematico_legge_documenti_da_atti_ed_emails(tmp_path: Pa
     assert len(fascicoli.tutti(archiviati=True)) == 1
     assert len(clienti.tutti()) == 1
     assert len(soggetti.tutti()) == 2
+
+
+def test_import_studio_telematico_legge_zip_con_sole_cartelle_senza_errore_generico(tmp_path: Path):
+    package = load_quickorganizer_package(_write_files_only_package(tmp_path / "atti-emails.zip"))
+    analysis = analyze_quickorganizer_package(package)
+
+    assert package.source_kind == "zip-files"
+    assert analysis["ok"] is False
+    assert analysis["canImportComplete"] is False
+    assert analysis["summary"]["availableFiles"] == 2
+    assert analysis["warnings"] == [
+        {"code": "pratiche_assenti", "message": "Nessuna pratica rilevata nel pacchetto."}
+    ]
 
 
 def test_import_studio_telematico_blocca_pacchetto_senza_atti_o_emails(tmp_path: Path):

@@ -39,6 +39,14 @@ completo equivalente al job CI (`generate_app_v2_page_registry.py --check`,
 `generate_app_v2_test_docs.py --check`, `smoke_app_v2_all.py --subset
 inventory`, pytest fase 10/11) è tornato verde.
 
+Secondo follow-up CI post-push: lo stesso job `Lint + syntax` ha poi segnalato
+`docs\backend-endpoint-security-map.md` non allineato dopo i nuovi endpoint.
+Eseguito `python scripts\react-migration\generate_backend_security_map.py`; il
+blocco RBAC/security del job (`tests\test_auth.py`,
+`tests\test_backend_security_phase5.py`, `tests\test_tenant_isolation_runtime.py`,
+`tests\test_app_v2_feature_flags.py`, `tests\test_app_v2_routing.py`,
+`tests\test_openapi_contracts_phase6.py`) è tornato verde.
+
 ## Note Local Signer 1.6.63 path fisico SICID per tabelle SICID-family - 2026-05-27
 
 Nessuna issue locale aperta sul perimetro corretto dopo i test mirati.

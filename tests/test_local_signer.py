@@ -2191,6 +2191,61 @@ def test_costruisce_body_qbuilder_ricerca_per_tipo():
     assert '<entry property="ANNORUOLO, NUMERORUOLO" mode="asc"/>' in xml
 
 
+def test_qbuilder_ricerca_per_solo_anno_restituisce_archivio_fascicoli():
+    module = _load_local_signer()
+
+    xml = module._soap_ricerca_fascicoli_body(
+        base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+        codice_ufficio="0800570094",
+        anno_rg=2024,
+        cf_avvocato="MNTRRT64L01L063H",
+    )
+
+    assert '<execute xmlns="urn:CONS-SICC-BE">' in xml
+    assert "<name>ArchivioFascicoli</name>" in xml
+    assert '<value name="idUfficio" type="string">0800570094</value>' in xml
+    assert '<value name="anno" type="string">2024</value>' in xml
+    assert 'name="numero"' not in xml
+    assert 'name="cognomeNome"' not in xml
+    assert 'name="codiceFiscale"' not in xml
+    assert '<entry property="ANNORUOLO, NUMERORUOLO" mode="asc"/>' in xml
+
+
+def test_qbuilder_siecic_ricerca_per_solo_anno_usa_archivio_ministeriale_pc():
+    module = _load_local_signer()
+
+    xml = module._soap_ricerca_fascicoli_body(
+        base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC",
+        codice_ufficio="0800570094",
+        anno_rg=2025,
+        cf_avvocato="MNTRRT64L01L063H",
+    )
+
+    assert '<execute xmlns="urn:CONS-SIECIC-BE">' in xml
+    assert "<name>RicercaArchivioPC</name>" in xml
+    assert '<value name="idUfficio" type="string">0800570094</value>' in xml
+    assert '<value name="annoRuolo" type="integer">2025</value>' in xml
+    assert 'name="numeroRuolo"' not in xml
+    assert '<entry property="annoRuolo, numeroRuolo" mode="asc"/>' in xml
+
+
+def test_qbuilder_siecic_ricerca_annuale_prepara_pc_ed_ei():
+    module = _load_local_signer()
+
+    bodies = module._soap_ricerca_fascicoli_anno_bodies(
+        base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC",
+        codice_ufficio="0800570094",
+        anno_rg=2025,
+        cf_avvocato="MNTRRT64L01L063H",
+    )
+
+    assert len(bodies) == 2
+    assert "<name>RicercaArchivioPC</name>" in bodies[0]
+    assert "<name>RicercaArchivioEI</name>" in bodies[1]
+    assert all('<value name="annoRuolo" type="integer">2025</value>' in body for body in bodies)
+    assert all('name="numeroRuolo"' not in body for body in bodies)
+
+
 def test_qbuilder_sicid_family_usa_tipo_registro_ministeriale_corretto():
     module = _load_local_signer()
 
@@ -2539,6 +2594,26 @@ def test_parse_qbuilder_siecic_supporta_nomi_catalogo_camel_case():
     assert fascicoli[0]["codice_ufficio"] == "0800570094"
     assert fascicoli[0]["ruolo"] == "Esecuzioni immobiliari"
     assert fascicoli[0]["data_udienza"] == "2026-06-12"
+    assert fascicoli[0]["parti"] == ["Debitore Test", "Creditore Test"]
+
+
+def test_parse_qbuilder_siecic_archivio_annuale_conserva_debitore_e_data_udienza():
+    module = _load_local_signer()
+
+    xml = """<?xml version='1.0' encoding='UTF-8'?>
+<SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+<SOAP-ENV:Body>
+<ns1:executeResponse xmlns:ns1="urn:CONS-SIECIC-BE"><return available="1" xmlns:ns2="urn:qbuilder-types" xsi:type="ns2:rowListType"><ns2:row class="RicercaArchivioEI"><ns2:property name="iddfa" type="string">EI-2025-11</ns2:property><ns2:property name="idUfficio" type="string">0800570094</ns2:property><ns2:property name="annoRuolo" type="integer">2025</ns2:property><ns2:property name="numeroRuolo" type="string">11</ns2:property><ns2:property name="descrRito" type="string">Esecuzione immobiliare</ns2:property><ns2:property name="debitore" type="string">Rossi Mario; Verdi Anna</ns2:property><ns2:property name="giudice" type="string">GIUDICE TEST</ns2:property><ns2:property name="dataProssUdienza" type="date">15/07/2026</ns2:property></ns2:row></return></ns1:executeResponse>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+
+    fascicoli = module._parse_fascicoli_xml(xml)
+
+    assert len(fascicoli) == 1
+    assert fascicoli[0]["id_fascicolo"] == "EI-2025-11"
+    assert fascicoli[0]["numero_rg"] == "11"
+    assert fascicoli[0]["data_udienza"] == "2026-07-15"
+    assert fascicoli[0]["parti"] == ["Rossi Mario", "Verdi Anna"]
 
 
 def test_parse_qbuilder_documenti_xml():
@@ -2629,6 +2704,64 @@ def test_parse_documenti_xml_supporta_container_annidato():
     assert {doc["data_deposito"] for doc in documenti} == {"2026-03-29"}
     assert documenti[1]["id_repeatto"] == "ATTO-SIGP-002"
     assert documenti[1]["msg_id"] == "PEC-MSG-002"
+
+
+def test_parse_documenti_xml_master_detail_include_doc_primario_e_docs_secondari():
+    module = _load_local_signer()
+
+    xml = """<?xml version='1.0' encoding='UTF-8'?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+  <SOAP-ENV:Body>
+    <ns1:estraiMasterDetailAttoResponse xmlns:ns1="urn:BEAFascicoloInformatico-distr">
+      <return>
+        <docPrimario>
+          <idDocumento>DOC-PRIMARIO</idDocumento>
+          <idCat>CAT-PRIMARIO</idCat>
+          <nomeFileOriginale>Citazione Stilitano Montagnese.pdf</nomeFileOriginale>
+          <tipoDocumento>Citazione</tipoDocumento>
+          <dataDeposito>2024-09-05T12:10:00Z</dataDeposito>
+          <codFiscMittente>MNTRRT64L01L063H</codFiscMittente>
+          <dimensioneFile>42000</dimensioneFile>
+        </docPrimario>
+        <docsSecondari>
+          <item>
+            <idDocumento>DOC-ALLEGATO-1</idDocumento>
+            <idCat>CAT-ALLEGATO-1</idCat>
+            <idReperto>REP-ALLEGATO-1</idReperto>
+            <idDocSuperiore>DOC-PRIMARIO</idDocSuperiore>
+            <nomeFileOriginale>PROCURA.PDF</nomeFileOriginale>
+            <tipoDocumento>Allegato</tipoDocumento>
+            <dataDeposito>2024-09-05T12:10:00Z</dataDeposito>
+            <dimensioneFile>12000</dimensioneFile>
+          </item>
+          <item>
+            <idDocumento>DOC-ALLEGATO-2</idDocumento>
+            <idCatRepository>REP-ALLEGATO-2</idCatRepository>
+            <nomeFileOriginale>DatiAtto.xml.p7m</nomeFileOriginale>
+            <tipoDocumento>DatiAtto</tipoDocumento>
+            <dataDeposito>2024-09-05T12:10:00Z</dataDeposito>
+          </item>
+        </docsSecondari>
+      </return>
+    </ns1:estraiMasterDetailAttoResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+
+    documenti = module._parse_documenti_xml(xml)
+
+    assert len(documenti) == 3
+    primario = next(doc for doc in documenti if doc["id_documento"] == "DOC-PRIMARIO")
+    allegato = next(doc for doc in documenti if doc["id_documento"] == "DOC-ALLEGATO-1")
+    allegato_reperto = next(doc for doc in documenti if doc["nome"] == "DatiAtto.xml.p7m")
+
+    assert primario["is_allegato"] is False
+    assert primario["sezione_portale"] == "DocumentiFascicolo"
+    assert allegato["is_allegato"] is True
+    assert allegato["sezione_portale"] == "Allegati"
+    assert allegato["id_documento_padre"] == "DOC-PRIMARIO"
+    assert allegato["parent_nome"] == "Citazione Stilitano Montagnese.pdf"
+    assert allegato["id_reperto"] == "REP-ALLEGATO-1"
+    assert allegato_reperto["id_reperto"] == "REP-ALLEGATO-2"
 
 
 def test_parse_qbuilder_documenti_xml_supporta_piu_return():
@@ -2751,7 +2884,45 @@ def test_map_qbuilder_documento_preserva_candidati_identificativo():
     assert doc["id_doc_mittente"] == "CAT-ALT-001"
     assert doc["id_repeatto"] == "ATTO-SIGP-001"
     assert doc["msg_id"] == "PEC-MSG-001"
-    assert doc["id_documento_candidates"] == ["32473463", "CAT-ALT-001"]
+    assert doc["id_documento_candidates"] == ["32473463", "CAT-ALT-001", "ATTO-SIGP-001"]
+
+
+def test_parse_pst_structured_sections_xml_copre_eventi_comunicazioni_scadenze():
+    module = _load_local_signer()
+
+    storico_xml = """<?xml version='1.0' encoding='UTF-8'?>
+<SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+<SOAP-ENV:Body>
+<ns1:executeResponse xmlns:ns1="urn:CONS-SICC-BE"><return available="1" xmlns:ns2="urn:qbuilder-types" xsi:type="ns2:rowListType"><ns2:row class="Evento"><ns2:property name="DATAEVENTO" type="date">09/01/2026</ns2:property><ns2:property name="DESCRIZIONEEVENTO" type="string">DEPOSITATA MINUTA SENTENZA, PUBBLICATA CON N. 4/2026</ns2:property><ns2:property name="TIPO" type="string">DEPOSITO MINUTA SENTENZA E PUBBLICAZIONE</ns2:property><ns2:property name="IDDOCUMENTO" type="string">31789737</ns2:property><ns2:property name="NOMEFILE" type="string">31789737s.pdf</ns2:property></ns2:row></return></ns1:executeResponse>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+    comunicazioni_xml = """<?xml version='1.0' encoding='UTF-8'?>
+<SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+<SOAP-ENV:Body>
+<ns1:executeResponse xmlns:ns1="urn:CONS-SICC-BE"><return available="1" xmlns:ns2="urn:qbuilder-types" xsi:type="ns2:rowListType"><ns2:row class="Comunicazioni"><ns2:property name="ATTESTAZIONE" type="date">09/01/2026</ns2:property><ns2:property name="TIPOATTO" type="string">Notifica</ns2:property><ns2:property name="DESCEVENTO" type="string">DEPOSITATA MINUTA SENTENZA</ns2:property><ns2:property name="IDINVIO" type="string">INVIO-1</ns2:property></ns2:row></return></ns1:executeResponse>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+    scadenze_xml = """<?xml version='1.0' encoding='UTF-8'?>
+<SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+<SOAP-ENV:Body>
+<ns1:executeResponse xmlns:ns1="urn:CONS-SICC-BE"><return available="1" xmlns:ns2="urn:qbuilder-types" xsi:type="ns2:rowListType"><ns2:row class="ScadenzaTermine"><ns2:property name="DATASCADENZA" type="date">12/12/2024</ns2:property><ns2:property name="DESCSCADENZA" type="string">Termine per note in sostituzione udienza</ns2:property><ns2:property name="TIPOSCADENZA" type="string">Termine</ns2:property></ns2:row></return></ns1:executeResponse>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+
+    sezioni = module._parse_pst_structured_sections_xml(
+        {
+            "StoricoFascicolo": storico_xml,
+            "ComunicazioneCancelleria": comunicazioni_xml,
+            "RicercaScadenze": scadenze_xml,
+        }
+    )
+
+    assert sezioni["eventi"][0]["descrizione"] == "DEPOSITATA MINUTA SENTENZA, PUBBLICATA CON N. 4/2026"
+    assert sezioni["eventi"][0]["id_documento"] == "31789737"
+    assert sezioni["comunicazioni"][0]["comunicazione_uid"] == "INVIO-1"
+    assert sezioni["comunicazioni"][0]["oggetto"] == "DEPOSITATA MINUTA SENTENZA"
+    assert sezioni["scadenze_termini"][0]["data"] == "2024-12-12"
+    assert sezioni["udienze"][0]["descrizione"] == "Termine per note in sostituzione udienza"
 
 
 def test_parse_download_documento_response_multipart():
@@ -5088,6 +5259,10 @@ def test_pst_ricerca_snapshot_usa_batch_certificato_senza_preflight_separato():
         "_risolvi_ufficio_da_snapshot": module._risolvi_ufficio_da_snapshot,
         "_update_pst_session": module._update_pst_session,
         "_get_pst_session": module._get_pst_session,
+        "_pst_arricchisci_documenti_con_master_detail": module._pst_arricchisci_documenti_con_master_detail,
+        "_pst_carica_sezioni_fascicolo_qbuilder": module._pst_carica_sezioni_fascicolo_qbuilder,
+        "_pst_arricchisci_documenti_con_master_detail": module._pst_arricchisci_documenti_con_master_detail,
+        "_pst_carica_sezioni_fascicolo_qbuilder": module._pst_carica_sezioni_fascicolo_qbuilder,
     }
     captured = {"batch": None, "preflight": 0, "session_ids": []}
 
@@ -5187,6 +5362,14 @@ def test_pst_ricerca_snapshot_usa_batch_certificato_senza_preflight_separato():
         module._risolvi_ufficio_da_snapshot = lambda codice: {"nome": "Tribunale di Palmi"}
         module._update_pst_session = lambda *args, **kwargs: None
         module._get_pst_session = lambda *args, **kwargs: None
+        module._pst_arricchisci_documenti_con_master_detail = lambda documenti, **kwargs: documenti
+        module._pst_carica_sezioni_fascicolo_qbuilder = lambda **kwargs: {
+            "eventi": [],
+            "udienze": [],
+            "comunicazioni": [],
+            "istanze": [],
+            "scadenze_termini": [],
+        }
 
         module._Handler._pst_ricerca_snapshot(_FakeHandler())
     finally:
@@ -5339,6 +5522,12 @@ def test_pst_ricerca_snapshot_fault_client_su_sicid_passa_a_siecic(monkeypatch):
     )
     monkeypatch.setattr(module, "_update_pst_session", lambda *args, **kwargs: None)
     monkeypatch.setattr(module, "_get_pst_session", lambda *args, **kwargs: None)
+    monkeypatch.setattr(module, "_pst_arricchisci_documenti_con_master_detail", lambda documenti, **kwargs: documenti)
+    monkeypatch.setattr(
+        module,
+        "_pst_carica_sezioni_fascicolo_qbuilder",
+        lambda **kwargs: {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": []},
+    )
 
     module._Handler._pst_ricerca_snapshot(_FakeHandler())
 
@@ -5408,6 +5597,12 @@ def test_pst_ricerca_snapshot_fault_fallback_non_diventa_ricerca_vuota(monkeypat
     monkeypatch.setattr(module, "_resolve_pst_session_entry", lambda session_id: None)
     monkeypatch.setattr(module, "_update_pst_session", lambda *args, **kwargs: None)
     monkeypatch.setattr(module, "_get_pst_session", lambda *args, **kwargs: None)
+    monkeypatch.setattr(module, "_pst_arricchisci_documenti_con_master_detail", lambda documenti, **kwargs: documenti)
+    monkeypatch.setattr(
+        module,
+        "_pst_carica_sezioni_fascicolo_qbuilder",
+        lambda **kwargs: {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": []},
+    )
 
     user_fault = (
         b"<SOAP-ENV:Envelope xmlns:SOAP-ENV='http://schemas.xmlsoap.org/soap/envelope/'>"
@@ -5507,6 +5702,12 @@ def test_pst_ricerca_snapshot_risposta_valida_vuota_non_bloccata_da_fault_fallba
     monkeypatch.setattr(module, "_resolve_pst_session_entry", lambda session_id: None)
     monkeypatch.setattr(module, "_update_pst_session", lambda *args, **kwargs: None)
     monkeypatch.setattr(module, "_get_pst_session", lambda *args, **kwargs: None)
+    monkeypatch.setattr(module, "_pst_arricchisci_documenti_con_master_detail", lambda documenti, **kwargs: documenti)
+    monkeypatch.setattr(
+        module,
+        "_pst_carica_sezioni_fascicolo_qbuilder",
+        lambda **kwargs: {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": []},
+    )
 
     empty_rowlist = (
         b"<?xml version='1.0' encoding='UTF-8'?>"
@@ -5649,6 +5850,12 @@ def test_pst_ricerca_snapshot_prova_codice_ufficio_ufficiale_se_diverso(monkeypa
     )
     monkeypatch.setattr(module, "_update_pst_session", lambda *args, **kwargs: None)
     monkeypatch.setattr(module, "_get_pst_session", lambda *args, **kwargs: None)
+    monkeypatch.setattr(module, "_pst_arricchisci_documenti_con_master_detail", lambda documenti, **kwargs: documenti)
+    monkeypatch.setattr(
+        module,
+        "_pst_carica_sezioni_fascicolo_qbuilder",
+        lambda **kwargs: {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": []},
+    )
 
     module._Handler._pst_ricerca_snapshot(_FakeHandler())
 
@@ -5771,6 +5978,14 @@ def test_pst_ricerca_snapshot_sigp_include_ricerca_atti_nel_batch_visualizzazion
         module._risolvi_ufficio_da_snapshot = lambda codice: {"nome": "Giudice di Pace di Palmi"}
         module._update_pst_session = lambda *args, **kwargs: None
         module._get_pst_session = lambda *args, **kwargs: None
+        module._pst_arricchisci_documenti_con_master_detail = lambda documenti, **kwargs: documenti
+        module._pst_carica_sezioni_fascicolo_qbuilder = lambda **kwargs: {
+            "eventi": [],
+            "udienze": [],
+            "comunicazioni": [],
+            "istanze": [],
+            "scadenze_termini": [],
+        }
 
         module._Handler._pst_ricerca_snapshot(_FakeHandler())
     finally:

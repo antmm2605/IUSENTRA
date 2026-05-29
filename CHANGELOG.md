@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.248.87 - 2026-05-29
+
+- Estesa l'acquisizione PST/PolisWeb del fascicolo alle schede effettivamente esposte dal portale: dettaglio/profilo, documenti, master detail degli atti, allegati secondari, storico eventi, comunicazioni/notificazioni, scadenze/termini, istanze e dati accessori.
+- Il Local Signer `1.6.64` arricchisce in batch i documenti SICID/SIECIC con `estraiMasterDetailAtto`, conserva `docPrimario` e `docsSecondari`, mantiene `id_documento`, `id_cat`, `id_repeatto`, `id_reperto`, `msg_id` e collega gli allegati al documento padre.
+- Aggiunta la ricerca PST per solo anno: indicando ufficio e anno senza numero vengono usate le interrogazioni ministeriali del registro (`ArchivioFascicoli` per SICID/SIGP, `RicercaArchivioPC` e `RicercaArchivioEI` per SIECIC) e la UI mostra la lista dei fascicoli; cliccando un fascicolo viene caricato lo snapshot completo del fascicolo scelto.
+- Allineati sia la superficie React sia il wizard classico `?_legacy=1`: il modo per anno mostra `Cerca fascicoli`, non apre automaticamente un singolo risultato e permette di aprire il fascicolo scelto dalla lista senza cambiare le regole di import già collaudate.
+- Preservate le modalità già funzionanti di scelta documenti: tutto, singolo documento o selezione multipla, sempre tramite download batch `/pst/download-documenti-batch` e senza reintrodurre preflight separati o download singoli ripetuti.
+- Documentate le direttive ministeriali applicate in `docs/specs/ministero/PST_FASCICOLO_SCHEDE_MINISTERIALI_2026-05-29.md` e aggiunti test di regressione su tabelle ministeriali, allegati, identificativi e UI React.
+
 ## 2.248.86 - 2026-05-29
 
 - Rafforzata l'importazione finale PST/Local Signer: Step 7 riconosce i file reali con contenuto, hash e provenienza, distingue catalogo, Informazioni e documenti senza contenuto, e restituisce un report utile invece del blocco generico.

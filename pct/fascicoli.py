@@ -447,7 +447,11 @@ def _documento_portale_payload(dep: "EsitoDepositoPCT", item: dict | None) -> di
         "id_documento_portale": str(row.get("id_documento") or "").strip(),
         "id_cat_portale": str(row.get("id_cat") or "").strip(),
         "id_repeatto_portale": str(row.get("id_repeatto") or "").strip(),
+        "id_reperto_portale": str(row.get("id_reperto") or "").strip(),
         "msg_id_portale": str(row.get("msg_id") or "").strip(),
+        "id_documento_padre_portale": str(row.get("id_documento_padre") or row.get("parent_id_documento") or "").strip(),
+        "parent_nome_portale": str(row.get("parent_nome") or "").strip(),
+        "allegato_portale": str(bool(row.get("is_allegato"))).lower(),
     }
 
 
@@ -471,7 +475,7 @@ def _documento_portale_nome_keys(nome: str) -> set[str]:
 def _documento_portale_ref_keys(item: dict[str, Any] | None) -> set[str]:
     row = dict(item or {})
     refs: set[str] = set()
-    for field_name in ("id_documento", "id_cat", "id_repeatto", "msg_id"):
+    for field_name in ("id_documento", "id_cat", "id_repeatto", "id_reperto", "msg_id"):
         value = str(row.get(field_name) or "").strip()
         if value:
             refs.add(value.casefold())
@@ -1827,6 +1831,7 @@ class GestioneFascicoli:
                 "id_documento": str(row.get("id_documento") or "").strip(),
                 "id_cat": str(row.get("id_cat") or "").strip(),
                 "id_repeatto": str(row.get("id_repeatto") or "").strip(),
+                "id_reperto": str(row.get("id_reperto") or "").strip(),
                 "msg_id": str(row.get("msg_id") or "").strip(),
                 "nome": str(row.get("nome") or "").strip(),
                 "tipo": str(row.get("tipo") or "").strip(),
@@ -1836,43 +1841,55 @@ class GestioneFascicoli:
                 "disponibile": _bool_portale(row.get("disponibile", True)),
                 "id_deposito": str(row.get("id_deposito") or chiave_portale).strip(),
                 "tipo_atto": str(row.get("tipo_atto") or tipo_atto or "").strip(),
+                "id_documento_padre": str(row.get("id_documento_padre") or row.get("parent_id_documento") or "").strip(),
+                "parent_nome": str(row.get("parent_nome") or "").strip(),
+                "is_allegato": _bool_portale(row.get("is_allegato")),
             }
 
         def _merge_documenti_portale(*liste: List[dict]) -> List[dict]:
             merged: List[dict] = []
             visti: set[tuple[str, str, str]] = set()
             by_key: dict[tuple[str, str, str], dict] = {}
-            for lista in liste:
-                for item in lista or []:
-                    row = _normalizza_doc_portale(item)
-                    if row.get("id_documento"):
-                        chiave = ("id_documento", row.get("id_documento") or "", "")
-                    elif row.get("id_cat"):
-                        chiave = ("id_cat", row.get("id_cat") or "", "")
-                    elif row.get("id_repeatto"):
-                        chiave = ("id_repeatto", row.get("id_repeatto") or "", "")
-                    elif row.get("msg_id"):
-                        chiave = ("msg_id", row.get("msg_id") or "", "")
-                    else:
-                        chiave = (
+
+            def _identity_keys(row: dict) -> List[tuple[str, str, str]]:
+                keys: List[tuple[str, str, str]] = []
+                for field_name in ("id_documento", "id_cat", "id_repeatto", "id_reperto", "msg_id"):
+                    value = str(row.get(field_name) or "").strip()
+                    if value:
+                        keys.append((field_name, value, ""))
+                if not keys:
+                    keys.append(
+                        (
                             "nome",
                             (row.get("nome") or "").upper(),
                             (row.get("tipo") or row.get("tipo_atto") or "").upper(),
                         )
-                    if chiave in visti:
-                        existing = by_key.get(chiave)
-                        if existing is not None:
-                            for field_name, value in row.items():
-                                if field_name == "dimensione_bytes":
-                                    if int(value or 0) > 0 and int(existing.get(field_name) or 0) <= 0:
-                                        existing[field_name] = value
-                                elif field_name == "disponibile":
-                                    existing[field_name] = bool(existing.get(field_name, True) or value)
-                                elif str(value or "").strip() and not str(existing.get(field_name) or "").strip():
+                    )
+                return keys
+
+            for lista in liste:
+                for item in lista or []:
+                    row = _normalizza_doc_portale(item)
+                    keys = _identity_keys(row)
+                    existing = next((by_key[key] for key in keys if key in visti), None)
+                    if existing is not None:
+                        for field_name, value in row.items():
+                            if field_name == "dimensione_bytes":
+                                if int(value or 0) > 0 and int(existing.get(field_name) or 0) <= 0:
                                     existing[field_name] = value
+                            elif field_name == "disponibile":
+                                existing[field_name] = bool(existing.get(field_name, True) or value)
+                            elif field_name == "is_allegato":
+                                existing[field_name] = bool(existing.get(field_name) or value)
+                            elif str(value or "").strip() and not str(existing.get(field_name) or "").strip():
+                                existing[field_name] = value
+                        for key in keys:
+                            visti.add(key)
+                            by_key.setdefault(key, existing)
                         continue
-                    visti.add(chiave)
-                    by_key[chiave] = row
+                    for key in keys:
+                        visti.add(key)
+                        by_key[key] = row
                     merged.append(row)
             merged.sort(
                 key=lambda item: (

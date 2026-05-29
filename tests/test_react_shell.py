@@ -1476,7 +1476,12 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "Cassazione penale" in source
     assert "...ministerialHintsFromQuery(query)" in source
     assert "const pstHasPartySearch = () => Boolean(" in source
-    assert "Indica numero e anno oppure almeno una parte o un codice fiscale per interrogare il PST." in source
+    assert "const pstHasYearSearch = () => portal === 'pst' && Boolean(asText(query.anno) && !asText(query.numero) && !pstHasPartySearch())" in source
+    assert "const pstHasSearchCriteria = () => pstHasExactOrPartySearch() || pstHasYearSearch()" in source
+    assert "un anno per vedere l'elenco fascicoli" in source
+    assert "pstHasYearSearch() ? 'Cerca fascicoli' : 'Cerca fascicolo'" in source
+    assert "const runPreview = async (activeSelection: AcquisitionResult | null = selection)" in source
+    assert "if (portal === 'pst' && pstHasYearSearch()) void runPreview(result)" in source
     assert "const signerRows = asList(signerPayload.fascicoli || signerPayload.results)" in source
     assert "const snapshotFascicolo = asRecord(snapshot.fascicolo)" in source
     assert "const sourceRows = signerRows.length" in source

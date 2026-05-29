@@ -108,9 +108,13 @@ type AcquisitionFile = {
   tipo: string
   id_cat?: string
   id_repeatto?: string
+  id_reperto?: string
   msg_id?: string
   numero_documento?: string
   id_doc_mittente?: string
+  id_documento_padre?: string
+  parent_nome?: string
+  is_allegato?: boolean
   original_documento_portale: boolean
   modalita_documento_portale: 'originale' | 'copia'
 }
@@ -1261,13 +1265,33 @@ function previewIdentity(preview: JsonRecord): JsonRecord {
 }
 
 function pstPreviewDocuments(preview: JsonRecord): JsonRecord[] {
-  const direct = asList(preview.documenti || preview.documents || preview.catalogo).map(asRecord)
+  const flatten = (rows: JsonRecord[], parent?: JsonRecord): JsonRecord[] => rows.flatMap((row) => {
+    const current = parent && !asText(row.parent_id_documento || row.id_documento_padre)
+      ? {
+          ...row,
+          parent_id_documento: asText(parent.id_documento || parent.id_cat || parent.id_reperto),
+          id_documento_padre: asText(parent.id_documento || parent.id_cat || parent.id_reperto),
+          parent_nome: asText(parent.nome || parent.nome_documento),
+          is_allegato: true,
+        }
+      : row
+    const children = [
+      ...asList(row.allegati).map(asRecord),
+      ...asList(row.attachments).map(asRecord),
+      ...asList(row.children).map(asRecord),
+      ...asList(row.documenti_collegati).map(asRecord),
+      ...asList(row.docs_secondari).map(asRecord),
+      ...asList(row.docsSecondari).map(asRecord),
+    ]
+    return children.length ? [current, ...flatten(children, current)] : [current]
+  })
+  const direct = flatten(asList(preview.documenti || preview.documents || preview.catalogo).map(asRecord))
   if (direct.length) return direct
   const snapshot = asRecord(preview.snapshot)
-  const snapshotDocs = asList(snapshot.documenti || snapshot.documents || snapshot.catalogo).map(asRecord)
+  const snapshotDocs = flatten(asList(snapshot.documenti || snapshot.documents || snapshot.catalogo).map(asRecord))
   if (snapshotDocs.length) return snapshotDocs
   return asList(preview.depositi).map(asRecord).flatMap((deposito) => {
-    const docs = asList(deposito.documenti).map(asRecord)
+    const docs = flatten(asList(deposito.documenti).map(asRecord))
     return docs.map((documento) => ({
       ...documento,
       id_deposito_pct: asText(documento.id_deposito_pct || deposito.id_deposito_pct),
@@ -1477,6 +1501,8 @@ function pstDocumentIdentifierValues(item: JsonRecord): string[] {
     item.id_repeatto,
     item.idRepeatto,
     item.idRepeatTo,
+    item.id_reperto,
+    item.idReperto,
     item.msg_id,
     item.msgId,
     item.msgid,
@@ -1531,6 +1557,8 @@ function acquisitionFilePstRecord(file: AcquisitionFile): JsonRecord {
     idCat: file.id_cat,
     id_repeatto: file.id_repeatto,
     idRepeatto: file.id_repeatto,
+    id_reperto: asText(file.id_reperto),
+    idReperto: asText(file.id_reperto),
     msg_id: file.msg_id,
     msgId: file.msg_id,
     numero_documento: file.numero_documento,
@@ -1591,6 +1619,7 @@ function pstDownloadDocumentPayload(item: JsonRecord, original: boolean): JsonRe
     nome_documento: asText(item.nome || item.nome_documento || item.nome_file_originale),
     id_cat: asText(item.id_cat),
     id_repeatto: asText(item.id_repeatto),
+    id_reperto: asText(item.id_reperto),
     msg_id: asText(item.msg_id),
     numero_documento: asText(item.numero_documento),
     id_doc_mittente: asText(item.id_doc_mittente),
@@ -1600,6 +1629,9 @@ function pstDownloadDocumentPayload(item: JsonRecord, original: boolean): JsonRe
     id_deposito_pct: asText(item.id_deposito_pct),
     tipo_atto: asText(item.tipo_atto),
     tipo: asText(item.tipo),
+    id_documento_padre: asText(item.id_documento_padre || item.parent_id_documento),
+    parent_nome: asText(item.parent_nome),
+    is_allegato: Boolean(item.is_allegato),
     original,
   }
 }
@@ -1698,9 +1730,13 @@ function assistantFilesToAcquisitionFiles(rows: unknown[], originalMode: boolean
       tipo: asText(row.tipo),
       id_cat: asText(row.id_cat || row.idCat),
       id_repeatto: asText(row.id_repeatto || row.idRepeatto || row.idRepeatTo),
+      id_reperto: asText(row.id_reperto || row.idReperto),
       msg_id: asText(row.msg_id || row.msgId || row.msgid),
       numero_documento: asText(row.numero_documento || row.numeroDocumento),
       id_doc_mittente: asText(row.id_doc_mittente || row.idDocMittente),
+      id_documento_padre: asText(row.id_documento_padre || row.parent_id_documento),
+      parent_nome: asText(row.parent_nome),
+      is_allegato: Boolean(row.is_allegato),
       original_documento_portale: originalMode,
       modalita_documento_portale: originalMode ? 'originale' : 'copia',
     })
@@ -1730,9 +1766,13 @@ function signerFilesToAcquisitionFiles(rows: unknown[], originalMode: boolean): 
       tipo: asText(row.tipo),
       id_cat: asText(row.id_cat || row.idCat),
       id_repeatto: asText(row.id_repeatto || row.idRepeatto || row.idRepeatTo),
+      id_reperto: asText(row.id_reperto || row.idReperto),
       msg_id: asText(row.msg_id || row.msgId || row.msgid),
       numero_documento: asText(row.numero_documento || row.numeroDocumento),
       id_doc_mittente: asText(row.id_doc_mittente || row.idDocMittente),
+      id_documento_padre: asText(row.id_documento_padre || row.parent_id_documento),
+      parent_nome: asText(row.parent_nome),
+      is_allegato: Boolean(row.is_allegato),
       original_documento_portale: 'original_documento_portale' in row ? Boolean(row.original_documento_portale) : originalMode,
       modalita_documento_portale: asText(row.modalita_documento_portale) === 'originale' || ('original_documento_portale' in row ? Boolean(row.original_documento_portale) : originalMode) ? 'originale' : 'copia',
     })
@@ -2284,6 +2324,8 @@ function AcquisitionWizard({
     (asText(query.numero) && asText(query.anno))
     || pstHasPartySearch(),
   )
+  const pstHasYearSearch = () => portal === 'pst' && Boolean(asText(query.anno) && !asText(query.numero) && !pstHasPartySearch())
+  const pstHasSearchCriteria = () => pstHasExactOrPartySearch() || pstHasYearSearch()
 
   const canUsePstSearchSnapshot = () => Boolean(
     portal === 'pst'
@@ -2360,8 +2402,8 @@ function AcquisitionWizard({
         pstCfSourceForDiagnostic = pstAttorneyFiscalCodeSource(cert)
         let session = activePstSessionFor(tribunale, cert)
         const exactPstSearch = Boolean(asText(query.numero) && asText(query.anno))
-        if (!pstHasExactOrPartySearch()) {
-          throw new Error('Indica numero e anno oppure almeno una parte o un codice fiscale per interrogare il PST.')
+        if (!pstHasSearchCriteria()) {
+          throw new Error("Indica numero e anno, un anno per vedere l'elenco fascicoli, oppure almeno una parte o un codice fiscale per interrogare il PST.")
         }
         if (canUsePstSearchSnapshot()) {
           try {
@@ -2492,32 +2534,33 @@ function AcquisitionWizard({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.offices.length, query.anno, query.numero, query.ufficio, query.ufficioCodice, visible, portal])
 
-  const runPreview = async () => {
-    if (!selection) {
+  const runPreview = async (activeSelection: AcquisitionResult | null = selection) => {
+    if (!activeSelection) {
       setMessage('Seleziona prima un fascicolo dal risultato della ricerca.')
       return
     }
+    setSelection(activeSelection)
     setBusy('preview')
     try {
       let payload: JsonRecord
       if (portal === 'pst') {
-        const tribunale = asText(selection.raw.ufficio_codice || resolvedOfficeCode())
-        let snapshot = asRecord(selection.raw.snapshot)
+        const tribunale = asText(activeSelection.raw.ufficio_codice || resolvedOfficeCode())
+        let snapshot = asRecord(activeSelection.raw.snapshot)
         let documenti = asList(snapshot.documenti).map(asRecord)
-        let pstSessionPayload = asRecord(selection.raw.pst_session)
+        let pstSessionPayload = asRecord(activeSelection.raw.pst_session)
         if (!documenti.length) {
           const cert = await ensurePstCertificate()
           const session = activePstSessionFor(tribunale, cert)
           const signerPayload = await localSignerJson('/pst/fascicolo-snapshot', {
-            selection: selection.raw,
+            selection: activeSelection.raw,
             codice_ufficio: tribunale,
-            numero_rg: asText(selection.raw.numero || query.numero),
-            anno_rg: asText(selection.raw.anno || query.anno),
-            id_fascicolo: asText(selection.raw.id_fascicolo),
-            sub_procedimento: asText(selection.raw.sub_procedimento),
-            servizio_pst: asText(selection.raw.servizio_pst || asRecord(asRecord(selection.raw.snapshot).fascicolo).servizio_pst),
-            registro_portale: asText(selection.raw.registro_portale || asRecord(asRecord(selection.raw.snapshot).fascicolo).registro_portale),
-            tabella_ministeriale: asText(selection.raw.tabella_ministeriale || asRecord(asRecord(selection.raw.snapshot).fascicolo).tabella_ministeriale),
+            numero_rg: asText(activeSelection.raw.numero || query.numero),
+            anno_rg: asText(activeSelection.raw.anno || query.anno),
+            id_fascicolo: asText(activeSelection.raw.id_fascicolo),
+            sub_procedimento: asText(activeSelection.raw.sub_procedimento),
+            servizio_pst: asText(activeSelection.raw.servizio_pst || asRecord(asRecord(activeSelection.raw.snapshot).fascicolo).servizio_pst),
+            registro_portale: asText(activeSelection.raw.registro_portale || asRecord(asRecord(activeSelection.raw.snapshot).fascicolo).registro_portale),
+            tabella_ministeriale: asText(activeSelection.raw.tabella_ministeriale || asRecord(asRecord(activeSelection.raw.snapshot).fascicolo).tabella_ministeriale),
             ...ministerialHintsFromQuery(query),
             cf_avvocato: pstAttorneyFiscalCode(cert),
             cert_thumbprint: cert.thumbprint || null,
@@ -2533,7 +2576,7 @@ function AcquisitionWizard({
         }
         payload = await portalJson(portal, 'preview', {
           selection: {
-            ...selection.raw,
+            ...activeSelection.raw,
             snapshot,
             pst_session: pstSessionPayload,
           },
@@ -2543,7 +2586,7 @@ function AcquisitionWizard({
           target_document: targetDocumentPayload,
         })
       } else {
-        payload = await portalJson(portal, 'preview', { selection: selection.raw, target_document: targetDocumentPayload })
+        payload = await portalJson(portal, 'preview', { selection: activeSelection.raw, target_document: targetDocumentPayload })
       }
       if (payload.ok === false) throw new Error(asText(payload.errore, 'Anteprima non completata.'))
       setPreview(asRecord(payload.preview))
@@ -3235,13 +3278,16 @@ function AcquisitionWizard({
                 <label className="iu-tel-acq-form__wide"><span>Oggetto / materia</span><input value={query.oggetto} onChange={(event) => updateQuery('oggetto', event.currentTarget.value)} placeholder="Oggetto, materia, reato, rito..."/></label>
               </div>
               <div className="iu-tel-acq-actions">
-                <button type="button" disabled={busy === 'search' || portalUsesOfficialAssistant || (portalNeedsLocalSigner && !localSignerDesktopSupported)} onClick={runSearch}><Search size={15}/> {portalUsesOfficialAssistant ? 'Ricerca nella sessione assistita' : 'Cerca fascicolo'}</button>
-                <button type="button" disabled={!selection || busy === 'preview' || portalUsesOfficialAssistant} onClick={runPreview}><FileText size={15}/> Carica anteprima</button>
+                <button type="button" disabled={busy === 'search' || portalUsesOfficialAssistant || (portalNeedsLocalSigner && !localSignerDesktopSupported)} onClick={runSearch}><Search size={15}/> {portalUsesOfficialAssistant ? 'Ricerca nella sessione assistita' : (pstHasYearSearch() ? 'Cerca fascicoli' : 'Cerca fascicolo')}</button>
+                <button type="button" disabled={!selection || busy === 'preview' || portalUsesOfficialAssistant} onClick={() => runPreview()}><FileText size={15}/> Carica anteprima</button>
                 {portalUsesOfficialAssistant ? <button type="button" onClick={() => setStep(4)}><ArrowRight size={15}/> Vai ai file raccolti</button> : null}
               </div>
               <div className="iu-tel-acq-results">
                 {results.map((result) => (
-                  <button type="button" className={selection?.id === result.id ? 'is-selected' : ''} onClick={() => setSelection(result)} key={result.id}>
+                  <button type="button" className={selection?.id === result.id ? 'is-selected' : ''} onClick={() => {
+                    setSelection(result)
+                    if (portal === 'pst' && pstHasYearSearch()) void runPreview(result)
+                  }} key={result.id}>
                     <strong>{result.title}</strong>
                     <span>{result.subtitle}</span>
                     <em>{result.badge} {result.meta ? `- ${result.meta}` : ''}</em>

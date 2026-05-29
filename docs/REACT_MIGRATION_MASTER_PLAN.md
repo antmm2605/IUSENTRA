@@ -1,5 +1,29 @@
 # Migrazione progressiva Flask + React
 
+## PST / PolisWeb - parità schede fascicolo e ricerca annuale - 2026-05-29 - 2.248.87
+
+La tranche 2.248.87 porta l'import PST più vicino alla vista reale del portale:
+
+- il catalogo documenti non si ferma più alla sola tabella `DocumentiFascicolo`;
+  quando il servizio ministeriale lo consente, il Local Signer interroga anche
+  `estraiMasterDetailAtto` e porta nell'inventario `docPrimario` e
+  `docsSecondari`, conservando il rapporto padre/allegato;
+- lo snapshot del fascicolo include sezioni strutturate per storico eventi,
+  comunicazioni/notificazioni di cancelleria, scadenze/termini, istanze e dati
+  accessori del profilo, così l'anteprima React e l'import vedono gli stessi
+  blocchi mostrati dal PST;
+- la UI PST accetta anche la ricerca per solo anno: viene mostrata una lista di
+  fascicoli e l'utente carica lo snapshot completo cliccando sul fascicolo
+  scelto;
+- la stessa regola è stata applicata anche al wizard classico `?_legacy=1`, così
+  eventuali fallback o server non ricaricati non tornano al vecchio
+  comportamento;
+- restano invariati i tre modi di import documenti già provati: tutto, singolo
+  documento e selezione multipla, con download batch e senza preflight separato.
+
+Fonti e direttive sono versionate in
+`docs/specs/ministero/PST_FASCICOLO_SCHEDE_MINISTERIALI_2026-05-29.md`.
+
 ## PST / SQLite / PEC - ripristino robustezza operativa - 2026-05-29 - 2.248.86
 
 La tranche 2.248.86 chiude tre regressioni operative ad alto rischio:

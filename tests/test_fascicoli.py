@@ -410,6 +410,59 @@ def test_sincronizza_deposito_portale_riusa_lotto_generico_e_compila_metadati(gf
     assert doc2_reload.id_documento_portale == "DOC-002"
 
 
+def test_sincronizza_deposito_portale_preserva_allegati_e_id_reperto(gf, fascicolo_base):
+    esito = gf.sincronizza_deposito_portale(
+        fascicolo_base.id,
+        fonte="PST",
+        id_deposito_esterno="DEP-CITAZIONE-001",
+        tipo_atto="Citazione",
+        data_deposito="2024-09-05",
+        mittente="MONTAGNESE ROBERTO",
+        documenti_portale=[
+            {
+                "id_documento": "DOC-PRIMARIO",
+                "id_cat": "CAT-PRIMARIO",
+                "nome": "Citazione Stilitano Montagnese.pdf",
+                "tipo": "Citazione",
+                "data_deposito": "2024-09-05",
+                "mittente": "MONTAGNESE ROBERTO",
+                "dimensione_bytes": 42000,
+                "disponibile": True,
+            },
+            {
+                "id_documento": "DOC-ALLEGATO-1",
+                "id_cat": "CAT-ALLEGATO-1",
+                "id_reperto": "REP-ALLEGATO-1",
+                "id_documento_padre": "DOC-PRIMARIO",
+                "parent_nome": "Citazione Stilitano Montagnese.pdf",
+                "is_allegato": True,
+                "nome": "PROCURA.PDF",
+                "tipo": "Allegato",
+                "data_deposito": "2024-09-05",
+                "mittente": "MONTAGNESE ROBERTO",
+                "dimensione_bytes": 12000,
+                "disponibile": True,
+            },
+            {
+                "id_reperto": "REP-ALLEGATO-1",
+                "nome": "PROCURA.PDF",
+                "tipo": "Allegato",
+                "data_deposito": "2024-09-05",
+                "is_allegato": True,
+            },
+        ],
+        registrato_da="admin",
+        servizio_portale="DocumentiFascicolo",
+    )
+
+    assert len(esito.documenti_portale) == 2
+    allegato = next(item for item in esito.documenti_portale if item["nome"] == "PROCURA.PDF")
+    assert allegato["id_reperto"] == "REP-ALLEGATO-1"
+    assert allegato["id_documento_padre"] == "DOC-PRIMARIO"
+    assert allegato["parent_nome"] == "Citazione Stilitano Montagnese.pdf"
+    assert allegato["is_allegato"] is True
+
+
 def test_riconcilia_documenti_portale_ripara_match_ambiguo_e_normalizza_note(gf, fascicolo_base):
     dep_citazione = gf.sincronizza_deposito_portale(
         fascicolo_base.id,

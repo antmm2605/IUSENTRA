@@ -723,6 +723,21 @@ function awCurrentQuery() {
     quick_filter: AW_STATE.quick || '',
   };
 }
+function awIsPstYearOnlyQuery(query = awCurrentQuery()) {
+  return !!(
+    AW_BOOT.portale === 'pst'
+    && String(query?.ufficio_codice || '').trim()
+    && String(query?.anno || '').trim()
+    && !String(query?.numero || '').trim()
+  );
+}
+function awUpdateSearchModeUi() {
+  const btn = document.getElementById('awSearch');
+  if (!btn) return;
+  const annualSearch = awIsPstYearOnlyQuery();
+  btn.textContent = annualSearch ? 'Cerca fascicoli' : 'Cerca';
+  btn.setAttribute('aria-label', annualSearch ? 'Cerca fascicoli per anno' : 'Cerca fascicolo');
+}
 function awCurrentTargetDocument() {
   const target = AW_BOOT.targetDocument || {};
   return {
@@ -2166,6 +2181,7 @@ function awRenderAccess() {
 function awPickAutoSelectionIndex(results, query) {
   const rows = Array.isArray(results) ? results : [];
   if (!rows.length) return -1;
+  if (awIsPstYearOnlyQuery(query)) return -1;
   if (rows.length === 1) return 0;
   const numero = String(query?.numero || '').trim();
   const anno = String(query?.anno || '').trim();
@@ -2261,9 +2277,12 @@ function awRenderResults() {
     root.innerHTML = '<div class="aw-box text-muted">Usa ricerca intelligente, filtri rapidi e ufficio giudiziario per trovare il fascicolo giusto.</div>';
     return;
   }
-  meta.textContent = `${AW_STATE.results.length} fascicolo/i trovati`;
+  const annualSearch = awIsPstYearOnlyQuery();
+  meta.textContent = annualSearch
+    ? `${AW_STATE.results.length} fascicolo/i trovati per anno`
+    : `${AW_STATE.results.length} fascicolo/i trovati`;
   root.innerHTML = AW_STATE.results.map((row, index) => `
-    <div class="aw-result ${AW_STATE.selection && AW_STATE.selection.external_id === row.external_id ? 'border border-' + AW_BOOT.spec.color : ''}">
+    <div class="aw-result ${AW_STATE.selection && AW_STATE.selection.external_id === row.external_id ? 'border border-' + AW_BOOT.spec.color : ''}" data-aw-result-open="${index}" role="button" tabindex="0">
       <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
         <div class="flex-grow-1">
           <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
@@ -2278,11 +2297,22 @@ function awRenderResults() {
           <div class="small text-muted">Ultimo aggiornamento: ${awEscape(awFormatDate(row.ultima_attivita))} ${row.sezione ? `- Sezione ${awEscape(row.sezione)}` : ''}</div>
         </div>
         <div class="d-flex gap-2">
-          <button type="button" class="btn btn-sm btn-outline-${AW_BOOT.spec.color}" data-aw-preview="${index}">Anteprima</button>
+          <button type="button" class="btn btn-sm btn-outline-${AW_BOOT.spec.color}" data-aw-preview="${index}">${annualSearch ? 'Apri fascicolo' : 'Anteprima'}</button>
           <button type="button" class="btn btn-sm btn-${AW_BOOT.spec.color}" data-aw-select="${index}">Seleziona</button>
         </div>
       </div>
     </div>`).join('');
+  root.querySelectorAll('[data-aw-result-open]').forEach(row => {
+    row.addEventListener('click', event => {
+      if (event.target.closest('button,a,input,select,textarea,label')) return;
+      awSelectResult(Number(row.dataset.awResultOpen), true);
+    });
+    row.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      awSelectResult(Number(row.dataset.awResultOpen), true);
+    });
+  });
   root.querySelectorAll('[data-aw-preview]').forEach(btn => btn.addEventListener('click', () => awSelectResult(Number(btn.dataset.awPreview), true)));
   root.querySelectorAll('[data-aw-select]').forEach(btn => btn.addEventListener('click', () => awSelectResult(Number(btn.dataset.awSelect), true)));
 }
@@ -3092,9 +3122,11 @@ function awInitOfficeAutocomplete() {
     input.value = item.nome || item.codice || '';
     value.value = item.codice || '';
     closeDrop();
+    awUpdateSearchModeUi();
   }
   input.addEventListener('input', () => {
     value.value = '';
+    awUpdateSearchModeUi();
     clearTimeout(timer);
     const q = input.value.trim();
     if (q.length < 2) return closeDrop();
@@ -3160,7 +3192,9 @@ document.getElementById('awTest').addEventListener('click', async () => {
   });
   document.getElementById('awSearch').addEventListener('click', awRunSearch);
   ['awNumero', 'awAnno', 'awAssistito', 'awControparte', 'awCf', 'awOggetto'].forEach(id => {
-    document.getElementById(id).addEventListener('keydown', event => {
+    const field = document.getElementById(id);
+    field.addEventListener('input', awUpdateSearchModeUi);
+    field.addEventListener('keydown', event => {
       if (event.key === 'Enter') {
         event.preventDefault();
         awRunSearch();
@@ -3233,6 +3267,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     awBindQuickFilters();
     awInitOfficeAutocomplete();
     await awApplyInitialQueryFromNotification();
+    awUpdateSearchModeUi();
   } catch (err) {
     awRenderInitFallback(err);
   }

@@ -3718,6 +3718,12 @@ def test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita
     assert "const exactByRg = !!(String(query.numero || '').trim() && String(query.anno || '').trim());" in template
     assert "nome_parte: exactByRg ? '' : (query.assistito || query.controparte || '')" in template
     assert "cf_parte: exactByRg ? '' : (query.cf || '')" in template
+    assert "function awIsPstYearOnlyQuery(query = awCurrentQuery())" in template
+    assert "btn.textContent = annualSearch ? 'Cerca fascicoli' : 'Cerca';" in template
+    assert "if (awIsPstYearOnlyQuery(query)) return -1;" in template
+    assert 'data-aw-result-open="${index}"' in template
+    assert "${annualSearch ? 'Apri fascicolo' : 'Anteprima'}" in template
+    assert "awSelectResult(Number(row.dataset.awResultOpen), true)" in template
     assert "function awPstAttorneyCf()" in template
     assert "codice_fiscale: data.codice_fiscale || data.codiceFiscale || data.codice_fiscale_avvocato || ''" in template
     assert "cf_avvocato: awPstAttorneyCf()" in template
@@ -3993,7 +3999,7 @@ def test_portale_acquisizione_wizard_renderizza_javascript_valido(tmp_path):
             "/portali/pat/acquisizione",
             "/portali/ptt/acquisizione",
         ):
-            response = client.get(route, follow_redirects=True)
+            response = client.get(f"{route}?_legacy=1", follow_redirects=True)
             body = response.data.decode("utf-8")
             match = re.search(r"<script>\s*(const AW_BOOT = .*?)</script>", body, re.S)
             assert match, f"Script wizard non trovato per {route}"

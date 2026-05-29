@@ -1,5 +1,22 @@
 # Pytest shard confermati OK
 
+## PST/PolisWeb schede fascicolo e ricerca annuale 2.248.87 - 2026-05-29
+
+| Comando | Esito | Note |
+| --- | --- | --- |
+| `python -m py_compile tools/local_signer.py tools/dist/local_signer.py web/services/telematico_runtime.py web/services/fascicoli_runtime.py pct/fascicoli.py` | OK | Sintassi confermata su Local Signer sorgente/dist, runtime telematico e persistenza fascicoli. |
+| `python -m pytest tests/test_local_signer.py -q --tb=short` | OK | Suite Local Signer completa verde: ricerca annuale con `ArchivioFascicoli` per SICID/SIGP e `RicercaArchivioPC`/`RicercaArchivioEI` per SIECIC, master detail, allegati secondari, sezioni PST e regressioni snapshot/download. |
+| `python -m pytest tests/test_portali_telematici_matrix.py -q --tb=short` | OK | 15/15: matrice servizi ministeriali qbuilder confermata per SICID-family, SIECIC, SIGP, Cassazione e portali assistiti. |
+| `python -m pytest tests/test_fascicoli.py -k "portale or id_reperto" -q --tb=short` | OK | 11/11: metadati portale, allegati, `id_reperto` e deduplica documento padre/allegato preservati nel fascicolo locale. |
+| `python -m pytest tests/test_react_shell.py -k "react_wizard_pst_verifica_local_signer_dal_browser or portale_acquisizione" -q --tb=short` | OK | 3/3: wizard React conserva Local Signer, download batch, ricerca snapshot e nuovo percorso per ricerca solo anno con click su fascicolo e caricamento anteprima. |
+| `python -m pytest tests/test_polisweb.py -k "test_api_acquisizione_preview_pst_accetta_documenti_da_browser_locale or test_api_portale_acquisizione_preview_pst_usa_fallback_payload_e_id_fascicolo or test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero or test_api_portale_acquisizione_import_pst_filtra_i_file_secondo_step4 or test_api_portale_acquisizione_import_pst_salva_lotto_otto_documenti_con_alias_local_signer or test_api_portale_acquisizione_import_pst_salva_lotto_sette_documenti_nel_fascicolo or test_api_portale_acquisizione_import_pst_parziale_aggiorna_pratica_esistente or test_route_importa_polisweb_via_local_signer_non_richiede_certificato_server" -vv --tb=short` | OK | 8/8: preview/import PST, selezione documenti, lotto completo, lotto parziale e Local Signer senza certificato server confermati. |
+| `python -m pytest tests/test_polisweb.py::test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita_assistita tests/test_polisweb.py::test_portale_acquisizione_wizard_renderizza_javascript_valido -q --tb=short` | OK | 2/2: il wizard classico `?_legacy=1` resta valido JavaScript e include ricerca per anno, pulsante `Cerca fascicoli`, click su risultato e invarianti Local Signer/import già provati. |
+| `npm --prefix frontend run typecheck`; `node frontend\scripts\check-react-contracts.mjs`; `npm --prefix frontend run build` | OK | TypeScript, contratti React e build Vite verdi; asset hashati locali ripuliti perché il deploy ricompila. |
+| `python tools\build_dist.py`; `python tools\sync_packaging_files.py --check`; `python tools\check_local_signer_boundaries.py`; `python -m pytest tests/test_build_dist.py tests/test_packaging_consistency.py tests/test_release_readiness.py -q --tb=short` | OK | Local Signer `1.6.64` rigenerato, packaging flat e boundary invariati, 15/15 test dist/readiness verdi. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\validate_openapi.py docs\openapi.yaml` | OK | OpenAPI riallineato alla versione `2.248.87` e validato. |
+| `python scripts\react-migration\generate_api_contracts.py --check`; `python -m pytest tests\test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | Contratti API allineati, presidio UTF-8 verde e nessun errore whitespace; restano solo warning CRLF/LF storici della shell Git. |
+| Browser in-app su server isolato `http://127.0.0.1:8765/portali/pst/acquisizione` | OK | Desktop e mobile: pagina non bianca, nessun errore console, ricerca PST per anno visibile con `Cerca fascicoli`, selezione ufficio da catalogo e layout responsive senza sovrapposizioni nel primo flusso di ricerca. |
+
 ## PST/Local Signer, SQLite, PEC e attestazione 2.248.86 - 2026-05-29
 
 | Comando | Esito | Note |

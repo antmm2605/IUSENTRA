@@ -1500,7 +1500,11 @@ def build_fascicoli_runtime(
                 item["servizio_portale"] = str(row.get("servizio_portale") or "").strip()
                 item["id_cat"] = str(row.get("id_cat") or row.get("idCat") or "").strip()
                 item["id_repeatto"] = str(row.get("id_repeatto") or row.get("idRepeatto") or row.get("idRepeatTo") or "").strip()
+                item["id_reperto"] = str(row.get("id_reperto") or row.get("idReperto") or "").strip()
                 item["msg_id"] = str(row.get("msg_id") or row.get("msgId") or row.get("msgid") or "").strip()
+                item["id_documento_padre"] = str(row.get("id_documento_padre") or row.get("parent_id_documento") or "").strip()
+                item["parent_nome"] = str(row.get("parent_nome") or "").strip()
+                item["is_allegato"] = bool(row.get("is_allegato"))
                 item["content_type"] = str(row.get("content_type") or "").strip()
                 item["nome_file_originale"] = str(
                     row.get("nome_file_originale")
@@ -1781,6 +1785,7 @@ def build_fascicoli_runtime(
                 portal_id = str((pdoc or {}).get("id_documento") or "").strip()
                 id_cat = str((pdoc or {}).get("id_cat") or "").strip()
                 id_repeatto = str((pdoc or {}).get("id_repeatto") or "").strip()
+                id_reperto = str((pdoc or {}).get("id_reperto") or "").strip()
                 msg_id = str((pdoc or {}).get("msg_id") or "").strip()
                 if portal_id:
                     identity = ("id_documento", portal_id, "", "")
@@ -1788,6 +1793,8 @@ def build_fascicoli_runtime(
                     identity = ("id_cat", id_cat, "", "")
                 elif id_repeatto:
                     identity = ("id_repeatto", id_repeatto, "", "")
+                elif id_reperto:
+                    identity = ("id_reperto", id_reperto, "", "")
                 elif msg_id:
                     identity = ("msg_id", msg_id, "", "")
                 else:
@@ -1817,6 +1824,7 @@ def build_fascicoli_runtime(
                     "id_documento_portale": portal_id,
                     "id_cat": id_cat,
                     "id_repeatto": id_repeatto,
+                    "id_reperto": id_reperto,
                     "msg_id": msg_id,
                     "data_documento": str((pdoc or {}).get("data_deposito") or "").strip(),
                     "data_deposito": str((pdoc or {}).get("data_deposito") or "").strip(),
@@ -1830,6 +1838,9 @@ def build_fascicoli_runtime(
                     ).strip(),
                     "dimensione_bytes": int((pdoc or {}).get("dimensione_bytes") or 0),
                     "disponibile": bool((pdoc or {}).get("disponibile", True)),
+                    "id_documento_padre": str((pdoc or {}).get("id_documento_padre") or (pdoc or {}).get("parent_id_documento") or "").strip(),
+                    "parent_nome": str((pdoc or {}).get("parent_nome") or "").strip(),
+                    "is_allegato": bool((pdoc or {}).get("is_allegato")),
                     "key": key,
                     "gia_importato": bool(docs_locali),
                     "local_doc_id": getattr(doc_locale, "id", "") if doc_locale else "",
@@ -1907,6 +1918,7 @@ def build_fascicoli_runtime(
             "id_documento": str(item.get("id_documento_portale") or item.get("id_documento") or item.get("id_cat") or "").strip(),
             "id_cat": str(item.get("id_cat") or item.get("id_documento_portale") or "").strip(),
             "id_repeatto": str(item.get("id_repeatto") or "").strip(),
+            "id_reperto": str(item.get("id_reperto") or "").strip(),
             "msg_id": str(item.get("msg_id") or "").strip(),
             "nome": str(item.get("nome") or item.get("nome_file_originale") or "").strip(),
             "tipo": str(item.get("tipo") or "").strip(),
@@ -1916,6 +1928,9 @@ def build_fascicoli_runtime(
             "disponibile": True,
             "id_deposito": id_deposito_esterno,
             "tipo_atto": str(item.get("tipo_atto") or item.get("tipo") or "").strip(),
+            "id_documento_padre": str(item.get("id_documento_padre") or item.get("parent_id_documento") or "").strip(),
+            "parent_nome": str(item.get("parent_nome") or "").strip(),
+            "is_allegato": bool(item.get("is_allegato")),
         }
 
     def _importa_documenti_portale_items(

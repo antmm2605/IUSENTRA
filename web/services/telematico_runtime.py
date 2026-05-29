@@ -572,6 +572,27 @@ def build_telematico_runtime(
         )
 
     def _normalize_portale_documents(documenti: list[dict]) -> list[dict]:
+        def _flatten_document_rows(rows: list[dict], parent: dict[str, Any] | None = None) -> list[dict]:
+            flattened: list[dict] = []
+            for value in rows or []:
+                item = dict(value or {})
+                if parent and not (item.get("id_documento_padre") or item.get("parent_id_documento")):
+                    parent_id = str(parent.get("id_documento") or parent.get("id_cat") or parent.get("id_reperto") or "").strip()
+                    if parent_id:
+                        item["id_documento_padre"] = parent_id
+                        item["parent_id_documento"] = parent_id
+                        item["parent_nome"] = str(parent.get("nome") or parent.get("nome_documento") or "").strip()
+                        item["is_allegato"] = True
+                children: list[dict] = []
+                for key in ("allegati", "attachments", "children", "documenti_collegati", "docs_secondari", "docsSecondari"):
+                    raw_children = item.get(key)
+                    if isinstance(raw_children, list):
+                        children.extend(dict(child or {}) for child in raw_children if isinstance(child, dict))
+                flattened.append(item)
+                if children:
+                    flattened.extend(_flatten_document_rows(children, item))
+            return flattened
+
         def _effective_id_cat(item: dict[str, Any]) -> str:
             explicit = str(item.get("id_cat") or "").strip()
             if explicit:
@@ -584,6 +605,10 @@ def build_telematico_runtime(
             for value in (
                 item.get("id_documento"),
                 item.get("id_documento_portale"),
+                item.get("id_cat"),
+                item.get("id_repeatto"),
+                item.get("id_reperto"),
+                item.get("msg_id"),
                 item.get("numero_documento"),
                 item.get("id_doc_mittente"),
             ):
@@ -593,7 +618,7 @@ def build_telematico_runtime(
             return candidates[0] if candidates else ""
 
         rows: list[dict] = []
-        for row in documenti or []:
+        for row in _flatten_document_rows([dict(row or {}) for row in documenti or [] if isinstance(row, dict)]):
             item = dict(row or {})
             candidates = [
                 str(value or "").strip()
@@ -603,6 +628,15 @@ def build_telematico_runtime(
             id_documento = str(item.get("id_documento") or item.get("id_documento_portale") or "").strip()
             if id_documento and id_documento not in candidates:
                 candidates.insert(0, id_documento)
+            for candidate in (
+                item.get("id_cat"),
+                item.get("id_repeatto"),
+                item.get("id_reperto"),
+                item.get("msg_id"),
+            ):
+                text = str(candidate or "").strip()
+                if text and text not in candidates:
+                    candidates.append(text)
             id_cat = _effective_id_cat(item)
             rows.append(
                 {
@@ -617,6 +651,7 @@ def build_telematico_runtime(
                     "id_deposito": str(item.get("id_deposito") or item.get("id_deposito_esterno") or "").strip(),
                     "id_cat": id_cat,
                     "id_repeatto": str(item.get("id_repeatto") or "").strip(),
+                    "id_reperto": str(item.get("id_reperto") or "").strip(),
                     "msg_id": str(item.get("msg_id") or "").strip(),
                     "numero_documento": str(item.get("numero_documento") or "").strip(),
                     "id_doc_mittente": str(item.get("id_doc_mittente") or "").strip(),
@@ -625,6 +660,9 @@ def build_telematico_runtime(
                     or SERVIZIO_PST_DOCUMENTI_FASCICOLO,
                     "sezione_portale": str(item.get("sezione_portale") or "").strip(),
                     "data_documento": str(item.get("data_documento") or "").strip(),
+                    "id_documento_padre": str(item.get("id_documento_padre") or item.get("parent_id_documento") or "").strip(),
+                    "parent_nome": str(item.get("parent_nome") or "").strip(),
+                    "is_allegato": bool(item.get("is_allegato")),
                 }
             )
         rows.sort(
@@ -904,11 +942,12 @@ def build_telematico_runtime(
                 return [dict(row) for row in value if isinstance(row, dict)]
             return []
 
-        structured_eventi = _as_list(payload.get("eventi"))
-        structured_udienze = _as_list(payload.get("udienze"))
-        structured_comunicazioni = _as_list(payload.get("comunicazioni"))
-        structured_istanze = _as_list(payload.get("istanze"))
-        structured_depositi = _as_list(payload.get("depositi_telematici") or payload.get("depositi"))
+        snapshot_sections = dict(snapshot.get("sezioni") or {}) if isinstance(snapshot.get("sezioni"), dict) else {}
+        structured_eventi = _as_list(payload.get("eventi")) or _as_list(snapshot.get("eventi")) or _as_list(snapshot_sections.get("storico_fascicolo"))
+        structured_udienze = _as_list(payload.get("udienze")) or _as_list(snapshot.get("udienze")) or _as_list(snapshot.get("scadenze_termini")) or _as_list(snapshot_sections.get("scadenze_termini"))
+        structured_comunicazioni = _as_list(payload.get("comunicazioni")) or _as_list(snapshot.get("comunicazioni")) or _as_list(snapshot_sections.get("comunicazioni_cancelleria"))
+        structured_istanze = _as_list(payload.get("istanze")) or _as_list(snapshot.get("istanze")) or _as_list(snapshot_sections.get("istanze"))
+        structured_depositi = _as_list(payload.get("depositi_telematici") or payload.get("depositi")) or _as_list(snapshot.get("depositi_telematici") or snapshot.get("depositi"))
 
         provvedimenti_count = sum(
             1
@@ -1097,6 +1136,8 @@ def build_telematico_runtime(
             payload.get("id_repeatto"),
             payload.get("idRepeatto"),
             payload.get("idRepeatTo"),
+            payload.get("id_reperto"),
+            payload.get("idReperto"),
             payload.get("msg_id"),
             payload.get("msgId"),
             payload.get("msgid"),
@@ -1186,6 +1227,7 @@ def build_telematico_runtime(
                 or match.get("idRepeatTo")
                 or ""
             ).strip()
+            merged["id_reperto"] = str(item.get("id_reperto") or item.get("idReperto") or match.get("id_reperto") or match.get("idReperto") or "").strip()
             merged["msg_id"] = str(item.get("msg_id") or item.get("msgId") or match.get("msg_id") or match.get("msgId") or "").strip()
             merged["id_deposito_esterno"] = str(
                 item.get("id_deposito_esterno")
@@ -1199,6 +1241,9 @@ def build_telematico_runtime(
             merged["tipo"] = str(item.get("tipo") or match.get("tipo") or "").strip()
             merged["mittente"] = str(item.get("mittente") or match.get("mittente") or "").strip()
             merged["servizio_portale"] = str(item.get("servizio_portale") or match.get("servizio_portale") or "").strip()
+            merged["id_documento_padre"] = str(item.get("id_documento_padre") or match.get("id_documento_padre") or match.get("parent_id_documento") or "").strip()
+            merged["parent_nome"] = str(item.get("parent_nome") or match.get("parent_nome") or "").strip()
+            merged["is_allegato"] = bool(item.get("is_allegato") or match.get("is_allegato"))
             prefer_preview_date = not _portale_document_identifier_values(item)
             merged["data_documento"] = str(
                 (

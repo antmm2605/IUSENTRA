@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.63
+IUSENTRA Local Signer - v1.6.64
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -112,7 +112,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.63"
+VERSION = "1.6.64"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -5502,6 +5502,35 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
                 group=codice_ufficio,
                 order_entries=[("ANNORUOLO, NUMERORUOLO", "asc")],
             )
+        if anno_rg and not str(numero_rg or "").strip() and not (nome_parte or cf_parte):
+            if _pst_servizio_siecic(base_url):
+                return _soap_qbuilder_execute_body(
+                    namespace,
+                    "RicercaArchivioPC",
+                    [
+                        ("idUfficio", "string", codice_ufficio),
+                        ("annoRuolo", "integer", str(anno_rg)),
+                    ],
+                    role="AVV",
+                    group=codice_ufficio,
+                    order_entries=[("annoRuolo, numeroRuolo", "asc")],
+                )
+            values = [
+                ("idUfficio", "string", codice_ufficio),
+                ("anno", "string", str(anno_rg)),
+            ]
+            if _pst_servizio_sigp(base_url):
+                sigp_subpro = _pst_subpro_sigp(sub_procedimento)
+                if sigp_subpro:
+                    values.append(("subpro", "string", sigp_subpro))
+            return _soap_qbuilder_execute_body(
+                namespace,
+                "ArchivioFascicoli",
+                values,
+                role="AVV",
+                group=codice_ufficio,
+                order_entries=[("ANNORUOLO, NUMERORUOLO", "asc")],
+            )
         parte = _parte_ricerca_qbuilder(nome_parte, cf_parte)
         if not parte:
             raise RuntimeError(
@@ -5551,6 +5580,54 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
     </pst:ricercaFascicoliRegistroRequest>
   </soapenv:Body>
 </soapenv:Envelope>"""
+
+
+def _soap_ricerca_fascicoli_anno_bodies(base_url: str, codice_ufficio: str, anno_rg: int,
+                                        cf_avvocato: str = "", sub_procedimento: str = "") -> list[str]:
+    """Body per la lista annuale dei fascicoli, usando i nomi ministeriali per registro."""
+    namespace = _pst_namespace_qbuilder(base_url)
+    if not namespace or not anno_rg:
+        return [
+            _soap_ricerca_fascicoli_body(
+                base_url=base_url,
+                codice_ufficio=codice_ufficio,
+                anno_rg=anno_rg,
+                cf_avvocato=cf_avvocato,
+                sub_procedimento=sub_procedimento,
+            )
+        ]
+    if _pst_servizio_siecic(base_url):
+        values = [
+            ("idUfficio", "string", codice_ufficio),
+            ("annoRuolo", "integer", str(anno_rg)),
+        ]
+        return [
+            _soap_qbuilder_execute_body(
+                namespace,
+                "RicercaArchivioPC",
+                values,
+                role="AVV",
+                group=codice_ufficio,
+                order_entries=[("annoRuolo, numeroRuolo", "asc")],
+            ),
+            _soap_qbuilder_execute_body(
+                namespace,
+                "RicercaArchivioEI",
+                values,
+                role="AVV",
+                group=codice_ufficio,
+                order_entries=[("annoRuolo, numeroRuolo", "asc")],
+            ),
+        ]
+    return [
+        _soap_ricerca_fascicoli_body(
+            base_url=base_url,
+            codice_ufficio=codice_ufficio,
+            anno_rg=anno_rg,
+            cf_avvocato=cf_avvocato,
+            sub_procedimento=sub_procedimento,
+        )
+    ]
 
 
 def _soap_documenti_body(base_url: str, codice_ufficio: str, numero_rg: str,
@@ -5733,6 +5810,51 @@ def _qbuilder_tipo_documento(valore: str) -> str:
     return testo
 
 
+def _qbuilder_all_subrows(row: dict) -> list[dict]:
+    subrows = row.get("__subrows") if isinstance(row.get("__subrows"), dict) else {}
+    rows: list[dict] = []
+    for value in subrows.values():
+        if isinstance(value, list):
+            rows.extend(child for child in value if isinstance(child, dict))
+    return rows
+
+
+def _qbuilder_row_has_documento(row: dict) -> bool:
+    if not isinstance(row, dict):
+        return False
+    if _qbuilder_value(
+        row,
+        "IDDOCUMENTO",
+        "IdDocumento",
+        "idDocumento",
+        "NUMERODOCUMENTO",
+        "numeroDocumento",
+        "IDDOC",
+        "idDoc",
+        "IDATTO",
+        "idAtto",
+        "IDCAT",
+        "idCat",
+        "IDREPEATTO",
+        "idRepeatTo",
+        "IDREPERTO",
+        "idReperto",
+    ):
+        return True
+    nome = _qbuilder_value(
+        row,
+        "NOMEFILE",
+        "nomeFile",
+        "NOMEFILEORIGINALE",
+        "nomeFileOriginale",
+        "NOME",
+        "nome",
+        "FILENAME",
+        "filename",
+    ).lower()
+    return nome.endswith((".pdf", ".p7m", ".xml", ".eml", ".msg", ".zip"))
+
+
 def _qbuilder_parti_dettaglio(row: dict) -> list[dict]:
     dettaglio = []
     for parte in _qbuilder_subrows(row, "InfoParte"):
@@ -5747,6 +5869,13 @@ def _qbuilder_parti_dettaglio(row: dict) -> list[dict]:
             "avvocato": _qbuilder_value(parte, "AVVOCATO"),
             "cf_avvocato": _qbuilder_value(parte, "CODICEFISCALEAVVOCATO", "codiceFiscaleAvvocato"),
         })
+    if not dettaglio:
+        for tipo, valore in (
+            ("Debitore", _qbuilder_value(row, "DEBITORE", "debitore", "DEBITORI", "debitori")),
+            ("Creditore", _qbuilder_value(row, "CREDITORI", "creditori", "CREDITORE", "creditore")),
+        ):
+            for nome in [chunk.strip() for chunk in re.split(r"[;\n|]+", valore or "") if chunk.strip()]:
+                dettaglio.append({"nome": nome, "tipo": tipo, "codice_fiscale": "", "avvocato": "", "cf_avvocato": ""})
     return dettaglio
 
 
@@ -5764,6 +5893,74 @@ def _normalizza_data_pst(valore: str) -> str:
     return raw
 
 
+def _qbuilder_scadenze_termini(row: dict) -> list[dict]:
+    scadenze: list[dict] = []
+    for scadenza in [*_qbuilder_subrows(row, "ScadenzaTermine"), *_qbuilder_subrows(row, "InfoScadenze")]:
+        data = _normalizza_data_pst(
+            _qbuilder_value(scadenza, "DATA", "data", "DATASCADENZA", "dataScadenza")
+        )
+        descrizione = _qbuilder_value(
+            scadenza,
+            "DESCRIZIONE",
+            "descrizione",
+            "DESCSCADENZA",
+            "descScadenza",
+            "TIPOSCADENZA",
+            "tipoScadenza",
+        )
+        if data or descrizione:
+            scadenze.append(
+                {
+                    "data": data,
+                    "descrizione": descrizione,
+                    "tipo": _qbuilder_value(scadenza, "TIPOSCADENZA", "tipoScadenza"),
+                    "servizio_portale": "RicercaScadenze",
+                }
+            )
+    return scadenze
+
+
+def _qbuilder_fascicoli_precedenti(row: dict) -> list[dict]:
+    precedenti: list[dict] = []
+    for precedente in _qbuilder_subrows(row, "FascicoloPrecedente"):
+        numero = _qbuilder_value(precedente, "NUMERO", "numero")
+        anno = _qbuilder_value(precedente, "ANNO", "anno")
+        ufficio = _qbuilder_value(precedente, "DESCUFFICIO", "descUfficio")
+        if numero or anno or ufficio:
+            precedenti.append(
+                {
+                    "numero": numero,
+                    "anno": anno,
+                    "ufficio": ufficio,
+                    "grado": _qbuilder_value(precedente, "GRADO", "grado"),
+                    "giudice": _qbuilder_value(precedente, "GIUDICE", "giudice"),
+                    "data_arrivo": _normalizza_data_pst(
+                        _qbuilder_value(precedente, "DATAARRIVO", "dataArrivo")
+                    ),
+                    "data_provvedimento": _normalizza_data_pst(
+                        _qbuilder_value(precedente, "DATAPROVPRECEDENTE", "dataProvPrecedente")
+                    ),
+                }
+            )
+    return precedenti
+
+
+def _qbuilder_numeri_campione(row: dict) -> list[dict]:
+    numeri: list[dict] = []
+    for numero in _qbuilder_subrows(row, "NumeroCivile"):
+        value = _qbuilder_value(numero, "NUMERO", "numero")
+        anno = _qbuilder_value(numero, "ANNO", "anno")
+        if value or anno:
+            numeri.append(
+                {
+                    "numero": value,
+                    "anno": anno,
+                    "id": _qbuilder_value(numero, "NUMPRO", "numpro"),
+                }
+            )
+    return numeri
+
+
 def _map_qbuilder_fascicolo(row: dict) -> dict:
     parti_dettaglio = _qbuilder_parti_dettaglio(row)
     codice_ufficio = _qbuilder_value(row, "IDUFFICIO", "idUfficio", "CODICEUFFICIO", "codiceUfficio", "UFFICIO")
@@ -5778,24 +5975,38 @@ def _map_qbuilder_fascicolo(row: dict) -> dict:
         "sezione": _qbuilder_value(row, "SEZIONE", "DESCRIZIONESEZIONE", "DESCSEZIONE", "descSezione"),
         "giudice": _qbuilder_value(row, "GIUDICE", "MAGISTRATO", "magistrato"),
         "data_iscrizione": _normalizza_data_pst(_qbuilder_value(row, "DATAISCRIZIONERUOLO", "DATAISCRIZIONE", "DataIscrizione", "dataIscrizione")),
-        "data_udienza": _normalizza_data_pst(_qbuilder_value(row, "DATAPROSSIMAUDIENZA", "DATAUDIENZA", "dataUdienza", "DATAPRIMACOMPARIZIONE", "DATAULTIMAUDIENZA", "dataUltimaUdienza")),
+        "data_udienza": _normalizza_data_pst(_qbuilder_value(row, "DATAPROSSIMAUDIENZA", "dataProssUdienza", "DATAUDIENZA", "dataUdienza", "DATAPRIMACOMPARIZIONE", "DATAULTIMAUDIENZA", "dataUltimaUdienza")),
+        "data_fallimento": _normalizza_data_pst(_qbuilder_value(row, "DATAFALLIMENTO", "dataFallimento")),
         "codice_ufficio": codice_ufficio,
         "nome_ufficio": str((ufficio or {}).get("nome") or "").strip(),
         "sub_procedimento": _qbuilder_value(row, "SUBPROCEDIMENTO", "subProcedimento"),
         "parti": [parte["nome"] for parte in parti_dettaglio if parte.get("nome")],
         "parti_dettaglio": parti_dettaglio,
+        "materia": _qbuilder_value(row, "DESCMATERIA", "descMateria", "MATERIA", "materia"),
+        "codice_oggetto_pst": _qbuilder_value(row, "IDOGGETTO", "idoggetto", "OGGETTO", "oggetto"),
+        "scadenze_termini": _qbuilder_scadenze_termini(row),
+        "fascicoli_precedenti": _qbuilder_fascicoli_precedenti(row),
+        "campione_civile": _qbuilder_numeri_campione(row),
     }
 
 
-def _map_qbuilder_documento(row: dict) -> dict:
+def _map_qbuilder_documento(
+    row: dict,
+    *,
+    parent: Optional[dict] = None,
+    is_allegato: bool = False,
+    livello: int = 0,
+    sezione_portale: str = "DocumentiFascicolo",
+) -> dict:
     tipo = _qbuilder_tipo_documento(_qbuilder_value(row, "TIPO", "tipo", "TIPODOCUMENTO", "tipoDocumento", "TIPOATTO", "tipoAtto"))
     id_cat = _qbuilder_value(row, "IDCAT", "idCat", "IDCATEGORIA", "idCategoria")
-    id_documento = _qbuilder_value(row, "IDDOCUMENTO", "IdDocumento", "idDocumento", "NUMERODOCUMENTO", "numeroDocumento", "IDDOC", "idDoc", "IDATTO", "idAtto", "IDDOCMITTENTE", "idDocMittente")
+    id_documento = _qbuilder_value(row, "IDDOCUMENTO", "IdDocumento", "idDocumento", "NUMERODOCUMENTO", "numeroDocumento", "IDDOC", "idDoc", "IDATTO", "idAtto", "IDDOCMITTENTE", "idDocMittente", "IDREPERTO", "idReperto")
     numero_documento = _qbuilder_value(row, "NUMERODOCUMENTO", "numeroDocumento")
     id_doc_mittente = _qbuilder_value(row, "IDDOCMITTENTE", "idDocMittente")
     if id_doc_mittente.startswith("#"):
         id_doc_mittente = ""
     id_repeatto = _qbuilder_value(row, "IDREPEATTO", "ID_REPEATTO", "idRepeatTo", "idrepeatto")
+    id_reperto = _qbuilder_value(row, "IDREPERTO", "idReperto", "IDREPERTORIO", "idRepertorio", "IDRACCOGLITORE", "idRaccoglitore", "IDCATREPOSITORY", "idCatRepository")
     msg_id = _qbuilder_value(row, "MSGID", "MSG_ID", "msgId", "msgid")
     numero_doc = _qbuilder_numero_rg(numero_documento or id_documento)
     id_deposito = id_doc_mittente
@@ -5804,6 +6015,9 @@ def _map_qbuilder_documento(row: dict) -> dict:
         _qbuilder_value(row, "IDDOCUMENTO", "IdDocumento", "idDocumento", "IDATTO", "idAtto", "IDDOC", "idDoc"),
         numero_documento,
         id_doc_mittente,
+        id_reperto,
+        id_cat,
+        id_repeatto,
     ):
         if candidate and candidate not in id_documento_candidates:
             id_documento_candidates.append(candidate)
@@ -5811,9 +6025,26 @@ def _map_qbuilder_documento(row: dict) -> dict:
         # Nei flussi SICID l'idCat coincide spesso con l'id documento esposto
         # nella lista fascicolo: usiamolo subito per evitare round-trip inutili.
         id_cat = id_documento_candidates[0]
-    return {
+    nome_file = _qbuilder_value(
+        row,
+        "NOMEFILE",
+        "nomeFile",
+        "NOMEFILEORIGINALE",
+        "nomeFileOriginale",
+        "NOME",
+        "nome",
+        "FILENAME",
+        "filename",
+    )
+    parent_id = str(
+        (parent or {}).get("id_documento")
+        or (parent or {}).get("id_cat")
+        or (parent or {}).get("id_reperto")
+        or ""
+    ).strip()
+    documento = {
         "id_documento": id_documento,
-        "nome": f"{tipo}_{numero_doc}.pdf" if numero_doc else tipo,
+        "nome": nome_file or (f"{tipo}_{numero_doc}.pdf" if numero_doc else tipo),
         "tipo": tipo,
         "data_deposito": _normalizza_data_pst(_qbuilder_value(row, "DATADEPOSITO", "dataDeposito")),
         "mittente": _qbuilder_value(row, "AUTORE", "autore", "MITTENTE", "mittente", "PROVENIENZA", "provenienza"),
@@ -5826,10 +6057,20 @@ def _map_qbuilder_documento(row: dict) -> dict:
         "numero_documento": numero_documento,
         "id_doc_mittente": id_doc_mittente,
         "id_repeatto": id_repeatto,
+        "id_reperto": id_reperto,
         "msg_id": msg_id,
         "id_cat": id_cat,
         "id_documento_candidates": id_documento_candidates,
+        "servizio_portale": "DocumentiFascicolo",
+        "sezione_portale": sezione_portale,
+        "is_allegato": bool(is_allegato),
+        "livello": int(livello or 0),
     }
+    if parent_id:
+        documento["id_documento_padre"] = parent_id
+        documento["parent_id_documento"] = parent_id
+        documento["parent_nome"] = str((parent or {}).get("nome") or "").strip()
+    return documento
 
 
 def _matches_parte_filters(fascicolo: dict, nome_parte: str = "", cf_parte: str = "") -> bool:
@@ -5889,6 +6130,104 @@ def _parse_fascicoli_xml(xml_str: str) -> list[dict]:
         return []
 
 
+def _documento_identity_values(item: dict) -> set[str]:
+    values: set[str] = set()
+    raw_candidates = item.get("id_documento_candidates")
+    if isinstance(raw_candidates, (list, tuple, set)):
+        for value in raw_candidates:
+            text = str(value or "").strip()
+            if text and not text.startswith("#"):
+                values.add(text)
+    for key in (
+        "id_documento",
+        "id_documento_portale",
+        "idDocumento",
+        "idDoc",
+        "id_cat",
+        "idCat",
+        "id_repeatto",
+        "idRepeatto",
+        "idRepeatTo",
+        "id_reperto",
+        "idReperto",
+        "msg_id",
+        "msgId",
+        "numero_documento",
+        "numeroDocumento",
+        "id_doc_mittente",
+        "idDocMittente",
+    ):
+        text = str(item.get(key) or "").strip()
+        if text and not text.startswith("#"):
+            values.add(text)
+    return values
+
+
+def _merge_documenti_catalogo(base: list[dict], extra: list[dict]) -> list[dict]:
+    merged: list[dict] = []
+    for incoming_raw in [*(base or []), *(extra or [])]:
+        incoming = dict(incoming_raw or {})
+        if not incoming:
+            continue
+        incoming_ids = _documento_identity_values(incoming)
+        target = None
+        for candidate in merged:
+            candidate_ids = _documento_identity_values(candidate)
+            if incoming_ids and candidate_ids and incoming_ids.intersection(candidate_ids):
+                target = candidate
+                break
+        if target is None:
+            name = str(incoming.get("nome") or incoming.get("nome_documento") or "").strip().lower()
+            date = str(incoming.get("data_deposito") or incoming.get("data_documento") or "").strip()
+            parent = str(incoming.get("id_documento_padre") or incoming.get("parent_id_documento") or "").strip()
+            if name:
+                for candidate in merged:
+                    candidate_name = str(candidate.get("nome") or candidate.get("nome_documento") or "").strip().lower()
+                    candidate_date = str(candidate.get("data_deposito") or candidate.get("data_documento") or "").strip()
+                    candidate_parent = str(candidate.get("id_documento_padre") or candidate.get("parent_id_documento") or "").strip()
+                    if candidate_name == name and (not date or not candidate_date or date == candidate_date) and parent == candidate_parent:
+                        target = candidate
+                        break
+        if target is None:
+            merged.append(incoming)
+            continue
+        for key, value in incoming.items():
+            if key == "id_documento_candidates":
+                target.setdefault("id_documento_candidates", [])
+                for candidate in value if isinstance(value, list) else []:
+                    if candidate and candidate not in target["id_documento_candidates"]:
+                        target["id_documento_candidates"].append(candidate)
+                continue
+            if target.get(key) in ("", None, [], 0) and value not in ("", None, [], 0):
+                target[key] = value
+            elif key in {"is_allegato"} and value:
+                target[key] = value
+    return merged
+
+
+def _flatten_qbuilder_documenti(rows: list[dict]) -> list[dict]:
+    documenti: list[dict] = []
+
+    def _visit(row: dict, parent: Optional[dict], livello: int) -> None:
+        current_parent = parent
+        if _qbuilder_row_has_documento(row):
+            doc = _map_qbuilder_documento(
+                row,
+                parent=parent,
+                is_allegato=bool(parent) or livello > 0,
+                livello=livello,
+                sezione_portale="Allegati" if parent or livello > 0 else "DocumentiFascicolo",
+            )
+            documenti.append(doc)
+            current_parent = doc
+        for child in _qbuilder_all_subrows(row):
+            _visit(child, current_parent, livello + 1)
+
+    for row in rows or []:
+        _visit(row, None, 0)
+    return _merge_documenti_catalogo(documenti, [])
+
+
 def _parse_documenti_xml(xml_str: str) -> list[dict]:
     """Parsa la risposta SOAP ConsultazioneAvanzataDocumenti o qbuilder."""
     try:
@@ -5899,27 +6238,55 @@ def _parse_documenti_xml(xml_str: str) -> list[dict]:
             or "ElencoDocumenti" in xml_clean
             or "DocumentoUtente" in xml_clean
         ):
-            return [_map_qbuilder_documento(row) for row in _parse_qbuilder_row_list(xml_clean)]
+            return _flatten_qbuilder_documenti(_parse_qbuilder_row_list(xml_clean))
 
         root = _strip_namespaces(ET.fromstring(xml_clean))
+        parent_map = {child: parent for parent in root.iter() for child in list(parent)}
+
+        def _ancestor_tags(element: ET.Element) -> list[str]:
+            tags: list[str] = []
+            parent = parent_map.get(element)
+            while parent is not None:
+                tags.append((parent.tag or "").split("}")[-1].lower())
+                parent = parent_map.get(parent)
+            return tags
+
+        def _text_desc(element: ET.Element, *names: str) -> str:
+            wanted = {name.lower() for name in names}
+            for child in element.iter():
+                tag = (child.tag or "").split("}")[-1].lower()
+                if tag in wanted and child.text:
+                    return child.text.strip()
+            return ""
+
         documenti: list[dict] = []
         visti: set[tuple[str, str, str, str, str, str]] = set()
+        primario: Optional[dict] = None
         campi_documento = {
             "iddocumento",
             "id",
             "nomefile",
             "nome",
+            "nomefileoriginale",
             "tipo",
             "tipodocumento",
             "datadeposito",
+            "datacreazione",
             "mittente",
             "cfmittente",
             "dimensione",
+            "dimensionefile",
             "iddeposito",
             "idbusta",
             "tipoatto",
             "desctipoatto",
             "idcat",
+            "idcatrepository",
+            "idrepeatto",
+            "idrepeatto",
+            "idreperto",
+            "idraccoglitore",
+            "iddocsuperiore",
             "disponibile",
         }
 
@@ -5927,6 +6294,7 @@ def _parse_documenti_xml(xml_str: str) -> list[dict]:
             children = list(item)
             if not children:
                 continue
+            current_tag = (item.tag or "").split("}")[-1].lower()
 
             child_map: dict[str, str] = {}
             for child in children:
@@ -5945,29 +6313,54 @@ def _parse_documenti_xml(xml_str: str) -> list[dict]:
                 return ""
 
             try:
-                dimensione = int(_t("dimensione") or 0)
+                dimensione = int(_t("dimensione", "dimensioneFile") or 0)
             except ValueError:
                 dimensione = 0
 
             documento = {
                 "id_documento": _t("idDocumento", "id"),
-                "nome": _t("nomeFile", "nome"),
-                "tipo": _t("tipo", "tipoDocumento"),
-                "data_deposito": _normalizza_data_pst(_t("dataDeposito")),
+                "nome": _t("nomeFileOriginale", "nomeFile", "nome"),
+                "tipo": _qbuilder_tipo_documento(_t("tipo", "tipoDocumento", "tipoAtto") or _text_desc(item, "descrizione")),
+                "data_deposito": _normalizza_data_pst(_t("dataDeposito", "dataCreazione")),
                 "mittente": _t("mittente", "cfMittente"),
                 "dimensione_bytes": dimensione,
                 "id_deposito": _t("idDeposito", "idBusta"),
                 "tipo_atto": _t("tipoAtto", "descTipoAtto"),
                 "id_cat": _t("idCat") or _t("idDocumento", "id"),
                 "id_repeatto": _t("idRepeatTo", "idrepeatto"),
+                "id_reperto": _t("idReperto", "idRaccoglitore", "idCatRepository"),
+                "id_documento_padre": _t("idDocSuperiore", "idDocumentoPadre", "idDocPadre"),
                 "msg_id": _t("msgId", "msgid"),
                 "disponibile": _t("disponibile").lower() != "false",
+                "servizio_portale": "DocumentiFascicolo",
             }
             if not any(
                 documento[key]
                 for key in ("id_documento", "nome", "tipo", "data_deposito", "mittente", "id_deposito", "tipo_atto")
             ):
                 continue
+
+            ancestors = _ancestor_tags(item)
+            is_secondary = any("docssecondari" in tag or "allegat" in tag for tag in ancestors)
+            if is_secondary:
+                documento["is_allegato"] = True
+                documento["sezione_portale"] = "Allegati"
+                documento["livello"] = 1
+                if documento.get("id_documento_padre"):
+                    documento["parent_id_documento"] = documento["id_documento_padre"]
+                    documento["parent_nome"] = str((primario or {}).get("nome") or "").strip()
+                elif primario:
+                    parent_id = str(primario.get("id_documento") or primario.get("id_cat") or "").strip()
+                    if parent_id:
+                        documento["id_documento_padre"] = parent_id
+                        documento["parent_id_documento"] = parent_id
+                        documento["parent_nome"] = str(primario.get("nome") or "").strip()
+            else:
+                documento["is_allegato"] = False
+                documento["sezione_portale"] = "DocumentiFascicolo"
+                documento["livello"] = 0
+                if (current_tag == "docprimario" or "docprimario" in ancestors) and primario is None:
+                    primario = documento
 
             chiave = (
                 documento["id_documento"],
@@ -5981,7 +6374,7 @@ def _parse_documenti_xml(xml_str: str) -> list[dict]:
                 continue
             visti.add(chiave)
             documenti.append(documento)
-        return documenti
+        return _merge_documenti_catalogo(documenti, [])
     except Exception as e:
         log.warning("_parse_documenti_xml: %s", e)
         return []
@@ -6028,6 +6421,8 @@ def _parse_profilo_documento_xml(xml_str: str) -> dict:
             "id_documento": _text(".//idDocumento"),
             "id_cat": _text(".//idCat"),
             "id_repeatto": _text(".//idRepeatTo") or _text(".//idrepeatto"),
+            "id_reperto": _text(".//idReperto") or _text(".//idRaccoglitore") or _text(".//idCatRepository"),
+            "id_documento_padre": _text(".//idDocSuperiore"),
             "msg_id": _text(".//msgId") or _text(".//msgid"),
             "content_id": _text(".//contentId"),
             "nome_file_originale": _text(".//nomeFileOriginale"),
@@ -6059,7 +6454,12 @@ def _documento_da_profilo_sigp(profilo: dict, id_doc: str) -> dict:
     else:
         nome = tipo
     id_documento_candidates: list[str] = []
-    for candidate in (document_id, id_cat, str(profilo.get("id_repeatto") or "").strip()):
+    for candidate in (
+        document_id,
+        id_cat,
+        str(profilo.get("id_repeatto") or "").strip(),
+        str(profilo.get("id_reperto") or "").strip(),
+    ):
         if candidate and candidate not in id_documento_candidates:
             id_documento_candidates.append(candidate)
     return {
@@ -6077,6 +6477,7 @@ def _documento_da_profilo_sigp(profilo: dict, id_doc: str) -> dict:
         "numero_documento": document_id,
         "id_doc_mittente": "",
         "id_repeatto": str(profilo.get("id_repeatto") or "").strip(),
+        "id_reperto": str(profilo.get("id_reperto") or "").strip(),
         "msg_id": str(profilo.get("msg_id") or "").strip(),
         "id_cat": id_cat,
         "content_type": str(profilo.get("tipo_mime") or "").strip(),
@@ -6420,6 +6821,8 @@ def _pst_download_documento_payload(
         "id_documento_portale": document_id_output,
         "id_cat": id_cat or str(profilo.get("id_cat") or "").strip(),
         "id_repeatto": str(id_repeatto or profilo.get("id_repeatto") or "").strip(),
+        "id_reperto": str(profilo.get("id_reperto") or "").strip(),
+        "id_documento_padre": str(profilo.get("id_documento_padre") or "").strip(),
         "msg_id": str(msg_id or profilo.get("msg_id") or "").strip(),
         "data_documento": data_documento or str(profilo.get("data_documento") or "").strip(),
         "nome_file_originale": str(profilo.get("nome_file_originale") or "").strip(),
@@ -6463,6 +6866,7 @@ def _assemble_download_file_payload(
         "id_documento_portale": document_id_output,
         "id_cat": str(item.get("id_cat") or "").strip(),
         "id_repeatto": str(item.get("id_repeatto") or "").strip(),
+        "id_reperto": str(item.get("id_reperto") or "").strip(),
         "msg_id": str(item.get("msg_id") or "").strip(),
         "data_documento": str(item.get("data_deposito") or item.get("data_documento") or "").strip(),
         "nome_file_originale": str(parsed.get("filename") or "").strip(),
@@ -6473,6 +6877,9 @@ def _assemble_download_file_payload(
         "id_deposito_esterno": str(item.get("id_deposito_esterno") or "").strip(),
         "id_deposito_pct": str(item.get("id_deposito_pct") or "").strip(),
         "tipo_atto": str(item.get("tipo_atto") or "").strip(),
+        "id_documento_padre": str(item.get("id_documento_padre") or item.get("parent_id_documento") or "").strip(),
+        "parent_nome": str(item.get("parent_nome") or "").strip(),
+        "is_allegato": bool(item.get("is_allegato")),
     }
 
 
@@ -6487,6 +6894,14 @@ def _pst_document_id_candidates(item: dict) -> list[str]:
     for value in (
         item.get("id_documento"),
         item.get("id_documento_portale"),
+        item.get("id_cat"),
+        item.get("idCat"),
+        item.get("id_repeatto"),
+        item.get("idRepeatTo"),
+        item.get("id_reperto"),
+        item.get("idReperto"),
+        item.get("msg_id"),
+        item.get("msgId"),
         item.get("numero_documento"),
         item.get("id_doc_mittente"),
     ):
@@ -6500,6 +6915,365 @@ def _pst_primary_document_id(item: Optional[dict]) -> str:
     for candidate in _pst_document_id_candidates(dict(item or {})):
         return candidate
     return ""
+
+
+def _pst_master_detail_max_items() -> int:
+    raw = str(os.getenv("IUSENTRA_PST_MASTER_DETAIL_MAX", "") or "").strip()
+    if not raw:
+        return 0
+    try:
+        return max(int(raw), 0)
+    except ValueError:
+        return 0
+
+
+def _pst_arricchisci_documenti_con_master_detail(
+    documenti: list[dict],
+    *,
+    base_url: str,
+    url_documenti: str,
+    codice_ufficio: str,
+    cf_avvocato: str,
+    cert_thumbprint: str,
+    cookie_file: str = "",
+    prefer_cookie_only: bool = False,
+) -> list[dict]:
+    if not documenti or not _pst_namespace_qbuilder(base_url):
+        return documenti
+    servizio = _pst_servizio_proxy(base_url)
+    if servizio == "JPW_SIGP":
+        return documenti
+
+    max_items = _pst_master_detail_max_items()
+    source_docs = [dict(doc) for doc in documenti if isinstance(doc, dict)]
+    if max_items:
+        source_docs = source_docs[:max_items]
+
+    requests: list[dict] = []
+    meta: list[dict] = []
+    extra_headers = [f"X-WASP-User: {cf_avvocato}"] if cf_avvocato else []
+    registro = _pst_registro_documenti_sicid(base_url)
+    for doc in source_docs:
+        candidate = _pst_primary_document_id(doc)
+        if not candidate:
+            continue
+        if _pst_servizio_sicid_family(base_url):
+            soap_body = _soap_bea_sicid_body(
+                "estraiMasterDetailAtto",
+                [
+                    ("idUtenteCorrente", cf_avvocato),
+                    ("idDoc", candidate),
+                    ("registro", registro),
+                    ("ruoloApplicativo", "AVV"),
+                ],
+                group=codice_ufficio,
+            )
+        elif servizio == "JPW_SIECIC":
+            soap_body = _soap_bea_siecic_body(
+                "estraiMasterDetailAtto",
+                [("idDoc", candidate)],
+            )
+        else:
+            continue
+        requests.append(
+            {
+                "url": url_documenti,
+                "soap_body": soap_body,
+                "extra_headers": extra_headers,
+                "soap_action": "",
+                "cookie_file": cookie_file,
+            }
+        )
+        meta.append(doc)
+
+    if not requests:
+        return documenti
+
+    try:
+        results = _soap_call_pst_session_batch_raw_best_effort(
+            requests,
+            cert_thumbprint=cert_thumbprint,
+            cookie_file=cookie_file,
+            prefer_cookie_only=prefer_cookie_only,
+        )
+    except Exception as exc:
+        log.warning("Arricchimento master-detail PST non riuscito: %s", exc)
+        return documenti
+
+    extra_docs: list[dict] = []
+    for index, result in enumerate(results):
+        if not isinstance(result, dict):
+            continue
+        error = str(result.get("error") or "").strip()
+        if error:
+            log.info("Master-detail PST non disponibile per documento %s: %s", index + 1, error)
+            continue
+        xml_resp = (result.get("body_bytes") or b"").decode("utf-8", "replace")
+        fault = _estrai_fault_soap(xml_resp)
+        if fault:
+            log.info("Master-detail PST in SOAP Fault non bloccante: %s", fault)
+            continue
+        parsed = _parse_documenti_xml(xml_resp)
+        parent = meta[index] if index < len(meta) else {}
+        parent_id = str(parent.get("id_documento") or parent.get("id_cat") or parent.get("id_reperto") or "").strip()
+        for row in parsed:
+            patched = dict(row)
+            if parent_id and patched.get("is_allegato") and not patched.get("id_documento_padre"):
+                patched["id_documento_padre"] = parent_id
+                patched["parent_id_documento"] = parent_id
+                patched["parent_nome"] = str(parent.get("nome") or "").strip()
+            extra_docs.append(patched)
+    return _merge_documenti_catalogo(documenti, extra_docs)
+
+
+def _soap_qbuilder_fascicolo_section_body(
+    base_url: str,
+    codice_ufficio: str,
+    numero_rg: str,
+    anno_rg: int,
+    service_name: str,
+    *,
+    sub_procedimento: str = "",
+) -> str:
+    namespace = _pst_namespace_qbuilder(base_url)
+    if not namespace:
+        return ""
+    numero_value = str(int(str(numero_rg).strip())) if str(numero_rg).strip().isdigit() else str(numero_rg).strip()
+    if _pst_servizio_siecic(base_url):
+        values = [
+            ("idUfficio", "string", codice_ufficio),
+            ("numeroRuolo", "string", numero_value),
+            ("annoRuolo", "integer", str(anno_rg)),
+        ]
+    else:
+        values = [
+            ("idUfficio", "string", codice_ufficio),
+            ("anno", "string", str(anno_rg)),
+            ("numero", "string", numero_value),
+        ]
+        if _pst_servizio_sigp(base_url):
+            sigp_subpro = _pst_subpro_sigp(sub_procedimento)
+            if sigp_subpro:
+                values.append(("subpro", "string", sigp_subpro))
+        elif sub_procedimento:
+            values.append(("subProc", "string", sub_procedimento))
+    if service_name == "RicercaScadenze":
+        values.append(("filtroScadenza", "string", "ALL"))
+    return _soap_qbuilder_execute_body(
+        namespace,
+        service_name,
+        values,
+        role="AVV",
+        group=codice_ufficio,
+        empty_order=True,
+    )
+
+
+def _map_qbuilder_evento(row: dict, servizio: str) -> dict:
+    descrizione = _qbuilder_value(
+        row,
+        "DESC",
+        "desc",
+        "DESCRIZIONE",
+        "descrizione",
+        "DESCRIZIONEEVENTO",
+        "descrizioneEvento",
+        "DESCEVENTO",
+        "descevento",
+    )
+    tipo = _qbuilder_value(
+        row,
+        "TIPO",
+        "tipo",
+        "CODICEEVENTO",
+        "codiceEvento",
+        "TIPOSCADENZA",
+        "tipoScadenza",
+        "TIPOATTO",
+        "tipoAtto",
+    )
+    data = _normalizza_data_pst(
+        _qbuilder_value(
+            row,
+            "DATA",
+            "data",
+            "DATAEVENTO",
+            "dataevento",
+            "DATAREGISTRAZIONE",
+            "dataRegistrazione",
+            "ATTESTAZIONE",
+            "attestazione",
+            "DATASCADENZA",
+            "dataScadenza",
+        )
+    )
+    id_documento = _qbuilder_value(row, "IDDOCUMENTO", "idDocumento", "IDATTO", "idAtto", "IDATTO", "idatto")
+    return {
+        "evento_uid": _qbuilder_value(row, "IDSTORICO", "idstorico", "IDINVIO", "idinvio", "IDMSGUG", "idmsgug") or id_documento,
+        "tipo_evento": tipo or servizio,
+        "tipo": tipo or servizio,
+        "descrizione": descrizione,
+        "data_evento": data,
+        "data": data,
+        "id_documento": id_documento,
+        "nome_documento": _qbuilder_value(row, "NOME", "nome", "NOMEFILE", "nomeFile"),
+        "servizio_portale": servizio,
+    }
+
+
+def _map_qbuilder_comunicazione(row: dict, servizio: str) -> dict:
+    data = _normalizza_data_pst(
+        _qbuilder_value(row, "ATTESTAZIONE", "attestazione", "DATAPERF", "dataperf", "DATAEVENTO", "dataevento")
+    )
+    tipo = _qbuilder_value(row, "TIPOATTO", "tipoatto", "TIPOLOGIA", "tipologia", "TIPO", "tipo")
+    descrizione = _qbuilder_value(
+        row,
+        "DESCRIZIONEEVENTO",
+        "descrizioneEvento",
+        "DESCEVENTO",
+        "descevento",
+        "DESC",
+        "desc",
+    )
+    return {
+        "comunicazione_uid": _qbuilder_value(row, "IDINVIO", "idinvio", "IDMSGUG", "idmsgug", "IDATTO", "idatto"),
+        "tipo": tipo or "Comunicazione",
+        "oggetto": descrizione or tipo or "Comunicazione di cancelleria",
+        "data_comunicazione": data,
+        "data": data,
+        "destinatario": _qbuilder_value(row, "DESTINATARIO", "destinatario"),
+        "ruolo": _qbuilder_value(row, "RUOLO", "ruolo"),
+        "stato": _qbuilder_value(row, "STATO", "stato"),
+        "servizio_portale": servizio,
+    }
+
+
+def _map_qbuilder_istanza(row: dict, servizio: str) -> dict:
+    data = _normalizza_data_pst(_qbuilder_value(row, "DATAEVENTO", "dataevento", "DATA", "data"))
+    return {
+        "id": _qbuilder_value(row, "NUMERO", "numero", "IDISTANZA", "idIstanza"),
+        "evento_uid": _qbuilder_value(row, "NUMERO", "numero", "IDISTANZA", "idIstanza"),
+        "tipo": _qbuilder_value(row, "ATTO", "atto", "EVENTOEVASIONE", "eventoevasione") or "Istanza",
+        "tipo_evento": _qbuilder_value(row, "ATTO", "atto") or "Istanza",
+        "descrizione": _qbuilder_value(row, "DESCRIZIONEEVENTO", "descrizioneevento", "PROVVEDIMENTO", "provvedimento"),
+        "data_evento": data,
+        "data": data,
+        "esito": _qbuilder_value(row, "EVENTOEVASIONE", "eventoevasione"),
+        "servizio_portale": servizio,
+    }
+
+
+def _map_qbuilder_scadenza(row: dict, servizio: str) -> dict:
+    data = _normalizza_data_pst(
+        _qbuilder_value(row, "DATASCADENZA", "dataScadenza", "DATA", "data")
+    )
+    tipo = _qbuilder_value(row, "TIPOSCADENZA", "tipoScadenza", "TIPO", "tipo")
+    descrizione = _qbuilder_value(row, "DESCSCADENZA", "descScadenza", "DESCRIZIONE", "descrizione", "DESC", "desc")
+    return {
+        "udienza_uid": _qbuilder_value(row, "IDFASCICOLO", "idFascicolo", "IDDFA", "idDfa"),
+        "tipo": tipo or "Scadenza",
+        "descrizione": descrizione,
+        "data_udienza": data,
+        "data": data,
+        "giudice": _qbuilder_value(row, "GIUDICE", "giudice"),
+        "servizio_portale": servizio,
+    }
+
+
+def _parse_pst_structured_sections_xml(xml_by_service: dict[str, str]) -> dict[str, list[dict]]:
+    sezioni: dict[str, list[dict]] = {
+        "eventi": [],
+        "udienze": [],
+        "comunicazioni": [],
+        "istanze": [],
+        "scadenze_termini": [],
+    }
+    for servizio, xml_resp in xml_by_service.items():
+        if not xml_resp or _estrai_fault_soap(xml_resp):
+            continue
+        rows = _parse_qbuilder_row_list(xml_resp)
+        for row in rows:
+            class_name = str(row.get("__class") or "").lower()
+            if servizio in {"ComunicazioneCancelleria", "DettaglioComunicazione", "NotificheDaRitirare"} or "comunic" in class_name or "notifica" in class_name:
+                sezioni["comunicazioni"].append(_map_qbuilder_comunicazione(row, servizio))
+            elif servizio == "DettaglioIstanze" or "istanza" in class_name:
+                sezioni["istanze"].append(_map_qbuilder_istanza(row, servizio))
+            elif servizio == "RicercaScadenze" or "scadenz" in class_name:
+                sezioni["udienze"].append(_map_qbuilder_scadenza(row, servizio))
+                sezioni["scadenze_termini"].append(_map_qbuilder_scadenza(row, servizio))
+            else:
+                sezioni["eventi"].append(_map_qbuilder_evento(row, servizio))
+    return sezioni
+
+
+def _pst_carica_sezioni_fascicolo_qbuilder(
+    *,
+    base_url: str,
+    url_ricerca: str,
+    codice_ufficio: str,
+    numero_rg: str,
+    anno_rg: int,
+    sub_procedimento: str,
+    cf_avvocato: str,
+    cert_thumbprint: str,
+    cookie_file: str = "",
+    prefer_cookie_only: bool = False,
+) -> dict[str, list[dict]]:
+    if not _pst_namespace_qbuilder(base_url):
+        return {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": []}
+    servizi = [
+        "StoricoFascicolo",
+        "RicercaScadenze",
+        "ComunicazioneCancelleria",
+        "DettaglioComunicazione",
+        "DettaglioIstanze",
+    ]
+    requests: list[dict] = []
+    names: list[str] = []
+    extra_headers = [f"X-WASP-User: {cf_avvocato}"] if cf_avvocato else []
+    for servizio in servizi:
+        body = _soap_qbuilder_fascicolo_section_body(
+            base_url,
+            codice_ufficio,
+            numero_rg,
+            anno_rg,
+            servizio,
+            sub_procedimento=sub_procedimento,
+        )
+        if not body:
+            continue
+        requests.append(
+            {
+                "url": url_ricerca,
+                "soap_body": body,
+                "extra_headers": extra_headers,
+                "soap_action": "",
+                "cookie_file": cookie_file,
+                "servizio_logico": _pst_servizio_proxy(base_url),
+            }
+        )
+        names.append(servizio)
+    if not requests:
+        return {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": []}
+    try:
+        results = _soap_call_pst_session_batch_raw_best_effort(
+            requests,
+            cert_thumbprint=cert_thumbprint,
+            cookie_file=cookie_file,
+            prefer_cookie_only=prefer_cookie_only,
+        )
+    except Exception as exc:
+        log.warning("Sezioni PST fascicolo non disponibili: %s", exc)
+        return {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": []}
+    xml_by_service: dict[str, str] = {}
+    for name, result in zip(names, results):
+        if not isinstance(result, dict):
+            continue
+        if result.get("error"):
+            log.info("Sezione PST %s non disponibile: %s", name, result.get("error"))
+            continue
+        xml_by_service[name] = (result.get("body_bytes") or b"").decode("utf-8", "replace")
+    return _parse_pst_structured_sections_xml(xml_by_service)
 
 
 def _sigp_document_merge_candidates(item: dict) -> list[str]:
@@ -8183,16 +8957,36 @@ class _Handler(BaseHTTPRequestHandler):
                     force=_session_created,
                 )
                 cookie_file = str((session_entry or {}).get("cookie_file") or "")
-            soap = _soap_ricerca_fascicoli_body(
-                base_url=base_url,
-                codice_ufficio=codice_pst,
-                numero_rg=data.get("numero_rg") or None,
-                anno_rg=int(data.get("anno_rg") or 0) or None,
-                nome_parte=data.get("nome_parte") or None,
-                cf_parte=data.get("cf_parte") or None,
-                cf_avvocato=cf_avvocato,
-                sub_procedimento=str(data.get("sub_procedimento") or data.get("subpro") or "").strip(),
+            anno_value = int(data.get("anno_rg") or 0) or None
+            is_year_only_archive = bool(
+                _pst_namespace_qbuilder(base_url)
+                and anno_value
+                and not str(data.get("numero_rg") or "").strip()
+                and not str(data.get("nome_parte") or "").strip()
+                and not str(data.get("cf_parte") or "").strip()
             )
+            sub_procedimento = str(data.get("sub_procedimento") or data.get("subpro") or "").strip()
+            if is_year_only_archive:
+                soap_bodies = _soap_ricerca_fascicoli_anno_bodies(
+                    base_url=base_url,
+                    codice_ufficio=codice_pst,
+                    anno_rg=anno_value or 0,
+                    cf_avvocato=cf_avvocato,
+                    sub_procedimento=sub_procedimento,
+                )
+            else:
+                soap_bodies = [
+                    _soap_ricerca_fascicoli_body(
+                        base_url=base_url,
+                        codice_ufficio=codice_pst,
+                        numero_rg=data.get("numero_rg") or None,
+                        anno_rg=anno_value,
+                        nome_parte=data.get("nome_parte") or None,
+                        cf_parte=data.get("cf_parte") or None,
+                        cf_avvocato=cf_avvocato,
+                        sub_procedimento=sub_procedimento,
+                    )
+                ]
             extra_headers = [f"X-WASP-User: {cf_avvocato}"] if _pst_namespace_qbuilder(base_url) else []
             is_sigp_exact = (
                 _pst_servizio_sigp(base_url)
@@ -8201,25 +8995,52 @@ class _Handler(BaseHTTPRequestHandler):
             )
             xml_resp = ""
             fallback_motivo = ""
-            try:
-                xml_resp = _soap_call_pst_session(
-                    url=url_ricerca,
-                    soap_body=soap,
-                    cert_thumbprint=cert_thumbprint,
-                    extra_headers=extra_headers,
-                    cookie_file=cookie_file,
-                    prefer_cookie_only=prefer_cookie_only,
-                )
-                fault = _estrai_fault_soap(xml_resp)
-                if fault:
-                    raise RuntimeError(f"Il PST ha restituito una SOAP Fault: {fault}")
-                fascicoli = _parse_fascicoli_xml(xml_resp)
-            except Exception as pst_error:
-                if not is_sigp_exact:
-                    raise
-                fallback_motivo = str(pst_error)
-                log.warning("SIGP ricerca esatta in fallback guidato: %s", fallback_motivo)
-                fascicoli = []
+            fascicoli = []
+            search_faults: list[str] = []
+            seen_fascicoli: set[tuple[str, str, str, str, str]] = set()
+            for search_index, soap in enumerate(soap_bodies):
+                try:
+                    current_xml = _soap_call_pst_session(
+                        url=url_ricerca,
+                        soap_body=soap,
+                        cert_thumbprint=cert_thumbprint,
+                        extra_headers=extra_headers,
+                        cookie_file=cookie_file,
+                        prefer_cookie_only=prefer_cookie_only,
+                    )
+                    xml_resp = current_xml if not xml_resp else f"{xml_resp}\n{current_xml}"
+                    fault = _estrai_fault_soap(current_xml)
+                    if fault:
+                        raise RuntimeError(f"Il PST ha restituito una SOAP Fault: {fault}")
+                    for fascicolo in _parse_fascicoli_xml(current_xml):
+                        key = (
+                            str(fascicolo.get("codice_ufficio") or codice_pst or ""),
+                            str(fascicolo.get("numero_rg") or ""),
+                            str(fascicolo.get("anno_rg") or ""),
+                            str(fascicolo.get("sub_procedimento") or ""),
+                            str(fascicolo.get("id_fascicolo") or ""),
+                        )
+                        if key in seen_fascicoli:
+                            continue
+                        seen_fascicoli.add(key)
+                        fascicoli.append(fascicolo)
+                except Exception as pst_error:
+                    if is_sigp_exact:
+                        fallback_motivo = str(pst_error)
+                        log.warning("SIGP ricerca esatta in fallback guidato: %s", fallback_motivo)
+                        fascicoli = []
+                        break
+                    if len(soap_bodies) <= 1:
+                        raise
+                    search_faults.append(str(pst_error))
+                    log.warning(
+                        "PST ricerca annuale: variante %s/%s non riuscita: %s",
+                        search_index + 1,
+                        len(soap_bodies),
+                        pst_error,
+                    )
+            if len(soap_bodies) > 1 and not fascicoli and search_faults:
+                raise RuntimeError("; ".join(search_faults))
             if is_sigp_exact and not fascicoli:
                 fascicoli = [
                     _sigp_fascicolo_fallback(
@@ -8239,7 +9060,11 @@ class _Handler(BaseHTTPRequestHandler):
                         cf_parte=data.get("cf_parte", ""),
                     )
                 ]
-            if fascicoli and any(_fascicolo_richiede_arricchimento_profilo(fascicolo) for fascicolo in fascicoli):
+            if (
+                fascicoli
+                and not is_year_only_archive
+                and any(_fascicolo_richiede_arricchimento_profilo(fascicolo) for fascicolo in fascicoli)
+            ):
                 fascicoli = _arricchisci_fascicoli_con_profilo(
                     fascicoli,
                     base_url=base_url,
@@ -8750,6 +9575,30 @@ class _Handler(BaseHTTPRequestHandler):
                         documenti,
                         _sigp_documenti_minimi_da_ricerca_atti_xml(xml_sigp_atti),
                     )
+            sezioni_pst = {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": []}
+            if _pst_namespace_qbuilder(base_url):
+                documenti = _pst_arricchisci_documenti_con_master_detail(
+                    documenti,
+                    base_url=base_url,
+                    url_documenti=url_documenti,
+                    codice_ufficio=codice_pst,
+                    cf_avvocato=cf_avvocato,
+                    cert_thumbprint=cert_thumbprint,
+                    cookie_file=cookie_file,
+                    prefer_cookie_only=prefer_cookie_only,
+                )
+                sezioni_pst = _pst_carica_sezioni_fascicolo_qbuilder(
+                    base_url=base_url,
+                    url_ricerca=url_ricerca,
+                    codice_ufficio=codice_pst,
+                    numero_rg=numero_rg,
+                    anno_rg=anno_rg,
+                    sub_procedimento=sub_procedimento,
+                    cf_avvocato=cf_avvocato,
+                    cert_thumbprint=cert_thumbprint,
+                    cookie_file=cookie_file,
+                    prefer_cookie_only=prefer_cookie_only,
+                )
             if not fascicoli and documenti:
                 ufficio = _risolvi_ufficio_da_snapshot(codice_pst) or {}
                 fascicoli = [
@@ -8799,6 +9648,8 @@ class _Handler(BaseHTTPRequestHandler):
                     "id_fascicolo": str(fascicolo_row.get("id_fascicolo") or data.get("id_fascicolo") or ""),
                     "procedimento": str(fascicolo_row.get("ruolo") or ""),
                     "oggetto": str(fascicolo_row.get("oggetto") or data.get("oggetto") or ""),
+                    "materia": str(fascicolo_row.get("materia") or ""),
+                    "codice_oggetto_pst": str(fascicolo_row.get("codice_oggetto_pst") or ""),
                     "stato": str(fascicolo_row.get("stato") or ""),
                     "data_iscrizione": str(fascicolo_row.get("data_iscrizione") or ""),
                     "data_udienza": str(fascicolo_row.get("data_udienza") or ""),
@@ -8812,14 +9663,35 @@ class _Handler(BaseHTTPRequestHandler):
                     "servizio_pst": _pst_servizio_proxy(base_url),
                     "registro_portale": _pst_tipo_ricerca_qbuilder(base_url),
                     "tabella_ministeriale": str(tabella_policy.get("tabella") or ""),
+                    "scadenze_termini": fascicolo_row.get("scadenze_termini") if isinstance(fascicolo_row.get("scadenze_termini"), list) else [],
+                    "fascicoli_precedenti": fascicolo_row.get("fascicoli_precedenti") if isinstance(fascicolo_row.get("fascicoli_precedenti"), list) else [],
+                    "campione_civile": fascicolo_row.get("campione_civile") if isinstance(fascicolo_row.get("campione_civile"), list) else [],
                 }
                 snapshot = {
                     "fascicolo": fascicolo,
                     "documenti": documenti,
                     "catalogo": documenti,
                     "depositi": [],
-                    "sezioni": {"documenti_fascicolo": documenti},
-                    "eventi": [],
+                    "sezioni": {
+                        "documenti_fascicolo": documenti,
+                        "storico_fascicolo": sezioni_pst.get("eventi", []),
+                        "comunicazioni_cancelleria": sezioni_pst.get("comunicazioni", []),
+                        "scadenze_termini": [
+                            *fascicolo.get("scadenze_termini", []),
+                            *sezioni_pst.get("scadenze_termini", []),
+                        ],
+                        "istanze": sezioni_pst.get("istanze", []),
+                    },
+                    "eventi": sezioni_pst.get("eventi", []),
+                    "udienze": sezioni_pst.get("udienze", []),
+                    "comunicazioni": sezioni_pst.get("comunicazioni", []),
+                    "istanze": sezioni_pst.get("istanze", []),
+                    "scadenze_termini": [
+                        *fascicolo.get("scadenze_termini", []),
+                        *sezioni_pst.get("scadenze_termini", []),
+                    ],
+                    "fascicoli_precedenti": fascicolo.get("fascicoli_precedenti", []),
+                    "campione_civile": fascicolo.get("campione_civile", []),
                     "parti": fascicolo["parti"],
                 }
 
@@ -8974,6 +9846,17 @@ class _Handler(BaseHTTPRequestHandler):
                         documenti,
                         _sigp_documenti_minimi_da_ricerca_atti_xml(xml_sigp_atti),
                     )
+            if _pst_namespace_qbuilder(base_url):
+                documenti = _pst_arricchisci_documenti_con_master_detail(
+                    documenti,
+                    base_url=base_url,
+                    url_documenti=url_documenti,
+                    codice_ufficio=codice_pst,
+                    cf_avvocato=cf_avvocato,
+                    cert_thumbprint=cert_thumbprint,
+                    cookie_file=cookie_file,
+                    prefer_cookie_only=prefer_cookie_only,
+                )
             if session_entry:
                 _update_pst_session(
                     session_entry["session_id"],
@@ -9137,6 +10020,35 @@ class _Handler(BaseHTTPRequestHandler):
                             documenti,
                             _sigp_documenti_minimi_da_ricerca_atti_xml(xml_sigp_atti),
                         )
+                sezioni_pst = {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": []}
+                if _pst_namespace_qbuilder(base_url):
+                    documenti = _pst_arricchisci_documenti_con_master_detail(
+                        documenti,
+                        base_url=base_url,
+                        url_documenti=url_documenti,
+                        codice_ufficio=codice_pst,
+                        cf_avvocato=cf_avvocato,
+                        cert_thumbprint=cert_thumbprint,
+                        cookie_file=cookie_file,
+                        prefer_cookie_only=prefer_cookie_only,
+                    )
+                    sezioni_pst = _pst_carica_sezioni_fascicolo_qbuilder(
+                        base_url=base_url,
+                        url_ricerca=_pst_url_ricerca(base_url),
+                        codice_ufficio=codice_pst,
+                        numero_rg=rg,
+                        anno_rg=anno,
+                        sub_procedimento=str(
+                            data.get("sub_procedimento")
+                            or selection.get("sub_procedimento")
+                            or data.get("subpro")
+                            or ""
+                        ).strip(),
+                        cf_avvocato=cf_avvocato,
+                        cert_thumbprint=cert_thumbprint,
+                        cookie_file=cookie_file,
+                        prefer_cookie_only=prefer_cookie_only,
+                    )
 
             if session_entry:
                 _update_pst_session(
@@ -9161,14 +10073,35 @@ class _Handler(BaseHTTPRequestHandler):
                 "stato": selection.get("stato") or "",
                 "parti": selection.get("parti") if isinstance(selection.get("parti"), list) else [],
                 "controparti": selection.get("controparti") if isinstance(selection.get("controparti"), list) else [],
+                "scadenze_termini": selection.get("scadenze_termini") if isinstance(selection.get("scadenze_termini"), list) else [],
+                "fascicoli_precedenti": selection.get("fascicoli_precedenti") if isinstance(selection.get("fascicoli_precedenti"), list) else [],
+                "campione_civile": selection.get("campione_civile") if isinstance(selection.get("campione_civile"), list) else [],
             }
             snapshot = {
                 "fascicolo": fascicolo,
                 "documenti": documenti,
                 "catalogo": documenti,
                 "depositi": [],
-                "sezioni": {"documenti_fascicolo": documenti},
-                "eventi": [],
+                "sezioni": {
+                    "documenti_fascicolo": documenti,
+                    "storico_fascicolo": sezioni_pst.get("eventi", []),
+                    "comunicazioni_cancelleria": sezioni_pst.get("comunicazioni", []),
+                    "scadenze_termini": [
+                        *fascicolo.get("scadenze_termini", []),
+                        *sezioni_pst.get("scadenze_termini", []),
+                    ],
+                    "istanze": sezioni_pst.get("istanze", []),
+                },
+                "eventi": sezioni_pst.get("eventi", []),
+                "udienze": sezioni_pst.get("udienze", []),
+                "comunicazioni": sezioni_pst.get("comunicazioni", []),
+                "istanze": sezioni_pst.get("istanze", []),
+                "scadenze_termini": [
+                    *fascicolo.get("scadenze_termini", []),
+                    *sezioni_pst.get("scadenze_termini", []),
+                ],
+                "fascicoli_precedenti": fascicolo.get("fascicoli_precedenti", []),
+                "campione_civile": fascicolo.get("campione_civile", []),
                 "parti": fascicolo["parti"],
             }
             self._send_json({

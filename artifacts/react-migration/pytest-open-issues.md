@@ -1,5 +1,26 @@
 # Pytest issue aperte e risoluzioni
 
+## PST/PolisWeb schede fascicolo e ricerca annuale 2.248.87 - 2026-05-29
+
+Nessuna issue di codice aperta sul perimetro corretto dopo i test mirati.
+
+Durante la verifica è stato interrotto per timeout il filtro troppo ampio
+`python -m pytest tests/test_polisweb.py -k "pst or polisweb or portale_acquisizione" -q --tb=short`
+dopo circa 5 minuti. Non è stato usato come verdetto: il controllo è stato
+scomposto negli 8 test PST/Local Signer collegati a preview, import, lotti e
+selezione documenti, tutti verdi.
+
+Gli asset Vite generati localmente dalla build sono stati ripuliti perché il
+deploy ricompila il bundle. I JSON runtime in `data/` restano artefatti di test
+e non fanno parte del commit.
+
+La verifica browser del 29/05/2026 è stata eseguita su server locale isolato con
+dati temporanei: ha confermato UI desktop/mobile, etichetta `Cerca fascicoli`,
+selezione ufficio e assenza di errori console. Non è stata usata per interrogare
+il PST reale perché mancava una sessione ministeriale autenticata in quel server
+temporaneo; la parte SOAP/Local Signer resta coperta dai test mirati sopra e
+dalla documentazione ministeriale versionata.
+
 ## PST/Local Signer, SQLite, PEC e attestazione 2.248.86 - 2026-05-29
 
 Nessuna issue di codice aperta sul perimetro corretto dopo l'audit finale

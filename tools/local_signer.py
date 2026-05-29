@@ -8453,8 +8453,9 @@ class _Handler(BaseHTTPRequestHandler):
                             or not _pst_namespace_qbuilder(fallback_base_url)
                         ):
                             continue
-                        fallback_url_ricerca = _pst_url_ricerca(fallback_base_url)
-                        fallback_url_documenti = _pst_url_documenti(fallback_base_url)
+                        fallback_http_base_url = _pst_http_endpoint_base_url(fallback_base_url)
+                        fallback_url_ricerca = _pst_url_ricerca(fallback_http_base_url)
+                        fallback_url_documenti = _pst_url_documenti(fallback_http_base_url)
                         fallback_extra_headers = [f"X-WASP-User: {cf_avvocato}"]
                         fallback_soap_profilo = _soap_profilo_fascicolo_body(
                             base_url=fallback_base_url,

@@ -31,6 +31,7 @@ from flask import (
 from pct.config_studio import _SMTPv4, _SMTP_SSLv4
 from pct.notifiche_legali import is_legal_notification_subject as _is_legal_notification_subject
 from web.blueprints.react_shell import render_react_shell_response
+from web.services.app_v2_routing import is_safe_internal_path
 from web.services.mailbox_sync_runtime import run_pec_mailbox_sync
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
 from werkzeug.utils import secure_filename
@@ -316,7 +317,7 @@ def allegato(id_email: str, indice_allegato: int):
 
 def _redirect_email_next(default_cartella: str):
     next_url = (request.form.get("next") or request.args.get("next") or "").strip()
-    if next_url and next_url.startswith("/"):
+    if next_url and is_safe_internal_path(next_url):
         return redirect(next_url)
     return redirect(url_for("email_client.casella", cartella=default_cartella))
 
@@ -530,7 +531,10 @@ def stats_json():
 def sincronizza():
     """AJAX — sincronizza la casella IMAP e aggiorna gli esiti PCT."""
     try:
-        return jsonify(run_pec_mailbox_sync())
+        payload = dict(run_pec_mailbox_sync() or {})
+        if payload.get("errore"):
+            payload["errore"] = "Sincronizzazione PEC non completata. Verifica la configurazione e riprova."
+        return jsonify(payload)
     except TenantDataPathError:
         return jsonify({"ok": False, "errore": "Archivio PEC non disponibile per questo studio."}), 409
 
@@ -551,6 +555,12 @@ def auto_esiti():
     except Exception:
         current_app.logger.exception("Errore comunicazioni cancelleria durante auto-esiti.")
         log.append("Comunicazioni di cancelleria non elaborate completamente.")
+    comm_report = {
+        "trovati": int(comm_report.get("trovati") or 0),
+        "associati": int(comm_report.get("associati") or 0),
+        "duplicati": int(comm_report.get("duplicati") or 0),
+        "errori": int(comm_report.get("errori") or 0),
+    }
     warning = bool(comm_report.get("errori", 0) or auto_summary["errori"])
     if auto_summary["aggiornati"]:
         messaggio = f"{auto_summary['aggiornati']} esiti deposito aggiornati automaticamente."

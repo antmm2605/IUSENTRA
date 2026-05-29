@@ -166,7 +166,7 @@ def register_sync_runtime_routes(
                 "duplicati": 0,
                 "errori": 0,
             }
-            sync_errore = str(sync_result.get("errore") or "").strip()
+            sync_errore = bool(str(sync_result.get("errore") or "").strip())
             pst_in_attesa = sum(
                 1 for em in ge._carica().values()
                 if em.e_pst and not em.auto_registrata
@@ -216,8 +216,8 @@ def register_sync_runtime_routes(
                     "non_abbinati": auto_summary["non_abbinati"],
                     "pst_in_attesa": pst_in_attesa,
                     "log": auto_log,
-                    "sync_errore": sync_errore,
-                    "warning": bool(sync_errore),
+                    "sync_errore": "Sincronizzazione IMAP non completata." if sync_errore else "",
+                    "warning": sync_errore,
                 }
             )
         except Exception as e:

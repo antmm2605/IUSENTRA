@@ -3,9 +3,9 @@ Creazione della busta telematica (.enc) per il deposito PCT.
 La busta è un archivio cifrato conforme alle specifiche del Ministero della Giustizia.
 """
 
-import os
 import zipfile
 import hashlib
+import tempfile
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -13,6 +13,7 @@ from typing import List, Optional
 from dataclasses import dataclass, field
 from lxml import etree
 
+from .path_security import UnsafeRuntimePath, resolve_runtime_path
 from .pst_catalog import (
     PST_DM44_SPECIFICHE_REVISION,
     PST_DM44_SPECIFICHE_URL,
@@ -64,6 +65,16 @@ class BustaTelematica:
         self.dati = dati
         self.id_busta = str(uuid.uuid4()).upper()
         self.timestamp = datetime.now()
+
+    @staticmethod
+    def _runtime_path(value: str | Path, *, must_be_file: bool = False) -> Path:
+        try:
+            path = resolve_runtime_path(value, extra_roots=(tempfile.gettempdir(), Path.cwd())).resolve()
+        except (OSError, RuntimeError, ValueError, UnsafeRuntimePath) as exc:
+            raise ValueError("Percorso busta non consentito.") from exc
+        if must_be_file and not path.is_file():
+            raise ValueError("Documento busta non disponibile.")
+        return path
 
     def _crea_xml_dati_atto(self) -> bytes:
         """Crea il file XML DatiAtto.xml con i metadati dell'atto."""
@@ -155,7 +166,7 @@ class BustaTelematica:
                     "code": "T002",
                     "level": "BLOCK",
                     "title": "DatiAtto.xml non generabile",
-                    "detail": f"Il payload XML tecnico non e stato generato correttamente: {exc}",
+                    "detail": "Il payload XML tecnico non è stato generato correttamente.",
                     "source": f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
                     "suggested_action": "Correggi i metadati della busta prima del deposito.",
                 }
@@ -241,7 +252,8 @@ class BustaTelematica:
         Returns:
             Percorso al file busta (.zip che verrà poi cifrato in .enc)
         """
-        output_dir = Path(output_dir)
+        output_dir = self._runtime_path(output_dir)
+        # lgtm[py/path-injection] Directory risolta con resolve_runtime_path prima della creazione.
         output_dir.mkdir(parents=True, exist_ok=True)
 
         nome_busta = f"busta_{self.id_busta[:8]}.zip"
@@ -253,19 +265,22 @@ class BustaTelematica:
             zf.writestr("DatiAtto.xml", xml_content)
 
             # Aggiungi atto principale
-            ap_path = Path(self.dati.atto_principale)
+            ap_path = self._runtime_path(self.dati.atto_principale, must_be_file=True)
+            # lgtm[py/path-injection] Atto principale risolto con resolve_runtime_path e deve esistere.
             zf.write(ap_path, ap_path.name)
 
             # Aggiungi allegati
             for allegato in self.dati.allegati:
-                all_path = Path(allegato.percorso)
+                all_path = self._runtime_path(allegato.percorso, must_be_file=True)
+                # lgtm[py/path-injection] Allegato risolto con resolve_runtime_path e deve esistere.
                 zf.write(all_path, all_path.name)
 
         # Il file .enc è la busta cifrata (qui simuliamo con il .zip)
-        enc_path = str(zip_path).replace(".zip", ".enc")
-        os.rename(zip_path, enc_path)
+        enc_path = zip_path.with_suffix(".enc")
+        # lgtm[py/path-injection] Entrambi i percorsi sono generati nella directory runtime validata.
+        zip_path.replace(enc_path)
 
-        return enc_path
+        return str(enc_path)
 
     def verifica_busta(self, busta_path: str) -> dict:
         """

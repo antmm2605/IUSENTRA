@@ -113,7 +113,8 @@ def register_deposito_routes(
             audit("fascicoli.deposito.aggiungi", "fascicolo", id_fasc)
             sync_pubblica("modifica", "fascicoli", id_fasc, utente=utente.username if utente else "")
         except (ValueError, KeyError) as exc:
-            flash(str(exc), "danger")
+            app.logger.warning("Deposito manuale non valido %s: %s", id_fasc, exc)
+            flash("Esito deposito non registrato. Verifica i dati e riprova.", "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
     @app.route("/fascicoli/<id_fasc>/depositi/<id_dep>/modifica", methods=["POST"])
@@ -142,7 +143,8 @@ def register_deposito_routes(
             audit("fascicoli.deposito.modifica", "fascicolo", id_fasc)
             sync_pubblica("modifica", "fascicoli", id_fasc, utente=utente.username if utente else "")
         except (ValueError, KeyError) as exc:
-            flash(str(exc), "danger")
+            app.logger.warning("Modifica deposito non valida %s/%s: %s", id_fasc, id_dep, exc)
+            flash("Deposito non aggiornato. Verifica i dati e riprova.", "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
     @app.route("/api/fascicoli/<id_fasc>/deposito/valida", methods=["POST"])
@@ -162,7 +164,7 @@ def register_deposito_routes(
             return jsonify({"ok": True, "validation": run.to_dict()}), 200
         except Exception as exc:
             app.logger.exception("Errore api_deposito_valida: %s", exc)
-            return jsonify({"ok": False, "errore": str(exc)}), 200
+            return jsonify({"ok": False, "errore": "Validazione deposito non completata. Verifica i dati e riprova."}), 200
 
     @app.route("/fascicoli/<id_fasc>/deposito/genera-busta", methods=["POST"])
     def deposito_genera_busta(id_fasc):
@@ -257,7 +259,7 @@ def register_deposito_routes(
             )
         except Exception as exc:
             app.logger.exception("Errore genera_busta %s: %s", id_fasc, exc)
-            flash(f"Errore nella generazione della busta: {exc}", "danger")
+            flash("Errore nella generazione della busta. Verifica documenti e fascicolo.", "danger")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
     @app.route("/fascicoli/<id_fasc>/deposito/invia-pec", methods=["POST"])
@@ -385,7 +387,7 @@ def register_deposito_routes(
                 return jsonify(
                     {
                         "ok": False,
-                        "errore": risposta.get("descrizioneEsito") or "Deposito SIGIT non riuscito.",
+                        "errore": "Deposito SIGIT non riuscito. Verifica i dati e riprova dal canale ufficiale.",
                         "validation": validation.to_dict(),
                     }
                 ), 400
@@ -516,7 +518,7 @@ def register_deposito_routes(
             enc_path = busta.crea_busta(output_dir)
         except Exception as exc:
             app.logger.exception("Errore creazione busta %s: %s", id_fasc, exc)
-            return jsonify({"ok": False, "errore": f"Errore creazione busta: {exc}"}), 500
+            return jsonify({"ok": False, "errore": "Creazione busta non completata. Verifica documenti e fascicolo."}), 500
 
         id_dep = form.get("local_pec_id_deposito", "").strip() or busta.id_busta[:8].upper()
         timestamp = _dt.now().isoformat()
@@ -528,7 +530,7 @@ def register_deposito_routes(
         )
 
         if modalita_demo:
-            fake_mid = _hl.md5(f"{id_dep}{timestamp}".encode()).hexdigest()[:16].upper()
+            fake_mid = _hl.sha256(f"{id_dep}{timestamp}".encode()).hexdigest()[:16].upper()
             ris = {
                 "inviato": True,
                 "message_id": f"PROVA-{fake_mid}@iusentra.invalid",
@@ -539,7 +541,8 @@ def register_deposito_routes(
             try:
                 ris = local_pec_confirmation_result(form.get("local_pec_message_id", ""))
             except ValueError as exc:
-                return jsonify({"ok": False, "errore": str(exc)}), 400
+                app.logger.warning("Conferma Local Signer non valida per deposito %s: %s", id_dep, exc)
+                return jsonify({"ok": False, "errore": "Conferma Local Signer non valida. Ripeti l'invio dal PC locale."}), 400
             app.logger.info("Deposito %s confermato da invio PEC Local Signer", id_dep)
         elif not pec_server_send_enabled():
             return jsonify(
@@ -572,11 +575,11 @@ def register_deposito_routes(
                     oggetto=oggetto_pec,
                 )
                 if not ris.get("inviato"):
-                    errore_pec = ris.get("errore") or "Invio PEC fallito senza dettagli."
-                    return jsonify({"ok": False, "errore": f"Errore PEC: {errore_pec}"}), 500
+                    app.logger.warning("Invio PEC non completato per deposito %s", id_dep)
+                    return jsonify({"ok": False, "errore": "Invio PEC non completato. Verifica casella e credenziali."}), 500
             except Exception as exc:
                 app.logger.exception("Errore invio PEC %s: %s", id_fasc, exc)
-                return jsonify({"ok": False, "errore": f"Errore invio PEC: {exc}"}), 500
+                return jsonify({"ok": False, "errore": "Invio PEC non completato. Verifica casella e credenziali."}), 500
 
         try:
             from datetime import datetime as _dtnow
@@ -635,7 +638,7 @@ def register_deposito_routes(
                 {
                     "ok": True,
                     "demo": modalita_demo,
-                    "avviso": f"Busta inviata ma errore nel salvataggio: {exc}",
+                    "avviso": "Busta inviata, ma il salvataggio dell'esito non è stato completato.",
                     "id_deposito": id_dep,
                     "pec_dest": pec_dest,
                     "tipo_atto": tipo_atto,
@@ -935,7 +938,7 @@ def register_deposito_routes(
                     )
             except Exception as exc:
                 app.logger.exception("Errore deposito_invia %s: %s", id_fasc, exc)
-                flash(f"Errore durante il deposito: {exc}", "danger")
+                flash("Deposito non completato. Verifica il canale ufficiale e riprova.", "danger")
                 return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
 
         try:
@@ -969,6 +972,6 @@ def register_deposito_routes(
                 )
         except Exception as exc:
             app.logger.exception("Errore salvataggio esito deposito %s: %s", id_fasc, exc)
-            flash(f"Deposito inviato ma errore nel salvataggio: {exc}", "warning")
+            flash("Deposito inviato, ma il salvataggio dell'esito non è stato completato.", "warning")
 
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))

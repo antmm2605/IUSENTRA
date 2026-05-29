@@ -138,7 +138,7 @@ def register_deposito_receipt_routes(
             )
         except Exception as exc:
             app.logger.exception("deposito_controlla_ricevute %s/%s: %s", id_fasc, id_dep, exc)
-            return jsonify({"errore": str(exc), "stato": deposito.stato})
+            return jsonify({"errore": "Controllo ricevute non completato. Verifica la PEC e riprova.", "stato": deposito.stato})
 
     @app.route("/api/fascicoli/<id_fasc>/depositi/<id_dep>/simula-ricevuta", methods=["POST"])
     def deposito_simula_ricevuta(id_fasc, id_dep):
@@ -172,7 +172,8 @@ def register_deposito_receipt_routes(
                 generated_at=generated_at,
             )
         except ValueError as exc:
-            return jsonify({"ok": False, "errore": str(exc)}), 400
+            app.logger.warning("Simulazione ricevuta non valida %s/%s: %s", id_fasc, id_dep, exc)
+            return jsonify({"ok": False, "errore": "Ricevuta di prova non generata. Verifica fase e deposito."}), 400
 
         if updated:
             try:

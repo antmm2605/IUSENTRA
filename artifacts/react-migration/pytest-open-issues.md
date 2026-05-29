@@ -1130,3 +1130,10 @@ Nota CI 2.245.56: dopo il push `37f301648d`, `CI / Pytest core fase 7/10 observa
 | --- | --- | --- | --- | --- |
 | `data_udienza` non esposta dal PST | Test PolisWeb mirato e typecheck React | Governato | La regola è condizionata: se il portale espone una data/udienza strutturata, quella resta fonte primaria; se non la espone, il wizard mostra i documenti fonte del catalogo e l'analisi restituisce `Scadenza da documento fonte`. | Per modifiche future a preview/analyze/import PST rilanciare `test_api_portale_acquisizione_analyze_usa_documento_fonte_se_udienza_non_esposta`, typecheck React e una prova UI su fascicolo con catalogo documenti. |
 | Creazione scadenze senza data verificata | Runtime telematico | Bloccato intenzionalmente | IUSENTRA non crea una scadenza datata dai soli metadati quando manca `data_udienza`: registra il documento fonte da leggere e crea la scadenza solo dopo estrazione verificabile dal documento. | Collegare eventuale OCR/lettore PDF allo stesso campo `documenti_scadenziario`, mantenendo fonte, data estratta e documento in nota scadenza. |
+
+## Note audit database / CodeQL 2.248.85 - 2026-05-29
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| CodeQL sullo SHA `34b889a7f091c757f6f3fe2abf5f1ed0c84b0c4c` | GitHub CodeQL / check richiesti | Risolto localmente, da verificare sul nuovo SHA | Il primo giro post-audit database ha evidenziato esposizione di eccezioni, redirect `next`, path runtime non presidiati e MD5 su superfici toccate dalla tranche. | Applicati messaggi pubblici, validazione `is_safe_internal_path`, risoluzione runtime path per import/buste/PEC, SHA-256 e fallback Local Signer; dopo push verificare che CodeQL e tutti i check richiesti siano verdi sul nuovo commit. |
+| Dati runtime locali durante test | `git status --short` | Governato | Le suite locali hanno rigenerato JSON tenant in `data/`; i file sono stati ripristinati prima dei gate e non devono entrare nel commit. | Prima del commit/finale rilanciare `git status --short` e mantenere in worktree solo modifiche sorgente/documentazione intenzionali. |

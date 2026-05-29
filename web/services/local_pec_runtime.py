@@ -10,8 +10,11 @@ from __future__ import annotations
 import base64
 import mimetypes
 import os
+import tempfile
 from pathlib import Path
 from typing import Any
+
+from pct.path_security import UnsafeRuntimePath, resolve_runtime_path
 
 
 LOCAL_SIGNER_BASE_URL = "http://127.0.0.1:27272"
@@ -38,7 +41,13 @@ def build_local_pec_payload(
 ) -> dict[str, Any]:
     """Build a Local Signer `/pec/send` payload without exposing any saved password."""
 
-    path = Path(attachment_path)
+    try:
+        path = resolve_runtime_path(attachment_path, extra_roots=(tempfile.gettempdir(), Path.cwd())).resolve(strict=True)
+    except (OSError, RuntimeError, ValueError, UnsafeRuntimePath) as exc:
+        raise ValueError("Allegato PEC non disponibile nell'area autorizzata.") from exc
+    if not path.is_file():
+        raise ValueError("Allegato PEC non disponibile.")
+    # lgtm[py/path-injection] Allegato risolto con resolve_runtime_path e radici runtime consentite.
     content = base64.b64encode(path.read_bytes()).decode("ascii")
     filename = attachment_name or path.name
     mime_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"

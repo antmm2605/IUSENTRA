@@ -10,7 +10,6 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import shutil
 from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
@@ -288,6 +287,7 @@ from web.services.react_telematico_bridge import (
 )
 from web.services.quickorganizer_import import (
     QuickOrganizerImportError,
+    cleanup_upload_temp,
     import_quickorganizer_package,
     load_staged_package,
     save_upload_to_temp,
@@ -1854,13 +1854,14 @@ def clienti_react_nuovo_documento_leggi():
         result = read_client_document_upload(request.files.get("file"))
         return jsonify(result), 200 if result.get("ok") else 422
     except ClientDocumentReaderError as exc:
+        message = exc.public_message
         return jsonify({
             "ok": False,
-            "message": str(exc),
+            "message": message,
             "patch": {},
             "fields": [],
             "missing": [],
-            "warnings": [str(exc)],
+            "warnings": [message],
         }), exc.status_code
 
 
@@ -3078,12 +3079,12 @@ def studio_telematico_import_preview():
     try:
         stage = stage_uploaded_package(temp_path, _studio_telematico_staging_root())
     except QuickOrganizerImportError as exc:
-        return jsonify({"ok": False, "errore": str(exc), "codice": "import_non_valido"}), 400
+        return jsonify({"ok": False, "errore": exc.public_message, "codice": "import_non_valido"}), 400
     except Exception as exc:  # noqa: BLE001 - risposta controllata per import da archivi esterni
         current_app.logger.exception("Anteprima import Studio Telematico non riuscita: %s", exc)
         return jsonify({"ok": False, "errore": "Il pacchetto non è leggibile. Verifica di aver incluso pratiche, ATTI ed EMAILS."}), 400
     finally:
-        shutil.rmtree(temp_path.parent, ignore_errors=True)
+        cleanup_upload_temp(temp_path)
 
     summary = stage.get("analysis", {}).get("summary", {}) if isinstance(stage.get("analysis"), dict) else {}
     _audit_event(
@@ -3118,7 +3119,7 @@ def studio_telematico_import_run():
             allow_partial=allow_partial,
         )
     except QuickOrganizerImportError as exc:
-        return jsonify({"ok": False, "errore": str(exc), "codice": "import_non_completato"}), 400
+        return jsonify({"ok": False, "errore": exc.public_message, "codice": "import_non_completato"}), 400
     except Exception as exc:  # noqa: BLE001 - archivi cliente possono contenere dati non coerenti
         current_app.logger.exception("Import Studio Telematico non riuscito: %s", exc)
         return jsonify({"ok": False, "errore": "Import non completato. Nessun passaggio successivo è stato avviato automaticamente."}), 400

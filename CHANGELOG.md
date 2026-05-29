@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.248.85 - 2026-05-29
+
+- Chiuso il blocco sicurezza post-audit database: le route amministrative, PEC, documenti fascicolo, import Studio Telematico e Local Signer non restituiscono più eccezioni grezze o dettagli tecnici al browser.
+- Rafforzati i percorsi file usati da import QuickOrganizer, payload PEC locale e buste telematiche: lettura/copia solo dentro radici runtime consentite, estensioni attese e directory staging sicure.
+- I redirect `next` delle caselle email accettano solo percorsi interni validati, evitando redirect aperti.
+- Sostituito MD5 negli identificativi di prova deposito con SHA-256 e mantenuto il database protetto anche sui rami di errore.
+- Allineato Local Signer: i fallback logici della famiglia SICID continuano a usare il proxy fisico `JPW_SICID` nel batch, senza doppio preflight certificato.
+
 ## 2.248.84 - 2026-05-29
 
 - Blindata la pagina `Database`: `Migra dati` e `Attiva SQLite` ora usano staging, precheck anti-perdita e validazione di conteggi, identificativi e payload prima di sostituire `studio.db`.

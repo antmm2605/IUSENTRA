@@ -107,10 +107,10 @@ def register_portali_acquisizione_routes(
         if "blocchi da risolvere" in lowered:
             return (
                 "Importazione non completata: ci sono controlli bloccanti da risolvere nella verifica "
-                f"prima dell'importazione. {detail}"
+                "prima dell'importazione."
             )
         if "fascicolo locale selezionato non trovato" in lowered or "non è compatibile" in lowered or "non compatibile" in lowered:
-            return f"Importazione non completata: {detail}"
+            return "Importazione non completata: il fascicolo locale selezionato non è compatibile."
         return base
 
     def _clean_query_value(name: str) -> str:

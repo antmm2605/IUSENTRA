@@ -2538,7 +2538,7 @@ def test_api_pec_poll_cancelleria_usa_workflow_condiviso(tmp_path, monkeypatch):
     assert osservato["fascicolo_id"] == gf.tutti()[0].id
 
 
-def test_api_pec_poll_cancelleria_espone_duplicati_e_warning_sync(tmp_path, monkeypatch):
+def test_api_pec_poll_cancelleria_espone_duplicati_e_warning_sync_pubblico(tmp_path, monkeypatch):
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
@@ -2584,7 +2584,7 @@ def test_api_pec_poll_cancelleria_espone_duplicati_e_warning_sync(tmp_path, monk
     assert response.status_code == 200
     assert data["ok"] is True
     assert data["warning"] is True
-    assert data["sync_errore"] == "Credenziali IMAP non valide"
+    assert data["sync_errore"] == "Sincronizzazione IMAP non completata."
     assert data["report"]["duplicati"] == 1
     assert "già present" in data["messaggio"]
     assert "Sincronizzazione IMAP non completata" in data["messaggio"]

@@ -194,9 +194,11 @@ def register_fascicoli_document_routes(
                     }
                 )
         except (ValueError, KeyError) as exc:
+            app.logger.warning("Caricamento documento non valido id_fasc=%s: %s", id_fasc, exc)
+            msg = "Documento non caricato. Verifica fascicolo, nome file e formato."
             if wants_json_response():
-                return jsonify({"ok": False, "messaggio": str(exc)}), 400
-            flash(str(exc), "danger")
+                return jsonify({"ok": False, "messaggio": msg}), 400
+            flash(msg, "danger")
         except Exception as exc:
             app.logger.exception("Errore carica_documento id_fasc=%s: %s", id_fasc, exc)
             msg = "Archivio documenti momentaneamente occupato. Riprova tra pochi secondi."
@@ -230,7 +232,7 @@ def register_fascicoli_document_routes(
                 id_doc,
                 exc,
             )
-            flash(f"Impossibile aggiornare i metadati del documento: {exc}", "danger")
+            flash("Impossibile aggiornare i metadati del documento. Verifica i dati e riprova.", "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc, focus="documenti"))
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/rinomina", methods=["POST"])
@@ -342,14 +344,17 @@ def register_fascicoli_document_routes(
                     }
                 )
         except (ValueError, KeyError) as exc:
+            app.logger.warning("Import documenti portale non valido %s: %s", id_fasc, exc)
+            msg = "Importazione non completata. Verifica file selezionati e fascicolo."
             if wants_json_response():
-                return jsonify({"ok": False, "messaggio": str(exc)}), 400
-            flash(str(exc), "danger")
+                return jsonify({"ok": False, "messaggio": msg}), 400
+            flash(msg, "danger")
         except Exception as exc:
             app.logger.exception("Errore importa_documenti_portale %s: %s", id_fasc, exc)
+            msg = "Importazione file ufficiali non completata. Verifica il pacchetto e riprova."
             if wants_json_response():
-                return jsonify({"ok": False, "messaggio": str(exc)}), 500
-            flash(f"Errore importazione file ufficiali: {exc}", "danger")
+                return jsonify({"ok": False, "messaggio": msg}), 500
+            flash(msg, "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
     @app.route("/api/fascicoli/<id_fasc>/documenti/importa-portale", methods=["POST"])
@@ -405,10 +410,11 @@ def register_fascicoli_document_routes(
                 200,
             )
         except (ValueError, KeyError) as exc:
-            return jsonify({"ok": False, "errore": str(exc)}), 200
+            app.logger.warning("API import documenti portale non valido %s: %s", id_fasc, exc)
+            return jsonify({"ok": False, "errore": "Importazione non completata. Verifica file selezionati e fascicolo."}), 200
         except Exception as exc:
             app.logger.exception("Errore api_importa_documenti_portale %s: %s", id_fasc, exc)
-            return jsonify({"ok": False, "errore": str(exc)}), 200
+            return jsonify({"ok": False, "errore": "Importazione file ufficiali non completata. Verifica il pacchetto e riprova."}), 200
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/scarica")
     def scarica_documento(id_fasc, id_doc):
@@ -422,7 +428,7 @@ def register_fascicoli_document_routes(
             return send_file(io.BytesIO(data), as_attachment=True, download_name=documento.nome)
         except Exception as exc:
             app.logger.exception("Errore scarica_documento id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, exc)
-            flash(f"Impossibile scaricare il documento: {exc}", "danger")
+            flash("Impossibile scaricare il documento. Verifica il fascicolo e riprova.", "danger")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/visualizza")
@@ -564,7 +570,7 @@ def register_fascicoli_document_routes(
             )
         except Exception as exc:
             app.logger.exception("Errore api_info_firma_documento: %s", exc)
-            return jsonify({"firme": [], "errore": str(exc)})
+            return jsonify({"firme": [], "errore": "Lettura firme non completata. Verifica il documento e riprova."})
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/elimina", methods=["POST"])
     def elimina_documento(id_fasc, id_doc):
@@ -581,9 +587,11 @@ def register_fascicoli_document_routes(
                     }
                 )
         except KeyError as exc:
+            app.logger.warning("Eliminazione documento non valida id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, exc)
+            msg = "Documento non trovato nel fascicolo."
             if wants_json_response():
-                return jsonify({"ok": False, "messaggio": str(exc)}), 404
-            flash(str(exc), "danger")
+                return jsonify({"ok": False, "messaggio": msg}), 404
+            flash(msg, "danger")
         except Exception as exc:
             app.logger.exception("Errore elimina_documento id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, exc)
             msg = "Archivio documenti momentaneamente occupato. Riprova tra pochi secondi."
@@ -608,7 +616,8 @@ def register_fascicoli_document_routes(
                 gestore_fascicoli.rimuovi_documento(id_fasc, id_doc)
                 rimossi += 1
             except KeyError as exc:
-                errori.append(str(exc))
+                app.logger.warning("Documento da eliminare non trovato id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, exc)
+                errori.append("Documento non trovato nel fascicolo.")
             except Exception as exc:
                 app.logger.exception("Errore elimina_documenti_multipli id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, exc)
                 errori.append("Archivio documenti momentaneamente occupato.")

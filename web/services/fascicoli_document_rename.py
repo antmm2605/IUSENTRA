@@ -50,9 +50,11 @@ def rinomina_documento_response(
             )
         flash(messaggio, "success")
     except (ValueError, KeyError) as exc:
+        app.logger.warning("Rinomina documento non valida id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, exc)
+        msg = "Nome documento non aggiornato. Verifica il fascicolo e il nome file."
         if wants_json():
-            return jsonify({"ok": False, "messaggio": str(exc), "message": str(exc)}), 400
-        flash(str(exc), "danger")
+            return jsonify({"ok": False, "messaggio": msg, "message": msg}), 400
+        flash(msg, "danger")
     except Exception as exc:
         app.logger.exception("Errore rinomina_documento id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, exc)
         msg = "Rinomina documento non completata."

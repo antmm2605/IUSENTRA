@@ -299,7 +299,7 @@ def sincronizza():
             "nuove": ris.get("nuove", 0),
             "pst_trovate": ris.get("pst_trovate", 0),
             "esiti_aggiornati": len(log_esiti),
-            "errore": ris.get("errore", ""),
+            "errore": "Sincronizzazione email non completata. Verifica IMAP e credenziali." if ris.get("errore") else "",
             "stats": ge.statistiche(),
         })
     except Exception:

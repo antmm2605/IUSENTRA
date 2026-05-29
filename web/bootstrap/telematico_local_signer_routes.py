@@ -77,6 +77,10 @@ def register_telematico_local_signer_routes(
             headers={"Content-Disposition": f'attachment; filename="{local_signer_windows_ps1_name()}"'},
         )
 
+    def _download_error(label: str, exc: Exception):
+        app.logger.exception("Errore download Local Signer %s: %s", label, exc)
+        return "Download Local Signer non disponibile. Verifica i pacchetti e riprova.", 500
+
     @app.route("/polisWeb/local-signer/download")
     def polis_local_signer_download():
         try:
@@ -90,7 +94,7 @@ def register_telematico_local_signer_routes(
                 mimetype="text/x-python",
             )
         except Exception as exc:
-            return str(exc), 500
+            return _download_error("python", exc)
 
     @app.route("/polisWeb/local-signer/download/local-ai-bridge")
     def polis_local_ai_bridge_download():
@@ -105,7 +109,7 @@ def register_telematico_local_signer_routes(
                 mimetype="text/x-python",
             )
         except Exception as exc:
-            return str(exc), 500
+            return _download_error("local-ai-bridge", exc)
 
     @app.route("/polisWeb/local-signer/download/lex-document-context")
     def polis_local_ai_lex_context_download():
@@ -120,7 +124,7 @@ def register_telematico_local_signer_routes(
                 mimetype="text/x-python",
             )
         except Exception as exc:
-            return str(exc), 500
+            return _download_error("lex-document-context", exc)
 
     @app.route("/polisWeb/local-signer/download/visible-signature")
     def polis_local_signer_visible_signature_download():
@@ -135,7 +139,7 @@ def register_telematico_local_signer_routes(
                 mimetype="text/x-python",
             )
         except Exception as exc:
-            return str(exc), 500
+            return _download_error("visible-signature", exc)
 
     @app.route("/polisWeb/local-signer/download/requirements")
     def polis_local_signer_requirements_download():
@@ -150,7 +154,7 @@ def register_telematico_local_signer_routes(
                 mimetype="text/plain; charset=utf-8",
             )
         except Exception as exc:
-            return str(exc), 500
+            return _download_error("requirements", exc)
 
     @app.route("/polisWeb/local-signer/download/local-signer-mod/<path:filename>")
     def polis_local_signer_mod_download(filename: str):
@@ -168,7 +172,7 @@ def register_telematico_local_signer_routes(
                 mimetype="text/x-python",
             )
         except Exception as exc:
-            return str(exc), 500
+            return _download_error("modulo", exc)
 
     @app.route("/polisWeb/local-signer/download/uffici")
     def polis_local_signer_download_uffici():
@@ -184,7 +188,7 @@ def register_telematico_local_signer_routes(
             )
         except Exception as exc:
             app.logger.exception("Errore download registro uffici Local Signer: %s", exc)
-            return str(exc), 500
+            return _download_error("uffici", exc)
 
     @app.route("/polisWeb/local-signer/download/python-embedded")
     def polis_local_signer_download_python_embedded():
@@ -198,7 +202,7 @@ def register_telematico_local_signer_routes(
         try:
             return _send_windows_exe()
         except Exception as exc:
-            return str(exc), 500
+            return _download_error("windows-exe", exc)
 
     @app.route("/polisWeb/local-signer/setup/windows-ps1")
     def polis_local_signer_setup_windows_ps1():
@@ -206,7 +210,7 @@ def register_telematico_local_signer_routes(
             return _send_windows_exe()
         except Exception as exc:
             app.logger.exception("Errore invio installer Windows EXE: %s", exc)
-            return str(exc), 500
+            return _download_error("windows-ps1", exc)
 
     @app.route("/polisWeb/local-signer/setup/windows")
     def polis_local_signer_setup_windows():
@@ -214,7 +218,7 @@ def register_telematico_local_signer_routes(
             return _send_windows_exe()
         except Exception as exc:
             app.logger.exception("Errore invio installer Windows EXE: %s", exc)
-            return str(exc), 500
+            return _download_error("windows", exc)
 
     @app.route("/polisWeb/local-signer/installa-windows")
     def polis_local_signer_installa():
@@ -222,7 +226,7 @@ def register_telematico_local_signer_routes(
             return _send_windows_exe()
         except Exception as exc:
             app.logger.exception("Errore invio installer Windows EXE: %s", exc)
-            return str(exc), 500
+            return _download_error("installa-windows", exc)
 
     @app.route("/polisWeb/local-signer/setup/macos")
     def polis_local_signer_setup_macos():
@@ -242,7 +246,7 @@ def register_telematico_local_signer_routes(
             )
         except Exception as exc:
             app.logger.exception("Errore generazione installer macOS: %s", exc)
-            return str(exc), 500
+            return _download_error("macos", exc)
 
     @app.route("/polisWeb/local-signer/setup/linux")
     def polis_local_signer_setup_linux():
@@ -262,4 +266,4 @@ def register_telematico_local_signer_routes(
             )
         except Exception as exc:
             app.logger.exception("Errore generazione installer Linux: %s", exc)
-            return str(exc), 500
+            return _download_error("linux", exc)

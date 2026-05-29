@@ -212,7 +212,12 @@ def register_admin_database_routes(
             )
         except Exception as exc:
             app.logger.exception("Errore attivazione SQLite: %s", exc)
-            return jsonify({"ok": False, "errore": str(exc)}), 200
+            return jsonify(
+                {
+                    "ok": False,
+                    "errore": "Operazione SQLite non completata. Il database esistente non è stato modificato.",
+                }
+            ), 200
 
     @app.route("/admin/database/export")
     def admin_database_export():

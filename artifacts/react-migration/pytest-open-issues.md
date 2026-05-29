@@ -47,6 +47,12 @@ blocco RBAC/security del job (`tests\test_auth.py`,
 `tests\test_app_v2_feature_flags.py`, `tests\test_app_v2_routing.py`,
 `tests\test_openapi_contracts_phase6.py`) è tornato verde.
 
+Terzo follow-up CI post-push: `Lint + syntax` ha segnalato
+`docs\app-v2-area-requirements.md` non aggiornato. Eseguito
+`python scripts\react-migration\generate_app_v2_area_requirements.py`; il blocco
+Frontend App V2 del job, inclusi `validate_ui_coverage.py`, pytest fase 8/9,
+`npm --prefix frontend run test`, typecheck e build, è tornato verde.
+
 ## Note Local Signer 1.6.63 path fisico SICID per tabelle SICID-family - 2026-05-27
 
 Nessuna issue locale aperta sul perimetro corretto dopo i test mirati.

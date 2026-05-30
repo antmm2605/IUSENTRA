@@ -219,6 +219,7 @@ const LOCAL_SIGNER_DEFAULT_TIMEOUT_MS = 45_000
 const LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS = 360_000
 const LOCAL_SIGNER_PST_DOWNLOAD_TIMEOUT_MS = 480_000
 const LOCAL_SIGNER_PST_STATUS_TIMEOUT_MS = 60_000
+const LOCAL_SIGNER_BROWSER_BRIDGE_TIMEOUT_MS = 8_000
 
 function surfaceFromCurrentPath(): TelematicoSurfaceId {
   const raw = window.location.pathname.replace(/\/+$/, '') || '/'
@@ -1277,11 +1278,15 @@ function normalisePstAcquisitionResult(value: unknown, index: number, query: Acq
 function previewCount(preview: JsonRecord, key: string): number {
   const counts = asRecord(preview.counts)
   const counted = asNumber(counts[key])
-  if (counted) return counted
   if (key === 'documenti') {
     const docs = pstPreviewDocuments(preview)
     if (docs.length) return docs.length
   }
+  if (key === 'eventi') {
+    const timelineRows = previewEvents(preview)
+    if (timelineRows.length) return Math.max(counted, timelineRows.length)
+  }
+  if (counted) return counted
   const value = preview[key]
   if (Array.isArray(value)) return value.length
   if (isRecord(value)) return Object.keys(value).length
@@ -1309,6 +1314,20 @@ function pstPreviewDocumentIsDownloadable(row: JsonRecord, index: number): boole
   return /\b(citazione|sentenza|verbale|ordinanza|decreto|scritti|note|produzione|intimazione|consegna)\b/.test(searchable)
 }
 
+function pstPreviewDocumentContentKey(row: JsonRecord, index: number): string {
+  const rawTitle = rawPreviewDocumentTitle(row) || previewDocumentTitle(row, index)
+  const title = normaliseSearch(rawTitle)
+  if (!title || /^documento(\s+\d+)?$/.test(title)) return ''
+  const specificTitle = /\.(pdf|p7m|xml|eml|msg|docx?|rtf|txt)$/i.test(rawTitle) || title.length > 8
+  if (!specificTitle) return ''
+  const date = asText(row.data_documento || row.data_deposito || row.data)
+  const type = normaliseSearch(asText(row.tipo_atto || row.tipo))
+  const sender = normaliseSearch(asText(row.mittente || row.depositante))
+  const parent = normaliseSearch(asText(row.id_documento_padre || row.parent_id_documento || row.parent_nome))
+  const role = row.is_allegato || parent ? 'allegato' : 'principale'
+  return [title, date, type, sender, parent, role].filter(Boolean).join('::')
+}
+
 function pstPreviewDocuments(preview: JsonRecord): JsonRecord[] {
   const flatten = (rows: JsonRecord[], parent?: JsonRecord): JsonRecord[] => rows.flatMap((row) => {
     const current = parent && !asText(row.parent_id_documento || row.id_documento_padre)
@@ -1331,12 +1350,29 @@ function pstPreviewDocuments(preview: JsonRecord): JsonRecord[] {
     return children.length ? [current, ...flatten(children, current)] : [current]
   })
   const keepDownloadable = (rows: JsonRecord[]) => rows.filter((row, index) => pstPreviewDocumentIsDownloadable(row, index))
-  const direct = keepDownloadable(flatten(asList(preview.documenti || preview.documents || preview.catalogo).map(asRecord)))
-  if (direct.length) return direct
   const snapshot = asRecord(preview.snapshot)
-  const snapshotDocs = keepDownloadable(flatten(asList(snapshot.documenti || snapshot.documents || snapshot.catalogo).map(asRecord)))
-  if (snapshotDocs.length) return snapshotDocs
-  return keepDownloadable(asList(preview.depositi).map(asRecord).flatMap((deposito) => {
+  const mergedRows: JsonRecord[] = []
+  const seenIdentity = new Set<string>()
+  const seenContent = new Set<string>()
+  const appendRows = (rows: JsonRecord[]) => {
+    for (const row of rows) {
+      const ids = pstDocumentIdentifierValues(row).join('|')
+      const identityKey = [
+        ids,
+        normaliseSearch(rawPreviewDocumentTitle(row)),
+        asText(row.data_documento || row.data_deposito || row.data),
+        asText(row.id_deposito || row.id_deposito_esterno || row.id_deposito_pct),
+      ].filter(Boolean).join('::')
+      const contentKey = pstPreviewDocumentContentKey(row, mergedRows.length)
+      if ((identityKey && seenIdentity.has(identityKey)) || (contentKey && seenContent.has(contentKey))) continue
+      if (identityKey) seenIdentity.add(identityKey)
+      if (contentKey) seenContent.add(contentKey)
+      mergedRows.push(row)
+    }
+  }
+  appendRows(flatten(asList(preview.documenti || preview.documents || preview.catalogo).map(asRecord)))
+  appendRows(flatten(asList(snapshot.catalogo || snapshot.documenti || snapshot.documents).map(asRecord)))
+  appendRows(asList(preview.depositi).map(asRecord).flatMap((deposito) => {
     const docs = flatten(asList(deposito.documenti).map(asRecord))
     return docs.map((documento) => ({
       ...documento,
@@ -1347,6 +1383,7 @@ function pstPreviewDocuments(preview: JsonRecord): JsonRecord[] {
       mittente: asText(documento.mittente || deposito.mittente),
     }))
   }))
+  return keepDownloadable(mergedRows)
 }
 
 function previewPersonName(item: unknown): string {
@@ -1531,12 +1568,27 @@ function formatDownloadFailure(row: JsonRecord, index: number): string {
 
 function pstDocumentIdentifierValues(item: JsonRecord): string[] {
   const values: string[] = []
-  const append = (value: unknown) => {
+  const weakValues: string[] = []
+  const appendTo = (target: string[], value: unknown) => {
     const text = asText(value)
-    if (!text || text.startsWith('#') || values.includes(text)) return
-    values.push(text)
+    if (!text || text.startsWith('#') || target.includes(text)) return
+    target.push(text)
   }
-  asList(item.id_documento_candidates).forEach(append)
+  ;[
+    item.id_reperto,
+    item.idReperto,
+    item.idRaccoglitore,
+    item.id_raccoglitore,
+    item.msg_id,
+    item.msgId,
+    item.msgid,
+  ].forEach((value) => appendTo(weakValues, value))
+  const appendStrong = (value: unknown) => {
+    const text = asText(value)
+    if (!text || weakValues.includes(text)) return
+    appendTo(values, text)
+  }
+  asList(item.id_documento_candidates).forEach(appendStrong)
   ;[
     item.id_documento,
     item.id_documento_portale,
@@ -1547,17 +1599,12 @@ function pstDocumentIdentifierValues(item: JsonRecord): string[] {
     item.id_repeatto,
     item.idRepeatto,
     item.idRepeatTo,
-    item.id_reperto,
-    item.idReperto,
-    item.msg_id,
-    item.msgId,
-    item.msgid,
     item.numero_documento,
     item.numeroDocumento,
     item.id_doc_mittente,
     item.idDocMittente,
-  ].forEach(append)
-  return values
+  ].forEach(appendStrong)
+  return values.length ? values : weakValues
 }
 
 function pstDocumentSelectionKey(item: JsonRecord, index: number): string {
@@ -1826,11 +1873,36 @@ function signerFilesToAcquisitionFiles(rows: unknown[], originalMode: boolean): 
   return collected
 }
 
+function acquisitionFileMergeKey(file: AcquisitionFile): string {
+  const portalIds = [
+    file.id_cat,
+    file.id_documento_portale,
+    file.id_deposito_pct,
+    file.id_deposito_esterno,
+    file.id_repeatto,
+    file.id_reperto,
+    file.msg_id,
+    file.numero_documento,
+    file.id_doc_mittente,
+  ].map((value) => asText(value)).filter(Boolean).join('|')
+  const name = file.nome_file_originale.toLowerCase() || file.nome.toLowerCase()
+  const metadata = [
+    file.data_documento,
+    file.tipo_atto,
+    file.tipo,
+    file.id_documento_padre,
+    file.parent_nome,
+    file.is_allegato ? 'allegato' : '',
+  ].map((value) => asText(value)).filter(Boolean).join('|')
+  if (portalIds) return `pst:${portalIds}::${name}::${metadata}`
+  return `file:${name}::${file.contenuto_b64.length}::${file.contenuto_b64.slice(0, 96)}`
+}
+
 function mergeAcquisitionFiles(current: AcquisitionFile[], incoming: AcquisitionFile[]): AcquisitionFile[] {
   const merged = [...current]
-  const seen = new Set(current.map((file) => `${file.nome_file_originale.toLowerCase()}::${file.contenuto_b64.slice(0, 48)}`))
+  const seen = new Set(current.map(acquisitionFileMergeKey))
   for (const file of incoming) {
-    const key = `${file.nome_file_originale.toLowerCase()}::${file.contenuto_b64.slice(0, 48)}`
+    const key = acquisitionFileMergeKey(file)
     if (seen.has(key)) continue
     seen.add(key)
     merged.push(file)
@@ -1969,6 +2041,18 @@ function AcquisitionWizard({
     )).length,
     [files],
   )
+  const downloadedPstDocumentKeySet = useMemo(() => {
+    const downloaded = files
+      .filter((file) => !file.payload_json)
+      .map(acquisitionFilePstRecord)
+    const keys = new Set<string>()
+    previewDocuments.forEach((doc, index) => {
+      if (downloaded.some((file) => pstDocumentsMatch(file, doc))) {
+        keys.add(pstDocumentSelectionKey(doc, index))
+      }
+    })
+    return keys
+  }, [files, previewDocuments])
 
   useEffect(() => {
     if (!visible || !portal) return
@@ -2147,6 +2231,51 @@ function AcquisitionWizard({
       throw error
     } finally {
       window.clearTimeout(timer)
+    }
+  }
+
+  const localSignerDelay = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms))
+
+  const localSignerPstFascicoloSnapshotJob = async (body: JsonRecord, timeoutMs = LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS): Promise<JsonRecord> => {
+    const startedAt = Date.now()
+    let jobPayload = await localSignerJson('/pst/fascicolo-snapshot-job', body, LOCAL_SIGNER_PST_STATUS_TIMEOUT_MS)
+    const jobId = asText(jobPayload.job_id)
+    if (!jobId) throw new Error('Local Signer non ha avviato il lavoro di visualizzazione PST.')
+
+    while (Date.now() - startedAt < timeoutMs) {
+      const status = asText(jobPayload.status)
+      const phase = asText(jobPayload.phase, 'Visualizzazione fascicolo PST')
+      const current = asText(jobPayload.current, 'Lettura scheda ministeriale in corso')
+      const elapsed = asNumber(jobPayload.elapsed_seconds)
+      setImportProgress((progress) => ({
+        ...progress,
+        active: status !== 'completed' && status !== 'failed',
+        phase,
+        current: elapsed ? `${current} · attesa ${Math.round(elapsed)}s` : current,
+        completed: Math.max(progress.completed, status === 'completed' ? (progress.total || 3) : 1),
+      }))
+      if (status === 'completed') {
+        const result = asRecord(jobPayload.result)
+        if (result.ok === false) throw new Error(asText(result.errore || result.error, 'Visualizzazione PST non completata.'))
+        return result
+      }
+      if (status === 'failed') {
+        throw new Error(asText(jobPayload.errore || jobPayload.error, 'Visualizzazione PST non completata dal Local Signer.'))
+      }
+      await localSignerDelay(2500)
+      jobPayload = await localSignerJson(`/pst/jobs/${encodeURIComponent(jobId)}`, undefined, LOCAL_SIGNER_PST_STATUS_TIMEOUT_MS)
+    }
+    throw new Error('Visualizzazione PST ancora in attesa: il portale ufficiale non ha completato la scheda entro il tempo massimo. Riprova dalla stessa schermata mantenendo inserito il token.')
+  }
+
+  const requireLocalSignerBrowserBridge = async () => {
+    try {
+      await localSignerJson('/ping?light=1', undefined, LOCAL_SIGNER_BROWSER_BRIDGE_TIMEOUT_MS)
+    } catch (error: unknown) {
+      throw new Error(
+        'Local Signer non ha risposto dal browser entro pochi secondi: non apro il PIN e non lascio la ricerca bloccata. ' +
+        'Verifica che il servizio locale sia avviato su questo PC, poi premi di nuovo Cerca fascicolo.',
+      )
     }
   }
 
@@ -2470,8 +2599,28 @@ function AcquisitionWizard({
     let pstCertForDiagnostic: PstCertificate | null = null
     let pstCfForDiagnostic = ''
     let pstCfSourceForDiagnostic = ''
+    const progressStartedAt = Date.now()
+    let progressHeartbeat: number | null = null
+    if (portal === 'pst') {
+      progressHeartbeat = window.setInterval(() => {
+        setImportProgress((current) => {
+          if (!current.active) return current
+          const baseCurrent = current.current.replace(/\s·\sattesa\s+\d+s$/i, '')
+          const elapsedSeconds = Math.max(1, Math.round((Date.now() - progressStartedAt) / 1000))
+          return {
+            ...current,
+            current: `${baseCurrent} · attesa ${elapsedSeconds}s`,
+          }
+        })
+      }, 15_000)
+    }
     try {
       if (portal === 'pst') {
+        setImportProgress((current) => ({
+          ...current,
+          current: 'Controllo collegamento Local Signer dal browser',
+        }))
+        await requireLocalSignerBrowserBridge()
         const tribunale = resolvedOfficeCode()
         let signerPayload: JsonRecord | null = null
         let cert = await ensurePstCertificate()
@@ -2622,6 +2771,7 @@ function AcquisitionWizard({
         })
       }
     } finally {
+      if (progressHeartbeat !== null) window.clearInterval(progressHeartbeat)
       setBusy('')
     }
   }
@@ -2661,34 +2811,43 @@ function AcquisitionWizard({
         })
         const tribunale = asText(activeSelection.raw.ufficio_codice || resolvedOfficeCode())
         let snapshot = asRecord(activeSelection.raw.snapshot)
-        let documenti = asList(snapshot.documenti).map(asRecord)
+        let documenti = asList(snapshot.catalogo || snapshot.documenti).map(asRecord)
         let pstSessionPayload = asRecord(activeSelection.raw.pst_session)
-        if (!documenti.length) {
-          const cert = await ensurePstCertificate()
-          const session = activePstSessionFor(tribunale, cert)
-          const signerPayload = await localSignerJson('/pst/fascicolo-snapshot', {
-            selection: activeSelection.raw,
-            codice_ufficio: tribunale,
-            numero_rg: asText(activeSelection.raw.numero || query.numero),
-            anno_rg: asText(activeSelection.raw.anno || query.anno),
-            id_fascicolo: asText(activeSelection.raw.id_fascicolo),
-            sub_procedimento: asText(activeSelection.raw.sub_procedimento),
-            servizio_pst: asText(activeSelection.raw.servizio_pst || asRecord(asRecord(activeSelection.raw.snapshot).fascicolo).servizio_pst),
-            registro_portale: asText(activeSelection.raw.registro_portale || asRecord(asRecord(activeSelection.raw.snapshot).fascicolo).registro_portale),
-            tabella_ministeriale: asText(activeSelection.raw.tabella_ministeriale || asRecord(asRecord(activeSelection.raw.snapshot).fascicolo).tabella_ministeriale),
-            ...ministerialHintsFromQuery(query),
-            cf_avvocato: pstAttorneyFiscalCode(cert),
-            cert_thumbprint: cert.thumbprint || null,
-            cert_key: cert.thumbprint || '',
-            purpose: REACT_PST_SESSION_PURPOSE,
-            pst_session_id: session?.sessionId || '',
-          }, LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS)
-          const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
-          if (!nextSession) throw new Error('Sessione PST non inizializzata dal Local Signer.')
-          snapshot = asRecord(signerPayload.snapshot)
-          documenti = asList(snapshot.documenti || signerPayload.documenti).map(asRecord)
-          pstSessionPayload = pstSessionForServer(nextSession, cert)
+        const cert = await ensurePstCertificate()
+        const session = activePstSessionFor(tribunale, cert)
+        setImportProgress((current) => ({
+          ...current,
+          current: 'Aggiorno scheda ministeriale, allegati e comunicazioni disponibili',
+          completed: Math.max(current.completed, 1),
+        }))
+        const signerPayload = await localSignerPstFascicoloSnapshotJob({
+          selection: activeSelection.raw,
+          codice_ufficio: tribunale,
+          numero_rg: asText(activeSelection.raw.numero || query.numero),
+          anno_rg: asText(activeSelection.raw.anno || query.anno),
+          id_fascicolo: asText(activeSelection.raw.id_fascicolo),
+          sub_procedimento: asText(activeSelection.raw.sub_procedimento),
+          servizio_pst: asText(activeSelection.raw.servizio_pst || asRecord(asRecord(activeSelection.raw.snapshot).fascicolo).servizio_pst),
+          registro_portale: asText(activeSelection.raw.registro_portale || asRecord(asRecord(activeSelection.raw.snapshot).fascicolo).registro_portale),
+          tabella_ministeriale: asText(activeSelection.raw.tabella_ministeriale || asRecord(asRecord(activeSelection.raw.snapshot).fascicolo).tabella_ministeriale),
+          ...ministerialHintsFromQuery(query),
+          cf_avvocato: pstAttorneyFiscalCode(cert),
+          cert_thumbprint: cert.thumbprint || null,
+          cert_key: cert.thumbprint || '',
+          purpose: REACT_PST_SESSION_PURPOSE,
+          pst_session_id: session?.sessionId || '',
+        }, LOCAL_SIGNER_PST_SEARCH_TIMEOUT_MS)
+        const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
+        if (!nextSession) throw new Error('Sessione PST non inizializzata dal Local Signer.')
+        const refreshedSnapshot = asRecord(signerPayload.snapshot)
+        if (Object.keys(refreshedSnapshot).length) {
+          snapshot = refreshedSnapshot
         }
+        const refreshedDocumenti = asList(snapshot.documenti || snapshot.catalogo || signerPayload.documenti).map(asRecord)
+        if (refreshedDocumenti.length) {
+          documenti = refreshedDocumenti
+        }
+        pstSessionPayload = pstSessionForServer(nextSession, cert)
         payload = await portalJson(portal, 'preview', {
           selection: {
             ...activeSelection.raw,
@@ -3178,12 +3337,13 @@ function AcquisitionWizard({
   const oks = issueRows(analysis, 'ok')
   const summary = importSummary(importResult)
   const documentReport = asRecord(summary.report_documentale)
+  const reportValue = (primary: unknown, fallback: unknown, empty = '0') => asText(primary ?? fallback, empty)
   const documentReportCards = [
-    ['Documenti reali', asText(documentReport.documenti_reali || summary.documenti_reali || summary.documenti, '0')],
-    ['Informazioni', asText(documentReport.documenti_informativi || summary.documenti_informativi, '0')],
-    ['Solo catalogo', asText(documentReport.documenti_catalogo || summary.documenti_catalogo, '0')],
-    ['Senza contenuto', asText(documentReport.documenti_senza_contenuto || summary.documenti_senza_contenuto, '0')],
-    ['Scartati', asText(documentReport.documenti_scartati || summary.documenti_scartati, '0')],
+    ['Documenti reali', reportValue(documentReport.documenti_reali, summary.documenti_reali ?? summary.documenti)],
+    ['Informazioni', reportValue(documentReport.documenti_informativi, summary.documenti_informativi)],
+    ['Solo catalogo', reportValue(documentReport.documenti_catalogo, summary.documenti_catalogo)],
+    ['Senza contenuto', reportValue(documentReport.documenti_senza_contenuto, summary.documenti_senza_contenuto)],
+    ['Scartati', reportValue(documentReport.documenti_scartati, summary.documenti_scartati)],
   ]
   const missingImportNames = asList(documentReport.documenti_senza_contenuto_elenco || documentReport.documenti_mancanti_elenco)
     .map((item) => asText(item))
@@ -3200,6 +3360,8 @@ function AcquisitionWizard({
   ]
   const currentStep = steps.find((item) => item.id === step) || steps[1]
   const retryEvents = localEvents.filter((item) => item.portal === portal).slice(0, 3)
+  const previewRecovered = Boolean(Object.keys(preview).length || previewCount(preview, 'documenti') || previewCount(preview, 'eventi'))
+  const visibleRetryEvents = previewRecovered || files.length || Object.keys(importResult).length ? [] : retryEvents
 
   return (
     <section className="iu-tel-acquisition" id="wizard-acquisizione">
@@ -3563,7 +3725,9 @@ function AcquisitionWizard({
                   </div>
                   <div className="iu-tel-acq-documents iu-tel-acq-documents--selection">
                     {previewDocuments.map((doc, index) => {
-                      const selected = options.importa_documenti && selectedDocumentKeySet.has(pstDocumentSelectionKey(doc, index))
+                      const documentKey = pstDocumentSelectionKey(doc, index)
+                      const selected = options.importa_documenti && selectedDocumentKeySet.has(documentKey)
+                      const downloaded = downloadedPstDocumentKeySet.has(documentKey)
                       return (
                         <article className={selected ? 'is-selected' : 'is-excluded'} key={`${previewDocumentTitle(doc, index)}-select-${index}`}>
                           <label className="iu-tel-acq-doc-check">
@@ -3579,7 +3743,9 @@ function AcquisitionWizard({
                             <strong>{previewDocumentTitle(doc, index)}</strong>
                             <small>{previewDocumentMeta(doc) || 'Pronto per lo scaricamento dal PST'}</small>
                           </div>
-                          <Badge tone={selected ? 'success' : 'neutral'}>{selected ? 'Da scaricare' : 'Escluso'}</Badge>
+                          <Badge tone={downloaded ? 'primary' : selected ? 'success' : 'neutral'}>
+                            {downloaded ? 'Scaricato' : selected ? 'Da scaricare' : 'Escluso'}
+                          </Badge>
                         </article>
                       )
                     })}
@@ -3723,10 +3889,10 @@ function AcquisitionWizard({
               <span><strong>Eventi</strong>{previewCount(preview, 'eventi')}</span>
             </div>
           </Panel>
-          {retryEvents.length ? (
-            <Panel title="Riprova scarico" subtitle="Tentativi non completati" icon={<RefreshCw size={17}/>} count={retryEvents.length}>
+          {visibleRetryEvents.length ? (
+            <Panel title="Riprova scarico" subtitle="Tentativi non completati" icon={<RefreshCw size={17}/>} count={visibleRetryEvents.length}>
               <div className="iu-tel-acq-retry-list">
-                {retryEvents.map((item) => (
+                {visibleRetryEvents.map((item) => (
                   <a href={item.href} key={item.id}>
                     <Badge tone={item.tone}>{item.badge || 'Riprova'}</Badge>
                     <div>

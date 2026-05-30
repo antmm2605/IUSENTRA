@@ -16,7 +16,7 @@ export function TopBarNotifications({
   icon: ReactNode
 }) {
   const ref = useRef<HTMLDivElement | null>(null)
-  const { data, loading, error, markRead, markAllRead } = useNotifications(true)
+  const { data, loading, error, markRead, markAllRead } = useNotifications(open)
   const unread = data?.unreadCount ?? 0
   const matchAnyKey = useCallback(() => true, [])
   const handleEscape = useCallback((event: KeyboardEvent) => {

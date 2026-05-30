@@ -175,6 +175,20 @@ jobs:
               "${HETZNER_USER}@${HETZNER_HOST}" \
               "cd /opt/iusentra/repo && BRANCH='${DEPLOY_BRANCH}' ${deploy_prefix}bash deploy/hetzner/deploy.sh"
 
+      - name: Ripristina servizi se il commit era gia deployato
+        if: ${{ steps.current.outputs.already_deployed == 'true' }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy \
+              -o BatchMode=yes \
+              -o ConnectTimeout=15 \
+              -o ServerAliveInterval=30 \
+              -o ServerAliveCountMax=20 \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              'cd /opt/iusentra/repo && docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml up -d app caddy scheduler-worker ocr-worker'
+
       - name: Recupera commit deployato
         id: state
         run: |
@@ -198,7 +212,20 @@ jobs:
               -o StrictHostKeyChecking=yes \
               -o UserKnownHostsFile=~/.ssh/known_hosts \
               "${HETZNER_USER}@${HETZNER_HOST}" \
-              'docker compose --env-file /opt/iusentra/.env.hetzner -f /opt/iusentra/repo/deploy/hetzner/docker-compose.hetzner.yml ps'
+              'set -euo pipefail
+               cd /opt/iusentra/repo
+               docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml ps
+               app_id=$(docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml ps -q app)
+               if [ -z "$app_id" ]; then
+                 echo "Container app non rilevato" >&2
+                 exit 1
+               fi
+               running=$(docker inspect --format "{{.State.Running}}" "$app_id")
+               health=$(docker inspect --format "{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}" "$app_id")
+               if [ "$running" != "true" ] || [ "$health" != "healthy" ]; then
+                 echo "Container app non pronto: running=$running health=$health" >&2
+                 exit 1
+               fi'
 
       - name: Verifiche post-deploy (rotte HTTPS pubbliche)
         if: ${{ env.HETZNER_DOMAIN != '' }}

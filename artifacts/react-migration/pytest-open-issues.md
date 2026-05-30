@@ -4,6 +4,13 @@
 
 Nessuna issue di codice aperta sul perimetro corretto dopo test mirati, build e browser locale.
 
+## Note PST import fascicolo reale 2.248.90 - 2026-05-30
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Import Palmi R.G. `1025/2024` | Browser reale, verifica file fisici e test mirati | Risolto localmente | La prima prova reale aveva prodotto `51` file scaricati ma solo `45` documenti catalogati perché il backend deduplicava per nome file. La correzione usa identificativi ministeriali e hash contenuto; la seconda prova reale ha chiuso `51/51` record e file fisici nel fascicolo `487EE7F3`. | Per ogni modifica futura a merge preview, download batch o import PST rilanciare il test browser reale su un fascicolo con allegati omonimi e i tre test PolisWeb mirati. |
+| Contatore cronologia anteprima PST | Build React e prova browser | Risolto localmente | L'anteprima mostrava i dati di cronologia ma il contatore leggeva solo `eventi`, ignorando comunicazioni, istanze e udienze. Ora il conteggio usa la timeline aggregata e nella prova reale mostra `36` righe. | Non ridurre il conteggio visibile alla sola chiave tecnica `eventi`; il portale espone più schede logiche. |
+
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
 | Scarico reale PST con PIN utente | Local Signer `1.6.65` installato sul PC dell'avvocato | Da ripetere con token reale | Il codice ora rifiuta payload non documentali e usa certificato diretto per download QBuilder; l'automazione locale non può inserire il PIN dell'avvocato né confermare un download ministeriale reale senza sessione utente. | Installare/aggiornare il Local Signer `1.6.65`, poi ripetere visualizzazione e download tutto/singolo/multiplo sul fascicolo reale. Se il PST restituisce ancora contenuti non PDF, il sistema deve bloccarli e mostrarli come errore operativo. |

@@ -32,7 +32,7 @@ L'importazione del fascicolo PST non deve considerare sufficiente la sola tabell
 - istanze o domande collegate (`DettaglioIstanze`, classe `IstanzaFascicolo`);
 - dati accessori del profilo, come `FascicoloPrecedente` e `NumeroCivile`.
 
-Per ogni documento principale esposto dal catalogo, quando il servizio lo permette, IUSENTRA deve interrogare `estraiMasterDetailAtto` in batch e aggiungere all'inventario anche `docPrimario` e `docsSecondari`. Gli allegati secondari devono restare selezionabili come gli altri documenti e conservare il collegamento con il documento padre (`id_documento_padre`, `parent_nome`, `is_allegato`).
+Per ogni documento principale esposto dal catalogo, quando il servizio lo permette, IUSENTRA deve interrogare `estraiMasterDetailAtto` in batch e aggiungere all'inventario anche `docPrimario` e `docsSecondari`. Gli allegati secondari devono restare selezionabili come gli altri documenti e conservare il collegamento con il documento padre (`id_documento_padre`, `parent_nome`, `is_allegato`). Il catalogo qbuilder può esporre più identificativi tecnici per lo stesso atto (`id_documento`, `id_cat`, `id_repeatto`, `id_reperto`, `msg_id`, `numero_documento`, `id_doc_mittente`): l'arricchimento master-detail deve provarli tutti, senza fermarsi al primo, perché su alcuni registri il primo valore consente il download del primario ma non restituisce l'elenco completo degli allegati visibile nel portale.
 
 La ricerca per anno deve produrre una lista di fascicoli quando l'utente indica ufficio e anno senza numero. Il download non parte dalla lista annuale: l'utente seleziona il fascicolo e solo dopo IUSENTRA carica lo snapshot completo del fascicolo scelto.
 

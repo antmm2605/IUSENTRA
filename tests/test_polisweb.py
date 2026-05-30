@@ -6006,6 +6006,184 @@ def test_api_portale_acquisizione_import_pst_salva_lotto_sette_documenti_nel_fas
     assert len(fascicolo_reload.depositi_pct[0].documenti_ids) == 7
 
 
+def test_api_portale_acquisizione_import_pst_non_collassa_allegati_con_stesso_nome(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 1025/2024",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2024,
+        oggetto="Vendita di cose immobili",
+    )
+    preview_documenti = [
+        {
+            "id_documento": "DOC-ATTO-1",
+            "nome": "AttoNonCodificato_1.pdf",
+            "tipo": "AttoNonCodificato",
+            "tipo_atto": "AttoNonCodificato",
+            "data_deposito": "2025-12-05",
+            "mittente": "Avvocato",
+            "id_deposito": "BUSTA-1",
+            "id_cat": "CAT-ATTO-1",
+        },
+        {
+            "id_documento": "DOC-DATI-1",
+            "nome": "DatiAtto.xml.p7m",
+            "tipo": "Ambiente Fascicolo Informatico",
+            "tipo_atto": "Ambiente Fascicolo Informatico",
+            "data_deposito": "2025-12-05",
+            "mittente": "Avvocato",
+            "id_deposito": "BUSTA-1",
+            "id_cat": "CAT-DATI-1",
+            "id_documento_padre": "DOC-ATTO-1",
+            "is_allegato": True,
+        },
+        {
+            "id_documento": "DOC-ATTO-2",
+            "nome": "ProduzioneDocumentiRichiesti_2.pdf",
+            "tipo": "ProduzioneDocumentiRichiesti",
+            "tipo_atto": "ProduzioneDocumentiRichiesti",
+            "data_deposito": "2025-11-11",
+            "mittente": "Avvocato",
+            "id_deposito": "BUSTA-2",
+            "id_cat": "CAT-ATTO-2",
+        },
+        {
+            "id_documento": "DOC-DATI-2",
+            "nome": "DatiAtto.xml.p7m",
+            "tipo": "Ambiente Fascicolo Informatico",
+            "tipo_atto": "Ambiente Fascicolo Informatico",
+            "data_deposito": "2025-11-11",
+            "mittente": "Avvocato",
+            "id_deposito": "BUSTA-2",
+            "id_cat": "CAT-DATI-2",
+            "id_documento_padre": "DOC-ATTO-2",
+            "is_allegato": True,
+        },
+    ]
+    downloaded_files = [
+        {
+            "filename": row["nome"],
+            "content_base64": base64.b64encode(f"contenuto {row['id_cat']}".encode("utf-8")).decode("ascii"),
+            "content_type": "application/pkcs7-mime" if row["nome"].endswith(".p7m") else "application/pdf",
+            "id_documento": row["id_documento"],
+            "id_cat": row["id_cat"],
+            "id_deposito": row["id_deposito"],
+            "data_deposito": row["data_deposito"],
+            "tipo_atto": row["tipo_atto"],
+            "mittente": row["mittente"],
+        }
+        for row in preview_documenti
+    ]
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/api/portali/pst/acquisizione/import",
+            json={
+                "selection": {
+                    "external_id": "0580010:1025:2024:RG",
+                    "numero": "1025",
+                    "anno": 2024,
+                    "ufficio_codice": "0580010",
+                    "ufficio_nome": "Tribunale di Palmi",
+                    "procedimento": "CC",
+                    "oggetto": "Vendita di cose immobili",
+                    "parti": ["MONTAGNESE ELISABETTA"],
+                    "controparti": [],
+                    "payload": {"numero_rg": "1025", "anno_rg": 2024, "ruolo": "CC"},
+                },
+                "preview": {
+                    "identity": {
+                        "numero": "1025",
+                        "anno": 2024,
+                        "ufficio_nome": "Tribunale di Palmi",
+                        "ufficio_codice": "0580010",
+                        "procedimento": "CC",
+                    },
+                    "parti": ["MONTAGNESE ELISABETTA"],
+                    "controparti": [],
+                    "documenti": preview_documenti,
+                    "depositi": [
+                        {
+                            "id_deposito": "BUSTA-1",
+                            "tipo_atto": "AttoNonCodificato",
+                            "data_deposito": "2025-12-05",
+                            "mittente": "Avvocato",
+                            "documenti": preview_documenti[:2],
+                        },
+                        {
+                            "id_deposito": "BUSTA-2",
+                            "tipo_atto": "ProduzioneDocumentiRichiesti",
+                            "data_deposito": "2025-11-11",
+                            "mittente": "Avvocato",
+                            "documenti": preview_documenti[2:],
+                        },
+                    ],
+                    "counts": {"parti": 1, "documenti": 4, "depositi": 2, "eventi": 0, "udienze": 0},
+                },
+                "options": {
+                    "importa_dati_pratica": True,
+                    "importa_parti": True,
+                    "importa_eventi": False,
+                    "importa_scadenze": False,
+                    "importa_documenti": True,
+                    "importa_cronologia_depositi": True,
+                    "mantieni_albero_originale": False,
+                },
+                "mapping": {"mode": "update_existing", "target_fascicolo_id": fascicolo.id},
+                "downloaded_files": downloaded_files,
+            },
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["result"]["summary"]["documenti"] == 4
+    assert data["result"]["summary"]["documenti_da_acquisire"] == 0
+    assert data["result"]["summary"]["report_documentale"]["documenti_catalogo"] == 0
+
+    fascicolo_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    ).get(fascicolo.id)
+    assert fascicolo_reload is not None
+    assert len(fascicolo_reload.documenti) == 4
+    dati_atto = [doc for doc in fascicolo_reload.documenti if doc.nome == "DatiAtto.xml.p7m"]
+    assert len(dati_atto) == 2
+    assert {doc.id_cat_portale for doc in dati_atto} == {"CAT-DATI-1", "CAT-DATI-2"}
+    assert len({doc.percorso for doc in dati_atto}) == 2
+    for doc in dati_atto:
+        assert (Path(cfg["FASCICOLI_DOCS"]) / doc.percorso).exists()
+
+
 def test_api_portale_acquisizione_import_pst_salva_lotto_otto_documenti_con_alias_local_signer(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app

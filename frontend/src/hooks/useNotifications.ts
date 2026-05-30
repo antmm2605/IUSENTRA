@@ -31,8 +31,8 @@ export function useNotifications(open: boolean) {
   }, [])
 
   useEffect(() => {
-    if (open && data === null && !loading) load()
-  }, [data, load, loading, open])
+    if (open && data === null && !loading && !error) load()
+  }, [data, error, load, loading, open])
 
   return { data, loading, error, reload: load, markRead, markAllRead }
 }

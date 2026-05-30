@@ -875,7 +875,67 @@ def build_telematico_runtime(
             or snapshot.get("controversia")
             or {}
         )
-        docs = _normalize_portale_documents(documenti or [])
+        raw_documenti = [dict(row or {}) for row in documenti or [] if isinstance(row, dict)]
+        if (portale or "").strip().lower() == "pst":
+            for source in (
+                snapshot.get("catalogo"),
+                snapshot.get("documenti"),
+                snapshot.get("documents"),
+            ):
+                if isinstance(source, list):
+                    raw_documenti.extend(dict(row or {}) for row in source if isinstance(row, dict))
+        docs = _normalize_portale_documents(raw_documenti)
+        if (portale or "").strip().lower() == "pst":
+            def _doc_content_key(doc: dict[str, Any]) -> str:
+                nome = str(
+                    doc.get("nome")
+                    or doc.get("nome_documento")
+                    or doc.get("filename")
+                    or ""
+                ).strip()
+                normalized_name = _normalizza_nome_match_portale(nome)
+                if not normalized_name or re.fullmatch(r"documento(?:\s+\d+)?", normalized_name):
+                    return ""
+                if not re.search(r"\.(pdf|p7m|xml|eml|msg|docx?|rtf|txt)$", nome, re.I) and len(normalized_name) <= 8:
+                    return ""
+                parent = str(
+                    doc.get("id_documento_padre")
+                    or doc.get("parent_id_documento")
+                    or doc.get("parent_nome")
+                    or ""
+                ).strip()
+                role = "allegato" if doc.get("is_allegato") or parent else "principale"
+                return "|".join(
+                    part
+                    for part in (
+                        normalized_name,
+                        str(doc.get("data_deposito") or doc.get("data_documento") or "").strip(),
+                        str(doc.get("tipo_atto") or doc.get("tipo") or "").strip().lower(),
+                        str(doc.get("mittente") or "").strip().lower(),
+                        parent,
+                        role,
+                    )
+                    if part
+                )
+
+            filtered_docs: list[dict[str, Any]] = []
+            seen_docs: set[str] = set()
+            seen_doc_content: set[str] = set()
+            for doc in docs:
+                identifiers = _portale_document_identifier_values(doc)
+                if not identifiers:
+                    continue
+                key = "|".join(sorted(identifiers))
+                if key in seen_docs:
+                    continue
+                content_key = _doc_content_key(doc)
+                if content_key and content_key in seen_doc_content:
+                    continue
+                seen_docs.add(key)
+                if content_key:
+                    seen_doc_content.add(content_key)
+                filtered_docs.append(doc)
+            docs = filtered_docs
         depositi = _group_portale_documents(docs)
         def _clean(value: Any) -> str:
             return str(value or "").strip()
@@ -1118,14 +1178,27 @@ def build_telematico_runtime(
         return bool(options.get("importa_documenti") or options.get("importa_provvedimenti"))
 
     def _portale_document_identifier_values(row: dict[str, Any] | None) -> set[str]:
-        values: set[str] = set()
+        strong_values: set[str] = set()
+        weak_values: set[str] = set()
         payload = dict(row or {})
         raw_candidates = payload.get("id_documento_candidates")
+        for value in (
+            payload.get("id_reperto"),
+            payload.get("idReperto"),
+            payload.get("idRaccoglitore"),
+            payload.get("id_raccoglitore"),
+            payload.get("msg_id"),
+            payload.get("msgId"),
+            payload.get("msgid"),
+        ):
+            text = str(value or "").strip()
+            if text and not text.startswith("#"):
+                weak_values.add(text)
         if isinstance(raw_candidates, (list, tuple, set)):
             for candidate in raw_candidates:
                 text = str(candidate or "").strip()
-                if text and not text.startswith("#"):
-                    values.add(text)
+                if text and not text.startswith("#") and text not in weak_values:
+                    strong_values.add(text)
         for value in (
             payload.get("id_documento"),
             payload.get("id_documento_portale"),
@@ -1136,11 +1209,6 @@ def build_telematico_runtime(
             payload.get("id_repeatto"),
             payload.get("idRepeatto"),
             payload.get("idRepeatTo"),
-            payload.get("id_reperto"),
-            payload.get("idReperto"),
-            payload.get("msg_id"),
-            payload.get("msgId"),
-            payload.get("msgid"),
             payload.get("numero_documento"),
             payload.get("numeroDocumento"),
             payload.get("id_doc_mittente"),
@@ -1148,8 +1216,9 @@ def build_telematico_runtime(
         ):
             text = str(value or "").strip()
             if text and not text.startswith("#"):
-                values.add(text)
-        return values
+                strong_values.add(text)
+        strong_values.difference_update(weak_values)
+        return strong_values or weak_values
 
     def _portale_document_deposito_value(row: dict[str, Any] | None) -> str:
         payload = dict(row or {})
@@ -1208,16 +1277,23 @@ def build_telematico_runtime(
                 continue
             merged = dict(match)
             merged.update(item)
-            merged["id_documento_portale"] = str(
+            item_id_cat = str(item.get("id_cat") or item.get("idCat") or "").strip()
+            item_id_documento = str(
                 item.get("id_documento_portale")
+                or item.get("id_documento")
+                or item.get("idDocumento")
+                or item.get("idDoc")
+                or ""
+            ).strip()
+            merged["id_documento_portale"] = str(
+                item_id_documento
+                or item_id_cat
                 or match.get("id_documento_portale")
                 or match.get("id_documento")
                 or match.get("idDocumento")
-                or item.get("id_documento")
-                or item.get("idDocumento")
                 or ""
             ).strip()
-            merged["id_cat"] = str(item.get("id_cat") or item.get("idCat") or match.get("id_cat") or match.get("idCat") or "").strip()
+            merged["id_cat"] = str(item_id_cat or match.get("id_cat") or match.get("idCat") or "").strip()
             merged["id_repeatto"] = str(
                 item.get("id_repeatto")
                 or item.get("idRepeatto")

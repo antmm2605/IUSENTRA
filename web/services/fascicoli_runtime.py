@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import io
 import os
 import re
@@ -1946,22 +1947,60 @@ def build_fascicoli_runtime(
         u = g.utente_corrente
         documenti_creati: list[dict] = []
 
-        # Indice dei nomi normalizzati già presenti nel fascicolo (dedup import ripetuto)
-        nomi_esistenti: dict[str, Documento] = {
-            _normalizza_nome_match_portale(d.nome): d
-            for d in fasc.documenti
-            if d.nome
-        }
+        def _portal_key_pairs_from_item(item: dict) -> set[str]:
+            payload = dict(item or {})
+            pairs: set[str] = set()
+            field_groups = (
+                ("id_documento", ("id_documento_portale", "id_documento", "idDocumento", "idDoc")),
+                ("id_cat", ("id_cat", "idCat")),
+                ("id_repeatto", ("id_repeatto", "idRepeatto", "idRepeatTo")),
+                ("msg_id", ("msg_id", "msgId", "msgid")),
+            )
+            for label, keys in field_groups:
+                for key in keys:
+                    value = str(payload.get(key) or "").strip()
+                    if value and not value.startswith("#"):
+                        pairs.add(f"{label}:{value.casefold()}")
+                        break
+            return pairs
+
+        def _portal_key_pairs_from_document(doc: Documento) -> set[str]:
+            pairs: set[str] = set()
+            for label, value in (
+                ("id_documento", getattr(doc, "id_documento_portale", "")),
+                ("id_cat", getattr(doc, "id_cat_portale", "")),
+                ("id_repeatto", getattr(doc, "id_repeatto_portale", "")),
+                ("msg_id", getattr(doc, "msg_id_portale", "")),
+            ):
+                text = str(value or "").strip()
+                if text and not text.startswith("#"):
+                    pairs.add(f"{label}:{text.casefold()}")
+            return pairs
+
+        documenti_per_chiave_portale: dict[str, Documento] = {}
+        documenti_per_nome_hash: dict[tuple[str, str], Documento] = {}
+        for existing_doc in fasc.documenti:
+            for key in _portal_key_pairs_from_document(existing_doc):
+                documenti_per_chiave_portale.setdefault(key, existing_doc)
+            nome_norm = _normalizza_nome_match_portale(existing_doc.nome)
+            sha = str(getattr(existing_doc, "hash_sha256", "") or "").strip().lower()
+            if nome_norm and re.fullmatch(r"[0-9a-f]{64}", sha):
+                documenti_per_nome_hash.setdefault((nome_norm, sha), existing_doc)
 
         for item in items:
             nome = item.get("nome", "").strip()
             payload = item.get("contenuto", b"")
             if not nome or not payload:
                 continue
-            # Deduplicazione: se il file (per nome normalizzato) è già nel fascicolo,
-            # riutilizza il documento esistente senza crearne un duplicato.
             nome_norm = _normalizza_nome_match_portale(nome)
-            doc_esistente = nomi_esistenti.get(nome_norm)
+            sha_payload = hashlib.sha256(payload).hexdigest()
+            portal_keys = _portal_key_pairs_from_item(item)
+            doc_esistente = next(
+                (documenti_per_chiave_portale[key] for key in portal_keys if key in documenti_per_chiave_portale),
+                None,
+            )
+            if not doc_esistente and not portal_keys:
+                doc_esistente = documenti_per_nome_hash.get((nome_norm, sha_payload))
             if doc_esistente:
                 documenti_creati.append({"doc": doc_esistente, "item": item})
                 continue
@@ -2001,7 +2040,10 @@ def build_fascicoli_runtime(
                 msg_id_portale=str(item.get("msg_id") or "").strip(),
             )
             documenti_creati.append({"doc": doc, "item": item})
-            nomi_esistenti[nome_norm] = doc
+            for key in _portal_key_pairs_from_document(doc) | portal_keys:
+                documenti_per_chiave_portale.setdefault(key, doc)
+            if nome_norm:
+                documenti_per_nome_hash.setdefault((nome_norm, sha_payload), doc)
 
         if not documenti_creati:
             raise ValueError("I file selezionati non contengono documenti importabili.")

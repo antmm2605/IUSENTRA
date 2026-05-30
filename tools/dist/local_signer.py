@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.64
+IUSENTRA Local Signer - v1.6.67
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -112,7 +112,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.65"
+VERSION = "1.6.67"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -458,6 +458,9 @@ _pin_session_cache: dict[str, dict] = {}
 _pin_session_lock = threading.Lock()
 _pst_session_cache: dict[str, dict] = {}
 _pst_session_lock = threading.Lock()
+_pst_async_job_cache: dict[str, dict[str, Any]] = {}
+_pst_async_job_lock = threading.Lock()
+_PST_ASYNC_JOB_TTL_SECONDS = 30 * 60
 _LOCALHOST_ORIGIN_HOSTS = {"localhost", "127.0.0.1", "::1"}
 _local_ai_bridge_instance = None
 
@@ -5109,6 +5112,7 @@ def _soap_call_pst_session_batch_raw_best_effort(
     cert_thumbprint: Optional[str] = None,
     cookie_file: Optional[str] = None,
     prefer_cookie_only: bool = False,
+    allow_cert_retry: bool = True,
 ) -> list[dict]:
     """
     Variante session-aware best-effort del batch PST:
@@ -5133,6 +5137,17 @@ def _soap_call_pst_session_batch_raw_best_effort(
         except Exception as e:
             if not _pst_cookie_retry_requires_cert(e):
                 raise
+            if not allow_cert_retry:
+                message = str(e)
+                return [
+                    {
+                        "body_bytes": b"",
+                        "headers_text": "",
+                        "status_code": 0,
+                        "error": message,
+                    }
+                    for _ in effective_requests
+                ]
             if host:
                 with _mTLS_required_lock:
                     _mTLS_required_hosts.add(host)
@@ -5143,6 +5158,13 @@ def _soap_call_pst_session_batch_raw_best_effort(
         else:
             blocking_error = _pst_best_effort_batch_blocking_error(cookie_results)
             if not blocking_error or not _pst_cookie_retry_requires_cert(RuntimeError(blocking_error)):
+                return cookie_results
+            if not allow_cert_retry:
+                log.info(
+                    "PST host %s (batch best-effort): cookie-only non basta; "
+                    "salto retry certificato per non aprire un nuovo prompt PIN.",
+                    host or "sconosciuto",
+                )
                 return cookie_results
             if host:
                 with _mTLS_required_lock:
@@ -6000,7 +6022,22 @@ def _map_qbuilder_documento(
 ) -> dict:
     tipo = _qbuilder_tipo_documento(_qbuilder_value(row, "TIPO", "tipo", "TIPODOCUMENTO", "tipoDocumento", "TIPOATTO", "tipoAtto"))
     id_cat = _qbuilder_value(row, "IDCAT", "idCat", "IDCATEGORIA", "idCategoria")
-    id_documento = _qbuilder_value(row, "IDDOCUMENTO", "IdDocumento", "idDocumento", "NUMERODOCUMENTO", "numeroDocumento", "IDDOC", "idDoc", "IDATTO", "idAtto", "IDDOCMITTENTE", "idDocMittente", "IDREPERTO", "idReperto")
+    id_documento = _qbuilder_value(
+        row,
+        "IDDOCUMENTO",
+        "IdDocumento",
+        "idDocumento",
+        "NUMERODOCUMENTO",
+        "numeroDocumento",
+        "IDDOC",
+        "idDoc",
+        "IDATTO",
+        "idAtto",
+        "IDCAT",
+        "idCat",
+        "IDDOCMITTENTE",
+        "idDocMittente",
+    )
     numero_documento = _qbuilder_value(row, "NUMERODOCUMENTO", "numeroDocumento")
     id_doc_mittente = _qbuilder_value(row, "IDDOCMITTENTE", "idDocMittente")
     if id_doc_mittente.startswith("#"):
@@ -6131,13 +6168,14 @@ def _parse_fascicoli_xml(xml_str: str) -> list[dict]:
 
 
 def _documento_identity_values(item: dict) -> set[str]:
-    values: set[str] = set()
+    strong_values: set[str] = set()
+    weak_values: set[str] = set()
     raw_candidates = item.get("id_documento_candidates")
     if isinstance(raw_candidates, (list, tuple, set)):
         for value in raw_candidates:
             text = str(value or "").strip()
             if text and not text.startswith("#"):
-                values.add(text)
+                strong_values.add(text)
     for key in (
         "id_documento",
         "id_documento_portale",
@@ -6148,10 +6186,6 @@ def _documento_identity_values(item: dict) -> set[str]:
         "id_repeatto",
         "idRepeatto",
         "idRepeatTo",
-        "id_reperto",
-        "idReperto",
-        "msg_id",
-        "msgId",
         "numero_documento",
         "numeroDocumento",
         "id_doc_mittente",
@@ -6159,8 +6193,20 @@ def _documento_identity_values(item: dict) -> set[str]:
     ):
         text = str(item.get(key) or "").strip()
         if text and not text.startswith("#"):
-            values.add(text)
-    return values
+            strong_values.add(text)
+    for key in (
+        "id_reperto",
+        "idReperto",
+        "idRaccoglitore",
+        "id_raccoglitore",
+        "msg_id",
+        "msgId",
+    ):
+        text = str(item.get(key) or "").strip()
+        if text and not text.startswith("#"):
+            weak_values.add(text)
+    strong_values.difference_update(weak_values)
+    return strong_values or weak_values
 
 
 def _merge_documenti_catalogo(base: list[dict], extra: list[dict]) -> list[dict]:
@@ -6317,9 +6363,29 @@ def _parse_documenti_xml(xml_str: str) -> list[dict]:
             except ValueError:
                 dimensione = 0
 
+            nome_file_xml = _t("nomeFileOriginale", "nomeFile", "nome")
+            has_structured_document_id = any(
+                _t(
+                    "idDocumento",
+                    "id",
+                    "idCat",
+                    "idCatRepository",
+                    "idBusta",
+                    "idVersione",
+                    "idDocSuperiore",
+                    "idRepeatTo",
+                    "idrepeatto",
+                    "msgId",
+                    "msgid",
+                )
+            )
+            has_file_like_name = bool(re.search(r"\.(pdf|p7m|xml|eml|msg|docx?|rtf|txt|zip)$", nome_file_xml, re.I))
+            if not has_structured_document_id and not has_file_like_name:
+                continue
+
             documento = {
-                "id_documento": _t("idDocumento", "id"),
-                "nome": _t("nomeFileOriginale", "nomeFile", "nome"),
+                "id_documento": _t("idDocumento", "id") or _t("idCat"),
+                "nome": nome_file_xml,
                 "tipo": _qbuilder_tipo_documento(_t("tipo", "tipoDocumento", "tipoAtto") or _text_desc(item, "descrizione")),
                 "data_deposito": _normalizza_data_pst(_t("dataDeposito", "dataCreazione")),
                 "mittente": _t("mittente", "cfMittente"),
@@ -6968,6 +7034,7 @@ def _pst_arricchisci_documenti_con_master_detail(
     cert_thumbprint: str,
     cookie_file: str = "",
     prefer_cookie_only: bool = False,
+    allow_cert_retry: bool = True,
 ) -> list[dict]:
     if not documenti or not _pst_namespace_qbuilder(base_url):
         return documenti
@@ -6984,38 +7051,36 @@ def _pst_arricchisci_documenti_con_master_detail(
     meta: list[dict] = []
     extra_headers = [f"X-WASP-User: {cf_avvocato}"] if cf_avvocato else []
     registro = _pst_registro_documenti_sicid(base_url)
-    for doc in source_docs:
-        candidate = _pst_primary_document_id(doc)
-        if not candidate:
-            continue
-        if _pst_servizio_sicid_family(base_url):
-            soap_body = _soap_bea_sicid_body(
-                "estraiMasterDetailAtto",
-                [
-                    ("idUtenteCorrente", cf_avvocato),
-                    ("idDoc", candidate),
-                    ("registro", registro),
-                    ("ruoloApplicativo", "AVV"),
-                ],
-                group=codice_ufficio,
+    for doc_index, doc in enumerate(source_docs):
+        for candidate in _pst_document_id_candidates(doc):
+            if _pst_servizio_sicid_family(base_url):
+                soap_body = _soap_bea_sicid_body(
+                    "estraiMasterDetailAtto",
+                    [
+                        ("idUtenteCorrente", cf_avvocato),
+                        ("idDoc", candidate),
+                        ("registro", registro),
+                        ("ruoloApplicativo", "AVV"),
+                    ],
+                    group=codice_ufficio,
+                )
+            elif servizio == "JPW_SIECIC":
+                soap_body = _soap_bea_siecic_body(
+                    "estraiMasterDetailAtto",
+                    [("idDoc", candidate)],
+                )
+            else:
+                continue
+            requests.append(
+                {
+                    "url": url_documenti,
+                    "soap_body": soap_body,
+                    "extra_headers": extra_headers,
+                    "soap_action": "",
+                    "cookie_file": cookie_file,
+                }
             )
-        elif servizio == "JPW_SIECIC":
-            soap_body = _soap_bea_siecic_body(
-                "estraiMasterDetailAtto",
-                [("idDoc", candidate)],
-            )
-        else:
-            continue
-        requests.append(
-            {
-                "url": url_documenti,
-                "soap_body": soap_body,
-                "extra_headers": extra_headers,
-                "soap_action": "",
-                "cookie_file": cookie_file,
-            }
-        )
-        meta.append(doc)
+            meta.append({"doc_index": doc_index, "doc": doc, "candidate": candidate})
 
     if not requests:
         return documenti
@@ -7026,27 +7091,43 @@ def _pst_arricchisci_documenti_con_master_detail(
             cert_thumbprint=cert_thumbprint,
             cookie_file=cookie_file,
             prefer_cookie_only=prefer_cookie_only,
+            allow_cert_retry=allow_cert_retry,
         )
     except Exception as exc:
         log.warning("Arricchimento master-detail PST non riuscito: %s", exc)
         return documenti
 
     extra_docs: list[dict] = []
+    successful_doc_indexes: set[int] = set()
+    errors_by_doc: dict[int, list[str]] = {}
     for index, result in enumerate(results):
         if not isinstance(result, dict):
             continue
+        info = meta[index] if index < len(meta) and isinstance(meta[index], dict) else {}
+        parent = dict(info.get("doc") or {})
+        doc_index = int(info.get("doc_index") or 0)
+        candidate = str(info.get("candidate") or "").strip()
         error = str(result.get("error") or "").strip()
         if error:
-            log.info("Master-detail PST non disponibile per documento %s: %s", index + 1, error)
+            errors_by_doc.setdefault(doc_index, []).append(f"{candidate or index + 1}: {error}")
             continue
         xml_resp = (result.get("body_bytes") or b"").decode("utf-8", "replace")
         fault = _estrai_fault_soap(xml_resp)
         if fault:
-            log.info("Master-detail PST in SOAP Fault non bloccante: %s", fault)
+            errors_by_doc.setdefault(doc_index, []).append(f"{candidate or index + 1}: {fault}")
             continue
         parsed = _parse_documenti_xml(xml_resp)
-        parent = meta[index] if index < len(meta) else {}
-        parent_id = str(parent.get("id_documento") or parent.get("id_cat") or parent.get("id_reperto") or "").strip()
+        if not parsed:
+            errors_by_doc.setdefault(doc_index, []).append(f"{candidate or index + 1}: dettaglio vuoto")
+            continue
+        successful_doc_indexes.add(doc_index)
+        parent_id = str(
+            parent.get("id_documento")
+            or parent.get("id_cat")
+            or parent.get("id_reperto")
+            or candidate
+            or ""
+        ).strip()
         for row in parsed:
             patched = dict(row)
             if parent_id and patched.get("is_allegato") and not patched.get("id_documento_padre"):
@@ -7054,6 +7135,30 @@ def _pst_arricchisci_documenti_con_master_detail(
                 patched["parent_id_documento"] = parent_id
                 patched["parent_nome"] = str(parent.get("nome") or "").strip()
             extra_docs.append(patched)
+    if extra_docs:
+        allegati = sum(1 for doc in extra_docs if isinstance(doc, dict) and doc.get("is_allegato"))
+        log.info(
+            "Master-detail PST: %s documenti di catalogo, %s richieste idDoc, %s elementi aggiunti/aggiornati, %s allegati.",
+            len(source_docs),
+            len(requests),
+            len(extra_docs),
+            allegati,
+        )
+    elif errors_by_doc:
+        examples: list[str] = []
+        for doc_index, messages in list(errors_by_doc.items())[:5]:
+            examples.append(f"doc {doc_index + 1}: {'; '.join(messages[:2])}")
+        log.info(
+            "Master-detail PST senza allegati da fondere: %s richieste idDoc, esempi esito: %s",
+            len(requests),
+            " | ".join(examples),
+        )
+    unresolved = sorted(set(errors_by_doc) - successful_doc_indexes)
+    if unresolved:
+        log.info(
+            "Master-detail PST: %s documenti non hanno restituito dettaglio utile dopo tutti gli identificativi disponibili.",
+            len(unresolved),
+        )
     return _merge_documenti_catalogo(documenti, extra_docs)
 
 
@@ -7249,6 +7354,7 @@ def _pst_carica_sezioni_fascicolo_qbuilder(
     cert_thumbprint: str,
     cookie_file: str = "",
     prefer_cookie_only: bool = False,
+    allow_cert_retry: bool = True,
 ) -> dict[str, list[dict]]:
     if not _pst_namespace_qbuilder(base_url):
         return {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": []}
@@ -7292,6 +7398,7 @@ def _pst_carica_sezioni_fascicolo_qbuilder(
             cert_thumbprint=cert_thumbprint,
             cookie_file=cookie_file,
             prefer_cookie_only=prefer_cookie_only,
+            allow_cert_retry=allow_cert_retry,
         )
     except Exception as exc:
         log.warning("Sezioni PST fascicolo non disponibili: %s", exc)
@@ -7888,6 +7995,132 @@ class _ThreadingLocalSignerServer(ThreadingHTTPServer):
     allow_reuse_address = True
 
 
+class _PstSnapshotJobShim:
+    def __init__(self, payload: dict[str, Any]):
+        self.payload = payload
+        self.response: dict[str, Any] | None = None
+        self.status = 200
+
+    def _read_json(self) -> dict[str, Any]:
+        return self.payload
+
+    def _send_json(self, payload: dict[str, Any], status: int = 200) -> None:
+        self.response = payload
+        self.status = status
+
+
+def _cleanup_pst_async_jobs() -> None:
+    now = time.time()
+    with _pst_async_job_lock:
+        for job_id, job in list(_pst_async_job_cache.items()):
+            updated_at = float(job.get("updated_monotonic") or job.get("started_monotonic") or now)
+            if now - updated_at > _PST_ASYNC_JOB_TTL_SECONDS:
+                _pst_async_job_cache.pop(job_id, None)
+
+
+def _pst_async_job_response(job: dict[str, Any]) -> dict[str, Any]:
+    started = float(job.get("started_monotonic") or time.time())
+    response = {
+        "ok": job.get("status") != "failed",
+        "job_id": job.get("job_id", ""),
+        "status": job.get("status", "unknown"),
+        "phase": job.get("phase", ""),
+        "current": job.get("current", ""),
+        "started_at": job.get("started_at", ""),
+        "updated_at": job.get("updated_at", ""),
+        "elapsed_seconds": round(max(0.0, time.time() - started), 1),
+    }
+    if job.get("error"):
+        response["errore"] = job.get("error", "")
+    if job.get("status") == "completed":
+        response["result"] = job.get("result") or {}
+    return response
+
+
+def _pst_update_async_job(job_id: str, **updates: Any) -> None:
+    with _pst_async_job_lock:
+        job = _pst_async_job_cache.get(job_id)
+        if not job:
+            return
+        job.update(updates)
+        job["updated_at"] = datetime.now().isoformat(timespec="seconds")
+        job["updated_monotonic"] = time.time()
+
+
+def _pst_run_fascicolo_snapshot_job(job_id: str, payload: dict[str, Any]) -> None:
+    try:
+        _pst_update_async_job(
+            job_id,
+            status="running",
+            phase="Visualizzazione fascicolo PST",
+            current="Carico scheda ministeriale, documenti, eventi e comunicazioni",
+        )
+        shim = _PstSnapshotJobShim(payload)
+        _Handler._pst_fascicolo_snapshot(shim)  # type: ignore[name-defined]
+        response = shim.response or {"ok": False, "errore": "Risposta vuota dal Local Signer."}
+        if shim.status >= 400 or response.get("ok") is False:
+            _pst_update_async_job(
+                job_id,
+                status="failed",
+                phase="Visualizzazione non completata",
+                current="Il PST non ha completato la scheda fascicolo",
+                error=str(response.get("errore") or response.get("error") or "Errore sconosciuto."),
+                result=response,
+            )
+            return
+        _pst_update_async_job(
+            job_id,
+            status="completed",
+            phase="Fascicolo visualizzato",
+            current="Scheda ministeriale completa ricevuta",
+            result=response,
+        )
+    except Exception as exc:
+        log.error("Errore job PST fascicolo snapshot: %s", exc)
+        _pst_update_async_job(
+            job_id,
+            status="failed",
+            phase="Visualizzazione non completata",
+            current="Il Local Signer ha interrotto la lettura della scheda",
+            error=str(exc),
+        )
+
+
+def _pst_start_fascicolo_snapshot_job(payload: dict[str, Any]) -> dict[str, Any]:
+    _cleanup_pst_async_jobs()
+    job_id = secrets.token_urlsafe(18)
+    now = datetime.now().isoformat(timespec="seconds")
+    job = {
+        "job_id": job_id,
+        "status": "queued",
+        "phase": "Visualizzazione fascicolo PST",
+        "current": "Preparazione lettura scheda ministeriale",
+        "started_at": now,
+        "updated_at": now,
+        "started_monotonic": time.time(),
+        "updated_monotonic": time.time(),
+        "result": None,
+        "error": "",
+    }
+    with _pst_async_job_lock:
+        _pst_async_job_cache[job_id] = job
+    thread = threading.Thread(
+        target=_pst_run_fascicolo_snapshot_job,
+        args=(job_id, payload),
+        name=f"iusentra-pst-fascicolo-{job_id[:8]}",
+        daemon=True,
+    )
+    thread.start()
+    return _pst_async_job_response(job)
+
+
+def _pst_get_async_job(job_id: str) -> dict[str, Any] | None:
+    _cleanup_pst_async_jobs()
+    with _pst_async_job_lock:
+        job = _pst_async_job_cache.get(job_id)
+        return dict(job) if job else None
+
+
 class _Handler(BaseHTTPRequestHandler):
     server_version = f"HACSSigner/{VERSION}"
     # Chiude ogni risposta: evita keep-alive pendenti dal browser.
@@ -8054,6 +8287,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._seleziona_certificato()
         elif path == "/pst/status":
             self._pst_status()
+        elif re.fullmatch(r"/pst/jobs/[^/]+", path):
+            self._pst_job_status(path)
         elif re.fullmatch(r"/portal-assistant/session/[^/]+/status", path):
             self._portal_assistant_status(path)
         else:
@@ -8078,6 +8313,7 @@ class _Handler(BaseHTTPRequestHandler):
             "/pst/ricerca-snapshot",
             "/pst/documenti",
             "/pst/fascicolo-snapshot",
+            "/pst/fascicolo-snapshot-job",
             "/pst/download-documenti-batch",
             "/pdp/ricerca",
             "/pdp/documenti",
@@ -8120,6 +8356,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._pst_documenti()
         elif path == "/pst/fascicolo-snapshot":
             self._pst_fascicolo_snapshot()
+        elif path == "/pst/fascicolo-snapshot-job":
+            self._pst_fascicolo_snapshot_job()
         elif path == "/pdp/ricerca":
             self._pdp_ricerca()
         elif path == "/pdp/documenti":
@@ -8608,6 +8846,25 @@ class _Handler(BaseHTTPRequestHandler):
             payload["nota_configurazione"] = _messaggio_endpoint_pst_legacy()
 
         self._send_json(payload)
+
+    def _pst_fascicolo_snapshot_job(self):
+        """
+        POST /pst/fascicolo-snapshot-job
+        Avvia la lettura completa del fascicolo in background: il browser riceve
+        subito un job_id e poi interroga /pst/jobs/<job_id>, evitando richieste
+        fetch lunghe che possono cadere mentre Windows mostra il PIN.
+        """
+        data = self._read_json()
+        self._send_json(_pst_start_fascicolo_snapshot_job(data))
+
+    def _pst_job_status(self, path: str):
+        match = re.fullmatch(r"/pst/jobs/([^/]+)", path)
+        job_id = match.group(1) if match else ""
+        job = _pst_get_async_job(job_id)
+        if not job:
+            self._send_json({"ok": False, "errore": "Job PST non trovato o scaduto."}, 404)
+            return
+        self._send_json(_pst_async_job_response(job))
 
     def _firma(self):
         """
@@ -9607,7 +9864,8 @@ class _Handler(BaseHTTPRequestHandler):
                         _sigp_documenti_minimi_da_ricerca_atti_xml(xml_sigp_atti),
                     )
             sezioni_pst = {"eventi": [], "udienze": [], "comunicazioni": [], "istanze": [], "scadenze_termini": []}
-            if _pst_namespace_qbuilder(base_url):
+            include_full_snapshot = bool(data.get("include_full_snapshot"))
+            if _pst_namespace_qbuilder(base_url) and include_full_snapshot:
                 documenti = _pst_arricchisci_documenti_con_master_detail(
                     documenti,
                     base_url=base_url,
@@ -9616,7 +9874,8 @@ class _Handler(BaseHTTPRequestHandler):
                     cf_avvocato=cf_avvocato,
                     cert_thumbprint=cert_thumbprint,
                     cookie_file=cookie_file,
-                    prefer_cookie_only=prefer_cookie_only,
+                    prefer_cookie_only=True,
+                    allow_cert_retry=False,
                 )
                 sezioni_pst = _pst_carica_sezioni_fascicolo_qbuilder(
                     base_url=base_url,
@@ -9628,7 +9887,8 @@ class _Handler(BaseHTTPRequestHandler):
                     cf_avvocato=cf_avvocato,
                     cert_thumbprint=cert_thumbprint,
                     cookie_file=cookie_file,
-                    prefer_cookie_only=prefer_cookie_only,
+                    prefer_cookie_only=True,
+                    allow_cert_retry=False,
                 )
             if not fascicoli and documenti:
                 ufficio = _risolvi_ufficio_da_snapshot(codice_pst) or {}
@@ -9886,7 +10146,8 @@ class _Handler(BaseHTTPRequestHandler):
                     cf_avvocato=cf_avvocato,
                     cert_thumbprint=cert_thumbprint,
                     cookie_file=cookie_file,
-                    prefer_cookie_only=prefer_cookie_only,
+                    prefer_cookie_only=True,
+                    allow_cert_retry=False,
                 )
             if session_entry:
                 _update_pst_session(
@@ -10061,7 +10322,8 @@ class _Handler(BaseHTTPRequestHandler):
                         cf_avvocato=cf_avvocato,
                         cert_thumbprint=cert_thumbprint,
                         cookie_file=cookie_file,
-                        prefer_cookie_only=prefer_cookie_only,
+                        prefer_cookie_only=True,
+                        allow_cert_retry=True,
                     )
                     sezioni_pst = _pst_carica_sezioni_fascicolo_qbuilder(
                         base_url=base_url,
@@ -10078,7 +10340,8 @@ class _Handler(BaseHTTPRequestHandler):
                         cf_avvocato=cf_avvocato,
                         cert_thumbprint=cert_thumbprint,
                         cookie_file=cookie_file,
-                        prefer_cookie_only=prefer_cookie_only,
+                        prefer_cookie_only=True,
+                        allow_cert_retry=False,
                     )
 
             if session_entry:

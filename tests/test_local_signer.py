@@ -36,6 +36,21 @@ def _load_local_ai_host_bridge():
     return module
 
 
+def test_pst_master_detail_arricchisce_anteprima_nella_sessione_di_visualizzazione():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "tools" / "local_signer.py").read_text(encoding="utf-8")
+    snapshot_block = source[
+        source.index("    def _pst_fascicolo_snapshot(self):"):source.index("def _pdp_ricerca")
+    ]
+
+    assert "estraiMasterDetailAtto" in source
+    assert snapshot_block.count("_pst_arricchisci_documenti_con_master_detail(") == 1
+    assert "def _pst_fascicolo_snapshot_job(self):" in source
+    assert "_pst_start_fascicolo_snapshot_job(data)" in source
+    assert "allow_cert_retry=True" in snapshot_block
+    assert "prefer_cookie_only=True" in snapshot_block
+
+
 def test_pst_session_manager_riusa_view_e_separa_import():
     module = _load_local_signer()
     module._pst_session_cache.clear()
@@ -2852,6 +2867,176 @@ def test_parse_documenti_xml_master_detail_include_doc_primario_e_docs_secondari
     assert allegato_reperto["id_reperto"] == "REP-ALLEGATO-2"
 
 
+def test_parse_documenti_xml_master_detail_non_fonde_allegati_con_id_raccoglitore_condiviso():
+    module = _load_local_signer()
+
+    xml = """<?xml version='1.0' encoding='UTF-8'?>
+<SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+  <SOAP-ENV:Body>
+    <ns1:estraiMasterDetailAttoResponse xmlns:ns1="urn:BEAFascicoloInformatico-distr">
+      <return>
+        <docPrimario>
+          <idDocumento>28139218</idDocumento>
+          <idCat>28139218</idCat>
+          <idRaccoglitore>28142276</idRaccoglitore>
+          <nomeFileOriginale>Citazione Stillitano Montagnese.PDF</nomeFileOriginale>
+          <tipoDocumento>Citazione</tipoDocumento>
+          <dataDeposito>2024-09-05T18:31:49Z</dataDeposito>
+          <depositante>
+            <cognome>MONTAGNESE</cognome>
+            <nome>ROBERTO</nome>
+          </depositante>
+        </docPrimario>
+        <docsSecondari>
+          <item>
+            <idCat>28139219</idCat>
+            <idDocSuperiore>28139218</idDocSuperiore>
+            <idRaccoglitore>28142276</idRaccoglitore>
+            <nomeFileOriginale>Nota iscrizione a ruolo.PDF</nomeFileOriginale>
+            <tipoDocumento>Documento allegato</tipoDocumento>
+            <dataCreazione>2024-09-05T18:32:32Z</dataCreazione>
+          </item>
+          <item>
+            <idCat>28139221</idCat>
+            <idDocSuperiore>28139218</idDocSuperiore>
+            <idRaccoglitore>28142276</idRaccoglitore>
+            <nomeFileOriginale>PROCURA.PDF</nomeFileOriginale>
+            <tipoDocumento>Documento allegato</tipoDocumento>
+            <dataCreazione>2024-09-05T18:32:33Z</dataCreazione>
+          </item>
+        </docsSecondari>
+      </return>
+    </ns1:estraiMasterDetailAttoResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+
+    documenti = module._parse_documenti_xml(xml)
+
+    assert [doc["nome"] for doc in documenti] == [
+        "Citazione Stillitano Montagnese.PDF",
+        "Nota iscrizione a ruolo.PDF",
+        "PROCURA.PDF",
+    ]
+    assert sum(1 for doc in documenti if doc["is_allegato"]) == 2
+    assert all(doc["nome"] != "ROBERTO" for doc in documenti)
+    assert {doc["id_documento"] for doc in documenti} == {"28139218", "28139219", "28139221"}
+
+
+def test_pst_master_detail_prova_tutti_gli_identificativi_del_catalogo(monkeypatch):
+    module = _load_local_signer()
+    captured = []
+
+    xml = """<?xml version='1.0' encoding='UTF-8'?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+  <SOAP-ENV:Body>
+    <ns1:estraiMasterDetailAttoResponse xmlns:ns1="urn:BEAFascicoloInformatico-distr">
+      <return>
+        <docPrimario>
+          <idDocumento>ID-OK</idDocumento>
+          <idCat>CAT-OK</idCat>
+          <nomeFileOriginale>Citazione.pdf</nomeFileOriginale>
+          <tipoDocumento>Citazione</tipoDocumento>
+          <dataDeposito>2024-09-05T12:10:00Z</dataDeposito>
+        </docPrimario>
+        <docsSecondari>
+          <item>
+            <idDocumento>ALL-001</idDocumento>
+            <idCat>CAT-ALL-001</idCat>
+            <nomeFileOriginale>PROCURA.PDF</nomeFileOriginale>
+            <tipoDocumento>Allegato</tipoDocumento>
+            <dataDeposito>2024-09-05T12:10:00Z</dataDeposito>
+          </item>
+          <item>
+            <idDocumento>ALL-002</idDocumento>
+            <idCatRepository>REP-ALL-002</idCatRepository>
+            <nomeFileOriginale>DatiAtto.xml.p7m</nomeFileOriginale>
+            <tipoDocumento>DatiAtto</tipoDocumento>
+            <dataDeposito>2024-09-05T12:10:00Z</dataDeposito>
+          </item>
+        </docsSecondari>
+      </return>
+    </ns1:estraiMasterDetailAttoResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+
+    def fake_batch(requests, **kwargs):
+        captured.extend(requests)
+        results = []
+        for request in requests:
+            body = request.get("soap_body", "")
+            if "<idDoc>ID-OK</idDoc>" in body:
+                results.append({"body_bytes": xml.encode("utf-8"), "headers_text": "HTTP/1.1 200 OK"})
+            else:
+                results.append({"error": "ID non utile per il dettaglio atto", "body_bytes": b""})
+        return results
+
+    monkeypatch.setattr(module, "_soap_call_pst_session_batch_raw_best_effort", fake_batch)
+
+    result = module._pst_arricchisci_documenti_con_master_detail(
+        [
+            {
+                "id_documento": "ID-KO",
+                "id_cat": "CAT-KO",
+                "id_documento_candidates": ["ID-KO", "ID-OK"],
+                "nome": "Citazione.pdf",
+                "tipo": "Citazione",
+                "data_deposito": "2024-09-05",
+            }
+        ],
+        base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+        url_documenti="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID/BEAFascicoloInformatico",
+        codice_ufficio="0800570094",
+        cf_avvocato="MNTRRT64L01L063H",
+        cert_thumbprint="CERT-TEST",
+        cookie_file="cookie.txt",
+        prefer_cookie_only=False,
+    )
+
+    bodies = [request["soap_body"] for request in captured]
+    assert len(bodies) == 3
+    assert any("<idDoc>ID-KO</idDoc>" in body for body in bodies)
+    assert any("<idDoc>ID-OK</idDoc>" in body for body in bodies)
+    assert any("<idDoc>CAT-KO</idDoc>" in body for body in bodies)
+    assert any(doc["nome"] == "PROCURA.PDF" and doc["is_allegato"] is True for doc in result)
+    assert any(doc["nome"] == "DatiAtto.xml.p7m" and doc["is_allegato"] is True for doc in result)
+
+
+def test_pst_arricchimenti_cookie_only_non_riaprono_prompt_pin(monkeypatch):
+    module = _load_local_signer()
+    calls = []
+
+    def fake_batch(requests, cert_thumbprint=None, pkcs11_uri=None):
+        calls.append(cert_thumbprint)
+        return [
+            {
+                "body_bytes": b"",
+                "headers_text": "HTTP/1.1 403 Forbidden",
+                "status_code": 403,
+                "error": "HTTP 403 Forbidden: certificato client richiesto",
+            }
+            for _ in requests
+        ]
+
+    monkeypatch.setattr(module, "_soap_call_curl_batch_raw_best_effort", fake_batch)
+
+    results = module._soap_call_pst_session_batch_raw_best_effort(
+        [
+            {
+                "url": "https://pst.example/BEAFascicoloInformatico",
+                "soap_body": "<Envelope/>",
+                "cookie_file": "session.cookie",
+            }
+        ],
+        cert_thumbprint="CERT-DA-NON-RIAPRIRE",
+        cookie_file="session.cookie",
+        prefer_cookie_only=True,
+        allow_cert_retry=False,
+    )
+
+    assert calls == [None]
+    assert results[0]["error"]
+
+
 def test_parse_qbuilder_documenti_xml_supporta_piu_return():
     module = _load_local_signer()
 
@@ -5375,7 +5560,7 @@ def test_pst_ricerca_snapshot_usa_batch_certificato_senza_preflight_separato():
         "_pst_arricchisci_documenti_con_master_detail": module._pst_arricchisci_documenti_con_master_detail,
         "_pst_carica_sezioni_fascicolo_qbuilder": module._pst_carica_sezioni_fascicolo_qbuilder,
     }
-    captured = {"batch": None, "preflight": 0, "session_ids": []}
+    captured = {"batch": None, "preflight": 0, "session_ids": [], "master_detail": 0, "sezioni": 0}
 
     class _FakeHandler:
         def _read_json(self):
@@ -5473,14 +5658,22 @@ def test_pst_ricerca_snapshot_usa_batch_certificato_senza_preflight_separato():
         module._risolvi_ufficio_da_snapshot = lambda codice: {"nome": "Tribunale di Palmi"}
         module._update_pst_session = lambda *args, **kwargs: None
         module._get_pst_session = lambda *args, **kwargs: None
-        module._pst_arricchisci_documenti_con_master_detail = lambda documenti, **kwargs: documenti
-        module._pst_carica_sezioni_fascicolo_qbuilder = lambda **kwargs: {
-            "eventi": [],
-            "udienze": [],
-            "comunicazioni": [],
-            "istanze": [],
-            "scadenze_termini": [],
-        }
+        def _fake_master_detail(documenti, **kwargs):
+            captured["master_detail"] += 1
+            return documenti
+
+        def _fake_sezioni(**kwargs):
+            captured["sezioni"] += 1
+            return {
+                "eventi": [],
+                "udienze": [],
+                "comunicazioni": [],
+                "istanze": [],
+                "scadenze_termini": [],
+            }
+
+        module._pst_arricchisci_documenti_con_master_detail = _fake_master_detail
+        module._pst_carica_sezioni_fascicolo_qbuilder = _fake_sezioni
 
         module._Handler._pst_ricerca_snapshot(_FakeHandler())
     finally:
@@ -5497,6 +5690,8 @@ def test_pst_ricerca_snapshot_usa_batch_certificato_senza_preflight_separato():
     assert captured["payload"]["documenti"][0]["id_documento"] == "DOC-1"
     assert captured["payload"]["snapshot"]["fascicolo"]["numero"] == "274"
     assert captured["session_ids"] == ["SID-STALENESS-FROM-BROWSER", ""]
+    assert captured["master_detail"] == 0
+    assert captured["sezioni"] == 0
     assert len(captured["batch"]["requests"]) >= 21
     servizi_logici = {_servizio_logico_richiesta(module, request) for request in captured["batch"]["requests"]}
     assert "JPW_SIL_DISTR" in servizi_logici

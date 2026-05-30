@@ -7,7 +7,7 @@ GET HTML di aree migrate, evitando API, download e allegati.
 
 from __future__ import annotations
 
-from flask import Flask, current_app, g, get_flashed_messages, redirect, request
+from flask import Flask, current_app, g, get_flashed_messages, redirect, request, url_for
 
 from web.blueprints.react_shell import render_react_shell_response
 
@@ -440,9 +440,13 @@ def register_react_route_gate(app: Flask) -> None:
     def _react_route_gate():
         if request.method != "GET" or _legacy_requested() or not _accepts_html():
             return None
-        if not g.get("utente_corrente"):
-            return None
         raw_lower = (request.path or "/").lower()
+        path = _normalise_path(request.path)
+        lower_path = path.lower()
+        if not g.get("utente_corrente"):
+            if lower_path in _REACT_TELEMATICO_ACQUISITION_PATHS:
+                return redirect(url_for("login", next=request.full_path.rstrip("?")))
+            return None
         if raw_lower.rstrip("/") == "/profilo" and (
             request.args.get("password_obbligatoria")
             or bool(getattr(g.utente_corrente, "must_change_password", False))
@@ -453,7 +457,6 @@ def register_react_route_gate(app: Flask) -> None:
         sito_path = raw_lower.rstrip("/") or "/"
         if raw_lower.startswith("/sito-studio/") and not _sito_studio_react_allowed(sito_path):
             return None
-        path = _normalise_path(request.path)
         if _excluded(path) or not _is_react_route(path):
             return None
         spa_path = "" if path == "/" else path.lstrip("/")

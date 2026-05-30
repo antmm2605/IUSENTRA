@@ -52,6 +52,17 @@ def test_react_shell_primo_blocco_richiede_login(tmp_path: Path):
     assert "/login" in response.headers["Location"]
 
 
+def test_acquisizione_telematica_senza_sessione_non_mostra_ui_mista(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+
+    response = client.get("/portali/pst/acquisizione?numero=1025&anno=2024")
+
+    assert response.status_code in {302, 303}
+    assert "/login" in response.headers["Location"]
+    assert "next=/portali/pst/acquisizione" in response.headers["Location"]
+
+
 def test_react_shell_app_v2_route_operativa_e_spegnibile_da_feature_flag(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
@@ -1451,7 +1462,9 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "localSignerJson('/pst/preflight-auth'" not in source
     assert "localSignerJson('/pst/ricerca-snapshot'" in source
     assert "localSignerJson('/pst/ricerca'" in source
-    assert "localSignerJson('/pst/fascicolo-snapshot'" in source
+    assert "localSignerPstFascicoloSnapshotJob" in source
+    assert "localSignerJson('/pst/fascicolo-snapshot-job'" in source
+    assert "localSignerJson(`/pst/jobs/${encodeURIComponent(jobId)}`" in source
     assert "localSignerJson('/pst/download-documenti-batch'" in source
     assert "'/pst/download-documento'" not in source
     assert "const prepared = await ensurePstPortalSession(tribunale)" not in source
@@ -1513,6 +1526,9 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "filterPreviewForSelectedDocuments" in source
     assert "filterDownloadedFilesForSelectedPstDocuments" in source
     assert "missingPstDocumentsForDownload" in source
+    assert "downloadedPstDocumentKeySet" in source
+    assert "pstDocumentsMatch(file, doc)" in source
+    assert "downloaded ? 'Scaricato' : selected ? 'Da scaricare' : 'Escluso'" in source
     assert "Usa pratica esistente" in source
     assert "Importa nel fascicolo" in source
     assert "Scegli destinazione" in source
@@ -1530,6 +1546,13 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "Scaricamento documenti dal PST" in source
     assert "function pstPreviewDocumentIsDownloadable" in source
     assert "rawPreviewDocumentTitle" in source
+    assert "function pstPreviewDocumentContentKey" in source
+    assert "seenContent" in source
+    assert "Aggiorno scheda ministeriale, allegati e comunicazioni disponibili" in source
+    run_preview_source = source.split("const runPreview = async", 1)[1].split("const runAnalysis = async", 1)[0]
+    assert "localSignerPstFascicoloSnapshotJob({" in run_preview_source
+    assert "localSignerJson('/pst/fascicolo-snapshot'" not in run_preview_source
+    assert "if (!documenti.length)" not in run_preview_source
 
 
 def test_import_studio_telematico_react_pubblica_exe_e_barra_avanzamento():

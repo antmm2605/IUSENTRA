@@ -78,6 +78,9 @@ def main() -> int:
             "FlashWindow",
             "def _cf_avvocato_pst",
             "if explicit:\n        return explicit",
+            "for candidate in _pst_document_id_candidates(doc):",
+            "Master-detail PST:",
+            "allow_cert_retry=False",
         )
         for snippet in required_snippets:
             if snippet not in signer_text:

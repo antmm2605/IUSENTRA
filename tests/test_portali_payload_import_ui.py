@@ -607,3 +607,72 @@ def test_wizard_pst_non_mostra_portale_ufficiale_assistito_come_flusso_principal
     assert page.status_code == 200
     assert 'id="awAssistantStart"' not in html
     assert "Fascicolo tributario interno con PTT / SIGIT assistito" not in html
+
+
+def test_pst_preview_fonde_catalogo_master_detail_e_scarta_righe_non_scaricabili(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    _seed_user(cfg)
+    app = create_app(cfg)
+
+    doc_principale = {
+        "id_documento": "28139218",
+        "id_cat": "28139218",
+        "nome": "Citazione_28139218.pdf",
+        "tipo_atto": "Citazione",
+        "data_deposito": "2024-09-05",
+        "mittente": "MONTAGNESE ROBERTO",
+    }
+    allegato = {
+        "id_documento": "ALLEGATO-1",
+        "id_cat": "ALLEGATO-1",
+        "id_documento_padre": "28139218",
+        "parent_nome": "Citazione_28139218.pdf",
+        "nome": "PROCURA.PDF",
+        "tipo_atto": "Documento",
+        "data_deposito": "2024-09-05",
+        "is_allegato": True,
+    }
+    doc_principale_da_gruppo = {
+        **doc_principale,
+        "id_documento": "28139218-GRUPPO",
+        "id_cat": "28139218-GRUPPO",
+        "id_deposito": "__2024-09-05__MONTAGNESE ROBERTO",
+    }
+    riga_testo_non_documento = {
+        "nome": "ROBERTO",
+        "tipo_atto": "Documento",
+        "data_deposito": "",
+    }
+    snapshot = {
+        "fascicolo": {"numero": "1025", "anno": "2024"},
+        "documenti": [doc_principale],
+        "catalogo": [doc_principale, allegato, doc_principale_da_gruppo, riga_testo_non_documento],
+    }
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin-portali", "password": "Admin1234!"})
+        response = client.post(
+            "/api/portali/pst/acquisizione/preview",
+            json={
+                "selection": {
+                    "numero": "1025",
+                    "anno": "2024",
+                    "ufficio_nome": "Tribunale di Palmi",
+                    "ufficio_codice": "0910011",
+                    "parti": ["MONTAGNESE ROBERTO"],
+                    "snapshot": snapshot,
+                },
+                "snapshot": snapshot,
+                "documenti": [doc_principale],
+            },
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    documenti = data["preview"]["documenti"]
+    nomi = {item["nome"] for item in documenti}
+    assert data["preview"]["counts"]["documenti"] == 2
+    assert "Citazione_28139218.pdf" in nomi
+    assert "PROCURA.PDF" in nomi
+    assert "ROBERTO" not in nomi

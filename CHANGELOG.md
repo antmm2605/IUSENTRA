@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.248.90 - 2026-05-30
+
+- Completata prova reale PST/PolisWeb su Tribunale di Palmi R.G. `1025/2024`: ricerca, anteprima, download batch `51/51`, import nel fascicolo `487EE7F3` e catalogazione verificata con `51` record documento e `51` file fisici.
+- Corretto l'import PST dei documenti omonimi: `DatiAtto.xml.p7m` e `IndiceDocumentiDepositati.PDF` restano distinti quando appartengono a depositi diversi, usando identificativi ministeriali e hash contenuto invece del solo nome file.
+- La UI di acquisizione PST usa il job asincrono di anteprima `/pst/fascicolo-snapshot-job`, mostra l'avanzamento durante operazioni lente e conteggia la cronologia aggregata da eventi, comunicazioni, istanze e udienze.
+- Il report finale import distingue correttamente `Documenti reali`, `Informazioni`, `Solo catalogo`, `Senza contenuto` e `Scartati` anche quando il valore è `0`, evitando falsi fallback a catalogo.
+
 ## 2.248.89 - 2026-05-29
 
 - Rafforzata l'importazione Studio Telematico sul caso reale `QuickOrganizer.zip`: se lo ZIP contiene `QuickOrganizer.mdb` ma l'ambiente non riesce a leggerlo, l'anteprima non mostra più `Pacchetto non leggibile`; conta i file `ATTI`/`EMAILS` e indica di usare il nuovo `PreparaPacchettoStudioTelematico.exe` per creare il pacchetto completo con archivio dati esportato.

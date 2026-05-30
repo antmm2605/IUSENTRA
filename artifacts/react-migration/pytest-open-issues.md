@@ -1,5 +1,18 @@
 # Pytest issue aperte e risoluzioni
 
+## Import reale Studio Telematico 2.248.91 - 2026-05-30
+
+Nessuna issue di codice aperta sul perimetro corretto dopo la prova reale, il test mirato, il rebuild del preparatore Windows e la build React.
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Lettura `QuickOrganizer.mdb` nello ZIP reale | Browser reale e test mirato | Risolto localmente | Il falso `Pacchetto non leggibile` dipendeva dal passaggio del percorso MDB a PowerShell tramite `$args[0]`; in questo ambiente arrivava vuoto. Ora lo script usa `param([string]$mdb)` e il subprocess legge UTF-8. | Mantenere il test `test_import_studio_telematico_mdb_passa_percorso_a_powershell_come_parametro` prima di ogni modifica al parser MDB. |
+| EMAILS del pacchetto reale | Analisi ZIP reale | Limite del pacchetto, non del codice | Il database contiene `4239` email collegate, ma nello ZIP la cartella `EMAILS` non contiene i file corrispondenti. L'import correttamente segnala le email mancanti e acquisisce le pratiche disponibili solo con conferma esplicita. | Per importare anche le email serve un pacchetto che includa fisicamente i file `EMAILS`; non generare email fittizie. |
+| Righe `TESTI` non importabili | Analisi MDB reale | Limite dati sorgente | Sono presenti righe senza numero pratica o senza nome file: non possono essere catalogate in un fascicolo senza inventare un collegamento. | Continuare a importare solo documenti collegabili a una pratica e a un file reale. |
+| Dati runtime locali durante verifica | `git status --short` | Da escludere dal commit | La prova reale ha scritto fascicoli, documenti e anagrafiche sotto `data/tenants/...`; sono dati runtime dello studio locale, non codice. | Stagiare solo codice, documentazione, test, versione e artefatti build governati; non committare dati runtime. |
+| `tests\test_react_asset_retention.py` | Primo lancio parallelo alla build Vite | Risolto con rilancio mirato | Il primo lancio è andato in timeout mentre la build React stava riscrivendo gli asset. Non è stato usato come verdetto. Il rilancio isolato è tornato verde `2/2`. | Non eseguire asset retention in parallelo alla build che modifica `web/static/react`. |
+| `git diff --check` | Primo lancio prima della pulizia runtime | Risolto con pulizia selettiva | Il primo lancio segnalava whitespace solo in `auth/audit.json` generato dalla prova browser reale. I JSON runtime sono stati ripristinati e il secondo `git diff --check` è uscito senza errori. | Continuare a ripristinare dati runtime prima di commit e finale. |
+
 ## Hotfix regressioni PST e Studio Telematico 2.248.89 - 2026-05-29
 
 Nessuna issue di codice aperta sul perimetro corretto dopo test mirati, build e browser locale.

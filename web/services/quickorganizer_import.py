@@ -419,9 +419,12 @@ def _package_from_mdb(path: Path, *, extra_roots: Iterable[str | Path] = ()) -> 
             "Per l'archivio Access serve il pacchetto preparato dal PC QuickOrganizer."
         )
     script = r"""
+param([string]$mdb)
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-$mdb = $args[0]
+$utf8 = New-Object System.Text.UTF8Encoding($false)
+[Console]::OutputEncoding = $utf8
+$OutputEncoding = $utf8
 $tables = @('PRATICHE','NOMI','TAVOLA','TESTI','EMAILS','AGENDA','Parcelle','Prestazioni','PrecisazioneCredito','Titoli','BeniMobili','BeniImmobili','DirittiReali','Ipoteche')
 $conn = New-Object System.Data.OleDb.OleDbConnection("Provider=Microsoft.Jet.OLEDB.4.0;Data Source=$mdb;Persist Security Info=False;")
 $conn.Open()
@@ -462,11 +465,19 @@ try {
         "-ExecutionPolicy",
         "Bypass",
         "-Command",
-        script,
+        f"& {{ {script} }}",
         str(path),
     ]
     # lgtm[py/command-line-injection] shell=False, eseguibile e file Access validati prima della chiamata.
-    completed = subprocess.run(command, text=True, capture_output=True, timeout=180, check=False, shell=False)
+    completed = subprocess.run(
+        command,
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+        timeout=180,
+        check=False,
+        shell=False,
+    )
     if completed.returncode != 0:
         raise QuickOrganizerImportError("Il database QuickOrganizer non è leggibile su questo ambiente.")
     output = completed.stdout.strip()

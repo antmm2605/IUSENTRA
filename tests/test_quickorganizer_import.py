@@ -209,6 +209,41 @@ def test_import_studio_telematico_zip_mdb_non_leggibile_mostra_avviso_utile(
     assert "PreparaPacchettoStudioTelematico.exe" in analysis["warnings"][0]["message"]
 
 
+def test_import_studio_telematico_mdb_passa_percorso_a_powershell_come_parametro(
+    tmp_path: Path,
+    monkeypatch,
+):
+    mdb = tmp_path / "QuickOrganizer.mdb"
+    mdb.write_bytes(b"access placeholder")
+    captured: dict[str, object] = {}
+
+    class Completed:
+        returncode = 0
+        stdout = json.dumps({"format": "iusentra.quickorganizer.v1", "tables": {"PRATICHE": []}})
+        stderr = ""
+
+    def _fake_run(command, **kwargs):
+        captured["command"] = command
+        captured["kwargs"] = kwargs
+        return Completed()
+
+    monkeypatch.setattr(quickorganizer_import.platform, "system", lambda: "Windows")
+    monkeypatch.setattr(quickorganizer_import, "_powershell32", lambda: "powershell.exe")
+    monkeypatch.setattr(quickorganizer_import.subprocess, "run", _fake_run)
+
+    package = load_quickorganizer_package(mdb)
+
+    command = captured["command"]
+    kwargs = captured["kwargs"]
+    assert package.source_kind == "mdb"
+    assert isinstance(command, list)
+    assert command[-1] == str(mdb.resolve())
+    assert command[command.index("-Command") + 1].lstrip().startswith("& {")
+    assert "param([string]$mdb)" in command[command.index("-Command") + 1]
+    assert "$mdb = $args[0]" not in command[command.index("-Command") + 1]
+    assert kwargs["encoding"] == "utf-8"
+
+
 def test_import_studio_telematico_blocca_pacchetto_senza_atti_o_emails(tmp_path: Path):
     package = load_quickorganizer_package(
         _write_package(tmp_path / "studio-telematico-incompleto.zip", include_atto=False, include_email=False)

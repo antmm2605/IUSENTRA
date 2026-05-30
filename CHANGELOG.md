@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.248.91 - 2026-05-30
+
+- Corretto l'import reale Studio Telematico per pacchetti ZIP contenenti `QuickOrganizer.mdb`: il percorso MDB viene passato a PowerShell come parametro esplicito e l'output viene letto in UTF-8, evitando il falso errore `Pacchetto non leggibile`.
+- Verificato nel browser sul pacchetto reale `QuickOrganizer.zip`: anteprima con `324` pratiche, `307` anagrafiche, `796` collegamenti, `8967` documenti `ATTI` trovati e import completato con `8950` documenti importabili copiati nei fascicoli.
+- Rigenerato `PreparaPacchettoStudioTelematico.exe` con profilo IExpress governato; il pacchetto pubblico resta `.exe`, non `.ps1`.
+- Documentati i limiti reali del pacchetto ricevuto: le cartelle `EMAILS` risultano prive dei `4239` file email indicati dal database e alcune righe `TESTI` non sono collegabili a una pratica o a un file, quindi non possono essere importate come documenti di fascicolo.
+
 ## 2.248.90 - 2026-05-30
 
 - Completata prova reale PST/PolisWeb su Tribunale di Palmi R.G. `1025/2024`: ricerca, anteprima, download batch `51/51`, import nel fascicolo `487EE7F3` e catalogazione verificata con `51` record documento e `51` file fisici.

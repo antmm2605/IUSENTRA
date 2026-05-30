@@ -12,7 +12,7 @@ L'operatore carica un pacchetto unico, controlla l'anteprima e avvia l'import so
 
 ## Struttura sorgente attesa
 
-La postazione del vecchio gestionale usa sempre questa struttura:
+La postazione del vecchio gestionale usa questa struttura:
 
 ```text
 C:\QuickOrganizer\QuickOrganizer.mdb
@@ -26,15 +26,16 @@ Le regole di lettura sono vincolanti:
 - tutti i documenti del fascicolo vengono cercati nella cartella `ATTI`;
 - le email collegate vengono cercate nella cartella `EMAILS`;
 - la cartella `EMAILS` non deve essere rinominata e non sostituisce `ATTI`;
-- un file `.mdb` caricato da solo permette il controllo dei dati, ma senza `ATTI` ed `EMAILS` l'acquisizione completa non è possibile.
+- un file `.mdb` caricato da solo permette il controllo dei dati, ma senza `ATTI` ed `EMAILS` l'acquisizione completa non è possibile;
+- se lo ZIP contiene `QuickOrganizer.mdb`, IUSENTRA prova a leggere direttamente l'MDB su Windows tramite Jet/OleDB; se l'ambiente non lo consente, l'errore deve restare operativo e indicare l'uso del preparatore `.exe`.
 
 ## Pacchetto consigliato
 
-Dalla pagina React è disponibile il comando **Prepara pacchetto**, che scarica lo script:
+Dalla pagina React è disponibile il comando **Prepara pacchetto**, che scarica il programma:
 
-`web/static/tools/prepara_import_studio_telematico.ps1`
+`web/static/tools/PreparaPacchettoStudioTelematico.exe`
 
-Sulla postazione del cliente lo script:
+Sulla postazione del cliente il programma:
 
 1. legge le tabelle operative da `QuickOrganizer.mdb`;
 2. esporta i dati in `quickorganizer-export.json`;
@@ -42,7 +43,11 @@ Sulla postazione del cliente lo script:
 4. copia integralmente `EMAILS`;
 5. crea sul Desktop un file `IUSENTRA-StudioTelematico-<data>.zip`.
 
-Lo script non legge la tabella `Accounts` e non trasferisce credenziali del vecchio gestionale.
+Il programma non legge la tabella `Accounts` e non trasferisce credenziali del vecchio gestionale.
+
+## Pacchetti grandi sul PC
+
+Per archivi molto grandi l'operatore può indicare il percorso locale del file ZIP invece di caricarlo dal browser. Il percorso locale funziona solo quando il server IUSENTRA gira sullo stesso PC o vede lo stesso disco. In produzione remota, invece, va usato il caricamento del file oppure una procedura assistita di trasferimento sul server.
 
 ## Cosa viene importato
 
@@ -72,6 +77,19 @@ L'anteprima mostra:
 
 Se mancano file indicati dal database, l'import completo viene bloccato. L'operatore può scegliere l'acquisizione parziale solo con conferma esplicita.
 
+## Verifica reale del 30 maggio 2026
+
+Sul pacchetto reale `C:\Users\antmm\Downloads\ATTI\QuickOrganizer.zip`, pari a circa 5,3 GB, IUSENTRA ha letto direttamente `QuickOrganizer.mdb` e ha prodotto questa anteprima:
+
+- `324` pratiche, di cui `279` attive e `45` archiviate;
+- `307` anagrafiche;
+- `796` collegamenti parte;
+- `8967` documenti trovati nella cartella `ATTI`;
+- `29` appuntamenti;
+- `4239` email indicate dal database ma non presenti come file nella cartella `EMAILS` del pacchetto.
+
+L'import reale ha creato le pratiche e copiato `8950` documenti importabili. La differenza rispetto al conteggio anteprima è dovuta a righe `TESTI` del database non collegabili a una pratica o prive di nome file: quelle righe non possono diventare documenti di fascicolo senza inventare un collegamento.
+
 ## Sicurezza e isolamento
 
 - Gli endpoint sono sotto `/api/v1/ui/import/quickorganizer*`.
@@ -87,4 +105,5 @@ Se mancano file indicati dal database, l'import completo viene bloccato. L'opera
 - Servizio import: `web/services/quickorganizer_import.py`
 - Endpoint React: `web/blueprints/api_v1_react.py`
 - Helper cliente: `web/static/tools/prepara_import_studio_telematico.ps1`
+- Programma pubblico Windows: `web/static/tools/PreparaPacchettoStudioTelematico.exe`
 - Route governata: `/importa-pratiche-studio-telematico`

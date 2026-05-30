@@ -1,5 +1,22 @@
 # Pytest shard confermati OK
 
+## Import reale Studio Telematico 2.248.91 - 2026-05-30
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| Controllo reale `C:\Users\antmm\Downloads\ATTI\QuickOrganizer.zip` | OK | ZIP da circa 5,3 GB con `QuickOrganizer.mdb`, `9575` file disponibili e lettura diretta MDB riuscita su Windows: `PRATICHE=324`, `NOMI=307`, `TAVOLA=796`, `TESTI=8972`, `EMAILS=4239`, `AGENDA=29`. |
+| Browser in-app su `http://127.0.0.1:8099/importa-pratiche-studio-telematico?studio_real_check=1` | OK | Anteprima reale: `324` pratiche, `279` attive, `307` anagrafiche, `796` collegamenti, `8967` documenti `ATTI` trovati, `4239` email mancanti perché non presenti nel pacchetto. |
+| Import reale dallo stesso browser | OK | Import completato con `324` nuove pratiche, `271` anagrafiche create, `8950` documenti da `ATTI` copiati, `29` appuntamenti registrati e `0` duplicati evitati. |
+| Verifica fascicolo importato `83163E6A` | OK | La scheda fascicolo mostra `Lisciotto C. MIUR`, `RG 1929/2023`, `Documenti e atti 54`, `Soggetti 3` e link documento reali provenienti da `ATTI`. |
+| `python -m pytest tests\test_quickorganizer_import.py -q --tb=short` | OK | 6/6: include regressione sul passaggio del percorso MDB a PowerShell come parametro e decodifica UTF-8. |
+| `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_studio_telematico_packager_exe.ps1` | OK | Rigenerato `web/static/tools/PreparaPacchettoStudioTelematico.exe` con profilo IExpress governato. |
+| `npm --prefix frontend run build` | OK | TypeScript e build Vite completati dopo la correzione import Studio Telematico. |
+| `python -m py_compile web\services\quickorganizer_import.py` | OK | Sintassi confermata sul servizio import modificato. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python -m pytest tests\test_openapi_contracts_phase6.py -q --tb=short` | OK | OpenAPI riallineato alla versione `2.248.91`; provider verification `auth-error=214`, `success=27`, `backend-security=1`; test fase 6 `5/5`. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_build_dist.py tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | Packaging sincronizzato e suite dist/readiness `16/16` verde dopo il rebuild del preparatore. |
+| `python -m pytest tests\test_utf8_integrity.py -q --tb=short`; lettura UTF-8 di `docs/STUDIO_TELEMATICO_IMPORT.md` | OK | Presidio UTF-8 `4/4`; il documento Studio Telematico contiene accenti italiani validi. |
+| `python -m pytest tests\test_react_asset_retention.py -q --tb=short`; `git diff --check` | OK | Asset React referenziati e whitespace senza errori; restano solo warning CRLF/LF storici. |
+
 ## Hotfix regressioni PST e Studio Telematico 2.248.89 - 2026-05-29
 
 | Comando / verifica | Esito | Nota |

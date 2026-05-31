@@ -177,6 +177,12 @@ def _new_installation_secret() -> bytes:
     return uuid4().bytes + uuid4().bytes
 
 
+def _ensure_installation_secret_file(path: Path) -> None:
+    if _load_secret(path):
+        return
+    _store_secret(path, _new_installation_secret())
+
+
 def _manifest_hash_payload(payload: dict[str, Any]) -> str:
     canonical_payload = {
         key: value
@@ -320,10 +326,7 @@ def ensure_installation_identity(
             "superadmin_scope": "Il SUPERADMIN installa, aggiorna e governa Product Pack, Update Pack e bootstrap macchina.",
         }
 
-    master = _load_secret(master_key_path)
-    if not master:
-        master = _new_installation_secret()
-        _store_secret(master_key_path, master)
+    _ensure_installation_secret_file(master_key_path)
 
     derived_specs = {
         "database": database_key_path,

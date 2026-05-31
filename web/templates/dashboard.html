@@ -13,12 +13,16 @@
     <p class="ds-ph-sub">Panoramica dello studio — {{ oggi|fmt_data_estesa }}</p>
   </div>
   <div class="ds-ph-actions">
-    {% if session.get('superadmin_user_id') %}
+    {% if utente_corrente and not superadmin_piattaforma %}
+    {% set support_endpoint = url_for('support_remote.create_session_api') if session.get('superadmin_user_id') else url_for('support_remote.create_studio_session_api') %}
     <button type="button"
             class="ds-btn ds-btn-ghost"
             data-support-launch
+            data-support-endpoint="{{ support_endpoint }}"
             data-support-studio-slug="{{ g.tenant.slug if g.tenant else '' }}"
             data-support-studio-name="{{ g.tenant.nome if g.tenant else '' }}"
+            data-support-customer-name="{{ utente_corrente.nome_completo or utente_corrente.username }}"
+            data-support-customer-email="{{ utente_corrente.email or '' }}"
             data-support-context-label="Sessione aperta dalla panoramica dello studio.">
       <i class="bi bi-headset"></i><span class="d-none d-sm-inline">Assistenza remota</span>
     </button>

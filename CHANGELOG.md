@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.93 - 2026-05-31
+
+- Aggiunto il flusso reale “Richiedi assistenza” dalla parte studio: topbar Flask/React, dashboard, scheda cliente e dettaglio fascicolo aprono una sessione autenticata senza richiedere accesso alla console piattaforma.
+- Collegata la richiesta studio alla stanza cliente `/support/join/<token>`: l'utente vede subito la stanza di consenso, mentre il SUPERADMIN trova la sessione in `/admin/supporto-remoto` e apre la stanza operatore.
+- Estesi test e documentazione dell'assistenza remota per coprire endpoint studio, visibilità del pulsante, protezione da accesso anonimo e launcher cliente.
+
 ## 2.248.92 - 2026-05-31
 
 - Verificato end to end reale il modulo `/admin/supporto-remoto` su server locale isolato: login SUPERADMIN, console, creazione sessione, link cliente, stanza operatore, API stato/consensi/WebRTC, note, avvio e chiusura sessione.

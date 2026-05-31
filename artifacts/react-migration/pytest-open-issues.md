@@ -1,5 +1,17 @@
 # Pytest issue aperte e risoluzioni
 
+## Supporto remoto studio 2.248.93 - 2026-05-31
+
+Nessuna issue di codice aperta sul perimetro corretto dopo endpoint studio, pulsante React visibile, fallback modal, test mirati e verifica reale browser/WebSocket.
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Entrypoint assistenza per utente studio | Browser reale e test mirato | Risolto localmente | Le superfici promesse dalla documentazione erano visibili solo in scenari superadmin o non erano presenti nella shell React. Ora lo studio vede `Assistenza` nella topbar React e i template legacy usano `/support/studio/sessione` per aprire la stanza cliente. | Mantenere `test_support_remote_studio_user_can_request_assistance_from_studio` e la verifica browser quando si tocca la topbar o `support_launch.js`. |
+| Pulsante React su viewport ridotti | Browser reale | Risolto localmente | La topbar React nascondeva tutto il gruppo azioni sotto 1180 px; il pulsante esisteva nel DOM ma non era visibile. Ora è fuori dal gruppo nascosto e resta visibile come comando studio. | Non reinserire il lanciatore nel gruppo `.iu-topbar__actions` senza una verifica mobile/tablet. |
+| Modal launcher nella shell React | Browser reale | Risolto localmente | La shell React non carica il JavaScript di Bootstrap; il modal veniva creato ma restava invisibile. `support_launch.js` ora mostra/chiude la finestra anche con fallback nativo. | Mantenere il controllo statico su `showSupportModal()` e riprovare il click reale in shell React. |
+| Selezione schermo del sistema operativo | Browser reale | Limite di automazione, non blocco codice | Stanza cliente, consensi, cabina operatore, token, WebSocket, chat e audit sono stati verificati end-to-end. Il prompt nativo `getDisplayMedia` resta un consenso esplicito dell'utente e non viene forzato dall'automazione. | Per prova manuale completa, il cliente deve premere `Avvia assistenza` e scegliere lo schermo nel prompt del browser. |
+| Docker locale Windows | `docker info` | Limite ambiente locale | Il daemon Docker Desktop non è raggiungibile (`dockerDesktopLinuxEngine` assente), quindi il rebuild locale no-cache non è stato eseguito su questa macchina. | La verifica container resta obbligatoria nel deploy Hetzner: commit server, container healthy, `/api/pronto` e prune Docker. |
+
 ## Supporto remoto end-to-end reale 2.248.92 - 2026-05-31
 
 Nessuna issue di codice aperta sul perimetro corretto dopo fix, test mirati e verifica reale del canale WebSocket.

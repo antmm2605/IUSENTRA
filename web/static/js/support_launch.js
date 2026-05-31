@@ -49,25 +49,74 @@
     feedback.textContent = message;
   }
 
+  function hideSupportModal() {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    if (modalInstance?.hide) {
+      modalInstance.hide();
+      return;
+    }
+    modal.classList.remove("show");
+    modal.style.display = "none";
+    modal.setAttribute("aria-hidden", "true");
+    modal.removeAttribute("aria-modal");
+    document.body.classList.remove("modal-open");
+    const fallbackBackdrop = document.getElementById(`${modalId}Backdrop`);
+    fallbackBackdrop?.remove();
+  }
+
+  function showSupportModal() {
+    const modal = ensureModal();
+    modal.querySelectorAll("[data-bs-dismiss='modal']").forEach((element) => {
+      element.addEventListener("click", hideSupportModal, { once: true });
+    });
+    if (modalInstance?.show) {
+      modalInstance.show();
+      return;
+    }
+    let backdrop = document.getElementById(`${modalId}Backdrop`);
+    if (!backdrop) {
+      backdrop = document.createElement("div");
+      backdrop.id = `${modalId}Backdrop`;
+      backdrop.className = "modal-backdrop fade show";
+      backdrop.addEventListener("click", hideSupportModal);
+      document.body.appendChild(backdrop);
+    }
+    modal.classList.add("show");
+    modal.style.display = "block";
+    modal.removeAttribute("aria-hidden");
+    modal.setAttribute("aria-modal", "true");
+    modal.setAttribute("role", "dialog");
+    document.body.classList.add("modal-open");
+  }
+
   function showModal(payload) {
     ensureModal();
+    const customerEntry = Boolean(payload.customer_entry);
     const joinInput = document.getElementById("supportLaunchJoinUrl");
     const copyBtn = document.getElementById("supportLaunchCopyBtn");
     const openOperator = document.getElementById("supportLaunchOpenOperator");
     const openConsole = document.getElementById("supportLaunchOpenConsole");
 
     if (joinInput) joinInput.value = payload.join_url || "";
-    if (openOperator) openOperator.href = payload.operator_url || "#";
+    if (openOperator) {
+      openOperator.href = customerEntry ? payload.join_url || "#" : payload.operator_url || "#";
+      openOperator.textContent = customerEntry ? "Apri stanza cliente" : "Apri stanza operatore";
+    }
     if (openConsole) {
-      openConsole.href = `/admin/supporto-remoto?sessione=${encodeURIComponent((payload.session || {}).public_id || "")}`;
+      openConsole.classList.toggle("d-none", customerEntry);
+      openConsole.href = customerEntry
+        ? "#"
+        : `/admin/supporto-remoto?sessione=${encodeURIComponent((payload.session || {}).public_id || "")}`;
     }
 
     if (copyBtn) {
+      copyBtn.classList.toggle("d-none", customerEntry);
       copyBtn.onclick = async () => {
         try {
           if (joinInput?.value) {
             await navigator.clipboard.writeText(joinInput.value);
-            setFeedback("Link cliente copiato negli appunti.");
+            setFeedback(customerEntry ? "Link stanza cliente copiato negli appunti." : "Link cliente copiato negli appunti.");
           }
         } catch (_) {
           setFeedback("Copia negli appunti non disponibile su questo browser.", "warning");
@@ -75,7 +124,7 @@
       };
     }
 
-    modalInstance?.show();
+    showSupportModal();
   }
 
   async function fetchJson(url, options = {}) {
@@ -109,33 +158,38 @@
       client_id: button.dataset.supportClientId || "",
       practice_id: button.dataset.supportPracticeId || "",
       practice_label: button.dataset.supportPracticeLabel || button.dataset.supportContextLabel || "",
+      context_label: button.dataset.supportContextLabel || "",
       notes: button.dataset.supportContextLabel || "",
     };
+    const endpoint = button.dataset.supportEndpoint || "/support/api/session";
 
     try {
-      const result = await fetchJson("/support/api/session", {
+      const result = await fetchJson(endpoint, {
         method: "POST",
         body: JSON.stringify(payload),
       });
       ensureModal();
-      if (result.operator_url) {
+      if (result.customer_entry && result.join_url) {
+        window.open(result.join_url, "_blank", "noopener");
+        setFeedback("Richiesta inviata. Stanza cliente aperta: conferma i consensi e attendi l'operatore.");
+      } else if (result.operator_url) {
         window.open(result.operator_url, "_blank", "noopener");
-      }
-      try {
-        if (navigator.clipboard && result.join_url) {
-          await navigator.clipboard.writeText(result.join_url);
-          setFeedback("Sessione creata. Link cliente copiato e stanza operatore aperta in una nuova scheda.");
-        } else {
-          setFeedback("Sessione creata correttamente. Invia il link al cliente e apri la stanza operatore.");
+        try {
+          if (navigator.clipboard && result.join_url) {
+            await navigator.clipboard.writeText(result.join_url);
+            setFeedback("Sessione creata. Link cliente copiato e stanza operatore aperta in una nuova scheda.");
+          } else {
+            setFeedback("Sessione creata correttamente. Invia il link al cliente e apri la stanza operatore.");
+          }
+        } catch (_) {
+          setFeedback("Sessione creata correttamente. Copia manualmente il link cliente dalla finestra che si apre.", "warning");
         }
-      } catch (_) {
-        setFeedback("Sessione creata correttamente. Copia manualmente il link cliente dalla finestra che si apre.", "warning");
       }
       showModal(result);
     } catch (error) {
       ensureModal();
       setFeedback(`Impossibile aprire l'assistenza remota: ${error.message}`, "danger");
-      modalInstance?.show();
+      showSupportModal();
     } finally {
       button.disabled = false;
       button.innerHTML = originalHtml;

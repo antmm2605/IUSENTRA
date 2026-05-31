@@ -24,10 +24,12 @@
     </p>
   </div>
   <div class="ds-ph-actions">
-    {% if session.get('superadmin_user_id') %}
+    {% if utente_corrente and not superadmin_piattaforma %}
+    {% set support_endpoint = url_for('support_remote.create_session_api') if session.get('superadmin_user_id') else url_for('support_remote.create_studio_session_api') %}
     <button type="button"
        class="ds-btn ds-btn-primary"
        data-support-launch
+       data-support-endpoint="{{ support_endpoint }}"
        data-support-customer-name="{{ cliente.nome_completo }}"
        data-support-customer-email="{{ cliente.recapiti.email or cliente.recapiti.pec }}"
        data-support-studio-slug="{{ g.tenant.slug if g.tenant else '' }}"

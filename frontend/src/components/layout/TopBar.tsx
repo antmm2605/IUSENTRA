@@ -1,4 +1,4 @@
-import { Bell, CalendarClock, Clock3, FolderClock, PanelLeftOpen, Plus, Settings2, TriangleAlert } from 'lucide-react'
+import { Bell, CalendarClock, Clock3, FolderClock, Headphones, PanelLeftOpen, Plus, Settings2, TriangleAlert } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { TopBarCreateMenu } from './TopBarCreateMenu'
 import { TopBarDeadlines } from './TopBarDeadlines'
@@ -32,7 +32,7 @@ function todayLabel() {
   }).format(new Date())
 }
 
-export function TopBar({ onOpenMenu, activePath }: { onOpenMenu: () => void; activePath: string }) {
+export function TopBar({ onOpenMenu, activePath, supportEnabled = true }: { onOpenMenu: () => void; activePath: string; supportEnabled?: boolean }) {
   const [openPanel, setOpenPanel] = useState<PanelName>(null)
   const context = useMemo(() => currentContext(activePath), [activePath])
   const togglePanel = (panel: Exclude<PanelName, null>) => setOpenPanel((current) => (current === panel ? null : panel))
@@ -44,6 +44,20 @@ export function TopBar({ onOpenMenu, activePath }: { onOpenMenu: () => void; act
         <PanelLeftOpen size={18} />
       </button>
       <TopBarSearch />
+      {supportEnabled ? (
+        <button
+          className="iu-new iu-support-request"
+          type="button"
+          data-support-launch
+          data-support-endpoint="/support/studio/sessione"
+          data-support-context-label={`Richiesta aperta dalla barra dello studio: ${activePath || '/'}`}
+          aria-label="Richiedi assistenza remota"
+          title="Richiedi assistenza remota"
+        >
+          <Headphones size={16} />
+          <span>Assistenza</span>
+        </button>
+      ) : null}
       <div className="iu-topbar__actions iu-topbar-op__actions">
         <TopBarTimeTracker
           open={openPanel === 'timer'}

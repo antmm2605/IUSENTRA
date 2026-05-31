@@ -1,5 +1,27 @@
 # Pytest shard confermati OK
 
+## Supporto remoto studio end-to-end 2.248.93 - 2026-05-31
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| Server Flask isolato `http://127.0.0.1:18654/api/pronto` | OK | Runtime temporaneo fuori da `data/` del repository, versione `2.248.93`, studio `Studio Refactor` e superadmin piattaforma pronti. |
+| Browser in-app: studio React `/` | OK | Da sessione studio impersonata, il comando `Assistenza` è visibile nella topbar anche su shell React; screenshot `studio-assistenza-visibile.png`. |
+| Browser in-app: richiesta da studio | OK | Click reale su `Assistenza` crea una sessione tramite `/support/studio/sessione`, mostra il modal senza dipendere da Bootstrap JS e produce link cliente firmato. |
+| Browser in-app: stanza cliente | OK | Link `/support/join/<token>` aperto, pagina `Assistenza remota con consenso esplicito`, 3 consensi visibili e controlli cliente operativi. |
+| Browser in-app: cabina e stanza operatore | OK | `/admin/supporto-remoto` elenca la richiesta `studio-admin`; `/support/operatore/<public_id>` apre la stanza operatore con link cliente e stato assistenza. |
+| WebSocket reale `/support/ws/<public_id>` | OK | Client .NET `ClientWebSocket` collegato come cliente e operatore: `peer_state`, `start_offer`, chat bidirezionale e `pong` verificati sulla sessione creata dal pulsante studio. |
+| SQLite temporaneo assistenza remota | OK | Evento `studio_support_requested`, `customer_room_opened`, `operator_room_opened`, `peer_connected` e `peer_disconnected` persistiti; sessione avviata con `started_at`. |
+| `python -m py_compile web\blueprints\support_remote.py web\services\support_runtime.py pct\support_remote.py` | OK | Sintassi backend confermata dopo endpoint studio, audit e helper runtime. |
+| `node --check web\static\js\support_launch.js` | OK | Lanciatore assistenza valido dopo delega eventi e fallback modal senza Bootstrap JS. |
+| `python -m pytest tests\test_support_remote.py -q --tb=short` | OK | 13/13: copre richiesta studio, accesso anonimo negato, stanza cliente, cabina operatore, WebSocket e regressioni UI launcher. |
+| `pnpm --dir frontend --filter @iusentra/studio typecheck` | OK | TypeScript React verde dopo pulsante topbar `Assistenza`. |
+| `pnpm --dir frontend --filter @iusentra/studio test` | OK | Contratti React, preset IUSENTRA, governance design system, App V2 frontend e UI coverage verdi. |
+| `pnpm --dir frontend --filter @iusentra/studio build` | OK | Build Vite finale completata in 8.03s; main `index-CpTDADqq.js` 486.36 kB (142.05 kB gzip), CSS `index-BXuxinqt.css` 158.78 kB (27.44 kB gzip), senza nuove dipendenze. |
+| `python -m pytest tests\test_utf8_integrity.py tests\test_react_asset_retention.py -q --tb=short` | OK | 6/6: presidio UTF-8 e asset React referenziati verdi. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_build_dist.py tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | Packaging/versione `2.248.93` sincronizzati e suite dist/readiness `16/16` verde. |
+| `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python scripts\smoke_app_v2_all.py --subset contracts`; `python -m pytest -q tests\test_openapi_contracts_phase6.py --tb=short` | OK | Contratti API allineati; OpenAPI valido; provider verification `auth-error=214`, `success=27`, `backend-security=1`; smoke contratti PASS=2/SKIP live=1; test fase 6 `5/5`. |
+| `git diff --check` | OK | Nessun errore whitespace; solo warning CRLF/LF su file storici toccati. |
+
 ## Supporto remoto end-to-end reale 2.248.92 - 2026-05-31
 
 | Comando / verifica | Esito | Nota |

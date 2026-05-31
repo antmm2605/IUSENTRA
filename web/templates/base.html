@@ -487,6 +487,19 @@
        title="Regia Operativa">
       <i class="bi bi-stars"></i><span class="d-none d-md-inline ms-1">Studio</span>
     </a>
+    <button type="button"
+            class="btn btn-sm btn-outline-secondary"
+            data-support-launch
+            data-support-endpoint="{{ url_for('support_remote.create_studio_session_api') }}"
+            data-support-studio-slug="{{ g.tenant.slug if g.tenant else '' }}"
+            data-support-studio-name="{{ g.tenant.nome if g.tenant else '' }}"
+            data-support-customer-name="{{ utente_corrente.nome_completo or utente_corrente.username }}"
+            data-support-customer-email="{{ utente_corrente.email or '' }}"
+            data-support-context-label="Richiesta aperta dalla barra dello studio: {{ request.path }}"
+            title="Richiedi assistenza remota"
+            aria-label="Richiedi assistenza remota">
+      <i class="bi bi-headset"></i><span class="d-none d-lg-inline ms-1">Assistenza</span>
+    </button>
     <a href="{{ url_for('scadenziario') }}" class="btn btn-sm btn-outline-danger position-relative"
        title="Scadenziario - scadenze entro 7 giorni" id="btn-scadenziario-nav">
       <i class="bi bi-calendar-event"></i>

@@ -94,6 +94,47 @@ def support_operator_identity_or_403() -> dict[str, str]:
     abort(403, description="Assistenza remota disponibile solo per il SUPERADMIN di piattaforma.")
 
 
+def support_studio_identity_or_403() -> dict[str, str]:
+    utente = getattr(g, "utente_corrente", None)
+    if utente is None:
+        abort(403, description="Accesso allo studio richiesto per aprire l'assistenza remota.")
+
+    if (
+        bool(getattr(g, "multi_tenant_enabled", False))
+        and not getattr(utente, "is_superadmin", False)
+        and bool(getattr(g, "tenant_context_missing", False))
+    ):
+        abort(409, description="Contesto studio non disponibile per aprire l'assistenza remota.")
+
+    tenant = getattr(g, "tenant", None)
+    tenant_slug = str(
+        getattr(tenant, "slug", "")
+        or getattr(utente, "tenant_slug", "")
+        or session.get("tenant_slug", "")
+        or session.get("auth_tenant_slug", "")
+        or ""
+    ).strip().lower()
+    tenant_name = str(getattr(tenant, "nome", "") or tenant_slug or "").strip()
+
+    if getattr(utente, "is_superadmin", False) and not session.get("superadmin_user_id") and not tenant_slug:
+        abort(403, description="Usa la console piattaforma per aprire assistenza come SUPERADMIN.")
+
+    name = str(
+        getattr(utente, "nome_completo", None)
+        or getattr(utente, "email", None)
+        or getattr(utente, "username", None)
+        or "Studio"
+    ).strip()
+    return {
+        "id": str(getattr(utente, "id", "") or ""),
+        "username": str(getattr(utente, "username", "") or ""),
+        "name": name or "Studio",
+        "email": str(getattr(utente, "email", "") or ""),
+        "tenant_slug": tenant_slug,
+        "tenant_name": tenant_name,
+    }
+
+
 def audit_support_action(
     action: str,
     *,
@@ -114,6 +155,37 @@ def audit_support_action(
         azione=action,
         id_utente=operator["id"],
         username=operator["username"],
+        risorsa_tipo="supporto_remoto",
+        risorsa_id=str(public_id or ""),
+        dettagli=details,
+        ip=request.remote_addr or "",
+        esito=esito,
+    )
+
+
+def audit_support_studio_action(
+    action: str,
+    *,
+    public_id: str = "",
+    details: str = "",
+    esito: str = "OK",
+) -> None:
+    try:
+        actor = support_studio_identity_or_403()
+    except Exception:
+        actor = {
+            "id": "",
+            "username": "studio",
+            "name": "Studio",
+        }
+
+    manager = getattr(g, "utente_auth_manager", None)
+    if manager is None:
+        manager = _global_user_manager()
+    manager.registra_evento(
+        azione=action,
+        id_utente=actor["id"],
+        username=actor["username"] or actor["name"],
         risorsa_tipo="supporto_remoto",
         risorsa_id=str(public_id or ""),
         dettagli=details,

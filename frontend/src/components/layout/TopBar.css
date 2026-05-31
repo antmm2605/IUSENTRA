@@ -77,6 +77,18 @@
   font-size:12px;
   font-weight:700;
 }
+.iu-support-request{
+  flex:0 0 auto;
+  border-color:rgba(37,99,235,.22);
+  background:#eff6ff;
+  color:var(--iu-blue-700);
+  white-space:nowrap;
+}
+.iu-support-request:hover,
+.iu-support-request:focus-visible{
+  border-color:rgba(37,99,235,.42);
+  background:#dbeafe;
+}
 .iu-panel-state{
   display:flex;
   align-items:center;
@@ -540,4 +552,8 @@
   .iu-topbar-panel{position:fixed;top:64px;right:10px;left:10px;width:auto;max-height:calc(100vh - 154px)}
   .iu-today-summary,.iu-deadline-summary,.iu-timer-grid{grid-template-columns:1fr 1fr}
   .iu-new.iu-topbar-new span{display:none}
+}
+@media(max-width:520px){
+  .iu-support-request span{display:none}
+  .iu-support-request{width:42px;padding:0;justify-content:center}
 }

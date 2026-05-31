@@ -168,6 +168,15 @@ def build_support_event_story(
         elif studio_nome:
             parts.append(f"per lo studio {studio_nome}")
         return " ".join(parts).strip() + "."
+    if event == "studio_support_requested":
+        studio_nome = str(data.get("studio_nome") or "").strip()
+        practice_label = str(data.get("practice_label") or "").strip()
+        parts = [f"{nome} ha richiesto assistenza remota dallo studio"]
+        if practice_label:
+            parts.append(f"per {practice_label}")
+        elif studio_nome:
+            parts.append(f"{studio_nome}")
+        return " ".join(parts).strip() + "."
     if event == "customer_room_opened":
         return f"{nome} ha aperto il link cliente e ha raggiunto la stanza di assistenza."
     if event == "operator_room_opened":

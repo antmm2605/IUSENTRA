@@ -126,6 +126,81 @@ def test_support_remote_customer_link_and_state_work_without_login(tmp_path: Pat
     assert webrtc.get_json()["rtcConfiguration"]["iceServers"][0]["urls"] == default_support_stun_urls()
 
 
+def test_support_remote_studio_user_can_request_assistance_from_studio(tmp_path: Path):
+    app, superadmin, studio, tenant_admin = _seed_runtime(tmp_path)
+
+    with app.test_client() as client:
+        with client.session_transaction() as session_tx:
+            session_tx["user_id"] = tenant_admin.id
+            session_tx["tenant_slug"] = studio.slug
+            session_tx["auth_scope"] = "tenant"
+            session_tx["auth_tenant_slug"] = studio.slug
+            session_tx["last_activity"] = datetime.now().isoformat()
+
+        dashboard = client.get("/")
+        request_response = client.post(
+            "/support/studio/sessione",
+            json={
+                "practice_label": "Panoramica dello studio",
+                "notes": "Richiesta aperta dalla barra dello studio.",
+            },
+        )
+        payload = request_response.get_json()
+        public_id = payload["session"]["public_id"]
+        client_token = payload["session"]["client_token"]
+        join_page = client.get(f"/support/join/{client_token}")
+
+        with client.session_transaction() as session_tx:
+            session_tx.clear()
+            session_tx["user_id"] = superadmin.id
+            session_tx["auth_scope"] = "global"
+            session_tx["auth_tenant_slug"] = ""
+            session_tx["last_activity"] = datetime.now().isoformat()
+
+        console = client.get(f"/admin/supporto-remoto?sessione={public_id}")
+        operator_room = client.get(f"/support/operatore/{public_id}")
+
+    assert dashboard.status_code == 200
+    dashboard_html = dashboard.get_data(as_text=True)
+    assert 'id="iusentra-react-bootstrap"' in dashboard_html
+    assert "/static/js/support_launch.js" in dashboard_html
+    assert 'data-support-endpoint="{{ url_for(\'support_remote.create_studio_session_api\') }}"' in Path(
+        "web/templates/base.html"
+    ).read_text(encoding="utf-8")
+    assert 'data-support-endpoint="/support/studio/sessione"' in Path(
+        "frontend/src/components/layout/TopBar.tsx"
+    ).read_text(encoding="utf-8")
+    assert "Richiedi assistenza remota" in Path("frontend/src/components/layout/TopBar.tsx").read_text(
+        encoding="utf-8"
+    )
+    assert request_response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["customer_entry"] is True
+    assert payload["session"]["studio_slug"] == studio.slug
+    assert payload["session"]["practice_label"] == "Panoramica dello studio"
+    assert payload["join_url"].endswith(client_token)
+    assert join_page.status_code == 200
+    assert "Assistenza remota con consenso esplicito" in join_page.get_data(as_text=True)
+    assert console.status_code == 200
+    assert "Panoramica dello studio" in console.get_data(as_text=True)
+    assert operator_room.status_code == 200
+    assert "Stanza operatore" in operator_room.get_data(as_text=True)
+
+    with app.app_context():
+        events = support_repository().list_events(public_id)
+    assert any(event["event_type"] == "studio_support_requested" for event in events)
+
+
+def test_support_remote_studio_request_requires_login(tmp_path: Path):
+    app, _, _, _ = _seed_runtime(tmp_path)
+
+    with app.test_client() as client:
+        response = client.post("/support/studio/sessione", json={})
+
+    assert response.status_code == 302
+    assert "/login" in response.headers["Location"]
+
+
 def test_support_remote_note_update_and_repository_story(tmp_path: Path):
     app, superadmin, _, _ = _seed_runtime(tmp_path)
 
@@ -340,3 +415,14 @@ def test_support_remote_console_clipboard_failure_non_bloccante():
     assert "clipboardCopied = false;" in script
     assert "Link cliente pronto nel campo dedicato" in script
     assert "Impossibile creare la sessione" in script
+
+
+def test_support_remote_studio_launcher_opens_customer_room():
+    script = Path("web/static/js/support_launch.js").read_text(encoding="utf-8")
+
+    assert "payload.customer_entry" in script
+    assert "Apri stanza cliente" in script
+    assert "Stanza cliente aperta" in script
+    assert "function showSupportModal()" in script
+    assert "modal.style.display = \"block\"" in script
+    assert 'button.dataset.supportEndpoint || "/support/api/session"' in script

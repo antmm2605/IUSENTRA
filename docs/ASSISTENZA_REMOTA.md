@@ -19,17 +19,20 @@ difficili o strumenti di desktop-control già scelti dallo studio.
 
 La regola prodotto è ferrea:
 
-- la sessione nasce sempre da `SUPERADMIN`
-- il cliente entra solo da link firmato
+- il `SUPERADMIN` può aprire sessioni dalla console piattaforma e prende sempre in carico la stanza operatore
+- lo studio cliente può richiedere assistenza dalle pagine operative senza passare dalla console admin
+- il cliente entra sempre da link firmato, generato dalla console o dalla richiesta autenticata dello studio
 - schermo, audio e controllo avanzato richiedono consenso esplicito
 - il controllo avanzato non parte mai se `SUPPORT_ADVANCED_URL_TEMPLATE` non è configurato
 
 ## Superfici prodotto
 
 - `Piattaforma -> Assistenza remota` -> `/admin/supporto-remoto`
-- `Dashboard studio` -> pulsante `Assistenza remota`
-- `Scheda cliente` -> pulsante `Assistenza cliente`
-- `Dettaglio fascicolo` -> pulsante `Sessione tecnica`
+- `Barra studio` -> pulsante `Assistenza`
+- `Dashboard studio` -> pulsante `Assistenza remota`, disponibile anche agli utenti dello studio
+- `Scheda cliente` -> pulsante `Assistenza cliente`, disponibile anche agli utenti dello studio
+- `Dettaglio fascicolo` -> pulsante `Sessione tecnica`, disponibile anche agli utenti dello studio
+- `Richiesta studio` -> `/support/studio/sessione`
 - `Link cliente` -> `/support/join/<token>`
 - `Stanza operatore` -> `/support/operatore/<public_id>`
 
@@ -49,7 +52,7 @@ La regola prodotto è ferrea:
 - `web/extensions.py`
   inizializza `Sock`
 - `web/services/support_runtime.py`
-  autorizzazione `SUPERADMIN`, audit, payload sessione, signaling WebSocket
+  autorizzazione operatore e studio, audit, payload sessione, signaling WebSocket
 - `web/services/support_presence.py`
   presenza in memoria per singola istanza
 - `web/services/support_surface.py`
@@ -151,6 +154,12 @@ Ogni sessione persiste:
 
 Il registro è leggibile dalla console come storia operativa, non solo come log tecnico.
 
+## Richiesta assistenza dallo studio
+
+Quando l'utente dello studio preme `Assistenza`, IUSENTRA crea una sessione autenticata con contesto tenant, utente, eventuale cliente o fascicolo e audit dell'azione. La stanza cliente viene aperta subito: l'utente conferma i consensi e attende il `SUPERADMIN`, che vede la sessione nella console `/admin/supporto-remoto` e apre la stanza operatore.
+
+Questo flusso non espone la console piattaforma allo studio e non consente allo studio di assumere il ruolo operatore. La richiesta serve solo ad aprire il canale cliente reale e tracciato.
+
 ## Controllo remoto avanzato
 
 Il modulo non reimplementa il desktop control nel browser. L'aggancio è previsto tramite:
@@ -181,6 +190,8 @@ Il resto del modulo è già separato in modo da poter spostare solo questo layer
 - `docker compose build --no-cache`
 - `docker compose up -d --force-recreate`
 - `/admin/supporto-remoto` raggiungibile da `SUPERADMIN`
+- `/support/studio/sessione` raggiungibile da utente autenticato dello studio e non da anonimo
+- pulsante `Assistenza` visibile nella barra studio e collegato alla stanza cliente
 - stato console `Pronta per assistenza immediata`
 - link cliente pubblico funzionante
 - reverse proxy con WebSocket attivo

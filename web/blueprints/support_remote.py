@@ -12,12 +12,14 @@ from pct.support_remote import (
     issue_operator_token,
 )
 from web.services.support_runtime import (
+    audit_support_studio_action,
     audit_support_action,
     authorize_support_http,
     log_support_event,
     support_operator_identity_or_403,
     support_repository,
     support_session_payload,
+    support_studio_identity_or_403,
 )
 from web.services.support_surface import build_support_console_payload
 from web.services.support_surface import save_support_configuration
@@ -128,6 +130,70 @@ def create_session_api():
             "ok": True,
             "session": support_session_payload(row),
             "operator_url": operator_url,
+            "join_url": join_url,
+        }
+    )
+
+
+@support_remote.post("/support/studio/sessione")
+def create_studio_session_api():
+    requester = support_studio_identity_or_403()
+    payload = request.get_json(silent=True) or request.form.to_dict()
+    request_tenant = getattr(g, "tenant", None)
+    studio_slug = str(requester.get("tenant_slug") or getattr(request_tenant, "slug", "") or "").strip().lower()
+    studio_nome = str(requester.get("tenant_name") or getattr(request_tenant, "nome", "") or "").strip()
+    customer_name = str(payload.get("customer_name") or requester["name"] or "").strip()
+    customer_email = str(payload.get("customer_email") or requester.get("email", "") or "").strip()
+    context_label = str(payload.get("practice_label") or payload.get("notes") or payload.get("context_label") or "").strip()
+
+    repo = support_repository()
+    row = repo.create_session(
+        {
+            "studio_slug": studio_slug,
+            "studio_nome": studio_nome,
+            "practice_id": str(payload.get("practice_id") or "").strip(),
+            "practice_label": context_label,
+            "client_id": str(payload.get("client_id") or requester["id"] or "").strip(),
+            "customer_name": customer_name,
+            "customer_email": customer_email,
+            "created_by": requester["name"],
+            "assigned_to": "SUPERADMIN",
+            "notes": str(payload.get("notes") or "Richiesta aperta dallo studio.").strip(),
+            "status": "created",
+        }
+    )
+    log_support_event(
+        row["public_id"],
+        event_type="studio_support_requested",
+        actor_role="client",
+        actor_name=requester["name"],
+        payload={
+            "customer_name": row["customer_name"],
+            "customer_email": row["customer_email"],
+            "studio_nome": row["studio_nome"],
+            "practice_label": row["practice_label"],
+        },
+    )
+    audit_support_studio_action(
+        "supporto_remoto.richiedi_sessione",
+        public_id=row["public_id"],
+        details=build_support_event_story(
+            "studio_support_requested",
+            actor_role="client",
+            actor_name=requester["name"],
+            payload={
+                "studio_nome": row["studio_nome"],
+                "practice_label": row["practice_label"],
+            },
+        ),
+    )
+    join_url = url_for("support_remote.customer_room", token=row["client_token"], _external=True)
+    return jsonify(
+        {
+            "ok": True,
+            "customer_entry": True,
+            "session": support_session_payload(row),
+            "operator_url": "",
             "join_url": join_url,
         }
     )

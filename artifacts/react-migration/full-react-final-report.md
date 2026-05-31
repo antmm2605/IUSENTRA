@@ -2,6 +2,21 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-31T13:30:00+02:00: supporto remoto avviabile dallo
+studio 2.248.93.
+La shell React espone ora un comando `Assistenza` visibile nella topbar dello
+studio e non nascosto nei breakpoint tablet/mobile; i template legacy principali
+di dashboard, dettaglio cliente e dettaglio fascicolo usano lo stesso flusso
+studio. Il click crea una sessione cliente tramite `/support/studio/sessione`,
+apre la stanza cliente firmata e registra audit/eventi senza richiedere accesso
+superadmin all'utente dello studio.
+
+Verifica reale su server isolato `127.0.0.1:18654`: pulsante studio visibile,
+modal launcher funzionante anche senza Bootstrap JS nella shell React, stanza
+cliente con consensi, cabina superadmin con sessione `studio-admin`, stanza
+operatore e WebSocket cliente/operatore con chat e ping bidirezionali. Console
+browser senza errori.
+
 Aggiornamento 2026-05-29T21:05:00+02:00: hotfix regressioni PST e Studio Telematico
 2.248.89.
 Verifica browser in-app su server locale `127.0.0.1:8080`: `/portali/pst/acquisizione`

@@ -47,6 +47,21 @@ Il programma non legge la tabella `Accounts` e non trasferisce credenziali del v
 
 Il programma non deve produrre un JSON parziale: se non riesce a leggere `PRATICHE`, `NOMI`, `TAVOLA`, `TESTI`, `EMAILS` o `AGENDA`, oppure se mancano i campi minimi per ricostruire i collegamenti (`PRATICHE.NUMEROPRATICA`, `NOMI.NUM_NOM`, `NOMI.CONTROLLO`, `TAVOLA.NUMEROPRATICA`, `TAVOLA.NUM_NOM`), il pacchetto viene bloccato prima della creazione dello ZIP. Nel file `quickorganizer-export.json` viene salvata anche la sezione `validation`, con conteggi tabella e conteggi relazione, così l'audit può verificare che i collegamenti cliente/pratica non siano stati persi durante l'export.
 
+## Preparazione assistita con caricamento automatico
+
+Dal comando **Prepara pacchetto** la pagina crea una sessione sicura dello studio, scarica l'avviatore `AvviaImportStudioTelematico.cmd` e mostra una barra di avanzamento per:
+
+1. ricerca della cartella `C:\QuickOrganizer`;
+2. lettura di `QuickOrganizer.mdb`;
+3. creazione dello ZIP con `quickorganizer-export.json`, `ATTI` ed `EMAILS`;
+4. caricamento automatico a blocchi su IUSENTRA;
+5. controllo automatico del pacchetto caricato;
+6. import definitivo automatico solo se il controllo risulta completo.
+
+Se Windows o il browser non eseguono automaticamente l'avviatore scaricato, l'operatore deve aprire `AvviaImportStudioTelematico.cmd` dalla cartella download. Da quel momento la pagina continua a ricevere gli aggiornamenti dalla postazione Studio Telematico e completa il controllo senza richiedere il caricamento manuale dello ZIP.
+
+La sessione usa un token operativo generato dal server, inviato dal preparatore negli header delle chiamate locali e memorizzato lato server solo come digest. Il token non contiene tenant, studio o percorsi filesystem e scade automaticamente.
+
 ## Pacchetti grandi sul PC
 
 Per archivi molto grandi l'operatore può indicare il percorso locale del file ZIP invece di caricarlo dal browser. Il percorso locale funziona solo quando il server IUSENTRA gira sullo stesso PC o vede lo stesso disco. In produzione remota, invece, va usato il caricamento del file oppure una procedura assistita di trasferimento sul server.

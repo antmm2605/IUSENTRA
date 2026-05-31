@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.249.1 - 2026-05-31
+
+- Aggiunta preparazione assistita Studio Telematico: `Prepara pacchetto` crea una sessione sicura, scarica l'avviatore Windows, mostra avanzamento di preparazione/upload/controllo e importa automaticamente solo quando il pacchetto è completo.
+- Il preparatore locale ora può caricare lo ZIP a blocchi verso IUSENTRA usando header tokenizzati e mantenendo compatibilità con l'uso manuale.
+- Aggiornati OpenAPI, documentazione e test QuickOrganizer per coprire sessioni tokenizzate, upload automatico e anteprima pronta per l'import definitivo.
+
 ## 2.248.99 - 2026-05-31
 
 - Ricostruita l'identità Installation Pack da una allowlist esplicita prima della scrittura, così eventuali campi storici o non governati non vengono mai risalvati nei manifest.

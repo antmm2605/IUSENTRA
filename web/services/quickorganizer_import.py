@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import os
 import platform
 import re
+import secrets
 import shutil
 import subprocess
 import tempfile
@@ -14,7 +16,7 @@ import uuid
 import zipfile
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
 
@@ -59,6 +61,7 @@ REQUIRED_TABLE_FIELDS = {
 PACKAGE_SUFFIXES = {".zip", ".json", ".mdb"}
 DEFAULT_CHUNK_UPLOAD_SIZE_BYTES = 64 * 1024 * 1024
 DEFAULT_MAX_UPLOAD_BYTES = 30 * 1024 * 1024 * 1024
+DEFAULT_AUTO_PREPARE_EXPIRES_HOURS = 24
 TABLE_ALIASES = {
     "PRATICHE": "PRATICHE",
     "NOMI": "NOMI",
@@ -1852,6 +1855,277 @@ def complete_chunked_upload(
         # Se lo staging fallisce, il pacchetto ricomposto resta disponibile per audit e recupero.
         if staged:
             shutil.rmtree(session, ignore_errors=True)
+
+
+def _safe_prepare_session_id(session_id: Any) -> str:
+    value = _text(session_id).lower()
+    if not re.fullmatch(r"[a-f0-9]{32}", value):
+        raise QuickOrganizerImportError("Sessione preparazione non riconosciuta.")
+    return value
+
+
+def _prepare_token_hash(token: str) -> str:
+    return hashlib.sha256(_text(token).encode("utf-8")).hexdigest()
+
+
+def _prepare_sessions_dir(index_root: str | Path, *, create: bool = False) -> Path:
+    root = _safe_runtime_dir(index_root, create=True)
+    sessions = _safe_child_path(root, "_auto_prepare_sessions", extra_roots=(root,))
+    if create:
+        sessions.mkdir(parents=True, exist_ok=True)
+    return sessions
+
+
+def _prepare_session_dir(index_root: str | Path, session_id: str, *, create: bool = False) -> Path:
+    sessions = _prepare_sessions_dir(index_root, create=True)
+    session = _safe_child_path(sessions, _safe_prepare_session_id(session_id), extra_roots=(sessions,))
+    if create:
+        session.mkdir(parents=True, exist_ok=True)
+    return session
+
+
+def _prepare_metadata_path(index_root: str | Path, session_id: str) -> Path:
+    return _safe_child_path(
+        _prepare_session_dir(index_root, session_id),
+        "metadata.json",
+        extra_roots=(_prepare_sessions_dir(index_root),),
+    )
+
+
+def _parse_utc_datetime(value: Any) -> datetime | None:
+    raw = _text(value)
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+    except ValueError:
+        return None
+
+
+def _prepare_session_expired(metadata: Mapping[str, Any]) -> bool:
+    expires = _parse_utc_datetime(metadata.get("expiresAt"))
+    return bool(expires and expires < datetime.now(timezone.utc))
+
+
+def _read_prepare_metadata(index_root: str | Path, session_id: str) -> dict[str, Any]:
+    path = _prepare_metadata_path(index_root, session_id)
+    try:
+        metadata = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise QuickOrganizerImportError("Sessione preparazione scaduta o non trovata.") from exc
+    except Exception as exc:
+        raise QuickOrganizerImportError("Sessione preparazione non valida.") from exc
+    if not isinstance(metadata, dict):
+        raise QuickOrganizerImportError("Sessione preparazione non valida.")
+    if _prepare_session_expired(metadata):
+        raise QuickOrganizerImportError("Sessione preparazione scaduta. Avvia di nuovo la preparazione.")
+    return metadata
+
+
+def _write_prepare_metadata(index_root: str | Path, session_id: str, metadata: Mapping[str, Any]) -> None:
+    path = _prepare_metadata_path(index_root, session_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(dict(metadata), ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _public_prepare_status(metadata: Mapping[str, Any]) -> dict[str, Any]:
+    stage = metadata.get("stage") if isinstance(metadata.get("stage"), Mapping) else None
+    public: dict[str, Any] = {
+        "ok": True,
+        "sessionId": _text(metadata.get("sessionId")),
+        "status": _text(metadata.get("status"), "pending"),
+        "progress": max(0, min(100, _number(metadata.get("progress")))),
+        "detail": _text(metadata.get("detail")),
+        "createdAt": _text(metadata.get("createdAt")),
+        "expiresAt": _text(metadata.get("expiresAt")),
+        "uploadId": _text(metadata.get("uploadId")),
+    }
+    if stage:
+        preview = dict(stage)
+        preview.pop("sourcePath", None)
+        public["preview"] = preview
+        public["stage"] = preview
+    errore = _text(metadata.get("errore"))
+    if errore:
+        public["errore"] = errore
+    return public
+
+
+def _verify_prepare_token(metadata: Mapping[str, Any], token: str) -> None:
+    expected = _text(metadata.get("tokenHash"))
+    if not expected or not hmac.compare_digest(expected, _prepare_token_hash(token)):
+        raise QuickOrganizerImportError("Sessione preparazione non autorizzata.")
+
+
+def begin_auto_prepare_session(
+    index_root: str | Path,
+    staging_root: str | Path,
+    *,
+    expires_hours: int = DEFAULT_AUTO_PREPARE_EXPIRES_HOURS,
+) -> dict[str, Any]:
+    session_id = uuid.uuid4().hex
+    token = secrets.token_urlsafe(32)
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    expires = now + timedelta(hours=max(1, int(expires_hours or DEFAULT_AUTO_PREPARE_EXPIRES_HOURS)))
+    staging = _safe_runtime_dir(staging_root, create=True)
+    metadata = {
+        "sessionId": session_id,
+        "tokenHash": _prepare_token_hash(token),
+        "stagingRoot": str(staging),
+        "status": "pending",
+        "progress": 0,
+        "detail": "Preparazione in attesa sulla postazione Studio Telematico.",
+        "createdAt": now.isoformat().replace("+00:00", "Z"),
+        "expiresAt": expires.isoformat().replace("+00:00", "Z"),
+        "uploadId": "",
+        "stage": None,
+    }
+    _prepare_session_dir(index_root, session_id, create=True)
+    _write_prepare_metadata(index_root, session_id, metadata)
+    public = _public_prepare_status(metadata)
+    public["token"] = token
+    return public
+
+
+def auto_prepare_status(index_root: str | Path, session_id: str) -> dict[str, Any]:
+    return _public_prepare_status(_read_prepare_metadata(index_root, session_id))
+
+
+def update_auto_prepare_status(
+    index_root: str | Path,
+    session_id: str,
+    token: str,
+    *,
+    status: str = "",
+    progress: int | float | None = None,
+    detail: str = "",
+    errore: str = "",
+) -> dict[str, Any]:
+    metadata = _read_prepare_metadata(index_root, session_id)
+    _verify_prepare_token(metadata, token)
+    allowed = {"pending", "preparing", "packing", "uploading", "checking", "ready", "error"}
+    status_value = _text(status, _text(metadata.get("status"), "pending")).lower()
+    if status_value not in allowed:
+        status_value = "preparing"
+    metadata["status"] = status_value
+    if progress is not None:
+        metadata["progress"] = max(0, min(100, int(float(progress))))
+    if detail:
+        metadata["detail"] = _text(detail)[:500]
+    if errore:
+        metadata["errore"] = _text(errore)[:500]
+    elif status_value != "error":
+        metadata.pop("errore", None)
+    metadata["updatedAt"] = _iso_now()
+    _write_prepare_metadata(index_root, session_id, metadata)
+    return _public_prepare_status(metadata)
+
+
+def start_auto_prepare_upload(
+    index_root: str | Path,
+    session_id: str,
+    token: str,
+    *,
+    filename: str,
+    total_size: int,
+    chunk_size: int = DEFAULT_CHUNK_UPLOAD_SIZE_BYTES,
+    max_size: int | None = None,
+) -> dict[str, Any]:
+    metadata = _read_prepare_metadata(index_root, session_id)
+    _verify_prepare_token(metadata, token)
+    staging_root = _text(metadata.get("stagingRoot"))
+    upload = begin_chunked_upload(
+        filename,
+        total_size,
+        staging_root,
+        chunk_size=chunk_size,
+        max_size=max_size,
+    )
+    metadata["status"] = "uploading"
+    metadata["progress"] = max(_number(metadata.get("progress")), 55)
+    metadata["detail"] = "Caricamento del pacchetto verso IUSENTRA in corso."
+    metadata["uploadId"] = upload.get("uploadId", "")
+    metadata["upload"] = upload
+    metadata["updatedAt"] = _iso_now()
+    _write_prepare_metadata(index_root, session_id, metadata)
+    return {"ok": True, **upload}
+
+
+def receive_auto_prepare_chunk(
+    index_root: str | Path,
+    session_id: str,
+    token: str,
+    upload_id: str,
+    index: int,
+    total_chunks: int,
+    file_storage: Any,
+) -> dict[str, Any]:
+    metadata = _read_prepare_metadata(index_root, session_id)
+    _verify_prepare_token(metadata, token)
+    if _text(metadata.get("uploadId")) != _safe_upload_id(upload_id):
+        raise QuickOrganizerImportError("Sessione caricamento non coerente.")
+    result = receive_chunked_upload(
+        _text(metadata.get("stagingRoot")),
+        upload_id,
+        index,
+        total_chunks,
+        file_storage,
+    )
+    total = max(1, int(result.get("totalChunks") or total_chunks or 1))
+    received = max(0, int(result.get("receivedChunks") or 0))
+    metadata["status"] = "uploading"
+    metadata["progress"] = min(94, 55 + int((received / total) * 38))
+    metadata["detail"] = f"Caricati {received} blocchi su {total}."
+    metadata["updatedAt"] = _iso_now()
+    _write_prepare_metadata(index_root, session_id, metadata)
+    return result
+
+
+def complete_auto_prepare_upload(
+    index_root: str | Path,
+    session_id: str,
+    token: str,
+    upload_id: str,
+    *,
+    total_chunks: int | None = None,
+) -> dict[str, Any]:
+    metadata = _read_prepare_metadata(index_root, session_id)
+    _verify_prepare_token(metadata, token)
+    if _text(metadata.get("uploadId")) != _safe_upload_id(upload_id):
+        raise QuickOrganizerImportError("Sessione caricamento non coerente.")
+    metadata["status"] = "checking"
+    metadata["progress"] = 96
+    metadata["detail"] = "Controllo del pacchetto caricato in corso."
+    metadata["updatedAt"] = _iso_now()
+    _write_prepare_metadata(index_root, session_id, metadata)
+    try:
+        stage = complete_chunked_upload(
+            _text(metadata.get("stagingRoot")),
+            upload_id,
+            total_chunks=total_chunks,
+        )
+    except QuickOrganizerImportError as exc:
+        update_auto_prepare_status(
+            index_root,
+            session_id,
+            token,
+            status="error",
+            progress=100,
+            detail=exc.public_message,
+            errore=exc.public_message,
+        )
+        raise
+    metadata = _read_prepare_metadata(index_root, session_id)
+    metadata["status"] = "ready"
+    metadata["progress"] = 100
+    metadata["detail"] = "Pacchetto controllato e pronto per l'import."
+    metadata["stage"] = stage
+    metadata["updatedAt"] = _iso_now()
+    _write_prepare_metadata(index_root, session_id, metadata)
+    return {"ok": True, **stage}
 
 
 def stage_referenced_package(source_path: str | Path, staging_root: str | Path) -> dict[str, Any]:

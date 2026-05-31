@@ -17,13 +17,19 @@ from web.services.quickorganizer_import import (
     QuickOrganizerImportError,
     analyze_quickorganizer_package,
     audit_quickorganizer_import,
+    auto_prepare_status,
+    begin_auto_prepare_session,
     begin_chunked_upload,
+    complete_auto_prepare_upload,
     complete_chunked_upload,
     import_quickorganizer_package,
     load_staged_package,
     load_quickorganizer_package,
+    receive_auto_prepare_chunk,
     receive_chunked_upload,
+    start_auto_prepare_upload,
     stage_referenced_package,
+    update_auto_prepare_status,
 )
 
 
@@ -462,6 +468,84 @@ def test_import_studio_telematico_upload_a_blocchi_ricompone_e_stagia(tmp_path: 
     assert package.source_path.name == "source.zip"
     assert loaded["sourceSha256"] == stage["sourceSha256"]
     assert not (stage_root / "_chunk_uploads" / session["uploadId"]).exists()
+
+
+def test_import_studio_telematico_preparazione_automatica_tokenizzata(tmp_path: Path):
+    index_root = tmp_path / "prepare-index"
+    staging_root = tmp_path / "staging"
+
+    started = begin_auto_prepare_session(index_root, staging_root)
+    token = started.pop("token")
+
+    assert started["ok"] is True
+    assert started["status"] == "pending"
+    assert "stagingRoot" not in json.dumps(started)
+    assert "tokenHash" not in json.dumps(started)
+
+    status = update_auto_prepare_status(
+        index_root,
+        started["sessionId"],
+        token,
+        status="preparing",
+        progress=25,
+        detail="Lettura archivio dati.",
+    )
+    assert status["status"] == "preparing"
+    assert status["progress"] == 25
+    assert auto_prepare_status(index_root, started["sessionId"])["detail"] == "Lettura archivio dati."
+
+    with pytest.raises(QuickOrganizerImportError):
+        update_auto_prepare_status(index_root, started["sessionId"], "token-sbagliato", status="ready")
+
+
+def test_import_studio_telematico_preparazione_automatica_carica_e_controlla_zip(tmp_path: Path):
+    source = _write_package(tmp_path / "IUSENTRA-StudioTelematico.zip")
+    payload = source.read_bytes()
+    index_root = tmp_path / "prepare-index"
+    staging_root = tmp_path / "staging"
+
+    started = begin_auto_prepare_session(index_root, staging_root)
+    token = started["token"]
+    session_id = started["sessionId"]
+    upload = start_auto_prepare_upload(
+        index_root,
+        session_id,
+        token,
+        filename=source.name,
+        total_size=len(payload),
+        chunk_size=97,
+        max_size=len(payload) + 1024,
+    )
+    total_chunks = int(upload["totalChunks"])
+    chunk_size = int(upload["chunkSizeBytes"])
+
+    for index in range(total_chunks):
+        chunk = payload[index * chunk_size : (index + 1) * chunk_size]
+        result = receive_auto_prepare_chunk(
+            index_root,
+            session_id,
+            token,
+            upload["uploadId"],
+            index,
+            total_chunks,
+            FileStorage(stream=io.BytesIO(chunk), filename=f"part-{index}.bin"),
+        )
+        assert result["ok"] is True
+
+    stage = complete_auto_prepare_upload(
+        index_root,
+        session_id,
+        token,
+        upload["uploadId"],
+        total_chunks=total_chunks,
+    )
+    status = auto_prepare_status(index_root, session_id)
+
+    assert stage["ok"] is True
+    assert stage["analysis"]["summary"]["matters"] == 1
+    assert status["status"] == "ready"
+    assert status["preview"]["importId"] == stage["importId"]
+    assert "sourcePath" not in status["preview"]
 
 
 def test_import_studio_telematico_upload_a_blocchi_preserva_sessione_se_staging_fallisce(

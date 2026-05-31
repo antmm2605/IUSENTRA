@@ -1,5 +1,15 @@
 # Pytest shard confermati OK
 
+## Preparazione assistita Studio Telematico 2.249.1 - 2026-05-31
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| Parser PowerShell su `web\static\tools\prepara_import_studio_telematico.ps1`; `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_studio_telematico_packager_exe.ps1` | OK | Preparatore locale con avanzamento e upload automatico tokenizzato valido; EXE pubblico rigenerato. |
+| `python -m py_compile web\services\quickorganizer_import.py web\blueprints\api_v1_react.py`; `python -m pytest tests\test_quickorganizer_import.py -q --tb=short` | OK | 14/14: import Studio Telematico, sessioni automatiche tokenizzate, upload a blocchi e anteprima pronta per import confermati. |
+| `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio test`; `pnpm --filter @iusentra/studio build` | OK | TypeScript, contratti React, gate App V2/UI coverage e build Vite confermati dopo la barra di preparazione automatica. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python -m pytest tests\test_openapi_contracts_phase6.py -q --tb=short` | OK | OpenAPI `2.249.1` allineato, provider verification `auth-error=224`, `success=27`, `backend-security=1`, contratti fase 6 `5/5`. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_build_dist.py::test_build_studio_telematico_packager_pubblica_exe_senza_ps1_primario -q --tb=short`; `python -m compileall -q pct web scripts`; `python -m pytest tests\test_utf8_integrity.py -q --tb=short` | OK | Packaging, dist preparatore, sintassi Python e presidio UTF-8 confermati. |
+
 ## Import Studio Telematico e contratti 2.248.96 - 2026-05-31
 
 | Comando / verifica | Esito | Nota |

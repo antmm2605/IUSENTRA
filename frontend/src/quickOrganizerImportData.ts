@@ -30,6 +30,7 @@ export type StudioTelematicoImportPage = {
     uploadStart: string
     uploadChunk: string
     uploadComplete: string
+    prepareStart?: string
     run: string
     helper: string
     fascicoli: string
@@ -91,6 +92,20 @@ export type StudioTelematicoPreview = {
   errore?: string
 }
 
+export type StudioTelematicoPrepareStatus = {
+  ok: boolean
+  sessionId: string
+  status: string
+  progress: number
+  detail: string
+  downloadUrl: string
+  statusUrl: string
+  expiresAt: string
+  canAutoUpload: boolean
+  preview: StudioTelematicoPreview | null
+  errore?: string
+}
+
 export type StudioTelematicoImportResult = {
   ok: boolean
   importId: string
@@ -136,6 +151,7 @@ export const emptyStudioTelematicoPage: StudioTelematicoImportPage = {
     uploadStart: '/api/v1/ui/import/quickorganizer/upload-session',
     uploadChunk: '/api/v1/ui/import/quickorganizer/upload-session/{uploadId}/chunk',
     uploadComplete: '/api/v1/ui/import/quickorganizer/upload-session/{uploadId}/completa',
+    prepareStart: '/api/v1/ui/import/quickorganizer/preparazione',
     run: '/api/v1/ui/import/quickorganizer/esegui',
     helper: '/static/tools/PreparaPacchettoStudioTelematico.exe',
     fascicoli: '/fascicoli',
@@ -305,15 +321,75 @@ async function jsonFromResponse(response: Response): Promise<Record<string, unkn
   return isRecord(raw) ? raw : {}
 }
 
-function normalisePreviewResponse(response: Response, record: Record<string, unknown>): StudioTelematicoPreview {
+function normalisePreviewRecord(record: Record<string, unknown>, responseOk: boolean): StudioTelematicoPreview {
   return {
-    ok: response.ok && boolValue(record.ok),
+    ok: responseOk && boolValue(record.ok),
     importId: stringValue(record.importId),
     sourceName: stringValue(record.sourceName),
     sourceSha256: stringValue(record.sourceSha256),
     createdAt: stringValue(record.createdAt),
     analysis: normaliseAnalysis(record.analysis),
     errore: stringValue(record.errore || record.message),
+  }
+}
+
+function normalisePreviewResponse(response: Response, record: Record<string, unknown>): StudioTelematicoPreview {
+  return normalisePreviewRecord(record, response.ok)
+}
+
+function normalisePrepareStatus(record: Record<string, unknown>): StudioTelematicoPrepareStatus {
+  const previewRecord = isRecord(record.preview) ? record.preview : isRecord(record.stage) ? record.stage : null
+  return {
+    ok: boolValue(record.ok),
+    sessionId: stringValue(record.sessionId),
+    status: stringValue(record.status, 'pending'),
+    progress: Math.max(0, Math.min(100, numberValue(record.progress))),
+    detail: stringValue(record.detail),
+    downloadUrl: stringValue(record.downloadUrl),
+    statusUrl: stringValue(record.statusUrl),
+    expiresAt: stringValue(record.expiresAt),
+    canAutoUpload: boolValue(record.canAutoUpload),
+    preview: previewRecord ? normalisePreviewRecord(previewRecord, true) : null,
+    errore: stringValue(record.errore || record.message),
+  }
+}
+
+export async function startStudioTelematicoAutoPrepare(endpoint: string): Promise<StudioTelematicoPrepareStatus> {
+  const response = await fetch(endpoint || emptyStudioTelematicoPage.actions.prepareStart || '', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...csrfHeader(),
+    },
+    body: JSON.stringify({}),
+  })
+  const raw = await jsonFromResponse(response)
+  const status = normalisePrepareStatus(raw)
+  return {
+    ...status,
+    ok: response.ok && status.ok,
+    errore: response.ok ? status.errore : status.errore || 'Preparazione pacchetto non avviata.',
+  }
+}
+
+export async function getStudioTelematicoAutoPrepareStatus(
+  statusUrl: string,
+  signal?: AbortSignal,
+): Promise<StudioTelematicoPrepareStatus> {
+  const response = await fetch(statusUrl, {
+    method: 'GET',
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' },
+    signal,
+  })
+  const raw = await jsonFromResponse(response)
+  const status = normalisePrepareStatus(raw)
+  return {
+    ...status,
+    ok: response.ok && status.ok,
+    errore: response.ok ? status.errore : status.errore || 'Stato preparazione non disponibile.',
   }
 }
 

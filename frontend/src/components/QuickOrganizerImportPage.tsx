@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
   BriefcaseBusiness,
@@ -22,12 +22,15 @@ import {
   emptyStudioTelematicoPage,
   emptyStudioTelematicoResult,
   formatImportNumber,
+  getStudioTelematicoAutoPrepareStatus,
   getStudioTelematicoImportPage,
   previewStudioTelematicoPackage,
   runStudioTelematicoImport,
+  startStudioTelematicoAutoPrepare,
   type StudioTelematicoAnalysis,
   type StudioTelematicoImportPage,
   type StudioTelematicoImportResult,
+  type StudioTelematicoPrepareStatus,
   type StudioTelematicoPreview,
 } from '../quickOrganizerImportData'
 import './QuickOrganizerImportPage.css'
@@ -58,6 +61,29 @@ function WorkProgressBar({ progress }: { progress: WorkProgress }) {
       <progress value={progress.value} max={100} />
     </div>
   )
+}
+
+function autoPrepareActive(status: string) {
+  return ['pending', 'preparing', 'packing', 'uploading', 'checking'].includes(status)
+}
+
+function autoPrepareLabel(status: string) {
+  switch (status) {
+    case 'preparing':
+      return 'Preparazione pacchetto'
+    case 'packing':
+      return 'Creazione pacchetto'
+    case 'uploading':
+      return 'Caricamento automatico'
+    case 'checking':
+      return 'Controllo pacchetto'
+    case 'ready':
+      return 'Pacchetto pronto'
+    case 'error':
+      return 'Preparazione interrotta'
+    default:
+      return 'Avvio preparazione'
+  }
 }
 
 function completenessTone(analysis: StudioTelematicoAnalysis) {
@@ -204,6 +230,8 @@ export function QuickOrganizerImportPage() {
   const [allowPartial, setAllowPartial] = useState(false)
   const [result, setResult] = useState<StudioTelematicoImportResult>(emptyStudioTelematicoResult)
   const [workProgress, setWorkProgress] = useState<WorkProgress>({ active: false, label: '', detail: '', value: 0 })
+  const [autoPrepare, setAutoPrepare] = useState<StudioTelematicoPrepareStatus | null>(null)
+  const autoImportStartedRef = useRef(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -218,17 +246,127 @@ export function QuickOrganizerImportPage() {
     return () => controller.abort()
   }, [])
 
+  useEffect(() => {
+    if (!autoPrepare?.statusUrl || !autoPrepareActive(autoPrepare.status)) return undefined
+    const controller = new AbortController()
+    const timer = window.setInterval(() => {
+      getStudioTelematicoAutoPrepareStatus(autoPrepare.statusUrl, controller.signal)
+        .then((status) => applyAutoPrepareStatus(status))
+        .catch(() => {
+          if (!controller.signal.aborted) {
+            setWorkProgress((current) => ({
+              ...current,
+              detail: 'Attendo aggiornamenti dalla postazione Studio Telematico.',
+            }))
+          }
+        })
+    }, 2500)
+    return () => {
+      controller.abort()
+      window.clearInterval(timer)
+    }
+  }, [autoPrepare?.status, autoPrepare?.statusUrl])
+
   const analysis = preview?.analysis || null
   const sourcePathValue = sourcePath.trim()
   const uploadConfig = data.upload || emptyStudioTelematicoPage.upload
   const chunkUploadAvailable = Boolean(data.actions.uploadStart && data.actions.uploadChunk && data.actions.uploadComplete)
   const largePackageSelected = Boolean(file && file.size > uploadConfig.directLimitBytes)
+  const autoPrepareRunning = Boolean(autoPrepare && autoPrepareActive(autoPrepare.status))
   const canRun = useMemo(() => {
     if (!data.permissions.canImport || !preview?.ok || importState === 'loading') return false
     return Boolean(preview.analysis.canImportComplete || allowPartial)
   }, [allowPartial, data.permissions.canImport, importState, preview])
 
+  function triggerAutoPrepareDownload(downloadUrl: string) {
+    if (!downloadUrl) return
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    link.download = 'AvviaImportStudioTelematico.cmd'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+  }
+
+  function applyAutoPrepareStatus(status: StudioTelematicoPrepareStatus) {
+    const merged = {
+      ...status,
+      statusUrl: status.statusUrl || autoPrepare?.statusUrl || '',
+      downloadUrl: status.downloadUrl || autoPrepare?.downloadUrl || '',
+    }
+    setAutoPrepare(merged)
+    const active = autoPrepareActive(merged.status)
+    setWorkProgress({
+      active,
+      label: autoPrepareLabel(merged.status),
+      detail: merged.errore || merged.detail || 'Preparazione pacchetto in corso.',
+      value: merged.progress || (active ? 10 : 100),
+    })
+    if (!merged.ok) {
+      setPreviewState('error')
+      setMessage(merged.errore || 'Preparazione pacchetto non disponibile.')
+      return
+    }
+    if (merged.status === 'error') {
+      setPreviewState('error')
+      setMessage(merged.errore || merged.detail || 'Preparazione pacchetto interrotta.')
+      return
+    }
+    if (merged.preview?.ok) {
+      setPreview(merged.preview)
+      setPreviewState('success')
+      setAllowPartial(false)
+      const warnings = merged.preview.analysis?.warnings ?? []
+      const hasWarnings = !merged.preview.analysis?.canImportComplete || warnings.length > 0
+      if (hasWarnings) {
+        setMessage(warnings[0]?.message || 'Pacchetto controllato con avvisi. Verifica il riepilogo prima di importare.')
+        return
+      }
+      setMessage('Pacchetto controllato. Avvio import definitivo automatico.')
+      if (!autoImportStartedRef.current) {
+        autoImportStartedRef.current = true
+        void handleImport(merged.preview.importId, false, true)
+      }
+    }
+  }
+
+  async function handleAutoPrepare() {
+    autoImportStartedRef.current = false
+    setAutoPrepare(null)
+    setFile(null)
+    setSourcePath('')
+    setPreview(null)
+    setResult(emptyStudioTelematicoResult)
+    setPreviewState('loading')
+    setImportState('idle')
+    setMessage('Preparazione pacchetto in avvio. La pagina seguirà preparazione, caricamento e controllo.')
+    setWorkProgress({
+      active: true,
+      label: 'Avvio preparazione',
+      detail: 'Creo una sessione sicura per la postazione Studio Telematico.',
+      value: 5,
+    })
+    const started = await startStudioTelematicoAutoPrepare(data.actions.prepareStart || '')
+    if (!started.ok) {
+      setAutoPrepare(started)
+      setPreviewState('error')
+      setWorkProgress({
+        active: false,
+        label: 'Preparazione non avviata',
+        detail: started.errore || 'Riprova dalla pagina import.',
+        value: 100,
+      })
+      setMessage(started.errore || 'Preparazione pacchetto non avviata.')
+      return
+    }
+    applyAutoPrepareStatus(started)
+    triggerAutoPrepareDownload(started.downloadUrl)
+    setMessage('Avviatore scaricato. Se Windows non lo apre subito, apri AvviaImportStudioTelematico.cmd dai download: la pagina continuerà da sola fino al controllo.')
+  }
+
   async function handlePreview() {
+    autoImportStartedRef.current = false
+    setAutoPrepare(null)
     if (!file && !sourcePathValue) {
       setMessage('Seleziona il pacchetto preparato sul PC del cliente oppure incolla il percorso del file.')
       return
@@ -305,17 +443,19 @@ export function QuickOrganizerImportPage() {
       : checked.errore || 'Controllo non completato. Verifica che il pacchetto sia lo ZIP preparato dalla postazione Studio Telematico completa.')
   }
 
-  async function handleImport() {
-    if (!preview?.importId) return
+  async function handleImport(importId = preview?.importId || '', allowPartialOverride = allowPartial, automatic = false) {
+    if (!importId) return
     setImportState('loading')
-    setMessage('Importazione in corso. Creo o aggiorno pratiche, clienti, parti, ATTI ed EMAILS senza duplicare i dati già presenti.')
+    setMessage(automatic
+      ? 'Pacchetto completo: import definitivo automatico in corso.'
+      : 'Importazione in corso. Creo o aggiorno pratiche, clienti, parti, ATTI ed EMAILS senza duplicare i dati già presenti.')
     setWorkProgress({
       active: true,
       label: 'Importazione pratiche',
       detail: 'Registro fascicoli, anagrafiche, documenti e messaggi',
       value: 55,
     })
-    const imported = await runStudioTelematicoImport(data.actions.run, preview.importId, allowPartial)
+    const imported = await runStudioTelematicoImport(data.actions.run, importId, allowPartialOverride)
     setResult(imported)
     setImportState(imported.ok ? 'success' : 'error')
     setWorkProgress({
@@ -333,10 +473,10 @@ export function QuickOrganizerImportPage() {
       subtitle={data.page.subtitle}
       actions={
         <>
-          <ButtonLink href={data.actions.helper} tone="neutral">
+          <Button type="button" tone="neutral" onClick={handleAutoPrepare} disabled={!data.permissions.canImport || autoPrepareRunning}>
             <Download size={15} />
-            Prepara pacchetto
-          </ButtonLink>
+            {autoPrepareRunning ? 'Preparazione in corso' : 'Prepara pacchetto'}
+          </Button>
           <ButtonLink href={data.actions.fascicoli} tone="primary">
             Fascicoli
           </ButtonLink>
@@ -369,6 +509,8 @@ export function QuickOrganizerImportPage() {
                   type="file"
                   accept={data.acceptedFiles}
                   onChange={(event) => {
+                    autoImportStartedRef.current = false
+                    setAutoPrepare(null)
                     setFile(event.currentTarget.files?.[0] || null)
                     setSourcePath('')
                     setPreview(null)
@@ -391,6 +533,8 @@ export function QuickOrganizerImportPage() {
                   value={sourcePath}
                   placeholder={'C:\\Users\\utente\\Downloads\\QuickOrganizer.zip'}
                   onChange={(event) => {
+                    autoImportStartedRef.current = false
+                    setAutoPrepare(null)
                     setSourcePath(event.currentTarget.value)
                     setFile(null)
                     setPreview(null)
@@ -439,7 +583,7 @@ export function QuickOrganizerImportPage() {
                       <span>Cartelle ATTI ed EMAILS risultano presenti nel pacchetto controllato.</span>
                     </div>
                   )}
-                  <Button type="button" onClick={handleImport} disabled={!canRun}>
+                  <Button type="button" onClick={() => handleImport()} disabled={!canRun}>
                     {importState === 'loading' ? <RefreshCw size={15} /> : <Play size={15} />}
                     {importState === 'loading' ? 'Import in corso' : 'Importa pratiche'}
                   </Button>

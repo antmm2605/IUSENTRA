@@ -1,6 +1,10 @@
 param(
     [string]$CartellaStudioTelematico = "C:\QuickOrganizer",
-    [string]$Destinazione = ""
+    [string]$Destinazione = "",
+    [string]$AutoUploadBaseUrl = "",
+    [string]$AutoUploadToken = "",
+    [string]$AutoSessionId = "",
+    [int]$AutoChunkSizeBytes = 67108864
 )
 
 $ErrorActionPreference = "Stop"
@@ -13,12 +17,147 @@ function Restart-InPowerShell32 {
     if ((Test-Path $ps32) -and [Environment]::Is64BitProcess) {
         $args = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $PSCommandPath, "-CartellaStudioTelematico", $CartellaStudioTelematico)
         if ($Destinazione) { $args += @("-Destinazione", $Destinazione) }
+        if ($AutoUploadBaseUrl) { $args += @("-AutoUploadBaseUrl", $AutoUploadBaseUrl) }
+        if ($AutoUploadToken) { $args += @("-AutoUploadToken", $AutoUploadToken) }
+        if ($AutoSessionId) { $args += @("-AutoSessionId", $AutoSessionId) }
+        if ($AutoChunkSizeBytes) { $args += @("-AutoChunkSizeBytes", $AutoChunkSizeBytes) }
         & $ps32 @args
         exit $LASTEXITCODE
     }
 }
 
 Restart-InPowerShell32
+
+function Test-IusentraAutoUpload {
+    return ([bool]$AutoUploadBaseUrl -and [bool]$AutoUploadToken)
+}
+
+function Get-IusentraAutoUrl {
+    param([string]$Path)
+    $base = $AutoUploadBaseUrl.TrimEnd("/")
+    return $base + $Path
+}
+
+function Get-IusentraAutoHeaders {
+    return @{ "X-IUSENTRA-Auto-Import-Token" = $AutoUploadToken }
+}
+
+function Send-IusentraStatus {
+    param(
+        [string]$Status,
+        [int]$Progress,
+        [string]$Detail,
+        [string]$Errore = ""
+    )
+    if (-not (Test-IusentraAutoUpload)) { return }
+    $body = [ordered]@{
+        status = $Status
+        progress = [Math]::Max(0, [Math]::Min(100, $Progress))
+        detail = $Detail
+    }
+    if ($Errore) { $body.errore = $Errore }
+    try {
+        Invoke-RestMethod `
+            -Method Post `
+            -Uri (Get-IusentraAutoUrl "/stato") `
+            -Headers (Get-IusentraAutoHeaders) `
+            -ContentType "application/json; charset=utf-8" `
+            -Body ($body | ConvertTo-Json -Depth 5) `
+            -UseBasicParsing | Out-Null
+    } catch {
+        Write-Warning "Aggiornamento stato IUSENTRA non riuscito: $($_.Exception.Message)"
+    }
+}
+
+function Invoke-IusentraAutoUpload {
+    param([string]$PackagePath)
+    if (-not (Test-IusentraAutoUpload)) { return }
+    if (-not (Test-Path -LiteralPath $PackagePath)) {
+        throw "Pacchetto da caricare non trovato: $PackagePath"
+    }
+
+    $fileInfo = Get-Item -LiteralPath $PackagePath
+    Send-IusentraStatus -Status "uploading" -Progress 55 -Detail "Caricamento pacchetto verso IUSENTRA in corso."
+    $startBody = [ordered]@{
+        filename = $fileInfo.Name
+        totalSize = [int64]$fileInfo.Length
+    }
+    $upload = Invoke-RestMethod `
+        -Method Post `
+        -Uri (Get-IusentraAutoUrl "/upload-session") `
+        -Headers (Get-IusentraAutoHeaders) `
+        -ContentType "application/json; charset=utf-8" `
+        -Body ($startBody | ConvertTo-Json -Depth 5) `
+        -UseBasicParsing
+
+    $uploadId = [string]$upload.uploadId
+    if (-not $uploadId) {
+        throw "Sessione di caricamento IUSENTRA non avviata."
+    }
+    $chunkSize = [int64]$AutoChunkSizeBytes
+    if ($upload.chunkSizeBytes) { $chunkSize = [int64]$upload.chunkSizeBytes }
+    if ($chunkSize -lt 1048576) { $chunkSize = 1048576 }
+    $totalChunks = [Math]::Max(1, [int][Math]::Ceiling($fileInfo.Length / [double]$chunkSize))
+    $buffer = New-Object byte[] ([Math]::Min(1048576, [int]$chunkSize))
+    $input = [System.IO.File]::Open($fileInfo.FullName, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::Read)
+    $chunkPath = ""
+    try {
+        for ($index = 0; $index -lt $totalChunks; $index++) {
+            $chunkPath = Join-Path $env:TEMP ("iusentra-import-" + [Guid]::NewGuid().ToString("N") + ".part")
+            $output = [System.IO.File]::Open($chunkPath, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+            try {
+                $remaining = $chunkSize
+                while ($remaining -gt 0) {
+                    $toRead = [Math]::Min($buffer.Length, $remaining)
+                    $read = $input.Read($buffer, 0, [int]$toRead)
+                    if ($read -le 0) { break }
+                    $output.Write($buffer, 0, $read)
+                    $remaining -= $read
+                }
+            } finally {
+                $output.Dispose()
+            }
+
+            $percent = [Math]::Min(94, 55 + [Math]::Floor((($index + 1) / $totalChunks) * 38))
+            Write-Progress -Activity "Caricamento pacchetto IUSENTRA" -Status "Blocco $($index + 1)/$totalChunks" -PercentComplete $percent
+            $chunkUrl = Get-IusentraAutoUrl ("/upload-session/" + $uploadId + "/chunk?index=" + $index + "&totalChunks=" + $totalChunks)
+            Invoke-WebRequest `
+                -Method Post `
+                -Uri $chunkUrl `
+                -Headers (Get-IusentraAutoHeaders) `
+                -InFile $chunkPath `
+                -ContentType "application/octet-stream" `
+                -UseBasicParsing | Out-Null
+            Remove-Item -LiteralPath $chunkPath -Force
+            $chunkPath = ""
+            Send-IusentraStatus -Status "uploading" -Progress $percent -Detail "Caricati $($index + 1) blocchi su $totalChunks."
+        }
+    } finally {
+        $input.Dispose()
+        if ($chunkPath -and (Test-Path -LiteralPath $chunkPath)) {
+            Remove-Item -LiteralPath $chunkPath -Force
+        }
+        Write-Progress -Activity "Caricamento pacchetto IUSENTRA" -Completed
+    }
+
+    Send-IusentraStatus -Status "checking" -Progress 96 -Detail "Controllo del pacchetto caricato in corso."
+    $completeBody = [ordered]@{ totalChunks = $totalChunks }
+    Invoke-RestMethod `
+        -Method Post `
+        -Uri (Get-IusentraAutoUrl ("/upload-session/" + $uploadId + "/completa")) `
+        -Headers (Get-IusentraAutoHeaders) `
+        -ContentType "application/json; charset=utf-8" `
+        -Body ($completeBody | ConvertTo-Json -Depth 5) `
+        -UseBasicParsing | Out-Null
+    Send-IusentraStatus -Status "ready" -Progress 100 -Detail "Pacchetto caricato e controllato in IUSENTRA."
+}
+
+trap {
+    $message = $_.Exception.Message
+    if (-not $message) { $message = [string]$_ }
+    Send-IusentraStatus -Status "error" -Progress 100 -Detail $message -Errore $message
+    throw
+}
 
 function Test-StudioTelematicoRoot {
     param([string]$Path)
@@ -89,6 +228,7 @@ function Select-StudioTelematicoRoot {
     throw "Seleziona una cartella che contenga QuickOrganizer.mdb, ATTI ed EMAILS."
 }
 
+Send-IusentraStatus -Status "preparing" -Progress 5 -Detail "Ricerca della cartella Studio Telematico in corso."
 $root = Select-StudioTelematicoRoot -InitialPath $CartellaStudioTelematico
 $mdb = Join-Path $root "QuickOrganizer.mdb"
 $atti = Join-Path $root "ATTI"
@@ -103,6 +243,7 @@ if (-not (Test-Path $atti)) {
 if (-not (Test-Path $emails)) {
     throw "Cartella EMAILS non trovata in $root"
 }
+Send-IusentraStatus -Status "preparing" -Progress 10 -Detail "Cartella Studio Telematico trovata. Lettura archivio dati in corso."
 
 if (-not $Destinazione) {
     $desktop = [Environment]::GetFolderPath("Desktop")
@@ -179,6 +320,7 @@ try {
 } finally {
     $conn.Close()
 }
+Send-IusentraStatus -Status "preparing" -Progress 28 -Detail "Archivio dati letto. Verifica collegamenti pratiche, clienti e parti."
 
 function Get-PayloadRows {
     param([string]$TableName)
@@ -278,6 +420,7 @@ $payload.validation = [ordered]@{
 if (-not $payload.validation.can_import_complete) {
     throw "Archivio dati Studio Telematico incompleto: PRATICHE, NOMI e TAVOLA devono essere presenti con i campi obbligatori. Nessun pacchetto parziale e' stato creato."
 }
+Send-IusentraStatus -Status "packing" -Progress 35 -Detail "Creazione pacchetto con quickorganizer-export.json, ATTI ed EMAILS."
 
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -337,8 +480,11 @@ $zipStream = [System.IO.File]::Open($Destinazione, [System.IO.FileMode]::CreateN
 $archive = New-Object System.IO.Compression.ZipArchive($zipStream, [System.IO.Compression.ZipArchiveMode]::Create, $false, [System.Text.Encoding]::UTF8)
 try {
     Write-Progress -Activity "Preparazione pacchetto IUSENTRA" -Status "Scrivo archivio dati" -PercentComplete 5
+    Send-IusentraStatus -Status "packing" -Progress 38 -Detail "Scrittura archivio dati nel pacchetto."
     Add-TextEntryToZip -Archive $archive -EntryName "quickorganizer-export.json" -Content $json
+    Send-IusentraStatus -Status "packing" -Progress 42 -Detail "Aggiunta documenti dalla cartella ATTI."
     Add-FolderToZip -Archive $archive -SourceFolder $atti -EntryRoot "ATTI"
+    Send-IusentraStatus -Status "packing" -Progress 50 -Detail "Aggiunta email dalla cartella EMAILS."
     Add-FolderToZip -Archive $archive -SourceFolder $emails -EntryRoot "EMAILS"
 } finally {
     $archive.Dispose()
@@ -347,3 +493,5 @@ try {
 }
 
 Write-Host "Pacchetto pronto: $Destinazione"
+Send-IusentraStatus -Status "packing" -Progress 54 -Detail "Pacchetto creato. Avvio caricamento automatico in IUSENTRA."
+Invoke-IusentraAutoUpload -PackagePath $Destinazione

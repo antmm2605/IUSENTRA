@@ -13,6 +13,9 @@
   ],
   "api": {
     "page": "/api/v1/ui/import/quickorganizer",
+    "prepareStart": "/api/v1/ui/import/quickorganizer/preparazione",
+    "prepareStatus": "/api/v1/ui/import/quickorganizer/preparazione/{session_id}",
+    "prepareUpload": "/api/v1/ui/import/quickorganizer/preparazione/{session_id}/upload-session",
     "preview": "/api/v1/ui/import/quickorganizer/anteprima",
     "run": "/api/v1/ui/import/quickorganizer/esegui"
   },

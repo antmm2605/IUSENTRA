@@ -12,6 +12,7 @@ import ipaddress
 import json
 import os
 import re
+import shutil
 from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
@@ -290,17 +291,23 @@ from web.services.react_telematico_bridge import (
 )
 from web.services.quickorganizer_import import (
     QuickOrganizerImportError,
+    auto_prepare_status,
     begin_chunked_upload,
+    begin_auto_prepare_session,
     cleanup_upload_temp,
+    complete_auto_prepare_upload,
     complete_chunked_upload,
     import_quickorganizer_package,
     load_staged_package,
     max_chunked_upload_bytes,
+    receive_auto_prepare_chunk,
     receive_chunked_upload,
     save_upload_to_temp,
     stage_referenced_package,
     stage_uploaded_package,
     staging_root_for_anchor,
+    start_auto_prepare_upload,
+    update_auto_prepare_status,
 )
 from web.services.react_timesheet_bridge import build_react_timesheet_payload
 from web.services.react_wizard_pro_bridge import (
@@ -877,6 +884,44 @@ def _studio_telematico_staging_root() -> Path:
     return staging_root_for_anchor(fascicoli_db)
 
 
+def _studio_telematico_prepare_root() -> Path:
+    data_root = (
+        current_app.config.get("DATA_DIR")
+        or current_app.config.get("PCT_DATA_ROOT")
+        or current_app.config.get("DATA_ROOT")
+        or os.getenv("IUSENTRA_DATA_DIR")
+        or "data"
+    )
+    return Path(str(data_root)) / "quickorganizer_auto_prepare"
+
+
+def _studio_telematico_public_token(body: Mapping[str, Any] | None = None) -> str:
+    payload = body or {}
+    return str(
+        request.args.get("token")
+        or request.headers.get("X-IUSENTRA-Auto-Import-Token")
+        or payload.get("token")
+        or ""
+    ).strip()
+
+
+def _studio_telematico_missing_token_response():
+    return jsonify({
+        "ok": False,
+        "errore": "Sessione preparazione non autorizzata.",
+        "codice": "preparazione_non_autorizzata",
+    }), 401
+
+
+class _RequestBodyStorage:
+    def __init__(self, stream: Any) -> None:
+        self._stream = stream
+
+    def save(self, target: str | Path) -> None:
+        with Path(target).open("wb") as output:
+            shutil.copyfileobj(self._stream, output, length=1024 * 1024)
+
+
 _STUDIO_TELEMATICO_DIRECT_UPLOAD_LIMIT_BYTES = 150 * 1024 * 1024
 _STUDIO_TELEMATICO_CHUNK_SIZE_BYTES = 64 * 1024 * 1024
 
@@ -923,6 +968,7 @@ def _studio_telematico_import_page(path: str = "/importa-pratiche-studio-telemat
             "uploadStart": "/api/v1/ui/import/quickorganizer/upload-session",
             "uploadChunk": "/api/v1/ui/import/quickorganizer/upload-session/{uploadId}/chunk",
             "uploadComplete": "/api/v1/ui/import/quickorganizer/upload-session/{uploadId}/completa",
+            "prepareStart": "/api/v1/ui/import/quickorganizer/preparazione",
             "run": "/api/v1/ui/import/quickorganizer/esegui",
             "helper": "/static/tools/PreparaPacchettoStudioTelematico.exe",
             "fascicoli": "/fascicoli",
@@ -3106,6 +3152,210 @@ def admin_database_react_payload():
 @_richiedi_auth
 def studio_telematico_import_react_payload():
     return jsonify(_studio_telematico_import_page(request.args.get("path", "/import/quickorganizer")))
+
+
+@api_v1_react.post("/import/quickorganizer/preparazione")
+@_richiedi_auth
+def studio_telematico_auto_prepare_start():
+    if not _puo_importare_studio_telematico():
+        return jsonify({"ok": False, "errore": "Profilo non autorizzato all'importazione pratiche.", "codice": 403}), 403
+    try:
+        session_payload = begin_auto_prepare_session(
+            _studio_telematico_prepare_root(),
+            _studio_telematico_staging_root(),
+        )
+        token = str(session_payload.pop("token"))
+        session_id = str(session_payload.get("sessionId") or "")
+        session_payload["downloadUrl"] = url_for(
+            "api_v1_react.studio_telematico_auto_prepare_launcher",
+            session_id=session_id,
+            token=token,
+            _external=True,
+        )
+        session_payload["statusUrl"] = url_for(
+            "api_v1_react.studio_telematico_auto_prepare_status",
+            session_id=session_id,
+            _external=True,
+        )
+        session_payload["canAutoUpload"] = True
+        _audit_event(
+            "studio_telematico.preparazione_avviata",
+            "import_pratiche",
+            session_id,
+            "Avviata preparazione assistita pacchetto Studio Telematico.",
+        )
+        return jsonify(session_payload)
+    except QuickOrganizerImportError as exc:
+        return jsonify({"ok": False, "errore": exc.public_message, "codice": "preparazione_non_avviata"}), 400
+
+
+@api_v1_react.get("/import/quickorganizer/preparazione/<session_id>")
+@_richiedi_auth
+def studio_telematico_auto_prepare_status(session_id: str):
+    if not _puo_importare_studio_telematico():
+        return jsonify({"ok": False, "errore": "Profilo non autorizzato all'importazione pratiche.", "codice": 403}), 403
+    try:
+        return jsonify(auto_prepare_status(_studio_telematico_prepare_root(), session_id))
+    except QuickOrganizerImportError as exc:
+        return jsonify({"ok": False, "errore": exc.public_message, "codice": "preparazione_non_trovata"}), 404
+
+
+@api_v1_react.get("/import/quickorganizer/preparazione/<session_id>/avviatore.cmd")
+@_richiedi_auth
+def studio_telematico_auto_prepare_launcher(session_id: str):
+    if not _puo_importare_studio_telematico():
+        return jsonify({"ok": False, "errore": "Profilo non autorizzato all'importazione pratiche.", "codice": 403}), 403
+    token = _studio_telematico_public_token()
+    try:
+        update_auto_prepare_status(
+            _studio_telematico_prepare_root(),
+            session_id,
+            token,
+            status="pending",
+            progress=0,
+            detail="Avviatore scaricato: apri il file per preparare e caricare il pacchetto.",
+        )
+    except QuickOrganizerImportError as exc:
+        return jsonify({"ok": False, "errore": exc.public_message, "codice": "preparazione_non_autorizzata"}), 403
+
+    base_url = url_for(
+        "api_v1_react.studio_telematico_auto_prepare_public_status",
+        session_id=session_id,
+        _external=True,
+    ).rsplit("/stato", 1)[0]
+    helper_url = f"{request.url_root.rstrip('/')}/static/tools/prepara_import_studio_telematico.ps1"
+    script = "\r\n".join(
+        [
+            "@echo off",
+            "setlocal",
+            f"set \"SCRIPT_URL={helper_url}\"",
+            f"set \"SESSION_ID={session_id}\"",
+            f"set \"BASE_URL={base_url}\"",
+            f"set \"TOKEN={token}\"",
+            "set \"TARGET=%TEMP%\\iusentra-prepara-studio-telematico-%SESSION_ID%.ps1\"",
+            (
+                "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "
+                "\"Invoke-WebRequest -Uri '%SCRIPT_URL%' -OutFile '%TARGET%' -UseBasicParsing\""
+            ),
+            "if errorlevel 1 exit /b %ERRORLEVEL%",
+            (
+                "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"%TARGET%\" "
+                "-AutoUploadBaseUrl \"%BASE_URL%\" -AutoUploadToken \"%TOKEN%\" -AutoSessionId \"%SESSION_ID%\""
+            ),
+            "exit /b %ERRORLEVEL%",
+            "",
+        ]
+    )
+    response = current_app.response_class(script, mimetype="text/plain; charset=utf-8")
+    response.headers["Content-Disposition"] = 'attachment; filename="AvviaImportStudioTelematico.cmd"'
+    return response
+
+
+@api_v1_react.post("/import/quickorganizer/preparazione/<session_id>/stato")
+def studio_telematico_auto_prepare_public_status(session_id: str):
+    body = _request_payload()
+    token = _studio_telematico_public_token(body)
+    if not token:
+        return _studio_telematico_missing_token_response()
+    try:
+        return jsonify(update_auto_prepare_status(
+            _studio_telematico_prepare_root(),
+            session_id,
+            token,
+            status=str(body.get("status") or body.get("stato") or ""),
+            progress=body.get("progress") or body.get("percentuale"),
+            detail=str(body.get("detail") or body.get("dettaglio") or ""),
+            errore=str(body.get("errore") or body.get("error") or ""),
+        ))
+    except QuickOrganizerImportError as exc:
+        return jsonify({"ok": False, "errore": exc.public_message, "codice": "preparazione_non_autorizzata"}), 403
+
+
+@api_v1_react.post("/import/quickorganizer/preparazione/<session_id>/upload-session")
+def studio_telematico_auto_prepare_upload_session(session_id: str):
+    body = _request_payload()
+    token = _studio_telematico_public_token(body)
+    if not token:
+        return _studio_telematico_missing_token_response()
+    try:
+        upload = start_auto_prepare_upload(
+            _studio_telematico_prepare_root(),
+            session_id,
+            token,
+            filename=str(body.get("filename") or body.get("name") or "pacchetto.zip"),
+            total_size=int(body.get("totalSize") or body.get("size") or 0),
+            chunk_size=_STUDIO_TELEMATICO_CHUNK_SIZE_BYTES,
+            max_size=max_chunked_upload_bytes(),
+        )
+        return jsonify(upload)
+    except QuickOrganizerImportError as exc:
+        return jsonify({"ok": False, "errore": exc.public_message, "codice": "upload_non_valido"}), 400
+    except ValueError:
+        return jsonify({"ok": False, "errore": "Dimensione pacchetto non valida.", "codice": "upload_non_valido"}), 400
+
+
+@api_v1_react.post("/import/quickorganizer/preparazione/<session_id>/upload-session/<upload_id>/chunk")
+def studio_telematico_auto_prepare_upload_chunk(session_id: str, upload_id: str):
+    token = _studio_telematico_public_token()
+    if not token:
+        return _studio_telematico_missing_token_response()
+    uploaded = request.files.get("chunk") or request.files.get("file") or _RequestBodyStorage(request.stream)
+    try:
+        index = int(request.form.get("index") or request.args.get("index") or 0)
+        total_chunks = int(request.form.get("totalChunks") or request.args.get("totalChunks") or 0)
+        return jsonify(receive_auto_prepare_chunk(
+            _studio_telematico_prepare_root(),
+            session_id,
+            token,
+            upload_id,
+            index,
+            total_chunks,
+            uploaded,
+        ))
+    except QuickOrganizerImportError as exc:
+        return jsonify({"ok": False, "errore": exc.public_message, "codice": "upload_non_valido"}), 400
+    except ValueError:
+        return jsonify({"ok": False, "errore": "Indice del blocco non valido.", "codice": "upload_non_valido"}), 400
+
+
+@api_v1_react.post("/import/quickorganizer/preparazione/<session_id>/upload-session/<upload_id>/completa")
+def studio_telematico_auto_prepare_upload_complete(session_id: str, upload_id: str):
+    body = _request_payload()
+    token = _studio_telematico_public_token(body)
+    if not token:
+        return _studio_telematico_missing_token_response()
+    try:
+        total_chunks = body.get("totalChunks") or request.args.get("totalChunks")
+        stage = complete_auto_prepare_upload(
+            _studio_telematico_prepare_root(),
+            session_id,
+            token,
+            upload_id,
+            total_chunks=int(total_chunks) if total_chunks not in (None, "") else None,
+        )
+    except QuickOrganizerImportError as exc:
+        return jsonify({"ok": False, "errore": exc.public_message, "codice": "import_non_valido"}), 400
+    except Exception as exc:  # noqa: BLE001 - archivi cliente possono contenere dati non coerenti
+        current_app.logger.exception("Completamento preparazione Studio Telematico non riuscito: %s", exc)
+        update_auto_prepare_status(
+            _studio_telematico_prepare_root(),
+            session_id,
+            token,
+            status="error",
+            progress=100,
+            detail="Il pacchetto non è leggibile. Verifica di aver incluso pratiche, ATTI ed EMAILS.",
+            errore="Il pacchetto non è leggibile. Verifica di aver incluso pratiche, ATTI ed EMAILS.",
+        )
+        return jsonify({"ok": False, "errore": "Il pacchetto non è leggibile. Verifica di aver incluso pratiche, ATTI ed EMAILS."}), 400
+
+    summary = stage.get("analysis", {}).get("summary", {}) if isinstance(stage.get("analysis"), dict) else {}
+    _audit_event(
+        "studio_telematico.import_anteprima",
+        "import_pratiche",
+        str(stage.get("importId") or ""),
+        f"Controllate {summary.get('matters', 0)} pratiche da Studio Telematico.",
+    )
+    return jsonify(stage)
 
 
 @api_v1_react.post("/import/quickorganizer/upload-session")

@@ -473,11 +473,8 @@ def register_deposito_routes(
             return jsonify(
                 {
                     "ok": True,
-                    "demo": modalita_demo,
-                    "id_deposito": id_dep,
-                    "pec_dest": nome_commissione,
-                    "tipo_atto": tipo_atto,
-                    "timestamp": timestamp,
+                    "demo": bool(modalita_demo),
+                    "messaggio": "Deposito registrato nello studio.",
                     "validation": {"ok": True, "blockers": 0, "warnings": 0, "issues": []},
                 }
             )

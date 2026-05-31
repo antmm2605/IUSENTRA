@@ -55,18 +55,18 @@
             <div class="small mt-1">Master key unica per installazione, chiavi derivate separate per database, documenti, backup e token locali.</div>
           </div>
           <div class="admin-surface-item">
-            <div class="small text-muted">Master key fingerprint</div>
-            <div class="fw-semibold font-monospace text-break">{{ payload.installation.master_key_fingerprint }}</div>
+            <div class="small text-muted">Archivio chiavi macchina</div>
+            <div class="fw-semibold font-monospace text-break">{{ payload.installation.master_key_path }}</div>
           </div>
           <div class="admin-surface-item">
             <div class="small text-muted">Root sistema</div>
             <div class="fw-semibold font-monospace text-break">{{ payload.installation.system_root }}</div>
           </div>
           <div class="admin-surface-item">
-            <div class="small text-muted">Chiavi derivate</div>
+            <div class="small text-muted">Chiavi locali governate</div>
             <ul class="mb-0 small">
               {% for item in payload.installation.derived_keys %}
-              <li><span class="fw-semibold">{{ item.purpose }}</span> · <span class="font-monospace">{{ item.fingerprint[:18] }}…</span></li>
+              <li><span class="fw-semibold">{{ item.purpose }}</span> - <span class="font-monospace">{{ item.path }}</span></li>
               {% endfor %}
             </ul>
           </div>

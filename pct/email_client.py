@@ -1477,10 +1477,7 @@ class GestioneEmailRicevute:
             _logout_quietly(mail)
 
         except Exception as e:
-            if self._imap_exception_is_timeout(e):
-                risultato["errore"] = describe_imap_connection_error(e, timeout_seconds=timeout_s)
-            else:
-                risultato["errore"] = str(e)
+            risultato["errore"] = describe_imap_connection_error(e, timeout_seconds=timeout_s)
             try:
                 self._salva()
             except Exception:

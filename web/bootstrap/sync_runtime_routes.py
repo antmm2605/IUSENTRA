@@ -195,7 +195,7 @@ def register_sync_runtime_routes(
             if pst_in_attesa and not auto_summary["non_abbinati"]:
                 msg = f"{msg} PEC PST ancora da verificare: {pst_in_attesa}."
             if sync_errore:
-                msg = f"{msg} Sincronizzazione IMAP non completata."
+                msg = "Sincronizzazione PEC non completata. Verifica la configurazione e riprova."
 
             audit("pec.poll_cancelleria", dettagli=str(report))
             app.logger.info(

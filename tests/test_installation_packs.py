@@ -57,6 +57,9 @@ def test_bootstrap_pack_governance_crea_manifest_macchina_e_studio(tmp_path: Pat
     assert result.installation["installation_id"]
     assert result.product_pack["version"] == __version__
     assert result.update_pack["to_version"] == __version__
+    assert "master_key_fingerprint" not in result.installation
+    assert "signing_key_fingerprint" not in result.installation
+    assert all("fingerprint" not in item for item in result.installation["derived_keys"])
     assert (system_root / "product" / "manifests" / "product_pack.json").exists()
     assert (system_root / "updates" / "current_update_pack.json").exists()
     assert (studio_root / "config" / "studio_local_pack.json").exists()

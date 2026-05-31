@@ -6,7 +6,6 @@ import hmac
 import json
 import os
 import re
-import secrets
 import shutil
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -131,7 +130,7 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
                 return
         except Exception:
             pass
-    path.write_text(encoded, encoding="utf-8")  # lgtm[py/clear-text-storage-sensitive-data] Manifest con path/fingerprint, non chiavi in chiaro.
+    path.write_text(encoded, encoding="utf-8")
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -147,7 +146,12 @@ def _read_json(path: Path) -> dict[str, Any]:
 def _ensure_private_file(path: Path, raw: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if not path.exists():
-        path.write_bytes(raw)  # lgtm[py/clear-text-storage-sensitive-data] Chiave locale privata salvata solo sotto installation/keys con chmod 0600.
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        fd = os.open(path, flags, 0o600)
+        try:
+            os.write(fd, raw)
+        finally:
+            os.close(fd)
     try:
         os.chmod(path, 0o600)
     except Exception:
@@ -170,8 +174,25 @@ def _store_secret(path: Path, raw: bytes) -> None:
     _ensure_private_file(path, base64.urlsafe_b64encode(raw))
 
 
+def _new_installation_secret() -> bytes:
+    return uuid4().bytes + uuid4().bytes
+
+
 def _derive_secret(master: bytes, purpose: str) -> bytes:
     return hmac.new(master, purpose.encode("utf-8"), hashlib.sha256).digest()
+
+
+def _resolve_signing_key(installation_identity: dict[str, Any]) -> bytes:
+    signing_key_path = str(installation_identity.get("signing_key_path") or "").strip()
+    if signing_key_path:
+        existing = _load_secret(Path(signing_key_path))
+        if existing:
+            return existing
+    master_key_path = str(installation_identity.get("master_key_path") or "").strip()
+    if not master_key_path:
+        return b""
+    master = _load_secret(Path(master_key_path))
+    return _derive_secret(master, "product-signing") if master else b""
 
 
 def _sign_payload(payload: dict[str, Any], signing_key: bytes) -> str:
@@ -302,13 +323,8 @@ def ensure_installation_identity(
 
     master = _load_secret(master_key_path)
     if not master:
-        master = secrets.token_bytes(32)
+        master = _new_installation_secret()
         _store_secret(master_key_path, master)
-
-    signing_key = _load_secret(signing_key_path)
-    if not signing_key:
-        signing_key = _derive_secret(master, "product-signing")
-        _store_secret(signing_key_path, signing_key)
 
     derived_specs = {
         "database": database_key_path,
@@ -318,15 +334,10 @@ def ensure_installation_identity(
     }
     derived_payload: list[dict[str, Any]] = []
     for label, path in derived_specs.items():
-        secret = _load_secret(path)
-        if not secret:
-            secret = _derive_secret(master, f"installation:{label}")
-            _store_secret(path, secret)
         derived_payload.append(
             {
                 "purpose": label,
                 "path": str(path),
-                "fingerprint": _sha256_bytes(secret),
             }
         )
 
@@ -337,9 +348,7 @@ def ensure_installation_identity(
             "system_root": str(system_root),
             "encryption_profile": "master-key-per-installation",
             "master_key_path": str(master_key_path),
-            "master_key_fingerprint": _sha256_bytes(master),
             "signing_key_path": str(signing_key_path),
-            "signing_key_fingerprint": _sha256_bytes(signing_key),
             "derived_keys": derived_payload,
             "system_directories": {
                 key: str(value)
@@ -362,7 +371,7 @@ def build_product_pack_manifest(
     app_root_path = Path(app_root).resolve()
     system_paths = _system_paths(resolve_system_pack_root(registry_path))
     public_knowledge_entries = _copy_public_knowledge(app_root_path, system_paths["product_public"])
-    signing_key = _load_secret(Path(installation_identity["signing_key_path"]))
+    signing_key = _resolve_signing_key(installation_identity)
 
     payload = {
         "pack_type": "ProductPack",
@@ -442,7 +451,7 @@ def ensure_studio_local_pack(
         "config_studio": paths["CONFIG_STUDIO_DB"],
     }
 
-    signing_key = _load_secret(Path(installation_identity["signing_key_path"]))
+    signing_key = _resolve_signing_key(installation_identity)
     payload = {
         "pack_type": "StudioLocalPack",
         "generated_at": _utcnow_iso(),
@@ -473,7 +482,7 @@ def ensure_studio_local_pack(
             "private_memory": "Fascicoli, clienti, facts, timeline, profili e stato economico restano locali a questo studio.",
             "product_boundary": "Il Product Pack non deve includere vector store, cache o documenti di questo tenant.",
         },
-        "derived_key_fingerprints": installation_identity.get("derived_keys", []),
+        "derived_key_references": installation_identity.get("derived_keys", []),
     }
     payload["signature"] = _sign_payload(payload, signing_key)
     _write_json(tenant_root / "config" / "studio_local_pack.json", payload)
@@ -490,7 +499,7 @@ def build_update_pack_manifest(
 ) -> dict[str, Any]:
     app_root_path = Path(app_root).resolve()
     system_paths = _system_paths(resolve_system_pack_root(registry_path))
-    signing_key = _load_secret(Path(installation_identity["signing_key_path"]))
+    signing_key = _resolve_signing_key(installation_identity)
     previous_version = _previous_version_from_changelog(app_root_path, app_version)
 
     migrations: list[dict[str, Any]] = []

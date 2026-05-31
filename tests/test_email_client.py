@@ -2620,7 +2620,6 @@ def test_api_pec_poll_cancelleria_espone_duplicati_e_warning_sync_pubblico(tmp_p
     assert data["warning"] is True
     assert data["sync_errore"] == "Sincronizzazione IMAP non completata."
     assert data["report"]["duplicati"] == 1
-    assert "già present" in data["messaggio"]
     assert data["messaggio"] == "Sincronizzazione PEC non completata. Verifica la configurazione e riprova."
 
 

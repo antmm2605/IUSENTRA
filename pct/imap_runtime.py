@@ -71,14 +71,11 @@ def imap_breaker_snapshot() -> dict[str, Any]:
 
 def describe_imap_connection_error(exc: Exception, *, timeout_seconds: int) -> str:
     if isinstance(exc, CircuitBreakerOpenError):
-        return str(exc)
-    message = str(exc or "").strip()
-    lowered = message.lower()
+        return "Connessione IMAP temporaneamente sospesa dopo errori ripetuti. Verifica server PEC o rete e riprova."
+    lowered = str(exc or "").lower()
     if isinstance(exc, (socket.timeout, TimeoutError)) or "timed out" in lowered or "timeout" in lowered:
         return (
             f"Connessione IMAP non completata entro {timeout_seconds} secondi. "
             "Verifica server PEC, rete o credenziali e riprova."
         )
-    if message:
-        return f"Connessione IMAP fallita: {message}"
-    return "Connessione IMAP fallita."
+    return "Connessione IMAP non completata. Verifica server PEC, rete o credenziali e riprova."

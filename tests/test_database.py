@@ -550,7 +550,8 @@ def test_migra_verso_sqlite_migra_moduli_json_estesi(tmp_path):
     assert risultato.riuscita is True
     assert risultato.record_migrati["email_ordinaria"] == 2
     assert risultato.record_migrati["calendar_sync"] == 1
-    assert risultato.record_migrati["moduli_json_records"] == 8
+    assert risultato.record_migrati["soggetti"] == 1
+    assert risultato.record_migrati["moduli_json_records"] == 7
 
     conn = sqlite3.connect(dest)
     rows = dict(
@@ -576,9 +577,12 @@ def test_migra_verso_sqlite_migra_moduli_json_estesi(tmp_path):
         """,
         ("email_ordinaria",),
     ).fetchone()
+    soggetti_count = conn.execute("SELECT COUNT(*) FROM soggetti").fetchone()
     conn.close()
 
     assert rows["email_ordinaria"] == 2
+    assert "soggetti" not in rows
+    assert soggetti_count[0] == 1
     assert rows["template_atti_prefs"] == 1
     assert json.loads(email_meta[0])["root_type"] == "list"
     assert json.loads(email_meta[0])["record_entries"] == 2

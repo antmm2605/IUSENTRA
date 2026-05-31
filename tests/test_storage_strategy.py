@@ -1698,7 +1698,7 @@ def test_carica_tenant_non_bootstrappa_sulle_risorse_statiche(tmp_path: Path, mo
     assert counters == {"legacy": 0, "reconcile": 0}
 
 
-def test_carica_tenant_bootstrappa_una_sola_volta_per_tenant(tmp_path: Path, monkeypatch):
+def test_carica_tenant_bootstrappa_una_sola_volta_senza_riconciliazione_pesante(tmp_path: Path, monkeypatch):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})
     tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
@@ -1737,7 +1737,7 @@ def test_carica_tenant_bootstrappa_una_sola_volta_per_tenant(tmp_path: Path, mon
 
     assert first.status_code == 200
     assert second.status_code == 200
-    assert counters == {"legacy": 1, "reconcile": 1}
+    assert counters == {"legacy": 1, "reconcile": 0}
     assert state["legacy_bootstrap_completed"] is True
     assert state["storage_reconciled"] is True
     assert state["module_bootstrap_completed"] is True

@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import base64
 import hashlib
 import json
-import os
 import re
 import shutil
 from dataclasses import dataclass
@@ -12,6 +10,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from pct.installation_secrets import ensure_installation_local_key
 from pct.tenant import GestioneTenant, StudioLegale
 
 
@@ -140,47 +139,6 @@ def _read_json(path: Path) -> dict[str, Any]:
     except Exception:
         return {}
     return payload if isinstance(payload, dict) else {}
-
-
-def _ensure_private_file(path: Path, raw: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not path.exists():
-        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
-        fd = os.open(path, flags, 0o600)
-        try:
-            os.write(fd, raw)
-        finally:
-            os.close(fd)
-    try:
-        os.chmod(path, 0o600)
-    except Exception:
-        pass
-
-
-def _load_secret(path: Path) -> bytes:
-    if not path.exists():
-        return b""
-    raw = path.read_bytes().strip()
-    if not raw:
-        return b""
-    try:
-        return base64.urlsafe_b64decode(raw)
-    except Exception:
-        return raw
-
-
-def _store_secret(path: Path, raw: bytes) -> None:
-    _ensure_private_file(path, base64.urlsafe_b64encode(raw))
-
-
-def _new_installation_secret() -> bytes:
-    return uuid4().bytes + uuid4().bytes
-
-
-def _ensure_installation_secret_file(path: Path) -> None:
-    if _load_secret(path):
-        return
-    _store_secret(path, _new_installation_secret())
 
 
 def _manifest_hash_payload(payload: dict[str, Any]) -> str:
@@ -326,7 +284,7 @@ def ensure_installation_identity(
             "superadmin_scope": "Il SUPERADMIN installa, aggiorna e governa Product Pack, Update Pack e bootstrap macchina.",
         }
 
-    _ensure_installation_secret_file(master_key_path)
+    ensure_installation_local_key(master_key_path)
 
     derived_specs = {
         "database": database_key_path,

@@ -5,6 +5,7 @@
 - Corretto l'import Studio Telematico: i documenti e le email usano come nome visibile il titolo presente nelle tabelle `TESTI`/`EMAILS`, conservando il file originale solo come sorgente fisica e metadato.
 - Estesi i test dell'import su clienti, soggetti e parti processuali, verificando cliente principale, anagrafiche importate e ruoli `ASSISTITO`/`CONTROPARTE`.
 - Bonificati i manifest Installation Pack e la risposta PEC pubblica per non esporre path di materiale protetto o dettagli runtime non necessari ai gate CodeQL.
+- Separato il bootstrap della chiave locale degli Installation Pack dai manifest JSON pubblici, così CodeQL non vede più il writer dei manifest come deposito potenziale di segreti.
 - Sostituita la firma HMAC persistita nei manifest Installation Pack con hash pubblico `manifest_hash_sha256`, mantenendo il riferimento di integrità senza serializzare dati derivati da segreti.
 
 ## 2.248.95 - 2026-05-31

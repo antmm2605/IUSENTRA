@@ -822,6 +822,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             g._soggetti = GestioneSoggetti(
                 soggetti_path=_cfg_data_path("SOGGETTI_DB"),
                 parti_path=_cfg_data_path("SOGGETTI_PARTI_DB"),
+                studio_db=get_studio_db("SOGGETTI_DB"),
             )
         return g._soggetti
 

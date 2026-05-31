@@ -33,8 +33,28 @@ def _tenant_repositories(tenant_root: Path) -> tuple[GestioneFascicoli, Gestione
     soggetti = GestioneSoggetti(
         str(tenant_root / "soggetti" / "anagrafica.json"),
         str(tenant_root / "soggetti" / "parti.json"),
+        studio_db=studio_db,
     )
     return fascicoli, clienti, soggetti
+
+
+def _storage_counts(tenant_root: Path) -> dict[str, Any]:
+    studio_db_path = tenant_root / "studio.db"
+    output: dict[str, Any] = {
+        "studioDbExists": studio_db_path.exists(),
+        "studioDbPath": str(studio_db_path),
+        "tables": {},
+    }
+    if not studio_db_path.exists():
+        return output
+    studio_db = StudioDB.get(str(studio_db_path))
+    for table in ("clienti", "fascicoli", "soggetti", "soggetti_parti"):
+        try:
+            row = studio_db.conn.execute(f"SELECT COUNT(*) AS n FROM {table}").fetchone()
+            output["tables"][table] = int(row["n"] if isinstance(row, dict) else row[0])
+        except Exception:
+            output["tables"][table] = None
+    return output
 
 
 def _counts(tenant_root: Path) -> dict[str, int]:
@@ -69,6 +89,7 @@ def main(argv: list[str] | None = None) -> int:
         "importId": args.import_id,
         "sourceName": stage.get("sourceName", ""),
         "stageSummary": (stage.get("analysis") or {}).get("summary", {}),
+        "storage": _storage_counts(tenant_root),
         "before": _counts(tenant_root),
     }
 
@@ -90,6 +111,7 @@ def main(argv: list[str] | None = None) -> int:
         soggetti=soggetti,
     )
     output["after"] = _counts(tenant_root)
+    output["storage"] = _storage_counts(tenant_root)
     output["audit"] = audit
     output["ok"] = bool(audit.get("ok"))
     print(json.dumps(output, ensure_ascii=False, indent=2))

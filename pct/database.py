@@ -17,6 +17,7 @@ import json
 import shutil
 import sqlite3
 import time
+import uuid
 import zipfile
 from dataclasses import dataclass, field, asdict
 from datetime import date, datetime
@@ -191,6 +192,41 @@ CREATE INDEX IF NOT EXISTS idx_fascicoli_stato    ON fascicoli(stato);
 CREATE INDEX IF NOT EXISTS idx_fascicoli_cliente  ON fascicoli(id_cliente);
 CREATE INDEX IF NOT EXISTS idx_fascicoli_numero   ON fascicoli(numero);
 CREATE INDEX IF NOT EXISTS idx_fascicoli_avv      ON fascicoli(avvocato_referente);
+
+-- ---- Soggetti e parti processuali
+CREATE TABLE IF NOT EXISTS soggetti (
+    id              TEXT PRIMARY KEY,
+    tipo            TEXT NOT NULL DEFAULT 'PERSONA_FISICA',
+    nome            TEXT,
+    cognome         TEXT,
+    ragione_sociale TEXT,
+    codice_fiscale  TEXT,
+    partita_iva     TEXT,
+    qualifica       TEXT,
+    id_cliente      TEXT REFERENCES clienti(id) ON DELETE SET NULL,
+    email           TEXT,
+    telefono        TEXT,
+    creato_il       TEXT,
+    modificato_il   TEXT,
+    dati_json       TEXT DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_soggetti_tipo     ON soggetti(tipo);
+CREATE INDEX IF NOT EXISTS idx_soggetti_cliente  ON soggetti(id_cliente);
+CREATE INDEX IF NOT EXISTS idx_soggetti_cf       ON soggetti(codice_fiscale);
+CREATE INDEX IF NOT EXISTS idx_soggetti_nome     ON soggetti(cognome, nome, ragione_sociale);
+
+CREATE TABLE IF NOT EXISTS soggetti_parti (
+    id             TEXT PRIMARY KEY,
+    id_fascicolo   TEXT REFERENCES fascicoli(id) ON DELETE CASCADE,
+    id_soggetto    TEXT REFERENCES soggetti(id) ON DELETE CASCADE,
+    ruolo          TEXT NOT NULL DEFAULT 'ALTRO',
+    note           TEXT,
+    data_aggiunta  TEXT,
+    dati_json      TEXT DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_soggetti_parti_fascicolo ON soggetti_parti(id_fascicolo);
+CREATE INDEX IF NOT EXISTS idx_soggetti_parti_soggetto  ON soggetti_parti(id_soggetto);
+CREATE INDEX IF NOT EXISTS idx_soggetti_parti_ruolo     ON soggetti_parti(ruolo);
 
 -- ---- Appuntamenti
 CREATE TABLE IF NOT EXISTS appuntamenti (
@@ -620,6 +656,7 @@ class GestioneDatabase:
         "clienti", "fascicoli", "appuntamenti", "scadenze",
         "timesheet", "time_tracking", "preventivi", "conferimenti", "fatturazione",
         "pagamenti_links", "pagamenti_config", "messaggi", "utenti",
+        "soggetti", "soggetti_parti",
         "audit", "privacy", "notifiche", "backup",
     }
 
@@ -637,6 +674,8 @@ class GestioneDatabase:
         "pagamenti_config": ("payment_config", "config_id"),
         "messaggi": ("messaggi", "id"),
         "utenti": ("utenti", "id"),
+        "soggetti": ("soggetti", "id"),
+        "soggetti_parti": ("soggetti_parti", "id"),
         "audit": ("audit_log", "id"),
         "privacy": ("privacy_trattamenti", "id"),
         "notifiche": ("notifiche_log", "id"),
@@ -650,6 +689,7 @@ class GestioneDatabase:
         "clienti", "fascicoli", "appuntamenti", "scadenze",
         "timesheet", "time_tracking", "preventivi", "conferimenti",
         "fatturazione", "pagamenti_links", "messaggi", "utenti",
+        "soggetti", "soggetti_parti",
         "privacy", "backup",
     }
 
@@ -769,6 +809,39 @@ class GestioneDatabase:
         return [("__root__", 0, type(raw).__name__, raw)]
 
     @classmethod
+    def _soggetti_parti_entries(cls, raw: Any) -> List[Tuple[str, int, str, dict]]:
+        """Flatten del formato storico {id_fascicolo: [parti]} in righe SQL."""
+        rows: List[Tuple[str, int, str, dict]] = []
+        if raw is None:
+            return rows
+        candidates: list[tuple[str, Any]] = []
+        if isinstance(raw, dict):
+            for key, value in raw.items():
+                if isinstance(value, list):
+                    candidates.extend((str(key) if key != "parti" else "", item) for item in value)
+                elif isinstance(value, dict):
+                    candidates.append((str(key), value))
+        elif isinstance(raw, list):
+            candidates.extend(("", item) for item in raw)
+        for index, (id_fascicolo, value) in enumerate(candidates):
+            if not isinstance(value, dict):
+                continue
+            payload = dict(value)
+            if id_fascicolo and not payload.get("id_fascicolo"):
+                payload["id_fascicolo"] = id_fascicolo
+            payload.setdefault("id_fascicolo", "")
+            record_id = str(payload.get("id") or "").strip()
+            if not record_id:
+                stable = "|".join(
+                    str(payload.get(field) or "")
+                    for field in ("id_fascicolo", "id_soggetto", "ruolo", "data_aggiunta")
+                )
+                record_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"iusentra:soggetti_parti:{stable}:{index}"))[:12]
+                payload["id"] = record_id
+            rows.append((record_id, index, "dict", payload))
+        return rows
+
+    @classmethod
     def _json_record_payload(cls, value: Any) -> str:
         if isinstance(value, (dict, list)):
             return cls._payload_json(value)
@@ -816,6 +889,11 @@ class GestioneDatabase:
     def _source_payloads_for_module(cls, chiave: str, raw: Any) -> Dict[str, str]:
         if chiave == "pagamenti_config":
             return {"default": cls._canonical_payload(raw)} if raw else {}
+        if chiave == "soggetti_parti":
+            return {
+                record_key: cls._canonical_payload(payload)
+                for record_key, _record_index, _record_kind, payload in cls._soggetti_parti_entries(raw)
+            }
         payloads: Dict[str, str] = {}
         for record_key, _record_index, _record_kind, payload in cls._json_record_entries(raw):
             identity = cls._source_record_identity(chiave, record_key, payload)
@@ -829,6 +907,8 @@ class GestioneDatabase:
     def _source_summary_for_module(cls, chiave: str, raw: Any) -> Dict[str, Any]:
         if chiave == "pagamenti_config":
             count = 1 if raw else 0
+        elif chiave == "soggetti_parti":
+            count = len(cls._soggetti_parti_entries(raw))
         else:
             count = len(cls._json_record_entries(raw))
         payloads = cls._source_payloads_for_module(chiave, raw)
@@ -2423,6 +2503,89 @@ class GestioneDatabase:
                     except Exception as e:
                         errori.append(f"fascicoli/{f.get('id','?')}: {e}")
                 migrati["fascicoli"] = f_count
+
+            # ---- Soggetti
+            soggetti_raw, err = self._leggi_json("soggetti")
+            if err:
+                errori.append(f"soggetti: {err}")
+            else:
+                sg_count = 0
+                for soggetto in soggetti_raw:
+                    try:
+                        rec = soggetto.get("recapiti") if isinstance(soggetto.get("recapiti"), dict) else {}
+                        id_cliente = soggetto.get("id_cliente") or None
+                        if id_cliente and id_cliente not in id_clienti_migrati:
+                            avvisi.append(
+                                f"soggetti/{soggetto.get('id','?')}: cliente {id_cliente!r} non trovato, riferimento scollegato in migrazione"
+                            )
+                            id_cliente = None
+                        conn.execute(
+                            """
+                            INSERT OR REPLACE INTO soggetti
+                            (id, tipo, nome, cognome, ragione_sociale, codice_fiscale,
+                             partita_iva, qualifica, id_cliente, email, telefono,
+                             creato_il, modificato_il, dati_json)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                            """,
+                            (
+                                soggetto.get("id"),
+                                soggetto.get("tipo", "PERSONA_FISICA"),
+                                soggetto.get("nome", ""),
+                                soggetto.get("cognome", ""),
+                                soggetto.get("ragione_sociale", ""),
+                                soggetto.get("codice_fiscale", ""),
+                                soggetto.get("partita_iva", ""),
+                                soggetto.get("qualifica", ""),
+                                id_cliente,
+                                rec.get("email", "") if isinstance(rec, dict) else "",
+                                (
+                                    rec.get("telefono", "") or rec.get("cellulare", "")
+                                    if isinstance(rec, dict)
+                                    else ""
+                                ),
+                                soggetto.get("creato_il", ""),
+                                soggetto.get("modificato_il", ""),
+                                json.dumps(soggetto, ensure_ascii=False),
+                            ),
+                        )
+                        sg_count += 1
+                    except Exception as ex:
+                        errori.append(f"soggetti/{soggetto.get('id','?')}: {ex}")
+                migrati["soggetti"] = sg_count
+
+            soggetti_parti_raw, err = self._leggi_json_grezzo("soggetti_parti")
+            if err:
+                errori.append(f"soggetti_parti: {err}")
+            else:
+                sp_count = 0
+                for record_key, _index, _kind, parte in self._soggetti_parti_entries(soggetti_parti_raw):
+                    try:
+                        id_fascicolo = parte.get("id_fascicolo") or None
+                        if id_fascicolo and id_fascicolo not in id_fascicoli_migrati:
+                            avvisi.append(
+                                f"soggetti_parti/{record_key}: fascicolo {id_fascicolo!r} non trovato, riferimento scollegato in migrazione"
+                            )
+                            id_fascicolo = None
+                        conn.execute(
+                            """
+                            INSERT OR REPLACE INTO soggetti_parti
+                            (id, id_fascicolo, id_soggetto, ruolo, note, data_aggiunta, dati_json)
+                            VALUES (?,?,?,?,?,?,?)
+                            """,
+                            (
+                                parte.get("id") or record_key,
+                                id_fascicolo,
+                                parte.get("id_soggetto") or None,
+                                parte.get("ruolo", "ALTRO"),
+                                parte.get("note", ""),
+                                parte.get("data_aggiunta", ""),
+                                json.dumps({**parte, "id_fascicolo": id_fascicolo or parte.get("id_fascicolo", "")}, ensure_ascii=False),
+                            ),
+                        )
+                        sp_count += 1
+                    except Exception as ex:
+                        errori.append(f"soggetti_parti/{record_key}: {ex}")
+                migrati["soggetti_parti"] = sp_count
 
             # ---- Appuntamenti
             app_raw, err = self._leggi_json("appuntamenti")

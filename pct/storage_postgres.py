@@ -84,6 +84,33 @@ CREATE TABLE IF NOT EXISTS fascicoli (
     dati_json TEXT DEFAULT '{}'
 );
 
+CREATE TABLE IF NOT EXISTS soggetti (
+    id TEXT PRIMARY KEY,
+    tipo TEXT NOT NULL DEFAULT 'PERSONA_FISICA',
+    nome TEXT,
+    cognome TEXT,
+    ragione_sociale TEXT,
+    codice_fiscale TEXT,
+    partita_iva TEXT,
+    qualifica TEXT,
+    id_cliente TEXT REFERENCES clienti(id) ON DELETE SET NULL,
+    email TEXT,
+    telefono TEXT,
+    creato_il TEXT,
+    modificato_il TEXT,
+    dati_json TEXT DEFAULT '{}'
+);
+
+CREATE TABLE IF NOT EXISTS soggetti_parti (
+    id TEXT PRIMARY KEY,
+    id_fascicolo TEXT REFERENCES fascicoli(id) ON DELETE CASCADE,
+    id_soggetto TEXT REFERENCES soggetti(id) ON DELETE CASCADE,
+    ruolo TEXT NOT NULL DEFAULT 'ALTRO',
+    note TEXT,
+    data_aggiunta TEXT,
+    dati_json TEXT DEFAULT '{}'
+);
+
 CREATE TABLE IF NOT EXISTS appuntamenti (
     id TEXT PRIMARY KEY,
     tipo TEXT NOT NULL DEFAULT 'CONSULTAZIONE',
@@ -306,6 +333,10 @@ CREATE TABLE IF NOT EXISTS moduli_json_records (
 CREATE INDEX IF NOT EXISTS idx_clienti_cf ON clienti(codice_fiscale);
 CREATE INDEX IF NOT EXISTS idx_fascicoli_cliente ON fascicoli(id_cliente);
 CREATE INDEX IF NOT EXISTS idx_fascicoli_stato ON fascicoli(stato);
+CREATE INDEX IF NOT EXISTS idx_soggetti_cliente ON soggetti(id_cliente);
+CREATE INDEX IF NOT EXISTS idx_soggetti_cf ON soggetti(codice_fiscale);
+CREATE INDEX IF NOT EXISTS idx_soggetti_parti_fascicolo ON soggetti_parti(id_fascicolo);
+CREATE INDEX IF NOT EXISTS idx_soggetti_parti_soggetto ON soggetti_parti(id_soggetto);
 CREATE INDEX IF NOT EXISTS idx_appuntamenti_data ON appuntamenti(data_ora);
 CREATE INDEX IF NOT EXISTS idx_scadenze_data ON scadenze(data_scadenza);
 CREATE INDEX IF NOT EXISTS idx_scadenze_fascicolo ON scadenze(id_fascicolo);
@@ -370,6 +401,31 @@ CORE_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "attivita_json",
         "documenti_json",
         "scadenze_json",
+        "dati_json",
+    ),
+    "soggetti": (
+        "id",
+        "tipo",
+        "nome",
+        "cognome",
+        "ragione_sociale",
+        "codice_fiscale",
+        "partita_iva",
+        "qualifica",
+        "id_cliente",
+        "email",
+        "telefono",
+        "creato_il",
+        "modificato_il",
+        "dati_json",
+    ),
+    "soggetti_parti": (
+        "id",
+        "id_fascicolo",
+        "id_soggetto",
+        "ruolo",
+        "note",
+        "data_aggiunta",
         "dati_json",
     ),
     "appuntamenti": (

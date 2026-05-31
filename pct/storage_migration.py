@@ -23,6 +23,8 @@ from pct.timesheet import GestioneTimesheet
 _CORE_TABLES = {
     "clienti": "clienti",
     "fascicoli": "fascicoli",
+    "soggetti": "soggetti",
+    "soggetti_parti": "soggetti_parti",
     "appuntamenti": "appuntamenti",
     "scadenze": "scadenze",
     "timesheet": "timesheet_entries",
@@ -126,6 +128,65 @@ def _copy_clienti(sqlite_backend, target_backend) -> None:
         )
 
     target_backend.salva_tabella("clienti", list(rows), _insert)
+
+
+def _copy_soggetti(sqlite_backend, target_backend) -> None:
+    rows = sqlite_backend.conn.execute("SELECT * FROM soggetti").fetchall()
+
+    def _insert(conn, row):
+        raw = _row_dict(row)
+        conn.execute(
+            """
+            INSERT INTO soggetti
+            (id, tipo, nome, cognome, ragione_sociale, codice_fiscale,
+             partita_iva, qualifica, id_cliente, email, telefono,
+             creato_il, modificato_il, dati_json)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                raw.get("id", ""),
+                raw.get("tipo", "PERSONA_FISICA"),
+                raw.get("nome", ""),
+                raw.get("cognome", ""),
+                raw.get("ragione_sociale", ""),
+                raw.get("codice_fiscale", ""),
+                raw.get("partita_iva", ""),
+                raw.get("qualifica", ""),
+                raw.get("id_cliente"),
+                raw.get("email", ""),
+                raw.get("telefono", ""),
+                raw.get("creato_il", ""),
+                raw.get("modificato_il", ""),
+                raw.get("dati_json", "{}"),
+            ),
+        )
+
+    target_backend.salva_tabella("soggetti", list(rows), _insert)
+
+
+def _copy_soggetti_parti(sqlite_backend, target_backend) -> None:
+    rows = sqlite_backend.conn.execute("SELECT * FROM soggetti_parti").fetchall()
+
+    def _insert(conn, row):
+        raw = _row_dict(row)
+        conn.execute(
+            """
+            INSERT INTO soggetti_parti
+            (id, id_fascicolo, id_soggetto, ruolo, note, data_aggiunta, dati_json)
+            VALUES (?,?,?,?,?,?,?)
+            """,
+            (
+                raw.get("id", ""),
+                raw.get("id_fascicolo"),
+                raw.get("id_soggetto"),
+                raw.get("ruolo", "ALTRO"),
+                raw.get("note", ""),
+                raw.get("data_aggiunta", ""),
+                raw.get("dati_json", "{}"),
+            ),
+        )
+
+    target_backend.salva_tabella("soggetti_parti", list(rows), _insert)
 
 
 def _copy_appuntamenti(sqlite_backend, target_backend) -> None:
@@ -460,6 +521,9 @@ def _copy_core_state_to_target(
     )
     fascicoli_dst._fascicoli = {fascicolo.id: fascicolo for fascicolo in fascicoli_src.tutti(archiviati=True)}
     fascicoli_dst._salva()
+
+    _copy_soggetti(sqlite_backend, target_backend)
+    _copy_soggetti_parti(sqlite_backend, target_backend)
 
     _copy_appuntamenti(sqlite_backend, target_backend)
     _copy_scadenze(sqlite_backend, target_backend)

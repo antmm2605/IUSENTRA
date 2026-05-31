@@ -84,6 +84,19 @@ Ogni pratica conserva `source_external_id = quickorganizer:<numero pratica>`, co
 
 Per i pacchetti preparati in `quickorganizer-export.json`, la pratica può non esporre `TitolareID`. In quel caso IUSENTRA risolve il cliente principale dalla tabella ponte `TAVOLA`, scegliendo il nominativo collegato con `NOMI.CONTROLLO = CLI` o `OWN`; tutti i nominativi `CLI` vengono importati anche nella rubrica clienti e restano parti `ASSISTITO` del fascicolo. Gli altri ruoli vengono mantenuti come parti processuali. Se una pratica non ha alcun collegamento `CLI`, viene creata una scheda cliente di recupero dalla pratica e l'audit finale la evidenzia, senza bloccare la conservazione del fascicolo.
 
+## Persistenza SQL quando configurata
+
+Se lo studio è configurato in SQLite o PostgreSQL, l'import non deve scrivere i dati core nei JSON. Prima dell'esecuzione viene verificato il runtime dei domini `clienti`, `fascicoli` e `soggetti`: se il profilo è SQL ma il backend strutturato non è disponibile, l'import viene bloccato con errore operativo e non viene avviato alcun fallback invisibile a JSON.
+
+In modalità SQL i dati importati finiscono nelle tabelle strutturate:
+
+- `clienti`;
+- `fascicoli`;
+- `soggetti`;
+- `soggetti_parti`.
+
+Il test di regressione `test_import_studio_telematico_sqlite_scrive_tabelle_core_senza_json` verifica che l'import Studio Telematico popoli realmente queste tabelle e non crei `clienti/anagrafica.json`, `fascicoli/fascicoli.json`, `soggetti/anagrafica.json` o `soggetti/parti.json`.
+
 ## Controlli prima della scrittura
 
 L'anteprima mostra:

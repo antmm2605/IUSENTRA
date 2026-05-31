@@ -65,6 +65,7 @@ AREA_RULES = (
     ("/clienti", "Clienti", "sessione/API tenant-aware", "P1", "anagrafiche e cartelle"),
     ("/soggetti", "Soggetti e parti", "sessione/API tenant-aware", "P1", "anagrafiche parti"),
     ("/privacy", "Registro GDPR", "sessione/API tenant-aware", "P1", "trattamenti e audit privacy"),
+    ("/import/quickorganizer", "Import Studio Telematico", "admin.configura oppure fascicoli.scrivi+clienti.scrivi", "P2", "pacchetti import, file documentali e staging tenant-aware"),
     ("/template-atti", "Template atti", "sessione/API tenant-aware", "P1", "modelli e compilazione"),
     ("/redazione-atti", "Redazione atti", "sessione/API tenant-aware", "P1", "produzione documenti"),
     ("/legal-intelligence", "Ricerca legale", "sessione/API tenant-aware", "P1", "fonti e cronologia ricerca"),
@@ -172,6 +173,25 @@ def classify(path: str) -> tuple[str, str, str, str]:
     return "API React operativa", "sessione/API tenant-aware", "P2", "payload applicativo tenant-aware"
 
 
+def presidi_for_endpoint(row: Endpoint) -> list[str]:
+    if row.path.startswith("/import/quickorganizer/preparazione/<session_id>/") and row.method == "POST":
+        return [
+            "token preparazione",
+            "digest server-side",
+            "staging tenant-aware",
+            "guardrail fase 5",
+        ]
+    presidi = [
+        "auth" if row.auth else "auth mancante",
+        "tenant-aware",
+        "RBAC dominio",
+        "guardrail fase 5",
+    ]
+    if row.path.startswith("/import/quickorganizer"):
+        presidi.insert(3, "audit import")
+    return presidi
+
+
 def _manifest_summary() -> tuple[int, int, int]:
     payload = json.loads(MANIFEST.read_text(encoding="utf-8"))
     routes = [row for row in payload.get("routes", []) if isinstance(row, dict)]
@@ -246,12 +266,7 @@ def render(report_date: str | None = None) -> str:
     )
     for row in rows:
         area, permission, priority, data = classify(row.path)
-        presidi = [
-            "auth" if row.auth else "auth mancante",
-            "tenant-aware",
-            "RBAC dominio",
-            "guardrail fase 5",
-        ]
+        presidi = presidi_for_endpoint(row)
         lines.append(
             f"| `{row.method}` | `{row.full_path}` | {area} | {priority} | `{permission}` | {data} | {', '.join(presidi)} |"
         )

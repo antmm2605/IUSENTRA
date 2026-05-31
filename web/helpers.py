@@ -223,6 +223,7 @@ def get_soggetti() -> GestioneSoggetti:
     return GestioneSoggetti(
         soggetti_path=_cfg("SOGGETTI_DB"),
         parti_path=_cfg("SOGGETTI_PARTI_DB"),
+        studio_db=_studio_db("SOGGETTI_DB"),
     )
 
 

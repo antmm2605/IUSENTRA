@@ -319,10 +319,12 @@ from web.services.studio_site_runtime import site_admin_identity_or_403
 from web.services.feature_flags import feature_disabled_response, feature_flags_payload, is_feature_enabled
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
 from web.services.tenant_api_auth import api_key_valid_for_request
+from web.services.storage_runtime import get_request_storage_runtime, get_request_studio_db
 from web.services.backend_security import (
     backend_control_violations_for_request,
     backend_security_error_response,
 )
+from pct.tenant import DbMode
 from web.helpers import (
     get_agenda,
     get_calendar_sync,
@@ -884,6 +886,59 @@ def _studio_telematico_staging_root() -> Path:
     return staging_root_for_anchor(fascicoli_db)
 
 
+def _studio_telematico_storage_guard() -> dict[str, Any]:
+    domains = (
+        ("CLIENTI_DB", "clienti"),
+        ("FASCICOLI_DB", "fascicoli"),
+        ("SOGGETTI_DB", "soggetti"),
+    )
+    checked: list[dict[str, Any]] = []
+    for config_key, label in domains:
+        anchor = _tenant_cfg_value(config_key, "")
+        if not anchor:
+            continue
+        profile = get_request_storage_runtime(anchor)
+        selected_mode = str(profile.selected_mode or "").upper()
+        if selected_mode not in {DbMode.SQLITE, DbMode.POSTGRESQL, DbMode.MYSQL}:
+            checked.append(
+                {
+                    "domain": label,
+                    "selected": selected_mode or DbMode.JSON,
+                    "effective": str(profile.effective_mode or DbMode.JSON).upper(),
+                    "backend": "json",
+                }
+            )
+            continue
+        try:
+            backend = get_request_studio_db(anchor)
+        except Exception as exc:
+            current_app.logger.exception("Backend SQL non disponibile per import Studio Telematico: %s", exc)
+            raise QuickOrganizerImportError(
+                f"Import bloccato: lo studio è configurato per {selected_mode}, "
+                f"ma il database SQL non è disponibile per {label}. Nessun dato viene scritto nei JSON."
+            ) from exc
+        effective_profile = get_request_storage_runtime(anchor)
+        effective_mode = str(effective_profile.effective_mode or "").upper()
+        if backend is None or effective_mode not in {DbMode.SQLITE, DbMode.POSTGRESQL}:
+            raise QuickOrganizerImportError(
+                f"Import bloccato: {label} è configurato per {selected_mode}, "
+                "ma il runtime sta ricadendo su JSON. Attiva o migra prima il database SQL dello studio."
+            )
+        checked.append(
+            {
+                "domain": label,
+                "selected": selected_mode,
+                "effective": effective_mode,
+                "backend": str(getattr(backend, "backend_kind", "sqlite") or "sqlite"),
+                "studioDbPath": str(getattr(effective_profile, "studio_db_path", "") or ""),
+            }
+        )
+    return {
+        "guard": "sql-runtime-required-when-configured",
+        "domains": checked,
+    }
+
+
 def _studio_telematico_prepare_root() -> Path:
     data_root = (
         current_app.config.get("DATA_DIR")
@@ -911,6 +966,20 @@ def _studio_telematico_missing_token_response():
         "errore": "Sessione preparazione non autorizzata.",
         "codice": "preparazione_non_autorizzata",
     }), 401
+
+
+def _richiedi_auth_studio_telematico_token(func: Callable[..., Any]) -> Callable[..., Any]:
+    @wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        body = _request_payload() if request.is_json else {}
+        token = _studio_telematico_public_token(body if isinstance(body, Mapping) else None)
+        if not token:
+            return _studio_telematico_missing_token_response()
+        g.studio_telematico_auto_prepare_token = token
+        g.studio_telematico_auto_prepare_body = body if isinstance(body, Mapping) else {}
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
 class _RequestBodyStorage:
@@ -3252,11 +3321,10 @@ def studio_telematico_auto_prepare_launcher(session_id: str):
 
 
 @api_v1_react.post("/import/quickorganizer/preparazione/<session_id>/stato")
+@_richiedi_auth_studio_telematico_token
 def studio_telematico_auto_prepare_public_status(session_id: str):
-    body = _request_payload()
-    token = _studio_telematico_public_token(body)
-    if not token:
-        return _studio_telematico_missing_token_response()
+    body = getattr(g, "studio_telematico_auto_prepare_body", {}) or {}
+    token = str(getattr(g, "studio_telematico_auto_prepare_token", ""))
     try:
         return jsonify(update_auto_prepare_status(
             _studio_telematico_prepare_root(),
@@ -3272,11 +3340,10 @@ def studio_telematico_auto_prepare_public_status(session_id: str):
 
 
 @api_v1_react.post("/import/quickorganizer/preparazione/<session_id>/upload-session")
+@_richiedi_auth_studio_telematico_token
 def studio_telematico_auto_prepare_upload_session(session_id: str):
-    body = _request_payload()
-    token = _studio_telematico_public_token(body)
-    if not token:
-        return _studio_telematico_missing_token_response()
+    body = getattr(g, "studio_telematico_auto_prepare_body", {}) or {}
+    token = str(getattr(g, "studio_telematico_auto_prepare_token", ""))
     try:
         upload = start_auto_prepare_upload(
             _studio_telematico_prepare_root(),
@@ -3295,10 +3362,9 @@ def studio_telematico_auto_prepare_upload_session(session_id: str):
 
 
 @api_v1_react.post("/import/quickorganizer/preparazione/<session_id>/upload-session/<upload_id>/chunk")
+@_richiedi_auth_studio_telematico_token
 def studio_telematico_auto_prepare_upload_chunk(session_id: str, upload_id: str):
-    token = _studio_telematico_public_token()
-    if not token:
-        return _studio_telematico_missing_token_response()
+    token = str(getattr(g, "studio_telematico_auto_prepare_token", ""))
     uploaded = request.files.get("chunk") or request.files.get("file") or _RequestBodyStorage(request.stream)
     try:
         index = int(request.form.get("index") or request.args.get("index") or 0)
@@ -3319,11 +3385,10 @@ def studio_telematico_auto_prepare_upload_chunk(session_id: str, upload_id: str)
 
 
 @api_v1_react.post("/import/quickorganizer/preparazione/<session_id>/upload-session/<upload_id>/completa")
+@_richiedi_auth_studio_telematico_token
 def studio_telematico_auto_prepare_upload_complete(session_id: str, upload_id: str):
-    body = _request_payload()
-    token = _studio_telematico_public_token(body)
-    if not token:
-        return _studio_telematico_missing_token_response()
+    body = getattr(g, "studio_telematico_auto_prepare_body", {}) or {}
+    token = str(getattr(g, "studio_telematico_auto_prepare_token", ""))
     try:
         total_chunks = body.get("totalChunks") or request.args.get("totalChunks")
         stage = complete_auto_prepare_upload(
@@ -3505,6 +3570,7 @@ def studio_telematico_import_run():
         return jsonify({"ok": False, "errore": "Anteprima non trovata. Carica di nuovo il pacchetto."}), 400
 
     try:
+        storage_guard = _studio_telematico_storage_guard()
         package, stage = load_staged_package(_studio_telematico_staging_root(), import_id)
         result = import_quickorganizer_package(
             package,
@@ -3535,6 +3601,7 @@ def studio_telematico_import_run():
         "ok": True,
         "importId": import_id,
         "sourceName": stage.get("sourceName", ""),
+        "storage": storage_guard,
         **result,
     })
 

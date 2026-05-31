@@ -18,7 +18,7 @@ import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pct.clienti import Indirizzo, Recapiti
 
@@ -225,16 +225,44 @@ class ParteProcessuale:
 class GestioneSoggetti:
     """CRUD per soggetti e parti processuali."""
 
-    def __init__(self, soggetti_path: str, parti_path: str):
+    def __init__(self, soggetti_path: str, parti_path: str, studio_db=None):
         self.soggetti_path = soggetti_path
         self.parti_path    = parti_path
+        self._studio_db = studio_db
         self._soggetti: Optional[List[Soggetto]] = None
         self._parti:    Optional[Dict[str, list]] = None
+
+    @staticmethod
+    def _recapiti_payload(payload: dict[str, Any]) -> dict[str, Any]:
+        recapiti = payload.get("recapiti")
+        return recapiti if isinstance(recapiti, dict) else {}
+
+    @staticmethod
+    def _parte_sql_payload(id_fascicolo: str, parte: dict[str, Any] | ParteProcessuale) -> dict[str, Any]:
+        payload = parte.to_dict() if isinstance(parte, ParteProcessuale) else dict(parte or {})
+        payload["id_fascicolo"] = str(id_fascicolo or payload.get("id_fascicolo") or "")
+        if not payload.get("id"):
+            stable = "|".join(
+                str(payload.get(field) or "")
+                for field in ("id_fascicolo", "id_soggetto", "ruolo", "data_aggiunta")
+            )
+            payload["id"] = str(uuid.uuid5(uuid.NAMESPACE_URL, f"iusentra:soggetti_parti:{stable}"))[:12]
+        return payload
 
     # ── Soggetti ──
 
     def _carica(self) -> List[Soggetto]:
         if self._soggetti is None:
+            if self._studio_db is not None:
+                self._soggetti = []
+                for row in self._studio_db.carica_tabella("soggetti"):
+                    if not isinstance(row, dict):
+                        continue
+                    try:
+                        self._soggetti.append(Soggetto.from_dict(row))
+                    except Exception:
+                        continue
+                return self._soggetti
             try:
                 with open(self.soggetti_path, encoding="utf-8") as f:
                     raw = json.load(f)
@@ -244,6 +272,38 @@ class GestioneSoggetti:
         return self._soggetti
 
     def _salva(self) -> None:
+        if self._studio_db is not None:
+            def _insert(conn, s: Soggetto) -> None:
+                d = s.to_dict()
+                rec = self._recapiti_payload(d)
+                conn.execute(
+                    """
+                    INSERT INTO soggetti
+                    (id, tipo, nome, cognome, ragione_sociale, codice_fiscale,
+                     partita_iva, qualifica, id_cliente, email, telefono,
+                     creato_il, modificato_il, dati_json)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        s.id,
+                        s.tipo.value,
+                        s.nome,
+                        s.cognome,
+                        s.ragione_sociale,
+                        s.codice_fiscale,
+                        s.partita_iva,
+                        s.qualifica,
+                        s.id_cliente or None,
+                        rec.get("email", ""),
+                        rec.get("telefono", "") or rec.get("cellulare", ""),
+                        s.creato_il,
+                        s.modificato_il,
+                        json.dumps(d, ensure_ascii=False),
+                    ),
+                )
+
+            self._studio_db.salva_tabella("soggetti", self._soggetti or [], _insert)
+            return
         os.makedirs(os.path.dirname(os.path.abspath(self.soggetti_path)), exist_ok=True)
         with open(self.soggetti_path, "w", encoding="utf-8") as f:
             json.dump([s.to_dict() for s in (self._soggetti or [])], f,
@@ -305,6 +365,19 @@ class GestioneSoggetti:
 
     def _carica_parti(self) -> Dict[str, list]:
         if self._parti is None:
+            if self._studio_db is not None:
+                grouped: Dict[str, list] = {}
+                for row in self._studio_db.carica_tabella("soggetti_parti"):
+                    if not isinstance(row, dict):
+                        continue
+                    id_fascicolo = str(row.get("id_fascicolo") or "").strip()
+                    if not id_fascicolo:
+                        continue
+                    payload = dict(row)
+                    payload.pop("id_fascicolo", None)
+                    grouped.setdefault(id_fascicolo, []).append(payload)
+                self._parti = grouped
+                return self._parti
             try:
                 with open(self.parti_path, encoding="utf-8") as f:
                     self._parti = json.load(f)
@@ -313,6 +386,32 @@ class GestioneSoggetti:
         return self._parti
 
     def _salva_parti(self) -> None:
+        if self._studio_db is not None:
+            rows: list[dict[str, Any]] = []
+            for id_fascicolo, parti in (self._parti or {}).items():
+                for parte in list(parti or []):
+                    rows.append(self._parte_sql_payload(id_fascicolo, parte))
+
+            def _insert(conn, payload: dict[str, Any]) -> None:
+                conn.execute(
+                    """
+                    INSERT INTO soggetti_parti
+                    (id, id_fascicolo, id_soggetto, ruolo, note, data_aggiunta, dati_json)
+                    VALUES (?,?,?,?,?,?,?)
+                    """,
+                    (
+                        payload.get("id"),
+                        payload.get("id_fascicolo") or None,
+                        payload.get("id_soggetto") or None,
+                        payload.get("ruolo") or "ALTRO",
+                        payload.get("note", ""),
+                        payload.get("data_aggiunta", ""),
+                        json.dumps(payload, ensure_ascii=False),
+                    ),
+                )
+
+            self._studio_db.salva_tabella("soggetti_parti", rows, _insert)
+            return
         os.makedirs(os.path.dirname(os.path.abspath(self.parti_path)), exist_ok=True)
         with open(self.parti_path, "w", encoding="utf-8") as f:
             json.dump(self._parti or {}, f, ensure_ascii=False, indent=2)

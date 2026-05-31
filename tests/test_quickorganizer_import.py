@@ -200,6 +200,26 @@ def _repositories(tmp_path: Path):
     return fascicoli, clienti, soggetti
 
 
+def _sql_repositories(tmp_path: Path):
+    studio_db = StudioDB.get(str(tmp_path / "tenant" / "studio.db"))
+    fascicoli = GestioneFascicoli(
+        db_path=str(tmp_path / "tenant" / "fascicoli" / "fascicoli.json"),
+        documents_dir=str(tmp_path / "tenant" / "fascicoli" / "documenti"),
+        archive_dir=str(tmp_path / "tenant" / "fascicoli" / "archivio"),
+        studio_db=studio_db,
+    )
+    clienti = GestioneClienti(
+        db_path=str(tmp_path / "tenant" / "clienti" / "anagrafica.json"),
+        studio_db=studio_db,
+    )
+    soggetti = GestioneSoggetti(
+        str(tmp_path / "tenant" / "soggetti" / "anagrafica.json"),
+        str(tmp_path / "tenant" / "soggetti" / "parti.json"),
+        studio_db=studio_db,
+    )
+    return studio_db, fascicoli, clienti, soggetti
+
+
 def test_import_studio_telematico_legge_documenti_da_atti_ed_emails(tmp_path: Path):
     package = load_quickorganizer_package(_write_package(tmp_path / "studio-telematico.zip"))
     analysis = analyze_quickorganizer_package(package)
@@ -269,6 +289,37 @@ def test_import_studio_telematico_legge_documenti_da_atti_ed_emails(tmp_path: Pa
     assert len(fascicoli.tutti(archiviati=True)) == 1
     assert len(clienti.tutti()) == 1
     assert len(soggetti.tutti()) == 2
+
+
+def test_import_studio_telematico_sqlite_scrive_tabelle_core_senza_json(tmp_path: Path):
+    package = load_quickorganizer_package(_write_package(tmp_path / "studio-telematico.zip"))
+    studio_db, fascicoli, clienti, soggetti = _sql_repositories(tmp_path)
+
+    result = import_quickorganizer_package(
+        package,
+        fascicoli=fascicoli,
+        clienti=clienti,
+        soggetti=soggetti,
+        actor="Operatore SQL",
+    )
+    audit = audit_quickorganizer_import(
+        package,
+        fascicoli=fascicoli,
+        clienti=clienti,
+        soggetti=soggetti,
+    )
+
+    assert result["summary"]["mattersCreated"] == 1
+    assert audit["ok"] is True
+    assert studio_db.conn.execute("SELECT COUNT(*) FROM fascicoli").fetchone()[0] == 1
+    assert studio_db.conn.execute("SELECT COUNT(*) FROM clienti").fetchone()[0] == 1
+    assert studio_db.conn.execute("SELECT COUNT(*) FROM soggetti").fetchone()[0] == 2
+    assert studio_db.conn.execute("SELECT COUNT(*) FROM soggetti_parti").fetchone()[0] == 2
+    assert studio_db.conn.execute("SELECT COUNT(*) FROM soggetti_parti WHERE id_fascicolo IS NOT NULL").fetchone()[0] == 2
+    assert not (tmp_path / "tenant" / "fascicoli" / "fascicoli.json").exists()
+    assert not (tmp_path / "tenant" / "clienti" / "anagrafica.json").exists()
+    assert not (tmp_path / "tenant" / "soggetti" / "anagrafica.json").exists()
+    assert not (tmp_path / "tenant" / "soggetti" / "parti.json").exists()
 
 
 def test_import_studio_telematico_salva_repository_solo_a_fine_lotto(tmp_path: Path):

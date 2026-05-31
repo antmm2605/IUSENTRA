@@ -71,6 +71,8 @@ from pct.workspace_intelligente import WorkspaceIntelligenteService
 _CORE_TABLES = {
     "clienti": "clienti",
     "fascicoli": "fascicoli",
+    "soggetti": "soggetti",
+    "soggetti_parti": "soggetti_parti",
     "appuntamenti": "appuntamenti",
     "scadenze": "scadenze",
     "timesheet": "timesheet_entries",

@@ -597,6 +597,8 @@ def test_migrate_core_storage_to_postgres_produce_report_consistente(tmp_path: P
     assert report["counts"]["postgres"]["conferimenti"] == 1
     assert report["counts"]["postgres"]["fatturazione"] == 1
     assert report["counts"]["postgres"]["pagamenti_links"] == 1
+    assert report["counts"]["postgres"]["soggetti"] == 1
+    assert report["counts"]["postgres"]["soggetti_parti"] == 1
     assert report["counts"]["sqlite"]["moduli_json_records"] >= 10
     assert report["counts"]["postgres"]["moduli_json_records"] == report["counts"]["sqlite"]["moduli_json_records"]
 
@@ -606,7 +608,7 @@ def test_migrate_core_storage_to_postgres_produce_report_consistente(tmp_path: P
             "SELECT DISTINCT modulo FROM moduli_json_records"
         ).fetchall()
     }
-    assert {"calendar_sync", "email_ordinaria", "soggetti_parti", "telematico"}.issubset(moduli_estesi)
+    assert {"calendar_sync", "email_ordinaria", "telematico"}.issubset(moduli_estesi)
     assert Path(report["report_path"]).exists()
 
 

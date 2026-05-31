@@ -169,6 +169,28 @@
   </div>
 </div>
 
+<div class="card mt-4 border-primary">
+  <div class="card-header fw-semibold d-flex align-items-center gap-2">
+    <i class="bi bi-shield-check text-primary"></i> Presidio Superadmin
+  </div>
+  <div class="card-body">
+    <div class="d-flex flex-column flex-lg-row gap-3 align-items-lg-center justify-content-between">
+      <div>
+        <div class="fw-semibold">Ripara accesso e dati dello studio</div>
+        <p class="small text-muted mb-0">
+          Riallinea appartenenza utenti, indice accessi, cartelle dati e controllo SQLite dello studio selezionato.
+          È il comando da usare quando uno studio risulta bloccato o non vede i propri dati dopo una migrazione.
+        </p>
+      </div>
+      <form method="post" action="{{ url_for('admin.ripara_runtime_studio', slug=studio.slug) }}" class="m-0">
+        <button type="submit" class="btn btn-outline-primary">
+          <i class="bi bi-tools me-1"></i>Ripara studio
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div class="card mt-4">
   <div class="card-header fw-semibold d-flex align-items-center gap-2">
     <i class="bi bi-clipboard-data text-muted"></i> Regole operative

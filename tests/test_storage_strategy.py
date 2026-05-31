@@ -1105,6 +1105,57 @@ def test_sync_user_directory_ripara_tenant_slug_errato_nell_auth_tenant(tmp_path
     assert persisted[tenant_user.id]["tenant_slug"] == studio.slug
 
 
+def test_superadmin_database_ripara_accesso_studio_da_pannello(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})
+
+    platform_users = _root_utenti_manager(app)
+    superadmin = platform_users.crea(
+        username="superadmin",
+        password="superpass123",
+        ruolo=RuoloUtente.SUPERADMIN,
+        tenant_slug="",
+        must_change_password=False,
+    )
+
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Giuseppe", "studio-legale-giuseppe-montagnese", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug)
+    tenant_users = GestioneUtenti(
+        db_path=paths["AUTH_DB"],
+        audit_path=paths["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+        studio_db=StudioDB.get(paths["STUDIO_DB"]),
+    )
+    tenant_user = tenant_users.crea(
+        username="admin",
+        password="PasswordSicura!123",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="giuseppe.montagnese94@gmail.com",
+        tenant_slug="tenant_slug",
+        must_change_password=False,
+    )
+
+    client = app.test_client()
+    _login_superadmin(client, username=superadmin.username, password="superpass123")
+    page = client.get(f"/admin/studi/{studio.slug}/database")
+    response = client.post(
+        f"/admin/studi/{studio.slug}/database/ripara-runtime",
+        follow_redirects=False,
+    )
+    persisted = json.loads(Path(paths["AUTH_DB"]).read_text(encoding="utf-8"))
+    directory = json.loads((tmp_path / "tenant_user_directory.json").read_text(encoding="utf-8"))
+
+    assert page.status_code == 200
+    assert "Ripara studio" in page.get_data(as_text=True)
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(f"/admin/studi/{studio.slug}/database")
+    assert persisted[tenant_user.id]["tenant_slug"] == studio.slug
+    assert directory["users"]["admin"]["tenant_slug"] == studio.slug
+    assert directory["emails"]["giuseppe.montagnese94@gmail.com"]["tenant_slug"] == studio.slug
+
+
 def test_sync_user_directory_puo_saltare_reconcile_pesante(tmp_path: Path, monkeypatch):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})

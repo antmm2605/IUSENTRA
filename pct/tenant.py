@@ -1487,6 +1487,158 @@ class GestioneTenant:
         )
         return payload
 
+    def repair_studio_runtime(
+        self,
+        slug: str,
+        *,
+        secret_key: str = "",
+        reconcile_storage: bool = True,
+    ) -> Dict[str, Any]:
+        slug_norm = str(slug or "").strip().lower()
+        studio = self.get(slug_norm)
+        if not studio:
+            return {
+                "ok": False,
+                "slug": slug_norm,
+                "errors": ["Studio non trovato."],
+                "warnings": [],
+                "repairs": [],
+            }
+
+        report: Dict[str, Any] = {
+            "ok": True,
+            "slug": slug_norm,
+            "studio": studio.nome,
+            "errors": [],
+            "warnings": [],
+            "repairs": [],
+            "users_checked": 0,
+            "users_repaired": 0,
+            "directory_entries": 0,
+            "directory_mismatches": 0,
+            "sqlite_quick_check": "",
+            "storage_manifest": {},
+        }
+
+        def _append_error(message: str) -> None:
+            report["ok"] = False
+            report.setdefault("errors", []).append(message)
+
+        def _auth_json_mismatches(path: Path) -> int:
+            try:
+                raw = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                return 0
+            rows = raw.values() if isinstance(raw, dict) else raw if isinstance(raw, list) else []
+            mismatches = 0
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                ruolo = str(row.get("ruolo") or "").strip().upper()
+                if ruolo == "SUPERADMIN":
+                    continue
+                if str(row.get("tenant_slug") or "").strip().lower() != slug_norm:
+                    mismatches += 1
+            return mismatches
+
+        try:
+            if reconcile_storage:
+                self.reconcile_storage_aliases(slug_norm)
+                report["repairs"].append("Alias e cartelle dati dello studio riallineati.")
+        except Exception as exc:  # noqa: BLE001 - azione superadmin best effort con report
+            _append_error(f"Riallineamento cartelle non completato: {exc}")
+
+        paths = self.percorsi_dati(slug_norm, reconcile_aliases=False)
+        auth_path = Path(str(paths.get("AUTH_DB") or ""))
+        before_mismatches = _auth_json_mismatches(auth_path)
+
+        studio_db = None
+        try:
+            from pct.core_storage_backend import build_core_storage_backend
+
+            studio_db = build_core_storage_backend(
+                studio.database,
+                studio_db_path=paths["STUDIO_DB"],
+            )
+        except (OSError, sqlite3.Error) as exc:
+            report["warnings"].append(f"Archivio SQL non disponibile durante la riparazione utenti: {exc}")
+
+        try:
+            from pct.auth import GestioneUtenti
+
+            manager = GestioneUtenti(
+                db_path=paths["AUTH_DB"],
+                audit_path=paths["AUDIT_DB"],
+                secret_key=secret_key,
+                crea_admin_se_vuoto=False,
+                studio_db=studio_db,
+                tenant_slug_context=slug_norm,
+            )
+            users = manager.lista()
+            report["users_checked"] = len(users)
+            after_mismatches = _auth_json_mismatches(auth_path)
+            report["users_repaired"] = max(before_mismatches - after_mismatches, 0)
+            if after_mismatches:
+                _append_error("Restano utenti dello studio con appartenenza non coerente.")
+            elif before_mismatches:
+                report["repairs"].append("Appartenenza utenti dello studio corretta.")
+        except Exception as exc:  # noqa: BLE001 - risposta controllata per superadmin
+            _append_error(f"Riparazione utenti non completata: {exc}")
+
+        try:
+            directory = self.sync_user_directory(
+                secret_key=secret_key,
+                reconcile_storage=False,
+            )
+            entries = []
+            for section in ("users", "emails"):
+                block = directory.get(section, {})
+                if isinstance(block, dict):
+                    entries.extend(
+                        entry
+                        for entry in block.values()
+                        if isinstance(entry, dict)
+                        and (
+                            str(entry.get("tenant_slug") or "").strip().lower() == slug_norm
+                            or str(entry.get("tenant_id") or "").strip() == str(studio.id or "").strip()
+                            or str(entry.get("tenant_storage_key") or "").strip() == str(studio.storage_key or "").strip()
+                        )
+                    )
+            report["directory_entries"] = len(entries)
+            report["directory_mismatches"] = sum(
+                1 for entry in entries
+                if str(entry.get("tenant_slug") or "").strip().lower() != slug_norm
+            )
+            if report["directory_mismatches"]:
+                _append_error("Indice utenti dello studio non coerente dopo la rigenerazione.")
+            else:
+                report["repairs"].append("Indice utenti dello studio rigenerato.")
+        except Exception as exc:  # noqa: BLE001 - risposta controllata per superadmin
+            _append_error(f"Rigenerazione indice utenti non completata: {exc}")
+
+        try:
+            db_path = Path(str(paths.get("STUDIO_DB") or ""))
+            if db_path.exists():
+                conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+                try:
+                    row = conn.execute("PRAGMA quick_check").fetchone()
+                    report["sqlite_quick_check"] = str(row[0] if row else "")
+                finally:
+                    conn.close()
+                if report["sqlite_quick_check"].lower() != "ok":
+                    _append_error("Controllo SQLite dello studio non riuscito.")
+            elif studio.database.is_sqlite:
+                _append_error("studio.db dello studio non trovato.")
+        except sqlite3.Error as exc:
+            _append_error(f"Controllo SQLite non completato: {exc}")
+
+        try:
+            report["storage_manifest"] = self.storage_manifest(slug_norm, reconcile_aliases=False)
+        except Exception as exc:  # noqa: BLE001 - report informativo
+            report["warnings"].append(f"Manifest storage non disponibile: {exc}")
+
+        return report
+
     def storage_manifest(self, slug: str, *, reconcile_aliases: bool = True) -> Dict[str, Any]:
         studio = self.get(slug)
         if not studio:

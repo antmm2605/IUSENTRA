@@ -1178,6 +1178,53 @@ def database_studio(slug: str):
     )
 
 
+@admin_bp.route("/studi/<slug>/database/ripara-runtime", methods=["POST"])
+@superadmin_required
+def ripara_runtime_studio(slug: str):
+    tm = _tenant_manager()
+    studio = tm.get(slug)
+    if not studio:
+        abort(404)
+
+    report = tm.repair_studio_runtime(slug, secret_key=current_app.secret_key)
+    utente = getattr(g, "utente_corrente", None)
+    try:
+        _utenti_piattaforma().registra_evento(
+            azione="studio.runtime.ripara",
+            id_utente=str(getattr(utente, "id", "") or ""),
+            username=str(getattr(utente, "username", "") or "superadmin"),
+            risorsa_tipo="studio",
+            risorsa_id=slug,
+            dettagli=(
+                f"Riparazione studio: utenti controllati {report.get('users_checked', 0)}, "
+                f"utenti corretti {report.get('users_repaired', 0)}, "
+                f"indice utenti {report.get('directory_entries', 0)} voci."
+            ),
+            ip=request.remote_addr or "",
+            esito="OK" if report.get("ok") else "ERRORE",
+        )
+    except Exception as exc:  # noqa: BLE001 - audit piattaforma non deve impedire report superadmin
+        current_app.logger.exception("Audit riparazione studio non registrato: %s", exc)
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or "application/json" in request.accept_mimetypes:
+        status = 200 if report.get("ok") else 500
+        return redacted_json_response(report), status
+
+    if report.get("ok"):
+        flash(
+            "Riparazione completata: accesso studio, indice utenti e storage sono stati riallineati.",
+            "success",
+        )
+    else:
+        flash(
+            "Riparazione non completata: controlla gli avvisi e riprova dal pannello Superadmin.",
+            "danger",
+        )
+        for errore in report.get("errors", [])[:3]:
+            flash(str(errore), "warning")
+    return redirect(url_for("admin.database_studio", slug=slug))
+
+
 @admin_bp.route("/studi/<slug>/database/test", methods=["POST"])
 
 @superadmin_required

@@ -7,6 +7,8 @@ from pct.installation_pack_repository import InstallationPackRepository
 from pct.installation_packs import (
     SYSTEM_SERVICE_DEFINITIONS,
     bootstrap_pack_governance,
+    ensure_installation_identity,
+    ensure_studio_local_pack,
     resolve_system_pack_root,
 )
 from pct.tenant import GestioneTenant
@@ -90,6 +92,32 @@ def test_installation_pack_repository_salva_snapshot_corrente(tmp_path: Path):
     assert stats["product_packs"] == 1
     assert stats["studio_local_packs"] == 1
     assert stats["update_packs"] == 1
+
+
+def test_studio_local_pack_non_riconcilia_storage_in_startup(tmp_path: Path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    cfg = _cfg_web(tmp_path)
+    tm = GestioneTenant(cfg["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Pack", "studio-pack", db_config={"mode": "SQLITE"})
+    identity = ensure_installation_identity(
+        app_root=REPO_ROOT,
+        registry_path=cfg["TENANTS_REGISTRY"],
+        app_version=__version__,
+    )
+
+    def fail_reconcile(slug: str):
+        raise AssertionError(f"reconcile_storage_aliases non deve girare in startup: {slug}")
+
+    monkeypatch.setattr(tm, "reconcile_storage_aliases", fail_reconcile)
+
+    payload = ensure_studio_local_pack(
+        tenant_manager=tm,
+        studio=studio,
+        installation_identity=identity,
+    )
+
+    assert payload["studio_slug"] == studio.slug
+    assert (tm._data_dir(studio.slug) / "config" / "studio_local_pack.json").exists()  # noqa: SLF001
 
 
 def test_installation_pack_surface_e_route_admin_sono_accessibili_al_superadmin(tmp_path: Path):

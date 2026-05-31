@@ -26,6 +26,7 @@
   let micStream = null;
   let stateTimer = null;
   let pingTimer = null;
+  let agentArmed = false;
   let sessionClosed = Boolean(boot.closed || boot.status === "closed");
 
   function setStatus(text) {
@@ -47,6 +48,11 @@
     return `${proto}://${window.location.host}${boot.wsBase}/${boot.publicId}?role=${encodeURIComponent(boot.role)}&token=${encodeURIComponent(boot.authToken)}`;
   }
 
+  function agentUrl(path) {
+    const base = String(boot.localControlBase || "http://127.0.0.1:27273").replace(/\/+$/, "");
+    return `${base}${path}`;
+  }
+
   async function fetchJson(url, options = {}) {
     const response = await fetch(url, {
       headers: { "Content-Type": "application/json" },
@@ -63,6 +69,32 @@
       throw new Error(payload.description || payload.error || text || `HTTP ${response.status}`);
     }
     return payload;
+  }
+
+  async function fetchAgent(path, body = null) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 4500);
+    try {
+      const response = await fetch(agentUrl(path), {
+        method: body ? "POST" : "GET",
+        headers: { "Content-Type": "application/json" },
+        body: body ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      });
+      const text = await response.text();
+      let payload = {};
+      try {
+        payload = text ? JSON.parse(text) : {};
+      } catch (_) {
+        payload = {};
+      }
+      if (!response.ok || payload.ok === false) {
+        throw new Error(payload.error || payload.description || text || `HTTP ${response.status}`);
+      }
+      return payload;
+    } finally {
+      window.clearTimeout(timeout);
+    }
   }
 
   function appendChat(text, who = "other") {
@@ -186,6 +218,10 @@
       }
       if (message.type === "chat") {
         appendChat(`Operatore: ${message.text}`, "other");
+        return;
+      }
+      if (message.type === "remote_control") {
+        await executeRemoteCommand(message);
       }
     };
     ws.onclose = () => {
@@ -268,6 +304,7 @@
   }
 
   function cleanup(enableRestart) {
+    disarmLocalControlAgent();
     if (stateTimer) window.clearInterval(stateTimer);
     if (pingTimer) window.clearInterval(pingTimer);
     stateTimer = null;
@@ -302,9 +339,10 @@
   async function approveAdvanced() {
     if (sessionClosed) return;
     try {
+      await ensureLocalControlAgent();
       await fetchJson(apiUrl("/escalation"), { method: "POST", body: JSON.stringify({ action: "approve" }) });
       advancedBanner?.classList.add("d-none");
-      appendChat("Hai approvato il controllo remoto avanzato.", "me");
+      appendChat("Hai approvato il controllo remoto del PC.", "me");
     } catch (error) {
       setStatus(`Errore: ${error.message}`);
     }
@@ -314,10 +352,67 @@
     if (sessionClosed) return;
     try {
       await fetchJson(apiUrl("/escalation"), { method: "POST", body: JSON.stringify({ action: "reject" }) });
+      await disarmLocalControlAgent();
       advancedBanner?.classList.add("d-none");
-      appendChat("Hai rifiutato il controllo remoto avanzato.", "me");
+      appendChat("Hai rifiutato il controllo remoto del PC.", "me");
     } catch (error) {
       setStatus(`Errore: ${error.message}`);
+    }
+  }
+
+  async function ensureLocalControlAgent() {
+    setStatus("Verifico agente IUSENTRA Assistenza sul PC");
+    const status = await fetchAgent("/status");
+    if (!status.ok) {
+      throw new Error("Agente IUSENTRA Assistenza non disponibile sul PC.");
+    }
+    await fetchAgent("/arm", {
+      session_id: boot.publicId,
+      token: boot.authToken,
+      ttl_seconds: 3600,
+    });
+    agentArmed = true;
+    setStatus("Controllo PC autorizzato su questo dispositivo");
+  }
+
+  async function disarmLocalControlAgent() {
+    if (!agentArmed) return;
+    agentArmed = false;
+    try {
+      await fetchAgent("/disarm", {
+        session_id: boot.publicId,
+        token: boot.authToken,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function executeRemoteCommand(message) {
+    const commandId = message.id || `${Date.now()}`;
+    try {
+      if (!agentArmed) {
+        await ensureLocalControlAgent();
+      }
+      const result = await fetchAgent("/execute", {
+        session_id: boot.publicId,
+        token: boot.authToken,
+        command: message.command || {},
+      });
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "remote_control_ack", id: commandId, ok: true, result }));
+      }
+      setStatus("Comando PC eseguito");
+    } catch (error) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: "remote_control_ack",
+          id: commandId,
+          ok: false,
+          error: error.message,
+        }));
+      }
+      setStatus(`Errore controllo PC: ${error.message}`);
     }
   }
 
@@ -348,4 +443,7 @@
   } else {
     syncState();
   }
+  window.addEventListener("beforeunload", () => {
+    disarmLocalControlAgent();
+  });
 })();

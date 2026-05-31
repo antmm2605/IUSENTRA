@@ -9,21 +9,22 @@ Il modulo `Assistenza remota` permette al `SUPERADMIN` di piattaforma di aprire 
 - chat tecnica cifrata
 - audit completo di sessione
 - consensi espliciti del cliente
-- aggancio governato a un controllo remoto avanzato esterno
+- controllo remoto reale del PC cliente tramite agente locale IUSENTRA Assistenza
 
 Dal rilascio `2.239.0` la sessione base è pronta al primo avvio: IUSENTRA
 configura un endpoint STUN predefinito, crea il link cliente firmato, apre la
 stanza operatore e abilita chat/audit senza richiedere variabili manuali.
-TURN e controllo remoto avanzato esterno restano presidi opzionali per reti
-difficili o strumenti di desktop-control già scelti dallo studio.
+TURN resta un presidio opzionale per reti difficili; il controllo del PC non usa
+il Local Signer telematico e passa dall'agente locale separato
+`tools/support_remote_agent.py`.
 
 La regola prodotto è ferrea:
 
 - il `SUPERADMIN` può aprire sessioni dalla console piattaforma e prende sempre in carico la stanza operatore
 - lo studio cliente può richiedere assistenza dalle pagine operative senza passare dalla console admin
 - il cliente entra sempre da link firmato, generato dalla console o dalla richiesta autenticata dello studio
-- schermo, audio e controllo avanzato richiedono consenso esplicito
-- il controllo avanzato non parte mai se `SUPPORT_ADVANCED_URL_TEMPLATE` non è configurato
+- schermo, audio e controllo del PC richiedono consenso esplicito
+- il controllo del PC parte solo se l'agente locale IUSENTRA Assistenza risponde su `127.0.0.1`
 
 ## Superfici prodotto
 
@@ -68,6 +69,8 @@ La regola prodotto è ferrea:
 - `web/static/js/support_operator_room.js`
 - `web/static/js/support_customer_room.js`
 - `web/static/scss/pages/_support-remote.scss`
+- `tools/support_remote_agent.py`
+- `tools/avvia_support_remote_agent.bat`
 
 ## Storage
 

@@ -408,11 +408,11 @@ def ensure_studio_local_pack(
     installation_identity: dict[str, Any],
 ) -> dict[str, Any]:
     tenant_manager._inizializza_directory(studio.slug)  # noqa: SLF001 - bootstrap governato del tenant
-    tenant_root = tenant_manager.data_dir(studio.slug)
+    tenant_root = tenant_manager._data_dir(studio.slug)
     for relative in STUDIO_LOCAL_PACK_DIRECTORIES:
         (tenant_root / relative).mkdir(parents=True, exist_ok=True)
 
-    paths = tenant_manager.percorsi_dati(studio.slug)
+    paths = tenant_manager.percorsi_dati(studio.slug, reconcile_aliases=False)
     private_memory = {
         "facts_path": str(tenant_root / "studio_data" / "memory" / "facts"),
         "timeline_path": str(tenant_root / "studio_data" / "memory" / "timeline"),

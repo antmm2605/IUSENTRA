@@ -4,18 +4,23 @@
 
   const statusBadge = $("statusBadge");
   const peerBadge = $("peerBadge");
+  const remoteControlBadge = $("remoteControlBadge");
+  const remoteScreen = $("remoteScreen");
   const remoteVideo = $("remoteVideo");
   const remoteVideoFallback = $("remoteVideoFallback");
   const operatorMic = $("operatorMic");
   const joinBtn = $("joinBtn");
   const requestAdvancedBtn = $("requestAdvancedBtn");
-  const openAdvancedBtn = $("openAdvancedBtn");
   const closeBtn = $("closeBtn");
   const copyLinkBtn = $("copyLinkBtn");
+  const fullscreenBtn = $("fullscreenBtn");
   const joinUrlField = $("joinUrlField");
   const chatLog = $("chatLog");
   const chatInput = $("chatInput");
   const sendBtn = $("sendBtn");
+  const remoteControlText = $("remoteControlText");
+  const sendRemoteTextBtn = $("sendRemoteTextBtn");
+  const remoteKeyButtons = Array.from(document.querySelectorAll("[data-remote-key]"));
 
   let ws = null;
   let pc = null;
@@ -23,8 +28,9 @@
   let localStream = null;
   let stateTimer = null;
   let pingTimer = null;
-  let advancedUrl = "";
   let makingOffer = false;
+  let controlRequested = false;
+  let controlApproved = false;
   let sessionClosed = Boolean(boot.closed || boot.status === "closed");
 
   function setStatus(text) {
@@ -73,6 +79,34 @@
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
+  function remoteControls() {
+    return [remoteControlText, sendRemoteTextBtn, ...remoteKeyButtons].filter(Boolean);
+  }
+
+  function updateControlUi() {
+    const active = Boolean(controlApproved && !sessionClosed);
+    remoteScreen?.classList.toggle("support-room__screen--control-enabled", active);
+    remoteControls().forEach((item) => {
+      item.disabled = !active;
+    });
+    if (remoteControlBadge) {
+      if (active) {
+        remoteControlBadge.textContent = "Controllo PC attivo";
+        remoteControlBadge.className = "badge bg-success";
+      } else if (controlRequested) {
+        remoteControlBadge.textContent = "In attesa consenso cliente";
+        remoteControlBadge.className = "badge bg-warning text-dark";
+      } else {
+        remoteControlBadge.textContent = "Controllo PC non attivo";
+        remoteControlBadge.className = "badge bg-secondary";
+      }
+    }
+    if (requestAdvancedBtn) {
+      requestAdvancedBtn.disabled = sessionClosed || controlApproved || controlRequested;
+      requestAdvancedBtn.textContent = controlApproved ? "Controllo PC attivo" : "Richiedi controllo PC";
+    }
+  }
+
   function markSessionClosed() {
     sessionClosed = true;
     cleanup(false);
@@ -84,7 +118,8 @@
     sendBtn.disabled = true;
     chatInput.disabled = true;
     operatorMic.disabled = true;
-    openAdvancedBtn?.classList.add("d-none");
+    controlApproved = false;
+    updateControlUi();
     if (remoteVideoFallback) {
       remoteVideoFallback.textContent = "Sessione conclusa: crea una nuova sessione per riprendere l'assistenza.";
     }
@@ -96,8 +131,9 @@
       const session = payload.session || {};
       setStatus(session.status_label || "Sessione aggiornata");
       setPeer(Boolean(session.presence && session.presence.client));
-      advancedUrl = session.advanced_url || "";
-      openAdvancedBtn?.classList.toggle("d-none", !advancedUrl);
+      controlRequested = Boolean(session.advanced_control_requested);
+      controlApproved = Boolean(session.advanced_control_approved);
+      updateControlUi();
       if (session.status === "closed") {
         markSessionClosed();
       }
@@ -161,6 +197,14 @@
       const message = JSON.parse(event.data || "{}");
       if (message.type === "peer_state") {
         setPeer(Boolean(message.connected));
+        return;
+      }
+      if (message.type === "remote_control_ack") {
+        if (message.ok) {
+          setStatus("Comando PC eseguito");
+        } else {
+          setStatus(`Errore controllo PC: ${message.error || "comando non riuscito"}`);
+        }
         return;
       }
       if (message.type === "start_offer") {
@@ -243,14 +287,12 @@
   }
 
   async function requestAdvanced() {
-    if (sessionClosed) return;
-    if (!boot.advancedConfigured) {
-      setStatus("Controllo avanzato non configurato sulla piattaforma");
-      return;
-    }
+    if (sessionClosed || controlApproved || controlRequested) return;
     try {
       await fetchJson(apiUrl("/escalation"), { method: "POST", body: JSON.stringify({ action: "request" }) });
-      appendChat("Hai richiesto il controllo remoto avanzato.", "me");
+      controlRequested = true;
+      updateControlUi();
+      appendChat("Hai richiesto il controllo remoto del PC.", "me");
       await syncState();
     } catch (error) {
       setStatus(`Errore: ${error.message}`);
@@ -267,6 +309,7 @@
       joinBtn.disabled = true;
       sessionClosed = true;
       setStatus("Sessione chiusa");
+      updateControlUi();
     }
   }
 
@@ -322,9 +365,51 @@
     }
   }
 
-  function openAdvanced() {
-    if (!advancedUrl) return;
-    window.open(advancedUrl, "_blank", "noopener,noreferrer");
+  function sendRemoteCommand(command) {
+    if (sessionClosed || !controlApproved) {
+      setStatus("Controllo PC non ancora approvato dal cliente");
+      return;
+    }
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      setStatus("Canale realtime non attivo");
+      return;
+    }
+    ws.send(JSON.stringify({
+      type: "remote_control",
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      command,
+    }));
+  }
+
+  function sendRemoteText() {
+    const text = remoteControlText?.value || "";
+    if (!text) return;
+    sendRemoteCommand({ action: "text", text });
+    remoteControlText.value = "";
+  }
+
+  function sendRemoteClick(event, action, button) {
+    if (!remoteScreen) return;
+    event.preventDefault();
+    const rect = remoteScreen.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const xRatio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    const yRatio = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+    sendRemoteCommand({
+      action,
+      button,
+      x_ratio: xRatio,
+      y_ratio: yRatio,
+    });
+  }
+
+  async function toggleFullscreen() {
+    if (!remoteScreen) return;
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+      return;
+    }
+    await remoteScreen.requestFullscreen();
   }
 
   joinBtn?.addEventListener("click", joinSession);
@@ -332,16 +417,22 @@
   closeBtn?.addEventListener("click", closeSession);
   sendBtn?.addEventListener("click", sendChat);
   copyLinkBtn?.addEventListener("click", copyLink);
-  openAdvancedBtn?.addEventListener("click", openAdvanced);
+  fullscreenBtn?.addEventListener("click", toggleFullscreen);
+  sendRemoteTextBtn?.addEventListener("click", sendRemoteText);
+  remoteControlText?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") sendRemoteText();
+  });
+  remoteKeyButtons.forEach((button) => {
+    button.addEventListener("click", () => sendRemoteCommand({ action: "key", key: button.dataset.remoteKey }));
+  });
+  remoteScreen?.addEventListener("click", (event) => sendRemoteClick(event, "click", "left"));
+  remoteScreen?.addEventListener("dblclick", (event) => sendRemoteClick(event, "double_click", "left"));
+  remoteScreen?.addEventListener("contextmenu", (event) => sendRemoteClick(event, "click", "right"));
   chatInput?.addEventListener("keydown", (event) => {
     if (event.key === "Enter") sendChat();
   });
 
-  if (requestAdvancedBtn && !boot.advancedConfigured) {
-    requestAdvancedBtn.disabled = true;
-    requestAdvancedBtn.title = "Configura SUPPORT_ADVANCED_URL_TEMPLATE per abilitare l'escalation esterna.";
-  }
-
+  updateControlUi();
   if (sessionClosed) {
     markSessionClosed();
   } else {

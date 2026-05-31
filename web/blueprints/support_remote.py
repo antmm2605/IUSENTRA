@@ -220,6 +220,7 @@ def customer_room(token: str):
         "authToken": row["client_token"],
         "apiPrefix": f"/support/api/{row['public_id']}",
         "wsBase": "/support/ws",
+        "localControlBase": str(current_app.config.get("SUPPORT_LOCAL_CONTROL_BASE") or "http://127.0.0.1:27273"),
         "customerName": row["customer_name"] or "",
         "status": row["status"],
         "closed": row["status"] == "closed",
@@ -255,7 +256,7 @@ def operator_room(public_id: str):
         "wsBase": "/support/ws",
         "customerJoinUrl": url_for("support_remote.customer_room", token=row["client_token"], _external=True),
         "customerName": row["customer_name"] or "",
-        "advancedConfigured": bool(str(current_app.config.get("SUPPORT_ADVANCED_URL_TEMPLATE") or "").strip()),
+        "advancedConfigured": True,
         "status": row["status"],
         "closed": row["status"] == "closed",
     }
@@ -362,17 +363,8 @@ def escalation_api(public_id: str):
     row, role, actor_name = authorize_support_http(public_id)
     payload = request.get_json(silent=True) or {}
     action = str(payload.get("action") or "").strip().lower()
-    advanced_template = str(current_app.config.get("SUPPORT_ADVANCED_URL_TEMPLATE") or "").strip()
 
     if role == "operator" and action == "request":
-        if not advanced_template:
-            abort(
-                409,
-                description=(
-                    "Controllo remoto avanzato non configurato: imposta SUPPORT_ADVANCED_URL_TEMPLATE "
-                    "prima di richiedere l'escalation."
-                ),
-            )
         updated = support_repository().update_session(public_id, advanced_control_requested=True)
         if updated is None:
             abort(404)
@@ -380,7 +372,7 @@ def escalation_api(public_id: str):
         audit_support_action(
             "supporto_remoto.richiedi_escalation",
             public_id=public_id,
-            details=f"{actor_name} ha richiesto il controllo remoto avanzato.",
+            details=f"{actor_name} ha richiesto il controllo remoto del PC.",
         )
         return jsonify({"ok": True, "session": support_session_payload(updated)})
 

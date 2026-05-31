@@ -341,7 +341,7 @@ def register_support_websocket(app) -> None:
                     safe_support_send(ws, {"type": "pong"})
                     continue
 
-                if msg_type in {"offer", "answer", "ice", "chat"}:
+                if msg_type in {"offer", "answer", "ice", "chat", "remote_control", "remote_control_ack"}:
                     if target_ws:
                         safe_support_send(target_ws, message)
                     continue

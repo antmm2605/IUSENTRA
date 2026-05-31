@@ -6,8 +6,16 @@ import base64
 import hashlib
 import hmac
 import json
+import argparse
+import ctypes
+import platform
 import secrets
+import sys
+import threading
 import time
+from dataclasses import dataclass
+from http import HTTPStatus
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -25,6 +33,11 @@ SUPPORT_STATUS_LABELS: dict[str, str] = {
     "closed": "Chiusa",
 }
 DEFAULT_SUPPORT_STUN_URLS: tuple[str, ...] = ("stun:stun.l.google.com:19302",)
+SUPPORT_PC_AGENT_NAME = "IUSENTRA Support Remote Agent"
+SUPPORT_PC_AGENT_VERSION = "1.0"
+SUPPORT_PC_AGENT_DEFAULT_HOST = "127.0.0.1"
+SUPPORT_PC_AGENT_DEFAULT_PORT = 27273
+SUPPORT_PC_AGENT_DEFAULT_TTL_SECONDS = 30 * 60
 
 
 def derive_support_repository_db_path(anchor_path: str) -> str:
@@ -108,7 +121,7 @@ def build_ice_servers(subject: str) -> list[dict[str, Any]]:
         digest = hmac.new(
             shared_secret.encode("utf-8"),
             username.encode("utf-8"),
-            hashlib.sha1,
+            hashlib.sha256,
         ).digest()
         credential = base64.b64encode(digest).decode("utf-8")
         servers.append(
@@ -199,13 +212,13 @@ def build_support_event_story(
     if event == "session_started":
         return f"{nome} ha avviato la sessione operativa."
     if event == "advanced_control_requested":
-        return f"{nome} ha richiesto l'escalation verso il controllo remoto avanzato."
+        return f"{nome} ha richiesto il controllo remoto del PC cliente."
     if event == "advanced_control_approved":
-        return f"{nome} ha approvato il controllo remoto avanzato."
+        return f"{nome} ha approvato il controllo remoto del PC cliente."
     if event == "advanced_control_rejected":
-        return f"{nome} ha rifiutato il controllo remoto avanzato."
+        return f"{nome} ha rifiutato il controllo remoto del PC cliente."
     if event == "advanced_control_reset":
-        return f"{nome} ha azzerato la richiesta di controllo remoto avanzato."
+        return f"{nome} ha azzerato la richiesta di controllo remoto del PC cliente."
     if event == "note_updated":
         return f"{nome} ha aggiornato le note finali della sessione."
     if event == "session_closed":
@@ -216,3 +229,310 @@ def build_support_event_story(
             return f"{nome} ha segnalato un errore WebRTC: {detail}."
         return f"{nome} ha segnalato un errore WebRTC."
     return f"{nome} ha eseguito l'azione {event_type}."
+
+
+class RemoteControlError(RuntimeError):
+    pass
+
+
+@dataclass
+class ArmedSession:
+    session_id: str
+    token: str
+    expires_at: float
+
+
+class AgentState:
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._armed: dict[str, ArmedSession] = {}
+
+    def arm(
+        self,
+        session_id: str,
+        token: str,
+        ttl_seconds: int = SUPPORT_PC_AGENT_DEFAULT_TTL_SECONDS,
+    ) -> ArmedSession:
+        if not session_id or not token:
+            raise RemoteControlError("session_id e token sono obbligatori.")
+        ttl = max(60, min(int(ttl_seconds or SUPPORT_PC_AGENT_DEFAULT_TTL_SECONDS), 8 * 60 * 60))
+        armed = ArmedSession(session_id=session_id, token=token, expires_at=time.time() + ttl)
+        with self._lock:
+            self._armed[session_id] = armed
+        return armed
+
+    def disarm(self, session_id: str, token: str) -> None:
+        with self._lock:
+            armed = self._armed.get(session_id)
+            if armed and secrets.compare_digest(armed.token, token):
+                self._armed.pop(session_id, None)
+
+    def require(self, session_id: str, token: str) -> ArmedSession:
+        with self._lock:
+            armed = self._armed.get(session_id)
+            if not armed:
+                raise RemoteControlError("Sessione PC non autorizzata.")
+            if armed.expires_at < time.time():
+                self._armed.pop(session_id, None)
+                raise RemoteControlError("Autorizzazione PC scaduta.")
+            if not secrets.compare_digest(armed.token, token):
+                raise RemoteControlError("Token PC non valido.")
+            return armed
+
+    def active_count(self) -> int:
+        now = time.time()
+        with self._lock:
+            for key, armed in list(self._armed.items()):
+                if armed.expires_at < now:
+                    self._armed.pop(key, None)
+            return len(self._armed)
+
+
+SUPPORT_PC_AGENT_STATE = AgentState()
+
+
+def _support_pc_is_windows() -> bool:
+    return platform.system().lower() == "windows"
+
+
+def _support_pc_screen_size() -> tuple[int, int]:
+    if not _support_pc_is_windows():
+        return 0, 0
+    user32 = ctypes.windll.user32
+    return int(user32.GetSystemMetrics(0)), int(user32.GetSystemMetrics(1))
+
+
+def _support_pc_mouse_event(flags: int) -> None:
+    ctypes.windll.user32.mouse_event(flags, 0, 0, 0, 0)
+
+
+def _support_pc_move_pointer(x: int, y: int) -> None:
+    if not ctypes.windll.user32.SetCursorPos(int(x), int(y)):
+        raise RemoteControlError("Impossibile muovere il puntatore.")
+
+
+def _support_pc_click(button: str = "left", double: bool = False) -> None:
+    down, up = (0x0008, 0x0010) if button == "right" else (0x0002, 0x0004)
+    for _ in range(2 if double else 1):
+        _support_pc_mouse_event(down)
+        time.sleep(0.03)
+        _support_pc_mouse_event(up)
+        time.sleep(0.06)
+
+
+class KEYBDINPUT(ctypes.Structure):
+    _fields_ = [
+        ("wVk", ctypes.c_ushort),
+        ("wScan", ctypes.c_ushort),
+        ("dwFlags", ctypes.c_ulong),
+        ("time", ctypes.c_ulong),
+        ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong)),
+    ]
+
+
+class INPUTUNION(ctypes.Union):
+    _fields_ = [("ki", KEYBDINPUT)]
+
+
+class INPUT(ctypes.Structure):
+    _fields_ = [("type", ctypes.c_ulong), ("union", INPUTUNION)]
+
+
+INPUT_KEYBOARD = 1
+KEYEVENTF_KEYUP = 0x0002
+KEYEVENTF_UNICODE = 0x0004
+VK_CODES = {
+    "Enter": 0x0D,
+    "Tab": 0x09,
+    "Escape": 0x1B,
+    "Backspace": 0x08,
+    "Delete": 0x2E,
+    "ArrowLeft": 0x25,
+    "ArrowUp": 0x26,
+    "ArrowRight": 0x27,
+    "ArrowDown": 0x28,
+    "Home": 0x24,
+    "End": 0x23,
+}
+
+
+def _support_pc_key_input(vk: int, flags: int = 0, scan: int = 0) -> INPUT:
+    return INPUT(type=INPUT_KEYBOARD, union=INPUTUNION(ki=KEYBDINPUT(vk, scan, flags, 0, None)))
+
+
+def _support_pc_send_inputs(inputs: list[INPUT]) -> None:
+    arr = (INPUT * len(inputs))(*inputs)
+    sent = ctypes.windll.user32.SendInput(len(inputs), arr, ctypes.sizeof(INPUT))
+    if sent != len(inputs):
+        raise RemoteControlError("Invio input Windows non riuscito.")
+
+
+def _support_pc_send_key(key: str) -> None:
+    if key not in VK_CODES:
+        raise RemoteControlError(f"Tasto non supportato: {key}")
+    vk = VK_CODES[key]
+    _support_pc_send_inputs([_support_pc_key_input(vk), _support_pc_key_input(vk, KEYEVENTF_KEYUP)])
+
+
+def _support_pc_send_text(text: str) -> int:
+    inputs: list[INPUT] = []
+    for char in text:
+        scan = ord(char)
+        inputs.append(_support_pc_key_input(0, KEYEVENTF_UNICODE, scan))
+        inputs.append(_support_pc_key_input(0, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP, scan))
+    if inputs:
+        _support_pc_send_inputs(inputs)
+    return len(text)
+
+
+def execute_command(command: dict[str, Any], *, dry_run: bool = False) -> dict[str, Any]:
+    action = str(command.get("action") or "").strip().lower()
+    if not action:
+        raise RemoteControlError("Azione mancante.")
+    if dry_run:
+        return {"ok": True, "dry_run": True, "action": action}
+    if not _support_pc_is_windows():
+        raise RemoteControlError("Controllo PC reale disponibile su Windows.")
+    if action in {"click", "double_click"}:
+        width, height = _support_pc_screen_size()
+        x = int(float(command.get("x_ratio") or 0) * max(width - 1, 1))
+        y = int(float(command.get("y_ratio") or 0) * max(height - 1, 1))
+        _support_pc_move_pointer(max(0, min(x, width - 1)), max(0, min(y, height - 1)))
+        _support_pc_click(str(command.get("button") or "left").lower(), double=action == "double_click")
+        return {"ok": True, "action": action}
+    if action == "text":
+        return {"ok": True, "action": action, "chars": _support_pc_send_text(str(command.get("text") or ""))}
+    if action == "key":
+        key = str(command.get("key") or "")
+        _support_pc_send_key(key)
+        return {"ok": True, "action": action, "key": key}
+    raise RemoteControlError(f"Azione non supportata: {action}")
+
+
+class SupportPcAgentRequestHandler(BaseHTTPRequestHandler):
+    server_version = f"{SUPPORT_PC_AGENT_NAME}/{SUPPORT_PC_AGENT_VERSION}"
+
+    def _headers(self, status: HTTPStatus = HTTPStatus.OK) -> None:
+        origin = self.headers.get("Origin", "")
+        self.send_response(int(status))
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        if origin.startswith(("http://127.0.0.1:", "http://localhost:", "https://127.0.0.1:", "https://localhost:")):
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
+        self.end_headers()
+
+    def _send_json(self, payload: dict[str, Any], status: HTTPStatus = HTTPStatus.OK) -> None:
+        self._headers(status)
+        self.wfile.write(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
+
+    def _read_json(self) -> dict[str, Any]:
+        length = int(self.headers.get("Content-Length") or "0")
+        if length <= 0:
+            return {}
+        try:
+            payload = json.loads(self.rfile.read(length).decode("utf-8"))
+        except Exception as exc:
+            raise RemoteControlError("Payload JSON non valido.") from exc
+        return payload if isinstance(payload, dict) else {}
+
+    def do_OPTIONS(self) -> None:  # noqa: N802
+        self._headers()
+
+    def do_GET(self) -> None:  # noqa: N802
+        if self.path.split("?", 1)[0] == "/status":
+            width, height = _support_pc_screen_size()
+            self._send_json(
+                {
+                    "ok": True,
+                    "agent": SUPPORT_PC_AGENT_NAME,
+                    "version": SUPPORT_PC_AGENT_VERSION,
+                    "platform": platform.system(),
+                    "screen": {"width": width, "height": height},
+                    "armed_sessions": SUPPORT_PC_AGENT_STATE.active_count(),
+                }
+            )
+            return
+        self._send_json({"ok": False, "error": "Endpoint non trovato."}, HTTPStatus.NOT_FOUND)
+
+    def do_POST(self) -> None:  # noqa: N802
+        path = self.path.split("?", 1)[0]
+        try:
+            payload = self._read_json()
+            session_id = str(payload.get("session_id") or "").strip()
+            token = str(payload.get("token") or "").strip()
+            if path == "/arm":
+                armed = SUPPORT_PC_AGENT_STATE.arm(session_id, token, int(payload.get("ttl_seconds") or SUPPORT_PC_AGENT_DEFAULT_TTL_SECONDS))
+                self._send_json({"ok": True, "expires_at": armed.expires_at})
+                return
+            if path == "/disarm":
+                SUPPORT_PC_AGENT_STATE.disarm(session_id, token)
+                self._send_json({"ok": True})
+                return
+            if path == "/execute":
+                SUPPORT_PC_AGENT_STATE.require(session_id, token)
+                result = execute_command(dict(payload.get("command") or {}), dry_run=bool(payload.get("dry_run")))
+                self._send_json(result)
+                return
+            self._send_json({"ok": False, "error": "Endpoint non trovato."}, HTTPStatus.NOT_FOUND)
+        except RemoteControlError as exc:
+            self._send_json({"ok": False, "error": str(exc)}, HTTPStatus.BAD_REQUEST)
+        except Exception as exc:  # pragma: no cover
+            self._send_json({"ok": False, "error": exc.__class__.__name__}, HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    def log_message(self, fmt: str, *args: object) -> None:
+        sys.stderr.write(f"[{SUPPORT_PC_AGENT_NAME}] {self.address_string()} - {fmt % args}\n")
+
+
+def run_support_pc_agent(host: str = SUPPORT_PC_AGENT_DEFAULT_HOST, port: int = SUPPORT_PC_AGENT_DEFAULT_PORT) -> None:
+    httpd = ThreadingHTTPServer((host, port), SupportPcAgentRequestHandler)
+    print(f"{SUPPORT_PC_AGENT_NAME} in ascolto su http://{host}:{port}", flush=True)
+    httpd.serve_forever()
+
+
+def support_pc_agent_self_test() -> int:
+    if not _support_pc_is_windows():
+        print("SELF_TEST_SKIPPED piattaforma non Windows")
+        return 0
+    import tkinter as tk
+
+    marker = f"IUSENTRA-E2E-{int(time.time())}"
+    root = tk.Tk()
+    root.title("IUSENTRA Support Remote Agent Self Test")
+    root.geometry("520x160+120+120")
+    entry = tk.Entry(root, font=("Segoe UI", 16))
+    entry.pack(padx=24, pady=48, fill="x")
+    root.update()
+    entry.focus_force()
+    root.update()
+    _support_pc_move_pointer(root.winfo_rootx() + 90, root.winfo_rooty() + 78)
+    _support_pc_click("left")
+    _support_pc_send_text(marker)
+    deadline = time.time() + 3
+    ok = False
+    while time.time() < deadline:
+        root.update()
+        if entry.get() == marker:
+            ok = True
+            break
+        time.sleep(0.05)
+    print(f"SELF_TEST_{'OK' if ok else 'FAILED'} marker={marker} value={entry.get()!r}")
+    root.destroy()
+    return 0 if ok else 1
+
+
+def support_pc_agent_main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=SUPPORT_PC_AGENT_NAME)
+    parser.add_argument("--host", default=SUPPORT_PC_AGENT_DEFAULT_HOST)
+    parser.add_argument("--port", type=int, default=SUPPORT_PC_AGENT_DEFAULT_PORT)
+    parser.add_argument("--self-test", action="store_true")
+    args = parser.parse_args(argv)
+    if args.self_test:
+        return support_pc_agent_self_test()
+    run_support_pc_agent(args.host, args.port)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(support_pc_agent_main())

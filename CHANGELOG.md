@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.248.95 - 2026-05-31
+
+- Imposta come regola operativa che le verifiche locali finali devono usare la copia reale dell'utente su `http://127.0.0.1:8080`, non server temporanei o porte inventate.
+- Corretto l'avvio Docker locale evitando la riconciliazione storage pesante durante il bootstrap degli Installation Pack.
+- Aggiornato il login con cache busting degli asset CSS e stile compatto per evitare differenze visive tra build e browser.
+
+## 2.248.94 - 2026-05-31
+
+- Aggiunto controllo remoto reale del PC cliente nella stanza operatore: schermo quasi full-screen, pannello tecnico minimo, richiesta consenso, comandi mouse, testo e tasti rapidi.
+- Introdotto `tools/support_remote_agent.py`, agente locale separato dal Local Signer telematico, esposto solo su localhost e armato solo dopo consenso cliente.
+- Estesi test su assistenza remota, agente locale, separazione dal Local Signer e relay WebSocket dei comandi `remote_control`.
+
 ## 2.248.93 - 2026-05-31
 
 - Aggiunto il flusso reale “Richiedi assistenza” dalla parte studio: topbar Flask/React, dashboard, scheda cliente e dettaglio fascicolo aprono una sessione autenticata senza richiedere accesso alla console piattaforma.

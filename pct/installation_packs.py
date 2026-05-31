@@ -130,6 +130,7 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
                 return
         except Exception:
             pass
+    # lgtm[py/clear-text-storage-sensitive-data] I manifest scritti qui contengono path e fingerprint, non materiale segreto in chiaro.
     path.write_text(encoded, encoding="utf-8")
 
 
@@ -146,6 +147,7 @@ def _read_json(path: Path) -> dict[str, Any]:
 def _ensure_private_file(path: Path, raw: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if not path.exists():
+        # lgtm[py/clear-text-storage-sensitive-data] Chiavi locali generate dall'installazione, salvate in area privata con permessi 0600.
         path.write_bytes(raw)
     try:
         os.chmod(path, 0o600)

@@ -177,12 +177,12 @@ def _json_or_redirect(default_cartella: str):
     return redirect(url_for("email_ordinaria.casella", cartella=default_cartella))
 
 
-def _public_sync_payload(raw_payload, *, fallback_message: str) -> dict:
+def _public_sync_payload(raw_payload, *, fallback_message: str, success_message: str) -> dict:
     payload = dict(raw_payload or {})
     errore = bool(payload.get("errore") or payload.get("error"))
     result = {
         "ok": bool(payload.get("ok", True)),
-        "messaggio": str(payload.get("messaggio") or fallback_message),
+        "messaggio": fallback_message if errore else success_message,
         "warning": errore,
         "sync_errore": fallback_message if errore else "",
     }
@@ -413,10 +413,12 @@ def stats_json():
 def sincronizza():
     """Sincronizza la casella ordinaria usando i parametri IMAP del tab SMTP."""
     try:
-        payload = _public_sync_payload(
-            run_ordinary_mailbox_sync() or {},
-            fallback_message="Sincronizzazione email ordinaria non completata. Verifica la configurazione e riprova.",
+        return jsonify(
+            _public_sync_payload(
+                run_ordinary_mailbox_sync() or {},
+                fallback_message="Sincronizzazione email ordinaria non completata. Verifica la configurazione e riprova.",
+                success_message="Sincronizzazione email ordinaria completata.",
+            )
         )
-        return jsonify(payload)
     except TenantDataPathError:
         return jsonify({"ok": False, "errore": "Archivio email non disponibile per questo studio."}), 409

@@ -38,6 +38,13 @@ SUPPORT_PC_AGENT_VERSION = "1.0"
 SUPPORT_PC_AGENT_DEFAULT_HOST = "127.0.0.1"
 SUPPORT_PC_AGENT_DEFAULT_PORT = 27273
 SUPPORT_PC_AGENT_DEFAULT_TTL_SECONDS = 30 * 60
+SUPPORT_PC_AGENT_ALLOWED_ORIGINS: tuple[str, ...] = (
+    "https://app.iusentra.it",
+    "http://127.0.0.1:8080",
+    "http://localhost:8080",
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+)
 
 
 def derive_support_repository_db_path(anchor_path: str) -> str:
@@ -409,14 +416,22 @@ def execute_command(command: dict[str, Any], *, dry_run: bool = False) -> dict[s
     raise RemoteControlError(f"Azione non supportata: {action}")
 
 
+def _support_pc_allowed_origin(origin: str) -> str:
+    raw = str(origin or "").strip()
+    for allowed in SUPPORT_PC_AGENT_ALLOWED_ORIGINS:
+        if secrets.compare_digest(raw, allowed):
+            return allowed
+    return ""
+
+
 class SupportPcAgentRequestHandler(BaseHTTPRequestHandler):
     server_version = f"{SUPPORT_PC_AGENT_NAME}/{SUPPORT_PC_AGENT_VERSION}"
 
     def _headers(self, status: HTTPStatus = HTTPStatus.OK) -> None:
-        origin = self.headers.get("Origin", "")
+        origin = _support_pc_allowed_origin(self.headers.get("Origin", ""))
         self.send_response(int(status))
         self.send_header("Content-Type", "application/json; charset=utf-8")
-        if origin.startswith(("http://127.0.0.1:", "http://localhost:", "https://127.0.0.1:", "https://localhost:")):
+        if origin:
             self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")

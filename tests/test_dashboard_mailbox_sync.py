@@ -125,9 +125,9 @@ def test_route_manuali_sincronizzazione_restano_compatibili(tmp_path, monkeypatc
         ordinary = client.post("/email-ordinaria/sincronizza")
 
     assert pec.status_code == 200
-    assert pec.get_json()["messaggio"] == "PEC ok"
+    assert pec.get_json()["messaggio"] == "Sincronizzazione PEC completata."
     assert ordinary.status_code == 200
-    assert ordinary.get_json()["messaggio"] == "SMTP ok"
+    assert ordinary.get_json()["messaggio"] == "Sincronizzazione email ordinaria completata."
 
 
 def test_sync_pec_e_ordinaria_usano_database_separati(tmp_path, monkeypatch):

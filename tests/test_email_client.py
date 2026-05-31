@@ -2621,7 +2621,7 @@ def test_api_pec_poll_cancelleria_espone_duplicati_e_warning_sync_pubblico(tmp_p
     assert data["sync_errore"] == "Sincronizzazione IMAP non completata."
     assert data["report"]["duplicati"] == 1
     assert "già present" in data["messaggio"]
-    assert "Sincronizzazione IMAP non completata" in data["messaggio"]
+    assert data["messaggio"] == "Sincronizzazione PEC non completata. Verifica la configurazione e riprova."
 
 
 def test_email_stats_route_restituisce_statistiche_json(tmp_path):
@@ -2693,7 +2693,7 @@ def test_email_sync_route_espone_warning_e_sync_errore(tmp_path, monkeypatch):
     assert response.status_code == 200
     assert data["ok"] is True
     assert data["warning"] is True
-    assert "Sincronizzazione IMAP non completata" in data["messaggio"]
+    assert data["messaggio"] == "Sincronizzazione PEC non completata. Verifica la configurazione e riprova."
     assert data["sync_errore"] == "Sincronizzazione PEC non completata. Verifica la configurazione e riprova."
     assert "Connessione IMAP non completata entro 15 secondi" not in response.get_data(as_text=True)
     assert osservato["db_path"] == cfg["FASCICOLI_DB"]

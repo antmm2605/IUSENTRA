@@ -318,12 +318,12 @@ def _redirect_email_next(default_cartella: str):
     return redirect(url_for("email_client.casella", cartella=default_cartella))
 
 
-def _public_sync_payload(raw_payload, *, fallback_message: str) -> dict:
+def _public_sync_payload(raw_payload, *, fallback_message: str, success_message: str) -> dict:
     payload = dict(raw_payload or {})
     errore = bool(payload.get("errore") or payload.get("error"))
     result = {
         "ok": bool(payload.get("ok", True)),
-        "messaggio": str(payload.get("messaggio") or fallback_message),
+        "messaggio": fallback_message if errore else success_message,
         "warning": errore,
         "sync_errore": fallback_message if errore else "",
     }
@@ -546,11 +546,13 @@ def stats_json():
 def sincronizza():
     """AJAX — sincronizza la casella IMAP e aggiorna gli esiti PCT."""
     try:
-        payload = _public_sync_payload(
-            run_pec_mailbox_sync() or {},
-            fallback_message="Sincronizzazione PEC non completata. Verifica la configurazione e riprova.",
+        return jsonify(
+            _public_sync_payload(
+                run_pec_mailbox_sync() or {},
+                fallback_message="Sincronizzazione PEC non completata. Verifica la configurazione e riprova.",
+                success_message="Sincronizzazione PEC completata.",
+            )
         )
-        return jsonify(payload)
     except TenantDataPathError:
         return jsonify({"ok": False, "errore": "Archivio PEC non disponibile per questo studio."}), 409
 

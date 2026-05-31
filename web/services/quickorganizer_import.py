@@ -1373,6 +1373,7 @@ def complete_chunked_upload(
     suffix = _safe_upload_suffix(metadata.get("filename"))
     assembled = _safe_child_path(session, f"assembled{suffix}", extra_roots=(_safe_runtime_dir(staging_root),))
     digest = hashlib.sha256()
+    staged = False
     try:
         with assembled.open("wb") as output:
             for index in range(expected_total):
@@ -1385,15 +1386,19 @@ def complete_chunked_upload(
         actual_size = assembled.stat().st_size
         if actual_size != expected_size:
             raise QuickOrganizerImportError("Il pacchetto ricomposto non corrisponde alla dimensione attesa.")
-        return stage_uploaded_package(
+        stage = stage_uploaded_package(
             assembled,
             staging_root,
             move_source=True,
             source_name=str(metadata.get("filename") or "pacchetto.zip"),
             source_sha256=digest.hexdigest(),
         )
+        staged = True
+        return stage
     finally:
-        shutil.rmtree(session, ignore_errors=True)
+        # Se lo staging fallisce, il pacchetto ricomposto resta disponibile per audit e recupero.
+        if staged:
+            shutil.rmtree(session, ignore_errors=True)
 
 
 def stage_referenced_package(source_path: str | Path, staging_root: str | Path) -> dict[str, Any]:

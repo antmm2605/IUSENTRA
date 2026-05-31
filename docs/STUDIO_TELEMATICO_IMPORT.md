@@ -98,6 +98,7 @@ L'import reale ha creato le pratiche e copiato `8950` documenti importabili. La 
 - L'accesso richiede profilo di amministrazione oppure permessi di scrittura su fascicoli e clienti.
 - Ogni anteprima e ogni import scrivono un evento nel registro attività.
 - Il pacchetto caricato viene messo in area temporanea tenant-aware sotto la cartella dati dello studio.
+- Nei caricamenti a blocchi la sessione viene rimossa solo dopo staging riuscito; se lo staging fallisce, il pacchetto ricomposto resta nell'area `_chunk_uploads` dello studio per audit e recupero operativo.
 - Le scritture usano i repository esistenti di fascicoli, clienti e soggetti, rispettando deduplica e storage documentale già governati da IUSENTRA.
 
 ## Route e componenti

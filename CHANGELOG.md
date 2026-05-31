@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.97 - 2026-05-31
+
+- Preservata la sessione di caricamento a blocchi dell'import Studio Telematico se lo staging fallisce, così il pacchetto ricomposto resta disponibile per audit e recupero operativo invece di essere eliminato.
+- Aumentato il timeout Gunicorn di produzione per import Studio Telematico molto grandi, mantenendo il caricamento tenant-aware e i controlli su clienti, soggetti, parti e nomi documento da tabella.
+- Aggiornati contratti OpenAPI alla versione `2.248.97`.
+
 ## 2.248.96 - 2026-05-31
 
 - Corretto l'import Studio Telematico: i documenti e le email usano come nome visibile il titolo presente nelle tabelle `TESTI`/`EMAILS`, conservando il file originale solo come sorgente fisica e metadato.

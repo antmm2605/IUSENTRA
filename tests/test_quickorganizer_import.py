@@ -5,6 +5,7 @@ import json
 import zipfile
 from pathlib import Path
 
+import pytest
 from werkzeug.datastructures import FileStorage
 
 import web.services.quickorganizer_import as quickorganizer_import
@@ -287,6 +288,46 @@ def test_import_studio_telematico_upload_a_blocchi_ricompone_e_stagia(tmp_path: 
     assert package.source_path.name == "source.zip"
     assert loaded["sourceSha256"] == stage["sourceSha256"]
     assert not (stage_root / "_chunk_uploads" / session["uploadId"]).exists()
+
+
+def test_import_studio_telematico_upload_a_blocchi_preserva_sessione_se_staging_fallisce(
+    tmp_path: Path,
+    monkeypatch,
+):
+    source = _write_package(tmp_path / "IUSENTRA-StudioTelematico.zip")
+    payload = source.read_bytes()
+    stage_root = tmp_path / "staging"
+    session = begin_chunked_upload(
+        source.name,
+        len(payload),
+        stage_root,
+        chunk_size=97,
+        max_size=len(payload) + 1024,
+    )
+    total_chunks = int(session["totalChunks"])
+    chunk_size = int(session["chunkSizeBytes"])
+    for index in range(total_chunks):
+        chunk = payload[index * chunk_size : (index + 1) * chunk_size]
+        receive_chunked_upload(
+            stage_root,
+            session["uploadId"],
+            index,
+            total_chunks,
+            FileStorage(stream=io.BytesIO(chunk), filename=f"part-{index}.bin"),
+        )
+
+    def _raise_stage_failure(*args, **kwargs):
+        raise QuickOrganizerImportError("Staging fallito")
+
+    monkeypatch.setattr(quickorganizer_import, "stage_uploaded_package", _raise_stage_failure)
+
+    with pytest.raises(QuickOrganizerImportError, match="Staging fallito"):
+        complete_chunked_upload(stage_root, session["uploadId"], total_chunks=total_chunks)
+
+    preserved_session = stage_root / "_chunk_uploads" / session["uploadId"]
+    assert preserved_session.exists()
+    assert (preserved_session / "assembled.zip").exists()
+    assert (preserved_session / "parts" / "part-000000.bin").exists()
 
 
 def test_import_studio_telematico_zip_mdb_non_leggibile_mostra_avviso_utile(

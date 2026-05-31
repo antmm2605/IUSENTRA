@@ -27,10 +27,18 @@ export type StudioTelematicoImportPage = {
   actions: {
     refresh: string
     preview: string
+    uploadStart: string
+    uploadChunk: string
+    uploadComplete: string
     run: string
     helper: string
     fascicoli: string
     clienti: string
+  }
+  upload: {
+    directLimitBytes: number
+    chunkSizeBytes: number
+    maxUploadBytes: number
   }
   notes: string[]
   contracts: {
@@ -125,10 +133,18 @@ export const emptyStudioTelematicoPage: StudioTelematicoImportPage = {
   actions: {
     refresh: '/api/v1/ui/import/quickorganizer',
     preview: '/api/v1/ui/import/quickorganizer/anteprima',
+    uploadStart: '/api/v1/ui/import/quickorganizer/upload-session',
+    uploadChunk: '/api/v1/ui/import/quickorganizer/upload-session/{uploadId}/chunk',
+    uploadComplete: '/api/v1/ui/import/quickorganizer/upload-session/{uploadId}/completa',
     run: '/api/v1/ui/import/quickorganizer/esegui',
     helper: '/static/tools/PreparaPacchettoStudioTelematico.exe',
     fascicoli: '/fascicoli',
     clienti: '/clienti',
+  },
+  upload: {
+    directLimitBytes: 150 * 1024 * 1024,
+    chunkSizeBytes: 64 * 1024 * 1024,
+    maxUploadBytes: 30 * 1024 * 1024 * 1024,
   },
   notes: [],
   contracts: {
@@ -272,13 +288,103 @@ export function getStudioTelematicoImportPage(signal?: AbortSignal): Promise<Stu
   return apiJson<StudioTelematicoImportPage>('/api/v1/ui/import/quickorganizer', emptyStudioTelematicoPage, { signal })
 }
 
+type ChunkedUploadOptions = {
+  startEndpoint: string
+  chunkEndpoint: string
+  completeEndpoint: string
+  chunkSizeBytes: number
+  onProgress?: (progress: { value: number; detail: string }) => void
+}
+
+function uploadUrl(template: string, uploadId: string): string {
+  return template.replace('{uploadId}', encodeURIComponent(uploadId))
+}
+
+async function jsonFromResponse(response: Response): Promise<Record<string, unknown>> {
+  const raw = await response.json().catch(() => ({}))
+  return isRecord(raw) ? raw : {}
+}
+
+function normalisePreviewResponse(response: Response, record: Record<string, unknown>): StudioTelematicoPreview {
+  return {
+    ok: response.ok && boolValue(record.ok),
+    importId: stringValue(record.importId),
+    sourceName: stringValue(record.sourceName),
+    sourceSha256: stringValue(record.sourceSha256),
+    createdAt: stringValue(record.createdAt),
+    analysis: normaliseAnalysis(record.analysis),
+    errore: stringValue(record.errore || record.message),
+  }
+}
+
+async function previewChunkedPackage(file: File, options: ChunkedUploadOptions): Promise<StudioTelematicoPreview> {
+  const startResponse = await fetch(options.startEndpoint, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...csrfHeader(),
+    },
+    body: JSON.stringify({ filename: file.name, totalSize: file.size }),
+  })
+  const startRaw = await jsonFromResponse(startResponse)
+  if (!startResponse.ok || !boolValue(startRaw.ok)) {
+    return { ...emptyPreview, errore: stringValue(startRaw.errore || startRaw.message, 'Caricamento a blocchi non avviato.') }
+  }
+  const uploadId = stringValue(startRaw.uploadId)
+  const chunkSize = Math.max(1, numberValue(startRaw.chunkSizeBytes) || options.chunkSizeBytes)
+  const totalChunks = Math.max(1, numberValue(startRaw.totalChunks) || Math.ceil(file.size / chunkSize))
+  for (let index = 0; index < totalChunks; index += 1) {
+    const start = index * chunkSize
+    const end = Math.min(file.size, start + chunkSize)
+    const body = new FormData()
+    body.append('chunk', file.slice(start, end), file.name)
+    body.append('index', String(index))
+    body.append('totalChunks', String(totalChunks))
+    const chunkResponse = await fetch(uploadUrl(options.chunkEndpoint, uploadId), {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        Accept: 'application/json',
+        ...csrfHeader(),
+      },
+      body,
+    })
+    const chunkRaw = await jsonFromResponse(chunkResponse)
+    if (!chunkResponse.ok || !boolValue(chunkRaw.ok)) {
+      return { ...emptyPreview, errore: stringValue(chunkRaw.errore || chunkRaw.message, 'Caricamento del pacchetto interrotto.') }
+    }
+    options.onProgress?.({
+      value: Math.min(90, 10 + Math.round(((index + 1) / totalChunks) * 75)),
+      detail: `Caricati ${index + 1} blocchi su ${totalChunks}`,
+    })
+  }
+  options.onProgress?.({ value: 92, detail: 'Ricomposizione e controllo del pacchetto nello studio' })
+  const completeResponse = await fetch(uploadUrl(options.completeEndpoint, uploadId), {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...csrfHeader(),
+    },
+    body: JSON.stringify({ totalChunks }),
+  })
+  const completeRaw = await jsonFromResponse(completeResponse)
+  return normalisePreviewResponse(completeResponse, completeRaw)
+}
+
 export async function previewStudioTelematicoPackage(
   endpoint: string,
-  options: { file?: File | null; sourcePath?: string },
+  options: { file?: File | null; sourcePath?: string; chunked?: ChunkedUploadOptions },
 ): Promise<StudioTelematicoPreview> {
   const file = options.file || null
   const sourcePath = stringValue(options.sourcePath).trim()
   try {
+    if (file && options.chunked) {
+      return previewChunkedPackage(file, options.chunked)
+    }
     const isUpload = Boolean(file)
     const body = isUpload ? new FormData() : JSON.stringify({ sourcePath })
     if (file && body instanceof FormData) {
@@ -294,17 +400,7 @@ export async function previewStudioTelematicoPackage(
       },
       body,
     })
-    const raw = await response.json().catch(() => ({}))
-    const record = isRecord(raw) ? raw : {}
-    return {
-      ok: response.ok && boolValue(record.ok),
-      importId: stringValue(record.importId),
-      sourceName: stringValue(record.sourceName),
-      sourceSha256: stringValue(record.sourceSha256),
-      createdAt: stringValue(record.createdAt),
-      analysis: normaliseAnalysis(record.analysis),
-      errore: stringValue(record.errore || record.message),
-    }
+    return normalisePreviewResponse(response, await jsonFromResponse(response))
   } catch {
     return { ...emptyPreview, errore: 'Il pacchetto non è stato caricato.' }
   }

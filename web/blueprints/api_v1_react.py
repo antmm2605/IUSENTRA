@@ -290,9 +290,13 @@ from web.services.react_telematico_bridge import (
 )
 from web.services.quickorganizer_import import (
     QuickOrganizerImportError,
+    begin_chunked_upload,
     cleanup_upload_temp,
+    complete_chunked_upload,
     import_quickorganizer_package,
     load_staged_package,
+    max_chunked_upload_bytes,
+    receive_chunked_upload,
     save_upload_to_temp,
     stage_referenced_package,
     stage_uploaded_package,
@@ -873,6 +877,10 @@ def _studio_telematico_staging_root() -> Path:
     return staging_root_for_anchor(fascicoli_db)
 
 
+_STUDIO_TELEMATICO_DIRECT_UPLOAD_LIMIT_BYTES = 150 * 1024 * 1024
+_STUDIO_TELEMATICO_CHUNK_SIZE_BYTES = 64 * 1024 * 1024
+
+
 def _studio_telematico_import_page(path: str = "/importa-pratiche-studio-telematico") -> dict[str, Any]:
     can_import = _puo_importare_studio_telematico()
     return {
@@ -912,12 +920,21 @@ def _studio_telematico_import_page(path: str = "/importa-pratiche-studio-telemat
         "actions": {
             "refresh": "/api/v1/ui/import/quickorganizer",
             "preview": "/api/v1/ui/import/quickorganizer/anteprima",
+            "uploadStart": "/api/v1/ui/import/quickorganizer/upload-session",
+            "uploadChunk": "/api/v1/ui/import/quickorganizer/upload-session/{uploadId}/chunk",
+            "uploadComplete": "/api/v1/ui/import/quickorganizer/upload-session/{uploadId}/completa",
             "run": "/api/v1/ui/import/quickorganizer/esegui",
             "helper": "/static/tools/PreparaPacchettoStudioTelematico.exe",
             "fascicoli": "/fascicoli",
             "clienti": "/clienti",
         },
+        "upload": {
+            "directLimitBytes": _STUDIO_TELEMATICO_DIRECT_UPLOAD_LIMIT_BYTES,
+            "chunkSizeBytes": _STUDIO_TELEMATICO_CHUNK_SIZE_BYTES,
+            "maxUploadBytes": max_chunked_upload_bytes(),
+        },
         "notes": [
+            "Gli archivi grandi vengono caricati a blocchi e ricomposti nello spazio dati dello studio.",
             "Il pacchetto consigliato è l'archivio compresso preparato dal PC dove era installato Studio Telematico.",
             "Tutti i documenti dei fascicoli devono essere nella cartella ATTI; le email collegate devono essere nella cartella EMAILS.",
             "L'archivio dati da solo consente il controllo delle pratiche, ma senza le cartelle ATTI ed EMAILS l'import resta parziale.",
@@ -3089,6 +3106,81 @@ def admin_database_react_payload():
 @_richiedi_auth
 def studio_telematico_import_react_payload():
     return jsonify(_studio_telematico_import_page(request.args.get("path", "/import/quickorganizer")))
+
+
+@api_v1_react.post("/import/quickorganizer/upload-session")
+@_richiedi_auth
+def studio_telematico_import_upload_session():
+    if not _puo_importare_studio_telematico():
+        return jsonify({"ok": False, "errore": "Profilo non autorizzato all'importazione pratiche.", "codice": 403}), 403
+    body = _request_payload()
+    filename = str(body.get("filename") or body.get("name") or "pacchetto.zip")
+    total_size = int(body.get("totalSize") or body.get("size") or 0)
+    try:
+        session = begin_chunked_upload(
+            filename,
+            total_size,
+            _studio_telematico_staging_root(),
+            chunk_size=_STUDIO_TELEMATICO_CHUNK_SIZE_BYTES,
+            max_size=max_chunked_upload_bytes(),
+        )
+        return jsonify({"ok": True, **session})
+    except QuickOrganizerImportError as exc:
+        return jsonify({"ok": False, "errore": exc.public_message, "codice": "upload_non_valido"}), 400
+
+
+@api_v1_react.post("/import/quickorganizer/upload-session/<upload_id>/chunk")
+@_richiedi_auth
+def studio_telematico_import_upload_chunk(upload_id: str):
+    if not _puo_importare_studio_telematico():
+        return jsonify({"ok": False, "errore": "Profilo non autorizzato all'importazione pratiche.", "codice": 403}), 403
+    uploaded = request.files.get("chunk") or request.files.get("file")
+    if not uploaded:
+        return jsonify({"ok": False, "errore": "Blocco del pacchetto non ricevuto.", "codice": "upload_non_valido"}), 400
+    try:
+        index = int(request.form.get("index") or request.args.get("index") or 0)
+        total_chunks = int(request.form.get("totalChunks") or request.args.get("totalChunks") or 0)
+        result = receive_chunked_upload(
+            _studio_telematico_staging_root(),
+            upload_id,
+            index,
+            total_chunks,
+            uploaded,
+        )
+        return jsonify(result)
+    except QuickOrganizerImportError as exc:
+        return jsonify({"ok": False, "errore": exc.public_message, "codice": "upload_non_valido"}), 400
+    except ValueError:
+        return jsonify({"ok": False, "errore": "Indice del blocco non valido.", "codice": "upload_non_valido"}), 400
+
+
+@api_v1_react.post("/import/quickorganizer/upload-session/<upload_id>/completa")
+@_richiedi_auth
+def studio_telematico_import_upload_complete(upload_id: str):
+    if not _puo_importare_studio_telematico():
+        return jsonify({"ok": False, "errore": "Profilo non autorizzato all'importazione pratiche.", "codice": 403}), 403
+    body = _request_payload()
+    try:
+        total_chunks = body.get("totalChunks")
+        stage = complete_chunked_upload(
+            _studio_telematico_staging_root(),
+            upload_id,
+            total_chunks=int(total_chunks) if total_chunks not in (None, "") else None,
+        )
+    except QuickOrganizerImportError as exc:
+        return jsonify({"ok": False, "errore": exc.public_message, "codice": "import_non_valido"}), 400
+    except Exception as exc:  # noqa: BLE001 - archivi cliente possono contenere dati non coerenti
+        current_app.logger.exception("Completamento upload Studio Telematico non riuscito: %s", exc)
+        return jsonify({"ok": False, "errore": "Il pacchetto non è leggibile. Verifica di aver incluso pratiche, ATTI ed EMAILS."}), 400
+
+    summary = stage.get("analysis", {}).get("summary", {}) if isinstance(stage.get("analysis"), dict) else {}
+    _audit_event(
+        "studio_telematico.import_anteprima",
+        "import_pratiche",
+        str(stage.get("importId") or ""),
+        f"Controllate {summary.get('matters', 0)} pratiche da Studio Telematico.",
+    )
+    return jsonify({"ok": True, **stage})
 
 
 @api_v1_react.post("/import/quickorganizer/anteprima")

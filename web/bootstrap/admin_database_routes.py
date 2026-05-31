@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import os
+import json
+import sqlite3
 from collections.abc import Callable
-from datetime import date
+from datetime import date, datetime
+from pathlib import Path
 
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
 
@@ -87,6 +90,210 @@ def register_admin_database_routes(
             "azione_consigliata": azione,
             "istruzione": _sqlite_instruction(),
         }
+
+    def _json_has_records(path: str | Path) -> int:
+        try:
+            p = Path(path)
+            if not p.exists() or not p.is_file():
+                return 0
+            raw = json.loads(p.read_text(encoding="utf-8"))
+            if isinstance(raw, dict):
+                return len(raw)
+            if isinstance(raw, list):
+                return len(raw)
+        except Exception:
+            return 0
+        return 0
+
+    def _sqlite_table_has_records(db_path: str | Path, table: str) -> int:
+        try:
+            p = Path(db_path)
+            if not p.exists() or not p.is_file():
+                return 0
+            conn = sqlite3.connect(f"file:{p}?mode=ro", uri=True)
+            try:
+                row = conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                    (table,),
+                ).fetchone()
+                if not row:
+                    return 0
+                count = conn.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()
+                return int((count or [0])[0] or 0)
+            finally:
+                conn.close()
+        except Exception:
+            return 0
+
+    def _studio_db_from_clienti_path(path: str | Path) -> Path:
+        try:
+            from pct.storage import StudioDB
+
+            return StudioDB.from_data_path(path).db_path
+        except Exception:
+            p = Path(path)
+            return p.parents[1] / "studio.db" if len(p.parents) > 1 else p.with_name("studio.db")
+
+    def _primary_counts(paths: dict[str, str]) -> dict[str, int]:
+        clienti_path = str(paths.get("CLIENTI_DB", "") or "")
+        fascicoli_path = str(paths.get("FASCICOLI_DB", "") or "")
+        db_path = _studio_db_from_clienti_path(clienti_path) if clienti_path else Path("")
+        return {
+            "clienti_json": _json_has_records(clienti_path) if clienti_path else 0,
+            "fascicoli_json": _json_has_records(fascicoli_path) if fascicoli_path else 0,
+            "clienti_sqlite": _sqlite_table_has_records(db_path, "clienti") if str(db_path) else 0,
+            "fascicoli_sqlite": _sqlite_table_has_records(db_path, "fascicoli") if str(db_path) else 0,
+        }
+
+    def _tenant_slug_corrente() -> str:
+        return str(
+            getattr(g, "tenant_slug", "")
+            or getattr(g, "auth_tenant_slug", "")
+            or getattr(g, "tenant", "")
+            or ""
+        ).strip().lower()
+
+    def _directory_claims_current_tenant(slug: str) -> tuple[bool, str]:
+        if not slug:
+            return False, "tenant non determinato"
+        directory_path = Path(str(app.config.get("TENANTS_REGISTRY", "tenants.json"))).parent / "tenant_user_directory.json"
+        if not directory_path.exists():
+            return False, "directory utenti-tenant non trovata"
+        try:
+            directory = json.loads(directory_path.read_text(encoding="utf-8"))
+        except Exception:
+            return False, "directory utenti-tenant non leggibile"
+        users = directory.get("users") if isinstance(directory, dict) else {}
+        emails = directory.get("emails") if isinstance(directory, dict) else {}
+        utente = getattr(g, "utente_corrente", None)
+        identifiers = {
+            str(getattr(utente, "username", "") or "").strip().lower(),
+            str(getattr(utente, "email", "") or "").strip().lower(),
+        }
+        identifiers.discard("")
+        for identifier in identifiers:
+            entry = (users or {}).get(identifier) or (emails or {}).get(identifier)
+            if isinstance(entry, dict) and str(entry.get("tenant_slug") or "").strip().lower() == slug:
+                return True, "utente corrente associato allo studio"
+        slugs = {
+            str(entry.get("tenant_slug") or "").strip().lower()
+            for section in (users, emails)
+            for entry in (section or {}).values()
+            if isinstance(entry, dict) and str(entry.get("tenant_slug") or "").strip()
+        }
+        if slugs == {slug}:
+            return True, "directory associata a un solo studio"
+        return False, "directory utenti-tenant non attribuisce con certezza i dati root allo studio corrente"
+
+    def _recover_legacy_root_before_sqlite(operazione: str) -> dict:
+        if not app.config.get("MULTI_TENANT"):
+            return {"ok": True, "executed": False, "reason": "single-tenant", "operation": operazione}
+        slug = _tenant_slug_corrente()
+        if not slug:
+            return {"ok": True, "executed": False, "reason": "tenant non disponibile", "operation": operazione}
+        try:
+            from pct.tenant import GestioneTenant
+            from web.services.tenant_legacy_bootstrap import legacy_root_data_paths
+
+            tenants = GestioneTenant(app.config["TENANTS_REGISTRY"])
+            tenant_paths = tenants.percorsi_dati(slug)
+            root_paths = legacy_root_data_paths(app.config)
+            if not root_paths:
+                return {"ok": True, "executed": False, "reason": "nessun dato root legacy", "operation": operazione}
+            if Path(str(root_paths.get("CLIENTI_DB", ""))).resolve() == Path(tenant_paths["CLIENTI_DB"]).resolve():
+                return {"ok": True, "executed": False, "reason": "sorgente gia' tenant-aware", "operation": operazione}
+            root_counts = _primary_counts(root_paths)
+            tenant_counts = _primary_counts(tenant_paths)
+            root_has_primary = any(root_counts[key] > 0 for key in ("clienti_json", "fascicoli_json", "clienti_sqlite", "fascicoli_sqlite"))
+            tenant_has_primary = any(tenant_counts[key] > 0 for key in ("clienti_json", "fascicoli_json", "clienti_sqlite", "fascicoli_sqlite"))
+            if not root_has_primary:
+                return {
+                    "ok": True,
+                    "executed": False,
+                    "reason": "nessun cliente o fascicolo nella root legacy",
+                    "operation": operazione,
+                    "root_counts": root_counts,
+                    "tenant_counts": tenant_counts,
+                }
+            if tenant_has_primary:
+                return {
+                    "ok": True,
+                    "executed": False,
+                    "reason": "lo studio corrente contiene gia' clienti o fascicoli",
+                    "operation": operazione,
+                    "root_counts": root_counts,
+                    "tenant_counts": tenant_counts,
+                }
+            claimed, reason = _directory_claims_current_tenant(slug)
+            if not claimed:
+                return {
+                    "ok": False,
+                    "executed": False,
+                    "reason": reason,
+                    "operation": operazione,
+                    "root_counts": root_counts,
+                    "tenant_counts": tenant_counts,
+                }
+            result = tenants.bootstrap_legacy_runtime_data(slug, root_paths)
+            return {
+                "ok": bool(result.get("ok", True)),
+                "executed": bool(result.get("copied") or result.get("sqlite_migrated")),
+                "reason": "recupero root legacy eseguito",
+                "operation": operazione,
+                "target_slug": slug,
+                "root_counts": root_counts,
+                "tenant_counts_before": tenant_counts,
+                "tenant_counts_after": _primary_counts(tenant_paths),
+                "bootstrap": result,
+            }
+        except Exception as exc:
+            app.logger.exception("Recupero dati legacy root non riuscito prima di %s: %s", operazione, exc)
+            return {"ok": False, "executed": False, "reason": "recupero dati legacy non riuscito", "operation": operazione}
+
+    def _legacy_recovery_block_payload(report: dict) -> dict:
+        return {
+            "ok": False,
+            "stato": "Bloccata per protezione dati",
+            "messaggio": "Operazione SQLite bloccata: esistono dati legacy fuori dallo studio corrente non attribuibili con certezza.",
+            "percorso_db": "",
+            "record_migrati": 0,
+            "per_modulo": {},
+            "errori": [str(report.get("reason") or "Recupero dati legacy non sicuro.")],
+            "avvisi": [],
+            "audit_migrazione": {"legacy_recovery": report},
+            "durata_secondi": 0,
+            "azione_consigliata": "Verifica associazione utenti-studio e ripeti solo quando i dati root sono attribuiti allo studio corretto.",
+            "istruzione": _sqlite_instruction(),
+            "recupero_legacy": report,
+        }
+
+    def _mark_tenant_sqlite_ready(percorso_db: str, report: dict | None = None) -> None:
+        slug = _tenant_slug_corrente()
+        if not slug:
+            return
+        if _sqlite_table_has_records(percorso_db, "clienti") < 0:
+            return
+        try:
+            from pct.tenant import GestioneTenant
+
+            tenants = GestioneTenant(app.config["TENANTS_REGISTRY"])
+            studio = tenants.get(slug)
+            if not studio or not studio.database.is_sqlite:
+                return
+            studio.database.connessione_ok = True
+            studio.database.core_runtime_enabled = True
+            studio.database.ultimo_test = datetime.now().isoformat()
+            studio.database.errore_connessione = ""
+            studio.database.last_migration_at = datetime.now().isoformat()
+            if report and report.get("percorso_db"):
+                studio.database.last_migration_report = str(report.get("percorso_db"))
+            studi = tenants._carica()  # noqa: SLF001 - aggiornamento atomico registry tenant interno
+            key = tenants._resolve_registry_key(slug)  # noqa: SLF001
+            studi[key] = studio
+            tenants._salva(studi)  # noqa: SLF001
+            tenants._scrivi_storage_manifest(slug, studio)  # noqa: SLF001
+        except Exception as exc:
+            app.logger.exception("Marcatura SQLite tenant non riuscita: %s", exc)
 
     @app.route("/admin/database")
     def admin_database():
@@ -198,6 +405,9 @@ def register_admin_database_routes(
         utente = g.utente_corrente
         if not utente or not utente.ha_permesso("utenti.leggi"):
             return jsonify({"errore": "Non autorizzato"}), 403
+        recupero_legacy = _recover_legacy_root_before_sqlite("migra")
+        if not recupero_legacy.get("ok", True):
+            return jsonify(_legacy_recovery_block_payload(recupero_legacy)), 200
         percorso_db = os.path.join(
             cfg_data_path("BACKUP_DIR"),
             f"studio_legale_{date.today().isoformat()}.db",
@@ -205,7 +415,9 @@ def register_admin_database_routes(
         database = get_database()
         risultato = database.migra_verso_sqlite(percorso_db)
         audit("database.migra_sqlite", risorsa_tipo="db", risorsa_id=percorso_db)
-        return jsonify(_sqlite_status_payload(risultato, fallback_db=percorso_db))
+        payload = _sqlite_status_payload(risultato, fallback_db=percorso_db)
+        payload["recupero_legacy"] = recupero_legacy
+        return jsonify(payload)
 
     @app.route("/admin/database/preverifica-sqlite", methods=["POST"])
     def admin_database_preverifica_sqlite():
@@ -290,13 +502,23 @@ def register_admin_database_routes(
             from pct.storage import StudioDB
             from pct import cache as pct_cache
 
+            recupero_legacy = _recover_legacy_root_before_sqlite("attiva-sqlite")
+            if not recupero_legacy.get("ok", True):
+                return jsonify(_legacy_recovery_block_payload(recupero_legacy)), 200
             studio_db = StudioDB.from_data_path(cfg_data_path("CLIENTI_DB"))
             percorso_db = str(studio_db.db_path)
-            risultato = get_database().migra_verso_sqlite(percorso_db)
+            if recupero_legacy.get("executed"):
+                risultato = get_database().riconcilia_verso_sqlite(percorso_db)
+            else:
+                risultato = get_database().migra_verso_sqlite(percorso_db)
             pct_cache.invalidate(percorso_db)
 
             audit("database.attiva_sqlite", risorsa_tipo="db", risorsa_id=percorso_db)
-            return jsonify(_sqlite_status_payload(risultato, fallback_db=percorso_db))
+            payload = _sqlite_status_payload(risultato, fallback_db=percorso_db)
+            payload["recupero_legacy"] = recupero_legacy
+            if risultato.riuscita:
+                _mark_tenant_sqlite_ready(percorso_db, payload)
+            return jsonify(payload)
         except Exception as exc:
             app.logger.exception("Errore attivazione SQLite: %s", exc)
             return jsonify(

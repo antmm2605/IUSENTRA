@@ -14,6 +14,7 @@ Registry globale: ./data/tenants.json  (gestito dal SUPERADMIN)
 from __future__ import annotations
 
 import json
+import sqlite3
 import uuid
 import re
 import secrets
@@ -1245,35 +1246,46 @@ class GestioneTenant:
 
         if studio.database.is_sqlite:
             studio_db_path = Path(tenant_paths["STUDIO_DB"])
-            sqlite_empty = not any(
-                self._sqlite_table_has_records(studio_db_path, table)
-                for table in ("clienti", "fascicoli", "appuntamenti", "scadenze", "messaggi")
-            )
-            if sqlite_empty:
+            core_tables = ("clienti", "fascicoli", "appuntamenti", "scadenze", "messaggi")
+            legacy_migrate_sources = {
+                "clienti": legacy_paths.get("CLIENTI_DB", ""),
+                "fascicoli": legacy_paths.get("FASCICOLI_DB", ""),
+                "appuntamenti": legacy_paths.get("AGENDA_DB", ""),
+                "scadenze": legacy_paths.get("SCADENZIARIO_DB", ""),
+                "timesheet": legacy_paths.get("TIMESHEET_DB", ""),
+                "time_tracking": legacy_paths.get("TIME_TRACKING_DB", ""),
+                "messaggi": legacy_paths.get("MESSAGGI_DB", ""),
+                "privacy": legacy_paths.get("PRIVACY_DB", ""),
+                "search_index": legacy_paths.get("SEARCH_INDEX", ""),
+            }
+            migrate_sources = {
+                "clienti": legacy_paths.get("CLIENTI_DB") or tenant_paths.get("CLIENTI_DB", ""),
+                "fascicoli": legacy_paths.get("FASCICOLI_DB") or tenant_paths.get("FASCICOLI_DB", ""),
+                "appuntamenti": legacy_paths.get("AGENDA_DB") or tenant_paths.get("AGENDA_DB", ""),
+                "scadenze": legacy_paths.get("SCADENZIARIO_DB") or tenant_paths.get("SCADENZIARIO_DB", ""),
+                "timesheet": legacy_paths.get("TIMESHEET_DB") or tenant_paths.get("TIMESHEET_DB", ""),
+                "time_tracking": legacy_paths.get("TIME_TRACKING_DB") or tenant_paths.get("TIME_TRACKING_DB", ""),
+                "messaggi": legacy_paths.get("MESSAGGI_DB") or tenant_paths.get("MESSAGGI_DB", ""),
+                "privacy": legacy_paths.get("PRIVACY_DB") or tenant_paths.get("PRIVACY_DB", ""),
+                "search_index": legacy_paths.get("SEARCH_INDEX") or tenant_paths.get("SEARCH_INDEX", ""),
+            }
+            if any(
+                self._path_has_data(Path(str(path)))
+                for path in legacy_migrate_sources.values()
+                if str(path).strip()
+            ):
                 from pct.database import GestioneDatabase
 
-                migrate_sources = {
-                    "clienti": legacy_paths.get("CLIENTI_DB", ""),
-                    "fascicoli": legacy_paths.get("FASCICOLI_DB", ""),
-                    "appuntamenti": legacy_paths.get("AGENDA_DB", ""),
-                    "scadenze": legacy_paths.get("SCADENZIARIO_DB", ""),
-                    "timesheet": legacy_paths.get("TIMESHEET_DB", ""),
-                    "time_tracking": legacy_paths.get("TIME_TRACKING_DB", ""),
-                    "messaggi": legacy_paths.get("MESSAGGI_DB", ""),
-                    "privacy": legacy_paths.get("PRIVACY_DB", ""),
-                    "search_index": legacy_paths.get("SEARCH_INDEX", ""),
-                }
-                if any(
-                    self._path_has_data(Path(str(path)))
-                    for path in migrate_sources.values()
-                    if str(path).strip()
-                ):
-                    migratore = GestioneDatabase(migrate_sources)
-                    risultato = migratore.migra_verso_sqlite(str(studio_db_path))
-                    sqlite_records = dict(risultato.record_migrati)
-                    sqlite_migrated = bool(
-                        risultato.riuscita and any(int(v or 0) > 0 for v in sqlite_records.values())
+                migratore = GestioneDatabase(migrate_sources)
+                risultato = migratore.riconcilia_verso_sqlite(str(studio_db_path))
+                sqlite_records = dict(risultato.record_migrati)
+                sqlite_migrated = bool(
+                    risultato.riuscita
+                    and (
+                        any(int(v or 0) > 0 for v in sqlite_records.values())
+                        or any(self._sqlite_table_has_records(studio_db_path, table) for table in core_tables)
                     )
+                )
 
         if copied or sqlite_migrated:
             self._scrivi_storage_manifest(slug, studio)
@@ -1481,6 +1493,30 @@ class GestioneTenant:
         paths = self.percorsi_dati(slug, reconcile_aliases=reconcile_aliases)
         info = DB_MODE_INFO.get(db.normalized_mode, {})
         activation_state = "active"
+        sqlite_ready = False
+        if db.is_sqlite:
+            sqlite_path = Path(paths["STUDIO_DB"])
+            if sqlite_path.exists() and sqlite_path.is_file():
+                try:
+                    conn = sqlite3.connect(f"file:{sqlite_path}?mode=ro", uri=True)
+                    try:
+                        quick_check = conn.execute("PRAGMA quick_check").fetchone()
+                        tables = {
+                            str(row[0])
+                            for row in conn.execute(
+                                "SELECT name FROM sqlite_master WHERE type='table'"
+                            ).fetchall()
+                        }
+                        sqlite_ready = bool(
+                            quick_check
+                            and str(quick_check[0]).lower() == "ok"
+                            and {"clienti", "fascicoli"}.issubset(tables)
+                        )
+                    finally:
+                        conn.close()
+                except sqlite3.Error:
+                    sqlite_ready = False
+            activation_state = "active" if sqlite_ready else "local-pending"
         if db.normalized_mode == DbMode.POSTGRESQL:
             if db.effective_runtime_kind == "postgresql":
                 activation_state = "active"
@@ -1503,10 +1539,10 @@ class GestioneTenant:
             "json_root": str(self._data_dir(slug)),
             "studio_db_path": paths["STUDIO_DB"],
             "connection_url_safe": db.connection_url_safe,
-            "connessione_ok": bool(db.connessione_ok),
-            "core_runtime_enabled": bool(db.core_runtime_enabled),
+            "connessione_ok": bool(sqlite_ready) if db.is_sqlite else bool(db.connessione_ok),
+            "core_runtime_enabled": bool(sqlite_ready) if db.is_sqlite else bool(db.core_runtime_enabled),
             "ultimo_test": db.ultimo_test,
-            "errore_connessione": db.errore_connessione,
+            "errore_connessione": "" if db.is_sqlite and sqlite_ready else db.errore_connessione,
             "last_migration_report": db.last_migration_report,
             "last_migration_at": db.last_migration_at,
         }

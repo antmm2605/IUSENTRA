@@ -47,6 +47,8 @@ EXPORT_JSON_NAMES = (
 )
 TABLES_REQUIRED = ("PRATICHE", "NOMI", "TAVOLA", "TESTI", "EMAILS", "AGENDA")
 PACKAGE_SUFFIXES = {".zip", ".json", ".mdb"}
+DEFAULT_CHUNK_UPLOAD_SIZE_BYTES = 64 * 1024 * 1024
+DEFAULT_MAX_UPLOAD_BYTES = 30 * 1024 * 1024 * 1024
 TABLE_ALIASES = {
     "PRATICHE": "PRATICHE",
     "NOMI": "NOMI",
@@ -166,6 +168,75 @@ def _safe_local_package_path(path: str | Path) -> Path:
 def _safe_upload_suffix(filename: Any) -> str:
     suffix = Path(secure_filename(_text(filename)) or "pacchetto.zip").suffix.casefold()
     return suffix if suffix in PACKAGE_SUFFIXES else ".zip"
+
+
+def _public_upload_name(filename: Any) -> str:
+    name = secure_filename(_text(filename, "pacchetto.zip")) or "pacchetto.zip"
+    suffix = Path(name).suffix.casefold()
+    if suffix not in PACKAGE_SUFFIXES:
+        name = f"{Path(name).stem or 'pacchetto'}.zip"
+    return name
+
+
+def _safe_upload_id(upload_id: Any) -> str:
+    value = _text(upload_id).lower()
+    if not re.fullmatch(r"[a-f0-9]{32}", value):
+        raise QuickOrganizerImportError("Sessione di caricamento non riconosciuta.")
+    return value
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        value = int(str(os.getenv(name, "") or "").strip())
+        return value if value > 0 else default
+    except (TypeError, ValueError):
+        return default
+
+
+def max_chunked_upload_bytes() -> int:
+    return _env_int("IUSENTRA_STUDIO_TELEMATICO_MAX_UPLOAD_BYTES", DEFAULT_MAX_UPLOAD_BYTES)
+
+
+def _chunk_session_dir(staging_root: str | Path, upload_id: str, *, create: bool = False) -> Path:
+    root = _safe_runtime_dir(staging_root, create=True)
+    session = _safe_child_path(root, "_chunk_uploads", _safe_upload_id(upload_id), extra_roots=(root,))
+    if create:
+        session.mkdir(parents=True, exist_ok=True)
+    return session
+
+
+def _chunk_metadata_path(staging_root: str | Path, upload_id: str) -> Path:
+    root = _safe_runtime_dir(staging_root)
+    return _safe_child_path(_chunk_session_dir(staging_root, upload_id), "metadata.json", extra_roots=(root,))
+
+
+def _chunk_parts_dir(staging_root: str | Path, upload_id: str, *, create: bool = False) -> Path:
+    root = _safe_runtime_dir(staging_root)
+    parts = _safe_child_path(_chunk_session_dir(staging_root, upload_id), "parts", extra_roots=(root,))
+    if create:
+        parts.mkdir(parents=True, exist_ok=True)
+    return parts
+
+
+def _read_chunk_metadata(staging_root: str | Path, upload_id: str) -> dict[str, Any]:
+    path = _chunk_metadata_path(staging_root, upload_id)
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise QuickOrganizerImportError("Sessione di caricamento scaduta o non trovata.") from exc
+    except Exception as exc:
+        raise QuickOrganizerImportError("Sessione di caricamento non valida.") from exc
+
+
+def _chunk_path(staging_root: str | Path, upload_id: str, index: int) -> Path:
+    if index < 0:
+        raise QuickOrganizerImportError("Blocco di caricamento non valido.")
+    root = _safe_runtime_dir(staging_root)
+    return _safe_child_path(
+        _chunk_parts_dir(staging_root, upload_id, create=True),
+        f"part-{index:06d}.bin",
+        extra_roots=(root,),
+    )
 
 
 def _iso_now() -> str:
@@ -1122,22 +1193,35 @@ def _fast_source_fingerprint(path: Path) -> str:
     return f"local-size:{stat.st_size}:mtime:{int(stat.st_mtime)}"
 
 
-def stage_uploaded_package(source_path: str | Path, staging_root: str | Path) -> dict[str, Any]:
-    source = _safe_package_path(source_path)
-    package = load_quickorganizer_package(source)
+def stage_uploaded_package(
+    source_path: str | Path,
+    staging_root: str | Path,
+    *,
+    move_source: bool = False,
+    source_name: str = "",
+    source_sha256: str = "",
+) -> dict[str, Any]:
+    source = _safe_existing_file(
+        source_path,
+        allowed_suffixes=PACKAGE_SUFFIXES,
+        extra_roots=(staging_root,),
+    )
     import_id = uuid.uuid4().hex
     root = _safe_runtime_dir(staging_root, create=True)
     target_dir = _safe_child_path(root, import_id)
     target_dir.mkdir(parents=True, exist_ok=True)
     target_path = _safe_child_path(target_dir, f"source{source.suffix.lower() or '.zip'}")
     # lgtm[py/path-injection] Sorgente e destinazione sono state validate sotto radici runtime consentite.
-    shutil.copy2(source, target_path)
+    if move_source:
+        shutil.move(str(source), str(target_path))
+    else:
+        shutil.copy2(source, target_path)
     staged_package = load_quickorganizer_package(target_path)
     analysis = analyze_quickorganizer_package(staged_package)
     stage_payload = {
         "importId": import_id,
-        "sourceName": source.name,
-        "sourceSha256": _sha256_file(target_path),
+        "sourceName": source_name or source.name,
+        "sourceSha256": source_sha256 or _sha256_file(target_path),
         "createdAt": _iso_now(),
         "analysis": analysis,
     }
@@ -1146,6 +1230,115 @@ def stage_uploaded_package(source_path: str | Path, staging_root: str | Path) ->
         encoding="utf-8",
     )
     return stage_payload
+
+
+def begin_chunked_upload(
+    filename: str,
+    total_size: int,
+    staging_root: str | Path,
+    *,
+    chunk_size: int = DEFAULT_CHUNK_UPLOAD_SIZE_BYTES,
+    max_size: int | None = None,
+) -> dict[str, Any]:
+    total = int(total_size or 0)
+    max_bytes = int(max_size or max_chunked_upload_bytes())
+    if total <= 0:
+        raise QuickOrganizerImportError("Dimensione pacchetto non valida.")
+    if total > max_bytes:
+        raise QuickOrganizerImportError("Il pacchetto supera la dimensione massima consentita.")
+    public_name = _public_upload_name(filename)
+    safe_chunk_size = max(1, int(chunk_size or DEFAULT_CHUNK_UPLOAD_SIZE_BYTES))
+    total_chunks = max(1, (total + safe_chunk_size - 1) // safe_chunk_size)
+    upload_id = uuid.uuid4().hex
+    session = _chunk_session_dir(staging_root, upload_id, create=True)
+    _chunk_parts_dir(staging_root, upload_id, create=True)
+    metadata = {
+        "uploadId": upload_id,
+        "filename": public_name,
+        "totalSize": total,
+        "chunkSizeBytes": safe_chunk_size,
+        "totalChunks": total_chunks,
+        "received": [],
+        "createdAt": _iso_now(),
+    }
+    _safe_child_path(session, "metadata.json", extra_roots=(_safe_runtime_dir(staging_root),)).write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return metadata
+
+
+def receive_chunked_upload(
+    staging_root: str | Path,
+    upload_id: str,
+    index: int,
+    total_chunks: int,
+    file_storage: Any,
+) -> dict[str, Any]:
+    metadata = _read_chunk_metadata(staging_root, upload_id)
+    expected_total = int(metadata.get("totalChunks") or 0)
+    index_int = int(index)
+    if int(total_chunks or expected_total) != expected_total:
+        raise QuickOrganizerImportError("Numero blocchi non coerente con la sessione.")
+    if index_int < 0 or index_int >= expected_total:
+        raise QuickOrganizerImportError("Blocco di caricamento fuori sequenza.")
+    target = _chunk_path(staging_root, upload_id, index_int)
+    # lgtm[py/path-injection] Blocco salvato in sessione upload validata con indice numerico.
+    file_storage.save(target)
+    received = sorted({int(item) for item in metadata.get("received", []) if str(item).isdigit()} | {index_int})
+    metadata["received"] = received
+    _chunk_metadata_path(staging_root, upload_id).write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return {
+        "ok": True,
+        "uploadId": metadata["uploadId"],
+        "receivedChunks": len(received),
+        "totalChunks": expected_total,
+        "complete": len(received) == expected_total,
+    }
+
+
+def complete_chunked_upload(
+    staging_root: str | Path,
+    upload_id: str,
+    *,
+    total_chunks: int | None = None,
+) -> dict[str, Any]:
+    metadata = _read_chunk_metadata(staging_root, upload_id)
+    expected_total = int(metadata.get("totalChunks") or 0)
+    if total_chunks is not None and int(total_chunks) != expected_total:
+        raise QuickOrganizerImportError("Numero blocchi non coerente con la sessione.")
+    received = {int(item) for item in metadata.get("received", []) if str(item).isdigit()}
+    missing = [index for index in range(expected_total) if index not in received]
+    if missing:
+        raise QuickOrganizerImportError("Caricamento incompleto: mancano alcuni blocchi del pacchetto.")
+    session = _chunk_session_dir(staging_root, upload_id)
+    suffix = _safe_upload_suffix(metadata.get("filename"))
+    assembled = _safe_child_path(session, f"assembled{suffix}", extra_roots=(_safe_runtime_dir(staging_root),))
+    digest = hashlib.sha256()
+    try:
+        with assembled.open("wb") as output:
+            for index in range(expected_total):
+                part = _chunk_path(staging_root, upload_id, index)
+                with part.open("rb") as source:
+                    for chunk in iter(lambda: source.read(1024 * 1024), b""):
+                        digest.update(chunk)
+                        output.write(chunk)
+        expected_size = int(metadata.get("totalSize") or 0)
+        actual_size = assembled.stat().st_size
+        if actual_size != expected_size:
+            raise QuickOrganizerImportError("Il pacchetto ricomposto non corrisponde alla dimensione attesa.")
+        return stage_uploaded_package(
+            assembled,
+            staging_root,
+            move_source=True,
+            source_name=str(metadata.get("filename") or "pacchetto.zip"),
+            source_sha256=digest.hexdigest(),
+        )
+    finally:
+        shutil.rmtree(session, ignore_errors=True)
 
 
 def stage_referenced_package(source_path: str | Path, staging_root: str | Path) -> dict[str, Any]:

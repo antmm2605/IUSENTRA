@@ -1233,6 +1233,57 @@ def test_single_tenant_bootstrap_migra_dati_legacy_nello_studio_sqlite(tmp_path:
     assert Path(tenant_paths["CONFIG_STUDIO_DB"]).exists()
 
 
+def test_bootstrap_legacy_runtime_data_riconcilia_sqlite_parzialmente_popolato(tmp_path: Path):
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Montagnese", "studio-legale-giuseppe-montagnese", db_config={"mode": "SQLITE"})
+    tenant_paths = tm.percorsi_dati(studio.slug)
+
+    root_clienti = tmp_path / "clienti" / "anagrafica.json"
+    root_clienti.parent.mkdir(parents=True, exist_ok=True)
+    root_clienti.write_text(
+        json.dumps({"CLI001": {"id": "CLI001", "nome": "Giuseppe", "cognome": "Montagnese"}}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    root_fascicoli = tmp_path / "fascicoli" / "fascicoli.json"
+    root_fascicoli.parent.mkdir(parents=True, exist_ok=True)
+    root_fascicoli.write_text(
+        json.dumps({"FASC001": {"id": "FASC001", "numero": "1/2026", "titolo": "Pratica", "id_cliente": "CLI001"}}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    tenant_messaggi = tmp_path / "messaggi.json"
+    tenant_messaggi.write_text(
+        json.dumps([{"id": "MSG001", "oggetto": "Messaggio già presente"}], ensure_ascii=False),
+        encoding="utf-8",
+    )
+    GestioneDatabase({"messaggi": str(tenant_messaggi)}).migra_verso_sqlite(tenant_paths["STUDIO_DB"])
+    conn = sqlite3.connect(tenant_paths["STUDIO_DB"])
+    conn.execute(
+        "INSERT OR REPLACE INTO messaggi (id, oggetto, corpo) VALUES (?, ?, ?)",
+        ("MSG001", "Messaggio già presente", "Da preservare"),
+    )
+    conn.commit()
+    conn.close()
+
+    report = tm.bootstrap_legacy_runtime_data(
+        studio.slug,
+        {
+            "CLIENTI_DB": str(root_clienti),
+            "FASCICOLI_DB": str(root_fascicoli),
+        },
+    )
+
+    conn = sqlite3.connect(tenant_paths["STUDIO_DB"])
+    counts = conn.execute(
+        "SELECT (SELECT COUNT(*) FROM clienti), (SELECT COUNT(*) FROM fascicoli), (SELECT COUNT(*) FROM messaggi)"
+    ).fetchone()
+    conn.close()
+
+    assert report["ok"] is True
+    assert report["sqlite_migrated"] is True
+    assert counts == (1, 1, 1)
+
+
 def test_login_route_bootstraps_legacy_root_data_for_single_tenant_install(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})

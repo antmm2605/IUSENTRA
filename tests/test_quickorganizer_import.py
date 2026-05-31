@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import io
 import json
 import zipfile
 from pathlib import Path
+
+from werkzeug.datastructures import FileStorage
 
 import web.services.quickorganizer_import as quickorganizer_import
 from pct.clienti import GestioneClienti
@@ -11,9 +14,12 @@ from pct.soggetti import GestioneSoggetti
 from web.services.quickorganizer_import import (
     QuickOrganizerImportError,
     analyze_quickorganizer_package,
+    begin_chunked_upload,
+    complete_chunked_upload,
     import_quickorganizer_package,
     load_staged_package,
     load_quickorganizer_package,
+    receive_chunked_upload,
     stage_referenced_package,
 )
 
@@ -188,6 +194,41 @@ def test_import_studio_telematico_stage_percorso_locale_non_copia_zip_grande(tmp
     assert package.source_path == source.resolve()
     assert loaded["sourcePath"] == str(source.resolve())
     assert not list((stage_root / stage["importId"]).glob("source.*"))
+
+
+def test_import_studio_telematico_upload_a_blocchi_ricompone_e_stagia(tmp_path: Path):
+    source = _write_package(tmp_path / "IUSENTRA-StudioTelematico.zip")
+    payload = source.read_bytes()
+    stage_root = tmp_path / "staging"
+    session = begin_chunked_upload(
+        source.name,
+        len(payload),
+        stage_root,
+        chunk_size=97,
+        max_size=len(payload) + 1024,
+    )
+
+    total_chunks = int(session["totalChunks"])
+    chunk_size = int(session["chunkSizeBytes"])
+    for index in range(total_chunks):
+        chunk = payload[index * chunk_size : (index + 1) * chunk_size]
+        result = receive_chunked_upload(
+            stage_root,
+            session["uploadId"],
+            index,
+            total_chunks,
+            FileStorage(stream=io.BytesIO(chunk), filename=f"part-{index}.bin"),
+        )
+        assert result["ok"] is True
+
+    stage = complete_chunked_upload(stage_root, session["uploadId"], total_chunks=total_chunks)
+    package, loaded = load_staged_package(stage_root, stage["importId"])
+
+    assert stage["sourceName"] == source.name
+    assert stage["analysis"]["summary"]["matters"] == 1
+    assert package.source_path.name == "source.zip"
+    assert loaded["sourceSha256"] == stage["sourceSha256"]
+    assert not (stage_root / "_chunk_uploads" / session["uploadId"]).exists()
 
 
 def test_import_studio_telematico_zip_mdb_non_leggibile_mostra_avviso_utile(

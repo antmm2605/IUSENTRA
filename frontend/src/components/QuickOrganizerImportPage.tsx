@@ -34,7 +34,6 @@ import './QuickOrganizerImportPage.css'
 
 type WorkState = 'idle' | 'loading' | 'success' | 'error'
 type WorkProgress = { active: boolean; label: string; detail: string; value: number }
-const LARGE_PACKAGE_UPLOAD_LIMIT_BYTES = 2 * 1024 * 1024 * 1024
 
 function ImportPanel({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
   return (
@@ -69,6 +68,10 @@ function completenessTone(analysis: StudioTelematicoAnalysis) {
 function fileLabel(file: File | null) {
   if (!file) return 'Nessun pacchetto selezionato'
   const sizeMb = file.size / (1024 * 1024)
+  if (sizeMb >= 1024) {
+    const sizeGb = sizeMb / 1024
+    return `${file.name} - ${sizeGb.toLocaleString('it-IT', { maximumFractionDigits: 2 })} GB`
+  }
   return `${file.name} - ${sizeMb.toLocaleString('it-IT', { maximumFractionDigits: 1 })} MB`
 }
 
@@ -217,7 +220,9 @@ export function QuickOrganizerImportPage() {
 
   const analysis = preview?.analysis || null
   const sourcePathValue = sourcePath.trim()
-  const largePackageSelected = Boolean(file && file.size > LARGE_PACKAGE_UPLOAD_LIMIT_BYTES)
+  const uploadConfig = data.upload || emptyStudioTelematicoPage.upload
+  const chunkUploadAvailable = Boolean(data.actions.uploadStart && data.actions.uploadChunk && data.actions.uploadComplete)
+  const largePackageSelected = Boolean(file && file.size > uploadConfig.directLimitBytes)
   const canRun = useMemo(() => {
     if (!data.permissions.canImport || !preview?.ok || importState === 'loading') return false
     return Boolean(preview.analysis.canImportComplete || allowPartial)
@@ -228,15 +233,26 @@ export function QuickOrganizerImportPage() {
       setMessage('Seleziona il pacchetto preparato sul PC del cliente oppure incolla il percorso del file.')
       return
     }
-    if (largePackageSelected && !sourcePathValue && data.localPathEnabled) {
+    if (file && file.size > uploadConfig.maxUploadBytes) {
       setPreviewState('error')
       setWorkProgress({
         active: false,
-        label: 'Pacchetto grande',
-        detail: 'Per archivi molto grandi usa il percorso del file sul PC, così il controllo non ricarica 5 GB dal browser',
+        label: 'Pacchetto troppo grande',
+        detail: 'Il pacchetto supera la dimensione massima consentita per il caricamento dallo studio.',
         value: 100,
       })
-      setMessage('Il pacchetto è molto grande: incolla il percorso completo del file ZIP sul PC e poi avvia il controllo.')
+      setMessage('Il pacchetto supera la dimensione massima consentita. Prepara un archivio più leggero o caricalo dalla postazione locale autorizzata.')
+      return
+    }
+    if (largePackageSelected && !sourcePathValue && !chunkUploadAvailable) {
+      setPreviewState('error')
+      setWorkProgress({
+        active: false,
+        label: 'Caricamento a blocchi non disponibile',
+        detail: 'Per archivi molto grandi serve il caricamento a blocchi oppure il percorso del file sul PC autorizzato.',
+        value: 100,
+      })
+      setMessage('Il pacchetto è molto grande: usa il percorso locale autorizzato oppure riprova quando il caricamento a blocchi è disponibile.')
       return
     }
     setPreviewState('loading')
@@ -250,12 +266,27 @@ export function QuickOrganizerImportPage() {
       label: 'Controllo pacchetto',
       detail: sourcePathValue
         ? 'Leggo archivio, cartelle ATTI ed EMAILS e dati pratica senza ricopiare il file'
-        : 'Carico archivio, cartelle ATTI ed EMAILS e dati pratica',
+        : largePackageSelected
+          ? 'Carico il pacchetto a blocchi e poi controllo pratiche, ATTI ed EMAILS'
+          : 'Carico archivio, cartelle ATTI ed EMAILS e dati pratica',
       value: 35,
     })
     const checked = await previewStudioTelematicoPackage(data.actions.preview, {
       file: sourcePathValue ? null : file,
       sourcePath: sourcePathValue,
+      chunked: file && largePackageSelected && chunkUploadAvailable
+        ? {
+            startEndpoint: data.actions.uploadStart,
+            chunkEndpoint: data.actions.uploadChunk,
+            completeEndpoint: data.actions.uploadComplete,
+            chunkSizeBytes: uploadConfig.chunkSizeBytes,
+            onProgress: ({ value, detail }) => setWorkProgress((current) => ({
+              ...current,
+              value,
+              detail,
+            })),
+          }
+        : undefined,
     })
     setPreview(checked)
     setPreviewState(checked.ok ? 'success' : 'error')
@@ -371,10 +402,10 @@ export function QuickOrganizerImportPage() {
                 <small>Per archivi molto grandi incolla qui il percorso completo del file ZIP generato sul PC.</small>
               </label>
             ) : null}
-            {largePackageSelected && data.localPathEnabled && !sourcePathValue ? (
-              <div className="iu-st-import-message is-error">
+            {largePackageSelected && !sourcePathValue ? (
+              <div className={`iu-st-import-message is-${chunkUploadAvailable ? 'info' : 'error'}`}>
                 <AlertTriangle size={16} />
-                <span>Archivio molto grande rilevato: usa il percorso del file sul PC per evitare attese e caricamenti non riusciti.</span>
+                <span>{chunkUploadAvailable ? 'Archivio grande rilevato: verrà caricato a blocchi senza superare il limite della richiesta.' : 'Archivio molto grande rilevato: usa il percorso del file sul PC per evitare attese e caricamenti non riusciti.'}</span>
               </div>
             ) : null}
             <div className="iu-st-import-notes">

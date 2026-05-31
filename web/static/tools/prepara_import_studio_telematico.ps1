@@ -127,6 +127,16 @@ $tables = @(
     "Ipoteche"
 )
 
+$requiredTables = @("PRATICHE", "NOMI", "TAVOLA", "TESTI", "EMAILS", "AGENDA")
+$requiredFields = @{
+    "PRATICHE" = @("NUMEROPRATICA")
+    "NOMI" = @("NUM_NOM", "CONTROLLO")
+    "TAVOLA" = @("NUMEROPRATICA", "NUM_NOM")
+    "TESTI" = @("NUMEROPRATICA", "NOME_DOS")
+    "EMAILS" = @("NumeroPratica", "NOME_DOS")
+    "AGENDA" = @("NumeroPratica")
+}
+
 $conn = New-Object System.Data.OleDb.OleDbConnection("Provider=Microsoft.Jet.OLEDB.4.0;Data Source=$mdb;Persist Security Info=False;")
 $payload = [ordered]@{
     format = "iusentra.quickorganizer.v1"
@@ -160,11 +170,113 @@ try {
             $reader.Close()
             $payload.tables[$table] = $rows
         } catch {
+            if ($requiredTables -contains $table) {
+                throw "Tabella obbligatoria $table non leggibile nel database Studio Telematico: $($_.Exception.Message)"
+            }
             $payload.tables[$table] = @()
         }
     }
 } finally {
     $conn.Close()
+}
+
+function Get-PayloadRows {
+    param([string]$TableName)
+    if ($payload.tables.Contains($TableName)) {
+        return @($payload.tables[$TableName])
+    }
+    return @()
+}
+
+function Test-AnyRowHasField {
+    param(
+        [object[]]$Rows,
+        [string]$FieldName
+    )
+    foreach ($row in $Rows) {
+        if ($row -and $row.Contains($FieldName)) {
+            return $true
+        }
+    }
+    return ($Rows.Count -eq 0)
+}
+
+$missingFields = New-Object System.Collections.ArrayList
+foreach ($entry in $requiredFields.GetEnumerator()) {
+    $rows = @(Get-PayloadRows $entry.Key)
+    foreach ($field in $entry.Value) {
+        if (-not (Test-AnyRowHasField -Rows $rows -FieldName $field)) {
+            [void]$missingFields.Add([ordered]@{ table = $entry.Key; field = $field })
+        }
+    }
+}
+
+$tableCounts = [ordered]@{}
+foreach ($table in $tables) {
+    $tableCounts[$table] = @(Get-PayloadRows $table).Count
+}
+
+$nomiById = @{}
+foreach ($nominativo in @(Get-PayloadRows "NOMI")) {
+    $numNom = [string]$nominativo["NUM_NOM"]
+    if ($numNom) {
+        $nomiById[$numNom] = $nominativo
+    }
+}
+
+$matterNumbers = New-Object "System.Collections.Generic.HashSet[string]"
+$mattersWithParties = New-Object "System.Collections.Generic.HashSet[string]"
+$mattersWithClient = New-Object "System.Collections.Generic.HashSet[string]"
+$clientPartyLinks = 0
+foreach ($pratica in @(Get-PayloadRows "PRATICHE")) {
+    $numeroPratica = [string]$pratica["NUMEROPRATICA"]
+    if ($numeroPratica) {
+        [void]$matterNumbers.Add($numeroPratica)
+        $titolareId = [string]$pratica["TitolareID"]
+        if ($titolareId) {
+            [void]$mattersWithClient.Add($numeroPratica)
+        }
+    }
+}
+foreach ($link in @(Get-PayloadRows "TAVOLA")) {
+    $numeroPratica = [string]$link["NUMEROPRATICA"]
+    $numNom = [string]$link["NUM_NOM"]
+    if ($numeroPratica) {
+        [void]$mattersWithParties.Add($numeroPratica)
+    }
+    $nominativo = $nomiById[$numNom]
+    if ($nominativo) {
+        $controllo = ([string]$nominativo["CONTROLLO"]).Trim().ToUpperInvariant()
+        if ($controllo.StartsWith("CLI") -or $controllo.StartsWith("OWN")) {
+            $clientPartyLinks += 1
+            if ($numeroPratica) {
+                [void]$mattersWithClient.Add($numeroPratica)
+            }
+        }
+    }
+}
+
+$payload.validation = [ordered]@{
+    table_counts = $tableCounts
+    relation_counts = [ordered]@{
+        matters = $matterNumbers.Count
+        matters_with_parties = $mattersWithParties.Count
+        matters_without_parties = [Math]::Max($matterNumbers.Count - $mattersWithParties.Count, 0)
+        client_party_links = $clientPartyLinks
+        matters_with_client = $mattersWithClient.Count
+        matters_without_client = [Math]::Max($matterNumbers.Count - $mattersWithClient.Count, 0)
+    }
+    missing_required_fields = $missingFields
+    can_import_complete = (
+        ($missingFields.Count -eq 0) -and
+        ($tableCounts["PRATICHE"] -gt 0) -and
+        ($tableCounts["NOMI"] -gt 0) -and
+        ($tableCounts["TAVOLA"] -gt 0)
+    )
+}
+
+if (-not $payload.validation.can_import_complete) {
+    throw "Archivio dati Studio Telematico incompleto: PRATICHE, NOMI e TAVOLA devono essere presenti con i campi obbligatori. Nessun pacchetto parziale e' stato creato."
 }
 
 Add-Type -AssemblyName System.IO.Compression

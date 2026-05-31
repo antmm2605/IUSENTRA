@@ -16,6 +16,7 @@ from pct.storage import StudioDB
 from web.services.quickorganizer_import import (
     QuickOrganizerImportError,
     analyze_quickorganizer_package,
+    audit_quickorganizer_import,
     begin_chunked_upload,
     complete_chunked_upload,
     import_quickorganizer_package,
@@ -45,8 +46,8 @@ def _write_package(path: Path, *, include_atto: bool = True, include_email: bool
                 }
             ],
             "NOMI": [
-                {"NUM_NOM": 1, "NOME": "Mario", "COGNOME": "Rossi", "EMAIL": "mario.rossi@example.it"},
-                {"NUM_NOM": 2, "NOME": "Luigi", "COGNOME": "Bianchi", "EMAIL": "luigi.bianchi@example.it"},
+                {"NUM_NOM": 1, "CONTROLLO": "CLI", "NOME": "Mario", "COGNOME": "Rossi", "EMAIL": "mario.rossi@example.it"},
+                {"NUM_NOM": 2, "CONTROLLO": "CTP", "NOME": "Luigi", "COGNOME": "Bianchi", "EMAIL": "luigi.bianchi@example.it"},
             ],
             "TAVOLA": [
                 {"NUMEROPRATICA": 101, "NUM_NOM": 1},
@@ -88,6 +89,44 @@ def _write_package(path: Path, *, include_atto: bool = True, include_email: bool
             archive.writestr("ATTI/scansione-da-pdf-0001.pdf", b"%PDF-1.4\ncontenuto atto")
         if include_email:
             archive.writestr("EMAILS/MSG000088.eml", b"Subject: Invio documenti\n\nTesto")
+    return path
+
+
+def _write_package_without_titolare(path: Path) -> Path:
+    payload = {
+        "format": "iusentra.quickorganizer.v1",
+        "tables": {
+            "PRATICHE": [
+                {
+                    "NUMEROPRATICA": 202,
+                    "PRATICA": "Verdi Anna / Ministero",
+                    "OGGETTO_PRATICA": "Retribuzione",
+                    "DATA_APE": "2025-01-10",
+                    "Stato_Pratica": "In corso",
+                },
+                {
+                    "NUMEROPRATICA": 203,
+                    "PRATICA": "Pratica senza parti",
+                    "OGGETTO_PRATICA": "Accertamento",
+                    "DATA_APE": "2025-02-10",
+                    "Stato_Pratica": "In corso",
+                },
+            ],
+            "NOMI": [
+                {"NUM_NOM": 10, "CONTROLLO": "CLI", "NOME": "Anna", "COGNOME": "Verdi", "EMAIL": "anna@example.it"},
+                {"NUM_NOM": 11, "CONTROLLO": "CTP", "NOME": "Ministero"},
+            ],
+            "TAVOLA": [
+                {"NUMEROPRATICA": 202, "NUM_NOM": 10},
+                {"NUMEROPRATICA": 202, "NUM_NOM": 11},
+            ],
+            "TESTI": [],
+            "EMAILS": [],
+            "AGENDA": [],
+        },
+    }
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("quickorganizer-export.json", json.dumps(payload, ensure_ascii=False))
     return path
 
 
@@ -142,6 +181,15 @@ def test_import_studio_telematico_legge_documenti_da_atti_ed_emails(tmp_path: Pa
     assert result["summary"]["documentsImported"] == 1
     assert result["summary"]["emailsImported"] == 1
     assert result["summary"]["activitiesImported"] == 1
+    audit = audit_quickorganizer_import(
+        package,
+        fascicoli=fascicoli,
+        clienti=clienti,
+        soggetti=soggetti,
+    )
+    assert audit["ok"] is True
+    assert audit["expected"] == audit["found"]
+    assert audit["expected"]["clients"] == 1
     assert fascicolo.source_external_id == "quickorganizer:101"
     assert len(fascicolo.documenti) == 2
     documenti_by_originale = {doc.nome_originale: doc for doc in fascicolo.documenti}
@@ -180,6 +228,70 @@ def test_import_studio_telematico_legge_documenti_da_atti_ed_emails(tmp_path: Pa
     assert len(fascicoli.tutti(archiviati=True)) == 1
     assert len(clienti.tutti()) == 1
     assert len(soggetti.tutti()) == 2
+
+
+def test_import_studio_telematico_salva_repository_solo_a_fine_lotto(tmp_path: Path):
+    package = load_quickorganizer_package(_write_package(tmp_path / "studio-telematico.zip"))
+    fascicoli, clienti, soggetti = _repositories(tmp_path)
+    counts = {"fascicoli": 0, "clienti": 0, "soggetti": 0, "parti": 0}
+
+    def _wrap(obj, method_name: str, key: str):
+        original = getattr(obj, method_name)
+
+        def _counted():
+            counts[key] += 1
+            return original()
+
+        setattr(obj, method_name, _counted)
+
+    _wrap(fascicoli, "_salva", "fascicoli")
+    _wrap(clienti, "_salva", "clienti")
+    _wrap(soggetti, "_salva", "soggetti")
+    _wrap(soggetti, "_salva_parti", "parti")
+
+    import_quickorganizer_package(
+        package,
+        fascicoli=fascicoli,
+        clienti=clienti,
+        soggetti=soggetti,
+        actor="Operatore Test",
+    )
+
+    assert counts == {"fascicoli": 1, "clienti": 1, "soggetti": 1, "parti": 1}
+
+
+def test_import_studio_telematico_ricostruisce_cliente_da_parti_cli_se_titolare_manca(tmp_path: Path):
+    package = load_quickorganizer_package(_write_package_without_titolare(tmp_path / "studio-telematico.zip"))
+    fascicoli, clienti, soggetti = _repositories(tmp_path)
+
+    result = import_quickorganizer_package(
+        package,
+        fascicoli=fascicoli,
+        clienti=clienti,
+        soggetti=soggetti,
+        actor="Operatore Test",
+    )
+    audit = audit_quickorganizer_import(
+        package,
+        fascicoli=fascicoli,
+        clienti=clienti,
+        soggetti=soggetti,
+    )
+    matters = {f.source_external_id: f for f in fascicoli.tutti(archiviati=True)}
+    first = matters["quickorganizer:202"]
+    second = matters["quickorganizer:203"]
+
+    assert result["summary"]["mattersCreated"] == 2
+    assert result["summary"]["clientsCreated"] == 2
+    assert first.nome_cliente == "Verdi Anna"
+    assert clienti.get(first.id_cliente).recapiti.email == "anna@example.it"
+    assert second.nome_cliente == "Pratica senza parti"
+    assert "cliente-da-pratica" in clienti.get(second.id_cliente).tag
+    assert audit["ok"] is True
+    assert audit["expected"]["clients"] == 1
+    assert audit["found"]["clients"] == 1
+    assert audit["expected"]["clientsLinked"] == 2
+    assert audit["found"]["clientsLinked"] == 2
 
 
 def test_import_studio_telematico_non_riusa_numero_fascicolo_con_buchi_sqlite(tmp_path: Path):
@@ -355,6 +467,10 @@ def test_import_studio_telematico_mdb_passa_percorso_a_powershell_come_parametro
 ):
     mdb = tmp_path / "QuickOrganizer.mdb"
     mdb.write_bytes(b"access placeholder")
+    (tmp_path / "ATTI").mkdir()
+    (tmp_path / "EMAILS").mkdir()
+    (tmp_path / "ATTI" / "ricorso.pdf").write_bytes(b"%PDF")
+    (tmp_path / "EMAILS" / "MSG000001.eml").write_text("Subject: prova", encoding="utf-8")
     captured: dict[str, object] = {}
 
     class Completed:
@@ -376,6 +492,8 @@ def test_import_studio_telematico_mdb_passa_percorso_a_powershell_come_parametro
     command = captured["command"]
     kwargs = captured["kwargs"]
     assert package.source_kind == "mdb"
+    assert "ATTI:ricorso.pdf" in package.files
+    assert "EMAILS:msg000001.eml" in package.files
     assert isinstance(command, list)
     assert command[-1] == str(mdb.resolve())
     assert command[command.index("-Command") + 1].lstrip().startswith("& {")

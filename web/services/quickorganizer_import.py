@@ -12,10 +12,11 @@ import subprocess
 import tempfile
 import uuid
 import zipfile
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any, Callable, Iterable, Mapping
 
 from werkzeug.utils import safe_join as werkzeug_safe_join
 from werkzeug.utils import secure_filename
@@ -46,6 +47,15 @@ EXPORT_JSON_NAMES = (
     "iusentra-quickorganizer.json",
 )
 TABLES_REQUIRED = ("PRATICHE", "NOMI", "TAVOLA", "TESTI", "EMAILS", "AGENDA")
+CORE_RELATION_TABLES = ("PRATICHE", "NOMI", "TAVOLA")
+REQUIRED_TABLE_FIELDS = {
+    "PRATICHE": ("NUMEROPRATICA",),
+    "NOMI": ("NUM_NOM", "CONTROLLO"),
+    "TAVOLA": ("NUMEROPRATICA", "NUM_NOM"),
+    "TESTI": ("NUMEROPRATICA", "NOME_DOS"),
+    "EMAILS": ("NumeroPratica", "NOME_DOS"),
+    "AGENDA": ("NumeroPratica",),
+}
 PACKAGE_SUFFIXES = {".zip", ".json", ".mdb"}
 DEFAULT_CHUNK_UPLOAD_SIZE_BYTES = 64 * 1024 * 1024
 DEFAULT_MAX_UPLOAD_BYTES = 30 * 1024 * 1024 * 1024
@@ -497,6 +507,7 @@ $utf8 = New-Object System.Text.UTF8Encoding($false)
 [Console]::OutputEncoding = $utf8
 $OutputEncoding = $utf8
 $tables = @('PRATICHE','NOMI','TAVOLA','TESTI','EMAILS','AGENDA','Parcelle','Prestazioni','PrecisazioneCredito','Titoli','BeniMobili','BeniImmobili','DirittiReali','Ipoteche')
+$requiredTables = @('PRATICHE','NOMI','TAVOLA','TESTI','EMAILS','AGENDA')
 $conn = New-Object System.Data.OleDb.OleDbConnection("Provider=Microsoft.Jet.OLEDB.4.0;Data Source=$mdb;Persist Security Info=False;")
 $conn.Open()
 try {
@@ -521,6 +532,7 @@ try {
       $reader.Close()
       $result.tables[$table] = $rows
     } catch {
+      if($requiredTables -contains $table) { throw "Tabella obbligatoria $table non leggibile: $($_.Exception.Message)" }
       $result.tables[$table] = @()
     }
   }
@@ -559,7 +571,8 @@ try {
         payload = json.loads(output)
     except json.JSONDecodeError as exc:
         raise QuickOrganizerImportError("La lettura del database QuickOrganizer non ha prodotto dati validi.") from exc
-    return QuickOrganizerPackage(path, _table_payload(payload), {}, source_kind="mdb")
+    files = _files_from_directory(path.parent, extra_roots=extra_roots)
+    return QuickOrganizerPackage(path, _table_payload(payload), files, source_kind="mdb")
 
 
 def load_quickorganizer_package(path: str | Path, *, local_source: bool = False) -> QuickOrganizerPackage:
@@ -608,18 +621,162 @@ def _count_missing_files(
     return total, missing, sample
 
 
+def _field_names(rows: Iterable[Mapping[str, Any]]) -> set[str]:
+    fields: set[str] = set()
+    for row in rows:
+        fields.update(str(key).casefold() for key in row.keys())
+    return fields
+
+
+def _missing_required_fields(tables: Mapping[str, list[dict[str, Any]]]) -> list[dict[str, str]]:
+    missing: list[dict[str, str]] = []
+    for table, fields in REQUIRED_TABLE_FIELDS.items():
+        rows = tables.get(table, [])
+        if not rows:
+            continue
+        available = _field_names(rows)
+        for field in fields:
+            if field.casefold() not in available:
+                missing.append({"table": table, "field": field})
+    return missing
+
+
+def _quickorganizer_relation_summary(
+    pratiche: list[dict[str, Any]],
+    nomi: list[dict[str, Any]],
+    tavola: list[dict[str, Any]],
+) -> dict[str, Any]:
+    nomi_by_id = {_number(_row_value(row, "NUM_NOM")): row for row in nomi}
+    matter_numbers = {_number(_row_value(row, "NUMEROPRATICA")) for row in pratiche if _number(_row_value(row, "NUMEROPRATICA"))}
+    matters_with_client: set[int] = set()
+    client_party_links = 0
+    linked_party_numbers: set[int] = set()
+    for row in pratiche:
+        number = _number(_row_value(row, "NUMEROPRATICA"))
+        titolare_id = _number(_row_value(row, "TitolareID"))
+        if number and titolare_id:
+            matters_with_client.add(number)
+    for link in tavola:
+        matter_number = _number(_row_value(link, "NUMEROPRATICA"))
+        subject_number = _number(_row_value(link, "NUM_NOM"))
+        if matter_number:
+            linked_party_numbers.add(matter_number)
+        subject_row = nomi_by_id.get(subject_number)
+        if subject_row and _is_client_control(subject_row):
+            client_party_links += 1
+            if matter_number:
+                matters_with_client.add(matter_number)
+    return {
+        "mattersWithParties": len(linked_party_numbers),
+        "mattersWithoutParties": len(matter_numbers - linked_party_numbers),
+        "clientNominatives": sum(1 for row in nomi if _is_client_control(row)),
+        "clientPartyLinks": client_party_links,
+        "mattersWithClient": len(matters_with_client),
+        "mattersWithoutClient": len(matter_numbers - matters_with_client),
+    }
+
+
+@contextmanager
+def _package_file_reader(package: QuickOrganizerPackage) -> Iterable[Callable[[PackageFile], bytes]]:
+    archive: zipfile.ZipFile | None = None
+
+    def _read(package_file: PackageFile) -> bytes:
+        nonlocal archive
+        if package_file.source:
+            return _safe_existing_file(package_file.source, extra_roots=_local_import_roots()).read_bytes()
+        if package_file.zip_member:
+            if archive is None:
+                archive = zipfile.ZipFile(package.source_path)
+            return archive.read(package_file.zip_member)
+        return package.read_file(package_file)
+
+    try:
+        yield _read
+    finally:
+        if archive is not None:
+            archive.close()
+
+
+@contextmanager
+def _deferred_repository_saves(
+    *,
+    fascicoli: GestioneFascicoli,
+    clienti: GestioneClienti,
+    soggetti: GestioneSoggetti,
+) -> Iterable[None]:
+    originals: list[tuple[Any, str, Any]] = []
+
+    def _defer(obj: Any, method_name: str) -> None:
+        original = getattr(obj, method_name, None)
+        if not callable(original):
+            return
+        originals.append((obj, method_name, original))
+        setattr(obj, method_name, lambda *args, **kwargs: None)
+
+    _defer(clienti, "_salva")
+    _defer(soggetti, "_salva")
+    _defer(soggetti, "_salva_parti")
+    _defer(fascicoli, "_salva")
+    try:
+        yield
+    except Exception:
+        raise
+    else:
+        for _obj, _method_name, original in originals:
+            original()
+    finally:
+        for obj, method_name, original in originals:
+            setattr(obj, method_name, original)
+
+
 def analyze_quickorganizer_package(package: QuickOrganizerPackage) -> dict[str, Any]:
-    pratiche = package.table("PRATICHE")
-    nomi = package.table("NOMI")
-    tavola = package.table("TAVOLA")
-    testi = package.table("TESTI")
-    emails = package.table("EMAILS")
-    agenda = package.table("AGENDA")
+    tables = {name: package.table(name) for name in TABLES_REQUIRED}
+    pratiche = tables["PRATICHE"]
+    nomi = tables["NOMI"]
+    tavola = tables["TAVOLA"]
+    testi = tables["TESTI"]
+    emails = tables["EMAILS"]
+    agenda = tables["AGENDA"]
     document_total, document_missing, document_sample = _count_missing_files(testi, package, section="ATTI")
     email_total, email_missing, email_sample = _count_missing_files(emails, package, section="EMAILS")
     archived = sum(1 for row in pratiche if _bool(_row_value(row, "ARCHIVIO")))
     active = max(len(pratiche) - archived, 0)
+    relation_summary = _quickorganizer_relation_summary(pratiche, nomi, tavola)
+    missing_fields = _missing_required_fields(tables)
+    missing_core_tables = [table for table in CORE_RELATION_TABLES if not tables.get(table)]
     warnings = []
+    if pratiche:
+        for table in missing_core_tables:
+            warnings.append(
+                {
+                    "code": "tabella_export_mancante",
+                    "message": f"Nel file dati preparato manca la tabella {table}; prepara nuovamente il pacchetto dalla postazione Studio Telematico.",
+                }
+            )
+    for item in missing_fields[:12]:
+        warnings.append(
+            {
+                "code": "campo_export_mancante",
+                "message": f"Nel file dati preparato manca il campo {item['field']} della tabella {item['table']}.",
+            }
+        )
+    if pratiche and not tavola:
+        warnings.append(
+            {
+                "code": "relazioni_parti_assenti",
+                "message": "Il file dati non contiene collegamenti TAVOLA tra pratiche e nominativi: clienti e parti non possono essere ricostruiti in modo affidabile.",
+            }
+        )
+    if pratiche and relation_summary["mattersWithoutClient"]:
+        warnings.append(
+            {
+                "code": "clienti_da_ricostruire",
+                "message": (
+                    f"{relation_summary['mattersWithoutClient']} pratiche non hanno un nominativo cliente CLI/OWN collegato; "
+                    "l'import crea una scheda di recupero dalla pratica e l'audit finale la evidenzia."
+                ),
+            }
+        )
     if document_missing:
         warnings.append(
             {
@@ -672,6 +829,7 @@ def analyze_quickorganizer_package(package: QuickOrganizerPackage) -> dict[str, 
             "emailFilesMissing": email_missing,
             "appointments": len(agenda),
             "availableFiles": len(package.files),
+            **relation_summary,
         },
         "samples": {
             "missingDocuments": document_sample,
@@ -687,7 +845,14 @@ def analyze_quickorganizer_package(package: QuickOrganizerPackage) -> dict[str, 
             ],
         },
         "warnings": warnings,
-        "canImportComplete": document_missing == 0 and email_missing == 0 and bool(pratiche),
+        "canImportComplete": (
+            document_missing == 0
+            and email_missing == 0
+            and bool(pratiche)
+            and not missing_core_tables
+            and not missing_fields
+            and bool(tavola)
+        ),
     }
 
 
@@ -877,13 +1042,36 @@ def _subject_identity(row: Mapping[str, Any]) -> str:
     return f"name:{_text(_row_value(row, 'NOME')).casefold()}:{_text(_row_value(row, 'COGNOME')).casefold()}"
 
 
-def _client_from_subject(
-    clienti: GestioneClienti,
-    row: Mapping[str, Any],
-    *,
-    provenance: str,
-) -> tuple[Cliente, bool]:
-    tipo = _client_type(row)
+def _is_client_control(row: Mapping[str, Any]) -> bool:
+    return _text(_row_value(row, "CONTROLLO")).upper().startswith(("CLI", "OWN"))
+
+
+def _role_from_subject_row(row: Mapping[str, Any], *, primary: bool = False) -> RuoloSoggetto:
+    control = _text(_row_value(row, "CONTROLLO")).upper()
+    if primary or control.startswith(("CLI", "OWN")):
+        return RuoloSoggetto.ASSISTITO
+    if control.startswith("COR"):
+        return RuoloSoggetto.CORRISPONDENTE
+    if control.startswith("TER"):
+        return RuoloSoggetto.INTERVENIENTE
+    if control.startswith("CTP"):
+        return RuoloSoggetto.CONTROPARTE
+    return RuoloSoggetto.CONTROPARTE
+
+
+def _fallback_client_from_title(nomi_by_id: Mapping[int, Mapping[str, Any]], links: list[dict[str, Any]]) -> Mapping[str, Any] | None:
+    for link in links:
+        row = nomi_by_id.get(_number(_row_value(link, "NUM_NOM")))
+        if row and _is_client_control(row):
+            return row
+    for link in links:
+        row = nomi_by_id.get(_number(_row_value(link, "NUM_NOM")))
+        if row:
+            return row
+    return None
+
+
+def _existing_client_for_subject(clienti: GestioneClienti, row: Mapping[str, Any]) -> Cliente | None:
     cf = _text(_row_value(row, "CODICE_FISCALE")).upper()
     piva = _text(_row_value(row, "PARTITA_IVA"))
     existing = clienti.get_by_codice_fiscale(cf) if cf and len(cf) in {11, 16} else None
@@ -901,6 +1089,19 @@ def _client_from_subject(
                 ),
                 None,
             )
+    return existing
+
+
+def _client_from_subject(
+    clienti: GestioneClienti,
+    row: Mapping[str, Any],
+    *,
+    provenance: str,
+) -> tuple[Cliente, bool]:
+    tipo = _client_type(row)
+    cf = _text(_row_value(row, "CODICE_FISCALE")).upper()
+    piva = _text(_row_value(row, "PARTITA_IVA"))
+    existing = _existing_client_for_subject(clienti, row)
     if existing:
         return existing, False
     nome, cognome = _split_person_name(row)
@@ -952,6 +1153,36 @@ def _client_from_subject(
         data_prima_acquisizione=common["data_prima_acquisizione"],
     )
     return cliente, True
+
+
+def _client_placeholder_from_matter(
+    clienti: GestioneClienti,
+    row: Mapping[str, Any],
+    *,
+    provenance: str,
+) -> Cliente:
+    title = _text(_row_value(row, "PRATICA")) or _text(_row_value(row, "OGGETTO_PRATICA")) or f"Pratica QuickOrganizer {_row_value(row, 'NUMEROPRATICA')}"
+    expected_name = title.casefold()
+    existing = next(
+        (
+            cliente
+            for cliente in clienti.tutti()
+            if _text(getattr(cliente, "nome_completo", "")).casefold() == expected_name
+        ),
+        None,
+    )
+    if existing:
+        return existing
+    cliente = clienti.nuovo(
+        TipoCliente.PERSONA_GIURIDICA,
+        ragione_sociale=title,
+        stato=StatoCliente.ATTIVO,
+        provenienza=provenance,
+        note="Cliente ricostruito dalla pratica Studio Telematico: nel pacchetto non era presente un titolare collegato.",
+        data_prima_acquisizione=_iso_date(_row_value(row, "DATA_APE")) or date.today().isoformat(),
+    )
+    cliente.tag = ["quickorganizer", "cliente-da-pratica"]
+    return clienti.aggiorna(cliente.id, tag=cliente.tag)
 
 
 def _existing_matter_by_source(fascicoli: GestioneFascicoli, source_external_id: str) -> Any:
@@ -1019,6 +1250,7 @@ def import_quickorganizer_package(
 
     subject_index = _existing_subject_index(soggetti)
     subject_ids_by_num: dict[int, str] = {}
+    client_ids_by_num: dict[int, str] = {}
     counters = {
         "clientsCreated": 0,
         "subjectsCreated": 0,
@@ -1033,6 +1265,14 @@ def import_quickorganizer_package(
         "duplicatesSkipped": 0,
     }
     errors: list[str] = []
+    save_guard = _deferred_repository_saves(
+        fascicoli=fascicoli,
+        clienti=clienti,
+        soggetti=soggetti,
+    )
+    save_guard.__enter__()
+    reader_guard = _package_file_reader(package)
+    read_package_file = reader_guard.__enter__()
 
     for num, row in nomi_by_id.items():
         identity = _subject_identity(row)
@@ -1045,6 +1285,13 @@ def import_quickorganizer_package(
             subject_index[identity] = subject_id
             counters["subjectsCreated"] += 1
         subject_ids_by_num[num] = subject_id
+        if _is_client_control(row):
+            try:
+                client, created = _client_from_subject(clienti, row, provenance="Import QuickOrganizer")
+                client_ids_by_num[num] = client.id
+                counters["clientsCreated"] += 1 if created else 0
+            except Exception:
+                errors.append(f"Cliente nominativo {num}: import non completato per dati non coerenti.")
 
     matters_by_number: dict[int, Any] = {}
     matter_id_by_number: dict[int, str] = {}
@@ -1054,15 +1301,31 @@ def import_quickorganizer_package(
         client_id = ""
         client_name = _text(_row_value(row, "TitolareName"))
         titolare_id = _number(_row_value(row, "TitolareID"))
-        client_row = nomi_by_id.get(titolare_id)
+        matter_links = links_by_matter.get(number, [])
+        client_row = nomi_by_id.get(titolare_id) or _fallback_client_from_title(nomi_by_id, matter_links)
         if client_row:
             try:
-                client, created = _client_from_subject(clienti, client_row, provenance="Import QuickOrganizer")
+                client_num = _number(_row_value(client_row, "NUM_NOM"))
+                client = clienti.get(client_ids_by_num.get(client_num, "")) if client_num else None
+                created = False
+                if client is None:
+                    client, created = _client_from_subject(clienti, client_row, provenance="Import QuickOrganizer")
+                    if client_num:
+                        client_ids_by_num[client_num] = client.id
                 client_id = client.id
                 client_name = client.nome_completo
                 counters["clientsCreated"] += 1 if created else 0
             except Exception as exc:  # noqa: BLE001 - import deve proseguire sui fascicoli
                 errors.append(f"Cliente pratica {number}: import non completato per dati non coerenti.")
+        if not client_id:
+            client = _client_placeholder_from_matter(
+                clienti,
+                row,
+                provenance="Import QuickOrganizer",
+            )
+            client_id = client.id
+            client_name = client.nome_completo
+            counters["clientsCreated"] += 1
         existing = _existing_matter_by_source(fascicoli, source_external_id)
         payload = {
             "stato": _matter_status(row),
@@ -1110,12 +1373,13 @@ def import_quickorganizer_package(
         matters_by_number[number] = matter
         matter_id_by_number[number] = matter.id
 
-        for link in links_by_matter.get(number, []):
+        for link in matter_links:
             subject_num = _number(_row_value(link, "NUM_NOM"))
             subject_id = subject_ids_by_num.get(subject_num)
             if not subject_id:
                 continue
-            role = RuoloSoggetto.ASSISTITO if subject_num == titolare_id else RuoloSoggetto.CONTROPARTE
+            subject_row = nomi_by_id.get(subject_num) or {}
+            role = _role_from_subject_row(subject_row, primary=subject_num == titolare_id)
             before = len(soggetti.parti_fascicolo(matter.id))
             soggetti.aggiungi_parte(
                 matter.id,
@@ -1141,7 +1405,7 @@ def import_quickorganizer_package(
         if any(_text(getattr(doc, "id_documento_portale", "")) == external_id for doc in getattr(matter, "documenti", [])):
             counters["duplicatesSkipped"] += 1
             continue
-        data = package.read_file(source_file)
+        data = read_package_file(source_file)
         document_name = _document_name_from_table(row, DOCUMENT_TITLE_FIELDS, filename)
         fascicoli.aggiungi_documento(
             matter_id,
@@ -1177,7 +1441,7 @@ def import_quickorganizer_package(
         if any(_text(getattr(doc, "id_documento_portale", "")) == external_id for doc in getattr(matter, "documenti", [])):
             counters["duplicatesSkipped"] += 1
             continue
-        data = package.read_file(source_file)
+        data = read_package_file(source_file)
         subject = _text(_row_value(row, "Subject"), filename)
         document_name = _document_name_from_table(row, EMAIL_TITLE_FIELDS, filename)
         fascicoli.aggiungi_documento(
@@ -1224,6 +1488,9 @@ def import_quickorganizer_package(
         )
         counters["activitiesImported"] += 1
 
+    reader_guard.__exit__(None, None, None)
+    save_guard.__exit__(None, None, None)
+
     return {
         "ok": True,
         "generatedAt": _iso_now(),
@@ -1234,6 +1501,190 @@ def import_quickorganizer_package(
             {"id": matter.id, "title": matter.titolo, "href": f"/fascicoli/{matter.id}"}
             for matter in matters_by_number.values()
         ][:20],
+    }
+
+
+def _append_audit_failure(failures: list[dict[str, str]], code: str, message: str, *, limit: int = 40) -> None:
+    if len(failures) < limit:
+        failures.append({"code": code, "message": message})
+
+
+def audit_quickorganizer_import(
+    package: QuickOrganizerPackage,
+    *,
+    fascicoli: GestioneFascicoli,
+    clienti: GestioneClienti,
+    soggetti: GestioneSoggetti,
+) -> dict[str, Any]:
+    pratiche = package.table("PRATICHE")
+    nomi = package.table("NOMI")
+    tavola = package.table("TAVOLA")
+    testi = package.table("TESTI")
+    emails = package.table("EMAILS")
+    agenda = package.table("AGENDA")
+    nomi_by_id = {_number(_row_value(row, "NUM_NOM")): row for row in nomi}
+    subject_index = _existing_subject_index(soggetti)
+    matters = {
+        _text(getattr(item, "source_external_id", "")): item
+        for item in fascicoli.tutti(stato=None, archiviati=True)
+        if _text(getattr(item, "source_external_id", ""))
+    }
+    failures: list[dict[str, str]] = []
+    expected = {
+        "matters": 0,
+        "clients": 0,
+        "clientsLinked": 0,
+        "subjects": 0,
+        "partyLinks": 0,
+        "documents": 0,
+        "emails": 0,
+        "activities": 0,
+    }
+    found = dict.fromkeys(expected, 0)
+
+    subject_rows_by_identity: dict[str, Mapping[str, Any]] = {}
+    client_rows_by_identity: dict[str, Mapping[str, Any]] = {}
+    for row in nomi:
+        identity = _subject_identity(row)
+        subject_rows_by_identity.setdefault(identity, row)
+        if _is_client_control(row):
+            client_rows_by_identity.setdefault(identity, row)
+
+    for identity, row in subject_rows_by_identity.items():
+        expected["subjects"] += 1
+        if subject_index.get(identity):
+            found["subjects"] += 1
+        else:
+            _append_audit_failure(
+                failures,
+                "soggetto_mancante",
+                f"Soggetto QuickOrganizer { _row_value(row, 'NUM_NOM') } non trovato negli archivi IUSENTRA.",
+            )
+
+    for row in client_rows_by_identity.values():
+        expected["clients"] += 1
+        if _existing_client_for_subject(clienti, row):
+            found["clients"] += 1
+        else:
+            _append_audit_failure(
+                failures,
+                "cliente_nominativo_mancante",
+                f"Cliente QuickOrganizer { _row_value(row, 'NUM_NOM') } non trovato negli archivi IUSENTRA.",
+            )
+
+    matter_id_by_number: dict[int, str] = {}
+    for row in pratiche:
+        number = _number(_row_value(row, "NUMEROPRATICA"))
+        expected["matters"] += 1
+        matter = matters.get(f"quickorganizer:{number}")
+        if not matter:
+            _append_audit_failure(
+                failures,
+                "fascicolo_mancante",
+                f"Pratica QuickOrganizer {number} non trovata come fascicolo importato.",
+            )
+            continue
+        found["matters"] += 1
+        matter_id_by_number[number] = matter.id
+        expected["clientsLinked"] += 1
+        linked_client = clienti.get(_text(getattr(matter, "id_cliente", "")))
+        if linked_client and _text(getattr(matter, "nome_cliente", "")):
+            found["clientsLinked"] += 1
+        else:
+            _append_audit_failure(
+                failures,
+                "cliente_pratica_mancante",
+                f"Pratica QuickOrganizer {number} senza cliente collegato.",
+            )
+
+    for link in tavola:
+        matter_number = _number(_row_value(link, "NUMEROPRATICA"))
+        matter_id = matter_id_by_number.get(matter_number)
+        subject_row = nomi_by_id.get(_number(_row_value(link, "NUM_NOM")))
+        if not matter_id or not subject_row:
+            continue
+        expected["partyLinks"] += 1
+        subject_id = subject_index.get(_subject_identity(subject_row))
+        parties = soggetti.parti_fascicolo(matter_id)
+        if subject_id and any(_text(getattr(parte, "id_soggetto", "")) == subject_id for parte, _soggetto in parties):
+            found["partyLinks"] += 1
+        else:
+            _append_audit_failure(
+                failures,
+                "parte_pratica_mancante",
+                f"Collegamento parte mancante per pratica {matter_number} e soggetto { _row_value(link, 'NUM_NOM') }.",
+            )
+
+    docs_by_matter: dict[str, dict[str, Any]] = {}
+    for matter in matters.values():
+        docs_by_matter[matter.id] = {
+            _text(getattr(doc, "id_documento_portale", "")): doc
+            for doc in getattr(matter, "documenti", [])
+            if _text(getattr(doc, "id_documento_portale", ""))
+        }
+
+    for row in testi:
+        matter_number = _number(_row_value(row, "NUMEROPRATICA"))
+        matter_id = matter_id_by_number.get(matter_number)
+        filename = _normalise_filename(_row_value(row, "NOME_DOS"))
+        if not matter_id or not filename or not _find_file(package, filename, section="ATTI"):
+            continue
+        expected["documents"] += 1
+        external_id = f"quickorganizer:testi:{_number(_row_value(row, 'Counter')) or filename}"
+        doc = docs_by_matter.get(matter_id, {}).get(external_id)
+        expected_name = _document_name_from_table(row, DOCUMENT_TITLE_FIELDS, filename)
+        if doc and _text(getattr(doc, "nome_originale", "")) == filename and _text(getattr(doc, "nome_portale", "")) == expected_name:
+            found["documents"] += 1
+        else:
+            _append_audit_failure(
+                failures,
+                "documento_non_allineato",
+                f"Documento {filename} della pratica {matter_number} non trovato con nome tabellare {expected_name}.",
+            )
+
+    for row in emails:
+        matter_number = _number(_row_value(row, "NumeroPratica"))
+        matter_id = matter_id_by_number.get(matter_number)
+        filename = _normalise_filename(_row_value(row, "NOME_DOS"))
+        if not matter_id or not filename or not _find_file(package, filename, section="EMAILS"):
+            continue
+        expected["emails"] += 1
+        external_id = f"quickorganizer:email:{_number(_row_value(row, 'Email_ID')) or filename}"
+        doc = docs_by_matter.get(matter_id, {}).get(external_id)
+        expected_name = _document_name_from_table(row, EMAIL_TITLE_FIELDS, filename)
+        if doc and _text(getattr(doc, "nome_originale", "")) == filename and _text(getattr(doc, "nome_portale", "")) == expected_name:
+            found["emails"] += 1
+        else:
+            _append_audit_failure(
+                failures,
+                "email_non_allineata",
+                f"Email {filename} della pratica {matter_number} non trovata con oggetto tabellare {expected_name}.",
+            )
+
+    for row in agenda:
+        matter_number = _number(_row_value(row, "NumeroPratica"))
+        matter_id = matter_id_by_number.get(matter_number)
+        if not matter_id:
+            continue
+        task_id = _number(_row_value(row, "TaskID"))
+        marker = f"[quickorganizer:agenda:{task_id}]"
+        expected["activities"] += 1
+        matter = next((item for item in matters.values() if item.id == matter_id), None)
+        if matter and any(marker in _text(getattr(activity, "note", "")) for activity in getattr(matter, "attivita", [])):
+            found["activities"] += 1
+        else:
+            _append_audit_failure(
+                failures,
+                "agenda_non_allineata",
+                f"Appuntamento QuickOrganizer {task_id} non trovato nella pratica {matter_number}.",
+            )
+
+    return {
+        "ok": not failures and expected == found,
+        "generatedAt": _iso_now(),
+        "expected": expected,
+        "found": found,
+        "failures": failures,
     }
 
 

@@ -144,6 +144,11 @@ def test_build_studio_telematico_packager_pubblica_exe_senza_ps1_primario():
     assert "AppLaunched=powershell.exe -NoProfile -ExecutionPolicy Bypass -File prepara_import_studio_telematico.ps1" in builder
     assert "FILE0=prepara_import_studio_telematico.ps1" in builder
     assert "[Environment]::Is64BitProcess" in packager
+    assert "$requiredTables = @(\"PRATICHE\", \"NOMI\", \"TAVOLA\", \"TESTI\", \"EMAILS\", \"AGENDA\")" in packager
+    assert "\"NOMI\" = @(\"NUM_NOM\", \"CONTROLLO\")" in packager
+    assert "relation_counts" in packager
+    assert "client_party_links" in packager
+    assert "Nessun pacchetto parziale e' stato creato" in packager
     assert "System.IO.Compression.ZipArchive" in packager
     assert "CreateEntryFromFile" in packager
     assert "Compress-Archive" not in packager

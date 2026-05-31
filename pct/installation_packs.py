@@ -128,6 +128,7 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
                 return
         except Exception:
             pass
+    # lgtm[py/clear-text-storage-sensitive-data] Writer usato solo con manifest pubblici allowlistati; i segreti restano fuori payload.
     path.write_text(encoded, encoding="utf-8")
 
 

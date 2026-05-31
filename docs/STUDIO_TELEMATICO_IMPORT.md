@@ -45,6 +45,8 @@ Sulla postazione del cliente il programma:
 
 Il programma non legge la tabella `Accounts` e non trasferisce credenziali del vecchio gestionale.
 
+Il programma non deve produrre un JSON parziale: se non riesce a leggere `PRATICHE`, `NOMI`, `TAVOLA`, `TESTI`, `EMAILS` o `AGENDA`, oppure se mancano i campi minimi per ricostruire i collegamenti (`PRATICHE.NUMEROPRATICA`, `NOMI.NUM_NOM`, `NOMI.CONTROLLO`, `TAVOLA.NUMEROPRATICA`, `TAVOLA.NUM_NOM`), il pacchetto viene bloccato prima della creazione dello ZIP. Nel file `quickorganizer-export.json` viene salvata anche la sezione `validation`, con conteggi tabella e conteggi relazione, così l'audit può verificare che i collegamenti cliente/pratica non siano stati persi durante l'export.
+
 ## Pacchetti grandi sul PC
 
 Per archivi molto grandi l'operatore può indicare il percorso locale del file ZIP invece di caricarlo dal browser. Il percorso locale funziona solo quando il server IUSENTRA gira sullo stesso PC o vede lo stesso disco. In produzione remota, invece, va usato il caricamento del file oppure una procedura assistita di trasferimento sul server.
@@ -55,7 +57,7 @@ Per archivi molto grandi l'operatore può indicare il percorso locale del file Z
 | --- | --- |
 | `PRATICHE` | Fascicoli |
 | `NOMI` | Anagrafiche soggetti |
-| `TitolareID` della pratica | Cliente principale |
+| `TitolareID` della pratica, oppure primo nominativo `CLI` collegato in `TAVOLA` quando `TitolareID` manca | Cliente principale |
 | `TAVOLA` | Parti del fascicolo |
 | `TESTI` + file in `ATTI` | Documenti del fascicolo |
 | `EMAILS` + file in `EMAILS` | Email collegate al fascicolo |
@@ -64,6 +66,8 @@ Per archivi molto grandi l'operatore può indicare il percorso locale del file Z
 Il nome visibile dei documenti non viene ricavato dal nome del PDF o dal file fisico: per `TESTI` viene preso dal titolo presente nella tabella dati (`NOME_DOCUMENTO`, `NOME_ATTO`, `TITOLO` o campi descrittivi equivalenti), mentre per `EMAILS` viene preso dall'oggetto della riga email quando disponibile. Il nome file originale resta salvato in `nome_originale` e viene usato solo per reperire e conservare il file sorgente.
 
 Ogni pratica conserva `source_external_id = quickorganizer:<numero pratica>`, così un secondo import aggiorna la pratica già presente invece di duplicarla.
+
+Per i pacchetti preparati in `quickorganizer-export.json`, la pratica può non esporre `TitolareID`. In quel caso IUSENTRA risolve il cliente principale dalla tabella ponte `TAVOLA`, scegliendo il nominativo collegato con `NOMI.CONTROLLO = CLI` o `OWN`; tutti i nominativi `CLI` vengono importati anche nella rubrica clienti e restano parti `ASSISTITO` del fascicolo. Gli altri ruoli vengono mantenuti come parti processuali. Se una pratica non ha alcun collegamento `CLI`, viene creata una scheda cliente di recupero dalla pratica e l'audit finale la evidenzia, senza bloccare la conservazione del fascicolo.
 
 ## Controlli prima della scrittura
 

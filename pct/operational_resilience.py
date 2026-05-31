@@ -105,9 +105,44 @@ def _stamp_now() -> str:
     return datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
+_SENSITIVE_REPORT_KEY_PARTS = (
+    "password",
+    "secret",
+    "token",
+    "api_key",
+    "access_key",
+    "private_key",
+    "master_key",
+    "signing_key",
+    "pin",
+)
+
+
+def _redact_report_sensitive_values(value: Any) -> Any:
+    if isinstance(value, dict):
+        redacted: dict[str, Any] = {}
+        for key, item in value.items():
+            key_text = str(key).lower()
+            if any(part in key_text for part in _SENSITIVE_REPORT_KEY_PARTS):
+                redacted[str(key)] = "[redatto]" if item not in (None, "", []) else item
+            else:
+                redacted[str(key)] = _redact_report_sensitive_values(item)
+        return redacted
+    if isinstance(value, list):
+        return [_redact_report_sensitive_values(item) for item in value]
+    if isinstance(value, tuple):
+        return [_redact_report_sensitive_values(item) for item in value]
+    return value
+
+
 def _write_json(path: Path, payload: dict[str, Any]) -> str:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    encoded = json.dumps(
+        _redact_report_sensitive_values(payload),
+        ensure_ascii=False,
+        indent=2,
+    )
+    path.write_text(encoded, encoding="utf-8")  # codeql[py/clear-text-storage-sensitive-data]
     return str(path)
 
 

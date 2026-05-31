@@ -119,17 +119,51 @@ def _json_default(value: Any) -> Any:
     return str(value)
 
 
+_SENSITIVE_JSON_KEY_PARTS = (
+    "password",
+    "secret",
+    "token",
+    "api_key",
+    "access_key",
+    "private_key",
+    "master_key",
+    "signing_key",
+    "pin",
+)
+
+
+def _redact_json_sensitive_values(value: Any) -> Any:
+    if isinstance(value, dict):
+        redacted: dict[str, Any] = {}
+        for key, item in value.items():
+            key_text = str(key).lower()
+            if any(part in key_text for part in _SENSITIVE_JSON_KEY_PARTS):
+                redacted[str(key)] = "[redatto]" if item not in (None, "", []) else item
+            else:
+                redacted[str(key)] = _redact_json_sensitive_values(item)
+        return redacted
+    if isinstance(value, list):
+        return [_redact_json_sensitive_values(item) for item in value]
+    if isinstance(value, tuple):
+        return [_redact_json_sensitive_values(item) for item in value]
+    return value
+
+
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    encoded = json.dumps(payload, ensure_ascii=False, indent=2, default=_json_default)
+    encoded = json.dumps(
+        _redact_json_sensitive_values(payload),
+        ensure_ascii=False,
+        indent=2,
+        default=_json_default,
+    )
     if path.exists():
         try:
             if path.read_text(encoding="utf-8") == encoded:
                 return
         except Exception:
             pass
-    # lgtm[py/clear-text-storage-sensitive-data] Writer usato solo con manifest pubblici allowlistati; i segreti restano fuori payload.
-    path.write_text(encoded, encoding="utf-8")
+    path.write_text(encoded, encoding="utf-8")  # codeql[py/clear-text-storage-sensitive-data]
 
 
 def _read_json(path: Path) -> dict[str, Any]:

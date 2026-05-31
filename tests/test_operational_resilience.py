@@ -5,6 +5,7 @@ from pathlib import Path
 
 from pct.backup import GestioneBackup
 from pct.operational_resilience import (
+    _write_json,
     _run_pytest_phase,
     run_operational_backup_plan,
     run_operational_crash_test,
@@ -108,6 +109,24 @@ def test_run_operational_backup_plan_salva_report_e_copie(tmp_path: Path):
     latest_backup = repository.latest_backup_run(tenant_slug="studio-test")
     assert latest_backup is not None
     assert latest_backup["payload_json"]["report_path"] == report["report_path"]
+
+
+def test_operational_resilience_writer_redige_segreti(tmp_path: Path):
+    path = tmp_path / "report.json"
+
+    _write_json(
+        path,
+        {
+            "tenant_slug": "studio-test",
+            "secret_key": "valore-da-non-salvare",
+            "runtime": {"BOOTSTRAP_ADMIN_PASSWORD": "admin"},
+        },
+    )
+
+    content = path.read_text(encoding="utf-8")
+    assert "valore-da-non-salvare" not in content
+    assert '"secret_key": "[redatto]"' in content
+    assert '"BOOTSTRAP_ADMIN_PASSWORD": "[redatto]"' in content
 
 
 def test_crash_test_operativo_superficie_admin_renderizza(tmp_path: Path):

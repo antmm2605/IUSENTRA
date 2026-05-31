@@ -118,6 +118,24 @@ def test_installation_identity_riscrive_solo_campi_ammessi(tmp_path: Path, monke
     assert "campo_non_governato" not in identity
 
 
+def test_installation_pack_json_writer_redige_segreti(tmp_path: Path):
+    path = tmp_path / "manifest.json"
+
+    installation_packs._write_json(  # noqa: SLF001 - presidio regressione CodeQL sul writer interno
+        path,
+        {
+            "installation_id": "installazione-test",
+            "api_key": "valore-da-non-salvare",
+            "nested": {"bootstrap_password": "admin"},
+        },
+    )
+
+    content = path.read_text(encoding="utf-8")
+    assert "valore-da-non-salvare" not in content
+    assert '"api_key": "[redatto]"' in content
+    assert '"bootstrap_password": "[redatto]"' in content
+
+
 def test_installation_pack_repository_salva_snapshot_corrente(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     cfg = _cfg_web(tmp_path)

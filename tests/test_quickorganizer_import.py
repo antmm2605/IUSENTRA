@@ -130,6 +130,41 @@ def _write_package_without_titolare(path: Path) -> Path:
     return path
 
 
+def _write_package_persona_giuridica_cf_numerico(path: Path) -> Path:
+    payload = {
+        "format": "iusentra.quickorganizer.v1",
+        "tables": {
+            "PRATICHE": [
+                {
+                    "NUMEROPRATICA": 259,
+                    "PRATICA": "Associazione / Ministero",
+                    "OGGETTO_PRATICA": "Riconoscimento",
+                    "DATA_APE": "2025-03-10",
+                    "Stato_Pratica": "In corso",
+                }
+            ],
+            "NOMI": [
+                {
+                    "NUM_NOM": 195,
+                    "CONTROLLO": "CLI",
+                    "NOME": "",
+                    "COGNOME": "Associazione Italiana Maestri Cattolici",
+                    "CODICE_FISCALE": "92043820791",
+                    "PARTITA_IVA": "03905310797",
+                    "NaturaGiuridica": "ASS",
+                }
+            ],
+            "TAVOLA": [{"NUMEROPRATICA": 259, "NUM_NOM": 195}],
+            "TESTI": [],
+            "EMAILS": [],
+            "AGENDA": [],
+        },
+    }
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("quickorganizer-export.json", json.dumps(payload, ensure_ascii=False))
+    return path
+
+
 def _write_files_only_package(path: Path) -> Path:
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
         archive.writestr("ATTI/ricorso.pdf", b"%PDF-1.4\ncontenuto atto")
@@ -292,6 +327,33 @@ def test_import_studio_telematico_ricostruisce_cliente_da_parti_cli_se_titolare_
     assert audit["found"]["clients"] == 1
     assert audit["expected"]["clientsLinked"] == 2
     assert audit["found"]["clientsLinked"] == 2
+
+
+def test_import_studio_telematico_persona_giuridica_con_cf_numerico_usa_partita_iva(tmp_path: Path):
+    package = load_quickorganizer_package(_write_package_persona_giuridica_cf_numerico(tmp_path / "studio-telematico.zip"))
+    fascicoli, clienti, soggetti = _repositories(tmp_path)
+
+    result = import_quickorganizer_package(
+        package,
+        fascicoli=fascicoli,
+        clienti=clienti,
+        soggetti=soggetti,
+        actor="Operatore Test",
+    )
+    audit = audit_quickorganizer_import(
+        package,
+        fascicoli=fascicoli,
+        clienti=clienti,
+        soggetti=soggetti,
+    )
+    matter = next(f for f in fascicoli.tutti(archiviati=True) if f.source_external_id == "quickorganizer:259")
+    cliente = clienti.get(matter.id_cliente)
+
+    assert result["summary"]["clientsCreated"] == 1
+    assert cliente.ragione_sociale == "Associazione Italiana Maestri Cattolici"
+    assert cliente.codice_fiscale == ""
+    assert cliente.partita_iva == "03905310797"
+    assert audit["ok"] is True
 
 
 def test_import_studio_telematico_non_riusa_numero_fascicolo_con_buchi_sqlite(tmp_path: Path):

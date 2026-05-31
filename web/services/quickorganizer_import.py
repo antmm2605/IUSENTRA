@@ -1134,7 +1134,9 @@ def _client_from_subject(
         )
         return cliente, True
     valid_piva = piva if piva and clienti.valida_piva(piva) else ""
-    valid_cf = cf if cf and len(cf) in {11, 16} else ""
+    if not valid_piva and cf and clienti.valida_piva(cf):
+        valid_piva = cf
+    valid_cf = cf if cf and len(cf) == 16 and clienti.valida_cf(cf) else ""
     cliente = clienti.nuovo(
         tipo=tipo,
         ragione_sociale=_text(_row_value(row, "NOME")) or _text(_row_value(row, "COGNOME"), "Cliente QuickOrganizer"),

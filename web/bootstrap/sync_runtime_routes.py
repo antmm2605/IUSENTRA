@@ -211,13 +211,15 @@ def register_sync_runtime_routes(
                 "duplicati": int(report.get("duplicati") or 0),
                 "errori": int(report.get("errori") or 0),
             }
+            nuove = int(sync_result.get("nuove") or 0)
+            pst_trovate = int(sync_result.get("pst_trovate") or 0)
             return jsonify(
                 {
                     "ok": True,
                     "messaggio": msg,
                     "report": public_report,
-                    "nuove": sync_result.get("nuove", 0),
-                    "pst_trovate": sync_result.get("pst_trovate", 0),
+                    "nuove": nuove,
+                    "pst_trovate": pst_trovate,
                     "esiti_aggiornati": auto_summary["aggiornati"],
                     "non_abbinati": auto_summary["non_abbinati"],
                     "pst_in_attesa": pst_in_attesa,

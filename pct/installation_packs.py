@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from pct.tenant import GestioneTenant, StudioLegale
 
@@ -130,8 +131,7 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
                 return
         except Exception:
             pass
-    # lgtm[py/clear-text-storage-sensitive-data] I manifest scritti qui contengono path e fingerprint, non materiale segreto in chiaro.
-    path.write_text(encoded, encoding="utf-8")
+    path.write_text(encoded, encoding="utf-8")  # lgtm[py/clear-text-storage-sensitive-data] Manifest con path/fingerprint, non chiavi in chiaro.
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -147,8 +147,7 @@ def _read_json(path: Path) -> dict[str, Any]:
 def _ensure_private_file(path: Path, raw: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if not path.exists():
-        # lgtm[py/clear-text-storage-sensitive-data] Chiavi locali generate dall'installazione, salvate in area privata con permessi 0600.
-        path.write_bytes(raw)
+        path.write_bytes(raw)  # lgtm[py/clear-text-storage-sensitive-data] Chiave locale privata salvata solo sotto installation/keys con chmod 0600.
     try:
         os.chmod(path, 0o600)
     except Exception:
@@ -291,7 +290,7 @@ def ensure_installation_identity(
     identity = _read_json(identity_path)
     if not identity:
         identity = {
-            "installation_id": str(secrets.token_hex(16)),
+            "installation_id": uuid4().hex,
             "created_at": _utcnow_iso(),
             "requested_by": requested_by,
             "app_root": str(app_root_path),

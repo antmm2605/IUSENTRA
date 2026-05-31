@@ -468,7 +468,8 @@ class GestioneUtenti:
         for user in users.values():
             if user.ruolo == RuoloUtente.SUPERADMIN:
                 continue
-            if str(user.tenant_slug or "").strip():
+            tenant_slug = str(user.tenant_slug or "").strip().lower()
+            if tenant_slug == self._tenant_slug_context:
                 continue
             user.tenant_slug = self._tenant_slug_context
             changed = True

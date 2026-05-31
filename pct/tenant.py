@@ -1396,6 +1396,7 @@ class GestioneTenant:
                     secret_key=secret_key,
                     crea_admin_se_vuoto=False,
                     studio_db=studio_db,
+                    tenant_slug_context=slug,
                 )
             except (OSError, sqlite3.Error):
                 manager = GestioneUtenti(
@@ -1404,6 +1405,7 @@ class GestioneTenant:
                     secret_key=secret_key,
                     crea_admin_se_vuoto=False,
                     studio_db=None,
+                    tenant_slug_context=slug,
                 )
             for user in manager.lista():
                 if str(getattr(user.ruolo, "value", user.ruolo) or "").strip().upper() == "SUPERADMIN":

@@ -9,8 +9,9 @@ from werkzeug.datastructures import FileStorage
 
 import web.services.quickorganizer_import as quickorganizer_import
 from pct.clienti import GestioneClienti
-from pct.fascicoli import GestioneFascicoli
+from pct.fascicoli import GestioneFascicoli, TipoFascicolo
 from pct.soggetti import GestioneSoggetti
+from pct.storage import StudioDB
 from web.services.quickorganizer_import import (
     QuickOrganizerImportError,
     analyze_quickorganizer_package,
@@ -160,6 +161,45 @@ def test_import_studio_telematico_legge_documenti_da_atti_ed_emails(tmp_path: Pa
     assert len(fascicoli.tutti(archiviati=True)) == 1
     assert len(clienti.tutti()) == 1
     assert len(soggetti.tutti()) == 2
+
+
+def test_import_studio_telematico_non_riusa_numero_fascicolo_con_buchi_sqlite(tmp_path: Path):
+    package = load_quickorganizer_package(_write_package(tmp_path / "studio-telematico.zip"))
+    studio_db = StudioDB.get(str(tmp_path / "tenant" / "studio.db"))
+    fascicoli = GestioneFascicoli(
+        db_path=str(tmp_path / "tenant" / "fascicoli" / "fascicoli.json"),
+        documents_dir=str(tmp_path / "tenant" / "fascicoli" / "documenti"),
+        archive_dir=str(tmp_path / "tenant" / "fascicoli" / "archivio"),
+        studio_db=studio_db,
+    )
+    clienti = GestioneClienti(db_path=str(tmp_path / "clienti" / "anagrafica.json"))
+    soggetti = GestioneSoggetti(
+        str(tmp_path / "soggetti" / "anagrafica.json"),
+        str(tmp_path / "soggetti" / "parti.json"),
+    )
+    year = __import__("datetime").date.today().year
+    primo = fascicoli.nuovo("Pratica esistente 1", TipoFascicolo.CIVILE)
+    secondo = fascicoli.nuovo("Pratica esistente 3", TipoFascicolo.CIVILE)
+    primo.numero = f"{year}/001"
+    secondo.numero = f"{year}/003"
+    fascicoli._salva()
+
+    result = import_quickorganizer_package(
+        package,
+        fascicoli=fascicoli,
+        clienti=clienti,
+        soggetti=soggetti,
+        actor="Operatore Test",
+    )
+
+    imported = next(
+        item
+        for item in fascicoli.tutti(archiviati=True)
+        if item.source_external_id == "quickorganizer:101"
+    )
+    assert result["summary"]["mattersCreated"] == 1
+    assert imported.numero == f"{year}/004"
+    studio_db.chiudi()
 
 
 def test_import_studio_telematico_legge_zip_con_sole_cartelle_senza_errore_generico(tmp_path: Path):

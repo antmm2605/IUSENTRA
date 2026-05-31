@@ -1073,6 +1073,38 @@ def test_sync_user_directory_indicizza_utenti_tenant_sqlite(tmp_path: Path):
     assert payload["emails"]["r.montagnese@tiscali.it"]["user_id"] == tenant_user.id
 
 
+def test_sync_user_directory_ripara_tenant_slug_errato_nell_auth_tenant(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})
+
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Giuseppe", "studio-legale-giuseppe-montagnese", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug)
+    tenant_users = GestioneUtenti(
+        db_path=paths["AUTH_DB"],
+        audit_path=paths["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+        studio_db=StudioDB.get(paths["STUDIO_DB"]),
+        tenant_slug_context=studio.slug,
+    )
+    tenant_user = tenant_users.crea(
+        username="admin",
+        password="PasswordSicura!123",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="giuseppe.montagnese94@gmail.com",
+        tenant_slug="tenant_slug",
+        must_change_password=False,
+    )
+
+    payload = tm.sync_user_directory(secret_key=app.secret_key)
+    persisted = json.loads(Path(paths["AUTH_DB"]).read_text(encoding="utf-8"))
+
+    assert payload["users"]["admin"]["tenant_slug"] == studio.slug
+    assert payload["emails"]["giuseppe.montagnese94@gmail.com"]["tenant_slug"] == studio.slug
+    assert persisted[tenant_user.id]["tenant_slug"] == studio.slug
+
+
 def test_sync_user_directory_puo_saltare_reconcile_pesante(tmp_path: Path, monkeypatch):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})

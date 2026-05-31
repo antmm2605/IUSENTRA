@@ -949,12 +949,23 @@ class GestioneFascicoli:
 
     def _prossimo_numero(self) -> str:
         anno = date.today().year
-        esistenti = [
-            f.numero for f in self._fascicoli.values()
-            if f.numero.startswith(str(anno))
-        ]
-        seq = len(esistenti) + 1
-        return f"{anno}/{seq:03d}"
+        prefix = f"{anno}/"
+        used = {
+            str(f.numero or "").strip()
+            for f in self._fascicoli.values()
+            if str(f.numero or "").strip().startswith(prefix)
+        }
+        max_seq = 0
+        for numero in used:
+            match = re.match(rf"^{anno}/(\d+)$", numero)
+            if match:
+                max_seq = max(max_seq, int(match.group(1)))
+        seq = max_seq + 1
+        while True:
+            candidate = f"{anno}/{seq:03d}"
+            if candidate not in used:
+                return candidate
+            seq += 1
 
     # ---------------------------------------------------------------- CRUD fascicolo
 

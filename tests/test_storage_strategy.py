@@ -1367,6 +1367,35 @@ def test_bootstrap_legacy_runtime_data_riconcilia_sqlite_parzialmente_popolato(t
     assert counts == (1, 1, 1)
 
 
+def test_bootstrap_legacy_runtime_data_non_riconcilia_storage_in_startup(
+    tmp_path: Path,
+    monkeypatch,
+):
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Avvio", "studio-avvio", db_config={"mode": "SQLITE"})
+
+    root_clienti = tmp_path / "clienti" / "anagrafica.json"
+    root_clienti.parent.mkdir(parents=True, exist_ok=True)
+    root_clienti.write_text(
+        json.dumps({"CLI001": {"id": "CLI001", "nome": "Cliente avvio"}}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    def fail_reconcile(slug: str):
+        raise AssertionError(f"reconcile_storage_aliases non deve girare in startup legacy: {slug}")
+
+    monkeypatch.setattr(tm, "reconcile_storage_aliases", fail_reconcile)
+
+    result = tm.bootstrap_legacy_runtime_data(
+        studio.slug,
+        {"CLIENTI_DB": str(root_clienti)},
+    )
+
+    assert result["ok"] is True
+    assert "CLIENTI_DB" in result["copied"]
+
+
 def test_login_route_bootstraps_legacy_root_data_for_single_tenant_install(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})

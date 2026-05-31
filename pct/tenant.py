@@ -1196,7 +1196,7 @@ class GestioneTenant:
             return {"ok": False, "copied": {}, "sqlite_migrated": False}
 
         self._inizializza_directory(slug)
-        tenant_paths = self.percorsi_dati(slug)
+        tenant_paths = self.percorsi_dati(slug, reconcile_aliases=False)
         copied: Dict[str, str] = {}
         sqlite_migrated = False
         sqlite_records: Dict[str, int] = {}
@@ -1705,10 +1705,10 @@ class GestioneTenant:
         studio = studio or self.get(slug)
         if not studio:
             return
-        manifest_path = Path(self.percorsi_dati(slug)["STORAGE_CONFIG"])
+        manifest_path = Path(self.percorsi_dati(slug, reconcile_aliases=False)["STORAGE_CONFIG"])
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         manifest_path.write_text(
-            json.dumps(self.storage_manifest(slug), ensure_ascii=False, indent=2),
+            json.dumps(self.storage_manifest(slug, reconcile_aliases=False), ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
 

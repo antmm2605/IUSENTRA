@@ -54,7 +54,7 @@ def _lex_product_runtime_status() -> tuple[bool, str]:
 
 def _service_runtime_cards(product_pack: dict[str, Any], observability: dict[str, Any]) -> list[dict[str, Any]]:
     auto_index = bool(current_app.config.get("LOCAL_AI_AUTO_INDEX_DOCUMENTS"))
-    updater_ready = bool(product_pack.get("signature"))
+    updater_ready = bool(product_pack.get("manifest_hash_sha256") or product_pack.get("signature"))
     lex_ready, lex_detail = _lex_product_runtime_status()
 
     items: list[dict[str, Any]] = []
@@ -70,7 +70,7 @@ def _service_runtime_cards(product_pack: dict[str, Any], observability: dict[str
             detail = "Servizio embeddings installato, ma indicizzazione automatica documenti non attiva nelle impostazioni correnti."
         elif service_id == "iusentra-updater" and not updater_ready:
             status = "warning"
-            detail = "Updater presente, ma il manifest update corrente non risulta ancora firmato."
+            detail = "Updater presente, ma il manifest corrente non espone ancora un riferimento di integrita'."
         items.append(
             {
                 "service_id": service_id,

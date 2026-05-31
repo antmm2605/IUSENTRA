@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import hmac
 import json
 import os
 import re
@@ -130,7 +129,6 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
                 return
         except Exception:
             pass
-    # lgtm[py/clear-text-storage-sensitive-data] I manifest JSON salvano firme HMAC pubbliche e riferimenti redatti; i segreti reali restano nei file privati 0600.
     path.write_text(encoded, encoding="utf-8")
 
 
@@ -179,32 +177,27 @@ def _new_installation_secret() -> bytes:
     return uuid4().bytes + uuid4().bytes
 
 
-def _derive_secret(master: bytes, purpose: str) -> bytes:
-    return hmac.new(master, purpose.encode("utf-8"), hashlib.sha256).digest()
+def _manifest_hash_payload(payload: dict[str, Any]) -> str:
+    canonical_payload = {
+        key: value
+        for key, value in payload.items()
+        if key not in {"manifest_hash_sha256", "signature"}
+    }
+    canonical = json.dumps(
+        canonical_payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        default=_json_default,
+    ).encode("utf-8")
+    return _sha256_bytes(canonical)
 
 
-def _resolve_signing_key(installation_identity: dict[str, Any]) -> bytes:
-    system_root = str(installation_identity.get("system_root") or "").strip()
-    system_paths = _system_paths(Path(system_root)) if system_root else {}
-    signing_key_path = str(installation_identity.get("signing_key_path") or "").strip()
-    if not signing_key_path and system_paths:
-        signing_key_path = str(system_paths["installation_keys"] / "product_signing.key")
-    if signing_key_path:
-        existing = _load_secret(Path(signing_key_path))
-        if existing:
-            return existing
-    master_key_path = str(installation_identity.get("master_key_path") or "").strip()
-    if not master_key_path and system_paths:
-        master_key_path = str(system_paths["installation_keys"] / "master.key")
-    if not master_key_path:
-        return b""
-    master = _load_secret(Path(master_key_path))
-    return _derive_secret(master, "product-signing") if master else b""
-
-
-def _sign_payload(payload: dict[str, Any], signing_key: bytes) -> str:
-    canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, default=_json_default).encode("utf-8")
-    return hmac.new(signing_key, canonical, hashlib.sha256).hexdigest()
+def _attach_manifest_hash(payload: dict[str, Any]) -> dict[str, Any]:
+    payload.pop("signature", None)
+    payload["integrity_method"] = "sha256-canonical-json"
+    payload["manifest_hash_sha256"] = _manifest_hash_payload(payload)
+    return payload
 
 
 def resolve_system_pack_root(registry_path: str) -> Path:
@@ -309,7 +302,6 @@ def ensure_installation_identity(
 
     identity_path = paths["installation_config"] / "installation_identity.json"
     master_key_path = paths["installation_keys"] / "master.key"
-    signing_key_path = paths["installation_keys"] / "product_signing.key"
     database_key_path = paths["installation_keys"] / "database.key"
     documents_key_path = paths["installation_keys"] / "documents.key"
     backups_key_path = paths["installation_keys"] / "backups.key"
@@ -385,7 +377,6 @@ def build_product_pack_manifest(
     app_root_path = Path(app_root).resolve()
     system_paths = _system_paths(resolve_system_pack_root(registry_path))
     public_knowledge_entries = _copy_public_knowledge(app_root_path, system_paths["product_public"])
-    signing_key = _resolve_signing_key(installation_identity)
 
     payload = {
         "pack_type": "ProductPack",
@@ -417,10 +408,10 @@ def build_product_pack_manifest(
         "updater": {
             "history_root": str(system_paths["updates_history"]),
             "inbox_root": str(system_paths["updates_inbox"]),
-            "signature_method": "hmac-sha256",
+            "integrity_method": "sha256-canonical-json",
         },
     }
-    payload["signature"] = _sign_payload(payload, signing_key)
+    _attach_manifest_hash(payload)
     _write_json(system_paths["product_manifests"] / "product_pack.json", payload)
     return payload
 
@@ -465,7 +456,6 @@ def ensure_studio_local_pack(
         "config_studio": paths["CONFIG_STUDIO_DB"],
     }
 
-    signing_key = _resolve_signing_key(installation_identity)
     payload = {
         "pack_type": "StudioLocalPack",
         "generated_at": _utcnow_iso(),
@@ -498,7 +488,7 @@ def ensure_studio_local_pack(
         },
         "secure_material_references": installation_identity.get("secure_material_items", []),
     }
-    payload["signature"] = _sign_payload(payload, signing_key)
+    _attach_manifest_hash(payload)
     _write_json(tenant_root / "config" / "studio_local_pack.json", payload)
     return payload
 
@@ -513,7 +503,6 @@ def build_update_pack_manifest(
 ) -> dict[str, Any]:
     app_root_path = Path(app_root).resolve()
     system_paths = _system_paths(resolve_system_pack_root(registry_path))
-    signing_key = _resolve_signing_key(installation_identity)
     previous_version = _previous_version_from_changelog(app_root_path, app_version)
 
     migrations: list[dict[str, Any]] = []
@@ -535,7 +524,7 @@ def build_update_pack_manifest(
         "to_version": app_version,
         "history_root": str(system_paths["updates_history"]),
         "inbox_root": str(system_paths["updates_inbox"]),
-        "signature_method": "hmac-sha256",
+        "integrity_method": "sha256-canonical-json",
         "migrations": migrations,
         "service_updates": [
             {
@@ -560,7 +549,7 @@ def build_update_pack_manifest(
             "superadmin_only": True,
         },
     }
-    payload["signature"] = _sign_payload(payload, signing_key)
+    _attach_manifest_hash(payload)
     _write_json(system_paths["updates_history"] / f"update_pack_{app_version}.json", payload)
     _write_json(system_paths["updates_root"] / "current_update_pack.json", payload)
     return payload

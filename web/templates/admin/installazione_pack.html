@@ -89,9 +89,9 @@
           </div>
           <div class="col-md-6">
             <div class="admin-surface-item h-100">
-              <div class="small text-muted">Manifest firmato</div>
-              <div class="fw-semibold font-monospace text-break">{{ payload.product_pack.signature }}</div>
-              <div class="small mt-2">Firma HMAC-SHA256 del manifest di prodotto.</div>
+              <div class="small text-muted">Hash manifest</div>
+              <div class="fw-semibold font-monospace text-break">{{ payload.product_pack.manifest_hash_sha256 or payload.product_pack.signature }}</div>
+              <div class="small mt-2">Hash SHA-256 del manifest di prodotto normalizzato.</div>
             </div>
           </div>
           <div class="col-12">
@@ -206,7 +206,7 @@
           <div class="admin-surface-item">
             <div class="small text-muted">Update Pack corrente</div>
             <div class="fw-semibold">{{ payload.update_pack.from_version }} → {{ payload.update_pack.to_version }}</div>
-            <div class="small mt-1">Manifest firmato: <span class="font-monospace">{{ payload.update_pack.signature }}</span></div>
+            <div class="small mt-1">Integrità manifest: <span class="font-monospace">{{ payload.update_pack.manifest_hash_sha256 or payload.update_pack.signature }}</span></div>
           </div>
           <div class="admin-surface-item">
             <div class="small text-muted">Repository pack</div>

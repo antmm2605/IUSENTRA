@@ -57,6 +57,14 @@ def test_bootstrap_pack_governance_crea_manifest_macchina_e_studio(tmp_path: Pat
     assert result.installation["installation_id"]
     assert result.product_pack["version"] == __version__
     assert result.update_pack["to_version"] == __version__
+    assert result.product_pack["manifest_hash_sha256"]
+    assert result.update_pack["manifest_hash_sha256"]
+    assert all(payload["manifest_hash_sha256"] for payload in result.studio_local_packs)
+    assert "signature" not in result.product_pack
+    assert "signature" not in result.update_pack
+    assert all("signature" not in payload for payload in result.studio_local_packs)
+    assert result.product_pack["updater"]["integrity_method"] == "sha256-canonical-json"
+    assert result.update_pack["integrity_method"] == "sha256-canonical-json"
     assert "master_key_fingerprint" not in result.installation
     assert "signing_key_fingerprint" not in result.installation
     assert "master_key_path" not in result.installation
@@ -154,6 +162,8 @@ def test_installation_pack_surface_e_route_admin_sono_accessibili_al_superadmin(
     assert "Il SUPERADMIN installa il prodotto" in html
     assert "Bootstrap macchina" in html
     assert "Update Pack e repository SQL" in html
+    assert "Hash manifest" in html
+    assert "Integrit" in html
     assert "Dipendenze runtime locali" in html
     assert "Archivio protezione macchina" in html
     assert "Materiale locale governato" in html
@@ -170,7 +180,7 @@ def test_installation_pack_separa_lex_da_provider_ai_locale(tmp_path: Path):
     cfg = _cfg_web(tmp_path)
     app = create_app(cfg)
     product_pack = {
-        "signature": "firma-test",
+        "manifest_hash_sha256": "hash-test",
         "services": list(SYSTEM_SERVICE_DEFINITIONS),
     }
     observability = {

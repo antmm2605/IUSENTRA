@@ -13,6 +13,10 @@ SCHEMA_INSTALLATION_PACK_SQL = Path(__file__).with_name("sql") / "20260422_insta
 POSTGRES_SCHEMA_INSTALLATION_PACK_SQL = Path(__file__).with_name("sql") / "20260422_installation_pack_postgres.sql"
 
 
+def _manifest_integrity_ref(payload: dict[str, Any]) -> str:
+    return str(payload.get("manifest_hash_sha256") or payload.get("signature") or "")
+
+
 class InstallationPackRepository:
     def __init__(
         self,
@@ -85,7 +89,7 @@ class InstallationPackRepository:
                     str(payload.get("generated_at") or ""),
                     str(payload.get("version") or ""),
                     str(payload.get("installation_id") or ""),
-                    str(payload.get("signature") or ""),
+                    _manifest_integrity_ref(payload),
                     json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str),
                 ),
             )
@@ -120,7 +124,7 @@ class InstallationPackRepository:
                     str(payload.get("studio_id") or ""),
                     str(payload.get("studio_nome") or ""),
                     str(payload.get("database_backend") or ""),
-                    str(payload.get("signature") or ""),
+                    _manifest_integrity_ref(payload),
                     json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str),
                 ),
             )
@@ -152,7 +156,7 @@ class InstallationPackRepository:
                     str(payload.get("from_version") or ""),
                     to_version,
                     str(payload.get("installation_id") or ""),
-                    str(payload.get("signature") or ""),
+                    _manifest_integrity_ref(payload),
                     json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str),
                 ),
             )

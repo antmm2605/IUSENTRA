@@ -32,7 +32,6 @@ from flask import (
 
 from pct.notifiche_legali import is_legal_notification_subject as _is_legal_notification_subject
 from web.blueprints.react_shell import render_react_shell_response
-from web.services.app_v2_routing import is_safe_internal_path
 from web.services.mailbox_sync_runtime import run_ordinary_mailbox_sync
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
 from werkzeug.utils import secure_filename
@@ -175,10 +174,26 @@ def _sync_inviati(gestore) -> None:
 def _json_or_redirect(default_cartella: str):
     if request.headers.get("X-Requested-With") == "XMLHttpRequest" or "application/json" in (request.headers.get("Accept") or ""):
         return jsonify({"ok": True, "messaggio": "Operazione eseguita.", "cartella": default_cartella})
-    next_url = (request.form.get("next") or request.args.get("next") or "").strip()
-    if next_url and is_safe_internal_path(next_url):
-        return redirect(next_url)
     return redirect(url_for("email_ordinaria.casella", cartella=default_cartella))
+
+
+def _public_sync_payload(raw_payload, *, fallback_message: str) -> dict:
+    payload = dict(raw_payload or {})
+    errore = bool(payload.get("errore") or payload.get("error"))
+    result = {
+        "ok": bool(payload.get("ok", True)),
+        "messaggio": str(payload.get("messaggio") or fallback_message),
+        "warning": errore,
+        "sync_errore": fallback_message if errore else "",
+    }
+    for key in ("nuove", "trovate", "totale", "pst_trovate", "esiti_aggiornati"):
+        try:
+            result[key] = int(payload.get(key) or 0)
+        except (TypeError, ValueError):
+            result[key] = 0
+    if errore:
+        result["errore"] = fallback_message
+    return result
 
 
 @email_ordinaria.route("/")
@@ -398,9 +413,10 @@ def stats_json():
 def sincronizza():
     """Sincronizza la casella ordinaria usando i parametri IMAP del tab SMTP."""
     try:
-        payload = dict(run_ordinary_mailbox_sync() or {})
-        if payload.get("errore"):
-            payload["errore"] = "Sincronizzazione email ordinaria non completata. Verifica la configurazione e riprova."
+        payload = _public_sync_payload(
+            run_ordinary_mailbox_sync() or {},
+            fallback_message="Sincronizzazione email ordinaria non completata. Verifica la configurazione e riprova.",
+        )
         return jsonify(payload)
     except TenantDataPathError:
         return jsonify({"ok": False, "errore": "Archivio email non disponibile per questo studio."}), 409

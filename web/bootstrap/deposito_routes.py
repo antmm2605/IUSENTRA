@@ -78,6 +78,22 @@ def register_deposito_routes(
                 continue
         return allegati
 
+    def _validation_summary(validation: object) -> dict[str, Any]:
+        issues = list(getattr(validation, "issues", []) or [])
+        blockers = [issue for issue in issues if isinstance(issue, dict) and issue.get("level") == "BLOCK"]
+        warnings = [issue for issue in issues if isinstance(issue, dict) and issue.get("level") == "WARNING"]
+        public_issues = [
+            {
+                "level": str(issue.get("level", "")),
+                "code": str(issue.get("code", "")),
+                "title": str(issue.get("title", "")),
+                "field": str(issue.get("field", "")),
+            }
+            for issue in issues[:20]
+            if isinstance(issue, dict)
+        ]
+        return {"ok": not blockers, "blockers": len(blockers), "warnings": len(warnings), "issues": public_issues}
+
     @app.route("/deposito/checklist")
     def deposito_checklist():
         """Checklist operativa per il deposito telematico."""
@@ -307,7 +323,7 @@ def register_deposito_routes(
                 {
                     "ok": False,
                     "errore": f"{first.get('title')}. {first.get('suggested_action', '')}".strip(),
-                    "validation": validation.to_dict(),
+                    "validation": _validation_summary(validation),
                 }
             ), 400
 
@@ -388,7 +404,7 @@ def register_deposito_routes(
                     {
                         "ok": False,
                         "errore": "Deposito SIGIT non riuscito. Verifica i dati e riprova dal canale ufficiale.",
-                        "validation": validation.to_dict(),
+                        "validation": _validation_summary(validation),
                     }
                 ), 400
 
@@ -462,7 +478,7 @@ def register_deposito_routes(
                     "pec_dest": nome_commissione,
                     "tipo_atto": tipo_atto,
                     "timestamp": timestamp,
-                    "validation": validation.to_dict(),
+                    "validation": _validation_summary(validation),
                 }
             )
 
@@ -747,7 +763,7 @@ def register_deposito_routes(
                 {
                     "ok": False,
                     "errore": f"{first.get('title')}. {first.get('suggested_action', '')}".strip(),
-                    "validation": validation.to_dict(),
+                    "validation": _validation_summary(validation),
                 }
             ), 400
 

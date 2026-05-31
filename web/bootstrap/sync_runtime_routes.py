@@ -215,7 +215,7 @@ def register_sync_runtime_routes(
                     "esiti_aggiornati": auto_summary["aggiornati"],
                     "non_abbinati": auto_summary["non_abbinati"],
                     "pst_in_attesa": pst_in_attesa,
-                    "log": auto_log,
+                    "log": [],
                     "sync_errore": "Sincronizzazione IMAP non completata." if sync_errore else "",
                     "warning": sync_errore,
                 }

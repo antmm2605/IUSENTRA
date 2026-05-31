@@ -31,7 +31,6 @@ from flask import (
 from pct.config_studio import _SMTPv4, _SMTP_SSLv4
 from pct.notifiche_legali import is_legal_notification_subject as _is_legal_notification_subject
 from web.blueprints.react_shell import render_react_shell_response
-from web.services.app_v2_routing import is_safe_internal_path
 from web.services.mailbox_sync_runtime import run_pec_mailbox_sync
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
 from werkzeug.utils import secure_filename
@@ -316,10 +315,26 @@ def allegato(id_email: str, indice_allegato: int):
 
 
 def _redirect_email_next(default_cartella: str):
-    next_url = (request.form.get("next") or request.args.get("next") or "").strip()
-    if next_url and is_safe_internal_path(next_url):
-        return redirect(next_url)
     return redirect(url_for("email_client.casella", cartella=default_cartella))
+
+
+def _public_sync_payload(raw_payload, *, fallback_message: str) -> dict:
+    payload = dict(raw_payload or {})
+    errore = bool(payload.get("errore") or payload.get("error"))
+    result = {
+        "ok": bool(payload.get("ok", True)),
+        "messaggio": str(payload.get("messaggio") or fallback_message),
+        "warning": errore,
+        "sync_errore": fallback_message if errore else "",
+    }
+    for key in ("nuove", "trovate", "totale", "pst_trovate", "esiti_aggiornati"):
+        try:
+            result[key] = int(payload.get(key) or 0)
+        except (TypeError, ValueError):
+            result[key] = 0
+    if errore:
+        result["errore"] = fallback_message
+    return result
 
 
 @email_client.route("/<id_email>/segna-letta", methods=["POST"])
@@ -531,9 +546,10 @@ def stats_json():
 def sincronizza():
     """AJAX — sincronizza la casella IMAP e aggiorna gli esiti PCT."""
     try:
-        payload = dict(run_pec_mailbox_sync() or {})
-        if payload.get("errore"):
-            payload["errore"] = "Sincronizzazione PEC non completata. Verifica la configurazione e riprova."
+        payload = _public_sync_payload(
+            run_pec_mailbox_sync() or {},
+            fallback_message="Sincronizzazione PEC non completata. Verifica la configurazione e riprova.",
+        )
         return jsonify(payload)
     except TenantDataPathError:
         return jsonify({"ok": False, "errore": "Archivio PEC non disponibile per questo studio."}), 409
@@ -584,7 +600,7 @@ def auto_esiti():
         "pst_in_attesa": auto_summary["pst_in_attesa"],
         "comunicazioni_aggiornate": comm_report.get("associati", 0),
         "report": comm_report,
-        "log": log,
+        "log": [],
     })
 
 

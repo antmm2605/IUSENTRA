@@ -481,6 +481,40 @@ def test_email_casella_filtri_avanzati_e_flag_letto(tmp_path):
     assert ge_reload.get("MAIL-1").stato == StatoEmail.NON_LETTA
 
 
+def test_email_azioni_ignorano_next_esterno(tmp_path):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"]).aggiungi(
+        EmailRicevuta(id="PEC-1", cartella=CartellaEmail.INBOX, stato=StatoEmail.NON_LETTA, oggetto="PEC")
+    )
+    GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"]).aggiungi(
+        EmailRicevuta(id="ORD-1", cartella=CartellaEmail.INBOX, stato=StatoEmail.NON_LETTA, oggetto="Email")
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+
+        pec = client.post(
+            "/email/PEC-1/segna-letta",
+            data={"cartella": "INBOX", "next": "https://evil.example/phish"},
+            follow_redirects=False,
+        )
+        ordinaria = client.post(
+            "/email-ordinaria/ORD-1/segna-letta",
+            data={"cartella": "INBOX", "next": "https://evil.example/phish"},
+            follow_redirects=False,
+        )
+
+    assert pec.status_code == 302
+    assert pec.headers["Location"].endswith("/email/?cartella=INBOX")
+    assert "evil.example" not in pec.headers["Location"]
+    assert ordinaria.status_code == 302
+    assert ordinaria.headers["Location"].endswith("/email-ordinaria/?cartella=INBOX")
+    assert "evil.example" not in ordinaria.headers["Location"]
+
+
 def test_email_route_ufficiale_serve_react_e_api_distingue_inviati_cestino(tmp_path):
     from web.app import create_app
 
@@ -2660,7 +2694,8 @@ def test_email_sync_route_espone_warning_e_sync_errore(tmp_path, monkeypatch):
     assert data["ok"] is True
     assert data["warning"] is True
     assert "Sincronizzazione IMAP non completata" in data["messaggio"]
-    assert "Connessione IMAP non completata entro 15 secondi" in data["sync_errore"]
+    assert data["sync_errore"] == "Sincronizzazione PEC non completata. Verifica la configurazione e riprova."
+    assert "Connessione IMAP non completata entro 15 secondi" not in response.get_data(as_text=True)
     assert osservato["db_path"] == cfg["FASCICOLI_DB"]
     assert osservato["documents_dir"] == cfg["FASCICOLI_DOCS"]
     assert osservato["archive_dir"] == cfg["FASCICOLI_ARCH"]

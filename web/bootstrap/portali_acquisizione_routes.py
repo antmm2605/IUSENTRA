@@ -70,51 +70,6 @@ def register_portali_acquisizione_routes(
             return "Analisi importazione non completata. Verifica selezione e anteprima."
         return "Operazione non completata. Verifica i dati e riprova."
 
-    def _portale_public_error_from_exception(portale: str, operation: str, exc: Exception) -> str:
-        base = _portale_public_error(portale, operation)
-        detail = str(exc or "").strip()
-        lowered = detail.lower()
-        if not detail:
-            return base
-        if "documenti reali presenti" in lowered or "primo elemento da verificare" in lowered:
-            return detail
-        if "timeout connessione" in lowered or "timed out" in lowered:
-            return (
-                "Scaricamento dal PST non completato: il portale ufficiale non ha risposto "
-                "entro il tempo massimo. Riprova tra qualche minuto dalla stessa schermata; "
-                "se la sessione è ancora valida non dovrai ripetere tutta la ricerca."
-            )
-        if "401" in lowered or "unauthorized" in lowered or "autenticazione pst" in lowered:
-            return (
-                "Accesso PST non completato: il certificato non è stato accettato oppure "
-                "il PIN non è stato confermato sul PC. Riavvia Local Signer, controlla la "
-                "finestra del dispositivo e riprova."
-            )
-        if "soap fault" in lowered or "non può eseguire" in lowered or "non puo' eseguire" in lowered:
-            return (
-                "Il portale ufficiale ha rifiutato l'operazione per autorizzazioni o ruolo "
-                "del certificato. Verifica che il dispositivo sia quello abilitato per quel fascicolo."
-            )
-        if "non sono arrivati file reali" in lowered or "solo catalogo" in lowered or "metadati" in lowered:
-            return (
-                "Scaricamento dal PST non completato: il fascicolo espone documenti, ma dal portale ufficiale "
-                "non sono arrivati file reali al Local Signer. IUSENTRA non importa solo catalogo "
-                "o metadati senza PDF/documenti effettivi."
-            )
-        if "lotto scaricato non contiene file documentali" in lowered:
-            return (
-                "Scaricamento dal PST non completato: il lotto ricevuto non contiene file documentali "
-                "riconducibili al catalogo del fascicolo."
-            )
-        if "blocchi da risolvere" in lowered:
-            return (
-                "Importazione non completata: ci sono controlli bloccanti da risolvere nella verifica "
-                "prima dell'importazione."
-            )
-        if "fascicolo locale selezionato non trovato" in lowered or "non è compatibile" in lowered or "non compatibile" in lowered:
-            return "Importazione non completata: il fascicolo locale selezionato non è compatibile."
-        return base
-
     def _clean_query_value(name: str) -> str:
         return str(request.args.get(name) or "").strip()
 
@@ -355,7 +310,7 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, "result": result, "pst_session": data.get("pst_session") or {}, **result})
         except Exception as e:
             app.logger.exception("Errore api_portale_acquisizione_import(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": _portale_public_error_from_exception(portale, "import", e)}), 200
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "import")}), 200
 
     @app.route("/api/portali/<portale>/acquisizione/importa-payload", methods=["POST"])
     def api_portale_acquisizione_importa_payload(portale: str):
@@ -383,7 +338,7 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, "normalized": normalized, "result": result, **result})
         except Exception as e:
             app.logger.exception("Errore api_portale_acquisizione_importa_payload(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": _portale_public_error_from_exception(portale, "import_payload", e)}), 200
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "import_payload")}), 200
 
     @app.route("/api/portali/<portale>/acquisizione/importa-file", methods=["POST"])
     def api_portale_acquisizione_importa_file(portale: str):
@@ -394,7 +349,7 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, "result": result, **result})
         except Exception as e:
             app.logger.exception("Errore api_portale_acquisizione_importa_file(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": _portale_public_error_from_exception(portale, "import_file", e)}), 200
+            return jsonify({"ok": False, "errore": _portale_public_error(portale, "import_file")}), 200
 
     @app.route("/api/portali/<portale>/assistant/start", methods=["POST"])
     def api_portale_assistant_start(portale: str):

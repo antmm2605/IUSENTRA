@@ -447,12 +447,12 @@ def register_fascicoli_document_routes(
                 from pct.editor import eml_to_html
                 from web.bootstrap.fascicoli_document_helpers import preview_eml_html
 
-                html, _avvisi, meta = eml_to_html(data)
+                _html, _avvisi, meta = eml_to_html(data)
                 scarica_url = url_for("scarica_documento", id_fasc=id_fasc, id_doc=id_doc)
                 audit("fascicoli.documento.visualizza", "fascicolo", id_fasc, dettagli=f"doc {id_doc} - {documento.nome}")
                 return preview_eml_html(
                     nome_documento=documento.nome,
-                    html_body=html,
+                    html_body="<p>Anteprima del messaggio disponibile scaricando il file EML originale.</p>",
                     meta=meta,
                     scarica_url=scarica_url,
                 )

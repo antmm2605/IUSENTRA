@@ -312,7 +312,7 @@ def auto_esiti():
     """AJAX — aggiorna esiti PCT da email PST già ricevute."""
     ge   = _get_gestore()
     log  = _auto_esiti(ge)
-    return jsonify({"ok": True, "aggiornati": len(log), "log": log})
+    return jsonify({"ok": True, "aggiornati": len(log), "log": []})
 
 
 # ─────────────────────────────────────────────────────────── Impostazioni email

@@ -59,7 +59,10 @@ def test_bootstrap_pack_governance_crea_manifest_macchina_e_studio(tmp_path: Pat
     assert result.update_pack["to_version"] == __version__
     assert "master_key_fingerprint" not in result.installation
     assert "signing_key_fingerprint" not in result.installation
-    assert all("fingerprint" not in item for item in result.installation["derived_keys"])
+    assert "master_key_path" not in result.installation
+    assert "signing_key_path" not in result.installation
+    assert "derived_keys" not in result.installation
+    assert all("fingerprint" not in item and "path" not in item for item in result.installation["secure_material_items"])
     assert (system_root / "product" / "manifests" / "product_pack.json").exists()
     assert (system_root / "updates" / "current_update_pack.json").exists()
     assert (studio_root / "config" / "studio_local_pack.json").exists()
@@ -152,6 +155,8 @@ def test_installation_pack_surface_e_route_admin_sono_accessibili_al_superadmin(
     assert "Bootstrap macchina" in html
     assert "Update Pack e repository SQL" in html
     assert "Dipendenze runtime locali" in html
+    assert "Archivio protezione macchina" in html
+    assert "Materiale locale governato" in html
 
     assert api.status_code == 200
     api_payload = api.get_json()

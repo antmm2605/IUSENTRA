@@ -743,6 +743,55 @@ def _document_type(label: Any, filename: Any = "") -> TipoDocumento:
     return TipoDocumento.ATTO_GIUDIZIARIO if label else TipoDocumento.ALLEGATO
 
 
+DOCUMENT_TITLE_FIELDS = (
+    "NOME_DOCUMENTO",
+    "NomeDocumento",
+    "NOME_DOC",
+    "NomeDoc",
+    "TITOLO",
+    "Titolo",
+    "NOME_ATTO",
+    "NomeAtto",
+    "TIPO_ATTO",
+    "TipoAtto",
+    "BreveDescrizioneContenutoDocumento",
+    "DESCRIZIONE",
+    "Descrizione",
+    "OGGETTO",
+    "Oggetto",
+)
+
+EMAIL_TITLE_FIELDS = (
+    "Subject",
+    "Oggetto",
+    "OGGETTO",
+    "TITOLO",
+    "Titolo",
+    "NOME_DOCUMENTO",
+    "NomeDocumento",
+)
+
+
+def _clean_display_document_name(value: Any) -> str:
+    raw = _text(value)
+    if not raw:
+        return ""
+    cleaned = re.sub(r"[\x00-\x1f]+", " ", raw)
+    cleaned = cleaned.replace("\\", " - ").replace("/", " - ")
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" .")
+    return cleaned
+
+
+def _document_name_from_table(row: Mapping[str, Any], fields: Iterable[str], fallback_filename: str) -> str:
+    fallback = _normalise_filename(fallback_filename)
+    for field in fields:
+        name = _clean_display_document_name(_row_value(row, field))
+        if name:
+            suffix = Path(fallback).suffix
+            return name if Path(name).suffix or not suffix else f"{name}{suffix}"
+    return fallback
+
+
 def _split_person_name(row: Mapping[str, Any]) -> tuple[str, str]:
     name = _text(_row_value(row, "NOME"))
     surname = _text(_row_value(row, "COGNOME"))
@@ -1093,10 +1142,11 @@ def import_quickorganizer_package(
             counters["duplicatesSkipped"] += 1
             continue
         data = package.read_file(source_file)
+        document_name = _document_name_from_table(row, DOCUMENT_TITLE_FIELDS, filename)
         fascicoli.aggiungi_documento(
             matter_id,
-            filename,
-            _document_type(_row_value(row, "NOME_ATTO"), filename),
+            document_name,
+            _document_type(document_name, filename),
             data,
             note=f"Import QuickOrganizer. {_text(_row_value(row, 'BreveDescrizioneContenutoDocumento'))}",
             tags=["quickorganizer"],
@@ -1105,8 +1155,10 @@ def import_quickorganizer_package(
             caricato_da=actor,
             fonte_documento="IMPORT_ESTERNO",
             nome_originale=filename,
+            nome_portale=document_name,
             classificazione_portale="QuickOrganizer",
             id_documento_portale=external_id,
+            nome_archivio=filename,
         )
         counters["documentsImported"] += 1
 
@@ -1127,9 +1179,10 @@ def import_quickorganizer_package(
             continue
         data = package.read_file(source_file)
         subject = _text(_row_value(row, "Subject"), filename)
+        document_name = _document_name_from_table(row, EMAIL_TITLE_FIELDS, filename)
         fascicoli.aggiungi_documento(
             matter_id,
-            filename,
+            document_name,
             TipoDocumento.COMUNICAZIONE,
             data,
             note=f"Email importata da QuickOrganizer. Oggetto: {subject}",
@@ -1139,9 +1192,11 @@ def import_quickorganizer_package(
             caricato_da=actor,
             fonte_documento="IMPORT_ESTERNO",
             nome_originale=filename,
+            nome_portale=document_name,
             classificazione_portale="QuickOrganizer",
             mittente_portale=_text(_row_value(row, "Mittente")),
             id_documento_portale=external_id,
+            nome_archivio=filename,
         )
         counters["emailsImported"] += 1
 

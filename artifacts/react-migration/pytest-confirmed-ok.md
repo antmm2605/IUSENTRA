@@ -1,5 +1,16 @@
 # Pytest shard confermati OK
 
+## Import Studio Telematico e contratti 2.248.96 - 2026-05-31
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests\test_quickorganizer_import.py tests\test_storage_strategy.py::test_superadmin_database_ripara_accesso_studio_da_pannello -q --tb=short` | OK | 9/9: documenti da `TESTI` nominati dalla tabella, file sorgente conservato, clienti, soggetti, parti e accesso SUPERADMIN riparazione studio verificati. |
+| `python -m pytest tests\test_fascicoli.py::test_aggiungi_documento tests\test_fascicoli.py::test_documento_salvato_su_disco tests\test_fascicoli.py::test_rinomina_documento_aggiorna_nome_e_file tests\test_fascicoli.py::test_documento_nomi_collisione tests\test_fascicoli.py::test_collega_documenti_a_deposito_portale_aggancia_file_locali_al_deposito_ufficiale -q --tb=short` | OK | 5/5: salvataggio fisico documenti retrocompatibile dopo `nome_archivio`, rinomina e collisioni documentali verdi. |
+| `python -m pytest tests\test_installation_packs.py tests\test_email_client.py::test_api_pec_poll_cancelleria_usa_workflow_condiviso tests\test_email_client.py::test_api_pec_poll_cancelleria_espone_duplicati_e_warning_sync_pubblico tests\test_email_client.py::test_email_sync_route_espone_warning_e_sync_errore -q --tb=short` | OK | 9/9: manifest Installation Pack senza path di materiale protetto in chiaro e risposta PEC pubblica con soli conteggi/messaggi redatti. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python -m pytest tests\test_openapi_contracts_phase6.py -q --tb=short` | OK | OpenAPI rigenerato alla versione `2.248.96`; provider verification `auth-error=217`, `success=27`, `backend-security=1`; test contratti fase 6 `5/5`. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_build_dist.py tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | Packaging/versione `2.248.96` sincronizzati; suite dist, consistenza package e release readiness `16/16` verde. |
+| `python tools\check_repo_governance.py`; `python -m compileall -q pct web`; `git diff --check` | OK | Governance repository, sintassi Python e whitespace dei file toccati confermati; resta solo warning Git CRLF/LF storico su `docs/openapi.yaml`. |
+
 ## Supporto remoto studio end-to-end 2.248.93 - 2026-05-31
 
 | Comando / verifica | Esito | Nota |

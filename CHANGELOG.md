@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.248.96 - 2026-05-31
+
+- Corretto l'import Studio Telematico: i documenti e le email usano come nome visibile il titolo presente nelle tabelle `TESTI`/`EMAILS`, conservando il file originale solo come sorgente fisica e metadato.
+- Estesi i test dell'import su clienti, soggetti e parti processuali, verificando cliente principale, anagrafiche importate e ruoli `ASSISTITO`/`CONTROPARTE`.
+- Bonificati i manifest Installation Pack e la risposta PEC pubblica per non esporre path di materiale protetto o dettagli runtime non necessari ai gate CodeQL.
+
 ## 2.248.95 - 2026-05-31
 
 - Imposta come regola operativa che le verifiche locali finali devono usare la copia reale dell'utente su `http://127.0.0.1:8080`, non server temporanei o porte inventate.

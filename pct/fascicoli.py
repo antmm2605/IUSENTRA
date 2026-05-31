@@ -1093,6 +1093,7 @@ class GestioneFascicoli:
         id_cat_portale: str = "",
         id_repeatto_portale: str = "",
         msg_id_portale: str = "",
+        nome_archivio: str = "",
     ) -> Documento:
         """
         Aggiunge un documento al fascicolo salvandolo su disco.
@@ -1105,7 +1106,7 @@ class GestioneFascicoli:
         fasc_dir.mkdir(parents=True, exist_ok=True)
 
         # evita collisioni di nome
-        nome_safe = Path(nome_file).name
+        nome_safe = Path(nome_archivio or nome_file).name
         dest = fasc_dir / nome_safe
         if dest.exists():
             stem = Path(nome_safe).stem

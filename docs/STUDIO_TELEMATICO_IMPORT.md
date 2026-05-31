@@ -61,6 +61,8 @@ Per archivi molto grandi l'operatore può indicare il percorso locale del file Z
 | `EMAILS` + file in `EMAILS` | Email collegate al fascicolo |
 | `AGENDA` | Attività e appuntamenti del fascicolo |
 
+Il nome visibile dei documenti non viene ricavato dal nome del PDF o dal file fisico: per `TESTI` viene preso dal titolo presente nella tabella dati (`NOME_DOCUMENTO`, `NOME_ATTO`, `TITOLO` o campi descrittivi equivalenti), mentre per `EMAILS` viene preso dall'oggetto della riga email quando disponibile. Il nome file originale resta salvato in `nome_originale` e viene usato solo per reperire e conservare il file sorgente.
+
 Ogni pratica conserva `source_external_id = quickorganizer:<numero pratica>`, così un secondo import aggiorna la pratica già presente invece di duplicarla.
 
 ## Controlli prima della scrittura

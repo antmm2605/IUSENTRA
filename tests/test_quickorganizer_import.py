@@ -55,8 +55,8 @@ def _write_package(path: Path, *, include_atto: bool = True, include_email: bool
                 {
                     "NUMEROPRATICA": 101,
                     "Counter": 77,
-                    "NOME_DOS": "ricorso.pdf",
-                    "NOME_ATTO": "Ricorso",
+                    "NOME_DOS": "scansione-da-pdf-0001.pdf",
+                    "NOME_ATTO": "Ricorso introduttivo da tabella",
                     "DATA_ATTO": "2025-01-12",
                 }
             ],
@@ -64,8 +64,8 @@ def _write_package(path: Path, *, include_atto: bool = True, include_email: bool
                 {
                     "NumeroPratica": 101,
                     "Email_ID": 88,
-                    "NOME_DOS": "messaggio.eml",
-                    "Subject": "Invio documenti",
+                    "NOME_DOS": "MSG000088.eml",
+                    "Subject": "Invio documenti da tabella",
                     "Data": "2025-01-13",
                     "Mittente": "cliente@example.it",
                 }
@@ -84,9 +84,9 @@ def _write_package(path: Path, *, include_atto: bool = True, include_email: bool
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
         archive.writestr("quickorganizer-export.json", json.dumps(payload, ensure_ascii=False))
         if include_atto:
-            archive.writestr("ATTI/ricorso.pdf", b"%PDF-1.4\ncontenuto atto")
+            archive.writestr("ATTI/scansione-da-pdf-0001.pdf", b"%PDF-1.4\ncontenuto atto")
         if include_email:
-            archive.writestr("EMAILS/messaggio.eml", b"Subject: Invio documenti\n\nTesto")
+            archive.writestr("EMAILS/MSG000088.eml", b"Subject: Invio documenti\n\nTesto")
     return path
 
 
@@ -143,8 +143,26 @@ def test_import_studio_telematico_legge_documenti_da_atti_ed_emails(tmp_path: Pa
     assert result["summary"]["activitiesImported"] == 1
     assert fascicolo.source_external_id == "quickorganizer:101"
     assert len(fascicolo.documenti) == 2
-    assert {doc.nome for doc in fascicolo.documenti} == {"ricorso.pdf", "messaggio.eml"}
+    documenti_by_originale = {doc.nome_originale: doc for doc in fascicolo.documenti}
+    atto = documenti_by_originale["scansione-da-pdf-0001.pdf"]
+    email = documenti_by_originale["MSG000088.eml"]
+    assert atto.nome == "Ricorso introduttivo da tabella.pdf"
+    assert atto.nome_portale == "Ricorso introduttivo da tabella.pdf"
+    assert Path(atto.percorso).name == "scansione-da-pdf-0001.pdf"
+    assert email.nome == "Invio documenti da tabella.eml"
+    assert email.nome_portale == "Invio documenti da tabella.eml"
+    assert Path(email.percorso).name == "MSG000088.eml"
     assert len(parti) == 2
+    cliente = clienti.tutti()[0]
+    assert fascicolo.id_cliente == cliente.id
+    assert fascicolo.nome_cliente == "Rossi Mario"
+    assert cliente.nome == "Mario"
+    assert cliente.cognome == "Rossi"
+    assert cliente.recapiti.email == "mario.rossi@example.it"
+    soggetti_by_name = {(s.cognome, s.nome): s for s in soggetti.tutti()}
+    assert set(soggetti_by_name) == {("Rossi", "Mario"), ("Bianchi", "Luigi")}
+    ruoli = {(soggetto.cognome, soggetto.nome): parte.ruolo.value for parte, soggetto in parti}
+    assert ruoli == {("Rossi", "Mario"): "ASSISTITO", ("Bianchi", "Luigi"): "CONTROPARTE"}
 
     second = import_quickorganizer_package(
         package,

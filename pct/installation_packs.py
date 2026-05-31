@@ -183,12 +183,18 @@ def _derive_secret(master: bytes, purpose: str) -> bytes:
 
 
 def _resolve_signing_key(installation_identity: dict[str, Any]) -> bytes:
+    system_root = str(installation_identity.get("system_root") or "").strip()
+    system_paths = _system_paths(Path(system_root)) if system_root else {}
     signing_key_path = str(installation_identity.get("signing_key_path") or "").strip()
+    if not signing_key_path and system_paths:
+        signing_key_path = str(system_paths["installation_keys"] / "product_signing.key")
     if signing_key_path:
         existing = _load_secret(Path(signing_key_path))
         if existing:
             return existing
     master_key_path = str(installation_identity.get("master_key_path") or "").strip()
+    if not master_key_path and system_paths:
+        master_key_path = str(system_paths["installation_keys"] / "master.key")
     if not master_key_path:
         return b""
     master = _load_secret(Path(master_key_path))
@@ -332,14 +338,22 @@ def ensure_installation_identity(
         "backups": backups_key_path,
         "tokens": tokens_key_path,
     }
-    derived_payload: list[dict[str, Any]] = []
-    for label, path in derived_specs.items():
-        derived_payload.append(
+    secure_material_items: list[dict[str, Any]] = []
+    for label in derived_specs:
+        secure_material_items.append(
             {
                 "purpose": label,
-                "path": str(path),
+                "storage": "protected local file",
             }
         )
+    for obsolete in (
+        "master_key_path",
+        "signing_key_path",
+        "derived_keys",
+        "master_key_fingerprint",
+        "signing_key_fingerprint",
+    ):
+        identity.pop(obsolete, None)
 
     identity.update(
         {
@@ -347,13 +361,12 @@ def ensure_installation_identity(
             "updated_at": _utcnow_iso(),
             "system_root": str(system_root),
             "encryption_profile": "master-key-per-installation",
-            "master_key_path": str(master_key_path),
-            "signing_key_path": str(signing_key_path),
-            "derived_keys": derived_payload,
+            "secure_material_store": "installation local protected files",
+            "secure_material_items": secure_material_items,
             "system_directories": {
                 key: str(value)
                 for key, value in paths.items()
-                if key not in {"root"}
+                if key not in {"root", "installation_keys"}
             },
         }
     )
@@ -482,7 +495,7 @@ def ensure_studio_local_pack(
             "private_memory": "Fascicoli, clienti, facts, timeline, profili e stato economico restano locali a questo studio.",
             "product_boundary": "Il Product Pack non deve includere vector store, cache o documenti di questo tenant.",
         },
-        "derived_key_references": installation_identity.get("derived_keys", []),
+        "secure_material_references": installation_identity.get("secure_material_items", []),
     }
     payload["signature"] = _sign_payload(payload, signing_key)
     _write_json(tenant_root / "config" / "studio_local_pack.json", payload)

@@ -166,45 +166,6 @@ def register_sync_runtime_routes(
                 "duplicati": 0,
                 "errori": 0,
             }
-            sync_errore = bool(str(sync_result.get("errore") or "").strip())
-            pst_in_attesa = sum(
-                1 for em in ge._carica().values()
-                if em.e_pst and not em.auto_registrata
-            )
-
-            if report["associati"]:
-                msg = (
-                    f"{report['associati']} comunicazion{'e' if report['associati'] == 1 else 'i'} "
-                    f"caricata{'.' if report['associati'] == 1 else '.'}"
-                )
-            elif report["duplicati"]:
-                msg = (
-                    f"{report['duplicati']} comunicazion{'e' if report['duplicati'] == 1 else 'i'} "
-                    f"già present{'e' if report['duplicati'] == 1 else 'i'} nel fascicolo selezionato."
-                )
-            elif auto_summary["aggiornati"]:
-                msg = f"Workflow PEC completato: {auto_summary['aggiornati']} esiti deposito aggiornati."
-            elif auto_summary["non_abbinati"]:
-                msg = f"{auto_summary['non_abbinati']} PEC PST restano in attesa di abbinamento ai depositi."
-            elif sync_result.get("nuove"):
-                msg = f"Sincronizzazione PEC completata: {sync_result.get('nuove', 0)} email nuove."
-            elif report["trovati"]:
-                msg = "Nessuna comunicazione nuova trovata (già tutte caricate)."
-            else:
-                msg = "Nessuna email di cancelleria trovata nella casella PEC."
-            if pst_in_attesa and not auto_summary["non_abbinati"]:
-                msg = f"{msg} PEC PST ancora da verificare: {pst_in_attesa}."
-            if sync_errore:
-                msg = "Sincronizzazione PEC non completata. Verifica la configurazione e riprova."
-
-            audit("pec.poll_cancelleria", dettagli=str(report))
-            app.logger.info(
-                "Workflow PEC manuale: %d nuove email, %d esiti, %d comunicazioni, %d errori",
-                sync_result.get("nuove", 0),
-                len(auto_log),
-                report["associati"],
-                report["errori"],
-            )
             public_report = {
                 "trovati": int(report.get("trovati") or 0),
                 "associati": int(report.get("associati") or 0),
@@ -213,6 +174,47 @@ def register_sync_runtime_routes(
             }
             nuove = int(sync_result.get("nuove") or 0)
             pst_trovate = int(sync_result.get("pst_trovate") or 0)
+            sync_warning = bool(str(sync_result.get("errore") or "").strip())
+            esiti_aggiornati = int(auto_summary["aggiornati"] or 0)
+            non_abbinati = int(auto_summary["non_abbinati"] or 0)
+            pst_in_attesa = sum(
+                1 for em in ge._carica().values()
+                if em.e_pst and not em.auto_registrata
+            )
+
+            if public_report["associati"]:
+                msg = (
+                    f"{public_report['associati']} comunicazion{'e' if public_report['associati'] == 1 else 'i'} "
+                    f"caricata{'.' if public_report['associati'] == 1 else '.'}"
+                )
+            elif public_report["duplicati"]:
+                msg = (
+                    f"{public_report['duplicati']} comunicazion{'e' if public_report['duplicati'] == 1 else 'i'} "
+                    f"già present{'e' if public_report['duplicati'] == 1 else 'i'} nel fascicolo selezionato."
+                )
+            elif esiti_aggiornati:
+                msg = f"Workflow PEC completato: {esiti_aggiornati} esiti deposito aggiornati."
+            elif non_abbinati:
+                msg = f"{non_abbinati} PEC PST restano in attesa di abbinamento ai depositi."
+            elif nuove:
+                msg = f"Sincronizzazione PEC completata: {nuove} email nuove."
+            elif public_report["trovati"]:
+                msg = "Nessuna comunicazione nuova trovata (già tutte caricate)."
+            else:
+                msg = "Nessuna email di cancelleria trovata nella casella PEC."
+            if pst_in_attesa and not non_abbinati:
+                msg = f"{msg} PEC PST ancora da verificare: {pst_in_attesa}."
+            if sync_warning:
+                msg = "Sincronizzazione PEC non completata. Verifica la configurazione e riprova."
+
+            audit("pec.poll_cancelleria", dettagli=str(public_report))
+            app.logger.info(
+                "Workflow PEC manuale: %d nuove email, %d esiti, %d comunicazioni, %d errori",
+                nuove,
+                len(auto_log),
+                public_report["associati"],
+                public_report["errori"],
+            )
             return jsonify(
                 {
                     "ok": True,
@@ -220,12 +222,12 @@ def register_sync_runtime_routes(
                     "report": public_report,
                     "nuove": nuove,
                     "pst_trovate": pst_trovate,
-                    "esiti_aggiornati": auto_summary["aggiornati"],
-                    "non_abbinati": auto_summary["non_abbinati"],
+                    "esiti_aggiornati": esiti_aggiornati,
+                    "non_abbinati": non_abbinati,
                     "pst_in_attesa": pst_in_attesa,
                     "log": [],
-                    "sync_errore": "Sincronizzazione IMAP non completata." if sync_errore else "",
-                    "warning": sync_errore,
+                    "sync_errore": "Sincronizzazione IMAP non completata." if sync_warning else "",
+                    "warning": sync_warning,
                 }
             )
         except Exception as e:

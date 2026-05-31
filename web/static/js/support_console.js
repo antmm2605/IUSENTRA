@@ -55,13 +55,23 @@
       if (openOperatorLink) openOperatorLink.href = response.operator_url || "#";
       if (openSessionDetailLink) openSessionDetailLink.href = `/admin/supporto-remoto?sessione=${encodeURIComponent((response.session || {}).public_id || "")}`;
       resultBox?.classList.remove("d-none");
+      let clipboardCopied = false;
+      if (navigator.clipboard && response.join_url) {
+        try {
+          await navigator.clipboard.writeText(response.join_url);
+          clipboardCopied = true;
+        } catch (_) {
+          clipboardCopied = false;
+        }
+      }
       if (response.operator_url) {
         window.open(response.operator_url, "_blank", "noopener");
       }
-      if (navigator.clipboard && response.join_url) {
-        await navigator.clipboard.writeText(response.join_url);
-      }
-      showFeedback("Sessione creata. Link cliente pronto e stanza operatore aperta in una nuova scheda.");
+      showFeedback(
+        clipboardCopied
+          ? "Sessione creata. Link cliente copiato e stanza operatore aperta in una nuova scheda."
+          : "Sessione creata. Link cliente pronto nel campo dedicato e stanza operatore aperta in una nuova scheda.",
+      );
     } catch (error) {
       showFeedback(`Impossibile creare la sessione: ${error.message}`, "danger");
     } finally {

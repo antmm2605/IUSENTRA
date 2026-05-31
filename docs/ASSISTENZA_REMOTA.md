@@ -11,18 +11,18 @@ Il modulo `Assistenza remota` permette al `SUPERADMIN` di piattaforma di aprire 
 - consensi espliciti del cliente
 - aggancio governato a un controllo remoto avanzato esterno
 
-Dal rilascio `2.239.0` la sessione base e' pronta al primo avvio: IUSENTRA
+Dal rilascio `2.239.0` la sessione base è pronta al primo avvio: IUSENTRA
 configura un endpoint STUN predefinito, crea il link cliente firmato, apre la
 stanza operatore e abilita chat/audit senza richiedere variabili manuali.
 TURN e controllo remoto avanzato esterno restano presidi opzionali per reti
-difficili o strumenti di desktop-control gia' scelti dallo studio.
+difficili o strumenti di desktop-control già scelti dallo studio.
 
-La regola prodotto e' ferrea:
+La regola prodotto è ferrea:
 
 - la sessione nasce sempre da `SUPERADMIN`
 - il cliente entra solo da link firmato
 - schermo, audio e controllo avanzato richiedono consenso esplicito
-- il controllo avanzato non parte mai se `SUPPORT_ADVANCED_URL_TEMPLATE` non e' configurato
+- il controllo avanzato non parte mai se `SUPPORT_ADVANCED_URL_TEMPLATE` non è configurato
 
 ## Superfici prodotto
 
@@ -68,7 +68,7 @@ La regola prodotto e' ferrea:
 
 ## Storage
 
-Il dominio e' piattaforma-first:
+Il dominio è piattaforma-first:
 
 - `JSON`: non usato
 - `SQLite`: attivo con `PCT_SUPPORT_DB`
@@ -86,7 +86,7 @@ Variabili runtime principali:
 
 ```env
 PCT_SUPPORT_DB=/data/support/assistenza_remota.db
-# Default gia' operativo se non impostato esplicitamente:
+# Default già operativo se non impostato esplicitamente:
 PCT_SUPPORT_STUN_URLS=stun:stun.l.google.com:19302
 PCT_SUPPORT_TURN_URLS=turn:turn.tuodominio.it:3478?transport=udp,turns:turn.tuodominio.it:5349?transport=tcp
 PCT_SUPPORT_TURN_SHARED_SECRET=<secret-lungo-random>
@@ -106,7 +106,7 @@ mantiene il default pronto all'uso invece di degradare in stato da configurare.
 
 Per funzionare dietro reverse proxy serve il blocco WebSocket dedicato su `/support/ws/`.
 
-La configurazione locale del repo include gia':
+La configurazione locale del repo include già:
 
 - `Upgrade`
 - `Connection "upgrade"`
@@ -129,12 +129,12 @@ clienti dietro firewall o NAT restrittivi.
 
 ## TURN self-hosted
 
-In produzione e' raccomandato `coturn` con secret condiviso tra backend e relay.
+In produzione è raccomandato `coturn` con secret condiviso tra backend e relay.
 
 Regola operativa:
 
-- almeno un `STUN` e' sempre presente grazie al default applicativo
-- `TURN` e' raccomandato, non bloccante, per reti con NAT o firewall difficili
+- almeno un `STUN` è sempre presente grazie al default applicativo
+- `TURN` è raccomandato, non bloccante, per reti con NAT o firewall difficili
 - non distribuire credenziali TURN statiche al browser
 
 ## Audit e consensi
@@ -149,11 +149,11 @@ Ogni sessione persiste:
 - richiesta e approvazione del controllo avanzato
 - timeline eventi in `support_event`
 
-Il registro e' leggibile dalla console come storia operativa, non solo come log tecnico.
+Il registro è leggibile dalla console come storia operativa, non solo come log tecnico.
 
 ## Controllo remoto avanzato
 
-Il modulo non reimplementa il desktop control nel browser. L'aggancio e' previsto tramite:
+Il modulo non reimplementa il desktop control nel browser. L'aggancio è previsto tramite:
 
 - `SUPPORT_ADVANCED_URL_TEMPLATE`
 
@@ -163,16 +163,16 @@ Flusso:
 2. il cliente approva o rifiuta
 3. solo dopo l'approvazione compare il pulsante per aprire lo strumento esterno
 
-Se il template non e' configurato, l'escalation viene bloccata con messaggio esplicito.
+Se il template non è configurato, l'escalation viene bloccata con messaggio esplicito.
 
 ## Limite attuale
 
-La presenza realtime e' in memoria processo:
+La presenza realtime è in memoria processo:
 
 - va bene per singola istanza o ambiente locale
-- per multi-worker/multi-nodo servira' una futura estrazione su `Redis pub/sub`
+- per multi-worker/multi-nodo servirà una futura estrazione su `Redis pub/sub`
 
-Il resto del modulo e' gia' separato in modo da poter spostare solo questo layer senza riscrivere UI, repository o policy.
+Il resto del modulo è già separato in modo da poter spostare solo questo layer senza riscrivere UI, repository o policy.
 
 ## Verifiche minime release
 

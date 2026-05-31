@@ -133,7 +133,7 @@ def build_support_console_payload(
         )
     if not turn_ready:
         advisories.append(
-            "Relay per reti difficili opzionale: la sessione base e' pronta, aggiungilo solo per clienti dietro firewall restrittivi."
+            "Relay per reti difficili opzionale: la sessione base è pronta, aggiungilo solo per clienti dietro firewall restrittivi."
         )
     if not advanced_ready:
         advisories.append(

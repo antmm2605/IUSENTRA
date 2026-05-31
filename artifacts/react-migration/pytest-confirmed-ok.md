@@ -1,5 +1,20 @@
 # Pytest shard confermati OK
 
+## Supporto remoto end-to-end reale 2.248.92 - 2026-05-31
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| Server Flask isolato `http://127.0.0.1:18654/api/pronto` | OK | Runtime temporaneo fuori da `data/` del repository, SUPERADMIN piattaforma autenticato e `/admin/supporto-remoto` servito con asset `2.248.92`. |
+| Browser in-app su `/admin/supporto-remoto` | OK | Console caricata, stato `Pronta per assistenza immediata`, creazione sessione reale riuscita e falso errore sugli appunti eliminato: se il browser nega `navigator.clipboard`, il link resta nel campo dedicato. |
+| Link cliente della sessione errata già chiusa | OK | Il link cliente appartenente alla sessione precedente chiusa mostra `Sessione conclusa`, bootstrap `closed: true` e pulsante `Avvia assistenza` disabilitato, invece di sembrare ancora operativo. |
+| Link cliente corretto della sessione operatore aperta | OK | La stanza cliente corretta della sessione corrente resta avviabile e non mostra il banner di chiusura. |
+| WebSocket reale `/support/ws/<public_id>` | OK | Client .NET `ClientWebSocket` collegato come operatore e cliente su sessioni reali: eventi `peer_connected` per entrambi, presenza `operator/client=true`, stato avviato, disconnessione, note e chiusura persistite in SQLite temporaneo. |
+| `python -m py_compile web\blueprints\support_remote.py web\services\support_runtime.py web\services\support_surface.py pct\support_remote.py` | OK | Sintassi backend confermata dopo bootstrap `closed/status` nelle stanze. |
+| `python -m pytest tests\test_support_remote.py -q --tb=short` | OK | 10/10: include regressione su link cliente chiuso in sola lettura e copia appunti non bloccante. |
+| `python -m pytest tests\test_utf8_integrity.py -q --tb=short` | OK | 4/4: presidio UTF-8 verde dopo testi visibili e documentazione assistenza remota. |
+| `python tools\sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump `2.248.92`. |
+| `python -m pytest tests\test_build_dist.py tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | 16/16: versione `2.248.92` allineata tra package, Dockerfile, Railway e readiness dopo correzione della label OCI. |
+
 ## Import reale Studio Telematico 2.248.91 - 2026-05-30
 
 | Comando / verifica | Esito | Nota |

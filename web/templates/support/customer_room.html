@@ -15,6 +15,7 @@
   <link href="/static/css/theme.css?v={{ app_version }}" rel="stylesheet">
 </head>
 <body class="support-customer-page">
+  {% set session_closed = sessione.status == 'closed' %}
   <main class="support-customer-shell">
     <section class="support-customer-hero">
       <div class="support-customer-hero__brand">
@@ -26,7 +27,7 @@
       </div>
       <h1 class="support-customer-hero__title">Assistenza remota con consenso esplicito</h1>
       <p class="support-customer-hero__text">
-        Il SUPERADMIN dello studio puo' vedere solo lo schermo e l'audio che autorizzi qui. La sessione resta cifrata, tracciata e chiudibile in qualsiasi momento.
+        Il SUPERADMIN dello studio può vedere solo lo schermo e l'audio che autorizzi qui. La sessione resta cifrata, tracciata e chiudibile in qualsiasi momento.
       </p>
       <div class="support-customer-hero__badges">
         <span class="badge bg-light text-dark border" id="statusBadge">{{ sessione.status_label }}</span>
@@ -36,6 +37,17 @@
       </div>
     </section>
 
+    {% if session_closed %}
+    <section class="alert alert-warning shadow-sm" id="sessionClosedNotice" role="alert">
+      <div class="fw-semibold mb-1">
+        <i class="bi bi-lock-fill me-2"></i>Sessione conclusa
+      </div>
+      <div>
+        Questo link appartiene a una sessione già chiusa. Chiedi all'operatore un nuovo link di assistenza per riprendere la connessione.
+      </div>
+    </section>
+    {% endif %}
+
     <section class="support-customer-grid">
       <div class="card shadow-sm">
         <div class="card-header fw-semibold">
@@ -44,20 +56,20 @@
         <div class="card-body">
           <div class="support-consent-list">
             <label class="form-check">
-              <input class="form-check-input" type="checkbox" id="consentScreen" checked>
+              <input class="form-check-input" type="checkbox" id="consentScreen" checked {% if session_closed %}disabled{% endif %}>
               <span class="form-check-label">Autorizzo la condivisione dello schermo</span>
             </label>
             <label class="form-check">
-              <input class="form-check-input" type="checkbox" id="consentAudio">
+              <input class="form-check-input" type="checkbox" id="consentAudio" {% if session_closed %}disabled{% endif %}>
               <span class="form-check-label">Autorizzo il microfono</span>
             </label>
             <label class="form-check">
-              <input class="form-check-input" type="checkbox" id="consentChat" checked>
+              <input class="form-check-input" type="checkbox" id="consentChat" checked {% if session_closed %}disabled{% endif %}>
               <span class="form-check-label">Autorizzo la chat tecnica</span>
             </label>
           </div>
           <div class="support-room__actions mt-3">
-            <button class="btn btn-primary" id="startBtn" type="button">
+            <button class="btn btn-primary" id="startBtn" type="button" {% if session_closed %}disabled{% endif %}>
               <i class="bi bi-play-circle me-1"></i>Avvia assistenza
             </button>
             <button class="btn btn-outline-danger" id="stopBtn" type="button" disabled>
@@ -67,7 +79,11 @@
           <div class="support-room__screen support-room__screen--customer mt-3">
             <video id="localPreview" autoplay playsinline muted></video>
             <div class="support-room__screen-empty" id="localPreviewFallback">
-              Dopo il consenso il browser mostrera' l'anteprima del tuo schermo condiviso.
+              {% if session_closed %}
+              Sessione conclusa: la condivisione schermo non è più disponibile.
+              {% else %}
+              Dopo il consenso il browser mostrerà l'anteprima del tuo schermo condiviso.
+              {% endif %}
             </div>
             <audio id="remoteAudio" autoplay></audio>
           </div>
@@ -83,8 +99,8 @@
           <div class="mt-3">
             <label class="form-label small">Messaggio al tecnico</label>
             <div class="input-group">
-              <input class="form-control" id="chatInput" placeholder="Scrivi qui se vuoi spiegare il problema">
-              <button class="btn btn-outline-primary" id="sendBtn" type="button">Invia</button>
+              <input class="form-control" id="chatInput" placeholder="Scrivi qui se vuoi spiegare il problema" {% if session_closed %}disabled{% endif %}>
+              <button class="btn btn-outline-primary" id="sendBtn" type="button" {% if session_closed %}disabled{% endif %}>Invia</button>
             </div>
           </div>
         </div>

@@ -1,5 +1,16 @@
 # Pytest issue aperte e risoluzioni
 
+## Supporto remoto end-to-end reale 2.248.92 - 2026-05-31
+
+Nessuna issue di codice aperta sul perimetro corretto dopo fix, test mirati e verifica reale del canale WebSocket.
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Link cliente aperto durante la prova manuale | Browser reale e SQLite temporaneo | Risolto localmente | Il link `join` usato manualmente apparteneva a una sessione precedente già chiusa, mentre la scheda operatore aperta era su una sessione diversa. Il template cliente ora rende le sessioni chiuse in sola lettura con banner esplicito e controlli disabilitati. | Usare sempre il link cliente copiato dalla stanza operatore o dalla console della stessa sessione; mantenere il test `test_support_remote_closed_customer_link_is_read_only`. |
+| Copia automatica link cliente | Browser reale | Risolto localmente | `navigator.clipboard.writeText` può fallire quando il documento non è focalizzato; prima trasformava una sessione creata correttamente in falso errore UI. Ora la copia è best effort e non invalida la sessione. | Mantenere il test statico `test_support_remote_console_clipboard_failure_non_bloccante` e la prova browser quando si tocca `support_console.js`. |
+| Selezione schermo del sistema operativo | Browser reale | Limite di automazione, non blocco codice | Il canale realtime WebSocket, i consensi, la configurazione ICE, avvio, note e chiusura sono stati verificati end-to-end. La scelta dello schermo tramite prompt nativo `getDisplayMedia` resta un gesto utente/OS e non viene forzata dall'automazione. | Quando si prova manualmente la condivisione schermo, aprire il link cliente corretto della stessa sessione e confermare il prompt del browser. |
+| Label versione Dockerfile | `tests\test_packaging_consistency.py` | Risolto localmente | Il primo rilancio del gate packaging ha trovato `org.opencontainers.image.version="2.248.91"` mentre il package era già `2.248.92`. La label OCI è stata riallineata e il rilancio completo `test_build_dist.py test_packaging_consistency.py test_release_readiness.py` è verde `16/16`. | Verificare sempre anche la label OCI quando si bumpa la versione. |
+
 ## Import reale Studio Telematico 2.248.91 - 2026-05-30
 
 Nessuna issue di codice aperta sul perimetro corretto dopo la prova reale, il test mirato, il rebuild del preparatore Windows e la build React.

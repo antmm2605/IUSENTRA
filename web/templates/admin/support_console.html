@@ -134,9 +134,9 @@
             <div class="small text-muted">I campi cliente sono utili per il registro, ma puoi aprire una sessione anche subito e copiare il link.</div>
             <div class="small text-muted">
               {% if payload.advanced_ready %}
-              Escalation avanzata pronta: la piattaforma puo' aprire il controllo remoto esterno solo dopo approvazione esplicita del cliente.
+              Escalation avanzata pronta: la piattaforma può aprire il controllo remoto esterno solo dopo approvazione esplicita del cliente.
               {% else %}
-              Escalation avanzata opzionale: questa cabina copre gia' schermo, audio, chat, audit e consensi.
+              Escalation avanzata opzionale: questa cabina copre già schermo, audio, chat, audit e consensi.
               {% endif %}
             </div>
           </div>
@@ -164,21 +164,21 @@
       <div class="card-body">
         <form method="post" action="{{ payload.config_action }}">
           <div class="mb-3">
-            <label class="form-label">Connessione browser gia' operativa</label>
+            <label class="form-label">Connessione browser già operativa</label>
             <textarea class="form-control" name="stun_urls" rows="3" placeholder="stun:stun.l.google.com:19302">{{ payload.runtime_config.stun_urls_text }}</textarea>
-            <div class="small text-muted mt-1">Presidio predefinito gia' operativo. Usa un indirizzo per riga solo se vuoi sostituirlo con un presidio proprietario.</div>
+            <div class="small text-muted mt-1">Presidio predefinito già operativo. Usa un indirizzo per riga solo se vuoi sostituirlo con un presidio proprietario.</div>
           </div>
           <div class="mb-3">
             <label class="form-label">Relay per reti difficili</label>
             <textarea class="form-control" name="turn_urls" rows="3" placeholder="turn:turn.tuodominio.it:3478?transport=udp&#10;turns:turn.tuodominio.it:5349?transport=tcp">{{ payload.runtime_config.turn_urls_text }}</textarea>
-            <div class="small text-muted mt-1">Opzionale: aumenta affidabilita' per clienti con firewall o NAT restrittivi.</div>
+            <div class="small text-muted mt-1">Opzionale: aumenta affidabilità per clienti con firewall o NAT restrittivi.</div>
           </div>
           <div class="mb-3">
             <label class="form-label">Chiave relay temporanea</label>
-            <input class="form-control" type="password" name="turn_shared_secret" value="" placeholder="{% if payload.runtime_config.turn_shared_secret_present %}Secret gia' salvato - reinserisci solo se vuoi cambiarlo{% else %}Secret lungo e random{% endif %}">
+            <input class="form-control" type="password" name="turn_shared_secret" value="" placeholder="{% if payload.runtime_config.turn_shared_secret_present %}Secret già salvato - reinserisci solo se vuoi cambiarlo{% else %}Secret lungo e random{% endif %}">
             <div class="small text-muted mt-1">
               {% if payload.runtime_config.turn_shared_secret_present %}
-              Chiave gia' presente. Lascia vuoto se non vuoi cambiarla.
+              Chiave già presente. Lascia vuoto se non vuoi cambiarla.
               {% else %}
               Necessaria solo se colleghi il relay per reti difficili.
               {% endif %}

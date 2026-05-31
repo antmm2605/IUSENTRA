@@ -26,6 +26,7 @@
   let micStream = null;
   let stateTimer = null;
   let pingTimer = null;
+  let sessionClosed = Boolean(boot.closed || boot.status === "closed");
 
   function setStatus(text) {
     if (statusBadge) statusBadge.textContent = text;
@@ -73,6 +74,26 @@
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
+  function markSessionClosed() {
+    sessionClosed = true;
+    cleanup(false);
+    setStatus("Sessione chiusa");
+    setPeer(false);
+    startBtn.disabled = true;
+    stopBtn.disabled = true;
+    sendBtn.disabled = true;
+    chatInput.disabled = true;
+    consentScreen.disabled = true;
+    consentAudio.disabled = true;
+    consentChat.disabled = true;
+    approveAdvancedBtn.disabled = true;
+    rejectAdvancedBtn.disabled = true;
+    advancedBanner?.classList.add("d-none");
+    if (localPreviewFallback) {
+      localPreviewFallback.textContent = "Sessione conclusa: chiedi all'operatore un nuovo link di assistenza.";
+    }
+  }
+
   async function syncState() {
     try {
       const payload = await fetchJson(apiUrl("/state"));
@@ -81,9 +102,7 @@
       setPeer(Boolean(session.presence && session.presence.operator));
       advancedBanner?.classList.toggle("d-none", !(session.advanced_control_requested && !session.advanced_control_approved));
       if (session.status === "closed") {
-        cleanup(false);
-        startBtn.disabled = true;
-        stopBtn.disabled = true;
+        markSessionClosed();
       }
     } catch (error) {
       console.error(error);
@@ -204,6 +223,10 @@
   }
 
   async function startSession() {
+    if (sessionClosed) {
+      markSessionClosed();
+      return;
+    }
     try {
       startBtn.disabled = true;
       await fetchJson(apiUrl("/consent"), {
@@ -277,6 +300,7 @@
   }
 
   async function approveAdvanced() {
+    if (sessionClosed) return;
     try {
       await fetchJson(apiUrl("/escalation"), { method: "POST", body: JSON.stringify({ action: "approve" }) });
       advancedBanner?.classList.add("d-none");
@@ -287,6 +311,7 @@
   }
 
   async function rejectAdvanced() {
+    if (sessionClosed) return;
     try {
       await fetchJson(apiUrl("/escalation"), { method: "POST", body: JSON.stringify({ action: "reject" }) });
       advancedBanner?.classList.add("d-none");
@@ -297,6 +322,7 @@
   }
 
   function sendChat() {
+    if (sessionClosed) return;
     const text = (chatInput?.value || "").trim();
     if (!text) return;
     if (dataChannel && dataChannel.readyState === "open") {
@@ -317,5 +343,9 @@
     if (event.key === "Enter") sendChat();
   });
 
-  syncState();
+  if (sessionClosed) {
+    markSessionClosed();
+  } else {
+    syncState();
+  }
 })();

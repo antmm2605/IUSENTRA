@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.248.92 - 2026-05-31
+
+- Verificato end to end reale il modulo `/admin/supporto-remoto` su server locale isolato: login SUPERADMIN, console, creazione sessione, link cliente, stanza operatore, API stato/consensi/WebRTC, note, avvio e chiusura sessione.
+- Corretto il falso errore in console quando la copia automatica del link cliente negli appunti non è consentita dal browser: la sessione resta confermata e il link rimane disponibile nel campo dedicato.
+- Resi espliciti e non operativi i link cliente di sessioni già chiuse, con banner `Sessione conclusa` e controlli di condivisione/chat disabilitati anche lato JavaScript.
+- Ripuliti testi visibili e documentazione del modulo assistenza remota con accenti italiani UTF-8 reali.
+
 ## 2.248.91 - 2026-05-30
 
 - Corretto l'import reale Studio Telematico per pacchetti ZIP contenenti `QuickOrganizer.mdb`: il percorso MDB viene passato a PowerShell come parametro esplicito e l'output viene letto in UTF-8, evitando il falso errore `Pacchetto non leggibile`.

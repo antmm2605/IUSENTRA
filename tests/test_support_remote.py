@@ -199,6 +199,39 @@ def test_support_remote_close_sets_end_timestamp(tmp_path: Path):
     assert closed["ended_at"]
 
 
+def test_support_remote_closed_customer_link_is_read_only(tmp_path: Path):
+    app, superadmin, _, _ = _seed_runtime(tmp_path)
+
+    with app.test_client() as client:
+        with client.session_transaction() as session_tx:
+            session_tx["user_id"] = superadmin.id
+            session_tx["auth_scope"] = "global"
+            session_tx["auth_tenant_slug"] = ""
+            session_tx["last_activity"] = datetime.now().isoformat()
+
+        create_response = client.post(
+            "/support/api/session",
+            json={"customer_name": "Cliente Link Chiuso"},
+        )
+        payload = create_response.get_json()
+        public_id = payload["session"]["public_id"]
+        client_token = payload["session"]["client_token"]
+
+        close_response = client.post(
+            f"/support/api/{public_id}/close?role=operator",
+            json={},
+        )
+        join_page = client.get(f"/support/join/{client_token}")
+
+    html = join_page.get_data(as_text=True)
+    assert close_response.status_code == 200
+    assert join_page.status_code == 200
+    assert "Sessione conclusa" in html
+    assert "Questo link appartiene a una sessione già chiusa" in html
+    assert 'id="startBtn" type="button" disabled' in html
+    assert '"closed": true' in html
+
+
 def test_support_remote_escalation_requires_advanced_template(tmp_path: Path):
     app, superadmin, _, _ = _seed_runtime(tmp_path)
     app.config["SUPPORT_ADVANCED_URL_TEMPLATE"] = ""
@@ -298,3 +331,12 @@ def test_support_remote_empty_stun_preserves_ready_default(tmp_path: Path):
 
     assert payload["ready_now"] is True
     assert payload["warnings"] == []
+
+
+def test_support_remote_console_clipboard_failure_non_bloccante():
+    script = Path("web/static/js/support_console.js").read_text(encoding="utf-8")
+
+    assert "let clipboardCopied = false" in script
+    assert "clipboardCopied = false;" in script
+    assert "Link cliente pronto nel campo dedicato" in script
+    assert "Impossibile creare la sessione" in script

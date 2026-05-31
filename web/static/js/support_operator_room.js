@@ -25,6 +25,7 @@
   let pingTimer = null;
   let advancedUrl = "";
   let makingOffer = false;
+  let sessionClosed = Boolean(boot.closed || boot.status === "closed");
 
   function setStatus(text) {
     if (statusBadge) statusBadge.textContent = text;
@@ -72,6 +73,23 @@
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
+  function markSessionClosed() {
+    sessionClosed = true;
+    cleanup(false);
+    setStatus("Sessione chiusa");
+    setPeer(false);
+    joinBtn.disabled = true;
+    requestAdvancedBtn.disabled = true;
+    closeBtn.disabled = true;
+    sendBtn.disabled = true;
+    chatInput.disabled = true;
+    operatorMic.disabled = true;
+    openAdvancedBtn?.classList.add("d-none");
+    if (remoteVideoFallback) {
+      remoteVideoFallback.textContent = "Sessione conclusa: crea una nuova sessione per riprendere l'assistenza.";
+    }
+  }
+
   async function syncState() {
     try {
       const payload = await fetchJson(apiUrl("/state"));
@@ -81,8 +99,7 @@
       advancedUrl = session.advanced_url || "";
       openAdvancedBtn?.classList.toggle("d-none", !advancedUrl);
       if (session.status === "closed") {
-        cleanup(false);
-        joinBtn.disabled = true;
+        markSessionClosed();
       }
     } catch (error) {
       console.error(error);
@@ -203,6 +220,10 @@
   }
 
   async function joinSession() {
+    if (sessionClosed) {
+      markSessionClosed();
+      return;
+    }
     try {
       joinBtn.disabled = true;
       await acquireOperatorAudio();
@@ -222,6 +243,7 @@
   }
 
   async function requestAdvanced() {
+    if (sessionClosed) return;
     if (!boot.advancedConfigured) {
       setStatus("Controllo avanzato non configurato sulla piattaforma");
       return;
@@ -243,6 +265,7 @@
     } finally {
       cleanup(false);
       joinBtn.disabled = true;
+      sessionClosed = true;
       setStatus("Sessione chiusa");
     }
   }
@@ -278,6 +301,7 @@
   }
 
   function sendChat() {
+    if (sessionClosed) return;
     const text = (chatInput?.value || "").trim();
     if (!text) return;
     if (dataChannel && dataChannel.readyState === "open") {
@@ -318,5 +342,9 @@
     requestAdvancedBtn.title = "Configura SUPPORT_ADVANCED_URL_TEMPLATE per abilitare l'escalation esterna.";
   }
 
-  syncState();
+  if (sessionClosed) {
+    markSessionClosed();
+  } else {
+    syncState();
+  }
 })();

@@ -155,6 +155,8 @@ def customer_room(token: str):
         "apiPrefix": f"/support/api/{row['public_id']}",
         "wsBase": "/support/ws",
         "customerName": row["customer_name"] or "",
+        "status": row["status"],
+        "closed": row["status"] == "closed",
     }
     return render_template(
         "support/customer_room.html",
@@ -188,6 +190,8 @@ def operator_room(public_id: str):
         "customerJoinUrl": url_for("support_remote.customer_room", token=row["client_token"], _external=True),
         "customerName": row["customer_name"] or "",
         "advancedConfigured": bool(str(current_app.config.get("SUPPORT_ADVANCED_URL_TEMPLATE") or "").strip()),
+        "status": row["status"],
+        "closed": row["status"] == "closed",
     }
     return render_template(
         "support/operator_room.html",

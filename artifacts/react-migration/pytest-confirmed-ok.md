@@ -14,6 +14,7 @@
 | `python -m pytest tests\test_utf8_integrity.py -q --tb=short` | OK | 4/4: presidio UTF-8 verde dopo testi visibili e documentazione assistenza remota. |
 | `python tools\sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump `2.248.92`. |
 | `python -m pytest tests\test_build_dist.py tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | 16/16: versione `2.248.92` allineata tra package, Dockerfile, Railway e readiness dopo correzione della label OCI. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python scripts\smoke_app_v2_all.py --subset contracts`; `python -m pytest -q tests\test_openapi_contracts_phase6.py --tb=short` | OK | OpenAPI riallineato alla versione `2.248.92`; provider verification `auth-error=214`, `success=27`, `backend-security=1`; smoke contratti offline PASS=2/SKIP live=1; test fase 6 `5/5`. |
 
 ## Import reale Studio Telematico 2.248.91 - 2026-05-30
 

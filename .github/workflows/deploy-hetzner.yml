@@ -96,6 +96,7 @@ jobs:
           retention-days: 14
 
       - name: Setup chiave SSH e known_hosts
+        id: setup_ssh
         env:
           HETZNER_SSH_PRIVATE_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
           HETZNER_SSH_KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
@@ -270,7 +271,7 @@ jobs:
           done
 
       - name: Pulizia cache build Docker
-        if: always()
+        if: ${{ always() && steps.setup_ssh.outcome == 'success' }}
         run: |
           set -euo pipefail
           ssh -i ~/.ssh/id_deploy \

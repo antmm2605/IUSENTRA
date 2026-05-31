@@ -4,6 +4,7 @@ from pathlib import Path
 
 from pct import __version__
 from pct.installation_pack_repository import InstallationPackRepository
+import pct.installation_packs as installation_packs
 from pct.installation_packs import (
     SYSTEM_SERVICE_DEFINITIONS,
     bootstrap_pack_governance,
@@ -77,6 +78,44 @@ def test_bootstrap_pack_governance_crea_manifest_macchina_e_studio(tmp_path: Pat
     assert (studio_root / "studio_data" / "memory" / "facts").is_dir()
     assert (studio_root / "studio_data" / "vectors").is_dir()
     assert (system_root / "installation" / "keys" / "master.key").exists()
+
+
+def test_installation_identity_riscrive_solo_campi_ammessi(tmp_path: Path, monkeypatch):
+    registry_path = str(tmp_path / "tenants" / "registry.json")
+    captured: list[dict[str, object]] = []
+
+    monkeypatch.setattr(
+        installation_packs,
+        "_read_json",
+        lambda path: {
+            "installation_id": "installazione-esistente",
+            "created_at": "2026-05-01T00:00:00+00:00",
+            "requested_by": "OPERATORE",
+            "master_key_path": "/non/va/serializzato",
+            "derived_keys": {"database": "/non/va/serializzato"},
+            "signing_key_fingerprint": "non-va-serializzato",
+            "campo_non_governato": "non-va-serializzato",
+        },
+    )
+    monkeypatch.setattr(installation_packs, "ensure_installation_local_key", lambda path: None)
+    monkeypatch.setattr(installation_packs, "_write_json", lambda path, payload: captured.append(dict(payload)))
+
+    identity = installation_packs.ensure_installation_identity(
+        app_root=REPO_ROOT,
+        registry_path=registry_path,
+        app_version=__version__,
+    )
+
+    assert identity["installation_id"] == "installazione-esistente"
+    assert identity["created_at"] == "2026-05-01T00:00:00+00:00"
+    assert identity["requested_by"] == "OPERATORE"
+    assert captured and captured[0] == identity
+    assert "master_key_path" not in identity
+    assert "signing_key_path" not in identity
+    assert "derived_keys" not in identity
+    assert "master_key_fingerprint" not in identity
+    assert "signing_key_fingerprint" not in identity
+    assert "campo_non_governato" not in identity
 
 
 def test_installation_pack_repository_salva_snapshot_corrente(tmp_path: Path):

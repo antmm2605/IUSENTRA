@@ -16,6 +16,7 @@ from pct.scheduler_registry import (
     scheduler_registry_repository,
     template_catalog,
 )
+from web.services.security_redaction import redact_exception_details
 
 
 def _repository() -> SchedulerRegistryRepository:
@@ -66,12 +67,16 @@ def _payload_error_messages(value: Any) -> list[str]:
         if value.get("ok") is False:
             messages.append("Controllo interno non riuscito.")
         for key in ("error", "error_message"):
-            message = str(value.get(key) or "").strip()
+            message = str(redact_exception_details(value.get(key)) or "").strip()
             if message:
                 messages.append(message)
         inner_errors = value.get("inner_errors")
         if isinstance(inner_errors, list):
-            messages.extend(str(item).strip() for item in inner_errors if str(item or "").strip())
+            messages.extend(
+                str(redact_exception_details(item)).strip()
+                for item in inner_errors
+                if str(redact_exception_details(item) or "").strip()
+            )
         for nested in value.values():
             messages.extend(_payload_error_messages(nested))
     elif isinstance(value, list):
@@ -206,11 +211,12 @@ def _legal_archive_status() -> dict[str, Any]:
         pipeline = build_legal_update_pipeline_runtime(current_app._get_current_object())
         headline = dict((pipeline.dashboard_snapshot() or {}).get("headline") or {})
     except Exception as exc:
+        current_app.logger.exception("Stato archivio legale non leggibile: %s", exc)
         return {
             "available": False,
             "status_label": "Archivio non verificabile",
             "status_class": "danger",
-            "message": f"Stato archivio non letto: {exc}",
+            "message": "Stato archivio non letto. Dettaglio tecnico registrato nei log server.",
             "raw_documents": 0,
             "analyses": 0,
             "published_cards": 0,

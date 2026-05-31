@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, url_for, g
+from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for, g
 
 from web.blueprints.admin import superadmin_required
 from web.services.scheduler_admin_surface import (
@@ -12,6 +12,7 @@ from web.services.scheduler_admin_surface import (
     request_scheduler_run,
     save_scheduler_job_from_payload,
 )
+from web.services.security_redaction import redacted_json_response
 
 
 scheduler_admin = Blueprint("scheduler_admin", __name__)
@@ -37,7 +38,7 @@ def cronjob_alias():
 @scheduler_admin.get("/admin/pianificazioni/api")
 @superadmin_required
 def api_dashboard():
-    return jsonify(build_scheduler_admin_surface())
+    return redacted_json_response(build_scheduler_admin_surface())
 
 
 @scheduler_admin.post("/admin/pianificazioni/<string:job_id>/salva")
@@ -48,7 +49,7 @@ def save_job(job_id: str):
         flash("Pianificazione aggiornata. Il worker applichera' la modifica entro un minuto.", "success")
     except Exception as exc:
         current_app.logger.exception("Errore salvataggio pianificazione %s: %s", job_id, exc)
-        flash(f"Pianificazione non aggiornata: {exc}", "danger")
+        flash("Pianificazione non aggiornata. Dettaglio tecnico registrato nei log server.", "danger")
     return redirect(url_for("scheduler_admin.dashboard"))
 
 
@@ -60,7 +61,7 @@ def create_job():
         flash(f"Pianificazione creata: {created['name']}.", "success")
     except Exception as exc:
         current_app.logger.exception("Errore creazione pianificazione: %s", exc)
-        flash(f"Pianificazione non creata: {exc}", "danger")
+        flash("Pianificazione non creata. Dettaglio tecnico registrato nei log server.", "danger")
     return redirect(url_for("scheduler_admin.dashboard"))
 
 
@@ -72,7 +73,7 @@ def run_job(job_id: str):
         flash("Esecuzione richiesta. Il worker la prende in carico senza bloccare la console.", "success")
     except Exception as exc:
         current_app.logger.exception("Errore richiesta esecuzione %s: %s", job_id, exc)
-        flash(f"Esecuzione non richiesta: {exc}", "danger")
+        flash("Esecuzione non richiesta. Dettaglio tecnico registrato nei log server.", "danger")
     return redirect(url_for("scheduler_admin.dashboard"))
 
 
@@ -91,5 +92,5 @@ def cancel_legal_sources():
             flash("Nessuna esecuzione fonti legali aperta da annullare.", "info")
     except Exception as exc:
         current_app.logger.exception("Errore annullamento controlli fonti legali: %s", exc)
-        flash(f"Annullamento non completato: {exc}", "danger")
+        flash("Annullamento non completato. Dettaglio tecnico registrato nei log server.", "danger")
     return redirect(url_for("scheduler_admin.dashboard"))

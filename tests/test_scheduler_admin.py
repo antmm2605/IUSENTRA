@@ -31,6 +31,43 @@ def test_superadmin_puo_aprire_console_pianificazioni(tmp_path: Path):
     assert alias.headers["Location"].endswith("/admin/pianificazioni")
 
 
+def test_api_pianificazioni_non_espone_traceback(tmp_path: Path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    cfg = _cfg_web(tmp_path)
+    app = create_app(cfg)
+    username, password = _seed_platform_superadmin(app)
+
+    from web.blueprints import scheduler_admin as scheduler_admin_module
+
+    monkeypatch.setattr(
+        scheduler_admin_module,
+        "build_scheduler_admin_surface",
+        lambda: {
+            "recent_runs": [
+                {
+                    "status": "failed",
+                    "result": {
+                        "error": "Traceback (most recent call last):\n  File \"C:\\Users\\studio\\app.py\"",
+                        "exception": "RuntimeError: dettagli interni",
+                    },
+                }
+            ],
+            "registry_db": "C:\\Users\\studio\\scheduler.db",
+        },
+    )
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
+        response = client.get("/admin/pianificazioni/api")
+
+    assert response.status_code == 200
+    body = response.get_data(as_text=True)
+    assert "Traceback" not in body
+    assert "RuntimeError" not in body
+    assert "C:\\Users" not in body
+    assert "Dettaglio tecnico registrato nei log server." in body
+
+
 def test_superadmin_crea_e_modifica_cronjob_agente(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     cfg = _cfg_web(tmp_path)

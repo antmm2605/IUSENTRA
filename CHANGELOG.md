@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.248.99 - 2026-05-31
+
+- Ricostruita l'identità Installation Pack da una allowlist esplicita prima della scrittura, così eventuali campi storici o non governati non vengono mai risalvati nei manifest.
+- Protetta la pulizia remota del deploy Hetzner: viene eseguita dopo la configurazione SSH riuscita, evitando errori spurii quando un gate pre-deploy blocca il job prima dell'accesso al server.
+- Sanificata la risposta JSON della console pianificazioni superadmin per non esporre stack trace, path locali o dettagli tecnici nei payload utente.
+- Aggiunti test di regressione su bonifica identità Installation Pack e redazione pianificazioni; aggiornati contratti OpenAPI alla versione `2.248.99`.
+
 ## 2.248.98 - 2026-05-31
 
 - Rimossi dai manifest Installation Pack i riferimenti pubblici a percorsi o nomi di materiale protetto, evitando che CodeQL li classifichi come segreti salvati in chiaro.

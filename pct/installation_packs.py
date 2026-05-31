@@ -266,18 +266,27 @@ def ensure_installation_identity(
 
     identity_path = paths["installation_config"] / "installation_identity.json"
     master_key_path = paths["installation_keys"] / "master.key"
-    identity = _read_json(identity_path)
-    if not identity:
-        identity = {
-            "installation_id": uuid4().hex,
-            "created_at": _utcnow_iso(),
-            "requested_by": requested_by,
-            "app_root": str(app_root_path),
-            "app_version": app_version,
-            "product_root": str(paths["product_root"]),
-            "studio_local_scope": "I dati degli studi restano tenant-aware sotto data/tenants e non vengono distribuiti nel Product Pack.",
-            "superadmin_scope": "Il SUPERADMIN installa, aggiorna e governa Product Pack, Update Pack e bootstrap macchina.",
-        }
+    previous_identity = _read_json(identity_path)
+    installation_id = previous_identity.get("installation_id")
+    if not isinstance(installation_id, str) or not installation_id.strip():
+        installation_id = uuid4().hex
+    created_at = previous_identity.get("created_at")
+    if not isinstance(created_at, str) or not created_at.strip():
+        created_at = _utcnow_iso()
+    previous_requested_by = previous_identity.get("requested_by")
+    if not isinstance(previous_requested_by, str) or not previous_requested_by.strip():
+        previous_requested_by = requested_by
+
+    identity = {
+        "installation_id": installation_id,
+        "created_at": created_at,
+        "requested_by": previous_requested_by,
+        "app_root": str(app_root_path),
+        "app_version": app_version,
+        "product_root": str(paths["product_root"]),
+        "studio_local_scope": "I dati degli studi restano tenant-aware sotto data/tenants e non vengono distribuiti nel Product Pack.",
+        "superadmin_scope": "Il SUPERADMIN installa, aggiorna e governa Product Pack, Update Pack e bootstrap macchina.",
+    }
 
     ensure_installation_local_key(master_key_path)
 
@@ -290,15 +299,6 @@ def ensure_installation_identity(
                 "storage": "protected local file",
             }
         )
-    for obsolete in (
-        "master_key_path",
-        "signing_key_path",
-        "derived_keys",
-        "master_key_fingerprint",
-        "signing_key_fingerprint",
-    ):
-        identity.pop(obsolete, None)
-
     identity.update(
         {
             "app_version": app_version,

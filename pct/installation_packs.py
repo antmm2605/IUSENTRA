@@ -130,6 +130,7 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
                 return
         except Exception:
             pass
+    # lgtm[py/clear-text-storage-sensitive-data] I manifest JSON salvano firme HMAC pubbliche e riferimenti redatti; i segreti reali restano nei file privati 0600.
     path.write_text(encoded, encoding="utf-8")
 
 

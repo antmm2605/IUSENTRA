@@ -253,11 +253,11 @@ def register_auth_runtime(
 
         if not state.get("storage_reconciled"):
             try:
-                tenants.reconcile_storage_aliases(tenant_slug)
+                tenants.percorsi_dati(tenant_slug, reconcile_aliases=False)
                 state["storage_reconciled"] = True
             except Exception as exc:
                 app.logger.exception(
-                    "Errore riconciliazione storage tenant %s: %s",
+                    "Errore preparazione percorsi storage tenant %s: %s",
                     tenant_slug,
                     exc,
                 )

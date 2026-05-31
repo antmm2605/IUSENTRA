@@ -286,6 +286,13 @@ def test_runtime_bundle_startup_sync_directory_non_rilancia_reconcile_pesante():
     assert "reconcile_storage=False" in source
 
 
+def test_auth_runtime_request_non_rilancia_reconcile_storage_pesante():
+    source = (REPO_ROOT / "web" / "services" / "auth_runtime.py").read_text(encoding="utf-8")
+
+    assert "tenants.reconcile_storage_aliases(tenant_slug)" not in source
+    assert "tenants.percorsi_dati(tenant_slug, reconcile_aliases=False)" in source
+
+
 def test_create_app_cloud_gestito_rinvia_bootstrap_moduli_ma_get_database_lo_esegue(
     monkeypatch,
     tmp_path: Path,

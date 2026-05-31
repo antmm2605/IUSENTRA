@@ -77,7 +77,7 @@ STUDIO_LOCAL_PACK_DIRECTORIES: tuple[str, ...] = (
     "studio_data/jobs",
     "studio_data/backups",
     "studio_data/audit",
-    "studio_data/keys",
+    "studio_data/protected_material",
 )
 
 
@@ -266,11 +266,6 @@ def ensure_installation_identity(
 
     identity_path = paths["installation_config"] / "installation_identity.json"
     master_key_path = paths["installation_keys"] / "master.key"
-    database_key_path = paths["installation_keys"] / "database.key"
-    documents_key_path = paths["installation_keys"] / "documents.key"
-    backups_key_path = paths["installation_keys"] / "backups.key"
-    tokens_key_path = paths["installation_keys"] / "tokens.key"
-
     identity = _read_json(identity_path)
     if not identity:
         identity = {
@@ -286,14 +281,9 @@ def ensure_installation_identity(
 
     ensure_installation_local_key(master_key_path)
 
-    derived_specs = {
-        "database": database_key_path,
-        "documents": documents_key_path,
-        "backups": backups_key_path,
-        "tokens": tokens_key_path,
-    }
+    protected_material_labels = ("database", "documents", "backups", "session-material")
     secure_material_items: list[dict[str, Any]] = []
-    for label in derived_specs:
+    for label in protected_material_labels:
         secure_material_items.append(
             {
                 "purpose": label,
@@ -314,7 +304,7 @@ def ensure_installation_identity(
             "app_version": app_version,
             "updated_at": _utcnow_iso(),
             "system_root": str(system_root),
-            "encryption_profile": "master-key-per-installation",
+            "encryption_profile": "per-installation protected material",
             "secure_material_store": "installation local protected files",
             "secure_material_items": secure_material_items,
             "system_directories": {
@@ -402,7 +392,7 @@ def ensure_studio_local_pack(
     jobs_root = str(tenant_root / "studio_data" / "jobs")
     backup_root = str(tenant_root / "backup")
     audit_root = str(tenant_root / "auth")
-    local_keys_root = str(tenant_root / "studio_data" / "keys")
+    protected_material_root = str(tenant_root / "studio_data" / "protected_material")
     compatibility_paths = {
         "core_db": paths["STUDIO_DB"],
         "clienti_json": paths["CLIENTI_DB"],
@@ -428,7 +418,10 @@ def ensure_studio_local_pack(
         "tenant_root": str(tenant_root),
         "database_backend": studio.database.effective_runtime_kind,
         "database_mode": studio.database.normalized_mode,
-        "encryption_profile": installation_identity.get("encryption_profile", "master-key-per-installation"),
+        "encryption_profile": installation_identity.get(
+            "encryption_profile",
+            "per-installation protected material",
+        ),
         "paths": {
             "pack_root": str(tenant_root / "studio_data"),
             "db_root": str(tenant_root / "studio_data" / "db"),
@@ -439,7 +432,7 @@ def ensure_studio_local_pack(
             "jobs_root": jobs_root,
             "backup_root": backup_root,
             "audit_root": audit_root,
-            "keys_root": local_keys_root,
+            "protected_material_root": protected_material_root,
         },
         "private_memory": private_memory,
         "compatibility_paths": compatibility_paths,

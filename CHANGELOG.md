@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.248.98 - 2026-05-31
+
+- Rimossi dai manifest Installation Pack i riferimenti pubblici a percorsi o nomi di materiale protetto, evitando che CodeQL li classifichi come segreti salvati in chiaro.
+- Aggiornati contratti OpenAPI alla versione `2.248.98`.
+
 ## 2.248.97 - 2026-05-31
 
 - Preservata la sessione di caricamento a blocchi dell'import Studio Telematico se lo staging fallisce, così il pacchetto ricomposto resta disponibile per audit e recupero operativo invece di essere eliminato.

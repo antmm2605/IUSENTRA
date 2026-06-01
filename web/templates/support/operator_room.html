@@ -17,16 +17,6 @@
   {% for preload_file in react_assets.preload_js %}
   <link rel="modulepreload" href="{{ preload_file }}">
   {% endfor %}
-  <style>
-    .support-room__agent-frame {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      background: #020617;
-    }
-  </style>
 </head>
 <body class="support-operator-react-page">
   <script>

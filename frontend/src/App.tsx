@@ -1273,7 +1273,7 @@ export default function App() {
   const syncMailboxesNow = () => {
     setMailSyncing(true)
     syncDashboardMailboxes()
-      .then(() => getDashboard({ refresh: true }))
+      .then(() => getDashboard({refresh:true}))
       .then(setData)
       .finally(() => setMailSyncing(false))
   }

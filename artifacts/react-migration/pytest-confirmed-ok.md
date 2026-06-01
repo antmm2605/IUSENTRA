@@ -1,5 +1,15 @@
 # Pytest shard confermati OK
 
+## Assistenza remota reale, fascicoli e contratti 2.249.3 - 2026-06-01
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python tools\check_repo_governance.py`; `npm --prefix frontend test`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml` | OK | Governance, contratti React, contratti API e OpenAPI riallineati dopo il fix dei gate GitHub sullo SHA precedente. |
+| `python scripts\verify_openapi_provider.py`; `python scripts\smoke_app_v2_all.py --subset contracts`; `python -m pytest -q tests/test_openapi_contracts_phase6.py --tb=short`; `npm --prefix frontend run typecheck` | OK | Provider verification `auth-error=229`, `success=27`, `backend-security=1`; smoke contratti PASS=2/SKIP live=1; OpenAPI fase 6 `5/5`; typecheck React verde. |
+| `python -m pytest tests\test_support_remote.py tests\test_push_notifications.py tests\test_fascicoli_pagination.py tests\test_pdf_deadline_import.py tests\test_react_asset_retention.py -q --tb=short`; `python -m pytest tests\test_utf8_integrity.py -q --tb=short`; `git diff --check` | OK | 48/48 sul perimetro assistenza remota, notifiche, fascicoli, import scadenze PDF e asset React; UTF-8 `4/4`; nessun errore whitespace, solo warning CRLF/LF storico sui contratti generati. |
+| `npm --prefix frontend run build`; `python -m pytest tests\test_react_asset_retention.py -q --tb=short` | OK | Build Vite finale completata; asset React referenziati `2/2`, nessun nuovo asset appeso da committare. |
+| Browser visibile su `http://127.0.0.1:8080` | OK | Richiesta reale dal bottone `Assistenza` su `/fascicoli`, sessione cliente `/support/join/_ks0...`, console superadmin `/admin/supporto-remoto?sessione=8481b066...`, `Prendi in carico` e stanza operatore `/support/operatore/8481b066...` verificati sulla copia locale. |
+
 ## Preparazione assistita Studio Telematico 2.249.1 - 2026-05-31
 
 | Comando / verifica | Esito | Nota |
